@@ -1,6 +1,7 @@
 package machine
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
+	configv1 "github.com/openshift/api/config/v1"
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,6 +26,7 @@ import (
 func init() {
 	// Add types to scheme
 	machinev1.AddToScheme(scheme.Scheme)
+	configv1.AddToScheme(scheme.Scheme)
 }
 
 func TestAvailabilityZone(t *testing.T) {
@@ -82,6 +85,11 @@ func TestAvailabilityZone(t *testing.T) {
 			machine.Spec.ProviderSpec = machinev1.ProviderSpec{Value: config}
 
 			fakeClient := fake.NewFakeClient(machine, awsCredentialsSecret, userDataSecret)
+
+			err = fakeClient.Create(context.Background(), &configv1.Infrastructure{ObjectMeta: metav1.ObjectMeta{Name: awsclient.GlobalInfrastuctureName}})
+			if err != nil {
+				t.Fatal(err)
+			}
 
 			mockCtrl := gomock.NewController(t)
 			mockAWSClient := mockaws.NewMockClient(mockCtrl)
@@ -488,6 +496,11 @@ func TestCreate(t *testing.T) {
 		machine.Spec.ProviderSpec = machinev1.ProviderSpec{Value: encodedProviderConfig}
 
 		fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, machine, tc.awsCredentialsSecret, tc.userDataSecret)
+
+		err = fakeClient.Create(context.Background(), &configv1.Infrastructure{ObjectMeta: metav1.ObjectMeta{Name: awsclient.GlobalInfrastuctureName}})
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		machineScope, err := newMachineScope(machineScopeParams{
 			client:  fakeClient,

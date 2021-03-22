@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	configv1 "github.com/openshift/api/config/v1"
 	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -58,21 +59,85 @@ func TestRemoveDuplicatedTags(t *testing.T) {
 
 func TestBuildTagList(t *testing.T) {
 	cases := []struct {
-		tagList  []awsproviderv1.TagSpecification
-		expected []*ec2.Tag
+		name            string
+		machineSpecTags []awsproviderv1.TagSpecification
+		infra           *configv1.Infrastructure
+		expected        []*ec2.Tag
 	}{
 		{
-			tagList: []awsproviderv1.TagSpecification{},
+			name:            "with empty infra and provider spec should return default tags",
+			machineSpecTags: []awsproviderv1.TagSpecification{},
+			infra: &configv1.Infrastructure{
+				Status: configv1.InfrastructureStatus{
+					PlatformStatus: &configv1.PlatformStatus{
+						AWS: &configv1.AWSPlatformStatus{
+							ResourceTags: []configv1.AWSResourceTag{},
+						},
+					},
+				},
+			},
 			expected: []*ec2.Tag{
 				{Key: aws.String("kubernetes.io/cluster/clusterID"), Value: aws.String("owned")},
 				{Key: aws.String("Name"), Value: aws.String("machineName")},
 			},
 		},
 		{
-			tagList: []awsproviderv1.TagSpecification{
+			name:            "with empty infra should return default tags",
+			machineSpecTags: []awsproviderv1.TagSpecification{},
+			infra:           &configv1.Infrastructure{}, // should work with empty infra object
+			expected: []*ec2.Tag{
+				{Key: aws.String("kubernetes.io/cluster/clusterID"), Value: aws.String("owned")},
+				{Key: aws.String("Name"), Value: aws.String("machineName")},
+			},
+		},
+		{
+			name:            "with nil infra should  return default tags",
+			machineSpecTags: []awsproviderv1.TagSpecification{},
+			infra:           nil, // should work with nil infra object
+			expected: []*ec2.Tag{
+				{Key: aws.String("kubernetes.io/cluster/clusterID"), Value: aws.String("owned")},
+				{Key: aws.String("Name"), Value: aws.String("machineName")},
+			},
+		},
+		{
+			name: "should filter out bad tags from provider spec",
+			machineSpecTags: []awsproviderv1.TagSpecification{
 				{Name: "Name", Value: "badname"},
 				{Name: "kubernetes.io/cluster/badid", Value: "badvalue"},
 				{Name: "good", Value: "goodvalue"},
+			},
+			infra: nil,
+			// Invalid tags get dropped and the valid clusterID and Name get applied last.
+			expected: []*ec2.Tag{
+				{Key: aws.String("good"), Value: aws.String("goodvalue")},
+				{Key: aws.String("kubernetes.io/cluster/clusterID"), Value: aws.String("owned")},
+				{Key: aws.String("Name"), Value: aws.String("machineName")},
+			},
+		},
+		{
+			name:            "should filter out bad tags from infra object",
+			machineSpecTags: []awsproviderv1.TagSpecification{},
+			infra: &configv1.Infrastructure{
+				Status: configv1.InfrastructureStatus{
+					PlatformStatus: &configv1.PlatformStatus{
+						AWS: &configv1.AWSPlatformStatus{
+							ResourceTags: []configv1.AWSResourceTag{
+								{
+									Key:   "kubernetes.io/cluster/badid",
+									Value: "badvalue",
+								},
+								{
+									Key:   "Name",
+									Value: "badname",
+								},
+								{
+									Key:   "good",
+									Value: "goodvalue",
+								},
+							},
+						},
+					},
+				},
 			},
 			// Invalid tags get dropped and the valid clusterID and Name get applied last.
 			expected: []*ec2.Tag{
@@ -81,12 +146,41 @@ func TestBuildTagList(t *testing.T) {
 				{Key: aws.String("Name"), Value: aws.String("machineName")},
 			},
 		},
+		{
+			name: "tags from machine object should have precedence",
+			machineSpecTags: []awsproviderv1.TagSpecification{
+				{Name: "Name", Value: "badname"},
+				{Name: "kubernetes.io/cluster/badid", Value: "badvalue"},
+				{Name: "good", Value: "goodvalue"},
+			},
+			infra: &configv1.Infrastructure{
+				Status: configv1.InfrastructureStatus{
+					PlatformStatus: &configv1.PlatformStatus{
+						AWS: &configv1.AWSPlatformStatus{
+							ResourceTags: []configv1.AWSResourceTag{
+								{
+									Key:   "good",
+									Value: "should-be-overwritten",
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: []*ec2.Tag{
+				{Key: aws.String("good"), Value: aws.String("goodvalue")},
+				{Key: aws.String("kubernetes.io/cluster/clusterID"), Value: aws.String("owned")},
+				{Key: aws.String("Name"), Value: aws.String("machineName")},
+			},
+		},
 	}
 	for i, c := range cases {
-		actual := buildTagList("machineName", "clusterID", c.tagList)
-		if !reflect.DeepEqual(c.expected, actual) {
-			t.Errorf("test #%d: expected %+v, got %+v", i, c.expected, actual)
-		}
+		t.Run(c.name, func(t *testing.T) {
+			actual := buildTagList("machineName", "clusterID", c.machineSpecTags, c.infra)
+			if !reflect.DeepEqual(c.expected, actual) {
+				t.Errorf("test #%d: expected %+v, got %+v", i, c.expected, actual)
+			}
+		})
 	}
 }
 
@@ -350,7 +444,24 @@ func TestLaunchInstance(t *testing.T) {
 	}
 
 	providerConfig := stubProviderConfig()
-	stubTagList := buildTagList(machine.Name, stubClusterID, providerConfig.Tags)
+	stubTagList := buildTagList(machine.Name, stubClusterID, providerConfig.Tags, nil)
+
+	infra := &configv1.Infrastructure{
+		Status: configv1.InfrastructureStatus{
+			PlatformStatus: &configv1.PlatformStatus{
+				AWS: &configv1.AWSPlatformStatus{
+					ResourceTags: []configv1.AWSResourceTag{
+						{
+							Key:   "infra-tag-key",
+							Value: "infra-tag-value",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	stubTagListWithInfraObject := buildTagList(machine.Name, stubClusterID, providerConfig.Tags, infra)
 
 	cases := []struct {
 		name                string
@@ -366,6 +477,7 @@ func TestLaunchInstance(t *testing.T) {
 		instancesErr        error
 		succeeds            bool
 		runInstancesInput   *ec2.RunInstancesInput
+		infra               *configv1.Infrastructure
 	}{
 		{
 			name: "Security groups with filters",
@@ -738,6 +850,43 @@ func TestLaunchInstance(t *testing.T) {
 			name:           "Dedicated instance tenancy",
 			providerConfig: stubInvalidInstanceTenancy(),
 		},
+		{
+			name:           "Attach infrastructure object tags",
+			providerConfig: providerConfig,
+			infra:          infra,
+			runInstancesInput: &ec2.RunInstancesInput{
+				IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+					Name: aws.String(*providerConfig.IAMInstanceProfile.ID),
+				},
+				ImageId:      aws.String(*providerConfig.AMI.ID),
+				InstanceType: &providerConfig.InstanceType,
+				MinCount:     aws.Int64(1),
+				MaxCount:     aws.Int64(1),
+				KeyName:      providerConfig.KeyName,
+				TagSpecifications: []*ec2.TagSpecification{{
+					ResourceType: aws.String("instance"),
+					Tags:         stubTagListWithInfraObject,
+				}, {
+					ResourceType: aws.String("volume"),
+					Tags:         stubTagListWithInfraObject,
+				}},
+				NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+					{
+						DeviceIndex:              aws.Int64(providerConfig.DeviceIndex),
+						AssociatePublicIpAddress: providerConfig.PublicIP,
+						SubnetId:                 providerConfig.Subnet.ID,
+						Groups: []*string{
+							aws.String("sg-00868b02fbe29de17"),
+							aws.String("sg-0a4658991dc5eb40a"),
+							aws.String("sg-009a70e28fa4ba84e"),
+							aws.String("sg-07323d56fb932c84c"),
+							aws.String("sg-08b1ffd32874d59a2"),
+						},
+					},
+				},
+				UserData: aws.String(""),
+			},
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -750,7 +899,7 @@ func TestLaunchInstance(t *testing.T) {
 			mockAWSClient.EXPECT().DescribeImages(gomock.Any()).Return(tc.imageOutput, tc.imageErr).AnyTimes()
 			mockAWSClient.EXPECT().RunInstances(tc.runInstancesInput).Return(tc.instancesOutput, tc.instancesErr).AnyTimes()
 
-			_, launchErr := launchInstance(machine, tc.providerConfig, nil, mockAWSClient)
+			_, launchErr := launchInstance(machine, tc.providerConfig, nil, mockAWSClient, tc.infra)
 			t.Log(launchErr)
 			if launchErr == nil {
 				if !tc.succeeds {

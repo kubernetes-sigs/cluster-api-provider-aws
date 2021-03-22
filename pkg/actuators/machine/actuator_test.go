@@ -9,8 +9,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
+	configv1 "github.com/openshift/api/config/v1"
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
@@ -23,6 +25,7 @@ import (
 func init() {
 	// Add types to scheme
 	machinev1.AddToScheme(scheme.Scheme)
+	configv1.AddToScheme(scheme.Scheme)
 }
 
 func TestMachineEvents(t *testing.T) {
@@ -143,6 +146,13 @@ func TestMachineEvents(t *testing.T) {
 			gs.Expect(k8sClient.Create(ctx, machine)).To(Succeed())
 			defer func() {
 				gs.Expect(k8sClient.Delete(ctx, machine)).To(Succeed())
+			}()
+
+			// Create infrastructure object
+			infra := &configv1.Infrastructure{ObjectMeta: metav1.ObjectMeta{Name: awsclient.GlobalInfrastuctureName}}
+			gs.Expect(k8sClient.Create(ctx, infra)).To(Succeed())
+			defer func() {
+				gs.Expect(k8sClient.Delete(ctx, infra)).To(Succeed())
 			}()
 
 			// Ensure the machine has synced to the cache
