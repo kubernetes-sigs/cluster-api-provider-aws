@@ -53,8 +53,8 @@ const (
 	// AwsCredsSecretAccessKey is secret key containing AWS Secret Key
 	AwsCredsSecretAccessKey = "aws_secret_access_key"
 
-	// globalInfrastuctureName default name for infrastructure object
-	globalInfrastuctureName = "cluster"
+	// GlobalInfrastuctureName default name for infrastructure object
+	GlobalInfrastuctureName = "cluster"
 
 	// KubeCloudConfigNamespace is the namespace where the kube cloud config ConfigMap is located
 	KubeCloudConfigNamespace = "openshift-config-managed"
@@ -283,7 +283,7 @@ var addProviderVersionToUserAgent = request.NamedHandler{
 
 func resolveEndpoints(awsConfig *aws.Config, ctrlRuntimeClient client.Client, region string) error {
 	infra := &configv1.Infrastructure{}
-	infraName := client.ObjectKey{Name: globalInfrastuctureName}
+	infraName := client.ObjectKey{Name: GlobalInfrastuctureName}
 
 	if err := ctrlRuntimeClient.Get(context.Background(), infraName, infra); err != nil {
 		return err
