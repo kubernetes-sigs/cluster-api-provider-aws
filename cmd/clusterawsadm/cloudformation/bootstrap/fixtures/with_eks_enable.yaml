@@ -270,6 +270,14 @@ Resources:
           Resource:
           - arn:aws:iam::*:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup
         - Action:
+          - iam:CreateServiceLinkedRole
+          Condition:
+            StringLike:
+              iam:AWSServiceName: eks-fargate.amazonaws.com
+          Effect: Allow
+          Resource:
+          - arn:aws:iam::*:role/aws-service-role/eks-fargate-pods.amazonaws.com/AWSServiceRoleForAmazonEKSForFargate
+        - Action:
           - iam:GetRole
           - iam:ListAttachedRolePolicies
           Effect: Allow
@@ -306,6 +314,9 @@ Resources:
           - eks:DeleteAddon
           - eks:UpdateAddon
           - eks:TagResource
+          - eks:DescribeFargateProfile
+          - eks:CreateFargateProfile
+          - eks:DeleteFargateProfile
           Effect: Allow
           Resource:
           - '*'
