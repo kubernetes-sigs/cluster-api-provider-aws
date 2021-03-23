@@ -33,6 +33,10 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
 )
 
+const (
+	maxNodegroupNameLength = 100
+)
+
 // log is for logging in this package.
 var mmpLog = logf.Log.WithName("awsmanagedmachinepool-resource")
 
@@ -191,7 +195,7 @@ func (r *AWSManagedMachinePool) Default() {
 
 	if r.Spec.EKSNodegroupName == "" {
 		mmpLog.Info("EKSNodegroupName is empty, generating name")
-		name, err := eks.GenerateEKSName(r.Name, r.Namespace)
+		name, err := eks.GenerateEKSName(r.Name, r.Namespace, maxNodegroupNameLength)
 		if err != nil {
 			mmpLog.Error(err, "failed to create EKS nodegroup name")
 			return

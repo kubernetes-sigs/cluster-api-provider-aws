@@ -30,6 +30,8 @@ var (
 	ErrClusterRoleNotFound = errors.New("the specified cluster role couldn't be found")
 	// ErrNodegroupRoleNotFound is an error if the specified role couldn't be founbd in AWS
 	ErrNodegroupRoleNotFound = errors.New("the specified nodegroup role couldn't be found")
+	// ErrFargateRoleNotFound is an error if the specified role couldn't be founbd in AWS
+	ErrFargateRoleNotFound = errors.New("the specified fargate role couldn't be found")
 	// ErrCannotUseAdditionalRoles is an error if the spec contains additional role and the
 	// EKSAllowAddRoles feature flag isn't enabled
 	ErrCannotUseAdditionalRoles = errors.New("additional rules cannot be added as this has been disabled")

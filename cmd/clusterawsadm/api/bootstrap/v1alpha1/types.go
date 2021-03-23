@@ -105,6 +105,9 @@ type EKSConfig struct {
 	// ManagedMachinePool controls the configuration of the AWS IAM role for
 	// used by EKS managed machine pools.
 	ManagedMachinePool *AWSIAMRoleSpec `json:"managedMachinePool,omitempty"`
+	// Fargate controls the configuration of the AWS IAM role for
+	// used by EKS managed machine pools.
+	Fargate *AWSIAMRoleSpec `json:"fargate,omitempty"`
 }
 
 // EventBridgeConfig represents configuration for enabling experimental feature to consume

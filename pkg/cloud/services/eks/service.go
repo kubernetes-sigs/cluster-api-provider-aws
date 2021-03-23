@@ -88,3 +88,25 @@ func NewNodegroupService(machinePoolScope *scope.ManagedMachinePoolScope) *Nodeg
 		STSClient: scope.NewSTSClient(machinePoolScope, machinePoolScope, machinePoolScope, machinePoolScope.ManagedMachinePool),
 	}
 }
+
+// FargateService holds a collection of interfaces.
+// The interfaces are broken down like this to group functions together.
+type FargateService struct {
+	scope     *scope.FargateProfileScope
+	EKSClient eksiface.EKSAPI
+	iam.IAMService
+	STSClient stsiface.STSAPI
+}
+
+// NewFargateService returns a new service given the api clients.
+func NewFargateService(fargatePoolScope *scope.FargateProfileScope) *FargateService {
+	return &FargateService{
+		scope:     fargatePoolScope,
+		EKSClient: scope.NewEKSClient(fargatePoolScope, fargatePoolScope, fargatePoolScope, fargatePoolScope.FargateProfile),
+		IAMService: iam.IAMService{
+			Logger:    fargatePoolScope.Logger,
+			IAMClient: scope.NewIAMClient(fargatePoolScope, fargatePoolScope, fargatePoolScope, fargatePoolScope.FargateProfile),
+		},
+		STSClient: scope.NewSTSClient(fargatePoolScope, fargatePoolScope, fargatePoolScope, fargatePoolScope.FargateProfile),
+	}
+}

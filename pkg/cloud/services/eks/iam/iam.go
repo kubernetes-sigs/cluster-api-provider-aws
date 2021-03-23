@@ -19,8 +19,10 @@ package iam
 import (
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/json"
 	"net/http"
 	"net/url"
+	"reflect"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
@@ -31,7 +33,13 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	apiiam "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
+)
+
+const (
+	// EKSFargateService is the service to trust for fargate pod execution roles
+	EKSFargateService = "eks-fargate-pods.amazonaws.com"
 )
 
 type IAMService struct {
@@ -111,20 +119,22 @@ func (s *IAMService) attachIAMRolePolicy(roleName string, policyARN string) erro
 	return nil
 }
 
-func (s *IAMService) EnsurePoliciesAttached(role *iam.Role, policies []*string) error {
+func (s *IAMService) EnsurePoliciesAttached(role *iam.Role, policies []*string) (bool, error) {
 	s.V(2).Info("Ensuring Polices are attached to role")
 	existingPolices, err := s.getIAMRolePolicies(*role.RoleName)
 	if err != nil {
-		return err
+		return false, err
 	}
 
+	var updatedPolicies bool
 	// Remove polices that aren't in the list
 	for _, existingPolicy := range existingPolices {
 		found := findStringInSlice(policies, *existingPolicy)
 		if !found {
+			updatedPolicies = true
 			err = s.detachIAMRolePolicy(*role.RoleName, *existingPolicy)
 			if err != nil {
-				return err
+				return false, err
 			}
 			s.V(2).Info("Detached policy from role", "role", role.RoleName, "policy", existingPolicy)
 		}
@@ -137,18 +147,19 @@ func (s *IAMService) EnsurePoliciesAttached(role *iam.Role, policies []*string) 
 			// Make sure policy exists before attaching
 			_, err := s.getIAMPolicy(*policy)
 			if err != nil {
-				return errors.Wrapf(err, "error getting policy %s", *policy)
+				return false, errors.Wrapf(err, "error getting policy %s", *policy)
 			}
 
+			updatedPolicies = true
 			err = s.attachIAMRolePolicy(*role.RoleName, *policy)
 			if err != nil {
-				return err
+				return false, err
 			}
 			s.V(2).Info("Attached policy to role", "role", role.RoleName, "policy", *policy)
 		}
 	}
 
-	return nil
+	return updatedPolicies, nil
 }
 
 func RoleTags(key string, additionalTags infrav1.Tags) []*iam.Tag {
@@ -184,7 +195,7 @@ func (s *IAMService) CreateRole(
 
 	out, err := s.IAMClient.CreateRole(input)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to call CreateRole")
 	}
 
 	return out.Role, nil
@@ -195,21 +206,33 @@ func (s *IAMService) EnsureTagsAndPolicy(
 	key string,
 	trustRelationship *apiiam.PolicyDocument,
 	additionalTags infrav1.Tags,
-) error {
+) (bool, error) {
 	s.V(2).Info("Ensuring tags and AssumeRolePolicyDocument are set on role")
-	trustRelationshipJSON, err := converters.IAMPolicyDocumentToJSON(*trustRelationship)
+
+	rolePolicyDocumentRaw, err := url.PathUnescape(*role.AssumeRolePolicyDocument)
 	if err != nil {
-		return errors.Wrap(err, "error converting trust relationship to json")
+		return false, errors.Wrap(err, "couldn't decode AssumeRolePolicyDocument")
 	}
 
-	if trustRelationshipJSON != *role.AssumeRolePolicyDocument {
+	var rolePolicyDocument iamv1.PolicyDocument
+	err = json.Unmarshal([]byte(rolePolicyDocumentRaw), &rolePolicyDocument)
+	if err != nil {
+		return false, errors.Wrap(err, "couldn't unmarshal AssumeRolePolicyDocument")
+	}
+
+	var updated bool
+	if !reflect.DeepEqual(*trustRelationship, rolePolicyDocument) {
+		trustRelationshipJSON, err := converters.IAMPolicyDocumentToJSON(*trustRelationship)
+		if err != nil {
+			return false, errors.Wrap(err, "error converting trust relationship to json")
+		}
 		policyInput := &iam.UpdateAssumeRolePolicyInput{
 			RoleName:       role.RoleName,
 			PolicyDocument: aws.String(trustRelationshipJSON),
 		}
-		_, err := s.IAMClient.UpdateAssumeRolePolicy(policyInput)
-		if err != nil {
-			return err
+		updated = true
+		if _, err := s.IAMClient.UpdateAssumeRolePolicy(policyInput); err != nil {
+			return updated, err
 		}
 
 	}
@@ -240,20 +263,22 @@ func (s *IAMService) EnsureTagsAndPolicy(
 	}
 
 	if len(tagInput.Tags) > 0 {
+		updated = true
 		_, err = s.IAMClient.TagRole(tagInput)
 		if err != nil {
-			return err
+			return updated, err
 		}
 	}
 
 	if len(untagInput.TagKeys) > 0 {
+		updated = true
 		_, err = s.IAMClient.UntagRole(untagInput)
 		if err != nil {
-			return err
+			return updated, err
 		}
 	}
 
-	return nil
+	return updated, nil
 }
 
 func (s *IAMService) detachAllPoliciesForRole(name string) error {
@@ -306,8 +331,28 @@ func ControlPlaneTrustRelationship(enableFargate bool) *apiiam.PolicyDocument {
 	principal := make(apiiam.Principals)
 	principal["Service"] = []string{"eks.amazonaws.com"}
 	if enableFargate {
-		principal["Service"] = append(principal["Service"], "eks-fargate-pods.amazonaws.com")
+		principal["Service"] = append(principal["Service"], EKSFargateService)
 	}
+
+	policy := &apiiam.PolicyDocument{
+		Version: "2012-10-17",
+		Statement: []apiiam.StatementEntry{
+			{
+				Effect: "Allow",
+				Action: []string{
+					"sts:AssumeRole",
+				},
+				Principal: principal,
+			},
+		},
+	}
+
+	return policy
+}
+
+func FargateTrustRelationship() *apiiam.PolicyDocument {
+	principal := make(apiiam.Principals)
+	principal["Service"] = []string{EKSFargateService}
 
 	policy := &apiiam.PolicyDocument{
 		Version: "2012-10-17",

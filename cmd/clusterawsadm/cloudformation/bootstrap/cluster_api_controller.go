@@ -256,6 +256,19 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 			},
 		})
 
+		statement = append(statement, iamv1.StatementEntry{
+			Effect: iamv1.EffectAllow,
+			Action: iamv1.Actions{
+				"iam:CreateServiceLinkedRole",
+			},
+			Resource: iamv1.Resources{
+				"arn:aws:iam::*:role/aws-service-role/eks-fargate-pods.amazonaws.com/AWSServiceRoleForAmazonEKSForFargate",
+			},
+			Condition: iamv1.Conditions{
+				iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks-fargate.amazonaws.com"},
+			},
+		})
+
 		if t.Spec.EKS.AllowIAMRoleCreation {
 			allowedIAMActions = append(allowedIAMActions, iamv1.Actions{
 				"iam:DetachRolePolicy",
@@ -324,6 +337,9 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 					"eks:DeleteAddon",
 					"eks:UpdateAddon",
 					"eks:TagResource",
+					"eks:DescribeFargateProfile",
+					"eks:CreateFargateProfile",
+					"eks:DeleteFargateProfile",
 				},
 				Resource: iamv1.Resources{
 					"*",

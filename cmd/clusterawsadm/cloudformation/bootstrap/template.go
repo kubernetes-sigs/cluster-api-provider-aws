@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	eksiam "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/iam"
 )
 
 const (
@@ -39,6 +40,7 @@ const (
 	AWSIAMRoleNodes                              = "AWSIAMRoleNodes"
 	AWSIAMRoleEKSControlPlane                    = "AWSIAMRoleEKSControlPlane"
 	AWSIAMRoleEKSNodegroup                       = "AWSIAMRoleEKSNodegroup"
+	AWSIAMRoleEKSFargate                         = "AWSIAMRoleEKSFargate"
 	AWSIAMUserBootstrapper                       = "AWSIAMUserBootstrapper"
 	ControllersPolicy                 PolicyName = "AWSIAMManagedPolicyControllers"
 	ControlPlanePolicy                PolicyName = "AWSIAMManagedPolicyCloudProviderControlPlane"
@@ -175,6 +177,15 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 			AssumeRolePolicyDocument: assumeRolePolicy([]string{"ec2.amazonaws.com", "eks.amazonaws.com"}),
 			ManagedPolicyArns:        t.eksMachinePoolPolicies(),
 			Tags:                     converters.MapToCloudFormationTags(t.Spec.EKS.ManagedMachinePool.Tags),
+		}
+	}
+
+	if !t.Spec.EKS.Fargate.Disable {
+		template.Resources[AWSIAMRoleEKSFargate] = &cfn_iam.Role{
+			RoleName:                 infrav1exp.DefaultEKSFargateRole,
+			AssumeRolePolicyDocument: assumeRolePolicy([]string{eksiam.EKSFargateService}),
+			ManagedPolicyArns:        fargateProfilePolicies(t.Spec.EKS.Fargate),
+			Tags:                     converters.MapToCloudFormationTags(t.Spec.EKS.Fargate.Tags),
 		}
 	}
 

@@ -16,6 +16,12 @@ limitations under the License.
 
 package v1alpha1
 
+import (
+	"encoding/json"
+
+	"github.com/pkg/errors"
+)
+
 type (
 	Effect            string
 	ConditionOperator string
@@ -89,11 +95,39 @@ type Principals map[PrincipalType]PrincipalID
 // Actions is the list of actions
 type Actions []string
 
+func (actions *Actions) UnmarshalJSON(data []byte) error {
+	var ids []string
+	if err := json.Unmarshal(data, &ids); err == nil {
+		*actions = Actions(ids)
+		return nil
+	}
+	var id string
+	if err := json.Unmarshal(data, &id); err != nil {
+		return errors.Wrap(err, "couldn't unmarshal as either []string or string")
+	}
+	*actions = []string{id}
+	return nil
+}
+
 // Resources is the list of resources
 type Resources []string
 
 // PrincipalID represents the list of all principals, such as ARNs
 type PrincipalID []string
+
+func (principalID *PrincipalID) UnmarshalJSON(data []byte) error {
+	var ids []string
+	if err := json.Unmarshal(data, &ids); err == nil {
+		*principalID = PrincipalID(ids)
+		return nil
+	}
+	var id string
+	if err := json.Unmarshal(data, &id); err != nil {
+		return errors.Wrap(err, "couldn't unmarshal as either []string or string")
+	}
+	*principalID = []string{id}
+	return nil
+}
 
 // Conditions is the map of all conditions in the statement entry.
 type Conditions map[ConditionOperator]interface{}
