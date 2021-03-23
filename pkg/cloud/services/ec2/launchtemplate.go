@@ -34,16 +34,12 @@ import (
 
 // GetLaunchTemplate returns the existing LaunchTemplate or nothing if it doesn't exist.
 // For now by name until we need the input to be something different
-func (s *Service) GetLaunchTemplate(id string) (*expinfrav1.AWSLaunchTemplate, error) {
-	if id == "" {
-		return nil, nil
-	}
-
+func (s *Service) GetLaunchTemplate(name string) (*expinfrav1.AWSLaunchTemplate, error) {
 	s.scope.V(2).Info("Looking for existing LaunchTemplates")
 
 	input := &ec2.DescribeLaunchTemplateVersionsInput{
-		LaunchTemplateId: aws.String(id),
-		Versions:         aws.StringSlice([]string{expinfrav1.LaunchTemplateLatestVersion}),
+		LaunchTemplateName: aws.String(name),
+		Versions:           aws.StringSlice([]string{expinfrav1.LaunchTemplateLatestVersion}),
 	}
 
 	out, err := s.EC2Client.DescribeLaunchTemplateVersions(input)
@@ -115,7 +111,7 @@ func (s *Service) CreateLaunchTemplateVersion(scope *scope.MachinePoolScope, ima
 
 	input := &ec2.CreateLaunchTemplateVersionInput{
 		LaunchTemplateData: launchTemplateData,
-		LaunchTemplateId:   aws.String(scope.AWSMachinePool.Status.LaunchTemplateID),
+		LaunchTemplateName: aws.String(scope.AWSMachinePool.Name),
 	}
 
 	_, err = s.EC2Client.CreateLaunchTemplateVersion(input)
