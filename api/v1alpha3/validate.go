@@ -49,7 +49,7 @@ func (b *Bastion) Validate() []*field.Error {
 	return errs
 }
 
-func isValidSSHKeyName(sshKey *string) field.ErrorList {
+func validateSSHKeyName(sshKey *string) field.ErrorList {
 	var allErrs field.ErrorList
 	switch {
 	case sshKey == nil:

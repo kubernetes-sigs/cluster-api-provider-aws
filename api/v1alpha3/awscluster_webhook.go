@@ -50,7 +50,7 @@ func (r *AWSCluster) ValidateCreate() error {
 	var allErrs field.ErrorList
 
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
-	allErrs = append(allErrs, isValidSSHKeyName(r.Spec.SSHKeyName)...)
+	allErrs = append(allErrs, r.validateSSHKeyName()...)
 
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
@@ -104,4 +104,8 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 func (r *AWSCluster) Default() {
 	SetDefaults_Bastion(&r.Spec.Bastion)
 	SetDefaults_NetworkSpec(&r.Spec.NetworkSpec)
+}
+
+func (r *AWSCluster) validateSSHKeyName() field.ErrorList {
+	return validateSSHKeyName(r.Spec.SSHKeyName)
 }
