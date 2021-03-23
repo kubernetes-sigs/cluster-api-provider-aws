@@ -30,6 +30,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -50,6 +51,7 @@ import (
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
 	"sigs.k8s.io/cluster-api/util"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -87,6 +89,49 @@ var _ = Describe("functional tests - unmanaged", func() {
 		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.KubernetesVersion))
 	})
 
+	Describe("Upgrade to master Kubernetes", func() {
+		Context("in same namespace", func() {
+			It("should create the clusters", func() {
+				By("Creating first cluster with single control plane")
+				cluster1Name := fmt.Sprintf("cluster-%s", util.RandomString(6))
+				shared.SetEnvVar("USE_CI_ARTIFACTS", "true", false)
+				configCluster := defaultConfigCluster(cluster1Name, namespace.Name)
+				configCluster.Flavor = shared.UpgradeToMain
+				configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+				createCluster(ctx, configCluster)
+
+				kubernetesUgradeVersion, err := kubernetesversions.LatestCIRelease()
+				Expect(err).NotTo(HaveOccurred())
+				configCluster.KubernetesVersion = kubernetesUgradeVersion
+				configCluster.Flavor = "upgrade-ci-artifacts"
+				cluster2, md, kcp := createCluster(ctx, configCluster)
+
+				By(fmt.Sprintf("Waiting for Kubernetes versions of machines in MachineDeployment %s/%s to be upgraded from %s to %s",
+					md[0].Namespace, md[0].Name, e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion), kubernetesUgradeVersion))
+
+				framework.WaitForMachineDeploymentMachinesToBeUpgraded(ctx, framework.WaitForMachineDeploymentMachinesToBeUpgradedInput{
+					Lister:                   e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+					Cluster:                  cluster2,
+					MachineCount:             int(*md[0].Spec.Replicas),
+					KubernetesUpgradeVersion: kubernetesUgradeVersion,
+					MachineDeployment:        *md[0],
+				}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-machine-upgrade")...)
+
+				By("Waiting for control-plane machines to have the upgraded kubernetes version")
+				framework.WaitForControlPlaneMachinesToBeUpgraded(ctx, framework.WaitForControlPlaneMachinesToBeUpgradedInput{
+					Lister:                   e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+					Cluster:                 cluster2,
+					MachineCount:             int(*kcp.Spec.Replicas),
+					KubernetesUpgradeVersion: kubernetesUgradeVersion,
+				}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-machine-upgrade")...)
+
+				By("Deleting the Clusters")
+				shared.SetEnvVar("USE_CI_ARTIFACTS", "false", false)
+				deleteCluster(ctx, cluster2)
+			})
+		})
+	})
+
 	Describe("Workload cluster with AWS SSM Parameter as the Secret Backend", func() {
 		It("It should be creatable and deletable", func() {
 			By("Creating a cluster")
@@ -95,7 +140,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 			configCluster.ControlPlaneMachineCount = pointer.Int64Ptr(1)
 			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
 			configCluster.Flavor = shared.SSMFlavor
-			_, md := createCluster(ctx, configCluster)
+			_, md, _ := createCluster(ctx, configCluster)
 
 			workerMachines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
 				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
@@ -139,7 +184,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 			clusterName := fmt.Sprintf("sg-test.%s", util.RandomString(20))
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
 			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
-			cluster, md := createCluster(ctx, configCluster)
+			cluster, md, _ := createCluster(ctx, configCluster)
 			clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterName).GetClient()
 
 			By("Waiting for worker nodes to be in Running phase")
@@ -233,7 +278,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 			By("Creating a cluster")
 			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
-			_, _ = createCluster(ctx, configCluster)
+			_, _, _ = createCluster(ctx, configCluster)
 
 			By("Creating Machine Deployment with invalid subnet ID")
 			md1Name := clusterName + "-md-1"
@@ -279,7 +324,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
 			configCluster.ControlPlaneMachineCount = pointer.Int64Ptr(3)
 			configCluster.Flavor = shared.MultiAzFlavor
-			cluster, _ := createCluster(ctx, configCluster)
+			cluster, _, _ := createCluster(ctx, configCluster)
 
 			By("Adding worker nodes to additional subnets")
 			mdName1 := clusterName + "-md-1"
@@ -332,7 +377,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 				configCluster := defaultConfigCluster(cluster1Name, ns1.Name)
 				configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
 				configCluster.Flavor = shared.LimitAzFlavor
-				cluster1, md1 := createCluster(ctx, configCluster)
+				cluster1, md1, _ := createCluster(ctx, configCluster)
 				Expect(len(md1)).To(Equal(1), "Expecting one MachineDeployment")
 
 				By("Deleting a worker node machine")
@@ -347,7 +392,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 				configCluster = defaultConfigCluster(cluster2Name, ns2.Name)
 				configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
 				configCluster.Flavor = shared.LimitAzFlavor
-				cluster2, md2 := createCluster(ctx, configCluster)
+				cluster2, md2, _ := createCluster(ctx, configCluster)
 				Expect(len(md2)).To(Equal(1), "Expecting one MachineDeployment")
 
 				By("Deleting node directly from infra cloud")
@@ -392,13 +437,13 @@ var _ = Describe("functional tests - unmanaged", func() {
 				cluster1Name := fmt.Sprintf("cluster-%s", util.RandomString(6))
 				configCluster := defaultConfigCluster(cluster1Name, namespace.Name)
 				configCluster.Flavor = shared.LimitAzFlavor
-				cluster1, _ := createCluster(ctx, configCluster)
+				cluster1, _, _ := createCluster(ctx, configCluster)
 
 				By("Creating second cluster with single control plane")
 				cluster2Name := fmt.Sprintf("cluster-%s", util.RandomString(6))
 				configCluster = defaultConfigCluster(cluster2Name, namespace.Name)
 				configCluster.Flavor = shared.LimitAzFlavor
-				cluster2, _ := createCluster(ctx, configCluster)
+				cluster2, _, _ := createCluster(ctx, configCluster)
 
 				By("Deleting the Clusters")
 				deleteCluster(ctx, cluster1)
@@ -414,7 +459,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
 			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
 			configCluster.Flavor = shared.SpotInstancesFlavor
-			_, md := createCluster(ctx, configCluster)
+			_, md, _ := createCluster(ctx, configCluster)
 
 			workerMachines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
 				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
@@ -439,7 +484,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 	})
 })
 
-func createCluster(ctx context.Context, configCluster clusterctl.ConfigClusterInput) (*clusterv1.Cluster, []*clusterv1.MachineDeployment) {
+func createCluster(ctx context.Context, configCluster clusterctl.ConfigClusterInput) (*clusterv1.Cluster, []*clusterv1.MachineDeployment,  *controlplanev1.KubeadmControlPlane) {
 
 	res := clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 		ClusterProxy:                 e2eCtx.Environment.BootstrapClusterProxy,
@@ -449,7 +494,7 @@ func createCluster(ctx context.Context, configCluster clusterctl.ConfigClusterIn
 		WaitForMachineDeployments:    e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes"),
 	})
 
-	return res.Cluster, res.MachineDeployments
+	return res.Cluster, res.MachineDeployments, res.ControlPlane
 }
 
 func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigClusterInput {

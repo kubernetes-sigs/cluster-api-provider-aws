@@ -109,6 +109,8 @@ providers:
         targetName: "cluster-template-mhc.yaml"
       - sourcePath: "./infrastructure-aws/cluster-template-machine-pool.yaml"
         targetName: "cluster-template-machine-pool.yaml"
+      - sourcePath: "./infrastructure-aws/cluster-template-upgrade-to-main.yaml"
+        targetName: "cluster-template-upgrade-to-main.yaml"
 variables:
   KUBERNETES_VERSION: "v1.20.4"
   CNI: "../../data/cni/calico.yaml"
