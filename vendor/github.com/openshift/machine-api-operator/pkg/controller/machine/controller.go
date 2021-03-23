@@ -173,8 +173,9 @@ func (r *ReconcileMachine) Reconcile(ctx context.Context, request reconcile.Requ
 	machineName := m.GetName()
 	klog.Infof("%v: reconciling Machine", machineName)
 
-	// Get the original state of conditions now so that they can be used to calculate the patch later
-	originalConditions := m.GetConditions()
+	// Get the original state of conditions now so that they can be used to calculate the patch later.
+	// This must be a copy otherwise the referenced slice will be modified by later machine conditions changes.
+	originalConditions := m.GetConditions().DeepCopy()
 
 	if errList := m.Validate(); len(errList) > 0 {
 		err := fmt.Errorf("%v: machine validation failed: %v", machineName, errList.ToAggregate().Error())
@@ -293,8 +294,6 @@ func (r *ReconcileMachine) Reconcile(ctx context.Context, request reconcile.Requ
 	}
 
 	if instanceExists {
-		conditions.MarkTrue(m, machinev1.InstanceExistsCondition)
-
 		klog.Infof("%v: reconciling machine triggers idempotent update", machineName)
 		if err := r.actuator.Update(ctx, m); err != nil {
 			klog.Errorf("%v: error updating machine: %v, retrying in %v seconds", machineName, err, requeueAfter)
@@ -305,6 +304,9 @@ func (r *ReconcileMachine) Reconcile(ctx context.Context, request reconcile.Requ
 
 			return reconcile.Result{RequeueAfter: requeueAfter}, nil
 		}
+
+		// Mark the instance exists condition true after actuator update else the update may overwrite changes
+		conditions.MarkTrue(m, machinev1.InstanceExistsCondition)
 
 		if !machineIsProvisioned(m) {
 			klog.Errorf("%v: instance exists but providerID or addresses has not been given to the machine yet, requeuing", machineName)
