@@ -194,6 +194,11 @@ func (s *Service) DeleteSecurityGroups() error {
 		}
 	}
 
+	if s.scope.VPC().ID == "" {
+		s.scope.V(0).Info("skipping cluster owned security group delete, vpc id nil", "vpc-id", s.scope.VPC().ID)
+		return nil
+	}
+
 	clusterGroups, err := s.describeClusterOwnedSecurityGroups()
 	if err != nil {
 		return err
