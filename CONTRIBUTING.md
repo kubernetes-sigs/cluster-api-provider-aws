@@ -13,3 +13,34 @@ Kubernetes projects require that you sign a Contributor License Agreement (CLA) 
 1. Submit a pull request.
   1. All code PR titles must be prefixed with:
     ⚠️ (`:warning:`, major or breaking changes), ✨ (`:sparkles:`, minor or feature additions), 🐛 (`:bug:`, patch and bugfixes), 📖 (`:book:`, documentation or proposals), or 🌱 (`:seedling:`, minor or other)
+
+### Becoming a reviewer
+
+If you would like to become a reviewer, then please ask one of the maintainers.
+There's no hard and defined limit as to who can become a reviewer, but a good
+heuristic is 5 or more contributions. A reviewer can get PRs automatically assigned
+for review, and can `/lgtm` PRs.
+
+To become a reviewer, ensure you are a member of the kubernetes-sigs Github organisation
+following https://github.com/kubernetes/org/issues/new/choose .
+
+### Steps needed to become a maintainer
+If you have made significant contributions to Cluster API
+Provider AWS, a maintainer may nominate you to become a
+maintainer, first by opening a PR to add you to the OWNERS_ALIASES file of the repository.
+
+Maintainers are able to approve PRs, as well as participate
+in release processes.
+
+Maintainers require membership of the Kubernetes Github organisation via
+https://github.com/kubernetes/org/issues/new/choose
+
+The complete list of tasks required to set up maintainer status
+follow:
+
+* Open PR to add Github username to the OWNERS_ALIASES file under cluster-api-aws-maintainers
+* Open PR to add Github username to cluster-api-provider-aws-admins and cluster-api-provider-aws-maintainers
+to https://github.com/kubernetes/org/blob/main/config/kubernetes-sigs/sig-cluster-lifecycle/teams.yaml
+* Open PR to add Github username to https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api-provider-aws/OWNERS
+* Open PR to add Github username to https://github.com/kubernetes/k8s.io/blob/main/k8s.gcr.io/images/k8s-staging-cluster-api-aws/OWNERS
+* Open PR to add Google ID to the k8s-infra-staging-cluster-api-aws@kubernetes.io Google group in https://github.com/kubernetes/k8s.io/blob/main/groups/groups.yaml
