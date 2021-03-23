@@ -61,6 +61,11 @@ PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 DOCKER_CLI_EXPERIMENTAL=enabled
 DOCKER_BUILDKIT=1
 
+# Set --output-base for conversion-gen if we are not within GOPATH
+ifneq ($(abspath $(REPO_ROOT)),$(shell go env GOPATH)/src/sigs.k8s.io/cluster-api-provider-aws)
+	GEN_OUTPUT_BASE := --output-base=$(REPO_ROOT)
+endif
+
 # Release variables
 
 STAGING_REGISTRY ?= gcr.io/k8s-staging-cluster-api-aws
@@ -235,12 +240,12 @@ generate-go-core: ## Runs Go related generate targets
 
 	$(DEFAULTER_GEN) \
 		--input-dirs=./cmd/clusterawsadm/api/bootstrap/v1alpha1,./cmd/clusterawsadm/api/iam/v1alpha1 \
-		--v=0 \
+		--v=0 $(GEN_OUTPUT_BASE) \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
 	$(CONVERSION_GEN) \
 		--input-dirs=./api/v1alpha2 \
-		--output-file-base=zz_generated.conversion \
+		--output-file-base=zz_generated.conversion $(GEN_OUTPUT_BASE) \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
 .PHONY: generate-go-eks-bootstrap
