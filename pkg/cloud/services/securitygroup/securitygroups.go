@@ -162,6 +162,12 @@ func (s *Service) ReconcileSecurityGroups() error {
 
 func (s *Service) DeleteSecurityGroups() error {
 	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+
+	if s.scope.VPC().ID == "" {
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+		return nil
+	}
+
 	if err := s.scope.PatchObject(); err != nil {
 		return err
 	}
@@ -192,11 +198,6 @@ func (s *Service) DeleteSecurityGroups() error {
 			conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
 			return err
 		}
-	}
-
-	if s.scope.VPC().ID == "" {
-		s.scope.V(0).Info("skipping cluster owned security group delete, vpc id nil", "vpc-id", s.scope.VPC().ID)
-		return nil
 	}
 
 	clusterGroups, err := s.describeClusterOwnedSecurityGroups()
