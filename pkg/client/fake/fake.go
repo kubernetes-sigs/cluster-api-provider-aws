@@ -125,6 +125,11 @@ func (c *awsClient) ELBv2RegisterTargets(*elbv2.RegisterTargetsInput) (*elbv2.Re
 	return &elbv2.RegisterTargetsOutput{}, nil
 }
 
+func (c *awsClient) ELBv2DeregisterTargets(*elbv2.DeregisterTargetsInput) (*elbv2.DeregisterTargetsOutput, error) {
+	// Feel free to extend the returned values
+	return &elbv2.DeregisterTargetsOutput{}, nil
+}
+
 // NewClient creates our client wrapper object for the actual AWS clients we use.
 // For authentication the underlying clients will use either the cluster AWS credentials
 // secret if defined (i.e. in the root cluster),

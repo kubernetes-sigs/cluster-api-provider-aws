@@ -129,6 +129,15 @@ func (r *Reconciler) delete() error {
 		return fmt.Errorf("failed to delete instaces: %w", err)
 	}
 
+	if err = r.removeFromLoadBalancers(existingInstances); err != nil {
+		metrics.RegisterFailedInstanceDelete(&metrics.MachineLabels{
+			Name:      r.machine.Name,
+			Namespace: r.machine.Namespace,
+			Reason:    err.Error(),
+		})
+		return fmt.Errorf("failed to updated update load balancers: %w", err)
+	}
+
 	if len(terminatingInstances) == 1 {
 		if terminatingInstances[0] != nil && terminatingInstances[0].CurrentState != nil && terminatingInstances[0].CurrentState.Name != nil {
 			r.machine.Annotations[machinecontroller.MachineInstanceStateAnnotationName] = aws.StringValue(terminatingInstances[0].CurrentState.Name)
@@ -304,6 +313,35 @@ func (r *Reconciler) updateLoadBalancers(instance *ec2.Instance) error {
 		if err != nil {
 			klog.Errorf("%s: Failed to register network load balancers: %v", r.machine.Name, err)
 			errs = append(errs, err)
+		}
+	}
+	if len(errs) > 0 {
+		return errorutil.NewAggregate(errs)
+	}
+	return nil
+}
+
+// updateLoadBalancers adds a given machine instance to the load balancers specified in its provider config
+func (r *Reconciler) removeFromLoadBalancers(instances []*ec2.Instance) error {
+	if len(r.providerSpec.LoadBalancers) == 0 {
+		klog.V(4).Infof("%s: Instances have no load balancers configured. Skipping", r.machine.Name)
+		return nil
+	}
+	networkLoadBalancerNames := []string{}
+	for _, loadBalancerRef := range r.providerSpec.LoadBalancers {
+		if loadBalancerRef.Type == awsproviderv1.NetworkLoadBalancerType {
+			networkLoadBalancerNames = append(networkLoadBalancerNames, loadBalancerRef.Name)
+		}
+	}
+
+	errs := []error{}
+	if len(networkLoadBalancerNames) > 0 {
+		for _, instance := range instances {
+			err := deregisterNetworkLoadBalancers(r.awsClient, networkLoadBalancerNames, instance)
+			if err != nil {
+				klog.Errorf("%s: Failed to register network load balancers: %v", r.machine.Name, err)
+				errs = append(errs, err)
+			}
 		}
 	}
 	if len(errs) > 0 {
