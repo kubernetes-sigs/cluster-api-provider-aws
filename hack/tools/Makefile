@@ -58,6 +58,11 @@ $(SHARE_DIR):
 $(GTAR):
 	@$(GTAR) --version > /dev/null || (echo Install GNU Tar with brew install gnu-tar && exit -1)
 
+
+GO_APIDIFF := $(BIN_DIR)/go-apidiff
+$(GO_APIDIFF): $(BIN_DIR) go.mod go.sum
+	go build -tags=tools -o $@ github.com/joelanford/go-apidiff
+
 CONTROLLER_GEN := $(BIN_DIR)/controller-gen
 $(CONTROLLER_GEN): $(BIN_DIR) go.mod go.sum # Build controller-gen from tools folder.
 	go build -tags=tools -o $@ sigs.k8s.io/controller-tools/cmd/controller-gen

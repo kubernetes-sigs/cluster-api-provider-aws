@@ -49,7 +49,7 @@ var _ = Describe("Cluster API E2E tests - unmanaged", func() {
 
 	SetDefaultEventuallyTimeout(20 * time.Minute)
 	SetDefaultEventuallyPollingInterval(10 * time.Second)
-	Context("Running the quick-start spec", func() {
+	Context("Running the quick-start spec [PR-Blocking]", func() {
 		capi_e2e.QuickStartSpec(context.TODO(), func() capi_e2e.QuickStartSpecInput {
 			return capi_e2e.QuickStartSpecInput{
 				E2EConfig:             e2eCtx.E2EConfig,
