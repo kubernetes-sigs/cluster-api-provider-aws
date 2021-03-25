@@ -108,7 +108,7 @@ var _ = Describe("MachineSetReconciler", func() {
 			instanceType:        "",
 			existingAnnotations: make(map[string]string),
 			expectedAnnotations: make(map[string]string),
-			expectedEvents:      []string{"ReconcileError"},
+			expectedEvents:      []string{"FailedUpdate"},
 		}),
 		Entry("with a a1.2xlarge", reconcileTestCase{
 			instanceType:        "a1.2xlarge",
@@ -155,7 +155,7 @@ var _ = Describe("MachineSetReconciler", func() {
 				"existing": "annotation",
 				"annother": "existingAnnotation",
 			},
-			expectedEvents: []string{"ReconcileError"},
+			expectedEvents: []string{"FailedUpdate"},
 		}),
 	)
 })
@@ -202,7 +202,8 @@ func TestReconcile(t *testing.T) {
 			instanceType:        "",
 			existingAnnotations: make(map[string]string),
 			expectedAnnotations: make(map[string]string),
-			expectErr:           true,
+			// Expect no error and only log entry in such case as we don't update instance types dynamically
+			expectErr: false,
 		},
 		{
 			name:                "with a a1.2xlarge",
@@ -253,7 +254,8 @@ func TestReconcile(t *testing.T) {
 				"existing": "annotation",
 				"annother": "existingAnnotation",
 			},
-			expectErr: true,
+			// Expect no error and only log entry in such case as we don't update instance types dynamically
+			expectErr: false,
 		},
 	}
 
@@ -264,7 +266,11 @@ func TestReconcile(t *testing.T) {
 			machineSet, err := newTestMachineSet("default", tc.instanceType, tc.existingAnnotations)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			_, err = reconcile(machineSet)
+			r := Reconciler{
+				recorder: record.NewFakeRecorder(1),
+			}
+
+			_, err = r.reconcile(machineSet)
 			g.Expect(err != nil).To(Equal(tc.expectErr))
 			g.Expect(machineSet.Annotations).To(Equal(tc.expectedAnnotations))
 		})

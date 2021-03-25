@@ -12,6 +12,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -75,7 +76,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	originalMachineSetToPatch := client.MergeFrom(machineSet.DeepCopy())
 
-	result, err := reconcile(machineSet)
+	result, err := r.reconcile(machineSet)
 	if err != nil {
 		logger.Error(err, "Failed to reconcile MachineSet")
 		r.recorder.Eventf(machineSet, corev1.EventTypeWarning, "ReconcileError", "%v", err)
@@ -104,14 +105,19 @@ func isInvalidConfigurationError(err error) bool {
 	return false
 }
 
-func reconcile(machineSet *machinev1.MachineSet) (ctrl.Result, error) {
+func (r *Reconciler) reconcile(machineSet *machinev1.MachineSet) (ctrl.Result, error) {
 	providerConfig, err := awsproviderv1.ProviderSpecFromRawExtension(machineSet.Spec.Template.Spec.ProviderSpec.Value)
 	if err != nil {
 		return ctrl.Result{}, mapierrors.InvalidMachineConfiguration("failed to get providerConfig: %v", err)
 	}
 	instanceType, ok := InstanceTypes[providerConfig.InstanceType]
 	if !ok {
-		return ctrl.Result{}, mapierrors.InvalidMachineConfiguration("unknown instance type: %s", providerConfig.InstanceType)
+		klog.Error("Unable to set scale from zero annotations: unknown instance type: %s", providerConfig.InstanceType)
+		klog.Error("Autoscaling from zero will not work. To fix this, manually populate machine annotations for your instance type: %v", []string{cpuKey, memoryKey, gpuKey})
+
+		// Returning no error to prevent further reconciliation, as user intervention is now required but emit an informational event
+		r.recorder.Eventf(machineSet, corev1.EventTypeWarning, "FailedUpdate", "Failed to set autoscaling from zero annotations, instance type unknown")
+		return ctrl.Result{}, nil
 	}
 
 	if machineSet.Annotations == nil {
