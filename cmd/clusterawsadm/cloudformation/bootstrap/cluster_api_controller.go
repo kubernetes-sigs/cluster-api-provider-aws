@@ -114,6 +114,7 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 				"elasticloadbalancing:DeleteLoadBalancer",
 				"elasticloadbalancing:DescribeLoadBalancers",
 				"elasticloadbalancing:DescribeLoadBalancerAttributes",
+				"elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
 				"elasticloadbalancing:DescribeTags",
 				"elasticloadbalancing:ModifyLoadBalancerAttributes",
 				"elasticloadbalancing:RegisterInstancesWithLoadBalancer",
