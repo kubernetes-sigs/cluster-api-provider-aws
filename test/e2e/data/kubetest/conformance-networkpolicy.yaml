@@ -1,0 +1,8 @@
+ ## TODO(ashish-amarnath): get the correct focus string to run network policy tests
+ginkgo.focus: \[Conformance\]
+disable-log-dump: true
+ginkgo.progress: true
+ginkgo.slowSpecThreshold: 120.0
+ginkgo.flakeAttempts: 3
+ginkgo.trace: true
+ginkgo.v: true

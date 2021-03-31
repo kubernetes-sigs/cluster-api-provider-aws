@@ -36,8 +36,10 @@ TEST_E2E_DIR := test/e2e
 E2E_DATA_DIR ?= $(REPO_ROOT)/test/e2e/data
 E2E_CONF_PATH  ?= $(E2E_DATA_DIR)/e2e_conf.yaml
 E2E_EKS_CONF_PATH ?= $(E2E_DATA_DIR)/e2e_eks_conf.yaml
+E2E_CONF_CNI_ANTREA ?= $(E2E_DATA_DIR)/e2e_conf_cni_antrea.yaml
 KUBETEST_CONF_PATH ?= $(abspath $(E2E_DATA_DIR)/kubetest/conformance.yaml)
 KUBETEST_FAST_CONF_PATH ?= $(abspath $(E2E_DATA_DIR)/kubetest/conformance-fast.yaml)
+KUBETEST_NETWORKPOLICY_CONF_PATH ?= $(abspath $(E2E_DATA_DIR)/kubetest/conformance-networkpolicy.yaml)
 CONFORMANCE_CI_TEMPLATE := $(ARTIFACTS)/templates/cluster-template-conformance-ci-artifacts.yaml
 EXP_DIR := exp
 
@@ -169,6 +171,12 @@ test-conformance: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run 
 
 test-conformance-fast: ## Run clusterctl based conformance test on workload cluster (requires Docker) using a subset of the conformance suite in parallel.
 	$(MAKE) test-conformance CONFORMANCE_E2E_ARGS="-kubetest.config-file=$(KUBETEST_FAST_CONF_PATH) -kubetest.ginkgo-nodes=5 $(E2E_ARGS)"
+
+# TODO(ashish-amarnath) what does "kubetest.ginkgo-nodes=5" do? is it required here?
+.PHONY: test-conformance-cni-antrea
+test-conformance-cni-antrea: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run network policy conformance tests on workload cluster using Antrea as CNI
+	$(MAKE) test-conformance CONFORMANCE_E2E_ARGS="-kubetest.config-file=$(KUBETEST_NETWORKPOLICY_CONF_PATH) -kubetest.ginkgo-nodes=5 $(E2E_ARGS)"
+
 ## --------------------------------------
 ## Binaries
 ## --------------------------------------
