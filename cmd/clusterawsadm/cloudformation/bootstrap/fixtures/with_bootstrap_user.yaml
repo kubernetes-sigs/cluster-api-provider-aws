@@ -191,6 +191,7 @@ Resources:
           - elasticloadbalancing:DeleteLoadBalancer
           - elasticloadbalancing:DescribeLoadBalancers
           - elasticloadbalancing:DescribeLoadBalancerAttributes
+          - elasticloadbalancing:ApplySecurityGroupsToLoadBalancer
           - elasticloadbalancing:DescribeTags
           - elasticloadbalancing:ModifyLoadBalancerAttributes
           - elasticloadbalancing:RegisterInstancesWithLoadBalancer
