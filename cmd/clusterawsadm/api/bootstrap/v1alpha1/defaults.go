@@ -38,7 +38,9 @@ func addDefaultingFuncs(scheme *runtime.Scheme) error {
 
 // SetDefaults_BootstrapUser is used by defaulter-gen
 func SetDefaults_BootstrapUser(obj *BootstrapUser) { //nolint:golint,stylecheck
-	obj.UserName = DefaultBootstrapUserName
+	if obj != nil && obj.UserName == "" {
+		obj.UserName = DefaultBootstrapUserName
+	}
 }
 
 // SetDefaults_AWSIAMConfigurationSpec is used by defaulter-gen
