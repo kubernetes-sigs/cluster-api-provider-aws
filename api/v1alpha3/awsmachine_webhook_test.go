@@ -27,6 +27,23 @@ import (
 	"k8s.io/utils/pointer"
 )
 
+func TestAWSMachine_ValidateDefaultCreate(t *testing.T) {
+	g := NewWithT(t)
+	r := &AWSMachine{}
+
+	r.Default()
+	g.Expect(r.ValidateCreate()).To(Succeed())
+}
+
+func TestAWSMachine_ValidateDefaultUpdate(t *testing.T) {
+	g := NewWithT(t)
+	r := &AWSMachine{}
+
+	defaulted := r.DeepCopy()
+	defaulted.Default()
+	g.Expect(defaulted.ValidateUpdate(r)).To(Succeed())
+}
+
 func TestAWSMachine_Create(t *testing.T) {
 	tests := []struct {
 		name    string

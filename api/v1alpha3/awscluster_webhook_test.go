@@ -26,6 +26,23 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
+func TestAWSCluster_ValidateDefaultCreate(t *testing.T) {
+	g := NewWithT(t)
+	r := &AWSCluster{}
+
+	r.Default()
+	g.Expect(r.ValidateCreate()).To(Succeed())
+}
+
+func TestAWSCluster_ValidateDefaultUpdate(t *testing.T) {
+	g := NewWithT(t)
+	r := &AWSCluster{}
+
+	defaulted := r.DeepCopy()
+	defaulted.Default()
+	g.Expect(defaulted.ValidateUpdate(r)).To(Succeed())
+}
+
 func TestAWSCluster_ValidateCreate(t *testing.T) {
 	tests := []struct {
 		name    string
