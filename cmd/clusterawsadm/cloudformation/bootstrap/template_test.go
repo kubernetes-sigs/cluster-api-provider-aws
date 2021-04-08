@@ -79,6 +79,15 @@ func Test_RenderCloudformation(t *testing.T) {
 			},
 		},
 		{
+			fixture: "with_custom_bootstrap_user",
+			template: func() Template {
+				t := NewTemplate()
+				t.Spec.BootstrapUser.Enable = true
+				t.Spec.BootstrapUser.UserName = "custom-bootstrapper.cluster-api-provider-aws.sigs.k8s.io"
+				return t
+			},
+		},
+		{
 			fixture: "with_different_instance_profiles",
 			template: func() Template {
 				t := NewTemplate()
