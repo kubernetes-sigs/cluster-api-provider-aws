@@ -1,0 +1,30 @@
+apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
+kind: AWSIAMConfiguration
+spec:
+  bootstrapUser:
+    enable: false
+    userName: bootstrapper.cluster-api-provider-aws.sigs.k8s.io
+  clusterAPIControllers:
+    disable: false
+  controlPlane:
+    disable: false
+    disableCloudProviderPolicy: false
+    enableCSIPolicy: false
+  eks:
+    defaultControlPlaneRole:
+      disable: false
+    enable: true
+    fargate:
+      disable: false
+    managedMachinePool:
+      disable: false
+  eventBridge: {}
+  nameSuffix: .cluster-api-provider-aws.sigs.k8s.io
+  nodes:
+    disable: false
+    disableCloudProviderPolicy: false
+    ec2ContainerRegistryReadOnly: false
+  partition: aws
+  secureSecretBackends:
+  - secrets-manager
+  stackName: cluster-api-provider-aws-sigs-k8s-io
