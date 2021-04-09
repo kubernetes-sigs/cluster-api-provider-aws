@@ -20,7 +20,6 @@ aliases:
     - justinsb
     - vincepri
   cluster-api-aws-maintainers:
-    - detiber
     - randomvariable
     - richardcase
     - rudoi
