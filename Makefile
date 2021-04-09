@@ -426,6 +426,15 @@ release: $(RELEASE_NOTES) clean-release check-release-tag $(RELEASE_DIR)  ## Bui
 	$(MAKE) release-notes
 	$(MAKE) release-manifests
 	$(MAKE) release-templates
+	$(MAKE) release-policies
+
+.PHONY: release-policies
+release-policies: $(RELEASE_DIR)
+	go run ./cmd/clusterawsadm bootstrap iam print-policy --document AWSIAMManagedPolicyControllers > $(RELEASE_DIR)/AWSIAMManagedPolicyControllers.json
+	go run ./cmd/clusterawsadm bootstrap iam print-policy --document AWSIAMManagedPolicyControllers --config hack/eks-clusterawsadm-config.yaml > $(RELEASE_DIR)/AWSIAMManagedPolicyControllersWithEKS.json
+	go run ./cmd/clusterawsadm bootstrap iam print-policy --document AWSIAMManagedPolicyCloudProviderControlPlane > $(RELEASE_DIR)/AWSIAMManagedPolicyCloudProviderControlPlane.json
+	go run ./cmd/clusterawsadm bootstrap iam print-policy --document AWSIAMManagedPolicyCloudProviderNodes > $(RELEASE_DIR)/AWSIAMManagedPolicyCloudProviderNodes.json
+
 
 .PHONY: release-manifests
 release-manifests:

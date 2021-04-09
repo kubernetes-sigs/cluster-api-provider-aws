@@ -27,9 +27,26 @@ ARCH := $(shell go env GOARCH)
 PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 export PATH
 
+src/clusterawsadm:
+	mkdir -p src/clusterawsadm
+
 .PHONY: generate
 generate: ## Generate any dependent files outside of a build
 	$(MAKE) -C ../ diagrams
+
+.PHONY: policies
+policies:
+	$(MAKE) -C ../.. release-policies
+
+.PHONY: clusterawsadm_docs
+clusterawsadm_docs: src/clusterawsadm
+	go run ./cmd/clusterawsadmdocs > src/SUMMARY_CLUSTERAWSADM.md
+
+# SUMMARY.md doesn't support processor statements, so construct it using cat
+src/SUMMARY.md: src/SUMMARY_PREFIX.md src/SUMMARY_SUFFIX.md clusterawsadm_docs
+	cat src/SUMMARY_PREFIX.md > src/SUMMARY.md
+	cat src/SUMMARY_CLUSTERAWSADM.md >> src/SUMMARY.md
+	cat src/SUMMARY_SUFFIX.md >> src/SUMMARY.md
 
 verify: generate ## Verify that dependent artifacts are up to date
 	@if !(git diff --quiet HEAD); then \
@@ -38,11 +55,11 @@ verify: generate ## Verify that dependent artifacts are up to date
 	fi
 
 .PHONY: build
-build: $(BOOK_SRCS) $(MDBOOK) $(MDBOOK_EMBED) $(MDBOOK_RELEASELINK) $(MDBOOK_TABULATE) ## Build the book
+build: $(BOOK_SRCS) $(MDBOOK) $(MDBOOK_EMBED) $(MDBOOK_RELEASELINK) $(MDBOOK_TABULATE) policies src/SUMMARY.md ## Build the book
 	$(MDBOOK) build
 
 .PHONY: serve
-serve: $(MDBOOK) $(MDBOOK_EMBED) $(MDBOOK_RELEASELINK) $(MDBOOK_TABULATE) ## Run a local webserver with the compiled book
+serve: $(MDBOOK) $(MDBOOK_EMBED) $(MDBOOK_RELEASELINK) $(MDBOOK_TABULATE) policies src/SUMMARY.md ## Run a local webserver with the compiled book
 	$(MDBOOK) serve
 
 .PHONY: clean
