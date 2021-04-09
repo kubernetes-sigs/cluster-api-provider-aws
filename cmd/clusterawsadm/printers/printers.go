@@ -108,7 +108,7 @@ type jsonPrinter struct {
 }
 
 func (p *jsonPrinter) Print(in interface{}) error {
-	data, err := json.Marshal(in)
+	data, err := json.MarshalIndent(in, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshalling object as json: %w", err)
 	}
