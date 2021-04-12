@@ -20,21 +20,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"k8s.io/klog"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/ami"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/flags"
-	ec2service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
+	cmdout "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/printers"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
-)
-
-var (
-	ownerID           string
-	kubernetesVersion string
-	opSystem          string
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
 func CopyAMICmd() *cobra.Command {
@@ -52,49 +43,51 @@ func CopyAMICmd() *cobra.Command {
 
 		# owner-id and dry-run flags are optional. region can be set via flag or env
 		clusterawsadm ami copy --os centos-7 --kubernetes-version=v1.19.4 --owner-id=111111111111 --dry-run
+
+		# copy from us-east-1 to us-east-2
+		clusterawsadm ami copy --os centos-7 --kubernetes-version=v1.19.4 --region us-east-2 --source-region us-east-1
 		`),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			region, err := flags.GetRegion(cmd)
+			printer, err := cmdout.New("yaml", os.Stdout)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "Could not resolve AWS region, define it with --region flag or as an environment variable.")
+				return fmt.Errorf("failed creating output printer: %w", err)
+			}
+			region, err := flags.GetRegionWithError(cmd)
+			if err != nil {
+				return err
+			}
+			sourceRegion, err := GetSourceRegion(cmd)
+			if err != nil {
 				return err
 			}
 
-			sess, err := session.NewSessionWithOptions(session.Options{
-				SharedConfigState: session.SharedConfigEnable,
-				Config:            aws.Config{Region: aws.String(region)},
-			})
-			if err != nil {
-				fmt.Printf("Error: %v\n", err)
-				return err
-			}
-			ec2Client := ec2.New(sess)
 			dryRun, err := cmd.Flags().GetBool("dry-run")
 			if err != nil {
-				klog.V(5).Infof("dry-run flag is not provided: %v.  Defaulting to --dry-run=false", err)
+				fmt.Printf("Failed to parse dry-run value: %v. Defaulting to --dry-run=false\n", err)
 			}
 
-			klog.V(5).Infof("Retrieving the image from %s: os=%s version=%s", ownerID, opSystem, kubernetesVersion)
-			image, err := ec2service.DefaultAMILookup(ec2Client, ownerID, opSystem, kubernetesVersion, "")
+			log := logf.Log
+
+			ami, err := ami.Copy(ami.CopyInput{
+				DestinationRegion: region,
+				DryRun:            dryRun,
+				KubernetesVersion: kubernetesVersion,
+				Log:               log,
+				OperatingSystem:   opSystem,
+				OwnerID:           ownerID,
+				SourceRegion:      sourceRegion,
+			},
+			)
+
 			if err != nil {
-				return err
-			}
-			in2 := &ec2.CopyImageInput{
-				Description:   image.Description,
-				DryRun:        &dryRun,
-				Name:          image.Name,
-				SourceImageId: image.ImageId,
-				SourceRegion:  &region,
-			}
-			klog.V(5).Infof("Copying the retrieved image %s from %s", *image.ImageId, ownerID)
-			out, err := ec2Client.CopyImage(in2)
-			if err != nil {
-				fmt.Printf("version %q\n", out)
+				fmt.Print(err)
 				return err
 			}
 
-			klog.V(0).Infof("Completed copying %v\n", *image.ImageId)
+			printer.Print(ami)
+
+			// klog.V(0).Infof("Completed copying %v\n", *image.ImageId)
 			return nil
 		},
 	}
@@ -104,27 +97,6 @@ func CopyAMICmd() *cobra.Command {
 	addKubernetesVersionFlag(newCmd)
 	addDryRunFlag(newCmd)
 	addOwnerIDFlag(newCmd)
+	addSourceRegion(newCmd)
 	return newCmd
-}
-
-func addOsFlag(c *cobra.Command) {
-	c.Flags().StringVar(&opSystem, "os", "", "Operating system of the AMI to be copied")
-	if err := c.MarkFlagRequired("os"); err != nil {
-		panic(errors.Wrap(err, "error marking required --os flag"))
-	}
-}
-
-func addKubernetesVersionFlag(c *cobra.Command) {
-	c.Flags().StringVar(&kubernetesVersion, "kubernetes-version", "", "Kubernetes version of the AMI to be copied")
-	if err := c.MarkFlagRequired("kubernetes-version"); err != nil {
-		panic(errors.Wrap(err, "error marking required --kubernetes-version flag"))
-	}
-}
-
-func addOwnerIDFlag(c *cobra.Command) {
-	c.Flags().StringVar(&ownerID, "owner-id", ec2service.DefaultMachineAMIOwnerID, "The source AWS owner ID, where the AMI will be copied from")
-}
-
-func addDryRunFlag(c *cobra.Command) {
-	c.Flags().Bool("dry-run", false, "Check if AMI exists and can be copied")
 }

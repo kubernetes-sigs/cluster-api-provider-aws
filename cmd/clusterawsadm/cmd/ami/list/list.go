@@ -19,13 +19,9 @@ package copy
 import (
 	"fmt"
 	"os"
-	"sync"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/spf13/cobra"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/ami"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/flags"
 	cmdout "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/printers"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
@@ -36,15 +32,6 @@ var (
 	opSystem          string
 	outputPrinter     string
 )
-
-type amiInfo struct {
-	OS                string `json:"os"`
-	Region            string `json:"region"`
-	ID                string `json:"amiID"`
-	CreationDate      string `json:"creationDate"`
-	KubernetesVersion string `json:"kubernetesVersion"`
-	Name              string `json:"name"`
-}
 
 func ListAMICmd() *cobra.Command {
 	newCmd := &cobra.Command{
@@ -67,91 +54,21 @@ func ListAMICmd() *cobra.Command {
 		`),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			supportedOsList := []string{}
-			if opSystem == "" {
-				supportedOsList = getSupportedOsList()
-			} else {
-				supportedOsList = append(supportedOsList, opSystem)
-			}
-			imageRegionList := []string{}
-			region := cmd.Flags().Lookup("region").Value.String()
-			if region == "" {
-				imageRegionList = getimageRegionList()
-			} else {
-				imageRegionList = append(imageRegionList, region)
-			}
 
-			supportedVersions := []string{}
-			if kubernetesVersion == "" {
-				var err error
-				supportedVersions, err = getSupportedKubernetesVersions()
-				if err != nil {
-					fmt.Println("Failed to calculate supported Kubernetes versions")
-					return err
-				}
-			} else {
-				supportedVersions = append(supportedVersions, kubernetesVersion)
-			}
+			region, _ := flags.GetRegion(cmd)
 
-			var sessionCache sync.Map
-			imageMap := make(map[string][]*ec2.Image)
-			for _, region := range imageRegionList {
-				var sess *session.Session
-				var err error
-				if s, ok := sessionCache.Load(region); ok {
-					sess = s.(*session.Session)
-				} else {
-					sess, err = session.NewSessionWithOptions(session.Options{
-						SharedConfigState: session.SharedConfigEnable,
-						Config:            aws.Config{Region: aws.String(region)},
-					})
-					if err != nil {
-						fmt.Printf("Error: %v\n", err)
-						return err
-					}
-					sessionCache.Store(region, sess)
-				}
-
-				ec2Client := ec2.New(sess)
-				imagesForRegion, err := getAllImages(ec2Client, "")
-				if err != nil {
-					fmt.Printf("Error: %v\n", err)
-					return err
-				}
-
-				for key, image := range imagesForRegion {
-					images, ok := imageMap[key]
-					if !ok {
-						images = make([]*ec2.Image, 0)
-					}
-					imageMap[key] = append(images, image...)
-				}
-			}
-
-			listByVersion := amiList{
-				AmiList: []amiInfo{},
-			}
-			for _, version := range supportedVersions {
-				for _, region := range imageRegionList {
-					for _, os := range supportedOsList {
-						image, err := findAMI(imageMap, os, version)
-						if err != nil {
-							return err
-						}
-						listByVersion.AmiList = append(listByVersion.AmiList, amiInfo{
-							OS:                os,
-							Region:            region,
-							ID:                *image.ImageId,
-							CreationDate:      *image.CreationDate,
-							KubernetesVersion: version,
-							Name:              *image.Name,
-						})
-					}
-				}
-			}
-			printer, err := cmdout.New(outputPrinter, os.Stderr)
+			printer, err := cmdout.New(outputPrinter, os.Stdout)
 			if err != nil {
 				return fmt.Errorf("failed creating output printer: %w", err)
+			}
+
+			listByVersion, err := ami.List(ami.ListInput{
+				Region:            region,
+				KubernetesVersion: kubernetesVersion,
+				OperatingSystem:   opSystem,
+			})
+			if err != nil {
+				return err
 			}
 
 			if outputPrinter == string(cmdout.PrinterTypeTable) {
@@ -182,49 +99,4 @@ func addKubernetesVersionFlag(c *cobra.Command) {
 
 func addOutputFlag(c *cobra.Command) {
 	c.Flags().StringVarP(&outputPrinter, "output", "o", "table", "The output format of the results. Possible values: table,json,yaml")
-}
-
-type amiList struct {
-	AmiList []amiInfo `json:"AMIs"`
-}
-
-func (a *amiList) ToTable() *metav1.Table {
-	table := &metav1.Table{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: metav1.SchemeGroupVersion.String(),
-			Kind:       "Table",
-		},
-		ColumnDefinitions: []metav1.TableColumnDefinition{
-			{
-				Name: "Kubernetes-version",
-				Type: "string",
-			},
-			{
-				Name: "Region",
-				Type: "string",
-			},
-			{
-				Name: "OS",
-				Type: "string",
-			},
-			{
-				Name: "Name",
-				Type: "string",
-			},
-			{
-				Name: "Ami-id",
-				Type: "string",
-			},
-		},
-	}
-
-	for _, ami := range a.AmiList {
-
-		row := metav1.TableRow{
-			Cells: []interface{}{ami.KubernetesVersion, ami.Region, ami.OS, ami.Name, ami.ID},
-		}
-		table.Rows = append(table.Rows, row)
-
-	}
-	return table
 }

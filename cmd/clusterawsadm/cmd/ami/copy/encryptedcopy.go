@@ -18,24 +18,18 @@ package copy
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"os"
-	"strconv"
-	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/ami"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/flags"
-	ec2service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
+	cmdout "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/printers"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
-	"sigs.k8s.io/cluster-api/util"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
 var (
-	kmsKeyID    string
-	kmsKeyIDPtr *string
+	kmsKeyID string
 )
 
 func EncryptedCopyAMICmd() *cobra.Command {
@@ -55,6 +49,9 @@ func EncryptedCopyAMICmd() *cobra.Command {
 		# owner-id and dry-run flags are optional. region can be set via flag or env
 		clusterawsadm ami encrypted-copy --os centos-7 --kubernetes-version=v1.19.4 --owner-id=111111111111 --dry-run
 
+		# copy from us-east-1 to us-east-2
+		clusterawsadm ami encrypted-copy --os centos-7 --kubernetes-version=v1.19.4 --owner-id=111111111111 --region us-east-2 --source-region us-east-1
+
 		# Encrypt using a non-default KmsKeyId specified using Key ID:
 		clusterawsadm ami encrypted-copy --os centos-7 --kubernetes-version=v1.19.4 --kms-key-id=key/1234abcd-12ab-34cd-56ef-1234567890ab
 
@@ -69,106 +66,45 @@ func EncryptedCopyAMICmd() *cobra.Command {
 		`),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			region, err := flags.GetRegion(cmd)
+			printer, err := cmdout.New("yaml", os.Stdout)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "Could not resolve AWS region, define it with --region flag or as an environment variable.")
+				return fmt.Errorf("failed creating output printer: %w", err)
+			}
+			region, err := flags.GetRegionWithError(cmd)
+			if err != nil {
+				return err
+			}
+			sourceRegion, err := GetSourceRegion(cmd)
+			if err != nil {
 				return err
 			}
 
-			sess, err := session.NewSessionWithOptions(session.Options{
-				SharedConfigState: session.SharedConfigEnable,
-				Config:            aws.Config{Region: aws.String(region)},
-			})
-			if err != nil {
-				fmt.Printf("Error: %v\n", err)
-				return err
-			}
-			ec2Client := ec2.New(sess)
 			dryRun, err := cmd.Flags().GetBool("dry-run")
 			if err != nil {
 				fmt.Printf("Failed to parse dry-run value: %v. Defaulting to --dry-run=false\n", err)
 			}
 
-			image, err := ec2service.DefaultAMILookup(ec2Client, ownerID, opSystem, kubernetesVersion, "")
+			log := logf.Log
+
+			ami, err := ami.Copy(ami.CopyInput{
+				DestinationRegion: region,
+				DryRun:            dryRun,
+				Encrypted:         true,
+				KmsKeyID:          kmsKeyID,
+				KubernetesVersion: kubernetesVersion,
+				Log:               log,
+				OperatingSystem:   opSystem,
+				OwnerID:           ownerID,
+				SourceRegion:      sourceRegion,
+			},
+			)
+
 			if err != nil {
+				fmt.Print(err)
 				return err
 			}
 
-			if kmsKeyID == "" {
-				kmsKeyIDPtr = nil
-			}
-			kmsKeyIDPtr = &kmsKeyID
-
-			if len(image.BlockDeviceMappings) == 0 || image.BlockDeviceMappings[0].Ebs == nil {
-				return errors.New("image does not have EBS attached")
-			}
-
-			copyInput := &ec2.CopySnapshotInput{
-				Description:       image.Description,
-				DestinationRegion: aws.String(region),
-				DryRun:            aws.Bool(dryRun),
-				Encrypted:         aws.Bool(true),
-				SourceRegion:      aws.String(region),
-				KmsKeyId:          kmsKeyIDPtr,
-				SourceSnapshotId:  image.BlockDeviceMappings[0].Ebs.SnapshotId,
-			}
-
-			// Generate a presigned url from the CopySnapshotInput
-			req, _ := ec2Client.CopySnapshotRequest(copyInput)
-			str, err := req.Presign(15 * time.Minute)
-			if err != nil {
-				fmt.Printf("Failed to generate presigned url %q\n", err)
-				return err
-			}
-			copyInput.PresignedUrl = aws.String(str)
-
-			out, err := ec2Client.CopySnapshot(copyInput)
-			if err != nil {
-				fmt.Printf("Failed copying snapshot %q\n", err)
-				return err
-			}
-			fmt.Printf("Copying snapshot %v as snapshot %v, this may take a couple of minutes ...\n", *image.BlockDeviceMappings[0].Ebs.SnapshotId, *out.SnapshotId)
-
-			err = ec2Client.WaitUntilSnapshotCompleted(&ec2.DescribeSnapshotsInput{
-				DryRun:      aws.Bool(dryRun),
-				SnapshotIds: []*string{out.SnapshotId},
-			})
-			if err != nil {
-				fmt.Printf("Failed waiting for encrypted snapshot copy completion: %q\n", *out.SnapshotId)
-				return err
-			}
-
-			fmt.Println("Completed!")
-
-			ebsMapping := &ec2.BlockDeviceMapping{
-				DeviceName: image.BlockDeviceMappings[0].DeviceName,
-				Ebs: &ec2.EbsBlockDevice{
-					SnapshotId: out.SnapshotId,
-				},
-			}
-
-			imgName := *image.Name + util.RandomString(3) + strconv.Itoa(int(time.Now().Unix()))
-			fmt.Printf("Creating AMI %s\n", imgName)
-
-			out2, err := ec2Client.RegisterImage(&ec2.RegisterImageInput{
-				Architecture:        image.Architecture,
-				BlockDeviceMappings: []*ec2.BlockDeviceMapping{ebsMapping},
-				Description:         image.Description,
-				DryRun:              aws.Bool(dryRun),
-				EnaSupport:          image.EnaSupport,
-				KernelId:            image.KernelId,
-				Name:                aws.String(imgName),
-				RamdiskId:           image.RamdiskId,
-				RootDeviceName:      image.RootDeviceName,
-				SriovNetSupport:     image.SriovNetSupport,
-				VirtualizationType:  image.VirtualizationType,
-			})
-			if err != nil {
-				fmt.Printf("Failed to create AMI from encrypted snapshot: %q\n", *out.SnapshotId)
-				return err
-			}
-
-			fmt.Printf("Created AMI %v from encrypted snapshot: %q\n", *out2.ImageId, *out.SnapshotId)
+			printer.Print(ami)
 
 			return nil
 		},
@@ -180,6 +116,7 @@ func EncryptedCopyAMICmd() *cobra.Command {
 	addDryRunFlag(newCmd)
 	addOwnerIDFlag(newCmd)
 	addKmsKeyIDFlag(newCmd)
+	addSourceRegion(newCmd)
 	return newCmd
 }
 
