@@ -30,6 +30,13 @@ export PATH
 src/clusterawsadm:
 	mkdir -p src/clusterawsadm
 
+terraform/out:
+	mkdir -p terraform/out
+
+
+terraform/out/amilist: terraform/out
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $@ ./cmd/amilist && chmod 755 $@
+
 .PHONY: generate
 generate: ## Generate any dependent files outside of a build
 	$(MAKE) -C ../ diagrams
