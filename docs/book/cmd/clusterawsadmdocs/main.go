@@ -48,7 +48,7 @@ func main() {
 	}
 
 	tree := commandLeaf{
-		name:        "clusterawsadm",
+		name:        "clusterawsadm command reference",
 		subcommands: make(map[string]commandLeaf),
 		link:        "clusterawsadm/clusterawsadm",
 	}

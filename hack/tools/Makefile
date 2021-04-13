@@ -79,6 +79,10 @@ ENVSUBST := $(BIN_DIR)/envsubst
 $(ENVSUBST): $(BIN_DIR) go.mod go.sum # Build envsubst from tools folder.
 	go build -tags=tools -o $@ github.com/a8m/envsubst/cmd/envsubst
 
+GENCRDAPIREFERENCEDOCS := $(BIN_DIR)/gen-crd-api-reference-docs
+$(GENCRDAPIREFERENCEDOCS): $(BIN_DIR) go.mod go.sum # Build gen-crd-api-reference-docs from tools folder.
+	go build -tags=tools -o $@ github.com/ahmetb/gen-crd-api-reference-docs
+
 GH_SHARE := $(SHARE_DIR)/gh
 
 $(GH_SHARE): $(SHARE_DIR)
