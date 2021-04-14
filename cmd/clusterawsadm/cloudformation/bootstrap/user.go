@@ -35,8 +35,10 @@ func (t Template) bootstrapUserPolicy() []cfn_iam.User_Policy {
 	if t.Spec.BootstrapUser.ExtraStatements != nil {
 		userPolicies = append(userPolicies,
 			cfn_iam.User_Policy{
+				PolicyName: t.Spec.StackName,
 				PolicyDocument: iamv1.PolicyDocument{
 					Statement: t.Spec.BootstrapUser.ExtraStatements,
+					Version:   iamv1.CurrentVersion,
 				},
 			},
 		)

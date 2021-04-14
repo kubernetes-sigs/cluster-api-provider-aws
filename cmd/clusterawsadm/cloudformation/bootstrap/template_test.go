@@ -120,6 +120,7 @@ func Test_RenderCloudformation(t *testing.T) {
 			fixture: "with_extra_statements",
 			template: func() Template {
 				t := NewTemplate()
+				t.Spec.BootstrapUser.Enable = true
 				t.Spec.ControlPlane.ExtraStatements = iamv1.Statements{
 					{
 						Effect:   iamv1.EffectAllow,
@@ -132,6 +133,13 @@ func Test_RenderCloudformation(t *testing.T) {
 						Effect:   iamv1.EffectAllow,
 						Resource: iamv1.Resources{iamv1.Any},
 						Action:   iamv1.Actions{"test:node-action"},
+					},
+				}
+				t.Spec.BootstrapUser.ExtraStatements = iamv1.Statements{
+					{
+						Effect:   iamv1.EffectAllow,
+						Resource: iamv1.Resources{iamv1.Any},
+						Action:   iamv1.Actions{"test:user-action"},
 					},
 				}
 				return t

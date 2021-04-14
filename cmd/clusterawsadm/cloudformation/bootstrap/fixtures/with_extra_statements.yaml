@@ -1,5 +1,8 @@
 AWSTemplateFormatVersion: 2010-09-09
 Resources:
+  AWSIAMGroupBootstrapper:
+    Properties: {}
+    Type: AWS::IAM::Group
   AWSIAMInstanceProfileControlPlane:
     Properties:
       InstanceProfileName: control-plane.cluster-api-provider-aws.sigs.k8s.io
@@ -130,6 +133,8 @@ Resources:
   AWSIAMManagedPolicyControllers:
     Properties:
       Description: For the Kubernetes Cluster API Provider AWS Controllers
+      Groups:
+      - Ref: AWSIAMGroupBootstrapper
       ManagedPolicyName: controllers.cluster-api-provider-aws.sigs.k8s.io
       PolicyDocument:
         Statement:
@@ -313,3 +318,19 @@ Resources:
         PolicyName: cluster-api-provider-aws-sigs-k8s-io
       RoleName: nodes.cluster-api-provider-aws.sigs.k8s.io
     Type: AWS::IAM::Role
+  AWSIAMUserBootstrapper:
+    Properties:
+      Groups:
+      - Ref: AWSIAMGroupBootstrapper
+      Policies:
+      - PolicyDocument:
+          Statement:
+          - Action:
+            - test:user-action
+            Effect: Allow
+            Resource:
+            - '*'
+          Version: 2012-10-17
+        PolicyName: cluster-api-provider-aws-sigs-k8s-io
+      UserName: bootstrapper.cluster-api-provider-aws.sigs.k8s.io
+    Type: AWS::IAM::User
