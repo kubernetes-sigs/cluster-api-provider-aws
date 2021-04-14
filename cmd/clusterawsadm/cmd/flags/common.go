@@ -43,6 +43,15 @@ func GetRegion(c *cobra.Command) (string, error) {
 	return credentials.ResolveRegion(explicitRegion)
 }
 
+func GetRegionWithError(c *cobra.Command) (string, error) {
+	region, err := GetRegion(c)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Could not resolve AWS region, define it with --region flag or as an environment variable.")
+		return "", err
+	}
+	return region, nil
+}
+
 func MarkAlphaDeprecated(c *cobra.Command) {
 	c.Deprecated = "and will be removed in 0.6.0"
 }
