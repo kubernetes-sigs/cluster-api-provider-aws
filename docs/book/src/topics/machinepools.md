@@ -25,7 +25,7 @@ clusterctl config cluster my-cluster --kubernetes-version v1.16.8 --flavor machi
 ```
 
 The template used for this [flavor](https://cluster-api.sigs.k8s.io/clusterctl/commands/config-cluster.html#flavors)
-is located [here](../../../../templates/cluster-template-machinepool.yaml).
+is located [here](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/templates/cluster-template-machinepool.yaml).
 
 ## AWSManagedMachinePool
 
