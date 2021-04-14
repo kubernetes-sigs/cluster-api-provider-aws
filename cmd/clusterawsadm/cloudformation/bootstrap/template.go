@@ -165,7 +165,7 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 	if !t.Spec.EKS.DefaultControlPlaneRole.Disable {
 		template.Resources[AWSIAMRoleEKSControlPlane] = &cfn_iam.Role{
 			RoleName:                 ekscontrolplanev1.DefaultEKSControlPlaneRole,
-			AssumeRolePolicyDocument: assumeRolePolicy([]string{"eks.amazonaws.com"}),
+			AssumeRolePolicyDocument: AssumeRolePolicy(iamv1.PrincipalService, []string{"eks.amazonaws.com"}),
 			ManagedPolicyArns:        t.eksControlPlanePolicies(),
 			Tags:                     converters.MapToCloudFormationTags(t.Spec.EKS.DefaultControlPlaneRole.Tags),
 		}
@@ -174,7 +174,7 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 	if !t.Spec.EKS.ManagedMachinePool.Disable {
 		template.Resources[AWSIAMRoleEKSNodegroup] = &cfn_iam.Role{
 			RoleName:                 infrav1exp.DefaultEKSNodegroupRole,
-			AssumeRolePolicyDocument: assumeRolePolicy([]string{"ec2.amazonaws.com", "eks.amazonaws.com"}),
+			AssumeRolePolicyDocument: AssumeRolePolicy(iamv1.PrincipalService, []string{"ec2.amazonaws.com", "eks.amazonaws.com"}),
 			ManagedPolicyArns:        t.eksMachinePoolPolicies(),
 			Tags:                     converters.MapToCloudFormationTags(t.Spec.EKS.ManagedMachinePool.Tags),
 		}
@@ -183,7 +183,7 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 	if !t.Spec.EKS.Fargate.Disable {
 		template.Resources[AWSIAMRoleEKSFargate] = &cfn_iam.Role{
 			RoleName:                 infrav1exp.DefaultEKSFargateRole,
-			AssumeRolePolicyDocument: assumeRolePolicy([]string{eksiam.EKSFargateService}),
+			AssumeRolePolicyDocument: AssumeRolePolicy(iamv1.PrincipalService, []string{eksiam.EKSFargateService}),
 			ManagedPolicyArns:        fargateProfilePolicies(t.Spec.EKS.Fargate),
 			Tags:                     converters.MapToCloudFormationTags(t.Spec.EKS.Fargate.Tags),
 		}
@@ -193,10 +193,18 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 }
 
 func ec2AssumeRolePolicy() *iamv1.PolicyDocument {
-	return assumeRolePolicy([]string{"ec2.amazonaws.com"})
+	return AssumeRolePolicy(iamv1.PrincipalService, []string{"ec2.amazonaws.com"})
 }
 
-func assumeRolePolicy(principalIDs []string) *iamv1.PolicyDocument {
+func AWSArnAssumeRolePolicy(identityID string) *iamv1.PolicyDocument {
+	return AssumeRolePolicy(iamv1.PrincipalAWS, []string{identityID})
+}
+
+func AWSServiceAssumeRolePolicy(identityID string) *iamv1.PolicyDocument {
+	return AssumeRolePolicy(iamv1.PrincipalService, []string{identityID})
+}
+
+func AssumeRolePolicy(identityType iamv1.PrincipalType, principalIDs []string) *iamv1.PolicyDocument {
 	return &iamv1.PolicyDocument{
 		Version: iamv1.CurrentVersion,
 		Statement: []iamv1.StatementEntry{
