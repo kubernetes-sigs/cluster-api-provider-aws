@@ -18,4 +18,5 @@ limitations under the License.
 // +kubebuilder:object:generate=true
 // +k8s:defaulter-gen=TypeMeta
 // +groupName=iam.aws.infrastructure.cluster.x-k8s.io
+// +gencrdrefdocs:force
 package v1alpha1

@@ -19,4 +19,5 @@ limitations under the License.
 // +k8s:deepcopy-gen=package,register
 // +k8s:defaulter-gen=TypeMeta
 // +groupName=bootstrap.aws.infrastructure.cluster.x-k8s.io
+// +gencrdrefdocs:force
 package v1alpha1
