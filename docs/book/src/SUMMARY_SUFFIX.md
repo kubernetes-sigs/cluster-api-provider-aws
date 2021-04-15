@@ -1,4 +1,6 @@
-- [CRD Reference](./api/index.md)
+- [CRD Reference](./crd/index.md)
   - [Cluster API Provider AWS](./crd/cluster-api-aws.md)
+  - [EKS Control Plane](./crd/eks-control-plane.md)-
+  - [Experimental APIs](./crd/experimental.md)
   - [clusterawsadm Configuration](./crd/clusterawsadm.md)
 - [Roadmap](./roadmap.md)
