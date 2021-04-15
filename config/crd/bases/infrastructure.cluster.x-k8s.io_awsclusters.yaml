@@ -554,6 +554,25 @@ spec:
                       type: string
                     type: array
                 type: object
+              identityRef:
+                description: IdentityRef is a reference to a identity to be used when
+                  reconciling this cluster
+                properties:
+                  kind:
+                    description: Kind of the identity.
+                    enum:
+                    - AWSClusterControllerIdentity
+                    - AWSClusterRoleIdentity
+                    - AWSClusterStaticIdentity
+                    type: string
+                  name:
+                    description: Name of the identity.
+                    minLength: 1
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
               imageLookupBaseOS:
                 description: ImageLookupBaseOS is the name of the base operating system
                   used to look up machine images when a machine does not specify an

@@ -66,7 +66,14 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 		params.Logger = klogr.New()
 	}
 
-	session, serviceLimiters, err := sessionForRegion(params.ControlPlane.Spec.Region, params.Endpoints)
+	managedScope := &ManagedControlPlaneScope{
+		Logger:         params.Logger,
+		Client:         params.Client,
+		Cluster:        params.Cluster,
+		ControlPlane:   params.ControlPlane,
+		controllerName: params.ControllerName,
+	}
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
@@ -130,6 +137,11 @@ func (s *ManagedMachinePoolScope) ClusterName() string {
 // EnableIAM indicates that reconciliation should create IAM roles
 func (s *ManagedMachinePoolScope) EnableIAM() bool {
 	return s.enableIAM
+}
+
+// IdentityRef returns the cluster identityRef.
+func (s *ManagedMachinePoolScope) IdentityRef() *infrav1.AWSIdentityReference {
+	return s.ControlPlane.Spec.IdentityRef
 }
 
 // AdditionalTags returns AdditionalTags from the scope's ManagedMachinePool

@@ -5,7 +5,7 @@ start
 :AWS controller;
 :enqueue AWSCluster/Machine for reconciliation;
 :fetch AWSCluster;
-if (AWSCluster has spec.principalRef?) then (yes)
+if (AWSCluster has spec.identityRef?) then (yes)
   if (Referenced object is cluster scoped CRD) then (yes)
     :fetch cluster scoped resource;
   else (no)
@@ -22,7 +22,7 @@ if (AWSCluster has spec.principalRef?) then (yes)
     :fetch cached credential provider;
   endif
 else (no)
-  : default spec.principalRef to AWSClusterControllerPrincipal;
+  : default spec.identityRef to AWSClusterControllerIdentity;
   if (AWSCluster namespace matches with allowedNamespaces) then (yes)
     :use controller's credential providers;
   else (no)

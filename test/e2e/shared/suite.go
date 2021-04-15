@@ -120,8 +120,14 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	Expect(err).NotTo(HaveOccurred())
 	e2eCtx.AWSSession = NewAWSSession()
 	boostrapTemplate := getBootstrapTemplate(e2eCtx)
+	e2eCtx.CloudFormationTemplate = renderCustomCloudFormation(boostrapTemplate)
 	if !e2eCtx.Settings.SkipCloudFormationCreation {
-		createCloudFormationStack(e2eCtx.AWSSession, boostrapTemplate)
+		err = createCloudFormationStack(e2eCtx.AWSSession, boostrapTemplate)
+		if err != nil {
+			deleteCloudFormationStack(e2eCtx.AWSSession, boostrapTemplate)
+			err = createCloudFormationStack(e2eCtx.AWSSession, boostrapTemplate)
+			Expect(err).NotTo(HaveOccurred())
+		}
 	}
 	ensureNoServiceLinkedRoles(e2eCtx.AWSSession)
 	ensureSSHKeyPair(e2eCtx.AWSSession, DefaultSSHKeyPairName)
@@ -179,6 +185,7 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 	SetEnvVar(AwsAvailabilityZone2, *azs[1].ZoneName, false)
 	SetEnvVar("AWS_REGION", conf.Region, false)
 	SetEnvVar("AWS_SSH_KEY_NAME", DefaultSSHKeyPairName, false)
+	Expect(SetMultitenancyEnvVars(e2eCtx.AWSSession)).To(Succeed())
 	e2eCtx.AWSSession = NewAWSSession()
 	e2eCtx.Environment.ResourceTicker = time.NewTicker(time.Second * 5)
 	e2eCtx.Environment.ResourceTickerDone = make(chan bool)

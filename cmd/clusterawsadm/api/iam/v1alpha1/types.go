@@ -42,13 +42,13 @@ const (
 	// EffectDeny is the Deny effect in an AWS IAM policy statement entry.
 	EffectDeny Effect = "Deny"
 
-	// PrincipalAWS is the principal type covering AWS ARNs.
+	// PrincipalAWS is the identity type covering AWS ARNs.
 	PrincipalAWS PrincipalType = "AWS"
 
-	// PrincipalFederated is the principal type covering federated identities.
+	// PrincipalFederated is the identity type covering federated identities.
 	PrincipalFederated PrincipalType = "Federated"
 
-	// PrincipalService is the principal type covering AWS services.
+	// PrincipalService is the identity type covering AWS services.
 	PrincipalService PrincipalType = "Service"
 
 	// StringEquals is an AWS IAM policy condition operator.
@@ -89,7 +89,7 @@ type StatementEntry struct {
 // Statements is the list of StatementEntries
 type Statements []StatementEntry
 
-// Principals is the map of all principals a statement entry refers to
+// Principals is the map of all identities a statement entry refers to
 type Principals map[PrincipalType]PrincipalID
 
 // Actions is the list of actions
@@ -112,20 +112,20 @@ func (actions *Actions) UnmarshalJSON(data []byte) error {
 // Resources is the list of resources
 type Resources []string
 
-// PrincipalID represents the list of all principals, such as ARNs
+// PrincipalID represents the list of all identities, such as ARNs
 type PrincipalID []string
 
-func (principalID *PrincipalID) UnmarshalJSON(data []byte) error {
+func (identityID *PrincipalID) UnmarshalJSON(data []byte) error {
 	var ids []string
 	if err := json.Unmarshal(data, &ids); err == nil {
-		*principalID = PrincipalID(ids)
+		*identityID = PrincipalID(ids)
 		return nil
 	}
 	var id string
 	if err := json.Unmarshal(data, &id); err != nil {
 		return errors.Wrap(err, "couldn't unmarshal as either []string or string")
 	}
-	*principalID = []string{id}
+	*identityID = []string{id}
 	return nil
 }
 

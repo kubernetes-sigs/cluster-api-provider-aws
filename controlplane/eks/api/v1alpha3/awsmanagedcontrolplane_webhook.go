@@ -22,18 +22,15 @@ import (
 
 	"github.com/apparentlymart/go-cidr/cidr"
 	"github.com/pkg/errors"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/version"
-
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
-
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
 )
 
 const (
@@ -131,6 +128,14 @@ func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) error {
 	if r.Spec.Region != oldAWSManagedControlplane.Spec.Region {
 		allErrs = append(allErrs,
 			field.Invalid(field.NewPath("spec", "region"), r.Spec.Region, "field is immutable"),
+		)
+	}
+
+	// If a identityRef is already set, do not allow removal of it.
+	if oldAWSManagedControlplane.Spec.IdentityRef != nil && r.Spec.IdentityRef == nil {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec", "identityRef"),
+				r.Spec.IdentityRef, "field cannot be set to nil"),
 		)
 	}
 
@@ -321,6 +326,13 @@ func (r *AWSManagedControlPlane) Default() {
 
 		mcpLog.Info("defaulting EKS cluster name", "cluster-name", name)
 		r.Spec.EKSClusterName = name
+	}
+
+	if r.Spec.IdentityRef == nil {
+		r.Spec.IdentityRef = &infrav1.AWSIdentityReference{
+			Kind: infrav1.ControllerIdentityKind,
+			Name: infrav1.AWSClusterControllerIdentityName,
+		}
 	}
 
 	// Normalize version (i.e. remove patch, add "v" prefix) if necessary

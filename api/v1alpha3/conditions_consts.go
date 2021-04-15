@@ -19,6 +19,23 @@ package v1alpha3
 import clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 
 const (
+	// PrincipalCredentialRetrievedCondition reports on whether Principal credentials could be retrieved successfully.
+	// A possible scenario, where retrieval is unsuccessful, is when SourcePrincipal is not authorized for assume role.
+	PrincipalCredentialRetrievedCondition clusterv1.ConditionType = "PrincipalCredentialRetrieved"
+	// PrincipalCredentialRetrievalFailedReason used when errors occur during identity credential retrieval.
+	PrincipalCredentialRetrievalFailedReason = "PrincipalCredentialRetrievalFailed"
+	// CredentialProviderBuildFailedReason used when errors occur during building providers before trying credential retrieval.
+	CredentialProviderBuildFailedReason = "CredentialProviderBuildFailed"
+	// PrincipalUsageAllowedCondition reports on whether Principal and all the nested source identities are allowed to be used in the AWSCluster namespace.
+	PrincipalUsageAllowedCondition clusterv1.ConditionType = "PrincipalUsageAllowed"
+	// PrincipalUsageUnauthorizedReason used when AWSCluster namespace is not in the identity's allowed namespaces list.
+	PrincipalUsageUnauthorizedReason = "PrincipalUsageUnauthorized"
+	// SourcePrincipalUsageUnauthorizedReason used when AWSCluster is not in the intersection of source identity allowed namespaces
+	// and allowed namespaces of the identities that source identity depends to
+	SourcePrincipalUsageUnauthorizedReason = "SourcePrincipalUsageUnauthorized"
+)
+
+const (
 	// VpcReady condition reports on the successful reconciliation of a VPC
 	VpcReadyCondition clusterv1.ConditionType = "VpcReady"
 	// VpcCreationStartedReason used when attempting to create a VPC for a managed cluster.

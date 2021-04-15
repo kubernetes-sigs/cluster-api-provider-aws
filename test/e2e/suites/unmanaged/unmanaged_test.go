@@ -21,6 +21,8 @@ package unmanaged
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -30,12 +32,12 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/blang/semver"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -49,10 +51,11 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
 	"sigs.k8s.io/cluster-api/util"
+	client_runtime "sigs.k8s.io/controller-runtime/pkg/client"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -73,6 +76,8 @@ type statefulSetInfo struct {
 	volMountPath              string
 }
 
+const ControllerPolicyName = "multitenancy-role-controller-policy"
+
 var _ = Describe("functional tests - unmanaged", func() {
 	var (
 		namespace *corev1.Namespace
@@ -89,18 +94,78 @@ var _ = Describe("functional tests - unmanaged", func() {
 		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.KubernetesVersion))
 	})
 
+	Describe("Multitenancy test", func() {
+		It("should create cluster with assumed role", func() {
+			By("Creating cluster")
+			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
+
+			By("Creating cluster with assumed role identity")
+
+			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+				ClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				ConfigCluster: clusterctl.ConfigClusterInput{
+					LogFolder:                filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
+					ClusterctlConfigPath:     e2eCtx.Environment.ClusterctlConfigPath,
+					KubeconfigPath:           e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
+					InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+					Flavor:                   shared.SimpleMultitenancyFlavor,
+					Namespace:                namespace.Name,
+					ClusterName:              clusterName,
+					KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
+					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+					WorkerMachineCount:       pointer.Int64Ptr(0),
+				},
+				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster"),
+				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+				WaitForMachineDeployments:    e2eCtx.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+			})
+
+			By("PASSED!")
+		})
+		It("should create cluster with nested assumed role", func() {
+			By("Creating cluster")
+			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
+			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+				ClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				ConfigCluster: clusterctl.ConfigClusterInput{
+					LogFolder:                filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
+					ClusterctlConfigPath:     e2eCtx.Environment.ClusterctlConfigPath,
+					KubeconfigPath:           e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
+					InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+					Flavor:                   shared.NestedMultitenancyFlavor,
+					Namespace:                namespace.Name,
+					ClusterName:              clusterName,
+					KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
+					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+					WorkerMachineCount:       pointer.Int64Ptr(0),
+				},
+				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster"),
+				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+				WaitForMachineDeployments:    e2eCtx.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+			})
+
+			By("PASSED!")
+		})
+	})
+
 	Describe("Upgrade to master Kubernetes", func() {
 		Context("in same namespace", func() {
 			It("should create the clusters", func() {
 				By("Creating first cluster with single control plane")
 				cluster1Name := fmt.Sprintf("cluster-%s", util.RandomString(6))
 				shared.SetEnvVar("USE_CI_ARTIFACTS", "true", false)
+				tagPrefix := "v"
+				searchSemVer, err := semver.Make(strings.TrimPrefix(e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion), tagPrefix))
+				Expect(err).NotTo(HaveOccurred())
+
+				shared.SetEnvVar(shared.KubernetesVersion, "v"+searchSemVer.String(), false)
 				configCluster := defaultConfigCluster(cluster1Name, namespace.Name)
+
 				configCluster.Flavor = shared.UpgradeToMain
 				configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
 				createCluster(ctx, configCluster)
 
-				kubernetesUgradeVersion, err := kubernetesversions.LatestCIRelease()
+				kubernetesUgradeVersion, err := LatestCIReleaseForVersion("v" + searchSemVer.String())
 				Expect(err).NotTo(HaveOccurred())
 				configCluster.KubernetesVersion = kubernetesUgradeVersion
 				configCluster.Flavor = "upgrade-ci-artifacts"
@@ -120,7 +185,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 				By("Waiting for control-plane machines to have the upgraded kubernetes version")
 				framework.WaitForControlPlaneMachinesToBeUpgraded(ctx, framework.WaitForControlPlaneMachinesToBeUpgradedInput{
 					Lister:                   e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-					Cluster:                 cluster2,
+					Cluster:                  cluster2,
 					MachineCount:             int(*kcp.Spec.Replicas),
 					KubernetesUpgradeVersion: kubernetesUgradeVersion,
 				}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-machine-upgrade")...)
@@ -484,8 +549,18 @@ var _ = Describe("functional tests - unmanaged", func() {
 	})
 })
 
-func createCluster(ctx context.Context, configCluster clusterctl.ConfigClusterInput) (*clusterv1.Cluster, []*clusterv1.MachineDeployment,  *controlplanev1.KubeadmControlPlane) {
+// GetClusterByName returns a Cluster object given his name
+func GetAWSClusterByName(ctx context.Context, namespace, name string) (*infrav1.AWSCluster, error) {
+	awsCluster := &infrav1.AWSCluster{}
+	key := client_runtime.ObjectKey{
+		Namespace: namespace,
+		Name:      name,
+	}
+	err := e2eCtx.Environment.BootstrapClusterProxy.GetClient().Get(ctx, key, awsCluster)
+	return awsCluster, err
+}
 
+func createCluster(ctx context.Context, configCluster clusterctl.ConfigClusterInput) (*clusterv1.Cluster, []*clusterv1.MachineDeployment, *controlplanev1.KubeadmControlPlane) {
 	res := clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 		ClusterProxy:                 e2eCtx.Environment.BootstrapClusterProxy,
 		ConfigCluster:                configCluster,
@@ -1022,4 +1097,26 @@ func waitForStatefulSetRunning(info statefulSetInfo, k8sclient crclient.Client) 
 			return *statefulset.Spec.Replicas == statefulset.Status.ReadyReplicas, nil
 		}, 10*time.Minute, 30*time.Second,
 	).Should(BeTrue())
+}
+
+// LatestCIReleaseForVersion returns the latest ci release of a specific version.
+func LatestCIReleaseForVersion(searchVersion string) (string, error) {
+	ciVersionURL := "https://dl.k8s.io/ci/latest-%d.%d.txt"
+	tagPrefix := "v"
+	searchSemVer, err := semver.Make(strings.TrimPrefix(searchVersion, tagPrefix))
+	if err != nil {
+		return "", err
+	}
+	searchSemVer.Minor++
+	resp, err := http.Get(fmt.Sprintf(ciVersionURL, searchSemVer.Major, searchSemVer.Minor))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(b)), nil
 }

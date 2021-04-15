@@ -82,7 +82,7 @@ type AWSIAMRoleSpec struct {
 	// ExtraStatements are additional IAM statements to be included inline for the role.
 	ExtraStatements []iamv1.StatementEntry `json:"extraStatements,omitempty"`
 
-	// TrustStatements is an IAM PolicyDocument defining what principals are allowed to assume this role.
+	// TrustStatements is an IAM PolicyDocument defining what identities are allowed to assume this role.
 	// See "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1" for more documentation.
 	TrustStatements []iamv1.StatementEntry `json:"trustStatements,omitempty"`
 

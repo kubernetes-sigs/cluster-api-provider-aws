@@ -62,7 +62,7 @@ func (t Template) GenerateManagedIAMPolicyDocuments(policyDocDir string) error {
 func (t Template) policyFunctionMap() map[PolicyName]func() *iamv1.PolicyDocument {
 	return map[PolicyName]func() *iamv1.PolicyDocument{
 		ControlPlanePolicy: t.cloudProviderControlPlaneAwsPolicy,
-		ControllersPolicy:  t.controllersPolicy,
+		ControllersPolicy:  t.ControllersPolicy,
 		NodePolicy:         t.cloudProviderNodeAwsPolicy,
 		CSIPolicy:          t.csiControllerPolicy,
 	}

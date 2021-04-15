@@ -21,15 +21,13 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
-
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-
 	"github.com/aws/aws-sdk-go/aws"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	go_cfn "github.com/awslabs/goformation/v4/cloudformation"
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 )
 
 // Service holds a collection of interfaces.
@@ -114,9 +112,15 @@ func (s *Service) updateStack(stackName, yaml string) error {
 }
 
 // DeleteStack deletes a cloudformation stack
-func (s *Service) DeleteStack(stackName string) error {
+func (s *Service) DeleteStack(stackName string, retainResources []*string) error {
 	klog.V(2).Infof("deleting AWS CloudFormation stack %q", stackName)
-	if _, err := s.CFN.DeleteStack(&cfn.DeleteStackInput{StackName: aws.String(stackName)}); err != nil {
+	var err error
+	if retainResources == nil {
+		_, err = s.CFN.DeleteStack(&cfn.DeleteStackInput{StackName: aws.String(stackName)})
+	} else {
+		_, err = s.CFN.DeleteStack(&cfn.DeleteStackInput{StackName: aws.String(stackName), RetainResources: retainResources})
+	}
+	if err != nil {
 		return errors.Wrap(err, "failed to delete AWS CloudFormation stack")
 	}
 

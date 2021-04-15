@@ -20,6 +20,7 @@ package shared
 
 import (
 	"context"
+	"github.com/awslabs/goformation/v4/cloudformation"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -68,6 +69,8 @@ type E2EContext struct {
 	BootstratpUserAWSSession client.ConfigProvider
 	// IsManaged indicates that this is for the managed part of the provider
 	IsManaged bool
+	// CloudFormationTemplate is the rendered template created for the test
+	CloudFormationTemplate *cloudformation.Template
 }
 
 // Settings represents the test settings

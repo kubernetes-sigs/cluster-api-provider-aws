@@ -77,28 +77,33 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 		params.Logger = klogr.New()
 	}
 
-	session, serviceLimiters, err := sessionForRegion(params.ControlPlane.Spec.Region, params.Endpoints)
+	managedScope := &ManagedControlPlaneScope{
+		Logger:               params.Logger,
+		Client:               params.Client,
+		Cluster:              params.Cluster,
+		ControlPlane:         params.ControlPlane,
+		patchHelper:          nil,
+		session:              nil,
+		serviceLimiters:      nil,
+		controllerName:       params.ControllerName,
+		allowAdditionalRoles: params.AllowAdditionalRoles,
+		enableIAM:            params.EnableIAM,
+	}
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
+
+	managedScope.session = session
+	managedScope.serviceLimiters = serviceLimiters
 
 	helper, err := patch.NewHelper(params.ControlPlane, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
 
-	return &ManagedControlPlaneScope{
-		Logger:               params.Logger,
-		Client:               params.Client,
-		Cluster:              params.Cluster,
-		ControlPlane:         params.ControlPlane,
-		patchHelper:          helper,
-		session:              session,
-		serviceLimiters:      serviceLimiters,
-		controllerName:       params.ControllerName,
-		allowAdditionalRoles: params.AllowAdditionalRoles,
-		enableIAM:            params.EnableIAM,
-	}, nil
+	managedScope.patchHelper = helper
+	return managedScope, nil
 }
 
 // ManagedControlPlaneScope defines the basic context for an actuator to operate upon.
@@ -156,6 +161,11 @@ func (s *ManagedControlPlaneScope) Subnets() infrav1.Subnets {
 	return s.ControlPlane.Spec.NetworkSpec.Subnets
 }
 
+// IdentityRef returns the cluster identityRef.
+func (s *ManagedControlPlaneScope) IdentityRef() *infrav1.AWSIdentityReference {
+	return s.ControlPlane.Spec.IdentityRef
+}
+
 // SetSubnets updates the control planes subnets.
 func (s *ManagedControlPlaneScope) SetSubnets(subnets infrav1.Subnets) {
 	s.ControlPlane.Spec.NetworkSpec.Subnets = subnets
@@ -186,6 +196,11 @@ func (s *ManagedControlPlaneScope) SecurityGroupOverrides() map[infrav1.Security
 // Name returns the CAPI cluster name.
 func (s *ManagedControlPlaneScope) Name() string {
 	return s.Cluster.Name
+}
+
+// Name returns the AWS cluster name.
+func (s *ManagedControlPlaneScope) InfraClusterName() string {
+	return s.ControlPlane.Name
 }
 
 // Namespace returns the cluster namespace.
