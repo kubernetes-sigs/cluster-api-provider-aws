@@ -1,7 +1,7 @@
 # Multi-tenancy
 
 Starting from v0.6.5, single controller multi-tenancy is supported that allows using a different AWS Identity for each workload cluster.
-For details, see the [multi-tenancy proposal](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/docs/proposal/20200506-single-controller-multitenancy.md).
+For details, see the [multi-tenancy proposal](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/docs/proposal/20200506-single-controller-multitenancy.md).
 
 
 For multi-tenancy support, a reference field (`identityRef`) is added to `AWSCluster`, which describes the identity to be used when reconciling the cluster.
