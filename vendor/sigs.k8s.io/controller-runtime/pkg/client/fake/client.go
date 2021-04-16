@@ -118,7 +118,7 @@ func (f *ClientBuilder) Build() client.Client {
 		f.scheme = scheme.Scheme
 	}
 
-	tracker := testing.NewObjectTracker(f.scheme, scheme.Codecs.UniversalDecoder())
+	tracker := versionedTracker{ObjectTracker: testing.NewObjectTracker(f.scheme, scheme.Codecs.UniversalDecoder()), scheme: f.scheme}
 	for _, obj := range f.initObject {
 		if err := tracker.Add(obj); err != nil {
 			panic(fmt.Errorf("failed to add object %v to fake client: %w", obj, err))
@@ -135,9 +135,42 @@ func (f *ClientBuilder) Build() client.Client {
 		}
 	}
 	return &fakeClient{
-		tracker: versionedTracker{ObjectTracker: tracker, scheme: f.scheme},
+		tracker: tracker,
 		scheme:  f.scheme,
 	}
+}
+
+const trackerAddResourceVersion = "999"
+
+func (t versionedTracker) Add(obj runtime.Object) error {
+	var objects []runtime.Object
+	if meta.IsListType(obj) {
+		var err error
+		objects, err = meta.ExtractList(obj)
+		if err != nil {
+			return err
+		}
+	} else {
+		objects = []runtime.Object{obj}
+	}
+	for _, obj := range objects {
+		accessor, err := meta.Accessor(obj)
+		if err != nil {
+			return fmt.Errorf("failed to get accessor for object: %w", err)
+		}
+		if accessor.GetResourceVersion() == "" {
+			// We use a "magic" value of 999 here because this field
+			// is parsed as uint and and 0 is already used in Update.
+			// As we can't go lower, go very high instead so this can
+			// be recognized
+			accessor.SetResourceVersion(trackerAddResourceVersion)
+		}
+		if err := t.ObjectTracker.Add(obj); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (t versionedTracker) Create(gvr schema.GroupVersionResource, obj runtime.Object, ns string) error {
@@ -215,6 +248,9 @@ func (t versionedTracker) Update(gvr schema.GroupVersionResource, obj runtime.Ob
 	}
 	intResourceVersion++
 	accessor.SetResourceVersion(strconv.FormatUint(intResourceVersion, 10))
+	if !accessor.GetDeletionTimestamp().IsZero() && len(accessor.GetFinalizers()) == 0 {
+		return t.ObjectTracker.Delete(gvr, accessor.GetNamespace(), accessor.GetName())
+	}
 	return t.ObjectTracker.Update(gvr, obj, ns)
 }
 
@@ -254,13 +290,11 @@ func (c *fakeClient) List(ctx context.Context, obj client.ObjectList, opts ...cl
 		return err
 	}
 
-	OriginalKind := gvk.Kind
+	originalKind := gvk.Kind
 
-	if !strings.HasSuffix(gvk.Kind, "List") {
-		return fmt.Errorf("non-list type %T (kind %q) passed as output", obj, gvk)
+	if strings.HasSuffix(gvk.Kind, "List") {
+		gvk.Kind = gvk.Kind[:len(gvk.Kind)-4]
 	}
-	// we need the non-list GVK, so chop off the "List" from the end of the kind
-	gvk.Kind = gvk.Kind[:len(gvk.Kind)-4]
 
 	listOpts := client.ListOptions{}
 	listOpts.ApplyOptions(opts)
@@ -275,7 +309,7 @@ func (c *fakeClient) List(ctx context.Context, obj client.ObjectList, opts ...cl
 	if err != nil {
 		return err
 	}
-	ta.SetKind(OriginalKind)
+	ta.SetKind(originalKind)
 	ta.SetAPIVersion(gvk.GroupVersion().String())
 
 	j, err := json.Marshal(o)
@@ -356,8 +390,7 @@ func (c *fakeClient) Delete(ctx context.Context, obj client.Object, opts ...clie
 	delOptions := client.DeleteOptions{}
 	delOptions.ApplyOptions(opts)
 
-	//TODO: implement propagation
-	return c.tracker.Delete(gvr, accessor.GetNamespace(), accessor.GetName())
+	return c.deleteObject(gvr, accessor)
 }
 
 func (c *fakeClient) DeleteAllOf(ctx context.Context, obj client.Object, opts ...client.DeleteAllOfOption) error {
@@ -388,7 +421,7 @@ func (c *fakeClient) DeleteAllOf(ctx context.Context, obj client.Object, opts ..
 		if err != nil {
 			return err
 		}
-		err = c.tracker.Delete(gvr, accessor.GetNamespace(), accessor.GetName())
+		err = c.deleteObject(gvr, accessor)
 		if err != nil {
 			return err
 		}
@@ -471,6 +504,23 @@ func (c *fakeClient) Patch(ctx context.Context, obj client.Object, patch client.
 
 func (c *fakeClient) Status() client.StatusWriter {
 	return &fakeStatusWriter{client: c}
+}
+
+func (c *fakeClient) deleteObject(gvr schema.GroupVersionResource, accessor metav1.Object) error {
+	old, err := c.tracker.Get(gvr, accessor.GetNamespace(), accessor.GetName())
+	if err == nil {
+		oldAccessor, err := meta.Accessor(old)
+		if err == nil {
+			if len(oldAccessor.GetFinalizers()) > 0 {
+				now := metav1.Now()
+				oldAccessor.SetDeletionTimestamp(&now)
+				return c.tracker.Update(gvr, old, accessor.GetNamespace())
+			}
+		}
+	}
+
+	//TODO: implement propagation
+	return c.tracker.Delete(gvr, accessor.GetNamespace(), accessor.GetName())
 }
 
 func getGVRFromObject(obj runtime.Object, scheme *runtime.Scheme) (schema.GroupVersionResource, error) {

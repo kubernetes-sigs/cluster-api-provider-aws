@@ -93,10 +93,9 @@ const (
 	defaultGCPCredentialsSecret = "gcp-cloud-credentials"
 	defaultGCPDiskSizeGb        = 128
 	defaultGCPDiskType          = "pd-standard"
-	// https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/rhcos-4.6/46.82.202007212240-0/x86_64/meta.json
-	// https://github.com/openshift/installer/pull/3808
-	// https://github.com/openshift/installer/blob/d75bf7ad98124b901ae7e22b5595e0392ed6ea3c/data/data/rhcos.json
-	defaultGCPDiskImage = "projects/rhcos-cloud/global/images/rhcos-46-82-202007212240-0-gcp-x86-64"
+	// https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/rhcos-4.8/48.83.202103122318-0/x86_64/meta.json
+	// https://github.com/openshift/installer/blob/796a99049d3b7489b6c08ec5bd7c7983731afbcf/data/data/rhcos.json#L90-L94
+	defaultGCPDiskImage = "projects/rhcos-cloud/global/images/rhcos-48-83-202103221318-0-gcp-x86-64"
 
 	// vSphere Defaults
 	defaultVSphereCredentialsSecret = "vsphere-cloud-credentials"
@@ -655,6 +654,11 @@ func validateAWS(m *Machine, config *admissionConfig) (bool, []string, utilerror
 			"providerSpec.subnet: No subnet has been provided. Instances may be created in an unexpected subnet and may not join the cluster.",
 		)
 	}
+
+	if providerSpec.IAMInstanceProfile == nil {
+		warnings = append(warnings, "providerSpec.iamInstanceProfile: no IAM instance profile provided: nodes may be unable to join the cluster")
+	}
+
 	// TODO(alberto): Validate providerSpec.BlockDevices.
 	// https://github.com/openshift/cluster-api-provider-aws/pull/299#discussion_r433920532
 
