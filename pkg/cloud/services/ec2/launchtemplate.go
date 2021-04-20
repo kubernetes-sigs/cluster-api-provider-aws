@@ -240,9 +240,9 @@ func (s *Service) SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1
 	}
 
 	for _, id := range v.SecurityGroupIds {
-		// This will include the core security groups as well, making the "Additional" a bit
-		// dishonest. However, including the core groups drastically simplifies comparison with
-		// the incoming security groups.
+		// FIXME(dlipovetsky): This will include the core security groups as well, making the
+		// "Additional" a bit dishonest. However, including the core groups drastically simplifies
+		// comparison with the incoming security groups.
 		i.AdditionalSecurityGroups = append(i.AdditionalSecurityGroups, infrav1.AWSResourceReference{ID: id})
 	}
 
@@ -257,7 +257,10 @@ func (s *Service) SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1
 	return i, userdata.ComputeHash(decodedUserData), nil
 }
 
-// LaunchTemplateNeedsUpdate checks if a new launch template version is needed
+// LaunchTemplateNeedsUpdate checks if a new launch template version is needed.
+//
+// FIXME(dlipovetsky): This check should account for changed userdata, but does not yet do so.
+// Although userdata is stored in an EC2 Launch Template, it is not a field of AWSLaunchTemplate.
 func (s *Service) LaunchTemplateNeedsUpdate(scope *scope.MachinePoolScope, incoming *expinfrav1.AWSLaunchTemplate, existing *expinfrav1.AWSLaunchTemplate) (bool, error) {
 	if incoming.IamInstanceProfile != existing.IamInstanceProfile {
 		return true, nil
