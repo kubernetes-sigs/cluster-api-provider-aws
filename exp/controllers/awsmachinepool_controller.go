@@ -315,7 +315,7 @@ func (r *AWSMachinePoolReconciler) reconcileDelete(machinePoolScope *scope.Machi
 	}
 
 	launchTemplateID := machinePoolScope.AWSMachinePool.Status.LaunchTemplateID
-	launchTemplate, err := ec2Svc.GetLaunchTemplate(machinePoolScope.Name())
+	launchTemplate, _, err := ec2Svc.GetLaunchTemplate(machinePoolScope.Name())
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -388,7 +388,7 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 	ec2svc := r.getEC2Service(ec2Scope)
 
 	machinePoolScope.Info("checking for existing launch template")
-	launchTemplate, err := ec2svc.GetLaunchTemplate(machinePoolScope.Name())
+	launchTemplate, _, err := ec2svc.GetLaunchTemplate(machinePoolScope.Name())
 	if err != nil {
 		conditions.MarkUnknown(machinePoolScope.AWSMachinePool, infrav1exp.LaunchTemplateReadyCondition, infrav1exp.LaunchTemplateNotFoundReason, err.Error())
 		return err
