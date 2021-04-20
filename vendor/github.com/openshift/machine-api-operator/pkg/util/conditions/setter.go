@@ -110,6 +110,11 @@ func MarkTrue(to Setter, t mapiv1.ConditionType) {
 	Set(to, TrueCondition(t))
 }
 
+// MarkFalse sets Status=False for the condition with the given type.
+func MarkFalse(to Setter, t mapiv1.ConditionType, reason string, severity mapiv1.ConditionSeverity, messageFormat string, messageArgs ...interface{}) {
+	Set(to, FalseCondition(t, reason, severity, messageFormat, messageArgs...))
+}
+
 // lexicographicLess returns true if a condition is less than another with regards to the
 // to order of conditions designed for convenience of the consumer, i.e. kubectl.
 func lexicographicLess(i, j *mapiv1.Condition) bool {

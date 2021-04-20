@@ -25,6 +25,9 @@ ifeq ($(DBG),1)
 GOGCFLAGS ?= -gcflags=all="-N -l"
 endif
 
+GOARCH  ?= $(shell go env GOARCH)
+GOOS    ?= $(shell go env GOOS)
+
 VERSION     ?= $(shell git describe --always --abbrev=7)
 REPO_PATH   ?= sigs.k8s.io/cluster-api-provider-aws
 LD_FLAGS    ?= -X $(REPO_PATH)/pkg/version.Raw=$(VERSION) -extldflags "-static"
@@ -52,9 +55,8 @@ endif
 ifeq ($(NO_DOCKER), 1)
   DOCKER_CMD =
   IMAGE_BUILD_CMD = imagebuilder
-  CGO_ENABLED = 1
 else
-  DOCKER_CMD := $(ENGINE) run --rm -e CGO_ENABLED=1 -v "$(PWD)":/go/src/sigs.k8s.io/cluster-api-provider-aws:Z -w /go/src/sigs.k8s.io/cluster-api-provider-aws openshift/origin-release:golang-1.15
+  DOCKER_CMD := $(ENGINE) run --rm -e CGO_ENABLED=0 -e GOARCH=$(GOARCH) -e GOOS=$(GOOS) -v "$(PWD)":/go/src/sigs.k8s.io/cluster-api-provider-aws:Z -w /go/src/sigs.k8s.io/cluster-api-provider-aws openshift/origin-release:golang-1.15
   IMAGE_BUILD_CMD = $(ENGINE) build
 endif
 
@@ -80,9 +82,9 @@ bin:
 
 .PHONY: build
 build: ## build binaries
-	$(DOCKER_CMD) go build $(GOGCFLAGS) -o "bin/machine-controller-manager" \
+	$(DOCKER_CMD) CGO_ENABLED=0 go build $(GOGCFLAGS) -o "bin/machine-controller-manager" \
                -ldflags "$(LD_FLAGS)" "$(REPO_PATH)/cmd/manager"
-	$(DOCKER_CMD) go build $(GOGCFLAGS) -o "bin/termination-handler" \
+	$(DOCKER_CMD) CGO_ENABLED=0 go build  $(GOGCFLAGS) -o "bin/termination-handler" \
 	             -ldflags "$(LD_FLAGS)" "$(REPO_PATH)/cmd/termination-handler"
 
 .PHONY: images
