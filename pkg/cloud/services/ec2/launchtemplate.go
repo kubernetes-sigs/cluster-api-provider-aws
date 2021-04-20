@@ -30,13 +30,14 @@ import (
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
 )
 
 // GetLaunchTemplate returns the existing LaunchTemplate or nothing if it doesn't exist.
 // For now by name until we need the input to be something different
-func (s *Service) GetLaunchTemplate(id string) (*expinfrav1.AWSLaunchTemplate, error) {
+func (s *Service) GetLaunchTemplate(id string) (*expinfrav1.AWSLaunchTemplate, string, error) {
 	if id == "" {
-		return nil, nil
+		return nil, "", nil
 	}
 
 	s.scope.V(2).Info("Looking for existing LaunchTemplates")
@@ -49,13 +50,13 @@ func (s *Service) GetLaunchTemplate(id string) (*expinfrav1.AWSLaunchTemplate, e
 	out, err := s.EC2Client.DescribeLaunchTemplateVersions(input)
 	switch {
 	case awserrors.IsNotFound(err):
-		return nil, nil
+		return nil, "", nil
 	case err != nil:
 		s.scope.Info("", "aerr", err.Error())
 	}
 
 	if len(out.LaunchTemplateVersions) == 0 {
-		return nil, nil
+		return nil, "", nil
 	}
 
 	return s.SDKToLaunchTemplate(out.LaunchTemplateVersions[0])
@@ -217,7 +218,7 @@ func (s *Service) DeleteLaunchTemplate(id string) error {
 }
 
 // SDKToLaunchTemplate converts an AWS EC2 SDK instance to the CAPA instance type.
-func (s *Service) SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1.AWSLaunchTemplate, error) {
+func (s *Service) SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1.AWSLaunchTemplate, string, error) {
 	v := d.LaunchTemplateData
 	i := &expinfrav1.AWSLaunchTemplate{
 		Name: aws.StringValue(d.LaunchTemplateName),
@@ -245,7 +246,15 @@ func (s *Service) SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1
 		i.AdditionalSecurityGroups = append(i.AdditionalSecurityGroups, infrav1.AWSResourceReference{ID: id})
 	}
 
-	return i, nil
+	if v.UserData == nil {
+		return i, userdata.ComputeHash(nil), nil
+	}
+	decodedUserData, err := base64.StdEncoding.DecodeString(*v.UserData)
+	if err != nil {
+		return nil, "", errors.Wrap(err, "unable to decode UserData")
+	}
+
+	return i, userdata.ComputeHash(decodedUserData), nil
 }
 
 // LaunchTemplateNeedsUpdate checks if a new launch template version is needed
