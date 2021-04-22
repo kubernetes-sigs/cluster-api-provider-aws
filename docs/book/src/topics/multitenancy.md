@@ -57,10 +57,10 @@ spec:
 ```
 `AWSClusterControllerIdentity` is immutable to avoid any unwanted overrides to the allowed namespaces, especially during upgrading clusters.
 
-## AWSClusterIdentityIdentity
-`AWSClusterIdentityIdentity` represents static AWS credentials, which are stored in a `Secret`.
+## AWSClusterStaticIdentity
+`AWSClusterStaticIdentity` represents static AWS credentials, which are stored in a `Secret`.
 
-Example: Below, an `AWSClusterIdentityIdentity` is created that allows access to the `AWSClusters` that are in "test" namespace.
+Example: Below, an `AWSClusterStaticIdentity` is created that allows access to the `AWSClusters` that are in "test" namespace.
 The identity credentials that will be used by "test" AWSCluster are stored in "test-account-creds" secret.
 
 
@@ -74,11 +74,11 @@ metadata:
 spec:
   region: "eu-west-1"
   identityRef:
-    kind: AWSClusterIdentityIdentity
+    kind: AWSClusterStaticIdentity
     name: test-account
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-kind: AWSClusterIdentityIdentity
+kind: AWSClusterStaticIdentity
 metadata:
   name: "test-account"
 spec:
@@ -88,7 +88,7 @@ spec:
   allowedNamespaces:
     selector:
       matchLabels:
-        ns: "testlabel"
+        cluster.x-k8s.io/ns: "testlabel"
 ---
 apiVersion: v1
 kind: Namespace
@@ -103,8 +103,8 @@ metadata:
   name: "test-account-creds"
   namespace: capa-system
 stringData:
- accessKeyID: AKIAIOSFODNN7EXAMPLE
- secretAccessKey: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+ AccessKeyID: AKIAIOSFODNN7EXAMPLE
+ SecretAccessKey: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 ```
 
 ## AWSClusterRoleIdentity
@@ -139,7 +139,7 @@ spec:
       "test"
   roleARN: "arn:aws:iam::123456789:role/CAPARole"
   sourceIdentityRef:
-    kind: AWSClusterIdentityIdentity
+    kind: AWSClusterStaticIdentity
     name: test-account-creds
 ```
 
