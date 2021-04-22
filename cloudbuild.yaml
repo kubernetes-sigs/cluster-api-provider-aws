@@ -3,8 +3,8 @@ timeout: 3000s
 options:
   substitution_option: ALLOW_LOOSE
 steps:
-  # 'gcr.io/k8s-testimages/gcb-docker-gcloud:v20201130-750d12f'
-  - name: 'gcr.io/k8s-testimages/gcb-docker-gcloud@sha256:0ef22100e63c0f7cdf4758d4732008c99d51ec149baca736f8cf94d7cf9b7a1b'
+  # 'gcr.io/k8s-testimages/gcb-docker-gcloud:v20210331-c732583'
+  - name: 'gcr.io/k8s-testimages/gcb-docker-gcloud@sha256:aab41ebf34c7f2ad32fbf2c7bddd1635a49c66f9c57d998f85d7e638bc9d9044'
     entrypoint: make
     env:
     - DOCKER_CLI_EXPERIMENTAL=enabled
