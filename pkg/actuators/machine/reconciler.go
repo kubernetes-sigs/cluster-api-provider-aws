@@ -6,12 +6,15 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	configv1 "github.com/openshift/api/config/v1"
 	machinecontroller "github.com/openshift/machine-api-operator/pkg/controller/machine"
 	"github.com/openshift/machine-api-operator/pkg/metrics"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	errorutil "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 )
@@ -64,7 +67,14 @@ func (r *Reconciler) create() error {
 		return fmt.Errorf("failed to get user data: %w", err)
 	}
 
-	instance, err := launchInstance(r.machine, r.providerSpec, userData, r.awsClient)
+	infra := &configv1.Infrastructure{}
+	infraName := client.ObjectKey{Name: awsclient.GlobalInfrastuctureName}
+
+	if err := r.client.Get(r.Context, infraName, infra); err != nil {
+		return err
+	}
+
+	instance, err := launchInstance(r.machine, r.providerSpec, userData, r.awsClient, infra)
 	if err != nil {
 		klog.Errorf("%s: error creating machine: %v", r.machine.Name, err)
 		conditionFailed := conditionFailed()

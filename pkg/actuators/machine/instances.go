@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	configv1 "github.com/openshift/api/config/v1"
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	mapierrors "github.com/openshift/machine-api-operator/pkg/controller/machine"
 	"github.com/openshift/machine-api-operator/pkg/metrics"
@@ -23,7 +24,7 @@ import (
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 )
 
-// Scan machine tags, and return a deduped tags list
+// Scan machine tags, and return a deduped tags list. The first found value gets precedence.
 func removeDuplicatedTags(tags []*ec2.Tag) []*ec2.Tag {
 	m := make(map[string]bool)
 	result := []*ec2.Tag{}
@@ -272,7 +273,7 @@ func getBlockDeviceMappings(machine runtimeclient.ObjectKey, blockDeviceMappingS
 	return blockDeviceMappings, nil
 }
 
-func launchInstance(machine *machinev1.Machine, machineProviderConfig *awsproviderv1.AWSMachineProviderConfig, userData []byte, client awsclient.Client) (*ec2.Instance, error) {
+func launchInstance(machine *machinev1.Machine, machineProviderConfig *awsproviderv1.AWSMachineProviderConfig, userData []byte, client awsclient.Client, infra *configv1.Infrastructure) (*ec2.Instance, error) {
 	machineKey := runtimeclient.ObjectKey{
 		Name:      machine.Name,
 		Namespace: machine.Namespace,
@@ -315,7 +316,7 @@ func launchInstance(machine *machinev1.Machine, machineProviderConfig *awsprovid
 		return nil, mapierrors.InvalidMachineConfiguration("Unable to get cluster ID for machine: %q", machine.Name)
 	}
 	// Add tags to the created machine
-	tagList := buildTagList(machine.Name, clusterID, machineProviderConfig.Tags)
+	tagList := buildTagList(machine.Name, clusterID, machineProviderConfig.Tags, infra)
 
 	tagInstance := &ec2.TagSpecification{
 		ResourceType: aws.String("instance"),
@@ -410,9 +411,13 @@ func launchInstance(machine *machinev1.Machine, machineProviderConfig *awsprovid
 	return runResult.Instances[0], nil
 }
 
-func buildTagList(machineName string, clusterID string, machineTags []awsproviderv1.TagSpecification) []*ec2.Tag {
+// buildTagList compile a list of ec2 tags from machine provider spec and infrastructure object platform spec
+func buildTagList(machineName string, clusterID string, machineTags []awsproviderv1.TagSpecification, infra *configv1.Infrastructure) []*ec2.Tag {
 	rawTagList := []*ec2.Tag{}
-	for _, tag := range machineTags {
+
+	mergedTags := mergeInfrastructureAndMachineSpecTags(machineTags, infra)
+
+	for _, tag := range mergedTags {
 		// AWS tags are case sensitive, so we don't need to worry about other casing of "Name"
 		if !strings.HasPrefix(tag.Name, "kubernetes.io/cluster/") && tag.Name != "Name" {
 			rawTagList = append(rawTagList, &ec2.Tag{Key: aws.String(tag.Name), Value: aws.String(tag.Value)})
@@ -422,7 +427,25 @@ func buildTagList(machineName string, clusterID string, machineTags []awsprovide
 		{Key: aws.String("kubernetes.io/cluster/" + clusterID), Value: aws.String("owned")},
 		{Key: aws.String("Name"), Value: aws.String(machineName)},
 	}...)
+
 	return removeDuplicatedTags(rawTagList)
+}
+
+// mergeInfrastructureAndMachineSpecTags merge list of tags from machine provider spec and Infrastructure object platform spec.
+// Machine tags have precedence over Infrastructure
+func mergeInfrastructureAndMachineSpecTags(machineSpecTags []awsproviderv1.TagSpecification, infra *configv1.Infrastructure) []awsproviderv1.TagSpecification {
+	if infra == nil || infra.Status.PlatformStatus == nil || infra.Status.PlatformStatus.AWS == nil || infra.Status.PlatformStatus.AWS.ResourceTags == nil {
+		return machineSpecTags
+	}
+
+	mergedList := []awsproviderv1.TagSpecification{}
+	mergedList = append(mergedList, machineSpecTags...)
+
+	for _, tag := range infra.Status.PlatformStatus.AWS.ResourceTags {
+		mergedList = append(mergedList, awsproviderv1.TagSpecification{Name: tag.Key, Value: tag.Value})
+	}
+
+	return mergedList
 }
 
 type instanceList []*ec2.Instance

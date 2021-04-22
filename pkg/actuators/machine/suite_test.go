@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	configv1 "github.com/openshift/api/config/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -26,8 +27,13 @@ var (
 
 func TestMain(m *testing.M) {
 	testEnv := &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "crds")},
+		CRDDirectoryPaths: []string{
+			filepath.Join("..", "..", "..", "config", "crds"),
+			filepath.Join("..", "..", "..", "vendor", "github.com", "openshift", "api", "config", "v1"),
+		},
 	}
+
+	configv1.AddToScheme(scheme.Scheme)
 
 	cfg, err := testEnv.Start()
 	if err != nil {
