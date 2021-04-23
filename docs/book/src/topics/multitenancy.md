@@ -182,6 +182,8 @@ spec:
 Only AWSClusters that are created in one of the Identity's allowed namespaces can use that Identity.
 `allowedNamespaces` are defined by providing either a list of namespaces or label selector to select namespaces.
 
+Note that the `capa-eks-control-plane-system` namespace will need to be included in the allow namespace list and/or have labels added to allow access to identities used by AWSClusters.
+
 ### Examples
 
 An empty `allowedNamespaces` indicates that the Identity can be used by all namespaces.
