@@ -50,12 +50,11 @@ func TestAPIs(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
+	code := 0
+	defer func() { os.Exit(code) }()
 	setup()
-	defer func() {
-		teardown()
-	}()
-	code := m.Run()
-	os.Exit(code)
+	defer teardown()
+	code = m.Run()
 }
 
 func setup() {
