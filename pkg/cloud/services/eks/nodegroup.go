@@ -336,15 +336,24 @@ func (s *NodegroupService) reconcileNodegroupConfig(ng *eks.Nodegroup) error {
 	}
 	var needsUpdate bool
 	if labelPayload := createLabelUpdate(managedPool.Labels, ng); labelPayload != nil {
+		s.V(2).Info("Nodegroup labels need an update", "nodegroup", ng.NodegroupName)
 		input.Labels = labelPayload
 		needsUpdate = true
 	}
 	if machinePool.Replicas == nil {
 		if ng.ScalingConfig.DesiredSize != nil && *ng.ScalingConfig.DesiredSize != 1 {
+			s.V(2).Info("Nodegroup desired size differs from spec, updating scaling configuration", "nodegroup", ng.NodegroupName)
 			input.ScalingConfig = s.scalingConfig()
 			needsUpdate = true
 		}
 	} else if ng.ScalingConfig.DesiredSize == nil || int64(*machinePool.Replicas) != *ng.ScalingConfig.DesiredSize {
+		s.V(2).Info("Nodegroup has no desired size or differs from replicas, updating scaling configuration", "nodegroup", ng.NodegroupName)
+		input.ScalingConfig = s.scalingConfig()
+		needsUpdate = true
+	}
+	if (aws.Int64Value(ng.ScalingConfig.MaxSize) != int64(aws.Int32Value(managedPool.Scaling.MaxSize))) ||
+		(aws.Int64Value(ng.ScalingConfig.MinSize) != int64(aws.Int32Value(managedPool.Scaling.MinSize))) {
+		s.V(2).Info("Nodegroup min/max differ from spec, updating scaling configuration", "nodegroup", ng.NodegroupName)
 		input.ScalingConfig = s.scalingConfig()
 		needsUpdate = true
 	}
