@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/instancestate"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -47,6 +48,7 @@ type AwsInstanceStateReconciler struct {
 	sqsServiceFactory func() sqsiface.SQSAPI
 	queueURLs         sync.Map
 	Endpoints         []scope.ServiceEndpoint
+	WatchFilterValue  string
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclusters,verbs=get;list;watch
@@ -110,7 +112,7 @@ func (r *AwsInstanceStateReconciler) SetupWithManager(mgr ctrl.Manager, options 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.AWSCluster{}).
 		WithOptions(options).
-		WithEventFilter(controllers.PausedPredicates(r.Log)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(r.Log, r.WatchFilterValue)).
 		Complete(r)
 }
 

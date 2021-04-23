@@ -67,6 +67,7 @@ type AWSManagedControlPlaneReconciler struct {
 
 	EnableIAM            bool
 	AllowAdditionalRoles bool
+	WatchFilterValue     string
 }
 
 // SetupWithManager is used to setup the controller
@@ -75,7 +76,7 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, op
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(awsManagedControlPlane).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(r.Log, r.WatchFilterValue)).
 		Watches(
 			&source.Kind{Type: &infrav1exp.AWSManagedCluster{}},
 			&handler.EnqueueRequestsFromMapFunc{
@@ -93,7 +94,7 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, op
 		&handler.EnqueueRequestsFromMapFunc{
 			ToRequests: util.ClusterToInfrastructureMapFunc(awsManagedControlPlane.GroupVersionKind()),
 		},
-		predicates.ClusterUnpausedAndInfrastructureReady(r.Log),
+		predicates.All(r.Log, predicates.ResourceNotPausedAndHasFilterLabel(r.Log, r.WatchFilterValue), predicates.ClusterUnpausedAndInfrastructureReady(r.Log)),
 	); err != nil {
 		return fmt.Errorf("failed adding a watch for ready clusters: %w", err)
 	}

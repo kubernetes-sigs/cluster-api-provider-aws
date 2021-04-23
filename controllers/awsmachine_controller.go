@@ -33,6 +33,7 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -67,6 +68,7 @@ type AWSMachineReconciler struct {
 	secretsManagerServiceFactory func(cloud.ClusterScoper) services.SecretInterface
 	SSMServiceFactory            func(cloud.ClusterScoper) services.SecretInterface
 	Endpoints                    []scope.ServiceEndpoint
+	WatchFilterValue             string
 }
 
 const (
@@ -215,7 +217,7 @@ func (r *AWSMachineReconciler) SetupWithManager(mgr ctrl.Manager, options contro
 			&source.Kind{Type: &infrav1.AWSCluster{}},
 			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.AWSClusterToAWSMachines)},
 		).
-		WithEventFilter(PausedPredicates(r.Log)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(r.Log, r.WatchFilterValue)).
 		WithEventFilter(
 			predicate.Funcs{
 				// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates

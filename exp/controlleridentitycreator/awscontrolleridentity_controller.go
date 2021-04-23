@@ -25,10 +25,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	"sigs.k8s.io/cluster-api-provider-aws/controllers"
 	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -40,8 +40,9 @@ import (
 // AWSControllerIdentityReconciler reconciles a AWSClusterControllerIdentity object
 type AWSControllerIdentityReconciler struct {
 	client.Client
-	Log       logr.Logger
-	Endpoints []scope.ServiceEndpoint
+	Log              logr.Logger
+	Endpoints        []scope.ServiceEndpoint
+	WatchFilterValue string
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclustercontrolleridentities,verbs=get;list;watch;create
@@ -134,7 +135,7 @@ func (r *AWSControllerIdentityReconciler) SetupWithManager(mgr ctrl.Manager, opt
 	controller := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.AWSCluster{}).
 		WithOptions(options).
-		WithEventFilter(controllers.PausedPredicates(r.Log))
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(r.Log, r.WatchFilterValue))
 
 	if feature.Gates.Enabled(feature.EKS) {
 		controller.Watches(

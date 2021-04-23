@@ -23,6 +23,7 @@ import (
 
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/predicates"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -58,6 +59,7 @@ type AWSMachinePoolReconciler struct {
 	Recorder          record.EventRecorder
 	asgServiceFactory func(cloud.ClusterScoper) services.ASGInterface
 	ec2ServiceFactory func(scope.EC2Scope) services.EC2MachineInterface
+	WatchFilterValue  string
 }
 
 func (r *AWSMachinePoolReconciler) getASGService(scope cloud.ClusterScoper) services.ASGInterface {
@@ -185,6 +187,7 @@ func (r *AWSMachinePoolReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				ToRequests: machinePoolToInfrastructureMapFunc(infrav1exp.GroupVersion.WithKind("AWSMachinePool")),
 			},
 		).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(r.Log, r.WatchFilterValue)).
 		Complete(r)
 }
 

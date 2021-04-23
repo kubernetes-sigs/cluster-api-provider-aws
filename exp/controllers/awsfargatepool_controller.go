@@ -49,7 +49,8 @@ type AWSFargateProfileReconciler struct {
 	Recorder  record.EventRecorder
 	Endpoints []scope.ServiceEndpoint
 
-	EnableIAM bool
+	EnableIAM        bool
+	WatchFilterValue string
 }
 
 // SetupWithManager is used to setup the controller
