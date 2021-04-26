@@ -153,9 +153,8 @@ func DeleteClusterSpec(ctx context.Context, inputGetter func() DeleteClusterSpec
 
 	shared.Byf("Deleting cluster %s/%s", input.Namespace, input.ClusterName)
 
-	framework.DeleteClusterAndWait(ctx, framework.DeleteClusterAndWaitInput{
-		Client:  input.BootstrapClusterProxy.GetClient(),
+	framework.DeleteCluster(ctx, framework.DeleteClusterInput{
+		Deleter: input.BootstrapClusterProxy.GetClient(),
 		Cluster: cluster,
-	}, input.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
-
+	})
 }

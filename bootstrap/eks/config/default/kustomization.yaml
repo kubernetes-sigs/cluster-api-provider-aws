@@ -13,7 +13,6 @@ bases:
 - ../manager
 - ../crd
 - ../certmanager
-- ../webhook
 
 patchesStrategicMerge:
 - manager_service_account_patch.yaml
@@ -21,8 +20,9 @@ patchesStrategicMerge:
 - manager_auth_proxy_patch.yaml
 - manager_image_patch.yaml
 - manager_pull_policy.yaml
-- manager_webhook_patch.yaml
-- webhookcainjection_patch.yaml
+# UNCOMMENT for webhooks
+#- manager_webhook_patch.yaml
+#- webhookcainjection_patch.yaml
 
 configurations:
   - kustomizeconfig.yaml
@@ -43,15 +43,17 @@ vars:
       group: cert-manager.io
       version: v1
       name: serving-cert # this name should match the one in certificate.yaml
-  - name: SERVICE_NAMESPACE # namespace of the service
-    objref:
-      kind: Service
-      version: v1
-      name: webhook-service
-    fieldref:
-      fieldpath: metadata.namespace
-  - name: SERVICE_NAME
-    objref:
-      kind: Service
-      version: v1
-      name: webhook-service
+
+# UNCOMMENT for webhooks
+#  - name: SERVICE_NAMESPACE # namespace of the service
+#    objref:
+#      kind: Service
+#      version: v1
+#      name: webhook-service
+#    fieldref:
+#      fieldpath: metadata.namespace
+#  - name: SERVICE_NAME
+#    objref:
+#      kind: Service
+#      version: v1
+#      name: webhook-service
