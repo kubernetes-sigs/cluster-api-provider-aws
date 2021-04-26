@@ -84,7 +84,7 @@ func WaitForWithRetryable(backoff wait.Backoff, condition wait.ConditionFunc, re
 	})
 
 	// If the waitError is not a timeout error (nil or a non-retryable error), return it
-	if waitErr != wait.ErrWaitTimeout {
+	if !errors.Is(waitErr, wait.ErrWaitTimeout) {
 		return waitErr
 	}
 

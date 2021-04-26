@@ -30,7 +30,7 @@ import (
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
 )
 
 func TestAddRoleMappingCRD(t *testing.T) {
@@ -125,9 +125,9 @@ func TestAddRoleMappingCRD(t *testing.T) {
 
 			var client crclient.Client
 			if tc.existingRoleMapping == nil {
-				client = fake.NewFakeClientWithScheme(scheme)
+				client = fake.NewClientBuilder().WithScheme(scheme).Build()
 			} else {
-				client = fake.NewFakeClientWithScheme(scheme, tc.existingRoleMapping)
+				client = fake.NewClientBuilder().WithScheme(scheme).WithObjects(tc.existingRoleMapping).Build()
 			}
 			backend, err := NewBackend(BackendTypeCRD, client)
 			g.Expect(err).To(BeNil())
@@ -253,9 +253,9 @@ func TestAddUserMappingCRD(t *testing.T) {
 
 			var client crclient.Client
 			if tc.existingUserMapping == nil {
-				client = fake.NewFakeClientWithScheme(scheme)
+				client = fake.NewClientBuilder().WithScheme(scheme).Build()
 			} else {
-				client = fake.NewFakeClientWithScheme(scheme, tc.existingUserMapping)
+				client = fake.NewClientBuilder().WithScheme(scheme).WithObjects(tc.existingUserMapping).Build()
 			}
 			backend, err := NewBackend(BackendTypeCRD, client)
 			g.Expect(err).To(BeNil())

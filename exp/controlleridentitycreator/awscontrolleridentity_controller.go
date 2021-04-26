@@ -24,11 +24,11 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	"sigs.k8s.io/cluster-api-provider-aws/controllers"
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -40,15 +40,15 @@ import (
 // AWSControllerIdentityReconciler reconciles a AWSClusterControllerIdentity object
 type AWSControllerIdentityReconciler struct {
 	client.Client
-	Log       logr.Logger
-	Endpoints []scope.ServiceEndpoint
+	Log              logr.Logger
+	Endpoints        []scope.ServiceEndpoint
+	WatchFilterValue string
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclustercontrolleridentities,verbs=get;list;watch;create
 
-func (r *AWSControllerIdentityReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.TODO()
-	log := r.Log.WithValues("namespace", req.NamespacedName, string(infrav1.ControllerIdentityKind), req.Name)
+func (r *AWSControllerIdentityReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
 
 	var identityRef *infrav1.AWSIdentityReference
 
@@ -130,29 +130,26 @@ func (r *AWSControllerIdentityReconciler) Reconcile(req ctrl.Request) (ctrl.Resu
 	return reconcile.Result{}, err
 }
 
-func (r *AWSControllerIdentityReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+func (r *AWSControllerIdentityReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	controller := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.AWSCluster{}).
 		WithOptions(options).
-		WithEventFilter(controllers.PausedPredicates(r.Log))
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue))
 
 	if feature.Gates.Enabled(feature.EKS) {
 		controller.Watches(
 			&source.Kind{Type: &controlplanev1.AWSManagedControlPlane{}},
-			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: handler.ToRequestsFunc(r.managedControlPlaneMap),
-			},
+			handler.EnqueueRequestsFromMapFunc(r.managedControlPlaneMap),
 		)
 	}
 
 	return controller.Complete(r)
 }
 
-func (r *AWSControllerIdentityReconciler) managedControlPlaneMap(o handler.MapObject) []ctrl.Request {
-	managedControlPlane, ok := o.Object.(*controlplanev1.AWSManagedControlPlane)
+func (r *AWSControllerIdentityReconciler) managedControlPlaneMap(o client.Object) []ctrl.Request {
+	managedControlPlane, ok := o.(*controlplanev1.AWSManagedControlPlane)
 	if !ok {
-		r.Log.Error(nil, fmt.Sprintf("Expected a AWSManagedControlPlane but got a %T", o.Object))
-		return nil
+		panic(fmt.Sprintf("Expected a managedControlPlane but got a %T", o))
 	}
 
 	return []ctrl.Request{

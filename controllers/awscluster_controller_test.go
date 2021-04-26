@@ -22,10 +22,9 @@ import (
 	"golang.org/x/net/context"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var _ = Describe("AWSClusterReconciler", func() {
@@ -38,7 +37,6 @@ var _ = Describe("AWSClusterReconciler", func() {
 
 			reconciler := &AWSClusterReconciler{
 				Client: testEnv.Client,
-				Log:    log.Log,
 			}
 
 			instance := &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
@@ -47,7 +45,7 @@ var _ = Describe("AWSClusterReconciler", func() {
 			// Create the AWSCluster object and expect the Reconcile and Deployment to be created
 			Expect(testEnv.Create(ctx, instance)).To(Succeed())
 
-			result, err := reconciler.Reconcile(ctrl.Request{
+			result, err := reconciler.Reconcile(ctx, ctrl.Request{
 				NamespacedName: client.ObjectKey{
 					Namespace: instance.Namespace,
 					Name:      instance.Name,

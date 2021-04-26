@@ -14,10 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha4
 package v1alpha3
-
-// Hub marks AWSMachine as a conversion hub.
-func (*AWSMachine) Hub() {}
-
-// Hub marks AWSMachineList as a conversion hub.
-func (*AWSMachineList) Hub() {}

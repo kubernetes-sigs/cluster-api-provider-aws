@@ -23,7 +23,7 @@ package mock_services
 import (
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
-	v1alpha3 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	v1alpha4 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
 	scope "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 
@@ -51,10 +51,10 @@ func (m *MockASGInterface) EXPECT() *MockASGInterfaceMockRecorder {
 }
 
 // ASGIfExists mocks base method
-func (m *MockASGInterface) ASGIfExists(arg0 *string) (*v1alpha3.AutoScalingGroup, error) {
+func (m *MockASGInterface) ASGIfExists(arg0 *string) (*v1alpha4.AutoScalingGroup, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ASGIfExists", arg0)
-	ret0, _ := ret[0].(*v1alpha3.AutoScalingGroup)
+	ret0, _ := ret[0].(*v1alpha4.AutoScalingGroup)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -81,10 +81,10 @@ func (mr *MockASGInterfaceMockRecorder) CanStartASGInstanceRefresh(arg0 interfac
 }
 
 // CreateASG mocks base method
-func (m *MockASGInterface) CreateASG(arg0 *scope.MachinePoolScope) (*v1alpha3.AutoScalingGroup, error) {
+func (m *MockASGInterface) CreateASG(arg0 *scope.MachinePoolScope) (*v1alpha4.AutoScalingGroup, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateASG", arg0)
-	ret0, _ := ret[0].(*v1alpha3.AutoScalingGroup)
+	ret0, _ := ret[0].(*v1alpha4.AutoScalingGroup)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -110,10 +110,10 @@ func (mr *MockASGInterfaceMockRecorder) DeleteASGAndWait(arg0 interface{}) *gomo
 }
 
 // GetASGByName mocks base method
-func (m *MockASGInterface) GetASGByName(arg0 *scope.MachinePoolScope) (*v1alpha3.AutoScalingGroup, error) {
+func (m *MockASGInterface) GetASGByName(arg0 *scope.MachinePoolScope) (*v1alpha4.AutoScalingGroup, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetASGByName", arg0)
-	ret0, _ := ret[0].(*v1alpha3.AutoScalingGroup)
+	ret0, _ := ret[0].(*v1alpha4.AutoScalingGroup)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

@@ -19,6 +19,7 @@ package hash
 import (
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/blake2b"
+	_ "k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const base36set = "0123456789abcdefghijklmnopqrstuvwxyz"

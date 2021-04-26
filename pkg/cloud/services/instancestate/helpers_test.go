@@ -19,9 +19,9 @@ package instancestate
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -29,9 +29,10 @@ func setupCluster(clusterName string) (*scope.ClusterScope, error) {
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
 	awsCluster := &infrav1.AWSCluster{
+		ObjectMeta: metav1.ObjectMeta{Name: "test"},
 		Spec: infrav1.AWSClusterSpec{},
 	}
-	client := fake.NewFakeClientWithScheme(scheme, awsCluster)
+	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).Build()
 	return scope.NewClusterScope(scope.ClusterScopeParams{
 		Cluster: &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{Name: clusterName},

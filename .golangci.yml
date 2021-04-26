@@ -16,6 +16,8 @@ linters:
     - gci
     - nlreturn
     - gocritic
+    - exhaustivestruct
+    - wrapcheck
   # Run with --fast=false for more extensive checks
   fast: true
 issues:

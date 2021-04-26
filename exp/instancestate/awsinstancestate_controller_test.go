@@ -18,15 +18,16 @@ package instancestate
 
 import (
 	"context"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/controllers"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
@@ -74,9 +75,9 @@ var _ = Describe("AWSInstanceStateController", func() {
 		sqsSvs.EXPECT().DeleteMessage(&sqs.DeleteMessageInput{QueueUrl: aws.String("aws-cluster-1-url"), ReceiptHandle: aws.String("message-receipt-handle")}).AnyTimes().
 			Return(nil, nil)
 
-		Expect(k8sManager.GetFieldIndexer().IndexField(&infrav1.AWSMachine{},
+		Expect(k8sManager.GetFieldIndexer().IndexField(context.Background(), &infrav1.AWSMachine{},
 			controllers.InstanceIDIndex,
-			func(o runtime.Object) []string {
+			func(o client.Object) []string {
 				m := o.(*infrav1.AWSMachine)
 				if m.Spec.InstanceID != nil {
 					return []string{*m.Spec.InstanceID}
@@ -84,13 +85,11 @@ var _ = Describe("AWSInstanceStateController", func() {
 				return nil
 			},
 		)).ToNot(HaveOccurred())
-		err := instanceStateReconciler.SetupWithManager(k8sManager, controller.Options{})
+		err := instanceStateReconciler.SetupWithManager(context.Background(), k8sManager, controller.Options{})
 		Expect(err).ToNot(HaveOccurred())
-		stop := make(chan struct{})
-		defer close(stop)
 		go func() {
 			defer GinkgoRecover()
-			err := k8sManager.Start(stop)
+			err := k8sManager.Start(ctrl.SetupSignalHandler())
 			Expect(err).ToNot(HaveOccurred())
 		}()
 

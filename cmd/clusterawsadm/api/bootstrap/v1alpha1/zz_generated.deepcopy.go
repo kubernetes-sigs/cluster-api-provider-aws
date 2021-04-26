@@ -22,7 +22,7 @@ package v1alpha1
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	iamv1alpha1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
 )
 
@@ -75,7 +75,7 @@ func (in *AWSIAMConfigurationSpec) DeepCopyInto(out *AWSIAMConfigurationSpec) {
 	}
 	if in.SecureSecretsBackends != nil {
 		in, out := &in.SecureSecretsBackends, &out.SecureSecretsBackends
-		*out = make([]v1alpha3.SecretBackend, len(*in))
+		*out = make([]v1alpha4.SecretBackend, len(*in))
 		copy(*out, *in)
 	}
 }
@@ -114,7 +114,7 @@ func (in *AWSIAMRoleSpec) DeepCopyInto(out *AWSIAMRoleSpec) {
 	}
 	if in.Tags != nil {
 		in, out := &in.Tags, &out.Tags
-		*out = make(v1alpha3.Tags, len(*in))
+		*out = make(v1alpha4.Tags, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -153,7 +153,7 @@ func (in *BootstrapUser) DeepCopyInto(out *BootstrapUser) {
 	}
 	if in.Tags != nil {
 		in, out := &in.Tags, &out.Tags
-		*out = make(v1alpha3.Tags, len(*in))
+		*out = make(v1alpha4.Tags, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}

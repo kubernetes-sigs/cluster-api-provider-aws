@@ -45,13 +45,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/exp/instancestate"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
-	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
@@ -83,6 +82,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 		namespace *corev1.Namespace
 		ctx       context.Context
 		specName  = "functional-tests"
+		result        *clusterctl.ApplyClusterTemplateAndWaitResult
 	)
 
 	BeforeEach(func() {
@@ -92,6 +92,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 		namespace = shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 		Expect(e2eCtx.E2EConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
 		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.KubernetesVersion))
+		result = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
 	Describe("Multitenancy test", func() {
@@ -118,7 +119,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster"),
 				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 				WaitForMachineDeployments:    e2eCtx.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
-			})
+			}, result)
 
 			By("PASSED!")
 		})
@@ -142,7 +143,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster"),
 				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 				WaitForMachineDeployments:    e2eCtx.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
-			})
+			}, result)
 
 			By("PASSED!")
 		})
@@ -163,13 +164,13 @@ var _ = Describe("functional tests - unmanaged", func() {
 
 				configCluster.Flavor = shared.UpgradeToMain
 				configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
-				createCluster(ctx, configCluster)
+				createCluster(ctx, configCluster, result)
 
 				kubernetesUgradeVersion, err := LatestCIReleaseForVersion("v" + searchSemVer.String())
 				Expect(err).NotTo(HaveOccurred())
 				configCluster.KubernetesVersion = kubernetesUgradeVersion
 				configCluster.Flavor = "upgrade-ci-artifacts"
-				cluster2, md, kcp := createCluster(ctx, configCluster)
+				cluster2, md, kcp := createCluster(ctx, configCluster, result)
 
 				By(fmt.Sprintf("Waiting for Kubernetes versions of machines in MachineDeployment %s/%s to be upgraded from %s to %s",
 					md[0].Namespace, md[0].Name, e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion), kubernetesUgradeVersion))
@@ -205,7 +206,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 			configCluster.ControlPlaneMachineCount = pointer.Int64Ptr(1)
 			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
 			configCluster.Flavor = shared.SSMFlavor
-			_, md, _ := createCluster(ctx, configCluster)
+			_, md, _ := createCluster(ctx, configCluster, result)
 
 			workerMachines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
 				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
@@ -249,7 +250,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 			clusterName := fmt.Sprintf("sg-test.%s", util.RandomString(20))
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
 			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
-			cluster, md, _ := createCluster(ctx, configCluster)
+			cluster, md, _ := createCluster(ctx, configCluster, result)
 			clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterName).GetClient()
 
 			By("Waiting for worker nodes to be in Running phase")
@@ -343,7 +344,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 			By("Creating a cluster")
 			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
-			_, _, _ = createCluster(ctx, configCluster)
+			_, _, _ = createCluster(ctx, configCluster, result)
 
 			By("Creating Machine Deployment with invalid subnet ID")
 			md1Name := clusterName + "-md-1"
@@ -389,7 +390,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
 			configCluster.ControlPlaneMachineCount = pointer.Int64Ptr(3)
 			configCluster.Flavor = shared.MultiAzFlavor
-			cluster, _, _ := createCluster(ctx, configCluster)
+			cluster, _, _ := createCluster(ctx, configCluster, result)
 
 			By("Adding worker nodes to additional subnets")
 			mdName1 := clusterName + "-md-1"
@@ -442,7 +443,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 				configCluster := defaultConfigCluster(cluster1Name, ns1.Name)
 				configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
 				configCluster.Flavor = shared.LimitAzFlavor
-				cluster1, md1, _ := createCluster(ctx, configCluster)
+				cluster1, md1, _ := createCluster(ctx, configCluster, result)
 				Expect(len(md1)).To(Equal(1), "Expecting one MachineDeployment")
 
 				By("Deleting a worker node machine")
@@ -457,7 +458,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 				configCluster = defaultConfigCluster(cluster2Name, ns2.Name)
 				configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
 				configCluster.Flavor = shared.LimitAzFlavor
-				cluster2, md2, _ := createCluster(ctx, configCluster)
+				cluster2, md2, _ := createCluster(ctx, configCluster, result)
 				Expect(len(md2)).To(Equal(1), "Expecting one MachineDeployment")
 
 				By("Deleting node directly from infra cloud")
@@ -502,13 +503,13 @@ var _ = Describe("functional tests - unmanaged", func() {
 				cluster1Name := fmt.Sprintf("cluster-%s", util.RandomString(6))
 				configCluster := defaultConfigCluster(cluster1Name, namespace.Name)
 				configCluster.Flavor = shared.LimitAzFlavor
-				cluster1, _, _ := createCluster(ctx, configCluster)
+				cluster1, _, _ := createCluster(ctx, configCluster, result)
 
 				By("Creating second cluster with single control plane")
 				cluster2Name := fmt.Sprintf("cluster-%s", util.RandomString(6))
 				configCluster = defaultConfigCluster(cluster2Name, namespace.Name)
 				configCluster.Flavor = shared.LimitAzFlavor
-				cluster2, _, _ := createCluster(ctx, configCluster)
+				cluster2, _, _ := createCluster(ctx, configCluster, result)
 
 				By("Deleting the Clusters")
 				deleteCluster(ctx, cluster1)
@@ -524,7 +525,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
 			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
 			configCluster.Flavor = shared.SpotInstancesFlavor
-			_, md, _ := createCluster(ctx, configCluster)
+			_, md, _ := createCluster(ctx, configCluster, result)
 
 			workerMachines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
 				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
@@ -560,16 +561,16 @@ func GetAWSClusterByName(ctx context.Context, namespace, name string) (*infrav1.
 	return awsCluster, err
 }
 
-func createCluster(ctx context.Context, configCluster clusterctl.ConfigClusterInput) (*clusterv1.Cluster, []*clusterv1.MachineDeployment, *controlplanev1.KubeadmControlPlane) {
-	res := clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+func createCluster(ctx context.Context, configCluster clusterctl.ConfigClusterInput, result *clusterctl.ApplyClusterTemplateAndWaitResult) (*clusterv1.Cluster, []*clusterv1.MachineDeployment, *controlplanev1.KubeadmControlPlane) {
+	clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 		ClusterProxy:                 e2eCtx.Environment.BootstrapClusterProxy,
 		ConfigCluster:                configCluster,
 		WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals("", "wait-cluster"),
 		WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals("", "wait-control-plane"),
 		WaitForMachineDeployments:    e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes"),
-	})
+	}, result)
 
-	return res.Cluster, res.MachineDeployments, res.ControlPlane
+	return result.Cluster, result.MachineDeployments, result.ControlPlane
 }
 
 func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigClusterInput {
@@ -962,8 +963,8 @@ func makeJoinBootstrapConfigTemplate(namespace, name string) *bootstrapv1.Kubead
 		Spec: bootstrapv1.KubeadmConfigTemplateSpec{
 			Template: bootstrapv1.KubeadmConfigTemplateResource{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
-						NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 							Name:             "{{ ds.meta_data.local_hostname }}",
 							KubeletExtraArgs: map[string]string{"cloud-provider": "aws"},
 						},

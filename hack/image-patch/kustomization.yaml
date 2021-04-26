@@ -12,12 +12,5 @@ patchesJson6902:
       name: controller-name
       namespace: namespace
       version: v1
-  - path: pull-policy-patch.yaml
-    target:
-      group: apps
-      kind: Deployment
-      name: controller-name
-      namespace: capi-webhook-system
-      version: v1
 resources:
   - source-manifest.yaml

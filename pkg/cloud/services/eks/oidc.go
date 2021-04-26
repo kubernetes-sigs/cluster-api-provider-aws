@@ -81,7 +81,7 @@ func (s *Service) reconcileTrustPolicy() error {
 		Namespace: s.scope.Namespace(),
 	}
 
-	restConfig, err := remote.RESTConfig(ctx, s.scope.Client, clusterKey)
+	restConfig, err := remote.RESTConfig(ctx, s.scope.ControlPlane.Name, s.scope.Client, clusterKey)
 	if err != nil {
 		return fmt.Errorf("getting remote client for %s/%s: %w", s.scope.Namespace(), s.scope.Name(), err)
 	}

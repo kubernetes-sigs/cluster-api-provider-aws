@@ -28,9 +28,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2/klogr"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/identity"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -185,7 +185,7 @@ func TestIsClusterPermittedToUsePrincipal(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			k8sClient := fake.NewFakeClientWithScheme(scheme)
+			k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 			if tc.setup != nil {
 				tc.setup(k8sClient, t)
 			}
@@ -206,7 +206,11 @@ func TestIsClusterPermittedToUsePrincipal(t *testing.T) {
 
 func TestPrincipalParsing(t *testing.T) {
 	// Create the scope.
+	scheme := runtime.NewScheme()
+	_ = infrav1.AddToScheme(scheme)
+	cl := fake.NewClientBuilder().WithScheme(scheme).Build()
 	clusterScope, _ := NewClusterScope(ClusterScopeParams{
+		Client: cl,
 		Cluster: &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test",
@@ -469,7 +473,7 @@ func TestPrincipalParsing(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			k8sClient := fake.NewFakeClientWithScheme(scheme)
+			k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 			tc.setup(k8sClient, t)
 			clusterScope.AWSCluster = &tc.awsCluster
 			providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScope, klogr.New())

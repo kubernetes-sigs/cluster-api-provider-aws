@@ -31,13 +31,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -166,9 +166,15 @@ func TestInstanceIfExists(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
 			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client: client,
 				Cluster: &clusterv1.Cluster{},
 				AWSCluster: &infrav1.AWSCluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test"},
 					Spec: infrav1.AWSClusterSpec{
 						NetworkSpec: infrav1.NetworkSpec{
 							VPC: infrav1.VPCSpec{
@@ -241,7 +247,11 @@ func TestTerminateInstance(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
 			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client: client,
 				Cluster:    &clusterv1.Cluster{},
 				AWSCluster: &infrav1.AWSCluster{},
 			})
@@ -307,6 +317,7 @@ func TestCreateInstance(t *testing.T) {
 				InstanceType: "m5.large",
 			},
 			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
@@ -408,6 +419,7 @@ func TestCreateInstance(t *testing.T) {
 				FailureDomain: aws.String("us-east-1c"),
 			},
 			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
@@ -526,6 +538,7 @@ func TestCreateInstance(t *testing.T) {
 				InstanceType:   "m5.large",
 			},
 			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
@@ -654,6 +667,7 @@ func TestCreateInstance(t *testing.T) {
 				InstanceType: "m5.large",
 			},
 			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
@@ -784,6 +798,7 @@ func TestCreateInstance(t *testing.T) {
 				ImageLookupOrg: "machine-level-image-lookup-org",
 			},
 			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
@@ -922,6 +937,7 @@ func TestCreateInstance(t *testing.T) {
 				FailureDomain: aws.String("us-east-1b"),
 			},
 			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
@@ -1034,6 +1050,7 @@ func TestCreateInstance(t *testing.T) {
 				FailureDomain: aws.String("us-east-1b"),
 			},
 			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
@@ -1100,6 +1117,7 @@ func TestCreateInstance(t *testing.T) {
 				}},
 			},
 			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
@@ -1209,6 +1227,7 @@ func TestCreateInstance(t *testing.T) {
 				Tenancy:      "dedicated",
 			},
 			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
@@ -1349,6 +1368,7 @@ func TestCreateInstance(t *testing.T) {
 				InstanceType: "m5.large",
 			},
 			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
@@ -1458,6 +1478,7 @@ func TestCreateInstance(t *testing.T) {
 				InstanceType: "m5.large",
 			},
 			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
@@ -1569,6 +1590,7 @@ func TestCreateInstance(t *testing.T) {
 				SSHKeyName:   aws.String("specific-machine-ssh-key-name"),
 			},
 			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
@@ -1680,6 +1702,7 @@ func TestCreateInstance(t *testing.T) {
 				SSHKeyName:   nil,
 			},
 			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
@@ -1788,6 +1811,7 @@ func TestCreateInstance(t *testing.T) {
 				SSHKeyName:   aws.String(""),
 			},
 			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
@@ -1896,6 +1920,7 @@ func TestCreateInstance(t *testing.T) {
 				SSHKeyName:   aws.String(""),
 			},
 			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
@@ -2028,8 +2053,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 			}
 
-			client := fake.NewFakeClientWithScheme(scheme, secret, cluster, machine)
-
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret, cluster, machine).Build()
 			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Client:     client,
 				Cluster:    cluster,

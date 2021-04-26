@@ -28,12 +28,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -279,7 +279,7 @@ func (m *MachinePoolScope) getNodeStatusByProviderID(ctx context.Context, provid
 		nodeStatusMap[id] = &NodeStatus{}
 	}
 
-	workloadClient, err := remote.NewClusterClient(ctx, m.client, util.ObjectKey(m.Cluster), nil)
+	workloadClient, err := remote.NewClusterClient(ctx, "", m.client, util.ObjectKey(m.Cluster))
 	if err != nil {
 		return nil, err
 	}
