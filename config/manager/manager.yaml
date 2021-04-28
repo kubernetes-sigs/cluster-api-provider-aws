@@ -18,8 +18,8 @@ spec:
     spec:
       containers:
       - args:
-        - "--metrics-addr=127.0.0.1:8080"
-        - "--enable-leader-election"
+        - "--metrics-bind-addr=127.0.0.1:8080"
+        - "--leader-elect"
         - "--feature-gates=EKS=${EXP_EKS:=false},EKSEnableIAM=${EXP_EKS_IAM:=false},MachinePool=${EXP_MACHINE_POOL:=false},EventBridgeInstanceState=${EVENT_BRIDGE_INSTANCE_STATE:=false},AutoControllerIdentityCreator=${AUTO_CONTROLLER_IDENTITY_CREATOR:=true}"
         image: controller:latest
         imagePullPolicy: Always
@@ -40,3 +40,4 @@ spec:
       tolerations:
         - effect: NoSchedule
           key: node-role.kubernetes.io/master
+      serviceAccountName: manager

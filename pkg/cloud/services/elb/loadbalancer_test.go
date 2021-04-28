@@ -29,12 +29,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_resourcegroupstaggingapiiface"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -165,7 +165,11 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 			defer mockCtrl.Finish()
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
 			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client: client,
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "foo",
@@ -173,6 +177,7 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 					},
 				},
 				AWSCluster: &infrav1.AWSCluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test"},
 					Spec: infrav1.AWSClusterSpec{
 						ControlPlaneLoadBalancer: tc.lb,
 					},
@@ -290,10 +295,11 @@ func TestDeleteLoadbalancers(t *testing.T) {
 			}
 
 			awsCluster := &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{},
 			}
 
-			client := fake.NewFakeClientWithScheme(scheme)
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
 			ctx := context.TODO()
 			client.Create(ctx, awsCluster)
 
@@ -363,12 +369,13 @@ func TestDescribeLoadbalancers(t *testing.T) {
 				t.Fatal(err)
 			}
 			awsCluster := &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 					Scheme: &infrav1.ClassicELBSchemeInternetFacing,
 				}},
 			}
 
-			client := fake.NewFakeClientWithScheme(scheme)
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
 			ctx := context.TODO()
 			client.Create(ctx, awsCluster)
 

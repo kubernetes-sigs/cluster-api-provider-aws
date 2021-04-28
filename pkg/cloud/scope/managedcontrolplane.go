@@ -30,13 +30,13 @@ import (
 	amazoncni "github.com/aws/amazon-vpc-cni-k8s/pkg/apis/crd/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 )
 
@@ -130,7 +130,7 @@ func (s *ManagedControlPlaneScope) RemoteClient() (client.Client, error) {
 		Namespace: s.Namespace(),
 	}
 
-	restConfig, err := remote.RESTConfig(context.Background(), s.Client, clusterKey)
+	restConfig, err := remote.RESTConfig(context.Background(), s.controllerName, s.Client, clusterKey)
 	if err != nil {
 		return nil, fmt.Errorf("getting remote client for %s/%s: %w", s.Namespace(), s.Name(), err)
 	}

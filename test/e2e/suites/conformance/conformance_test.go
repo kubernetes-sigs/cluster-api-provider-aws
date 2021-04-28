@@ -40,6 +40,7 @@ var _ = Describe("conformance tests", func() {
 		namespace *corev1.Namespace
 		ctx       context.Context
 		specName  = "conformance"
+		result    *clusterctl.ApplyClusterTemplateAndWaitResult
 	)
 
 	BeforeEach(func() {
@@ -68,7 +69,7 @@ var _ = Describe("conformance tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		runtime := b.Time("cluster creation", func() {
-			_ = clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 				ClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
 				ConfigCluster: clusterctl.ConfigClusterInput{
 					LogFolder:                filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
@@ -85,12 +86,12 @@ var _ = Describe("conformance tests", func() {
 				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster"),
 				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 				WaitForMachineDeployments:    e2eCtx.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
-			})
+			}, result)
 		})
 		b.RecordValue("cluster creation", runtime.Seconds())
 		workloadProxy := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, name)
 		runtime = b.Time("conformance suite", func() {
-			kubetest.Run(
+			kubetest.Run(ctx,
 				kubetest.RunInput{
 					ClusterProxy:   workloadProxy,
 					NumberOfNodes:  int(workerMachineCount),

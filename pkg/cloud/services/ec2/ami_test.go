@@ -19,14 +19,18 @@ package ec2
 import (
 	"testing"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	. "github.com/onsi/gomega"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestAMIs(t *testing.T) {
@@ -63,19 +67,15 @@ func TestAMIs(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-
-			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
-				Cluster:    &clusterv1.Cluster{},
-				AWSCluster: &infrav1.AWSCluster{},
-			})
-			if err != nil {
-				t.Fatalf("did not expect err: %v", err)
-			}
-
 			tc.expect(ec2Mock.EXPECT())
 
-			s := NewService(scope)
+			clusterScope, err := setupCluster("test-cluster")
+			g.Expect(err).To(Not(HaveOccurred()))
+
+			s := NewService(clusterScope)
 			s.EC2Client = ec2Mock
 
 			id, err := s.defaultAMIIDLookup("", "", "base os-baseos version", "1.11.1")
@@ -124,18 +124,14 @@ func TestAMIsWithInvalidCreationDate(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			g := NewWithT(t)
 
-			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
-				Cluster:    &clusterv1.Cluster{},
-				AWSCluster: &infrav1.AWSCluster{},
-			})
-			if err != nil {
-				t.Fatalf("did not expect err: %v", err)
-			}
+			clusterScope, err := setupCluster("test-cluster")
+			g.Expect(err).To(Not(HaveOccurred()))
 
 			tc.expect(ec2Mock.EXPECT())
 
-			s := NewService(scope)
+			s := NewService(clusterScope)
 			s.EC2Client = ec2Mock
 
 			_, err = s.defaultAMIIDLookup("", "", "base os-baseos version", "1.11.1")
@@ -144,4 +140,21 @@ func TestAMIsWithInvalidCreationDate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func setupCluster(clusterName string) (*scope.ClusterScope, error) {
+	scheme := runtime.NewScheme()
+	_ = infrav1.AddToScheme(scheme)
+	awsCluster := &infrav1.AWSCluster{
+		ObjectMeta: metav1.ObjectMeta{Name: "test"},
+		Spec:       infrav1.AWSClusterSpec{},
+	}
+	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).Build()
+	return scope.NewClusterScope(scope.ClusterScopeParams{
+		Cluster: &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{Name: clusterName},
+		},
+		AWSCluster: awsCluster,
+		Client:     client,
+	})
 }

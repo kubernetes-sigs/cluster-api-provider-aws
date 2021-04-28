@@ -26,7 +26,7 @@ import (
 
 const (
 	clusterAPIGroup       = "cluster.x-k8s.io"
-	clusterAPITestVersion = "v1alpha3"
+	clusterAPITestVersion = "v1alpha4"
 )
 
 var (

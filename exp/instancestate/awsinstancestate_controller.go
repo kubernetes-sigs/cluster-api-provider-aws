@@ -27,11 +27,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/controllers"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/instancestate"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -47,6 +48,7 @@ type AwsInstanceStateReconciler struct {
 	sqsServiceFactory func() sqsiface.SQSAPI
 	queueURLs         sync.Map
 	Endpoints         []scope.ServiceEndpoint
+	WatchFilterValue  string
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclusters,verbs=get;list;watch
@@ -69,10 +71,7 @@ func (r *AwsInstanceStateReconciler) getSQSService(region string) (sqsiface.SQSA
 	return scope.NewGlobalSQSClient(globalScope, globalScope), nil
 }
 
-func (r *AwsInstanceStateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.TODO()
-	_ = r.Log.WithValues("namespace", req.NamespacedName, "awsInstanceState", req.Name)
-
+func (r *AwsInstanceStateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Fetch the AWSCluster instance
 	awsCluster := &infrav1.AWSCluster{}
 	err := r.Get(ctx, req.NamespacedName, awsCluster)
@@ -103,14 +102,14 @@ func (r *AwsInstanceStateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 	return ctrl.Result{}, nil
 }
 
-func (r *AwsInstanceStateReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+func (r *AwsInstanceStateReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	go func() {
 		r.watchQueuesForInstanceEvents()
 	}()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.AWSCluster{}).
 		WithOptions(options).
-		WithEventFilter(controllers.PausedPredicates(r.Log)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
 }
 

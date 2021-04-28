@@ -35,67 +35,77 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v0.3.14
+      - name: v0.4.0
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.14/core-components.yaml"
+        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210419/core-components.yaml"
         type: "url"
+        files:
+          - sourcePath: "./shared/v1alpha4/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--enable-leader-election"
-            new: "--enable-leader-election=false"
-          - old: --metrics-addr=127.0.0.1:8080
-            new: --metrics-addr=:8080
+          - old: "--leader-elect"
+            new: "--leader-elect=false"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
 
   - name: kubeadm
     type: BootstrapProvider
+    files:
+      - sourcePath: "./shared/v1alpha4/metadata.yaml"
     versions:
-      - name: v0.3.14
+      - name: v0.4.0
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.14/bootstrap-components.yaml"
+        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210419/bootstrap-components.yaml"
         type: "url"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--enable-leader-election"
-            new: "--enable-leader-election=false"
-          - old: --metrics-addr=127.0.0.1:8080
-            new: --metrics-addr=:8080
+          - old: "--leader-elect"
+            new: "--leader-elect=false"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
 
   - name: kubeadm
     type: ControlPlaneProvider
+    files:
+      - sourcePath: "./shared/v1alpha4/metadata.yaml"
     versions:
-      - name: v0.3.14
+      - name: v0.4.0
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.14/control-plane-components.yaml"
+        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210419/control-plane-components.yaml"
         type: "url"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--enable-leader-election"
-            new: "--enable-leader-election=false"
-          - old: --metrics-addr=127.0.0.1:8080
-            new: --metrics-addr=:8080
+          - old: "--leader-elect"
+            new: "--leader-elect=false"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
 
   - name: aws
     type: InfrastructureProvider
     versions:
-      - name: v0.5.0
+      - name: v0.6.0
         # Use manifest from source files
-        value: ../../../config
+        value: ../../../config/default
+        files:
+          - sourcePath: "./shared/v1alpha4_provider/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--enable-leader-election"
-            new: "--enable-leader-election=false"
-          - old: --metrics-addr=127.0.0.1:8080
-            new: --metrics-addr=:8080
+          - old: "--leader-elect"
+            new: "--leader-elect=false"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
           - old: gcr.io/k8s-staging-cluster-api/cluster-api-aws-controller-amd64:dev
             new: gcr.io/k8s-staging-cluster-api/capa-manager:e2e
           - old: gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller:latest
             new: gcr.io/k8s-staging-cluster-api/capa-manager:e2e
     files:
       # Add a cluster template
+      - sourcePath: "./shared/v1alpha4/metadata.yaml"
+        targetName: "metadata.yaml"
       - sourcePath: "./infrastructure-aws/cluster-template.yaml"
       - sourcePath: "./infrastructure-aws/cluster-template-ssm.yaml"
         targetName: "cluster-template-ssm.yaml"
@@ -116,20 +126,20 @@ providers:
       - sourcePath: "./infrastructure-aws/cluster-template-nested-multitenancy.yaml"
         targetName: "cluster-template-nested-multitenancy.yaml"
 variables:
-  KUBERNETES_VERSION: "v1.20.4"
   CNI: "../../data/cni/calico.yaml"
   EXP_CLUSTER_RESOURCE_SET: "true"
   EVENT_BRIDGE_INSTANCE_STATE: "true"
   AWS_CONTROL_PLANE_MACHINE_TYPE: t3.large
   AWS_NODE_MACHINE_TYPE: t3.large
   AWS_SSH_KEY_NAME: "cluster-api-provider-aws-sigs-k8s-io"
-  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.20.4"
+  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.20.6"
   CONFORMANCE_WORKER_MACHINE_COUNT: "5"
   CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT: "1"
   EXP_MACHINE_POOL: "true"
   ETCD_VERSION_UPGRADE_TO: "3.4.13-0"
   COREDNS_VERSION_UPGRADE_TO: "1.7.1"
-  KUBERNETES_VERSION_UPGRADE_TO: "v1.20.4"
+  KUBERNETES_VERSION: "v1.20.6"
+  KUBERNETES_VERSION_UPGRADE_TO: "v1.20.6"
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.19.8"
   MULTI_TENANCY_ROLE_NAME: "multi-tenancy-role"
   MULTI_TENANCY_NESTED_ROLE_NAME: "multi-tenancy-nested-role"

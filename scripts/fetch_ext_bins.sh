@@ -26,7 +26,7 @@ if [[ -n "${TRACE}" ]]; then
   set -x
 fi
 
-k8s_version=1.16.4
+k8s_version=1.19.2
 goarch=amd64
 goos="unknown"
 
@@ -95,7 +95,9 @@ function fetch_tools {
 
   kb_tools_archive_path="${tmp_root}/${kb_tools_archive_name}"
   if [[ ! -f ${kb_tools_archive_path} ]]; then
+    echo ${kb_tools_download_url}
     curl -fsL ${kb_tools_download_url} -o "${kb_tools_archive_path}"
+
   fi
   tar -zvxf "${kb_tools_archive_path}" -C "${tmp_root}/"
 }

@@ -25,9 +25,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2/klogr"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
 func newMachine(clusterName, machineName string) *clusterv1.Machine {
@@ -76,8 +75,7 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 		Log:    klogr.New(),
 	}
 
-	g.Expect(reconciler.AWSClusterToAWSMachines(handler.MapObject{
-		Object: &infrav1.AWSCluster{
+	requests := reconciler.AWSClusterToAWSMachines(klogr.New())(&infrav1.AWSCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      clusterName,
 				Namespace: "default",
@@ -89,6 +87,8 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 					},
 				},
 			},
-		},
-	})).Should(HaveLen(2))
+	})
+	if len(requests) != 2 {
+		t.Fatalf("Expected 2 but found %d requests", len(requests))
+	}
 }

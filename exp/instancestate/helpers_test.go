@@ -18,6 +18,7 @@ package instancestate
 
 import (
 	"context"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -25,9 +26,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 )
 
 func createAWSCluster(name string) *infrav1.AWSCluster {
@@ -39,7 +39,7 @@ func createAWSCluster(name string) *infrav1.AWSCluster {
 	}
 }
 
-func persistObject(o runtime.Object) {
+func persistObject(o client.Object) {
 	ctx := context.TODO()
 	Expect(k8sClient.Create(ctx, o)).Should(Succeed())
 	metaObj, err := meta.Accessor(o)

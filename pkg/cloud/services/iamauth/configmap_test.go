@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
 )
 
 var (
@@ -135,9 +135,9 @@ func TestAddRoleMappingCM(t *testing.T) {
 
 			var client crclient.Client
 			if tc.existingAuthConfigMap == nil {
-				client = fake.NewFakeClient()
+				client =  fake.NewClientBuilder().Build()
 			} else {
-				client = fake.NewFakeClient(tc.existingAuthConfigMap)
+				client = fake.NewClientBuilder().WithObjects(tc.existingAuthConfigMap).Build()
 			}
 			backend, err := NewBackend(BackendTypeConfigMap, client)
 			g.Expect(err).To(BeNil())
@@ -268,9 +268,9 @@ func TestAddUserMappingCM(t *testing.T) {
 
 			var client crclient.Client
 			if tc.existingAuthConfigMap == nil {
-				client = fake.NewFakeClient()
+				client = fake.NewClientBuilder().Build()
 			} else {
-				client = fake.NewFakeClient(tc.existingAuthConfigMap)
+				client = fake.NewClientBuilder().WithObjects(tc.existingAuthConfigMap).Build()
 			}
 			backend, err := NewBackend(BackendTypeConfigMap, client)
 			g.Expect(err).To(BeNil())

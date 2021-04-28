@@ -17,7 +17,9 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
+	"fmt"
 	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
@@ -29,18 +31,19 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
+	bootstrapv1alpha3 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha3"
+	bootstrapv1alpha4 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha4"
+	bootstrapv1controllers "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/controllers"
+	controlplanev1alpha3 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
+	controlplanev1alpha4 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
+	expinfrav1alpha3 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	expinfrav1alpha4 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	"sigs.k8s.io/cluster-api-provider-aws/version"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-
-	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha3"
-	bootstrapv1controllers "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/controllers"
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
-	"sigs.k8s.io/cluster-api-provider-aws/version"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -54,10 +57,14 @@ func init() {
 
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
-	_ = bootstrapv1.AddToScheme(scheme)
-	_ = expinfrav1.AddToScheme(scheme)
+	_ = bootstrapv1alpha3.AddToScheme(scheme)
+	_ = bootstrapv1alpha4.AddToScheme(scheme)
+	_ = expinfrav1alpha3.AddToScheme(scheme)
+	_ = expinfrav1alpha4.AddToScheme(scheme)
 	_ = expclusterv1.AddToScheme(scheme)
-	_ = controlplanev1.AddToScheme(scheme)
+	_ = controlplanev1alpha3.AddToScheme(scheme)
+	_ = controlplanev1alpha4.AddToScheme(scheme)
+
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -68,26 +75,28 @@ var (
 	leaderElectionRenewDeadline time.Duration
 	leaderElectionRetryPeriod   time.Duration
 	watchNamespace              string
+	watchFilterValue            string
 	profilerAddress             string
 	eksConfigConcurrency        int
 	syncPeriod                  time.Duration
 	webhookPort                 int
+	webhookCertDir              string
 )
 
 func InitFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&metricsAddr, "metrics-addr", ":8080",
+	fs.StringVar(&metricsAddr, "metrics-bind-addr", ":8080",
 		"The address the metric endpoint binds to.")
 
-	fs.BoolVar(&enableLeaderElection, "enable-leader-election", false,
+	fs.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 
-	fs.DurationVar(&leaderElectionLeaseDuration, "leader-election-lease-duration", 15*time.Second,
+	fs.DurationVar(&leaderElectionLeaseDuration, "leader-elect-lease-duration", 15*time.Second,
 		"Interval at which non-leader candidates will wait to force acquire leadership (duration string)")
 
-	fs.DurationVar(&leaderElectionRenewDeadline, "leader-election-renew-deadline", 10*time.Second,
+	fs.DurationVar(&leaderElectionRenewDeadline, "leader-elect-renew-deadline", 10*time.Second,
 		"Duration that the leading controller manager will retry refreshing leadership before giving up (duration string)")
 
-	fs.DurationVar(&leaderElectionRetryPeriod, "leader-election-retry-period", 2*time.Second,
+	fs.DurationVar(&leaderElectionRetryPeriod, "leader-elect-retry-period", 2*time.Second,
 		"Duration the LeaderElector clients should wait between tries of actions (duration string)")
 
 	fs.StringVar(&watchNamespace, "namespace", "",
@@ -102,8 +111,18 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 
-	fs.IntVar(&webhookPort, "webhook-port", 0,
+	fs.IntVar(&webhookPort, "webhook-port", 9443,
 		"Webhook Server port, disabled by default. When enabled, the manager will only work as webhook server, no reconcilers are installed.")
+
+	fs.StringVar(&webhookCertDir, "webhook-cert-dir", "/tmp/k8s-webhook-server/serving-certs/",
+		"Webhook cert dir, only used when webhook-port is specified.")
+
+	fs.StringVar(
+		&watchFilterValue,
+		"watch-filter",
+		"",
+		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1.WatchLabel),
+	)
 
 	feature.MutableGates.AddFlag(fs)
 }
@@ -130,39 +149,35 @@ func main() {
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
 		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "eks-bootstrap-manager-leader-election-capa",
+		LeaderElectionID:   "eks-bootstrap-manager-leader-elect-capa",
 		LeaseDuration:      &leaderElectionLeaseDuration,
 		RenewDeadline:      &leaderElectionRenewDeadline,
 		RetryPeriod:        &leaderElectionRetryPeriod,
 		Namespace:          watchNamespace,
 		SyncPeriod:         &syncPeriod,
-		NewClient:          util.ManagerDelegatingClientFunc,
 		Port:               webhookPort,
+		CertDir:            webhookCertDir,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
-
-	setupReconcilers(mgr)
+	ctx := ctrl.SetupSignalHandler()
+	setupReconcilers(ctx, mgr)
 
 	// +kubebuilder:scaffold:builder
 	setupLog.Info("starting manager", "version", version.Get().String())
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
 }
 
-func setupReconcilers(mgr ctrl.Manager) {
-	if webhookPort != 0 {
-		return
-	}
-
+func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	if err := (&bootstrapv1controllers.EKSConfigReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("EKSConfig"),
-	}).SetupWithManager(mgr, concurrency(eksConfigConcurrency)); err != nil {
+		Client:           mgr.GetClient(),
+		WatchFilterValue: watchFilterValue,
+	}).SetupWithManager(ctx, mgr, concurrency(eksConfigConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "EKSConfig")
 		os.Exit(1)
 	}

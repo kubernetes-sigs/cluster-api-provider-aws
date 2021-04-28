@@ -7,4 +7,10 @@ resources:
 - group: bootstrap
   kind: EKSConfigTemplate
   version: v1alpha3
+- group: bootstrap
+  kind: EKSConfig
+  version: v1alpha4
+- group: bootstrap
+  kind: EKSConfigTemplate
+  version: v1alpha4
 version: "2"

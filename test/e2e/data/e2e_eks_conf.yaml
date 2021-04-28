@@ -35,31 +35,35 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v0.3.14
+      - name: v0.4.0
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.14/core-components.yaml"
+        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210419/core-components.yaml"
         type: "url"
+        files:
+          - sourcePath: "./shared/v1alpha4/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--enable-leader-election"
-            new: "--enable-leader-election=false"
-          - old: --metrics-addr=127.0.0.1:8080
-            new: --metrics-addr=:8080
+          - old: "--leader-elect"
+            new: "--leader-elect=false"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
 
   - name: aws-eks
     type: ControlPlaneProvider
     versions:
       - name: v0.6.0
         # Use manifest from source files
-        value: ../../../controlplane/eks/config
+        value: ../../../controlplane/eks/config/default
+        files:
+          - sourcePath: "./shared/v1alpha4_provider/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--enable-leader-election"
-            new: "--enable-leader-election=false"
-          - old: --metrics-addr=127.0.0.1:8080
-            new: --metrics-addr=:8080
+          - old: "--leader-elect"
+            new: "--leader-elect=false"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
           - old: gcr.io/k8s-staging-cluster-api-aws/eks-controlplane-controller:latest
             new: gcr.io/k8s-staging-cluster-api/capa-eks-controlplane-manager:e2e
 
@@ -68,35 +72,41 @@ providers:
     versions:
       - name: v0.6.0
         # Use manifest from source files
-        value: ../../../bootstrap/eks/config
+        value: ../../../bootstrap/eks/config/default
+        files:
+          - sourcePath: "./shared/v1alpha4_provider/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--enable-leader-election"
-            new: "--enable-leader-election=false"
-          - old: --metrics-addr=127.0.0.1:8080
-            new: --metrics-addr=:8080
+          - old: "--leader-elect"
+            new: "--leader-elect=false"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
           - old: gcr.io/k8s-staging-cluster-api-aws/eks-bootstrap-controller:latest
             new: gcr.io/k8s-staging-cluster-api/capa-eks-bootstrap-manager:e2e
 
   - name: aws
     type: InfrastructureProvider
     versions:
-      - name: v0.5.0
+      - name: v0.6.0
         # Use manifest from source files
-        value: ../../../config
+        value: ../../../config/default
+        files:
+          - sourcePath: "./shared/v1alpha4_provider/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--enable-leader-election"
-            new: "--enable-leader-election=false"
-          - old: --metrics-addr=127.0.0.1:8080
-            new: --metrics-addr=:8080
+          - old: "--leader-elect"
+            new: "--leader-elect=false"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
           - old: gcr.io/k8s-staging-cluster-api/cluster-api-aws-controller-amd64:dev
             new: gcr.io/k8s-staging-cluster-api/capa-manager:e2e
           - old: gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller:latest
             new: gcr.io/k8s-staging-cluster-api/capa-manager:e2e
     files:
+      - sourcePath: "./shared/v1alpha4/metadata.yaml"
+        targetName: "metadata.yaml"
       - sourcePath: "./eks/cluster-template-eks-control-plane-only.yaml"
         targetName: "cluster-template-eks-control-plane-only.yaml"
       - sourcePath: "./eks/cluster-template-eks-control-plane-only-withaddon.yaml"
@@ -110,7 +120,7 @@ providers:
         
 
 variables:
-  KUBERNETES_VERSION: "v1.18.0"
+  KUBERNETES_VERSION: "v1.19.8"
   CNI: "../../data/cni/calico_eks.yaml"
   EXP_MACHINE_POOL: "true"
   EXP_CLUSTER_RESOURCE_SET: "true"
@@ -120,6 +130,7 @@ variables:
   EXP_EKS_IAM: "false"
   EXP_EKS_ADD_ROLES: "false"
   VPC_ADDON_VERSION: "v1.6.3-eksbuild.1"
+  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.19.8"
 
 intervals:
   default/wait-cluster: ["30m", "10s"]

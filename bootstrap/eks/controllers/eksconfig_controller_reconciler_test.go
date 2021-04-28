@@ -22,16 +22,14 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha3"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"k8s.io/apimachinery/pkg/types"
+	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/yaml"
-
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var _ = Describe("EKSConfigReconciler", func() {
@@ -52,12 +50,11 @@ var _ = Describe("EKSConfigReconciler", func() {
 			Expect(err).To(BeNil())
 
 			reconciler := EKSConfigReconciler{
-				Log:    log.Log,
 				Client: testEnv.Client,
 			}
 
 			By("Calling reconcile should requeue")
-			result, err := reconciler.joinWorker(context.Background(), log.Log, cluster, config)
+			result, err := reconciler.joinWorker(context.Background(), cluster, config)
 			Expect(err).To(Succeed())
 			Expect(result.Requeue).To(BeFalse())
 		})

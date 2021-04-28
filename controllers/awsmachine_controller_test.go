@@ -29,17 +29,16 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/mock_services"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -90,15 +89,22 @@ var _ = Describe("AWSMachineReconciler", func() {
 			},
 		}
 
+		client := fake.NewClientBuilder().WithObjects(awsMachine, secret).Build()
 		ms, err = scope.NewMachineScope(
 			scope.MachineScopeParams{
-				Client: fake.NewFakeClient([]runtime.Object{awsMachine, secret}...),
+				Client: client,
 				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test",
+					},
 					Status: clusterv1.ClusterStatus{
 						InfrastructureReady: true,
 					},
 				},
 				Machine: &clusterv1.Machine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test",
+					},
 					Spec: clusterv1.MachineSpec{
 						Bootstrap: clusterv1.Bootstrap{
 							DataSecretName: pointer.StringPtr("bootstrap-data"),
@@ -113,17 +119,12 @@ var _ = Describe("AWSMachineReconciler", func() {
 
 		cs, err = scope.NewClusterScope(
 			scope.ClusterScopeParams{
+				Client:     fake.NewClientBuilder().WithObjects(awsMachine, secret).Build(),
 				Cluster:    &clusterv1.Cluster{},
-				AWSCluster: &infrav1.AWSCluster{},
+				AWSCluster: &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}},
 			},
 		)
 		Expect(err).To(BeNil())
-
-		client := fake.NewFakeClient()
-		ctx := context.TODO()
-		client.Create(ctx, awsMachine)
-		client.Create(ctx, secret)
-		client.Create(ctx, secret)
 
 		ms, err = scope.NewMachineScope(
 			scope.MachineScopeParams{

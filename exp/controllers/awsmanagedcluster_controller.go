@@ -25,28 +25,28 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
+	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 )
 
 // AWSManagedClusterReconciler reconciles AWSManagedCluster
 type AWSManagedClusterReconciler struct {
 	client.Client
-	Log      logr.Logger
-	Recorder record.EventRecorder
+	Log              logr.Logger
+	Recorder         record.EventRecorder
+	WatchFilterValue string
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedclusters,verbs=get;list;watch;create;update;patch;delete
@@ -55,9 +55,8 @@ type AWSManagedClusterReconciler struct {
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
-func (r *AWSManagedClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
-	ctx := context.Background()
-	log := r.Log.WithValues("namespace", req.Namespace, "awsManagedCluster", req.Name)
+func (r *AWSManagedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the AWSManagedCluster instance
 	awsManagedCluster := &infrav1exp.AWSManagedCluster{}
@@ -79,7 +78,7 @@ func (r *AWSManagedClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result
 		return reconcile.Result{}, nil
 	}
 
-	if util.IsPaused(cluster, awsManagedCluster) {
+	if annotations.IsPaused(cluster, awsManagedCluster) {
 		log.Info("AWSManagedCluster or linked Cluster is marked as paused. Won't reconcile")
 		return reconcile.Result{}, nil
 	}
@@ -118,13 +117,13 @@ func (r *AWSManagedClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result
 
 }
 
-func (r *AWSManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+func (r *AWSManagedClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	awsManagedCluster := &infrav1exp.AWSManagedCluster{}
 
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(awsManagedCluster).
-		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Build(r)
 
 	if err != nil {
@@ -134,9 +133,7 @@ func (r *AWSManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager, options
 	// Add a watch for clusterv1.Cluster unpaise
 	if err = controller.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: util.ClusterToInfrastructureMapFunc(awsManagedCluster.GroupVersionKind()),
-		},
+		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(awsManagedCluster.GroupVersionKind())),
 		predicates.ClusterUnpaused(r.Log),
 	); err != nil {
 		return fmt.Errorf("failed adding a watch for ready clusters: %w", err)
@@ -145,9 +142,7 @@ func (r *AWSManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager, options
 	// Add a watch for AWSManagedControlPlane
 	if err = controller.Watch(
 		&source.Kind{Type: &ekscontrolplanev1.AWSManagedControlPlane{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: handler.ToRequestsFunc(r.managedControlPlaneToManagedCluster),
-		},
+		handler.EnqueueRequestsFromMapFunc(r.managedControlPlaneToManagedCluster),
 	); err != nil {
 		return fmt.Errorf("failed adding watch on AWSManagedControlPlane: %w", err)
 	}
@@ -155,14 +150,13 @@ func (r *AWSManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager, options
 	return nil
 }
 
-func (r *AWSManagedClusterReconciler) managedControlPlaneToManagedCluster(o handler.MapObject) []ctrl.Request {
+func (r *AWSManagedClusterReconciler) managedControlPlaneToManagedCluster(o client.Object) []ctrl.Request {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	awsManagedControlPlane, ok := o.Object.(*ekscontrolplanev1.AWSManagedControlPlane)
+	awsManagedControlPlane, ok := o.(*controlplanev1.AWSManagedControlPlane)
 	if !ok {
-		r.Log.Error(nil, fmt.Sprintf("Expected a AWSManagedControlPlane but got a %T", o.Object))
-		return nil
+		panic(fmt.Sprintf("Expected a managedControlPlane but got a %T", o))
 	}
 
 	if !awsManagedControlPlane.ObjectMeta.DeletionTimestamp.IsZero() {

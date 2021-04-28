@@ -4,4 +4,7 @@ resources:
 - group: controlplane
   kind: AWSManagedControlPlane
   version: v1alpha3
+- group: controlplane
+  kind: AWSManagedControlPlane
+  version: v1alpha4
 version: "2"

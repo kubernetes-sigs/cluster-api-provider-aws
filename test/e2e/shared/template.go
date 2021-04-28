@@ -30,7 +30,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/bootstrap/v1alpha1"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
 	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
@@ -63,9 +63,9 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 			},
 		},
 	}
-	t.Spec.SecureSecretsBackends = []v1alpha3.SecretBackend{
-		v1alpha3.SecretBackendSecretsManager,
-		v1alpha3.SecretBackendSSMParameterStore,
+	t.Spec.SecureSecretsBackends = []v1alpha4.SecretBackend{
+		v1alpha4.SecretBackendSecretsManager,
+		v1alpha4.SecretBackendSSMParameterStore,
 	}
 	t.Spec.EventBridge = &v1alpha1.EventBridgeConfig{
 		Enable: true,

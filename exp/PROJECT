@@ -1,0 +1,28 @@
+domain: cluster.x-k8s.io
+repo: sigs.k8s.io/cluster-api-provider-aws/exp
+resources:
+- group: infrastructure
+  kind: AWSMachinePool
+  version: v1alpha3
+- group: bootstrap
+  kind: AWSManagedMachinePool
+  version: v1alpha3
+- group: bootstrap
+  kind: AWSManagedCluster
+  version: v1alpha3
+- group: bootstrap
+  kind: AWSFargateProfile
+  version: v1alpha3
+- group: infrastructure
+  kind: AWSMachinePool
+  version: v1alpha4
+- group: bootstrap
+  kind: AWSManagedMachinePool
+  version: v1alpha4
+- group: bootstrap
+  kind: AWSManagedCluster
+  version: v1alpha4
+- group: bootstrap
+  kind: AWSFargateProfile
+  version: v1alpha4
+version: "2"

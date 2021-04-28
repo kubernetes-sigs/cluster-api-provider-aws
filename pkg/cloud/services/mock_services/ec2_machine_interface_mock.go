@@ -23,8 +23,8 @@ package mock_services
 import (
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
-	v1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	v1alpha30 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	v1alpha4 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	v1alpha40 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
 	scope "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 
@@ -52,10 +52,10 @@ func (m *MockEC2MachineInterface) EXPECT() *MockEC2MachineInterfaceMockRecorder 
 }
 
 // CreateInstance mocks base method
-func (m *MockEC2MachineInterface) CreateInstance(arg0 *scope.MachineScope, arg1 []byte) (*v1alpha3.Instance, error) {
+func (m *MockEC2MachineInterface) CreateInstance(arg0 *scope.MachineScope, arg1 []byte) (*v1alpha4.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateInstance", arg0, arg1)
-	ret0, _ := ret[0].(*v1alpha3.Instance)
+	ret0, _ := ret[0].(*v1alpha4.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -154,7 +154,7 @@ func (mr *MockEC2MachineInterfaceMockRecorder) GetCoreSecurityGroups(arg0 interf
 }
 
 // GetFilteredSecurityGroupID mocks base method
-func (m *MockEC2MachineInterface) GetFilteredSecurityGroupID(arg0 v1alpha3.AWSResourceReference) (string, error) {
+func (m *MockEC2MachineInterface) GetFilteredSecurityGroupID(arg0 v1alpha4.AWSResourceReference) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetFilteredSecurityGroupID", arg0)
 	ret0, _ := ret[0].(string)
@@ -184,10 +184,10 @@ func (mr *MockEC2MachineInterfaceMockRecorder) GetInstanceSecurityGroups(arg0 in
 }
 
 // GetLaunchTemplate mocks base method
-func (m *MockEC2MachineInterface) GetLaunchTemplate(arg0 string) (*v1alpha30.AWSLaunchTemplate, error) {
+func (m *MockEC2MachineInterface) GetLaunchTemplate(arg0 string) (*v1alpha40.AWSLaunchTemplate, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetLaunchTemplate", arg0)
-	ret0, _ := ret[0].(*v1alpha30.AWSLaunchTemplate)
+	ret0, _ := ret[0].(*v1alpha40.AWSLaunchTemplate)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -199,10 +199,10 @@ func (mr *MockEC2MachineInterfaceMockRecorder) GetLaunchTemplate(arg0 interface{
 }
 
 // GetRunningInstanceByTags mocks base method
-func (m *MockEC2MachineInterface) GetRunningInstanceByTags(arg0 *scope.MachineScope) (*v1alpha3.Instance, error) {
+func (m *MockEC2MachineInterface) GetRunningInstanceByTags(arg0 *scope.MachineScope) (*v1alpha4.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRunningInstanceByTags", arg0)
-	ret0, _ := ret[0].(*v1alpha3.Instance)
+	ret0, _ := ret[0].(*v1alpha4.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -214,10 +214,10 @@ func (mr *MockEC2MachineInterfaceMockRecorder) GetRunningInstanceByTags(arg0 int
 }
 
 // InstanceIfExists mocks base method
-func (m *MockEC2MachineInterface) InstanceIfExists(arg0 *string) (*v1alpha3.Instance, error) {
+func (m *MockEC2MachineInterface) InstanceIfExists(arg0 *string) (*v1alpha4.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "InstanceIfExists", arg0)
-	ret0, _ := ret[0].(*v1alpha3.Instance)
+	ret0, _ := ret[0].(*v1alpha4.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -229,7 +229,7 @@ func (mr *MockEC2MachineInterfaceMockRecorder) InstanceIfExists(arg0 interface{}
 }
 
 // LaunchTemplateNeedsUpdate mocks base method
-func (m *MockEC2MachineInterface) LaunchTemplateNeedsUpdate(arg0 *scope.MachinePoolScope, arg1, arg2 *v1alpha30.AWSLaunchTemplate) (bool, error) {
+func (m *MockEC2MachineInterface) LaunchTemplateNeedsUpdate(arg0 *scope.MachinePoolScope, arg1, arg2 *v1alpha40.AWSLaunchTemplate) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LaunchTemplateNeedsUpdate", arg0, arg1, arg2)
 	ret0, _ := ret[0].(bool)

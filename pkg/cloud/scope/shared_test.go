@@ -22,9 +22,9 @@ import (
 	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 
-	"k8s.io/klog/klogr"
+	"k8s.io/klog/v2/klogr"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 )
 
 func TestSubnetPlacement(t *testing.T) {

@@ -17,6 +17,7 @@ limitations under the License.
 package helpers
 
 import (
+	"context"
 	"io/ioutil"
 	"net"
 	"path"
@@ -30,16 +31,14 @@ import (
 	"github.com/pkg/errors"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/test/helpers/external"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
-	"sigs.k8s.io/cluster-api/util"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -98,8 +97,8 @@ type TestEnvironment struct {
 	client.Client
 	Config *rest.Config
 
-	doneMgr chan struct{}
-	env     *envtest.Environment
+	cancel context.CancelFunc
+	env    *envtest.Environment
 }
 
 // NewTestEnvironmentConfiguration creates a new test environment configuration for running tests
@@ -114,7 +113,7 @@ func NewTestEnvironmentConfiguration(crdDirectoryPaths []string) *TestEnvironmen
 		env: &envtest.Environment{
 			ErrorIfCRDPathMissing: true,
 			CRDDirectoryPaths:     resolvedCrdDirectoryPaths,
-			CRDs: []runtime.Object{
+			CRDs: []client.Object{
 				external.TestClusterCRD.DeepCopy(),
 				external.TestMachineCRD.DeepCopy(),
 			},
@@ -133,8 +132,8 @@ func (t *TestEnvironmentConfiguration) WithWebhookConfiguration(tag string, rela
 // This function should be called only once for each package you're running tests within,
 // usually the environment is initialized in a suite_test.go file within a `BeforeSuite` ginkgo block.
 func (t *TestEnvironmentConfiguration) Build() (*TestEnvironment, error) {
-	mutatingWebhooks := []runtime.Object{}
-	validatingWebhooks := []runtime.Object{}
+	mutatingWebhooks := []client.Object{}
+	validatingWebhooks := []client.Object{}
 	for _, w := range t.webhookConfigurations {
 		m, v, err := buildModifiedWebhook(w.tag, w.relativeFilePath)
 		if err != nil {
@@ -158,7 +157,6 @@ func (t *TestEnvironmentConfiguration) Build() (*TestEnvironment, error) {
 	options := manager.Options{
 		Scheme:             scheme.Scheme,
 		MetricsBindAddress: "0",
-		NewClient:          util.ManagerDelegatingClientFunc,
 		CertDir:            t.env.WebhookInstallOptions.LocalServingCertDir,
 		Port:               t.env.WebhookInstallOptions.LocalServingPort,
 	}
@@ -173,15 +171,14 @@ func (t *TestEnvironmentConfiguration) Build() (*TestEnvironment, error) {
 		Manager: mgr,
 		Client:  mgr.GetClient(),
 		Config:  mgr.GetConfig(),
-		doneMgr: make(chan struct{}),
 		env:     t.env,
 	}, nil
 
 }
 
-func buildModifiedWebhook(tag string, relativeFilePath string) (runtime.Object, runtime.Object, error) {
-	var mutatingWebhook runtime.Object
-	var validatingWebhook runtime.Object
+func buildModifiedWebhook(tag string, relativeFilePath string) (client.Object, client.Object, error) {
+	var mutatingWebhook client.Object
+	var validatingWebhook client.Object
 	data, err := ioutil.ReadFile(filepath.Join(root, relativeFilePath))
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to read webhook configuration file")
@@ -211,8 +208,10 @@ func buildModifiedWebhook(tag string, relativeFilePath string) (runtime.Object, 
 }
 
 // StartManager starts the test controller against the local API server
-func (t *TestEnvironment) StartManager() error {
-	return t.Manager.Start(t.doneMgr)
+func (t *TestEnvironment) StartManager(ctx context.Context) error {
+	ctx, cancel := context.WithCancel(ctx)
+	t.cancel = cancel
+	return t.Manager.Start(ctx)
 }
 
 // WaitForWebhooks will not return until the webhook port is open
@@ -235,6 +234,6 @@ func (t *TestEnvironment) WaitForWebhooks() {
 
 // Stop stops the test environment
 func (t *TestEnvironment) Stop() error {
-	t.doneMgr <- struct{}{}
+	t.cancel()
 	return t.env.Stop()
 }

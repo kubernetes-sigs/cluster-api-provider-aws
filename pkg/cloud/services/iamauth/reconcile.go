@@ -28,8 +28,8 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
 )
 
 // ReconcileIAMAuthenticator is used to create the aws-iam-authenticator in a cluster
@@ -46,7 +46,7 @@ func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
 		return fmt.Errorf("getting account id: %w", err)
 	}
 
-	restConfig, err := remote.RESTConfig(ctx, s.client, clusterKey)
+	restConfig, err := remote.RESTConfig(ctx, s.scope.Name(), s.client, clusterKey)
 	if err != nil {
 		s.scope.Error(err, "getting remote rest config", "namespace", s.scope.Namespace(), "name", s.scope.Name())
 		return fmt.Errorf("getting remote rest config for %s/%s: %w", s.scope.Namespace(), s.scope.Name(), err)

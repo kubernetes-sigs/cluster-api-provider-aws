@@ -18,16 +18,20 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/record"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capiv1exp "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
+	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	capiv1exp "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -39,45 +43,37 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks"
 )
 
 // AWSManagedMachinePoolReconciler reconciles a AWSManagedMachinePool object
 type AWSManagedMachinePoolReconciler struct {
 	client.Client
-	Log       logr.Logger
-	Recorder  record.EventRecorder
-	Endpoints []scope.ServiceEndpoint
-
-	EnableIAM bool
+	Recorder         record.EventRecorder
+	Endpoints        []scope.ServiceEndpoint
+	EnableIAM        bool
+	WatchFilterValue string
 }
 
 // SetupWithManager is used to setup the controller
-func (r *AWSManagedMachinePoolReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+func (r *AWSManagedMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	gvk, err := apiutil.GVKForObject(new(infrav1exp.AWSManagedMachinePool), mgr.GetScheme())
 	if err != nil {
 		return errors.Wrapf(err, "failed to find GVK for AWSManagedMachinePool")
 	}
-	managedControlPlaneToManagedMachinePoolMap := managedControlPlaneToManagedMachinePoolMapFunc(r.Client, gvk, r.Log)
+	managedControlPlaneToManagedMachinePoolMap := managedControlPlaneToManagedMachinePoolMapFunc(r.Client, gvk, log)
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1exp.AWSManagedMachinePool{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log, r.WatchFilterValue)).
 		Watches(
 			&source.Kind{Type: &capiv1exp.MachinePool{}},
-			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: machinePoolToInfrastructureMapFunc(gvk),
-			},
+			handler.EnqueueRequestsFromMapFunc(machinePoolToInfrastructureMapFunc(gvk)),
 		).
 		Watches(
 			&source.Kind{Type: &controlplanev1.AWSManagedControlPlane{}},
-			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: managedControlPlaneToManagedMachinePoolMap,
-			},
+			handler.EnqueueRequestsFromMapFunc(managedControlPlaneToManagedMachinePoolMap),
 		).
 		Complete(r)
 }
@@ -89,9 +85,8 @@ func (r *AWSManagedMachinePoolReconciler) SetupWithManager(mgr ctrl.Manager, opt
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedmachinepools/status,verbs=get;update;patch
 
 // Reconcile reconciles AWSManagedMachinePools
-func (r *AWSManagedMachinePoolReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
-	logger := r.Log.WithValues("namespace", req.Namespace, "AWSManagedMachinePool", req.Name)
-	ctx := context.Background()
+func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+	log := ctrl.LoggerFrom(ctx)
 
 	awsPool := &infrav1exp.AWSManagedMachinePool{}
 	if err := r.Get(ctx, req.NamespacedName, awsPool); err != nil {
@@ -103,23 +98,23 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(req ctrl.Request) (_ ctrl.Re
 
 	machinePool, err := getOwnerMachinePool(ctx, r.Client, awsPool.ObjectMeta)
 	if err != nil {
-		logger.Error(err, "Failed to retrieve owner MachinePool from the API Server")
+		log.Error(err, "Failed to retrieve owner MachinePool from the API Server")
 		return ctrl.Result{}, err
 	}
 	if machinePool == nil {
-		logger.Info("MachinePool Controller has not yet set OwnerRef")
+		log.Info("MachinePool Controller has not yet set OwnerRef")
 		return ctrl.Result{}, nil
 	}
 
-	logger = logger.WithValues("MachinePool", machinePool.Name)
+	log = log.WithValues("MachinePool", machinePool.Name)
 
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machinePool.ObjectMeta)
 	if err != nil {
-		logger.Info("Failed to retrieve Cluster from MachinePool")
+		log.Info("Failed to retrieve Cluster from MachinePool")
 		return reconcile.Result{}, nil
 	}
 
-	logger = logger.WithValues("Cluster", cluster.Name)
+	log = log.WithValues("Cluster", cluster.Name)
 
 	controlPlaneKey := client.ObjectKey{
 		Namespace: awsPool.Namespace,
@@ -127,20 +122,17 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(req ctrl.Request) (_ ctrl.Re
 	}
 	controlPlane := &controlplanev1.AWSManagedControlPlane{}
 	if err := r.Client.Get(ctx, controlPlaneKey, controlPlane); err != nil {
-		logger.Info("Failed to retrieve ControlPlane from MachinePool")
+		log.Info("Failed to retrieve ControlPlane from MachinePool")
 		return reconcile.Result{}, nil
 	}
 
-	logger = logger.WithValues("AWSManagedControlPlane", controlPlane.Name)
-
 	if !controlPlane.Status.Ready {
-		logger.Info("Control plane is not ready yet")
+		log.Info("Control plane is not ready yet")
 		conditions.MarkFalse(awsPool, infrav1exp.EKSNodegroupReadyCondition, infrav1exp.WaitingForEKSControlPlaneReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
 	machinePoolScope, err := scope.NewManagedMachinePoolScope(scope.ManagedMachinePoolScopeParams{
-		Logger:             logger,
 		Client:             r.Client,
 		ControllerName:     "awsmanagedmachinepool",
 		Cluster:            cluster,
@@ -231,13 +223,14 @@ func GetOwnerClusterKey(obj metav1.ObjectMeta) (*client.ObjectKey, error) {
 	return nil, nil
 }
 
-func managedControlPlaneToManagedMachinePoolMapFunc(c client.Client, gvk schema.GroupVersionKind, log logr.Logger) handler.ToRequestsFunc {
-	return func(o handler.MapObject) []reconcile.Request {
+func managedControlPlaneToManagedMachinePoolMapFunc(c client.Client, gvk schema.GroupVersionKind, log logr.Logger) handler.MapFunc {
+	return func(o client.Object) []reconcile.Request {
 		ctx := context.Background()
-		awsControlPlane, ok := o.Object.(*controlplanev1.AWSManagedControlPlane)
+		awsControlPlane, ok := o.(*controlplanev1.AWSManagedControlPlane)
 		if !ok {
-			return nil
+			panic(fmt.Sprintf("Expected a AWSManagedControlPlane but got a %T", o))
 		}
+
 		if !awsControlPlane.ObjectMeta.DeletionTimestamp.IsZero() {
 			return nil
 		}
@@ -263,9 +256,7 @@ func managedControlPlaneToManagedMachinePoolMapFunc(c client.Client, gvk schema.
 
 		var results []ctrl.Request
 		for i := range managedPoolForClusterList.Items {
-			managedPool := mapFunc.Map(handler.MapObject{
-				Object: &managedPoolForClusterList.Items[i],
-			})
+			managedPool := mapFunc(&managedPoolForClusterList.Items[i])
 			results = append(results, managedPool...)
 		}
 

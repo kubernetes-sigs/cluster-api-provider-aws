@@ -1,17 +1,18 @@
 
 ---
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   creationTimestamp: null
   name: mutating-webhook-configuration
 webhooks:
-- clientConfig:
-    caBundle: Cg==
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-controlplane-cluster-x-k8s-io-v1alpha3-awsmanagedcontrolplane
+      path: /mutate-controlplane-cluster-x-k8s-io-v1alpha4-awsmanagedcontrolplane
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: default.awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io
@@ -19,7 +20,7 @@ webhooks:
   - apiGroups:
     - controlplane.cluster.x-k8s.io
     apiVersions:
-    - v1alpha3
+    - v1alpha4
     operations:
     - CREATE
     - UPDATE
@@ -28,18 +29,19 @@ webhooks:
   sideEffects: None
 
 ---
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   creationTimestamp: null
   name: validating-webhook-configuration
 webhooks:
-- clientConfig:
-    caBundle: Cg==
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-controlplane-cluster-x-k8s-io-v1alpha3-awsmanagedcontrolplane
+      path: /validate-controlplane-cluster-x-k8s-io-v1alpha4-awsmanagedcontrolplane
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io
@@ -47,7 +49,7 @@ webhooks:
   - apiGroups:
     - controlplane.cluster.x-k8s.io
     apiVersions:
-    - v1alpha3
+    - v1alpha4
     operations:
     - CREATE
     - UPDATE

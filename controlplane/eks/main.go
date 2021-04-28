@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -31,22 +32,19 @@ import (
 	cgrecord "k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
-
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
-
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/controllers"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/version"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -65,13 +63,15 @@ func init() {
 }
 
 var (
-	metricsAddr                string
+	metricsBindAddr            string
 	enableLeaderElection       bool
 	watchNamespace             string
+	watchFilterValue           string
 	profilerAddress            string
 	eksControlPlaneConcurrency int
 	syncPeriod                 time.Duration
 	webhookPort                int
+	webhookCertDir             string
 	healthAddr                 string
 	serviceEndpoints           string
 
@@ -81,10 +81,10 @@ var (
 )
 
 func InitFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&metricsAddr, "metrics-addr", ":8080",
+	fs.StringVar(&metricsBindAddr, "metrics-bind-addr", ":8080",
 		"The address the metric endpoint binds to.")
 
-	fs.BoolVar(&enableLeaderElection, "enable-leader-election", false,
+	fs.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 
 	fs.StringVar(&watchNamespace, "namespace", "",
@@ -99,11 +99,21 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 
-	fs.IntVar(&webhookPort, "webhook-port", 0,
+	fs.IntVar(&webhookPort, "webhook-port", 9443,
 		"Webhook Server port, disabled by default. When enabled, the manager will only work as webhook server, no reconcilers are installed.")
+
+	fs.StringVar(&webhookCertDir, "webhook-cert-dir", "/tmp/k8s-webhook-server/serving-certs/",
+		"Webhook cert dir, only used when webhook-port is specified.")
 
 	fs.StringVar(&serviceEndpoints, "service-endpoints", "",
 		"Set custom AWS service endpoins in semi-colon separated format: ${SigningRegion1}:${ServiceID1}=${URL},${ServiceID2}=${URL};${SigningRegion2}...")
+
+	fs.StringVar(
+		&watchFilterValue,
+		"watch-filter",
+		"",
+		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1.WatchLabel),
+	)
 
 	feature.MutableGates.AddFlag(fs)
 }
@@ -160,12 +170,13 @@ func main() {
 	restConfig.UserAgent = "cluster-api-provider-aws-controller"
 	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
+		MetricsBindAddress:     metricsBindAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "eks-controlplane-manager-leader-election-capa",
+		LeaderElectionID:       "eks-controlplane-manager-leader-elect-capa",
 		SyncPeriod:             &syncPeriod,
 		Namespace:              watchNamespace,
 		EventBroadcaster:       broadcaster,
+		CertDir:                webhookCertDir,
 		Port:                   webhookPort,
 		HealthProbeBindAddress: healthAddr,
 	})
@@ -178,8 +189,8 @@ func main() {
 	record.InitFromRecorder(mgr.GetEventRecorderFor("aws-controller"))
 
 	setupLog.V(1).Info(fmt.Sprintf("%+v\n", feature.Gates))
-
-	setupReconcilers(mgr, enableIAM, allowAddRoles, AWSServiceEndpoints)
+	ctx := ctrl.SetupSignalHandler()
+	setupReconcilers(ctx, mgr, enableIAM, allowAddRoles, AWSServiceEndpoints)
 	setupWebhooks(mgr)
 
 	// +kubebuilder:scaffold:builder
@@ -195,34 +206,26 @@ func main() {
 	}
 
 	setupLog.Info("starting manager", "version", version.Get().String())
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
 }
 
-func setupReconcilers(mgr ctrl.Manager, enableIAM bool, allowAddRoles bool, serviceEndpoints []scope.ServiceEndpoint) {
-	if webhookPort != 0 {
-		return
-	}
-
+func setupReconcilers(ctx context.Context, mgr ctrl.Manager, enableIAM bool, allowAddRoles bool, serviceEndpoints []scope.ServiceEndpoint) {
 	if err := (&controllers.AWSManagedControlPlaneReconciler{
 		Client:               mgr.GetClient(),
-		Log:                  ctrl.Log.WithName("controllers").WithName("AWSManagedControlPlane"),
 		EnableIAM:            enableIAM,
 		AllowAdditionalRoles: allowAddRoles,
 		Endpoints:            serviceEndpoints,
-	}).SetupWithManager(mgr, concurrency(eksControlPlaneConcurrency)); err != nil {
+		WatchFilterValue:     watchFilterValue,
+	}).SetupWithManager(ctx, mgr, concurrency(eksControlPlaneConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSManagedControlPlane")
 		os.Exit(1)
 	}
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
-	if webhookPort == 0 {
-		return
-	}
-
 	if err := (&controlplanev1.AWSManagedControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSManagedControlPlane")
 		os.Exit(1)
