@@ -24,6 +24,17 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 )
 
+// FilterSelectionScheme defines the scheme of selecting Filtered resources.
+type FilterSelectionScheme string
+
+var (
+	// FilterSelectionSchemeOrdered will select resources based on order returned from API.
+	FilterSelectionSchemeOrdered = FilterSelectionScheme("Ordered")
+
+	// FilterSelectionSchemeRandom will select resourcess randomly
+	FilterSelectionSchemeRandom = FilterSelectionScheme("Random")
+)
+
 // AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
 // Only one of ID, ARN or Filters may be specified. Specifying more than one will result in
 // a validation error.
@@ -41,6 +52,11 @@ type AWSResourceReference struct {
 	// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html
 	// +optional
 	Filters []Filter `json:"filters,omitempty"`
+
+	// FilterSelectionScheme specifies how a result is returned when filters match.
+	// Default value is "Ordered", in which the first result is returned.
+	// "Random" is also supported, which will return a random value from the matched list of filtered resources.
+	FilterSelectionScheme *FilterSelectionScheme `json:"filterSelectionScheme,omitempty"`
 }
 
 // AWSMachineTemplateResource describes the data needed to create am AWSMachine from a template

@@ -52,6 +52,13 @@ spec:
                     arn:
                       description: ARN of resource
                       type: string
+                    filterSelectionScheme:
+                      description: FilterSelectionScheme specifies how a result is
+                        returned when filters match. Default value is "Ordered", in
+                        which the first result is returned. "Random" is also supported,
+                        which will return a random value from the matched list of
+                        filtered resources.
+                      type: string
                     filters:
                       description: 'Filters is a set of key/value pairs used to identify
                         a resource They are applied according to the rules defined
@@ -92,6 +99,13 @@ spec:
                 properties:
                   arn:
                     description: ARN of resource
+                    type: string
+                  filterSelectionScheme:
+                    description: FilterSelectionScheme specifies how a result is returned
+                      when filters match. Default value is "Ordered", in which the
+                      first result is returned. "Random" is also supported, which
+                      will return a random value from the matched list of filtered
+                      resources.
                     type: string
                   filters:
                     description: 'Filters is a set of key/value pairs used to identify
@@ -186,6 +200,13 @@ spec:
                 properties:
                   arn:
                     description: ARN of resource
+                    type: string
+                  filterSelectionScheme:
+                    description: FilterSelectionScheme specifies how a result is returned
+                      when filters match. Default value is "Ordered", in which the
+                      first result is returned. "Random" is also supported, which
+                      will return a random value from the matched list of filtered
+                      resources.
                     type: string
                   filters:
                     description: 'Filters is a set of key/value pairs used to identify
@@ -335,6 +356,13 @@ spec:
                     arn:
                       description: ARN of resource
                       type: string
+                    filterSelectionScheme:
+                      description: FilterSelectionScheme specifies how a result is
+                        returned when filters match. Default value is "Ordered", in
+                        which the first result is returned. "Random" is also supported,
+                        which will return a random value from the matched list of
+                        filtered resources.
+                      type: string
                     filters:
                       description: 'Filters is a set of key/value pairs used to identify
                         a resource They are applied according to the rules defined
@@ -375,6 +403,13 @@ spec:
                 properties:
                   arn:
                     description: ARN of resource
+                    type: string
+                  filterSelectionScheme:
+                    description: FilterSelectionScheme specifies how a result is returned
+                      when filters match. Default value is "Ordered", in which the
+                      first result is returned. "Random" is also supported, which
+                      will return a random value from the matched list of filtered
+                      resources.
                     type: string
                   filters:
                     description: 'Filters is a set of key/value pairs used to identify
@@ -581,6 +616,13 @@ spec:
                 properties:
                   arn:
                     description: ARN of resource
+                    type: string
+                  filterSelectionScheme:
+                    description: FilterSelectionScheme specifies how a result is returned
+                      when filters match. Default value is "Ordered", in which the
+                      first result is returned. "Random" is also supported, which
+                      will return a random value from the matched list of filtered
+                      resources.
                     type: string
                   filters:
                     description: 'Filters is a set of key/value pairs used to identify
