@@ -89,6 +89,10 @@ type AWSClusterSpec struct {
 	// IdentityRef is a reference to a identity to be used when reconciling this cluster
 	// +optional
 	IdentityRef *AWSIdentityReference `json:"identityRef,omitempty"`
+
+	// S3Bucket contains options to configure the S3 Bucket for nodes requiring Ignition for bootstrapping.
+	// +optional
+	S3Bucket S3Bucket `json:"s3Bucket,omitempty"`
 }
 
 type AWSIdentityKind string
@@ -179,6 +183,23 @@ type AWSClusterStatus struct {
 	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
 	Bastion        *Instance                `json:"bastion,omitempty"`
 	Conditions     clusterv1.Conditions     `json:"conditions,omitempty"`
+}
+
+type S3Bucket struct {
+	// Create controls if S3 Bucket should be created as part of cluster provisioning.
+	Create bool `json:"create,omitempty"`
+
+	// ControlPlaneIAMInstanceProfile is a name of the IAMInstanceProfile, which will be allowed
+	// to read control-plane node bootstrap data from S3 Bucket.
+	ControlPlaneIAMInstanceProfile string `json:"controlPlaneIAMInstanceProfile,omitempty"`
+
+	// NodesIAMInstanceProfiles is a list of IAM instance profiles, which will be allowed to read
+	// worker nodes bootstrap data from S3 Bucket.
+	NodesIAMInstanceProfiles []string `json:"nodesIAMInstanceProfiles,omitempty"`
+
+	// Name defines name of S3 Bucket to be created. By default Cluster namespace and name will be used.
+	// +optional
+	Name string `json:"name,omitempty"`
 }
 
 // +kubebuilder:object:root=true

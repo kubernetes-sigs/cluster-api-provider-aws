@@ -74,3 +74,11 @@ type SecretInterface interface {
 	Create(m *scope.MachineScope, data []byte) (string, int32, error)
 	UserData(secretPrefix string, chunks int32, region string, endpoints []scope.ServiceEndpoint) ([]byte, error)
 }
+
+// ObjectStore encapsulates the methods exposed to the machine actuator.
+type ObjectStore interface {
+	DeleteBucket() error
+	ReconcileBucket() error
+	Delete(m *scope.MachineScope) error
+	Create(m *scope.MachineScope, data []byte) (objectURL string, err error)
+}

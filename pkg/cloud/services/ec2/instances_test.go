@@ -275,10 +275,13 @@ func TestCreateInstance(t *testing.T) {
 
 	data := []byte("userData")
 
-	userData, err := userdata.GzipBytes(data)
+	userDataCompressed, err := userdata.GzipBytes(data)
 	if err != nil {
 		t.Fatal("Failed to gzip test user data")
 	}
+
+	isUncompressedFalse := false
+	isUncompressedTrue := true
 
 	testcases := []struct {
 		name          string
@@ -1188,7 +1191,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 		},
 		{
-			name: "with dedicated tenancy",
+			name: "with dedicated tenancy cloud-config",
 			machine: clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:    map[string]string{"set": "node"},
@@ -1205,8 +1208,9 @@ func TestCreateInstance(t *testing.T) {
 				AMI: infrav1.AWSResourceReference{
 					ID: aws.String("abc"),
 				},
-				InstanceType: "m5.large",
-				Tenancy:      "dedicated",
+				InstanceType:         "m5.large",
+				Tenancy:              "dedicated",
+				UncompressedUserData: &isUncompressedFalse,
 			},
 			awsCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{
@@ -1290,7 +1294,152 @@ func TestCreateInstance(t *testing.T) {
 								},
 							},
 						},
-						UserData: aws.String(base64.StdEncoding.EncodeToString(userData)),
+						UserData: aws.String(base64.StdEncoding.EncodeToString(userDataCompressed)),
+					})).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:     aws.String("two"),
+								InstanceType:   aws.String("m5.large"),
+								SubnetId:       aws.String("subnet-1"),
+								ImageId:        aws.String("ami-1"),
+								RootDeviceName: aws.String("device-1"),
+								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									{
+										DeviceName: aws.String("device-1"),
+										Ebs: &ec2.EbsInstanceBlockDevice{
+											VolumeId: aws.String("volume-1"),
+										},
+									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
+									Tenancy:          &tenancy,
+								},
+							},
+						},
+					}, nil)
+				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "with dedicated tenancy ignition",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels:    map[string]string{"set": "node"},
+					Namespace: "default",
+					Name:      "machine-aws-test1",
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AWSResourceReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType:         "m5.large",
+				Tenancy:              "dedicated",
+				UncompressedUserData: &isUncompressedTrue,
+				Ignition:             &infrav1.Ignition{},
+			},
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							&infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							&infrav1.SubnetSpec{
+								IsPublic: false,
+							},
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.Network{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.
+					DescribeImages(gomock.Any()).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []*ec2.Image{
+							{
+								Name: aws.String("ami-1"),
+							},
+						},
+					}, nil)
+				m. // TODO: Restore these parameters, but with the tags as well
+					RunInstances(gomock.Eq(&ec2.RunInstancesInput{
+						ImageId:      aws.String("abc"),
+						InstanceType: aws.String("m5.large"),
+						KeyName:      aws.String("default"),
+						MaxCount:     aws.Int64(1),
+						MinCount:     aws.Int64(1),
+						Placement: &ec2.Placement{
+							Tenancy: &tenancy,
+						},
+						SecurityGroupIds: []*string{aws.String("2"), aws.String("3")},
+						SubnetId:         aws.String("subnet-1"),
+						TagSpecifications: []*ec2.TagSpecification{
+							{
+								ResourceType: aws.String("instance"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("MachineName"),
+										Value: aws.String("default/machine-aws-test1"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("aws-test1"),
+									},
+									{
+										Key:   aws.String("kubernetes.io/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("node"),
+									},
+								},
+							},
+						},
+						UserData: aws.String(base64.StdEncoding.EncodeToString(data)),
 					})).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{

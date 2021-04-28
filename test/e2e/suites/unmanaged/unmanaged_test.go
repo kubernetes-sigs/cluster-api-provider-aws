@@ -543,6 +543,32 @@ var _ = Describe("functional tests - unmanaged", func() {
 		})
 	})
 
+	Describe("Workload cluster with AWS S3 Parameter", func() {
+		It("It should be creatable and deletable", func() {
+			By("Creating a cluster")
+			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
+			configCluster := defaultConfigCluster(clusterName, namespace.Name)
+			configCluster.ControlPlaneMachineCount = pointer.Int64Ptr(1)
+			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+			configCluster.Flavor = shared.S3Flavor
+			_, md, _ := createClusterWithCNI(ctx, configCluster, "../../data/cni/calico_flatcar.yaml")
+
+			workerMachines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
+				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				ClusterName:       clusterName,
+				Namespace:         namespace.Name,
+				MachineDeployment: *md[0],
+			})
+			controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
+				Lister:      e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				ClusterName: clusterName,
+				Namespace:   namespace.Name,
+			})
+			Expect(len(workerMachines)).To(Equal(1))
+			Expect(len(controlPlaneMachines)).To(Equal(1))
+		})
+	})
+
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
@@ -561,9 +587,14 @@ func GetAWSClusterByName(ctx context.Context, namespace, name string) (*infrav1.
 }
 
 func createCluster(ctx context.Context, configCluster clusterctl.ConfigClusterInput) (*clusterv1.Cluster, []*clusterv1.MachineDeployment, *controlplanev1.KubeadmControlPlane) {
+	return createClusterWithCNI(ctx, configCluster, "")
+}
+
+func createClusterWithCNI(ctx context.Context, configCluster clusterctl.ConfigClusterInput, cniManifestPath string) (*clusterv1.Cluster, []*clusterv1.MachineDeployment, *controlplanev1.KubeadmControlPlane) {
 	res := clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 		ClusterProxy:                 e2eCtx.Environment.BootstrapClusterProxy,
 		ConfigCluster:                configCluster,
+		CNIManifestPath:              cniManifestPath,
 		WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals("", "wait-cluster"),
 		WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals("", "wait-control-plane"),
 		WaitForMachineDeployments:    e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes"),

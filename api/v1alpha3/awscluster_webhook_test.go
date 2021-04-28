@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -33,6 +34,127 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 		wantErr bool
 	}{
 		// The SSHKeyName tests were moved to sshkeyname_test.go
+		{
+			name: "validates enabled bucket",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: S3Bucket{
+						Create: true,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects bucket name shorter than 3 characters",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: S3Bucket{
+						Create: true,
+						Name:   "fo",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects bucket name longer than 63 characters",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: S3Bucket{
+						Create: true,
+						Name:   strings.Repeat("a", 64),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects bucket name starting with not letter or number",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: S3Bucket{
+						Create: true,
+						Name:   "-foo",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects bucket name ending with not letter or number",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: S3Bucket{
+						Create: true,
+						Name:   "foo-",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects bucket name formatted as IP address",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: S3Bucket{
+						Create: true,
+						Name:   "8.8.8.8",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "requires bucket control plane IAM instance profile to be not empty",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: S3Bucket{
+						Create:                         true,
+						ControlPlaneIAMInstanceProfile: "",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "requires at least one bucket node IAM instance profile",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: S3Bucket{
+						Create:                         true,
+						ControlPlaneIAMInstanceProfile: "foo",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "requires all bucket node IAM instance profiles to be not empty",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: S3Bucket{
+						Create:                         true,
+						ControlPlaneIAMInstanceProfile: "foo",
+						NodesIAMInstanceProfiles:       []string{""},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "does not return error when all IAM instance profiles are populated",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: S3Bucket{
+						Create:                         true,
+						ControlPlaneIAMInstanceProfile: "foo",
+						NodesIAMInstanceProfiles:       []string{"bar"},
+					},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

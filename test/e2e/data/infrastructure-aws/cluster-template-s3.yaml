@@ -1,0 +1,207 @@
+---
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: Cluster
+metadata:
+  name: "${CLUSTER_NAME}"
+  labels:
+    cni: "${CLUSTER_NAME}-crs-0"
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: ["192.168.0.0/16"]
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+    kind: KubeadmControlPlane
+    name: "${CLUSTER_NAME}-control-plane"
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    kind: AWSCluster
+    name: "${CLUSTER_NAME}"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: AWSCluster
+metadata:
+  name: "${CLUSTER_NAME}"
+spec:
+  s3Bucket:
+    controlPlaneIAMInstanceProfile: control-plane.cluster-api-provider-aws.sigs.k8s.io
+    create: true
+    nodesIAMInstanceProfiles:
+    - nodes.cluster-api-provider-aws.sigs.k8s.io
+  region: "${AWS_REGION}"
+  sshKeyName: "${AWS_SSH_KEY_NAME}"
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+kind: KubeadmControlPlane
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  infrastructureTemplate:
+    kind: AWSMachineTemplate
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    name: "${CLUSTER_NAME}-control-plane"
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      apiServer:
+        extraArgs:
+          cloud-provider: aws
+      controllerManager:
+        extraArgs:
+          cloud-provider: aws
+          flex-volume-plugin-dir: /opt/libexec/kubernetes/kubelet-plugins/volume/exec/
+    format: ignition
+    ignitionConfig:
+      containerLinuxConfig:
+        additionalConfig: |
+          storage:
+            links:
+            # For some reason enabling services via systemd.units doesn't work on Flatcar CAPI AMIs.
+            - path: /etc/systemd/system/multi-user.target.wants/coreos-metadata.service
+              target: /usr/lib/systemd/system/coreos-metadata.service
+            - path: /etc/systemd/system/multi-user.target.wants/kubeadm.service
+              target: /etc/systemd/system/kubeadm.service
+          systemd:
+            units:
+            - name: kubeadm.service
+              dropins:
+              - name: 10-flatcar.conf
+                contents: |
+                  [Unit]
+                  # kubeadm must run after coreos-metadata populated /run/metadata directory.
+                  Requires=coreos-metadata.service
+                  After=coreos-metadata.service
+                  [Service]
+                  # Ensure kubeadm service has access to kubeadm binary in /opt/bin on Flatcar.
+                  Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/bin
+                  # To make metadata environment variables available for pre-kubeadm commands.
+                  EnvironmentFile=/run/metadata/*
+    initConfiguration:
+      nodeRegistration:
+        name: $${COREOS_EC2_HOSTNAME}
+        kubeletExtraArgs:
+          cloud-provider: aws
+          volume-plugin-dir: /opt/libexec/kubernetes/kubelet-plugins/volume/exec/
+        name: $${COREOS_EC2_HOSTNAME}
+    joinConfiguration:
+      nodeRegistration:
+        name: $${COREOS_EC2_HOSTNAME}
+        kubeletExtraArgs:
+          cloud-provider: aws
+          volume-plugin-dir: /opt/libexec/kubernetes/kubelet-plugins/volume/exec/
+        name: $${COREOS_EC2_HOSTNAME}
+    preKubeadmCommands:
+    - envsubst < /etc/kubeadm.yml > /etc/kubeadm.yml.tmp
+    - mv /etc/kubeadm.yml.tmp /etc/kubeadm.yml
+  replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+  version: "${KUBERNETES_VERSION}"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: AWSMachineTemplate
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  template:
+    spec:
+      iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
+      imageLookupBaseOS: flatcar-stable
+      imageLookupOrg: "075585003325"
+      instanceType: "${AWS_CONTROL_PLANE_MACHINE_TYPE}"
+      sshKeyName: "${AWS_SSH_KEY_NAME}"
+---
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: MachineDeployment
+metadata:
+  name: "${CLUSTER_NAME}-md-0"
+spec:
+  clusterName: "${CLUSTER_NAME}"
+  replicas: ${WORKER_MACHINE_COUNT}
+  selector:
+    matchLabels:
+  template:
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+          kind: KubeadmConfigTemplate
+          name: "${CLUSTER_NAME}-md-0"
+      clusterName: "${CLUSTER_NAME}"
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+        kind: AWSMachineTemplate
+        name: "${CLUSTER_NAME}-md-0"
+      version: "${KUBERNETES_VERSION}"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: AWSMachineTemplate
+metadata:
+  name: "${CLUSTER_NAME}-md-0"
+spec:
+  template:
+    spec:
+      iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
+      imageLookupBaseOS: flatcar-stable
+      imageLookupOrg: "075585003325"
+      instanceType: "${AWS_NODE_MACHINE_TYPE}"
+      sshKeyName: "${AWS_SSH_KEY_NAME}"
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+kind: KubeadmConfigTemplate
+metadata:
+  name: "${CLUSTER_NAME}-md-0"
+spec:
+  template:
+    spec:
+      format: ignition
+      ignitionConfig:
+        containerLinuxConfig:
+          additionalConfig: |
+            storage:
+              links:
+              # For some reason enabling services via systemd.units doesn't work on Flatcar CAPI AMIs.
+              - path: /etc/systemd/system/multi-user.target.wants/coreos-metadata.service
+                target: /usr/lib/systemd/system/coreos-metadata.service
+              - path: /etc/systemd/system/multi-user.target.wants/kubeadm.service
+                target: /etc/systemd/system/kubeadm.service
+            systemd:
+              units:
+              - name: kubeadm.service
+                dropins:
+                - name: 10-flatcar.conf
+                  contents: |
+                    [Unit]
+                    # kubeadm must run after coreos-metadata populated /run/metadata directory.
+                    Requires=coreos-metadata.service
+                    After=coreos-metadata.service
+                    [Service]
+                    # Ensure kubeadm service has access to kubeadm binary in /opt/bin on Flatcar.
+                    Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/bin
+                    # To make metadata environment variables available for pre-kubeadm commands.
+                    EnvironmentFile=/run/metadata/*
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            cloud-provider: aws
+            volume-plugin-dir: /opt/libexec/kubernetes/kubelet-plugins/volume/exec/
+          name: $${COREOS_EC2_HOSTNAME}
+      preKubeadmCommands:
+      - envsubst < /etc/kubeadm.yml > /etc/kubeadm.yml.tmp
+      - mv /etc/kubeadm.yml.tmp /etc/kubeadm.yml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "cni-${CLUSTER_NAME}-crs-0"
+data: ${CNI_RESOURCES}
+---
+apiVersion: addons.cluster.x-k8s.io/v1alpha3
+kind: ClusterResourceSet
+metadata:
+  name:  "${CLUSTER_NAME}-crs-0"
+spec:
+  strategy: ApplyOnce
+  clusterSelector:
+    matchLabels:
+      cni: "${CLUSTER_NAME}-crs-0"
+  resources:
+    - name: "cni-${CLUSTER_NAME}-crs-0"
+      kind: ConfigMap

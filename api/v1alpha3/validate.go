@@ -61,3 +61,64 @@ func validateSSHKeyName(sshKeyName *string) field.ErrorList {
 	}
 	return allErrs
 }
+
+// Validate validates S3Bucket fields.
+func (b *S3Bucket) Validate() []*field.Error {
+	var errs field.ErrorList
+
+	if !b.Create {
+		return errs
+	}
+
+	if b.ControlPlaneIAMInstanceProfile == "" {
+		errs = append(errs,
+			field.Required(field.NewPath("spec", "s3bucket", "controlPlaneIAMInstanceProfiles"), "can't be empty"))
+	}
+
+	if len(b.NodesIAMInstanceProfiles) == 0 {
+		errs = append(errs,
+			field.Required(field.NewPath("spec", "s3bucket", "nodesIAMInstanceProfiles"), "can't be empty"))
+	}
+
+	for i, iamInstanceProfile := range b.NodesIAMInstanceProfiles {
+		if iamInstanceProfile == "" {
+			errs = append(errs,
+				field.Required(field.NewPath("spec", "s3bucket", fmt.Sprintf("nodesIAMInstanceProfiles[%d]", i)), "can't be empty"))
+		}
+	}
+
+	if b.Name != "" {
+		errs = append(errs, validateS3BucketName(b.Name)...)
+	}
+
+	return errs
+}
+
+// Validation rules taken from https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html.
+func validateS3BucketName(name string) []*field.Error {
+	var errs field.ErrorList
+
+	path := field.NewPath("spec", "s3bucket", "name")
+
+	if len(name) < 3 || len(name) > 63 {
+		errs = append(errs, field.Invalid(path, name, "must be between 3 and 63 characters long"))
+	}
+
+	s3BucketNotAllowedCharacters := regexp.MustCompile("[^a-z1-9.-]")
+	if s3BucketNotAllowedCharacters.MatchString(name) {
+		errs = append(errs, field.Invalid(path, name, "consist only of lowercase letters, numbers, dots (.), and hyphens (-)"))
+	}
+
+	startsWithNumberOrLetter := regexp.MustCompile("^[a-z1-9]")
+	endsWithNumberOrLetter := regexp.MustCompile("[a-z1-9]$")
+
+	if !startsWithNumberOrLetter.MatchString(name) || !endsWithNumberOrLetter.MatchString(name) {
+		errs = append(errs, field.Invalid(path, name, "must begin and end with a letter or number"))
+	}
+
+	if net.ParseIP(name) != nil {
+		errs = append(errs, field.Invalid(path, name, "must not be formatted as an IP address (for example, 192.168.5.4)"))
+	}
+
+	return errs
+}

@@ -9,6 +9,7 @@ require (
 	github.com/aws/aws-sdk-go v1.36.26
 	github.com/awslabs/goformation/v4 v4.15.0
 	github.com/blang/semver v3.5.1+incompatible
+	github.com/coreos/ignition v0.35.0
 	github.com/go-logr/logr v0.1.0
 	github.com/golang/mock v1.4.4
 	github.com/google/goexpect v0.0.0-20200816234442-b5b77125c2c5
@@ -21,6 +22,7 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5
+	github.com/vincent-petithory/dataurl v0.0.0-20191104211930-d1553a71de50 // indirect
 	golang.org/x/crypto v0.0.0-20200930160638-afb6bcd081ae
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
 	gopkg.in/yaml.v2 v2.3.0

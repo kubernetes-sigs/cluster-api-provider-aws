@@ -151,6 +151,13 @@ type AWSIAMConfiguration struct {
 	Spec AWSIAMConfigurationSpec `json:"spec,omitempty"`
 }
 
+// S3Buckets controls the configuration of the AWS IAM role for S3 buckets
+// which can be created for storing bootstrap data for nodes requiring it.
+type S3Buckets struct {
+	// Enable controls whether permissions are granted to manage S3 buckets.
+	Enable bool `json:"enable"`
+}
+
 // AWSIAMConfigurationSpec defines the specification of the AWSIAMConfiguration.
 type AWSIAMConfigurationSpec struct {
 	// NamePrefix will be prepended to every AWS IAM role, user and policy created by clusterawsadm. Defaults to "".
@@ -195,6 +202,10 @@ type AWSIAMConfigurationSpec struct {
 	// will generate AWS Secrets Manager policies instead.
 	// +kubebuilder:validation:Enum=secrets-manager;ssm-parameter-store
 	SecureSecretsBackends []infrav1.SecretBackend `json:"secureSecretBackends,omitempty"`
+
+	// SecureSecretsBackend, when set to true, will add controller nodes permissions to
+	// create S3 Buckets for workload clusters.
+	S3Buckets S3Buckets `json:"s3Buckets,omitempty"`
 }
 
 func (obj *AWSIAMConfiguration) GetObjectKind() schema.ObjectKind {

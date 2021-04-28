@@ -60,6 +60,7 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.ImageLookupFormat = restored.Spec.ImageLookupFormat
 	dst.Spec.ImageLookupOrg = restored.Spec.ImageLookupOrg
 	dst.Spec.ImageLookupBaseOS = restored.Spec.ImageLookupBaseOS
+	dst.Spec.S3Bucket = restored.Spec.S3Bucket
 
 	// If src ControlPlaneLoadBalancer is nil, do not copy restored ControlPlaneLoadBalancer into it.
 	if src.Spec.ControlPlaneLoadBalancer != nil {

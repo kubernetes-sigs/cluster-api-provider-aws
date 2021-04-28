@@ -184,6 +184,10 @@ func (s *ClusterScope) ControlPlaneLoadBalancerScheme() infrav1.ClassicELBScheme
 	return infrav1.ClassicELBSchemeInternetFacing
 }
 
+func (s *ClusterScope) Bucket() infrav1.S3Bucket {
+	return s.AWSCluster.Spec.S3Bucket
+}
+
 // ControlPlaneConfigMapName returns the name of the ConfigMap used to
 // coordinate the bootstrapping of control plane nodes.
 func (s *ClusterScope) ControlPlaneConfigMapName() string {

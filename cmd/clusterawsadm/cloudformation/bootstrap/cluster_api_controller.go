@@ -216,6 +216,21 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 			})
 		}
 	}
+	if t.Spec.S3Buckets.Enable {
+		statement = append(statement, iamv1.StatementEntry{
+			Effect: iamv1.EffectAllow,
+			Resource: iamv1.Resources{
+				"arn:*:s3:::*",
+			},
+			Action: iamv1.Actions{
+				"s3:CreateBucket",
+				"s3:DeleteBucket",
+				"s3:PutObject",
+				"s3:DeleteObject",
+				"s3:PutBucketPolicy",
+			},
+		})
+	}
 	if t.Spec.EKS.Enable {
 		allowedIAMActions := iamv1.Actions{
 			"iam:GetRole",

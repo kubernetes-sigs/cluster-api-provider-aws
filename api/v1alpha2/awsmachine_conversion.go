@@ -92,6 +92,8 @@ func restoreAWSMachineSpec(restored, dst *infrav1alpha3.AWSMachineSpec, src *AWS
 			dst.CloudInit.SecureSecretsBackend = restored.CloudInit.SecureSecretsBackend
 		}
 	}
+
+	dst.Ignition = restored.Ignition
 }
 
 func restoreAWSMachineStatus(restored, dst *infrav1alpha3.AWSMachineStatus) {

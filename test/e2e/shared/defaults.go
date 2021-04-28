@@ -48,6 +48,7 @@ const (
 	UpgradeToMain                = "upgrade-to-main"
 	SimpleMultitenancyFlavor     = "simple-multitenancy"
 	NestedMultitenancyFlavor     = "nested-multitenancy"
+	S3Flavor                     = "s3"
 	StorageClassFailureZoneLabel = "failure-domain.beta.kubernetes.io/zone"
 )
 

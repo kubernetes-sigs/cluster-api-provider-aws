@@ -452,6 +452,7 @@ func autoConvert_v1alpha3_AWSClusterSpec_To_v1alpha2_AWSClusterSpec(in *v1alpha3
 	// WARNING: in.ImageLookupBaseOS requires manual conversion: does not exist in peer-type
 	// WARNING: in.Bastion requires manual conversion: does not exist in peer-type
 	// WARNING: in.IdentityRef requires manual conversion: does not exist in peer-type
+	// WARNING: in.S3Bucket requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -614,6 +615,7 @@ func autoConvert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *v1alpha3
 	out.NetworkInterfaces = *(*[]string)(unsafe.Pointer(&in.NetworkInterfaces))
 	// WARNING: in.UncompressedUserData requires manual conversion: does not exist in peer-type
 	// WARNING: in.CloudInit requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit vs *sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.CloudInit)
+	// WARNING: in.Ignition requires manual conversion: does not exist in peer-type
 	// WARNING: in.SpotMarketOptions requires manual conversion: does not exist in peer-type
 	// WARNING: in.Tenancy requires manual conversion: does not exist in peer-type
 	return nil
