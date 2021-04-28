@@ -865,6 +865,7 @@ func getVolumeIds(info statefulSetInfo, k8sclient crclient.Client) []*string {
 	err := k8sclient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: info.namespace, Name: info.name}, statefulset)
 	Expect(err).NotTo(HaveOccurred())
 	podSelector, err := metav1.LabelSelectorAsMap(statefulset.Spec.Selector)
+	Expect(err).NotTo(HaveOccurred())
 	pvcList := &corev1.PersistentVolumeClaimList{}
 	err = k8sclient.List(context.TODO(), pvcList, crclient.InNamespace(info.namespace), crclient.MatchingLabels(podSelector))
 	Expect(err).NotTo(HaveOccurred())
