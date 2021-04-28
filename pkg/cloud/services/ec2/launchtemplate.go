@@ -129,12 +129,18 @@ func (s *Service) CreateLaunchTemplateVersion(scope *scope.MachinePoolScope, ima
 func (s *Service) createLaunchTemplateData(scope *scope.MachinePoolScope, imageID *string, userData []byte) (*ec2.RequestLaunchTemplateData, error) {
 	lt := scope.AWSMachinePool.Spec.AWSLaunchTemplate
 
+	// An explicit empty string for SSHKeyName means do not specify a key in the ASG launch
+	var sshKeyNamePtr *string
+	if lt.SSHKeyName != nil && *lt.SSHKeyName != "" {
+		sshKeyNamePtr = lt.SSHKeyName
+	}
+
 	data := &ec2.RequestLaunchTemplateData{
 		InstanceType: aws.String(lt.InstanceType),
 		IamInstanceProfile: &ec2.LaunchTemplateIamInstanceProfileSpecificationRequest{
 			Name: aws.String(lt.IamInstanceProfile),
 		},
-		KeyName:  lt.SSHKeyName,
+		KeyName:  sshKeyNamePtr,
 		UserData: pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
 	}
 
