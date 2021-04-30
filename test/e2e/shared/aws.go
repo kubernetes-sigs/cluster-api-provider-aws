@@ -40,11 +40,13 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/servicequotas"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
 	cloudformation "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/service"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/credentials"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/yaml"
 )
 
@@ -336,6 +338,30 @@ func GetAvailabilityZones(sess client.ConfigProvider) []*ec2.AvailabilityZone {
 	return azs.AvailabilityZones
 }
 
+type ServiceQuota struct {
+	ServiceCode string
+	QuotaName   string
+	QuotaCode   string
+	Value       int
+}
+
+func GetServiceQuotas(sess client.ConfigProvider) map[string]*ServiceQuota {
+	limitedResources := getLimitedResources()
+	serviceQuotasClient := servicequotas.New(sess)
+
+	for k, v := range limitedResources {
+		out, err := serviceQuotasClient.GetServiceQuota(&servicequotas.GetServiceQuotaInput{
+			QuotaCode:   aws.String(v.QuotaCode),
+			ServiceCode: aws.String(v.ServiceCode),
+		})
+		Expect(err).NotTo(HaveOccurred())
+		v.Value = int(*out.Quota.Value)
+		limitedResources[k] = v
+	}
+
+	return limitedResources
+}
+
 func DumpEKSClusters(ctx context.Context, e2eCtx *E2EContext) {
 	logPath := filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName(), "aws-resources")
 	if err := os.MkdirAll(logPath, os.ModePerm); err != nil {
@@ -385,4 +411,95 @@ func dumpEKSCluster(cluster *eks.Cluster, logPath string) {
 		fmt.Fprintf(GinkgoWriter, "couldn't write cluster yaml to file: name=%s file=%s err=%s", *cluster.Name, f.Name(), err)
 		return
 	}
+}
+
+// 	To calculate how much resources a test consumes, these helper functions below can be used.
+//	ListNATGateways(e2eCtx), ListRunningEC2(e2eCtx), ListVPC(e2eCtx), ListVpcInternetGateways(e2eCtx)
+func ListVpcInternetGateways(e2eCtx *E2EContext) ([]*ec2.InternetGateway, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	out, err := ec2Svc.DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{})
+	if err != nil {
+		return nil, err
+	}
+
+	return out.InternetGateways, nil
+}
+
+func ListNATGateways(e2eCtx *E2EContext) (map[string]*ec2.NatGateway, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	describeNatGatewayInput := &ec2.DescribeNatGatewaysInput{
+		Filter: []*ec2.Filter{
+			filter.EC2.NATGatewayStates(ec2.NatGatewayStateAvailable),
+		},
+	}
+
+	gateways := make(map[string]*ec2.NatGateway)
+
+	err := ec2Svc.DescribeNatGatewaysPages(describeNatGatewayInput,
+		func(page *ec2.DescribeNatGatewaysOutput, lastPage bool) bool {
+			for _, r := range page.NatGateways {
+				gateways[*r.SubnetId] = r
+			}
+			return !lastPage
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	return gateways, nil
+}
+
+func ListRunningEC2(e2eCtx *E2EContext) ([]instance, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	resp, err := ec2Svc.DescribeInstancesWithContext(context.TODO(), &ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{filter.EC2.InstanceStates(ec2.InstanceStateNameRunning)},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(resp.Reservations) == 0 || len(resp.Reservations[0].Instances) == 0 {
+		return nil, fmt.Errorf("no machines found")
+	}
+	instances := []instance{}
+	for _, r := range resp.Reservations {
+		for _, i := range r.Instances {
+			tags := i.Tags
+			name := ""
+			for _, t := range tags {
+				if aws.StringValue(t.Key) == "Name" {
+					name = aws.StringValue(t.Value)
+				}
+			}
+			if name == "" {
+				continue
+			}
+			instances = append(instances,
+				instance{
+					name:       name,
+					instanceID: aws.StringValue(i.InstanceId),
+				},
+			)
+		}
+	}
+	return instances, nil
+}
+
+func ListVPC(e2eCtx *E2EContext) int {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DescribeVpcsInput{
+		Filters: []*ec2.Filter{
+			filter.EC2.VPCStates(ec2.VpcStateAvailable),
+		},
+	}
+
+	out, err := ec2Svc.DescribeVpcs(input)
+	if err != nil {
+		return 0
+	}
+
+	return len(out.Vpcs)
 }

@@ -21,6 +21,8 @@ package unmanaged
 import (
 	"context"
 	"fmt"
+	"github.com/gofrs/flock"
+	"github.com/onsi/ginkgo/config"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -93,14 +95,18 @@ var _ = Describe("functional tests - unmanaged", func() {
 		Expect(e2eCtx.E2EConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
 		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.KubernetesVersion))
 		result = new(clusterctl.ApplyClusterTemplateAndWaitResult)
+		shared.CreateAWSClusterControllerIdentity(e2eCtx.Environment.BootstrapClusterProxy.GetClient())
 	})
 
 	Describe("Multitenancy test", func() {
 		It("should create cluster with assumed role", func() {
-			By("Creating cluster")
-			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
+			requiredResources := &shared.TestResource{EC2: 1, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
+			requiredResources.WriteRequestedResources(e2eCtx, "multitenancy-assumed-role-test")
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
 
 			By("Creating cluster with assumed role identity")
+			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
 
 			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 				ClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
@@ -124,6 +130,11 @@ var _ = Describe("functional tests - unmanaged", func() {
 			By("PASSED!")
 		})
 		It("should create cluster with nested assumed role", func() {
+			requiredResources := &shared.TestResource{EC2: 1, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
+			requiredResources.WriteRequestedResources(e2eCtx, "multitenancy-nested-assumed-role-test")
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+
 			By("Creating cluster")
 			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
 			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
@@ -149,57 +160,68 @@ var _ = Describe("functional tests - unmanaged", func() {
 		})
 	})
 
-	Describe("Upgrade to master Kubernetes", func() {
-		Context("in same namespace", func() {
-			It("should create the clusters", func() {
-				By("Creating first cluster with single control plane")
-				cluster1Name := fmt.Sprintf("cluster-%s", util.RandomString(6))
-				shared.SetEnvVar("USE_CI_ARTIFACTS", "true", false)
-				tagPrefix := "v"
-				searchSemVer, err := semver.Make(strings.TrimPrefix(e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion), tagPrefix))
-				Expect(err).NotTo(HaveOccurred())
-
-				shared.SetEnvVar(shared.KubernetesVersion, "v"+searchSemVer.String(), false)
-				configCluster := defaultConfigCluster(cluster1Name, namespace.Name)
-
-				configCluster.Flavor = shared.UpgradeToMain
-				configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
-				createCluster(ctx, configCluster, result)
-
-				kubernetesUgradeVersion, err := LatestCIReleaseForVersion("v" + searchSemVer.String())
-				Expect(err).NotTo(HaveOccurred())
-				configCluster.KubernetesVersion = kubernetesUgradeVersion
-				configCluster.Flavor = "upgrade-ci-artifacts"
-				cluster2, md, kcp := createCluster(ctx, configCluster, result)
-
-				By(fmt.Sprintf("Waiting for Kubernetes versions of machines in MachineDeployment %s/%s to be upgraded from %s to %s",
-					md[0].Namespace, md[0].Name, e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion), kubernetesUgradeVersion))
-
-				framework.WaitForMachineDeploymentMachinesToBeUpgraded(ctx, framework.WaitForMachineDeploymentMachinesToBeUpgradedInput{
-					Lister:                   e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-					Cluster:                  cluster2,
-					MachineCount:             int(*md[0].Spec.Replicas),
-					KubernetesUpgradeVersion: kubernetesUgradeVersion,
-					MachineDeployment:        *md[0],
-				}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-machine-upgrade")...)
-
-				By("Waiting for control-plane machines to have the upgraded kubernetes version")
-				framework.WaitForControlPlaneMachinesToBeUpgraded(ctx, framework.WaitForControlPlaneMachinesToBeUpgradedInput{
-					Lister:                   e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-					Cluster:                  cluster2,
-					MachineCount:             int(*kcp.Spec.Replicas),
-					KubernetesUpgradeVersion: kubernetesUgradeVersion,
-				}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-machine-upgrade")...)
-
-				By("Deleting the Clusters")
-				shared.SetEnvVar("USE_CI_ARTIFACTS", "false", false)
-				deleteCluster(ctx, cluster2)
-			})
-		})
-	})
+	// TODO: Sedef uncommment when removing env var logic
+	//Describe("Upgrade to master Kubernetes", func() {
+	//	Context("in same namespace", func() {
+	//		It("should create the clusters", func() {
+	//			requiredResources := &shared.TestResource{EC2: 2, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3}
+	//			requiredResources.WriteRequestedResources(e2eCtx, "upgrade-to-master-test")
+	//			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+	//			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+	//
+	//			By("Creating first cluster with single control plane")
+	//			cluster1Name := fmt.Sprintf("cluster-%s", util.RandomString(6))
+	//			shared.SetEnvVar("USE_CI_ARTIFACTS", "true", false)
+	//			tagPrefix := "v"
+	//			searchSemVer, err := semver.Make(strings.TrimPrefix(e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion), tagPrefix))
+	//			Expect(err).NotTo(HaveOccurred())
+	//
+	//			shared.SetEnvVar(shared.KubernetesVersion, "v"+searchSemVer.String(), false)
+	//			configCluster := defaultConfigCluster(cluster1Name, namespace.Name)
+	//
+	//			configCluster.Flavor = shared.UpgradeToMain
+	//			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+	//			createCluster(ctx, configCluster, result)
+	//
+	//			kubernetesUgradeVersion, err := LatestCIReleaseForVersion("v" + searchSemVer.String())
+	//			Expect(err).NotTo(HaveOccurred())
+	//			configCluster.KubernetesVersion = kubernetesUgradeVersion
+	//			configCluster.Flavor = "upgrade-ci-artifacts"
+	//			cluster2, md, kcp := createCluster(ctx, configCluster, result)
+	//
+	//			By(fmt.Sprintf("Waiting for Kubernetes versions of machines in MachineDeployment %s/%s to be upgraded from %s to %s",
+	//				md[0].Namespace, md[0].Name, e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion), kubernetesUgradeVersion))
+	//
+	//			framework.WaitForMachineDeploymentMachinesToBeUpgraded(ctx, framework.WaitForMachineDeploymentMachinesToBeUpgradedInput{
+	//				Lister:                   e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+	//				Cluster:                  cluster2,
+	//				MachineCount:             int(*md[0].Spec.Replicas),
+	//				KubernetesUpgradeVersion: kubernetesUgradeVersion,
+	//				MachineDeployment:        *md[0],
+	//			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-machine-upgrade")...)
+	//
+	//			By("Waiting for control-plane machines to have the upgraded kubernetes version")
+	//			framework.WaitForControlPlaneMachinesToBeUpgraded(ctx, framework.WaitForControlPlaneMachinesToBeUpgradedInput{
+	//				Lister:                   e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+	//				Cluster:                  cluster2,
+	//				MachineCount:             int(*kcp.Spec.Replicas),
+	//				KubernetesUpgradeVersion: kubernetesUgradeVersion,
+	//			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-machine-upgrade")...)
+	//
+	//			By("Deleting the Clusters")
+	//			shared.SetEnvVar("USE_CI_ARTIFACTS", "false", false)
+	//			deleteCluster(ctx, cluster2)
+	//		})
+	//	})
+	//})
 
 	Describe("Workload cluster with AWS SSM Parameter as the Secret Backend", func() {
 		It("It should be creatable and deletable", func() {
+			requiredResources := &shared.TestResource{EC2: 2, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3}
+			requiredResources.WriteRequestedResources(e2eCtx, "ssm-test")
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+
 			By("Creating a cluster")
 			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
@@ -242,6 +264,11 @@ var _ = Describe("functional tests - unmanaged", func() {
 			volMountPath:              "/usr/share/nginx/html",
 		}
 		It("Should create a cluster, AWS load balancer, and volume", func() {
+			requiredResources := &shared.TestResource{EC2: 2, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3}
+			requiredResources.WriteRequestedResources(e2eCtx, "extra-aws-resources-test")
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+
 			By("Creating cluster with name starting with 'sg-', having '.' and more than 22 characters")
 			// Tests a cluster name that satisfies the following cases:
 			// - name with more than 22 characters
@@ -296,9 +323,15 @@ var _ = Describe("functional tests - unmanaged", func() {
 
 	Describe("Creating cluster after reaching vpc maximum limit", func() {
 		It("Cluster created after reaching vpc limit should be in provisioning", func() {
-			By("Create VPCs until limit is reached")
 			sess := e2eCtx.AWSSession
 			limit := getElasticIPsLimit(sess)
+
+			requiredResources := &shared.TestResource{EIP: limit}
+			requiredResources.WriteRequestedResources(e2eCtx, "vpc-max-limit-test")
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+
+			By("Create VPCs until limit is reached")
 			var vpcsCreated []string
 			for getCurrentVPCsCount(sess) < limit {
 				vpcsCreated = append(vpcsCreated, createVPC(sess, "10.0.0.0/16"))
@@ -340,7 +373,12 @@ var _ = Describe("functional tests - unmanaged", func() {
 	})
 
 	Describe("MachineDeployment misconfigurations", func() {
-		It("Should fail to create MachineDeployment with invalid subnet or non-configured Availability Zone", func() {
+		It("MachineDeployment misconfigurations", func() {
+			requiredResources := &shared.TestResource{EC2: 1, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3}
+			requiredResources.WriteRequestedResources(e2eCtx, "machineDeployment-misconfiguration-test")
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+
 			By("Creating a cluster")
 			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
@@ -385,6 +423,11 @@ var _ = Describe("functional tests - unmanaged", func() {
 
 	Describe("Workload cluster in multiple AZs", func() {
 		It("It should be creatable and deletable", func() {
+			requiredResources := &shared.TestResource{EC2: 3, IGW: 1, NGW: 2, VPC: 1, ClassicLB: 1, EIP: 2}
+			requiredResources.WriteRequestedResources(e2eCtx, "worload-multiple-az-test")
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+
 			By("Creating a cluster")
 			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
@@ -423,7 +466,13 @@ var _ = Describe("functional tests - unmanaged", func() {
 
 	Describe("Multiple workload clusters", func() {
 		Context("in different namespaces with machine failures", func() {
+
 			It("should setup namespaces correctly for the two clusters", func() {
+				requiredResources := &shared.TestResource{EC2: 4, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
+				requiredResources.WriteRequestedResources(e2eCtx, "multiple-workload-in-different-ns-test")
+				Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+				defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+
 				By("Creating first cluster with single control plane")
 				ns1, cf1 := framework.CreateNamespaceAndWatchEvents(ctx, framework.CreateNamespaceAndWatchEventsInput{
 					Creator:   e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
@@ -499,6 +548,11 @@ var _ = Describe("functional tests - unmanaged", func() {
 
 		Context("in same namespace", func() {
 			It("should create the clusters", func() {
+				requiredResources := &shared.TestResource{EC2: 2, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
+				requiredResources.WriteRequestedResources(e2eCtx, "multiple-workload-in-same-ns-test")
+				Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+				defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+
 				By("Creating first cluster with single control plane")
 				cluster1Name := fmt.Sprintf("cluster-%s", util.RandomString(6))
 				configCluster := defaultConfigCluster(cluster1Name, namespace.Name)
@@ -520,6 +574,11 @@ var _ = Describe("functional tests - unmanaged", func() {
 
 	Describe("Workload cluster with spot instances", func() {
 		It("It should be creatable and deletable", func() {
+			requiredResources := &shared.TestResource{EC2: 2, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3}
+			requiredResources.WriteRequestedResources(e2eCtx, "spot-instances-test")
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+
 			By("Creating a cluster")
 			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)

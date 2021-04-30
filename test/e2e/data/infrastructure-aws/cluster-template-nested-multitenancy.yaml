@@ -33,13 +33,6 @@ spec:
       availabilityZoneUsageLimit: 1
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
-kind: AWSClusterControllerIdentity
-metadata:
-  name: default
-spec:
-  allowedNamespaces: {}
----
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: AWSClusterRoleIdentity
 metadata:
   name: "${MULTI_TENANCY_JUMP_IDENTITY_NAME}"

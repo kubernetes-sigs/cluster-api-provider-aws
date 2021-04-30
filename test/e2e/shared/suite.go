@@ -21,6 +21,7 @@ package shared
 import (
 	"context"
 	"flag"
+	"github.com/gofrs/flock"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -31,11 +32,11 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"sigs.k8s.io/yaml"
-
+	"github.com/aws/aws-sdk-go/service/iam"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
+	"sigs.k8s.io/yaml"
 )
 
 type synchronizedBeforeTestSuiteConfig struct {
@@ -45,6 +46,7 @@ type synchronizedBeforeTestSuiteConfig struct {
 	KubeconfigPath          string               `json:"kubeconfigPath,omitempty"`
 	Region                  string               `json:"region,omitempty"`
 	E2EConfig               clusterctl.E2EConfig `json:"e2eConfig,omitempty"`
+	BootstrapAccessKey      *iam.AccessKey       `json:"bootstrapAccessKey,omitempty"`
 	KubetestConfigFilePath  string               `json:"kubetestConfigFilePath,omitempty"`
 	UseCIArtifacts          bool                 `json:"useCIArtifacts,omitempty"`
 	GinkgoNodes             int                  `json:"ginkgoNodes,omitempty"`
@@ -145,6 +147,9 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 
 	SetEnvVar("AWS_B64ENCODED_CREDENTIALS", encodeCredentials(e2eCtx.Environment.BootstrapAccessKey, boostrapTemplate.Spec.Region), true)
 
+	By("Writing AWS service quotas to a file for parallel tests")
+	WriteResourceQuotesToFile(GetServiceQuotas(e2eCtx.AWSSession))
+
 	By("Initializing the bootstrap cluster")
 	initBootstrapCluster(e2eCtx)
 
@@ -155,6 +160,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 		KubeconfigPath:          e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
 		Region:                  getBootstrapTemplate(e2eCtx).Spec.Region,
 		E2EConfig:               *e2eCtx.E2EConfig,
+		BootstrapAccessKey:      e2eCtx.Environment.BootstrapAccessKey,
 		KubetestConfigFilePath:  e2eCtx.Settings.KubetestConfigFilePath,
 		UseCIArtifacts:          e2eCtx.Settings.UseCIArtifacts,
 		GinkgoNodes:             e2eCtx.Settings.GinkgoNodes,
@@ -176,17 +182,19 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 	e2eCtx.Environment.ClusterctlConfigPath = conf.ClusterctlConfigPath
 	e2eCtx.Environment.BootstrapClusterProxy = framework.NewClusterProxy("bootstrap", conf.KubeconfigPath, e2eCtx.Environment.Scheme)
 	e2eCtx.E2EConfig = &conf.E2EConfig
+	e2eCtx.BootstratpUserAWSSession = NewAWSSessionWithKey(conf.BootstrapAccessKey)
+	e2eCtx.Settings.FileLock = flock.New(ResourceQuotaFilePath)
 	e2eCtx.Settings.KubetestConfigFilePath = conf.KubetestConfigFilePath
 	e2eCtx.Settings.UseCIArtifacts = conf.UseCIArtifacts
 	e2eCtx.Settings.GinkgoNodes = conf.GinkgoNodes
 	e2eCtx.Settings.GinkgoSlowSpecThreshold = conf.GinkgoSlowSpecThreshold
+	e2eCtx.AWSSession = NewAWSSession()
 	azs := GetAvailabilityZones(e2eCtx.AWSSession)
 	SetEnvVar(AwsAvailabilityZone1, *azs[0].ZoneName, false)
 	SetEnvVar(AwsAvailabilityZone2, *azs[1].ZoneName, false)
 	SetEnvVar("AWS_REGION", conf.Region, false)
 	SetEnvVar("AWS_SSH_KEY_NAME", DefaultSSHKeyPairName, false)
 	Expect(SetMultitenancyEnvVars(e2eCtx.AWSSession)).To(Succeed())
-	e2eCtx.AWSSession = NewAWSSession()
 	e2eCtx.Environment.ResourceTicker = time.NewTicker(time.Second * 5)
 	e2eCtx.Environment.ResourceTickerDone = make(chan bool)
 	// Get EC2 logs every minute
@@ -194,7 +202,6 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 	e2eCtx.Environment.MachineTickerDone = make(chan bool)
 	resourceCtx, resourceCancel := context.WithCancel(context.Background())
 	machineCtx, machineCancel := context.WithCancel(context.Background())
-
 	// Dump resources every 5 seconds
 	go func() {
 		defer GinkgoRecover()
@@ -230,6 +237,8 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 
 // Node1AfterSuite is cleanup that runs on the first ginkgo node after the test suite finishes
 func Node1AfterSuite(e2eCtx *E2EContext) {
+	DeleteResourceQuotaFile()
+
 	if e2eCtx.Environment.ResourceTickerDone != nil {
 		e2eCtx.Environment.ResourceTickerDone <- true
 	}

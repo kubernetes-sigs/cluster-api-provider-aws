@@ -10,6 +10,7 @@ require (
 	github.com/awslabs/goformation/v4 v4.15.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/go-logr/logr v0.4.0
+	github.com/gofrs/flock v0.8.0
 	github.com/golang/mock v1.4.4
 	github.com/google/goexpect v0.0.0-20200816234442-b5b77125c2c5
 	github.com/google/goterm v0.0.0-20200907032337-555d40f16ae2 // indirect
@@ -23,6 +24,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 	golang.org/x/net v0.0.0-20210224082022-3d97a244fca7
+	golang.org/x/sys v0.0.0-20210502180810-71e4cd670f79 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.21.0-beta.1
 	k8s.io/apiextensions-apiserver v0.21.0-beta.1

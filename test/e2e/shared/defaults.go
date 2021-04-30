@@ -51,6 +51,7 @@ const (
 	StorageClassFailureZoneLabel = "failure-domain.beta.kubernetes.io/zone"
 )
 
+var ResourceQuotaFilePath = "/tmp/capa-e2e-resource-usage.lock"
 var (
 	MultiTenancySimpleRole = MultitenancyRole("Simple")
 	MultiTenancyJumpRole   = MultitenancyRole("Jump")
@@ -104,6 +105,46 @@ func (m MultitenancyRole) RoleARN(prov client.ConfigProvider) (string, error) {
 	roleARN := aws.StringValue(role.Role.Arn)
 	roleLookupCache[m.RoleName()] = roleARN
 	return roleARN, nil
+}
+
+func getLimitedResources() map[string]*ServiceQuota {
+	serviceQuotas := map[string]*ServiceQuota{}
+	serviceQuotas["igw"] = &ServiceQuota{
+		ServiceCode: "vpc",
+		QuotaName:   "Internet gateways per Region",
+		QuotaCode:   "L-A4707A72",
+	}
+
+	serviceQuotas["ngw"] = &ServiceQuota{
+		ServiceCode: "vpc",
+		QuotaName:   "NAT gateways per Availability Zone",
+		QuotaCode:   "L-FE5A380F",
+	}
+
+	serviceQuotas["vpc"] = &ServiceQuota{
+		ServiceCode: "vpc",
+		QuotaName:   "VPCs per Region",
+		QuotaCode:   "L-F678F1CE",
+	}
+
+	serviceQuotas["ec2"] = &ServiceQuota{
+		ServiceCode: "ec2",
+		QuotaName:   "Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances",
+		QuotaCode:   "L-1216C47A",
+	}
+
+	serviceQuotas["eip"] = &ServiceQuota{
+		ServiceCode: "ec2",
+		QuotaName:   "EC2-VPC Elastic IPs",
+		QuotaCode:   "L-0263D0A3",
+	}
+
+	serviceQuotas["classiclb"] = &ServiceQuota{
+		ServiceCode: "elasticloadbalancing",
+		QuotaName:   "Classic Load Balancers per Region",
+		QuotaCode:   "L-E9E9831D",
+	}
+	return serviceQuotas
 }
 
 // DefaultScheme returns the default scheme to use for testing
