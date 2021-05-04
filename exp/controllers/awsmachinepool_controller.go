@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	asg "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/autoscaling"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	capiv1exp "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util"
@@ -312,7 +313,7 @@ func (r *AWSMachinePoolReconciler) reconcileDelete(machinePoolScope *scope.Machi
 	}
 
 	launchTemplateID := machinePoolScope.AWSMachinePool.Status.LaunchTemplateID
-	launchTemplate, err := ec2Svc.GetLaunchTemplate(launchTemplateID)
+	launchTemplate, _, err := ec2Svc.GetLaunchTemplate(launchTemplateID)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -377,15 +378,16 @@ func (r *AWSMachinePoolReconciler) findASG(machinePoolScope *scope.MachinePoolSc
 }
 
 func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *scope.MachinePoolScope, ec2Scope scope.EC2Scope) error {
-	userData, err := machinePoolScope.GetRawBootstrapData()
+	bootstrapData, err := machinePoolScope.GetRawBootstrapData()
 	if err != nil {
 		r.Recorder.Eventf(machinePoolScope.AWSMachinePool, corev1.EventTypeWarning, "FailedGetBootstrapData", err.Error())
 	}
+	bootstrapDataHash := userdata.ComputeHash(bootstrapData)
 
 	ec2svc := r.getEC2Service(ec2Scope)
 
 	machinePoolScope.Info("checking for existing launch template")
-	launchTemplate, err := ec2svc.GetLaunchTemplate(machinePoolScope.AWSMachinePool.Status.LaunchTemplateID)
+	launchTemplate, launchTemplateUserDataHash, err := ec2svc.GetLaunchTemplate(machinePoolScope.AWSMachinePool.Status.LaunchTemplateID)
 	if err != nil {
 		conditions.MarkUnknown(machinePoolScope.AWSMachinePool, infrav1exp.LaunchTemplateReadyCondition, infrav1exp.LaunchTemplateNotFoundReason, err.Error())
 		return err
@@ -399,7 +401,7 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 
 	if launchTemplate == nil {
 		machinePoolScope.Info("no existing launch template found, creating")
-		launchTemplateID, err := ec2svc.CreateLaunchTemplate(machinePoolScope, imageID, userData)
+		launchTemplateID, err := ec2svc.CreateLaunchTemplate(machinePoolScope, imageID, bootstrapData)
 		if err != nil {
 			conditions.MarkFalse(machinePoolScope.AWSMachinePool, infrav1exp.LaunchTemplateReadyCondition, infrav1exp.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return err
@@ -425,7 +427,7 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 
 	// If there is a change: before changing the template, check if there exist an ongoing instance refresh,
 	// because only 1 instance refresh can be "InProgress". If template is updated when refresh cannot be started,
-	// that change will not trigger a refresh.
+	// that change will not trigger a refresh. Do not start an instance refresh if only userdata changed.
 	if needsUpdate || tagsChanged || *imageID != *launchTemplate.AMI.ID {
 		asgSvc := r.getASGService(ec2Scope)
 		canStart, err := asgSvc.CanStartASGInstanceRefresh(machinePoolScope)
@@ -438,25 +440,34 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 		}
 	}
 
-	// create a new launch template version if there's a difference in configuration, tags,
-	// OR we've discovered a new AMI ID
-	if needsUpdate || tagsChanged || *imageID != *launchTemplate.AMI.ID {
+	// Create a new launch template version if there's a difference in configuration, tags,
+	// userdata, OR we've discovered a new AMI ID.
+	if needsUpdate || tagsChanged || *imageID != *launchTemplate.AMI.ID || launchTemplateUserDataHash != bootstrapDataHash {
 		machinePoolScope.Info("creating new version for launch template", "existing", launchTemplate, "incoming", machinePoolScope.AWSMachinePool.Spec.AWSLaunchTemplate)
-		if err := ec2svc.CreateLaunchTemplateVersion(machinePoolScope, imageID, userData); err != nil {
+		if err := ec2svc.CreateLaunchTemplateVersion(machinePoolScope, imageID, bootstrapData); err != nil {
 			return err
 		}
+	}
+
+	// After creating a new version of launch template, instance refresh is required
+	// to trigger a rolling replacement of all previously launched instances.
+	// If ONLY the userdata changed, previously launched instances continue to use the old launch
+	// template.
+	//
+	// FIXME(dlipovetsky,sedefsavas): If the controller terminates, or the StartASGInstanceRefresh returns an error,
+	// this conditional will not evaluate to true the next reconcile. If any machines use an older
+	// Launch Template version, and the difference between the older and current versions is _more_
+	// than userdata, we should start an Instance Refresh.
+	if needsUpdate || tagsChanged || *imageID != *launchTemplate.AMI.ID {
 		machinePoolScope.Info("starting instance refresh", "number of instances", machinePoolScope.MachinePool.Spec.Replicas)
-
 		asgSvc := r.getASGService(ec2Scope)
-		// After creating a new version of launch template, instance refresh is required
-		// to trigger a rolling replacement of all previously launched instances.
-
 		if err := asgSvc.StartASGInstanceRefresh(machinePoolScope); err != nil {
 			conditions.MarkFalse(machinePoolScope.AWSMachinePool, infrav1exp.InstanceRefreshStartedCondition, infrav1exp.InstanceRefreshFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return err
 		}
 		conditions.MarkTrue(machinePoolScope.AWSMachinePool, infrav1exp.InstanceRefreshStartedCondition)
 	}
+
 	return nil
 }
 

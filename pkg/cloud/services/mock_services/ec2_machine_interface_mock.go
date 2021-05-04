@@ -184,12 +184,13 @@ func (mr *MockEC2MachineInterfaceMockRecorder) GetInstanceSecurityGroups(arg0 in
 }
 
 // GetLaunchTemplate mocks base method
-func (m *MockEC2MachineInterface) GetLaunchTemplate(arg0 string) (*v1alpha40.AWSLaunchTemplate, error) {
+func (m *MockEC2MachineInterface) GetLaunchTemplate(arg0 string) (*v1alpha40.AWSLaunchTemplate, string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetLaunchTemplate", arg0)
 	ret0, _ := ret[0].(*v1alpha40.AWSLaunchTemplate)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // GetLaunchTemplate indicates an expected call of GetLaunchTemplate
