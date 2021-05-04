@@ -600,8 +600,8 @@ github.com/openshift/machine-api-operator v0.2.1-0.20200722104429-f4f9b84df9b7/g
 github.com/openshift/machine-api-operator v0.2.1-0.20200926044412-b7d860f8074c/go.mod h1:cp/wPVzxHZeLUjOLkNPNqrk4wyyW6HuHd3Kz9+hl5xw=
 github.com/openshift/machine-api-operator v0.2.1-0.20201002104344-6abfb5440597/go.mod h1:+oAfoCl+TUd2TM79/6NdqLpFUHIJpmqkKdmiHe2O7mw=
 github.com/openshift/machine-api-operator v0.2.1-0.20201203125141-79567cb3368e/go.mod h1:Vxdx8K+8sbdcGozW86hSvcVl5JgJOqNFYhLRRhEM9HY=
-github.com/openshift/machine-api-operator v0.2.1-0.20210420092411-384733bfd62e h1:4w69A/kY3LLep0io3Ap4bkfb/RT6jlowOTR0jj1qKPc=
-github.com/openshift/machine-api-operator v0.2.1-0.20210420092411-384733bfd62e/go.mod h1:DFZBMPtC2TYZH5NE9+2JQIpbZAnruqc9F26QmbOm9pw=
+github.com/openshift/machine-api-operator v0.2.1-0.20210504014029-a132ec00f7dd h1:8gwpgdXv0TPrvPRxms3CNqDwtktmOYxTWD4MrW1TVJk=
+github.com/openshift/machine-api-operator v0.2.1-0.20210504014029-a132ec00f7dd/go.mod h1:DFZBMPtC2TYZH5NE9+2JQIpbZAnruqc9F26QmbOm9pw=
 github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492/go.mod h1:Ngi6UdF0k5OKD5t5wlmGhe/EDKPoUM3BXZSSfIuJbis=
 github.com/opentracing/basictracer-go v1.0.0/go.mod h1:QfBfYuafItcjQuMwinw9GhYKwFXS9KnPs5lxoYwgW74=
 github.com/opentracing/opentracing-go v1.0.2/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
@@ -1255,6 +1255,7 @@ k8s.io/code-generator v0.18.6/go.mod h1:TgNEVx9hCyPGpdtCWA34olQYLkh3ok9ar7XfSsr8
 k8s.io/code-generator v0.19.0/go.mod h1:moqLn7w0t9cMs4+5CQyxnfA/HV8MF6aAVENF+WZZhgk=
 k8s.io/code-generator v0.19.2/go.mod h1:moqLn7w0t9cMs4+5CQyxnfA/HV8MF6aAVENF+WZZhgk=
 k8s.io/code-generator v0.21.0-rc.0/go.mod h1:hUlps5+9QaTrKx+jiM4rmq7YmH8wPOIko64uZCHDh6Q=
+k8s.io/code-generator v0.21.0 h1:LGWJOvkbBNpuRBqBRXUjzfvymUh7F/iR2KDpwLnqCM4=
 k8s.io/code-generator v0.21.0/go.mod h1:hUlps5+9QaTrKx+jiM4rmq7YmH8wPOIko64uZCHDh6Q=
 k8s.io/component-base v0.17.0/go.mod h1:rKuRAokNMY2nn2A6LP/MiwpoaMRHpfRnrPaUJJj1Yoc=
 k8s.io/component-base v0.18.0-beta.2/go.mod h1:HVk5FpRnyzQ/MjBr9//e/yEBjTVa2qjGXCTuUzcD7ks=
@@ -1272,6 +1273,7 @@ k8s.io/gengo v0.0.0-20190822140433-26a664648505/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8
 k8s.io/gengo v0.0.0-20200114144118-36b2048a9120/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8IAqLxYwwyPxAX1Pzy0ii0=
 k8s.io/gengo v0.0.0-20200413195148-3a45101e95ac/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8IAqLxYwwyPxAX1Pzy0ii0=
 k8s.io/gengo v0.0.0-20200428234225-8167cfdcfc14/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8IAqLxYwwyPxAX1Pzy0ii0=
+k8s.io/gengo v0.0.0-20201214224949-b6c5ce23f027 h1:Uusb3oh8XcdzDF/ndlI4ToKTYVlkCSJP39SRY2mfRAw=
 k8s.io/gengo v0.0.0-20201214224949-b6c5ce23f027/go.mod h1:FiNAH4ZV3gBg2Kwh89tzAEV2be7d5xI0vBa/VySYy3E=
 k8s.io/klog v0.0.0-20181102134211-b9b56d5dfc92/go.mod h1:Gq+BEi5rUBO/HRz0bTSXDUcqjScdoY3a9IHpCEIOOfk=
 k8s.io/klog v0.3.0/go.mod h1:Gq+BEi5rUBO/HRz0bTSXDUcqjScdoY3a9IHpCEIOOfk=

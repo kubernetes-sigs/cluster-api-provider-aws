@@ -341,7 +341,7 @@ func MachineValidatingWebhook() admissionregistrationv1.ValidatingWebhook {
 		Port:      pointer.Int32Ptr(defaultWebhookServicePort),
 	}
 	return admissionregistrationv1.ValidatingWebhook{
-		AdmissionReviewVersions: []string{"v1beta1"},
+		AdmissionReviewVersions: []string{"v1"},
 		Name:                    "validation.machine.machine.openshift.io",
 		FailurePolicy:           &webhookFailurePolicy,
 		SideEffects:             &webhookSideEffects,
@@ -373,7 +373,7 @@ func MachineSetValidatingWebhook() admissionregistrationv1.ValidatingWebhook {
 		Port:      pointer.Int32Ptr(defaultWebhookServicePort),
 	}
 	return admissionregistrationv1.ValidatingWebhook{
-		AdmissionReviewVersions: []string{"v1beta1"},
+		AdmissionReviewVersions: []string{"v1"},
 		Name:                    "validation.machineset.machine.openshift.io",
 		FailurePolicy:           &webhookFailurePolicy,
 		SideEffects:             &webhookSideEffects,
@@ -426,7 +426,7 @@ func MachineMutatingWebhook() admissionregistrationv1.MutatingWebhook {
 		Port:      pointer.Int32Ptr(defaultWebhookServicePort),
 	}
 	return admissionregistrationv1.MutatingWebhook{
-		AdmissionReviewVersions: []string{"v1beta1"},
+		AdmissionReviewVersions: []string{"v1"},
 		Name:                    "default.machine.machine.openshift.io",
 		FailurePolicy:           &webhookFailurePolicy,
 		SideEffects:             &webhookSideEffects,
@@ -457,7 +457,7 @@ func MachineSetMutatingWebhook() admissionregistrationv1.MutatingWebhook {
 		Port:      pointer.Int32Ptr(defaultWebhookServicePort),
 	}
 	return admissionregistrationv1.MutatingWebhook{
-		AdmissionReviewVersions: []string{"v1beta1"},
+		AdmissionReviewVersions: []string{"v1"},
 		Name:                    "default.machineset.machine.openshift.io",
 		FailurePolicy:           &webhookFailurePolicy,
 		SideEffects:             &webhookSideEffects,
