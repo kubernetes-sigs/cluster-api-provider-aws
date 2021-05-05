@@ -3,7 +3,7 @@ module sigs.k8s.io/cluster-api-provider-aws
 go 1.15
 
 require (
-	github.com/aws/aws-sdk-go v1.35.20
+	github.com/aws/aws-sdk-go v1.38.23
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/go-logr/logr v0.4.0
 	github.com/golang/mock v1.4.4
