@@ -79,7 +79,7 @@ spec:
   template:
     metadata:
       labels:
-        nodepool: pool1
+        "e2e.remediation.label": ""
     spec:
       clusterName: "${CLUSTER_NAME}"
       version: "${KUBERNETES_VERSION}"
@@ -136,6 +136,9 @@ spec:
     - name: "cni-${CLUSTER_NAME}-crs-0"
       kind: ConfigMap
 ---
+# MachineHealthCheck object with
+# - a selector that targets all the machines with label e2e.remediation.label=""
+# - unhealthyConditions triggering remediation after 10s the condition is set
 apiVersion: cluster.x-k8s.io/v1alpha4
 kind: MachineHealthCheck
 metadata:
@@ -145,8 +148,8 @@ spec:
   maxUnhealthy: 100%
   selector:
     matchLabels:
-      nodepool: "pool1"
+      e2e.remediation.label: ""
   unhealthyConditions:
-    - type: E2ENodeUnhealthy
-      status: "True"
-      timeout: 30s
+    - type: e2e.remediation.condition
+      status: "False"
+      timeout: 10s
