@@ -26,6 +26,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/feature"
@@ -304,6 +305,7 @@ func (r *AWSClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 				},
 			},
 		).
+		WithEventFilter(predicates.ResourceIsNotExternallyManaged(log)).
 		Build(r)
 	if err != nil {
 		return errors.Wrap(err, "error creating controller")
@@ -311,7 +313,7 @@ func (r *AWSClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 
 	return controller.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		handler.EnqueueRequestsFromMapFunc(r.requeueAWSClusterForUnpausedCluster(log)),
+		handler.EnqueueRequestsFromMapFunc(r.requeueAWSClusterForUnpausedCluster(ctx, log)),
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
@@ -354,7 +356,7 @@ func (r *AWSClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	)
 }
 
-func (r *AWSClusterReconciler) requeueAWSClusterForUnpausedCluster(log logr.Logger) handler.MapFunc {
+func (r *AWSClusterReconciler) requeueAWSClusterForUnpausedCluster(ctx context.Context, log logr.Logger) handler.MapFunc {
 	return func(o client.Object) []ctrl.Request {
 		c, ok := o.(*clusterv1.Cluster)
 		if !ok {
@@ -377,6 +379,19 @@ func (r *AWSClusterReconciler) requeueAWSClusterForUnpausedCluster(log logr.Logg
 
 		if c.Spec.InfrastructureRef.GroupVersionKind().Kind != "AWSCluster" {
 			log.V(4).Info("Cluster has an InfrastructureRef for a different type, skipping mapping.")
+			return nil
+		}
+
+		awsCluster := &infrav1.AWSCluster{}
+		key := types.NamespacedName{Namespace: c.Spec.InfrastructureRef.Namespace, Name: c.Spec.InfrastructureRef.Name}
+
+		if err := r.Get(ctx, key, awsCluster); err != nil {
+			log.V(4).Error(err, "Failed to get AWS cluster")
+			return nil
+		}
+
+		if annotations.IsExternallyManaged(awsCluster) {
+			log.V(4).Info("AWSCluster is externally managed, skipping mapping.")
 			return nil
 		}
 

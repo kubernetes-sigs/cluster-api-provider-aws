@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -341,6 +342,10 @@ func (m *MachineScope) AWSMachineIsDeleted() bool {
 
 func (m *MachineScope) IsEKSManaged() bool {
 	return m.InfraCluster.InfraCluster().GetObjectKind().GroupVersionKind().Kind == "AWSManagedControlPlane"
+}
+
+func (m *MachineScope) IsExternallyManaged() bool {
+	return annotations.IsExternallyManaged(m.InfraCluster.InfraCluster())
 }
 
 // SetInterruptible sets the AWSMachine status Interruptible

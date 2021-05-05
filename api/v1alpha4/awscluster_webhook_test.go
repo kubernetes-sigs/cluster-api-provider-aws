@@ -152,18 +152,38 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "removal of externally managed annotation is not allowed",
+			oldCluster: &AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{clusterv1.ManagedByAnnotation: ""},
+				},
+			},
+			newCluster: &AWSCluster{},
+			wantErr:    true,
+		},
+		{
+			name:       "adding externally managed annotation is allowed",
+			oldCluster: &AWSCluster{},
+			newCluster: &AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{clusterv1.ManagedByAnnotation: ""},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.TODO()
 			cluster := tt.oldCluster.DeepCopy()
-			cluster.ObjectMeta = metav1.ObjectMeta{
-				GenerateName: "cluster-",
-				Namespace:    "default",
-			}
+			cluster.ObjectMeta.GenerateName = "cluster-"
+			cluster.ObjectMeta.Namespace = "default"
+
 			if err := testEnv.Create(ctx, cluster); err != nil {
 				t.Errorf("failed to create cluster: %v", err)
 			}
+			cluster.ObjectMeta.Annotations = tt.newCluster.Annotations
 			cluster.Spec = tt.newCluster.Spec
 			if err := testEnv.Update(ctx, cluster); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
