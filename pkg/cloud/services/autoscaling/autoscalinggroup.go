@@ -160,7 +160,8 @@ func (s *Service) CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScal
 		MixedInstancesPolicy: scope.AWSMachinePool.Spec.MixedInstancesPolicy,
 	}
 
-	if scope.MachinePool.Spec.Replicas != nil {
+	if scope.MachinePool.Spec.Replicas != nil && !scope.MachinePool.Spec.ExternallyManagedReplicaCount {
+		// only set DesiredCapacity if CAPI is managing the Replica Count
 		input.DesiredCapacity = scope.MachinePool.Spec.Replicas
 	}
 
