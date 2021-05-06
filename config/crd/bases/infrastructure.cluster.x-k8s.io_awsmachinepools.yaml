@@ -199,7 +199,7 @@ spec:
                 default: 1
                 description: The minimum size of the group.
                 format: int32
-                minimum: 1
+                minimum: 0
                 type: integer
               mixedInstancesPolicy:
                 description: MixedInstancesPolicy describes how multiple instance types will be used by the ASG.

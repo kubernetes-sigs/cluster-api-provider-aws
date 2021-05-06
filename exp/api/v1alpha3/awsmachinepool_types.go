@@ -37,7 +37,7 @@ type AWSMachinePoolSpec struct {
 
 	// The minimum size of the group.
 	// +kubebuilder:default=1
-	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Minimum=0
 	MinSize int32 `json:"minSize"`
 
 	// The maximum size of the group.
