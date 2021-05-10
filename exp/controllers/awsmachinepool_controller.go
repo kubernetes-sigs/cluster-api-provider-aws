@@ -78,7 +78,7 @@ func (r *AWSMachinePoolReconciler) getEC2Service(scope scope.EC2Scope) services.
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=exp.cluster.x-k8s.io,resources=machinepools,verbs=get;list;watch;patch
-// +kubebuilder:rbac:groups=exp.cluster.x-k8s.io,resources=machinepools/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=exp.cluster.x-k8s.io,resources=machinepools/status,verbs=get;list;watch;patch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
 
@@ -416,10 +416,13 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 			return err
 		}
 		machinePoolScope.AWSMachinePool.Status.LaunchTemplateID = launchTemplateID
-	} else {
-		machinePoolScope.AWSMachinePool.Status.LaunchTemplateID = launchTemplate.ID
+		if err := machinePoolScope.PatchObject(); err != nil {
+			return err
+		}
+		return nil
 	}
 
+	machinePoolScope.AWSMachinePool.Status.LaunchTemplateID = launchTemplate.ID
 	if err := machinePoolScope.PatchObject(); err != nil {
 		return err
 	}
