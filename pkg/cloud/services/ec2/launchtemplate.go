@@ -52,6 +52,7 @@ func (s *Service) GetLaunchTemplate(launchTemplateName string) (*expinfrav1.AWSL
 		return nil, nil
 	case err != nil:
 		s.scope.Info("", "aerr", err.Error())
+		return nil, err
 	}
 
 	if len(out.LaunchTemplateVersions) == 0 {
