@@ -204,9 +204,14 @@ func (m *MachinePoolScope) GetASGStatus() *expinfrav1.ASGStatus {
 	return m.AWSMachinePool.Status.ASGStatus
 }
 
-// SetASGStatus sets the AWSMachine status instance state.
+// SetASGStatus sets the AWSMachinePool status instance state.
 func (m *MachinePoolScope) SetASGStatus(v expinfrav1.ASGStatus) {
 	m.AWSMachinePool.Status.ASGStatus = &v
+}
+
+// SetLaunchTemplateIDStatus sets the AWSMachinePool LaunchTemplateID status.
+func (m *MachinePoolScope) SetLaunchTemplateIDStatus(id string) {
+	m.AWSMachinePool.Status.LaunchTemplateID = id
 }
 
 func (m *MachinePoolScope) IsEKSManaged() bool {

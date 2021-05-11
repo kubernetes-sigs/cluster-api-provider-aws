@@ -315,7 +315,7 @@ func (r *AWSMachinePoolReconciler) reconcileDelete(machinePoolScope *scope.Machi
 	}
 
 	launchTemplateID := machinePoolScope.AWSMachinePool.Status.LaunchTemplateID
-	launchTemplate, err := ec2Svc.GetLaunchTemplate(launchTemplateID)
+	launchTemplate, err := ec2Svc.GetLaunchTemplate(machinePoolScope.Name())
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -388,7 +388,7 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 	ec2svc := r.getEC2Service(ec2Scope)
 
 	machinePoolScope.Info("checking for existing launch template")
-	launchTemplate, err := ec2svc.GetLaunchTemplate(machinePoolScope.AWSMachinePool.Status.LaunchTemplateID)
+	launchTemplate, err := ec2svc.GetLaunchTemplate(machinePoolScope.Name())
 	if err != nil {
 		conditions.MarkUnknown(machinePoolScope.AWSMachinePool, infrav1exp.LaunchTemplateReadyCondition, infrav1exp.LaunchTemplateNotFoundReason, err.Error())
 		return err
@@ -408,8 +408,19 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 			return err
 		}
 
-		machinePoolScope.AWSMachinePool.Status.LaunchTemplateID = launchTemplateID
+		machinePoolScope.SetLaunchTemplateIDStatus(launchTemplateID)
+		return machinePoolScope.PatchObject()
+	}
 
+	// LaunchTemplateID is set during LaunchTemplate creation, but for a scenario such as `clusterctl move`, status fields become blank.
+	// If launchTemplate already exists but LaunchTemplateID field in the status is empty, get the ID and update the status.
+	if machinePoolScope.AWSMachinePool.Status.LaunchTemplateID == "" {
+		launchTemplateID, err := ec2svc.GetLaunchTemplateID(machinePoolScope.Name())
+		if err != nil {
+			conditions.MarkUnknown(machinePoolScope.AWSMachinePool, infrav1exp.LaunchTemplateReadyCondition, infrav1exp.LaunchTemplateNotFoundReason, err.Error())
+			return err
+		}
+		machinePoolScope.SetLaunchTemplateIDStatus(launchTemplateID)
 		return machinePoolScope.PatchObject()
 	}
 
