@@ -35,16 +35,16 @@ import (
 
 // GetLaunchTemplate returns the existing LaunchTemplate or nothing if it doesn't exist.
 // For now by name until we need the input to be something different
-func (s *Service) GetLaunchTemplate(id string) (*expinfrav1.AWSLaunchTemplate, string, error) {
-	if id == "" {
+func (s *Service) GetLaunchTemplate(launchTemplateName string) (*expinfrav1.AWSLaunchTemplate, string, error) {
+	if launchTemplateName == "" {
 		return nil, "", nil
 	}
 
 	s.scope.V(2).Info("Looking for existing LaunchTemplates")
 
 	input := &ec2.DescribeLaunchTemplateVersionsInput{
-		LaunchTemplateId: aws.String(id),
-		Versions:         aws.StringSlice([]string{expinfrav1.LaunchTemplateLatestVersion}),
+		LaunchTemplateName: aws.String(launchTemplateName),
+		Versions:           aws.StringSlice([]string{expinfrav1.LaunchTemplateLatestVersion}),
 	}
 
 	out, err := s.EC2Client.DescribeLaunchTemplateVersions(input)
@@ -52,7 +52,7 @@ func (s *Service) GetLaunchTemplate(id string) (*expinfrav1.AWSLaunchTemplate, s
 	case awserrors.IsNotFound(err):
 		return nil, "", nil
 	case err != nil:
-		s.scope.Info("", "aerr", err.Error())
+		return nil, "", err
 	}
 
 	if len(out.LaunchTemplateVersions) == 0 {
@@ -60,6 +60,33 @@ func (s *Service) GetLaunchTemplate(id string) (*expinfrav1.AWSLaunchTemplate, s
 	}
 
 	return s.SDKToLaunchTemplate(out.LaunchTemplateVersions[0])
+}
+
+// GetLaunchTemplateId returns the existing LaunchTemplateId or empty string if it doesn't exist.
+func (s *Service) GetLaunchTemplateID(launchTemplateName string) (string, error) {
+	if launchTemplateName == "" {
+		return "", nil
+	}
+
+	input := &ec2.DescribeLaunchTemplateVersionsInput{
+		LaunchTemplateName: aws.String(launchTemplateName),
+		Versions:           aws.StringSlice([]string{expinfrav1.LaunchTemplateLatestVersion}),
+	}
+
+	out, err := s.EC2Client.DescribeLaunchTemplateVersions(input)
+	switch {
+	case awserrors.IsNotFound(err):
+		return "", nil
+	case err != nil:
+		s.scope.Info("", "aerr", err.Error())
+		return "", err
+	}
+
+	if len(out.LaunchTemplateVersions) == 0 {
+		return "", nil
+	}
+
+	return aws.StringValue(out.LaunchTemplateVersions[0].LaunchTemplateId), nil
 }
 
 // CreateLaunchTemplate generates a launch template to be used with the autoscaling group

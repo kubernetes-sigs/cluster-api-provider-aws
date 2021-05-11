@@ -199,6 +199,21 @@ func (mr *MockEC2MachineInterfaceMockRecorder) GetLaunchTemplate(arg0 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLaunchTemplate", reflect.TypeOf((*MockEC2MachineInterface)(nil).GetLaunchTemplate), arg0)
 }
 
+// GetLaunchTemplateID mocks base method
+func (m *MockEC2MachineInterface) GetLaunchTemplateID(arg0 string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLaunchTemplateID", arg0)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLaunchTemplateID indicates an expected call of GetLaunchTemplateID
+func (mr *MockEC2MachineInterfaceMockRecorder) GetLaunchTemplateID(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLaunchTemplateID", reflect.TypeOf((*MockEC2MachineInterface)(nil).GetLaunchTemplateID), arg0)
+}
+
 // GetRunningInstanceByTags mocks base method
 func (m *MockEC2MachineInterface) GetRunningInstanceByTags(arg0 *scope.MachineScope) (*v1alpha4.Instance, error) {
 	m.ctrl.T.Helper()

@@ -61,6 +61,7 @@ type EC2MachineInterface interface {
 
 	DiscoverLaunchTemplateAMI(scope *scope.MachinePoolScope) (*string, error)
 	GetLaunchTemplate(id string) (lt *expinfrav1.AWSLaunchTemplate, userDataHash string, err error)
+	GetLaunchTemplateID(id string) (string, error)
 	CreateLaunchTemplate(scope *scope.MachinePoolScope, imageID *string, userData []byte) (string, error)
 	CreateLaunchTemplateVersion(scope *scope.MachinePoolScope, imageID *string, userData []byte) error
 	DeleteLaunchTemplate(id string) error
