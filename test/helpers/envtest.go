@@ -33,12 +33,12 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/test/helpers/external"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	"sigs.k8s.io/cluster-api/test/helpers"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -58,7 +58,6 @@ var (
 )
 
 func init() {
-	klog.InitFlags(nil)
 	logger := klogr.New()
 	// use klog as the internal logger for this envtest environment.
 	log.SetLogger(logger)
@@ -93,12 +92,9 @@ type TestEnvironmentConfiguration struct {
 
 // TestEnvironment encapsulates a Kubernetes local test environment.
 type TestEnvironment struct {
-	manager.Manager
-	client.Client
-	Config *rest.Config
-
-	cancel context.CancelFunc
+	helpers.TestEnvironment
 	env    *envtest.Environment
+	cancel context.CancelFunc
 }
 
 // NewTestEnvironmentConfiguration creates a new test environment configuration for running tests
@@ -168,10 +164,12 @@ func (t *TestEnvironmentConfiguration) Build() (*TestEnvironment, error) {
 	}
 
 	return &TestEnvironment{
-		Manager: mgr,
-		Client:  mgr.GetClient(),
-		Config:  mgr.GetConfig(),
-		env:     t.env,
+		TestEnvironment: helpers.TestEnvironment{
+			Manager: mgr,
+			Client:  mgr.GetClient(),
+			Config:  mgr.GetConfig(),
+		},
+		env: t.env,
 	}, nil
 
 }
