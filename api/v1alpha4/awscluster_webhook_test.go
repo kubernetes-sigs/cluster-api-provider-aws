@@ -24,7 +24,16 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
+
+func TestAWSClusterDefault(t *testing.T) {
+	cluster := &AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
+	t.Run("for AWSCluster", utildefaulting.DefaultValidateTest(cluster))
+	cluster.Default()
+	g := NewWithT(t)
+	g.Expect(cluster.Spec.IdentityRef).NotTo(BeNil())
+}
 
 func TestAWSCluster_ValidateCreate(t *testing.T) {
 	tests := []struct {

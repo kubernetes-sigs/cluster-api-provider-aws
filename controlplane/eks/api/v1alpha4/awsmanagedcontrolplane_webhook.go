@@ -169,8 +169,7 @@ func (r *AWSManagedControlPlane) validateEKSClusterName() field.ErrorList {
 
 func (r *AWSManagedControlPlane) validateEKSClusterNameSame(old *AWSManagedControlPlane) field.ErrorList {
 	var allErrs field.ErrorList
-
-	if r.Spec.EKSClusterName != old.Spec.EKSClusterName {
+	if old.Spec.EKSClusterName != "" && r.Spec.EKSClusterName != old.Spec.EKSClusterName {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec.eksClusterName"), r.Spec.EKSClusterName, "eksClusterName is different to current cluster name"))
 	}
 

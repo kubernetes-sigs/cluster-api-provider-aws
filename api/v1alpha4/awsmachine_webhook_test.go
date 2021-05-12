@@ -20,12 +20,21 @@ import (
 	"context"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
 	. "github.com/onsi/gomega"
 
+	"github.com/aws/aws-sdk-go/aws"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
+	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
+
+func TestMachineDefault(t *testing.T) {
+	machine := &AWSMachine{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
+	t.Run("for AWSMachine", utildefaulting.DefaultValidateTest(machine))
+	machine.Default()
+	g := NewWithT(t)
+	g.Expect(machine.Spec.CloudInit.SecureSecretsBackend).To(Equal(SecretBackendSecretsManager))
+}
 
 func TestAWSMachine_Create(t *testing.T) {
 	tests := []struct {

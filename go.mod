@@ -14,7 +14,7 @@ require (
 	github.com/golang/mock v1.4.4
 	github.com/google/goexpect v0.0.0-20200816234442-b5b77125c2c5
 	github.com/google/goterm v0.0.0-20200907032337-555d40f16ae2 // indirect
-	github.com/onsi/ginkgo v1.15.2
+	github.com/onsi/ginkgo v1.16.1
 	github.com/onsi/gomega v1.11.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.9.0
@@ -26,16 +26,16 @@ require (
 	golang.org/x/net v0.0.0-20210224082022-3d97a244fca7
 	golang.org/x/sys v0.0.0-20210502180810-71e4cd670f79 // indirect
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.21.0-beta.1
-	k8s.io/apiextensions-apiserver v0.21.0-beta.1
-	k8s.io/apimachinery v0.21.0-beta.1
-	k8s.io/cli-runtime v0.21.0-beta.1
-	k8s.io/client-go v0.21.0-beta.1
-	k8s.io/component-base v0.21.0-beta.1
+	k8s.io/api v0.21.0
+	k8s.io/apiextensions-apiserver v0.21.0
+	k8s.io/apimachinery v0.21.0
+	k8s.io/cli-runtime v0.21.0
+	k8s.io/client-go v0.21.0
+	k8s.io/component-base v0.21.0
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/utils v0.0.0-20210305010621-2afb4311ab10
 	sigs.k8s.io/aws-iam-authenticator v0.5.2
-	sigs.k8s.io/cluster-api v0.3.11-0.20210416165222-506078bb31ba
-	sigs.k8s.io/controller-runtime v0.9.0-alpha.1
+	sigs.k8s.io/cluster-api v0.3.11-0.20210511144736-321ec3976b18
+	sigs.k8s.io/controller-runtime v0.9.0-beta.1
 	sigs.k8s.io/yaml v1.2.0
 )
