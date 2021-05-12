@@ -156,12 +156,20 @@ func (s *NodegroupService) reconcileNodegroupIAMRole() error {
 
 	if s.scope.RoleName() == "" {
 		var roleName string
+		var err error
 		if !s.scope.EnableIAM() {
 			s.scope.Info("no EKS nodegroup role specified, using default EKS nodegroup role")
 			roleName = infrav1exp.DefaultEKSNodegroupRole
 		} else {
 			s.scope.Info("no EKS nodegroup role specified, using role based on nodegroup name")
-			roleName = fmt.Sprintf("%s-%s-nodegroup-iam-service-role", s.scope.KubernetesClusterName(), s.scope.NodegroupName())
+			roleName, err = eks.GenerateEKSName(
+				fmt.Sprintf("%s-%s", s.scope.KubernetesClusterName(), s.scope.NodegroupName()),
+				"-nodegroup-iam-service-role",
+				maxIAMRoleNameLength,
+			)
+			if err != nil {
+				return errors.Wrap(err, "failed to generate IAM role name")
+			}
 		}
 		s.scope.ManagedMachinePool.Spec.RoleName = roleName
 	}
