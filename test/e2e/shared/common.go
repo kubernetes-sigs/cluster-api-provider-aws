@@ -29,11 +29,13 @@ import (
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func SetupSpecNamespace(ctx context.Context, specName string, e2eCtx *E2EContext) *corev1.Namespace {
@@ -201,4 +203,22 @@ func SetEnvVar(key, value string, private bool) {
 
 	Byf("Setting environment variable: key=%s, value=%s", key, printableValue)
 	os.Setenv(key, value)
+}
+
+func CreateAWSClusterControllerIdentity(k8sclient crclient.Client) {
+	controllerIdentity := &infrav1.AWSClusterControllerIdentity{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: infrav1.GroupVersion.String(),
+			Kind:       string(infrav1.ControllerIdentityKind),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: infrav1.AWSClusterControllerIdentityName,
+		},
+		Spec: infrav1.AWSClusterControllerIdentitySpec{
+			AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+				AllowedNamespaces: &infrav1.AllowedNamespaces{},
+			},
+		},
+	}
+	k8sclient.Create(context.TODO(), controllerIdentity)
 }

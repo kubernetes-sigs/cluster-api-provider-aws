@@ -91,7 +91,22 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 func renderCustomCloudFormation(t *cfn_bootstrap.Template) *cloudformation.Template {
 	cloudformationTemplate := t.RenderCloudFormation()
 	appendMultiTenancyRoles(t, cloudformationTemplate)
+	appendGetQuotasPolicyToBootstrap(t)
 	return cloudformationTemplate
+}
+
+func appendGetQuotasPolicyToBootstrap(t *cfn_bootstrap.Template) {
+	t.Spec.BootstrapUser.ExtraStatements = append(t.Spec.BootstrapUser.ExtraStatements, iamv1.StatementEntry{
+		Effect: iamv1.EffectAllow,
+		Resource: iamv1.Resources{
+			"*",
+		},
+		Action: iamv1.Actions{
+			"servicequotas:GetServiceQuota",
+			"elasticloadbalancing:DescribeAccountLimits",
+			"ec2:DescribeAccountLimits",
+		},
+	})
 }
 
 func appendMultiTenancyRoles(t *cfn_bootstrap.Template, cfnt *cloudformation.Template) {

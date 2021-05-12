@@ -20,21 +20,19 @@ package shared
 
 import (
 	"context"
-	"github.com/awslabs/goformation/v4/cloudformation"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/iam"
-
+	"github.com/awslabs/goformation/v4/cloudformation"
+	"github.com/gofrs/flock"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-
+	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-
-	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
 )
 
 // Option represents an option to use when creating a e2e context
@@ -99,6 +97,8 @@ type Settings struct {
 	UseCIArtifacts bool
 	// SourceTemplate specifies which source template to use
 	SourceTemplate string
+	// FileLock is the lock to be used to read the resource quotas file
+	FileLock *flock.Flock
 }
 
 // RuntimeEnvironment represents the runtime environment of the test
