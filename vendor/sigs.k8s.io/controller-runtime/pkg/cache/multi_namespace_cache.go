@@ -29,14 +29,19 @@ import (
 	"k8s.io/client-go/rest"
 	toolscache "k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/internal/objectutil"
 )
 
 // NewCacheFunc - Function for creating a new cache from the options and a rest config
 type NewCacheFunc func(config *rest.Config, opts Options) (Cache, error)
 
+// a new global namespaced cache to handle cluster scoped resources
+const globalCache = "_cluster-scope"
+
 // MultiNamespacedCacheBuilder - Builder function to create a new multi-namespaced cache.
 // This will scope the cache to a list of namespaces. Listing for all namespaces
-// will list for all the namespaces that this knows about. Note that this is not intended
+// will list for all the namespaces that this knows about. By default this will create
+// a global cache for cluster scoped resource (having empty namespace). Note that this is not intended
 // to be used for excluding namespaces, this is better done via a Predicate. Also note that
 // you may face performance issues when using this with a high number of namespaces.
 func MultiNamespacedCacheBuilder(namespaces []string) NewCacheFunc {
@@ -45,6 +50,8 @@ func MultiNamespacedCacheBuilder(namespaces []string) NewCacheFunc {
 		if err != nil {
 			return nil, err
 		}
+		// create a cache for cluster scoped resources
+		namespaces = append(namespaces, globalCache)
 		caches := map[string]Cache{}
 		for _, ns := range namespaces {
 			opts.Namespace = ns
@@ -54,7 +61,7 @@ func MultiNamespacedCacheBuilder(namespaces []string) NewCacheFunc {
 			}
 			caches[ns] = c
 		}
-		return &multiNamespaceCache{namespaceToCache: caches, Scheme: opts.Scheme}, nil
+		return &multiNamespaceCache{namespaceToCache: caches, Scheme: opts.Scheme, RESTMapper: opts.Mapper}, nil
 	}
 }
 
@@ -65,6 +72,7 @@ func MultiNamespacedCacheBuilder(namespaces []string) NewCacheFunc {
 type multiNamespaceCache struct {
 	namespaceToCache map[string]Cache
 	Scheme           *runtime.Scheme
+	RESTMapper       meta.RESTMapper
 }
 
 var _ Cache = &multiNamespaceCache{}
@@ -127,6 +135,17 @@ func (c *multiNamespaceCache) IndexField(ctx context.Context, obj client.Object,
 }
 
 func (c *multiNamespaceCache) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+	isNamespaced, err := objectutil.IsAPINamespaced(obj, c.Scheme, c.RESTMapper)
+	if err != nil {
+		return err
+	}
+
+	if !isNamespaced {
+		// Look into the global cache to fetch the object
+		cache := c.namespaceToCache[globalCache]
+		return cache.Get(ctx, key, obj)
+	}
+
 	cache, ok := c.namespaceToCache[key.Namespace]
 	if !ok {
 		return fmt.Errorf("unable to get: %v because of unknown namespace for the cache", key)
@@ -138,6 +157,18 @@ func (c *multiNamespaceCache) Get(ctx context.Context, key client.ObjectKey, obj
 func (c *multiNamespaceCache) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
 	listOpts := client.ListOptions{}
 	listOpts.ApplyOptions(opts)
+
+	isNamespaced, err := objectutil.IsAPINamespaced(list, c.Scheme, c.RESTMapper)
+	if err != nil {
+		return err
+	}
+
+	if !isNamespaced {
+		// Look at the global cache to get the objects with the specified GVK
+		cache := c.namespaceToCache[globalCache]
+		return cache.List(ctx, list, opts...)
+	}
+
 	if listOpts.Namespace != corev1.NamespaceAll {
 		cache, ok := c.namespaceToCache[listOpts.Namespace]
 		if !ok {
@@ -155,10 +186,13 @@ func (c *multiNamespaceCache) List(ctx context.Context, list client.ObjectList, 
 	if err != nil {
 		return err
 	}
+
+	limitSet := listOpts.Limit > 0
+
 	var resourceVersion string
 	for _, cache := range c.namespaceToCache {
 		listObj := list.DeepCopyObject().(client.ObjectList)
-		err = cache.List(ctx, listObj, opts...)
+		err = cache.List(ctx, listObj, &listOpts)
 		if err != nil {
 			return err
 		}
@@ -173,6 +207,17 @@ func (c *multiNamespaceCache) List(ctx context.Context, list client.ObjectList, 
 		allItems = append(allItems, items...)
 		// The last list call should have the most correct resource version.
 		resourceVersion = accessor.GetResourceVersion()
+		if limitSet {
+			// decrement Limit by the number of items
+			// fetched from the current namespace.
+			listOpts.Limit -= int64(len(items))
+			// if a Limit was set and the number of
+			// items read has reached this set limit,
+			// then stop reading.
+			if listOpts.Limit == 0 {
+				break
+			}
+		}
 	}
 	listAccessor.SetResourceVersion(resourceVersion)
 
