@@ -97,7 +97,7 @@ type Settings struct {
 	UseCIArtifacts bool
 	// SourceTemplate specifies which source template to use
 	SourceTemplate string
-	// FileLock is the lock to be used to  specifies which source template to use
+	// FileLock is the lock to be used to read the resource quotas file
 	FileLock *flock.Flock
 }
 

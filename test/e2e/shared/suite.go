@@ -148,7 +148,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	SetEnvVar("AWS_B64ENCODED_CREDENTIALS", encodeCredentials(e2eCtx.Environment.BootstrapAccessKey, boostrapTemplate.Spec.Region), true)
 
 	By("Writing AWS service quotas to a file for parallel tests")
-	WriteResourceQuotesToFile(GetServiceQuotas(e2eCtx.AWSSession))
+	WriteResourceQuotesToFile(GetServiceQuotas(e2eCtx.BootstratpUserAWSSession))
 
 	By("Initializing the bootstrap cluster")
 	initBootstrapCluster(e2eCtx)

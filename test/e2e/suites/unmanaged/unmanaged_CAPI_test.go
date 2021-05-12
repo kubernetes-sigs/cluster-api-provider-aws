@@ -54,7 +54,7 @@ var _ = Describe("Cluster API E2E tests - unmanaged", func() {
 	SetDefaultEventuallyTimeout(20 * time.Minute)
 	SetDefaultEventuallyPollingInterval(10 * time.Second)
 	Context("Running the quick-start spec [PR-Blocking]", func() {
-		// As the resources cannot be defines by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
+		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 		requiredResources := &shared.TestResource{EC2: 2, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3}
 		BeforeEach(func() {
 			requiredResources.WriteRequestedResources(e2eCtx, "capi-quick-start-test")
@@ -74,7 +74,7 @@ var _ = Describe("Cluster API E2E tests - unmanaged", func() {
 		})
 	})
 	Context("Running the KCP upgrade spec", func() {
-		// As the resources cannot be defines by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
+		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 		requiredResources := &shared.TestResource{EC2: 4, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3}
 		BeforeEach(func() {
 			requiredResources.WriteRequestedResources(e2eCtx, "capi-kcp-upgrade-test")
@@ -94,7 +94,7 @@ var _ = Describe("Cluster API E2E tests - unmanaged", func() {
 		})
 	})
 	Context("Running the MachineDeployment upgrade spec", func() {
-		// As the resources cannot be defines by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
+		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 		requiredResources := &shared.TestResource{EC2: 2, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3}
 		BeforeEach(func() {
 			requiredResources.WriteRequestedResources(e2eCtx, "capi-machinedeployment-upgrade-test")
@@ -115,7 +115,7 @@ var _ = Describe("Cluster API E2E tests - unmanaged", func() {
 		})
 	})
 	Context("Running the MachineRemediation spec", func() {
-		// As the resources cannot be defines by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
+		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 		requiredResources := &shared.TestResource{EC2: 4, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3}
 		BeforeEach(func() {
 			requiredResources.WriteRequestedResources(e2eCtx, "capi-remediation-test")
@@ -136,7 +136,7 @@ var _ = Describe("Cluster API E2E tests - unmanaged", func() {
 		})
 	})
 	Context("Running the Machine pool spec", func() {
-		// As the resources cannot be defines by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
+		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 		requiredResources := &shared.TestResource{EC2: 4, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
 		BeforeEach(func() {
 			requiredResources.WriteRequestedResources(e2eCtx, "capi-machinepool-test")
