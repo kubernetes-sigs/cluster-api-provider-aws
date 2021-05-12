@@ -75,6 +75,18 @@ func (r *AWSFargateProfile) ValidateUpdate(oldObj runtime.Object) error {
 	}
 
 	var allErrs field.ErrorList
+
+	// Spec is immutable, but if the new ProfileName is the defaulted one and
+	// the old ProfileName is nil, then ignore checking that field.
+	if old.Spec.ProfileName == "" {
+		name, err := eks.GenerateEKSName(old.Name, old.Namespace, maxProfileNameLength)
+		if err != nil {
+			mmpLog.Error(err, "failed to create EKS nodegroup name")
+		}
+		if r.Spec.ProfileName == name {
+			r.Spec.ProfileName = ""
+		}
+	}
 	if !reflect.DeepEqual(old.Spec, r.Spec) {
 		allErrs = append(
 			allErrs,

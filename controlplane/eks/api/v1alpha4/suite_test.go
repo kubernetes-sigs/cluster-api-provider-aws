@@ -21,13 +21,13 @@ import (
 	"math/rand"
 	"os"
 	"path"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"strconv"
 	"testing"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var (

@@ -179,7 +179,9 @@ func (r *AWSManagedMachinePool) validateImmutable(old *AWSManagedMachinePool) fi
 		}
 	}
 
-	appendErrorIfMutated(old.Spec.EKSNodegroupName, r.Spec.EKSNodegroupName, "eksNodegroupName")
+	if old.Spec.EKSNodegroupName != "" {
+		appendErrorIfMutated(old.Spec.EKSNodegroupName, r.Spec.EKSNodegroupName, "eksNodegroupName")
+	}
 	appendErrorIfMutated(old.Spec.SubnetIDs, r.Spec.SubnetIDs, "subnetIDs")
 	appendErrorIfSetAndMutated(old.Spec.RoleName, r.Spec.RoleName, "roleName")
 	appendErrorIfMutated(old.Spec.DiskSize, r.Spec.DiskSize, "diskSize")
