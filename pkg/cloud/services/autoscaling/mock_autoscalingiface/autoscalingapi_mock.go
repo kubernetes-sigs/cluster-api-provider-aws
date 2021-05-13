@@ -901,6 +901,56 @@ func (mr *MockAutoScalingAPIMockRecorder) DeleteTagsWithContext(arg0, arg1 inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTagsWithContext", reflect.TypeOf((*MockAutoScalingAPI)(nil).DeleteTagsWithContext), varargs...)
 }
 
+// DeleteWarmPool mocks base method
+func (m *MockAutoScalingAPI) DeleteWarmPool(arg0 *autoscaling.DeleteWarmPoolInput) (*autoscaling.DeleteWarmPoolOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteWarmPool", arg0)
+	ret0, _ := ret[0].(*autoscaling.DeleteWarmPoolOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteWarmPool indicates an expected call of DeleteWarmPool
+func (mr *MockAutoScalingAPIMockRecorder) DeleteWarmPool(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteWarmPool", reflect.TypeOf((*MockAutoScalingAPI)(nil).DeleteWarmPool), arg0)
+}
+
+// DeleteWarmPoolRequest mocks base method
+func (m *MockAutoScalingAPI) DeleteWarmPoolRequest(arg0 *autoscaling.DeleteWarmPoolInput) (*request.Request, *autoscaling.DeleteWarmPoolOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteWarmPoolRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*autoscaling.DeleteWarmPoolOutput)
+	return ret0, ret1
+}
+
+// DeleteWarmPoolRequest indicates an expected call of DeleteWarmPoolRequest
+func (mr *MockAutoScalingAPIMockRecorder) DeleteWarmPoolRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteWarmPoolRequest", reflect.TypeOf((*MockAutoScalingAPI)(nil).DeleteWarmPoolRequest), arg0)
+}
+
+// DeleteWarmPoolWithContext mocks base method
+func (m *MockAutoScalingAPI) DeleteWarmPoolWithContext(arg0 context.Context, arg1 *autoscaling.DeleteWarmPoolInput, arg2 ...request.Option) (*autoscaling.DeleteWarmPoolOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteWarmPoolWithContext", varargs...)
+	ret0, _ := ret[0].(*autoscaling.DeleteWarmPoolOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteWarmPoolWithContext indicates an expected call of DeleteWarmPoolWithContext
+func (mr *MockAutoScalingAPIMockRecorder) DeleteWarmPoolWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteWarmPoolWithContext", reflect.TypeOf((*MockAutoScalingAPI)(nil).DeleteWarmPoolWithContext), varargs...)
+}
+
 // DescribeAccountLimits mocks base method
 func (m *MockAutoScalingAPI) DescribeAccountLimits(arg0 *autoscaling.DescribeAccountLimitsInput) (*autoscaling.DescribeAccountLimitsOutput, error) {
 	m.ctrl.T.Helper()
@@ -2115,6 +2165,56 @@ func (mr *MockAutoScalingAPIMockRecorder) DescribeTerminationPolicyTypesWithCont
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTerminationPolicyTypesWithContext", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeTerminationPolicyTypesWithContext), varargs...)
 }
 
+// DescribeWarmPool mocks base method
+func (m *MockAutoScalingAPI) DescribeWarmPool(arg0 *autoscaling.DescribeWarmPoolInput) (*autoscaling.DescribeWarmPoolOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeWarmPool", arg0)
+	ret0, _ := ret[0].(*autoscaling.DescribeWarmPoolOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeWarmPool indicates an expected call of DescribeWarmPool
+func (mr *MockAutoScalingAPIMockRecorder) DescribeWarmPool(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeWarmPool", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeWarmPool), arg0)
+}
+
+// DescribeWarmPoolRequest mocks base method
+func (m *MockAutoScalingAPI) DescribeWarmPoolRequest(arg0 *autoscaling.DescribeWarmPoolInput) (*request.Request, *autoscaling.DescribeWarmPoolOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeWarmPoolRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*autoscaling.DescribeWarmPoolOutput)
+	return ret0, ret1
+}
+
+// DescribeWarmPoolRequest indicates an expected call of DescribeWarmPoolRequest
+func (mr *MockAutoScalingAPIMockRecorder) DescribeWarmPoolRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeWarmPoolRequest", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeWarmPoolRequest), arg0)
+}
+
+// DescribeWarmPoolWithContext mocks base method
+func (m *MockAutoScalingAPI) DescribeWarmPoolWithContext(arg0 context.Context, arg1 *autoscaling.DescribeWarmPoolInput, arg2 ...request.Option) (*autoscaling.DescribeWarmPoolOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeWarmPoolWithContext", varargs...)
+	ret0, _ := ret[0].(*autoscaling.DescribeWarmPoolOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeWarmPoolWithContext indicates an expected call of DescribeWarmPoolWithContext
+func (mr *MockAutoScalingAPIMockRecorder) DescribeWarmPoolWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeWarmPoolWithContext", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeWarmPoolWithContext), varargs...)
+}
+
 // DetachInstances mocks base method
 func (m *MockAutoScalingAPI) DetachInstances(arg0 *autoscaling.DetachInstancesInput) (*autoscaling.DetachInstancesOutput, error) {
 	m.ctrl.T.Helper()
@@ -2713,6 +2813,56 @@ func (mr *MockAutoScalingAPIMockRecorder) PutScheduledUpdateGroupActionWithConte
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutScheduledUpdateGroupActionWithContext", reflect.TypeOf((*MockAutoScalingAPI)(nil).PutScheduledUpdateGroupActionWithContext), varargs...)
+}
+
+// PutWarmPool mocks base method
+func (m *MockAutoScalingAPI) PutWarmPool(arg0 *autoscaling.PutWarmPoolInput) (*autoscaling.PutWarmPoolOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PutWarmPool", arg0)
+	ret0, _ := ret[0].(*autoscaling.PutWarmPoolOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PutWarmPool indicates an expected call of PutWarmPool
+func (mr *MockAutoScalingAPIMockRecorder) PutWarmPool(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutWarmPool", reflect.TypeOf((*MockAutoScalingAPI)(nil).PutWarmPool), arg0)
+}
+
+// PutWarmPoolRequest mocks base method
+func (m *MockAutoScalingAPI) PutWarmPoolRequest(arg0 *autoscaling.PutWarmPoolInput) (*request.Request, *autoscaling.PutWarmPoolOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PutWarmPoolRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*autoscaling.PutWarmPoolOutput)
+	return ret0, ret1
+}
+
+// PutWarmPoolRequest indicates an expected call of PutWarmPoolRequest
+func (mr *MockAutoScalingAPIMockRecorder) PutWarmPoolRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutWarmPoolRequest", reflect.TypeOf((*MockAutoScalingAPI)(nil).PutWarmPoolRequest), arg0)
+}
+
+// PutWarmPoolWithContext mocks base method
+func (m *MockAutoScalingAPI) PutWarmPoolWithContext(arg0 context.Context, arg1 *autoscaling.PutWarmPoolInput, arg2 ...request.Option) (*autoscaling.PutWarmPoolOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "PutWarmPoolWithContext", varargs...)
+	ret0, _ := ret[0].(*autoscaling.PutWarmPoolOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PutWarmPoolWithContext indicates an expected call of PutWarmPoolWithContext
+func (mr *MockAutoScalingAPIMockRecorder) PutWarmPoolWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutWarmPoolWithContext", reflect.TypeOf((*MockAutoScalingAPI)(nil).PutWarmPoolWithContext), varargs...)
 }
 
 // RecordLifecycleActionHeartbeat mocks base method

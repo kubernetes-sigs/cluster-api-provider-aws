@@ -195,3 +195,57 @@ var (
 	// ASGStatusDeleteInProgress is the string representing an ASG that is currently deleting
 	ASGStatusDeleteInProgress = ASGStatus("Delete in progress")
 )
+
+// TaintEffect is the effect for a Kubernetes taint
+type TaintEffect string
+
+var (
+	// TaintEffectNoSchedule is a taint that indicates that a pod shouldn't be scheduled on a node
+	// unless it can tolerate the taint.
+	TaintEffectNoSchedule = TaintEffect("no-schedule")
+	// TaintEffectNoExecute is a taint that indicates that a pod shouldn't be schedule on a node
+	// unless it can tolerate it. And if its already running on the node it will be evicted.
+	TaintEffectNoExecute = TaintEffect("no-execute")
+	// TaintEffectPreferNoSchedule is a taint that indicates that there is a "preference" that pods shouldn't
+	// be scheduled on a node unless it can tolerate the taint. the scheduler will try to avoid placing the pod
+	// but it may still run on the node if there is no other option.
+	TaintEffectPreferNoSchedule = TaintEffect("prefer-no-schedule")
+)
+
+type Taint struct {
+	// Effect specifies the effect for the taint
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Enum=no-schedule;no-execute;prefer-no-schedule
+	Effect TaintEffect `json:"effect"`
+	// Key is the key of the taint
+	// +kubebuilder:validation:Required
+	Key string `json:"key"`
+	// Value is the value of the taint
+	// +kubebuilder:validation:Required
+	Value string `json:"value"`
+}
+
+// Equals is used to test if 2 taints are equal
+func (t *Taint) Equals(other *Taint) bool {
+	if t == nil || other == nil {
+		return t == other
+	}
+
+	return t.Effect == other.Effect &&
+		t.Key == other.Key &&
+		t.Value == other.Value
+}
+
+// Taints is an array of Taints
+type Taints []Taint
+
+// Contains checks for existence of a matching taint
+func (t *Taints) Contains(taint *Taint) bool {
+	for _, t := range *t {
+		if t.Equals(taint) {
+			return true
+		}
+	}
+
+	return false
+}
