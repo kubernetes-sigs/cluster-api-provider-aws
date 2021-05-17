@@ -60,7 +60,15 @@ func NewFargateProfileScope(params FargateProfileScopeParams) (*FargateProfileSc
 		params.Logger = klogr.New()
 	}
 
-	session, serviceLimiters, err := sessionForRegion(params.ControlPlane.Spec.Region, params.Endpoints)
+	managedScope := &ManagedControlPlaneScope{
+		Logger:         params.Logger,
+		Client:         params.Client,
+		Cluster:        params.Cluster,
+		ControlPlane:   params.ControlPlane,
+		controllerName: params.ControllerName,
+	}
+
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
