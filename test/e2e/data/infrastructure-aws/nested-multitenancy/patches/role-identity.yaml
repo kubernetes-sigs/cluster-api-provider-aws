@@ -1,0 +1,9 @@
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: AWSCluster
+metadata:
+  name: "${CLUSTER_NAME}"
+spec:
+  identityRef:
+    kind: AWSClusterRoleIdentity
+    name: "${MULTI_TENANCY_NESTED_IDENTITY_NAME}"
