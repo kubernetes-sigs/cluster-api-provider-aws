@@ -137,7 +137,7 @@ intervals:
   default/wait-control-plane: ["30m", "10s"]
   default/wait-worker-nodes: ["30m", "10s"]
   default/wait-controllers: ["3m", "10s"]
-  default/wait-delete-cluster: ["30m", "10s"]
+  default/wait-delete-cluster: ["35m", "10s"]
   default/wait-delete-machine: ["10m", "10s"]
   default/wait-delete-machine-deployment: ["10m", "10s"]
   default/wait-delete-machine-pool: ["20m", "10s"]
