@@ -1214,8 +1214,9 @@ sigs.k8s.io/aws-iam-authenticator v0.5.2 h1:eGCtm6lLVpVVpsIBC1y4OwyQRhmg+A/OPXVM
 sigs.k8s.io/aws-iam-authenticator v0.5.2/go.mod h1:yPDLi58MDx1UtCrRMOykLm1IyKKPGHgcGCafcbn2s3E=
 sigs.k8s.io/cluster-api v0.3.11-0.20210511144736-321ec3976b18 h1:wNRBtyljdZimbISEmFbsqovaOuF/RPoxP0wCTsBWwgw=
 sigs.k8s.io/cluster-api v0.3.11-0.20210511144736-321ec3976b18/go.mod h1:JNxsjqItNX6goMhep3rPKpyPHHCV1kkBu9IrQm43uqE=
-sigs.k8s.io/controller-runtime v0.9.0-beta.1 h1:pmJVlNQeVMtkszjrRP59XT55Ny7+1it7ri3yyukwYTE=
 sigs.k8s.io/controller-runtime v0.9.0-beta.1/go.mod h1:ufPDuvefw2Y1KnBgHQrLdOjueYlj+XJV2AszbT+WTxs=
+sigs.k8s.io/controller-runtime v0.9.0-beta.5 h1:yteq8am8lUFvlI/bfIgySMp/MqAPXiAghxX+XrMCifE=
+sigs.k8s.io/controller-runtime v0.9.0-beta.5/go.mod h1:ufPDuvefw2Y1KnBgHQrLdOjueYlj+XJV2AszbT+WTxs=
 sigs.k8s.io/kind v0.9.0 h1:SoDlXq6pEc7dGagHULNRCCBYrLH6xOi7lqXTRXeAlg4=
 sigs.k8s.io/kind v0.9.0/go.mod h1:cxKQWwmbtRDzQ+RNKnR6gZG6fjbeTtItp5cGf+ww+1Y=
 sigs.k8s.io/kustomize/api v0.8.5/go.mod h1:M377apnKT5ZHJS++6H4rQoCHmWtt6qTpp3mbe7p6OLY=
