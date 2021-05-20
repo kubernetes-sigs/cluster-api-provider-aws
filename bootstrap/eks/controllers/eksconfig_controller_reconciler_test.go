@@ -19,8 +19,8 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
@@ -32,34 +32,30 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-var _ = Describe("EKSConfigReconciler", func() {
-	BeforeEach(func() {})
-	AfterEach(func() {})
+func TestEKSConfigReconciler(t *testing.T) {
+	t.Run("Should reconcile an EKSConfig and wait until infrastructure is ready", func(t *testing.T) {
+		g := NewWithT(t)
+		cluster := newCluster("test-cluster")
+		machine := newMachine(cluster, "test-machine")
+		config := newEKSConfig(machine, "test-config")
 
-	Context("Reconcile an EKSConfig", func() {
-		It("should wait until infrastructure is ready", func() {
-			cluster := newCluster("test-cluster")
-			machine := newMachine(cluster, "test-machine")
-			config := newEKSConfig(machine, "test-config")
+		bytes, err := yaml.Marshal(machine)
+		g.Expect(err).To(BeNil())
 
-			bytes, err := yaml.Marshal(machine)
-			Expect(err).To(BeNil())
+		owner := &unstructured.Unstructured{}
+		err = yaml.Unmarshal(bytes, owner)
+		g.Expect(err).To(BeNil())
 
-			owner := &unstructured.Unstructured{}
-			err = yaml.Unmarshal(bytes, owner)
-			Expect(err).To(BeNil())
+		reconciler := EKSConfigReconciler{
+			Client: testEnv.Client,
+		}
 
-			reconciler := EKSConfigReconciler{
-				Client: testEnv.Client,
-			}
-
-			By("Calling reconcile should requeue")
-			result, err := reconciler.joinWorker(context.Background(), cluster, config)
-			Expect(err).To(Succeed())
-			Expect(result.Requeue).To(BeFalse())
-		})
+		t.Log("Calling reconcile should requeue")
+		result, err := reconciler.joinWorker(context.Background(), cluster, config)
+		g.Expect(err).To(Succeed())
+		g.Expect(result.Requeue).To(BeFalse())
 	})
-})
+}
 
 // newCluster return a CAPI cluster object
 func newCluster(name string) *clusterv1.Cluster {

@@ -18,10 +18,8 @@ package v1alpha4
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
 	"path"
-	"strconv"
 	"testing"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -71,6 +69,3 @@ func teardown() {
 	}
 }
 
-func randomName() string {
-	return strconv.FormatInt(rand.Int63(), 10)
-}

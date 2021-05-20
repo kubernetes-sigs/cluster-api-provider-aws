@@ -22,9 +22,6 @@ import (
 	"path"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/golang/mock/gomock"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -36,7 +33,6 @@ import (
 	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -50,14 +46,6 @@ var (
 	mockCtrl  *gomock.Controller
 	ctx       = ctrl.SetupSignalHandler()
 )
-
-func TestAPIs(t *testing.T) {
-	RegisterFailHandler(Fail)
-
-	RunSpecsWithDefaultAndCustomReporters(t,
-		"Controller Suite",
-		[]Reporter{printer.NewlineReporter{}})
-}
 
 func TestMain(m *testing.M) {
 	code := 0

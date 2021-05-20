@@ -17,42 +17,38 @@ limitations under the License.
 package controllers
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"golang.org/x/net/context"
+	"testing"
 
+	. "github.com/onsi/gomega"
+
+	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("AWSClusterReconciler", func() {
-	BeforeEach(func() {})
-	AfterEach(func() {})
+func TestAWSClusterReconciler(t *testing.T) {
+	g := NewWithT(t)
+	ctx := context.Background()
 
-	Context("Reconcile an AWSCluster", func() {
-		It("should not error and not requeue the request with insufficient set up", func() {
-			ctx := context.Background()
+	reconciler := &AWSClusterReconciler{
+		Client: testEnv.Client,
+	}
 
-			reconciler := &AWSClusterReconciler{
-				Client: testEnv.Client,
-			}
+	instance := &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
+	instance.Default()
 
-			instance := &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
-			instance.Default()
+	// Create the AWSCluster object and expect the Reconcile and Deployment to be created
+	g.Expect(testEnv.Create(ctx, instance)).To(Succeed())
 
-			// Create the AWSCluster object and expect the Reconcile and Deployment to be created
-			Expect(testEnv.Create(ctx, instance)).To(Succeed())
-
-			result, err := reconciler.Reconcile(ctx, ctrl.Request{
-				NamespacedName: client.ObjectKey{
-					Namespace: instance.Namespace,
-					Name:      instance.Name,
-				},
-			})
-			Expect(err).To(BeNil())
-			Expect(result.RequeueAfter).To(BeZero())
-		})
+	// Calling reconcile should not error and not requeue the request with insufficient set up
+	result, err := reconciler.Reconcile(ctx, ctrl.Request{
+		NamespacedName: client.ObjectKey{
+			Namespace: instance.Namespace,
+			Name:      instance.Name,
+		},
 	})
-})
+	g.Expect(err).To(BeNil())
+	g.Expect(result.RequeueAfter).To(BeZero())
+}

@@ -39,20 +39,20 @@ func createAWSCluster(name string) *infrav1.AWSCluster {
 	}
 }
 
-func persistObject(o client.Object) {
+func persistObject(g *WithT, o client.Object) {
 	ctx := context.TODO()
-	Expect(k8sClient.Create(ctx, o)).Should(Succeed())
+	g.Expect(k8sClient.Create(ctx, o)).Should(Succeed())
 	metaObj, err := meta.Accessor(o)
-	Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).NotTo(HaveOccurred())
 	lookupKey := types.NamespacedName{Name: metaObj.GetName(), Namespace: metaObj.GetNamespace()}
 
-	Eventually(func() bool {
+	g.Eventually(func() bool {
 		err := k8sClient.Get(ctx, lookupKey, o)
 		return err == nil
 	}, time.Second*10).Should(BeTrue())
 }
 
-func deleteAWSCluster(name string) {
+func deleteAWSCluster(g *WithT,name string) {
 	ctx := context.TODO()
 	awsLookupKey := types.NamespacedName{Name: name, Namespace: "default"}
 	awsCluster := &infrav1.AWSCluster{}
@@ -64,5 +64,5 @@ func deleteAWSCluster(name string) {
 		}
 		Fail("Unexpected error when fetching cluster")
 	}
-	Expect(k8sClient.Delete(ctx, awsCluster)).To(Succeed())
+	g.Expect(k8sClient.Delete(ctx, awsCluster)).To(Succeed())
 }

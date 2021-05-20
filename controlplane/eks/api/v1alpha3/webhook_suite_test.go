@@ -22,33 +22,18 @@ import (
 	"path"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	controlplanev1alpha4 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	// +kubebuilder:scaffold:imports
 )
-
-// These tests use Ginkgo (BDD-style Go testing framework). Refer to
-// http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var (
 	testEnv *helpers.TestEnvironment
 	ctx     = ctrl.SetupSignalHandler()
 )
-
-func TestAPIs(t *testing.T) {
-	RegisterFailHandler(Fail)
-
-	RunSpecsWithDefaultAndCustomReporters(t,
-		"Controller Suite",
-		[]Reporter{printer.NewlineReporter{}})
-}
 
 func TestMain(m *testing.M) {
 	code := 0
