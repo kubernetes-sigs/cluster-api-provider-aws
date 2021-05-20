@@ -1475,6 +1475,71 @@ spec:
                         type: object
                     type: object
                 type: object
+              oidcIdentityProviderConfig:
+                description: IdentityProviderconfig is used to specify the oidc provider
+                  config to be attached with this eks cluster
+                properties:
+                  clientId:
+                    description: This is also known as audience. The ID for the client
+                      application that makes authentication requests to the OpenID
+                      identity provider.
+                    type: string
+                  groupsClaim:
+                    description: The JWT claim that the provider uses to return your
+                      groups.
+                    type: string
+                  groupsPrefix:
+                    description: 'The prefix that is prepended to group claims to
+                      prevent clashes with existing names (such as system: groups).
+                      For example, the valueoidc: will create group names like oidc:engineering
+                      and oidc:infra.'
+                    type: string
+                  identityProviderConfigName:
+                    description: "The name of the OIDC provider configuration. \n
+                      IdentityProviderConfigName is a required field"
+                    type: string
+                  issuerUrl:
+                    description: The URL of the OpenID identity provider that allows
+                      the API server to discover public signing keys for verifying
+                      tokens. The URL must begin with https:// and should correspond
+                      to the iss claim in the provider's OIDC ID tokens. Per the OIDC
+                      standard, path components are allowed but query parameters are
+                      not. Typically the URL consists of only a hostname, like https://server.example.org
+                      or https://example.com. This URL should point to the level below
+                      .well-known/openid-configuration and must be publicly accessible
+                      over the internet.
+                    type: string
+                  requiredClaims:
+                    additionalProperties:
+                      type: string
+                    description: The key value pairs that describe required claims
+                      in the identity token. If set, each claim is verified to be
+                      present in the token with a matching value. For the maximum
+                      number of claims that you can require, see Amazon EKS service
+                      quotas (https://docs.aws.amazon.com/eks/latest/userguide/service-quotas.html)
+                      in the Amazon EKS User Guide.
+                    type: object
+                  tags:
+                    additionalProperties:
+                      type: string
+                    description: tags to apply to oidc identity provider association
+                    type: object
+                  usernameClaim:
+                    description: The JSON Web Token (JWT) claim to use as the username.
+                      The default is sub, which is expected to be a unique identifier
+                      of the end user. You can choose other claims, such as email
+                      or name, depending on the OpenID identity provider. Claims other
+                      than email are prefixed with the issuer URL to prevent naming
+                      clashes with other plug-ins.
+                    type: string
+                  usernamePrefix:
+                    description: The prefix that is prepended to username claims to
+                      prevent clashes with existing names. If you do not provide this
+                      field, and username is a value other than email, the prefix
+                      defaults to issuerurl#. You can use the value - to disable all
+                      prefixing.
+                    type: string
+                type: object
               region:
                 description: The AWS Region the cluster lives in.
                 type: string
@@ -1834,6 +1899,18 @@ spec:
                 description: ErrorMessage indicates that there is a terminal problem
                   reconciling the state, and will be set to a descriptive error message.
                 type: string
+              identityProviderStatus:
+                description: IdentityProviderStatus holds the status for associated
+                  identity provider
+                properties:
+                  arn:
+                    description: ARN holds the ARN of associated identity provider
+                    type: string
+                  status:
+                    description: Status holds current status of associated identity
+                      provider
+                    type: string
+                type: object
               initialized:
                 description: Initialized denotes whether or not the control plane
                   has the uploaded kubernetes config-map.

@@ -22,11 +22,11 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks/identityprovider"
 )
 
 var (
@@ -141,4 +141,22 @@ func TaintEffectFromSDK(effect string) (infrav1exp.TaintEffect, error) {
 	default:
 		return "", ErrUnknowTaintEffect
 	}
+}
+
+func ConvertSDKToIdentityProvider(in *ekscontrolplanev1.OIDCIdentityProviderConfig) *identityprovider.OidcIdentityProviderConfig {
+	if in != nil {
+		return &identityprovider.OidcIdentityProviderConfig{
+			ClientID:                   in.ClientID,
+			GroupsClaim:                in.GroupsClaim,
+			GroupsPrefix:               in.GroupsPrefix,
+			IdentityProviderConfigName: in.IdentityProviderConfigName,
+			IssuerURL:                  in.IssuerURL,
+			RequiredClaims:             aws.StringMap(in.RequiredClaims),
+			Tags:                       in.Tags,
+			UsernameClaim:              in.UsernameClaim,
+			UsernamePrefix:             in.UsernamePrefix,
+		}
+	}
+
+	return nil
 }
