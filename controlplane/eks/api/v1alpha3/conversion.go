@@ -103,3 +103,12 @@ func Convert_v1alpha4_Instance_To_v1alpha3_Instance(in *infrav1alpha4.Instance, 
 func Convert_v1alpha3_Instance_To_v1alpha4_Instance(in *infrav1alpha3.Instance, out *infrav1alpha4.Instance, s apiconversion.Scope) error {
 	return infrav1alpha3.Convert_v1alpha3_Instance_To_v1alpha4_Instance(in, out, s)
 }
+
+
+func Convert_v1alpha4_AWSManagedControlPlaneSpec_To_v1alpha3_AWSManagedControlPlaneSpec(in *v1alpha4.AWSManagedControlPlaneSpec, out *AWSManagedControlPlaneSpec, scope apiconversion.Scope) error {
+	return autoConvert_v1alpha4_AWSManagedControlPlaneSpec_To_v1alpha3_AWSManagedControlPlaneSpec(in, out, scope)
+}
+
+func Convert_v1alpha4_AWSManagedControlPlaneStatus_To_v1alpha3_AWSManagedControlPlaneStatus(in *v1alpha4.AWSManagedControlPlaneStatus, out *AWSManagedControlPlaneStatus, scope apiconversion.Scope) error {
+	return autoConvert_v1alpha4_AWSManagedControlPlaneStatus_To_v1alpha3_AWSManagedControlPlaneStatus(in, out, scope)
+}
