@@ -9,7 +9,7 @@
 5. Push the commit of the tag to the release branch: `git push origin HEAD:release-0.6`
 6. Set environment variables `PREVIOUS_VERSION` which is the last release tag and `VERSION` which is the current release version.
 7. Checkout the tag you've just created and make sure git is in a clean state
-8. Run `make release`
+8. Export the current branch `BRANCH=release-0.6` and run `make release`
 9. A prow job will start running to push images to the staging repo, can be seen [here](https://testgrid.k8s.io/sig-cluster-lifecycle-image-pushes#post-cluster-api-provider-aws-push-images).
 10. Run `make create-gh-release` to create a draft release on Github, copying the generated release notes from `out/CHANGELOG.md` into the draft.
 11. Run `make upload-gh-artifacts` to upload artifacts from .out/ directory, however you may run into API limit errors, so verify artifacts at next step
