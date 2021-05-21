@@ -510,7 +510,7 @@ release-alias-tag: # Adds the tag to the last build tag.
 
 .PHONY: release-notes
 release-notes: $(RELEASE_NOTES) ## Generate release notes
-	$(RELEASE_NOTES) $(ARGS)
+	$(RELEASE_NOTES) --org $(GH_ORG_NAME) --repo $(GH_REPO_NAME)
 
 .PHONY: release-templates
 release-templates: $(RELEASE_DIR) ## Generate release templates
