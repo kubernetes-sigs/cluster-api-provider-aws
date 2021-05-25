@@ -119,7 +119,6 @@ func listAvailableAddons(region, clusterName, printerType *string) error {
 				}
 				addonsList.Addons = append(addonsList.Addons, newAddon)
 			}
-
 		}
 	}
 
