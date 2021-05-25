@@ -92,9 +92,14 @@ func createCloudFormationStackCmd() *cobra.Command {
 				return err
 			}
 
+			if err := resolveTemplateRegion(t, cmd); err != nil {
+				fmt.Println("AWS_REGION env not set and --region flag not provided, default configuration will be used")
+			}
+
 			fmt.Printf("Attempting to create AWS CloudFormation stack %s\n", t.Spec.StackName)
 			sess, err := session.NewSessionWithOptions(session.Options{
 				SharedConfigState: session.SharedConfigEnable,
+				Config:            aws.Config{Region: aws.String(t.Spec.Region)},
 			})
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
@@ -119,10 +124,9 @@ func createCloudFormationStackCmd() *cobra.Command {
 
 func deleteCloudFormationStackCmd() *cobra.Command {
 	newCmd := &cobra.Command{
-		Use:     "delete-cloudformation-stack",
-		Aliases: []string{"update-cloudformation-stack"},
-		Short:   "Delete an AWS CloudFormation stack",
-		Args:    cobra.NoArgs,
+		Use:   "delete-cloudformation-stack",
+		Short: "Delete an AWS CloudFormation stack",
+		Args:  cobra.NoArgs,
 		Long: cmd.LongDesc(`
 			Delete the AWS CloudFormation stack that created AWS Identity and Access
 			Management (IAM) resources for use with Kubernetes Cluster API Provider
@@ -135,7 +139,7 @@ func deleteCloudFormationStackCmd() *cobra.Command {
 			}
 
 			if err := resolveTemplateRegion(t, cmd); err != nil {
-				return err
+				fmt.Println("AWS_REGION env not set and --region flag not provided, default configuration will be used")
 			}
 
 			fmt.Printf("Attempting to delete AWS CloudFormation stack %s\n", t.Spec.StackName)
@@ -156,7 +160,7 @@ func deleteCloudFormationStackCmd() *cobra.Command {
 				return err
 			}
 
-			return cfnSvc.ShowStackResources(t.Spec.StackName)
+			return nil
 		},
 	}
 	addConfigFlag(newCmd)
@@ -169,7 +173,10 @@ func resolveTemplateRegion(t *bootstrap.Template, cmd *cobra.Command) error {
 	if t.Spec.Region == "" && err != nil {
 		return err
 	}
-	t.Spec.Region = cmdLineRegion
+	// t.Spec.Region might have already been set from config, we do not want to override it to empty
+	if cmdLineRegion != "" {
+		t.Spec.Region = cmdLineRegion
+	}
 	return nil
 }
 
