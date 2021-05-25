@@ -19,6 +19,10 @@ package iamauth
 import "errors"
 
 var (
+	// ErrInvalidBackendType defines an error for an invalid backend type.
 	ErrInvalidBackendType = errors.New("invalid backend type")
-	ErrClientRequired     = errors.New("k8s client required")
+
+	// ErrClientRequired defines an error for when a k8s client is required but
+	// not supplied.
+	ErrClientRequired = errors.New("k8s client required")
 )

@@ -39,6 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+// Ec2InstanceStateLabelKey defines an ec2 instance state label.
 const Ec2InstanceStateLabelKey = "ec2-instance-state"
 
 // AwsInstanceStateReconciler reconciles a AwsInstanceState object

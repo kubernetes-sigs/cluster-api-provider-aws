@@ -47,6 +47,7 @@ var (
 	_ webhook.Defaulter = &AWSClusterControllerIdentity{}
 )
 
+// ValidateCreate will do any extra validation when creating an AWSClusterControllerIdentity.
 func (r *AWSClusterControllerIdentity) ValidateCreate() error {
 	// Ensures AWSClusterControllerIdentity being singleton by only allowing "default" as name
 	if r.Name != AWSClusterControllerIdentityName {
@@ -65,10 +66,12 @@ func (r *AWSClusterControllerIdentity) ValidateCreate() error {
 	return nil
 }
 
+// ValidateDelete allows you to add any extra validation when deleting an AWSClusterControllerIdentity.
 func (r *AWSClusterControllerIdentity) ValidateDelete() error {
 	return nil
 }
 
+// ValidateUpdate will do any extra validation when updating an AWSClusterControllerIdentity.
 func (r *AWSClusterControllerIdentity) ValidateUpdate(old runtime.Object) error {
 	oldP, ok := old.(*AWSClusterControllerIdentity)
 	if !ok {
@@ -93,5 +96,6 @@ func (r *AWSClusterControllerIdentity) ValidateUpdate(old runtime.Object) error 
 	return nil
 }
 
+// Default will set default values for the AWSClusterControllerIdentity.
 func (r *AWSClusterControllerIdentity) Default() {
 }

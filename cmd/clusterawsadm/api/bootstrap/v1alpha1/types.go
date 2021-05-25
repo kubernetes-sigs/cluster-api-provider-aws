@@ -142,6 +142,7 @@ type Nodes struct {
 
 // +kubebuilder:object:root=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // AWSIAMConfiguration controls the creation of AWS Identity and Access Management (IAM) resources for use
 // by Kubernetes clusters and Kubernetes Cluster API Provider AWS.
 type AWSIAMConfiguration struct {
@@ -196,10 +197,12 @@ type AWSIAMConfigurationSpec struct {
 	SecureSecretsBackends []infrav1.SecretBackend `json:"secureSecretBackends,omitempty"`
 }
 
+// GetObjectKind returns the AAWSIAMConfiguration's TypeMeta.
 func (obj *AWSIAMConfiguration) GetObjectKind() schema.ObjectKind {
 	return &obj.TypeMeta
 }
 
+// NewAWSIAMConfiguration will generate a new default AWSIAMConfiguration.
 func NewAWSIAMConfiguration() *AWSIAMConfiguration {
 	conf := &AWSIAMConfiguration{}
 	SetObjectDefaults_AWSIAMConfiguration(conf)

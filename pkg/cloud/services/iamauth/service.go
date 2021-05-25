@@ -34,6 +34,7 @@ type Scope interface {
 	IAMAuthConfig() *ekscontrolplanev1.IAMAuthenticatorConfig
 }
 
+// Service defines the specs for a service.
 type Service struct {
 	scope     Scope
 	backend   BackendType
@@ -41,6 +42,7 @@ type Service struct {
 	STSClient stsiface.STSAPI
 }
 
+// NewService will create a new Service object.
 func NewService(iamScope Scope, backend BackendType, client client.Client) *Service {
 	return &Service{
 		scope:     iamScope,

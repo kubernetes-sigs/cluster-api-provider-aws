@@ -21,9 +21,7 @@ import "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks"
 func (t Template) eksMachinePoolPolicies() []string {
 	policies := eks.NodegroupRolePolicies()
 	if t.Spec.EKS.ManagedMachinePool.ExtraPolicyAttachments != nil {
-		for _, policy := range t.Spec.EKS.ManagedMachinePool.ExtraPolicyAttachments {
-			policies = append(policies, policy)
-		}
+		policies = append(policies, t.Spec.EKS.ManagedMachinePool.ExtraPolicyAttachments...)
 	}
 
 	return policies

@@ -179,12 +179,3 @@ func resolveTemplateRegion(t *bootstrap.Template, cmd *cobra.Command) error {
 	}
 	return nil
 }
-
-func renderTemplate(t *bootstrap.Template) (string, error) {
-	cfnTemplate := t.RenderCloudFormation()
-	yml, err := cfnTemplate.YAML()
-	if err != nil {
-		return "", err
-	}
-	return string(yml), nil
-}

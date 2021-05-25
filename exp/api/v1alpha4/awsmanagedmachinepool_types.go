@@ -212,10 +212,12 @@ type AWSManagedMachinePool struct {
 	Status AWSManagedMachinePoolStatus `json:"status,omitempty"`
 }
 
+// GetConditions returns the observations of the operational state of the AWSManagedMachinePool resource.
 func (r *AWSManagedMachinePool) GetConditions() clusterv1.Conditions {
 	return r.Status.Conditions
 }
 
+// SetConditions sets the underlying service state of the AWSManagedMachinePool to the predescribed clusterv1.Conditions.
 func (r *AWSManagedMachinePool) SetConditions(conditions clusterv1.Conditions) {
 	r.Status.Conditions = conditions
 }

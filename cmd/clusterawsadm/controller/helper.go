@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/version"
 )
 
+// BootstrapCredsSecret defines the tag for capa manager bootstrap credentials.
 const BootstrapCredsSecret = "capa-manager-bootstrap-credentials"
 
 // GetClient creates the config for a kubernetes client and returns a client-go client for the cluster.
@@ -62,12 +63,13 @@ func GetClient(kubeconfigPath string, kubeconfigContext string) (*kubernetes.Cli
 	return cs, err
 }
 
+// PrintBootstrapCredentials will print the bootstrap credentials.
 func PrintBootstrapCredentials(secret *corev1.Secret) {
 	if creds, ok := secret.Data["credentials"]; ok {
 		if base64.StdEncoding.EncodeToString(creds) == "Cg==" {
 			fmt.Println("Credentials are zeroed")
 		} else {
-			fmt.Printf(string(creds))
+			fmt.Println(string(creds))
 		}
 	}
 }

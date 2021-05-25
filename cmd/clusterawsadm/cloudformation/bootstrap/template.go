@@ -18,18 +18,20 @@ package bootstrap
 
 import (
 	"fmt"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 
 	"github.com/awslabs/goformation/v4/cloudformation"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/bootstrap/v1alpha1"
+
+	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
 	eksiam "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/iam"
 )
 
+// Constants that define resources for a Template.
 const (
 	AWSIAMGroupBootstrapper                      = "AWSIAMGroupBootstrapper"
 	AWSIAMInstanceProfileControllers             = "AWSIAMInstanceProfileControllers"
@@ -48,10 +50,13 @@ const (
 	CSIPolicy                         PolicyName = "AWSEBSCSIPolicyController"
 )
 
+// Template is an AWS CloudFormation template to bootstrap
+// IAM policies, users and roles for use by Cluster API Provider AWS.
 type Template struct {
 	Spec *bootstrapv1.AWSIAMConfigurationSpec
 }
 
+// NewTemplate will generate a new Template.
 func NewTemplate() Template {
 	conf := bootstrapv1.NewAWSIAMConfiguration()
 	return Template{
@@ -65,8 +70,7 @@ func (t Template) NewManagedName(name string) string {
 	return fmt.Sprintf("%s%s%s", t.Spec.NamePrefix, name, *t.Spec.NameSuffix)
 }
 
-// Template is an AWS CloudFormation template to bootstrap
-// IAM policies, users and roles for use by Cluster API Provider AWS
+// RenderCloudFormation will render and return a cloudformation Template.
 func (t Template) RenderCloudFormation() *cloudformation.Template {
 	template := cloudformation.NewTemplate()
 
@@ -197,14 +201,17 @@ func ec2AssumeRolePolicy() *v1alpha4.PolicyDocument {
 	return AssumeRolePolicy(v1alpha4.PrincipalService, []string{"ec2.amazonaws.com"})
 }
 
+// AWSArnAssumeRolePolicy will assume Policies using PolicyArns.
 func AWSArnAssumeRolePolicy(identityID string) *v1alpha4.PolicyDocument {
 	return AssumeRolePolicy(v1alpha4.PrincipalAWS, []string{identityID})
 }
 
+// AWSServiceAssumeRolePolicy will assume an AWS Service policy.
 func AWSServiceAssumeRolePolicy(identityID string) *v1alpha4.PolicyDocument {
 	return AssumeRolePolicy(v1alpha4.PrincipalService, []string{identityID})
 }
 
+// AssumeRolePolicy will create a role session and pass session policies programmatically.
 func AssumeRolePolicy(identityType v1alpha4.PrincipalType, principalIDs []string) *v1alpha4.PolicyDocument {
 	return &v1alpha4.PolicyDocument{
 		Version: v1alpha4.CurrentVersion,

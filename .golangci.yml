@@ -1,3 +1,12 @@
+linters-settings:
+  # Restrict revive to exported.
+  revive:
+    # see https://github.com/mgechev/revive#available-rules for details.
+    ignore-generated-header: true
+    severity: warning
+    rules:
+      - name: exported
+        severity: warning
 linters:
   disable-all: true
   enable:
@@ -11,7 +20,6 @@ linters:
     - gofmt
     - goheader
     - goimports
-    - golint
     - goprintffuncname
     - gosimple
     - govet
@@ -29,6 +37,7 @@ linters:
     - unparam
     - unused
     - varcheck
+    - revive
   # Run with --fast=false for more extensive checks
   fast: true
 issues:
@@ -37,8 +46,27 @@ issues:
   # List of regexps of issue texts to exclude, empty list by default.
   exclude-use-default: false
   exclude:
-    - Using the variable on range scope `(tc)|(rt)|(tt)|(test)|(testcase)|(testCase)` in function literal
     - "G108: Profiling endpoint is automatically exposed on /debug/pprof"
+    - "exported: exported method .*\\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported"
+    - "exported: (func|type) name will be used as (.+) by other packages, and that stutters; consider calling this (.+)"
+    # Exclude noctx error for calling http.Get directly.
+    # See https://pkg.go.dev/github.com/sonatard/noctx#readme-how-to-fix for reasons it breaks and ways to fix it.
+    # This exclusion should be removed if the decision is made to fix the error.
+    - "net/http.Get must not be called"
+  exclude-rules:
+    # Exclude revive's exported for certain packages and code, e.g. tests and fake.
+    - linters:
+      - revive
+      text: exported (method|function|type|const) (.+) should have comment or be unexported
+      source: (func|type).*Fake.*
+    - linters:
+      - revive
+      text: exported (method|function|type|const) (.+) should have comment or be unexported
+      path: fake_\.go
+    - linters:
+      - revive
+      text: exported (method|function|type|const) (.+) should have comment or be unexported
+      path: .*test/(providers|framework|e2e).*.go
 run:
   timeout: 10m
   tests: false

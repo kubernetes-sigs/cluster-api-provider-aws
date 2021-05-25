@@ -86,6 +86,7 @@ var (
 	errEKSInvalidFlags       = errors.New("invalid EKS flag combination")
 )
 
+// InitFlags initializes this manager's flags.
 func InitFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&metricsBindAddr, "metrics-bind-addr", ":8080",
 		"The address the metric endpoint binds to.")

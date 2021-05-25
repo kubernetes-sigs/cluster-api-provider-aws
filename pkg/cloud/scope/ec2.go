@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 )
 
-// Scope is the interface for the scoep to be used with the ec2 service
+// EC2Scope is the interface for the scoep to be used with the ec2 service
 type EC2Scope interface {
 	cloud.ClusterScoper
 

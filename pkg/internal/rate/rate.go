@@ -20,10 +20,11 @@ package rate
 import (
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
 	"math"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // Limit defines the maximum frequency of some events.

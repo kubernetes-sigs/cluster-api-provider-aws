@@ -28,11 +28,13 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/iam"
 )
 
+// EKSAPI defines the EKS API interface.
 type EKSAPI interface {
 	eksiface.EKSAPI
 	WaitUntilClusterUpdating(input *eks.DescribeClusterInput, opts ...request.WaiterOption) error
 }
 
+// EKSClient defines a wrapper over EKS API.
 type EKSClient struct {
 	eksiface.EKSAPI
 }

@@ -255,10 +255,12 @@ type AWSMachine struct {
 	Status AWSMachineStatus `json:"status,omitempty"`
 }
 
+// GetConditions returns the observations of the operational state of the AWSMachine resource.
 func (r *AWSMachine) GetConditions() clusterv1.Conditions {
 	return r.Status.Conditions
 }
 
+// SetConditions sets the underlying service state of the AWSMachine to the predescribed clusterv1.Conditions.
 func (r *AWSMachine) SetConditions(conditions clusterv1.Conditions) {
 	r.Status.Conditions = conditions
 }

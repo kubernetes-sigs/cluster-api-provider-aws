@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 )
 
+// Error singletons for AWS errors.
 const (
 	AuthFailure                = "AuthFailure"
 	InUseIPAddress             = "InvalidIPAddress.InUse"
@@ -91,6 +92,7 @@ func NewConflict(msg string) error {
 	}
 }
 
+// IsResourceExists checks the state of the resource.
 func IsResourceExists(err error) bool {
 	if code, ok := Code(err); ok {
 		return code == ResourceExists

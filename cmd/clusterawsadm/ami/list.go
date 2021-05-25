@@ -27,12 +27,14 @@ import (
 	amiv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/ami/v1alpha1"
 )
 
+// ListInput defines the specs required to construct an AWSAMIList.
 type ListInput struct {
 	Region            string
 	KubernetesVersion string
 	OperatingSystem   string
 }
 
+// List will create an AWSAMIList from a given ListInput.
 func List(input ListInput) (*amiv1.AWSAMIList, error) {
 	supportedOsList := []string{}
 	if input.OperatingSystem == "" {

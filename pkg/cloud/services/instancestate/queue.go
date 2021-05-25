@@ -19,12 +19,14 @@ package instancestate
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/pkg/errors"
+
 	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	"strings"
 )
 
 func (s *Service) reconcileSQSQueue() error {
@@ -94,6 +96,7 @@ func (s *Service) createPolicyForRule(input *createPolicyForRuleInput) error {
 	return errors.Wrap(err, "unable to update queue attributes")
 }
 
+// GenerateQueueName will generate a queue name.
 func GenerateQueueName(clusterName string) string {
 	adjusted := strings.Replace(clusterName, ".", "-", -1)
 	return fmt.Sprintf("%s-queue", adjusted)

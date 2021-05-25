@@ -41,7 +41,7 @@ type EBS struct {
 	VolumeType string `json:"volumeType,omitempty"`
 }
 
-// BlockDeviceMappings specifies the block devices for the instance.
+// BlockDeviceMapping specifies the block devices for the instance.
 // You can specify virtual devices and EBS volumes.
 type BlockDeviceMapping struct {
 	// The device name exposed to the EC2 instance (for example, /dev/sdh or xvdh).
@@ -53,7 +53,7 @@ type BlockDeviceMapping struct {
 	Ebs EBS `json:"ebs,omitempty"`
 }
 
-// AwsLaunchTemplate defines the desired state of AWSLaunchTemplate
+// AWSLaunchTemplate defines the desired state of AWSLaunchTemplate
 type AWSLaunchTemplate struct {
 	// The name of the launch template.
 	Name string `json:"name,omitempty"`
@@ -166,7 +166,7 @@ type MixedInstancesPolicy struct {
 	Overrides             []Overrides            `json:"overrides,omitempty"`
 }
 
-// Tags
+// Tags is a mapping for tags.
 type Tags map[string]string
 
 // AutoScalingGroup describes an AWS autoscaling group.
@@ -212,6 +212,7 @@ var (
 	TaintEffectPreferNoSchedule = TaintEffect("prefer-no-schedule")
 )
 
+// Taint defines the specs for a Kubernetes taint.
 type Taint struct {
 	// Effect specifies the effect for the taint
 	// +kubebuilder:validation:Required

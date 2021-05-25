@@ -36,7 +36,7 @@ const (
 )
 
 const (
-	// VpcReady condition reports on the successful reconciliation of a VPC
+	// VpcReadyCondition reports on the successful reconciliation of a VPC
 	VpcReadyCondition clusterv1.ConditionType = "VpcReady"
 	// VpcCreationStartedReason used when attempting to create a VPC for a managed cluster.
 	// Will not be applied to unmanaged clusters.
@@ -46,14 +46,14 @@ const (
 )
 
 const (
-	// SubnetsReady condition reports on the successful reconciliation of subnets.
+	// SubnetsReadyCondition reports on the successful reconciliation of subnets.
 	SubnetsReadyCondition clusterv1.ConditionType = "SubnetsReady"
 	// SubnetsReconciliationFailedReason used to report failures while reconciling subnets
 	SubnetsReconciliationFailedReason = "SubnetsReconciliationFailed"
 )
 
 const (
-	// InternetGatewayReady condition reports on the successful reconciliation of internet gateways.
+	// InternetGatewayReadyCondition reports on the successful reconciliation of internet gateways.
 	// Only applicable to managed clusters.
 	InternetGatewayReadyCondition clusterv1.ConditionType = "InternetGatewayReady"
 	// InternetGatewayFailedReason used when errors occur during internet gateway reconciliation
@@ -61,7 +61,7 @@ const (
 )
 
 const (
-	// NatGatewayReady condition reports successful reconciliation of NAT gateways.
+	// NatGatewaysReadyCondition reports successful reconciliation of NAT gateways.
 	// Only applicable to managed clusters.
 	NatGatewaysReadyCondition clusterv1.ConditionType = "NatGatewaysReady"
 	// NatGatewaysCreationStartedReason set once when creating new NAT gateways.
@@ -71,7 +71,7 @@ const (
 )
 
 const (
-	// RouteTablesReady condition reports successful reconciliation of route tables.
+	// RouteTablesReadyCondition reports successful reconciliation of route tables.
 	// Only applicable to managed clusters.
 	RouteTablesReadyCondition clusterv1.ConditionType = "RouteTablesReady"
 	// RouteTableReconciliationFailedReason used when any errors occur during reconciliation of route tables.
@@ -79,7 +79,7 @@ const (
 )
 
 const (
-	// SecondaryCidrsReady condition reports successful reconciliation of secondary CIDR blocks.
+	// SecondaryCidrsReadyCondition reports successful reconciliation of secondary CIDR blocks.
 	// Only applicable to managed clusters.
 	SecondaryCidrsReadyCondition clusterv1.ConditionType = "SecondaryCidrsReady"
 	// SecondaryCidrReconciliationFailedReason used when any errors occur during reconciliation of secondary CIDR blocks.
@@ -87,7 +87,7 @@ const (
 )
 
 const (
-	// ClusterSecurityGroupsReady condition reports successful reconciliation of security groups.
+	// ClusterSecurityGroupsReadyCondition reports successful reconciliation of security groups.
 	ClusterSecurityGroupsReadyCondition clusterv1.ConditionType = "ClusterSecurityGroupsReady"
 	// ClusterSecurityGroupReconciliationFailedReason used when any errors occur during reconciliation of security groups.
 	ClusterSecurityGroupReconciliationFailedReason = "SecurityGroupReconciliationFailed"
@@ -145,8 +145,9 @@ const (
 )
 
 const (
-	// Only applicable to control plane machines. ELBAttachedCondition will report true when a control plane is successfully registered with an ELB
-	// When set to false, severity can be an Error if the subnet is not found or unavailable in the instance's AZ
+	// ELBAttachedCondition will report true when a control plane is successfully registered with an ELB.
+	// When set to false, severity can be an Error if the subnet is not found or unavailable in the instance's AZ.
+	// Note this is only applicable to control plane machines.
 	ELBAttachedCondition clusterv1.ConditionType = "ELBAttached"
 
 	// ELBAttachFailedReason used when a control plane node fails to attach to the ELB

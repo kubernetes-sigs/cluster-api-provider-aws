@@ -67,6 +67,7 @@ func init() {
 	metrics.Registry.MustRegister(awsCallRetries)
 }
 
+// CaptureRequestMetrics will monitor and capture request metrics.
 func CaptureRequestMetrics(controller string) func(r *request.Request) {
 	return func(r *request.Request) {
 		duration := time.Since(r.AttemptTime)

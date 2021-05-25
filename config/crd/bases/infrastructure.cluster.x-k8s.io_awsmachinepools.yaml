@@ -248,13 +248,13 @@ spec:
                 type: string
               maxSize:
                 default: 1
-                description: The maximum size of the group.
+                description: MaxSize defines the maximum size of the group.
                 format: int32
                 minimum: 1
                 type: integer
               minSize:
                 default: 1
-                description: The minimum size of the group.
+                description: MinSize defines the minimum size of the group.
                 format: int32
                 minimum: 1
                 type: integer
@@ -465,6 +465,8 @@ spec:
                 description: Instances contains the status for each instance in the
                   pool
                 items:
+                  description: AWSMachinePoolInstanceStatus defines the status of
+                    the AWSMachinePoolInstance.
                   properties:
                     instanceID:
                       description: InstanceID is the identification of the Machine
@@ -720,13 +722,13 @@ spec:
                 type: string
               maxSize:
                 default: 1
-                description: The maximum size of the group.
+                description: MaxSize defines the maximum size of the group.
                 format: int32
                 minimum: 1
                 type: integer
               minSize:
                 default: 1
-                description: The minimum size of the group.
+                description: MinSize defines the minimum size of the group.
                 format: int32
                 minimum: 1
                 type: integer
@@ -937,6 +939,8 @@ spec:
                 description: Instances contains the status for each instance in the
                   pool
                 items:
+                  description: AWSMachinePoolInstanceStatus defines the status of
+                    the AWSMachinePoolInstance.
                   properties:
                     instanceID:
                       description: InstanceID is the identification of the Machine

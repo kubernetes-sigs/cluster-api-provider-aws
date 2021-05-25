@@ -73,10 +73,6 @@ func bootstrapTemplateFromCmdLine() cfnBootstrap.Template {
 	}
 }
 
-func getPartitionFlag(cmd *cobra.Command) string {
-	return cmd.Flags().Lookup("partition").Value.String()
-}
-
 func generateCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "generate-cloudformation [AWS Account ID]",

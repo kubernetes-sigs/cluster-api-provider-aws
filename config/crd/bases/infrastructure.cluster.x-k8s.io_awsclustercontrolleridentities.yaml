@@ -46,7 +46,7 @@ spec:
                 description: AllowedNamespaces is used to identify which namespaces
                   are allowed to use the identity from. Namespaces can be selected
                   either using an array of namespaces or with label selector. An empty
-                  allowedNamespaces object indicates that AWSClusters can use this
+                  AllowedNamespaces object indicates that AWSClusters can use this
                   identity from any namespace. If this object is nil, no namespaces
                   will be allowed (default behaviour, if this field is not provided)
                   A namespace should be either in the NamespaceList or match with
@@ -61,12 +61,8 @@ spec:
                     nullable: true
                     type: array
                   selector:
-                    description: "AllowedNamespaces is a selector of namespaces that
-                      AWSClusters can use this ClusterPrincipal from. This is a standard
-                      Kubernetes LabelSelector, a label query over a set of resources.
-                      The result of matchLabels and matchExpressions are ANDed. \n
-                      An empty selector indicates that AWSClusters cannot use this
-                      AWSClusterIdentity from any namespace."
+                    description: An empty selector indicates that AWSClusters cannot
+                      use this AWSClusterIdentity from any namespace.
                     properties:
                       matchExpressions:
                         description: matchExpressions is a list of label selector
@@ -155,12 +151,8 @@ spec:
                     nullable: true
                     type: array
                   selector:
-                    description: "AllowedNamespaces is a selector of namespaces that
-                      AWSClusters can use this ClusterPrincipal from. This is a standard
-                      Kubernetes LabelSelector, a label query over a set of resources.
-                      The result of matchLabels and matchExpressions are ANDed. \n
-                      An empty selector indicates that AWSClusters cannot use this
-                      AWSClusterIdentity from any namespace."
+                    description: An empty selector indicates that AWSClusters cannot
+                      use this AWSClusterIdentity from any namespace.
                     properties:
                       matchExpressions:
                         description: matchExpressions is a list of label selector

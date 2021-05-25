@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
+// CopyInput defines input that can be copied to create an AWSAMI.
 type CopyInput struct {
 	SourceRegion      string
 	DestinationRegion string
@@ -44,6 +45,7 @@ type CopyInput struct {
 	Log               logr.Logger
 }
 
+// Copy will create an AWSAMI from a CopyInput.
 func Copy(input CopyInput) (*amiv1.AWSAMI, error) {
 
 	sourceSession, err := session.NewSessionWithOptions(session.Options{

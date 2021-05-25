@@ -28,6 +28,7 @@ import (
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
+// CopyAMICmd will copy AMIs from an AWS account to the AWS account which credentials are provided.
 func CopyAMICmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "copy",

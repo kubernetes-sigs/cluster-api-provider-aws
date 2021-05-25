@@ -83,6 +83,7 @@ var (
 	webhookCertDir              string
 )
 
+// InitFlags initializes this manager's flags.
 func InitFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&metricsAddr, "metrics-bind-addr", ":8080",
 		"The address the metric endpoint binds to.")

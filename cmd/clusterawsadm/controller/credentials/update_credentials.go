@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/controller"
 )
 
+// UpdateCredentialsInput defines the specs for update credentials input.
 type UpdateCredentialsInput struct {
 	KubeconfigPath    string
 	KubeconfigContext string

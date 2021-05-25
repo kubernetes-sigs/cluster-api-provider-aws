@@ -33,6 +33,7 @@ var (
 	outputPrinter     string
 )
 
+// ListAMICmd is a CLI command that will list AMIs from the default AWS account where AMIs are stored.
 func ListAMICmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "list",

@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
+// ZeroCredentialsCmd is a CLI command that will zero credentials the controller is started with.
 func ZeroCredentialsCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "zero-credentials",

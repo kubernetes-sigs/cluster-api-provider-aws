@@ -41,12 +41,14 @@ func NewGlobalScope(params GlobalScopeParams) (*GlobalScope, error) {
 	}, nil
 }
 
+// GlobalScopeParams defines the parameters acceptable for GlobalScope.
 type GlobalScopeParams struct {
 	ControllerName string
 	Region         string
 	Endpoints      []ServiceEndpoint
 }
 
+// GlobalScope defines the specs for the GlobalScope.
 type GlobalScope struct {
 	session         awsclient.ConfigProvider
 	serviceLimiters throttle.ServiceLimiters
@@ -58,6 +60,7 @@ func (s *GlobalScope) Session() awsclient.ConfigProvider {
 	return s.session
 }
 
+// ServiceLimiter returns the AWS SDK session. Used for creating clients.
 func (s *GlobalScope) ServiceLimiter(service string) *throttle.ServiceLimiter {
 	if sl, ok := s.serviceLimiters[service]; ok {
 		return sl
@@ -65,6 +68,8 @@ func (s *GlobalScope) ServiceLimiter(service string) *throttle.ServiceLimiter {
 	return nil
 }
 
+// ControllerName returns the name of the controller that
+// created the GlobalScope
 func (s *GlobalScope) ControllerName() string {
 	return s.controllerName
 }

@@ -16,6 +16,7 @@ limitations under the License.
 
 package rate
 
+// ResetTokens will reset all tokens.
 func (lim *Limiter) ResetTokens() {
 	lim.mu.Lock()
 	defer lim.mu.Unlock()

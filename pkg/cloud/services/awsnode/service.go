@@ -39,11 +39,13 @@ type Scope interface {
 	DisableVPCCNI() bool
 }
 
+// Service defines the spec for a service.
 type Service struct {
 	scope  Scope
 	client client.Client
 }
 
+// NewService will create a new service.
 func NewService(awsnodeScope Scope) *Service {
 	client, _ := awsnodeScope.RemoteClient()
 	return &Service{

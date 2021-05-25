@@ -317,33 +317,40 @@ func (m *MachineScope) AdditionalTags() infrav1.Tags {
 	return tags
 }
 
+// HasFailed returns the failure state of the machine scope.
 func (m *MachineScope) HasFailed() bool {
 	return m.AWSMachine.Status.FailureReason != nil || m.AWSMachine.Status.FailureMessage != nil
 }
 
+// InstanceIsRunning returns the instance state of the machine scope.
 func (m *MachineScope) InstanceIsRunning() bool {
 	state := m.GetInstanceState()
 	return state != nil && infrav1.InstanceRunningStates.Has(string(*state))
 }
 
+// InstanceIsOperational returns the operational state of the machine scope.
 func (m *MachineScope) InstanceIsOperational() bool {
 	state := m.GetInstanceState()
 	return state != nil && infrav1.InstanceOperationalStates.Has(string(*state))
 }
 
+// InstanceIsInKnownState checks if the machine scope's instance state is known.
 func (m *MachineScope) InstanceIsInKnownState() bool {
 	state := m.GetInstanceState()
 	return state != nil && infrav1.InstanceKnownStates.Has(string(*state))
 }
 
+// AWSMachineIsDeleted checks if the machine was deleted.
 func (m *MachineScope) AWSMachineIsDeleted() bool {
 	return !m.AWSMachine.ObjectMeta.DeletionTimestamp.IsZero()
 }
 
+// IsEKSManaged checks if the machine is EKS managed.
 func (m *MachineScope) IsEKSManaged() bool {
 	return m.InfraCluster.InfraCluster().GetObjectKind().GroupVersionKind().Kind == "AWSManagedControlPlane"
 }
 
+// IsExternallyManaged checks if the machine is externally managed.
 func (m *MachineScope) IsExternallyManaged() bool {
 	return annotations.IsExternallyManaged(m.InfraCluster.InfraCluster())
 }

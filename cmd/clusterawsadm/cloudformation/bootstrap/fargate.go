@@ -24,9 +24,7 @@ import (
 func fargateProfilePolicies(roleSpec *bootstrapv1.AWSIAMRoleSpec) []string {
 	policies := eks.FargateRolePolicies()
 	if roleSpec.ExtraPolicyAttachments != nil {
-		for _, policy := range roleSpec.ExtraPolicyAttachments {
-			policies = append(policies, policy)
-		}
+		policies = append(policies, roleSpec.ExtraPolicyAttachments...)
 	}
 
 	return policies

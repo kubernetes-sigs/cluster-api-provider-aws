@@ -45,6 +45,7 @@ var (
 	_ webhook.Defaulter = &AWSClusterRoleIdentity{}
 )
 
+// ValidateCreate will do any extra validation when creating an AWSClusterRoleIdentity.
 func (r *AWSClusterRoleIdentity) ValidateCreate() error {
 	if r.Spec.SourceIdentityRef == nil {
 		return field.Invalid(field.NewPath("spec", "sourceIdentityRef"),
@@ -62,10 +63,12 @@ func (r *AWSClusterRoleIdentity) ValidateCreate() error {
 	return nil
 }
 
+// ValidateDelete allows you to add any extra validation when deleting an AWSClusterRoleIdentity.
 func (r *AWSClusterRoleIdentity) ValidateDelete() error {
 	return nil
 }
 
+// ValidateUpdate will do any extra validation when updating an AWSClusterRoleIdentity.
 func (r *AWSClusterRoleIdentity) ValidateUpdate(old runtime.Object) error {
 	oldP, ok := old.(*AWSClusterRoleIdentity)
 	if !ok {
@@ -89,5 +92,6 @@ func (r *AWSClusterRoleIdentity) ValidateUpdate(old runtime.Object) error {
 	return nil
 }
 
+// Default will set default values for the AWSClusterRoleIdentity.
 func (r *AWSClusterRoleIdentity) Default() {
 }
