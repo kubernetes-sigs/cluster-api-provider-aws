@@ -270,7 +270,6 @@ func (m *MachinePoolScope) getNodeStatusByProviderID(ctx context.Context, provid
 		}
 
 		for _, node := range nodeList.Items {
-
 			strList := strings.Split(node.Spec.ProviderID, "/")
 
 			if status, ok := nodeStatusMap[fmt.Sprintf("aws:////%s", strList[len(strList)-1])]; ok {

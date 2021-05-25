@@ -68,7 +68,6 @@ func (r *AWSMachineTemplate) ValidateUpdate(old runtime.Object) error {
 	}
 
 	if !reflect.DeepEqual(r.Spec, oldAWSMachineTemplate.Spec) {
-
 		return apierrors.NewBadRequest("AWSMachineTemplate.Spec is immutable")
 	}
 
