@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -101,6 +102,13 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 		allErrs = append(allErrs,
 			field.Invalid(field.NewPath("spec", "identityRef"),
 				r.Spec.IdentityRef, "field cannot be set to nil"),
+		)
+	}
+
+	if annotations.IsExternallyManaged(oldC) && !annotations.IsExternallyManaged(r) {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("metadata", "annotations"),
+				r.Annotations, "removal of externally managed annotation is not allowed"),
 		)
 	}
 
