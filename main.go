@@ -205,7 +205,6 @@ func main() {
 				os.Exit(1)
 			}
 		}
-
 	} else {
 		if err = (&infrav1alpha3.AWSMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplate")

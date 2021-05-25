@@ -344,7 +344,6 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 				Effect: iamv1.EffectAllow,
 			},
 		}...)
-
 	}
 
 	if t.Spec.EventBridge.Enable {

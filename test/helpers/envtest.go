@@ -78,7 +78,6 @@ func init() {
 	root = path.Join(path.Dir(filename), "..", "..")
 
 	// Create the test environment.
-
 }
 
 type webhookConfiguration struct {
@@ -120,7 +119,6 @@ func NewTestEnvironmentConfiguration(crdDirectoryPaths []string) *TestEnvironmen
 			},
 		},
 	}
-
 }
 
 // WithWebhookConfiguration adds the CRD webhook configuration given a named tag and file path for the webhook manifest
@@ -176,7 +174,6 @@ func (t *TestEnvironmentConfiguration) Build() (*TestEnvironment, error) {
 		doneMgr: make(chan struct{}),
 		env:     t.env,
 	}, nil
-
 }
 
 func buildModifiedWebhook(tag string, relativeFilePath string) (runtime.Object, runtime.Object, error) {

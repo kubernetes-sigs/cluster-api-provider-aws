@@ -359,7 +359,6 @@ func (s *Service) buildLaunchTemplateTagSpecificationRequest(scope *scope.Machin
 			})
 		}
 		tagSpecifications = append(tagSpecifications, spec)
-
 	}
 	return tagSpecifications
 }

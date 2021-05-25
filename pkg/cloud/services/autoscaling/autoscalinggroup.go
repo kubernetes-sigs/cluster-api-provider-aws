@@ -113,7 +113,6 @@ func (s *Service) ASGIfExists(name *string) (*expinfrav1.AutoScalingGroup, error
 	}
 	//TODO: double check if you're handling nil vals
 	return s.SDKToAutoScalingGroup(out.AutoScalingGroups[0])
-
 }
 
 // GetASGByName returns the existing ASG or nothing if it doesn't exist.

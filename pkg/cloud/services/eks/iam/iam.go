@@ -211,7 +211,6 @@ func (s *IAMService) EnsureTagsAndPolicy(
 		if err != nil {
 			return err
 		}
-
 	}
 
 	tagInput := &iam.TagRoleInput{

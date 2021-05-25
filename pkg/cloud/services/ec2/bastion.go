@@ -84,7 +84,6 @@ func (s *Service) ReconcileBastion() error {
 
 		record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateBastion", "Created bastion instance %q", instance.ID)
 		s.scope.V(2).Info("Created new bastion host", "instance", instance)
-
 	} else if err != nil {
 		return err
 	}

@@ -80,7 +80,6 @@ func (s *Service) ReconcileSecurityGroups() error {
 	// Security group overrides should not be specified for a managed VPC
 	if securityGroupOverrides != nil && s.scope.VPC().IsManaged(s.scope.Name()) {
 		return errors.Errorf("security group overrides provided for managed vpc %q", s.scope.Name())
-
 	}
 	sgs, err := s.describeSecurityGroupsByName()
 	if err != nil {

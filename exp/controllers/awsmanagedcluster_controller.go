@@ -115,7 +115,6 @@ func (r *AWSManagedClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result
 	log.Info("Successfully reconciled AWSManagedCluster")
 
 	return reconcile.Result{}, nil
-
 }
 
 func (r *AWSManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
