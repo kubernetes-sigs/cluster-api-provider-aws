@@ -48,17 +48,17 @@ rules:
   - list
   - watch
 - apiGroups:
-  - controlplane.cluster.x-k8s.io
+  - cluster.x-k8s.io
   resources:
-  - awsmanagedcontrolplanes
+  - machinepools
   verbs:
   - get
   - list
   - watch
 - apiGroups:
-  - exp.cluster.x-k8s.io
+  - controlplane.cluster.x-k8s.io
   resources:
-  - machinepools
+  - awsmanagedcontrolplanes
   verbs:
   - get
   - list

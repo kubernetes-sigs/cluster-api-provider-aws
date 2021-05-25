@@ -50,6 +50,7 @@ var _ = Describe("conformance tests", func() {
 		ctx = context.TODO()
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace = shared.SetupSpecNamespace(ctx, specName, e2eCtx)
+		result = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 	Measure(specName, func(b Benchmarker) {
 
