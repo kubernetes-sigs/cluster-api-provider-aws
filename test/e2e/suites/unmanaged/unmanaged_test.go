@@ -96,6 +96,31 @@ var _ = Describe("functional tests - unmanaged", func() {
 		shared.CreateAWSClusterControllerIdentity(e2eCtx.Environment.BootstrapClusterProxy.GetClient())
 	})
 
+	Describe("Create a cluster that uses the external cloud provider", func() {
+		It("should create volumes dynamically with external cloud provider", func() {
+			requiredResources := &shared.TestResource{EC2: 2, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
+			requiredResources.WriteRequestedResources(e2eCtx, "external-cloud-provider-test")
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+
+			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
+			configCluster := defaultConfigCluster(clusterName, namespace.Name)
+			configCluster.Flavor = shared.ExternalCloudProvider
+			configCluster.ControlPlaneMachineCount = pointer.Int64Ptr(1)
+			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+			createCluster(ctx, configCluster, result)
+
+			// Note: Using external ccm and controller-manager volume loops by setting
+			// "external-cloud-volume-plugin: aws" for controller-manager, does create ebs volumes but kubelet fails to attach them.
+			By("Creating the LB service")
+			clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterName).GetClient()
+			lbServiceName := "test-svc-" + util.RandomString(6)
+			elbName := createLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
+			verifyElbExists(elbName, true)
+			By("PASSED!")
+		})
+	})
+
 	Describe("Multitenancy test", func() {
 		It("should create cluster with assumed role", func() {
 			requiredResources := &shared.TestResource{EC2: 1, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
