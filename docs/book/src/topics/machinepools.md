@@ -61,7 +61,7 @@ an AWS Auto Scaling Group.
 
 ```yaml
 ---
-apiVersion: exp.cluster.x-k8s.io/v1alpha3
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: MachinePool
 metadata:
   name: capa-mp-0
