@@ -73,7 +73,7 @@ endif
 STAGING_REGISTRY ?= gcr.io/k8s-staging-cluster-api-aws
 STAGING_BUCKET ?= artifacts.k8s-staging-cluster-api-aws.appspot.com
 BUCKET ?= $(STAGING_BUCKET)
-PROD_REGISTRY := us.gcr.io/k8s-artifacts-prod/cluster-api-aws
+PROD_REGISTRY := k8s.gcr.io/cluster-api-aws
 REGISTRY ?= $(STAGING_REGISTRY)
 RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
 PULL_BASE_REF ?= $(RELEASE_TAG) # PULL_BASE_REF will be provided by Prow

@@ -38,8 +38,8 @@
     8. Repeat for [eks-bootstrap-controller](https://console.cloud.google.com/gcr/images/k8s-staging-cluster-api-aws/GLOBAL/eks-bootstrap-controller?gcrImageListsize=30) and [eks-controlplane-controller](https://console.cloud.google.com/gcr/images/k8s-staging-cluster-api-aws/GLOBAL/eks-controlplane-controller?gcrImageListsize=30)
     9. You can use [this PR](https://github.com/kubernetes/k8s.io/pull/1565) as example
     10. Wait for the PR to be approved and merged
-14. Finalise the release notes. Add image locations `<ADD_IMAGE_HERE>` (e.g., us.gcr.io/k8s-artifacts-prod/cluster-api-aws/cluster-api-aws-controller:v0.6.4) and replace `<RELEASE_VERSION>` and `<PREVIOUS_VERSION>`.
-15. Make sure image promotion is complete before publishing the release draft. The promotion job logs can be found [here](https://testgrid.k8s.io/wg-k8s-infra-k8sio#post-k8sio-image-promo) and you can also try and pull the images (i.e. ``docker pull us.gcr.io/k8s-artifacts-prod/cluster-api-aws/cluster-api-aws-controller:v0.6.4`) 
+14. Finalise the release notes. Add image locations `<ADD_IMAGE_HERE>` (e.g., k8s.gcr.io/cluster-api-aws/cluster-api-aws-controller:v0.6.4) and replace `<RELEASE_VERSION>` and `<PREVIOUS_VERSION>`.
+15. Make sure image promotion is complete before publishing the release draft. The promotion job logs can be found [here](https://testgrid.k8s.io/wg-k8s-infra-k8sio#post-k8sio-image-promo) and you can also try and pull the images (i.e. ``docker pull k8s.gcr.io/cluster-api-aws/cluster-api-aws-controller:v0.6.4`) 
 16. Publish release. Use the pre-release option for release
      candidate versions of Cluster API Provider AWS.
 17. Email `kubernetes-sig-cluster-lifecycle@googlegroups.com` to announce the release
