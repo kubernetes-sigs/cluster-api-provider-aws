@@ -18,42 +18,41 @@ package bootstrap
 
 import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
 )
 
-func (t Template) secretPolicy(secureSecretsBackend infrav1.SecretBackend) iamv1.StatementEntry {
+func (t Template) secretPolicy(secureSecretsBackend infrav1.SecretBackend) infrav1.StatementEntry {
 	switch secureSecretsBackend {
 	case infrav1.SecretBackendSecretsManager:
-		return iamv1.StatementEntry{
-			Effect: iamv1.EffectAllow,
-			Resource: iamv1.Resources{
+		return infrav1.StatementEntry{
+			Effect: infrav1.EffectAllow,
+			Resource: infrav1.Resources{
 				"arn:*:secretsmanager:*:*:secret:aws.cluster.x-k8s.io/*",
 			},
-			Action: iamv1.Actions{
+			Action: infrav1.Actions{
 				"secretsmanager:DeleteSecret",
 				"secretsmanager:GetSecretValue",
 			},
 		}
 	case infrav1.SecretBackendSSMParameterStore:
-		return iamv1.StatementEntry{
-			Effect: iamv1.EffectAllow,
-			Resource: iamv1.Resources{
+		return infrav1.StatementEntry{
+			Effect: infrav1.EffectAllow,
+			Resource: infrav1.Resources{
 				"arn:*:ssm:*:*:parameter/cluster.x-k8s.io/*",
 			},
-			Action: iamv1.Actions{
+			Action: infrav1.Actions{
 				"ssm:DeleteParameter",
 				"ssm:GetParameter",
 			},
 		}
 	}
-	return iamv1.StatementEntry{}
+	return infrav1.StatementEntry{}
 }
 
-func (t Template) sessionManagerPolicy() iamv1.StatementEntry {
-	return iamv1.StatementEntry{
-		Effect:   iamv1.EffectAllow,
-		Resource: iamv1.Resources{iamv1.Any},
-		Action: iamv1.Actions{
+func (t Template) sessionManagerPolicy() infrav1.StatementEntry {
+	return infrav1.StatementEntry{
+		Effect:   infrav1.EffectAllow,
+		Resource: infrav1.Resources{infrav1.Any},
+		Action: infrav1.Actions{
 			"ssm:UpdateInstanceInformation",
 			"ssmmessages:CreateControlChannel",
 			"ssmmessages:CreateDataChannel",
@@ -81,7 +80,7 @@ func (t Template) nodeManagedPolicies() []string {
 	return policies
 }
 
-func (t Template) nodePolicy() *iamv1.PolicyDocument {
+func (t Template) nodePolicy() *infrav1.PolicyDocument {
 	policyDocument := t.cloudProviderNodeAwsPolicy()
 	for _, secureSecretsBackend := range t.Spec.SecureSecretsBackends {
 		policyDocument.Statement = append(

@@ -23,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"strings"
 )
 
@@ -64,17 +64,17 @@ func (s *Service) deleteSQSQueue() error {
 
 func (s *Service) createPolicyForRule(input *createPolicyForRuleInput) error {
 	attrs := make(map[string]string)
-	policy := v1alpha1.PolicyDocument{
-		Version: v1alpha1.CurrentVersion,
+	policy := v1alpha4.PolicyDocument{
+		Version: v1alpha4.CurrentVersion,
 		ID:      input.QueueArn,
-		Statement: v1alpha1.Statements{
-			v1alpha1.StatementEntry{
+		Statement: v1alpha4.Statements{
+			v1alpha4.StatementEntry{
 				Sid:       fmt.Sprintf("CAPAEvents_%s_%s", s.getEC2RuleName(), GenerateQueueName(s.scope.Name())),
-				Effect:    v1alpha1.EffectAllow,
-				Principal: v1alpha1.Principals{v1alpha1.PrincipalService: v1alpha1.PrincipalID{"events.amazonaws.com"}},
-				Action:    v1alpha1.Actions{"sqs:SendMessage"},
-				Resource:  v1alpha1.Resources{input.QueueArn},
-				Condition: v1alpha1.Conditions{
+				Effect:    v1alpha4.EffectAllow,
+				Principal: v1alpha4.Principals{v1alpha4.PrincipalService: v1alpha4.PrincipalID{"events.amazonaws.com"}},
+				Action:    v1alpha4.Actions{"sqs:SendMessage"},
+				Resource:  v1alpha4.Resources{input.QueueArn},
+				Condition: v1alpha4.Conditions{
 					"ArnEquals": map[string]string{"aws:SourceArn": input.RuleArn},
 				},
 			},

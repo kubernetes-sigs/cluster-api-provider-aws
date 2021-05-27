@@ -18,12 +18,11 @@ package converters
 
 import (
 	"encoding/json"
-
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 )
 
 // JSON is the JSON output of the policy document
-func IAMPolicyDocumentToJSON(p iamv1.PolicyDocument) (string, error) {
+func IAMPolicyDocumentToJSON(p v1alpha4.PolicyDocument) (string, error) {
 	b, err := json.MarshalIndent(p, "", "  ")
 	if err != nil {
 		return "", err

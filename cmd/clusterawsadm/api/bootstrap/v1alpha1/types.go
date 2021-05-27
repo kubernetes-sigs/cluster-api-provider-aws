@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
 )
 
 // BootstrapUser contains a list of elements that is specific
@@ -48,7 +47,7 @@ type BootstrapUser struct {
 	ExtraGroups []string `json:"extraGroups,omitempty"`
 
 	// ExtraStatements are additional AWS IAM policy document statements to be included inline for the user.
-	ExtraStatements []iamv1.StatementEntry `json:"extraStatements,omitempty"`
+	ExtraStatements []infrav1.StatementEntry `json:"extraStatements,omitempty"`
 
 	// Tags is a map of tags to be applied to the AWS IAM user.
 	Tags infrav1.Tags `json:"tags,omitempty"`
@@ -80,11 +79,11 @@ type AWSIAMRoleSpec struct {
 	ExtraPolicyAttachments []string `json:"extraPolicyAttachments,omitempty"`
 
 	// ExtraStatements are additional IAM statements to be included inline for the role.
-	ExtraStatements []iamv1.StatementEntry `json:"extraStatements,omitempty"`
+	ExtraStatements []infrav1.StatementEntry `json:"extraStatements,omitempty"`
 
 	// TrustStatements is an IAM PolicyDocument defining what identities are allowed to assume this role.
 	// See "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1" for more documentation.
-	TrustStatements []iamv1.StatementEntry `json:"trustStatements,omitempty"`
+	TrustStatements []infrav1.StatementEntry `json:"trustStatements,omitempty"`
 
 	// Tags is a map of tags to be applied to the AWS IAM role.
 	Tags infrav1.Tags `json:"tags,omitempty"`

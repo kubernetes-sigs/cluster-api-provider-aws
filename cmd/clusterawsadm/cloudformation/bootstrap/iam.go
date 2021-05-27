@@ -20,10 +20,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
+	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
-
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
 )
 
 type PolicyName string
@@ -59,8 +58,8 @@ func (t Template) GenerateManagedIAMPolicyDocuments(policyDocDir string) error {
 	return nil
 }
 
-func (t Template) policyFunctionMap() map[PolicyName]func() *iamv1.PolicyDocument {
-	return map[PolicyName]func() *iamv1.PolicyDocument{
+func (t Template) policyFunctionMap() map[PolicyName]func() *v1alpha4.PolicyDocument {
+	return map[PolicyName]func() *v1alpha4.PolicyDocument{
 		ControlPlanePolicy: t.cloudProviderControlPlaneAwsPolicy,
 		ControllersPolicy:  t.ControllersPolicy,
 		NodePolicy:         t.cloudProviderNodeAwsPolicy,
@@ -68,6 +67,6 @@ func (t Template) policyFunctionMap() map[PolicyName]func() *iamv1.PolicyDocumen
 	}
 }
 
-func (t Template) GetPolicyDocFromPolicyName(policyName PolicyName) *iamv1.PolicyDocument {
+func (t Template) GetPolicyDocFromPolicyName(policyName PolicyName) *v1alpha4.PolicyDocument {
 	return t.policyFunctionMap()[policyName]()
 }

@@ -28,7 +28,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	apiiam "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -141,21 +141,21 @@ func (s *Service) deleteOIDCProvider() error {
 	return nil
 }
 
-func (s *Service) buildOIDCTrustPolicy() apiiam.PolicyDocument {
+func (s *Service) buildOIDCTrustPolicy() v1alpha4.PolicyDocument {
 	providerARN := s.scope.ControlPlane.Status.OIDCProvider.ARN
 	conditionValue := providerARN[strings.Index(providerARN, "/")+1:] + ":sub"
 
-	return apiiam.PolicyDocument{
+	return v1alpha4.PolicyDocument{
 		Version: "2012-10-17",
-		Statement: apiiam.Statements{
-			apiiam.StatementEntry{
+		Statement: v1alpha4.Statements{
+			v1alpha4.StatementEntry{
 				Sid:    "",
 				Effect: "Allow",
-				Principal: apiiam.Principals{
-					apiiam.PrincipalFederated: apiiam.PrincipalID{providerARN},
+				Principal: v1alpha4.Principals{
+					v1alpha4.PrincipalFederated: v1alpha4.PrincipalID{providerARN},
 				},
-				Action: apiiam.Actions{"sts:AssumeRoleWithWebIdentity"},
-				Condition: apiiam.Conditions{
+				Action: v1alpha4.Actions{"sts:AssumeRoleWithWebIdentity"},
+				Condition: v1alpha4.Conditions{
 					"ForAnyValue:StringLike": map[string][]string{
 						conditionValue: {"system:serviceaccount:${SERVICE_ACCOUNT_NAMESPACE}:${SERVICE_ACCOUNT_NAME}"},
 					},

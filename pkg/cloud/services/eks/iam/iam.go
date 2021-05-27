@@ -32,8 +32,6 @@ import (
 	"github.com/pkg/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	apiiam "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
 )
 
@@ -177,7 +175,7 @@ func RoleTags(key string, additionalTags infrav1.Tags) []*iam.Tag {
 func (s *IAMService) CreateRole(
 	roleName string,
 	key string,
-	trustRelationship *apiiam.PolicyDocument,
+	trustRelationship *infrav1.PolicyDocument,
 	additionalTags infrav1.Tags,
 ) (*iam.Role, error) {
 	tags := RoleTags(key, additionalTags)
@@ -204,7 +202,7 @@ func (s *IAMService) CreateRole(
 func (s *IAMService) EnsureTagsAndPolicy(
 	role *iam.Role,
 	key string,
-	trustRelationship *apiiam.PolicyDocument,
+	trustRelationship *infrav1.PolicyDocument,
 	additionalTags infrav1.Tags,
 ) (bool, error) {
 	s.V(2).Info("Ensuring tags and AssumeRolePolicyDocument are set on role")
@@ -214,7 +212,7 @@ func (s *IAMService) EnsureTagsAndPolicy(
 		return false, errors.Wrap(err, "couldn't decode AssumeRolePolicyDocument")
 	}
 
-	var rolePolicyDocument iamv1.PolicyDocument
+	var rolePolicyDocument infrav1.PolicyDocument
 	err = json.Unmarshal([]byte(rolePolicyDocumentRaw), &rolePolicyDocument)
 	if err != nil {
 		return false, errors.Wrap(err, "couldn't unmarshal AssumeRolePolicyDocument")
@@ -327,16 +325,16 @@ func (s *IAMService) IsUnmanaged(role *iam.Role, key string) bool {
 	return true
 }
 
-func ControlPlaneTrustRelationship(enableFargate bool) *apiiam.PolicyDocument {
-	identity := make(apiiam.Principals)
+func ControlPlaneTrustRelationship(enableFargate bool) *infrav1.PolicyDocument {
+	identity := make(infrav1.Principals)
 	identity["Service"] = []string{"eks.amazonaws.com"}
 	if enableFargate {
 		identity["Service"] = append(identity["Service"], EKSFargateService)
 	}
 
-	policy := &apiiam.PolicyDocument{
+	policy := &infrav1.PolicyDocument{
 		Version: "2012-10-17",
-		Statement: []apiiam.StatementEntry{
+		Statement: []infrav1.StatementEntry{
 			{
 				Effect: "Allow",
 				Action: []string{
@@ -350,13 +348,13 @@ func ControlPlaneTrustRelationship(enableFargate bool) *apiiam.PolicyDocument {
 	return policy
 }
 
-func FargateTrustRelationship() *apiiam.PolicyDocument {
-	identity := make(apiiam.Principals)
+func FargateTrustRelationship() *infrav1.PolicyDocument {
+	identity := make(infrav1.Principals)
 	identity["Service"] = []string{EKSFargateService}
 
-	policy := &apiiam.PolicyDocument{
+	policy := &infrav1.PolicyDocument{
 		Version: "2012-10-17",
-		Statement: []apiiam.StatementEntry{
+		Statement: []infrav1.StatementEntry{
 			{
 				Effect: "Allow",
 				Action: []string{
@@ -370,13 +368,13 @@ func FargateTrustRelationship() *apiiam.PolicyDocument {
 	return policy
 }
 
-func NodegroupTrustRelationship() *apiiam.PolicyDocument {
-	identity := make(apiiam.Principals)
+func NodegroupTrustRelationship() *infrav1.PolicyDocument {
+	identity := make(infrav1.Principals)
 	identity["Service"] = []string{"ec2.amazonaws.com"}
 
-	policy := &apiiam.PolicyDocument{
+	policy := &infrav1.PolicyDocument{
 		Version: "2012-10-17",
-		Statement: []apiiam.StatementEntry{
+		Statement: []infrav1.StatementEntry{
 			{
 				Effect: "Allow",
 				Action: []string{

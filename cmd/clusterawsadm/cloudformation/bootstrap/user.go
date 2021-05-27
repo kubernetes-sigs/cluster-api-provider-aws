@@ -19,7 +19,7 @@ package bootstrap
 import (
 	"github.com/awslabs/goformation/v4/cloudformation"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 )
 
 func (t Template) bootstrapUserGroups() []string {
@@ -36,9 +36,9 @@ func (t Template) bootstrapUserPolicy() []cfn_iam.User_Policy {
 		userPolicies = append(userPolicies,
 			cfn_iam.User_Policy{
 				PolicyName: t.Spec.StackName,
-				PolicyDocument: iamv1.PolicyDocument{
+				PolicyDocument: v1alpha4.PolicyDocument{
 					Statement: t.Spec.BootstrapUser.ExtraStatements,
-					Version:   iamv1.CurrentVersion,
+					Version:   v1alpha4.CurrentVersion,
 				},
 			},
 		)

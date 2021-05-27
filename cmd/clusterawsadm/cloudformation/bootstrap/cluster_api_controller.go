@@ -22,7 +22,6 @@ import (
 	"github.com/awslabs/goformation/v4/cloudformation"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
 )
 
 const (
@@ -50,18 +49,18 @@ func (t Template) controllersPolicyRoleAttachments() []string {
 	return attachments
 }
 
-func (t Template) controllersTrustPolicy() *iamv1.PolicyDocument {
+func (t Template) controllersTrustPolicy() *infrav1.PolicyDocument {
 	policyDocument := ec2AssumeRolePolicy()
 	policyDocument.Statement = append(policyDocument.Statement, t.Spec.ClusterAPIControllers.TrustStatements...)
 	return policyDocument
 }
 
-func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
-	statement := []iamv1.StatementEntry{
+func (t Template) ControllersPolicy() *infrav1.PolicyDocument {
+	statement := []infrav1.StatementEntry{
 		{
-			Effect:   iamv1.EffectAllow,
-			Resource: iamv1.Resources{iamv1.Any},
-			Action: iamv1.Actions{
+			Effect:   infrav1.EffectAllow,
+			Resource: infrav1.Resources{infrav1.Any},
+			Action: infrav1.Actions{
 				"ec2:AllocateAddress",
 				"ec2:AssociateRouteTable",
 				"ec2:AttachInternetGateway",
@@ -132,11 +131,11 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 			},
 		},
 		{
-			Effect: iamv1.EffectAllow,
-			Resource: iamv1.Resources{
+			Effect: infrav1.EffectAllow,
+			Resource: infrav1.Resources{
 				"arn:*:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*",
 			},
-			Action: iamv1.Actions{
+			Action: infrav1.Actions{
 				"autoscaling:CreateAutoScalingGroup",
 				"autoscaling:UpdateAutoScalingGroup",
 				"autoscaling:CreateOrUpdateTags",
@@ -146,45 +145,45 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 			},
 		},
 		{
-			Effect: iamv1.EffectAllow,
-			Resource: iamv1.Resources{
+			Effect: infrav1.EffectAllow,
+			Resource: infrav1.Resources{
 				"arn:*:iam::*:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling",
 			},
-			Action: iamv1.Actions{
+			Action: infrav1.Actions{
 				"iam:CreateServiceLinkedRole",
 			},
-			Condition: iamv1.Conditions{
-				iamv1.StringLike: map[string]string{"iam:AWSServiceName": "autoscaling.amazonaws.com"},
+			Condition: infrav1.Conditions{
+				infrav1.StringLike: map[string]string{"iam:AWSServiceName": "autoscaling.amazonaws.com"},
 			},
 		},
 		{
-			Effect: iamv1.EffectAllow,
-			Resource: iamv1.Resources{
+			Effect: infrav1.EffectAllow,
+			Resource: infrav1.Resources{
 				"arn:*:iam::*:role/aws-service-role/elasticloadbalancing.amazonaws.com/AWSServiceRoleForElasticLoadBalancing",
 			},
-			Action: iamv1.Actions{
+			Action: infrav1.Actions{
 				"iam:CreateServiceLinkedRole",
 			},
-			Condition: iamv1.Conditions{
-				iamv1.StringLike: map[string]string{"iam:AWSServiceName": "elasticloadbalancing.amazonaws.com"},
+			Condition: infrav1.Conditions{
+				infrav1.StringLike: map[string]string{"iam:AWSServiceName": "elasticloadbalancing.amazonaws.com"},
 			},
 		},
 		{
-			Effect: iamv1.EffectAllow,
-			Action: iamv1.Actions{
+			Effect: infrav1.EffectAllow,
+			Action: infrav1.Actions{
 				"iam:CreateServiceLinkedRole",
 			},
-			Resource: iamv1.Resources{
+			Resource: infrav1.Resources{
 				"arn:*:iam::*:role/aws-service-role/spot.amazonaws.com/AWSServiceRoleForEC2Spot",
 			},
-			Condition: iamv1.Conditions{
-				iamv1.StringLike: map[string]string{"iam:AWSServiceName": "spot.amazonaws.com"},
+			Condition: infrav1.Conditions{
+				infrav1.StringLike: map[string]string{"iam:AWSServiceName": "spot.amazonaws.com"},
 			},
 		},
 		{
-			Effect:   iamv1.EffectAllow,
+			Effect:   infrav1.EffectAllow,
 			Resource: t.allowedEC2InstanceProfiles(),
-			Action: iamv1.Actions{
+			Action: infrav1.Actions{
 				"iam:PassRole",
 			},
 		},
@@ -192,24 +191,24 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 	for _, secureSecretBackend := range t.Spec.SecureSecretsBackends {
 		switch secureSecretBackend {
 		case infrav1.SecretBackendSecretsManager:
-			statement = append(statement, iamv1.StatementEntry{
-				Effect: iamv1.EffectAllow,
-				Resource: iamv1.Resources{
+			statement = append(statement, infrav1.StatementEntry{
+				Effect: infrav1.EffectAllow,
+				Resource: infrav1.Resources{
 					"arn:*:secretsmanager:*:*:secret:aws.cluster.x-k8s.io/*",
 				},
-				Action: iamv1.Actions{
+				Action: infrav1.Actions{
 					"secretsmanager:CreateSecret",
 					"secretsmanager:DeleteSecret",
 					"secretsmanager:TagResource",
 				},
 			})
 		case infrav1.SecretBackendSSMParameterStore:
-			statement = append(statement, iamv1.StatementEntry{
-				Effect: iamv1.EffectAllow,
-				Resource: iamv1.Resources{
+			statement = append(statement, infrav1.StatementEntry{
+				Effect: infrav1.EffectAllow,
+				Resource: infrav1.Resources{
 					"arn:*:ssm:*:*:parameter/cluster.x-k8s.io/*",
 				},
-				Action: iamv1.Actions{
+				Action: infrav1.Actions{
 					"ssm:PutParameter",
 					"ssm:DeleteParameter",
 					"ssm:AddTagsToResource",
@@ -218,61 +217,61 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 		}
 	}
 	if t.Spec.EKS.Enable {
-		allowedIAMActions := iamv1.Actions{
+		allowedIAMActions := infrav1.Actions{
 			"iam:GetRole",
 			"iam:ListAttachedRolePolicies",
 		}
-		statement = append(statement, iamv1.StatementEntry{
-			Effect: iamv1.EffectAllow,
-			Resource: iamv1.Resources{
+		statement = append(statement, infrav1.StatementEntry{
+			Effect: infrav1.EffectAllow,
+			Resource: infrav1.Resources{
 				"arn:*:ssm:*:*:parameter/aws/service/eks/optimized-ami/*",
 			},
-			Action: iamv1.Actions{
+			Action: infrav1.Actions{
 				"ssm:GetParameter",
 			},
 		})
 
-		statement = append(statement, iamv1.StatementEntry{
-			Effect: iamv1.EffectAllow,
-			Action: iamv1.Actions{
+		statement = append(statement, infrav1.StatementEntry{
+			Effect: infrav1.EffectAllow,
+			Action: infrav1.Actions{
 				"iam:CreateServiceLinkedRole",
 			},
-			Resource: iamv1.Resources{
+			Resource: infrav1.Resources{
 				"arn:*:iam::*:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS",
 			},
-			Condition: iamv1.Conditions{
-				iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks.amazonaws.com"},
+			Condition: infrav1.Conditions{
+				infrav1.StringLike: map[string]string{"iam:AWSServiceName": "eks.amazonaws.com"},
 			},
 		})
 
-		statement = append(statement, iamv1.StatementEntry{
-			Effect: iamv1.EffectAllow,
-			Action: iamv1.Actions{
+		statement = append(statement, infrav1.StatementEntry{
+			Effect: infrav1.EffectAllow,
+			Action: infrav1.Actions{
 				"iam:CreateServiceLinkedRole",
 			},
-			Resource: iamv1.Resources{
+			Resource: infrav1.Resources{
 				"arn:*:iam::*:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup",
 			},
-			Condition: iamv1.Conditions{
-				iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks-nodegroup.amazonaws.com"},
+			Condition: infrav1.Conditions{
+				infrav1.StringLike: map[string]string{"iam:AWSServiceName": "eks-nodegroup.amazonaws.com"},
 			},
 		})
 
-		statement = append(statement, iamv1.StatementEntry{
-			Effect: iamv1.EffectAllow,
-			Action: iamv1.Actions{
+		statement = append(statement, infrav1.StatementEntry{
+			Effect: infrav1.EffectAllow,
+			Action: infrav1.Actions{
 				"iam:CreateServiceLinkedRole",
 			},
-			Resource: iamv1.Resources{
+			Resource: infrav1.Resources{
 				"arn:aws:iam::*:role/aws-service-role/eks-fargate-pods.amazonaws.com/AWSServiceRoleForAmazonEKSForFargate",
 			},
-			Condition: iamv1.Conditions{
-				iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks-fargate.amazonaws.com"},
+			Condition: infrav1.Conditions{
+				infrav1.StringLike: map[string]string{"iam:AWSServiceName": "eks-fargate.amazonaws.com"},
 			},
 		})
 
 		if t.Spec.EKS.AllowIAMRoleCreation {
-			allowedIAMActions = append(allowedIAMActions, iamv1.Actions{
+			allowedIAMActions = append(allowedIAMActions, infrav1.Actions{
 				"iam:DetachRolePolicy",
 				"iam:DeleteRole",
 				"iam:CreateRole",
@@ -280,37 +279,37 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"iam:AttachRolePolicy",
 			}...)
 
-			statement = append(statement, iamv1.StatementEntry{
-				Action: iamv1.Actions{
+			statement = append(statement, infrav1.StatementEntry{
+				Action: infrav1.Actions{
 					"iam:ListOpenIDConnectProviders",
 					"iam:CreateOpenIDConnectProvider",
 					"iam:AddClientIDToOpenIDConnectProvider",
 					"iam:UpdateOpenIDConnectProviderThumbprint",
 					"iam:DeleteOpenIDConnectProvider",
 				},
-				Resource: iamv1.Resources{
+				Resource: infrav1.Resources{
 					"*",
 				},
-				Effect: iamv1.EffectAllow,
+				Effect: infrav1.EffectAllow,
 			})
 		}
-		statement = append(statement, []iamv1.StatementEntry{
+		statement = append(statement, []infrav1.StatementEntry{
 			{
 				Action: allowedIAMActions,
-				Resource: iamv1.Resources{
+				Resource: infrav1.Resources{
 					"arn:*:iam::*:role/*",
 				},
-				Effect: iamv1.EffectAllow,
+				Effect: infrav1.EffectAllow,
 			}, {
-				Action: iamv1.Actions{
+				Action: infrav1.Actions{
 					"iam:GetPolicy",
 				},
-				Resource: iamv1.Resources{
+				Resource: infrav1.Resources{
 					t.generateAWSManagedPolicyARN(eksClusterPolicyName),
 				},
-				Effect: iamv1.EffectAllow,
+				Effect: infrav1.EffectAllow,
 			}, {
-				Action: iamv1.Actions{
+				Action: infrav1.Actions{
 					"eks:DescribeCluster",
 					"eks:ListClusters",
 					"eks:CreateCluster",
@@ -325,13 +324,13 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 					"eks:UpdateNodegroupConfig",
 					"eks:CreateNodegroup",
 				},
-				Resource: iamv1.Resources{
+				Resource: infrav1.Resources{
 					"arn:*:eks:*:*:cluster/*",
 					"arn:*:eks:*:*:nodegroup/*/*/*",
 				},
-				Effect: iamv1.EffectAllow,
+				Effect: infrav1.EffectAllow,
 			}, {
-				Action: iamv1.Actions{
+				Action: infrav1.Actions{
 					"eks:ListAddons",
 					"eks:CreateAddon",
 					"eks:DescribeAddonVersions",
@@ -343,33 +342,33 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 					"eks:CreateFargateProfile",
 					"eks:DeleteFargateProfile",
 				},
-				Resource: iamv1.Resources{
+				Resource: infrav1.Resources{
 					"*",
 				},
-				Effect: iamv1.EffectAllow,
+				Effect: infrav1.EffectAllow,
 			}, {
-				Action: iamv1.Actions{
+				Action: infrav1.Actions{
 					"iam:PassRole",
 				},
-				Resource: iamv1.Resources{
+				Resource: infrav1.Resources{
 					"*",
 				},
-				Condition: iamv1.Conditions{
+				Condition: infrav1.Conditions{
 					"StringEquals": map[string]string{
 						"iam:PassedToService": "eks.amazonaws.com",
 					},
 				},
-				Effect: iamv1.EffectAllow,
+				Effect: infrav1.EffectAllow,
 			},
 		}...)
 
 	}
 
 	if t.Spec.EventBridge.Enable {
-		statement = append(statement, iamv1.StatementEntry{
-			Effect:   iamv1.EffectAllow,
-			Resource: iamv1.Resources{iamv1.Any},
-			Action: iamv1.Actions{
+		statement = append(statement, infrav1.StatementEntry{
+			Effect:   infrav1.EffectAllow,
+			Resource: infrav1.Resources{infrav1.Any},
+			Action: infrav1.Actions{
 				"events:DeleteRule",
 				"events:DescribeRule",
 				"events:ListTargetsByRule",
@@ -387,19 +386,19 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 		})
 	}
 
-	return &iamv1.PolicyDocument{
-		Version:   iamv1.CurrentVersion,
+	return &infrav1.PolicyDocument{
+		Version:   infrav1.CurrentVersion,
 		Statement: statement,
 	}
 }
 
-func (t Template) allowedEC2InstanceProfiles() iamv1.Resources {
+func (t Template) allowedEC2InstanceProfiles() infrav1.Resources {
 	if t.Spec.ClusterAPIControllers.AllowedEC2InstanceProfiles == nil {
 		t.Spec.ClusterAPIControllers.AllowedEC2InstanceProfiles = []string{
-			t.NewManagedName(iamv1.Any),
+			t.NewManagedName(infrav1.Any),
 		}
 	}
-	instanceProfiles := make(iamv1.Resources, len(t.Spec.ClusterAPIControllers.AllowedEC2InstanceProfiles))
+	instanceProfiles := make(infrav1.Resources, len(t.Spec.ClusterAPIControllers.AllowedEC2InstanceProfiles))
 
 	for i, p := range t.Spec.ClusterAPIControllers.AllowedEC2InstanceProfiles {
 		instanceProfiles[i] = fmt.Sprintf("arn:*:iam::*:role/%s", p)
