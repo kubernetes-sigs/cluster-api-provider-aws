@@ -23,5 +23,4 @@
   - [Using Cluster API with cross-account role assumption](./topics/using-cluster-api-with-cross-account-role-assumption.md)
   - [Userdata Privacy](./topics/userdata-privacy.md)
   - [Troubleshooting](./topics/troubleshooting.md)
-  - [Setting up Development Environment for Cluster API Provider AWS](./development/development.md)
   - [IAM Permissions Used](./topics/iam-permissions.md)

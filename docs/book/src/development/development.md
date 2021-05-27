@@ -1,83 +1,67 @@
-#  Setting up Development Environment for Cluster API Provider AWS 
+# Developer Guide
 
-In this post we will be deep diving into how to setup and contribute into the ClusterAPI provider AWS.
+## Initial setup for development environment
+### Install prerequisites
+1. Install [go][go]
+    - Get the latest patch version for go v1.16.
+2. Install [jq][jq]
+    - `brew install jq` on macOS.
+    - `chocolatey install jq` on Windows.
+    - `sudo apt install jq` on Ubuntu Linux.
+3. Install [KIND][kind]
+    - `GO111MODULE="on" go get sigs.k8s.io/kind@v0.11.0`.
+4. Install [Kustomize][kustomize]
+    - `brew install kustomize` on macOS.
+    - `choco install kustomize` on Windows.
+    - [install instructions][kustomizelinux] on Linux
+5. Install [envsubst][envsubst]
+7. Install make.
+8. Install direnv
+    - `brew install direnv` on macOS.
 
-## Setup Development Environment for EKS Control Plane
-
-login to github and fork both
-
-- https://github.com/kubernetes-sigs/cluster-api
-- https://github.com/kubernetes-sigs/cluster-api-provider-aws
-
-### Install Prerequisites
-
-- Golang Version 1.13 or higher
-- direnv
-- envsubst
-- kubectl
-- Working Development Environment
-
-install `direnv`
+### Get the source
+Fork cluster-api-provider-aws repo: https://github.com/kubernetes-sigs/cluster-api-provider-aws
 
 ```bash
-brew install direnv
+cd "$(go env GOPATH)"
+mkdir sigs.k8s.io
+cd sigs.k8s.io/
+git clone git@github.com:<GITHUB USERNAME>/cluster-api-provider-aws.git
+cd cluster-api-provider-aws
+git remote add upstream git@github.com:kubernetes-sigs/cluster-api-provider-aws.git
+git fetch upstream
 ```
 
-install `envsubst`
+### Build clusterawsadm 
+
+Build `clusterawsadm` in `cluster-api-provider-aws` 
 
 ```bash
-curl -L https://github.com/a8m/envsubst/releases/download/v1.2.0/envsubst-`uname -s`-`uname -m` -o envsubst
-chmod +x envsubst
-sudo mv envsubst $HOME/go/bin/
-
-# or use go get
-export GOPATH=~go
-go get -v github.com/a8m/envsubst/cmd/envsubst
-```
-
-### Setup Repos and GOPATH
-
-setup this in `~/go/src/sigs.k8s.io` and `export GOPATH=~go`
-
-```bash
-$ export GOPATH=<HOME ABS PATH>/go
-
-$ mkdir ~/go/src/sigs.k8s.io/
-
-$ cd ~/go/src/sigs.k8s.io/
-
-$ git clone git@github.com:<GITHUB USERNAME>/cluster-api.git
-
-$ git clone git@github.com:<GITHUB USERNAME>/cluster-api-provider-aws.git
-```
-
-and add upstream for both repos
-
-```bash
-$ cd cluster-api 
-
-$ git remote add upstream git@github.com:kubernetes-sigs/cluster-api.git
-
-$ git fetch upstream
-
-$ cd ..
-
-$ cd cluster-api-provider-aws
-
-$ git remote add upstream git@github.com:kubernetes-sigs/cluster-api.git
-
-$ git fetch upstream
-```
-
-### Build clusterawsadm and setup your AWS Environment
-
-build the `clusterawsadm` in `cluster-api-provider-aws`
-
-```bash
+$ cd "$(go env GOPATH)"/src/sigs.k8s.io/cluster-api-provider-aws
 $ make clusterawsadm
+$ mv ./bin/clusterawsadm /usr/local/bin/clusterawsadm
 ```
 
-create bootstrap file and bootstrap IAM roles and policies using `clusterawsadm`
+### Setup AWS Environment 
+**For cluster-api-provider-aws managed clusters**
+
+Create bootstrap file and bootstrap IAM roles and policies using `clusterawsadm`
+
+```bash
+$ cat config-bootstrap.yaml
+apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
+kind: AWSIAMConfiguration
+spec:
+  bootstrapUser:
+    enable: true
+
+$ clusterawsadm bootstrap iam create-cloudformation-stack
+Attempting to create AWS CloudFormation stack cluster-api-provider-aws-sigs-k8s-io
+```
+
+**For EKS clusters**
+
+Create IAM Resources that will be needed for bootstrapping EKS
 
 ```bash
 $ cat config-bootstrap.yaml
@@ -95,14 +79,14 @@ spec:
       disable: false # Set to false to enable creation of the default node role for managed machine pools
 ```
 
-create IAM Resources that will be needed for bootstrapping EKS 
+create IAM Resources that will be needed for bootstrapping EKS
 
 ```bash
 $ ./bin/clusterawsadm bootstrap iam create-cloudformation-stack --config=config-bootstrap.yaml
 Attempting to create AWS CloudFormation stack cluster-api-provider-aws-sigs-k8s-io
 ```
 
-this will create cloudformation stack for those IAM resources
+This will create cloudformation stack for those IAM resources
 
 ```bash
 Following resources are in the stack:
@@ -123,135 +107,56 @@ AWS::IAM::Role            |nodes.cluster-api-provider-aws.sigs.k8s.io           
 AWS::IAM::User            |bootstrapper.cluster-api-provider-aws.sigs.k8s.io                                   |CREATE_COMPLETE
 ```
 
-create a security credentials in the `bootstrapper.cluster-api-provider-aws.sigs.k8s.io` IAM user and copy the `AWS_ACCESS_KEY_ID` and `AWS_SECRETS_ACCESS_KEY`
+### Set Environment Variables
 
-```bash
-$ brew install direnv
-$ touch .envrc #add the aws key
+- Create a security credentials in the `bootstrapper.cluster-api-provider-aws.sigs.k8s.io` IAM user that is created by cloud-formation stack and copy the `AWS_ACCESS_KEY_ID` and `AWS_SECRETS_ACCESS_KEY`.
+  (Or use admin user credentials instead)
 
-unset AWS_SESSION_TOKEN
-unset AWS_SECURITY_TOKEN
-export AWS_ACCESS_KEY_ID=AKIATEST
-export AWS_SECRET_ACCESS_KEY=TESTTEST
-export AWS_REGION=eu-west-1
-```
 
-then run `direnv allow` for each change done in `.envrc`
+- Set AWS_B64ENCODED_CREDENTIALS environment variable
 
-create a kind cluster where we can deploy the kubernetes manifests. This kind cluster will be a temp cluster which we will use to create the EKS cluster. 
+   ```bash
+   export AWS_ACCESS_KEY_ID=AKIATEST 
+   export AWS_SECRET_ACCESS_KEY=TESTTEST
+   export AWS_REGION=eu-west-1
+   export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)
+   ```
 
-```bash
-$ kind create cluster
-```
 
-setup cluster-api with the same `.envrc` file and then allow direnv 
+## Running local management cluster for development
 
-```bash
-cp .envrc ../cluster-api
-cd ../cluster-api
-direnv allow
+Before the next steps, make sure [initial setup for development environment][Initial-setup-for-development-environment] steps are complete.
 
-```
+[Initial-setup-for-development-environment]: ../development/development.html#initial-setup-for-development-environment
 
-create `tilt-settings.json` change the value of `AWS_B64ENCODED_CREDENTIALS`
+There are two ways to build aws manager from local cluster-api-provider-aws source and run it in local kind cluster:
 
-```bash
-{
-"default_registry": "gcr.io/<GITHUB USERNAME>",
-    "provider_repos": ["../cluster-api-provider-aws"],
-    "enable_providers": ["eks-bootstrap", "eks-controlplane", "kubeadm-bootstrap", "kubeadm-control-plane", "aws"],
-    "kustomize_substitutions": {
-        "AWS_B64ENCODED_CREDENTIALS": "W2RlZmFZSZnRg==",
-        "EXP_EKS": "true",
-        "EXP_EKS_IAM": "true",
-        "EXP_MACHINE_POOL": "true"
-    },
-    "extra_args": {
-        "aws": ["--v=2"],
-        "eks-bootstrap": ["--v=2"],
-        "eks-controlplane": ["--v=2"]
-    }
-  }
-```
+### Option 1: Setting up Development Environment with Tilt
 
-run dev env using `tilt` let it run and press space once its running to open the web browser
+[Tilt][tilt] is a tool for quickly building, pushing, and reloading Docker containers as part of a Kubernetes deployment.
+Many of the Cluster API engineers use it for quick iteration. Please see our [Tilt instructions][Tilt instructions] to get started.
 
-```bash
-tilt up
-```
+[tilt]: https://tilt.dev
+[Tilt instructions]: ../developer/tilt-setup.md
 
-create`cd cluster-api-provider-aws`  and edit `.envrc`
+### Option 2: The Old-fashioned way
 
-```bash
-export AWS_EKS_ROLE_ARN=arn:aws:iam::<accountid>:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS
-export AWS_SSH_KEY_NAME=<sshkeypair>
-export KUBERNETES_VERSION=v1.15.2
-export EKS_KUBERNETES_VERSION=v1.15
-export CLUSTER_NAME=capi-<test-clustename>
-export CONTROL_PLANE_MACHINE_COUNT=1
-export AWS_CONTROL_PLANE_MACHINE_TYPE=t3.large
-export WORKER_MACHINE_COUNT=1
-export AWS_NODE_MACHINE_TYPE=t3.large
-```
-
-check and pipe output of template into a file
-
-```bash
-cat templates/cluster-template-eks.yaml 
-cat templates/cluster-template-eks.yaml | $HOME/go/bin/envsubst > test-cluster.yaml
-```
-
-apply generate `test-cluster.yaml` file in the `kind cluster`
-
-```bash
-kubectx
-kubectx kind-kind
-kubectl apply -f test-cluster.yaml
-```
-
-Check the tilt logs and wait for the EKS Cluster to be created 
-
-## Retry if theres an error when creating the test-cluster
-
-To retry apis and services again delete the cluster and recreate it again 
-
-```bash
-tilt up (ctrl-c)
-press space to see the logs
-
-kubectl delete -f test-cluster.yaml
-
-kind delete cluster
-
-kind create cluster
-```
-
-try again 
-
-```bash
-tilt up
-```
-
-### Clean up
-
-To clean make sure you delete the Kubernetes Resources first before deleting the Kind Cluster
-
-### Troubleshooting
-
-- Make sure you have at least three available spaces EIP and NAT Gateways to be created
-- If your git starts throwing this error
-
-```bash
-flag provided but not defined: -variables
-Usage: envsubst [options...] <input>
-```
-
-you might need to reinstall the system `envsubst`
-
-```bash
-brew install gettetxt
-# or
-brew reinstall gettext
-```
-
-Make sure you specify which `envsubst` you are using
+Running cluster-api and cluster-api-provider-aws controllers in a kind cluster:
+1. Create a local kind cluster
+   - `kind create cluster`
+2. Install core cluster-api controllers (the version must match the cluster-api version in [go.mod][go.mod])
+   - `clusterctl init --core cluster-api:v0.3.16 --bootstrap kubeadm:v0.3.16 --control-plane kubeadm:v0.3.16`
+3. Build cluster-api-provider-aws docker images
+   - `make e2e-image`
+4. Release manifests under `./out` directory
+   - `RELEASE_TAG="e2e" make release-manifests`
+5. Apply the manifests
+   - `kubectl apply -f ./out/infrastructure.yaml`
+   
+[go]: https://golang.org/doc/install
+[jq]: https://stedolan.github.io/jq/download/
+[go.mod]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/go.mod
+[kind]: https://sigs.k8s.io/kind
+[kustomize]: https://github.com/kubernetes-sigs/kustomize
+[kustomizelinux]: https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md
+[envsubst]: https://github.com/a8m/envsubst
