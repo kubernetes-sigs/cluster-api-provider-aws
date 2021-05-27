@@ -22,6 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -53,6 +54,14 @@ func (r *AWSClusterControllerIdentity) ValidateCreate() error {
 			r.Name, "AWSClusterControllerIdentity is a singleton and only acceptable name is default")
 	}
 
+	// Validate selector parses as Selector if AllowedNameSpaces is populated
+	if r.Spec.AllowedNamespaces != nil {
+		_, err := metav1.LabelSelectorAsSelector(&r.Spec.AllowedNamespaces.Selector)
+		if err != nil {
+			return field.Invalid(field.NewPath("spec", "allowedNamespaces", "selector"), r.Spec.AllowedNamespaces.Selector, err.Error())
+		}
+	}
+
 	return nil
 }
 
@@ -74,6 +83,13 @@ func (r *AWSClusterControllerIdentity) ValidateUpdate(old runtime.Object) error 
 		return field.Invalid(field.NewPath("name"),
 			r.Name, "AWSClusterControllerIdentity is a singleton and only acceptable name is default")
 	}
+
+	// Validate selector parses as Selector
+	_, err := metav1.LabelSelectorAsSelector(&r.Spec.AllowedNamespaces.Selector)
+	if err != nil {
+		return field.Invalid(field.NewPath("spec", "allowedNamespaces", "selectors"), r.Spec.AllowedNamespaces.Selector, err.Error())
+	}
+
 	return nil
 }
 

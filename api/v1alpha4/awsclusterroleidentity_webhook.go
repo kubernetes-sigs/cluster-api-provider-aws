@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -49,6 +50,15 @@ func (r *AWSClusterRoleIdentity) ValidateCreate() error {
 		return field.Invalid(field.NewPath("spec", "sourceIdentityRef"),
 			r.Spec.SourceIdentityRef, "field cannot be set to nil")
 	}
+
+	// Validate selector parses as Selector
+	if r.Spec.AllowedNamespaces != nil {
+		_, err := metav1.LabelSelectorAsSelector(&r.Spec.AllowedNamespaces.Selector)
+		if err != nil {
+			return field.Invalid(field.NewPath("spec", "allowedNamespaces", "selector"), r.Spec.AllowedNamespaces.Selector, err.Error())
+		}
+	}
+
 	return nil
 }
 
@@ -66,6 +76,14 @@ func (r *AWSClusterRoleIdentity) ValidateUpdate(old runtime.Object) error {
 	if oldP.Spec.SourceIdentityRef != nil && r.Spec.SourceIdentityRef == nil {
 		return field.Invalid(field.NewPath("spec", "sourceIdentityRef"),
 			r.Spec.SourceIdentityRef, "field cannot be set to nil")
+	}
+
+	// Validate selector parses as Selector
+	if r.Spec.AllowedNamespaces != nil {
+		_, err := metav1.LabelSelectorAsSelector(&r.Spec.AllowedNamespaces.Selector)
+		if err != nil {
+			return field.Invalid(field.NewPath("spec", "allowedNamespaces", "selector"), r.Spec.AllowedNamespaces.Selector, err.Error())
+		}
 	}
 
 	return nil
