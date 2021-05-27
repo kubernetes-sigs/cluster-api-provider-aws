@@ -23,54 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestAWSClusterRoleValidateCreate(t *testing.T) {
-	tests := []struct {
-		name      string
-		identity  *AWSClusterRoleIdentity
-		wantError bool
-	}{
-		{
-			name: "do not allow nil sourceIdentityRef",
-			identity: &AWSClusterRoleIdentity{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test",
-				},
-			},
-			wantError: true,
-		},
-		{
-			name: "successfully create AWSClusterRoleIdentity",
-			identity: &AWSClusterRoleIdentity{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "role",
-				},
-				Spec: AWSClusterRoleIdentitySpec{
-					SourceIdentityRef: &AWSIdentityReference{
-						Name: "another-role",
-						Kind: ClusterRoleIdentityKind,
-					},
-				},
-			},
-			wantError: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			identity := tt.identity.DeepCopy()
-			identity.TypeMeta = metav1.TypeMeta{
-				APIVersion: GroupVersion.String(),
-				Kind:       "AWSClusterRoleIdentity",
-			}
-			ctx := context.TODO()
-			if err := testEnv.Create(ctx, identity); (err != nil) != tt.wantError {
-				t.Errorf("ValidateCreate() error = %v, wantErr %v", err, tt.wantError)
-			}
-			testEnv.Delete(ctx, identity)
-		})
-	}
-}
-
-func TestCreateAWSClusterRoleIdentityLabelSelectorAsSelectorValidation(t *testing.T) {
+func TestCreateAWSClusterStaticIdentityValidation(t *testing.T) {
 	tests := []struct {
 		name      string
 		selectors map[string]string
@@ -89,11 +42,15 @@ func TestCreateAWSClusterRoleIdentityLabelSelectorAsSelectorValidation(t *testin
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			identity := &AWSClusterRoleIdentity{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "role",
+			identity := &AWSClusterStaticIdentity{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: GroupVersion.String(),
+					Kind:       string(ClusterStaticIdentityKind),
 				},
-				Spec: AWSClusterRoleIdentitySpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "static",
+				},
+				Spec: AWSClusterStaticIdentitySpec{
 					AWSClusterIdentitySpec: AWSClusterIdentitySpec{
 						AllowedNamespaces: &AllowedNamespaces{
 							Selector: metav1.LabelSelector{
@@ -101,10 +58,7 @@ func TestCreateAWSClusterRoleIdentityLabelSelectorAsSelectorValidation(t *testin
 							},
 						},
 					},
-					SourceIdentityRef: &AWSIdentityReference{
-						Name: "another-role",
-						Kind: ClusterRoleIdentityKind,
-					},
+					SecretRef: "test-secret",
 				},
 			}
 
@@ -117,46 +71,73 @@ func TestCreateAWSClusterRoleIdentityLabelSelectorAsSelectorValidation(t *testin
 	}
 }
 
-func TestAWSClusterRoleValidateUpdate(t *testing.T) {
-	roleIdentity := &AWSClusterRoleIdentity{
+func TestAWSClusterStaticValidateUpdate(t *testing.T) {
+	staticIdentity := &AWSClusterStaticIdentity{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: GroupVersion.String(),
-			Kind:       string(ClusterRoleIdentityKind),
+			Kind:       string(ClusterStaticIdentityKind),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "role",
+			Name: "static",
 		},
-		Spec: AWSClusterRoleIdentitySpec{
-			SourceIdentityRef: &AWSIdentityReference{
-				Name: "another-role",
-				Kind: ClusterRoleIdentityKind,
-			},
+		Spec: AWSClusterStaticIdentitySpec{
+			SecretRef: "test-secret",
 		},
 	}
 
 	ctx := context.TODO()
-	defer testEnv.Delete(ctx, roleIdentity)
+	defer testEnv.Delete(ctx, staticIdentity)
 
-	if err := testEnv.Create(ctx, roleIdentity); err != nil {
-		t.Errorf("roleIdentity creation failed %v", err)
+	if err := testEnv.Create(ctx, staticIdentity); err != nil {
+		t.Errorf("staticIdentity creation failed %v", err)
 	}
 
-	roleIdentity.Spec = AWSClusterRoleIdentitySpec{}
-	if err := testEnv.Update(ctx, roleIdentity); err == nil {
-		t.Errorf("roleIdentity is updated with nil sourceIdentityRef %v", err)
+	tests := []struct {
+		name      string
+		identity  *AWSClusterStaticIdentity
+		wantError bool
+	}{
+		{
+			name: "do not allow any spec changes",
+			identity: &AWSClusterStaticIdentity{
+				Spec: AWSClusterStaticIdentitySpec{
+					SecretRef:"test",
+				},
+			},
+			wantError: true,
+		},
+		{
+			name:      "no error when updating the same object",
+			identity:  staticIdentity,
+			wantError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			identity := tt.identity.DeepCopy()
+			identity.TypeMeta = metav1.TypeMeta{
+				APIVersion: GroupVersion.String(),
+				Kind:       string(ClusterStaticIdentityKind),
+			}
+			ctx := context.TODO()
+			if err := testEnv.Update(ctx, identity); (err != nil) != tt.wantError {
+				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantError)
+			}
+		})
 	}
 }
 
-func TestAWSClusterRoleIdentityUpdateValidation(t *testing.T) {
-	roleIdentity := &AWSClusterRoleIdentity{
+func TestAWSClusterStaticIdentityUpdateLabelSelectorValidation(t *testing.T) {
+	staticIdentity := &AWSClusterStaticIdentity{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: GroupVersion.String(),
-			Kind:       string(ClusterRoleIdentityKind),
+			Kind:       string(ClusterStaticIdentityKind),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "role",
+			Name: "static",
 		},
-		Spec: AWSClusterRoleIdentitySpec{
+		Spec: AWSClusterStaticIdentitySpec{
 			AWSClusterIdentitySpec: AWSClusterIdentitySpec{
 				AllowedNamespaces: &AllowedNamespaces{
 					Selector: metav1.LabelSelector{
@@ -164,47 +145,40 @@ func TestAWSClusterRoleIdentityUpdateValidation(t *testing.T) {
 					},
 				},
 			},
-			SourceIdentityRef: &AWSIdentityReference{
-				Name: "another-role",
-				Kind: ClusterRoleIdentityKind,
-			},
+			SecretRef: "test-secret",
 		},
 	}
 
 	ctx := context.TODO()
-	defer testEnv.Delete(ctx, roleIdentity)
+	defer testEnv.Delete(ctx, staticIdentity)
 
-	if err := testEnv.Create(ctx, roleIdentity); err != nil {
-		t.Errorf("roleIdentity creation failed %v", err)
+	if err := testEnv.Create(ctx, staticIdentity); err != nil {
+		t.Errorf("staticIdentity creation failed %v", err)
 	}
 
 	tests := []struct {
 		name      string
-		identity  *AWSClusterRoleIdentity
+		identity  *AWSClusterStaticIdentity
 		wantError bool
 	}{
 		{
 			name:      "should not return error for valid selector",
-			identity:  roleIdentity,
+			identity:  staticIdentity,
 			wantError: false,
 		},
 		{
 			name: "should return error for invalid selector",
-			identity: &AWSClusterRoleIdentity{
+			identity: &AWSClusterStaticIdentity{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "role",
+					Name: "static",
 				},
-				Spec: AWSClusterRoleIdentitySpec{
+				Spec: AWSClusterStaticIdentitySpec{
 					AWSClusterIdentitySpec: AWSClusterIdentitySpec{
 						AllowedNamespaces: &AllowedNamespaces{
 							Selector: metav1.LabelSelector{
 								MatchLabels: map[string]string{"-foo-123": "bar"},
 							},
 						},
-					},
-					SourceIdentityRef: &AWSIdentityReference{
-						Name: "another-role",
-						Kind: ClusterRoleIdentityKind,
 					},
 				},
 			},
