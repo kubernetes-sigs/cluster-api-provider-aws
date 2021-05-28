@@ -26,7 +26,6 @@ import (
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -121,25 +120,25 @@ func Test_RenderCloudformation(t *testing.T) {
 			template: func() Template {
 				t := NewTemplate()
 				t.Spec.BootstrapUser.Enable = true
-				t.Spec.ControlPlane.ExtraStatements = iamv1.Statements{
+				t.Spec.ControlPlane.ExtraStatements = infrav1.Statements{
 					{
-						Effect:   iamv1.EffectAllow,
-						Resource: iamv1.Resources{iamv1.Any},
-						Action:   iamv1.Actions{"test:action"},
+						Effect:   infrav1.EffectAllow,
+						Resource: infrav1.Resources{infrav1.Any},
+						Action:   infrav1.Actions{"test:action"},
 					},
 				}
-				t.Spec.Nodes.ExtraStatements = iamv1.Statements{
+				t.Spec.Nodes.ExtraStatements = infrav1.Statements{
 					{
-						Effect:   iamv1.EffectAllow,
-						Resource: iamv1.Resources{iamv1.Any},
-						Action:   iamv1.Actions{"test:node-action"},
+						Effect:   infrav1.EffectAllow,
+						Resource: infrav1.Resources{infrav1.Any},
+						Action:   infrav1.Actions{"test:node-action"},
 					},
 				}
-				t.Spec.BootstrapUser.ExtraStatements = iamv1.Statements{
+				t.Spec.BootstrapUser.ExtraStatements = infrav1.Statements{
 					{
-						Effect:   iamv1.EffectAllow,
-						Resource: iamv1.Resources{iamv1.Any},
-						Action:   iamv1.Actions{"test:user-action"},
+						Effect:   infrav1.EffectAllow,
+						Resource: infrav1.Resources{infrav1.Any},
+						Action:   infrav1.Actions{"test:user-action"},
 					},
 				}
 				return t
