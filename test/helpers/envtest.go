@@ -18,6 +18,7 @@ package helpers
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"path"
@@ -30,15 +31,19 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/pkg/errors"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/test/helpers/external"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
-	"sigs.k8s.io/cluster-api/test/helpers"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -58,6 +63,8 @@ var (
 )
 
 func init() {
+	klog.InitFlags(nil)
+
 	logger := klogr.New()
 	// use klog as the internal logger for this envtest environment.
 	log.SetLogger(logger)
@@ -92,9 +99,41 @@ type TestEnvironmentConfiguration struct {
 
 // TestEnvironment encapsulates a Kubernetes local test environment.
 type TestEnvironment struct {
-	helpers.TestEnvironment
+	manager.Manager
+	client.Client
+	Config *rest.Config
 	env    *envtest.Environment
 	cancel context.CancelFunc
+}
+
+// Cleanup deletes all the given objects.
+func (t *TestEnvironment) Cleanup(ctx context.Context, objs ...client.Object) error {
+	errs := []error{}
+	for _, o := range objs {
+		err := t.Client.Delete(ctx, o)
+		if apierrors.IsNotFound(err) {
+			continue
+		}
+		errs = append(errs, err)
+	}
+	return kerrors.NewAggregate(errs)
+}
+
+// CreateNamespace creates a new namespace with a generated name.
+func (t *TestEnvironment) CreateNamespace(ctx context.Context, generateName string) (*corev1.Namespace, error) {
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: fmt.Sprintf("%s-", generateName),
+			Labels: map[string]string{
+				"testenv/original-name": generateName,
+			},
+		},
+	}
+	if err := t.Client.Create(ctx, ns); err != nil {
+		return nil, err
+	}
+
+	return ns, nil
 }
 
 // NewTestEnvironmentConfiguration creates a new test environment configuration for running tests
@@ -164,12 +203,10 @@ func (t *TestEnvironmentConfiguration) Build() (*TestEnvironment, error) {
 	}
 
 	return &TestEnvironment{
-		TestEnvironment: helpers.TestEnvironment{
-			Manager: mgr,
-			Client:  mgr.GetClient(),
-			Config:  mgr.GetConfig(),
-		},
-		env: t.env,
+		Manager: mgr,
+		Client:  mgr.GetClient(),
+		Config:  mgr.GetConfig(),
+		env:     t.env,
 	}, nil
 
 }
