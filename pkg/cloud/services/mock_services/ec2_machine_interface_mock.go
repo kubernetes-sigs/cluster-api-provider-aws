@@ -260,6 +260,20 @@ func (mr *MockEC2MachineInterfaceMockRecorder) LaunchTemplateNeedsUpdate(arg0, a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LaunchTemplateNeedsUpdate", reflect.TypeOf((*MockEC2MachineInterface)(nil).LaunchTemplateNeedsUpdate), arg0, arg1, arg2)
 }
 
+// PruneLaunchTemplateVersions mocks base method.
+func (m *MockEC2MachineInterface) PruneLaunchTemplateVersions(arg0 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PruneLaunchTemplateVersions", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PruneLaunchTemplateVersions indicates an expected call of PruneLaunchTemplateVersions.
+func (mr *MockEC2MachineInterfaceMockRecorder) PruneLaunchTemplateVersions(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PruneLaunchTemplateVersions", reflect.TypeOf((*MockEC2MachineInterface)(nil).PruneLaunchTemplateVersions), arg0)
+}
+
 // TerminateInstance mocks base method.
 func (m *MockEC2MachineInterface) TerminateInstance(arg0 string) error {
 	m.ctrl.T.Helper()
