@@ -26,11 +26,11 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"github.com/gofrs/flock"
 	"github.com/onsi/ginkgo/config"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
+	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 )
 
 var _ = Describe("Cluster API E2E tests - unmanaged", func() {
@@ -145,6 +145,28 @@ var _ = Describe("Cluster API E2E tests - unmanaged", func() {
 
 		capi_e2e.MachinePoolSpec(context.TODO(), func() capi_e2e.MachinePoolInput {
 			return capi_e2e.MachinePoolInput{
+				E2EConfig:             e2eCtx.E2EConfig,
+				ClusterctlConfigPath:  e2eCtx.Environment.ClusterctlConfigPath,
+				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				ArtifactFolder:        filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
+				SkipCleanup:           e2eCtx.Settings.SkipCleanup,
+			}
+		})
+		AfterEach(func() {
+			shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+		})
+	})
+
+	Context("Running the Clusterctl Upgrade Spec", func() {
+		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
+		requiredResources := &shared.TestResource{EC2: 4, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
+		BeforeEach(func() {
+			requiredResources.WriteRequestedResources(e2eCtx, "capi-clusterctl-upgrade-test")
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+		})
+
+		capi_e2e.ClusterctlUpgradeSpec(context.TODO(), func() capi_e2e.ClusterctlUpgradeSpecInput {
+			return capi_e2e.ClusterctlUpgradeSpecInput{
 				E2EConfig:             e2eCtx.E2EConfig,
 				ClusterctlConfigPath:  e2eCtx.Environment.ClusterctlConfigPath,
 				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,

@@ -42,6 +42,17 @@ providers:
             new: "--leader-elect=false"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
+      - name: v0.3.16 # latest published release
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.16/core-components.yaml"
+        type: "url"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: "--leader-elect"
+            new: "--leader-elect=false"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
+
 
   - name: kubeadm
     type: BootstrapProvider
@@ -59,6 +70,16 @@ providers:
             new: "--leader-elect=false"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
+      - name: v0.3.16 # latest published release
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.16/bootstrap-components.yaml"
+        type: "url"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: "--leader-elect"
+            new: "--leader-elect=false"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
 
   - name: kubeadm
     type: ControlPlaneProvider
@@ -68,6 +89,16 @@ providers:
       - name: v0.4.0
         # Use manifest from source files
         value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210525/control-plane-components.yaml"
+        type: "url"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: "--leader-elect"
+            new: "--leader-elect=false"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
+      - name: v0.3.16 # latest published release
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.16/control-plane-components.yaml"
         type: "url"
         replacements:
           - old: "imagePullPolicy: Always"
@@ -140,6 +171,8 @@ variables:
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.19.8"
   MULTI_TENANCY_ROLE_NAME: "multi-tenancy-role"
   MULTI_TENANCY_NESTED_ROLE_NAME: "multi-tenancy-nested-role"
+  # NOTE: INIT_WITH_BINARY is used only by the clusterctl upgrade test to initialize the management cluster to be upgraded
+  INIT_WITH_BINARY: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.16/clusterctl-{OS}-{ARCH}"
 
 intervals:
   default/wait-cluster: ["25m", "10s"]
