@@ -172,65 +172,7 @@ func main() {
 	}
 	enableGates(ctx, mgr, AWSServiceEndpoints)
 
-	if err = (&infrav1alpha4.AWSMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplate")
-		os.Exit(1)
-	}
-	if err = (&infrav1alpha4.AWSMachineTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplateList")
-		os.Exit(1)
-	}
-	if err = (&infrav1alpha4.AWSCluster{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSCluster")
-		os.Exit(1)
-	}
-	if err = (&infrav1alpha4.AWSClusterList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterList")
-		os.Exit(1)
-	}
-	if err = (&infrav1alpha4.AWSClusterControllerIdentity{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterControllerIdentity")
-		os.Exit(1)
-	}
-	if err = (&infrav1alpha4.AWSClusterRoleIdentity{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterRoleIdentity")
-		os.Exit(1)
-	}
-	if err = (&infrav1alpha4.AWSMachine{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachine")
-		os.Exit(1)
-	}
-	if err = (&infrav1alpha4.AWSMachineList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineList")
-		os.Exit(1)
-	}
-	if err = (&infrav1alpha4.AWSClusterControllerIdentityList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterControllerIdentityList")
-		os.Exit(1)
-	}
-	if err = (&infrav1alpha4.AWSClusterRoleIdentityList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterRoleIdentityList")
-		os.Exit(1)
-	}
-	if feature.Gates.Enabled(feature.EKS) {
-		setupLog.Info("enabling EKS webhooks")
-		if err = (&infrav1alpha4exp.AWSManagedMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "AWSManagedMachinePool")
-			os.Exit(1)
-		}
-		if err = (&infrav1alpha4exp.AWSFargateProfile{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "AWSFargateProfile")
-			os.Exit(1)
-		}
-	}
-	if feature.Gates.Enabled(feature.MachinePool) {
-		setupLog.Info("enabling webhook for AWSMachinePool")
-		if err = (&infrav1alpha4exp.AWSMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachinePool")
-			os.Exit(1)
-		}
-	}
-
+	setupWebhooks(mgr)
 	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddReadyzCheck("ping", healthz.Ping); err != nil {
@@ -247,6 +189,71 @@ func main() {
 	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
+	}
+}
+
+func setupWebhooks(mgr ctrl.Manager) {
+	if webhookPort == 0 {
+		return
+	}
+
+	if err := (&infrav1alpha4.AWSMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplate")
+		os.Exit(1)
+	}
+	if err := (&infrav1alpha4.AWSMachineTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplateList")
+		os.Exit(1)
+	}
+	if err := (&infrav1alpha4.AWSCluster{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "AWSCluster")
+		os.Exit(1)
+	}
+	if err := (&infrav1alpha4.AWSClusterList{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterList")
+		os.Exit(1)
+	}
+	if err := (&infrav1alpha4.AWSClusterControllerIdentity{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterControllerIdentity")
+		os.Exit(1)
+	}
+	if err := (&infrav1alpha4.AWSClusterRoleIdentity{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterRoleIdentity")
+		os.Exit(1)
+	}
+	if err := (&infrav1alpha4.AWSMachine{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachine")
+		os.Exit(1)
+	}
+	if err := (&infrav1alpha4.AWSMachineList{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineList")
+		os.Exit(1)
+	}
+	if err := (&infrav1alpha4.AWSClusterControllerIdentityList{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterControllerIdentityList")
+		os.Exit(1)
+	}
+	if err := (&infrav1alpha4.AWSClusterRoleIdentityList{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterRoleIdentityList")
+		os.Exit(1)
+	}
+	if feature.Gates.Enabled(feature.EKS) {
+		setupLog.Info("enabling EKS webhooks")
+		if err := (&infrav1alpha4exp.AWSManagedMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AWSManagedMachinePool")
+			os.Exit(1)
+		}
+		if err := (&infrav1alpha4exp.AWSFargateProfile{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AWSFargateProfile")
+			os.Exit(1)
+		}
+	}
+	if feature.Gates.Enabled(feature.MachinePool) {
+		setupLog.Info("enabling webhook for AWSMachinePool")
+		if err := (&infrav1alpha4exp.AWSMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachinePool")
+			os.Exit(1)
+		}
 	}
 }
 
@@ -382,7 +389,7 @@ func initFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&webhookPort,
 		"webhook-port",
 		9443,
-		"Webhook Server port.",
+		"Webhook Server port. Set 0 to disable it.",
 	)
 
 	fs.StringVar(&webhookCertDir, "webhook-cert-dir", "/tmp/k8s-webhook-server/serving-certs/",
