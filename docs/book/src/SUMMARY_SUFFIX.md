@@ -1,3 +1,5 @@
+- [Developer Guide](./development/development.md)
+  - [Development with Tilt](./development/tilt-setup.md)
 - [CRD Reference](./crd/index.md)
   - [Cluster API Provider AWS](./crd/cluster-api-aws.md)
   - [EKS Control Plane](./crd/eks-control-plane.md)-
