@@ -30,6 +30,7 @@ import (
 	"k8s.io/klog/v2/klogr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/identity"
+	"sigs.k8s.io/cluster-api-provider-aws/util/system"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -275,10 +276,7 @@ func TestPrincipalParsing(t *testing.T) {
 						Name: "static-identity",
 					},
 					Spec: infrav1.AWSClusterStaticIdentitySpec{
-						SecretRef: corev1.SecretReference{
-							Name:      "static-credentials-secret",
-							Namespace: "default",
-						},
+						SecretRef: "static-credentials-secret",
 						AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
 							AllowedNamespaces: &infrav1.AllowedNamespaces{},
 						},
@@ -293,7 +291,7 @@ func TestPrincipalParsing(t *testing.T) {
 				credentialsSecret := &corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "static-credentials-secret",
-						Namespace: "default",
+						Namespace: system.GetManagerNamespace(),
 					},
 					Data: map[string][]byte{
 						"AccessKeyID":     []byte("1234567890"),
@@ -351,10 +349,7 @@ func TestPrincipalParsing(t *testing.T) {
 						Name: "static-identity",
 					},
 					Spec: infrav1.AWSClusterStaticIdentitySpec{
-						SecretRef: corev1.SecretReference{
-							Name:      "static-credentials-secret",
-							Namespace: "default",
-						},
+						SecretRef: "static-credentials-secret",
 						AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
 							AllowedNamespaces: &infrav1.AllowedNamespaces{},
 						},
@@ -369,7 +364,7 @@ func TestPrincipalParsing(t *testing.T) {
 				credentialsSecret := &corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "static-credentials-secret",
-						Namespace: "default",
+						Namespace: system.GetManagerNamespace(),
 					},
 					Data: map[string][]byte{
 						"AccessKeyID":     []byte("1234567890"),

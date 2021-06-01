@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha4
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -99,7 +98,7 @@ type AWSClusterStaticIdentitySpec struct {
 	//  AccessKeyID: AKIAIOSFODNN7EXAMPLE
 	//  SecretAccessKey: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 	//  SessionToken: Optional
-	SecretRef corev1.SecretReference `json:"secretRef"`
+	SecretRef string `json:"secretRef"`
 }
 
 // +kubebuilder:object:root=true

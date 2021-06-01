@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/identity"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
+	"sigs.k8s.io/cluster-api-provider-aws/util/system"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -340,7 +341,7 @@ func buildAWSClusterStaticIdentity(ctx context.Context, identityObjectKey client
 		return nil, err
 	}
 	secret := &corev1.Secret{}
-	err = k8sClient.Get(ctx, client.ObjectKey{Name: staticPrincipal.Spec.SecretRef.Name, Namespace: staticPrincipal.Spec.SecretRef.Namespace}, secret)
+	err = k8sClient.Get(ctx, client.ObjectKey{Name: staticPrincipal.Spec.SecretRef, Namespace: system.GetManagerNamespace()}, secret)
 	if err != nil {
 		return nil, err
 	}

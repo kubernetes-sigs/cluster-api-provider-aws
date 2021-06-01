@@ -21,10 +21,26 @@ import (
 
 	. "github.com/onsi/gomega"
 
+	fuzz "github.com/google/gofuzz"
+	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	v1alpha4 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
+
+func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		AWSClusterStaticIdentityFuzzer,
+	}
+}
+
+func AWSClusterStaticIdentityFuzzer(obj *AWSClusterStaticIdentity, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// AWSClusterStaticIdentity.Spec.SecretRef.Namespace has been removed in v1alpha4, so setting it to nil in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
+	obj.Spec.SecretRef.Namespace = ""
+}
 
 func TestFuzzyConversion(t *testing.T) {
 	g := NewWithT(t)
@@ -34,37 +50,38 @@ func TestFuzzyConversion(t *testing.T) {
 
 	t.Run("for AWSCluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
-		Hub: &v1alpha4.AWSCluster{},
-		Spoke: &AWSCluster{},
+		Hub:    &v1alpha4.AWSCluster{},
+		Spoke:  &AWSCluster{},
 	}))
 
 	t.Run("for AWSMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
-		Hub: &v1alpha4.AWSMachine{},
-		Spoke: &AWSMachine{},
+		Hub:    &v1alpha4.AWSMachine{},
+		Spoke:  &AWSMachine{},
 	}))
 
 	t.Run("for AWSMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
-		Hub: &v1alpha4.AWSMachineTemplate{},
-		Spoke: &AWSMachineTemplate{},
+		Hub:    &v1alpha4.AWSMachineTemplate{},
+		Spoke:  &AWSMachineTemplate{},
 	}))
 
 	t.Run("for AWSClusterStaticIdentity", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub: &v1alpha4.AWSClusterStaticIdentity{},
-		Spoke: &AWSClusterStaticIdentity{},
+		Scheme:      scheme,
+		Hub:         &v1alpha4.AWSClusterStaticIdentity{},
+		Spoke:       &AWSClusterStaticIdentity{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 
 	t.Run("for AWSClusterControllerIdentity", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
-		Hub: &v1alpha4.AWSClusterControllerIdentity{},
-		Spoke: &AWSClusterControllerIdentity{},
+		Hub:    &v1alpha4.AWSClusterControllerIdentity{},
+		Spoke:  &AWSClusterControllerIdentity{},
 	}))
 
 	t.Run("for AWSClusterRoleIdentity", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
-		Hub: &v1alpha4.AWSClusterRoleIdentity{},
-		Spoke: &AWSClusterRoleIdentity{},
+		Hub:    &v1alpha4.AWSClusterRoleIdentity{},
+		Spoke:  &AWSClusterRoleIdentity{},
 	}))
 }
