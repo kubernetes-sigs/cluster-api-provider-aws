@@ -96,6 +96,10 @@ type AWSManagedMachinePoolSpec struct {
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 
+	// Taints specifies the taints to apply to the nodes of the machine pool
+	// +optional
+	Taints Taints `json:"taints,omitempty"`
+
 	// DiskSize specifies the root disk size
 	// +optional
 	DiskSize *int32 `json:"diskSize,omitempty"`
