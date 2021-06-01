@@ -1,0 +1,5 @@
+resources:
+  - ../limit-az
+  - mhc.yaml
+patchesStrategicMerge:
+  - patches/mhc-label.yaml

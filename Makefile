@@ -146,6 +146,10 @@ $(ARTIFACTS):
 test: ## Run tests
 	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./...
 
+.PHONY: generate-test-flavors ## Generate test template flavors
+generate-test-flavors: $(KUSTOMIZE)
+	./hack/gen-test-flavors.sh
+
 .PHONY: test-e2e ## Run e2e tests using clusterctl
 test-e2e: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run e2e tests
 	time $(GINKGO) -trace -stream -progress -v -tags=e2e -focus=$(E2E_UNMANAGED_FOCUS) $(GINKGO_ARGS) -nodes=$(GINKGO_NODES) ./test/e2e/suites/unmanaged/... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" --data-folder="$(E2E_DATA_DIR)" $(E2E_ARGS) -use-existing-cluster=$(USE_EXISTING_CLUSTER)
@@ -228,6 +232,7 @@ modules: ## Runs go mod to ensure proper vendoring.
 generate: ## Generate code
 	$(MAKE) generate-go
 	$(MAKE) generate-manifests
+	$(MAKE) generate-test-flavors
 
 .PHONY: generate-go
 generate-go: $(MOCKGEN)
