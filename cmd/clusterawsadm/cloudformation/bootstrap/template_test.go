@@ -117,6 +117,16 @@ func Test_RenderCloudformation(t *testing.T) {
 			},
 		},
 		{
+			fixture: "with_eks_kms_prefix",
+			template: func() Template {
+				t := NewTemplate()
+				t.Spec.EKS.Enable = true
+				t.Spec.Nodes.EC2ContainerRegistryReadOnly = true
+				t.Spec.EKS.KMSAliasPrefix = "custom-prefix-*"
+				return t
+			},
+		},
+		{
 			fixture: "with_extra_statements",
 			template: func() Template {
 				t := NewTemplate()

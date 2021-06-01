@@ -15,6 +15,7 @@
     - [Creating a cluster](./topics/eks/creating-a-cluster.md)
     - [Using EKS Console](./topics/eks/eks-console.md)
     - [Using EKS Addons](./topics/eks/addons.md)
+    - [Enabling Encryption](./topics/eks/encryption.md)
     - [Cluster Upgrades](./topics/eks/cluster-upgrades.md)
   - [Consuming Existing AWS Infrastructure](./topics/consuming-existing-aws-infrastructure.md)
   - [Specifying the IAM Role to use for Management Components](./topics/specify-management-iam-role.md)
