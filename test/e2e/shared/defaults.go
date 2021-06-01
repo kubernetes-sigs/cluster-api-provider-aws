@@ -49,6 +49,7 @@ const (
 	SimpleMultitenancyFlavor     = "simple-multitenancy"
 	NestedMultitenancyFlavor     = "nested-multitenancy"
 	KCPScaleInFlavor             = "kcp-scale-in"
+	GPUFlavor                    = "gpu"
 	StorageClassFailureZoneLabel = "failure-domain.beta.kubernetes.io/zone"
 )
 
