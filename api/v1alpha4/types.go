@@ -649,6 +649,12 @@ type Instance struct {
 	// Indicates whether the instance is optimized for Amazon EBS I/O.
 	EBSOptimized *bool `json:"ebsOptimized,omitempty"`
 
+	// ID of the instance's root storage device
+	RootDeviceID string `json:"rootDeviceID,omitempty"`
+
+	// The tags associated with the instance's root storage device
+	RootDeviceTags map[string]string `json:"rootDeviceTags,omitempty"`
+
 	// Configuration options for the root storage volume.
 	// +optional
 	RootVolume *Volume `json:"rootVolume,omitempty"`

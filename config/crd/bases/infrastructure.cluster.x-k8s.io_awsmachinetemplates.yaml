@@ -623,6 +623,15 @@ spec:
                           1. This field if set 2. Cluster/flavor setting 3. Subnet
                           default'
                         type: boolean
+                      rootDeviceID:
+                        description: ID of the instance's root storage device
+                        type: string
+                      rootDeviceTags:
+                        additionalProperties:
+                          type: string
+                        description: The tags associated with the instance's root
+                          storage device
+                        type: object
                       rootVolume:
                         description: RootVolume encapsulates the configuration options
                           for the root volume
