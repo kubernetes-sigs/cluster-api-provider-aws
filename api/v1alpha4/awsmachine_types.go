@@ -113,6 +113,12 @@ type AWSMachineSpec struct {
 	// +optional
 	SSHKeyName *string `json:"sshKeyName,omitempty"`
 
+	// ID of the instance's root storage device
+	RootDeviceID string `json:"rootDeviceID,omitempty"`
+
+	// The tags associated with the instance's root storage device
+	RootDeviceTags map[string]string `json:"rootDeviceTags,omitempty"`
+
 	// RootVolume encapsulates the configuration options for the root volume
 	// +optional
 	RootVolume *Volume `json:"rootVolume,omitempty"`

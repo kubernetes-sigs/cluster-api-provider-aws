@@ -1179,6 +1179,15 @@ spec:
                     description: The public IPv4 address assigned to the instance,
                       if applicable.
                     type: string
+                  rootDeviceID:
+                    description: ID of the instance's root storage device
+                    type: string
+                  rootDeviceTags:
+                    additionalProperties:
+                      type: string
+                    description: The tags associated with the instance's root storage
+                      device
+                    type: object
                   rootVolume:
                     description: Configuration options for the root storage volume.
                     properties:

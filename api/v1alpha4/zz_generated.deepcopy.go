@@ -560,6 +560,13 @@ func (in *AWSMachineSpec) DeepCopyInto(out *AWSMachineSpec) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.RootDeviceTags != nil {
+		in, out := &in.RootDeviceTags, &out.RootDeviceTags
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.RootVolume != nil {
 		in, out := &in.RootVolume, &out.RootVolume
 		*out = new(Volume)
@@ -1172,6 +1179,13 @@ func (in *Instance) DeepCopyInto(out *Instance) {
 		in, out := &in.EBSOptimized, &out.EBSOptimized
 		*out = new(bool)
 		**out = **in
+	}
+	if in.RootDeviceTags != nil {
+		in, out := &in.RootDeviceTags, &out.RootDeviceTags
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
 	}
 	if in.RootVolume != nil {
 		in, out := &in.RootVolume, &out.RootVolume
