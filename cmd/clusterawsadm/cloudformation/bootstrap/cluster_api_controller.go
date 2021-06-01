@@ -379,6 +379,21 @@ func (t Template) ControllersPolicy() *infrav1.PolicyDocument {
 				},
 				Effect: infrav1.EffectAllow,
 			},
+			{
+				Action: infrav1.Actions{
+					"kms:CreateGrant",
+					"kms:DescribeKey",
+				},
+				Resource: infrav1.Resources{
+					"*",
+				},
+				Effect: infrav1.EffectAllow,
+				Condition: infrav1.Conditions{
+					"ForAnyValue:StringLike": map[string]string{
+						"kms:ResourceAliases": fmt.Sprintf("alias/%s", t.Spec.EKS.KMSAliasPrefix),
+					},
+				},
+			},
 		}...)
 	}
 
