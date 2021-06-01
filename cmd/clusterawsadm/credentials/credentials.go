@@ -20,8 +20,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"errors"
-	"fmt"
-	"os"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/util"
 	"text/template"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -42,12 +41,6 @@ aws_session_token = {{ .SessionToken }}
 const AWSDefaultRegion = "us-east-1"
 
 var ErrNoAWSRegionConfigured = errors.New("no AWS region configured. Use --region or set AWS_REGION or DEFAULT_AWS_REGION environment variable")
-
-type ErrEnvironmentVariableNotFound string
-
-func (e ErrEnvironmentVariableNotFound) Error() string {
-	return fmt.Sprintf("environment variable %q not found", string(e))
-}
 
 type AWSCredentials struct {
 	AccessKeyID     string
@@ -83,23 +76,15 @@ func ResolveRegion(explicitRegion string) (string, error) {
 	if explicitRegion != "" {
 		return explicitRegion, nil
 	}
-	region, err := getEnv("AWS_REGION")
+	region, err := util.GetEnv("AWS_REGION")
 	if err == nil {
 		return region, nil
 	}
-	region, err = getEnv("DEFAULT_AWS_REGION")
+	region, err = util.GetEnv("DEFAULT_AWS_REGION")
 	if err == nil {
 		return region, nil
 	}
 	return "", ErrNoAWSRegionConfigured
-}
-
-func getEnv(key string) (string, error) {
-	val, ok := os.LookupEnv(key)
-	if !ok {
-		return "", ErrEnvironmentVariableNotFound(key)
-	}
-	return val, nil
 }
 
 func (c AWSCredentials) RenderAWSDefaultProfile() (string, error) {
