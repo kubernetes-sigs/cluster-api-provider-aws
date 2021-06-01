@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/awslabs/goformation/v4/cloudformation"
+	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 )
@@ -53,6 +54,23 @@ func (t Template) controllersTrustPolicy() *infrav1.PolicyDocument {
 	policyDocument := ec2AssumeRolePolicy()
 	policyDocument.Statement = append(policyDocument.Statement, t.Spec.ClusterAPIControllers.TrustStatements...)
 	return policyDocument
+}
+
+func (t Template) controllersRolePolicy() []cfn_iam.Role_Policy {
+	policies := []cfn_iam.Role_Policy{}
+
+	if t.Spec.ClusterAPIControllers.ExtraStatements != nil {
+		policies = append(policies,
+			cfn_iam.Role_Policy{
+				PolicyName: t.Spec.StackName,
+				PolicyDocument: infrav1.PolicyDocument{
+					Statement: t.Spec.ClusterAPIControllers.ExtraStatements,
+					Version:   infrav1.CurrentVersion,
+				},
+			},
+		)
+	}
+	return policies
 }
 
 func (t Template) ControllersPolicy() *infrav1.PolicyDocument {

@@ -130,6 +130,7 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 	template.Resources[AWSIAMRoleControllers] = &cfn_iam.Role{
 		RoleName:                 t.NewManagedName("controllers"),
 		AssumeRolePolicyDocument: t.controllersTrustPolicy(),
+		Policies:                 t.controllersRolePolicy(),
 		Tags:                     converters.MapToCloudFormationTags(t.Spec.ClusterAPIControllers.Tags),
 	}
 

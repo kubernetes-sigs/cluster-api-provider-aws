@@ -141,6 +141,13 @@ func Test_RenderCloudformation(t *testing.T) {
 						Action:   infrav1.Actions{"test:user-action"},
 					},
 				}
+				t.Spec.ClusterAPIControllers.ExtraStatements = infrav1.Statements{
+					{
+						Effect:   infrav1.EffectAllow,
+						Resource: infrav1.Resources{infrav1.Any},
+						Action:   infrav1.Actions{"test:controller-action"},
+					},
+				}
 				return t
 			},
 		},
