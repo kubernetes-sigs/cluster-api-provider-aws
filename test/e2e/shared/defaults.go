@@ -51,6 +51,7 @@ const (
 	NestedMultitenancyFlavor     = "nested-multitenancy"
 	KCPScaleInFlavor             = "kcp-scale-in"
 	StorageClassOutTreeZoneLabel = "topology.ebs.csi.aws.com/zone"
+	GPUFlavor                    = "gpu"
 )
 
 var ResourceQuotaFilePath = "/tmp/capa-e2e-resource-usage.lock"

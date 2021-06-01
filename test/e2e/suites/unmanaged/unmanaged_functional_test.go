@@ -44,7 +44,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-var _ = ginkgo.PContext("[unmanaged] [functional]", func() {
+var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	var (
 		ctx    context.Context
 		result *clusterctl.ApplyClusterTemplateAndWaitResult
@@ -110,6 +110,52 @@ var _ = ginkgo.PContext("[unmanaged] [functional]", func() {
 			deleteCluster(ctx, cluster)
 			ginkgo.By("Deleting retained dynamically provisioned volumes")
 			deleteRetainedVolumes(awsVolIds)
+			ginkgo.By("PASSED!")
+		})
+	})
+
+	ginkgo.Describe("GPU-enabled cluster test", func() {
+		ginkgo.It("should create cluster with single worker", func() {
+			specName := "functional-gpu-cluster"
+			requiredResources := &shared.TestResource{EC2: 1, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
+			requiredResources.WriteRequestedResources(e2eCtx, "gpu-test")
+			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+
+			ginkgo.By("Creating cluster with a single worker")
+			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
+
+			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+				ClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				ConfigCluster: clusterctl.ConfigClusterInput{
+					LogFolder:                filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
+					ClusterctlConfigPath:     e2eCtx.Environment.ClusterctlConfigPath,
+					KubeconfigPath:           e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
+					InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+					Flavor:                   shared.GPUFlavor,
+					Namespace:                namespace.Name,
+					ClusterName:              clusterName,
+					KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
+					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+					WorkerMachineCount:       pointer.Int64Ptr(1),
+				},
+				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster"),
+				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+				WaitForMachineDeployments:    e2eCtx.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+				// nvidia-gpu flavor creates a config map as part of a crs, that exceeds the annotations size limit when we do kubectl apply.
+				// This is because the entire config map is stored in `last-applied` annotation for tracking.
+				// The workaround is to use server side apply by passing `--server-side` flag to kubectl apply.
+				// More on server side apply here: https://kubernetes.io/docs/reference/using-api/server-side-apply/
+				Args: []string{"--server-side"},
+			}, result)
+
+			shared.AWSGPUSpec(ctx, e2eCtx, shared.AWSGPUSpecInput{
+				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				NamespaceName:         namespace.Name,
+				ClusterName:           clusterName,
+				SkipCleanup:           false,
+			})
 			ginkgo.By("PASSED!")
 		})
 	})

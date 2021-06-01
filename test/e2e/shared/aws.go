@@ -19,17 +19,17 @@ limitations under the License.
 package shared
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
 	"time"
-	"os/exec"
-	"bytes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -46,15 +46,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
+	"github.com/aws/aws-sdk-go/service/sts"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
 	cloudformation "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/service"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/credentials"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/yaml"
 )
 
@@ -265,7 +265,7 @@ func ensureTestImageUploaded(e2eCtx *E2EContext) (string, string, error) {
 	s3Svc := s3.New(e2eCtx.BootstrapUserAWSSession)
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		_, err = s3Svc.CreateBucket(&s3.CreateBucketInput{
-			ACL: aws.String("public-read"),
+			ACL:    aws.String("public-read"),
 			Bucket: aws.String(bucketName),
 		})
 		if err != nil && !awserrors.IsBucketAlreadyOwnedByYou(err) {
@@ -282,8 +282,7 @@ func ensureTestImageUploaded(e2eCtx *E2EContext) (string, string, error) {
 	}
 	defer os.RemoveAll(dir)
 
-	dockerImage :=  fmt.Sprintf("%s/image.tar", dir)
-
+	dockerImage := fmt.Sprintf("%s/image.tar", dir)
 
 	Byf("Saving the e2e image to %s", dockerImage)
 	err = exec.Command("docker", "save", "gcr.io/k8s-staging-cluster-api/capa-manager:e2e", "-o", dockerImage).Run()
@@ -298,7 +297,7 @@ func ensureTestImageUploaded(e2eCtx *E2EContext) (string, string, error) {
 	err = cmd.Run()
 
 	if err != nil {
-		return "","",  err
+		return "", "", err
 	}
 
 	imageSha := strings.ReplaceAll(strings.TrimSuffix(string(stdOut.Bytes()), "\n"), "'", "")
@@ -313,16 +312,16 @@ func ensureTestImageUploaded(e2eCtx *E2EContext) (string, string, error) {
 	Byf("Uploading the e2e image to s3:///%s/%s", bucketName, imageSha)
 	_, err = uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(bucketName),
-		Key: aws.String(imageSha),
-		Body: f,
+		Key:    aws.String(imageSha),
+		Body:   f,
 	})
 
 	Byf("Making the image public")
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		_, err = s3Svc.PutObjectAcl(&s3.PutObjectAclInput{
-			ACL: aws.String("public-read"),
+			ACL:    aws.String("public-read"),
 			Bucket: aws.String(bucketName),
-			Key: aws.String(imageSha),
+			Key:    aws.String(imageSha),
 		})
 		if err != nil {
 			return false, err
@@ -331,7 +330,6 @@ func ensureTestImageUploaded(e2eCtx *E2EContext) (string, string, error) {
 	}, awserrors.NoSuchKey); err != nil {
 		return "", "", nil
 	}
-
 
 	if err != nil {
 		return "", "", err

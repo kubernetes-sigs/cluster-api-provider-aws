@@ -22,7 +22,7 @@ set -o pipefail
 root=$(dirname "${BASH_SOURCE[0]}")/..
 kustomize="${root}/hack/tools/bin/kustomize"
 test_dir_path="test/e2e/data/infrastructure-aws"
-test_dir="${root}/${test_dir_path}/"
+test_dir="${root}/${test_dir_path}"
 src_dir="${test_dir}/kustomize_sources/"
 generated_dir="${test_dir}/generated"
 
@@ -32,6 +32,7 @@ mkdir -p "${generated_dir}"
 
 # Ignore non kustomized
 find "${src_dir}"* -maxdepth 1 -type d \
-  -print0 | xargs -0 -I {} basename {} | grep -v patches | grep -v addons | grep -v cni | grep -v base | xargs -I {} sh -c "${kustomize} build --load-restrictor LoadRestrictionsNone --reorder none ${src_dir}{} > ${generated_dir}/cluster-template-{}.yaml"
+  -print0 | xargs -0 -I {} basename {} | grep -v patches | grep -v addons | grep -v cni | grep -v base | xargs -t -I {} ${kustomize} build --load-restrictor LoadRestrictionsNone --reorder none ${src_dir}{} -o ${generated_dir}/cluster-template-{}.yaml
+
 ## move the default template to the default file expected by clusterctl
 mv "${generated_dir}/cluster-template-default.yaml" "${generated_dir}/cluster-template.yaml"
