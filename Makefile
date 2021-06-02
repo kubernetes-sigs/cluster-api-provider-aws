@@ -447,7 +447,6 @@ release: $(RELEASE_NOTES) clean-release check-release-tag $(RELEASE_DIR)  ## Bui
 	git checkout "${RELEASE_TAG}"
 	$(MAKE) release-changelog
 	$(MAKE) release-binaries
-	$(MAKE) release-notes
 	$(MAKE) release-manifests
 	$(MAKE) release-templates
 	$(MAKE) release-policies
@@ -522,10 +521,6 @@ release-alias-tag: # Adds the tag to the last build tag.
 	gcloud container images add-tag -q $(CORE_CONTROLLER_IMG):$(TAG) $(CORE_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 	gcloud container images add-tag -q $(EKS_BOOTSTRAP_CONTROLLER_IMG):$(TAG) $(EKS_BOOTSTRAP_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 	gcloud container images add-tag -q $(EKS_CONTROLPLANE_CONTROLLER_IMG):$(TAG) $(EKS_CONTROLPLANE_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
-
-.PHONY: release-notes
-release-notes: $(RELEASE_NOTES) ## Generate release notes
-	$(RELEASE_NOTES) $(ARGS)
 
 .PHONY: release-templates
 release-templates: $(RELEASE_DIR) ## Generate release templates

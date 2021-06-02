@@ -92,7 +92,7 @@ $(GH_SHARE)/gh.tar.gz: $(GH_SHARE)
 	curl -L "https://github.com/cli/cli/releases/download/v$(GH_VERSION)/gh_$(GH_VERSION)_$(GH_ARCH_SUFFIX).tar.gz" -o $@
 
 GH := $(BIN_DIR)/gh
-GH: $(GTAR) $(GH_SHARE)/gh.tar.gz
+$(GH): $(GTAR) $(GH_SHARE)/gh.tar.gz
 	$(GTAR) -xvf share/gh/gh.tar.gz gh_$(GH_VERSION)_$(GH_ARCH_SUFFIX)/bin/gh --strip-components 1 --directory $(BIN_DIR)
 	chmod +x $@
 	touch -m $@
