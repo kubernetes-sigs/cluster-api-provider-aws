@@ -1,0 +1,25 @@
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: AWSClusterRoleIdentity
+metadata:
+  name: "${MULTI_TENANCY_JUMP_IDENTITY_NAME}"
+spec:
+  roleARN: "${MULTI_TENANCY_JUMP_ROLE_ARN}"
+  durationSeconds: 900
+  sessionName: "${MULTI_TENANCY_JUMP_IDENTITY_NAME}-session"
+  sourceIdentityRef:
+    kind: AWSClusterControllerIdentity
+    name: "default"
+  allowedNamespaces: {}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: AWSClusterRoleIdentity
+metadata:
+  name: "${MULTI_TENANCY_NESTED_IDENTITY_NAME}"
+spec:
+  roleARN: "${MULTI_TENANCY_NESTED_ROLE_ARN}"
+  sessionName: "${MULTI_TENANCY_NESTED_IDENTITY_NAME}-session"
+  sourceIdentityRef:
+    kind: AWSClusterRoleIdentity
+    name: "${MULTI_TENANCY_JUMP_IDENTITY_NAME}"
+  allowedNamespaces: {}

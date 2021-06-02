@@ -77,14 +77,12 @@ type statefulSetInfo struct {
 	volMountPath              string
 }
 
-const ControllerPolicyName = "multitenancy-role-controller-policy"
-
 var _ = Describe("functional tests - unmanaged", func() {
 	var (
 		namespace *corev1.Namespace
 		ctx       context.Context
 		specName  = "functional-tests"
-		result        *clusterctl.ApplyClusterTemplateAndWaitResult
+		result    *clusterctl.ApplyClusterTemplateAndWaitResult
 	)
 
 	BeforeEach(func() {
@@ -247,22 +245,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 	})
 
 	Describe("Cluster name validations and provisioning extra AWS resources", func() {
-		nginxStatefulsetInfo := statefulSetInfo{
-			name:                      "nginx-statefulset",
-			namespace:                 metav1.NamespaceDefault,
-			replicas:                  int32(2),
-			selector:                  map[string]string{"app": "nginx"},
-			storageClassName:          "aws-ebs-volumes",
-			volumeName:                "nginx-volumes",
-			svcName:                   "nginx-svc",
-			svcPort:                   int32(80),
-			svcPortName:               "nginx-web",
-			containerName:             "nginx",
-			containerImage:            "k8s.gcr.io/nginx-slim:0.8",
-			containerPort:             int32(80),
-			podTerminationGracePeriod: int64(30),
-			volMountPath:              "/usr/share/nginx/html",
-		}
+		nginxStatefulsetInfo := getStatefulSetInfo()
 		It("Should create a cluster, AWS load balancer, and volume", func() {
 			requiredResources := &shared.TestResource{EC2: 2, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3}
 			requiredResources.WriteRequestedResources(e2eCtx, "extra-aws-resources-test")
@@ -1180,4 +1163,23 @@ func LatestCIReleaseForVersion(searchVersion string) (string, error) {
 	}
 
 	return strings.TrimSpace(string(b)), nil
+}
+
+func getStatefulSetInfo() statefulSetInfo{
+	return statefulSetInfo{
+		name:                      "nginx-statefulset",
+		namespace:                 metav1.NamespaceDefault,
+		replicas:                  int32(2),
+		selector:                  map[string]string{"app": "nginx"},
+		storageClassName:          "aws-ebs-volumes",
+		volumeName:                "nginx-volumes",
+		svcName:                   "nginx-svc",
+		svcPort:                   int32(80),
+		svcPortName:               "nginx-web",
+		containerName:             "nginx",
+		containerImage:            "k8s.gcr.io/nginx-slim:0.8",
+		containerPort:             int32(80),
+		podTerminationGracePeriod: int64(30),
+		volMountPath:              "/usr/share/nginx/html",
+	}
 }

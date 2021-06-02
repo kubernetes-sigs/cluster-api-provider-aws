@@ -1,0 +1,44 @@
+---
+apiVersion: cluster.x-k8s.io/v1alpha4
+kind: MachinePool
+metadata:
+  name: ${CLUSTER_NAME}-mp-0
+spec:
+  clusterName: ${CLUSTER_NAME}
+  replicas: ${WORKER_MACHINE_COUNT}
+  template:
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
+          kind: KubeadmConfig
+          name: ${CLUSTER_NAME}-mp-0
+      clusterName: ${CLUSTER_NAME}
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+        kind: AWSMachinePool
+        name: ${CLUSTER_NAME}-mp-0
+      version: ${KUBERNETES_VERSION}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: AWSMachinePool
+metadata:
+  name: ${CLUSTER_NAME}-mp-0
+spec:
+  minSize: 1
+  maxSize: 4
+  awsLaunchTemplate:
+    instanceType: "${AWS_CONTROL_PLANE_MACHINE_TYPE}"
+    iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
+    sshKeyName: "${AWS_SSH_KEY_NAME}"
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
+kind: KubeadmConfig
+metadata:
+  name: ${CLUSTER_NAME}-mp-0
+spec:
+  joinConfiguration:
+    nodeRegistration:
+      name: '{{ ds.meta_data.local_hostname }}'
+      kubeletExtraArgs:
+        cloud-provider: aws

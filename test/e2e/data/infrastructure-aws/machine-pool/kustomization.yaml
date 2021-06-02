@@ -1,0 +1,7 @@
+resources:
+  - ../base
+  - machine-pool.yaml
+  - ../addons/cni/cluster-resource-set-cni.yaml
+patchesStrategicMerge:
+  - ../patches/cluster-cni.yaml
+  - patches/limit-az.yaml
