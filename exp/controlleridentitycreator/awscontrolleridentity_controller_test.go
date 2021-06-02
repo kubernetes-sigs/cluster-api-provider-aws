@@ -20,8 +20,8 @@ import (
 	"context"
 	"reflect"
 	"time"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,18 +29,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("AWSInstanceStateController", func() {
-	It("should maintain list of cluster queue URLs and reconcile failing machines", func() {
+
+func TestAWSInstanceStateController(t *testing.T) {
+	t.Run("should maintain list of cluster queue URLs and reconcile failing machines", func(t *testing.T) {
+		g := NewWithT(t)
 		ctx := context.Background()
 
 		instance := &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
 		instance.Default()
 
 		// Create the AWSCluster object and expect the Reconcile and Deployment to be created
-		Expect(testEnv.Create(ctx, instance)).To(Succeed())
+		g.Expect(testEnv.Create(ctx, instance)).To(Succeed())
 
-		By("Ensuring AWSClusterControllerIdentity instance is created")
-		Eventually(func() bool {
+		t.Log("Ensuring AWSClusterControllerIdentity instance is created")
+		g.Eventually(func() bool {
 			cp := &infrav1.AWSClusterControllerIdentity{}
 			key := client.ObjectKey{
 				Name: infrav1.AWSClusterControllerIdentityName,
@@ -56,4 +58,4 @@ var _ = Describe("AWSInstanceStateController", func() {
 		}, 10*time.Second).Should(Equal(true))
 
 	})
-})
+}
