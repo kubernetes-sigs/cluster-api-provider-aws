@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,26 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ami
+package controller
 
 import (
 	"github.com/spf13/cobra"
-	cp "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/ami/copy"
-	ls "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/ami/list"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/controller/credentials"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/controller/rollout"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
-// RootCmd is the root of the `ami command`
+// RootCmd is the root of the `controller command`
 func RootCmd() *cobra.Command {
 	newCmd := &cobra.Command{
-		Use:   "ami [command]",
-		Short: "AMI commands",
+		Use:   "controller [command]",
+		Short: "controller commands",
 		Args:  cobra.NoArgs,
 		Long: cmd.LongDesc(`
-			All AMI related actions such as:
-			# Copy AMIs based on Kubernetes version, OS etc from an AWS account where AMIs are stored
-            to the current AWS account (use case: air-gapped deployments)
-			# (to be implemented) List available AMIs
+			All controller related actions such as:
+			# Zero controller credentials and rollout controllers
 		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := cmd.Help(); err != nil {
@@ -43,9 +41,10 @@ func RootCmd() *cobra.Command {
 		},
 	}
 
-	newCmd.AddCommand(cp.CopyAMICmd())
-	newCmd.AddCommand(cp.EncryptedCopyAMICmd())
-	newCmd.AddCommand(ls.ListAMICmd())
+	newCmd.AddCommand(credentials.ZeroCredentialsCmd())
+	newCmd.AddCommand(credentials.UpdateCredentialsCmd())
+	newCmd.AddCommand(credentials.PrintCredentialsCmd())
+	newCmd.AddCommand(rollout.RolloutControllersCmd())
 
 	return newCmd
 }

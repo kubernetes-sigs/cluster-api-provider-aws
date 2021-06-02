@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/alpha"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/ami"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/bootstrap"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/controller"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/eks"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/version"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
@@ -71,6 +72,7 @@ func RootCmd() *cobra.Command {
 	newCmd.AddCommand(version.VersionCmd(os.Stdout))
 	newCmd.AddCommand(ami.RootCmd())
 	newCmd.AddCommand(eks.RootCmd())
+	newCmd.AddCommand(controller.RootCmd())
 
 	return newCmd
 }
