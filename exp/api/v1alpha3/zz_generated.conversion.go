@@ -325,6 +325,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha3.Instance)(nil), (*clusterapiproviderawsapiv1alpha4.Instance)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha3_Instance_To_v1alpha4_Instance(a.(*clusterapiproviderawsapiv1alpha3.Instance), b.(*clusterapiproviderawsapiv1alpha4.Instance), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*apiv1alpha4.APIEndpoint)(nil), (*apiv1alpha3.APIEndpoint)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_APIEndpoint_To_v1alpha3_APIEndpoint(a.(*apiv1alpha4.APIEndpoint), b.(*apiv1alpha3.APIEndpoint), scope)
 	}); err != nil {
@@ -337,6 +342,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha4.AWSResourceReference)(nil), (*clusterapiproviderawsapiv1alpha3.AWSResourceReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_AWSResourceReference_To_v1alpha3_AWSResourceReference(a.(*clusterapiproviderawsapiv1alpha4.AWSResourceReference), b.(*clusterapiproviderawsapiv1alpha3.AWSResourceReference), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha4.Instance)(nil), (*clusterapiproviderawsapiv1alpha3.Instance)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_Instance_To_v1alpha3_Instance(a.(*clusterapiproviderawsapiv1alpha4.Instance), b.(*clusterapiproviderawsapiv1alpha3.Instance), scope)
 	}); err != nil {
 		return err
 	}
@@ -932,7 +942,17 @@ func autoConvert_v1alpha3_AutoScalingGroup_To_v1alpha4_AutoScalingGroup(in *Auto
 	out.CapacityRebalance = in.CapacityRebalance
 	out.MixedInstancesPolicy = (*v1alpha4.MixedInstancesPolicy)(unsafe.Pointer(in.MixedInstancesPolicy))
 	out.Status = v1alpha4.ASGStatus(in.Status)
-	out.Instances = *(*[]clusterapiproviderawsapiv1alpha4.Instance)(unsafe.Pointer(&in.Instances))
+	if in.Instances != nil {
+		in, out := &in.Instances, &out.Instances
+		*out = make([]clusterapiproviderawsapiv1alpha4.Instance, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha3_Instance_To_v1alpha4_Instance(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Instances = nil
+	}
 	return nil
 }
 
@@ -954,7 +974,17 @@ func autoConvert_v1alpha4_AutoScalingGroup_To_v1alpha3_AutoScalingGroup(in *v1al
 	out.CapacityRebalance = in.CapacityRebalance
 	out.MixedInstancesPolicy = (*MixedInstancesPolicy)(unsafe.Pointer(in.MixedInstancesPolicy))
 	out.Status = ASGStatus(in.Status)
-	out.Instances = *(*[]clusterapiproviderawsapiv1alpha3.Instance)(unsafe.Pointer(&in.Instances))
+	if in.Instances != nil {
+		in, out := &in.Instances, &out.Instances
+		*out = make([]clusterapiproviderawsapiv1alpha3.Instance, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha4_Instance_To_v1alpha3_Instance(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Instances = nil
+	}
 	return nil
 }
 

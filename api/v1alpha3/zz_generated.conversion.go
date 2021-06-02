@@ -214,11 +214,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha4.AWSMachineSpec)(nil), (*AWSMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(a.(*v1alpha4.AWSMachineSpec), b.(*AWSMachineSpec), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*AWSMachineStatus)(nil), (*v1alpha4.AWSMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_AWSMachineStatus_To_v1alpha4_AWSMachineStatus(a.(*AWSMachineStatus), b.(*v1alpha4.AWSMachineStatus), scope)
 	}); err != nil {
@@ -414,11 +409,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha4.Instance)(nil), (*Instance)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_Instance_To_v1alpha3_Instance(a.(*v1alpha4.Instance), b.(*Instance), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*Network)(nil), (*v1alpha4.Network)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_Network_To_v1alpha4_Network(a.(*Network), b.(*v1alpha4.Network), scope)
 	}); err != nil {
@@ -516,6 +506,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1alpha4.AWSClusterStaticIdentitySpec)(nil), (*AWSClusterStaticIdentitySpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_AWSClusterStaticIdentitySpec_To_v1alpha3_AWSClusterStaticIdentitySpec(a.(*v1alpha4.AWSClusterStaticIdentitySpec), b.(*AWSClusterStaticIdentitySpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1alpha4.AWSMachineSpec)(nil), (*AWSMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(a.(*v1alpha4.AWSMachineSpec), b.(*AWSMachineSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1alpha4.Instance)(nil), (*Instance)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_Instance_To_v1alpha3_Instance(a.(*v1alpha4.Instance), b.(*Instance), scope)
 	}); err != nil {
 		return err
 	}
@@ -912,7 +912,15 @@ func autoConvert_v1alpha3_AWSClusterStatus_To_v1alpha4_AWSClusterStatus(in *AWSC
 		return err
 	}
 	out.FailureDomains = *(*apiv1alpha4.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
-	out.Bastion = (*v1alpha4.Instance)(unsafe.Pointer(in.Bastion))
+	if in.Bastion != nil {
+		in, out := &in.Bastion, &out.Bastion
+		*out = new(v1alpha4.Instance)
+		if err := Convert_v1alpha3_Instance_To_v1alpha4_Instance(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Bastion = nil
+	}
 	out.Conditions = *(*apiv1alpha4.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
@@ -928,7 +936,15 @@ func autoConvert_v1alpha4_AWSClusterStatus_To_v1alpha3_AWSClusterStatus(in *v1al
 		return err
 	}
 	out.FailureDomains = *(*apiv1alpha3.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
-	out.Bastion = (*Instance)(unsafe.Pointer(in.Bastion))
+	if in.Bastion != nil {
+		in, out := &in.Bastion, &out.Bastion
+		*out = new(Instance)
+		if err := Convert_v1alpha4_Instance_To_v1alpha3_Instance(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Bastion = nil
+	}
 	out.Conditions = *(*apiv1alpha3.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
@@ -1020,7 +1036,17 @@ func Convert_v1alpha4_AWSMachine_To_v1alpha3_AWSMachine(in *v1alpha4.AWSMachine,
 
 func autoConvert_v1alpha3_AWSMachineList_To_v1alpha4_AWSMachineList(in *AWSMachineList, out *v1alpha4.AWSMachineList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1alpha4.AWSMachine)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1alpha4.AWSMachine, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha3_AWSMachine_To_v1alpha4_AWSMachine(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1031,7 +1057,17 @@ func Convert_v1alpha3_AWSMachineList_To_v1alpha4_AWSMachineList(in *AWSMachineLi
 
 func autoConvert_v1alpha4_AWSMachineList_To_v1alpha3_AWSMachineList(in *v1alpha4.AWSMachineList, out *AWSMachineList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]AWSMachine)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]AWSMachine, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha4_AWSMachine_To_v1alpha3_AWSMachine(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1103,11 +1139,6 @@ func autoConvert_v1alpha4_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *v1alpha4
 	return nil
 }
 
-// Convert_v1alpha4_AWSMachineSpec_To_v1alpha3_AWSMachineSpec is an autogenerated conversion function.
-func Convert_v1alpha4_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *v1alpha4.AWSMachineSpec, out *AWSMachineSpec, s conversion.Scope) error {
-	return autoConvert_v1alpha4_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in, out, s)
-}
-
 func autoConvert_v1alpha3_AWSMachineStatus_To_v1alpha4_AWSMachineStatus(in *AWSMachineStatus, out *v1alpha4.AWSMachineStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	out.Interruptible = in.Interruptible
@@ -1168,7 +1199,17 @@ func Convert_v1alpha4_AWSMachineTemplate_To_v1alpha3_AWSMachineTemplate(in *v1al
 
 func autoConvert_v1alpha3_AWSMachineTemplateList_To_v1alpha4_AWSMachineTemplateList(in *AWSMachineTemplateList, out *v1alpha4.AWSMachineTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1alpha4.AWSMachineTemplate)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1alpha4.AWSMachineTemplate, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha3_AWSMachineTemplate_To_v1alpha4_AWSMachineTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1179,7 +1220,17 @@ func Convert_v1alpha3_AWSMachineTemplateList_To_v1alpha4_AWSMachineTemplateList(
 
 func autoConvert_v1alpha4_AWSMachineTemplateList_To_v1alpha3_AWSMachineTemplateList(in *v1alpha4.AWSMachineTemplateList, out *AWSMachineTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]AWSMachineTemplate)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]AWSMachineTemplate, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha4_AWSMachineTemplate_To_v1alpha3_AWSMachineTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1662,12 +1713,8 @@ func autoConvert_v1alpha4_Instance_To_v1alpha3_Instance(in *v1alpha4.Instance, o
 	out.AvailabilityZone = in.AvailabilityZone
 	out.SpotMarketOptions = (*SpotMarketOptions)(unsafe.Pointer(in.SpotMarketOptions))
 	out.Tenancy = in.Tenancy
+	// WARNING: in.VolumeIDs requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1alpha4_Instance_To_v1alpha3_Instance is an autogenerated conversion function.
-func Convert_v1alpha4_Instance_To_v1alpha3_Instance(in *v1alpha4.Instance, out *Instance, s conversion.Scope) error {
-	return autoConvert_v1alpha4_Instance_To_v1alpha3_Instance(in, out, s)
 }
 
 func autoConvert_v1alpha3_Network_To_v1alpha4_Network(in *Network, out *v1alpha4.Network, s conversion.Scope) error {

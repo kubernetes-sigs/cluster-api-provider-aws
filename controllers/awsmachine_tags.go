@@ -23,12 +23,16 @@ import (
 
 const (
 	// TagsLastAppliedAnnotation is the key for the machine object annotation
-	// which tracks the SecurityGroups that the machine actuator is responsible
-	// for. These are the SecurityGroups that have been handled by the
-	// AdditionalTags in the Machine Provider Config.
+	// which tracks the AdditionalTags in the Machine Provider Config.
 	// See https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
 	// for annotation formatting rules.
 	TagsLastAppliedAnnotation = "sigs.k8s.io/cluster-api-provider-aws-last-applied-tags"
+
+	// VolumeTagsLastAppliedAnnotation is the key for the ebs volumes annotation
+	// which tracks the AdditionalTags in the Machine Provider Config.
+	// See https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+	// for annotation formatting rules.
+	VolumeTagsLastAppliedAnnotation = "sigs.k8s.io/cluster-api-provider-last-applied-tags-on-volumes"
 )
 
 // Ensure that the tags of the machine are correct
@@ -44,7 +48,7 @@ func (r *AWSMachineReconciler) ensureTags(svc service.EC2MachineInterface, machi
 	// Check if the instance tags were changed. If they were, update them.
 	// It would be possible here to only send new/updated tags, but for the
 	// moment we send everything, even if only a single tag was created or
-	// upated.
+	// updated.
 	changed, created, deleted, newAnnotation := r.tagsChanged(annotation, additionalTags)
 	if changed {
 		err = svc.UpdateResourceTags(instanceID, created, deleted)
@@ -60,6 +64,24 @@ func (r *AWSMachineReconciler) ensureTags(svc service.EC2MachineInterface, machi
 	}
 
 	return changed, nil
+}
+
+// Ensure that the tags of the volumes in the machine are correct
+// Returns tags which are being created/updated/deleted and error.
+func (r *AWSMachineReconciler) ensureVolumeTags(svc service.EC2MachineInterface, volumeID *string, annotation map[string]interface{}, additionalTags map[string]string) (map[string]interface{}, error) {
+	// Check if the volume tags were changed. If they were, update them.
+	// It would be possible here to only send new/updated tags, but for the
+	// moment we send everything, even if only a single tag was created or
+	// updated.
+	changed, created, deleted, subAnnotation := r.tagsChanged(annotation, additionalTags)
+	if changed {
+		err := svc.UpdateResourceTags(volumeID, created, deleted)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return subAnnotation, nil
 }
 
 // tagsChanged determines which tags to delete and which to add.

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -583,6 +584,10 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 			return ctrl.Result{}, err
 		}
 
+		if instance != nil {
+			r.ensureStorageTags(ec2svc, instance, machineScope.AWSMachine)
+		}
+
 		if err := r.reconcileLBAttachment(machineScope, elbScope, instance); err != nil {
 			machineScope.Error(err, "failed to reconcile LB attachment")
 			return ctrl.Result{}, err
@@ -911,4 +916,32 @@ func (r *AWSMachineReconciler) indexAWSMachineByInstanceID(o client.Object) []st
 	}
 
 	return nil
+}
+
+func (r *AWSMachineReconciler) ensureStorageTags(ec2svc services.EC2MachineInterface, instance *infrav1.Instance, machine *infrav1.AWSMachine) {
+	annotations, err := r.machineAnnotationJSON(machine, VolumeTagsLastAppliedAnnotation)
+	if err != nil {
+		r.Log.Error(err, "Failed to fetch the annotations for volume tags")
+	}
+	for _, volumeID := range instance.VolumeIDs {
+		if subAnnotation, ok := annotations[volumeID].(map[string]interface{}); ok {
+			newAnnotation, err := r.ensureVolumeTags(ec2svc, aws.String(volumeID), subAnnotation, machine.Spec.AdditionalTags)
+			if err != nil {
+				r.Log.Error(err, "Failed to fetch the changed volume tags in EC2 instance")
+			}
+			annotations[volumeID] = newAnnotation
+		} else {
+			newAnnotation, err := r.ensureVolumeTags(ec2svc, aws.String(volumeID), make(map[string]interface{}), machine.Spec.AdditionalTags)
+			if err != nil {
+				r.Log.Error(err, "Failed to fetch the changed volume tags in EC2 instance")
+			}
+			annotations[volumeID] = newAnnotation
+		}
+
+		// We also need to update the annotation if anything changed.
+		err = r.updateMachineAnnotationJSON(machine, VolumeTagsLastAppliedAnnotation, annotations)
+		if err != nil {
+			r.Log.Error(err, "Failed to fetch the changed volume tags in EC2 instance")
+		}
+	}
 }

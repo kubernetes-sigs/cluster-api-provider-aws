@@ -59,7 +59,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 		recorder   *record.FakeRecorder
 	)
 
-	setup := func(t *testing.T, g *WithT) {
+	setup := func(awsMachine *infrav1.AWSMachine, t *testing.T, g *WithT) {
 		// https://github.com/kubernetes/klog/issues/87#issuecomment-540153080
 		// TODO: Replace with LogToOutput when https://github.com/kubernetes/klog/pull/99 merges
 		var err error
@@ -71,17 +71,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 			_ = fmt.Errorf("Error setting v flag")
 		}
 		klog.SetOutput(GinkgoWriter)
-
-		awsMachine := &infrav1.AWSMachine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "test",
-			},
-			Spec: infrav1.AWSMachineSpec{
-				CloudInit: infrav1.CloudInit{
-					SecureSecretsBackend: infrav1.SecretBackendSecretsManager,
-				},
-			},
-		}
 
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -181,7 +170,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 			t.Run("should exit immediately on an error state", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				awsMachine := getAWSMachine()
+				setup(awsMachine, t, g)
 				defer teardown(t, g)
 				runningInstance(t, g)
 				er := capierrors.CreateMachineError
@@ -197,7 +187,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 			t.Run("should add our finalizer to the machine", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				awsMachine := getAWSMachine()
+				setup(awsMachine, t, g)
 				defer teardown(t, g)
 				runningInstance(t, g)
 				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
@@ -207,7 +198,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 			t.Run("should exit immediately if cluster infra isn't ready", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				awsMachine := getAWSMachine()
+				setup(awsMachine, t, g)
 				defer teardown(t, g)
 				runningInstance(t, g)
 				ms.Cluster.Status.InfrastructureReady = false
@@ -223,7 +215,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 			t.Run("should exit immediately if bootstrap data secret reference isn't available", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				awsMachine := getAWSMachine()
+				setup(awsMachine, t, g)
 				defer teardown(t, g)
 				runningInstance(t, g)
 				ms.Machine.Spec.Bootstrap.DataSecretName = nil
@@ -240,7 +233,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 			t.Run("should return an error when we can't list instances by tags", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				awsMachine := getAWSMachine()
+				setup(awsMachine, t, g)
 				defer teardown(t, g)
 				runningInstance(t, g)
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
@@ -259,7 +253,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 			t.Run("should look up by provider ID when one exists", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				awsMachine := getAWSMachine()
+				setup(awsMachine, t, g)
 				defer teardown(t, g)
 
 				providerID(t, g)
@@ -272,7 +267,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 			t.Run("should try to create a new machine if none exists", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				awsMachine := getAWSMachine()
+				setup(awsMachine, t, g)
 				defer teardown(t, g)
 
 				providerID(t, g)
@@ -292,7 +288,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 			instanceCreate := func(t *testing.T, g *WithT) {
 				instance = &infrav1.Instance{
-					ID: "myMachine",
+					ID:        "myMachine",
+					VolumeIDs: []string{"volume-1", "volume-2"},
 				}
 				instance.State = infrav1.InstanceStatePending
 
@@ -311,7 +308,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				t.Run("should set attributes after creating an instance", func(t *testing.T) {
 					g := NewWithT(t)
-					setup(t, g)
+					awsMachine := getAWSMachine()
+					setup(awsMachine, t, g)
 					defer teardown(t, g)
 					instanceCreate(t, g)
 					getInstanceSecurityGroups(t, g)
@@ -323,7 +321,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				t.Run("should set instance to pending", func(t *testing.T) {
 					g := NewWithT(t)
-					setup(t, g)
+					awsMachine := getAWSMachine()
+					setup(awsMachine, t, g)
 					defer teardown(t, g)
 					instanceCreate(t, g)
 					getInstanceSecurityGroups(t, g)
@@ -334,12 +333,14 @@ func TestAWSMachineReconciler(t *testing.T) {
 					g.Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStatePending)))
 					g.Expect(ms.AWSMachine.Status.Ready).To(Equal(false))
 					g.Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
+
 					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 				})
 
 				t.Run("should set instance to running", func(t *testing.T) {
 					g := NewWithT(t)
-					setup(t, g)
+					awsMachine := getAWSMachine()
+					setup(awsMachine, t, g)
 					defer teardown(t, g)
 
 					instanceCreate(t, g)
@@ -358,7 +359,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 			})
 			t.Run("new EC2 instance state: should error when the instance state is a new unseen one", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				awsMachine := getAWSMachine()
+				setup(awsMachine, t, g)
 				defer teardown(t, g)
 				instanceCreate(t, g)
 
@@ -383,7 +385,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 				}
 				t.Run("should reconcile security groups", func(t *testing.T) {
 					g := NewWithT(t)
-					setup(t, g)
+					awsMachine := getAWSMachine()
+					setup(awsMachine, t, g)
 					defer teardown(t, g)
 					instanceCreate(t, g)
 					getCoreSecurityGroups(t, g)
@@ -393,7 +396,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 							ID: pointer.StringPtr("sg-2345"),
 						},
 					}
-					// ms.AWSMachine.Spec.AdditionalSecurityGroups = []infrav1
 					ec2Svc.EXPECT().UpdateInstanceSecurityGroups(instance.ID, []string{"sg-2345"})
 
 					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
@@ -402,7 +404,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				t.Run("should not tag anything if there's not tags", func(t *testing.T) {
 					g := NewWithT(t)
-					setup(t, g)
+					awsMachine := getAWSMachine()
+					setup(awsMachine, t, g)
 					defer teardown(t, g)
 					instanceCreate(t, g)
 					getCoreSecurityGroups(t, g)
@@ -415,7 +418,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				t.Run("should tag instances from machine and cluster tags", func(t *testing.T) {
 					g := NewWithT(t)
-					setup(t, g)
+					awsMachine := getAWSMachine()
+					setup(awsMachine, t, g)
 					defer teardown(t, g)
 					instanceCreate(t, g)
 					getCoreSecurityGroups(t, g)
@@ -424,10 +428,18 @@ func TestAWSMachineReconciler(t *testing.T) {
 					cs.AWSCluster.Spec.AdditionalTags = infrav1.Tags{"colour": "lavender"}
 
 					ec2Svc.EXPECT().UpdateResourceTags(
+						gomock.Any(),
+						map[string]string{
+							"kind": "alicorn",
+						},
+						map[string]string{},
+					).Return(nil).Times(2)
+
+					ec2Svc.EXPECT().UpdateResourceTags(
 						PointsTo("myMachine"),
 						map[string]string{
-							"kind":   "alicorn",
 							"colour": "lavender",
+							"kind":   "alicorn",
 						},
 						map[string]string{},
 					).Return(nil)
@@ -435,7 +447,30 @@ func TestAWSMachineReconciler(t *testing.T) {
 					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
 					g.Expect(err).To(BeNil())
 				})
+				t.Run("should tag instances volume tags", func(t *testing.T) {
+					g := NewWithT(t)
+					awsMachine := getAWSMachineWithAdditionalTags()
+					setup(awsMachine, t, g)
+					defer teardown(t, g)
+					instanceCreate(t, g)
+					getCoreSecurityGroups(t, g)
+
+					ms.AWSMachine.Spec.AdditionalTags = infrav1.Tags{"rootDeviceID": "id1", "rootDeviceSize": "30"}
+
+					ec2Svc.EXPECT().UpdateResourceTags(
+						gomock.Any(),
+						map[string]string{
+							"rootDeviceID":   "id1",
+							"rootDeviceSize": "30",
+						},
+						map[string]string{},
+					).Return(nil).Times(3)
+
+					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+					g.Expect(err).To(BeNil())
+				})
 			})
+
 			t.Run("temporarily stopping then starting the AWSMachine", func(t *testing.T) {
 				var buf *bytes.Buffer
 				getCoreSecurityGroups := func(t *testing.T, g *WithT) {
@@ -449,7 +484,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				t.Run("should set instance to stopping and unready", func(t *testing.T) {
 					g := NewWithT(t)
-					setup(t, g)
+					awsMachine := getAWSMachine()
+					setup(awsMachine, t, g)
 					defer teardown(t, g)
 					instanceCreate(t, g)
 					getCoreSecurityGroups(t, g)
@@ -464,7 +500,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				t.Run("should then set instance to stopped and unready", func(t *testing.T) {
 					g := NewWithT(t)
-					setup(t, g)
+					awsMachine := getAWSMachine()
+					setup(awsMachine, t, g)
 					defer teardown(t, g)
 					instanceCreate(t, g)
 					getCoreSecurityGroups(t, g)
@@ -479,7 +516,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				t.Run("should then set instance to running and ready once it is restarted", func(t *testing.T) {
 					g := NewWithT(t)
-					setup(t, g)
+					awsMachine := getAWSMachine()
+					setup(awsMachine, t, g)
 					defer teardown(t, g)
 					instanceCreate(t, g)
 					getCoreSecurityGroups(t, g)
@@ -502,7 +540,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				t.Run("should warn if an instance is shutting-down", func(t *testing.T) {
 					g := NewWithT(t)
-					setup(t, g)
+					awsMachine := getAWSMachine()
+					setup(awsMachine, t, g)
 					defer teardown(t, g)
 					instanceCreate(t, g)
 					deleteMachine(t, g)
@@ -515,7 +554,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				t.Run("should error when the instance is seen as terminated", func(t *testing.T) {
 					g := NewWithT(t)
-					setup(t, g)
+					awsMachine := getAWSMachine()
+					setup(awsMachine, t, g)
 					defer teardown(t, g)
 					instanceCreate(t, g)
 					deleteMachine(t, g)
@@ -539,13 +579,15 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 			t.Run("should leverage AWS Secrets Manager", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				awsMachine := getAWSMachine()
+				setup(awsMachine, t, g)
 				defer teardown(t, g)
 
 				instance = &infrav1.Instance{
 					ID:    "myMachine",
 					State: infrav1.InstanceStatePending,
 				}
+
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil).AnyTimes()
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(secretPrefix, int32(1), nil).Times(1)
 				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
@@ -583,7 +625,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 			t.Run("should delete the secret if the instance is running", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				awsMachine := getAWSMachine()
+				setup(awsMachine, t, g)
 				defer teardown(t, g)
 				setNodeRef(t, g)
 
@@ -597,7 +640,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 			t.Run("should delete the secret if the instance is terminated", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				awsMachine := getAWSMachine()
+				setup(awsMachine, t, g)
 				defer teardown(t, g)
 				setNodeRef(t, g)
 
@@ -608,7 +652,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 			t.Run("should delete the secret if the AWSMachine is deleted", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				awsMachine := getAWSMachine()
+				setup(awsMachine, t, g)
 				defer teardown(t, g)
 				setNodeRef(t, g)
 
@@ -620,7 +665,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 			t.Run("should delete the secret if the AWSMachine is in a failure condition", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				awsMachine := getAWSMachine()
+				setup(awsMachine, t, g)
 				defer teardown(t, g)
 				setNodeRef(t, g)
 
@@ -637,6 +683,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				instance = &infrav1.Instance{
 					ID: "myMachine",
 				}
+
 				ms.AWSMachine.Spec.CloudInit = infrav1.CloudInit{
 					SecretPrefix:         "secret",
 					SecretCount:          5,
@@ -647,7 +694,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 			t.Run("should not delete the secret if the instance is running", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				awsMachine := getAWSMachine()
+				setup(awsMachine, t, g)
 				defer teardown(t, g)
 				setSSM(t, g)
 
@@ -661,7 +709,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 			t.Run("should delete the secret if the instance is terminated", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				awsMachine := getAWSMachine()
+				setup(awsMachine, t, g)
 				defer teardown(t, g)
 				setSSM(t, g)
 
@@ -672,7 +721,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 			t.Run("should delete the secret if the AWSMachine is deleted", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				awsMachine := getAWSMachine()
+				setup(awsMachine, t, g)
 				defer teardown(t, g)
 				setSSM(t, g)
 
@@ -684,7 +734,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 			t.Run("should delete the secret if the AWSMachine is in a failure condition", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				awsMachine := getAWSMachine()
+				setup(awsMachine, t, g)
 				defer teardown(t, g)
 				setSSM(t, g)
 
@@ -705,7 +756,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 			t.Run("should error if secret could not be created", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				awsMachine := getAWSMachine()
+				setup(awsMachine, t, g)
 				defer teardown(t, g)
 				getInstances(t, g)
 
@@ -718,7 +770,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 			})
 			t.Run("should update prefix and count on successful creation", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				awsMachine := getAWSMachine()
+				setup(awsMachine, t, g)
 				defer teardown(t, g)
 				getInstances(t, g)
 
@@ -750,7 +803,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 		}
 		t.Run("should exit immediately on an error state", func(t *testing.T) {
 			g := NewWithT(t)
-			setup(t, g)
+			awsMachine := getAWSMachine()
+			setup(awsMachine, t, g)
 			defer teardown(t, g)
 			finalizer(t, g)
 
@@ -762,7 +816,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 		})
 		t.Run("should log and remove finalizer when no machine exists", func(t *testing.T) {
 			g := NewWithT(t)
-			setup(t, g)
+			awsMachine := getAWSMachine()
+			setup(awsMachine, t, g)
 			defer teardown(t, g)
 			finalizer(t, g)
 
@@ -779,7 +834,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 		})
 		t.Run("should ignore instances in shutting down state", func(t *testing.T) {
 			g := NewWithT(t)
-			setup(t, g)
+			awsMachine := getAWSMachine()
+			setup(awsMachine, t, g)
 			defer teardown(t, g)
 			finalizer(t, g)
 
@@ -797,7 +853,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 		})
 		t.Run("should ignore instances in terminated down state", func(t *testing.T) {
 			g := NewWithT(t)
-			setup(t, g)
+			awsMachine := getAWSMachine()
+			setup(awsMachine, t, g)
 			defer teardown(t, g)
 			finalizer(t, g)
 
@@ -820,7 +877,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 			}
 			t.Run("should return an error when the instance can't be terminated", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				awsMachine := getAWSMachine()
+				setup(awsMachine, t, g)
 				defer teardown(t, g)
 				finalizer(t, g)
 				getRunningInstance(t, g)
@@ -843,7 +901,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				t.Run("should error when it can't retrieve security groups if there are network interfaces", func(t *testing.T) {
 					g := NewWithT(t)
-					setup(t, g)
+					awsMachine := getAWSMachine()
+					setup(awsMachine, t, g)
 					defer teardown(t, g)
 					finalizer(t, g)
 					getRunningInstance(t, g)
@@ -862,7 +921,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				t.Run("should error when it can't detach a security group from an interface", func(t *testing.T) {
 					g := NewWithT(t)
-					setup(t, g)
+					awsMachine := getAWSMachine()
+					setup(awsMachine, t, g)
 					defer teardown(t, g)
 					finalizer(t, g)
 					getRunningInstance(t, g)
@@ -882,7 +942,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				t.Run("should detach all combinations of network interfaces", func(t *testing.T) {
 					g := NewWithT(t)
-					setup(t, g)
+					awsMachine := getAWSMachine()
+					setup(awsMachine, t, g)
 					defer teardown(t, g)
 					finalizer(t, g)
 					getRunningInstance(t, g)
@@ -903,7 +964,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				t.Run("should remove security groups", func(t *testing.T) {
 					g := NewWithT(t)
-					setup(t, g)
+					awsMachine := getAWSMachine()
+					setup(awsMachine, t, g)
 					defer teardown(t, g)
 					finalizer(t, g)
 					getRunningInstance(t, g)
@@ -916,6 +978,33 @@ func TestAWSMachineReconciler(t *testing.T) {
 			})
 		})
 	})
+}
+
+func getAWSMachine() *infrav1.AWSMachine {
+	return &infrav1.AWSMachine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+		Spec: infrav1.AWSMachineSpec{
+			CloudInit: infrav1.CloudInit{
+				SecureSecretsBackend: infrav1.SecretBackendSecretsManager,
+			},
+		},
+	}
+}
+
+func getAWSMachineWithAdditionalTags() *infrav1.AWSMachine {
+	return &infrav1.AWSMachine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+		Spec: infrav1.AWSMachineSpec{
+			CloudInit: infrav1.CloudInit{
+				SecureSecretsBackend: infrav1.SecretBackendSecretsManager,
+			},
+			AdditionalTags: map[string]string{"foo": "bar"},
+		},
+	}
 }
 
 func PointsTo(s string) gomock.Matcher {
