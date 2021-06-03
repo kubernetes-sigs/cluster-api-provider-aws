@@ -512,6 +512,10 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 			ebsRootDevice.Iops = aws.Int64(i.RootVolume.IOPS)
 		}
 
+		if i.RootVolume.Throughput != 0 {
+			ebsRootDevice.Throughput = aws.Int64(i.RootVolume.Throughput)
+		}
+
 		if i.RootVolume.EncryptionKey != "" {
 			ebsRootDevice.Encrypted = aws.Bool(true)
 			ebsRootDevice.KmsKeyId = aws.String(i.RootVolume.EncryptionKey)
@@ -542,6 +546,10 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 
 		if nonRootVolume.IOPS != 0 {
 			ebsDevice.Iops = aws.Int64(nonRootVolume.IOPS)
+		}
+
+		if nonRootVolume.Throughput != 0 {
+			ebsDevice.Throughput = aws.Int64(nonRootVolume.Throughput)
 		}
 
 		if nonRootVolume.EncryptionKey != "" {

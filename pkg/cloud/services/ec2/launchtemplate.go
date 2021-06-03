@@ -208,6 +208,10 @@ func (s *Service) createLaunchTemplateData(scope *scope.MachinePoolScope, imageI
 			ebsRootDevice.Iops = aws.Int64(lt.RootVolume.IOPS)
 		}
 
+		if lt.RootVolume.Throughput != 0 {
+			ebsRootDevice.Throughput = aws.Int64(lt.RootVolume.Throughput)
+		}
+
 		if lt.RootVolume.EncryptionKey != "" {
 			ebsRootDevice.Encrypted = aws.Bool(true)
 			ebsRootDevice.KmsKeyId = aws.String(lt.RootVolume.EncryptionKey)
