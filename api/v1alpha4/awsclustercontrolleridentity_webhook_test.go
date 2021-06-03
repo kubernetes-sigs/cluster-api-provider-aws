@@ -23,7 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestAWSClusterControllerValidateCreate(t *testing.T) {
+func TestAWSClusterControllerIdentityCreationValidation(t *testing.T) {
 	tests := []struct {
 		name      string
 		identity  *AWSClusterControllerIdentity
@@ -55,6 +55,53 @@ func TestAWSClusterControllerValidateCreate(t *testing.T) {
 				APIVersion: GroupVersion.String(),
 				Kind:       "AWSClusterControllerIdentity",
 			}
+			ctx := context.TODO()
+			if err := testEnv.Create(ctx, identity); (err != nil) != tt.wantError {
+				t.Errorf("ValidateCreate() error = %v, wantErr %v", err, tt.wantError)
+			}
+			testEnv.Delete(ctx, identity)
+		})
+	}
+}
+
+func TestAWSClusterControllerIdentityLabelSelectorAsSelectorValidation(t *testing.T) {
+	tests := []struct {
+		name      string
+		selectors map[string]string
+		wantError bool
+	}{
+		{
+			name:      "should not return error for valid selector",
+			selectors: map[string]string{"foo": "bar"},
+			wantError: false,
+		},
+		{
+			name:      "should return error for invalid selector",
+			selectors: map[string]string{"-123-foo": "bar"},
+			wantError: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			identity := &AWSClusterControllerIdentity{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: GroupVersion.String(),
+					Kind:       "AWSClusterControllerIdentity",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: AWSClusterControllerIdentityName,
+				},
+				Spec: AWSClusterControllerIdentitySpec{
+					AWSClusterIdentitySpec: AWSClusterIdentitySpec{
+						AllowedNamespaces: &AllowedNamespaces{
+							Selector: metav1.LabelSelector{
+								MatchLabels: tt.selectors,
+							},
+						},
+					},
+				},
+			}
+
 			ctx := context.TODO()
 			if err := testEnv.Create(ctx, identity); (err != nil) != tt.wantError {
 				t.Errorf("ValidateCreate() error = %v, wantErr %v", err, tt.wantError)
@@ -123,6 +170,73 @@ func TestAWSClusterControllerValidateUpdate(t *testing.T) {
 				APIVersion: GroupVersion.String(),
 				Kind:       "AWSClusterControllerIdentity",
 			}
+			ctx := context.TODO()
+			if err := testEnv.Update(ctx, identity); (err != nil) != tt.wantError {
+				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantError)
+			}
+		})
+	}
+}
+
+func TestAWSClusterControllerIdentityUpdateValidation(t *testing.T) {
+	controllerIdentity := &AWSClusterControllerIdentity{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: GroupVersion.String(),
+			Kind:       "AWSClusterControllerIdentityName",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: AWSClusterControllerIdentityName,
+		},
+		Spec: AWSClusterControllerIdentitySpec{
+			AWSClusterIdentitySpec: AWSClusterIdentitySpec{
+				AllowedNamespaces: &AllowedNamespaces{
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{"foo": "bar"},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := context.TODO()
+	defer testEnv.Delete(ctx, controllerIdentity)
+
+	if err := testEnv.Create(ctx, controllerIdentity); err != nil {
+		t.Errorf("controllerIdentity creation failed %v", err)
+	}
+
+	tests := []struct {
+		name      string
+		identity  *AWSClusterControllerIdentity
+		wantError bool
+	}{
+		{
+			name:      "should not return error for valid selector",
+			identity:  controllerIdentity,
+			wantError: false,
+		},
+		{
+			name: "should return error for invalid selector",
+			identity: &AWSClusterControllerIdentity{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: AWSClusterControllerIdentityName,
+				},
+				Spec: AWSClusterControllerIdentitySpec{
+					AWSClusterIdentitySpec: AWSClusterIdentitySpec{
+						AllowedNamespaces: &AllowedNamespaces{
+							Selector: metav1.LabelSelector{
+								MatchLabels: map[string]string{"-foo-123": "bar"},
+							},
+						},
+					},
+				},
+			},
+			wantError: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			identity := tt.identity.DeepCopy()
 			ctx := context.TODO()
 			if err := testEnv.Update(ctx, identity); (err != nil) != tt.wantError {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantError)

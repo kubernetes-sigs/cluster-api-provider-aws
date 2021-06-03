@@ -83,6 +83,10 @@ func setup() {
 	if err := (&AWSClusterRoleIdentity{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSClusterRoleIdentity webhook: %v", err))
 	}
+	if err := (&AWSClusterStaticIdentity{}).SetupWebhookWithManager(testEnv); err != nil {
+		panic(fmt.Sprintf("Unable to setup AWSClusterStaticIdentity webhook: %v", err))
+	}
+
 	go func() {
 		fmt.Println("Starting the manager")
 		if err := testEnv.StartManager(ctx); err != nil {
