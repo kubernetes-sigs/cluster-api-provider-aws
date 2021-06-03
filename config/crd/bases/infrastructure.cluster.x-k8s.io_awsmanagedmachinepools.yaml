@@ -363,6 +363,30 @@ spec:
                 items:
                   type: string
                 type: array
+              taints:
+                description: Taints specifies the taints to apply to the nodes of
+                  the machine pool
+                items:
+                  properties:
+                    effect:
+                      description: Effect specifies the effect for the taint
+                      enum:
+                      - no-schedule
+                      - no-execute
+                      - prefer-no-schedule
+                      type: string
+                    key:
+                      description: Key is the key of the taint
+                      type: string
+                    value:
+                      description: Value is the value of the taint
+                      type: string
+                  required:
+                  - effect
+                  - key
+                  - value
+                  type: object
+                type: array
             type: object
           status:
             description: AWSManagedMachinePoolStatus defines the observed state of

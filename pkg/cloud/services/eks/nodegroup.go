@@ -29,6 +29,8 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	controlplanev1exp "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
+	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -187,6 +189,15 @@ func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
 	if managedPool.InstanceType != nil {
 		input.InstanceTypes = []*string{managedPool.InstanceType}
 	}
+	if len(managedPool.Taints) > 0 {
+		s.Info("adding taints to nodegroup", "nodegroup", nodegroupName)
+		taints, err := converters.TaintsToSDK(managedPool.Taints)
+		if err != nil {
+			return nil, fmt.Errorf("converting taints: %w", err)
+		}
+		input.Taints = taints
+	}
+
 	if err := input.Validate(); err != nil {
 		return nil, errors.Wrap(err, "created invalid CreateNodegroupInput")
 	}
@@ -326,8 +337,46 @@ func createLabelUpdate(specLabels map[string]string, ng *eks.Nodegroup) *eks.Upd
 	return nil
 }
 
+func (s *NodegroupService) createTaintsUpdate(specTaints infrav1exp.Taints, ng *eks.Nodegroup) (*eks.UpdateTaintsPayload, error) {
+	s.V(2).Info("Creating taints update for node group", "name", *ng.NodegroupName, "num_current", len(ng.Taints), "num_required", len(specTaints))
+	current, err := converters.TaintsFromSDK(ng.Taints)
+	if err != nil {
+		return nil, fmt.Errorf("converting taints: %w", err)
+	}
+	payload := eks.UpdateTaintsPayload{}
+	for _, specTaint := range specTaints {
+		st := specTaint.DeepCopy()
+		if !current.Contains(st) {
+			sdkTaint, err := converters.TaintToSDK(*st)
+			if err != nil {
+				return nil, fmt.Errorf("converting taint to sdk: %w", err)
+			}
+			payload.AddOrUpdateTaints = append(payload.AddOrUpdateTaints, sdkTaint)
+		}
+	}
+	for _, currentTaint := range current {
+		ct := currentTaint.DeepCopy()
+		if !specTaints.Contains(ct) {
+			sdkTaint, err := converters.TaintToSDK(*ct)
+			if err != nil {
+				return nil, fmt.Errorf("converting taint to sdk: %w", err)
+			}
+			payload.RemoveTaints = append(payload.RemoveTaints, sdkTaint)
+		}
+	}
+	if len(payload.AddOrUpdateTaints) > 0 || len(payload.RemoveTaints) > 0 {
+		s.V(2).Info("Node group taints update required", "name", *ng.NodegroupName, "addupdate", len(payload.AddOrUpdateTaints), "remove", len(payload.RemoveTaints))
+		return &payload, nil
+	}
+
+	s.V(2).Info("No updates required for node group taints", "name", *ng.NodegroupName)
+	return nil, nil
+}
+
 func (s *NodegroupService) reconcileNodegroupConfig(ng *eks.Nodegroup) error {
 	eksClusterName := s.scope.KubernetesClusterName()
+	s.V(2).Info("reconciling node group config", "cluster", eksClusterName, "name", *ng.NodegroupName)
+
 	machinePool := s.scope.MachinePool.Spec
 	managedPool := s.scope.ManagedMachinePool.Spec
 	input := &eks.UpdateNodegroupConfigInput{
@@ -338,6 +387,15 @@ func (s *NodegroupService) reconcileNodegroupConfig(ng *eks.Nodegroup) error {
 	if labelPayload := createLabelUpdate(managedPool.Labels, ng); labelPayload != nil {
 		s.V(2).Info("Nodegroup labels need an update", "nodegroup", ng.NodegroupName)
 		input.Labels = labelPayload
+		needsUpdate = true
+	}
+	taintsPayload, err := s.createTaintsUpdate(managedPool.Taints, ng)
+	if err != nil {
+		return fmt.Errorf("creating taints update payload: %w", err)
+	}
+	if taintsPayload != nil {
+		s.V(2).Info("nodegroup taints need updating")
+		input.Taints = taintsPayload
 		needsUpdate = true
 	}
 	if machinePool.Replicas == nil {
@@ -358,13 +416,14 @@ func (s *NodegroupService) reconcileNodegroupConfig(ng *eks.Nodegroup) error {
 		needsUpdate = true
 	}
 	if !needsUpdate {
+		s.V(2).Info("node group config update not needed", "cluster", eksClusterName, "name", *ng.NodegroupName)
 		return nil
 	}
 	if err := input.Validate(); err != nil {
 		return errors.Wrap(err, "created invalid UpdateNodegroupConfigInput")
 	}
 
-	_, err := s.EKSClient.UpdateNodegroupConfig(input)
+	_, err = s.EKSClient.UpdateNodegroupConfig(input)
 	if err != nil {
 		return errors.Wrap(err, "failed to update nodegroup config")
 	}
