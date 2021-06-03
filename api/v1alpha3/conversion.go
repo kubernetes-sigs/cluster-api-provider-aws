@@ -266,6 +266,11 @@ func (r *AWSClusterControllerIdentityList) ConvertFrom(srcRaw conversion.Hub) er
 	return Convert_v1alpha4_AWSClusterControllerIdentityList_To_v1alpha3_AWSClusterControllerIdentityList(src, r, nil)
 }
 
+// Convert_v1alpha4_Volume_To_v1alpha3_Volume .
+func Convert_v1alpha4_Volume_To_v1alpha3_Volume(in *v1alpha4.Volume, out *Volume, s apiconversion.Scope) error {
+	return autoConvert_v1alpha4_Volume_To_v1alpha3_Volume(in, out, s)
+}
+
 // Convert_v1alpha3_APIEndpoint_To_v1alpha4_APIEndpoint .
 func Convert_v1alpha3_APIEndpoint_To_v1alpha4_APIEndpoint(in *apiv1alpha3.APIEndpoint, out *apiv1alpha4.APIEndpoint, s apiconversion.Scope) error {
 	return apiv1alpha3.Convert_v1alpha3_APIEndpoint_To_v1alpha4_APIEndpoint(in, out, s)
@@ -320,6 +325,8 @@ func restoreInstance(restored, dst *v1alpha4.Instance) {
 		return
 	}
 	dst.VolumeIDs = restored.VolumeIDs
+	RestoreRootVolume(restored.RootVolume, dst.RootVolume)
+	restoreNonRootVolumes(restored.NonRootVolumes, dst.NonRootVolumes)
 }
 
 // Convert_v1alpha3_AWSResourceReference_To_v1alpha4_AMIReference is a conversion function.
@@ -360,6 +367,7 @@ func restoreNonRootVolumes(restoredVolumes, dstVolumes []v1alpha4.Volume) {
 				dstVolumes[i].Encrypted = nil
 			}
 		}
+		dstVolumes[i].Throughput = restoredVolumes[i].Throughput
 	}
 }
 
@@ -377,5 +385,6 @@ func RestoreRootVolume(restored, dst *v1alpha4.Volume) {
 	if restored.Encrypted == nil {
 		dst.Encrypted = nil
 	}
+	dst.Throughput = restored.Throughput
 	return
 }
