@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/a8m/envsubst v1.2.0
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
-	github.com/golang/mock v1.4.4
+	github.com/golang/mock v1.5.0
 	github.com/golangci/golangci-lint v1.32.0
 	github.com/itchyny/gojq v0.11.2
 	github.com/onsi/ginkgo v1.15.0
