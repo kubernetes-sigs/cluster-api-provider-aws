@@ -42,7 +42,7 @@ func (r *AWSFargateProfile) SetupWebhookWithManager(mgr ctrl.Manager) error {
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1alpha3-awsfargateprofile,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsfargateprofiles,versions=v1alpha3,name=default.awsfargateprofile.infrastructure.cluster.x-k8s.io,sideEffects=None
-// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha3-awsfargateprofile,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=fargateprofiles,versions=v1alpha3,name=validation.awsfargateprofile.infrastructure.cluster.x-k8s.io,sideEffects=None
+// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha3-awsfargateprofile,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsfargateprofiles,versions=v1alpha3,name=validation.awsfargateprofile.infrastructure.cluster.x-k8s.io,sideEffects=None
 
 var _ webhook.Defaulter = &AWSFargateProfile{}
 var _ webhook.Validator = &AWSFargateProfile{}

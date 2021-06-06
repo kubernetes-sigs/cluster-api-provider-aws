@@ -271,7 +271,7 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - fargateprofiles
+    - awsfargateprofiles
   sideEffects: None
 - clientConfig:
     caBundle: Cg==
