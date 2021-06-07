@@ -495,7 +495,7 @@ func TestLaunchInstance(t *testing.T) {
 					},
 				},
 			},
-			instancesOutput: stubReservation(stubAMIID, stubInstanceID),
+			instancesOutput: stubReservation(stubAMIID, stubInstanceID, "192.168.0.10"),
 			succeeds:        true,
 			runInstancesInput: &ec2.RunInstancesInput{
 				IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
@@ -585,7 +585,7 @@ func TestLaunchInstance(t *testing.T) {
 					},
 				},
 			},
-			instancesOutput: stubReservation(stubAMIID, stubInstanceID),
+			instancesOutput: stubReservation(stubAMIID, stubInstanceID, "192.168.0.10"),
 			succeeds:        true,
 			runInstancesInput: &ec2.RunInstancesInput{
 				IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
@@ -655,7 +655,7 @@ func TestLaunchInstance(t *testing.T) {
 					},
 				},
 			},
-			instancesOutput: stubReservation(stubAMIID, stubInstanceID),
+			instancesOutput: stubReservation(stubAMIID, stubInstanceID, "192.168.0.10"),
 			succeeds:        true,
 			runInstancesInput: &ec2.RunInstancesInput{
 				IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
@@ -768,7 +768,7 @@ func TestLaunchInstance(t *testing.T) {
 					},
 				},
 			},
-			instancesOutput: stubReservation(stubAMIID, stubInstanceID),
+			instancesOutput: stubReservation(stubAMIID, stubInstanceID, "192.168.0.10"),
 			succeeds:        true,
 			runInstancesInput: &ec2.RunInstancesInput{
 				IamInstanceProfile: &ec2.IamInstanceProfileSpecification{

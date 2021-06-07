@@ -120,6 +120,10 @@ func (c *awsClient) ELBv2DescribeTargetGroups(*elbv2.DescribeTargetGroupsInput) 
 	return &elbv2.DescribeTargetGroupsOutput{}, nil
 }
 
+func (c *awsClient) ELBv2DescribeTargetHealth(*elbv2.DescribeTargetHealthInput) (*elbv2.DescribeTargetHealthOutput, error) {
+	return &elbv2.DescribeTargetHealthOutput{}, nil
+}
+
 func (c *awsClient) ELBv2RegisterTargets(*elbv2.RegisterTargetsInput) (*elbv2.RegisterTargetsOutput, error) {
 	// Feel free to extend the returned values
 	return &elbv2.RegisterTargetsOutput{}, nil

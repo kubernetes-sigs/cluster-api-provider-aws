@@ -176,10 +176,10 @@ func TestMachineEvents(t *testing.T) {
 			if tc.awsError {
 				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(nil, errors.New("AWS error")).AnyTimes()
 			} else {
-				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c", ec2.InstanceStateNameRunning), nil).AnyTimes()
+				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c", ec2.InstanceStateNameRunning, "192.168.0.10"), nil).AnyTimes()
 			}
 
-			mockAWSClient.EXPECT().RunInstances(gomock.Any()).Return(stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"), nil).AnyTimes()
+			mockAWSClient.EXPECT().RunInstances(gomock.Any()).Return(stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c", "192.168.0.10"), nil).AnyTimes()
 			mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(&ec2.TerminateInstancesOutput{}, nil)
 			mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).Return(nil, nil).AnyTimes()
 			mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(&ec2.TerminateInstancesOutput{}, nil).AnyTimes()
@@ -187,6 +187,8 @@ func TestMachineEvents(t *testing.T) {
 			mockAWSClient.EXPECT().ELBv2DescribeLoadBalancers(gomock.Any()).Return(stubDescribeLoadBalancersOutput(), nil).AnyTimes()
 			mockAWSClient.EXPECT().ELBv2DescribeTargetGroups(gomock.Any()).Return(stubDescribeTargetGroupsOutput(), nil).AnyTimes()
 			mockAWSClient.EXPECT().ELBv2RegisterTargets(gomock.Any()).Return(nil, nil).AnyTimes()
+			mockAWSClient.EXPECT().ELBv2DescribeTargetHealth(gomock.Any()).Return(stubDescribeTargetHealthOutput(), nil).AnyTimes()
+			mockAWSClient.EXPECT().ELBv2DeregisterTargets(gomock.Any()).Return(nil, nil).AnyTimes()
 			mockAWSClient.EXPECT().DescribeVpcs(gomock.Any()).Return(StubDescribeVPCs()).AnyTimes()
 			mockAWSClient.EXPECT().DescribeDHCPOptions(gomock.Any()).Return(StubDescribeDHCPOptions()).AnyTimes()
 			mockAWSClient.EXPECT().CreateTags(gomock.Any()).Return(&ec2.CreateTagsOutput{}, nil).AnyTimes()
