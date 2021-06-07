@@ -27,7 +27,7 @@
 # 	${IMAGE_TAG} \
 # 	-v /figures/*.plantuml
 
-FROM maven:3-jdk-8
+FROM maven:3-jdk-14
 ARG PLANTUML_VERSION
 
 RUN apt-get update && apt-get install -y --no-install-recommends graphviz fonts-symbola fonts-wqy-zenhei && rm -rf /var/lib/apt/lists/*
