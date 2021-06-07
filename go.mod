@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/apparentlymart/go-cidr v1.1.0
-	github.com/aws/amazon-vpc-cni-k8s v1.7.5
+	github.com/aws/amazon-vpc-cni-k8s v1.7.10
 	github.com/aws/aws-lambda-go v1.24.0
 	github.com/aws/aws-sdk-go v1.38.39
 	github.com/awslabs/goformation/v4 v4.15.0
