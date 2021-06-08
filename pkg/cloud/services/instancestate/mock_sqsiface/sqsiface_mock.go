@@ -22,36 +22,37 @@ package mock_sqsiface
 
 import (
 	context "context"
+	reflect "reflect"
+
 	request "github.com/aws/aws-sdk-go/aws/request"
 	sqs "github.com/aws/aws-sdk-go/service/sqs"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
 )
 
-// MockSQSAPI is a mock of SQSAPI interface
+// MockSQSAPI is a mock of SQSAPI interface.
 type MockSQSAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockSQSAPIMockRecorder
 }
 
-// MockSQSAPIMockRecorder is the mock recorder for MockSQSAPI
+// MockSQSAPIMockRecorder is the mock recorder for MockSQSAPI.
 type MockSQSAPIMockRecorder struct {
 	mock *MockSQSAPI
 }
 
-// NewMockSQSAPI creates a new mock instance
+// NewMockSQSAPI creates a new mock instance.
 func NewMockSQSAPI(ctrl *gomock.Controller) *MockSQSAPI {
 	mock := &MockSQSAPI{ctrl: ctrl}
 	mock.recorder = &MockSQSAPIMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockSQSAPI) EXPECT() *MockSQSAPIMockRecorder {
 	return m.recorder
 }
 
-// AddPermission mocks base method
+// AddPermission mocks base method.
 func (m *MockSQSAPI) AddPermission(arg0 *sqs.AddPermissionInput) (*sqs.AddPermissionOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddPermission", arg0)
@@ -60,13 +61,13 @@ func (m *MockSQSAPI) AddPermission(arg0 *sqs.AddPermissionInput) (*sqs.AddPermis
 	return ret0, ret1
 }
 
-// AddPermission indicates an expected call of AddPermission
+// AddPermission indicates an expected call of AddPermission.
 func (mr *MockSQSAPIMockRecorder) AddPermission(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddPermission", reflect.TypeOf((*MockSQSAPI)(nil).AddPermission), arg0)
 }
 
-// AddPermissionRequest mocks base method
+// AddPermissionRequest mocks base method.
 func (m *MockSQSAPI) AddPermissionRequest(arg0 *sqs.AddPermissionInput) (*request.Request, *sqs.AddPermissionOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddPermissionRequest", arg0)
@@ -75,13 +76,13 @@ func (m *MockSQSAPI) AddPermissionRequest(arg0 *sqs.AddPermissionInput) (*reques
 	return ret0, ret1
 }
 
-// AddPermissionRequest indicates an expected call of AddPermissionRequest
+// AddPermissionRequest indicates an expected call of AddPermissionRequest.
 func (mr *MockSQSAPIMockRecorder) AddPermissionRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddPermissionRequest", reflect.TypeOf((*MockSQSAPI)(nil).AddPermissionRequest), arg0)
 }
 
-// AddPermissionWithContext mocks base method
+// AddPermissionWithContext mocks base method.
 func (m *MockSQSAPI) AddPermissionWithContext(arg0 context.Context, arg1 *sqs.AddPermissionInput, arg2 ...request.Option) (*sqs.AddPermissionOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -94,14 +95,14 @@ func (m *MockSQSAPI) AddPermissionWithContext(arg0 context.Context, arg1 *sqs.Ad
 	return ret0, ret1
 }
 
-// AddPermissionWithContext indicates an expected call of AddPermissionWithContext
+// AddPermissionWithContext indicates an expected call of AddPermissionWithContext.
 func (mr *MockSQSAPIMockRecorder) AddPermissionWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddPermissionWithContext", reflect.TypeOf((*MockSQSAPI)(nil).AddPermissionWithContext), varargs...)
 }
 
-// ChangeMessageVisibility mocks base method
+// ChangeMessageVisibility mocks base method.
 func (m *MockSQSAPI) ChangeMessageVisibility(arg0 *sqs.ChangeMessageVisibilityInput) (*sqs.ChangeMessageVisibilityOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ChangeMessageVisibility", arg0)
@@ -110,13 +111,13 @@ func (m *MockSQSAPI) ChangeMessageVisibility(arg0 *sqs.ChangeMessageVisibilityIn
 	return ret0, ret1
 }
 
-// ChangeMessageVisibility indicates an expected call of ChangeMessageVisibility
+// ChangeMessageVisibility indicates an expected call of ChangeMessageVisibility.
 func (mr *MockSQSAPIMockRecorder) ChangeMessageVisibility(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChangeMessageVisibility", reflect.TypeOf((*MockSQSAPI)(nil).ChangeMessageVisibility), arg0)
 }
 
-// ChangeMessageVisibilityBatch mocks base method
+// ChangeMessageVisibilityBatch mocks base method.
 func (m *MockSQSAPI) ChangeMessageVisibilityBatch(arg0 *sqs.ChangeMessageVisibilityBatchInput) (*sqs.ChangeMessageVisibilityBatchOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ChangeMessageVisibilityBatch", arg0)
@@ -125,13 +126,13 @@ func (m *MockSQSAPI) ChangeMessageVisibilityBatch(arg0 *sqs.ChangeMessageVisibil
 	return ret0, ret1
 }
 
-// ChangeMessageVisibilityBatch indicates an expected call of ChangeMessageVisibilityBatch
+// ChangeMessageVisibilityBatch indicates an expected call of ChangeMessageVisibilityBatch.
 func (mr *MockSQSAPIMockRecorder) ChangeMessageVisibilityBatch(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChangeMessageVisibilityBatch", reflect.TypeOf((*MockSQSAPI)(nil).ChangeMessageVisibilityBatch), arg0)
 }
 
-// ChangeMessageVisibilityBatchRequest mocks base method
+// ChangeMessageVisibilityBatchRequest mocks base method.
 func (m *MockSQSAPI) ChangeMessageVisibilityBatchRequest(arg0 *sqs.ChangeMessageVisibilityBatchInput) (*request.Request, *sqs.ChangeMessageVisibilityBatchOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ChangeMessageVisibilityBatchRequest", arg0)
@@ -140,13 +141,13 @@ func (m *MockSQSAPI) ChangeMessageVisibilityBatchRequest(arg0 *sqs.ChangeMessage
 	return ret0, ret1
 }
 
-// ChangeMessageVisibilityBatchRequest indicates an expected call of ChangeMessageVisibilityBatchRequest
+// ChangeMessageVisibilityBatchRequest indicates an expected call of ChangeMessageVisibilityBatchRequest.
 func (mr *MockSQSAPIMockRecorder) ChangeMessageVisibilityBatchRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChangeMessageVisibilityBatchRequest", reflect.TypeOf((*MockSQSAPI)(nil).ChangeMessageVisibilityBatchRequest), arg0)
 }
 
-// ChangeMessageVisibilityBatchWithContext mocks base method
+// ChangeMessageVisibilityBatchWithContext mocks base method.
 func (m *MockSQSAPI) ChangeMessageVisibilityBatchWithContext(arg0 context.Context, arg1 *sqs.ChangeMessageVisibilityBatchInput, arg2 ...request.Option) (*sqs.ChangeMessageVisibilityBatchOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -159,14 +160,14 @@ func (m *MockSQSAPI) ChangeMessageVisibilityBatchWithContext(arg0 context.Contex
 	return ret0, ret1
 }
 
-// ChangeMessageVisibilityBatchWithContext indicates an expected call of ChangeMessageVisibilityBatchWithContext
+// ChangeMessageVisibilityBatchWithContext indicates an expected call of ChangeMessageVisibilityBatchWithContext.
 func (mr *MockSQSAPIMockRecorder) ChangeMessageVisibilityBatchWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChangeMessageVisibilityBatchWithContext", reflect.TypeOf((*MockSQSAPI)(nil).ChangeMessageVisibilityBatchWithContext), varargs...)
 }
 
-// ChangeMessageVisibilityRequest mocks base method
+// ChangeMessageVisibilityRequest mocks base method.
 func (m *MockSQSAPI) ChangeMessageVisibilityRequest(arg0 *sqs.ChangeMessageVisibilityInput) (*request.Request, *sqs.ChangeMessageVisibilityOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ChangeMessageVisibilityRequest", arg0)
@@ -175,13 +176,13 @@ func (m *MockSQSAPI) ChangeMessageVisibilityRequest(arg0 *sqs.ChangeMessageVisib
 	return ret0, ret1
 }
 
-// ChangeMessageVisibilityRequest indicates an expected call of ChangeMessageVisibilityRequest
+// ChangeMessageVisibilityRequest indicates an expected call of ChangeMessageVisibilityRequest.
 func (mr *MockSQSAPIMockRecorder) ChangeMessageVisibilityRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChangeMessageVisibilityRequest", reflect.TypeOf((*MockSQSAPI)(nil).ChangeMessageVisibilityRequest), arg0)
 }
 
-// ChangeMessageVisibilityWithContext mocks base method
+// ChangeMessageVisibilityWithContext mocks base method.
 func (m *MockSQSAPI) ChangeMessageVisibilityWithContext(arg0 context.Context, arg1 *sqs.ChangeMessageVisibilityInput, arg2 ...request.Option) (*sqs.ChangeMessageVisibilityOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -194,14 +195,14 @@ func (m *MockSQSAPI) ChangeMessageVisibilityWithContext(arg0 context.Context, ar
 	return ret0, ret1
 }
 
-// ChangeMessageVisibilityWithContext indicates an expected call of ChangeMessageVisibilityWithContext
+// ChangeMessageVisibilityWithContext indicates an expected call of ChangeMessageVisibilityWithContext.
 func (mr *MockSQSAPIMockRecorder) ChangeMessageVisibilityWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChangeMessageVisibilityWithContext", reflect.TypeOf((*MockSQSAPI)(nil).ChangeMessageVisibilityWithContext), varargs...)
 }
 
-// CreateQueue mocks base method
+// CreateQueue mocks base method.
 func (m *MockSQSAPI) CreateQueue(arg0 *sqs.CreateQueueInput) (*sqs.CreateQueueOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateQueue", arg0)
@@ -210,13 +211,13 @@ func (m *MockSQSAPI) CreateQueue(arg0 *sqs.CreateQueueInput) (*sqs.CreateQueueOu
 	return ret0, ret1
 }
 
-// CreateQueue indicates an expected call of CreateQueue
+// CreateQueue indicates an expected call of CreateQueue.
 func (mr *MockSQSAPIMockRecorder) CreateQueue(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateQueue", reflect.TypeOf((*MockSQSAPI)(nil).CreateQueue), arg0)
 }
 
-// CreateQueueRequest mocks base method
+// CreateQueueRequest mocks base method.
 func (m *MockSQSAPI) CreateQueueRequest(arg0 *sqs.CreateQueueInput) (*request.Request, *sqs.CreateQueueOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateQueueRequest", arg0)
@@ -225,13 +226,13 @@ func (m *MockSQSAPI) CreateQueueRequest(arg0 *sqs.CreateQueueInput) (*request.Re
 	return ret0, ret1
 }
 
-// CreateQueueRequest indicates an expected call of CreateQueueRequest
+// CreateQueueRequest indicates an expected call of CreateQueueRequest.
 func (mr *MockSQSAPIMockRecorder) CreateQueueRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateQueueRequest", reflect.TypeOf((*MockSQSAPI)(nil).CreateQueueRequest), arg0)
 }
 
-// CreateQueueWithContext mocks base method
+// CreateQueueWithContext mocks base method.
 func (m *MockSQSAPI) CreateQueueWithContext(arg0 context.Context, arg1 *sqs.CreateQueueInput, arg2 ...request.Option) (*sqs.CreateQueueOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -244,14 +245,14 @@ func (m *MockSQSAPI) CreateQueueWithContext(arg0 context.Context, arg1 *sqs.Crea
 	return ret0, ret1
 }
 
-// CreateQueueWithContext indicates an expected call of CreateQueueWithContext
+// CreateQueueWithContext indicates an expected call of CreateQueueWithContext.
 func (mr *MockSQSAPIMockRecorder) CreateQueueWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateQueueWithContext", reflect.TypeOf((*MockSQSAPI)(nil).CreateQueueWithContext), varargs...)
 }
 
-// DeleteMessage mocks base method
+// DeleteMessage mocks base method.
 func (m *MockSQSAPI) DeleteMessage(arg0 *sqs.DeleteMessageInput) (*sqs.DeleteMessageOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteMessage", arg0)
@@ -260,13 +261,13 @@ func (m *MockSQSAPI) DeleteMessage(arg0 *sqs.DeleteMessageInput) (*sqs.DeleteMes
 	return ret0, ret1
 }
 
-// DeleteMessage indicates an expected call of DeleteMessage
+// DeleteMessage indicates an expected call of DeleteMessage.
 func (mr *MockSQSAPIMockRecorder) DeleteMessage(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMessage", reflect.TypeOf((*MockSQSAPI)(nil).DeleteMessage), arg0)
 }
 
-// DeleteMessageBatch mocks base method
+// DeleteMessageBatch mocks base method.
 func (m *MockSQSAPI) DeleteMessageBatch(arg0 *sqs.DeleteMessageBatchInput) (*sqs.DeleteMessageBatchOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteMessageBatch", arg0)
@@ -275,13 +276,13 @@ func (m *MockSQSAPI) DeleteMessageBatch(arg0 *sqs.DeleteMessageBatchInput) (*sqs
 	return ret0, ret1
 }
 
-// DeleteMessageBatch indicates an expected call of DeleteMessageBatch
+// DeleteMessageBatch indicates an expected call of DeleteMessageBatch.
 func (mr *MockSQSAPIMockRecorder) DeleteMessageBatch(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMessageBatch", reflect.TypeOf((*MockSQSAPI)(nil).DeleteMessageBatch), arg0)
 }
 
-// DeleteMessageBatchRequest mocks base method
+// DeleteMessageBatchRequest mocks base method.
 func (m *MockSQSAPI) DeleteMessageBatchRequest(arg0 *sqs.DeleteMessageBatchInput) (*request.Request, *sqs.DeleteMessageBatchOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteMessageBatchRequest", arg0)
@@ -290,13 +291,13 @@ func (m *MockSQSAPI) DeleteMessageBatchRequest(arg0 *sqs.DeleteMessageBatchInput
 	return ret0, ret1
 }
 
-// DeleteMessageBatchRequest indicates an expected call of DeleteMessageBatchRequest
+// DeleteMessageBatchRequest indicates an expected call of DeleteMessageBatchRequest.
 func (mr *MockSQSAPIMockRecorder) DeleteMessageBatchRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMessageBatchRequest", reflect.TypeOf((*MockSQSAPI)(nil).DeleteMessageBatchRequest), arg0)
 }
 
-// DeleteMessageBatchWithContext mocks base method
+// DeleteMessageBatchWithContext mocks base method.
 func (m *MockSQSAPI) DeleteMessageBatchWithContext(arg0 context.Context, arg1 *sqs.DeleteMessageBatchInput, arg2 ...request.Option) (*sqs.DeleteMessageBatchOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -309,14 +310,14 @@ func (m *MockSQSAPI) DeleteMessageBatchWithContext(arg0 context.Context, arg1 *s
 	return ret0, ret1
 }
 
-// DeleteMessageBatchWithContext indicates an expected call of DeleteMessageBatchWithContext
+// DeleteMessageBatchWithContext indicates an expected call of DeleteMessageBatchWithContext.
 func (mr *MockSQSAPIMockRecorder) DeleteMessageBatchWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMessageBatchWithContext", reflect.TypeOf((*MockSQSAPI)(nil).DeleteMessageBatchWithContext), varargs...)
 }
 
-// DeleteMessageRequest mocks base method
+// DeleteMessageRequest mocks base method.
 func (m *MockSQSAPI) DeleteMessageRequest(arg0 *sqs.DeleteMessageInput) (*request.Request, *sqs.DeleteMessageOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteMessageRequest", arg0)
@@ -325,13 +326,13 @@ func (m *MockSQSAPI) DeleteMessageRequest(arg0 *sqs.DeleteMessageInput) (*reques
 	return ret0, ret1
 }
 
-// DeleteMessageRequest indicates an expected call of DeleteMessageRequest
+// DeleteMessageRequest indicates an expected call of DeleteMessageRequest.
 func (mr *MockSQSAPIMockRecorder) DeleteMessageRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMessageRequest", reflect.TypeOf((*MockSQSAPI)(nil).DeleteMessageRequest), arg0)
 }
 
-// DeleteMessageWithContext mocks base method
+// DeleteMessageWithContext mocks base method.
 func (m *MockSQSAPI) DeleteMessageWithContext(arg0 context.Context, arg1 *sqs.DeleteMessageInput, arg2 ...request.Option) (*sqs.DeleteMessageOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -344,14 +345,14 @@ func (m *MockSQSAPI) DeleteMessageWithContext(arg0 context.Context, arg1 *sqs.De
 	return ret0, ret1
 }
 
-// DeleteMessageWithContext indicates an expected call of DeleteMessageWithContext
+// DeleteMessageWithContext indicates an expected call of DeleteMessageWithContext.
 func (mr *MockSQSAPIMockRecorder) DeleteMessageWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMessageWithContext", reflect.TypeOf((*MockSQSAPI)(nil).DeleteMessageWithContext), varargs...)
 }
 
-// DeleteQueue mocks base method
+// DeleteQueue mocks base method.
 func (m *MockSQSAPI) DeleteQueue(arg0 *sqs.DeleteQueueInput) (*sqs.DeleteQueueOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteQueue", arg0)
@@ -360,13 +361,13 @@ func (m *MockSQSAPI) DeleteQueue(arg0 *sqs.DeleteQueueInput) (*sqs.DeleteQueueOu
 	return ret0, ret1
 }
 
-// DeleteQueue indicates an expected call of DeleteQueue
+// DeleteQueue indicates an expected call of DeleteQueue.
 func (mr *MockSQSAPIMockRecorder) DeleteQueue(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteQueue", reflect.TypeOf((*MockSQSAPI)(nil).DeleteQueue), arg0)
 }
 
-// DeleteQueueRequest mocks base method
+// DeleteQueueRequest mocks base method.
 func (m *MockSQSAPI) DeleteQueueRequest(arg0 *sqs.DeleteQueueInput) (*request.Request, *sqs.DeleteQueueOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteQueueRequest", arg0)
@@ -375,13 +376,13 @@ func (m *MockSQSAPI) DeleteQueueRequest(arg0 *sqs.DeleteQueueInput) (*request.Re
 	return ret0, ret1
 }
 
-// DeleteQueueRequest indicates an expected call of DeleteQueueRequest
+// DeleteQueueRequest indicates an expected call of DeleteQueueRequest.
 func (mr *MockSQSAPIMockRecorder) DeleteQueueRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteQueueRequest", reflect.TypeOf((*MockSQSAPI)(nil).DeleteQueueRequest), arg0)
 }
 
-// DeleteQueueWithContext mocks base method
+// DeleteQueueWithContext mocks base method.
 func (m *MockSQSAPI) DeleteQueueWithContext(arg0 context.Context, arg1 *sqs.DeleteQueueInput, arg2 ...request.Option) (*sqs.DeleteQueueOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -394,14 +395,14 @@ func (m *MockSQSAPI) DeleteQueueWithContext(arg0 context.Context, arg1 *sqs.Dele
 	return ret0, ret1
 }
 
-// DeleteQueueWithContext indicates an expected call of DeleteQueueWithContext
+// DeleteQueueWithContext indicates an expected call of DeleteQueueWithContext.
 func (mr *MockSQSAPIMockRecorder) DeleteQueueWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteQueueWithContext", reflect.TypeOf((*MockSQSAPI)(nil).DeleteQueueWithContext), varargs...)
 }
 
-// GetQueueAttributes mocks base method
+// GetQueueAttributes mocks base method.
 func (m *MockSQSAPI) GetQueueAttributes(arg0 *sqs.GetQueueAttributesInput) (*sqs.GetQueueAttributesOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetQueueAttributes", arg0)
@@ -410,13 +411,13 @@ func (m *MockSQSAPI) GetQueueAttributes(arg0 *sqs.GetQueueAttributesInput) (*sqs
 	return ret0, ret1
 }
 
-// GetQueueAttributes indicates an expected call of GetQueueAttributes
+// GetQueueAttributes indicates an expected call of GetQueueAttributes.
 func (mr *MockSQSAPIMockRecorder) GetQueueAttributes(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetQueueAttributes", reflect.TypeOf((*MockSQSAPI)(nil).GetQueueAttributes), arg0)
 }
 
-// GetQueueAttributesRequest mocks base method
+// GetQueueAttributesRequest mocks base method.
 func (m *MockSQSAPI) GetQueueAttributesRequest(arg0 *sqs.GetQueueAttributesInput) (*request.Request, *sqs.GetQueueAttributesOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetQueueAttributesRequest", arg0)
@@ -425,13 +426,13 @@ func (m *MockSQSAPI) GetQueueAttributesRequest(arg0 *sqs.GetQueueAttributesInput
 	return ret0, ret1
 }
 
-// GetQueueAttributesRequest indicates an expected call of GetQueueAttributesRequest
+// GetQueueAttributesRequest indicates an expected call of GetQueueAttributesRequest.
 func (mr *MockSQSAPIMockRecorder) GetQueueAttributesRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetQueueAttributesRequest", reflect.TypeOf((*MockSQSAPI)(nil).GetQueueAttributesRequest), arg0)
 }
 
-// GetQueueAttributesWithContext mocks base method
+// GetQueueAttributesWithContext mocks base method.
 func (m *MockSQSAPI) GetQueueAttributesWithContext(arg0 context.Context, arg1 *sqs.GetQueueAttributesInput, arg2 ...request.Option) (*sqs.GetQueueAttributesOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -444,14 +445,14 @@ func (m *MockSQSAPI) GetQueueAttributesWithContext(arg0 context.Context, arg1 *s
 	return ret0, ret1
 }
 
-// GetQueueAttributesWithContext indicates an expected call of GetQueueAttributesWithContext
+// GetQueueAttributesWithContext indicates an expected call of GetQueueAttributesWithContext.
 func (mr *MockSQSAPIMockRecorder) GetQueueAttributesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetQueueAttributesWithContext", reflect.TypeOf((*MockSQSAPI)(nil).GetQueueAttributesWithContext), varargs...)
 }
 
-// GetQueueUrl mocks base method
+// GetQueueUrl mocks base method.
 func (m *MockSQSAPI) GetQueueUrl(arg0 *sqs.GetQueueUrlInput) (*sqs.GetQueueUrlOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetQueueUrl", arg0)
@@ -460,13 +461,13 @@ func (m *MockSQSAPI) GetQueueUrl(arg0 *sqs.GetQueueUrlInput) (*sqs.GetQueueUrlOu
 	return ret0, ret1
 }
 
-// GetQueueUrl indicates an expected call of GetQueueUrl
+// GetQueueUrl indicates an expected call of GetQueueUrl.
 func (mr *MockSQSAPIMockRecorder) GetQueueUrl(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetQueueUrl", reflect.TypeOf((*MockSQSAPI)(nil).GetQueueUrl), arg0)
 }
 
-// GetQueueUrlRequest mocks base method
+// GetQueueUrlRequest mocks base method.
 func (m *MockSQSAPI) GetQueueUrlRequest(arg0 *sqs.GetQueueUrlInput) (*request.Request, *sqs.GetQueueUrlOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetQueueUrlRequest", arg0)
@@ -475,13 +476,13 @@ func (m *MockSQSAPI) GetQueueUrlRequest(arg0 *sqs.GetQueueUrlInput) (*request.Re
 	return ret0, ret1
 }
 
-// GetQueueUrlRequest indicates an expected call of GetQueueUrlRequest
+// GetQueueUrlRequest indicates an expected call of GetQueueUrlRequest.
 func (mr *MockSQSAPIMockRecorder) GetQueueUrlRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetQueueUrlRequest", reflect.TypeOf((*MockSQSAPI)(nil).GetQueueUrlRequest), arg0)
 }
 
-// GetQueueUrlWithContext mocks base method
+// GetQueueUrlWithContext mocks base method.
 func (m *MockSQSAPI) GetQueueUrlWithContext(arg0 context.Context, arg1 *sqs.GetQueueUrlInput, arg2 ...request.Option) (*sqs.GetQueueUrlOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -494,14 +495,14 @@ func (m *MockSQSAPI) GetQueueUrlWithContext(arg0 context.Context, arg1 *sqs.GetQ
 	return ret0, ret1
 }
 
-// GetQueueUrlWithContext indicates an expected call of GetQueueUrlWithContext
+// GetQueueUrlWithContext indicates an expected call of GetQueueUrlWithContext.
 func (mr *MockSQSAPIMockRecorder) GetQueueUrlWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetQueueUrlWithContext", reflect.TypeOf((*MockSQSAPI)(nil).GetQueueUrlWithContext), varargs...)
 }
 
-// ListDeadLetterSourceQueues mocks base method
+// ListDeadLetterSourceQueues mocks base method.
 func (m *MockSQSAPI) ListDeadLetterSourceQueues(arg0 *sqs.ListDeadLetterSourceQueuesInput) (*sqs.ListDeadLetterSourceQueuesOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListDeadLetterSourceQueues", arg0)
@@ -510,13 +511,13 @@ func (m *MockSQSAPI) ListDeadLetterSourceQueues(arg0 *sqs.ListDeadLetterSourceQu
 	return ret0, ret1
 }
 
-// ListDeadLetterSourceQueues indicates an expected call of ListDeadLetterSourceQueues
+// ListDeadLetterSourceQueues indicates an expected call of ListDeadLetterSourceQueues.
 func (mr *MockSQSAPIMockRecorder) ListDeadLetterSourceQueues(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDeadLetterSourceQueues", reflect.TypeOf((*MockSQSAPI)(nil).ListDeadLetterSourceQueues), arg0)
 }
 
-// ListDeadLetterSourceQueuesPages mocks base method
+// ListDeadLetterSourceQueuesPages mocks base method.
 func (m *MockSQSAPI) ListDeadLetterSourceQueuesPages(arg0 *sqs.ListDeadLetterSourceQueuesInput, arg1 func(*sqs.ListDeadLetterSourceQueuesOutput, bool) bool) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListDeadLetterSourceQueuesPages", arg0, arg1)
@@ -524,13 +525,13 @@ func (m *MockSQSAPI) ListDeadLetterSourceQueuesPages(arg0 *sqs.ListDeadLetterSou
 	return ret0
 }
 
-// ListDeadLetterSourceQueuesPages indicates an expected call of ListDeadLetterSourceQueuesPages
+// ListDeadLetterSourceQueuesPages indicates an expected call of ListDeadLetterSourceQueuesPages.
 func (mr *MockSQSAPIMockRecorder) ListDeadLetterSourceQueuesPages(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDeadLetterSourceQueuesPages", reflect.TypeOf((*MockSQSAPI)(nil).ListDeadLetterSourceQueuesPages), arg0, arg1)
 }
 
-// ListDeadLetterSourceQueuesPagesWithContext mocks base method
+// ListDeadLetterSourceQueuesPagesWithContext mocks base method.
 func (m *MockSQSAPI) ListDeadLetterSourceQueuesPagesWithContext(arg0 context.Context, arg1 *sqs.ListDeadLetterSourceQueuesInput, arg2 func(*sqs.ListDeadLetterSourceQueuesOutput, bool) bool, arg3 ...request.Option) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1, arg2}
@@ -542,14 +543,14 @@ func (m *MockSQSAPI) ListDeadLetterSourceQueuesPagesWithContext(arg0 context.Con
 	return ret0
 }
 
-// ListDeadLetterSourceQueuesPagesWithContext indicates an expected call of ListDeadLetterSourceQueuesPagesWithContext
+// ListDeadLetterSourceQueuesPagesWithContext indicates an expected call of ListDeadLetterSourceQueuesPagesWithContext.
 func (mr *MockSQSAPIMockRecorder) ListDeadLetterSourceQueuesPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDeadLetterSourceQueuesPagesWithContext", reflect.TypeOf((*MockSQSAPI)(nil).ListDeadLetterSourceQueuesPagesWithContext), varargs...)
 }
 
-// ListDeadLetterSourceQueuesRequest mocks base method
+// ListDeadLetterSourceQueuesRequest mocks base method.
 func (m *MockSQSAPI) ListDeadLetterSourceQueuesRequest(arg0 *sqs.ListDeadLetterSourceQueuesInput) (*request.Request, *sqs.ListDeadLetterSourceQueuesOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListDeadLetterSourceQueuesRequest", arg0)
@@ -558,13 +559,13 @@ func (m *MockSQSAPI) ListDeadLetterSourceQueuesRequest(arg0 *sqs.ListDeadLetterS
 	return ret0, ret1
 }
 
-// ListDeadLetterSourceQueuesRequest indicates an expected call of ListDeadLetterSourceQueuesRequest
+// ListDeadLetterSourceQueuesRequest indicates an expected call of ListDeadLetterSourceQueuesRequest.
 func (mr *MockSQSAPIMockRecorder) ListDeadLetterSourceQueuesRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDeadLetterSourceQueuesRequest", reflect.TypeOf((*MockSQSAPI)(nil).ListDeadLetterSourceQueuesRequest), arg0)
 }
 
-// ListDeadLetterSourceQueuesWithContext mocks base method
+// ListDeadLetterSourceQueuesWithContext mocks base method.
 func (m *MockSQSAPI) ListDeadLetterSourceQueuesWithContext(arg0 context.Context, arg1 *sqs.ListDeadLetterSourceQueuesInput, arg2 ...request.Option) (*sqs.ListDeadLetterSourceQueuesOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -577,14 +578,14 @@ func (m *MockSQSAPI) ListDeadLetterSourceQueuesWithContext(arg0 context.Context,
 	return ret0, ret1
 }
 
-// ListDeadLetterSourceQueuesWithContext indicates an expected call of ListDeadLetterSourceQueuesWithContext
+// ListDeadLetterSourceQueuesWithContext indicates an expected call of ListDeadLetterSourceQueuesWithContext.
 func (mr *MockSQSAPIMockRecorder) ListDeadLetterSourceQueuesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDeadLetterSourceQueuesWithContext", reflect.TypeOf((*MockSQSAPI)(nil).ListDeadLetterSourceQueuesWithContext), varargs...)
 }
 
-// ListQueueTags mocks base method
+// ListQueueTags mocks base method.
 func (m *MockSQSAPI) ListQueueTags(arg0 *sqs.ListQueueTagsInput) (*sqs.ListQueueTagsOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListQueueTags", arg0)
@@ -593,13 +594,13 @@ func (m *MockSQSAPI) ListQueueTags(arg0 *sqs.ListQueueTagsInput) (*sqs.ListQueue
 	return ret0, ret1
 }
 
-// ListQueueTags indicates an expected call of ListQueueTags
+// ListQueueTags indicates an expected call of ListQueueTags.
 func (mr *MockSQSAPIMockRecorder) ListQueueTags(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListQueueTags", reflect.TypeOf((*MockSQSAPI)(nil).ListQueueTags), arg0)
 }
 
-// ListQueueTagsRequest mocks base method
+// ListQueueTagsRequest mocks base method.
 func (m *MockSQSAPI) ListQueueTagsRequest(arg0 *sqs.ListQueueTagsInput) (*request.Request, *sqs.ListQueueTagsOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListQueueTagsRequest", arg0)
@@ -608,13 +609,13 @@ func (m *MockSQSAPI) ListQueueTagsRequest(arg0 *sqs.ListQueueTagsInput) (*reques
 	return ret0, ret1
 }
 
-// ListQueueTagsRequest indicates an expected call of ListQueueTagsRequest
+// ListQueueTagsRequest indicates an expected call of ListQueueTagsRequest.
 func (mr *MockSQSAPIMockRecorder) ListQueueTagsRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListQueueTagsRequest", reflect.TypeOf((*MockSQSAPI)(nil).ListQueueTagsRequest), arg0)
 }
 
-// ListQueueTagsWithContext mocks base method
+// ListQueueTagsWithContext mocks base method.
 func (m *MockSQSAPI) ListQueueTagsWithContext(arg0 context.Context, arg1 *sqs.ListQueueTagsInput, arg2 ...request.Option) (*sqs.ListQueueTagsOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -627,14 +628,14 @@ func (m *MockSQSAPI) ListQueueTagsWithContext(arg0 context.Context, arg1 *sqs.Li
 	return ret0, ret1
 }
 
-// ListQueueTagsWithContext indicates an expected call of ListQueueTagsWithContext
+// ListQueueTagsWithContext indicates an expected call of ListQueueTagsWithContext.
 func (mr *MockSQSAPIMockRecorder) ListQueueTagsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListQueueTagsWithContext", reflect.TypeOf((*MockSQSAPI)(nil).ListQueueTagsWithContext), varargs...)
 }
 
-// ListQueues mocks base method
+// ListQueues mocks base method.
 func (m *MockSQSAPI) ListQueues(arg0 *sqs.ListQueuesInput) (*sqs.ListQueuesOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListQueues", arg0)
@@ -643,13 +644,13 @@ func (m *MockSQSAPI) ListQueues(arg0 *sqs.ListQueuesInput) (*sqs.ListQueuesOutpu
 	return ret0, ret1
 }
 
-// ListQueues indicates an expected call of ListQueues
+// ListQueues indicates an expected call of ListQueues.
 func (mr *MockSQSAPIMockRecorder) ListQueues(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListQueues", reflect.TypeOf((*MockSQSAPI)(nil).ListQueues), arg0)
 }
 
-// ListQueuesPages mocks base method
+// ListQueuesPages mocks base method.
 func (m *MockSQSAPI) ListQueuesPages(arg0 *sqs.ListQueuesInput, arg1 func(*sqs.ListQueuesOutput, bool) bool) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListQueuesPages", arg0, arg1)
@@ -657,13 +658,13 @@ func (m *MockSQSAPI) ListQueuesPages(arg0 *sqs.ListQueuesInput, arg1 func(*sqs.L
 	return ret0
 }
 
-// ListQueuesPages indicates an expected call of ListQueuesPages
+// ListQueuesPages indicates an expected call of ListQueuesPages.
 func (mr *MockSQSAPIMockRecorder) ListQueuesPages(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListQueuesPages", reflect.TypeOf((*MockSQSAPI)(nil).ListQueuesPages), arg0, arg1)
 }
 
-// ListQueuesPagesWithContext mocks base method
+// ListQueuesPagesWithContext mocks base method.
 func (m *MockSQSAPI) ListQueuesPagesWithContext(arg0 context.Context, arg1 *sqs.ListQueuesInput, arg2 func(*sqs.ListQueuesOutput, bool) bool, arg3 ...request.Option) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1, arg2}
@@ -675,14 +676,14 @@ func (m *MockSQSAPI) ListQueuesPagesWithContext(arg0 context.Context, arg1 *sqs.
 	return ret0
 }
 
-// ListQueuesPagesWithContext indicates an expected call of ListQueuesPagesWithContext
+// ListQueuesPagesWithContext indicates an expected call of ListQueuesPagesWithContext.
 func (mr *MockSQSAPIMockRecorder) ListQueuesPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListQueuesPagesWithContext", reflect.TypeOf((*MockSQSAPI)(nil).ListQueuesPagesWithContext), varargs...)
 }
 
-// ListQueuesRequest mocks base method
+// ListQueuesRequest mocks base method.
 func (m *MockSQSAPI) ListQueuesRequest(arg0 *sqs.ListQueuesInput) (*request.Request, *sqs.ListQueuesOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListQueuesRequest", arg0)
@@ -691,13 +692,13 @@ func (m *MockSQSAPI) ListQueuesRequest(arg0 *sqs.ListQueuesInput) (*request.Requ
 	return ret0, ret1
 }
 
-// ListQueuesRequest indicates an expected call of ListQueuesRequest
+// ListQueuesRequest indicates an expected call of ListQueuesRequest.
 func (mr *MockSQSAPIMockRecorder) ListQueuesRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListQueuesRequest", reflect.TypeOf((*MockSQSAPI)(nil).ListQueuesRequest), arg0)
 }
 
-// ListQueuesWithContext mocks base method
+// ListQueuesWithContext mocks base method.
 func (m *MockSQSAPI) ListQueuesWithContext(arg0 context.Context, arg1 *sqs.ListQueuesInput, arg2 ...request.Option) (*sqs.ListQueuesOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -710,14 +711,14 @@ func (m *MockSQSAPI) ListQueuesWithContext(arg0 context.Context, arg1 *sqs.ListQ
 	return ret0, ret1
 }
 
-// ListQueuesWithContext indicates an expected call of ListQueuesWithContext
+// ListQueuesWithContext indicates an expected call of ListQueuesWithContext.
 func (mr *MockSQSAPIMockRecorder) ListQueuesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListQueuesWithContext", reflect.TypeOf((*MockSQSAPI)(nil).ListQueuesWithContext), varargs...)
 }
 
-// PurgeQueue mocks base method
+// PurgeQueue mocks base method.
 func (m *MockSQSAPI) PurgeQueue(arg0 *sqs.PurgeQueueInput) (*sqs.PurgeQueueOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PurgeQueue", arg0)
@@ -726,13 +727,13 @@ func (m *MockSQSAPI) PurgeQueue(arg0 *sqs.PurgeQueueInput) (*sqs.PurgeQueueOutpu
 	return ret0, ret1
 }
 
-// PurgeQueue indicates an expected call of PurgeQueue
+// PurgeQueue indicates an expected call of PurgeQueue.
 func (mr *MockSQSAPIMockRecorder) PurgeQueue(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PurgeQueue", reflect.TypeOf((*MockSQSAPI)(nil).PurgeQueue), arg0)
 }
 
-// PurgeQueueRequest mocks base method
+// PurgeQueueRequest mocks base method.
 func (m *MockSQSAPI) PurgeQueueRequest(arg0 *sqs.PurgeQueueInput) (*request.Request, *sqs.PurgeQueueOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PurgeQueueRequest", arg0)
@@ -741,13 +742,13 @@ func (m *MockSQSAPI) PurgeQueueRequest(arg0 *sqs.PurgeQueueInput) (*request.Requ
 	return ret0, ret1
 }
 
-// PurgeQueueRequest indicates an expected call of PurgeQueueRequest
+// PurgeQueueRequest indicates an expected call of PurgeQueueRequest.
 func (mr *MockSQSAPIMockRecorder) PurgeQueueRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PurgeQueueRequest", reflect.TypeOf((*MockSQSAPI)(nil).PurgeQueueRequest), arg0)
 }
 
-// PurgeQueueWithContext mocks base method
+// PurgeQueueWithContext mocks base method.
 func (m *MockSQSAPI) PurgeQueueWithContext(arg0 context.Context, arg1 *sqs.PurgeQueueInput, arg2 ...request.Option) (*sqs.PurgeQueueOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -760,14 +761,14 @@ func (m *MockSQSAPI) PurgeQueueWithContext(arg0 context.Context, arg1 *sqs.Purge
 	return ret0, ret1
 }
 
-// PurgeQueueWithContext indicates an expected call of PurgeQueueWithContext
+// PurgeQueueWithContext indicates an expected call of PurgeQueueWithContext.
 func (mr *MockSQSAPIMockRecorder) PurgeQueueWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PurgeQueueWithContext", reflect.TypeOf((*MockSQSAPI)(nil).PurgeQueueWithContext), varargs...)
 }
 
-// ReceiveMessage mocks base method
+// ReceiveMessage mocks base method.
 func (m *MockSQSAPI) ReceiveMessage(arg0 *sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ReceiveMessage", arg0)
@@ -776,13 +777,13 @@ func (m *MockSQSAPI) ReceiveMessage(arg0 *sqs.ReceiveMessageInput) (*sqs.Receive
 	return ret0, ret1
 }
 
-// ReceiveMessage indicates an expected call of ReceiveMessage
+// ReceiveMessage indicates an expected call of ReceiveMessage.
 func (mr *MockSQSAPIMockRecorder) ReceiveMessage(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReceiveMessage", reflect.TypeOf((*MockSQSAPI)(nil).ReceiveMessage), arg0)
 }
 
-// ReceiveMessageRequest mocks base method
+// ReceiveMessageRequest mocks base method.
 func (m *MockSQSAPI) ReceiveMessageRequest(arg0 *sqs.ReceiveMessageInput) (*request.Request, *sqs.ReceiveMessageOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ReceiveMessageRequest", arg0)
@@ -791,13 +792,13 @@ func (m *MockSQSAPI) ReceiveMessageRequest(arg0 *sqs.ReceiveMessageInput) (*requ
 	return ret0, ret1
 }
 
-// ReceiveMessageRequest indicates an expected call of ReceiveMessageRequest
+// ReceiveMessageRequest indicates an expected call of ReceiveMessageRequest.
 func (mr *MockSQSAPIMockRecorder) ReceiveMessageRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReceiveMessageRequest", reflect.TypeOf((*MockSQSAPI)(nil).ReceiveMessageRequest), arg0)
 }
 
-// ReceiveMessageWithContext mocks base method
+// ReceiveMessageWithContext mocks base method.
 func (m *MockSQSAPI) ReceiveMessageWithContext(arg0 context.Context, arg1 *sqs.ReceiveMessageInput, arg2 ...request.Option) (*sqs.ReceiveMessageOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -810,14 +811,14 @@ func (m *MockSQSAPI) ReceiveMessageWithContext(arg0 context.Context, arg1 *sqs.R
 	return ret0, ret1
 }
 
-// ReceiveMessageWithContext indicates an expected call of ReceiveMessageWithContext
+// ReceiveMessageWithContext indicates an expected call of ReceiveMessageWithContext.
 func (mr *MockSQSAPIMockRecorder) ReceiveMessageWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReceiveMessageWithContext", reflect.TypeOf((*MockSQSAPI)(nil).ReceiveMessageWithContext), varargs...)
 }
 
-// RemovePermission mocks base method
+// RemovePermission mocks base method.
 func (m *MockSQSAPI) RemovePermission(arg0 *sqs.RemovePermissionInput) (*sqs.RemovePermissionOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RemovePermission", arg0)
@@ -826,13 +827,13 @@ func (m *MockSQSAPI) RemovePermission(arg0 *sqs.RemovePermissionInput) (*sqs.Rem
 	return ret0, ret1
 }
 
-// RemovePermission indicates an expected call of RemovePermission
+// RemovePermission indicates an expected call of RemovePermission.
 func (mr *MockSQSAPIMockRecorder) RemovePermission(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemovePermission", reflect.TypeOf((*MockSQSAPI)(nil).RemovePermission), arg0)
 }
 
-// RemovePermissionRequest mocks base method
+// RemovePermissionRequest mocks base method.
 func (m *MockSQSAPI) RemovePermissionRequest(arg0 *sqs.RemovePermissionInput) (*request.Request, *sqs.RemovePermissionOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RemovePermissionRequest", arg0)
@@ -841,13 +842,13 @@ func (m *MockSQSAPI) RemovePermissionRequest(arg0 *sqs.RemovePermissionInput) (*
 	return ret0, ret1
 }
 
-// RemovePermissionRequest indicates an expected call of RemovePermissionRequest
+// RemovePermissionRequest indicates an expected call of RemovePermissionRequest.
 func (mr *MockSQSAPIMockRecorder) RemovePermissionRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemovePermissionRequest", reflect.TypeOf((*MockSQSAPI)(nil).RemovePermissionRequest), arg0)
 }
 
-// RemovePermissionWithContext mocks base method
+// RemovePermissionWithContext mocks base method.
 func (m *MockSQSAPI) RemovePermissionWithContext(arg0 context.Context, arg1 *sqs.RemovePermissionInput, arg2 ...request.Option) (*sqs.RemovePermissionOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -860,14 +861,14 @@ func (m *MockSQSAPI) RemovePermissionWithContext(arg0 context.Context, arg1 *sqs
 	return ret0, ret1
 }
 
-// RemovePermissionWithContext indicates an expected call of RemovePermissionWithContext
+// RemovePermissionWithContext indicates an expected call of RemovePermissionWithContext.
 func (mr *MockSQSAPIMockRecorder) RemovePermissionWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemovePermissionWithContext", reflect.TypeOf((*MockSQSAPI)(nil).RemovePermissionWithContext), varargs...)
 }
 
-// SendMessage mocks base method
+// SendMessage mocks base method.
 func (m *MockSQSAPI) SendMessage(arg0 *sqs.SendMessageInput) (*sqs.SendMessageOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendMessage", arg0)
@@ -876,13 +877,13 @@ func (m *MockSQSAPI) SendMessage(arg0 *sqs.SendMessageInput) (*sqs.SendMessageOu
 	return ret0, ret1
 }
 
-// SendMessage indicates an expected call of SendMessage
+// SendMessage indicates an expected call of SendMessage.
 func (mr *MockSQSAPIMockRecorder) SendMessage(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockSQSAPI)(nil).SendMessage), arg0)
 }
 
-// SendMessageBatch mocks base method
+// SendMessageBatch mocks base method.
 func (m *MockSQSAPI) SendMessageBatch(arg0 *sqs.SendMessageBatchInput) (*sqs.SendMessageBatchOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendMessageBatch", arg0)
@@ -891,13 +892,13 @@ func (m *MockSQSAPI) SendMessageBatch(arg0 *sqs.SendMessageBatchInput) (*sqs.Sen
 	return ret0, ret1
 }
 
-// SendMessageBatch indicates an expected call of SendMessageBatch
+// SendMessageBatch indicates an expected call of SendMessageBatch.
 func (mr *MockSQSAPIMockRecorder) SendMessageBatch(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessageBatch", reflect.TypeOf((*MockSQSAPI)(nil).SendMessageBatch), arg0)
 }
 
-// SendMessageBatchRequest mocks base method
+// SendMessageBatchRequest mocks base method.
 func (m *MockSQSAPI) SendMessageBatchRequest(arg0 *sqs.SendMessageBatchInput) (*request.Request, *sqs.SendMessageBatchOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendMessageBatchRequest", arg0)
@@ -906,13 +907,13 @@ func (m *MockSQSAPI) SendMessageBatchRequest(arg0 *sqs.SendMessageBatchInput) (*
 	return ret0, ret1
 }
 
-// SendMessageBatchRequest indicates an expected call of SendMessageBatchRequest
+// SendMessageBatchRequest indicates an expected call of SendMessageBatchRequest.
 func (mr *MockSQSAPIMockRecorder) SendMessageBatchRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessageBatchRequest", reflect.TypeOf((*MockSQSAPI)(nil).SendMessageBatchRequest), arg0)
 }
 
-// SendMessageBatchWithContext mocks base method
+// SendMessageBatchWithContext mocks base method.
 func (m *MockSQSAPI) SendMessageBatchWithContext(arg0 context.Context, arg1 *sqs.SendMessageBatchInput, arg2 ...request.Option) (*sqs.SendMessageBatchOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -925,14 +926,14 @@ func (m *MockSQSAPI) SendMessageBatchWithContext(arg0 context.Context, arg1 *sqs
 	return ret0, ret1
 }
 
-// SendMessageBatchWithContext indicates an expected call of SendMessageBatchWithContext
+// SendMessageBatchWithContext indicates an expected call of SendMessageBatchWithContext.
 func (mr *MockSQSAPIMockRecorder) SendMessageBatchWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessageBatchWithContext", reflect.TypeOf((*MockSQSAPI)(nil).SendMessageBatchWithContext), varargs...)
 }
 
-// SendMessageRequest mocks base method
+// SendMessageRequest mocks base method.
 func (m *MockSQSAPI) SendMessageRequest(arg0 *sqs.SendMessageInput) (*request.Request, *sqs.SendMessageOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendMessageRequest", arg0)
@@ -941,13 +942,13 @@ func (m *MockSQSAPI) SendMessageRequest(arg0 *sqs.SendMessageInput) (*request.Re
 	return ret0, ret1
 }
 
-// SendMessageRequest indicates an expected call of SendMessageRequest
+// SendMessageRequest indicates an expected call of SendMessageRequest.
 func (mr *MockSQSAPIMockRecorder) SendMessageRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessageRequest", reflect.TypeOf((*MockSQSAPI)(nil).SendMessageRequest), arg0)
 }
 
-// SendMessageWithContext mocks base method
+// SendMessageWithContext mocks base method.
 func (m *MockSQSAPI) SendMessageWithContext(arg0 context.Context, arg1 *sqs.SendMessageInput, arg2 ...request.Option) (*sqs.SendMessageOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -960,14 +961,14 @@ func (m *MockSQSAPI) SendMessageWithContext(arg0 context.Context, arg1 *sqs.Send
 	return ret0, ret1
 }
 
-// SendMessageWithContext indicates an expected call of SendMessageWithContext
+// SendMessageWithContext indicates an expected call of SendMessageWithContext.
 func (mr *MockSQSAPIMockRecorder) SendMessageWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessageWithContext", reflect.TypeOf((*MockSQSAPI)(nil).SendMessageWithContext), varargs...)
 }
 
-// SetQueueAttributes mocks base method
+// SetQueueAttributes mocks base method.
 func (m *MockSQSAPI) SetQueueAttributes(arg0 *sqs.SetQueueAttributesInput) (*sqs.SetQueueAttributesOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetQueueAttributes", arg0)
@@ -976,13 +977,13 @@ func (m *MockSQSAPI) SetQueueAttributes(arg0 *sqs.SetQueueAttributesInput) (*sqs
 	return ret0, ret1
 }
 
-// SetQueueAttributes indicates an expected call of SetQueueAttributes
+// SetQueueAttributes indicates an expected call of SetQueueAttributes.
 func (mr *MockSQSAPIMockRecorder) SetQueueAttributes(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetQueueAttributes", reflect.TypeOf((*MockSQSAPI)(nil).SetQueueAttributes), arg0)
 }
 
-// SetQueueAttributesRequest mocks base method
+// SetQueueAttributesRequest mocks base method.
 func (m *MockSQSAPI) SetQueueAttributesRequest(arg0 *sqs.SetQueueAttributesInput) (*request.Request, *sqs.SetQueueAttributesOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetQueueAttributesRequest", arg0)
@@ -991,13 +992,13 @@ func (m *MockSQSAPI) SetQueueAttributesRequest(arg0 *sqs.SetQueueAttributesInput
 	return ret0, ret1
 }
 
-// SetQueueAttributesRequest indicates an expected call of SetQueueAttributesRequest
+// SetQueueAttributesRequest indicates an expected call of SetQueueAttributesRequest.
 func (mr *MockSQSAPIMockRecorder) SetQueueAttributesRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetQueueAttributesRequest", reflect.TypeOf((*MockSQSAPI)(nil).SetQueueAttributesRequest), arg0)
 }
 
-// SetQueueAttributesWithContext mocks base method
+// SetQueueAttributesWithContext mocks base method.
 func (m *MockSQSAPI) SetQueueAttributesWithContext(arg0 context.Context, arg1 *sqs.SetQueueAttributesInput, arg2 ...request.Option) (*sqs.SetQueueAttributesOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -1010,14 +1011,14 @@ func (m *MockSQSAPI) SetQueueAttributesWithContext(arg0 context.Context, arg1 *s
 	return ret0, ret1
 }
 
-// SetQueueAttributesWithContext indicates an expected call of SetQueueAttributesWithContext
+// SetQueueAttributesWithContext indicates an expected call of SetQueueAttributesWithContext.
 func (mr *MockSQSAPIMockRecorder) SetQueueAttributesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetQueueAttributesWithContext", reflect.TypeOf((*MockSQSAPI)(nil).SetQueueAttributesWithContext), varargs...)
 }
 
-// TagQueue mocks base method
+// TagQueue mocks base method.
 func (m *MockSQSAPI) TagQueue(arg0 *sqs.TagQueueInput) (*sqs.TagQueueOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "TagQueue", arg0)
@@ -1026,13 +1027,13 @@ func (m *MockSQSAPI) TagQueue(arg0 *sqs.TagQueueInput) (*sqs.TagQueueOutput, err
 	return ret0, ret1
 }
 
-// TagQueue indicates an expected call of TagQueue
+// TagQueue indicates an expected call of TagQueue.
 func (mr *MockSQSAPIMockRecorder) TagQueue(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagQueue", reflect.TypeOf((*MockSQSAPI)(nil).TagQueue), arg0)
 }
 
-// TagQueueRequest mocks base method
+// TagQueueRequest mocks base method.
 func (m *MockSQSAPI) TagQueueRequest(arg0 *sqs.TagQueueInput) (*request.Request, *sqs.TagQueueOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "TagQueueRequest", arg0)
@@ -1041,13 +1042,13 @@ func (m *MockSQSAPI) TagQueueRequest(arg0 *sqs.TagQueueInput) (*request.Request,
 	return ret0, ret1
 }
 
-// TagQueueRequest indicates an expected call of TagQueueRequest
+// TagQueueRequest indicates an expected call of TagQueueRequest.
 func (mr *MockSQSAPIMockRecorder) TagQueueRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagQueueRequest", reflect.TypeOf((*MockSQSAPI)(nil).TagQueueRequest), arg0)
 }
 
-// TagQueueWithContext mocks base method
+// TagQueueWithContext mocks base method.
 func (m *MockSQSAPI) TagQueueWithContext(arg0 context.Context, arg1 *sqs.TagQueueInput, arg2 ...request.Option) (*sqs.TagQueueOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -1060,14 +1061,14 @@ func (m *MockSQSAPI) TagQueueWithContext(arg0 context.Context, arg1 *sqs.TagQueu
 	return ret0, ret1
 }
 
-// TagQueueWithContext indicates an expected call of TagQueueWithContext
+// TagQueueWithContext indicates an expected call of TagQueueWithContext.
 func (mr *MockSQSAPIMockRecorder) TagQueueWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagQueueWithContext", reflect.TypeOf((*MockSQSAPI)(nil).TagQueueWithContext), varargs...)
 }
 
-// UntagQueue mocks base method
+// UntagQueue mocks base method.
 func (m *MockSQSAPI) UntagQueue(arg0 *sqs.UntagQueueInput) (*sqs.UntagQueueOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UntagQueue", arg0)
@@ -1076,13 +1077,13 @@ func (m *MockSQSAPI) UntagQueue(arg0 *sqs.UntagQueueInput) (*sqs.UntagQueueOutpu
 	return ret0, ret1
 }
 
-// UntagQueue indicates an expected call of UntagQueue
+// UntagQueue indicates an expected call of UntagQueue.
 func (mr *MockSQSAPIMockRecorder) UntagQueue(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UntagQueue", reflect.TypeOf((*MockSQSAPI)(nil).UntagQueue), arg0)
 }
 
-// UntagQueueRequest mocks base method
+// UntagQueueRequest mocks base method.
 func (m *MockSQSAPI) UntagQueueRequest(arg0 *sqs.UntagQueueInput) (*request.Request, *sqs.UntagQueueOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UntagQueueRequest", arg0)
@@ -1091,13 +1092,13 @@ func (m *MockSQSAPI) UntagQueueRequest(arg0 *sqs.UntagQueueInput) (*request.Requ
 	return ret0, ret1
 }
 
-// UntagQueueRequest indicates an expected call of UntagQueueRequest
+// UntagQueueRequest indicates an expected call of UntagQueueRequest.
 func (mr *MockSQSAPIMockRecorder) UntagQueueRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UntagQueueRequest", reflect.TypeOf((*MockSQSAPI)(nil).UntagQueueRequest), arg0)
 }
 
-// UntagQueueWithContext mocks base method
+// UntagQueueWithContext mocks base method.
 func (m *MockSQSAPI) UntagQueueWithContext(arg0 context.Context, arg1 *sqs.UntagQueueInput, arg2 ...request.Option) (*sqs.UntagQueueOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -1110,7 +1111,7 @@ func (m *MockSQSAPI) UntagQueueWithContext(arg0 context.Context, arg1 *sqs.Untag
 	return ret0, ret1
 }
 
-// UntagQueueWithContext indicates an expected call of UntagQueueWithContext
+// UntagQueueWithContext indicates an expected call of UntagQueueWithContext.
 func (mr *MockSQSAPIMockRecorder) UntagQueueWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)

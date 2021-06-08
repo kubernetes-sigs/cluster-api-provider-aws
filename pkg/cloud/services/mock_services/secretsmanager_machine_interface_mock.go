@@ -21,35 +21,36 @@ limitations under the License.
 package mock_services
 
 import (
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 	scope "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 
-// MockSecretInterface is a mock of SecretInterface interface
+// MockSecretInterface is a mock of SecretInterface interface.
 type MockSecretInterface struct {
 	ctrl     *gomock.Controller
 	recorder *MockSecretInterfaceMockRecorder
 }
 
-// MockSecretInterfaceMockRecorder is the mock recorder for MockSecretInterface
+// MockSecretInterfaceMockRecorder is the mock recorder for MockSecretInterface.
 type MockSecretInterfaceMockRecorder struct {
 	mock *MockSecretInterface
 }
 
-// NewMockSecretInterface creates a new mock instance
+// NewMockSecretInterface creates a new mock instance.
 func NewMockSecretInterface(ctrl *gomock.Controller) *MockSecretInterface {
 	mock := &MockSecretInterface{ctrl: ctrl}
 	mock.recorder = &MockSecretInterfaceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockSecretInterface) EXPECT() *MockSecretInterfaceMockRecorder {
 	return m.recorder
 }
 
-// Create mocks base method
+// Create mocks base method.
 func (m *MockSecretInterface) Create(arg0 *scope.MachineScope, arg1 []byte) (string, int32, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", arg0, arg1)
@@ -59,13 +60,13 @@ func (m *MockSecretInterface) Create(arg0 *scope.MachineScope, arg1 []byte) (str
 	return ret0, ret1, ret2
 }
 
-// Create indicates an expected call of Create
+// Create indicates an expected call of Create.
 func (mr *MockSecretInterfaceMockRecorder) Create(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockSecretInterface)(nil).Create), arg0, arg1)
 }
 
-// Delete mocks base method
+// Delete mocks base method.
 func (m *MockSecretInterface) Delete(arg0 *scope.MachineScope) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", arg0)
@@ -73,13 +74,13 @@ func (m *MockSecretInterface) Delete(arg0 *scope.MachineScope) error {
 	return ret0
 }
 
-// Delete indicates an expected call of Delete
+// Delete indicates an expected call of Delete.
 func (mr *MockSecretInterfaceMockRecorder) Delete(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockSecretInterface)(nil).Delete), arg0)
 }
 
-// UserData mocks base method
+// UserData mocks base method.
 func (m *MockSecretInterface) UserData(arg0 string, arg1 int32, arg2 string, arg3 []scope.ServiceEndpoint) ([]byte, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UserData", arg0, arg1, arg2, arg3)
@@ -88,7 +89,7 @@ func (m *MockSecretInterface) UserData(arg0 string, arg1 int32, arg2 string, arg
 	return ret0, ret1
 }
 
-// UserData indicates an expected call of UserData
+// UserData indicates an expected call of UserData.
 func (mr *MockSecretInterfaceMockRecorder) UserData(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UserData", reflect.TypeOf((*MockSecretInterface)(nil).UserData), arg0, arg1, arg2, arg3)

@@ -66,7 +66,11 @@ DOCKER_BUILDKIT=1
 # Set --output-base for conversion-gen if we are not within GOPATH
 ifneq ($(abspath $(REPO_ROOT)),$(shell go env GOPATH)/src/sigs.k8s.io/cluster-api-provider-aws)
 	GEN_OUTPUT_BASE := --output-base=$(REPO_ROOT)
+else
+	export GOPATH := $(shell go env GOPATH)
 endif
+
+export ACK_GINKGO_DEPRECATIONS := v1.16.4
 
 # Release variables
 

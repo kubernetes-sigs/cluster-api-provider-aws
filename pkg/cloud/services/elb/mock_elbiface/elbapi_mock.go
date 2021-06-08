@@ -22,36 +22,37 @@ package mock_elbiface
 
 import (
 	context "context"
+	reflect "reflect"
+
 	request "github.com/aws/aws-sdk-go/aws/request"
 	elb "github.com/aws/aws-sdk-go/service/elb"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
 )
 
-// MockELBAPI is a mock of ELBAPI interface
+// MockELBAPI is a mock of ELBAPI interface.
 type MockELBAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockELBAPIMockRecorder
 }
 
-// MockELBAPIMockRecorder is the mock recorder for MockELBAPI
+// MockELBAPIMockRecorder is the mock recorder for MockELBAPI.
 type MockELBAPIMockRecorder struct {
 	mock *MockELBAPI
 }
 
-// NewMockELBAPI creates a new mock instance
+// NewMockELBAPI creates a new mock instance.
 func NewMockELBAPI(ctrl *gomock.Controller) *MockELBAPI {
 	mock := &MockELBAPI{ctrl: ctrl}
 	mock.recorder = &MockELBAPIMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockELBAPI) EXPECT() *MockELBAPIMockRecorder {
 	return m.recorder
 }
 
-// AddTags mocks base method
+// AddTags mocks base method.
 func (m *MockELBAPI) AddTags(arg0 *elb.AddTagsInput) (*elb.AddTagsOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddTags", arg0)
@@ -60,13 +61,13 @@ func (m *MockELBAPI) AddTags(arg0 *elb.AddTagsInput) (*elb.AddTagsOutput, error)
 	return ret0, ret1
 }
 
-// AddTags indicates an expected call of AddTags
+// AddTags indicates an expected call of AddTags.
 func (mr *MockELBAPIMockRecorder) AddTags(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddTags", reflect.TypeOf((*MockELBAPI)(nil).AddTags), arg0)
 }
 
-// AddTagsRequest mocks base method
+// AddTagsRequest mocks base method.
 func (m *MockELBAPI) AddTagsRequest(arg0 *elb.AddTagsInput) (*request.Request, *elb.AddTagsOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddTagsRequest", arg0)
@@ -75,13 +76,13 @@ func (m *MockELBAPI) AddTagsRequest(arg0 *elb.AddTagsInput) (*request.Request, *
 	return ret0, ret1
 }
 
-// AddTagsRequest indicates an expected call of AddTagsRequest
+// AddTagsRequest indicates an expected call of AddTagsRequest.
 func (mr *MockELBAPIMockRecorder) AddTagsRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddTagsRequest", reflect.TypeOf((*MockELBAPI)(nil).AddTagsRequest), arg0)
 }
 
-// AddTagsWithContext mocks base method
+// AddTagsWithContext mocks base method.
 func (m *MockELBAPI) AddTagsWithContext(arg0 context.Context, arg1 *elb.AddTagsInput, arg2 ...request.Option) (*elb.AddTagsOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -94,14 +95,14 @@ func (m *MockELBAPI) AddTagsWithContext(arg0 context.Context, arg1 *elb.AddTagsI
 	return ret0, ret1
 }
 
-// AddTagsWithContext indicates an expected call of AddTagsWithContext
+// AddTagsWithContext indicates an expected call of AddTagsWithContext.
 func (mr *MockELBAPIMockRecorder) AddTagsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddTagsWithContext", reflect.TypeOf((*MockELBAPI)(nil).AddTagsWithContext), varargs...)
 }
 
-// ApplySecurityGroupsToLoadBalancer mocks base method
+// ApplySecurityGroupsToLoadBalancer mocks base method.
 func (m *MockELBAPI) ApplySecurityGroupsToLoadBalancer(arg0 *elb.ApplySecurityGroupsToLoadBalancerInput) (*elb.ApplySecurityGroupsToLoadBalancerOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ApplySecurityGroupsToLoadBalancer", arg0)
@@ -110,13 +111,13 @@ func (m *MockELBAPI) ApplySecurityGroupsToLoadBalancer(arg0 *elb.ApplySecurityGr
 	return ret0, ret1
 }
 
-// ApplySecurityGroupsToLoadBalancer indicates an expected call of ApplySecurityGroupsToLoadBalancer
+// ApplySecurityGroupsToLoadBalancer indicates an expected call of ApplySecurityGroupsToLoadBalancer.
 func (mr *MockELBAPIMockRecorder) ApplySecurityGroupsToLoadBalancer(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplySecurityGroupsToLoadBalancer", reflect.TypeOf((*MockELBAPI)(nil).ApplySecurityGroupsToLoadBalancer), arg0)
 }
 
-// ApplySecurityGroupsToLoadBalancerRequest mocks base method
+// ApplySecurityGroupsToLoadBalancerRequest mocks base method.
 func (m *MockELBAPI) ApplySecurityGroupsToLoadBalancerRequest(arg0 *elb.ApplySecurityGroupsToLoadBalancerInput) (*request.Request, *elb.ApplySecurityGroupsToLoadBalancerOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ApplySecurityGroupsToLoadBalancerRequest", arg0)
@@ -125,13 +126,13 @@ func (m *MockELBAPI) ApplySecurityGroupsToLoadBalancerRequest(arg0 *elb.ApplySec
 	return ret0, ret1
 }
 
-// ApplySecurityGroupsToLoadBalancerRequest indicates an expected call of ApplySecurityGroupsToLoadBalancerRequest
+// ApplySecurityGroupsToLoadBalancerRequest indicates an expected call of ApplySecurityGroupsToLoadBalancerRequest.
 func (mr *MockELBAPIMockRecorder) ApplySecurityGroupsToLoadBalancerRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplySecurityGroupsToLoadBalancerRequest", reflect.TypeOf((*MockELBAPI)(nil).ApplySecurityGroupsToLoadBalancerRequest), arg0)
 }
 
-// ApplySecurityGroupsToLoadBalancerWithContext mocks base method
+// ApplySecurityGroupsToLoadBalancerWithContext mocks base method.
 func (m *MockELBAPI) ApplySecurityGroupsToLoadBalancerWithContext(arg0 context.Context, arg1 *elb.ApplySecurityGroupsToLoadBalancerInput, arg2 ...request.Option) (*elb.ApplySecurityGroupsToLoadBalancerOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -144,14 +145,14 @@ func (m *MockELBAPI) ApplySecurityGroupsToLoadBalancerWithContext(arg0 context.C
 	return ret0, ret1
 }
 
-// ApplySecurityGroupsToLoadBalancerWithContext indicates an expected call of ApplySecurityGroupsToLoadBalancerWithContext
+// ApplySecurityGroupsToLoadBalancerWithContext indicates an expected call of ApplySecurityGroupsToLoadBalancerWithContext.
 func (mr *MockELBAPIMockRecorder) ApplySecurityGroupsToLoadBalancerWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplySecurityGroupsToLoadBalancerWithContext", reflect.TypeOf((*MockELBAPI)(nil).ApplySecurityGroupsToLoadBalancerWithContext), varargs...)
 }
 
-// AttachLoadBalancerToSubnets mocks base method
+// AttachLoadBalancerToSubnets mocks base method.
 func (m *MockELBAPI) AttachLoadBalancerToSubnets(arg0 *elb.AttachLoadBalancerToSubnetsInput) (*elb.AttachLoadBalancerToSubnetsOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AttachLoadBalancerToSubnets", arg0)
@@ -160,13 +161,13 @@ func (m *MockELBAPI) AttachLoadBalancerToSubnets(arg0 *elb.AttachLoadBalancerToS
 	return ret0, ret1
 }
 
-// AttachLoadBalancerToSubnets indicates an expected call of AttachLoadBalancerToSubnets
+// AttachLoadBalancerToSubnets indicates an expected call of AttachLoadBalancerToSubnets.
 func (mr *MockELBAPIMockRecorder) AttachLoadBalancerToSubnets(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AttachLoadBalancerToSubnets", reflect.TypeOf((*MockELBAPI)(nil).AttachLoadBalancerToSubnets), arg0)
 }
 
-// AttachLoadBalancerToSubnetsRequest mocks base method
+// AttachLoadBalancerToSubnetsRequest mocks base method.
 func (m *MockELBAPI) AttachLoadBalancerToSubnetsRequest(arg0 *elb.AttachLoadBalancerToSubnetsInput) (*request.Request, *elb.AttachLoadBalancerToSubnetsOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AttachLoadBalancerToSubnetsRequest", arg0)
@@ -175,13 +176,13 @@ func (m *MockELBAPI) AttachLoadBalancerToSubnetsRequest(arg0 *elb.AttachLoadBala
 	return ret0, ret1
 }
 
-// AttachLoadBalancerToSubnetsRequest indicates an expected call of AttachLoadBalancerToSubnetsRequest
+// AttachLoadBalancerToSubnetsRequest indicates an expected call of AttachLoadBalancerToSubnetsRequest.
 func (mr *MockELBAPIMockRecorder) AttachLoadBalancerToSubnetsRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AttachLoadBalancerToSubnetsRequest", reflect.TypeOf((*MockELBAPI)(nil).AttachLoadBalancerToSubnetsRequest), arg0)
 }
 
-// AttachLoadBalancerToSubnetsWithContext mocks base method
+// AttachLoadBalancerToSubnetsWithContext mocks base method.
 func (m *MockELBAPI) AttachLoadBalancerToSubnetsWithContext(arg0 context.Context, arg1 *elb.AttachLoadBalancerToSubnetsInput, arg2 ...request.Option) (*elb.AttachLoadBalancerToSubnetsOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -194,14 +195,14 @@ func (m *MockELBAPI) AttachLoadBalancerToSubnetsWithContext(arg0 context.Context
 	return ret0, ret1
 }
 
-// AttachLoadBalancerToSubnetsWithContext indicates an expected call of AttachLoadBalancerToSubnetsWithContext
+// AttachLoadBalancerToSubnetsWithContext indicates an expected call of AttachLoadBalancerToSubnetsWithContext.
 func (mr *MockELBAPIMockRecorder) AttachLoadBalancerToSubnetsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AttachLoadBalancerToSubnetsWithContext", reflect.TypeOf((*MockELBAPI)(nil).AttachLoadBalancerToSubnetsWithContext), varargs...)
 }
 
-// ConfigureHealthCheck mocks base method
+// ConfigureHealthCheck mocks base method.
 func (m *MockELBAPI) ConfigureHealthCheck(arg0 *elb.ConfigureHealthCheckInput) (*elb.ConfigureHealthCheckOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ConfigureHealthCheck", arg0)
@@ -210,13 +211,13 @@ func (m *MockELBAPI) ConfigureHealthCheck(arg0 *elb.ConfigureHealthCheckInput) (
 	return ret0, ret1
 }
 
-// ConfigureHealthCheck indicates an expected call of ConfigureHealthCheck
+// ConfigureHealthCheck indicates an expected call of ConfigureHealthCheck.
 func (mr *MockELBAPIMockRecorder) ConfigureHealthCheck(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigureHealthCheck", reflect.TypeOf((*MockELBAPI)(nil).ConfigureHealthCheck), arg0)
 }
 
-// ConfigureHealthCheckRequest mocks base method
+// ConfigureHealthCheckRequest mocks base method.
 func (m *MockELBAPI) ConfigureHealthCheckRequest(arg0 *elb.ConfigureHealthCheckInput) (*request.Request, *elb.ConfigureHealthCheckOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ConfigureHealthCheckRequest", arg0)
@@ -225,13 +226,13 @@ func (m *MockELBAPI) ConfigureHealthCheckRequest(arg0 *elb.ConfigureHealthCheckI
 	return ret0, ret1
 }
 
-// ConfigureHealthCheckRequest indicates an expected call of ConfigureHealthCheckRequest
+// ConfigureHealthCheckRequest indicates an expected call of ConfigureHealthCheckRequest.
 func (mr *MockELBAPIMockRecorder) ConfigureHealthCheckRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigureHealthCheckRequest", reflect.TypeOf((*MockELBAPI)(nil).ConfigureHealthCheckRequest), arg0)
 }
 
-// ConfigureHealthCheckWithContext mocks base method
+// ConfigureHealthCheckWithContext mocks base method.
 func (m *MockELBAPI) ConfigureHealthCheckWithContext(arg0 context.Context, arg1 *elb.ConfigureHealthCheckInput, arg2 ...request.Option) (*elb.ConfigureHealthCheckOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -244,14 +245,14 @@ func (m *MockELBAPI) ConfigureHealthCheckWithContext(arg0 context.Context, arg1 
 	return ret0, ret1
 }
 
-// ConfigureHealthCheckWithContext indicates an expected call of ConfigureHealthCheckWithContext
+// ConfigureHealthCheckWithContext indicates an expected call of ConfigureHealthCheckWithContext.
 func (mr *MockELBAPIMockRecorder) ConfigureHealthCheckWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigureHealthCheckWithContext", reflect.TypeOf((*MockELBAPI)(nil).ConfigureHealthCheckWithContext), varargs...)
 }
 
-// CreateAppCookieStickinessPolicy mocks base method
+// CreateAppCookieStickinessPolicy mocks base method.
 func (m *MockELBAPI) CreateAppCookieStickinessPolicy(arg0 *elb.CreateAppCookieStickinessPolicyInput) (*elb.CreateAppCookieStickinessPolicyOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateAppCookieStickinessPolicy", arg0)
@@ -260,13 +261,13 @@ func (m *MockELBAPI) CreateAppCookieStickinessPolicy(arg0 *elb.CreateAppCookieSt
 	return ret0, ret1
 }
 
-// CreateAppCookieStickinessPolicy indicates an expected call of CreateAppCookieStickinessPolicy
+// CreateAppCookieStickinessPolicy indicates an expected call of CreateAppCookieStickinessPolicy.
 func (mr *MockELBAPIMockRecorder) CreateAppCookieStickinessPolicy(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAppCookieStickinessPolicy", reflect.TypeOf((*MockELBAPI)(nil).CreateAppCookieStickinessPolicy), arg0)
 }
 
-// CreateAppCookieStickinessPolicyRequest mocks base method
+// CreateAppCookieStickinessPolicyRequest mocks base method.
 func (m *MockELBAPI) CreateAppCookieStickinessPolicyRequest(arg0 *elb.CreateAppCookieStickinessPolicyInput) (*request.Request, *elb.CreateAppCookieStickinessPolicyOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateAppCookieStickinessPolicyRequest", arg0)
@@ -275,13 +276,13 @@ func (m *MockELBAPI) CreateAppCookieStickinessPolicyRequest(arg0 *elb.CreateAppC
 	return ret0, ret1
 }
 
-// CreateAppCookieStickinessPolicyRequest indicates an expected call of CreateAppCookieStickinessPolicyRequest
+// CreateAppCookieStickinessPolicyRequest indicates an expected call of CreateAppCookieStickinessPolicyRequest.
 func (mr *MockELBAPIMockRecorder) CreateAppCookieStickinessPolicyRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAppCookieStickinessPolicyRequest", reflect.TypeOf((*MockELBAPI)(nil).CreateAppCookieStickinessPolicyRequest), arg0)
 }
 
-// CreateAppCookieStickinessPolicyWithContext mocks base method
+// CreateAppCookieStickinessPolicyWithContext mocks base method.
 func (m *MockELBAPI) CreateAppCookieStickinessPolicyWithContext(arg0 context.Context, arg1 *elb.CreateAppCookieStickinessPolicyInput, arg2 ...request.Option) (*elb.CreateAppCookieStickinessPolicyOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -294,14 +295,14 @@ func (m *MockELBAPI) CreateAppCookieStickinessPolicyWithContext(arg0 context.Con
 	return ret0, ret1
 }
 
-// CreateAppCookieStickinessPolicyWithContext indicates an expected call of CreateAppCookieStickinessPolicyWithContext
+// CreateAppCookieStickinessPolicyWithContext indicates an expected call of CreateAppCookieStickinessPolicyWithContext.
 func (mr *MockELBAPIMockRecorder) CreateAppCookieStickinessPolicyWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAppCookieStickinessPolicyWithContext", reflect.TypeOf((*MockELBAPI)(nil).CreateAppCookieStickinessPolicyWithContext), varargs...)
 }
 
-// CreateLBCookieStickinessPolicy mocks base method
+// CreateLBCookieStickinessPolicy mocks base method.
 func (m *MockELBAPI) CreateLBCookieStickinessPolicy(arg0 *elb.CreateLBCookieStickinessPolicyInput) (*elb.CreateLBCookieStickinessPolicyOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateLBCookieStickinessPolicy", arg0)
@@ -310,13 +311,13 @@ func (m *MockELBAPI) CreateLBCookieStickinessPolicy(arg0 *elb.CreateLBCookieStic
 	return ret0, ret1
 }
 
-// CreateLBCookieStickinessPolicy indicates an expected call of CreateLBCookieStickinessPolicy
+// CreateLBCookieStickinessPolicy indicates an expected call of CreateLBCookieStickinessPolicy.
 func (mr *MockELBAPIMockRecorder) CreateLBCookieStickinessPolicy(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLBCookieStickinessPolicy", reflect.TypeOf((*MockELBAPI)(nil).CreateLBCookieStickinessPolicy), arg0)
 }
 
-// CreateLBCookieStickinessPolicyRequest mocks base method
+// CreateLBCookieStickinessPolicyRequest mocks base method.
 func (m *MockELBAPI) CreateLBCookieStickinessPolicyRequest(arg0 *elb.CreateLBCookieStickinessPolicyInput) (*request.Request, *elb.CreateLBCookieStickinessPolicyOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateLBCookieStickinessPolicyRequest", arg0)
@@ -325,13 +326,13 @@ func (m *MockELBAPI) CreateLBCookieStickinessPolicyRequest(arg0 *elb.CreateLBCoo
 	return ret0, ret1
 }
 
-// CreateLBCookieStickinessPolicyRequest indicates an expected call of CreateLBCookieStickinessPolicyRequest
+// CreateLBCookieStickinessPolicyRequest indicates an expected call of CreateLBCookieStickinessPolicyRequest.
 func (mr *MockELBAPIMockRecorder) CreateLBCookieStickinessPolicyRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLBCookieStickinessPolicyRequest", reflect.TypeOf((*MockELBAPI)(nil).CreateLBCookieStickinessPolicyRequest), arg0)
 }
 
-// CreateLBCookieStickinessPolicyWithContext mocks base method
+// CreateLBCookieStickinessPolicyWithContext mocks base method.
 func (m *MockELBAPI) CreateLBCookieStickinessPolicyWithContext(arg0 context.Context, arg1 *elb.CreateLBCookieStickinessPolicyInput, arg2 ...request.Option) (*elb.CreateLBCookieStickinessPolicyOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -344,14 +345,14 @@ func (m *MockELBAPI) CreateLBCookieStickinessPolicyWithContext(arg0 context.Cont
 	return ret0, ret1
 }
 
-// CreateLBCookieStickinessPolicyWithContext indicates an expected call of CreateLBCookieStickinessPolicyWithContext
+// CreateLBCookieStickinessPolicyWithContext indicates an expected call of CreateLBCookieStickinessPolicyWithContext.
 func (mr *MockELBAPIMockRecorder) CreateLBCookieStickinessPolicyWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLBCookieStickinessPolicyWithContext", reflect.TypeOf((*MockELBAPI)(nil).CreateLBCookieStickinessPolicyWithContext), varargs...)
 }
 
-// CreateLoadBalancer mocks base method
+// CreateLoadBalancer mocks base method.
 func (m *MockELBAPI) CreateLoadBalancer(arg0 *elb.CreateLoadBalancerInput) (*elb.CreateLoadBalancerOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateLoadBalancer", arg0)
@@ -360,13 +361,13 @@ func (m *MockELBAPI) CreateLoadBalancer(arg0 *elb.CreateLoadBalancerInput) (*elb
 	return ret0, ret1
 }
 
-// CreateLoadBalancer indicates an expected call of CreateLoadBalancer
+// CreateLoadBalancer indicates an expected call of CreateLoadBalancer.
 func (mr *MockELBAPIMockRecorder) CreateLoadBalancer(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLoadBalancer", reflect.TypeOf((*MockELBAPI)(nil).CreateLoadBalancer), arg0)
 }
 
-// CreateLoadBalancerListeners mocks base method
+// CreateLoadBalancerListeners mocks base method.
 func (m *MockELBAPI) CreateLoadBalancerListeners(arg0 *elb.CreateLoadBalancerListenersInput) (*elb.CreateLoadBalancerListenersOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateLoadBalancerListeners", arg0)
@@ -375,13 +376,13 @@ func (m *MockELBAPI) CreateLoadBalancerListeners(arg0 *elb.CreateLoadBalancerLis
 	return ret0, ret1
 }
 
-// CreateLoadBalancerListeners indicates an expected call of CreateLoadBalancerListeners
+// CreateLoadBalancerListeners indicates an expected call of CreateLoadBalancerListeners.
 func (mr *MockELBAPIMockRecorder) CreateLoadBalancerListeners(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLoadBalancerListeners", reflect.TypeOf((*MockELBAPI)(nil).CreateLoadBalancerListeners), arg0)
 }
 
-// CreateLoadBalancerListenersRequest mocks base method
+// CreateLoadBalancerListenersRequest mocks base method.
 func (m *MockELBAPI) CreateLoadBalancerListenersRequest(arg0 *elb.CreateLoadBalancerListenersInput) (*request.Request, *elb.CreateLoadBalancerListenersOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateLoadBalancerListenersRequest", arg0)
@@ -390,13 +391,13 @@ func (m *MockELBAPI) CreateLoadBalancerListenersRequest(arg0 *elb.CreateLoadBala
 	return ret0, ret1
 }
 
-// CreateLoadBalancerListenersRequest indicates an expected call of CreateLoadBalancerListenersRequest
+// CreateLoadBalancerListenersRequest indicates an expected call of CreateLoadBalancerListenersRequest.
 func (mr *MockELBAPIMockRecorder) CreateLoadBalancerListenersRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLoadBalancerListenersRequest", reflect.TypeOf((*MockELBAPI)(nil).CreateLoadBalancerListenersRequest), arg0)
 }
 
-// CreateLoadBalancerListenersWithContext mocks base method
+// CreateLoadBalancerListenersWithContext mocks base method.
 func (m *MockELBAPI) CreateLoadBalancerListenersWithContext(arg0 context.Context, arg1 *elb.CreateLoadBalancerListenersInput, arg2 ...request.Option) (*elb.CreateLoadBalancerListenersOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -409,14 +410,14 @@ func (m *MockELBAPI) CreateLoadBalancerListenersWithContext(arg0 context.Context
 	return ret0, ret1
 }
 
-// CreateLoadBalancerListenersWithContext indicates an expected call of CreateLoadBalancerListenersWithContext
+// CreateLoadBalancerListenersWithContext indicates an expected call of CreateLoadBalancerListenersWithContext.
 func (mr *MockELBAPIMockRecorder) CreateLoadBalancerListenersWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLoadBalancerListenersWithContext", reflect.TypeOf((*MockELBAPI)(nil).CreateLoadBalancerListenersWithContext), varargs...)
 }
 
-// CreateLoadBalancerPolicy mocks base method
+// CreateLoadBalancerPolicy mocks base method.
 func (m *MockELBAPI) CreateLoadBalancerPolicy(arg0 *elb.CreateLoadBalancerPolicyInput) (*elb.CreateLoadBalancerPolicyOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateLoadBalancerPolicy", arg0)
@@ -425,13 +426,13 @@ func (m *MockELBAPI) CreateLoadBalancerPolicy(arg0 *elb.CreateLoadBalancerPolicy
 	return ret0, ret1
 }
 
-// CreateLoadBalancerPolicy indicates an expected call of CreateLoadBalancerPolicy
+// CreateLoadBalancerPolicy indicates an expected call of CreateLoadBalancerPolicy.
 func (mr *MockELBAPIMockRecorder) CreateLoadBalancerPolicy(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLoadBalancerPolicy", reflect.TypeOf((*MockELBAPI)(nil).CreateLoadBalancerPolicy), arg0)
 }
 
-// CreateLoadBalancerPolicyRequest mocks base method
+// CreateLoadBalancerPolicyRequest mocks base method.
 func (m *MockELBAPI) CreateLoadBalancerPolicyRequest(arg0 *elb.CreateLoadBalancerPolicyInput) (*request.Request, *elb.CreateLoadBalancerPolicyOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateLoadBalancerPolicyRequest", arg0)
@@ -440,13 +441,13 @@ func (m *MockELBAPI) CreateLoadBalancerPolicyRequest(arg0 *elb.CreateLoadBalance
 	return ret0, ret1
 }
 
-// CreateLoadBalancerPolicyRequest indicates an expected call of CreateLoadBalancerPolicyRequest
+// CreateLoadBalancerPolicyRequest indicates an expected call of CreateLoadBalancerPolicyRequest.
 func (mr *MockELBAPIMockRecorder) CreateLoadBalancerPolicyRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLoadBalancerPolicyRequest", reflect.TypeOf((*MockELBAPI)(nil).CreateLoadBalancerPolicyRequest), arg0)
 }
 
-// CreateLoadBalancerPolicyWithContext mocks base method
+// CreateLoadBalancerPolicyWithContext mocks base method.
 func (m *MockELBAPI) CreateLoadBalancerPolicyWithContext(arg0 context.Context, arg1 *elb.CreateLoadBalancerPolicyInput, arg2 ...request.Option) (*elb.CreateLoadBalancerPolicyOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -459,14 +460,14 @@ func (m *MockELBAPI) CreateLoadBalancerPolicyWithContext(arg0 context.Context, a
 	return ret0, ret1
 }
 
-// CreateLoadBalancerPolicyWithContext indicates an expected call of CreateLoadBalancerPolicyWithContext
+// CreateLoadBalancerPolicyWithContext indicates an expected call of CreateLoadBalancerPolicyWithContext.
 func (mr *MockELBAPIMockRecorder) CreateLoadBalancerPolicyWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLoadBalancerPolicyWithContext", reflect.TypeOf((*MockELBAPI)(nil).CreateLoadBalancerPolicyWithContext), varargs...)
 }
 
-// CreateLoadBalancerRequest mocks base method
+// CreateLoadBalancerRequest mocks base method.
 func (m *MockELBAPI) CreateLoadBalancerRequest(arg0 *elb.CreateLoadBalancerInput) (*request.Request, *elb.CreateLoadBalancerOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateLoadBalancerRequest", arg0)
@@ -475,13 +476,13 @@ func (m *MockELBAPI) CreateLoadBalancerRequest(arg0 *elb.CreateLoadBalancerInput
 	return ret0, ret1
 }
 
-// CreateLoadBalancerRequest indicates an expected call of CreateLoadBalancerRequest
+// CreateLoadBalancerRequest indicates an expected call of CreateLoadBalancerRequest.
 func (mr *MockELBAPIMockRecorder) CreateLoadBalancerRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLoadBalancerRequest", reflect.TypeOf((*MockELBAPI)(nil).CreateLoadBalancerRequest), arg0)
 }
 
-// CreateLoadBalancerWithContext mocks base method
+// CreateLoadBalancerWithContext mocks base method.
 func (m *MockELBAPI) CreateLoadBalancerWithContext(arg0 context.Context, arg1 *elb.CreateLoadBalancerInput, arg2 ...request.Option) (*elb.CreateLoadBalancerOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -494,14 +495,14 @@ func (m *MockELBAPI) CreateLoadBalancerWithContext(arg0 context.Context, arg1 *e
 	return ret0, ret1
 }
 
-// CreateLoadBalancerWithContext indicates an expected call of CreateLoadBalancerWithContext
+// CreateLoadBalancerWithContext indicates an expected call of CreateLoadBalancerWithContext.
 func (mr *MockELBAPIMockRecorder) CreateLoadBalancerWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLoadBalancerWithContext", reflect.TypeOf((*MockELBAPI)(nil).CreateLoadBalancerWithContext), varargs...)
 }
 
-// DeleteLoadBalancer mocks base method
+// DeleteLoadBalancer mocks base method.
 func (m *MockELBAPI) DeleteLoadBalancer(arg0 *elb.DeleteLoadBalancerInput) (*elb.DeleteLoadBalancerOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteLoadBalancer", arg0)
@@ -510,13 +511,13 @@ func (m *MockELBAPI) DeleteLoadBalancer(arg0 *elb.DeleteLoadBalancerInput) (*elb
 	return ret0, ret1
 }
 
-// DeleteLoadBalancer indicates an expected call of DeleteLoadBalancer
+// DeleteLoadBalancer indicates an expected call of DeleteLoadBalancer.
 func (mr *MockELBAPIMockRecorder) DeleteLoadBalancer(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLoadBalancer", reflect.TypeOf((*MockELBAPI)(nil).DeleteLoadBalancer), arg0)
 }
 
-// DeleteLoadBalancerListeners mocks base method
+// DeleteLoadBalancerListeners mocks base method.
 func (m *MockELBAPI) DeleteLoadBalancerListeners(arg0 *elb.DeleteLoadBalancerListenersInput) (*elb.DeleteLoadBalancerListenersOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteLoadBalancerListeners", arg0)
@@ -525,13 +526,13 @@ func (m *MockELBAPI) DeleteLoadBalancerListeners(arg0 *elb.DeleteLoadBalancerLis
 	return ret0, ret1
 }
 
-// DeleteLoadBalancerListeners indicates an expected call of DeleteLoadBalancerListeners
+// DeleteLoadBalancerListeners indicates an expected call of DeleteLoadBalancerListeners.
 func (mr *MockELBAPIMockRecorder) DeleteLoadBalancerListeners(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLoadBalancerListeners", reflect.TypeOf((*MockELBAPI)(nil).DeleteLoadBalancerListeners), arg0)
 }
 
-// DeleteLoadBalancerListenersRequest mocks base method
+// DeleteLoadBalancerListenersRequest mocks base method.
 func (m *MockELBAPI) DeleteLoadBalancerListenersRequest(arg0 *elb.DeleteLoadBalancerListenersInput) (*request.Request, *elb.DeleteLoadBalancerListenersOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteLoadBalancerListenersRequest", arg0)
@@ -540,13 +541,13 @@ func (m *MockELBAPI) DeleteLoadBalancerListenersRequest(arg0 *elb.DeleteLoadBala
 	return ret0, ret1
 }
 
-// DeleteLoadBalancerListenersRequest indicates an expected call of DeleteLoadBalancerListenersRequest
+// DeleteLoadBalancerListenersRequest indicates an expected call of DeleteLoadBalancerListenersRequest.
 func (mr *MockELBAPIMockRecorder) DeleteLoadBalancerListenersRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLoadBalancerListenersRequest", reflect.TypeOf((*MockELBAPI)(nil).DeleteLoadBalancerListenersRequest), arg0)
 }
 
-// DeleteLoadBalancerListenersWithContext mocks base method
+// DeleteLoadBalancerListenersWithContext mocks base method.
 func (m *MockELBAPI) DeleteLoadBalancerListenersWithContext(arg0 context.Context, arg1 *elb.DeleteLoadBalancerListenersInput, arg2 ...request.Option) (*elb.DeleteLoadBalancerListenersOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -559,14 +560,14 @@ func (m *MockELBAPI) DeleteLoadBalancerListenersWithContext(arg0 context.Context
 	return ret0, ret1
 }
 
-// DeleteLoadBalancerListenersWithContext indicates an expected call of DeleteLoadBalancerListenersWithContext
+// DeleteLoadBalancerListenersWithContext indicates an expected call of DeleteLoadBalancerListenersWithContext.
 func (mr *MockELBAPIMockRecorder) DeleteLoadBalancerListenersWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLoadBalancerListenersWithContext", reflect.TypeOf((*MockELBAPI)(nil).DeleteLoadBalancerListenersWithContext), varargs...)
 }
 
-// DeleteLoadBalancerPolicy mocks base method
+// DeleteLoadBalancerPolicy mocks base method.
 func (m *MockELBAPI) DeleteLoadBalancerPolicy(arg0 *elb.DeleteLoadBalancerPolicyInput) (*elb.DeleteLoadBalancerPolicyOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteLoadBalancerPolicy", arg0)
@@ -575,13 +576,13 @@ func (m *MockELBAPI) DeleteLoadBalancerPolicy(arg0 *elb.DeleteLoadBalancerPolicy
 	return ret0, ret1
 }
 
-// DeleteLoadBalancerPolicy indicates an expected call of DeleteLoadBalancerPolicy
+// DeleteLoadBalancerPolicy indicates an expected call of DeleteLoadBalancerPolicy.
 func (mr *MockELBAPIMockRecorder) DeleteLoadBalancerPolicy(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLoadBalancerPolicy", reflect.TypeOf((*MockELBAPI)(nil).DeleteLoadBalancerPolicy), arg0)
 }
 
-// DeleteLoadBalancerPolicyRequest mocks base method
+// DeleteLoadBalancerPolicyRequest mocks base method.
 func (m *MockELBAPI) DeleteLoadBalancerPolicyRequest(arg0 *elb.DeleteLoadBalancerPolicyInput) (*request.Request, *elb.DeleteLoadBalancerPolicyOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteLoadBalancerPolicyRequest", arg0)
@@ -590,13 +591,13 @@ func (m *MockELBAPI) DeleteLoadBalancerPolicyRequest(arg0 *elb.DeleteLoadBalance
 	return ret0, ret1
 }
 
-// DeleteLoadBalancerPolicyRequest indicates an expected call of DeleteLoadBalancerPolicyRequest
+// DeleteLoadBalancerPolicyRequest indicates an expected call of DeleteLoadBalancerPolicyRequest.
 func (mr *MockELBAPIMockRecorder) DeleteLoadBalancerPolicyRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLoadBalancerPolicyRequest", reflect.TypeOf((*MockELBAPI)(nil).DeleteLoadBalancerPolicyRequest), arg0)
 }
 
-// DeleteLoadBalancerPolicyWithContext mocks base method
+// DeleteLoadBalancerPolicyWithContext mocks base method.
 func (m *MockELBAPI) DeleteLoadBalancerPolicyWithContext(arg0 context.Context, arg1 *elb.DeleteLoadBalancerPolicyInput, arg2 ...request.Option) (*elb.DeleteLoadBalancerPolicyOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -609,14 +610,14 @@ func (m *MockELBAPI) DeleteLoadBalancerPolicyWithContext(arg0 context.Context, a
 	return ret0, ret1
 }
 
-// DeleteLoadBalancerPolicyWithContext indicates an expected call of DeleteLoadBalancerPolicyWithContext
+// DeleteLoadBalancerPolicyWithContext indicates an expected call of DeleteLoadBalancerPolicyWithContext.
 func (mr *MockELBAPIMockRecorder) DeleteLoadBalancerPolicyWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLoadBalancerPolicyWithContext", reflect.TypeOf((*MockELBAPI)(nil).DeleteLoadBalancerPolicyWithContext), varargs...)
 }
 
-// DeleteLoadBalancerRequest mocks base method
+// DeleteLoadBalancerRequest mocks base method.
 func (m *MockELBAPI) DeleteLoadBalancerRequest(arg0 *elb.DeleteLoadBalancerInput) (*request.Request, *elb.DeleteLoadBalancerOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteLoadBalancerRequest", arg0)
@@ -625,13 +626,13 @@ func (m *MockELBAPI) DeleteLoadBalancerRequest(arg0 *elb.DeleteLoadBalancerInput
 	return ret0, ret1
 }
 
-// DeleteLoadBalancerRequest indicates an expected call of DeleteLoadBalancerRequest
+// DeleteLoadBalancerRequest indicates an expected call of DeleteLoadBalancerRequest.
 func (mr *MockELBAPIMockRecorder) DeleteLoadBalancerRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLoadBalancerRequest", reflect.TypeOf((*MockELBAPI)(nil).DeleteLoadBalancerRequest), arg0)
 }
 
-// DeleteLoadBalancerWithContext mocks base method
+// DeleteLoadBalancerWithContext mocks base method.
 func (m *MockELBAPI) DeleteLoadBalancerWithContext(arg0 context.Context, arg1 *elb.DeleteLoadBalancerInput, arg2 ...request.Option) (*elb.DeleteLoadBalancerOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -644,14 +645,14 @@ func (m *MockELBAPI) DeleteLoadBalancerWithContext(arg0 context.Context, arg1 *e
 	return ret0, ret1
 }
 
-// DeleteLoadBalancerWithContext indicates an expected call of DeleteLoadBalancerWithContext
+// DeleteLoadBalancerWithContext indicates an expected call of DeleteLoadBalancerWithContext.
 func (mr *MockELBAPIMockRecorder) DeleteLoadBalancerWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLoadBalancerWithContext", reflect.TypeOf((*MockELBAPI)(nil).DeleteLoadBalancerWithContext), varargs...)
 }
 
-// DeregisterInstancesFromLoadBalancer mocks base method
+// DeregisterInstancesFromLoadBalancer mocks base method.
 func (m *MockELBAPI) DeregisterInstancesFromLoadBalancer(arg0 *elb.DeregisterInstancesFromLoadBalancerInput) (*elb.DeregisterInstancesFromLoadBalancerOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeregisterInstancesFromLoadBalancer", arg0)
@@ -660,13 +661,13 @@ func (m *MockELBAPI) DeregisterInstancesFromLoadBalancer(arg0 *elb.DeregisterIns
 	return ret0, ret1
 }
 
-// DeregisterInstancesFromLoadBalancer indicates an expected call of DeregisterInstancesFromLoadBalancer
+// DeregisterInstancesFromLoadBalancer indicates an expected call of DeregisterInstancesFromLoadBalancer.
 func (mr *MockELBAPIMockRecorder) DeregisterInstancesFromLoadBalancer(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterInstancesFromLoadBalancer", reflect.TypeOf((*MockELBAPI)(nil).DeregisterInstancesFromLoadBalancer), arg0)
 }
 
-// DeregisterInstancesFromLoadBalancerRequest mocks base method
+// DeregisterInstancesFromLoadBalancerRequest mocks base method.
 func (m *MockELBAPI) DeregisterInstancesFromLoadBalancerRequest(arg0 *elb.DeregisterInstancesFromLoadBalancerInput) (*request.Request, *elb.DeregisterInstancesFromLoadBalancerOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeregisterInstancesFromLoadBalancerRequest", arg0)
@@ -675,13 +676,13 @@ func (m *MockELBAPI) DeregisterInstancesFromLoadBalancerRequest(arg0 *elb.Deregi
 	return ret0, ret1
 }
 
-// DeregisterInstancesFromLoadBalancerRequest indicates an expected call of DeregisterInstancesFromLoadBalancerRequest
+// DeregisterInstancesFromLoadBalancerRequest indicates an expected call of DeregisterInstancesFromLoadBalancerRequest.
 func (mr *MockELBAPIMockRecorder) DeregisterInstancesFromLoadBalancerRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterInstancesFromLoadBalancerRequest", reflect.TypeOf((*MockELBAPI)(nil).DeregisterInstancesFromLoadBalancerRequest), arg0)
 }
 
-// DeregisterInstancesFromLoadBalancerWithContext mocks base method
+// DeregisterInstancesFromLoadBalancerWithContext mocks base method.
 func (m *MockELBAPI) DeregisterInstancesFromLoadBalancerWithContext(arg0 context.Context, arg1 *elb.DeregisterInstancesFromLoadBalancerInput, arg2 ...request.Option) (*elb.DeregisterInstancesFromLoadBalancerOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -694,14 +695,14 @@ func (m *MockELBAPI) DeregisterInstancesFromLoadBalancerWithContext(arg0 context
 	return ret0, ret1
 }
 
-// DeregisterInstancesFromLoadBalancerWithContext indicates an expected call of DeregisterInstancesFromLoadBalancerWithContext
+// DeregisterInstancesFromLoadBalancerWithContext indicates an expected call of DeregisterInstancesFromLoadBalancerWithContext.
 func (mr *MockELBAPIMockRecorder) DeregisterInstancesFromLoadBalancerWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterInstancesFromLoadBalancerWithContext", reflect.TypeOf((*MockELBAPI)(nil).DeregisterInstancesFromLoadBalancerWithContext), varargs...)
 }
 
-// DescribeAccountLimits mocks base method
+// DescribeAccountLimits mocks base method.
 func (m *MockELBAPI) DescribeAccountLimits(arg0 *elb.DescribeAccountLimitsInput) (*elb.DescribeAccountLimitsOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeAccountLimits", arg0)
@@ -710,13 +711,13 @@ func (m *MockELBAPI) DescribeAccountLimits(arg0 *elb.DescribeAccountLimitsInput)
 	return ret0, ret1
 }
 
-// DescribeAccountLimits indicates an expected call of DescribeAccountLimits
+// DescribeAccountLimits indicates an expected call of DescribeAccountLimits.
 func (mr *MockELBAPIMockRecorder) DescribeAccountLimits(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAccountLimits", reflect.TypeOf((*MockELBAPI)(nil).DescribeAccountLimits), arg0)
 }
 
-// DescribeAccountLimitsRequest mocks base method
+// DescribeAccountLimitsRequest mocks base method.
 func (m *MockELBAPI) DescribeAccountLimitsRequest(arg0 *elb.DescribeAccountLimitsInput) (*request.Request, *elb.DescribeAccountLimitsOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeAccountLimitsRequest", arg0)
@@ -725,13 +726,13 @@ func (m *MockELBAPI) DescribeAccountLimitsRequest(arg0 *elb.DescribeAccountLimit
 	return ret0, ret1
 }
 
-// DescribeAccountLimitsRequest indicates an expected call of DescribeAccountLimitsRequest
+// DescribeAccountLimitsRequest indicates an expected call of DescribeAccountLimitsRequest.
 func (mr *MockELBAPIMockRecorder) DescribeAccountLimitsRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAccountLimitsRequest", reflect.TypeOf((*MockELBAPI)(nil).DescribeAccountLimitsRequest), arg0)
 }
 
-// DescribeAccountLimitsWithContext mocks base method
+// DescribeAccountLimitsWithContext mocks base method.
 func (m *MockELBAPI) DescribeAccountLimitsWithContext(arg0 context.Context, arg1 *elb.DescribeAccountLimitsInput, arg2 ...request.Option) (*elb.DescribeAccountLimitsOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -744,14 +745,14 @@ func (m *MockELBAPI) DescribeAccountLimitsWithContext(arg0 context.Context, arg1
 	return ret0, ret1
 }
 
-// DescribeAccountLimitsWithContext indicates an expected call of DescribeAccountLimitsWithContext
+// DescribeAccountLimitsWithContext indicates an expected call of DescribeAccountLimitsWithContext.
 func (mr *MockELBAPIMockRecorder) DescribeAccountLimitsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAccountLimitsWithContext", reflect.TypeOf((*MockELBAPI)(nil).DescribeAccountLimitsWithContext), varargs...)
 }
 
-// DescribeInstanceHealth mocks base method
+// DescribeInstanceHealth mocks base method.
 func (m *MockELBAPI) DescribeInstanceHealth(arg0 *elb.DescribeInstanceHealthInput) (*elb.DescribeInstanceHealthOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeInstanceHealth", arg0)
@@ -760,13 +761,13 @@ func (m *MockELBAPI) DescribeInstanceHealth(arg0 *elb.DescribeInstanceHealthInpu
 	return ret0, ret1
 }
 
-// DescribeInstanceHealth indicates an expected call of DescribeInstanceHealth
+// DescribeInstanceHealth indicates an expected call of DescribeInstanceHealth.
 func (mr *MockELBAPIMockRecorder) DescribeInstanceHealth(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeInstanceHealth", reflect.TypeOf((*MockELBAPI)(nil).DescribeInstanceHealth), arg0)
 }
 
-// DescribeInstanceHealthRequest mocks base method
+// DescribeInstanceHealthRequest mocks base method.
 func (m *MockELBAPI) DescribeInstanceHealthRequest(arg0 *elb.DescribeInstanceHealthInput) (*request.Request, *elb.DescribeInstanceHealthOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeInstanceHealthRequest", arg0)
@@ -775,13 +776,13 @@ func (m *MockELBAPI) DescribeInstanceHealthRequest(arg0 *elb.DescribeInstanceHea
 	return ret0, ret1
 }
 
-// DescribeInstanceHealthRequest indicates an expected call of DescribeInstanceHealthRequest
+// DescribeInstanceHealthRequest indicates an expected call of DescribeInstanceHealthRequest.
 func (mr *MockELBAPIMockRecorder) DescribeInstanceHealthRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeInstanceHealthRequest", reflect.TypeOf((*MockELBAPI)(nil).DescribeInstanceHealthRequest), arg0)
 }
 
-// DescribeInstanceHealthWithContext mocks base method
+// DescribeInstanceHealthWithContext mocks base method.
 func (m *MockELBAPI) DescribeInstanceHealthWithContext(arg0 context.Context, arg1 *elb.DescribeInstanceHealthInput, arg2 ...request.Option) (*elb.DescribeInstanceHealthOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -794,14 +795,14 @@ func (m *MockELBAPI) DescribeInstanceHealthWithContext(arg0 context.Context, arg
 	return ret0, ret1
 }
 
-// DescribeInstanceHealthWithContext indicates an expected call of DescribeInstanceHealthWithContext
+// DescribeInstanceHealthWithContext indicates an expected call of DescribeInstanceHealthWithContext.
 func (mr *MockELBAPIMockRecorder) DescribeInstanceHealthWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeInstanceHealthWithContext", reflect.TypeOf((*MockELBAPI)(nil).DescribeInstanceHealthWithContext), varargs...)
 }
 
-// DescribeLoadBalancerAttributes mocks base method
+// DescribeLoadBalancerAttributes mocks base method.
 func (m *MockELBAPI) DescribeLoadBalancerAttributes(arg0 *elb.DescribeLoadBalancerAttributesInput) (*elb.DescribeLoadBalancerAttributesOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeLoadBalancerAttributes", arg0)
@@ -810,13 +811,13 @@ func (m *MockELBAPI) DescribeLoadBalancerAttributes(arg0 *elb.DescribeLoadBalanc
 	return ret0, ret1
 }
 
-// DescribeLoadBalancerAttributes indicates an expected call of DescribeLoadBalancerAttributes
+// DescribeLoadBalancerAttributes indicates an expected call of DescribeLoadBalancerAttributes.
 func (mr *MockELBAPIMockRecorder) DescribeLoadBalancerAttributes(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancerAttributes", reflect.TypeOf((*MockELBAPI)(nil).DescribeLoadBalancerAttributes), arg0)
 }
 
-// DescribeLoadBalancerAttributesRequest mocks base method
+// DescribeLoadBalancerAttributesRequest mocks base method.
 func (m *MockELBAPI) DescribeLoadBalancerAttributesRequest(arg0 *elb.DescribeLoadBalancerAttributesInput) (*request.Request, *elb.DescribeLoadBalancerAttributesOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeLoadBalancerAttributesRequest", arg0)
@@ -825,13 +826,13 @@ func (m *MockELBAPI) DescribeLoadBalancerAttributesRequest(arg0 *elb.DescribeLoa
 	return ret0, ret1
 }
 
-// DescribeLoadBalancerAttributesRequest indicates an expected call of DescribeLoadBalancerAttributesRequest
+// DescribeLoadBalancerAttributesRequest indicates an expected call of DescribeLoadBalancerAttributesRequest.
 func (mr *MockELBAPIMockRecorder) DescribeLoadBalancerAttributesRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancerAttributesRequest", reflect.TypeOf((*MockELBAPI)(nil).DescribeLoadBalancerAttributesRequest), arg0)
 }
 
-// DescribeLoadBalancerAttributesWithContext mocks base method
+// DescribeLoadBalancerAttributesWithContext mocks base method.
 func (m *MockELBAPI) DescribeLoadBalancerAttributesWithContext(arg0 context.Context, arg1 *elb.DescribeLoadBalancerAttributesInput, arg2 ...request.Option) (*elb.DescribeLoadBalancerAttributesOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -844,14 +845,14 @@ func (m *MockELBAPI) DescribeLoadBalancerAttributesWithContext(arg0 context.Cont
 	return ret0, ret1
 }
 
-// DescribeLoadBalancerAttributesWithContext indicates an expected call of DescribeLoadBalancerAttributesWithContext
+// DescribeLoadBalancerAttributesWithContext indicates an expected call of DescribeLoadBalancerAttributesWithContext.
 func (mr *MockELBAPIMockRecorder) DescribeLoadBalancerAttributesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancerAttributesWithContext", reflect.TypeOf((*MockELBAPI)(nil).DescribeLoadBalancerAttributesWithContext), varargs...)
 }
 
-// DescribeLoadBalancerPolicies mocks base method
+// DescribeLoadBalancerPolicies mocks base method.
 func (m *MockELBAPI) DescribeLoadBalancerPolicies(arg0 *elb.DescribeLoadBalancerPoliciesInput) (*elb.DescribeLoadBalancerPoliciesOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeLoadBalancerPolicies", arg0)
@@ -860,13 +861,13 @@ func (m *MockELBAPI) DescribeLoadBalancerPolicies(arg0 *elb.DescribeLoadBalancer
 	return ret0, ret1
 }
 
-// DescribeLoadBalancerPolicies indicates an expected call of DescribeLoadBalancerPolicies
+// DescribeLoadBalancerPolicies indicates an expected call of DescribeLoadBalancerPolicies.
 func (mr *MockELBAPIMockRecorder) DescribeLoadBalancerPolicies(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancerPolicies", reflect.TypeOf((*MockELBAPI)(nil).DescribeLoadBalancerPolicies), arg0)
 }
 
-// DescribeLoadBalancerPoliciesRequest mocks base method
+// DescribeLoadBalancerPoliciesRequest mocks base method.
 func (m *MockELBAPI) DescribeLoadBalancerPoliciesRequest(arg0 *elb.DescribeLoadBalancerPoliciesInput) (*request.Request, *elb.DescribeLoadBalancerPoliciesOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeLoadBalancerPoliciesRequest", arg0)
@@ -875,13 +876,13 @@ func (m *MockELBAPI) DescribeLoadBalancerPoliciesRequest(arg0 *elb.DescribeLoadB
 	return ret0, ret1
 }
 
-// DescribeLoadBalancerPoliciesRequest indicates an expected call of DescribeLoadBalancerPoliciesRequest
+// DescribeLoadBalancerPoliciesRequest indicates an expected call of DescribeLoadBalancerPoliciesRequest.
 func (mr *MockELBAPIMockRecorder) DescribeLoadBalancerPoliciesRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancerPoliciesRequest", reflect.TypeOf((*MockELBAPI)(nil).DescribeLoadBalancerPoliciesRequest), arg0)
 }
 
-// DescribeLoadBalancerPoliciesWithContext mocks base method
+// DescribeLoadBalancerPoliciesWithContext mocks base method.
 func (m *MockELBAPI) DescribeLoadBalancerPoliciesWithContext(arg0 context.Context, arg1 *elb.DescribeLoadBalancerPoliciesInput, arg2 ...request.Option) (*elb.DescribeLoadBalancerPoliciesOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -894,14 +895,14 @@ func (m *MockELBAPI) DescribeLoadBalancerPoliciesWithContext(arg0 context.Contex
 	return ret0, ret1
 }
 
-// DescribeLoadBalancerPoliciesWithContext indicates an expected call of DescribeLoadBalancerPoliciesWithContext
+// DescribeLoadBalancerPoliciesWithContext indicates an expected call of DescribeLoadBalancerPoliciesWithContext.
 func (mr *MockELBAPIMockRecorder) DescribeLoadBalancerPoliciesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancerPoliciesWithContext", reflect.TypeOf((*MockELBAPI)(nil).DescribeLoadBalancerPoliciesWithContext), varargs...)
 }
 
-// DescribeLoadBalancerPolicyTypes mocks base method
+// DescribeLoadBalancerPolicyTypes mocks base method.
 func (m *MockELBAPI) DescribeLoadBalancerPolicyTypes(arg0 *elb.DescribeLoadBalancerPolicyTypesInput) (*elb.DescribeLoadBalancerPolicyTypesOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeLoadBalancerPolicyTypes", arg0)
@@ -910,13 +911,13 @@ func (m *MockELBAPI) DescribeLoadBalancerPolicyTypes(arg0 *elb.DescribeLoadBalan
 	return ret0, ret1
 }
 
-// DescribeLoadBalancerPolicyTypes indicates an expected call of DescribeLoadBalancerPolicyTypes
+// DescribeLoadBalancerPolicyTypes indicates an expected call of DescribeLoadBalancerPolicyTypes.
 func (mr *MockELBAPIMockRecorder) DescribeLoadBalancerPolicyTypes(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancerPolicyTypes", reflect.TypeOf((*MockELBAPI)(nil).DescribeLoadBalancerPolicyTypes), arg0)
 }
 
-// DescribeLoadBalancerPolicyTypesRequest mocks base method
+// DescribeLoadBalancerPolicyTypesRequest mocks base method.
 func (m *MockELBAPI) DescribeLoadBalancerPolicyTypesRequest(arg0 *elb.DescribeLoadBalancerPolicyTypesInput) (*request.Request, *elb.DescribeLoadBalancerPolicyTypesOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeLoadBalancerPolicyTypesRequest", arg0)
@@ -925,13 +926,13 @@ func (m *MockELBAPI) DescribeLoadBalancerPolicyTypesRequest(arg0 *elb.DescribeLo
 	return ret0, ret1
 }
 
-// DescribeLoadBalancerPolicyTypesRequest indicates an expected call of DescribeLoadBalancerPolicyTypesRequest
+// DescribeLoadBalancerPolicyTypesRequest indicates an expected call of DescribeLoadBalancerPolicyTypesRequest.
 func (mr *MockELBAPIMockRecorder) DescribeLoadBalancerPolicyTypesRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancerPolicyTypesRequest", reflect.TypeOf((*MockELBAPI)(nil).DescribeLoadBalancerPolicyTypesRequest), arg0)
 }
 
-// DescribeLoadBalancerPolicyTypesWithContext mocks base method
+// DescribeLoadBalancerPolicyTypesWithContext mocks base method.
 func (m *MockELBAPI) DescribeLoadBalancerPolicyTypesWithContext(arg0 context.Context, arg1 *elb.DescribeLoadBalancerPolicyTypesInput, arg2 ...request.Option) (*elb.DescribeLoadBalancerPolicyTypesOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -944,14 +945,14 @@ func (m *MockELBAPI) DescribeLoadBalancerPolicyTypesWithContext(arg0 context.Con
 	return ret0, ret1
 }
 
-// DescribeLoadBalancerPolicyTypesWithContext indicates an expected call of DescribeLoadBalancerPolicyTypesWithContext
+// DescribeLoadBalancerPolicyTypesWithContext indicates an expected call of DescribeLoadBalancerPolicyTypesWithContext.
 func (mr *MockELBAPIMockRecorder) DescribeLoadBalancerPolicyTypesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancerPolicyTypesWithContext", reflect.TypeOf((*MockELBAPI)(nil).DescribeLoadBalancerPolicyTypesWithContext), varargs...)
 }
 
-// DescribeLoadBalancers mocks base method
+// DescribeLoadBalancers mocks base method.
 func (m *MockELBAPI) DescribeLoadBalancers(arg0 *elb.DescribeLoadBalancersInput) (*elb.DescribeLoadBalancersOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeLoadBalancers", arg0)
@@ -960,13 +961,13 @@ func (m *MockELBAPI) DescribeLoadBalancers(arg0 *elb.DescribeLoadBalancersInput)
 	return ret0, ret1
 }
 
-// DescribeLoadBalancers indicates an expected call of DescribeLoadBalancers
+// DescribeLoadBalancers indicates an expected call of DescribeLoadBalancers.
 func (mr *MockELBAPIMockRecorder) DescribeLoadBalancers(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancers", reflect.TypeOf((*MockELBAPI)(nil).DescribeLoadBalancers), arg0)
 }
 
-// DescribeLoadBalancersPages mocks base method
+// DescribeLoadBalancersPages mocks base method.
 func (m *MockELBAPI) DescribeLoadBalancersPages(arg0 *elb.DescribeLoadBalancersInput, arg1 func(*elb.DescribeLoadBalancersOutput, bool) bool) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeLoadBalancersPages", arg0, arg1)
@@ -974,13 +975,13 @@ func (m *MockELBAPI) DescribeLoadBalancersPages(arg0 *elb.DescribeLoadBalancersI
 	return ret0
 }
 
-// DescribeLoadBalancersPages indicates an expected call of DescribeLoadBalancersPages
+// DescribeLoadBalancersPages indicates an expected call of DescribeLoadBalancersPages.
 func (mr *MockELBAPIMockRecorder) DescribeLoadBalancersPages(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancersPages", reflect.TypeOf((*MockELBAPI)(nil).DescribeLoadBalancersPages), arg0, arg1)
 }
 
-// DescribeLoadBalancersPagesWithContext mocks base method
+// DescribeLoadBalancersPagesWithContext mocks base method.
 func (m *MockELBAPI) DescribeLoadBalancersPagesWithContext(arg0 context.Context, arg1 *elb.DescribeLoadBalancersInput, arg2 func(*elb.DescribeLoadBalancersOutput, bool) bool, arg3 ...request.Option) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1, arg2}
@@ -992,14 +993,14 @@ func (m *MockELBAPI) DescribeLoadBalancersPagesWithContext(arg0 context.Context,
 	return ret0
 }
 
-// DescribeLoadBalancersPagesWithContext indicates an expected call of DescribeLoadBalancersPagesWithContext
+// DescribeLoadBalancersPagesWithContext indicates an expected call of DescribeLoadBalancersPagesWithContext.
 func (mr *MockELBAPIMockRecorder) DescribeLoadBalancersPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancersPagesWithContext", reflect.TypeOf((*MockELBAPI)(nil).DescribeLoadBalancersPagesWithContext), varargs...)
 }
 
-// DescribeLoadBalancersRequest mocks base method
+// DescribeLoadBalancersRequest mocks base method.
 func (m *MockELBAPI) DescribeLoadBalancersRequest(arg0 *elb.DescribeLoadBalancersInput) (*request.Request, *elb.DescribeLoadBalancersOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeLoadBalancersRequest", arg0)
@@ -1008,13 +1009,13 @@ func (m *MockELBAPI) DescribeLoadBalancersRequest(arg0 *elb.DescribeLoadBalancer
 	return ret0, ret1
 }
 
-// DescribeLoadBalancersRequest indicates an expected call of DescribeLoadBalancersRequest
+// DescribeLoadBalancersRequest indicates an expected call of DescribeLoadBalancersRequest.
 func (mr *MockELBAPIMockRecorder) DescribeLoadBalancersRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancersRequest", reflect.TypeOf((*MockELBAPI)(nil).DescribeLoadBalancersRequest), arg0)
 }
 
-// DescribeLoadBalancersWithContext mocks base method
+// DescribeLoadBalancersWithContext mocks base method.
 func (m *MockELBAPI) DescribeLoadBalancersWithContext(arg0 context.Context, arg1 *elb.DescribeLoadBalancersInput, arg2 ...request.Option) (*elb.DescribeLoadBalancersOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -1027,14 +1028,14 @@ func (m *MockELBAPI) DescribeLoadBalancersWithContext(arg0 context.Context, arg1
 	return ret0, ret1
 }
 
-// DescribeLoadBalancersWithContext indicates an expected call of DescribeLoadBalancersWithContext
+// DescribeLoadBalancersWithContext indicates an expected call of DescribeLoadBalancersWithContext.
 func (mr *MockELBAPIMockRecorder) DescribeLoadBalancersWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancersWithContext", reflect.TypeOf((*MockELBAPI)(nil).DescribeLoadBalancersWithContext), varargs...)
 }
 
-// DescribeTags mocks base method
+// DescribeTags mocks base method.
 func (m *MockELBAPI) DescribeTags(arg0 *elb.DescribeTagsInput) (*elb.DescribeTagsOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeTags", arg0)
@@ -1043,13 +1044,13 @@ func (m *MockELBAPI) DescribeTags(arg0 *elb.DescribeTagsInput) (*elb.DescribeTag
 	return ret0, ret1
 }
 
-// DescribeTags indicates an expected call of DescribeTags
+// DescribeTags indicates an expected call of DescribeTags.
 func (mr *MockELBAPIMockRecorder) DescribeTags(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTags", reflect.TypeOf((*MockELBAPI)(nil).DescribeTags), arg0)
 }
 
-// DescribeTagsRequest mocks base method
+// DescribeTagsRequest mocks base method.
 func (m *MockELBAPI) DescribeTagsRequest(arg0 *elb.DescribeTagsInput) (*request.Request, *elb.DescribeTagsOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeTagsRequest", arg0)
@@ -1058,13 +1059,13 @@ func (m *MockELBAPI) DescribeTagsRequest(arg0 *elb.DescribeTagsInput) (*request.
 	return ret0, ret1
 }
 
-// DescribeTagsRequest indicates an expected call of DescribeTagsRequest
+// DescribeTagsRequest indicates an expected call of DescribeTagsRequest.
 func (mr *MockELBAPIMockRecorder) DescribeTagsRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTagsRequest", reflect.TypeOf((*MockELBAPI)(nil).DescribeTagsRequest), arg0)
 }
 
-// DescribeTagsWithContext mocks base method
+// DescribeTagsWithContext mocks base method.
 func (m *MockELBAPI) DescribeTagsWithContext(arg0 context.Context, arg1 *elb.DescribeTagsInput, arg2 ...request.Option) (*elb.DescribeTagsOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -1077,14 +1078,14 @@ func (m *MockELBAPI) DescribeTagsWithContext(arg0 context.Context, arg1 *elb.Des
 	return ret0, ret1
 }
 
-// DescribeTagsWithContext indicates an expected call of DescribeTagsWithContext
+// DescribeTagsWithContext indicates an expected call of DescribeTagsWithContext.
 func (mr *MockELBAPIMockRecorder) DescribeTagsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTagsWithContext", reflect.TypeOf((*MockELBAPI)(nil).DescribeTagsWithContext), varargs...)
 }
 
-// DetachLoadBalancerFromSubnets mocks base method
+// DetachLoadBalancerFromSubnets mocks base method.
 func (m *MockELBAPI) DetachLoadBalancerFromSubnets(arg0 *elb.DetachLoadBalancerFromSubnetsInput) (*elb.DetachLoadBalancerFromSubnetsOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DetachLoadBalancerFromSubnets", arg0)
@@ -1093,13 +1094,13 @@ func (m *MockELBAPI) DetachLoadBalancerFromSubnets(arg0 *elb.DetachLoadBalancerF
 	return ret0, ret1
 }
 
-// DetachLoadBalancerFromSubnets indicates an expected call of DetachLoadBalancerFromSubnets
+// DetachLoadBalancerFromSubnets indicates an expected call of DetachLoadBalancerFromSubnets.
 func (mr *MockELBAPIMockRecorder) DetachLoadBalancerFromSubnets(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetachLoadBalancerFromSubnets", reflect.TypeOf((*MockELBAPI)(nil).DetachLoadBalancerFromSubnets), arg0)
 }
 
-// DetachLoadBalancerFromSubnetsRequest mocks base method
+// DetachLoadBalancerFromSubnetsRequest mocks base method.
 func (m *MockELBAPI) DetachLoadBalancerFromSubnetsRequest(arg0 *elb.DetachLoadBalancerFromSubnetsInput) (*request.Request, *elb.DetachLoadBalancerFromSubnetsOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DetachLoadBalancerFromSubnetsRequest", arg0)
@@ -1108,13 +1109,13 @@ func (m *MockELBAPI) DetachLoadBalancerFromSubnetsRequest(arg0 *elb.DetachLoadBa
 	return ret0, ret1
 }
 
-// DetachLoadBalancerFromSubnetsRequest indicates an expected call of DetachLoadBalancerFromSubnetsRequest
+// DetachLoadBalancerFromSubnetsRequest indicates an expected call of DetachLoadBalancerFromSubnetsRequest.
 func (mr *MockELBAPIMockRecorder) DetachLoadBalancerFromSubnetsRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetachLoadBalancerFromSubnetsRequest", reflect.TypeOf((*MockELBAPI)(nil).DetachLoadBalancerFromSubnetsRequest), arg0)
 }
 
-// DetachLoadBalancerFromSubnetsWithContext mocks base method
+// DetachLoadBalancerFromSubnetsWithContext mocks base method.
 func (m *MockELBAPI) DetachLoadBalancerFromSubnetsWithContext(arg0 context.Context, arg1 *elb.DetachLoadBalancerFromSubnetsInput, arg2 ...request.Option) (*elb.DetachLoadBalancerFromSubnetsOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -1127,14 +1128,14 @@ func (m *MockELBAPI) DetachLoadBalancerFromSubnetsWithContext(arg0 context.Conte
 	return ret0, ret1
 }
 
-// DetachLoadBalancerFromSubnetsWithContext indicates an expected call of DetachLoadBalancerFromSubnetsWithContext
+// DetachLoadBalancerFromSubnetsWithContext indicates an expected call of DetachLoadBalancerFromSubnetsWithContext.
 func (mr *MockELBAPIMockRecorder) DetachLoadBalancerFromSubnetsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetachLoadBalancerFromSubnetsWithContext", reflect.TypeOf((*MockELBAPI)(nil).DetachLoadBalancerFromSubnetsWithContext), varargs...)
 }
 
-// DisableAvailabilityZonesForLoadBalancer mocks base method
+// DisableAvailabilityZonesForLoadBalancer mocks base method.
 func (m *MockELBAPI) DisableAvailabilityZonesForLoadBalancer(arg0 *elb.DisableAvailabilityZonesForLoadBalancerInput) (*elb.DisableAvailabilityZonesForLoadBalancerOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DisableAvailabilityZonesForLoadBalancer", arg0)
@@ -1143,13 +1144,13 @@ func (m *MockELBAPI) DisableAvailabilityZonesForLoadBalancer(arg0 *elb.DisableAv
 	return ret0, ret1
 }
 
-// DisableAvailabilityZonesForLoadBalancer indicates an expected call of DisableAvailabilityZonesForLoadBalancer
+// DisableAvailabilityZonesForLoadBalancer indicates an expected call of DisableAvailabilityZonesForLoadBalancer.
 func (mr *MockELBAPIMockRecorder) DisableAvailabilityZonesForLoadBalancer(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableAvailabilityZonesForLoadBalancer", reflect.TypeOf((*MockELBAPI)(nil).DisableAvailabilityZonesForLoadBalancer), arg0)
 }
 
-// DisableAvailabilityZonesForLoadBalancerRequest mocks base method
+// DisableAvailabilityZonesForLoadBalancerRequest mocks base method.
 func (m *MockELBAPI) DisableAvailabilityZonesForLoadBalancerRequest(arg0 *elb.DisableAvailabilityZonesForLoadBalancerInput) (*request.Request, *elb.DisableAvailabilityZonesForLoadBalancerOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DisableAvailabilityZonesForLoadBalancerRequest", arg0)
@@ -1158,13 +1159,13 @@ func (m *MockELBAPI) DisableAvailabilityZonesForLoadBalancerRequest(arg0 *elb.Di
 	return ret0, ret1
 }
 
-// DisableAvailabilityZonesForLoadBalancerRequest indicates an expected call of DisableAvailabilityZonesForLoadBalancerRequest
+// DisableAvailabilityZonesForLoadBalancerRequest indicates an expected call of DisableAvailabilityZonesForLoadBalancerRequest.
 func (mr *MockELBAPIMockRecorder) DisableAvailabilityZonesForLoadBalancerRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableAvailabilityZonesForLoadBalancerRequest", reflect.TypeOf((*MockELBAPI)(nil).DisableAvailabilityZonesForLoadBalancerRequest), arg0)
 }
 
-// DisableAvailabilityZonesForLoadBalancerWithContext mocks base method
+// DisableAvailabilityZonesForLoadBalancerWithContext mocks base method.
 func (m *MockELBAPI) DisableAvailabilityZonesForLoadBalancerWithContext(arg0 context.Context, arg1 *elb.DisableAvailabilityZonesForLoadBalancerInput, arg2 ...request.Option) (*elb.DisableAvailabilityZonesForLoadBalancerOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -1177,14 +1178,14 @@ func (m *MockELBAPI) DisableAvailabilityZonesForLoadBalancerWithContext(arg0 con
 	return ret0, ret1
 }
 
-// DisableAvailabilityZonesForLoadBalancerWithContext indicates an expected call of DisableAvailabilityZonesForLoadBalancerWithContext
+// DisableAvailabilityZonesForLoadBalancerWithContext indicates an expected call of DisableAvailabilityZonesForLoadBalancerWithContext.
 func (mr *MockELBAPIMockRecorder) DisableAvailabilityZonesForLoadBalancerWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableAvailabilityZonesForLoadBalancerWithContext", reflect.TypeOf((*MockELBAPI)(nil).DisableAvailabilityZonesForLoadBalancerWithContext), varargs...)
 }
 
-// EnableAvailabilityZonesForLoadBalancer mocks base method
+// EnableAvailabilityZonesForLoadBalancer mocks base method.
 func (m *MockELBAPI) EnableAvailabilityZonesForLoadBalancer(arg0 *elb.EnableAvailabilityZonesForLoadBalancerInput) (*elb.EnableAvailabilityZonesForLoadBalancerOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "EnableAvailabilityZonesForLoadBalancer", arg0)
@@ -1193,13 +1194,13 @@ func (m *MockELBAPI) EnableAvailabilityZonesForLoadBalancer(arg0 *elb.EnableAvai
 	return ret0, ret1
 }
 
-// EnableAvailabilityZonesForLoadBalancer indicates an expected call of EnableAvailabilityZonesForLoadBalancer
+// EnableAvailabilityZonesForLoadBalancer indicates an expected call of EnableAvailabilityZonesForLoadBalancer.
 func (mr *MockELBAPIMockRecorder) EnableAvailabilityZonesForLoadBalancer(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableAvailabilityZonesForLoadBalancer", reflect.TypeOf((*MockELBAPI)(nil).EnableAvailabilityZonesForLoadBalancer), arg0)
 }
 
-// EnableAvailabilityZonesForLoadBalancerRequest mocks base method
+// EnableAvailabilityZonesForLoadBalancerRequest mocks base method.
 func (m *MockELBAPI) EnableAvailabilityZonesForLoadBalancerRequest(arg0 *elb.EnableAvailabilityZonesForLoadBalancerInput) (*request.Request, *elb.EnableAvailabilityZonesForLoadBalancerOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "EnableAvailabilityZonesForLoadBalancerRequest", arg0)
@@ -1208,13 +1209,13 @@ func (m *MockELBAPI) EnableAvailabilityZonesForLoadBalancerRequest(arg0 *elb.Ena
 	return ret0, ret1
 }
 
-// EnableAvailabilityZonesForLoadBalancerRequest indicates an expected call of EnableAvailabilityZonesForLoadBalancerRequest
+// EnableAvailabilityZonesForLoadBalancerRequest indicates an expected call of EnableAvailabilityZonesForLoadBalancerRequest.
 func (mr *MockELBAPIMockRecorder) EnableAvailabilityZonesForLoadBalancerRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableAvailabilityZonesForLoadBalancerRequest", reflect.TypeOf((*MockELBAPI)(nil).EnableAvailabilityZonesForLoadBalancerRequest), arg0)
 }
 
-// EnableAvailabilityZonesForLoadBalancerWithContext mocks base method
+// EnableAvailabilityZonesForLoadBalancerWithContext mocks base method.
 func (m *MockELBAPI) EnableAvailabilityZonesForLoadBalancerWithContext(arg0 context.Context, arg1 *elb.EnableAvailabilityZonesForLoadBalancerInput, arg2 ...request.Option) (*elb.EnableAvailabilityZonesForLoadBalancerOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -1227,14 +1228,14 @@ func (m *MockELBAPI) EnableAvailabilityZonesForLoadBalancerWithContext(arg0 cont
 	return ret0, ret1
 }
 
-// EnableAvailabilityZonesForLoadBalancerWithContext indicates an expected call of EnableAvailabilityZonesForLoadBalancerWithContext
+// EnableAvailabilityZonesForLoadBalancerWithContext indicates an expected call of EnableAvailabilityZonesForLoadBalancerWithContext.
 func (mr *MockELBAPIMockRecorder) EnableAvailabilityZonesForLoadBalancerWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableAvailabilityZonesForLoadBalancerWithContext", reflect.TypeOf((*MockELBAPI)(nil).EnableAvailabilityZonesForLoadBalancerWithContext), varargs...)
 }
 
-// ModifyLoadBalancerAttributes mocks base method
+// ModifyLoadBalancerAttributes mocks base method.
 func (m *MockELBAPI) ModifyLoadBalancerAttributes(arg0 *elb.ModifyLoadBalancerAttributesInput) (*elb.ModifyLoadBalancerAttributesOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ModifyLoadBalancerAttributes", arg0)
@@ -1243,13 +1244,13 @@ func (m *MockELBAPI) ModifyLoadBalancerAttributes(arg0 *elb.ModifyLoadBalancerAt
 	return ret0, ret1
 }
 
-// ModifyLoadBalancerAttributes indicates an expected call of ModifyLoadBalancerAttributes
+// ModifyLoadBalancerAttributes indicates an expected call of ModifyLoadBalancerAttributes.
 func (mr *MockELBAPIMockRecorder) ModifyLoadBalancerAttributes(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyLoadBalancerAttributes", reflect.TypeOf((*MockELBAPI)(nil).ModifyLoadBalancerAttributes), arg0)
 }
 
-// ModifyLoadBalancerAttributesRequest mocks base method
+// ModifyLoadBalancerAttributesRequest mocks base method.
 func (m *MockELBAPI) ModifyLoadBalancerAttributesRequest(arg0 *elb.ModifyLoadBalancerAttributesInput) (*request.Request, *elb.ModifyLoadBalancerAttributesOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ModifyLoadBalancerAttributesRequest", arg0)
@@ -1258,13 +1259,13 @@ func (m *MockELBAPI) ModifyLoadBalancerAttributesRequest(arg0 *elb.ModifyLoadBal
 	return ret0, ret1
 }
 
-// ModifyLoadBalancerAttributesRequest indicates an expected call of ModifyLoadBalancerAttributesRequest
+// ModifyLoadBalancerAttributesRequest indicates an expected call of ModifyLoadBalancerAttributesRequest.
 func (mr *MockELBAPIMockRecorder) ModifyLoadBalancerAttributesRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyLoadBalancerAttributesRequest", reflect.TypeOf((*MockELBAPI)(nil).ModifyLoadBalancerAttributesRequest), arg0)
 }
 
-// ModifyLoadBalancerAttributesWithContext mocks base method
+// ModifyLoadBalancerAttributesWithContext mocks base method.
 func (m *MockELBAPI) ModifyLoadBalancerAttributesWithContext(arg0 context.Context, arg1 *elb.ModifyLoadBalancerAttributesInput, arg2 ...request.Option) (*elb.ModifyLoadBalancerAttributesOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -1277,14 +1278,14 @@ func (m *MockELBAPI) ModifyLoadBalancerAttributesWithContext(arg0 context.Contex
 	return ret0, ret1
 }
 
-// ModifyLoadBalancerAttributesWithContext indicates an expected call of ModifyLoadBalancerAttributesWithContext
+// ModifyLoadBalancerAttributesWithContext indicates an expected call of ModifyLoadBalancerAttributesWithContext.
 func (mr *MockELBAPIMockRecorder) ModifyLoadBalancerAttributesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyLoadBalancerAttributesWithContext", reflect.TypeOf((*MockELBAPI)(nil).ModifyLoadBalancerAttributesWithContext), varargs...)
 }
 
-// RegisterInstancesWithLoadBalancer mocks base method
+// RegisterInstancesWithLoadBalancer mocks base method.
 func (m *MockELBAPI) RegisterInstancesWithLoadBalancer(arg0 *elb.RegisterInstancesWithLoadBalancerInput) (*elb.RegisterInstancesWithLoadBalancerOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterInstancesWithLoadBalancer", arg0)
@@ -1293,13 +1294,13 @@ func (m *MockELBAPI) RegisterInstancesWithLoadBalancer(arg0 *elb.RegisterInstanc
 	return ret0, ret1
 }
 
-// RegisterInstancesWithLoadBalancer indicates an expected call of RegisterInstancesWithLoadBalancer
+// RegisterInstancesWithLoadBalancer indicates an expected call of RegisterInstancesWithLoadBalancer.
 func (mr *MockELBAPIMockRecorder) RegisterInstancesWithLoadBalancer(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterInstancesWithLoadBalancer", reflect.TypeOf((*MockELBAPI)(nil).RegisterInstancesWithLoadBalancer), arg0)
 }
 
-// RegisterInstancesWithLoadBalancerRequest mocks base method
+// RegisterInstancesWithLoadBalancerRequest mocks base method.
 func (m *MockELBAPI) RegisterInstancesWithLoadBalancerRequest(arg0 *elb.RegisterInstancesWithLoadBalancerInput) (*request.Request, *elb.RegisterInstancesWithLoadBalancerOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterInstancesWithLoadBalancerRequest", arg0)
@@ -1308,13 +1309,13 @@ func (m *MockELBAPI) RegisterInstancesWithLoadBalancerRequest(arg0 *elb.Register
 	return ret0, ret1
 }
 
-// RegisterInstancesWithLoadBalancerRequest indicates an expected call of RegisterInstancesWithLoadBalancerRequest
+// RegisterInstancesWithLoadBalancerRequest indicates an expected call of RegisterInstancesWithLoadBalancerRequest.
 func (mr *MockELBAPIMockRecorder) RegisterInstancesWithLoadBalancerRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterInstancesWithLoadBalancerRequest", reflect.TypeOf((*MockELBAPI)(nil).RegisterInstancesWithLoadBalancerRequest), arg0)
 }
 
-// RegisterInstancesWithLoadBalancerWithContext mocks base method
+// RegisterInstancesWithLoadBalancerWithContext mocks base method.
 func (m *MockELBAPI) RegisterInstancesWithLoadBalancerWithContext(arg0 context.Context, arg1 *elb.RegisterInstancesWithLoadBalancerInput, arg2 ...request.Option) (*elb.RegisterInstancesWithLoadBalancerOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -1327,14 +1328,14 @@ func (m *MockELBAPI) RegisterInstancesWithLoadBalancerWithContext(arg0 context.C
 	return ret0, ret1
 }
 
-// RegisterInstancesWithLoadBalancerWithContext indicates an expected call of RegisterInstancesWithLoadBalancerWithContext
+// RegisterInstancesWithLoadBalancerWithContext indicates an expected call of RegisterInstancesWithLoadBalancerWithContext.
 func (mr *MockELBAPIMockRecorder) RegisterInstancesWithLoadBalancerWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterInstancesWithLoadBalancerWithContext", reflect.TypeOf((*MockELBAPI)(nil).RegisterInstancesWithLoadBalancerWithContext), varargs...)
 }
 
-// RemoveTags mocks base method
+// RemoveTags mocks base method.
 func (m *MockELBAPI) RemoveTags(arg0 *elb.RemoveTagsInput) (*elb.RemoveTagsOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RemoveTags", arg0)
@@ -1343,13 +1344,13 @@ func (m *MockELBAPI) RemoveTags(arg0 *elb.RemoveTagsInput) (*elb.RemoveTagsOutpu
 	return ret0, ret1
 }
 
-// RemoveTags indicates an expected call of RemoveTags
+// RemoveTags indicates an expected call of RemoveTags.
 func (mr *MockELBAPIMockRecorder) RemoveTags(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveTags", reflect.TypeOf((*MockELBAPI)(nil).RemoveTags), arg0)
 }
 
-// RemoveTagsRequest mocks base method
+// RemoveTagsRequest mocks base method.
 func (m *MockELBAPI) RemoveTagsRequest(arg0 *elb.RemoveTagsInput) (*request.Request, *elb.RemoveTagsOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RemoveTagsRequest", arg0)
@@ -1358,13 +1359,13 @@ func (m *MockELBAPI) RemoveTagsRequest(arg0 *elb.RemoveTagsInput) (*request.Requ
 	return ret0, ret1
 }
 
-// RemoveTagsRequest indicates an expected call of RemoveTagsRequest
+// RemoveTagsRequest indicates an expected call of RemoveTagsRequest.
 func (mr *MockELBAPIMockRecorder) RemoveTagsRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveTagsRequest", reflect.TypeOf((*MockELBAPI)(nil).RemoveTagsRequest), arg0)
 }
 
-// RemoveTagsWithContext mocks base method
+// RemoveTagsWithContext mocks base method.
 func (m *MockELBAPI) RemoveTagsWithContext(arg0 context.Context, arg1 *elb.RemoveTagsInput, arg2 ...request.Option) (*elb.RemoveTagsOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -1377,14 +1378,14 @@ func (m *MockELBAPI) RemoveTagsWithContext(arg0 context.Context, arg1 *elb.Remov
 	return ret0, ret1
 }
 
-// RemoveTagsWithContext indicates an expected call of RemoveTagsWithContext
+// RemoveTagsWithContext indicates an expected call of RemoveTagsWithContext.
 func (mr *MockELBAPIMockRecorder) RemoveTagsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveTagsWithContext", reflect.TypeOf((*MockELBAPI)(nil).RemoveTagsWithContext), varargs...)
 }
 
-// SetLoadBalancerListenerSSLCertificate mocks base method
+// SetLoadBalancerListenerSSLCertificate mocks base method.
 func (m *MockELBAPI) SetLoadBalancerListenerSSLCertificate(arg0 *elb.SetLoadBalancerListenerSSLCertificateInput) (*elb.SetLoadBalancerListenerSSLCertificateOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetLoadBalancerListenerSSLCertificate", arg0)
@@ -1393,13 +1394,13 @@ func (m *MockELBAPI) SetLoadBalancerListenerSSLCertificate(arg0 *elb.SetLoadBala
 	return ret0, ret1
 }
 
-// SetLoadBalancerListenerSSLCertificate indicates an expected call of SetLoadBalancerListenerSSLCertificate
+// SetLoadBalancerListenerSSLCertificate indicates an expected call of SetLoadBalancerListenerSSLCertificate.
 func (mr *MockELBAPIMockRecorder) SetLoadBalancerListenerSSLCertificate(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLoadBalancerListenerSSLCertificate", reflect.TypeOf((*MockELBAPI)(nil).SetLoadBalancerListenerSSLCertificate), arg0)
 }
 
-// SetLoadBalancerListenerSSLCertificateRequest mocks base method
+// SetLoadBalancerListenerSSLCertificateRequest mocks base method.
 func (m *MockELBAPI) SetLoadBalancerListenerSSLCertificateRequest(arg0 *elb.SetLoadBalancerListenerSSLCertificateInput) (*request.Request, *elb.SetLoadBalancerListenerSSLCertificateOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetLoadBalancerListenerSSLCertificateRequest", arg0)
@@ -1408,13 +1409,13 @@ func (m *MockELBAPI) SetLoadBalancerListenerSSLCertificateRequest(arg0 *elb.SetL
 	return ret0, ret1
 }
 
-// SetLoadBalancerListenerSSLCertificateRequest indicates an expected call of SetLoadBalancerListenerSSLCertificateRequest
+// SetLoadBalancerListenerSSLCertificateRequest indicates an expected call of SetLoadBalancerListenerSSLCertificateRequest.
 func (mr *MockELBAPIMockRecorder) SetLoadBalancerListenerSSLCertificateRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLoadBalancerListenerSSLCertificateRequest", reflect.TypeOf((*MockELBAPI)(nil).SetLoadBalancerListenerSSLCertificateRequest), arg0)
 }
 
-// SetLoadBalancerListenerSSLCertificateWithContext mocks base method
+// SetLoadBalancerListenerSSLCertificateWithContext mocks base method.
 func (m *MockELBAPI) SetLoadBalancerListenerSSLCertificateWithContext(arg0 context.Context, arg1 *elb.SetLoadBalancerListenerSSLCertificateInput, arg2 ...request.Option) (*elb.SetLoadBalancerListenerSSLCertificateOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -1427,14 +1428,14 @@ func (m *MockELBAPI) SetLoadBalancerListenerSSLCertificateWithContext(arg0 conte
 	return ret0, ret1
 }
 
-// SetLoadBalancerListenerSSLCertificateWithContext indicates an expected call of SetLoadBalancerListenerSSLCertificateWithContext
+// SetLoadBalancerListenerSSLCertificateWithContext indicates an expected call of SetLoadBalancerListenerSSLCertificateWithContext.
 func (mr *MockELBAPIMockRecorder) SetLoadBalancerListenerSSLCertificateWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLoadBalancerListenerSSLCertificateWithContext", reflect.TypeOf((*MockELBAPI)(nil).SetLoadBalancerListenerSSLCertificateWithContext), varargs...)
 }
 
-// SetLoadBalancerPoliciesForBackendServer mocks base method
+// SetLoadBalancerPoliciesForBackendServer mocks base method.
 func (m *MockELBAPI) SetLoadBalancerPoliciesForBackendServer(arg0 *elb.SetLoadBalancerPoliciesForBackendServerInput) (*elb.SetLoadBalancerPoliciesForBackendServerOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetLoadBalancerPoliciesForBackendServer", arg0)
@@ -1443,13 +1444,13 @@ func (m *MockELBAPI) SetLoadBalancerPoliciesForBackendServer(arg0 *elb.SetLoadBa
 	return ret0, ret1
 }
 
-// SetLoadBalancerPoliciesForBackendServer indicates an expected call of SetLoadBalancerPoliciesForBackendServer
+// SetLoadBalancerPoliciesForBackendServer indicates an expected call of SetLoadBalancerPoliciesForBackendServer.
 func (mr *MockELBAPIMockRecorder) SetLoadBalancerPoliciesForBackendServer(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLoadBalancerPoliciesForBackendServer", reflect.TypeOf((*MockELBAPI)(nil).SetLoadBalancerPoliciesForBackendServer), arg0)
 }
 
-// SetLoadBalancerPoliciesForBackendServerRequest mocks base method
+// SetLoadBalancerPoliciesForBackendServerRequest mocks base method.
 func (m *MockELBAPI) SetLoadBalancerPoliciesForBackendServerRequest(arg0 *elb.SetLoadBalancerPoliciesForBackendServerInput) (*request.Request, *elb.SetLoadBalancerPoliciesForBackendServerOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetLoadBalancerPoliciesForBackendServerRequest", arg0)
@@ -1458,13 +1459,13 @@ func (m *MockELBAPI) SetLoadBalancerPoliciesForBackendServerRequest(arg0 *elb.Se
 	return ret0, ret1
 }
 
-// SetLoadBalancerPoliciesForBackendServerRequest indicates an expected call of SetLoadBalancerPoliciesForBackendServerRequest
+// SetLoadBalancerPoliciesForBackendServerRequest indicates an expected call of SetLoadBalancerPoliciesForBackendServerRequest.
 func (mr *MockELBAPIMockRecorder) SetLoadBalancerPoliciesForBackendServerRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLoadBalancerPoliciesForBackendServerRequest", reflect.TypeOf((*MockELBAPI)(nil).SetLoadBalancerPoliciesForBackendServerRequest), arg0)
 }
 
-// SetLoadBalancerPoliciesForBackendServerWithContext mocks base method
+// SetLoadBalancerPoliciesForBackendServerWithContext mocks base method.
 func (m *MockELBAPI) SetLoadBalancerPoliciesForBackendServerWithContext(arg0 context.Context, arg1 *elb.SetLoadBalancerPoliciesForBackendServerInput, arg2 ...request.Option) (*elb.SetLoadBalancerPoliciesForBackendServerOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -1477,14 +1478,14 @@ func (m *MockELBAPI) SetLoadBalancerPoliciesForBackendServerWithContext(arg0 con
 	return ret0, ret1
 }
 
-// SetLoadBalancerPoliciesForBackendServerWithContext indicates an expected call of SetLoadBalancerPoliciesForBackendServerWithContext
+// SetLoadBalancerPoliciesForBackendServerWithContext indicates an expected call of SetLoadBalancerPoliciesForBackendServerWithContext.
 func (mr *MockELBAPIMockRecorder) SetLoadBalancerPoliciesForBackendServerWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLoadBalancerPoliciesForBackendServerWithContext", reflect.TypeOf((*MockELBAPI)(nil).SetLoadBalancerPoliciesForBackendServerWithContext), varargs...)
 }
 
-// SetLoadBalancerPoliciesOfListener mocks base method
+// SetLoadBalancerPoliciesOfListener mocks base method.
 func (m *MockELBAPI) SetLoadBalancerPoliciesOfListener(arg0 *elb.SetLoadBalancerPoliciesOfListenerInput) (*elb.SetLoadBalancerPoliciesOfListenerOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetLoadBalancerPoliciesOfListener", arg0)
@@ -1493,13 +1494,13 @@ func (m *MockELBAPI) SetLoadBalancerPoliciesOfListener(arg0 *elb.SetLoadBalancer
 	return ret0, ret1
 }
 
-// SetLoadBalancerPoliciesOfListener indicates an expected call of SetLoadBalancerPoliciesOfListener
+// SetLoadBalancerPoliciesOfListener indicates an expected call of SetLoadBalancerPoliciesOfListener.
 func (mr *MockELBAPIMockRecorder) SetLoadBalancerPoliciesOfListener(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLoadBalancerPoliciesOfListener", reflect.TypeOf((*MockELBAPI)(nil).SetLoadBalancerPoliciesOfListener), arg0)
 }
 
-// SetLoadBalancerPoliciesOfListenerRequest mocks base method
+// SetLoadBalancerPoliciesOfListenerRequest mocks base method.
 func (m *MockELBAPI) SetLoadBalancerPoliciesOfListenerRequest(arg0 *elb.SetLoadBalancerPoliciesOfListenerInput) (*request.Request, *elb.SetLoadBalancerPoliciesOfListenerOutput) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetLoadBalancerPoliciesOfListenerRequest", arg0)
@@ -1508,13 +1509,13 @@ func (m *MockELBAPI) SetLoadBalancerPoliciesOfListenerRequest(arg0 *elb.SetLoadB
 	return ret0, ret1
 }
 
-// SetLoadBalancerPoliciesOfListenerRequest indicates an expected call of SetLoadBalancerPoliciesOfListenerRequest
+// SetLoadBalancerPoliciesOfListenerRequest indicates an expected call of SetLoadBalancerPoliciesOfListenerRequest.
 func (mr *MockELBAPIMockRecorder) SetLoadBalancerPoliciesOfListenerRequest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLoadBalancerPoliciesOfListenerRequest", reflect.TypeOf((*MockELBAPI)(nil).SetLoadBalancerPoliciesOfListenerRequest), arg0)
 }
 
-// SetLoadBalancerPoliciesOfListenerWithContext mocks base method
+// SetLoadBalancerPoliciesOfListenerWithContext mocks base method.
 func (m *MockELBAPI) SetLoadBalancerPoliciesOfListenerWithContext(arg0 context.Context, arg1 *elb.SetLoadBalancerPoliciesOfListenerInput, arg2 ...request.Option) (*elb.SetLoadBalancerPoliciesOfListenerOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -1527,14 +1528,14 @@ func (m *MockELBAPI) SetLoadBalancerPoliciesOfListenerWithContext(arg0 context.C
 	return ret0, ret1
 }
 
-// SetLoadBalancerPoliciesOfListenerWithContext indicates an expected call of SetLoadBalancerPoliciesOfListenerWithContext
+// SetLoadBalancerPoliciesOfListenerWithContext indicates an expected call of SetLoadBalancerPoliciesOfListenerWithContext.
 func (mr *MockELBAPIMockRecorder) SetLoadBalancerPoliciesOfListenerWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLoadBalancerPoliciesOfListenerWithContext", reflect.TypeOf((*MockELBAPI)(nil).SetLoadBalancerPoliciesOfListenerWithContext), varargs...)
 }
 
-// WaitUntilAnyInstanceInService mocks base method
+// WaitUntilAnyInstanceInService mocks base method.
 func (m *MockELBAPI) WaitUntilAnyInstanceInService(arg0 *elb.DescribeInstanceHealthInput) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WaitUntilAnyInstanceInService", arg0)
@@ -1542,13 +1543,13 @@ func (m *MockELBAPI) WaitUntilAnyInstanceInService(arg0 *elb.DescribeInstanceHea
 	return ret0
 }
 
-// WaitUntilAnyInstanceInService indicates an expected call of WaitUntilAnyInstanceInService
+// WaitUntilAnyInstanceInService indicates an expected call of WaitUntilAnyInstanceInService.
 func (mr *MockELBAPIMockRecorder) WaitUntilAnyInstanceInService(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilAnyInstanceInService", reflect.TypeOf((*MockELBAPI)(nil).WaitUntilAnyInstanceInService), arg0)
 }
 
-// WaitUntilAnyInstanceInServiceWithContext mocks base method
+// WaitUntilAnyInstanceInServiceWithContext mocks base method.
 func (m *MockELBAPI) WaitUntilAnyInstanceInServiceWithContext(arg0 context.Context, arg1 *elb.DescribeInstanceHealthInput, arg2 ...request.WaiterOption) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -1560,14 +1561,14 @@ func (m *MockELBAPI) WaitUntilAnyInstanceInServiceWithContext(arg0 context.Conte
 	return ret0
 }
 
-// WaitUntilAnyInstanceInServiceWithContext indicates an expected call of WaitUntilAnyInstanceInServiceWithContext
+// WaitUntilAnyInstanceInServiceWithContext indicates an expected call of WaitUntilAnyInstanceInServiceWithContext.
 func (mr *MockELBAPIMockRecorder) WaitUntilAnyInstanceInServiceWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilAnyInstanceInServiceWithContext", reflect.TypeOf((*MockELBAPI)(nil).WaitUntilAnyInstanceInServiceWithContext), varargs...)
 }
 
-// WaitUntilInstanceDeregistered mocks base method
+// WaitUntilInstanceDeregistered mocks base method.
 func (m *MockELBAPI) WaitUntilInstanceDeregistered(arg0 *elb.DescribeInstanceHealthInput) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WaitUntilInstanceDeregistered", arg0)
@@ -1575,13 +1576,13 @@ func (m *MockELBAPI) WaitUntilInstanceDeregistered(arg0 *elb.DescribeInstanceHea
 	return ret0
 }
 
-// WaitUntilInstanceDeregistered indicates an expected call of WaitUntilInstanceDeregistered
+// WaitUntilInstanceDeregistered indicates an expected call of WaitUntilInstanceDeregistered.
 func (mr *MockELBAPIMockRecorder) WaitUntilInstanceDeregistered(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilInstanceDeregistered", reflect.TypeOf((*MockELBAPI)(nil).WaitUntilInstanceDeregistered), arg0)
 }
 
-// WaitUntilInstanceDeregisteredWithContext mocks base method
+// WaitUntilInstanceDeregisteredWithContext mocks base method.
 func (m *MockELBAPI) WaitUntilInstanceDeregisteredWithContext(arg0 context.Context, arg1 *elb.DescribeInstanceHealthInput, arg2 ...request.WaiterOption) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -1593,14 +1594,14 @@ func (m *MockELBAPI) WaitUntilInstanceDeregisteredWithContext(arg0 context.Conte
 	return ret0
 }
 
-// WaitUntilInstanceDeregisteredWithContext indicates an expected call of WaitUntilInstanceDeregisteredWithContext
+// WaitUntilInstanceDeregisteredWithContext indicates an expected call of WaitUntilInstanceDeregisteredWithContext.
 func (mr *MockELBAPIMockRecorder) WaitUntilInstanceDeregisteredWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilInstanceDeregisteredWithContext", reflect.TypeOf((*MockELBAPI)(nil).WaitUntilInstanceDeregisteredWithContext), varargs...)
 }
 
-// WaitUntilInstanceInService mocks base method
+// WaitUntilInstanceInService mocks base method.
 func (m *MockELBAPI) WaitUntilInstanceInService(arg0 *elb.DescribeInstanceHealthInput) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WaitUntilInstanceInService", arg0)
@@ -1608,13 +1609,13 @@ func (m *MockELBAPI) WaitUntilInstanceInService(arg0 *elb.DescribeInstanceHealth
 	return ret0
 }
 
-// WaitUntilInstanceInService indicates an expected call of WaitUntilInstanceInService
+// WaitUntilInstanceInService indicates an expected call of WaitUntilInstanceInService.
 func (mr *MockELBAPIMockRecorder) WaitUntilInstanceInService(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilInstanceInService", reflect.TypeOf((*MockELBAPI)(nil).WaitUntilInstanceInService), arg0)
 }
 
-// WaitUntilInstanceInServiceWithContext mocks base method
+// WaitUntilInstanceInServiceWithContext mocks base method.
 func (m *MockELBAPI) WaitUntilInstanceInServiceWithContext(arg0 context.Context, arg1 *elb.DescribeInstanceHealthInput, arg2 ...request.WaiterOption) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -1626,7 +1627,7 @@ func (m *MockELBAPI) WaitUntilInstanceInServiceWithContext(arg0 context.Context,
 	return ret0
 }
 
-// WaitUntilInstanceInServiceWithContext indicates an expected call of WaitUntilInstanceInServiceWithContext
+// WaitUntilInstanceInServiceWithContext indicates an expected call of WaitUntilInstanceInServiceWithContext.
 func (mr *MockELBAPIMockRecorder) WaitUntilInstanceInServiceWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
