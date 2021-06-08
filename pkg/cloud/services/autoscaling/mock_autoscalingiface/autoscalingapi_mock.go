@@ -2615,6 +2615,56 @@ func (mr *MockAutoScalingAPIMockRecorder) ExitStandbyWithContext(arg0, arg1 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExitStandbyWithContext", reflect.TypeOf((*MockAutoScalingAPI)(nil).ExitStandbyWithContext), varargs...)
 }
 
+// GetPredictiveScalingForecast mocks base method
+func (m *MockAutoScalingAPI) GetPredictiveScalingForecast(arg0 *autoscaling.GetPredictiveScalingForecastInput) (*autoscaling.GetPredictiveScalingForecastOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPredictiveScalingForecast", arg0)
+	ret0, _ := ret[0].(*autoscaling.GetPredictiveScalingForecastOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPredictiveScalingForecast indicates an expected call of GetPredictiveScalingForecast
+func (mr *MockAutoScalingAPIMockRecorder) GetPredictiveScalingForecast(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPredictiveScalingForecast", reflect.TypeOf((*MockAutoScalingAPI)(nil).GetPredictiveScalingForecast), arg0)
+}
+
+// GetPredictiveScalingForecastRequest mocks base method
+func (m *MockAutoScalingAPI) GetPredictiveScalingForecastRequest(arg0 *autoscaling.GetPredictiveScalingForecastInput) (*request.Request, *autoscaling.GetPredictiveScalingForecastOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPredictiveScalingForecastRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*autoscaling.GetPredictiveScalingForecastOutput)
+	return ret0, ret1
+}
+
+// GetPredictiveScalingForecastRequest indicates an expected call of GetPredictiveScalingForecastRequest
+func (mr *MockAutoScalingAPIMockRecorder) GetPredictiveScalingForecastRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPredictiveScalingForecastRequest", reflect.TypeOf((*MockAutoScalingAPI)(nil).GetPredictiveScalingForecastRequest), arg0)
+}
+
+// GetPredictiveScalingForecastWithContext mocks base method
+func (m *MockAutoScalingAPI) GetPredictiveScalingForecastWithContext(arg0 context.Context, arg1 *autoscaling.GetPredictiveScalingForecastInput, arg2 ...request.Option) (*autoscaling.GetPredictiveScalingForecastOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetPredictiveScalingForecastWithContext", varargs...)
+	ret0, _ := ret[0].(*autoscaling.GetPredictiveScalingForecastOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPredictiveScalingForecastWithContext indicates an expected call of GetPredictiveScalingForecastWithContext
+func (mr *MockAutoScalingAPIMockRecorder) GetPredictiveScalingForecastWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPredictiveScalingForecastWithContext", reflect.TypeOf((*MockAutoScalingAPI)(nil).GetPredictiveScalingForecastWithContext), varargs...)
+}
+
 // PutLifecycleHook mocks base method
 func (m *MockAutoScalingAPI) PutLifecycleHook(arg0 *autoscaling.PutLifecycleHookInput) (*autoscaling.PutLifecycleHookOutput, error) {
 	m.ctrl.T.Helper()
