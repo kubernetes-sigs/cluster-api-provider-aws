@@ -21,36 +21,37 @@ limitations under the License.
 package mock_services
 
 import (
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 	v1alpha3 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	scope "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 
-// MockASGInterface is a mock of ASGInterface interface
+// MockASGInterface is a mock of ASGInterface interface.
 type MockASGInterface struct {
 	ctrl     *gomock.Controller
 	recorder *MockASGInterfaceMockRecorder
 }
 
-// MockASGInterfaceMockRecorder is the mock recorder for MockASGInterface
+// MockASGInterfaceMockRecorder is the mock recorder for MockASGInterface.
 type MockASGInterfaceMockRecorder struct {
 	mock *MockASGInterface
 }
 
-// NewMockASGInterface creates a new mock instance
+// NewMockASGInterface creates a new mock instance.
 func NewMockASGInterface(ctrl *gomock.Controller) *MockASGInterface {
 	mock := &MockASGInterface{ctrl: ctrl}
 	mock.recorder = &MockASGInterfaceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockASGInterface) EXPECT() *MockASGInterfaceMockRecorder {
 	return m.recorder
 }
 
-// ASGIfExists mocks base method
+// ASGIfExists mocks base method.
 func (m *MockASGInterface) ASGIfExists(arg0 *string) (*v1alpha3.AutoScalingGroup, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ASGIfExists", arg0)
@@ -59,13 +60,13 @@ func (m *MockASGInterface) ASGIfExists(arg0 *string) (*v1alpha3.AutoScalingGroup
 	return ret0, ret1
 }
 
-// ASGIfExists indicates an expected call of ASGIfExists
+// ASGIfExists indicates an expected call of ASGIfExists.
 func (mr *MockASGInterfaceMockRecorder) ASGIfExists(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ASGIfExists", reflect.TypeOf((*MockASGInterface)(nil).ASGIfExists), arg0)
 }
 
-// CanStartASGInstanceRefresh mocks base method
+// CanStartASGInstanceRefresh mocks base method.
 func (m *MockASGInterface) CanStartASGInstanceRefresh(arg0 *scope.MachinePoolScope) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CanStartASGInstanceRefresh", arg0)
@@ -74,13 +75,13 @@ func (m *MockASGInterface) CanStartASGInstanceRefresh(arg0 *scope.MachinePoolSco
 	return ret0, ret1
 }
 
-// CanStartASGInstanceRefresh indicates an expected call of CanStartASGInstanceRefresh
+// CanStartASGInstanceRefresh indicates an expected call of CanStartASGInstanceRefresh.
 func (mr *MockASGInterfaceMockRecorder) CanStartASGInstanceRefresh(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CanStartASGInstanceRefresh", reflect.TypeOf((*MockASGInterface)(nil).CanStartASGInstanceRefresh), arg0)
 }
 
-// CreateASG mocks base method
+// CreateASG mocks base method.
 func (m *MockASGInterface) CreateASG(arg0 *scope.MachinePoolScope) (*v1alpha3.AutoScalingGroup, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateASG", arg0)
@@ -89,13 +90,13 @@ func (m *MockASGInterface) CreateASG(arg0 *scope.MachinePoolScope) (*v1alpha3.Au
 	return ret0, ret1
 }
 
-// CreateASG indicates an expected call of CreateASG
+// CreateASG indicates an expected call of CreateASG.
 func (mr *MockASGInterfaceMockRecorder) CreateASG(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateASG", reflect.TypeOf((*MockASGInterface)(nil).CreateASG), arg0)
 }
 
-// DeleteASGAndWait mocks base method
+// DeleteASGAndWait mocks base method.
 func (m *MockASGInterface) DeleteASGAndWait(arg0 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteASGAndWait", arg0)
@@ -103,13 +104,13 @@ func (m *MockASGInterface) DeleteASGAndWait(arg0 string) error {
 	return ret0
 }
 
-// DeleteASGAndWait indicates an expected call of DeleteASGAndWait
+// DeleteASGAndWait indicates an expected call of DeleteASGAndWait.
 func (mr *MockASGInterfaceMockRecorder) DeleteASGAndWait(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteASGAndWait", reflect.TypeOf((*MockASGInterface)(nil).DeleteASGAndWait), arg0)
 }
 
-// GetASGByName mocks base method
+// GetASGByName mocks base method.
 func (m *MockASGInterface) GetASGByName(arg0 *scope.MachinePoolScope) (*v1alpha3.AutoScalingGroup, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetASGByName", arg0)
@@ -118,13 +119,13 @@ func (m *MockASGInterface) GetASGByName(arg0 *scope.MachinePoolScope) (*v1alpha3
 	return ret0, ret1
 }
 
-// GetASGByName indicates an expected call of GetASGByName
+// GetASGByName indicates an expected call of GetASGByName.
 func (mr *MockASGInterfaceMockRecorder) GetASGByName(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetASGByName", reflect.TypeOf((*MockASGInterface)(nil).GetASGByName), arg0)
 }
 
-// StartASGInstanceRefresh mocks base method
+// StartASGInstanceRefresh mocks base method.
 func (m *MockASGInterface) StartASGInstanceRefresh(arg0 *scope.MachinePoolScope) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "StartASGInstanceRefresh", arg0)
@@ -132,13 +133,13 @@ func (m *MockASGInterface) StartASGInstanceRefresh(arg0 *scope.MachinePoolScope)
 	return ret0
 }
 
-// StartASGInstanceRefresh indicates an expected call of StartASGInstanceRefresh
+// StartASGInstanceRefresh indicates an expected call of StartASGInstanceRefresh.
 func (mr *MockASGInterfaceMockRecorder) StartASGInstanceRefresh(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartASGInstanceRefresh", reflect.TypeOf((*MockASGInterface)(nil).StartASGInstanceRefresh), arg0)
 }
 
-// UpdateASG mocks base method
+// UpdateASG mocks base method.
 func (m *MockASGInterface) UpdateASG(arg0 *scope.MachinePoolScope) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateASG", arg0)
@@ -146,13 +147,13 @@ func (m *MockASGInterface) UpdateASG(arg0 *scope.MachinePoolScope) error {
 	return ret0
 }
 
-// UpdateASG indicates an expected call of UpdateASG
+// UpdateASG indicates an expected call of UpdateASG.
 func (mr *MockASGInterfaceMockRecorder) UpdateASG(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateASG", reflect.TypeOf((*MockASGInterface)(nil).UpdateASG), arg0)
 }
 
-// UpdateResourceTags mocks base method
+// UpdateResourceTags mocks base method.
 func (m *MockASGInterface) UpdateResourceTags(arg0 *string, arg1, arg2 map[string]string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateResourceTags", arg0, arg1, arg2)
@@ -160,7 +161,7 @@ func (m *MockASGInterface) UpdateResourceTags(arg0 *string, arg1, arg2 map[strin
 	return ret0
 }
 
-// UpdateResourceTags indicates an expected call of UpdateResourceTags
+// UpdateResourceTags indicates an expected call of UpdateResourceTags.
 func (mr *MockASGInterfaceMockRecorder) UpdateResourceTags(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateResourceTags", reflect.TypeOf((*MockASGInterface)(nil).UpdateResourceTags), arg0, arg1, arg2)
