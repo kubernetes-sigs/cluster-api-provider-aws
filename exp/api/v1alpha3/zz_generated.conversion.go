@@ -205,26 +205,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*BlockDeviceMapping)(nil), (*v1alpha4.BlockDeviceMapping)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha3_BlockDeviceMapping_To_v1alpha4_BlockDeviceMapping(a.(*BlockDeviceMapping), b.(*v1alpha4.BlockDeviceMapping), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha4.BlockDeviceMapping)(nil), (*BlockDeviceMapping)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_BlockDeviceMapping_To_v1alpha3_BlockDeviceMapping(a.(*v1alpha4.BlockDeviceMapping), b.(*BlockDeviceMapping), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*EBS)(nil), (*v1alpha4.EBS)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha3_EBS_To_v1alpha4_EBS(a.(*EBS), b.(*v1alpha4.EBS), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha4.EBS)(nil), (*EBS)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_EBS_To_v1alpha3_EBS(a.(*v1alpha4.EBS), b.(*EBS), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*FargateProfileSpec)(nil), (*v1alpha4.FargateProfileSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_FargateProfileSpec_To_v1alpha4_FargateProfileSpec(a.(*FargateProfileSpec), b.(*v1alpha4.FargateProfileSpec), scope)
 	}); err != nil {
@@ -325,6 +305,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha3.Volume)(nil), (*clusterapiproviderawsapiv1alpha4.Volume)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha3_Volume_To_v1alpha4_Volume(a.(*clusterapiproviderawsapiv1alpha3.Volume), b.(*clusterapiproviderawsapiv1alpha4.Volume), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*apiv1alpha4.APIEndpoint)(nil), (*apiv1alpha3.APIEndpoint)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_APIEndpoint_To_v1alpha3_APIEndpoint(a.(*apiv1alpha4.APIEndpoint), b.(*apiv1alpha3.APIEndpoint), scope)
 	}); err != nil {
@@ -337,6 +322,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha4.AWSResourceReference)(nil), (*clusterapiproviderawsapiv1alpha3.AWSResourceReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_AWSResourceReference_To_v1alpha3_AWSResourceReference(a.(*clusterapiproviderawsapiv1alpha4.AWSResourceReference), b.(*clusterapiproviderawsapiv1alpha3.AWSResourceReference), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha4.Volume)(nil), (*clusterapiproviderawsapiv1alpha3.Volume)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_Volume_To_v1alpha3_Volume(a.(*clusterapiproviderawsapiv1alpha4.Volume), b.(*clusterapiproviderawsapiv1alpha3.Volume), scope)
 	}); err != nil {
 		return err
 	}
@@ -407,7 +397,15 @@ func autoConvert_v1alpha3_AWSLaunchTemplate_To_v1alpha4_AWSLaunchTemplate(in *AW
 	out.ImageLookupOrg = in.ImageLookupOrg
 	out.ImageLookupBaseOS = in.ImageLookupBaseOS
 	out.InstanceType = in.InstanceType
-	out.RootVolume = (*clusterapiproviderawsapiv1alpha4.Volume)(unsafe.Pointer(in.RootVolume))
+	if in.RootVolume != nil {
+		in, out := &in.RootVolume, &out.RootVolume
+		*out = new(clusterapiproviderawsapiv1alpha4.Volume)
+		if err := Convert_v1alpha3_Volume_To_v1alpha4_Volume(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.RootVolume = nil
+	}
 	out.SSHKeyName = (*string)(unsafe.Pointer(in.SSHKeyName))
 	out.VersionNumber = (*int64)(unsafe.Pointer(in.VersionNumber))
 	if in.AdditionalSecurityGroups != nil {
@@ -439,7 +437,15 @@ func autoConvert_v1alpha4_AWSLaunchTemplate_To_v1alpha3_AWSLaunchTemplate(in *v1
 	out.ImageLookupOrg = in.ImageLookupOrg
 	out.ImageLookupBaseOS = in.ImageLookupBaseOS
 	out.InstanceType = in.InstanceType
-	out.RootVolume = (*clusterapiproviderawsapiv1alpha3.Volume)(unsafe.Pointer(in.RootVolume))
+	if in.RootVolume != nil {
+		in, out := &in.RootVolume, &out.RootVolume
+		*out = new(clusterapiproviderawsapiv1alpha3.Volume)
+		if err := Convert_v1alpha4_Volume_To_v1alpha3_Volume(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.RootVolume = nil
+	}
 	out.SSHKeyName = (*string)(unsafe.Pointer(in.SSHKeyName))
 	out.VersionNumber = (*int64)(unsafe.Pointer(in.VersionNumber))
 	if in.AdditionalSecurityGroups != nil {
@@ -932,7 +938,17 @@ func autoConvert_v1alpha3_AutoScalingGroup_To_v1alpha4_AutoScalingGroup(in *Auto
 	out.CapacityRebalance = in.CapacityRebalance
 	out.MixedInstancesPolicy = (*v1alpha4.MixedInstancesPolicy)(unsafe.Pointer(in.MixedInstancesPolicy))
 	out.Status = v1alpha4.ASGStatus(in.Status)
-	out.Instances = *(*[]clusterapiproviderawsapiv1alpha4.Instance)(unsafe.Pointer(&in.Instances))
+	if in.Instances != nil {
+		in, out := &in.Instances, &out.Instances
+		*out = make([]clusterapiproviderawsapiv1alpha4.Instance, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha3_Instance_To_v1alpha4_Instance(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Instances = nil
+	}
 	return nil
 }
 
@@ -954,63 +970,23 @@ func autoConvert_v1alpha4_AutoScalingGroup_To_v1alpha3_AutoScalingGroup(in *v1al
 	out.CapacityRebalance = in.CapacityRebalance
 	out.MixedInstancesPolicy = (*MixedInstancesPolicy)(unsafe.Pointer(in.MixedInstancesPolicy))
 	out.Status = ASGStatus(in.Status)
-	out.Instances = *(*[]clusterapiproviderawsapiv1alpha3.Instance)(unsafe.Pointer(&in.Instances))
+	if in.Instances != nil {
+		in, out := &in.Instances, &out.Instances
+		*out = make([]clusterapiproviderawsapiv1alpha3.Instance, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha4_Instance_To_v1alpha3_Instance(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Instances = nil
+	}
 	return nil
 }
 
 // Convert_v1alpha4_AutoScalingGroup_To_v1alpha3_AutoScalingGroup is an autogenerated conversion function.
 func Convert_v1alpha4_AutoScalingGroup_To_v1alpha3_AutoScalingGroup(in *v1alpha4.AutoScalingGroup, out *AutoScalingGroup, s conversion.Scope) error {
 	return autoConvert_v1alpha4_AutoScalingGroup_To_v1alpha3_AutoScalingGroup(in, out, s)
-}
-
-func autoConvert_v1alpha3_BlockDeviceMapping_To_v1alpha4_BlockDeviceMapping(in *BlockDeviceMapping, out *v1alpha4.BlockDeviceMapping, s conversion.Scope) error {
-	out.DeviceName = in.DeviceName
-	if err := Convert_v1alpha3_EBS_To_v1alpha4_EBS(&in.Ebs, &out.Ebs, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1alpha3_BlockDeviceMapping_To_v1alpha4_BlockDeviceMapping is an autogenerated conversion function.
-func Convert_v1alpha3_BlockDeviceMapping_To_v1alpha4_BlockDeviceMapping(in *BlockDeviceMapping, out *v1alpha4.BlockDeviceMapping, s conversion.Scope) error {
-	return autoConvert_v1alpha3_BlockDeviceMapping_To_v1alpha4_BlockDeviceMapping(in, out, s)
-}
-
-func autoConvert_v1alpha4_BlockDeviceMapping_To_v1alpha3_BlockDeviceMapping(in *v1alpha4.BlockDeviceMapping, out *BlockDeviceMapping, s conversion.Scope) error {
-	out.DeviceName = in.DeviceName
-	if err := Convert_v1alpha4_EBS_To_v1alpha3_EBS(&in.Ebs, &out.Ebs, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1alpha4_BlockDeviceMapping_To_v1alpha3_BlockDeviceMapping is an autogenerated conversion function.
-func Convert_v1alpha4_BlockDeviceMapping_To_v1alpha3_BlockDeviceMapping(in *v1alpha4.BlockDeviceMapping, out *BlockDeviceMapping, s conversion.Scope) error {
-	return autoConvert_v1alpha4_BlockDeviceMapping_To_v1alpha3_BlockDeviceMapping(in, out, s)
-}
-
-func autoConvert_v1alpha3_EBS_To_v1alpha4_EBS(in *EBS, out *v1alpha4.EBS, s conversion.Scope) error {
-	out.Encrypted = in.Encrypted
-	out.VolumeSize = in.VolumeSize
-	out.VolumeType = in.VolumeType
-	return nil
-}
-
-// Convert_v1alpha3_EBS_To_v1alpha4_EBS is an autogenerated conversion function.
-func Convert_v1alpha3_EBS_To_v1alpha4_EBS(in *EBS, out *v1alpha4.EBS, s conversion.Scope) error {
-	return autoConvert_v1alpha3_EBS_To_v1alpha4_EBS(in, out, s)
-}
-
-func autoConvert_v1alpha4_EBS_To_v1alpha3_EBS(in *v1alpha4.EBS, out *EBS, s conversion.Scope) error {
-	out.Encrypted = in.Encrypted
-	out.VolumeSize = in.VolumeSize
-	out.VolumeType = in.VolumeType
-	return nil
-}
-
-// Convert_v1alpha4_EBS_To_v1alpha3_EBS is an autogenerated conversion function.
-func Convert_v1alpha4_EBS_To_v1alpha3_EBS(in *v1alpha4.EBS, out *EBS, s conversion.Scope) error {
-	return autoConvert_v1alpha4_EBS_To_v1alpha3_EBS(in, out, s)
 }
 
 func autoConvert_v1alpha3_FargateProfileSpec_To_v1alpha4_FargateProfileSpec(in *FargateProfileSpec, out *v1alpha4.FargateProfileSpec, s conversion.Scope) error {

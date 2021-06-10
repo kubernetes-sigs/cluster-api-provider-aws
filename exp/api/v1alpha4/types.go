@@ -21,38 +21,6 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 )
 
-// EBS can be used to automatically set up EBS volumes when an instance is launched.
-type EBS struct {
-	// Encrypted is whether the volume should be encrypted or not.
-	// +optional
-	Encrypted bool `json:"encrypted,omitempty"`
-
-	// The size of the volume, in GiB.
-	// This can be a number from 1-1,024 for standard, 4-16,384 for io1, 1-16,384
-	// for gp2, and 500-16,384 for st1 and sc1. If you specify a snapshot, the volume
-	// size must be equal to or larger than the snapshot size.
-	// +optional
-	VolumeSize int64 `json:"volumeSize,omitempty"`
-
-	// The volume type
-	// For more information, see Amazon EBS Volume Types (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html)
-	// +kubebuilder:validation:Enum=standard;io1;gp2;st1;sc1;io2
-	// +optional
-	VolumeType string `json:"volumeType,omitempty"`
-}
-
-// BlockDeviceMappings specifies the block devices for the instance.
-// You can specify virtual devices and EBS volumes.
-type BlockDeviceMapping struct {
-	// The device name exposed to the EC2 instance (for example, /dev/sdh or xvdh).
-	// +kubebuilder:validation:Required
-	DeviceName string `json:"deviceName,omitempty"`
-
-	// You can specify either VirtualName or Ebs, but not both.
-	// +optional
-	Ebs EBS `json:"ebs,omitempty"`
-}
-
 // AwsLaunchTemplate defines the desired state of AWSLaunchTemplate
 type AWSLaunchTemplate struct {
 	// The name of the launch template.

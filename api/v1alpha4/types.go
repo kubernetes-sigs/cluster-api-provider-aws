@@ -693,6 +693,11 @@ type Volume struct {
 	// +optional
 	IOPS int64 `json:"iops,omitempty"`
 
+	// The throughput that the volume supports, in MiB/s.
+	//  Not applicable to all types.
+	// +optional
+	Throughput *int64 `json:"throughput,omitempty"`
+
 	// Encrypted is whether the volume should be encrypted or not.
 	// +optional
 	Encrypted bool `json:"encrypted,omitempty"`

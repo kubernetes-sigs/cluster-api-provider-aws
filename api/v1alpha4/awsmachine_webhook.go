@@ -149,6 +149,12 @@ func (r *AWSMachine) validateRootVolume() field.ErrorList {
 		allErrs = append(allErrs, field.Required(field.NewPath("spec.rootVolumeOptions.iops"), "iops required if type is 'io1' or 'io2'"))
 	}
 
+	if r.Spec.RootVolume.Throughput != nil{
+		if r.Spec.RootVolume.Type != "gp3"{
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.RootVolume.Throughput"), "throughput is valid only for type 'gp3'"))
+		}
+	}
+
 	if r.Spec.RootVolume.DeviceName != "" {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.rootVolumeOptions.deviceName"), "root volume shouldn't have device name"))
 	}
@@ -166,6 +172,12 @@ func (r *AWSMachine) validateNonRootVolumes() field.ErrorList {
 	for _, volume := range r.Spec.NonRootVolumes {
 		if (volume.Type == "io1" || volume.Type == "io2") && volume.IOPS == 0 {
 			allErrs = append(allErrs, field.Required(field.NewPath("spec.nonRootVolumes.volumeOptions.iops"), "iops required if type is 'io1' or 'io2'"))
+		}
+
+		if volume.Throughput != nil{
+			if volume.Type != "gp3"{
+				allErrs = append(allErrs, field.Required(field.NewPath("spec.nonRootVolumes.Throughput"), "throughput is valid only for type 'gp3'"))
+			}
 		}
 
 		if volume.DeviceName == "" {
