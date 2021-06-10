@@ -12,6 +12,7 @@ import (
 	"github.com/golang/mock/gomock"
 	configv1 "github.com/openshift/api/config/v1"
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
+	machinecontroller "github.com/openshift/machine-api-operator/pkg/controller/machine"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -496,12 +497,7 @@ func TestCreate(t *testing.T) {
 		}
 		machine.Spec.ProviderSpec = machinev1.ProviderSpec{Value: encodedProviderConfig}
 
-		fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, machine, tc.awsCredentialsSecret, tc.userDataSecret)
-
-		err = fakeClient.Create(context.Background(), &configv1.Infrastructure{ObjectMeta: metav1.ObjectMeta{Name: awsclient.GlobalInfrastuctureName}})
-		if err != nil {
-			t.Fatal(err)
-		}
+		fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, machine, tc.awsCredentialsSecret, tc.userDataSecret, stubInfraObject())
 
 		machineScope, err := newMachineScope(machineScopeParams{
 			client:  fakeClient,
@@ -518,6 +514,11 @@ func TestCreate(t *testing.T) {
 
 		// test create
 		err = reconciler.create()
+
+		if errors.Is(err, &machinecontroller.RequeueAfterError{}) {
+			t.Error("RequeueAfterError should not be returned by reconciler.create()")
+		}
+
 		if tc.expectedError != nil {
 			if err == nil {
 				t.Error("reconciler was expected to return error")
@@ -530,6 +531,226 @@ func TestCreate(t *testing.T) {
 				t.Errorf("reconciler was not expected to return error: %v", err)
 			}
 		}
+	}
+}
+
+func TestExists(t *testing.T) {
+	testCases := []struct {
+		name          string
+		machine       func() *machinev1.Machine
+		expectedError error
+		existsResult  bool
+		awsClient     func(ctrl *gomock.Controller) awsclient.Client
+	}{
+		{
+			name: "Successfully find created instance",
+			machine: func() *machinev1.Machine {
+				machine, err := stubMachine()
+				if err != nil {
+					t.Fatalf("unable to build stub machine: %v", err)
+				}
+
+				return machine
+			},
+			existsResult:  true,
+			expectedError: nil,
+			awsClient: func(ctrl *gomock.Controller) awsclient.Client {
+				mockCtrl := gomock.NewController(t)
+				mockAWSClient := mockaws.NewMockClient(mockCtrl)
+				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(stubDescribeInstancesOutput("test-ami", "test-id", ec2.InstanceStateNameRunning, "1.1.1.1"), nil).AnyTimes()
+				return mockAWSClient
+			},
+		},
+		{
+			name: "Requeue if machine has providerID and addresses are not set",
+			machine: func() *machinev1.Machine {
+				machine, err := stubMachine()
+				if err != nil {
+					t.Fatalf("unable to build stub machine: %v", err)
+				}
+
+				machine.Spec.ProviderID = func() *string {
+					providerID := "test"
+					return &providerID
+				}()
+
+				return machine
+			},
+			existsResult:  false,
+			expectedError: &machinecontroller.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second},
+			awsClient: func(ctrl *gomock.Controller) awsclient.Client {
+				mockCtrl := gomock.NewController(t)
+				mockAWSClient := mockaws.NewMockClient(mockCtrl)
+				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(&ec2.DescribeInstancesOutput{}, nil).AnyTimes()
+				return mockAWSClient
+			},
+		},
+		{
+			name: "Fail to find instance",
+			machine: func() *machinev1.Machine {
+				machine, err := stubMachine()
+				if err != nil {
+					t.Fatalf("unable to build stub machine: %v", err)
+				}
+
+				return machine
+			},
+			existsResult:  false,
+			expectedError: nil,
+			awsClient: func(ctrl *gomock.Controller) awsclient.Client {
+				mockCtrl := gomock.NewController(t)
+				mockAWSClient := mockaws.NewMockClient(mockCtrl)
+				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(&ec2.DescribeInstancesOutput{}, nil).AnyTimes()
+				return mockAWSClient
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+
+			fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, tc.machine(), stubAwsCredentialsSecret(), stubUserDataSecret(), stubInfraObject())
+
+			machineScope, err := newMachineScope(machineScopeParams{
+				client:  fakeClient,
+				machine: tc.machine(),
+				awsClientBuilder: func(client runtimeclient.Client, secretName, namespace, region string, configManagedClient runtimeclient.Client) (awsclient.Client, error) {
+					return tc.awsClient(ctrl), nil
+				},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			reconciler := newReconciler(machineScope)
+
+			exists, err := reconciler.exists()
+
+			if tc.existsResult != exists {
+				t.Errorf("expected reconciler tc.Exists() to return: %v, got %v", tc.existsResult, exists)
+			}
+
+			if tc.expectedError != nil {
+				if err == nil {
+					t.Error("reconciler was expected to return error")
+				}
+
+				if err.Error() != tc.expectedError.Error() {
+					t.Errorf("expected: %v, got %v", tc.expectedError, err)
+				}
+
+			} else {
+				if err != nil {
+					t.Errorf("reconciler was not expected to return error: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestUpdate(t *testing.T) {
+	// TODO: check machine object after calling update()
+	testCases := []struct {
+		name          string
+		machine       func() *machinev1.Machine
+		expectedError error
+		awsClient     func(ctrl *gomock.Controller) awsclient.Client
+	}{
+		{
+			name: "Successfully update the machine",
+			machine: func() *machinev1.Machine {
+				machine, err := stubMachine()
+				if err != nil {
+					t.Fatalf("unable to build stub machine: %v", err)
+				}
+
+				return machine
+			},
+
+			expectedError: nil,
+			awsClient: func(ctrl *gomock.Controller) awsclient.Client {
+				mockCtrl := gomock.NewController(t)
+				mockAWSClient := mockaws.NewMockClient(mockCtrl)
+				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(stubDescribeInstancesOutput("test-ami", "test-id", ec2.InstanceStateNameRunning, "1.1.1.1"), nil).AnyTimes()
+				mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).AnyTimes()
+				mockAWSClient.EXPECT().ELBv2DescribeLoadBalancers(gomock.Any()).Return(stubDescribeLoadBalancersOutput(), nil)
+				mockAWSClient.EXPECT().ELBv2DescribeTargetGroups(gomock.Any()).Return(stubDescribeTargetGroupsOutput(), nil).AnyTimes()
+				mockAWSClient.EXPECT().ELBv2RegisterTargets(gomock.Any()).Return(nil, nil).AnyTimes()
+				mockAWSClient.EXPECT().CreateTags(gomock.Any()).Return(&ec2.CreateTagsOutput{}, nil).AnyTimes()
+				mockAWSClient.EXPECT().DescribeVpcs(gomock.Any()).Return(StubDescribeVPCs()).AnyTimes()
+				mockAWSClient.EXPECT().ELBv2DescribeTargetHealth(gomock.Any()).Return(stubDescribeTargetHealthOutput(), nil).AnyTimes()
+				return mockAWSClient
+			},
+		},
+		{
+			name: "Requeue if machine has providerID and addresses are not set",
+			machine: func() *machinev1.Machine {
+				machine, err := stubMachine()
+				if err != nil {
+					t.Fatalf("unable to build stub machine: %v", err)
+				}
+
+				machine.Spec.ProviderID = func() *string {
+					providerID := "test"
+					return &providerID
+				}()
+
+				return machine
+			},
+
+			expectedError: &machinecontroller.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second},
+			awsClient: func(ctrl *gomock.Controller) awsclient.Client {
+				mockCtrl := gomock.NewController(t)
+				mockAWSClient := mockaws.NewMockClient(mockCtrl)
+				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(&ec2.DescribeInstancesOutput{}, nil).AnyTimes()
+				mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).AnyTimes()
+				mockAWSClient.EXPECT().ELBv2DescribeLoadBalancers(gomock.Any()).Return(stubDescribeLoadBalancersOutput(), nil)
+				mockAWSClient.EXPECT().ELBv2DescribeTargetGroups(gomock.Any()).Return(stubDescribeTargetGroupsOutput(), nil).AnyTimes()
+				mockAWSClient.EXPECT().ELBv2RegisterTargets(gomock.Any()).Return(nil, nil).AnyTimes()
+				mockAWSClient.EXPECT().CreateTags(gomock.Any()).Return(&ec2.CreateTagsOutput{}, nil).AnyTimes()
+				mockAWSClient.EXPECT().DescribeVpcs(gomock.Any()).Return(StubDescribeVPCs()).AnyTimes()
+				return mockAWSClient
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+
+			fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, tc.machine(), stubAwsCredentialsSecret(), stubUserDataSecret(), stubInfraObject())
+
+			machineScope, err := newMachineScope(machineScopeParams{
+				client:  fakeClient,
+				machine: tc.machine(),
+				awsClientBuilder: func(client runtimeclient.Client, secretName, namespace, region string, configManagedClient runtimeclient.Client) (awsclient.Client, error) {
+					return tc.awsClient(ctrl), nil
+				},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			reconciler := newReconciler(machineScope)
+
+			err = reconciler.update()
+
+			if tc.expectedError != nil {
+				if err == nil {
+					t.Error("reconciler was expected to return error")
+				}
+
+				if err.Error() != tc.expectedError.Error() {
+					t.Errorf("expected: %v, got %v", tc.expectedError, err)
+				}
+
+			} else {
+				if err != nil {
+					t.Errorf("reconciler was not expected to return error: %v", err)
+				}
+			}
+		})
 	}
 }
 
