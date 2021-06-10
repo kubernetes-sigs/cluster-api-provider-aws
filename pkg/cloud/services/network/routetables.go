@@ -50,17 +50,16 @@ func (s *Service) reconcileRouteTables() error {
 		return err
 	}
 
-	for i := range s.scope.Subnets() {
+	for _, sn := range s.scope.Subnets() {
 		// We need to compile the minimum routes for this subnet first, so we can compare it or create them.
 		var routes []*ec2.Route
-		sn := s.scope.Subnets()[i]
 		if sn.IsPublic {
 			if s.scope.VPC().InternetGatewayID == nil {
 				return errors.Errorf("failed to create routing tables: internet gateway for %q is nil", s.scope.VPC().ID)
 			}
 			routes = append(routes, s.getGatewayPublicRoute())
 		} else {
-			natGatewayID, err := s.getNatGatewayForSubnet(sn)
+			natGatewayID, err := s.getNatGatewayForSubnet(&sn)
 			if err != nil {
 				return err
 			}

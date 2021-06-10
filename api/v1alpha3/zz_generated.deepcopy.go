@@ -568,14 +568,8 @@ func (in *AWSMachineSpec) DeepCopyInto(out *AWSMachineSpec) {
 	}
 	if in.NonRootVolumes != nil {
 		in, out := &in.NonRootVolumes, &out.NonRootVolumes
-		*out = make([]*Volume, len(*in))
-		for i := range *in {
-			if (*in)[i] != nil {
-				in, out := &(*in)[i], &(*out)[i]
-				*out = new(Volume)
-				**out = **in
-			}
-		}
+		*out = make([]Volume, len(*in))
+		copy(*out, *in)
 	}
 	if in.NetworkInterfaces != nil {
 		in, out := &in.NetworkInterfaces, &out.NetworkInterfaces
@@ -882,13 +876,7 @@ func (in CNIIngressRules) DeepCopyInto(out *CNIIngressRules) {
 	{
 		in := &in
 		*out = make(CNIIngressRules, len(*in))
-		for i := range *in {
-			if (*in)[i] != nil {
-				in, out := &(*in)[i], &(*out)[i]
-				*out = new(CNIIngressRule)
-				**out = **in
-			}
-		}
+		copy(*out, *in)
 	}
 }
 
@@ -908,13 +896,7 @@ func (in *CNISpec) DeepCopyInto(out *CNISpec) {
 	if in.CNIIngressRules != nil {
 		in, out := &in.CNIIngressRules, &out.CNIIngressRules
 		*out = make(CNIIngressRules, len(*in))
-		for i := range *in {
-			if (*in)[i] != nil {
-				in, out := &(*in)[i], &(*out)[i]
-				*out = new(CNIIngressRule)
-				**out = **in
-			}
-		}
+		copy(*out, *in)
 	}
 }
 
@@ -948,14 +930,8 @@ func (in *ClassicELB) DeepCopyInto(out *ClassicELB) {
 	}
 	if in.Listeners != nil {
 		in, out := &in.Listeners, &out.Listeners
-		*out = make([]*ClassicELBListener, len(*in))
-		for i := range *in {
-			if (*in)[i] != nil {
-				in, out := &(*in)[i], &(*out)[i]
-				*out = new(ClassicELBListener)
-				**out = **in
-			}
-		}
+		*out = make([]ClassicELBListener, len(*in))
+		copy(*out, *in)
 	}
 	if in.HealthCheck != nil {
 		in, out := &in.HealthCheck, &out.HealthCheck
@@ -1093,11 +1069,7 @@ func (in IngressRules) DeepCopyInto(out *IngressRules) {
 		in := &in
 		*out = make(IngressRules, len(*in))
 		for i := range *in {
-			if (*in)[i] != nil {
-				in, out := &(*in)[i], &(*out)[i]
-				*out = new(IngressRule)
-				(*in).DeepCopyInto(*out)
-			}
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 }
@@ -1162,14 +1134,8 @@ func (in *Instance) DeepCopyInto(out *Instance) {
 	}
 	if in.NonRootVolumes != nil {
 		in, out := &in.NonRootVolumes, &out.NonRootVolumes
-		*out = make([]*Volume, len(*in))
-		for i := range *in {
-			if (*in)[i] != nil {
-				in, out := &(*in)[i], &(*out)[i]
-				*out = new(Volume)
-				**out = **in
-			}
-		}
+		*out = make([]Volume, len(*in))
+		copy(*out, *in)
 	}
 	if in.NetworkInterfaces != nil {
 		in, out := &in.NetworkInterfaces, &out.NetworkInterfaces
@@ -1231,11 +1197,7 @@ func (in *NetworkSpec) DeepCopyInto(out *NetworkSpec) {
 		in, out := &in.Subnets, &out.Subnets
 		*out = make(Subnets, len(*in))
 		for i := range *in {
-			if (*in)[i] != nil {
-				in, out := &(*in)[i], &(*out)[i]
-				*out = new(SubnetSpec)
-				(*in).DeepCopyInto(*out)
-			}
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	if in.CNI != nil {
@@ -1284,11 +1246,7 @@ func (in *SecurityGroup) DeepCopyInto(out *SecurityGroup) {
 		in, out := &in.IngressRules, &out.IngressRules
 		*out = make(IngressRules, len(*in))
 		for i := range *in {
-			if (*in)[i] != nil {
-				in, out := &(*in)[i], &(*out)[i]
-				*out = new(IngressRule)
-				(*in).DeepCopyInto(*out)
-			}
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	if in.Tags != nil {
@@ -1368,11 +1326,7 @@ func (in Subnets) DeepCopyInto(out *Subnets) {
 		in := &in
 		*out = make(Subnets, len(*in))
 		for i := range *in {
-			if (*in)[i] != nil {
-				in, out := &(*in)[i], &(*out)[i]
-				*out = new(SubnetSpec)
-				(*in).DeepCopyInto(*out)
-			}
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 }

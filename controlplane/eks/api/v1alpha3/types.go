@@ -196,7 +196,7 @@ type AddonState struct {
 	// Status is the status of the addon
 	Status *string `json:"status,omitempty"`
 	// Issues is a list of issue associated with the addon
-	Issues []*AddonIssue `json:"issues,omitempty"`
+	Issues []AddonIssue `json:"issues,omitempty"`
 }
 
 // AddonIssue represents an issue with an addon
@@ -206,7 +206,7 @@ type AddonIssue struct {
 	// Message is the textual description of the issue
 	Message *string `json:"message,omitempty"`
 	// ResourceIDs is a list of resource ids for the issue
-	ResourceIDs []*string `json:"resourceIds,omitempty"`
+	ResourceIDs []string `json:"resourceIds,omitempty"`
 }
 
 const (

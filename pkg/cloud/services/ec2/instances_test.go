@@ -321,11 +321,11 @@ func TestCreateInstance(t *testing.T) {
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								ID:       "subnet-1",
 								IsPublic: false,
 							},
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								IsPublic: false,
 							},
 						},
@@ -414,22 +414,22 @@ func TestCreateInstance(t *testing.T) {
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								ID:               "subnet-1",
 								AvailabilityZone: "us-east-1a",
 								IsPublic:         false,
 							},
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								ID:               "subnet-2",
 								AvailabilityZone: "us-east-1b",
 								IsPublic:         false,
 							},
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								ID:               "subnet-3",
 								AvailabilityZone: "us-east-1c",
 								IsPublic:         false,
 							},
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								ID:               "subnet-3-public",
 								AvailabilityZone: "us-east-1c",
 								IsPublic:         true,
@@ -523,11 +523,11 @@ func TestCreateInstance(t *testing.T) {
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								ID:       "subnet-1",
 								IsPublic: false,
 							},
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								IsPublic: false,
 							},
 						},
@@ -652,11 +652,11 @@ func TestCreateInstance(t *testing.T) {
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								ID:       "subnet-1",
 								IsPublic: false,
 							},
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								IsPublic: false,
 							},
 						},
@@ -783,11 +783,11 @@ func TestCreateInstance(t *testing.T) {
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								ID:       "subnet-1",
 								IsPublic: false,
 							},
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								IsPublic: false,
 							},
 						},
@@ -1083,7 +1083,7 @@ func TestCreateInstance(t *testing.T) {
 					ID: aws.String("abc"),
 				},
 				InstanceType: "m5.large",
-				NonRootVolumes: []*infrav1.Volume{{
+				NonRootVolumes: []infrav1.Volume{{
 					DeviceName: "device-2",
 					Size:       8,
 				}},
@@ -1093,11 +1093,11 @@ func TestCreateInstance(t *testing.T) {
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								ID:       "subnet-1",
 								IsPublic: false,
 							},
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								IsPublic: false,
 							},
 						},
@@ -1194,11 +1194,11 @@ func TestCreateInstance(t *testing.T) {
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								ID:       "subnet-1",
 								IsPublic: false,
 							},
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								IsPublic: false,
 							},
 						},
@@ -1324,11 +1324,11 @@ func TestCreateInstance(t *testing.T) {
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								ID:       "subnet-1",
 								IsPublic: false,
 							},
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								IsPublic: false,
 							},
 						},
@@ -1432,11 +1432,11 @@ func TestCreateInstance(t *testing.T) {
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								ID:       "subnet-1",
 								IsPublic: false,
 							},
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								IsPublic: false,
 							},
 						},
@@ -1542,11 +1542,11 @@ func TestCreateInstance(t *testing.T) {
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								ID:       "subnet-1",
 								IsPublic: false,
 							},
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								IsPublic: false,
 							},
 						},
@@ -1652,11 +1652,11 @@ func TestCreateInstance(t *testing.T) {
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								ID:       "subnet-1",
 								IsPublic: false,
 							},
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								IsPublic: false,
 							},
 						},
@@ -1759,11 +1759,11 @@ func TestCreateInstance(t *testing.T) {
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								ID:       "subnet-1",
 								IsPublic: false,
 							},
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								IsPublic: false,
 							},
 						},
@@ -1866,11 +1866,11 @@ func TestCreateInstance(t *testing.T) {
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								ID:       "subnet-1",
 								IsPublic: false,
 							},
-							&infrav1.SubnetSpec{
+							infrav1.SubnetSpec{
 								IsPublic: false,
 							},
 						},

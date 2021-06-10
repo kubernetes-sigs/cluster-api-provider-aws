@@ -319,7 +319,7 @@ func (s *Service) getAPIServerClassicELBSpec() (*infrav1.ClassicELB, error) {
 	res := &infrav1.ClassicELB{
 		Name:   elbName,
 		Scheme: s.scope.ControlPlaneLoadBalancerScheme(),
-		Listeners: []*infrav1.ClassicELBListener{
+		Listeners: []infrav1.ClassicELBListener{
 			{
 				Protocol:         infrav1.ClassicELBProtocolTCP,
 				Port:             int64(s.scope.APIServerPort()),

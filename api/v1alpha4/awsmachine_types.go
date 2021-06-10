@@ -119,7 +119,7 @@ type AWSMachineSpec struct {
 
 	// Configuration options for the non root storage volumes.
 	// +optional
-	NonRootVolumes []*Volume `json:"nonRootVolumes,omitempty"`
+	NonRootVolumes []Volume `json:"nonRootVolumes,omitempty"`
 
 	// NetworkInterfaces is a list of ENIs to associate with the instance.
 	// A maximum of 2 may be specified.

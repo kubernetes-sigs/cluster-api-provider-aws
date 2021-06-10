@@ -47,8 +47,9 @@ func (s *Service) reconcileSubnets() error {
 	s.scope.V(2).Info("Reconciling subnets")
 
 	subnets := s.scope.Subnets()
+	updatedSubnets := subnets[:0]
 	defer func() {
-		s.scope.SetSubnets(subnets)
+		s.scope.SetSubnets(updatedSubnets)
 	}()
 
 	// Describe subnets in the vpc.
@@ -91,7 +92,7 @@ func (s *Service) reconcileSubnets() error {
 		}
 
 		for i, sub := range subnetCIDRs {
-			secondarySub := &infrav1.SubnetSpec{
+			secondarySub := infrav1.SubnetSpec{
 				CidrBlock:        sub.String(),
 				AvailabilityZone: zones[i],
 				IsPublic:         false,
@@ -99,15 +100,16 @@ func (s *Service) reconcileSubnets() error {
 					infrav1.NameAWSSubnetAssociation: infrav1.SecondarySubnetTagValue,
 				},
 			}
-			existingSubnet := existing.FindEqual(secondarySub)
+			existingSubnet := existing.FindEqual(&secondarySub)
 			if existingSubnet == nil {
 				subnets = append(subnets, secondarySub)
 			}
 		}
 	}
 
-	for _, sub := range subnets {
-		existingSubnet := existing.FindEqual(sub)
+	for i := range subnets {
+		sub := subnets[i]
+		existingSubnet := existing.FindEqual(&sub)
 		if existingSubnet != nil {
 			if !unmanagedVPC {
 				subnetTags := sub.Tags
@@ -127,12 +129,13 @@ func (s *Service) reconcileSubnets() error {
 
 			// Update subnet spec with the existing subnet details
 			// TODO(vincepri): check if subnet needs to be updated.
-			existingSubnet.DeepCopyInto(sub)
+			existingSubnet.DeepCopyInto(&sub)
 		} else if unmanagedVPC {
 			// If there is no existing subnet and we have an umanaged vpc report an error
 			record.Warnf(s.scope.InfraCluster(), "FailedMatchSubnet", "Using unmanaged VPC and failed to find existing subnet for specified subnet id %d, cidr %q", sub.ID, sub.CidrBlock)
 			return errors.New(fmt.Errorf("usign unmanaged vpc and subnet %s (cidr %s) specified but it doesn't exist in vpc %s", sub.ID, sub.CidrBlock, s.scope.VPC().ID).Error())
 		}
+		updatedSubnets = append(updatedSubnets, sub)
 	}
 
 	if !unmanagedVPC {
@@ -159,11 +162,11 @@ func (s *Service) reconcileSubnets() error {
 				continue
 			}
 
-			nsn, err := s.createSubnet(subnet)
+			nsn, err := s.createSubnet(&subnet)
 			if err != nil {
 				return err
 			}
-			nsn.DeepCopyInto(subnet)
+			nsn.DeepCopyInto(&subnet)
 		}
 	}
 
@@ -216,12 +219,12 @@ func (s *Service) getDefaultSubnets() (infrav1.Subnets, error) {
 
 	subnets := infrav1.Subnets{}
 	for i, zone := range zones {
-		subnets = append(subnets, &infrav1.SubnetSpec{
+		subnets = append(subnets, infrav1.SubnetSpec{
 			CidrBlock:        publicSubnetCIDRs[i].String(),
 			AvailabilityZone: zone,
 			IsPublic:         true,
 		})
-		subnets = append(subnets, &infrav1.SubnetSpec{
+		subnets = append(subnets, infrav1.SubnetSpec{
 			CidrBlock:        privateSubnetCIDRs[i].String(),
 			AvailabilityZone: zone,
 			IsPublic:         false,
@@ -281,11 +284,11 @@ func (s *Service) describeVpcSubnets() (infrav1.Subnets, error) {
 		return nil, err
 	}
 
-	subnets := make([]*infrav1.SubnetSpec, 0, len(out.Subnets))
+	subnets := make([]infrav1.SubnetSpec, 0, len(out.Subnets))
 	// Besides what the AWS API tells us directly about the subnets, we also want to discover whether the subnet is "public" (i.e. directly connected to the internet) and if there are any associated NAT gateways.
 	// We also look for a tag indicating that a particular subnet should be public, to try and determine whether a managed VPC's subnet should have such a route, but does not.
 	for _, ec2sn := range out.Subnets {
-		spec := &infrav1.SubnetSpec{
+		spec := infrav1.SubnetSpec{
 			ID:               *ec2sn.SubnetId,
 			CidrBlock:        *ec2sn.CidrBlock,
 			AvailabilityZone: *ec2sn.AvailabilityZone,

@@ -79,7 +79,7 @@ func TestAWSMachine_Create(t *testing.T) {
 			name: "ensure non root volume have device names",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
-					NonRootVolumes: []*Volume{
+					NonRootVolumes: []Volume{
 						{},
 					},
 				},
@@ -90,7 +90,7 @@ func TestAWSMachine_Create(t *testing.T) {
 			name: "ensure ensure IOPS exists if type equal to io1 for non root volumes",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
-					NonRootVolumes: []*Volume{
+					NonRootVolumes: []Volume{
 						{
 							DeviceName: "name",
 							Type:       "io1",
@@ -104,7 +104,7 @@ func TestAWSMachine_Create(t *testing.T) {
 			name: "ensure ensure IOPS exists if type equal to io2 for non root volumes",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
-					NonRootVolumes: []*Volume{
+					NonRootVolumes: []Volume{
 						{
 							DeviceName: "name",
 							Type:       "io2",

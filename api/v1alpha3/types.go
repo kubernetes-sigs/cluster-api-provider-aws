@@ -135,7 +135,7 @@ type ClassicELB struct {
 	SecurityGroupIDs []string `json:"securityGroupIds,omitempty"`
 
 	// Listeners is an array of classic elb listeners associated with the load balancer. There must be at least one.
-	Listeners []*ClassicELBListener `json:"listeners,omitempty"`
+	Listeners []ClassicELBListener `json:"listeners,omitempty"`
 
 	// HealthCheck is the classic elb health check associated with the load balancer.
 	HealthCheck *ClassicELBHealthCheck `json:"healthChecks,omitempty"`
@@ -289,13 +289,13 @@ func (s *SubnetSpec) String() string {
 }
 
 // Subnets is a slice of Subnet.
-type Subnets []*SubnetSpec
+type Subnets []SubnetSpec
 
 // ToMap returns a map from id to subnet.
 func (s Subnets) ToMap() map[string]*SubnetSpec {
 	res := make(map[string]*SubnetSpec)
 	for _, x := range s {
-		res[x.ID] = x
+		res[x.ID] = &x
 	}
 	return res
 }
@@ -313,7 +313,7 @@ func (s Subnets) IDs() []string {
 func (s Subnets) FindByID(id string) *SubnetSpec {
 	for _, x := range s {
 		if x.ID == id {
-			return x
+			return &x
 		}
 	}
 
@@ -326,7 +326,7 @@ func (s Subnets) FindByID(id string) *SubnetSpec {
 func (s Subnets) FindEqual(spec *SubnetSpec) *SubnetSpec {
 	for _, x := range s {
 		if (spec.ID != "" && x.ID == spec.ID) || (spec.CidrBlock == x.CidrBlock) {
-			return x
+			return &x
 		}
 	}
 	return nil
@@ -382,8 +382,8 @@ type CNISpec struct {
 	CNIIngressRules CNIIngressRules `json:"cniIngressRules,omitempty"`
 }
 
-// CNIIngressRules is a slice of CNIIngressRule.
-type CNIIngressRules []*CNIIngressRule
+// CNIIngressRules is a slice of CNIIngressRule
+type CNIIngressRules []CNIIngressRule
 
 // CNIIngressRule defines an AWS ingress rule for CNI requirements.
 type CNIIngressRule struct {
@@ -487,14 +487,14 @@ func (i *IngressRule) String() string {
 }
 
 // IngressRules is a slice of AWS ingress rules for security groups.
-type IngressRules []*IngressRule
+type IngressRules []IngressRule
 
 // Difference returns the difference between this slice and the other slice.
 func (i IngressRules) Difference(o IngressRules) (out IngressRules) {
 	for _, x := range i {
 		found := false
 		for _, y := range o {
-			if x.Equals(y) {
+			if x.Equals(&y) {
 				found = true
 				break
 			}
@@ -655,7 +655,7 @@ type Instance struct {
 
 	// Configuration options for the non root storage volumes.
 	// +optional
-	NonRootVolumes []*Volume `json:"nonRootVolumes,omitempty"`
+	NonRootVolumes []Volume `json:"nonRootVolumes,omitempty"`
 
 	// Specifies ENIs attached to instance
 	NetworkInterfaces []string `json:"networkInterfaces,omitempty"`

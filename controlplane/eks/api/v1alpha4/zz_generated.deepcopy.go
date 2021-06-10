@@ -212,13 +212,9 @@ func (in *AWSManagedControlPlaneStatus) DeepCopyInto(out *AWSManagedControlPlane
 	}
 	if in.Addons != nil {
 		in, out := &in.Addons, &out.Addons
-		*out = make([]*AddonState, len(*in))
+		*out = make([]AddonState, len(*in))
 		for i := range *in {
-			if (*in)[i] != nil {
-				in, out := &(*in)[i], &(*out)[i]
-				*out = new(AddonState)
-				(*in).DeepCopyInto(*out)
-			}
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 }
@@ -273,14 +269,8 @@ func (in *AddonIssue) DeepCopyInto(out *AddonIssue) {
 	}
 	if in.ResourceIDs != nil {
 		in, out := &in.ResourceIDs, &out.ResourceIDs
-		*out = make([]*string, len(*in))
-		for i := range *in {
-			if (*in)[i] != nil {
-				in, out := &(*in)[i], &(*out)[i]
-				*out = new(string)
-				**out = **in
-			}
-		}
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 }
 
@@ -311,13 +301,9 @@ func (in *AddonState) DeepCopyInto(out *AddonState) {
 	}
 	if in.Issues != nil {
 		in, out := &in.Issues, &out.Issues
-		*out = make([]*AddonIssue, len(*in))
+		*out = make([]AddonIssue, len(*in))
 		for i := range *in {
-			if (*in)[i] != nil {
-				in, out := &(*in)[i], &(*out)[i]
-				*out = new(AddonIssue)
-				(*in).DeepCopyInto(*out)
-			}
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 }

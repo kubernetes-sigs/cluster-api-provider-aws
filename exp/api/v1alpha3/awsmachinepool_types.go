@@ -123,7 +123,7 @@ type AWSMachinePoolStatus struct {
 
 	// Instances contains the status for each instance in the pool
 	// +optional
-	Instances []*AWSMachinePoolInstanceStatus `json:"instances"`
+	Instances []AWSMachinePoolInstanceStatus `json:"instances,omitempty"`
 
 	// The ID of the launch template
 	LaunchTemplateID string `json:"launchTemplateID,omitempty"`

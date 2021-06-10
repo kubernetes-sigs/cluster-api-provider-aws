@@ -56,12 +56,12 @@ func TestReconcileRouteTables(t *testing.T) {
 					},
 				},
 				Subnets: infrav1.Subnets{
-					&infrav1.SubnetSpec{
+					infrav1.SubnetSpec{
 						ID:               "subnet-routetables-private",
 						IsPublic:         false,
 						AvailabilityZone: "us-east-1a",
 					},
-					&infrav1.SubnetSpec{
+					infrav1.SubnetSpec{
 						ID:               "subnet-routetables-public",
 						IsPublic:         true,
 						NatGatewayID:     aws.String("nat-01"),
@@ -119,12 +119,12 @@ func TestReconcileRouteTables(t *testing.T) {
 					},
 				},
 				Subnets: infrav1.Subnets{
-					&infrav1.SubnetSpec{
+					infrav1.SubnetSpec{
 						ID:               "subnet-routetables-private",
 						IsPublic:         false,
 						AvailabilityZone: "us-east-1a",
 					},
-					&infrav1.SubnetSpec{
+					infrav1.SubnetSpec{
 						ID:               "subnet-routetables-public",
 						IsPublic:         true,
 						NatGatewayID:     aws.String("nat-01"),
@@ -149,12 +149,12 @@ func TestReconcileRouteTables(t *testing.T) {
 					},
 				},
 				Subnets: infrav1.Subnets{
-					&infrav1.SubnetSpec{
+					infrav1.SubnetSpec{
 						ID:               "subnet-routetables-private",
 						IsPublic:         false,
 						AvailabilityZone: "us-east-1a",
 					},
-					&infrav1.SubnetSpec{
+					infrav1.SubnetSpec{
 						ID:               "subnet-routetables-public",
 						IsPublic:         true,
 						NatGatewayID:     aws.String("nat-01"),

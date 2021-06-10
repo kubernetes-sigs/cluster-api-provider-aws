@@ -51,7 +51,7 @@ func TestReconcileSubnets(t *testing.T) {
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
 				},
-				Subnets: []*infrav1.SubnetSpec{
+				Subnets: []infrav1.SubnetSpec{
 					{
 						ID: "subnet-1",
 					},
@@ -134,7 +134,7 @@ func TestReconcileSubnets(t *testing.T) {
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
 				},
-				Subnets: []*infrav1.SubnetSpec{
+				Subnets: []infrav1.SubnetSpec{
 					{
 						ID: "subnet-1",
 					},
@@ -201,7 +201,7 @@ func TestReconcileSubnets(t *testing.T) {
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
 				},
-				Subnets: []*infrav1.SubnetSpec{},
+				Subnets: []infrav1.SubnetSpec{},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
@@ -261,7 +261,7 @@ func TestReconcileSubnets(t *testing.T) {
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
 				},
-				Subnets: []*infrav1.SubnetSpec{
+				Subnets: []infrav1.SubnetSpec{
 					{
 						AvailabilityZone: "us-east-1a",
 						CidrBlock:        "10.1.0.0/16",
@@ -315,7 +315,7 @@ func TestReconcileSubnets(t *testing.T) {
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
 				},
-				Subnets: []*infrav1.SubnetSpec{
+				Subnets: []infrav1.SubnetSpec{
 					{
 						AvailabilityZone: "us-east-1a",
 						CidrBlock:        "10.0.10.0/24",
@@ -389,7 +389,7 @@ func TestReconcileSubnets(t *testing.T) {
 						infrav1.ClusterTagKey("test-cluster"): "owned",
 					},
 				},
-				Subnets: []*infrav1.SubnetSpec{
+				Subnets: []infrav1.SubnetSpec{
 					{
 						AvailabilityZone: "us-east-1a",
 						CidrBlock:        "10.1.0.0/16",
@@ -546,7 +546,7 @@ func TestReconcileSubnets(t *testing.T) {
 						infrav1.ClusterTagKey("test-cluster"): "owned",
 					},
 				},
-				Subnets: []*infrav1.SubnetSpec{
+				Subnets: []infrav1.SubnetSpec{
 					{
 						AvailabilityZone: "us-east-1a",
 						CidrBlock:        "10.1.0.0/16",
@@ -599,7 +599,7 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 					CidrBlock: defaultVPCCidr,
 				},
-				Subnets: []*infrav1.SubnetSpec{},
+				Subnets: []infrav1.SubnetSpec{},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeAvailabilityZones(gomock.Any()).
@@ -755,7 +755,7 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 					CidrBlock: defaultVPCCidr,
 				},
-				Subnets: []*infrav1.SubnetSpec{},
+				Subnets: []infrav1.SubnetSpec{},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeAvailabilityZones(gomock.Any()).
@@ -1019,7 +1019,7 @@ func TestReconcileSubnets(t *testing.T) {
 					AvailabilityZoneUsageLimit: aws.Int(1),
 					AvailabilityZoneSelection:  &infrav1.AZSelectionSchemeOrdered,
 				},
-				Subnets: []*infrav1.SubnetSpec{},
+				Subnets: []infrav1.SubnetSpec{},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeAvailabilityZones(gomock.Any()).
@@ -1177,7 +1177,7 @@ func TestReconcileSubnets(t *testing.T) {
 						infrav1.ClusterTagKey("test-cluster"): "owned",
 					},
 				},
-				Subnets: []*infrav1.SubnetSpec{
+				Subnets: []infrav1.SubnetSpec{
 					{
 						ID:               "subnet-1",
 						AvailabilityZone: "us-east-1a",
@@ -1347,7 +1347,7 @@ func TestDiscoverSubnets(t *testing.T) {
 		name   string
 		input  *infrav1.NetworkSpec
 		mocks  func(m *mock_ec2iface.MockEC2APIMockRecorder)
-		expect []*infrav1.SubnetSpec
+		expect []infrav1.SubnetSpec
 	}{
 		{
 			name: "provided VPC finds internet routes",
@@ -1355,7 +1355,7 @@ func TestDiscoverSubnets(t *testing.T) {
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
 				},
-				Subnets: []*infrav1.SubnetSpec{
+				Subnets: []infrav1.SubnetSpec{
 					{
 						ID:               "subnet-1",
 						AvailabilityZone: "us-east-1a",
@@ -1465,7 +1465,7 @@ func TestDiscoverSubnets(t *testing.T) {
 					}),
 					gomock.Any()).Return(nil)
 			},
-			expect: []*infrav1.SubnetSpec{
+			expect: []infrav1.SubnetSpec{
 				{
 					ID:               "subnet-1",
 					AvailabilityZone: "us-east-1a",
@@ -1524,7 +1524,7 @@ func TestDiscoverSubnets(t *testing.T) {
 			}
 
 			subnets := s.scope.Subnets()
-			out := make(map[string]*infrav1.SubnetSpec)
+			out := make(map[string]infrav1.SubnetSpec)
 			for _, sn := range subnets {
 				out[sn.ID] = sn
 			}
