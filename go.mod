@@ -9,7 +9,7 @@ require (
 	github.com/aws/amazon-vpc-cni-k8s v1.7.10
 	github.com/aws/aws-lambda-go v1.24.0
 	github.com/aws/aws-sdk-go v1.38.57
-	github.com/awslabs/goformation/v4 v4.19.4
+	github.com/awslabs/goformation/v4 v4.19.5
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/go-logr/logr v0.4.0
 	github.com/gofrs/flock v0.8.0
