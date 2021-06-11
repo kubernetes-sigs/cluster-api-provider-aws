@@ -43,6 +43,10 @@ import (
 // this is the identifier for classic ELBs: https://docs.aws.amazon.com/IAM/latest/UserGuide/list_elasticloadbalancing.html#elasticloadbalancing-resources-for-iam-policies
 const elbResourceType = "elasticloadbalancing:loadbalancer"
 
+// maxELBsDescribeTagsRequest is the maximum number of loadbalancers for the DescribeTags API call
+// see: https://docs.aws.amazon.com/elasticloadbalancing/2012-06-01/APIReference/API_DescribeTags.html
+const maxELBsDescribeTagsRequest = 20
+
 // ReconcileLoadbalancers reconciles the load balancers for the given cluster.
 func (s *Service) ReconcileLoadbalancers() error {
 	s.scope.V(2).Info("Reconciling load balancers")
@@ -529,15 +533,18 @@ func (s *Service) filterByOwnedTag(tagKey string) ([]string, error) {
 		return nil, nil
 	}
 
-	output, err := s.ELBClient.DescribeTags(&elb.DescribeTagsInput{LoadBalancerNames: aws.StringSlice(names)})
-	if err != nil {
-		return nil, err
-	}
 	var ownedElbs []string
-	for _, tagDesc := range output.TagDescriptions {
-		for _, tag := range tagDesc.Tags {
-			if *tag.Key == tagKey && *tag.Value == string(infrav1.ResourceLifecycleOwned) {
-				ownedElbs = append(ownedElbs, *tagDesc.LoadBalancerName)
+	lbChunks := chunkELBs(names)
+	for _, chunk := range lbChunks {
+		output, err := s.ELBClient.DescribeTags(&elb.DescribeTagsInput{LoadBalancerNames: aws.StringSlice(chunk)})
+		if err != nil {
+			return nil, err
+		}
+		for _, tagDesc := range output.TagDescriptions {
+			for _, tag := range tagDesc.Tags {
+				if *tag.Key == tagKey && *tag.Value == string(infrav1.ResourceLifecycleOwned) {
+					ownedElbs = append(ownedElbs, *tagDesc.LoadBalancerName)
+				}
 			}
 		}
 	}
@@ -676,4 +683,16 @@ func fromSDKTypeToClassicELB(v *elb.LoadBalancerDescription, attrs *elb.LoadBala
 	res.Attributes.CrossZoneLoadBalancing = aws.BoolValue(attrs.CrossZoneLoadBalancing.Enabled)
 
 	return res
+}
+
+func chunkELBs(names []string) [][]string {
+	var chunked [][]string
+	for i := 0; i < len(names); i += maxELBsDescribeTagsRequest {
+		end := i + maxELBsDescribeTagsRequest
+		if end > len(names) {
+			end = len(names)
+		}
+		chunked = append(chunked, names[i:end])
+	}
+	return chunked
 }
