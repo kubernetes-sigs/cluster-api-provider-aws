@@ -13,7 +13,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/go-logr/logr v0.4.0
 	github.com/gofrs/flock v0.8.0
-	github.com/golang/mock v1.4.4
+	github.com/golang/mock v1.6.0
 	github.com/google/goexpect v0.0.0-20210430020637-ab937bf7fd6f
 	github.com/google/gofuzz v1.2.0
 	github.com/google/goterm v0.0.0-20200907032337-555d40f16ae2 // indirect
