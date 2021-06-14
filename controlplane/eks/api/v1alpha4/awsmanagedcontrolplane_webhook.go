@@ -131,6 +131,20 @@ func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) error {
 		)
 	}
 
+	// If encryptionConfig is already set, do not allow removal of it.
+	if oldAWSManagedControlplane.Spec.EncryptionConfig != nil && r.Spec.EncryptionConfig == nil {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec", "encryptionConfig"), r.Spec.EncryptionConfig, "disabling EKS encryption is not allowed after it has been enabled"),
+		)
+	}
+
+	// If encryptionConfig is already set, do not allow change in provider
+	if r.Spec.EncryptionConfig != nil && oldAWSManagedControlplane.Spec.EncryptionConfig != nil && *r.Spec.EncryptionConfig.Provider != *oldAWSManagedControlplane.Spec.EncryptionConfig.Provider {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec", "encryptionConfig", "provider"), r.Spec.EncryptionConfig.Provider, "changing EKS encryption is not allowed after it has been enabled"),
+		)
+	}
+
 	// If a identityRef is already set, do not allow removal of it.
 	if oldAWSManagedControlplane.Spec.IdentityRef != nil && r.Spec.IdentityRef == nil {
 		allErrs = append(allErrs,

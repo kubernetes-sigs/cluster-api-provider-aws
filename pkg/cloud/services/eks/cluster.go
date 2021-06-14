@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"reflect"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -112,6 +113,10 @@ func (s *Service) reconcileCluster(ctx context.Context) error {
 
 	if err := s.reconcileClusterConfig(cluster); err != nil {
 		return errors.Wrap(err, "failed reconciling cluster config")
+	}
+
+	if err := s.reconcileEKSEncryptionConfig(cluster.EncryptionConfig); err != nil {
+		return errors.Wrap(err, "failed reconciling eks encryption config")
 	}
 
 	if err := s.reconcileTags(cluster); err != nil {
@@ -476,6 +481,26 @@ func (s *Service) reconcileVpcConfig(vpcConfig *eks.VpcConfigResponse) (*eks.Vpc
 	return nil, nil
 }
 
+func (s *Service) reconcileEKSEncryptionConfig(encryptionConfig []*eks.EncryptionConfig) error {
+	encryptionConfigs := s.scope.ControlPlane.Spec.EncryptionConfig
+	updatedEncryptionConfigs := makeEksEncryptionConfigs(encryptionConfigs)
+
+	switch {
+	case reflect.DeepEqual(encryptionConfig, updatedEncryptionConfigs):
+		return nil
+	case encryptionConfig == nil || len(encryptionConfig) == 0 && updatedEncryptionConfigs != nil:
+		if err := s.updateEncryptionConfig(updatedEncryptionConfigs); err != nil {
+			record.Warnf(s.scope.ControlPlane, "FailedUpdateEKSControlPlane", "failed to update the EKS control plane: %v", err)
+			return errors.Wrapf(err, "failed to update EKS cluster")
+		}
+	default:
+		record.Warnf(s.scope.ControlPlane, "FailedUpdateEKSControlPlane", "failed to update the EKS control plane: disabling EKS encryption is not allowed after it has been enabled")
+		return errors.Errorf("failed to update the EKS control plane: disabling EKS encryption is not allowed after it has been enabled")
+	}
+
+	return nil
+}
+
 func parseEKSVersion(raw string) *version.Version {
 	v := version.MustParseGeneric(raw)
 	return version.MustParseGeneric(fmt.Sprintf("%d.%d", v.Major(), v.Minor()))
@@ -549,6 +574,39 @@ func (s *Service) describeEKSCluster(eksClusterName string) (*eks.Cluster, error
 	}
 
 	return out.Cluster, nil
+}
+
+func (s *Service) updateEncryptionConfig(updatedEncryptionConfigs []*eks.EncryptionConfig) error {
+	input := &eks.AssociateEncryptionConfigInput{
+		ClusterName:      aws.String(s.scope.KubernetesClusterName()),
+		EncryptionConfig: updatedEncryptionConfigs,
+	}
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		if _, err := s.EKSClient.AssociateEncryptionConfig(input); err != nil {
+			if aerr, ok := err.(awserr.Error); ok {
+				return false, aerr
+			}
+			return false, err
+		}
+
+		// Wait until status transitions to UPDATING because there's a short
+		// window after UpdateClusterVersion returns where the cluster
+		// status is ACTIVE and the update would be tried again
+		if err := s.EKSClient.WaitUntilClusterUpdating(
+			&eks.DescribeClusterInput{Name: aws.String(s.scope.KubernetesClusterName())},
+			request.WithWaiterLogger(&awslog{s}),
+		); err != nil {
+			return false, err
+		}
+
+		conditions.MarkTrue(s.scope.ControlPlane, controlplanev1.EKSControlPlaneUpdatingCondition)
+		record.Eventf(s.scope.ControlPlane, "InitiatedUpdateEncryptionConfig", "Initiated update of encryption config in EKS control plane %s", s.scope.KubernetesClusterName())
+
+		return true, nil
+	}); err != nil {
+		return err
+	}
+	return nil
 }
 
 // An internal type to satisfy aws' log interface.
