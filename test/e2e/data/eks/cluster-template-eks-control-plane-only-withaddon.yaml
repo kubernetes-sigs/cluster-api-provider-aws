@@ -28,3 +28,6 @@ spec:
     - name: "vpc-cni"
       version: "${VPC_ADDON_VERSION}"
       conflictResolution: "overwrite"
+  identityRef:
+    kind: AWSClusterStaticIdentity
+    name: e2e-account

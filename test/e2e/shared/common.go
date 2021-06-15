@@ -60,10 +60,12 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, namespace
 	Byf("Dumping all EC2 instances in the %q namespace", namespace.Name)
 	DumpMachines(ctx, e2eCtx, namespace)
 	if !e2eCtx.Settings.SkipCleanup {
+		intervals := e2eCtx.E2EConfig.GetIntervals(specName, "wait-delete-cluster")
+		Byf("Deleting all clusters in the %q namespace with intervals %q", namespace.Name, intervals)
 		framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
 			Client:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Namespace: namespace.Name,
-		}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...)
+		}, intervals...)
 
 		Byf("Deleting namespace used for hosting the %q test spec", specName)
 		framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
