@@ -17573,6 +17573,56 @@ func (mr *MockEC2APIMockRecorder) DisableFastSnapshotRestoresWithContext(arg0, a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableFastSnapshotRestoresWithContext", reflect.TypeOf((*MockEC2API)(nil).DisableFastSnapshotRestoresWithContext), varargs...)
 }
 
+// DisableImageDeprecation mocks base method.
+func (m *MockEC2API) DisableImageDeprecation(arg0 *ec2.DisableImageDeprecationInput) (*ec2.DisableImageDeprecationOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DisableImageDeprecation", arg0)
+	ret0, _ := ret[0].(*ec2.DisableImageDeprecationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DisableImageDeprecation indicates an expected call of DisableImageDeprecation.
+func (mr *MockEC2APIMockRecorder) DisableImageDeprecation(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableImageDeprecation", reflect.TypeOf((*MockEC2API)(nil).DisableImageDeprecation), arg0)
+}
+
+// DisableImageDeprecationRequest mocks base method.
+func (m *MockEC2API) DisableImageDeprecationRequest(arg0 *ec2.DisableImageDeprecationInput) (*request.Request, *ec2.DisableImageDeprecationOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DisableImageDeprecationRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DisableImageDeprecationOutput)
+	return ret0, ret1
+}
+
+// DisableImageDeprecationRequest indicates an expected call of DisableImageDeprecationRequest.
+func (mr *MockEC2APIMockRecorder) DisableImageDeprecationRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableImageDeprecationRequest", reflect.TypeOf((*MockEC2API)(nil).DisableImageDeprecationRequest), arg0)
+}
+
+// DisableImageDeprecationWithContext mocks base method.
+func (m *MockEC2API) DisableImageDeprecationWithContext(arg0 context.Context, arg1 *ec2.DisableImageDeprecationInput, arg2 ...request.Option) (*ec2.DisableImageDeprecationOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DisableImageDeprecationWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DisableImageDeprecationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DisableImageDeprecationWithContext indicates an expected call of DisableImageDeprecationWithContext.
+func (mr *MockEC2APIMockRecorder) DisableImageDeprecationWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableImageDeprecationWithContext", reflect.TypeOf((*MockEC2API)(nil).DisableImageDeprecationWithContext), varargs...)
+}
+
 // DisableSerialConsoleAccess mocks base method.
 func (m *MockEC2API) DisableSerialConsoleAccess(arg0 *ec2.DisableSerialConsoleAccessInput) (*ec2.DisableSerialConsoleAccessOutput, error) {
 	m.ctrl.T.Helper()
@@ -18371,6 +18421,56 @@ func (mr *MockEC2APIMockRecorder) EnableFastSnapshotRestoresWithContext(arg0, ar
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableFastSnapshotRestoresWithContext", reflect.TypeOf((*MockEC2API)(nil).EnableFastSnapshotRestoresWithContext), varargs...)
+}
+
+// EnableImageDeprecation mocks base method.
+func (m *MockEC2API) EnableImageDeprecation(arg0 *ec2.EnableImageDeprecationInput) (*ec2.EnableImageDeprecationOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnableImageDeprecation", arg0)
+	ret0, _ := ret[0].(*ec2.EnableImageDeprecationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EnableImageDeprecation indicates an expected call of EnableImageDeprecation.
+func (mr *MockEC2APIMockRecorder) EnableImageDeprecation(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableImageDeprecation", reflect.TypeOf((*MockEC2API)(nil).EnableImageDeprecation), arg0)
+}
+
+// EnableImageDeprecationRequest mocks base method.
+func (m *MockEC2API) EnableImageDeprecationRequest(arg0 *ec2.EnableImageDeprecationInput) (*request.Request, *ec2.EnableImageDeprecationOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnableImageDeprecationRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.EnableImageDeprecationOutput)
+	return ret0, ret1
+}
+
+// EnableImageDeprecationRequest indicates an expected call of EnableImageDeprecationRequest.
+func (mr *MockEC2APIMockRecorder) EnableImageDeprecationRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableImageDeprecationRequest", reflect.TypeOf((*MockEC2API)(nil).EnableImageDeprecationRequest), arg0)
+}
+
+// EnableImageDeprecationWithContext mocks base method.
+func (m *MockEC2API) EnableImageDeprecationWithContext(arg0 context.Context, arg1 *ec2.EnableImageDeprecationInput, arg2 ...request.Option) (*ec2.EnableImageDeprecationOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "EnableImageDeprecationWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.EnableImageDeprecationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EnableImageDeprecationWithContext indicates an expected call of EnableImageDeprecationWithContext.
+func (mr *MockEC2APIMockRecorder) EnableImageDeprecationWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableImageDeprecationWithContext", reflect.TypeOf((*MockEC2API)(nil).EnableImageDeprecationWithContext), varargs...)
 }
 
 // EnableSerialConsoleAccess mocks base method.
