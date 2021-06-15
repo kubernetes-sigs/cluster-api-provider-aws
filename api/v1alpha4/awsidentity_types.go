@@ -69,7 +69,7 @@ type AWSRoleSpec struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=awsclusterstaticidentities,scope=Cluster,categories=cluster-api
+// +kubebuilder:resource:path=awsclusterstaticidentities,scope=Cluster,categories=cluster-api,shortName=awssi
 // +kubebuilder:storageversion
 
 // AWSClusterStaticIdentity is the Schema for the awsclusterstaticidentities API
@@ -102,7 +102,7 @@ type AWSClusterStaticIdentitySpec struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=awsclusterroleidentities,scope=Cluster,categories=cluster-api
+// +kubebuilder:resource:path=awsclusterroleidentities,scope=Cluster,categories=cluster-api,shortName=awsri
 // +kubebuilder:storageversion
 
 // AWSClusterRoleIdentity is the Schema for the awsclusterroleidentities API
@@ -145,7 +145,7 @@ type AWSClusterRoleIdentitySpec struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=awsclustercontrolleridentities,scope=Cluster,categories=cluster-api
+// +kubebuilder:resource:path=awsclustercontrolleridentities,scope=Cluster,categories=cluster-api,shortName=awsci
 // +kubebuilder:storageversion
 
 // AWSClusterControllerIdentity is the Schema for the awsclustercontrolleridentities API

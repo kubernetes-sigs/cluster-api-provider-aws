@@ -58,7 +58,7 @@ type EKSConfigStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=eksconfigs,scope=Namespaced,categories=cluster-api
+// +kubebuilder:resource:path=eksconfigs,scope=Namespaced,categories=cluster-api,shortName=eksc
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Bootstrap configuration is ready"
 // +kubebuilder:printcolumn:name="DataSecretName",type="string",JSONPath=".status.dataSecretName",description="Name of Secret containing bootstrap data"

@@ -238,7 +238,7 @@ type AWSMachineStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=awsmachines,scope=Namespaced,categories=cluster-api
+// +kubebuilder:resource:path=awsmachines,scope=Namespaced,categories=cluster-api,shortName=awsm
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this AWSMachine belongs"
 // +kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.instanceState",description="EC2 instance state"

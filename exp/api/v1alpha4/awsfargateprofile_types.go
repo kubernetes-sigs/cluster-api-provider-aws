@@ -128,7 +128,7 @@ type FargateProfileStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=awsfargateprofiles,scope=Namespaced,categories=cluster-api
+// +kubebuilder:resource:path=awsfargateprofiles,scope=Namespaced,categories=cluster-api,shortName=awsfp
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="AWSFargateProfile ready status"
