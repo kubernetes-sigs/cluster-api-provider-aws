@@ -27,11 +27,11 @@ import (
 
 var (
 	// ErrAZSubnetsNotFound is an error when a availability zone is specified but there are
-	// no matching subnets for that availability zone (a.k.a. fault domain)
+	// no matching subnets for that availability zone (a.k.a. fault domain).
 	ErrAZSubnetsNotFound = errors.New("no subnets found for supplied availability zone")
-	// ErrLoggerRequired is an error if a logger isn't specified
+	// ErrLoggerRequired is an error if a logger isn't specified.
 	ErrLoggerRequired = errors.New("logger is required")
-	// ErrNotPlaced is an error if there is no placement determined
+	// ErrNotPlaced is an error if there is no placement determined.
 	ErrNotPlaced = errors.New("placement not determined")
 )
 
@@ -56,7 +56,7 @@ func newDefaultSubnetPlacementStrategy(logger logr.Logger) (subnetsPlacementStra
 	}, nil
 }
 
-// defaultSubnetPlacementStrategy is the default strategy for subnet placement
+// defaultSubnetPlacementStrategy is the default strategy for subnet placement.
 type defaultSubnetPlacementStrategy struct {
 	logger logr.Logger
 }
@@ -66,7 +66,7 @@ type defaultSubnetPlacementStrategy struct {
 // 2. If the spec has Availability Zones then get the subnets for these AZs
 // 3. If the parent resource has Availability Zones then get the subnets for these AZs
 // 4. All the private subnets from the control plane are used
-// In Cluster API Availability Zone can also be referred to by the name `Failure Domain`
+// In Cluster API Availability Zone can also be referred to by the name `Failure Domain`.
 func (p *defaultSubnetPlacementStrategy) Place(input *placementInput) ([]string, error) {
 	if len(input.SpecSubnetIDs) > 0 {
 		p.logger.V(2).Info("using subnets from the spec")

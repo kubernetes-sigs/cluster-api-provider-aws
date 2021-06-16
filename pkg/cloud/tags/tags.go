@@ -38,17 +38,17 @@ var (
 	ErrApplyFuncRequired = errors.New("no tags apply function supplied")
 )
 
-// BuilderOption represents an option when creating a tags builder
+// BuilderOption represents an option when creating a tags builder.
 type BuilderOption func(*Builder)
 
-// Builder is the interface for a tags builder
+// Builder is the interface for a tags builder.
 type Builder struct {
 	params    *infrav1.BuildParams
 	applyFunc func(params *infrav1.BuildParams) error
 }
 
 // New creates a new TagsBuilder with the specified build parameters
-// and with optional configuration
+// and with optional configuration.
 func New(params *infrav1.BuildParams, opts ...BuilderOption) *Builder {
 	builder := &Builder{
 		params: params,
@@ -85,7 +85,7 @@ func (b *Builder) Ensure(current infrav1.Tags) error {
 	return nil
 }
 
-// WithEC2 is used to denote that the tags builder will be using EC2
+// WithEC2 is used to denote that the tags builder will be using EC2.
 func WithEC2(ec2client ec2iface.EC2API) BuilderOption {
 	return func(b *Builder) {
 		b.applyFunc = func(params *infrav1.BuildParams) error {
@@ -111,7 +111,7 @@ func WithEC2(ec2client ec2iface.EC2API) BuilderOption {
 	}
 }
 
-// WithEKS is used to specify that the tags builder will be targeting EKS
+// WithEKS is used to specify that the tags builder will be targeting EKS.
 func WithEKS(eksclient eksiface.EKSAPI) BuilderOption {
 	return func(b *Builder) {
 		b.applyFunc = func(params *infrav1.BuildParams) error {
@@ -149,7 +149,7 @@ func computeDiff(current infrav1.Tags, buildParams infrav1.BuildParams) infrav1.
 	return want.Difference(current)
 }
 
-// BuildParamsToTagSpecification builds a TagSpecification for the specified resource type
+// BuildParamsToTagSpecification builds a TagSpecification for the specified resource type.
 func BuildParamsToTagSpecification(ec2ResourceType string, params infrav1.BuildParams) *ec2.TagSpecification {
 	tags := infrav1.Build(params)
 

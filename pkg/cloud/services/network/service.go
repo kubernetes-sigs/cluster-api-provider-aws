@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 
-// Scope is scope for use with the network service
+// Scope is scope for use with the network service.
 type Scope interface {
 	cloud.ClusterScoper
 

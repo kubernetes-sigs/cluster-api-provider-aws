@@ -18,10 +18,8 @@ package v1alpha4
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
 	"path"
-	"strconv"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -100,8 +98,4 @@ func teardown() {
 	if err := testEnv.Stop(); err != nil {
 		panic(fmt.Sprintf("Failed to stop envtest: %v", err))
 	}
-}
-
-func randomName() string {
-	return strconv.FormatInt(rand.Int63(), 10)
 }

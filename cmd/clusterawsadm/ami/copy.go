@@ -47,7 +47,6 @@ type CopyInput struct {
 
 // Copy will create an AWSAMI from a CopyInput.
 func Copy(input CopyInput) (*amiv1.AWSAMI, error) {
-
 	sourceSession, err := session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 		Config:            aws.Config{Region: aws.String(input.SourceRegion)},
@@ -161,7 +160,6 @@ type copyWithSnapshotInput struct {
 }
 
 func copyWithSnapshot(input copyWithSnapshotInput) (string, string, error) {
-
 	ec2Client := ec2.New(input.sess)
 	imgName := *input.image.Name + util.RandomString(3) + strconv.Itoa(int(time.Now().Unix()))
 	log := input.log.WithValues("imageName", imgName)

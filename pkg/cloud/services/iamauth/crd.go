@@ -21,8 +21,7 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	apierr "k8s.io/apimachinery/pkg/util/errors"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	iamauthv1 "sigs.k8s.io/aws-iam-authenticator/pkg/mapper/crd/apis/iamauthenticator/v1alpha1"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -37,12 +36,12 @@ func (b *crdBackend) MapRole(mapping ekscontrolplanev1.RoleMapping) error {
 	ctx := context.TODO()
 
 	if errs := mapping.Validate(); errs != nil {
-		return apierr.NewAggregate(errs)
+		return kerrors.NewAggregate(errs)
 	}
 
 	mappingList := iamauthv1.IAMIdentityMappingList{}
-	err := b.client.List(ctx, &mappingList)
-	if err != nil {
+
+	if err := b.client.List(ctx, &mappingList); err != nil {
 		return fmt.Errorf("getting list of mappings: %w", err)
 	}
 
@@ -55,7 +54,7 @@ func (b *crdBackend) MapRole(mapping ekscontrolplanev1.RoleMapping) error {
 	}
 
 	iamMapping := &iamauthv1.IAMIdentityMapping{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace:    metav1.NamespaceSystem,
 			GenerateName: "capa-iamauth-",
 		},
@@ -73,12 +72,12 @@ func (b *crdBackend) MapUser(mapping ekscontrolplanev1.UserMapping) error {
 	ctx := context.TODO()
 
 	if errs := mapping.Validate(); errs != nil {
-		return apierr.NewAggregate(errs)
+		return kerrors.NewAggregate(errs)
 	}
 
 	mappingList := iamauthv1.IAMIdentityMappingList{}
-	err := b.client.List(ctx, &mappingList)
-	if err != nil {
+
+	if err := b.client.List(ctx, &mappingList); err != nil {
 		return fmt.Errorf("getting list of mappings: %w", err)
 	}
 
@@ -91,7 +90,7 @@ func (b *crdBackend) MapUser(mapping ekscontrolplanev1.UserMapping) error {
 	}
 
 	iamMapping := &iamauthv1.IAMIdentityMapping{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace:    metav1.NamespaceSystem,
 			GenerateName: "capa-iamauth-",
 		},

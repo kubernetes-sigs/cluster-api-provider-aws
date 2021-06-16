@@ -64,10 +64,10 @@ type Filter struct {
 	Values []string `json:"values"`
 }
 
-// AWSMachineProviderConditionType is a valid value for AWSMachineProviderCondition.Type
+// AWSMachineProviderConditionType is a valid value for AWSMachineProviderCondition.Type.
 type AWSMachineProviderConditionType string
 
-// Valid conditions for an AWS machine instance
+// Valid conditions for an AWS machine instance.
 const (
 	// MachineCreated indicates whether the machine has been created or not. If not,
 	// it should include a reason and message for the failure.
@@ -88,7 +88,7 @@ type ClassicELBScheme string
 
 var (
 	// ClassicELBSchemeInternetFacing defines an internet-facing, publicly
-	// accessible AWS Classic ELB scheme
+	// accessible AWS Classic ELB scheme.
 	ClassicELBSchemeInternetFacing = ClassicELBScheme("Internet-facing")
 
 	// ClassicELBSchemeInternal defines an internal-only facing
@@ -100,16 +100,16 @@ var (
 type ClassicELBProtocol string
 
 var (
-	// ClassicELBProtocolTCP defines the ELB API string representing the TCP protocol
+	// ClassicELBProtocolTCP defines the ELB API string representing the TCP protocol.
 	ClassicELBProtocolTCP = ClassicELBProtocol("TCP")
 
-	// ClassicELBProtocolSSL defines the ELB API string representing the TLS protocol
+	// ClassicELBProtocolSSL defines the ELB API string representing the TLS protocol.
 	ClassicELBProtocolSSL = ClassicELBProtocol("SSL")
 
-	// ClassicELBProtocolHTTP defines the ELB API string representing the HTTP protocol at L7
+	// ClassicELBProtocolHTTP defines the ELB API string representing the HTTP protocol at L7.
 	ClassicELBProtocolHTTP = ClassicELBProtocol("HTTP")
 
-	// ClassicELBProtocolHTTPS defines the ELB API string representing the HTTP protocol at L7
+	// ClassicELBProtocolHTTPS defines the ELB API string representing the HTTP protocol at L7.
 	ClassicELBProtocolHTTPS = ClassicELBProtocol("HTTPS")
 )
 
@@ -179,10 +179,10 @@ type ClassicELBHealthCheck struct {
 type AZSelectionScheme string
 
 var (
-	// AZSelectionSchemeOrdered will select AZs based on alphabetical order
+	// AZSelectionSchemeOrdered will select AZs based on alphabetical order.
 	AZSelectionSchemeOrdered = AZSelectionScheme("Ordered")
 
-	// AZSelectionSchemeRandom will select AZs randomly
+	// AZSelectionSchemeRandom will select AZs randomly.
 	AZSelectionSchemeRandom = AZSelectionScheme("Random")
 )
 
@@ -300,7 +300,7 @@ func (s Subnets) ToMap() map[string]*SubnetSpec {
 	return res
 }
 
-// IDs returns a slice of the subnet ids
+// IDs returns a slice of the subnet ids.
 func (s Subnets) IDs() []string {
 	res := []string{}
 	for _, subnet := range s {
@@ -362,7 +362,7 @@ func (s Subnets) FilterByZone(zone string) (res Subnets) {
 	return
 }
 
-// GetUniqueZones returns a slice containing the unique zones of the subnets
+// GetUniqueZones returns a slice containing the unique zones of the subnets.
 func (s Subnets) GetUniqueZones() []string {
 	keys := make(map[string]bool)
 	zones := []string{}
@@ -375,14 +375,14 @@ func (s Subnets) GetUniqueZones() []string {
 	return zones
 }
 
-// CNISpec defines configuration for CNI
+// CNISpec defines configuration for CNI.
 type CNISpec struct {
 	// CNIIngressRules specify rules to apply to control plane and worker node security groups.
 	// The source for the rule will be set to control plane and worker security group IDs.
 	CNIIngressRules CNIIngressRules `json:"cniIngressRules,omitempty"`
 }
 
-// CNIIngressRules is a slice of CNIIngressRule
+// CNIIngressRules is a slice of CNIIngressRule.
 type CNIIngressRules []*CNIIngressRule
 
 // CNIIngressRule defines an AWS ingress rule for CNI requirements.
@@ -402,22 +402,22 @@ type RouteTable struct {
 type SecurityGroupRole string
 
 var (
-	// SecurityGroupBastion defines an SSH bastion role
+	// SecurityGroupBastion defines an SSH bastion role.
 	SecurityGroupBastion = SecurityGroupRole("bastion")
 
-	// SecurityGroupNode defines a Kubernetes workload node role
+	// SecurityGroupNode defines a Kubernetes workload node role.
 	SecurityGroupNode = SecurityGroupRole("node")
 
-	// SecurityGroupEKSNodeAdditional defines an extra node group from eks nodes
+	// SecurityGroupEKSNodeAdditional defines an extra node group from eks nodes.
 	SecurityGroupEKSNodeAdditional = SecurityGroupRole("node-eks-additional")
 
-	// SecurityGroupControlPlane defines a Kubernetes control plane node role
+	// SecurityGroupControlPlane defines a Kubernetes control plane node role.
 	SecurityGroupControlPlane = SecurityGroupRole("controlplane")
 
-	// SecurityGroupAPIServerLB defines a Kubernetes API Server Load Balancer role
+	// SecurityGroupAPIServerLB defines a Kubernetes API Server Load Balancer role.
 	SecurityGroupAPIServerLB = SecurityGroupRole("apiserver-lb")
 
-	// SecurityGroupLB defines a container for the cloud provider to inject its load balancer ingress rules
+	// SecurityGroupLB defines a container for the cloud provider to inject its load balancer ingress rules.
 	SecurityGroupLB = SecurityGroupRole("lb")
 )
 
@@ -446,22 +446,22 @@ func (s *SecurityGroup) String() string {
 type SecurityGroupProtocol string
 
 var (
-	// SecurityGroupProtocolAll is a wildcard for all IP protocols
+	// SecurityGroupProtocolAll is a wildcard for all IP protocols.
 	SecurityGroupProtocolAll = SecurityGroupProtocol("-1")
 
-	// SecurityGroupProtocolIPinIP represents the IP in IP protocol in ingress rules
+	// SecurityGroupProtocolIPinIP represents the IP in IP protocol in ingress rules.
 	SecurityGroupProtocolIPinIP = SecurityGroupProtocol("4")
 
-	// SecurityGroupProtocolTCP represents the TCP protocol in ingress rules
+	// SecurityGroupProtocolTCP represents the TCP protocol in ingress rules.
 	SecurityGroupProtocolTCP = SecurityGroupProtocol("tcp")
 
-	// SecurityGroupProtocolUDP represents the UDP protocol in ingress rules
+	// SecurityGroupProtocolUDP represents the UDP protocol in ingress rules.
 	SecurityGroupProtocolUDP = SecurityGroupProtocol("udp")
 
-	// SecurityGroupProtocolICMP represents the ICMP protocol in ingress rules
+	// SecurityGroupProtocolICMP represents the ICMP protocol in ingress rules.
 	SecurityGroupProtocolICMP = SecurityGroupProtocol("icmp")
 
-	// SecurityGroupProtocolICMPv6 represents the ICMPv6 protocol in ingress rules
+	// SecurityGroupProtocolICMPv6 represents the ICMPv6 protocol in ingress rules.
 	SecurityGroupProtocolICMPv6 = SecurityGroupProtocol("58")
 )
 
@@ -508,7 +508,7 @@ func (i IngressRules) Difference(o IngressRules) (out IngressRules) {
 	return
 }
 
-// Equals returns true if two IngressRule are equal
+// Equals returns true if two IngressRule are equal.
 func (i *IngressRule) Equals(o *IngressRule) bool {
 	if len(i.CidrBlocks) != len(o.CidrBlocks) {
 		return false
@@ -560,35 +560,35 @@ func (i *IngressRule) Equals(o *IngressRule) bool {
 type InstanceState string
 
 var (
-	// InstanceStatePending is the string representing an instance in a pending state
+	// InstanceStatePending is the string representing an instance in a pending state.
 	InstanceStatePending = InstanceState("pending")
 
-	// InstanceStateRunning is the string representing an instance in a running state
+	// InstanceStateRunning is the string representing an instance in a running state.
 	InstanceStateRunning = InstanceState("running")
 
-	// InstanceStateShuttingDown is the string representing an instance shutting down
+	// InstanceStateShuttingDown is the string representing an instance shutting down.
 	InstanceStateShuttingDown = InstanceState("shutting-down")
 
-	// InstanceStateTerminated is the string representing an instance that has been terminated
+	// InstanceStateTerminated is the string representing an instance that has been terminated.
 	InstanceStateTerminated = InstanceState("terminated")
 
 	// InstanceStateStopping is the string representing an instance
-	// that is in the process of being stopped and can be restarted
+	// that is in the process of being stopped and can be restarted.
 	InstanceStateStopping = InstanceState("stopping")
 
 	// InstanceStateStopped is the string representing an instance
-	// that has been stopped and can be restarted
+	// that has been stopped and can be restarted.
 	InstanceStateStopped = InstanceState("stopped")
 
 	// InstanceRunningStates defines the set of states in which an EC2 instance is
-	// running or going to be running soon
+	// running or going to be running soon.
 	InstanceRunningStates = sets.NewString(
 		string(InstanceStatePending),
 		string(InstanceStateRunning),
 	)
 
 	// InstanceOperationalStates defines the set of states in which an EC2 instance is
-	// or can return to running, and supports all EC2 operations
+	// or can return to running, and supports all EC2 operations.
 	InstanceOperationalStates = InstanceRunningStates.Union(
 		sets.NewString(
 			string(InstanceStateStopping),
@@ -596,7 +596,7 @@ var (
 		),
 	)
 
-	// InstanceKnownStates represents all known EC2 instance states
+	// InstanceKnownStates represents all known EC2 instance states.
 	InstanceKnownStates = InstanceOperationalStates.Union(
 		sets.NewString(
 			string(InstanceStateShuttingDown),

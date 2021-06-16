@@ -45,7 +45,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// AWSManagedMachinePoolReconciler reconciles a AWSManagedMachinePool object
+// AWSManagedMachinePoolReconciler reconciles a AWSManagedMachinePool object.
 type AWSManagedMachinePoolReconciler struct {
 	client.Client
 	Recorder         record.EventRecorder
@@ -54,7 +54,7 @@ type AWSManagedMachinePoolReconciler struct {
 	WatchFilterValue string
 }
 
-// SetupWithManager is used to setup the controller
+// SetupWithManager is used to setup the controller.
 func (r *AWSManagedMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -84,7 +84,7 @@ func (r *AWSManagedMachinePoolReconciler) SetupWithManager(ctx context.Context, 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedmachinepools,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedmachinepools/status,verbs=get;update;patch
 
-// Reconcile reconciles AWSManagedMachinePools
+// Reconcile reconciles AWSManagedMachinePools.
 func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -203,7 +203,7 @@ func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
 	return reconcile.Result{}, nil
 }
 
-// GetOwnerClusterKey returns only the Cluster name and namespace
+// GetOwnerClusterKey returns only the Cluster name and namespace.
 func GetOwnerClusterKey(obj metav1.ObjectMeta) (*client.ObjectKey, error) {
 	for _, ref := range obj.OwnerReferences {
 		if ref.Kind != "Cluster" {

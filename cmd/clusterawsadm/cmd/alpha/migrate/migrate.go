@@ -39,7 +39,7 @@ var (
 )
 
 // MigrateCmd is the command for migrating AWS resources to be compatible
-// with specific CAPA versions
+// with specific CAPA versions.
 func MigrateCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "migrate [target version]",

@@ -19,12 +19,12 @@ package bootstrap
 import (
 	"fmt"
 
+	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+
 	"github.com/awslabs/goformation/v4/cloudformation"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/bootstrap/v1alpha1"
-
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"

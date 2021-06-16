@@ -69,7 +69,7 @@ func PrintBootstrapCredentials(secret *corev1.Secret) {
 		if base64.StdEncoding.EncodeToString(creds) == "Cg==" {
 			fmt.Println("Credentials are zeroed")
 		} else {
-			fmt.Println(string(creds))
+			fmt.Print(string(creds))
 		}
 	}
 }

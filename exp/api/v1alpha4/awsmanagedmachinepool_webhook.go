@@ -40,7 +40,7 @@ const (
 // log is for logging in this package.
 var mmpLog = logf.Log.WithName("awsmanagedmachinepool-resource")
 
-// SetupWebhookWithManager will setup the webhooks for the AWSManagedMachinePool
+// SetupWebhookWithManager will setup the webhooks for the AWSManagedMachinePool.
 func (r *AWSManagedMachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
@@ -85,9 +85,8 @@ func (r *AWSManagedMachinePool) validateRemoteAccess() field.ErrorList {
 	}
 	remoteAccessPath := field.NewPath("spec", "remoteAccess")
 	sourceSecurityGroups := r.Spec.RemoteAccess.SourceSecurityGroups
-	public := r.Spec.RemoteAccess.Public
 
-	if public && len(sourceSecurityGroups) > 0 {
+	if public := r.Spec.RemoteAccess.Public; public && len(sourceSecurityGroups) > 0 {
 		allErrs = append(
 			allErrs,
 			field.Invalid(remoteAccessPath.Child("sourceSecurityGroups"), sourceSecurityGroups, "must be empty if public is set"),
@@ -97,7 +96,7 @@ func (r *AWSManagedMachinePool) validateRemoteAccess() field.ErrorList {
 	return allErrs
 }
 
-// ValidateCreate will do any extra validation when creating a AWSManagedMachinePool
+// ValidateCreate will do any extra validation when creating a AWSManagedMachinePool.
 func (r *AWSManagedMachinePool) ValidateCreate() error {
 	mmpLog.Info("AWSManagedMachinePool validate create", "name", r.Name)
 
@@ -124,7 +123,7 @@ func (r *AWSManagedMachinePool) ValidateCreate() error {
 	)
 }
 
-// ValidateUpdate will do any extra validation when updating a AWSManagedMachinePool
+// ValidateUpdate will do any extra validation when updating a AWSManagedMachinePool.
 func (r *AWSManagedMachinePool) ValidateUpdate(old runtime.Object) error {
 	mmpLog.Info("AWSManagedMachinePool validate update", "name", r.Name)
 	oldPool, ok := old.(*AWSManagedMachinePool)
@@ -152,7 +151,7 @@ func (r *AWSManagedMachinePool) ValidateUpdate(old runtime.Object) error {
 	)
 }
 
-// ValidateDelete allows you to add any extra validation when deleting
+// ValidateDelete allows you to add any extra validation when deleting.
 func (r *AWSManagedMachinePool) ValidateDelete() error {
 	mmpLog.Info("AWSManagedMachinePool validate delete", "name", r.Name)
 
@@ -191,7 +190,7 @@ func (r *AWSManagedMachinePool) validateImmutable(old *AWSManagedMachinePool) fi
 	return allErrs
 }
 
-// Default will set default values for the AWSManagedMachinePool
+// Default will set default values for the AWSManagedMachinePool.
 func (r *AWSManagedMachinePool) Default() {
 	mmpLog.Info("AWSManagedMachinePool setting defaults", "name", r.Name)
 

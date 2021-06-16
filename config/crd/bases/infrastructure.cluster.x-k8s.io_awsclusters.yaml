@@ -121,7 +121,7 @@ spec:
                 properties:
                   additionalSecurityGroups:
                     description: AdditionalSecurityGroups sets the security groups
-                      used by the load balancer. Expected to be security group IDs.
+                      used by the load balancer. Expected to be security group IDs
                       This is optional - if not provided new security groups will
                       be created for the load balancer
                     items:
@@ -869,7 +869,7 @@ spec:
                 properties:
                   additionalSecurityGroups:
                     description: AdditionalSecurityGroups sets the security groups
-                      used by the load balancer. Expected to be security group IDs.
+                      used by the load balancer. Expected to be security group IDs
                       This is optional - if not provided new security groups will
                       be created for the load balancer
                     items:

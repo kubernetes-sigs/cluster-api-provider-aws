@@ -200,7 +200,6 @@ func TestIsClusterPermittedToUsePrincipal(t *testing.T) {
 			if tc.expectedResult != result {
 				t.Fatal("Did not get expected result")
 			}
-
 		})
 	}
 }
@@ -463,6 +462,7 @@ func TestPrincipalParsing(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			scheme, err := setupScheme()
 			if err != nil {

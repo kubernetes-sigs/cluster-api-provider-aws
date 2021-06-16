@@ -29,33 +29,33 @@ import (
 	cli "k8s.io/cli-runtime/pkg/printers"
 )
 
-// PrinterType is a type declaration for a printer type
+// PrinterType is a type declaration for a printer type.
 type PrinterType string
 
 var (
-	// PrinterTypeTable is a table printer type
+	// PrinterTypeTable is a table printer type.
 	PrinterTypeTable = PrinterType("table")
-	// PrinterTypeYAML is a yaml printer type
+	// PrinterTypeYAML is a yaml printer type.
 	PrinterTypeYAML = PrinterType("yaml")
-	// PrinterTypeJSON is a json printer type
+	// PrinterTypeJSON is a json printer type.
 	PrinterTypeJSON = PrinterType("json")
 )
 
 var (
-	// ErrUnknowPrinterType is an error if a printer type isn't known
+	// ErrUnknowPrinterType is an error if a printer type isn't known.
 	ErrUnknowPrinterType = errors.New("unknown printer type")
 	// ErrTableRequired is an error if the object being printed
-	// isn't a metav1.Table
+	// isn't a metav1.Table.
 	ErrTableRequired = errors.New("metav1.Table is required")
 )
 
-// Printer is an interface for a printer
+// Printer is an interface for a printer.
 type Printer interface {
 	// Print is a method to print an object
 	Print(in interface{}) error
 }
 
-// New creates a new printer
+// New creates a new printer.
 func New(printerType string, writer io.Writer) (Printer, error) {
 	switch printerType {
 	case string(PrinterTypeTable):

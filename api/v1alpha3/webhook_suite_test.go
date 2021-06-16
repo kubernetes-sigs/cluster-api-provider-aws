@@ -20,8 +20,9 @@ import (
 	"fmt"
 	"os"
 	"path"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"testing"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -31,7 +32,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -61,7 +61,7 @@ func TestMain(m *testing.M) {
 
 func setup() {
 	utilruntime.Must(AddToScheme(scheme.Scheme))
-	utilruntime.Must(v1alpha4.AddToScheme(scheme.Scheme))
+	utilruntime.Must(infrav1.AddToScheme(scheme.Scheme))
 
 	testEnvConfig := helpers.NewTestEnvironmentConfiguration([]string{
 		path.Join("config", "crd", "bases"),

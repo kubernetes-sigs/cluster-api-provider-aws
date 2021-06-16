@@ -59,7 +59,7 @@ type AWSManagedCluster struct {
 
 // +kubebuilder:object:root=true
 
-// AWSManagedClusterList contains a list of AWSManagedCluster
+// AWSManagedClusterList contains a list of AWSManagedCluster.
 type AWSManagedClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

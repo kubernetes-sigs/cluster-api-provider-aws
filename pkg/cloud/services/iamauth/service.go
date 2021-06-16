@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 
-// Scope is a scope for use with the iamauth reconciling service
+// Scope is a scope for use with the iamauth reconciling service.
 type Scope interface {
 	cloud.ClusterScoper
 

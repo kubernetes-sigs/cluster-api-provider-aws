@@ -37,8 +37,8 @@ func TestAWSMachinePoolConversion(t *testing.T) {
 			Namespace: ns.Name,
 		},
 		Spec: AWSMachinePoolSpec{
-			MinSize:              1,
-			MaxSize:              3,
+			MinSize: 1,
+			MaxSize: 3,
 		},
 	}
 
@@ -75,8 +75,8 @@ func TestAWSFargateProfileConversion(t *testing.T) {
 			Namespace: ns.Name,
 		},
 		Spec: FargateProfileSpec{
-			ClusterName:    "cluster-name",
-			ProfileName:    "name",
+			ClusterName: "cluster-name",
+			ProfileName: "name",
 		},
 	}
 

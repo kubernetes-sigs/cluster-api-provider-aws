@@ -78,12 +78,10 @@ func (a *availableAddonsList) ToTable() *metav1.Table {
 	}
 
 	for _, addon := range a.Addons {
-
 		row := metav1.TableRow{
 			Cells: []interface{}{addon.Name, addon.Type, addon.Version, addon.Architecture, addon.Compatibilities},
 		}
 		table.Rows = append(table.Rows, row)
-
 	}
 
 	return table
@@ -156,7 +154,6 @@ func (a *installedAddonsList) ToTable() *metav1.Table {
 	}
 
 	for _, addon := range a.Addons {
-
 		if addon.RoleARN == nil {
 			addon.RoleARN = aws.String("")
 		}
@@ -165,8 +162,6 @@ func (a *installedAddonsList) ToTable() *metav1.Table {
 			Cells: []interface{}{addon.Name, addon.Version, addon.Status, addon.CreatedAt, addon.ModifiedAt, *addon.RoleARN, len(addon.HealthIssues)},
 		}
 		table.Rows = append(table.Rows, row)
-
 	}
-
 	return table
 }

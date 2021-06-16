@@ -17,4 +17,5 @@ limitations under the License.
 // Run go generate to regenerate this mock.
 //go:generate ../../../../../hack/tools/bin/mockgen -destination elbapi_mock.go -package mock_elbiface github.com/aws/aws-sdk-go/service/elb/elbiface ELBAPI
 //go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt elbapi_mock.go > _elbapi_mock.go && mv _elbapi_mock.go elbapi_mock.go"
-package mock_elbiface //nolint
+
+package mock_elbiface //nolint:stylecheck

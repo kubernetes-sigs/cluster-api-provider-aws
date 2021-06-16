@@ -19,8 +19,8 @@ package controlleridentitycreator
 import (
 	"context"
 	"reflect"
-	"time"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 
@@ -28,7 +28,6 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
 
 func TestAWSInstanceStateController(t *testing.T) {
 	t.Run("should maintain list of cluster queue URLs and reconcile failing machines", func(t *testing.T) {
@@ -56,6 +55,5 @@ func TestAWSInstanceStateController(t *testing.T) {
 			}
 			return false
 		}, 10*time.Second).Should(Equal(true))
-
 	})
 }

@@ -26,7 +26,7 @@ const (
 	//
 	// // owner: @username
 	// // alpha: v1.X
-	// MyFeature featuregate.Feature = "MyFeature"
+	// MyFeature featuregate.Feature = "MyFeature".
 
 	// EKS is used to enable EKS support
 	// owner: @richardcase

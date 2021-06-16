@@ -347,7 +347,7 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 	}
 }
 
-// getFilteredSubnets fetches subnets filtered based on the criteria passed
+// getFilteredSubnets fetches subnets filtered based on the criteria passed.
 func (s *Service) getFilteredSubnets(criteria ...*ec2.Filter) ([]*ec2.Subnet, error) {
 	out, err := s.EC2Client.DescribeSubnets(&ec2.DescribeSubnetsInput{Filters: criteria})
 	if err != nil {
@@ -357,7 +357,7 @@ func (s *Service) getFilteredSubnets(criteria ...*ec2.Filter) ([]*ec2.Subnet, er
 }
 
 // GetCoreSecurityGroups looks up the security group IDs managed by this actuator
-// They are considered "core" to its proper functioning
+// They are considered "core" to its proper functioning.
 func (s *Service) GetCoreSecurityGroups(scope *scope.MachineScope) ([]string, error) {
 	if scope.IsExternallyManaged() {
 		return nil, nil
@@ -394,7 +394,7 @@ func (s *Service) GetCoreSecurityGroups(scope *scope.MachineScope) ([]string, er
 }
 
 // GetCoreNodeSecurityGroups looks up the security group IDs managed by this actuator
-// They are considered "core" to its proper functioning
+// They are considered "core" to its proper functioning.
 func (s *Service) GetCoreNodeSecurityGroups(scope *scope.MachinePoolScope) ([]string, error) {
 	// These are common across both controlplane and node machines
 	sgRoles := []infrav1.SecurityGroupRole{
@@ -903,7 +903,7 @@ func (s *Service) DetachSecurityGroupsFromNetworkInterface(groups []string, inte
 }
 
 // checkRootVolume checks the input root volume options against the requested AMI's defaults
-// and returns the AMI's root device name
+// and returns the AMI's root device name.
 func (s *Service) checkRootVolume(rootVolume *infrav1.Volume, imageID string) (*string, error) {
 	rootDeviceName, err := s.getImageRootDevice(imageID)
 	if err != nil {
@@ -972,7 +972,7 @@ func getInstanceMarketOptionsRequest(spotMarketOptions *infrav1.SpotMarketOption
 	return instanceMarketOptionsRequest
 }
 
-// GetFilteredSecurityGroupID get security group ID using filters
+// GetFilteredSecurityGroupID get security group ID using filters.
 func (s *Service) GetFilteredSecurityGroupID(securityGroup infrav1.AWSResourceReference) (string, error) {
 	if securityGroup.Filters == nil {
 		return "", nil

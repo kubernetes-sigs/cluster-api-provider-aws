@@ -98,7 +98,7 @@ func (s *Service) createPolicyForRule(input *createPolicyForRuleInput) error {
 
 // GenerateQueueName will generate a queue name.
 func GenerateQueueName(clusterName string) string {
-	adjusted := strings.Replace(clusterName, ".", "-", -1)
+	adjusted := strings.ReplaceAll(clusterName, ".", "-")
 	return fmt.Sprintf("%s-queue", adjusted)
 }
 

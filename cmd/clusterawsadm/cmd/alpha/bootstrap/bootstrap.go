@@ -39,17 +39,14 @@ var (
 	extraNodePolicies         []string
 )
 
-// RootCmd is the root of the `alpha bootstrap command`
+// RootCmd is the root of the `alpha bootstrap command`.
 func RootCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "bootstrap",
 		Short: "bootstrap cloudformation",
 		Long:  `Create and apply bootstrap AWS CloudFormation template to create IAM permissions for the Cluster API`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := cmd.Help(); err != nil {
-				return err
-			}
-			return nil
+			return cmd.Help()
 		},
 	}
 	newCmd.AddCommand(generateCmd())

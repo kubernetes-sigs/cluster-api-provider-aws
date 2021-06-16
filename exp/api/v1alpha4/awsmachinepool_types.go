@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/cluster-api/errors"
 )
 
+// Constants block.
 const (
 	// MachinePoolFinalizer is the finalizer for the machine pool.
 	MachinePoolFinalizer = "awsmachinepool.infrastructure.cluster.x-k8s.io"
@@ -200,7 +201,7 @@ type AWSMachinePool struct {
 
 // +kubebuilder:object:root=true
 
-// AWSMachinePoolList contains a list of AWSMachinePool
+// AWSMachinePoolList contains a list of AWSMachinePool.
 type AWSMachinePoolList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

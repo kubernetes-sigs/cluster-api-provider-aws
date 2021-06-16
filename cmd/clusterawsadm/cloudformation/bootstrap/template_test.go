@@ -168,7 +168,7 @@ func Test_RenderCloudformation(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		ioutil.WriteFile("/tmp/tmp1", tData, 600)
+		ioutil.WriteFile("/tmp/tmp1", tData, 0600) // nolint:gosec
 
 		if string(tData) != string(data) {
 			dmp := diffmatchpatch.New()

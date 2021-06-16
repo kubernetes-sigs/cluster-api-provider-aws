@@ -30,11 +30,11 @@ import (
 )
 
 var (
-	// ErrUnknowTaintEffect is an error when a unknown TaintEffect is used
+	// ErrUnknowTaintEffect is an error when a unknown TaintEffect is used.
 	ErrUnknowTaintEffect = errors.New("uknown taint effect")
 )
 
-// AddonSDKToAddonState is used to convert an AWS SDK Addon to a control plane AddonState
+// AddonSDKToAddonState is used to convert an AWS SDK Addon to a control plane AddonState.
 func AddonSDKToAddonState(eksAddon *eks.Addon) *ekscontrolplanev1.AddonState {
 	addonState := &ekscontrolplanev1.AddonState{
 		Name:                  aws.StringValue(eksAddon.AddonName),
@@ -70,7 +70,6 @@ func TaintToSDK(taint infrav1exp.Taint) (*eks.Taint, error) {
 		Key:    aws.String(taint.Key),
 		Value:  aws.String(taint.Value),
 	}, nil
-
 }
 
 // TaintsToSDK is used to convert an array of CAPA Taints to AWS SDK taints.
@@ -88,7 +87,7 @@ func TaintsToSDK(taints infrav1exp.Taints) ([]*eks.Taint, error) {
 	return converted, nil
 }
 
-// TaintsFromSDK is used to convert an array of AWS SDK taints to CAPA Taints
+// TaintsFromSDK is used to convert an array of AWS SDK taints to CAPA Taints.
 func TaintsFromSDK(taints []*eks.Taint) (infrav1exp.Taints, error) {
 	converted := infrav1exp.Taints{}
 	for _, taint := range taints {
@@ -106,7 +105,7 @@ func TaintsFromSDK(taints []*eks.Taint) (infrav1exp.Taints, error) {
 	return converted, nil
 }
 
-// TaintEffectToSDK is used to convert a TaintEffect to the AWS SDK taint effect value
+// TaintEffectToSDK is used to convert a TaintEffect to the AWS SDK taint effect value.
 func TaintEffectToSDK(effect infrav1exp.TaintEffect) (string, error) {
 	switch effect {
 	case infrav1exp.TaintEffectNoExecute:
@@ -120,7 +119,7 @@ func TaintEffectToSDK(effect infrav1exp.TaintEffect) (string, error) {
 	}
 }
 
-// TaintEffectFromSDK is used to convert a AWS SDK taint effect value to a TaintEffect
+// TaintEffectFromSDK is used to convert a AWS SDK taint effect value to a TaintEffect.
 func TaintEffectFromSDK(effect string) (infrav1exp.TaintEffect, error) {
 	switch effect {
 	case eks.TaintEffectNoExecute:

@@ -34,7 +34,7 @@ var (
 	ErrIsNotUserARN     = errors.New("supplied ARN is not a user ARN")
 )
 
-// Validate will return nil is there are no errors with the role mapping
+// Validate will return nil is there are no errors with the role mapping.
 func (r *RoleMapping) Validate() []error {
 	errs := []error{}
 
@@ -66,7 +66,7 @@ func (r *RoleMapping) Validate() []error {
 	return errs
 }
 
-// Validate will return nil is there are no errors with the user mapping
+// Validate will return nil is there are no errors with the user mapping.
 func (u *UserMapping) Validate() []error {
 	errs := []error{}
 

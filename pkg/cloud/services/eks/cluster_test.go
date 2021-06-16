@@ -17,9 +17,10 @@ limitations under the License.
 package eks
 
 import (
+	"testing"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
@@ -242,7 +243,6 @@ func TestMakeVPCConfig(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestPublicAccessCIDRsEqual(t *testing.T) {
@@ -395,7 +395,7 @@ func TestReconcileClusterVersion(t *testing.T) {
 
 			scheme := runtime.NewScheme()
 			_ = infrav1.AddToScheme(scheme)
-			_= ekscontrolplanev1.AddToScheme(scheme)
+			_ = ekscontrolplanev1.AddToScheme(scheme)
 			client := fake.NewClientBuilder().WithScheme(scheme).Build()
 			scope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
 				Client: client,

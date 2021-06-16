@@ -53,7 +53,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// AWSClusterReconciler reconciles a AwsCluster object
+// AWSClusterReconciler reconciles a AwsCluster object.
 type AWSClusterReconciler struct {
 	client.Client
 	Recorder         record.EventRecorder
@@ -250,7 +250,7 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 	if _, err := net.LookupIP(awsCluster.Status.Network.APIServerELB.DNSName); err != nil {
 		conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.WaitForDNSNameResolveReason, clusterv1.ConditionSeverityInfo, "")
 		clusterScope.Info("Waiting on API server ELB DNS name to resolve")
-		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
+		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil // nolint:nilerr
 	}
 	conditions.MarkTrue(awsCluster, infrav1.LoadBalancerReadyCondition)
 

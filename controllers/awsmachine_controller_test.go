@@ -27,6 +27,8 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 
+	"testing"
+
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,7 +46,6 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 func TestAWSMachineReconciler(t *testing.T) {
@@ -218,7 +219,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 				g.Expect(err).To(BeNil())
 				g.Expect(buf.String()).To(ContainSubstring("Cluster infrastructure is not ready yet"))
 				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, infrav1.WaitingForClusterInfrastructureReason}})
-
 			})
 
 			t.Run("should exit immediately if bootstrap data secret reference isn't available", func(t *testing.T) {
@@ -302,7 +302,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 			}
 
 			t.Run("instance security group errors", func(t *testing.T) {
-
 				var buf *bytes.Buffer
 				getInstanceSecurityGroups := func(t *testing.T, g *WithT) {
 					buf = new(bytes.Buffer)
@@ -381,7 +380,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 						Return(map[string][]string{"eid": {}}, nil)
 					secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 					ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil)
-
 				}
 				t.Run("should reconcile security groups", func(t *testing.T) {
 					g := NewWithT(t)
@@ -400,7 +398,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
 					expectConditions(g, ms.AWSMachine, []conditionAssertion{{conditionType: infrav1.SecurityGroupsReadyCondition, status: corev1.ConditionTrue}})
-
 				})
 
 				t.Run("should not tag anything if there's not tags", func(t *testing.T) {
@@ -438,7 +435,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
 					g.Expect(err).To(BeNil())
 				})
-
 			})
 			t.Run("temporarily stopping then starting the AWSMachine", func(t *testing.T) {
 				var buf *bytes.Buffer
@@ -494,7 +490,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 					g.Expect(ms.AWSMachine.Status.Ready).To(Equal(true))
 					g.Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
 				})
-
 			})
 			t.Run("deleting the AWSMachine outside of Kubernetes", func(t *testing.T) {
 				var buf *bytes.Buffer
@@ -533,9 +528,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					g.Expect(ms.AWSMachine.Status.FailureMessage).To(PointTo(Equal("EC2 instance state \"terminated\" is unexpected")))
 					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.InstanceTerminatedReason}})
 				})
-
 			})
-
 		})
 	})
 
@@ -920,7 +913,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 					g.Expect(err).To(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ConsistOf(metav1.FinalizerDeleteDependents))
 				})
-
 			})
 		})
 	})

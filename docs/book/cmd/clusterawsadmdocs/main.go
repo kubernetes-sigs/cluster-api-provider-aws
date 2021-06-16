@@ -67,7 +67,6 @@ func commandSummary(tree commandLeaf, prefix int) {
 }
 
 func buildCommandTree(tree commandLeaf, cmd *cobra.Command) {
-
 	children := cmd.Commands()
 
 	sort.Sort(byName(children))

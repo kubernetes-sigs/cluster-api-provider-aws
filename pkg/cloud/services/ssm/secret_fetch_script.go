@@ -16,7 +16,8 @@ limitations under the License.
 
 package ssm
 
-const secretFetchScript = `#cloud-boothook
+// nolint: gosec
+const secretFetchScript = `#cloud-boothook 
 #!/bin/bash
 
 # Copyright 2020 The Kubernetes Authors.

@@ -34,7 +34,7 @@ const (
 	maxProfileNameLength = 100
 )
 
-// SetupWebhookWithManager will setup the webhooks for the AWSFargateProfile
+// SetupWebhookWithManager will setup the webhooks for the AWSFargateProfile.
 func (r *AWSFargateProfile) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
@@ -47,7 +47,7 @@ func (r *AWSFargateProfile) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Defaulter = &AWSFargateProfile{}
 var _ webhook.Validator = &AWSFargateProfile{}
 
-// Default will set default values for the AWSFargateProfile
+// Default will set default values for the AWSFargateProfile.
 func (r *AWSFargateProfile) Default() {
 	if r.Labels == nil {
 		r.Labels = make(map[string]string)

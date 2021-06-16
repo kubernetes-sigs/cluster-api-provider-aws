@@ -130,7 +130,7 @@ func (s *ClusterScope) CNIIngressRules() infrav1.CNIIngressRules {
 	return infrav1.CNIIngressRules{}
 }
 
-// SecurityGroupOverrides returns the cluster security group overrides
+// SecurityGroupOverrides returns the cluster security group overrides.
 func (s *ClusterScope) SecurityGroupOverrides() map[infrav1.SecurityGroupRole]string {
 	return s.AWSCluster.Spec.NetworkSpec.SecurityGroupOverrides
 }
@@ -140,7 +140,7 @@ func (s *ClusterScope) SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.Se
 	return s.AWSCluster.Status.Network.SecurityGroups
 }
 
-// SecondaryCidrBlock is currently unimplemented for non-managed clusters
+// SecondaryCidrBlock is currently unimplemented for non-managed clusters.
 func (s *ClusterScope) SecondaryCidrBlock() *string {
 	return nil
 }
@@ -166,17 +166,17 @@ func (s *ClusterScope) Region() string {
 }
 
 // KubernetesClusterName is the name of the Kubernetes cluster. For the cluster
-// scope this is the same as the CAPI cluster name
+// scope this is the same as the CAPI cluster name.
 func (s *ClusterScope) KubernetesClusterName() string {
 	return s.Cluster.Name
 }
 
-// ControlPlaneLoadBalancer returns the AWSLoadBalancerSpec
+// ControlPlaneLoadBalancer returns the AWSLoadBalancerSpec.
 func (s *ClusterScope) ControlPlaneLoadBalancer() *infrav1.AWSLoadBalancerSpec {
 	return s.AWSCluster.Spec.ControlPlaneLoadBalancer
 }
 
-// ControlPlaneLoadBalancerScheme returns the Classic ELB scheme (public or internal facing)
+// ControlPlaneLoadBalancerScheme returns the Classic ELB scheme (public or internal facing).
 func (s *ClusterScope) ControlPlaneLoadBalancerScheme() infrav1.ClassicELBScheme {
 	if s.ControlPlaneLoadBalancer() != nil && s.ControlPlaneLoadBalancer().Scheme != nil {
 		return *s.ControlPlaneLoadBalancer().Scheme
@@ -277,12 +277,12 @@ func (s *ClusterScope) InfraCluster() cloud.ClusterObject {
 	return s.AWSCluster
 }
 
-// Session returns the AWS SDK session. Used for creating clients
+// Session returns the AWS SDK session. Used for creating clients.
 func (s *ClusterScope) Session() awsclient.ConfigProvider {
 	return s.session
 }
 
-// ServiceLimiter returns the AWS SDK session. Used for creating clients
+// ServiceLimiter returns the AWS SDK session. Used for creating clients.
 func (s *ClusterScope) ServiceLimiter(service string) *throttle.ServiceLimiter {
 	if sl, ok := s.serviceLimiters[service]; ok {
 		return sl
@@ -311,17 +311,17 @@ func (s *ClusterScope) ControllerName() string {
 	return s.controllerName
 }
 
-// ImageLookupFormat returns the format string to use when looking up AMIs
+// ImageLookupFormat returns the format string to use when looking up AMIs.
 func (s *ClusterScope) ImageLookupFormat() string {
 	return s.AWSCluster.Spec.ImageLookupFormat
 }
 
-// ImageLookupOrg returns the organization name to use when looking up AMIs
+// ImageLookupOrg returns the organization name to use when looking up AMIs.
 func (s *ClusterScope) ImageLookupOrg() string {
 	return s.AWSCluster.Spec.ImageLookupOrg
 }
 
-// ImageLookupBaseOS returns the base operating system name to use when looking up AMIs
+// ImageLookupBaseOS returns the base operating system name to use when looking up AMIs.
 func (s *ClusterScope) ImageLookupBaseOS() string {
 	return s.AWSCluster.Spec.ImageLookupBaseOS
 }

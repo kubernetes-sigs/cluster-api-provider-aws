@@ -48,7 +48,7 @@ func setup() {
 	utilruntime.Must(bootstrapv1alpha4.AddToScheme(scheme.Scheme))
 
 	testEnvConfig := helpers.NewTestEnvironmentConfiguration([]string{
-		path.Join( "bootstrap", "eks", "config", "crd", "bases"),
+		path.Join("bootstrap", "eks", "config", "crd", "bases"),
 	},
 	).WithWebhookConfiguration("unmanaged", path.Join("bootstrap", "eks", "config", "webhook", "manifests.yaml"))
 	var err error

@@ -121,7 +121,7 @@ func (s *ManagedMachinePoolScope) ManagedPoolName() string {
 	return s.ManagedMachinePool.Name
 }
 
-// ServiceLimiter returns the AWS SDK session. Used for creating clients
+// ServiceLimiter returns the AWS SDK session. Used for creating clients.
 func (s *ManagedMachinePoolScope) ServiceLimiter(service string) *throttle.ServiceLimiter {
 	if sl, ok := s.serviceLimiters[service]; ok {
 		return sl
@@ -134,7 +134,7 @@ func (s *ManagedMachinePoolScope) ClusterName() string {
 	return s.Cluster.Name
 }
 
-// EnableIAM indicates that reconciliation should create IAM roles
+// EnableIAM indicates that reconciliation should create IAM roles.
 func (s *ManagedMachinePoolScope) EnableIAM() bool {
 	return s.enableIAM
 }
@@ -154,12 +154,12 @@ func (s *ManagedMachinePoolScope) AdditionalTags() infrav1.Tags {
 	return s.ManagedMachinePool.Spec.AdditionalTags.DeepCopy()
 }
 
-// RoleName returns the node group role name
+// RoleName returns the node group role name.
 func (s *ManagedMachinePoolScope) RoleName() string {
 	return s.ManagedMachinePool.Spec.RoleName
 }
 
-// Version returns the nodegroup Kubernetes version
+// Version returns the nodegroup Kubernetes version.
 func (s *ManagedMachinePoolScope) Version() *string {
 	return s.MachinePool.Spec.Template.Spec.Version
 }
@@ -185,7 +185,7 @@ func (s *ManagedMachinePoolScope) SubnetIDs() ([]string, error) {
 }
 
 // NodegroupReadyFalse marks the ready condition false using warning if error isn't
-// empty
+// empty.
 func (s *ManagedMachinePoolScope) NodegroupReadyFalse(reason string, err string) error {
 	severity := clusterv1.ConditionSeverityWarning
 	if err == "" {
@@ -205,7 +205,7 @@ func (s *ManagedMachinePoolScope) NodegroupReadyFalse(reason string, err string)
 }
 
 // IAMReadyFalse marks the ready condition false using warning if error isn't
-// empty
+// empty.
 func (s *ManagedMachinePoolScope) IAMReadyFalse(reason string, err string) error {
 	severity := clusterv1.ConditionSeverityWarning
 	if err == "" {
@@ -245,7 +245,7 @@ func (s *ManagedMachinePoolScope) InfraCluster() cloud.ClusterObject {
 	return s.ControlPlane
 }
 
-// Session returns the AWS SDK session. Used for creating clients
+// Session returns the AWS SDK session. Used for creating clients.
 func (s *ManagedMachinePoolScope) Session() awsclient.ConfigProvider {
 	return s.session
 }
@@ -261,7 +261,7 @@ func (s *ManagedMachinePoolScope) KubernetesClusterName() string {
 	return s.ControlPlane.Spec.EKSClusterName
 }
 
-// NodegroupName is the name of the EKS nodegroup
+// NodegroupName is the name of the EKS nodegroup.
 func (s *ManagedMachinePoolScope) NodegroupName() string {
 	return s.ManagedMachinePool.Spec.EKSNodegroupName
 }

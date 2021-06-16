@@ -29,7 +29,7 @@ type Plan interface {
 }
 
 // Procedure represents a procedure/operation that will be carried out
-// as part of executing a plan
+// as part of executing a plan.
 type Procedure interface {
 	// Name is the name of the procedure/operation
 	Name() string

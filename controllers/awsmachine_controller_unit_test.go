@@ -22,7 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2/klogr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
@@ -43,7 +43,7 @@ func newMachine(clusterName, machineName string) *clusterv1.Machine {
 
 func newMachineWithInfrastructureRef(clusterName, machineName string) *clusterv1.Machine {
 	m := newMachine(clusterName, machineName)
-	m.Spec.InfrastructureRef = v1.ObjectReference{
+	m.Spec.InfrastructureRef = corev1.ObjectReference{
 		Kind:       "AWSMachine",
 		Namespace:  "",
 		Name:       "aws" + machineName,
@@ -76,17 +76,17 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 	}
 
 	requests := reconciler.AWSClusterToAWSMachines(klogr.New())(&infrav1.AWSCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      clusterName,
-				Namespace: "default",
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						Name:       clusterName,
-						Kind:       "Cluster",
-						APIVersion: clusterv1.GroupVersion.String(),
-					},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      clusterName,
+			Namespace: "default",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					Name:       clusterName,
+					Kind:       "Cluster",
+					APIVersion: clusterv1.GroupVersion.String(),
 				},
 			},
+		},
 	})
 	if len(requests) != 2 {
 		t.Fatalf("Expected 2 but found %d requests", len(requests))

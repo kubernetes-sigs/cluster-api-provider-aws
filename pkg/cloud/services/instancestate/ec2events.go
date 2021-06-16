@@ -21,11 +21,8 @@ func (s Service) ReconcileEC2Events() error {
 	if err := s.reconcileSQSQueue(); err != nil {
 		return err
 	}
-	if err := s.reconcileRules(); err != nil {
-		return err
-	}
 
-	return nil
+	return s.reconcileRules()
 }
 
 // DeleteEC2Events will delete a Service's EC2 events.
@@ -34,9 +31,5 @@ func (s Service) DeleteEC2Events() error {
 		return err
 	}
 
-	if err := s.deleteSQSQueue(); err != nil {
-		return err
-	}
-
-	return nil
+	return s.deleteSQSQueue()
 }

@@ -189,12 +189,12 @@ func (m *MachinePoolScope) SetFailureReason(v capierrors.MachineStatusError) {
 	m.AWSMachinePool.Status.FailureReason = &v
 }
 
-// HasFailed returns true when the AWSMachinePool's Failure reason or Failure message is populated
+// HasFailed returns true when the AWSMachinePool's Failure reason or Failure message is populated.
 func (m *MachinePoolScope) HasFailed() bool {
 	return m.AWSMachinePool.Status.FailureReason != nil || m.AWSMachinePool.Status.FailureMessage != nil
 }
 
-// SetNotReady sets the AWSMachinePool Ready Status to false
+// SetNotReady sets the AWSMachinePool Ready Status to false.
 func (m *MachinePoolScope) SetNotReady() {
 	m.AWSMachinePool.Status.Ready = false
 }
@@ -239,7 +239,7 @@ func (m *MachinePoolScope) SubnetIDs() ([]string, error) {
 	})
 }
 
-// NodeStatus represents the status of a Kubernetes node
+// NodeStatus represents the status of a Kubernetes node.
 type NodeStatus struct {
 	Ready   bool
 	Version string
@@ -297,7 +297,6 @@ func (m *MachinePoolScope) getNodeStatusByProviderID(ctx context.Context, provid
 		}
 
 		for _, node := range nodeList.Items {
-
 			strList := strings.Split(node.Spec.ProviderID, "/")
 
 			if status, ok := nodeStatusMap[fmt.Sprintf("aws:////%s", strList[len(strList)-1])]; ok {

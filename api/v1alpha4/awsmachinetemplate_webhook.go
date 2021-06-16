@@ -38,7 +38,7 @@ var (
 	_ webhook.Validator = &AWSMachineTemplate{}
 )
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSMachineTemplate) ValidateCreate() error {
 	var allErrs field.ErrorList
 	spec := r.Spec.Template.Spec
@@ -58,7 +58,7 @@ func (r *AWSMachineTemplate) ValidateCreate() error {
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSMachineTemplate) ValidateUpdate(old runtime.Object) error {
 	oldAWSMachineTemplate := old.(*AWSMachineTemplate)
 
@@ -68,14 +68,13 @@ func (r *AWSMachineTemplate) ValidateUpdate(old runtime.Object) error {
 	}
 
 	if !reflect.DeepEqual(r.Spec, oldAWSMachineTemplate.Spec) {
-
 		return apierrors.NewBadRequest("AWSMachineTemplate.Spec is immutable")
 	}
 
 	return nil
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSMachineTemplate) ValidateDelete() error {
 	return nil
 }

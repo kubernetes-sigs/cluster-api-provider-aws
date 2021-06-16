@@ -34,25 +34,25 @@ func TestFuzzyConversion(t *testing.T) {
 
 	t.Run("for AWSMachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
-		Hub: &v1alpha4.AWSMachinePool{},
-		Spoke: &AWSMachinePool{},
+		Hub:    &v1alpha4.AWSMachinePool{},
+		Spoke:  &AWSMachinePool{},
 	}))
 
 	t.Run("for AWSManagedMachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
-		Hub: &v1alpha4.AWSManagedMachinePool{},
-		Spoke: &AWSManagedMachinePool{},
+		Hub:    &v1alpha4.AWSManagedMachinePool{},
+		Spoke:  &AWSManagedMachinePool{},
 	}))
 
 	t.Run("for AWSManagedCluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
-		Hub: &v1alpha4.AWSManagedCluster{},
-		Spoke: &AWSManagedCluster{},
+		Hub:    &v1alpha4.AWSManagedCluster{},
+		Spoke:  &AWSManagedCluster{},
 	}))
 
 	t.Run("for AWSFargateProfile", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
-		Hub: &v1alpha4.AWSFargateProfile{},
-		Spoke: &AWSFargateProfile{},
+		Hub:    &v1alpha4.AWSFargateProfile{},
+		Spoke:  &AWSFargateProfile{},
 	}))
 }

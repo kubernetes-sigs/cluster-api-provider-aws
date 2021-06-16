@@ -36,7 +36,7 @@ const (
 	maxIAMRoleNameLength = 64
 )
 
-// NodegroupRolePolicies gives the policies required for a nodegroup role
+// NodegroupRolePolicies gives the policies required for a nodegroup role.
 func NodegroupRolePolicies() []string {
 	return []string{
 		"arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
@@ -45,7 +45,7 @@ func NodegroupRolePolicies() []string {
 	}
 }
 
-// FargateRolePolicies gives the policies required for a fargate role
+// FargateRolePolicies gives the policies required for a fargate role.
 func FargateRolePolicies() []string {
 	return []string{
 		"arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy",

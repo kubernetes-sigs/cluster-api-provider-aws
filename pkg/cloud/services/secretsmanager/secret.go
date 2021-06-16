@@ -83,7 +83,7 @@ func (s *Service) Create(m *scope.MachineScope, data []byte) (string, int32, err
 	return prefix, chunks, err
 }
 
-// retryableCreateSecret is a function to be passed into a waiter. In a separate function for ease of reading
+// retryableCreateSecret is a function to be passed into a waiter. In a separate function for ease of reading.
 func (s *Service) retryableCreateSecret(name string, chunk []byte, tags infrav1.Tags) (bool, error) {
 	_, err := s.SecretsManagerClient.CreateSecret(&secretsmanager.CreateSecretInput{
 		Name:         aws.String(name),
@@ -100,7 +100,7 @@ func (s *Service) retryableCreateSecret(name string, chunk []byte, tags infrav1.
 	return true, err
 }
 
-// forceDeleteSecretEntry deletes a single secret, ignoring if it is absent
+// forceDeleteSecretEntry deletes a single secret, ignoring if it is absent.
 func (s *Service) forceDeleteSecretEntry(name string) error {
 	_, err := s.SecretsManagerClient.DeleteSecret(&secretsmanager.DeleteSecretInput{
 		SecretId:                   aws.String(name),
@@ -112,7 +112,7 @@ func (s *Service) forceDeleteSecretEntry(name string) error {
 	return err
 }
 
-// Delete the secret belonging to a machine from AWS Secrets Manager
+// Delete the secret belonging to a machine from AWS Secrets Manager.
 func (s *Service) Delete(m *scope.MachineScope) error {
 	var errs []error
 	for i := int32(0); i < m.GetSecretCount(); i++ {

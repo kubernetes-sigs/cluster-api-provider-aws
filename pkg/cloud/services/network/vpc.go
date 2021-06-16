@@ -56,7 +56,6 @@ func (s *Service) reconcileVPC() error {
 		if err != nil {
 			return errors.Wrap(err, "failed to create new vpc")
 		}
-
 	} else if err != nil {
 		return errors.Wrap(err, "failed to describe VPCs")
 	}

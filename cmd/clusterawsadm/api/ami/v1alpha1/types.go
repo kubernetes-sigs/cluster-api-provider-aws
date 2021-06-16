@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+// Constants.
 const (
 	// AWSAMIKind defines an AMI kind.
 	AWSAMIKind = "AWSAMI"
@@ -29,7 +30,7 @@ const (
 	AWSAMIListKind = "AWSAMIList"
 )
 
-// AWSAMISpec defines an AMI
+// AWSAMISpec defines an AMI.
 type AWSAMISpec struct {
 	OS                string `json:"os"`
 	Region            string `json:"region"`
@@ -40,7 +41,7 @@ type AWSAMISpec struct {
 // +kubebuilder:object:root=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// AWSAMI defines an AMI
+// AWSAMI defines an AMI.
 type AWSAMI struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -50,7 +51,7 @@ type AWSAMI struct {
 // +kubebuilder:object:root=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// AWSAMIList defines a list of AMIs
+// AWSAMIList defines a list of AMIs.
 type AWSAMIList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -89,12 +90,10 @@ func (a *AWSAMIList) ToTable() *metav1.Table {
 	}
 
 	for _, ami := range a.Items {
-
 		row := metav1.TableRow{
 			Cells: []interface{}{ami.Spec.KubernetesVersion, ami.Spec.Region, ami.Spec.OS, ami.GetName(), ami.Spec.ImageID},
 		}
 		table.Rows = append(table.Rows, row)
-
 	}
 	return table
 }

@@ -18,8 +18,9 @@ package scope
 
 import (
 	"encoding/base64"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -199,8 +200,7 @@ func TestSetSecretARN(t *testing.T) {
 	}
 
 	scope.SetSecretPrefix(prefix)
-	val := scope.GetSecretPrefix()
-	if val != prefix {
+	if val := scope.GetSecretPrefix(); val != prefix {
 		t.Fatalf("prefix does not equal %s: %s", prefix, val)
 	}
 }

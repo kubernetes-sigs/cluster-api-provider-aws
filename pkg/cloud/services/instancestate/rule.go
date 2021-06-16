@@ -32,7 +32,7 @@ import (
 // Ec2StateChangeNotification defines the EC2 instance's state change notification.
 const Ec2StateChangeNotification = "EC2 Instance State-change Notification"
 
-// reconcileRules creates rules and attaches the queue as a target
+// reconcileRules creates rules and attaches the queue as a target.
 func (s Service) reconcileRules() error {
 	var ruleNotFound bool
 	ruleResp, err := s.EventBridgeClient.DescribeRule(&eventbridge.DescribeRuleInput{

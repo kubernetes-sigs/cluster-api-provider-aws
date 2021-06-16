@@ -30,7 +30,7 @@ func setupCluster(clusterName string) (*scope.ClusterScope, error) {
 	_ = infrav1.AddToScheme(scheme)
 	awsCluster := &infrav1.AWSCluster{
 		ObjectMeta: metav1.ObjectMeta{Name: "test"},
-		Spec: infrav1.AWSClusterSpec{},
+		Spec:       infrav1.AWSClusterSpec{},
 	}
 	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).Build()
 	return scope.NewClusterScope(scope.ClusterScopeParams{

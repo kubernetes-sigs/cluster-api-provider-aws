@@ -36,7 +36,7 @@ import (
 )
 
 const (
-	// EKSFargateService is the service to trust for fargate pod execution roles
+	// EKSFargateService is the service to trust for fargate pod execution roles.
 	EKSFargateService = "eks-fargate-pods.amazonaws.com"
 )
 
@@ -97,8 +97,7 @@ func (s *IAMService) detachIAMRolePolicy(roleName string, policyARN string) erro
 		PolicyArn: aws.String(policyARN),
 	}
 
-	_, err := s.IAMClient.DetachRolePolicy(input)
-	if err != nil {
+	if _, err := s.IAMClient.DetachRolePolicy(input); err != nil {
 		return errors.Wrapf(err, "error detaching policy %s from role %s", policyARN, roleName)
 	}
 
@@ -111,8 +110,7 @@ func (s *IAMService) attachIAMRolePolicy(roleName string, policyARN string) erro
 		PolicyArn: aws.String(policyARN),
 	}
 
-	_, err := s.IAMClient.AttachRolePolicy(input)
-	if err != nil {
+	if _, err := s.IAMClient.AttachRolePolicy(input); err != nil {
 		return errors.Wrapf(err, "error attaching policy %s to role %s", policyARN, roleName)
 	}
 
@@ -238,7 +236,6 @@ func (s *IAMService) EnsureTagsAndPolicy(
 		if _, err := s.IAMClient.UpdateAssumeRolePolicy(policyInput); err != nil {
 			return updated, err
 		}
-
 	}
 
 	tagInput := &iam.TagRoleInput{
@@ -313,8 +310,7 @@ func (s *IAMService) DeleteRole(name string) error {
 		RoleName: aws.String(name),
 	}
 
-	_, err := s.IAMClient.DeleteRole(input)
-	if err != nil {
+	if _, err := s.IAMClient.DeleteRole(input); err != nil {
 		return errors.Wrapf(err, "error deleting role %s", name)
 	}
 

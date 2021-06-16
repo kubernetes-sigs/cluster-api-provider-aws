@@ -42,7 +42,7 @@ func requeueRoleUpdating() reconcile.Result {
 	return reconcile.Result{RequeueAfter: 10 * time.Second}
 }
 
-// Reconcile is the entrypoint for FargateProfile reconciliation
+// Reconcile is the entrypoint for FargateProfile reconciliation.
 func (s *FargateService) Reconcile() (reconcile.Result, error) {
 	s.scope.V(2).Info("Reconciling EKS fargate profile")
 
@@ -84,7 +84,6 @@ func (s *FargateService) Reconcile() (reconcile.Result, error) {
 }
 
 func (s *FargateService) reconcileFargateProfile() (requeue bool, err error) {
-	eksClusterName := s.scope.KubernetesClusterName()
 	profileName := s.scope.FargateProfile.Spec.ProfileName
 
 	profile, err := s.describeFargateProfile()
@@ -92,7 +91,7 @@ func (s *FargateService) reconcileFargateProfile() (requeue bool, err error) {
 		return false, errors.Wrap(err, "failed to describe profile")
 	}
 
-	if profile == nil {
+	if eksClusterName := s.scope.KubernetesClusterName(); profile == nil {
 		profile, err = s.createFargateProfile()
 		if err != nil {
 			return false, errors.Wrap(err, "failed to create profile")
@@ -154,7 +153,7 @@ func (s *FargateService) handleStatus(profile *eks.FargateProfile) (requeue bool
 	}
 }
 
-// ReconcileDelete is the entrypoint for FargateProfile reconciliation
+// ReconcileDelete is the entrypoint for FargateProfile reconciliation.
 func (s *FargateService) ReconcileDelete() (reconcile.Result, error) {
 	s.scope.V(2).Info("Reconciling EKS fargate profile deletion")
 

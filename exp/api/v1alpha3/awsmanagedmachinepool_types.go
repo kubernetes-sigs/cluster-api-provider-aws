@@ -27,26 +27,26 @@ import (
 )
 
 const (
-	// ManagedMachinePoolFinalizer allows the controller to clean up resources on delete
+	// ManagedMachinePoolFinalizer allows the controller to clean up resources on delete.
 	ManagedMachinePoolFinalizer = "awsmanagedmachinepools.infrastructure.cluster.x-k8s.io"
 )
 
-// ManagedMachineAMIType specifies which AWS AMI to use for a managed MachinePool
+// ManagedMachineAMIType specifies which AWS AMI to use for a managed MachinePool.
 type ManagedMachineAMIType string
 
 const (
-	// Al2x86_64 is the default AMI type
+	// Al2x86_64 is the default AMI type.
 	Al2x86_64 ManagedMachineAMIType = "AL2_x86_64"
-	// Al2x86_64GPU is the x86-64 GPU AMI type
+	// Al2x86_64GPU is the x86-64 GPU AMI type.
 	Al2x86_64GPU ManagedMachineAMIType = "AL2_x86_64_GPU"
-	// Al2Arm64 is the Arm AMI type
+	// Al2Arm64 is the Arm AMI type.
 	Al2Arm64 ManagedMachineAMIType = "AL2_ARM_64"
 )
 
 var (
 	// DefaultEKSNodegroupRole is the name of the default IAM role to use for EKS nodegroups
 	// if no other role is supplied in the spec and if iam role creation is not enabled. The default
-	// can be created using clusterawsadm or created manually
+	// can be created using clusterawsadm or created manually.
 	DefaultEKSNodegroupRole = fmt.Sprintf("eks-nodegroup%s", infrav1.DefaultNameSuffix)
 )
 
@@ -119,13 +119,13 @@ type AWSManagedMachinePoolSpec struct {
 	ProviderIDList []string `json:"providerIDList,omitempty"`
 }
 
-// ManagedMachinePoolScaling specifies scaling options
+// ManagedMachinePoolScaling specifies scaling options.
 type ManagedMachinePoolScaling struct {
 	MinSize *int32 `json:"minSize,omitempty"`
 	MaxSize *int32 `json:"maxSize,omitempty"`
 }
 
-// ManagedRemoteAccess specifies remote access settings for EC2 instances
+// ManagedRemoteAccess specifies remote access settings for EC2 instances.
 type ManagedRemoteAccess struct {
 	// SSHKeyName specifies which EC2 SSH key can be used to access machines.
 	// If left empty, the key from the control plane is used.
@@ -219,7 +219,7 @@ func (r *AWSManagedMachinePool) SetConditions(conditions clusterv1.Conditions) {
 
 // +kubebuilder:object:root=true
 
-// AWSManagedMachinePoolList contains a list of AWSManagedMachinePools
+// AWSManagedMachinePoolList contains a list of AWSManagedMachinePools.
 type AWSManagedMachinePoolList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

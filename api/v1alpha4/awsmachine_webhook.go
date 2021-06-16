@@ -45,7 +45,7 @@ var (
 	_ webhook.Defaulter = &AWSMachine{}
 )
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSMachine) ValidateCreate() error {
 	var allErrs field.ErrorList
 
@@ -58,7 +58,7 @@ func (r *AWSMachine) ValidateCreate() error {
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSMachine) ValidateUpdate(old runtime.Object) error {
 	newAWSMachine, err := runtime.DefaultUnstructuredConverter.ToUnstructured(r)
 	if err != nil {
@@ -176,13 +176,13 @@ func (r *AWSMachine) validateNonRootVolumes() field.ErrorList {
 	return allErrs
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSMachine) ValidateDelete() error {
 	return nil
 }
 
 // Default implements webhook.Defaulter such that an empty CloudInit will be defined with a default
-// SecureSecretsBackend as SecretBackendSecretsManager iff InsecureSkipSecretsManager is unset
+// SecureSecretsBackend as SecretBackendSecretsManager iff InsecureSkipSecretsManager is unset.
 func (r *AWSMachine) Default() {
 	if !r.Spec.CloudInit.InsecureSkipSecretsManager && r.Spec.CloudInit.SecureSecretsBackend == "" {
 		r.Spec.CloudInit.SecureSecretsBackend = SecretBackendSecretsManager

@@ -160,7 +160,7 @@ func (s *Service) DeleteLoadbalancers() error {
 	return nil
 }
 
-// RegisterInstanceWithClassicELB registers an instance with a classic ELB
+// RegisterInstanceWithClassicELB registers an instance with a classic ELB.
 func (s *Service) RegisterInstanceWithClassicELB(instanceID, loadBalancer string) error {
 	input := &elb.RegisterInstancesWithLoadBalancerInput{
 		Instances:        []*elb.Instance{{InstanceId: aws.String(instanceID)}},
@@ -203,7 +203,7 @@ func (s *Service) InstanceIsRegisteredWithAPIServerELB(i *infrav1.Instance) (boo
 	return false, nil
 }
 
-// RegisterInstanceWithAPIServerELB registers an instance with a classic ELB
+// RegisterInstanceWithAPIServerELB registers an instance with a classic ELB.
 func (s *Service) RegisterInstanceWithAPIServerELB(i *infrav1.Instance) error {
 	name, err := GenerateELBName(s.scope.Name())
 	if err != nil {
@@ -240,7 +240,7 @@ func (s *Service) RegisterInstanceWithAPIServerELB(i *infrav1.Instance) error {
 	return err
 }
 
-// DeregisterInstanceFromAPIServerELB de-registers an instance from a classic ELB
+// DeregisterInstanceFromAPIServerELB de-registers an instance from a classic ELB.
 func (s *Service) DeregisterInstanceFromAPIServerELB(i *infrav1.Instance) error {
 	name, err := GenerateELBName(s.scope.Name())
 	if err != nil {
@@ -285,14 +285,14 @@ func GenerateELBName(clusterName string) (string, error) {
 }
 
 // generateStandardELBName generates a formatted ELB name based on cluster
-// and ELB name
+// and ELB name.
 func generateStandardELBName(clusterName string) string {
-	elbCompatibleClusterName := strings.Replace(clusterName, ".", "-", -1)
+	elbCompatibleClusterName := strings.ReplaceAll(clusterName, ".", "-")
 	return fmt.Sprintf("%s-%s", elbCompatibleClusterName, infrav1.APIServerRoleTagValue)
 }
 
 // generateHashedELBName generates a 32-character hashed name based on cluster
-// and ELB name
+// and ELB name.
 func generateHashedELBName(clusterName string) (string, error) {
 	// hashSize = 32 - length of "k8s" - length of "-" = 28
 	shortName, err := hash.Base36TruncatedHash(clusterName, 28)
@@ -557,7 +557,7 @@ func (s *Service) listOwnedELBs() ([]string, error) {
 	serviceTag := infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())
 	arns, err := s.listByTag(serviceTag)
 	if err != nil {
-		//retry by listing all ELBs as listByTag will fail in air-gapped environments
+		// retry by listing all ELBs as listByTag will fail in air-gapped environments
 		arns, err = s.filterByOwnedTag(serviceTag)
 		if err != nil {
 			return nil, err

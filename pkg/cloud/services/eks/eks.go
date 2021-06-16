@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
-// ReconcileControlPlane reconciles a EKS control plane
+// ReconcileControlPlane reconciles a EKS control plane.
 func (s *Service) ReconcileControlPlane(ctx context.Context) error {
 	s.scope.V(2).Info("Reconciling EKS control plane", "cluster-name", s.scope.Cluster.Name, "cluster-namespace", s.scope.Cluster.Namespace)
 
@@ -81,7 +81,7 @@ func (s *Service) DeleteControlPlane() (err error) {
 	return nil
 }
 
-// ReconcilePool is the entrypoint for ManagedMachinePool reconciliation
+// ReconcilePool is the entrypoint for ManagedMachinePool reconciliation.
 func (s *NodegroupService) ReconcilePool() error {
 	s.scope.V(2).Info("Reconciling EKS nodegroup")
 
@@ -113,7 +113,7 @@ func (s *NodegroupService) ReconcilePool() error {
 }
 
 // ReconcilePoolDelete is the entrypoint for ManagedMachinePool deletion
-// reconciliation
+// reconciliation.
 func (s *NodegroupService) ReconcilePoolDelete() error {
 	s.scope.V(2).Info("Reconciling deletion of EKS nodegroup")
 

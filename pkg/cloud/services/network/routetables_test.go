@@ -18,10 +18,11 @@ package network
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"strings"
 	"testing"
+
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -274,7 +275,6 @@ func TestReconcileRouteTables(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 type routeTableInputMatcher struct {

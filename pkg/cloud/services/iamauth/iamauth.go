@@ -23,16 +23,16 @@ import (
 )
 
 const (
-	// EC2NodeUserName is the username required for EC2 nodes
+	// EC2NodeUserName is the username required for EC2 nodes.
 	EC2NodeUserName = "system:node:{{EC2PrivateDNSName}}"
 )
 
 var (
-	// NodeGroups is the groups that are required for a node
+	// NodeGroups is the groups that are required for a node.
 	NodeGroups = []string{"system:bootstrappers", "system:nodes"}
 )
 
-// AuthenticatorBackend is the interface that represents an aws-iam-authenticator backend
+// AuthenticatorBackend is the interface that represents an aws-iam-authenticator backend.
 type AuthenticatorBackend interface {
 	// MapRole is used to map a role ARN to a user and set of groups
 	MapRole(mapping ekscontrolplanev1.RoleMapping) error
@@ -40,13 +40,13 @@ type AuthenticatorBackend interface {
 	MapUser(mapping ekscontrolplanev1.UserMapping) error
 }
 
-// BackendType is a type that represents the different aws-iam-authenticator backends
+// BackendType is a type that represents the different aws-iam-authenticator backends.
 type BackendType string
 
 var (
-	// BackendTypeConfigMap is the Kubernetes config map backend
+	// BackendTypeConfigMap is the Kubernetes config map backend.
 	BackendTypeConfigMap = BackendType("config-map")
-	// BackendTypeCRD is the CRD based backend
+	// BackendTypeCRD is the CRD based backend.
 	BackendTypeCRD = BackendType("crd")
 )
 

@@ -22,10 +22,10 @@ import (
 	"errors"
 	"text/template"
 
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/util"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/util"
 )
 
 // AWSCredentialsTemplate generates an AWS credentials file that can

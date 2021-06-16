@@ -63,7 +63,7 @@ func setup() {
 	utilruntime.Must(expv1alpha4.AddToScheme(scheme.Scheme))
 
 	testEnvConfig := helpers.NewTestEnvironmentConfiguration([]string{
-		path.Join( "config", "crd", "bases"),
+		path.Join("config", "crd", "bases"),
 	},
 	).WithWebhookConfiguration("unmanaged", path.Join("config", "webhook", "manifests.yaml"))
 	var err error

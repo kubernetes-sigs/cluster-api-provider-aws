@@ -17,11 +17,12 @@ limitations under the License.
 package securitygroup
 
 import (
+	"strings"
+	"testing"
+
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"strings"
-	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -105,8 +106,6 @@ func TestReconcileSecurityGroups(t *testing.T) {
 					Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil).
 					After(securityGroupBastion)
 
-				////////////////////////
-
 				securityGroupAPIServerLb := m.CreateSecurityGroup(gomock.Eq(&ec2.CreateSecurityGroupInput{
 					VpcId:       aws.String("vpc-securitygroups"),
 					GroupName:   aws.String("test-cluster-apiserver-lb"),
@@ -139,8 +138,6 @@ func TestReconcileSecurityGroups(t *testing.T) {
 					Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil).
 					After(securityGroupAPIServerLb)
 
-				////////////////////////
-
 				m.CreateSecurityGroup(gomock.Eq(&ec2.CreateSecurityGroupInput{
 					VpcId:       aws.String("vpc-securitygroups"),
 					GroupName:   aws.String("test-cluster-lb"),
@@ -170,8 +167,6 @@ func TestReconcileSecurityGroups(t *testing.T) {
 					},
 				})).
 					Return(&ec2.CreateSecurityGroupOutput{GroupId: aws.String("sg-lb")}, nil)
-
-				////////////////////////
 
 				securityGroupControl := m.CreateSecurityGroup(gomock.Eq(&ec2.CreateSecurityGroupInput{
 					VpcId:       aws.String("vpc-securitygroups"),
@@ -204,8 +199,6 @@ func TestReconcileSecurityGroups(t *testing.T) {
 				})).
 					Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil).
 					After(securityGroupControl)
-
-				//////////////////////////////////////////////
 
 				securityGroupNode := m.CreateSecurityGroup(gomock.Eq(&ec2.CreateSecurityGroupInput{
 					VpcId:       aws.String("vpc-securitygroups"),
@@ -279,7 +272,6 @@ func TestReconcileSecurityGroups(t *testing.T) {
 							{GroupId: aws.String("sg-node"), GroupName: aws.String("Node Security Group")},
 						},
 					}, nil).AnyTimes()
-
 			},
 		},
 		{
@@ -324,7 +316,6 @@ func TestReconcileSecurityGroups(t *testing.T) {
 							{GroupId: aws.String("sg-node"), GroupName: aws.String("Node Security Group")},
 						},
 					}, nil).AnyTimes()
-
 			},
 			err: errors.New(`security group overrides provided for managed vpc "test-cluster"`),
 		},

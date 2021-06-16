@@ -39,7 +39,7 @@ func serviceEnum() []string {
 	partitions := resolver.(endpoints.EnumPartitions).Partitions()
 	for _, p := range partitions {
 		for id := range p.Services() {
-			var add bool = true
+			var add = true
 			for _, s := range serviceIDs {
 				if id == s {
 					add = false
@@ -55,10 +55,9 @@ func serviceEnum() []string {
 }
 
 // ParseFlag parses the command line flag of service endponts in the format ${SigningRegion1}:${ServiceID1}=${URL1},${ServiceID2}=${URL2}...;${SigningRegion2}...
-// returning a set of ServiceEndpoints
+// returning a set of ServiceEndpoints.
 func ParseFlag(serviceEndpoints string) ([]scope.ServiceEndpoint, error) {
 	if serviceEndpoints == "" {
-
 		return nil, nil
 	}
 	serviceIDs := serviceEnum()
@@ -67,7 +66,6 @@ func ParseFlag(serviceEndpoints string) ([]scope.ServiceEndpoint, error) {
 	for _, regionConfig := range signingRegionConfigs {
 		components := strings.SplitN(regionConfig, ":", 2)
 		if len(components) != 2 {
-
 			return nil, errServiceEndpointSigningRegion
 		}
 		signingRegion := components[0]
@@ -76,10 +74,9 @@ func ParseFlag(serviceEndpoints string) ([]scope.ServiceEndpoint, error) {
 		for _, servicePair := range servicePairs {
 			kv := strings.Split(servicePair, "=")
 			if len(kv) != 2 {
-
 				return nil, errServiceEndpointFormat
 			}
-			var serviceID string = ""
+			var serviceID = ""
 			for _, id := range serviceIDs {
 				if kv[0] == id {
 					serviceID = kv[0]
@@ -96,7 +93,6 @@ func ParseFlag(serviceEndpoints string) ([]scope.ServiceEndpoint, error) {
 			seenServices = append(seenServices, serviceID)
 			URL, err := url.ParseRequestURI(kv[1])
 			if err != nil {
-
 				return nil, errServiceEndpointURL
 			}
 			endpoints = append(endpoints, scope.ServiceEndpoint{
@@ -113,7 +109,6 @@ func ParseFlag(serviceEndpoints string) ([]scope.ServiceEndpoint, error) {
 func containsString(slice []string, s string) bool {
 	for _, item := range slice {
 		if item == s {
-
 			return true
 		}
 	}

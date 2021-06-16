@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
-// SetupWebhookWithManager will setup the webhooks for the EKSConfig
+// SetupWebhookWithManager will setup the webhooks for the EKSConfig.
 func (r *EKSConfig) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
@@ -35,21 +35,21 @@ func (r *EKSConfig) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Defaulter = &EKSConfig{}
 var _ webhook.Validator = &EKSConfig{}
 
-// ValidateCreate will do any extra validation when creating a EKSConfig
+// ValidateCreate will do any extra validation when creating a EKSConfig.
 func (r *EKSConfig) ValidateCreate() error {
 	return nil
 }
 
-// ValidateUpdate will do any extra validation when updating a EKSConfig
+// ValidateUpdate will do any extra validation when updating a EKSConfig.
 func (r *EKSConfig) ValidateUpdate(old runtime.Object) error {
 	return nil
 }
 
-// ValidateDelete allows you to add any extra validation when deleting
+// ValidateDelete allows you to add any extra validation when deleting.
 func (r *EKSConfig) ValidateDelete() error {
 	return nil
 }
 
-// Default will set default values for the EKSConfig
+// Default will set default values for the EKSConfig.
 func (r *EKSConfig) Default() {
 }

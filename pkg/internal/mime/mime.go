@@ -54,7 +54,7 @@ type scriptVariables struct {
 
 // GenerateInitDocument renders a given template, applies MIME properties
 // and returns a series of byte chunks which put together represent a UserData
-// script
+// script.
 func GenerateInitDocument(secretPrefix string, chunks int32, region string, endpoint string, secretFetchScript string) ([]byte, error) {
 	var secretFetchTemplate = template.Must(template.New("secret-fetch-script").Parse(secretFetchScript))
 

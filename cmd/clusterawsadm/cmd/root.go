@@ -38,7 +38,7 @@ var (
 	verbosity *int
 )
 
-// RootCmd is the Cobra root command
+// RootCmd is the Cobra root command.
 func RootCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "clusterawsadm",
@@ -61,15 +61,12 @@ func RootCmd() *cobra.Command {
 			clusterctl init --infrastructure aws
 		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := cmd.Help(); err != nil {
-				return err
-			}
-			return nil
+			return cmd.Help()
 		},
 	}
 	newCmd.AddCommand(alpha.AlphaCmd())
 	newCmd.AddCommand(bootstrap.RootCmd())
-	newCmd.AddCommand(version.VersionCmd(os.Stdout))
+	newCmd.AddCommand(version.Cmd(os.Stdout))
 	newCmd.AddCommand(ami.RootCmd())
 	newCmd.AddCommand(eks.RootCmd())
 	newCmd.AddCommand(controller.RootCmd())
@@ -77,7 +74,7 @@ func RootCmd() *cobra.Command {
 	return newCmd
 }
 
-// Execute starts the process
+// Execute starts the process.
 func Execute() {
 	if err := flag.CommandLine.Parse([]string{}); err != nil {
 		fmt.Fprintln(os.Stderr, err)

@@ -29,8 +29,7 @@ func TestUserData(t *testing.T) {
 	endpoints := []scope.ServiceEndpoint{}
 	doc, _ := service.UserData("secretARN", 1, "eu-west-1", endpoints)
 
-	_, err := mail.ReadMessage(bytes.NewBuffer(doc))
-	if err != nil {
+	if _, err := mail.ReadMessage(bytes.NewBuffer(doc)); err != nil {
 		t.Fatalf("Cannot parse MIME doc: %+v\n%s", err, string(doc))
 	}
 }
@@ -38,7 +37,7 @@ func TestUserData(t *testing.T) {
 func TestUserDataEndpoints(t *testing.T) {
 	service := Service{}
 	endpoints := []scope.ServiceEndpoint{
-		scope.ServiceEndpoint{
+		{
 			URL:           "localhost",
 			SigningRegion: "localhost",
 			ServiceID:     "secretsmanager",
@@ -46,8 +45,7 @@ func TestUserDataEndpoints(t *testing.T) {
 	}
 	doc, _ := service.UserData("secretARN", 1, "eu-west-1", endpoints)
 
-	_, err := mail.ReadMessage(bytes.NewBuffer(doc))
-	if err != nil {
+	if _, err := mail.ReadMessage(bytes.NewBuffer(doc)); err != nil {
 		t.Fatalf("Cannot parse MIME doc: %+v\n%s", err, string(doc))
 	}
 }

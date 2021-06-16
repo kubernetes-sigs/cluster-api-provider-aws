@@ -254,7 +254,7 @@ func main() {
 	}
 }
 
-func enableGates(ctx context.Context, mgr ctrl.Manager, AWSServiceEndpoints []scope.ServiceEndpoint) {
+func enableGates(ctx context.Context, mgr ctrl.Manager, awsServiceEndpoints []scope.ServiceEndpoint) {
 	if feature.Gates.Enabled(feature.EKS) {
 		setupLog.Info("enabling EKS controllers")
 
@@ -264,7 +264,7 @@ func enableGates(ctx context.Context, mgr ctrl.Manager, AWSServiceEndpoints []sc
 			Client:           mgr.GetClient(),
 			Recorder:         mgr.GetEventRecorderFor("awsmanagedmachinepool-reconciler"),
 			EnableIAM:        enableIAM,
-			Endpoints:        AWSServiceEndpoints,
+			Endpoints:        awsServiceEndpoints,
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSManagedMachinePool")
@@ -282,7 +282,7 @@ func enableGates(ctx context.Context, mgr ctrl.Manager, AWSServiceEndpoints []sc
 			Client:           mgr.GetClient(),
 			Recorder:         mgr.GetEventRecorderFor("awsfargateprofile-reconciler"),
 			EnableIAM:        enableIAM,
-			Endpoints:        AWSServiceEndpoints,
+			Endpoints:        awsServiceEndpoints,
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSFargateProfile")
@@ -303,7 +303,7 @@ func enableGates(ctx context.Context, mgr ctrl.Manager, AWSServiceEndpoints []sc
 		if err := (&instancestate.AwsInstanceStateReconciler{
 			Client:           mgr.GetClient(),
 			Log:              ctrl.Log.WithName("controllers").WithName("AWSInstanceStateController"),
-			Endpoints:        AWSServiceEndpoints,
+			Endpoints:        awsServiceEndpoints,
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: instanceStateConcurrency}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSInstanceStateController")
@@ -315,7 +315,7 @@ func enableGates(ctx context.Context, mgr ctrl.Manager, AWSServiceEndpoints []sc
 		if err := (&controlleridentitycreator.AWSControllerIdentityReconciler{
 			Client:           mgr.GetClient(),
 			Log:              ctrl.Log.WithName("controllers").WithName("AWSControllerIdentity"),
-			Endpoints:        AWSServiceEndpoints,
+			Endpoints:        awsServiceEndpoints,
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSControllerIdentity")

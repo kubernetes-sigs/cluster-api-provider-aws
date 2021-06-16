@@ -162,12 +162,10 @@ func TestSubnetPlacement(t *testing.T) {
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())
 				return
-			} else {
-				g.Expect(err).To(BeNil())
 			}
 
+			g.Expect(err).To(BeNil())
 			g.Expect(actualSubnetIDs).To(Equal(tc.expectedSubnetIDs))
-
 		})
 	}
 }

@@ -26,7 +26,7 @@ const (
 	// removing it from the apiserver.
 	ClusterFinalizer = "awscluster.infrastructure.cluster.x-k8s.io"
 
-	// AWSClusterControllerIdentityName is the name of the AWSClusterControllerIdentity singleton
+	// AWSClusterControllerIdentityName is the name of the AWSClusterControllerIdentity singleton.
 	AWSClusterControllerIdentityName = "default"
 )
 
@@ -95,13 +95,13 @@ type AWSClusterSpec struct {
 type AWSIdentityKind string
 
 var (
-	// ControllerIdentityKind defines identity reference kind as AWSClusterControllerIdentity
+	// ControllerIdentityKind defines identity reference kind as AWSClusterControllerIdentity.
 	ControllerIdentityKind = AWSIdentityKind("AWSClusterControllerIdentity")
 
-	// ClusterRoleIdentityKind defines identity reference kind as AWSClusterRoleIdentity
+	// ClusterRoleIdentityKind defines identity reference kind as AWSClusterRoleIdentity.
 	ClusterRoleIdentityKind = AWSIdentityKind("AWSClusterRoleIdentity")
 
-	// ClusterStaticIdentityKind defines identity reference kind as AWSClusterStaticIdentity
+	// ClusterStaticIdentityKind defines identity reference kind as AWSClusterStaticIdentity.
 	ClusterStaticIdentityKind = AWSIdentityKind("AWSClusterStaticIdentity")
 )
 
@@ -144,7 +144,7 @@ type Bastion struct {
 	AMI string `json:"ami,omitempty"`
 }
 
-// AWSLoadBalancerSpec defines the desired state of an AWS load balancer
+// AWSLoadBalancerSpec defines the desired state of an AWS load balancer.
 type AWSLoadBalancerSpec struct {
 	// Scheme sets the scheme of the load balancer (defaults to Internet-facing)
 	// +kubebuilder:default=Internet-facing
@@ -167,7 +167,7 @@ type AWSLoadBalancerSpec struct {
 	// +optional
 	Subnets []string `json:"subnets,omitempty"`
 
-	// AdditionalSecurityGroups sets the security groups used by the load balancer. Expected to be security group IDs.
+	// AdditionalSecurityGroups sets the security groups used by the load balancer. Expected to be security group IDs
 	// This is optional - if not provided new security groups will be created for the load balancer
 	// +optional
 	AdditionalSecurityGroups []string `json:"additionalSecurityGroups,omitempty"`
@@ -204,7 +204,7 @@ type AWSCluster struct {
 
 // +kubebuilder:object:root=true
 
-// AWSClusterList contains a list of AWSCluster
+// AWSClusterList contains a list of AWSCluster.
 type AWSClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

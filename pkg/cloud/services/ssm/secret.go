@@ -36,7 +36,7 @@ import (
 const (
 	entryPrefix = "aws.cluster.x-k8s.io"
 
-	// max byte size for ssm is 4KB else we cross into the advanced-parameter tier
+	// max byte size for ssm is 4KB else we cross into the advanced-parameter tier.
 	maxSecretSizeBytes = 4000
 )
 
@@ -90,7 +90,7 @@ func (s *Service) Create(m *scope.MachineScope, data []byte) (string, int32, err
 	return prefix, chunks, err
 }
 
-// retryableCreateSecret is a function to be passed into a waiter. In a separate function for ease of reading
+// retryableCreateSecret is a function to be passed into a waiter. In a separate function for ease of reading.
 func (s *Service) retryableCreateSecret(name string, chunk []byte, tags infrav1.Tags) (bool, error) {
 	_, err := s.SSMClient.PutParameter(&ssm.PutParameterInput{
 		Name:     aws.String(name),
@@ -105,7 +105,7 @@ func (s *Service) retryableCreateSecret(name string, chunk []byte, tags infrav1.
 	return true, err
 }
 
-// forceDeleteSecretEntry deletes a single secret, ignoring if it is absent
+// forceDeleteSecretEntry deletes a single secret, ignoring if it is absent.
 func (s *Service) forceDeleteSecretEntry(name string) error {
 	_, err := s.SSMClient.DeleteParameter(&ssm.DeleteParameterInput{
 		Name: aws.String(name),
@@ -116,7 +116,7 @@ func (s *Service) forceDeleteSecretEntry(name string) error {
 	return err
 }
 
-// Delete the secret belonging to a machine from AWS SSM
+// Delete the secret belonging to a machine from AWS SSM.
 func (s *Service) Delete(m *scope.MachineScope) error {
 	var errs []error
 	for i := int32(0); i < m.GetSecretCount(); i++ {

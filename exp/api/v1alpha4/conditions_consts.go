@@ -19,7 +19,7 @@ package v1alpha4
 import clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 
 const (
-	// ASGReadyCondition reports on current status of the autoscaling group. Ready indicates the group is provisioned
+	// ASGReadyCondition reports on current status of the autoscaling group. Ready indicates the group is provisioned.
 	ASGReadyCondition clusterv1.ConditionType = "ASGReady"
 	// ASGNotFoundReason used when the autoscaling group couldn't be retrieved.
 	ASGNotFoundReason = "ASGNotFound"
@@ -28,11 +28,11 @@ const (
 	// ASGDeletionInProgress ASG is in a deletion in progress state.
 	ASGDeletionInProgress = "ASGDeletionInProgress"
 
-	// LaunchTemplateReadyCondition represents the status of an AWSMachinePool's associated Launch Template
+	// LaunchTemplateReadyCondition represents the status of an AWSMachinePool's associated Launch Template.
 	LaunchTemplateReadyCondition clusterv1.ConditionType = "LaunchTemplateReady"
-	// LaunchTemplateNotFoundReason is used when an associated Launch Template can't be found
+	// LaunchTemplateNotFoundReason is used when an associated Launch Template can't be found.
 	LaunchTemplateNotFoundReason = "LaunchTemplateNotFound"
-	// LaunchTemplateCreateFailedReason used for failures during Launch Template creation
+	// LaunchTemplateCreateFailedReason used for failures during Launch Template creation.
 	LaunchTemplateCreateFailedReason = "LaunchTemplateCreateFailed"
 
 	// InstanceRefreshStartedCondition reports on successfully starting instance refresh.
@@ -47,7 +47,7 @@ const (
 const (
 	// EKSNodegroupReadyCondition condition reports on the successful reconciliation of eks control plane.
 	EKSNodegroupReadyCondition clusterv1.ConditionType = "EKSNodegroupReady"
-	// EKSNodegroupReconciliationFailedReason used to report failures while reconciling EKS control plane
+	// EKSNodegroupReconciliationFailedReason used to report failures while reconciling EKS control plane.
 	EKSNodegroupReconciliationFailedReason = "EKSNodegroupReconciliationFailed"
 	// WaitingForEKSControlPlaneReason used when the machine pool is waiting for
 	// EKS control plane infrastructure to be ready before proceeding.
@@ -58,21 +58,21 @@ const (
 	// EKSFargateProfileReadyCondition condition reports on the successful reconciliation of eks control plane.
 	EKSFargateProfileReadyCondition clusterv1.ConditionType = "EKSFargateProfileReady"
 	// EKSFargateCreatingCondition condition reports on whether the fargate
-	// profile is creating
+	// profile is creating.
 	EKSFargateCreatingCondition clusterv1.ConditionType = "EKSFargateCreating"
-	// EKSFargateDeletingCondition used to report that the profile is deleting
+	// EKSFargateDeletingCondition used to report that the profile is deleting.
 	EKSFargateDeletingCondition = "EKSFargateDeleting"
-	// EKSFargateReconciliationFailedReason used to report failures while reconciling EKS control plane
+	// EKSFargateReconciliationFailedReason used to report failures while reconciling EKS control plane.
 	EKSFargateReconciliationFailedReason = "EKSFargateReconciliationFailed"
-	// EKSFargateDeletingReason used when the profile is deleting
+	// EKSFargateDeletingReason used when the profile is deleting.
 	EKSFargateDeletingReason = "Deleting"
-	// EKSFargateCreatingReason used when the profile is creating
+	// EKSFargateCreatingReason used when the profile is creating.
 	EKSFargateCreatingReason = "Creating"
-	// EKSFargateCreatedReason used when the profile is created
+	// EKSFargateCreatedReason used when the profile is created.
 	EKSFargateCreatedReason = "Created"
-	// EKSFargateDeletedReason used when the profile is deleted
+	// EKSFargateDeletedReason used when the profile is deleted.
 	EKSFargateDeletedReason = "Deleted"
-	// EKSFargateFailedReason used when the profile failed
+	// EKSFargateFailedReason used when the profile failed.
 	EKSFargateFailedReason = "Failed"
 )
 
@@ -81,12 +81,12 @@ const (
 	// reconciliation of EKS nodegroup iam roles.
 	IAMNodegroupRolesReadyCondition clusterv1.ConditionType = "IAMNodegroupRolesReady"
 	// IAMNodegroupRolesReconciliationFailedReason used to report failures while
-	// reconciling EKS nodegroup iam roles
+	// reconciling EKS nodegroup iam roles.
 	IAMNodegroupRolesReconciliationFailedReason = "IAMNodegroupRolesReconciliationFailed"
 	// IAMFargateRolesReadyCondition condition reports on the successful
 	// reconciliation of EKS nodegroup iam roles.
 	IAMFargateRolesReadyCondition clusterv1.ConditionType = "IAMFargateRolesReady"
 	// IAMFargateRolesReconciliationFailedReason used to report failures while
-	// reconciling EKS nodegroup iam roles
+	// reconciling EKS nodegroup iam roles.
 	IAMFargateRolesReconciliationFailedReason = "IAMFargateRolesReconciliationFailed"
 )

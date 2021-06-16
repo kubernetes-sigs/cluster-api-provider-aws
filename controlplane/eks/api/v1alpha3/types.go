@@ -26,7 +26,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 )
 
-// ControlPlaneLoggingSpec defines what EKS control plane logs that should be enabled
+// ControlPlaneLoggingSpec defines what EKS control plane logs that should be enabled.
 type ControlPlaneLoggingSpec struct {
 	// APIServer indicates if the Kubernetes API Server log (kube-apiserver) shoulkd be enabled
 	// +kubebuilder:default=false
@@ -37,7 +37,7 @@ type ControlPlaneLoggingSpec struct {
 	// Authenticator indicates if the iam authenticator log should be enabled
 	// +kubebuilder:default=false
 	Authenticator bool `json:"authenticator"`
-	//ControllerManager indicates if the controller manager (kube-controller-manager) log should be enabled
+	// ControllerManager indicates if the controller manager (kube-controller-manager) log should be enabled
 	// +kubebuilder:default=false
 	ControllerManager bool `json:"controllerManager"`
 	// Scheduler indicates if the Kubernetes scheduler (kube-scheduler) log should be enabled
@@ -45,7 +45,7 @@ type ControlPlaneLoggingSpec struct {
 	Scheduler bool `json:"scheduler"`
 }
 
-// IsLogEnabled returns true if the log is enabled
+// IsLogEnabled returns true if the log is enabled.
 func (s *ControlPlaneLoggingSpec) IsLogEnabled(logName string) bool {
 	if s == nil {
 		return false
@@ -71,22 +71,22 @@ func (s *ControlPlaneLoggingSpec) IsLogEnabled(logName string) bool {
 type EKSTokenMethod string
 
 var (
-	// EKSTokenMethodIAMAuthenticator indicates that IAM autenticator will be used to get a token
+	// EKSTokenMethodIAMAuthenticator indicates that IAM autenticator will be used to get a token.
 	EKSTokenMethodIAMAuthenticator = EKSTokenMethod("iam-authenticator")
 
 	// EKSTokenMethodAWSCli indicates that the AWS CLI will be used to get a token
-	// Version 1.16.156 or greater is required of the AWS CLI
+	// Version 1.16.156 or greater is required of the AWS CLI.
 	EKSTokenMethodAWSCli = EKSTokenMethod("aws-cli")
 )
 
 var (
 	// DefaultEKSControlPlaneRole is the name of the default IAM role to use for the EKS control plane
 	// if no other role is supplied in the spec and if iam role creation is not enabled. The default
-	// can be created using clusterawsadm or created manually
+	// can be created using clusterawsadm or created manually.
 	DefaultEKSControlPlaneRole = fmt.Sprintf("eks-controlplane%s", infrav1.DefaultNameSuffix)
 )
 
-// IAMAuthenticatorConfig represents an aws-iam-authenticator configuration
+// IAMAuthenticatorConfig represents an aws-iam-authenticator configuration.
 type IAMAuthenticatorConfig struct {
 	// RoleMappings is a list of role mappings
 	// +optional
@@ -96,7 +96,7 @@ type IAMAuthenticatorConfig struct {
 	UserMappings []UserMapping `json:"mapUsers,omitempty"`
 }
 
-// KubernetesMapping represents the kubernetes RBAC mapping
+// KubernetesMapping represents the kubernetes RBAC mapping.
 type KubernetesMapping struct {
 	// UserName is a kubernetes RBAC user subject
 	UserName string `json:"username"`
@@ -140,42 +140,42 @@ type Addon struct {
 	ServiceAccountRoleArn *string `json:"serviceAccountRoleARN,omitempty"`
 }
 
-// AddonResolution defines the method for resolving parameter conflicts
+// AddonResolution defines the method for resolving parameter conflicts.
 type AddonResolution string
 
 var (
 	// AddonResolutionOverwrite indicates that if there are parameter conflicts then
-	// resolution will be accomplished via overwriting
+	// resolution will be accomplished via overwriting.
 	AddonResolutionOverwrite = AddonResolution("overwrite")
 
 	// AddonResolutionNone indicates that if there are parameter conflicts then
-	// resolution will not be done and an error will be reported
+	// resolution will not be done and an error will be reported.
 	AddonResolutionNone = AddonResolution("none")
 )
 
-// AddonStatus defines the status for an addon
+// AddonStatus defines the status for an addon.
 type AddonStatus string
 
 var (
-	// AddonStatusCreating is a status to indicate the addon is creating
+	// AddonStatusCreating is a status to indicate the addon is creating.
 	AddonStatusCreating = "creating"
 
-	// AddonStatusActive is a status to indicate the addon is active
+	// AddonStatusActive is a status to indicate the addon is active.
 	AddonStatusActive = "active"
 
-	// AddonStatusCreateFailed is a status to indicate the addon failed creation
+	// AddonStatusCreateFailed is a status to indicate the addon failed creation.
 	AddonStatusCreateFailed = "create_failed"
 
-	// AddonStatusUpdating is a status to indicate the addon is updating
+	// AddonStatusUpdating is a status to indicate the addon is updating.
 	AddonStatusUpdating = "updating"
 
-	// AddonStatusDeleting is a status to indicate the addon is deleting
+	// AddonStatusDeleting is a status to indicate the addon is deleting.
 	AddonStatusDeleting = "deleting"
 
-	// AddonStatusDeleteFailed is a status to indicate the addon failed deletion
+	// AddonStatusDeleteFailed is a status to indicate the addon failed deletion.
 	AddonStatusDeleteFailed = "delete_failed"
 
-	// AddonStatusDegraded is a status to indicate the addon is in a degraded state
+	// AddonStatusDegraded is a status to indicate the addon is in a degraded state.
 	AddonStatusDegraded = "degraded"
 )
 
@@ -211,6 +211,6 @@ type AddonIssue struct {
 
 const (
 	// SecurityGroupCluster is the security group for communication between EKS
-	// control plane and managed node groups
+	// control plane and managed node groups.
 	SecurityGroupCluster = infrav1.SecurityGroupRole("cluster")
 )

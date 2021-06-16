@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	// ManagedControlPlaneFinalizer allows the controller to clean up resources on delete
+	// ManagedControlPlaneFinalizer allows the controller to clean up resources on delete.
 	ManagedControlPlaneFinalizer = "awsmanagedcontrolplane.controlplane.cluster.x-k8s.io"
 )
 
@@ -162,7 +162,7 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	DisableVPCCNI bool `json:"disableVPCCNI,omitempty"`
 }
 
-// EndpointAccess specifies how control plane endpoints are accessible
+// EndpointAccess specifies how control plane endpoints are accessible.
 type EndpointAccess struct {
 	// Public controls whether control plane endpoints are publicly accessible
 	// +optional
@@ -175,15 +175,15 @@ type EndpointAccess struct {
 	Private *bool `json:"private,omitempty"`
 }
 
-// EncryptionConfig specifies the encryption configuration for the EKS clsuter
+// EncryptionConfig specifies the encryption configuration for the EKS clsuter.
 type EncryptionConfig struct {
 	// Provider specifies the ARN or alias of the CMK (in AWS KMS)
 	Provider *string `json:"provider,omitempty"`
-	//Resources specifies the resources to be encrypted
+	// Resources specifies the resources to be encrypted
 	Resources []*string `json:"resources,omitempty"`
 }
 
-// OIDCProviderStatus holds the status of the AWS OIDC identity provider
+// OIDCProviderStatus holds the status of the AWS OIDC identity provider.
 type OIDCProviderStatus struct {
 	// ARN holds the ARN of the provider
 	ARN string `json:"arn,omitempty"`
@@ -250,19 +250,19 @@ type AWSManagedControlPlane struct {
 
 // +kubebuilder:object:root=true
 
-// AWSManagedControlPlaneList contains a list of AWSManagedControlPlane
+// AWSManagedControlPlaneList contains a list of AWSManagedControlPlane.
 type AWSManagedControlPlaneList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []AWSManagedControlPlane `json:"items"`
 }
 
-// GetConditions returns the control planes conditions
+// GetConditions returns the control planes conditions.
 func (r *AWSManagedControlPlane) GetConditions() clusterv1.Conditions {
 	return r.Status.Conditions
 }
 
-// SetConditions sets the status conditions for the AWSManagedControlPlane
+// SetConditions sets the status conditions for the AWSManagedControlPlane.
 func (r *AWSManagedControlPlane) SetConditions(conditions clusterv1.Conditions) {
 	r.Status.Conditions = conditions
 }

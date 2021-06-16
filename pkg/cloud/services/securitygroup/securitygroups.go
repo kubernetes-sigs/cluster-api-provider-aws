@@ -23,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	errlist "k8s.io/apimachinery/pkg/util/errors"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
@@ -37,16 +37,16 @@ import (
 )
 
 const (
-	// IPProtocolTCP is how EC2 represents the TCP protocol in ingress rules
+	// IPProtocolTCP is how EC2 represents the TCP protocol in ingress rules.
 	IPProtocolTCP = "tcp"
 
-	// IPProtocolUDP is how EC2 represents the UDP protocol in ingress rules
+	// IPProtocolUDP is how EC2 represents the UDP protocol in ingress rules.
 	IPProtocolUDP = "udp"
 
-	// IPProtocolICMP is how EC2 represents the ICMP protocol in ingress rules
+	// IPProtocolICMP is how EC2 represents the ICMP protocol in ingress rules.
 	IPProtocolICMP = "icmp"
 
-	// IPProtocolICMPv6 is how EC2 represents the ICMPv6 protocol in ingress rules
+	// IPProtocolICMPv6 is how EC2 represents the ICMPv6 protocol in ingress rules.
 	IPProtocolICMPv6 = "58"
 )
 
@@ -81,7 +81,6 @@ func (s *Service) ReconcileSecurityGroups() error {
 	// Security group overrides should not be specified for a managed VPC
 	if securityGroupOverrides != nil && s.scope.VPC().IsManaged(s.scope.Name()) {
 		return errors.Errorf("security group overrides provided for managed vpc %q", s.scope.Name())
-
 	}
 	sgs, err := s.describeSecurityGroupsByName()
 	if err != nil {
@@ -311,7 +310,7 @@ func (s *Service) DeleteSecurityGroups() error {
 	for i := range clusterGroups {
 		sg := clusterGroups[i]
 		if deleteErr := s.deleteSecurityGroup(&sg, "cluster managed"); deleteErr != nil {
-			err = errlist.NewAggregate([]error{err, deleteErr})
+			err = kerrors.NewAggregate([]error{err, deleteErr})
 		}
 	}
 

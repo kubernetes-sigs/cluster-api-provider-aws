@@ -28,9 +28,9 @@ const (
 	resourcePrefix = "capa_"
 )
 
-// GenerateEKSName generates a name of an EKS resources
+// GenerateEKSName generates a name of an EKS resources.
 func GenerateEKSName(resourceName, namespace string, maxLength int) (string, error) {
-	escapedName := strings.Replace(resourceName, ".", "_", -1)
+	escapedName := strings.ReplaceAll(resourceName, ".", "_")
 	eksName := fmt.Sprintf("%s_%s", namespace, escapedName)
 
 	if len(eksName) < maxLength {

@@ -28,7 +28,7 @@ var (
 	sshKeyValidNameRegex = regexp.MustCompile(`^[[:graph:]]+([[:print:]]*[[:graph:]]+)*$`)
 )
 
-// Validate will validate the bastion fields
+// Validate will validate the bastion fields.
 func (b *Bastion) Validate() []*field.Error {
 	var errs field.ErrorList
 

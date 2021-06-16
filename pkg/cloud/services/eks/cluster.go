@@ -159,7 +159,7 @@ func (s *Service) setStatus(cluster *eks.Cluster) error {
 	return nil
 }
 
-// deleteCluster deletes an EKS cluster
+// deleteCluster deletes an EKS cluster.
 func (s *Service) deleteCluster() error {
 	eksClusterName := s.scope.KubernetesClusterName()
 
@@ -559,7 +559,7 @@ func (a *awslog) Log(args ...interface{}) {
 	a.WithName("aws").Info(fmt.Sprintln(args...))
 }
 
-// WaitUntilClusterUpdating is adapted from aws-sdk-go/service/eks/waiters.go
+// WaitUntilClusterUpdating is adapted from aws-sdk-go/service/eks/waiters.go.
 func (c EKSClient) WaitUntilClusterUpdating(input *eks.DescribeClusterInput, opts ...request.WaiterOption) error {
 	ctx := aws.BackgroundContext()
 	statusPath := "cluster.status"
