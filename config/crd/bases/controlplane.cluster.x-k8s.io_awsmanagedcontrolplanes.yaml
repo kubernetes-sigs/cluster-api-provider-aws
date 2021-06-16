@@ -1197,6 +1197,16 @@ spec:
                 description: Endpoints specifies access to this cluster's control
                   plane endpoints
                 properties:
+                  additionalSecurityGroups:
+                    description: AdditionalSecurityGroups specifies additional securirty
+                      groups that should be granted API access.
+                    items:
+                      type: string
+                    type: array
+                  bastionAccess:
+                    description: BastionAccess controls whether API access is available
+                      from the bastion host.
+                    type: boolean
                   private:
                     description: Private points VPC-internal control plane access
                       to the private endpoint
