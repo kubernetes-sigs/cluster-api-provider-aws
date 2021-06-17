@@ -42,12 +42,12 @@ func TestReconcileNatGateways(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		input  []*infrav1.SubnetSpec
+		input  []infrav1.SubnetSpec
 		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
 	}{
 		{
 			name: "single private subnet exists, should create no NAT gateway",
-			input: []*infrav1.SubnetSpec{
+			input: []infrav1.SubnetSpec{
 				{
 					ID:               "subnet-1",
 					AvailabilityZone: "us-east-1a",
@@ -61,7 +61,7 @@ func TestReconcileNatGateways(t *testing.T) {
 		},
 		{
 			name: "no private subnet exists, should create no NAT gateway",
-			input: []*infrav1.SubnetSpec{
+			input: []infrav1.SubnetSpec{
 				{
 					ID:               "subnet-1",
 					AvailabilityZone: "us-east-1a",
@@ -76,7 +76,7 @@ func TestReconcileNatGateways(t *testing.T) {
 		},
 		{
 			name: "public & private subnet exists, should create 1 NAT gateway",
-			input: []*infrav1.SubnetSpec{
+			input: []infrav1.SubnetSpec{
 				{
 					ID:               "subnet-1",
 					AvailabilityZone: "us-east-1a",
@@ -154,7 +154,7 @@ func TestReconcileNatGateways(t *testing.T) {
 		},
 		{
 			name: "two public & 1 private subnet, and one NAT gateway exists",
-			input: []*infrav1.SubnetSpec{
+			input: []infrav1.SubnetSpec{
 				{
 					ID:               "subnet-1",
 					AvailabilityZone: "us-east-1a",
@@ -243,7 +243,7 @@ func TestReconcileNatGateways(t *testing.T) {
 		},
 		{
 			name: "public & private subnet, and one NAT gateway exists",
-			input: []*infrav1.SubnetSpec{
+			input: []infrav1.SubnetSpec{
 				{
 					ID:               "subnet-1",
 					AvailabilityZone: "us-east-1a",
@@ -300,7 +300,7 @@ func TestReconcileNatGateways(t *testing.T) {
 		},
 		{
 			name: "public & private subnet declared, but don't exist yet",
-			input: []*infrav1.SubnetSpec{
+			input: []infrav1.SubnetSpec{
 				{
 					ID:               "",
 					AvailabilityZone: "us-east-1a",

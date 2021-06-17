@@ -259,9 +259,9 @@ func (m *MachinePoolScope) UpdateInstanceStatuses(ctx context.Context, instances
 	}
 
 	var readyReplicas int32
-	instanceStatuses := make([]*expinfrav1.AWSMachinePoolInstanceStatus, len(instances))
+	instanceStatuses := make([]expinfrav1.AWSMachinePoolInstanceStatus, len(instances))
 	for i, instance := range instances {
-		instanceStatuses[i] = &expinfrav1.AWSMachinePoolInstanceStatus{
+		instanceStatuses[i] = expinfrav1.AWSMachinePoolInstanceStatus{
 			InstanceID: instance.ID,
 		}
 

@@ -225,7 +225,7 @@ type AWSManagedControlPlaneStatus struct {
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 	// Addons holds the current status of the EKS addons
 	// +optional
-	Addons []*AddonState `json:"addons,omitempty"`
+	Addons []AddonState `json:"addons,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -148,8 +148,8 @@ func (s *FargateProfileScope) RoleName() string {
 }
 
 // ControlPlaneSubnets returns the control plane subnets.
-func (s *FargateProfileScope) ControlPlaneSubnets() infrav1.Subnets {
-	return s.ControlPlane.Spec.NetworkSpec.Subnets
+func (s *FargateProfileScope) ControlPlaneSubnets() *infrav1.Subnets {
+	return &s.ControlPlane.Spec.NetworkSpec.Subnets
 }
 
 // SubnetIDs returns the machine pool subnet IDs.

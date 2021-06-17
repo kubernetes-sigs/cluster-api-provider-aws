@@ -627,7 +627,7 @@ func autoConvert_v1alpha3_AWSMachinePoolStatus_To_v1alpha4_AWSMachinePoolStatus(
 	out.Ready = in.Ready
 	out.Replicas = in.Replicas
 	out.Conditions = *(*apiv1alpha4.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.Instances = *(*[]*v1alpha4.AWSMachinePoolInstanceStatus)(unsafe.Pointer(&in.Instances))
+	out.Instances = *(*[]v1alpha4.AWSMachinePoolInstanceStatus)(unsafe.Pointer(&in.Instances))
 	out.LaunchTemplateID = in.LaunchTemplateID
 	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
@@ -644,7 +644,7 @@ func autoConvert_v1alpha4_AWSMachinePoolStatus_To_v1alpha3_AWSMachinePoolStatus(
 	out.Ready = in.Ready
 	out.Replicas = in.Replicas
 	out.Conditions = *(*apiv1alpha3.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.Instances = *(*[]*AWSMachinePoolInstanceStatus)(unsafe.Pointer(&in.Instances))
+	out.Instances = *(*[]AWSMachinePoolInstanceStatus)(unsafe.Pointer(&in.Instances))
 	out.LaunchTemplateID = in.LaunchTemplateID
 	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))

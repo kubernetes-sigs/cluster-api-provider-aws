@@ -1058,7 +1058,7 @@ func autoConvert_v1alpha3_AWSMachineSpec_To_v1alpha4_AWSMachineSpec(in *AWSMachi
 	out.Subnet = (*v1alpha4.AWSResourceReference)(unsafe.Pointer(in.Subnet))
 	out.SSHKeyName = (*string)(unsafe.Pointer(in.SSHKeyName))
 	out.RootVolume = (*v1alpha4.Volume)(unsafe.Pointer(in.RootVolume))
-	out.NonRootVolumes = *(*[]*v1alpha4.Volume)(unsafe.Pointer(&in.NonRootVolumes))
+	out.NonRootVolumes = *(*[]v1alpha4.Volume)(unsafe.Pointer(&in.NonRootVolumes))
 	out.NetworkInterfaces = *(*[]string)(unsafe.Pointer(&in.NetworkInterfaces))
 	out.UncompressedUserData = (*bool)(unsafe.Pointer(in.UncompressedUserData))
 	if err := Convert_v1alpha3_CloudInit_To_v1alpha4_CloudInit(&in.CloudInit, &out.CloudInit, s); err != nil {
@@ -1092,7 +1092,7 @@ func autoConvert_v1alpha4_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *v1alpha4
 	out.Subnet = (*AWSResourceReference)(unsafe.Pointer(in.Subnet))
 	out.SSHKeyName = (*string)(unsafe.Pointer(in.SSHKeyName))
 	out.RootVolume = (*Volume)(unsafe.Pointer(in.RootVolume))
-	out.NonRootVolumes = *(*[]*Volume)(unsafe.Pointer(&in.NonRootVolumes))
+	out.NonRootVolumes = *(*[]Volume)(unsafe.Pointer(&in.NonRootVolumes))
 	out.NetworkInterfaces = *(*[]string)(unsafe.Pointer(&in.NetworkInterfaces))
 	out.UncompressedUserData = (*bool)(unsafe.Pointer(in.UncompressedUserData))
 	if err := Convert_v1alpha4_CloudInit_To_v1alpha3_CloudInit(&in.CloudInit, &out.CloudInit, s); err != nil {
@@ -1421,7 +1421,7 @@ func autoConvert_v1alpha3_ClassicELB_To_v1alpha4_ClassicELB(in *ClassicELB, out 
 	out.AvailabilityZones = *(*[]string)(unsafe.Pointer(&in.AvailabilityZones))
 	out.SubnetIDs = *(*[]string)(unsafe.Pointer(&in.SubnetIDs))
 	out.SecurityGroupIDs = *(*[]string)(unsafe.Pointer(&in.SecurityGroupIDs))
-	out.Listeners = *(*[]*v1alpha4.ClassicELBListener)(unsafe.Pointer(&in.Listeners))
+	out.Listeners = *(*[]v1alpha4.ClassicELBListener)(unsafe.Pointer(&in.Listeners))
 	out.HealthCheck = (*v1alpha4.ClassicELBHealthCheck)(unsafe.Pointer(in.HealthCheck))
 	if err := Convert_v1alpha3_ClassicELBAttributes_To_v1alpha4_ClassicELBAttributes(&in.Attributes, &out.Attributes, s); err != nil {
 		return err
@@ -1442,7 +1442,7 @@ func autoConvert_v1alpha4_ClassicELB_To_v1alpha3_ClassicELB(in *v1alpha4.Classic
 	out.AvailabilityZones = *(*[]string)(unsafe.Pointer(&in.AvailabilityZones))
 	out.SubnetIDs = *(*[]string)(unsafe.Pointer(&in.SubnetIDs))
 	out.SecurityGroupIDs = *(*[]string)(unsafe.Pointer(&in.SecurityGroupIDs))
-	out.Listeners = *(*[]*ClassicELBListener)(unsafe.Pointer(&in.Listeners))
+	out.Listeners = *(*[]ClassicELBListener)(unsafe.Pointer(&in.Listeners))
 	out.HealthCheck = (*ClassicELBHealthCheck)(unsafe.Pointer(in.HealthCheck))
 	if err := Convert_v1alpha4_ClassicELBAttributes_To_v1alpha3_ClassicELBAttributes(&in.Attributes, &out.Attributes, s); err != nil {
 		return err
@@ -1626,7 +1626,7 @@ func autoConvert_v1alpha3_Instance_To_v1alpha4_Instance(in *Instance, out *v1alp
 	out.ENASupport = (*bool)(unsafe.Pointer(in.ENASupport))
 	out.EBSOptimized = (*bool)(unsafe.Pointer(in.EBSOptimized))
 	out.RootVolume = (*v1alpha4.Volume)(unsafe.Pointer(in.RootVolume))
-	out.NonRootVolumes = *(*[]*v1alpha4.Volume)(unsafe.Pointer(&in.NonRootVolumes))
+	out.NonRootVolumes = *(*[]v1alpha4.Volume)(unsafe.Pointer(&in.NonRootVolumes))
 	out.NetworkInterfaces = *(*[]string)(unsafe.Pointer(&in.NetworkInterfaces))
 	out.Tags = *(*map[string]string)(unsafe.Pointer(&in.Tags))
 	out.AvailabilityZone = in.AvailabilityZone
@@ -1656,7 +1656,7 @@ func autoConvert_v1alpha4_Instance_To_v1alpha3_Instance(in *v1alpha4.Instance, o
 	out.ENASupport = (*bool)(unsafe.Pointer(in.ENASupport))
 	out.EBSOptimized = (*bool)(unsafe.Pointer(in.EBSOptimized))
 	out.RootVolume = (*Volume)(unsafe.Pointer(in.RootVolume))
-	out.NonRootVolumes = *(*[]*Volume)(unsafe.Pointer(&in.NonRootVolumes))
+	out.NonRootVolumes = *(*[]Volume)(unsafe.Pointer(&in.NonRootVolumes))
 	out.NetworkInterfaces = *(*[]string)(unsafe.Pointer(&in.NetworkInterfaces))
 	out.Tags = *(*map[string]string)(unsafe.Pointer(&in.Tags))
 	out.AvailabilityZone = in.AvailabilityZone

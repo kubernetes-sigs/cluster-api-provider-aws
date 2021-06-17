@@ -156,7 +156,7 @@ func TestMakeVPCConfig(t *testing.T) {
 		{
 			name: "enough subnets",
 			input: input{
-				subnets: []*infrav1.SubnetSpec{
+				subnets: []infrav1.SubnetSpec{
 					{
 						ID:               idOne,
 						CidrBlock:        "10.0.10.0/24",
@@ -179,7 +179,7 @@ func TestMakeVPCConfig(t *testing.T) {
 		{
 			name: "security groups",
 			input: input{
-				subnets: []*infrav1.SubnetSpec{
+				subnets: []infrav1.SubnetSpec{
 					{
 						ID:               idOne,
 						CidrBlock:        "10.0.10.0/24",
@@ -208,7 +208,7 @@ func TestMakeVPCConfig(t *testing.T) {
 		{
 			name: "non canonical public access CIDR",
 			input: input{
-				subnets: []*infrav1.SubnetSpec{
+				subnets: []infrav1.SubnetSpec{
 					{
 						ID:               idOne,
 						CidrBlock:        "10.0.10.0/24",

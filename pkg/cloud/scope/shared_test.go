@@ -44,15 +44,15 @@ func TestSubnetPlacement(t *testing.T) {
 			specAZs:       []string{"eu-west-1b"},
 			parentAZs:     []string{"eu-west-1c"},
 			controlPlaneSubnets: infrav1.Subnets{
-				&infrav1.SubnetSpec{
+				infrav1.SubnetSpec{
 					ID:               "az1",
 					AvailabilityZone: "eu-west-1a",
 				},
-				&infrav1.SubnetSpec{
+				infrav1.SubnetSpec{
 					ID:               "az2",
 					AvailabilityZone: "eu-west-1b",
 				},
-				&infrav1.SubnetSpec{
+				infrav1.SubnetSpec{
 					ID:               "az3",
 					AvailabilityZone: "eu-west-1c",
 				},
@@ -67,15 +67,15 @@ func TestSubnetPlacement(t *testing.T) {
 			specAZs:       []string{"eu-west-1b"},
 			parentAZs:     []string{"eu-west-1c"},
 			controlPlaneSubnets: infrav1.Subnets{
-				&infrav1.SubnetSpec{
+				infrav1.SubnetSpec{
 					ID:               "az1",
 					AvailabilityZone: "eu-west-1a",
 				},
-				&infrav1.SubnetSpec{
+				infrav1.SubnetSpec{
 					ID:               "az2",
 					AvailabilityZone: "eu-west-1b",
 				},
-				&infrav1.SubnetSpec{
+				infrav1.SubnetSpec{
 					ID:               "az3",
 					AvailabilityZone: "eu-west-1c",
 				},
@@ -90,15 +90,15 @@ func TestSubnetPlacement(t *testing.T) {
 			specAZs:       []string{},
 			parentAZs:     []string{"eu-west-1c"},
 			controlPlaneSubnets: infrav1.Subnets{
-				&infrav1.SubnetSpec{
+				infrav1.SubnetSpec{
 					ID:               "az1",
 					AvailabilityZone: "eu-west-1a",
 				},
-				&infrav1.SubnetSpec{
+				infrav1.SubnetSpec{
 					ID:               "az2",
 					AvailabilityZone: "eu-west-1b",
 				},
-				&infrav1.SubnetSpec{
+				infrav1.SubnetSpec{
 					ID:               "az3",
 					AvailabilityZone: "eu-west-1c",
 				},
@@ -113,17 +113,17 @@ func TestSubnetPlacement(t *testing.T) {
 			specAZs:       []string{},
 			parentAZs:     []string{},
 			controlPlaneSubnets: infrav1.Subnets{
-				&infrav1.SubnetSpec{
+				infrav1.SubnetSpec{
 					ID:               "az1",
 					AvailabilityZone: "eu-west-1a",
 					IsPublic:         false,
 				},
-				&infrav1.SubnetSpec{
+				infrav1.SubnetSpec{
 					ID:               "az2",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         false,
 				},
-				&infrav1.SubnetSpec{
+				infrav1.SubnetSpec{
 					ID:               "az3",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         true,

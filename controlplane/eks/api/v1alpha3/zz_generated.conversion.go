@@ -400,7 +400,7 @@ func autoConvert_v1alpha3_AWSManagedControlPlaneStatus_To_v1alpha4_AWSManagedCon
 	out.Ready = in.Ready
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.Conditions = *(*apiv1alpha4.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.Addons = *(*[]*v1alpha4.AddonState)(unsafe.Pointer(&in.Addons))
+	out.Addons = *(*[]v1alpha4.AddonState)(unsafe.Pointer(&in.Addons))
 	return nil
 }
 
@@ -423,7 +423,7 @@ func autoConvert_v1alpha4_AWSManagedControlPlaneStatus_To_v1alpha3_AWSManagedCon
 	out.Ready = in.Ready
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.Conditions = *(*apiv1alpha3.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.Addons = *(*[]*AddonState)(unsafe.Pointer(&in.Addons))
+	out.Addons = *(*[]AddonState)(unsafe.Pointer(&in.Addons))
 	return nil
 }
 
@@ -461,7 +461,7 @@ func Convert_v1alpha4_Addon_To_v1alpha3_Addon(in *v1alpha4.Addon, out *Addon, s 
 func autoConvert_v1alpha3_AddonIssue_To_v1alpha4_AddonIssue(in *AddonIssue, out *v1alpha4.AddonIssue, s conversion.Scope) error {
 	out.Code = (*string)(unsafe.Pointer(in.Code))
 	out.Message = (*string)(unsafe.Pointer(in.Message))
-	out.ResourceIDs = *(*[]*string)(unsafe.Pointer(&in.ResourceIDs))
+	out.ResourceIDs = *(*[]string)(unsafe.Pointer(&in.ResourceIDs))
 	return nil
 }
 
@@ -473,7 +473,7 @@ func Convert_v1alpha3_AddonIssue_To_v1alpha4_AddonIssue(in *AddonIssue, out *v1a
 func autoConvert_v1alpha4_AddonIssue_To_v1alpha3_AddonIssue(in *v1alpha4.AddonIssue, out *AddonIssue, s conversion.Scope) error {
 	out.Code = (*string)(unsafe.Pointer(in.Code))
 	out.Message = (*string)(unsafe.Pointer(in.Message))
-	out.ResourceIDs = *(*[]*string)(unsafe.Pointer(&in.ResourceIDs))
+	out.ResourceIDs = *(*[]string)(unsafe.Pointer(&in.ResourceIDs))
 	return nil
 }
 
@@ -490,7 +490,7 @@ func autoConvert_v1alpha3_AddonState_To_v1alpha4_AddonState(in *AddonState, out 
 	out.CreatedAt = in.CreatedAt
 	out.ModifiedAt = in.ModifiedAt
 	out.Status = (*string)(unsafe.Pointer(in.Status))
-	out.Issues = *(*[]*v1alpha4.AddonIssue)(unsafe.Pointer(&in.Issues))
+	out.Issues = *(*[]v1alpha4.AddonIssue)(unsafe.Pointer(&in.Issues))
 	return nil
 }
 
@@ -507,7 +507,7 @@ func autoConvert_v1alpha4_AddonState_To_v1alpha3_AddonState(in *v1alpha4.AddonSt
 	out.CreatedAt = in.CreatedAt
 	out.ModifiedAt = in.ModifiedAt
 	out.Status = (*string)(unsafe.Pointer(in.Status))
-	out.Issues = *(*[]*AddonIssue)(unsafe.Pointer(&in.Issues))
+	out.Issues = *(*[]AddonIssue)(unsafe.Pointer(&in.Issues))
 	return nil
 }
 

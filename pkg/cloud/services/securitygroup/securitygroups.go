@@ -423,8 +423,9 @@ func (s *Service) createSecurityGroup(role infrav1.SecurityGroupRole, input *ec2
 
 func (s *Service) authorizeSecurityGroupIngressRules(id string, rules infrav1.IngressRules) error {
 	input := &ec2.AuthorizeSecurityGroupIngressInput{GroupId: aws.String(id)}
-	for _, rule := range rules {
-		input.IpPermissions = append(input.IpPermissions, ingressRuleToSDKType(rule))
+	for i := range rules {
+		rule := rules[i]
+		input.IpPermissions = append(input.IpPermissions, ingressRuleToSDKType(&rule))
 	}
 
 	if _, err := s.EC2Client.AuthorizeSecurityGroupIngress(input); err != nil {
@@ -438,8 +439,9 @@ func (s *Service) authorizeSecurityGroupIngressRules(id string, rules infrav1.In
 
 func (s *Service) revokeSecurityGroupIngressRules(id string, rules infrav1.IngressRules) error {
 	input := &ec2.RevokeSecurityGroupIngressInput{GroupId: aws.String(id)}
-	for _, rule := range rules {
-		input.IpPermissions = append(input.IpPermissions, ingressRuleToSDKType(rule))
+	for i := range rules {
+		rule := rules[i]
+		input.IpPermissions = append(input.IpPermissions, ingressRuleToSDKType(&rule))
 	}
 
 	if _, err := s.EC2Client.RevokeSecurityGroupIngress(input); err != nil {
@@ -476,8 +478,8 @@ func (s *Service) revokeAllSecurityGroupIngressRules(id string) error {
 	return nil
 }
 
-func (s *Service) defaultSSHIngressRule(sourceSecurityGroupID string) *infrav1.IngressRule {
-	return &infrav1.IngressRule{
+func (s *Service) defaultSSHIngressRule(sourceSecurityGroupID string) infrav1.IngressRule {
+	return infrav1.IngressRule{
 		Description:            "SSH",
 		Protocol:               infrav1.SecurityGroupProtocolTCP,
 		FromPort:               22,
@@ -492,7 +494,7 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 
 	cniRules := make(infrav1.IngressRules, len(s.scope.CNIIngressRules()))
 	for i, r := range s.scope.CNIIngressRules() {
-		cniRules[i] = &infrav1.IngressRule{
+		cniRules[i] = infrav1.IngressRule{
 			Description: r.Description,
 			Protocol:    r.Protocol,
 			FromPort:    r.FromPort,
@@ -676,7 +678,7 @@ func ingressRuleToSDKType(i *infrav1.IngressRule) (res *ec2.IpPermission) {
 	return res
 }
 
-func ingressRuleFromSDKType(v *ec2.IpPermission) (res *infrav1.IngressRule) {
+func ingressRuleFromSDKType(v *ec2.IpPermission) (res infrav1.IngressRule) {
 	// Ports are only well-defined for TCP and UDP protocols, but EC2 overloads the port range
 	// in the case of ICMP(v6) traffic to indicate which codes are allowed. For all other protocols,
 	// including the custom "-1" All Traffic protcol, FromPort and ToPort are omitted from the response.
@@ -686,13 +688,13 @@ func ingressRuleFromSDKType(v *ec2.IpPermission) (res *infrav1.IngressRule) {
 		IPProtocolUDP,
 		IPProtocolICMP,
 		IPProtocolICMPv6:
-		res = &infrav1.IngressRule{
+		res = infrav1.IngressRule{
 			Protocol: infrav1.SecurityGroupProtocol(*v.IpProtocol),
 			FromPort: *v.FromPort,
 			ToPort:   *v.ToPort,
 		}
 	default:
-		res = &infrav1.IngressRule{
+		res = infrav1.IngressRule{
 			Protocol: infrav1.SecurityGroupProtocol(*v.IpProtocol),
 		}
 	}

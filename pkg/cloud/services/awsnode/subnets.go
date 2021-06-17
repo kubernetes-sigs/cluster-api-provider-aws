@@ -21,8 +21,9 @@ import "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 func (s *Service) secondarySubnets() []*v1alpha4.SubnetSpec {
 	subnets := []*v1alpha4.SubnetSpec{}
 	for _, sub := range s.scope.Subnets() {
-		if val, ok := sub.Tags[v1alpha4.NameAWSSubnetAssociation]; ok && val == v1alpha4.SecondarySubnetTagValue {
-			subnets = append(subnets, sub)
+		subnet := sub.DeepCopy()
+		if val, ok := subnet.Tags[v1alpha4.NameAWSSubnetAssociation]; ok && val == v1alpha4.SecondarySubnetTagValue {
+			subnets = append(subnets, subnet)
 		}
 	}
 	return subnets

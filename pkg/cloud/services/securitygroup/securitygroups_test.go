@@ -57,12 +57,12 @@ func TestReconcileSecurityGroups(t *testing.T) {
 					},
 				},
 				Subnets: infrav1.Subnets{
-					&infrav1.SubnetSpec{
+					infrav1.SubnetSpec{
 						ID:               "subnet-securitygroups-private",
 						IsPublic:         false,
 						AvailabilityZone: "us-east-1a",
 					},
-					&infrav1.SubnetSpec{
+					infrav1.SubnetSpec{
 						ID:               "subnet-securitygroups-public",
 						IsPublic:         true,
 						NatGatewayID:     aws.String("nat-01"),
@@ -241,12 +241,12 @@ func TestReconcileSecurityGroups(t *testing.T) {
 					InternetGatewayID: aws.String("igw-01"),
 				},
 				Subnets: infrav1.Subnets{
-					&infrav1.SubnetSpec{
+					infrav1.SubnetSpec{
 						ID:               "subnet-securitygroups-private",
 						IsPublic:         false,
 						AvailabilityZone: "us-east-1a",
 					},
-					&infrav1.SubnetSpec{
+					infrav1.SubnetSpec{
 						ID:               "subnet-securitygroups-public",
 						IsPublic:         true,
 						NatGatewayID:     aws.String("nat-01"),
@@ -285,12 +285,12 @@ func TestReconcileSecurityGroups(t *testing.T) {
 					},
 				},
 				Subnets: infrav1.Subnets{
-					&infrav1.SubnetSpec{
+					infrav1.SubnetSpec{
 						ID:               "subnet-securitygroups-private",
 						IsPublic:         false,
 						AvailabilityZone: "us-east-1a",
 					},
-					&infrav1.SubnetSpec{
+					infrav1.SubnetSpec{
 						ID:               "subnet-securitygroups-public",
 						IsPublic:         true,
 						NatGatewayID:     aws.String("nat-01"),

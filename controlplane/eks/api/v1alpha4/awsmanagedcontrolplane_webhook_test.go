@@ -51,7 +51,7 @@ func TestDefaultingWebhook(t *testing.T) {
 	defaultNetworkSpec := infrav1.NetworkSpec{
 		VPC: defaultVPCSpec,
 		CNI: &infrav1.CNISpec{
-			CNIIngressRules: []*infrav1.CNIIngressRule{
+			CNIIngressRules: []infrav1.CNIIngressRule{
 				{
 					Description: "bgp (calico)",
 					Protocol:    "tcp",

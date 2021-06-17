@@ -44,19 +44,29 @@ func AddonSDKToAddonState(eksAddon *eks.Addon) *ekscontrolplanev1.AddonState {
 		ModifiedAt:            metav1.NewTime(*eksAddon.ModifiedAt),
 		Status:                eksAddon.Status,
 		ServiceAccountRoleArn: eksAddon.ServiceAccountRoleArn,
-		Issues:                []*ekscontrolplanev1.AddonIssue{},
+		Issues:                []ekscontrolplanev1.AddonIssue{},
 	}
 	if eksAddon.Health != nil {
 		for _, issue := range eksAddon.Health.Issues {
-			addonState.Issues = append(addonState.Issues, &ekscontrolplanev1.AddonIssue{
+			addonState.Issues = append(addonState.Issues, ekscontrolplanev1.AddonIssue{
 				Code:        issue.Code,
 				Message:     issue.Message,
-				ResourceIDs: issue.ResourceIds,
+				ResourceIDs: FromAWSStringSlice(issue.ResourceIds),
 			})
 		}
 	}
 
 	return addonState
+}
+
+// FromAWSStringSlice will converts an AWS string pointer slice.
+func FromAWSStringSlice(from []*string) []string {
+	converted := []string{}
+	for _, s := range from {
+		converted = append(converted, *s)
+	}
+
+	return converted
 }
 
 // TaintToSDK is used to a CAPA Taint to AWS SDK taint.
