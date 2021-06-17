@@ -131,13 +131,14 @@ variables:
   EXP_EKS_ADD_ROLES: "false"
   VPC_ADDON_VERSION: "v1.6.3-eksbuild.1"
   CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.19.8"
+  AUTO_CONTROLLER_IDENTITY_CREATOR: "false"
 
 intervals:
   default/wait-cluster: ["30m", "10s"]
   default/wait-control-plane: ["30m", "10s"]
   default/wait-worker-nodes: ["30m", "10s"]
   default/wait-controllers: ["3m", "10s"]
-  default/wait-delete-cluster: ["35m", "10s"]
+  default/wait-delete-cluster: ["35m", "30s"]
   default/wait-delete-machine: ["10m", "10s"]
   default/wait-delete-machine-deployment: ["10m", "10s"]
   default/wait-delete-machine-pool: ["20m", "10s"]
@@ -146,3 +147,4 @@ intervals:
   default/wait-infra-subnets: ["5m", "30s"]
   default/wait-control-plane-upgrade: ["35m", "30s"]
   default/wait-addon-status: ["10m", "30s"]
+  default/wait-create-identity: ["1m", "10s"]

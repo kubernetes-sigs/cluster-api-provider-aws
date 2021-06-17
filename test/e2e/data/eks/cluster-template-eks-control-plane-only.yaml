@@ -24,3 +24,6 @@ spec:
   region: "${AWS_REGION}"
   sshKeyName: "${AWS_SSH_KEY_NAME}"
   version: "${KUBERNETES_VERSION}"
+  identityRef:
+    kind: AWSClusterStaticIdentity
+    name: e2e-account

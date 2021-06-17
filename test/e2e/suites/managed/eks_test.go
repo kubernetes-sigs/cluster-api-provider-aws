@@ -26,6 +26,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/util"
 
 	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
@@ -52,6 +53,9 @@ var _ = Describe("EKS cluster tests", func() {
 		ctx = context.TODO()
 		namespace = shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 		clusterName = fmt.Sprintf("cluster-%s", util.RandomString(6))
+
+		By("setting up AWS statis credentials")
+		shared.SetupStaticCredentials(ctx, namespace, e2eCtx)
 
 		By("default iam role should exist")
 		verifyRoleExistsAndOwned(controlplanev1.DefaultEKSControlPlaneRole, clusterName, false, e2eCtx.BootstratpUserAWSSession)
@@ -113,15 +117,24 @@ var _ = Describe("EKS cluster tests", func() {
 			}
 		})
 
-		shared.Byf("should delete cluster %s", clusterName)
-		DeleteClusterSpec(ctx, func() DeleteClusterSpecInput {
-			return DeleteClusterSpecInput{
-				E2EConfig:             e2eCtx.E2EConfig,
-				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-				ClusterName:           clusterName,
-				Namespace:             namespace,
-			}
+		shared.Byf("getting cluster with name %s", clusterName)
+		cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
+			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			Namespace: namespace.Name,
+			Name:      clusterName,
 		})
-	})
+		Expect(cluster).NotTo(BeNil(), "couldn't find CAPI cluster")
 
+		framework.DeleteCluster(ctx, framework.DeleteClusterInput{
+			Deleter: e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			Cluster: cluster,
+		})
+		framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
+			Getter:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			Cluster: cluster,
+		}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
+
+		By("Deleting AWS static credentials")
+		shared.CleanupStaticCredentials(ctx, namespace, e2eCtx)
+	})
 })
