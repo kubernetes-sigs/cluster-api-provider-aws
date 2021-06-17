@@ -27,7 +27,7 @@ const (
 
 // UserData creates a multi-part MIME document including a script boothook to
 // download userdata from AWS Secrets Manager and then restart cloud-init, and an include part
-// specifying the on disk location of the new userdata
+// specifying the on disk location of the new userdata.
 func (s *Service) UserData(secretPrefix string, chunks int32, region string, endpoints []scope.ServiceEndpoint) ([]byte, error) {
 	serviceEndpoint := ""
 	for _, v := range endpoints {

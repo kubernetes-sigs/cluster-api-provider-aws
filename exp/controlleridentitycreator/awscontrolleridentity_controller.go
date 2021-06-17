@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// AWSControllerIdentityReconciler reconciles a AWSClusterControllerIdentity object
+// AWSControllerIdentityReconciler reconciles a AWSClusterControllerIdentity object.
 type AWSControllerIdentityReconciler struct {
 	client.Client
 	Log              logr.Logger

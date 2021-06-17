@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 )
 
-// ELBScope is a scope for use with the ELB reconciling service
+// ELBScope is a scope for use with the ELB reconciling service.
 type ELBScope interface {
 	cloud.ClusterScoper
 

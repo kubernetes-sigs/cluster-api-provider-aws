@@ -38,12 +38,12 @@ func TestMain(m *testing.M) {
 		teardown()
 	}()
 	code := m.Run()
-	os.Exit(code)
+	os.Exit(code) // nolint:gocritic
 }
 
 func setup() {
-	//utilruntime.Must(bootstrapv1.AddToScheme(scheme.Scheme))
-	//utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
+	// utilruntime.Must(bootstrapv1.AddToScheme(scheme.Scheme))
+	// utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
 	testEnvConfig := helpers.NewTestEnvironmentConfiguration([]string{
 		path.Join("config", "crd", "bases"),
 	},

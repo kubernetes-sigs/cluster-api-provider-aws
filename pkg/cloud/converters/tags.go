@@ -48,7 +48,7 @@ func MapPtrToMap(src map[string]*string) infrav1.Tags {
 	return tags
 }
 
-// MapToTags converts a infrav1.Tags to a []*ec2.Tag
+// MapToTags converts a infrav1.Tags to a []*ec2.Tag.
 func MapToTags(src infrav1.Tags) []*ec2.Tag {
 	tags := make([]*ec2.Tag, 0, len(src))
 
@@ -75,7 +75,7 @@ func ELBTagsToMap(src []*elb.Tag) infrav1.Tags {
 	return tags
 }
 
-// MapToELBTags converts a infrav1.Tags to a []*elb.Tag
+// MapToELBTags converts a infrav1.Tags to a []*elb.Tag.
 func MapToELBTags(src infrav1.Tags) []*elb.Tag {
 	tags := make([]*elb.Tag, 0, len(src))
 
@@ -91,7 +91,7 @@ func MapToELBTags(src infrav1.Tags) []*elb.Tag {
 	return tags
 }
 
-// MapToSecretsManagerTags converts a infrav1.Tags to a []*secretsmanager.Tag
+// MapToSecretsManagerTags converts a infrav1.Tags to a []*secretsmanager.Tag.
 func MapToSecretsManagerTags(src infrav1.Tags) []*secretsmanager.Tag {
 	tags := make([]*secretsmanager.Tag, 0, len(src))
 
@@ -107,7 +107,7 @@ func MapToSecretsManagerTags(src infrav1.Tags) []*secretsmanager.Tag {
 	return tags
 }
 
-// MapToSSMTags converts a infrav1.Tags to a []*ssm.Tag
+// MapToSSMTags converts a infrav1.Tags to a []*ssm.Tag.
 func MapToSSMTags(src infrav1.Tags) []*ssm.Tag {
 	tags := make([]*ssm.Tag, 0, len(src))
 

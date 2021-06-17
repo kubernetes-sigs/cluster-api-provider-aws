@@ -377,7 +377,6 @@ func (s *NodegroupService) reconcileNodegroupConfig(ng *eks.Nodegroup) error {
 	eksClusterName := s.scope.KubernetesClusterName()
 	s.V(2).Info("reconciling node group config", "cluster", eksClusterName, "name", *ng.NodegroupName)
 
-	machinePool := s.scope.MachinePool.Spec
 	managedPool := s.scope.ManagedMachinePool.Spec
 	input := &eks.UpdateNodegroupConfigInput{
 		ClusterName:   aws.String(eksClusterName),
@@ -398,7 +397,7 @@ func (s *NodegroupService) reconcileNodegroupConfig(ng *eks.Nodegroup) error {
 		input.Taints = taintsPayload
 		needsUpdate = true
 	}
-	if machinePool.Replicas == nil {
+	if machinePool := s.scope.MachinePool.Spec; machinePool.Replicas == nil {
 		if ng.ScalingConfig.DesiredSize != nil && *ng.ScalingConfig.DesiredSize != 1 {
 			s.V(2).Info("Nodegroup desired size differs from spec, updating scaling configuration", "nodegroup", ng.NodegroupName)
 			input.ScalingConfig = s.scalingConfig()
@@ -432,15 +431,12 @@ func (s *NodegroupService) reconcileNodegroupConfig(ng *eks.Nodegroup) error {
 }
 
 func (s *NodegroupService) reconcileNodegroup() error {
-	eksClusterName := s.scope.KubernetesClusterName()
-	eksNodegroupName := s.scope.NodegroupName()
-
 	ng, err := s.describeNodegroup()
 	if err != nil {
 		return errors.Wrap(err, "failed to describe nodegroup")
 	}
 
-	if ng == nil {
+	if eksClusterName, eksNodegroupName := s.scope.KubernetesClusterName(), s.scope.NodegroupName(); ng == nil {
 		ng, err = s.createNodegroup()
 		if err != nil {
 			return errors.Wrap(err, "failed to create nodegroup")

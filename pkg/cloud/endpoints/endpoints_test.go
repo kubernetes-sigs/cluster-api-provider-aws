@@ -24,7 +24,6 @@ import (
 )
 
 func TestParseFlags(t *testing.T) {
-
 	testCases := []struct {
 		name           string
 		flagToParse    string

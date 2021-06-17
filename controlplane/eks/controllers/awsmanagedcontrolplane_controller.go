@@ -57,7 +57,7 @@ const (
 	deleteRequeueAfter = 20 * time.Second
 )
 
-// AWSManagedControlPlaneReconciler reconciles a AWSManagedControlPlane object
+// AWSManagedControlPlaneReconciler reconciles a AWSManagedControlPlane object.
 type AWSManagedControlPlaneReconciler struct {
 	client.Client
 	Recorder  record.EventRecorder
@@ -68,7 +68,7 @@ type AWSManagedControlPlaneReconciler struct {
 	WatchFilterValue     string
 }
 
-// SetupWithManager is used to setup the controller
+// SetupWithManager is used to setup the controller.
 func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -110,7 +110,7 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context,
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclusterroleidentities;awsclusterstaticidentities;awsclustercontrolleridentities,verbs=get;list;watch
 
-// Reconcile will reconcile AWSManagedControlPlane Resources
+// Reconcile will reconcile AWSManagedControlPlane Resources.
 func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 

@@ -73,7 +73,7 @@ const (
 )
 
 // PolicyDocument represents an AWS IAM policy document, and can be
-// converted into JSON using "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
+// converted into JSON using "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters".
 type PolicyDocument struct {
 	Version   string
 	Statement Statements
@@ -91,13 +91,13 @@ type StatementEntry struct {
 	Condition    Conditions `json:"Condition,omitempty"`
 }
 
-// Statements is the list of StatementEntries
+// Statements is the list of StatementEntries.
 type Statements []StatementEntry
 
-// Principals is the map of all identities a statement entry refers to
+// Principals is the map of all identities a statement entry refers to.
 type Principals map[PrincipalType]PrincipalID
 
-// Actions is the list of actions
+// Actions is the list of actions.
 type Actions []string
 
 // UnmarshalJSON is an Actions Unmarshaler.
@@ -115,10 +115,10 @@ func (actions *Actions) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Resources is the list of resources
+// Resources is the list of resources.
 type Resources []string
 
-// PrincipalID represents the list of all identities, such as ARNs
+// PrincipalID represents the list of all identities, such as ARNs.
 type PrincipalID []string
 
 // UnmarshalJSON defines an Unmarshaler for a PrincipalID.

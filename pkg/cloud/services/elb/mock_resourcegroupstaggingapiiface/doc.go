@@ -17,4 +17,5 @@ limitations under the License.
 // Run go generate to regenerate this mock.
 //go:generate ../../../../../hack/tools/bin/mockgen -destination resourcegroupstaggingapiiface_mock.go -package mock_resourcegroupstaggingapiiface github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface ResourceGroupsTaggingAPIAPI
 //go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt resourcegroupstaggingapiiface_mock.go > _resourcegroupstaggingapiiface_mock.go && mv _resourcegroupstaggingapiiface_mock.go resourcegroupstaggingapiiface_mock.go"
-package mock_resourcegroupstaggingapiiface //nolint
+
+package mock_resourcegroupstaggingapiiface // nolint:stylecheck

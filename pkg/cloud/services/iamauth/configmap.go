@@ -25,7 +25,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	apierr "k8s.io/apimachinery/pkg/util/errors"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"sigs.k8s.io/yaml"
 
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -47,7 +47,7 @@ type configMapBackend struct {
 
 func (b *configMapBackend) MapRole(mapping ekscontrolplanev1.RoleMapping) error {
 	if errs := mapping.Validate(); errs != nil {
-		return apierr.NewAggregate(errs)
+		return kerrors.NewAggregate(errs)
 	}
 
 	authConfig, err := b.getAuthConfig()
@@ -69,7 +69,7 @@ func (b *configMapBackend) MapRole(mapping ekscontrolplanev1.RoleMapping) error 
 
 func (b *configMapBackend) MapUser(mapping ekscontrolplanev1.UserMapping) error {
 	if errs := mapping.Validate(); errs != nil {
-		return apierr.NewAggregate(errs)
+		return kerrors.NewAggregate(errs)
 	}
 
 	authConfig, err := b.getAuthConfig()

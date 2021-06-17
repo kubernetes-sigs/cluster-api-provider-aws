@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
-// GetConsoleOutput returns the latest console output of an instance
+// GetConsoleOutput returns the latest console output of an instance.
 func (s *Service) GetConsoleOutput(instanceID string) (string, error) {
 	input := &ec2.GetConsoleOutputInput{
 		InstanceId: aws.String(instanceID),

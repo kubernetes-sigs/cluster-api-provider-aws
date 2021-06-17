@@ -32,10 +32,10 @@ const (
 type SecretBackend string
 
 var (
-	// SecretBackendSSMParameterStore defines AWS Systems Manager Parameter Store as the secret backend
+	// SecretBackendSSMParameterStore defines AWS Systems Manager Parameter Store as the secret backend.
 	SecretBackendSSMParameterStore = SecretBackend("ssm-parameter-store")
 
-	// SecretBackendSecretsManager defines AWS Secrets Manager as the secret backend
+	// SecretBackendSecretsManager defines AWS Secrets Manager as the secret backend.
 	SecretBackendSecretsManager = SecretBackend("secrets-manager")
 )
 
@@ -268,7 +268,7 @@ func (r *AWSMachine) SetConditions(conditions clusterv1.Conditions) {
 
 // +kubebuilder:object:root=true
 
-// AWSMachineList contains a list of AWSMachine
+// AWSMachineList contains a list of AWSMachine.
 type AWSMachineList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

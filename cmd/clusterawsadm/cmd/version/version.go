@@ -27,13 +27,13 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// Version provides the version information of clusterawsadm
+// Version provides the version information of clusterawsadm.
 type Version struct {
 	ClientVersion *version.Info `json:"awsProviderVersion"`
 }
 
-// VersionCmd provides the version information clusterawsadm.
-func VersionCmd(out io.Writer) *cobra.Command {
+// Cmd provides the version information clusterawsadm.
+func Cmd(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Print version of clusterawsadm",

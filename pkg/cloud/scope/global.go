@@ -55,7 +55,7 @@ type GlobalScope struct {
 	controllerName  string
 }
 
-// Session returns the AWS SDK session. Used for creating clients
+// Session returns the AWS SDK session. Used for creating clients.
 func (s *GlobalScope) Session() awsclient.ConfigProvider {
 	return s.session
 }
@@ -69,7 +69,7 @@ func (s *GlobalScope) ServiceLimiter(service string) *throttle.ServiceLimiter {
 }
 
 // ControllerName returns the name of the controller that
-// created the GlobalScope
+// created the GlobalScope.
 func (s *GlobalScope) ControllerName() string {
 	return s.controllerName
 }

@@ -19,10 +19,11 @@ package v1alpha4
 import (
 	"time"
 
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -30,7 +31,7 @@ import (
 
 var log = logf.Log.WithName("awsmachinepool-resource")
 
-// SetupWebhookWithManager will setup the webhooks for the AWSMachinePool
+// SetupWebhookWithManager will setup the webhooks for the AWSMachinePool.
 func (r *AWSMachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
@@ -54,7 +55,7 @@ func (r *AWSMachinePool) validateDefaultCoolDown() field.ErrorList {
 	return allErrs
 }
 
-// ValidateCreate will do any extra validation when creating a AWSMachinePool
+// ValidateCreate will do any extra validation when creating a AWSMachinePool.
 func (r *AWSMachinePool) ValidateCreate() error {
 	log.Info("AWSMachinePool validate create", "name", r.Name)
 
@@ -75,7 +76,7 @@ func (r *AWSMachinePool) ValidateCreate() error {
 	)
 }
 
-// ValidateUpdate will do any extra validation when updating a AWSMachinePool
+// ValidateUpdate will do any extra validation when updating a AWSMachinePool.
 func (r *AWSMachinePool) ValidateUpdate(old runtime.Object) error {
 	var allErrs field.ErrorList
 	if errs := r.validateDefaultCoolDown(); errs != nil || len(errs) == 0 {
@@ -93,12 +94,12 @@ func (r *AWSMachinePool) ValidateUpdate(old runtime.Object) error {
 	)
 }
 
-// ValidateDelete allows you to add any extra validation when deleting
+// ValidateDelete allows you to add any extra validation when deleting.
 func (r *AWSMachinePool) ValidateDelete() error {
 	return nil
 }
 
-// Default will set default values for the AWSMachinePool
+// Default will set default values for the AWSMachinePool.
 func (r *AWSMachinePool) Default() {
 	if int(r.Spec.DefaultCoolDown.Duration.Seconds()) == 0 {
 		log.Info("DefaultCoolDown is zero, setting 300 seconds as default")

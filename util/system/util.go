@@ -20,20 +20,21 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/pkg/errors"
 )
 
 const (
-	// namespaceEnvVarName is the env var coming from DownwardAPI in the manager manifest
+	// namespaceEnvVarName is the env var coming from DownwardAPI in the manager manifest.
 	namespaceEnvVarName = "POD_NAMESPACE"
-	// defaultNamespace is the default value from manifest
+	// defaultNamespace is the default value from manifest.
 	defaultNamespace = "capa-system"
-	// inClusterNamespacePath is the file the default namespace to be used for namespaced API operations is placed at
+	// inClusterNamespacePath is the file the default namespace to be used for namespaced API operations is placed at.
 	inClusterNamespacePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 )
 
-// GetManagerNamespace return the namespace where the controller is running
+// GetManagerNamespace return the namespace where the controller is running.
 func GetManagerNamespace() string {
 	ns, err := GetNamespaceFromFile(inClusterNamespacePath)
 	if err == nil {
@@ -54,15 +55,15 @@ func GetManagerNamespace() string {
 func GetNamespaceFromFile(nsFilePath string) (string, error) {
 	// Check whether the namespace file exists.
 	// If not, we are not running in cluster so can't guess the namespace.
-	_, err := os.Stat(nsFilePath)
-	if os.IsNotExist(err) {
+
+	if _, err := os.Stat(nsFilePath); os.IsNotExist(err) {
 		return "", errors.Wrapf(err, "not running in-cluster, please specify LeaderElectionNamespace")
 	} else if err != nil {
 		return "", errors.Wrapf(err, "error checking namespace file: %s", nsFilePath)
 	}
 
 	// Load the namespace file and return its content
-	namespace, err := ioutil.ReadFile(nsFilePath)
+	namespace, err := ioutil.ReadFile(filepath.Clean(nsFilePath))
 	if err != nil {
 		return "", fmt.Errorf("error reading namespace file: %w", err)
 	}

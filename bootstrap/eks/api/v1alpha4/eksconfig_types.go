@@ -85,7 +85,7 @@ func (r *EKSConfig) SetConditions(conditions clusterv1.Conditions) {
 
 // +kubebuilder:object:root=true
 
-// EKSConfigList contains a list of EKSConfig
+// EKSConfigList contains a list of EKSConfig.
 type EKSConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

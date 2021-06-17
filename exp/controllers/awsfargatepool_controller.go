@@ -41,7 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// AWSFargateProfileReconciler reconciles a AWSFargateProfile object
+// AWSFargateProfileReconciler reconciles a AWSFargateProfile object.
 type AWSFargateProfileReconciler struct {
 	client.Client
 	Recorder         record.EventRecorder
@@ -50,7 +50,7 @@ type AWSFargateProfileReconciler struct {
 	WatchFilterValue string
 }
 
-// SetupWithManager is used to setup the controller
+// SetupWithManager is used to setup the controller.
 func (r *AWSFargateProfileReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	managedControlPlaneToFargateProfileMap := managedControlPlaneToFargateProfileMapFunc(r.Client, ctrl.LoggerFrom(ctx))
 	return ctrl.NewControllerManagedBy(mgr).
@@ -70,7 +70,7 @@ func (r *AWSFargateProfileReconciler) SetupWithManager(ctx context.Context, mgr 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsfargateprofiles,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsfargateprofiles/status,verbs=get;update;patch
 
-// Reconcile reconciles AWSFargateProfiles
+// Reconcile reconciles AWSFargateProfiles.
 func (r *AWSFargateProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 

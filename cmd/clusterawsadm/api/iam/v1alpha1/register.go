@@ -26,18 +26,18 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// GroupName is the group name used in this package
+// GroupName is the group name used in this package.
 const GroupName = "iam.aws.infrastructure.cluster.x-k8s.io"
 
 var (
-	// SchemeGroupVersion is the fully qualified group and version
+	// SchemeGroupVersion is the fully qualified group and version.
 	SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha1"}
-	// SchemeBuilder is the scheme builder with scheme init functions to run for this API package
+	// SchemeBuilder is the scheme builder with scheme init functions to run for this API package.
 	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
 	// localSchemeBuilder ïs a pointer to SchemeBuilder instance. Using localSchemeBuilder
 	// defaulting and conversion init funcs are registered as well.
 	localSchemeBuilder = &SchemeBuilder
-	// AddToScheme is a global function that registers this API group & version to a scheme
+	// AddToScheme is a global function that registers this API group & version to a scheme.
 	AddToScheme = localSchemeBuilder.AddToScheme
 )
 

@@ -19,6 +19,8 @@ package hash
 import (
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/blake2b"
+
+	// keep the blank import to include intstr.
 	_ "k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -41,7 +43,7 @@ func Base36TruncatedHash(str string, len int) (string, error) {
 
 // base36Truncate returns a string that is base36 compliant
 // It is not an encoding since it returns a same-length string
-// for any byte value
+// for any byte value.
 func base36Truncate(bytes []byte) string {
 	var chars string
 	for _, bite := range bytes {

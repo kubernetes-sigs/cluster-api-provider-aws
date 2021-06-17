@@ -48,7 +48,7 @@ const (
 
 var _ error = &EC2Error{}
 
-// Code returns the AWS error code as a string
+// Code returns the AWS error code as a string.
 func Code(err error) (string, bool) {
 	if awserr, ok := err.(awserr.Error); ok {
 		return awserr.Code(), true
@@ -56,7 +56,7 @@ func Code(err error) (string, bool) {
 	return "", false
 }
 
-// Message returns the AWS error message as a string
+// Message returns the AWS error message as a string.
 func Message(err error) string {
 	if awserr, ok := err.(awserr.Error); ok {
 		return awserr.Message()
@@ -100,7 +100,7 @@ func IsResourceExists(err error) bool {
 	return false
 }
 
-// NewFailedDependency returns an error which indicates that a dependency failure status
+// NewFailedDependency returns an error which indicates that a dependency failure status.
 func NewFailedDependency(msg string) error {
 	return &EC2Error{
 		msg:  msg,
@@ -108,7 +108,7 @@ func NewFailedDependency(msg string) error {
 	}
 }
 
-// IsFailedDependency checks if the error is pf http.StatusFailedDependency
+// IsFailedDependency checks if the error is pf http.StatusFailedDependency.
 func IsFailedDependency(err error) bool {
 	return ReasonForError(err) == http.StatusFailedDependency
 }
@@ -132,7 +132,7 @@ func IsSDKError(err error) (ok bool) {
 	return
 }
 
-// IsInvalidNotFoundError tests for common aws not found errors
+// IsInvalidNotFoundError tests for common aws not found errors.
 func IsInvalidNotFoundError(err error) bool {
 	if code, ok := Code(err); ok {
 		switch code {

@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/planner"
 )
 
-// NewPlan creates a new Plan to manage EKS addons
+// NewPlan creates a new Plan to manage EKS addons.
 func NewPlan(clusterName string, desiredAddons, installedAddons []*EKSAddon, client eksiface.EKSAPI) planner.Plan {
 	return &plan{
 		installedAddons: installedAddons,
@@ -36,7 +36,7 @@ func NewPlan(clusterName string, desiredAddons, installedAddons []*EKSAddon, cli
 	}
 }
 
-// Plan is a plan that will manage EKS addons
+// Plan is a plan that will manage EKS addons.
 type plan struct {
 	installedAddons []*EKSAddon
 	desiredAddons   []*EKSAddon
@@ -44,7 +44,7 @@ type plan struct {
 	clusterName     string
 }
 
-// Create will create the plan (i.e. list of procedures) for managing EKS addons
+// Create will create the plan (i.e. list of procedures) for managing EKS addons.
 func (a *plan) Create(ctx context.Context) ([]planner.Procedure, error) {
 	procedures := []planner.Procedure{}
 

@@ -31,24 +31,24 @@ const (
 	// PrincipalUsageUnauthorizedReason used when AWSCluster namespace is not in the identity's allowed namespaces list.
 	PrincipalUsageUnauthorizedReason = "PrincipalUsageUnauthorized"
 	// SourcePrincipalUsageUnauthorizedReason used when AWSCluster is not in the intersection of source identity allowed namespaces
-	// and allowed namespaces of the identities that source identity depends to
+	// and allowed namespaces of the identities that source identity depends to.
 	SourcePrincipalUsageUnauthorizedReason = "SourcePrincipalUsageUnauthorized"
 )
 
 const (
-	// VpcReadyCondition reports on the successful reconciliation of a VPC
+	// VpcReadyCondition reports on the successful reconciliation of a VPC.
 	VpcReadyCondition clusterv1.ConditionType = "VpcReady"
 	// VpcCreationStartedReason used when attempting to create a VPC for a managed cluster.
 	// Will not be applied to unmanaged clusters.
 	VpcCreationStartedReason = "VpcCreationStarted"
-	// VpcReconciliationFailedReason used when errors occur during VPC reconciliation
+	// VpcReconciliationFailedReason used when errors occur during VPC reconciliation.
 	VpcReconciliationFailedReason = "VpcReconciliationFailed"
 )
 
 const (
 	// SubnetsReadyCondition reports on the successful reconciliation of subnets.
 	SubnetsReadyCondition clusterv1.ConditionType = "SubnetsReady"
-	// SubnetsReconciliationFailedReason used to report failures while reconciling subnets
+	// SubnetsReconciliationFailedReason used to report failures while reconciling subnets.
 	SubnetsReconciliationFailedReason = "SubnetsReconciliationFailed"
 )
 
@@ -56,7 +56,7 @@ const (
 	// InternetGatewayReadyCondition reports on the successful reconciliation of internet gateways.
 	// Only applicable to managed clusters.
 	InternetGatewayReadyCondition clusterv1.ConditionType = "InternetGatewayReady"
-	// InternetGatewayFailedReason used when errors occur during internet gateway reconciliation
+	// InternetGatewayFailedReason used when errors occur during internet gateway reconciliation.
 	InternetGatewayFailedReason = "InternetGatewayFailed"
 )
 
@@ -95,22 +95,22 @@ const (
 
 const (
 	// BastionHostReadyCondition reports whether a bastion host is ready. Depending on the configuration, a cluster
-	// may not require a bastion host and this condition will be skipped
+	// may not require a bastion host and this condition will be skipped.
 	BastionHostReadyCondition clusterv1.ConditionType = "BastionHostReady"
-	// BastionCreationStartedReason used when creating a new bastion host
+	// BastionCreationStartedReason used when creating a new bastion host.
 	BastionCreationStartedReason = "BastionCreationStarted"
-	// BastionHostFailedReason used when an error occurs during the creation of a bastion host
+	// BastionHostFailedReason used when an error occurs during the creation of a bastion host.
 	BastionHostFailedReason = "BastionHostFailed"
 )
 
 const (
 	// LoadBalancerReadyCondition reports on whether a control plane load balancer was successfully reconciled.
 	LoadBalancerReadyCondition clusterv1.ConditionType = "LoadBalancerReady"
-	// WaitForDNSNameReason used while waiting for a DNS name for the API server to be populated
+	// WaitForDNSNameReason used while waiting for a DNS name for the API server to be populated.
 	WaitForDNSNameReason = "WaitForDNSName"
-	// WaitForDNSNameResolveReason used while waiting for DNS name to resolve
+	// WaitForDNSNameResolveReason used while waiting for DNS name to resolve.
 	WaitForDNSNameResolveReason = "WaitForDNSNameResolve"
-	// LoadBalancerFailedReason used when an error occurs during load balancer reconciliation
+	// LoadBalancerFailedReason used when an error occurs during load balancer reconciliation.
 	LoadBalancerFailedReason = "LoadBalancerFailed"
 )
 
@@ -140,7 +140,7 @@ const (
 	// SecurityGroupsReadyCondition indicates the security groups are up to date on the AWSMachine.
 	SecurityGroupsReadyCondition clusterv1.ConditionType = "SecurityGroupsReady"
 
-	// SecurityGroupsFailedReason used when the security groups could not be synced
+	// SecurityGroupsFailedReason used when the security groups could not be synced.
 	SecurityGroupsFailedReason = "SecurityGroupsSyncFailed"
 )
 
@@ -148,10 +148,11 @@ const (
 	// ELBAttachedCondition will report true when a control plane is successfully registered with an ELB.
 	// When set to false, severity can be an Error if the subnet is not found or unavailable in the instance's AZ.
 	// Note this is only applicable to control plane machines.
+	// Only applicable to control plane machines.
 	ELBAttachedCondition clusterv1.ConditionType = "ELBAttached"
 
-	// ELBAttachFailedReason used when a control plane node fails to attach to the ELB
+	// ELBAttachFailedReason used when a control plane node fails to attach to the ELB.
 	ELBAttachFailedReason = "ELBAttachFailed"
-	// ELBDetachFailedReason used when a control plane node fails to detach from an ELB
+	// ELBDetachFailedReason used when a control plane node fails to detach from an ELB.
 	ELBDetachFailedReason = "ELBDetachFailed"
 )

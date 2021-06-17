@@ -51,7 +51,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// AWSMachinePoolReconciler reconciles a AWSMachinePool object
+// AWSMachinePoolReconciler reconciles a AWSMachinePool object.
 type AWSMachinePoolReconciler struct {
 	client.Client
 	Recorder          record.EventRecorder
@@ -82,7 +82,7 @@ func (r *AWSMachinePoolReconciler) getEC2Service(scope scope.EC2Scope) services.
 // +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 
-// Reconcile is the reconciliation loop for AWSMachinePool
+// Reconcile is the reconciliation loop for AWSMachinePool.
 func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -500,7 +500,7 @@ func (r *AWSMachinePoolReconciler) reconcileTags(machinePoolScope *scope.Machine
 	return nil
 }
 
-// asgNeedsUpdates compares incoming AWSMachinePool and compares against existing ASG
+// asgNeedsUpdates compares incoming AWSMachinePool and compares against existing ASG.
 func asgNeedsUpdates(machinePoolScope *scope.MachinePoolScope, existingASG *infrav1exp.AutoScalingGroup) bool {
 	if machinePoolScope.MachinePool.Spec.Replicas != nil && machinePoolScope.MachinePool.Spec.Replicas != existingASG.DesiredCapacity {
 		return true
@@ -594,7 +594,7 @@ func (r *AWSMachinePoolReconciler) getInfraCluster(ctx context.Context, log logr
 
 		if err := r.Get(ctx, controlPlaneName, controlPlane); err != nil {
 			// AWSManagedControlPlane is not ready
-			return nil, nil
+			return nil, nil // nolint:nilerr
 		}
 
 		managedControlPlaneScope, err = scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
@@ -620,7 +620,7 @@ func (r *AWSMachinePoolReconciler) getInfraCluster(ctx context.Context, log logr
 
 	if err := r.Client.Get(ctx, infraClusterName, awsCluster); err != nil {
 		// AWSCluster is not ready
-		return nil, nil
+		return nil, nil // nolint:nilerr
 	}
 
 	// Create the cluster scope

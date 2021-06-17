@@ -23,7 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
-// Validate will validate the bastion fields
+// Validate will validate the bastion fields.
 func (b *Bastion) Validate() []*field.Error {
 	var errs field.ErrorList
 

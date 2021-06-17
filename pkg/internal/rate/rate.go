@@ -241,7 +241,7 @@ func (lim *Limiter) WaitN(ctx context.Context, n int) (err error) {
 	lim.mu.Unlock()
 
 	if n > burst && limit != Inf {
-		return errors.New(fmt.Sprintf("rate: Wait(n=%d) exceeds limiter's burst %d", n, burst))
+		return errors.New(fmt.Errorf("rate: Wait(n=%d) exceeds limiter's burst %d", n, burst).Error())
 	}
 	// Check if ctx is already cancelled
 	select {
@@ -258,7 +258,7 @@ func (lim *Limiter) WaitN(ctx context.Context, n int) (err error) {
 	// Reserve
 	r := lim.reserveN(now, n, waitLimit)
 	if !r.ok {
-		return errors.New(fmt.Sprintf("rate: Wait(n=%d) would exceed context deadline", n))
+		return errors.New(fmt.Errorf("rate: Wait(n=%d) would exceed context deadline", n).Error())
 	}
 	// Wait if necessary
 	delay := r.DelayFrom(now)

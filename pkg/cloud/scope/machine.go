@@ -160,12 +160,12 @@ func (m *MachineScope) SetInstanceState(v infrav1.InstanceState) {
 	m.AWSMachine.Status.InstanceState = &v
 }
 
-// SetReady sets the AWSMachine Ready Status
+// SetReady sets the AWSMachine Ready Status.
 func (m *MachineScope) SetReady() {
 	m.AWSMachine.Status.Ready = true
 }
 
-// SetNotReady sets the AWSMachine Ready Status to false
+// SetNotReady sets the AWSMachine Ready Status to false.
 func (m *MachineScope) SetNotReady() {
 	m.AWSMachine.Status.Ready = false
 }
@@ -206,31 +206,31 @@ func (m *MachineScope) UserDataIsUncompressed() bool {
 }
 
 // GetSecretPrefix returns the prefix for the secrets belonging
-// to the AWSMachine in AWS Secrets Manager
+// to the AWSMachine in AWS Secrets Manager.
 func (m *MachineScope) GetSecretPrefix() string {
 	return m.AWSMachine.Spec.CloudInit.SecretPrefix
 }
 
 // SetSecretPrefix sets the prefix for the secrets belonging
-// to the AWSMachine in AWS Secrets Manager
+// to the AWSMachine in AWS Secrets Manager.
 func (m *MachineScope) SetSecretPrefix(value string) {
 	m.AWSMachine.Spec.CloudInit.SecretPrefix = value
 }
 
 // DeleteSecretPrefix deletes the prefix for the secret belonging
-// to the AWSMachine in AWS Secrets Manager
+// to the AWSMachine in AWS Secrets Manager.
 func (m *MachineScope) DeleteSecretPrefix() {
 	m.AWSMachine.Spec.CloudInit.SecretPrefix = ""
 }
 
 // GetSecretCount returns the number of AWS Secret Manager entries making up
-// the complete userdata
+// the complete userdata.
 func (m *MachineScope) GetSecretCount() int32 {
 	return m.AWSMachine.Spec.CloudInit.SecretCount
 }
 
 // SetSecretCount sets the number of AWS Secret Manager entries making up
-// the complete userdata
+// the complete userdata.
 func (m *MachineScope) SetSecretCount(i int32) {
 	m.AWSMachine.Spec.CloudInit.SecretCount = i
 }
@@ -355,7 +355,7 @@ func (m *MachineScope) IsExternallyManaged() bool {
 	return annotations.IsExternallyManaged(m.InfraCluster.InfraCluster())
 }
 
-// SetInterruptible sets the AWSMachine status Interruptible
+// SetInterruptible sets the AWSMachine status Interruptible.
 func (m *MachineScope) SetInterruptible() {
 	if m.AWSMachine.Spec.SpotMarketOptions != nil {
 		m.AWSMachine.Status.Interruptible = true

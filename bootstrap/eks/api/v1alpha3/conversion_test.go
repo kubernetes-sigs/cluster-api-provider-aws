@@ -34,13 +34,13 @@ func TestFuzzyConversion(t *testing.T) {
 
 	t.Run("for EKSConfig", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
-		Hub: &v1alpha4.EKSConfig{},
-		Spoke: &EKSConfig{},
+		Hub:    &v1alpha4.EKSConfig{},
+		Spoke:  &EKSConfig{},
 	}))
 
 	t.Run("for EKSConfigTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
-		Hub: &v1alpha4.EKSConfigTemplate{},
-		Spoke: &EKSConfigTemplate{},
+		Hub:    &v1alpha4.EKSConfigTemplate{},
+		Spoke:  &EKSConfigTemplate{},
 	}))
 }

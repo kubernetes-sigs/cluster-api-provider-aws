@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package cloudformation provides the API operation methods for making requests to
+// AWS CloudFormation.
 package cloudformation
 
 import (
@@ -44,7 +46,7 @@ func NewService(i cloudformationiface.CloudFormationAPI) *Service {
 	}
 }
 
-// ReconcileBootstrapStack creates or updates bootstrap CloudFormation
+// ReconcileBootstrapStack creates or updates bootstrap CloudFormation.
 func (s *Service) ReconcileBootstrapStack(stackName string, t go_cfn.Template) error {
 	yaml, err := t.YAML()
 	processedYaml := string(yaml)
@@ -111,7 +113,7 @@ func (s *Service) updateStack(stackName, yaml string) error {
 	return nil
 }
 
-// DeleteStack deletes a cloudformation stack
+// DeleteStack deletes a cloudformation stack.
 func (s *Service) DeleteStack(stackName string, retainResources []*string) error {
 	klog.V(2).Infof("deleting AWS CloudFormation stack %q", stackName)
 	var err error
@@ -134,7 +136,7 @@ func (s *Service) DeleteStack(stackName string, retainResources []*string) error
 }
 
 // ShowStackResources prints out in tabular format the resources in the
-// stack
+// stack.
 func (s *Service) ShowStackResources(stackName string) error {
 	input := &cfn.DescribeStackResourcesInput{
 		StackName: aws.String(stackName),

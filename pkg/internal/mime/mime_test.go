@@ -26,8 +26,7 @@ func TestGenerateInitDocument(t *testing.T) {
 	secretARN := "secretARN"
 	doc, _ := GenerateInitDocument(secretARN, 1, "eu-west-1", "localhost", "abc123")
 
-	_, err := mail.ReadMessage(bytes.NewBuffer(doc))
-	if err != nil {
+	if _, err := mail.ReadMessage(bytes.NewBuffer(doc)); err != nil {
 		t.Fatalf("Cannot parse MIME doc: %+v\n%s", err, string(doc))
 	}
 }

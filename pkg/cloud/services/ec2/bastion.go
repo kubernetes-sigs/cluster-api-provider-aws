@@ -43,7 +43,7 @@ var (
 	fallbackBastionUsEast1InstanceType = "t2.micro"
 )
 
-// ReconcileBastion ensures a bastion is created for the cluster
+// ReconcileBastion ensures a bastion is created for the cluster.
 func (s *Service) ReconcileBastion() error {
 	if !s.scope.Bastion().Enabled {
 		s.scope.V(4).Info("Skipping bastion reconcile")
@@ -84,7 +84,6 @@ func (s *Service) ReconcileBastion() error {
 
 		record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateBastion", "Created bastion instance %q", instance.ID)
 		s.scope.V(2).Info("Created new bastion host", "instance", instance)
-
 	} else if err != nil {
 		return err
 	}
@@ -98,7 +97,7 @@ func (s *Service) ReconcileBastion() error {
 	return nil
 }
 
-// DeleteBastion deletes the Bastion instance
+// DeleteBastion deletes the Bastion instance.
 func (s *Service) DeleteBastion() error {
 	instance, err := s.describeBastionInstance()
 	if err != nil {

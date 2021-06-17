@@ -18,8 +18,9 @@ package instancestate
 
 import (
 	"context"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -52,7 +53,7 @@ func persistObject(g *WithT, o client.Object) {
 	}, time.Second*10).Should(BeTrue())
 }
 
-func deleteAWSCluster(g *WithT,name string) {
+func deleteAWSCluster(g *WithT, name string) {
 	ctx := context.TODO()
 	awsLookupKey := types.NamespacedName{Name: name, Namespace: "default"}
 	awsCluster := &infrav1.AWSCluster{}

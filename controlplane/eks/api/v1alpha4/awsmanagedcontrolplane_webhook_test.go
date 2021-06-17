@@ -164,7 +164,7 @@ func TestDefaultingWebhook(t *testing.T) {
 }
 
 func TestWebhookCreate(t *testing.T) {
-	tests := []struct {
+	tests := []struct { //nolint:maligned
 		name           string
 		eksClusterName string
 		expectError    bool

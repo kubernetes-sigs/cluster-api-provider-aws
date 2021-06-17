@@ -24,8 +24,8 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -56,7 +56,7 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 
 	var ds appsv1.DaemonSet
 	if err := s.client.Get(ctx, types.NamespacedName{Namespace: awsNodeNamespace, Name: awsNodeName}, &ds); err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return err
 		}
 		return ErrCNIMissing
@@ -75,14 +75,14 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 	s.scope.Info("for each subnet", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
 	for _, subnet := range s.secondarySubnets() {
 		var eniConfig amazoncni.ENIConfig
-		if err := s.client.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceSystem, Name: subnet.AvailabilityZone}, &eniConfig); err != nil {
-			if !errors.IsNotFound(err) {
+		if err := s.client.Get(ctx, types.NamespacedName{Namespace: metav1.NamespaceSystem, Name: subnet.AvailabilityZone}, &eniConfig); err != nil {
+			if !apierrors.IsNotFound(err) {
 				return err
 			}
 			s.scope.Info("Creating ENIConfig", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace(), "subnet", subnet.ID, "availability-zone", subnet.AvailabilityZone)
 			eniConfig = amazoncni.ENIConfig{
-				ObjectMeta: v1.ObjectMeta{
-					Namespace: v1.NamespaceSystem,
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: metav1.NamespaceSystem,
 					Name:      subnet.AvailabilityZone,
 					Labels:    metaLabels,
 				},
@@ -111,7 +111,7 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 	// Removing any ENIConfig no longer needed
 	var eniConfigs amazoncni.ENIConfigList
 	err = s.client.List(ctx, &eniConfigs, &client.ListOptions{
-		Namespace:     v1.NamespaceSystem,
+		Namespace:     metav1.NamespaceSystem,
 		LabelSelector: labels.SelectorFromSet(metaLabels),
 	})
 	if err != nil {
@@ -187,7 +187,7 @@ func (s *Service) deleteCNI(ctx context.Context) error {
 
 	ds := &appsv1.DaemonSet{}
 	if err := s.client.Get(ctx, types.NamespacedName{Namespace: awsNodeNamespace, Name: awsNodeName}, ds); err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			s.scope.V(2).Info("The aws-node DaemonSet is not found, not action")
 			return nil
 		}
@@ -196,7 +196,7 @@ func (s *Service) deleteCNI(ctx context.Context) error {
 
 	s.scope.V(2).Info("The aws-node DaemonSet found, deleting")
 	if err := s.client.Delete(ctx, ds, &client.DeleteOptions{}); err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			s.scope.V(2).Info("The aws-node DaemonSet is not found, not deleted")
 			return nil
 		}

@@ -39,7 +39,7 @@ const (
 	DefaultMachineAMIOwnerID = "258751437250"
 
 	// defaultMachineAMILookupBaseOS is the default base operating system to use
-	// when looking up machine AMIs
+	// when looking up machine AMIs.
 	defaultMachineAMILookupBaseOS = "ubuntu-18.04"
 
 	// DefaultAmiNameFormat is defined in the build/ directory of this project.
@@ -47,13 +47,13 @@ const (
 	// 1. the string value `capa-ami-`
 	// 2. the baseOS of the AMI, for example: ubuntu-18.04, centos-7, amazon-2
 	// 3. the kubernetes version as defined by the packages produced by kubernetes/release with or without v as a prefix, for example: 1.13.0, 1.12.5-mybuild.1, v1.17.3
-	// 4. a `-` followed by any additional characters
+	// 4. a `-` followed by any additional characters.
 	DefaultAmiNameFormat = "capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*"
 
-	// Amazon's AMI timestamp format
+	// Amazon's AMI timestamp format.
 	createDateTimestampFormat = "2006-01-02T15:04:05.000Z"
 
-	// EKS AMI ID SSM Parameter name
+	// EKS AMI ID SSM Parameter name.
 	eksAmiSSMParameterFormat = "/aws/service/eks/optimized-ami/%s/amazon-linux-2/recommended/image_id"
 )
 
@@ -138,7 +138,7 @@ func DefaultAMILookup(ec2Client ec2iface.EC2API, ownerID, baseOS, kubernetesVers
 	return latestImage, nil
 }
 
-// defaultAMIIDLookup returns the default AMI based on region
+// defaultAMIIDLookup returns the default AMI based on region.
 func (s *Service) defaultAMIIDLookup(amiNameFormat, ownerID, baseOS, kubernetesVersion string) (string, error) {
 	latestImage, err := DefaultAMILookup(s.EC2Client, ownerID, baseOS, kubernetesVersion, amiNameFormat)
 	if err != nil {

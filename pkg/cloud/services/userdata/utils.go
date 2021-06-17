@@ -43,7 +43,7 @@ func templateYAMLIndent(i int, input string) string {
 	return strings.Repeat(" ", i) + strings.Join(split, ident)
 }
 
-// GzipBytes will gzip a byte array
+// GzipBytes will gzip a byte array.
 func GzipBytes(dat []byte) ([]byte, error) {
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)

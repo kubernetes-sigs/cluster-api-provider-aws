@@ -23,14 +23,14 @@ import (
 )
 
 const (
-	// TemporaryResourceID is the name used temporarily when creating AWS resources
+	// TemporaryResourceID is the name used temporarily when creating AWS resources.
 	TemporaryResourceID = "temporary-resource-id"
-	// AnyIPv4CidrBlock is the CIDR block to match all IPv4 addresses
+	// AnyIPv4CidrBlock is the CIDR block to match all IPv4 addresses.
 	AnyIPv4CidrBlock = "0.0.0.0/0"
 )
 
 // ASGInterface encapsulates the methods exposed to the machinepool
-// actuator
+// actuator.
 type ASGInterface interface {
 	ASGIfExists(id *string) (*expinfrav1.AutoScalingGroup, error)
 	GetASGByName(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error)
@@ -43,7 +43,7 @@ type ASGInterface interface {
 }
 
 // EC2MachineInterface encapsulates the methods exposed to the machine
-// actuator
+// actuator.
 type EC2MachineInterface interface {
 	InstanceIfExists(id *string) (*infrav1.Instance, error)
 	TerminateInstance(id string) error
@@ -69,7 +69,7 @@ type EC2MachineInterface interface {
 }
 
 // SecretInterface encapsulated the methods exposed to the
-// machine actuator
+// machine actuator.
 type SecretInterface interface {
 	Delete(m *scope.MachineScope) error
 	Create(m *scope.MachineScope, data []byte) (string, int32, error)

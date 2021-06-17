@@ -42,7 +42,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	//"sigs.k8s.io/cluster-api/controllers/noderefutil"
+
+	// "sigs.k8s.io/cluster-api/controllers/noderefutil" //nolint:godot.
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -314,7 +315,6 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			g.Expect(ms.AWSMachinePool.Status.Ready).To(Equal(false))
 			g.Eventually(recorder.Events).Should(Receive(ContainSubstring("DeletionInProgress")))
 		})
-
 	})
 }
 

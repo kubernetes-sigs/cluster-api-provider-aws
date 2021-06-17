@@ -32,7 +32,7 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
 )
 
-// ReconcileIAMAuthenticator is used to create the aws-iam-authenticator in a cluster
+// ReconcileIAMAuthenticator is used to create the aws-iam-authenticator in a cluster.
 func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
 	s.scope.Info("Reconciling aws-iam-authenticator configuration", "cluster-name", s.scope.Name())
 

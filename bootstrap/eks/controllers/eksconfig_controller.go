@@ -45,7 +45,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// EKSConfigReconciler reconciles a EKSConfig object
+// EKSConfigReconciler reconciles a EKSConfig object.
 type EKSConfigReconciler struct {
 	client.Client
 	Scheme           *runtime.Scheme
@@ -283,7 +283,7 @@ func (r *EKSConfigReconciler) storeBootstrapData(ctx context.Context, cluster *c
 }
 
 // MachineToBootstrapMapFunc is a handler.ToRequestsFunc to be used to enqueue requests
-// for EKSConfig reconciliation
+// for EKSConfig reconciliation.
 func (r *EKSConfigReconciler) MachineToBootstrapMapFunc(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
@@ -299,7 +299,7 @@ func (r *EKSConfigReconciler) MachineToBootstrapMapFunc(o client.Object) []ctrl.
 }
 
 // MachinePoolToBootstrapMapFunc is a handler.ToRequestsFunc to be uses to enqueue requests
-// for EKSConfig reconciliation
+// for EKSConfig reconciliation.
 func (r *EKSConfigReconciler) MachinePoolToBootstrapMapFunc(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
@@ -317,7 +317,7 @@ func (r *EKSConfigReconciler) MachinePoolToBootstrapMapFunc(o client.Object) []c
 }
 
 // ClusterToEKSConfigs is a handler.ToRequestsFunc to be used to enqueue requests for
-// EKSConfig reconciliation
+// EKSConfig reconciliation.
 func (r *EKSConfigReconciler) ClusterToEKSConfigs(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 

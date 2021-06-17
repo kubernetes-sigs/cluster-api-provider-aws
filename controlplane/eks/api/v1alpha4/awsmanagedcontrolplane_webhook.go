@@ -47,7 +47,7 @@ const (
 	vpcCniAddon = "vpc-cni"
 )
 
-// SetupWebhookWithManager will setup the webhooks for the AWSManagedControlPlane
+// SetupWebhookWithManager will setup the webhooks for the AWSManagedControlPlane.
 func (r *AWSManagedControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
@@ -77,7 +77,7 @@ func normalizeVersion(raw string) (string, error) {
 	return fmt.Sprintf("v%d.%d", eksV.Major(), eksV.Minor()), nil
 }
 
-// ValidateCreate will do any extra validation when creating a AWSManagedControlPlane
+// ValidateCreate will do any extra validation when creating a AWSManagedControlPlane.
 func (r *AWSManagedControlPlane) ValidateCreate() error {
 	mcpLog.Info("AWSManagedControlPlane validate create", "name", r.Name)
 
@@ -105,7 +105,7 @@ func (r *AWSManagedControlPlane) ValidateCreate() error {
 	)
 }
 
-// ValidateUpdate will do any extra validation when updating a AWSManagedControlPlane
+// ValidateUpdate will do any extra validation when updating a AWSManagedControlPlane.
 func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) error {
 	mcpLog.Info("AWSManagedControlPlane validate update", "name", r.Name)
 	oldAWSManagedControlplane, ok := old.(*AWSManagedControlPlane)
@@ -150,7 +150,7 @@ func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) error {
 	)
 }
 
-// ValidateDelete allows you to add any extra validation when deleting
+// ValidateDelete allows you to add any extra validation when deleting.
 func (r *AWSManagedControlPlane) ValidateDelete() error {
 	mcpLog.Info("AWSManagedControlPlane validate delete", "name", r.Name)
 
@@ -311,7 +311,7 @@ func (r *AWSManagedControlPlane) validateDisableVPCCNI() field.ErrorList {
 	return allErrs
 }
 
-// Default will set default values for the AWSManagedControlPlane
+// Default will set default values for the AWSManagedControlPlane.
 func (r *AWSManagedControlPlane) Default() {
 	mcpLog.Info("AWSManagedControlPlane setting defaults", "name", r.Name)
 

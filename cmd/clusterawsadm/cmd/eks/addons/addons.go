@@ -24,10 +24,7 @@ func RootCmd() *cobra.Command {
 		Use:   "addons",
 		Short: "Commands related to EKS addons",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := cmd.Help(); err != nil {
-				return err
-			}
-			return nil
+			return cmd.Help()
 		},
 	}
 	newCmd.AddCommand(listAvailableCmd())

@@ -101,7 +101,7 @@ func TestAWSClusterStaticValidateUpdate(t *testing.T) {
 			name: "do not allow any spec changes",
 			identity: &AWSClusterStaticIdentity{
 				Spec: AWSClusterStaticIdentitySpec{
-					SecretRef:"test",
+					SecretRef: "test",
 				},
 			},
 			wantError: true,

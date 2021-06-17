@@ -57,7 +57,7 @@ func TestEKSConfigReconciler(t *testing.T) {
 	})
 }
 
-// newCluster return a CAPI cluster object
+// newCluster return a CAPI cluster object.
 func newCluster(name string) *clusterv1.Cluster {
 	return &clusterv1.Cluster{
 		TypeMeta: metav1.TypeMeta{
@@ -78,7 +78,7 @@ func newCluster(name string) *clusterv1.Cluster {
 	}
 }
 
-// newMachine return a CAPI machine object; if cluster is not nil, the machine is linked to the cluster as well
+// newMachine return a CAPI machine object; if cluster is not nil, the machine is linked to the cluster as well.
 func newMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 	machine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
@@ -107,7 +107,7 @@ func newMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 	return machine
 }
 
-// newEKSConfig return an EKSConfig object; if machine is not nil, the EKSConfig is linked to the machine as well
+// newEKSConfig return an EKSConfig object; if machine is not nil, the EKSConfig is linked to the machine as well.
 func newEKSConfig(machine *clusterv1.Machine, name string) *bootstrapv1.EKSConfig {
 	config := &bootstrapv1.EKSConfig{
 		TypeMeta: metav1.TypeMeta{

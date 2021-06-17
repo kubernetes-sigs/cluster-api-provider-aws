@@ -38,7 +38,7 @@ type AWSMachineTemplate struct {
 
 // +kubebuilder:object:root=true
 
-// AWSMachineTemplateList contains a list of AWSMachineTemplate
+// AWSMachineTemplateList contains a list of AWSMachineTemplate.
 type AWSMachineTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

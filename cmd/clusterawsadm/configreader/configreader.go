@@ -54,7 +54,7 @@ type loader interface {
 	Load() (*bootstrapv1.AWSIAMConfiguration, error)
 }
 
-// fsLoader loads configuration from `configDir`
+// fsLoader loads configuration from `configDir`..
 type fsLoader struct {
 
 	// bootstrapCodecs is the scheme used to decode config files
@@ -63,12 +63,12 @@ type fsLoader struct {
 	bootstrapFile string
 }
 
-// ReadFile reads a file
+// ReadFile reads a file.
 func (fsLoader) ReadFile(filename string) ([]byte, error) {
-	return ioutil.ReadFile(filename)
+	return ioutil.ReadFile(filepath.Clean(filename))
 }
 
-// NewFsLoader returns a Loader that loads a AWSIAMConfiguration from the `config file`
+// NewFsLoader returns a Loader that loads a AWSIAMConfiguration from the `config file`.
 func newFsLoader(bootstrapFile string) (loader, error) {
 	_, bootstrapCodecs, err := bootstrapschemev1.NewSchemeAndCodecs()
 	if err != nil {
@@ -104,7 +104,7 @@ func (loader *fsLoader) Load() (*bootstrapv1.AWSIAMConfiguration, error) {
 	return kc, nil
 }
 
-// resolveRelativePaths makes relative paths absolute by resolving them against `root`
+// resolveRelativePaths makes relative paths absolute by resolving them against `root`.
 func resolveRelativePaths(paths []*string, root string) {
 	for _, path := range paths {
 		// leave empty paths alone, "no path" is a valid input
@@ -115,7 +115,7 @@ func resolveRelativePaths(paths []*string, root string) {
 	}
 }
 
-// DecodeBootstrapConfiguration decodes a serialized AWSIAMConfiguration to the internal type
+// DecodeBootstrapConfiguration decodes a serialized AWSIAMConfiguration to the internal type.
 func DecodeBootstrapConfiguration(bootstrapCodecs *serializer.CodecFactory, data []byte) (*bootstrapv1.AWSIAMConfiguration, error) {
 	obj := &bootstrapv1.AWSIAMConfiguration{}
 

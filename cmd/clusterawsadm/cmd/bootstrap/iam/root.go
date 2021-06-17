@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
-// RootCmd is the root of the `bootstrap iam command`
+// RootCmd is the root of the `bootstrap iam command`.
 func RootCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "iam [command]",
@@ -33,10 +33,7 @@ func RootCmd() *cobra.Command {
 		`),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := cmd.Help(); err != nil {
-				return err
-			}
-			return nil
+			return cmd.Help()
 		},
 	}
 

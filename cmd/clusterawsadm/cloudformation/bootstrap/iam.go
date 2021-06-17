@@ -28,7 +28,7 @@ import (
 // PolicyName defines the name of a managed IAM policy.
 type PolicyName string
 
-// ManagedIAMPolicyNames slice of managed IAM policies
+// ManagedIAMPolicyNames slice of managed IAM policies.
 var ManagedIAMPolicyNames = [4]PolicyName{ControllersPolicy, ControlPlanePolicy, NodePolicy, CSIPolicy}
 
 // IsValid will check if a given policy name is valid. That is, it will check if the given policy name is
@@ -42,7 +42,7 @@ func (p PolicyName) IsValid() bool {
 	return false
 }
 
-// GenerateManagedIAMPolicyDocuments generates JSON representation of policy documents for all ManagedIAMPolicy
+// GenerateManagedIAMPolicyDocuments generates JSON representation of policy documents for all ManagedIAMPolicy.
 func (t Template) GenerateManagedIAMPolicyDocuments(policyDocDir string) error {
 	for _, pn := range ManagedIAMPolicyNames {
 		pd := t.GetPolicyDocFromPolicyName(pn)

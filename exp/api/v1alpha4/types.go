@@ -96,7 +96,7 @@ type AWSLaunchTemplate struct {
 	RootVolume *infrav1.Volume `json:"rootVolume,omitempty"`
 
 	// SSHKeyName is the name of the ssh key to attach to the instance. Valid values are empty string
-	//(do not use SSH keys), a valid SSH key name, or omitted (use the default SSH key name)
+	// (do not use SSH keys), a valid SSH key name, or omitted (use the default SSH key name)
 	// +optional
 	SSHKeyName *string `json:"sshKeyName,omitempty"`
 
@@ -125,7 +125,7 @@ type OnDemandAllocationStrategy string
 
 var (
 	// OnDemandAllocationStrategyPrioritized uses the order of instance type overrides
-	// for the LaunchTemplate to define the launch priority of each instance type
+	// for the LaunchTemplate to define the launch priority of each instance type.
 	OnDemandAllocationStrategyPrioritized = OnDemandAllocationStrategy("prioritized")
 )
 
@@ -135,11 +135,11 @@ type SpotAllocationStrategy string
 var (
 	// SpotAllocationStrategyLowestPrice will make the Auto Scaling group launch
 	// instances using the Spot pools with the lowest price, and evenly allocates
-	// your instances across the number of Spot pools that you specify
+	// your instances across the number of Spot pools that you specify.
 	SpotAllocationStrategyLowestPrice = SpotAllocationStrategy("lowest-price")
 
 	// SpotAllocationStrategyCapacityOptimized will make the Auto Scaling group launch
-	// instances using Spot pools that are optimally chosen based on the available Spot capacity
+	// instances using Spot pools that are optimally chosen based on the available Spot capacity.
 	SpotAllocationStrategyCapacityOptimized = SpotAllocationStrategy("capacity-optimized")
 )
 
@@ -160,7 +160,7 @@ type InstancesDistribution struct {
 	OnDemandPercentageAboveBaseCapacity *int64 `json:"onDemandPercentageAboveBaseCapacity,omitempty"`
 }
 
-// MixedInstancesPolicy for an Auto Scaling group
+// MixedInstancesPolicy for an Auto Scaling group.
 type MixedInstancesPolicy struct {
 	InstancesDistribution *InstancesDistribution `json:"instancesDistribution,omitempty"`
 	Overrides             []Overrides            `json:"overrides,omitempty"`
@@ -192,11 +192,11 @@ type AutoScalingGroup struct {
 type ASGStatus string
 
 var (
-	// ASGStatusDeleteInProgress is the string representing an ASG that is currently deleting
+	// ASGStatusDeleteInProgress is the string representing an ASG that is currently deleting.
 	ASGStatusDeleteInProgress = ASGStatus("Delete in progress")
 )
 
-// TaintEffect is the effect for a Kubernetes taint
+// TaintEffect is the effect for a Kubernetes taint.
 type TaintEffect string
 
 var (
@@ -226,7 +226,7 @@ type Taint struct {
 	Value string `json:"value"`
 }
 
-// Equals is used to test if 2 taints are equal
+// Equals is used to test if 2 taints are equal.
 func (t *Taint) Equals(other *Taint) bool {
 	if t == nil || other == nil {
 		return t == other
@@ -237,10 +237,10 @@ func (t *Taint) Equals(other *Taint) bool {
 		t.Value == other.Value
 }
 
-// Taints is an array of Taints
+// Taints is an array of Taints.
 type Taints []Taint
 
-// Contains checks for existence of a matching taint
+// Contains checks for existence of a matching taint.
 func (t *Taints) Contains(taint *Taint) bool {
 	for _, t := range *t {
 		if t.Equals(taint) {

@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
-// RootCmd is the root of the `controller command`
+// RootCmd is the root of the `controller command`.
 func RootCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "controller [command]",
@@ -34,10 +34,7 @@ func RootCmd() *cobra.Command {
 			# Zero controller credentials and rollout controllers
 		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := cmd.Help(); err != nil {
-				return err
-			}
-			return nil
+			return cmd.Help()
 		},
 	}
 

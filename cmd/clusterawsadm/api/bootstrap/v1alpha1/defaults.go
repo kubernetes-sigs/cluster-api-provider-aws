@@ -36,14 +36,14 @@ func addDefaultingFuncs(scheme *runtime.Scheme) error {
 	return RegisterDefaults(scheme)
 }
 
-// SetDefaults_BootstrapUser is used by defaulter-gen
+// SetDefaults_BootstrapUser is used by defaulter-gen.
 func SetDefaults_BootstrapUser(obj *BootstrapUser) { //nolint:golint,stylecheck
 	if obj != nil && obj.UserName == "" {
 		obj.UserName = DefaultBootstrapUserName
 	}
 }
 
-// SetDefaults_AWSIAMConfigurationSpec is used by defaulter-gen
+// SetDefaults_AWSIAMConfigurationSpec is used by defaulter-gen.
 func SetDefaults_AWSIAMConfigurationSpec(obj *AWSIAMConfigurationSpec) { //nolint:golint,stylecheck
 	if obj.NameSuffix == nil {
 		obj.NameSuffix = utilpointer.StringPtr(infrav1.DefaultNameSuffix)
@@ -87,7 +87,7 @@ func SetDefaults_AWSIAMConfigurationSpec(obj *AWSIAMConfigurationSpec) { //nolin
 	}
 }
 
-// SetDefaults_AWSIAMConfiguration is used by defaulter-gen
+// SetDefaults_AWSIAMConfiguration is used by defaulter-gen.
 func SetDefaults_AWSIAMConfiguration(obj *AWSIAMConfiguration) { //nolint:golint,stylecheck
 	obj.APIVersion = SchemeGroupVersion.String()
 	obj.Kind = "AWSIAMConfiguration"

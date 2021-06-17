@@ -17,4 +17,5 @@ limitations under the License.
 // Run go generate to regenerate this mock.
 //go:generate ../../../../../hack/tools/bin/mockgen -destination ec2api_mock.go -package mock_ec2iface github.com/aws/aws-sdk-go/service/ec2/ec2iface EC2API
 //go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt ec2api_mock.go > _ec2api_mock.go && mv _ec2api_mock.go ec2api_mock.go"
-package mock_ec2iface //nolint
+
+package mock_ec2iface // nolint:stylecheck

@@ -28,8 +28,7 @@ import (
 
 // ResolveAWSError will attempt to resolve an AWS error.
 func ResolveAWSError(err error) error {
-	code, _ := awserrors.Code(err)
-	if code == awserrors.NoCredentialProviders {
+	if code, _ := awserrors.Code(err); code == awserrors.NoCredentialProviders {
 		return errors.New("could not resolve default credentials. Please see https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html for how to provide credentials")
 	}
 	return err

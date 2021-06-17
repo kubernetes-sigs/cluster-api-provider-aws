@@ -117,7 +117,6 @@ func TestAWSMachineTemplateValidateUpdate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			ctx := context.TODO()
 			template := &AWSMachineTemplate{
 				ObjectMeta: metav1.ObjectMeta{

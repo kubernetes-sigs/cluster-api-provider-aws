@@ -16,4 +16,5 @@ limitations under the License.
 
 // +gencrdrefdocs:force
 // +groupName=infrastructure.cluster.x-k8s.io
+
 package v1alpha4

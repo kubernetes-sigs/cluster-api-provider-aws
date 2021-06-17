@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// +gencrdrefdocs:force
+// +gencrdrefdocs:force // nolint: revive
 // +groupName=bootstrap.cluster.x-k8s.io
+
 package v1alpha4

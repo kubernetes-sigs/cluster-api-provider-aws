@@ -19,11 +19,12 @@ package instancestate
 import (
 	"bytes"
 	"encoding/json"
+	"testing"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/pkg/errors"
-	"testing"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"

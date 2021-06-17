@@ -26,7 +26,7 @@ import (
 
 var reAccountID = regexp.MustCompile(`[0-9]{12}`)
 
-// AccountID gets the current account ID
+// AccountID gets the current account ID.
 func (s *Service) AccountID() (string, error) {
 	input := &sts.GetCallerIdentityInput{}
 
@@ -38,7 +38,7 @@ func (s *Service) AccountID() (string, error) {
 	return aws.StringValue(out.Account), nil
 }
 
-// ValidateAccountID checks an account ID is valid
+// ValidateAccountID checks an account ID is valid.
 func ValidateAccountID(str string) bool {
 	return reAccountID.MatchString(str) && len(str) == 12
 }

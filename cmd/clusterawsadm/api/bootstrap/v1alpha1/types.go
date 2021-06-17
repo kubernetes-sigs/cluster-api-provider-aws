@@ -70,7 +70,7 @@ type ControlPlane struct {
 }
 
 // AWSIAMRoleSpec defines common configuration for AWS IAM roles created by
-// Kubernetes Cluster API Provider AWS
+// Kubernetes Cluster API Provider AWS.
 type AWSIAMRoleSpec struct {
 	// Disable if set to true will not create the AWS IAM role. Defaults to false.
 	Disable bool `json:"disable"` // default: false
@@ -89,7 +89,7 @@ type AWSIAMRoleSpec struct {
 	Tags infrav1.Tags `json:"tags,omitempty"`
 }
 
-// EKSConfig represents the EKS related configuration config
+// EKSConfig represents the EKS related configuration config.
 type EKSConfig struct {
 	// Enable controls whether EKS-related permissions are granted
 	Enable bool `json:"enable"`
@@ -110,7 +110,7 @@ type EKSConfig struct {
 }
 
 // EventBridgeConfig represents configuration for enabling experimental feature to consume
-// EventBridge EC2 events
+// EventBridge EC2 events.
 type EventBridgeConfig struct {
 	// Enable controls whether permissions are granted to consume EC2 events
 	Enable bool `json:"enable,omitempty"`

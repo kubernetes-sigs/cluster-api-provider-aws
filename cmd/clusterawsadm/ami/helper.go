@@ -102,7 +102,7 @@ func latestStableRelease() (string, error) {
 
 	// If it is the first release, use the previous version instead
 	if latestVersionSemVer.Patch == 0 {
-		latestVersionSemVer.Minor = latestVersionSemVer.Minor - 1
+		latestVersionSemVer.Minor--
 		// Address to get stable release for a particular version is: https://dl.k8s.io/release/stable-1.19.txt"
 		olderVersion := fmt.Sprintf("-%v.%v", latestVersionSemVer.Major, latestVersionSemVer.Minor)
 		resp, err = http.Get(fmt.Sprintf(latestStableReleaseURL, olderVersion))

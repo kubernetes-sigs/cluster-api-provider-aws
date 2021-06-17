@@ -55,7 +55,6 @@ func ListAMICmd() *cobra.Command {
 		`),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-
 			region, _ := flags.GetRegion(cmd)
 
 			printer, err := cmdout.New(outputPrinter, os.Stdout)

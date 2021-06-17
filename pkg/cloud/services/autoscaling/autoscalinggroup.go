@@ -114,7 +114,6 @@ func (s *Service) ASGIfExists(name *string) (*expinfrav1.AutoScalingGroup, error
 	}
 	//TODO: double check if you're handling nil vals
 	return s.SDKToAutoScalingGroup(out.AutoScalingGroups[0])
-
 }
 
 // GetASGByName returns the existing ASG or nothing if it doesn't exist.
@@ -222,8 +221,7 @@ func (s *Service) runPool(i *expinfrav1.AutoScalingGroup, launchTemplateID strin
 		input.Tags = BuildTagsFromMap(i.Name, i.Tags)
 	}
 
-	_, err := s.ASGClient.CreateAutoScalingGroup(input)
-	if err != nil {
+	if _, err := s.ASGClient.CreateAutoScalingGroup(input); err != nil {
 		return errors.Wrap(err, "failed to create autoscaling group")
 	}
 
@@ -391,7 +389,7 @@ func createSDKMixedInstancesPolicy(name string, i *expinfrav1.MixedInstancesPoli
 }
 
 // BuildTags takes the tag configuration from the resources and returns a slice of autoscaling Tags
-// usable in autoscaling API calls
+// usable in autoscaling API calls.
 func BuildTags(name string, params infrav1.BuildParams) []*autoscaling.Tag {
 	tags := make([]*autoscaling.Tag, 0)
 	resourceName := aws.String(name)
@@ -442,7 +440,7 @@ func BuildTags(name string, params infrav1.BuildParams) []*autoscaling.Tag {
 	return tags
 }
 
-// BuildTagsFromMap takes a map of keys and values and returns them as autoscaling group tags
+// BuildTagsFromMap takes a map of keys and values and returns them as autoscaling group tags.
 func BuildTagsFromMap(asgName string, inTags map[string]string) []*autoscaling.Tag {
 	if inTags == nil {
 		return nil

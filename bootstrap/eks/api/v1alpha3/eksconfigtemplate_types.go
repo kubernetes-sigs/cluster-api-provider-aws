@@ -43,7 +43,7 @@ type EKSConfigTemplate struct {
 
 // +kubebuilder:object:root=true
 
-// EKSConfigTemplateList contains a list of EKSConfigTemplate
+// EKSConfigTemplateList contains a list of EKSConfigTemplate.
 type EKSConfigTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

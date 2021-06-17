@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
-// SetupWebhookWithManager will setup the webhooks for the AWSManagedCluster
+// SetupWebhookWithManager will setup the webhooks for the AWSManagedCluster.
 func (r *AWSManagedCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
@@ -35,21 +35,21 @@ func (r *AWSManagedCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Defaulter = &AWSManagedCluster{}
 var _ webhook.Validator = &AWSManagedCluster{}
 
-// Default will set default values for the AWSManagedCluster
+// Default will set default values for the AWSManagedCluster.
 func (r *AWSManagedCluster) Default() {
 }
 
-// ValidateCreate will do any extra validation when creating a AWSManagedCluster
+// ValidateCreate will do any extra validation when creating a AWSManagedCluster.
 func (r *AWSManagedCluster) ValidateCreate() error {
 	return nil
 }
 
-// ValidateUpdate will do any extra validation when updating a AWSManagedCluster
+// ValidateUpdate will do any extra validation when updating a AWSManagedCluster.
 func (r *AWSManagedCluster) ValidateUpdate(old runtime.Object) error {
 	return nil
 }
 
-// ValidateDelete allows you to add any extra validation when deleting
+// ValidateDelete allows you to add any extra validation when deleting.
 func (r *AWSManagedCluster) ValidateDelete() error {
 	return nil
 }

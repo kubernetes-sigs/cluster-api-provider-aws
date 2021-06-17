@@ -50,7 +50,7 @@ const (
 	notPermittedError = "Namespace is not permitted to use %s: %s"
 )
 
-// ServiceEndpoint defines a tuple containing AWS Service resolution information
+// ServiceEndpoint defines a tuple containing AWS Service resolution information.
 type ServiceEndpoint struct {
 	ServiceID     string
 	URL           string
@@ -123,7 +123,6 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Cl
 		// could not get providers and retrieve the credentials
 		conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition, infrav1.PrincipalCredentialRetrievalFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return nil, nil, errors.Wrap(err, "Failed to get providers for cluster")
-
 	}
 
 	isChanged := false
@@ -423,7 +422,7 @@ func isClusterPermittedToUsePrincipal(k8sClient client.Client, allowedNs *infrav
 		return true, nil
 	}
 
-	for _, v := range (*allowedNs).NamespaceList {
+	for _, v := range allowedNs.NamespaceList {
 		if v == clusterNamespace {
 			return true, nil
 		}

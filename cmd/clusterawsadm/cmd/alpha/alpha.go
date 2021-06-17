@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/flags"
 )
 
-// AlphaCmd is the top-level alpha set of commands
+// AlphaCmd is the top-level alpha set of commands.
 func AlphaCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "alpha",

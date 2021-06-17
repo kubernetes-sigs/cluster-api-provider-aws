@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 )
 
-// Scope is a scope for use with the awsnode reconciling service
+// Scope is a scope for use with the awsnode reconciling service.
 type Scope interface {
 	cloud.ClusterScoper
 

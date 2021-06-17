@@ -85,7 +85,7 @@ type AWSClusterStaticIdentity struct {
 
 // +kubebuilder:object:root=true
 
-// AWSClusterStaticIdentityList contains a list of AWSClusterStaticIdentity
+// AWSClusterStaticIdentityList contains a list of AWSClusterStaticIdentity.
 type AWSClusterStaticIdentityList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -118,7 +118,7 @@ type AWSClusterRoleIdentity struct {
 
 // +kubebuilder:object:root=true
 
-// AWSClusterRoleIdentityList contains a list of AWSClusterRoleIdentity
+// AWSClusterRoleIdentityList contains a list of AWSClusterRoleIdentity.
 type AWSClusterRoleIdentityList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -161,7 +161,7 @@ type AWSClusterControllerIdentity struct {
 
 // +kubebuilder:object:root=true
 
-// AWSClusterControllerIdentityList contains a list of AWSClusterControllerIdentity
+// AWSClusterControllerIdentityList contains a list of AWSClusterControllerIdentity.
 type AWSClusterControllerIdentityList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

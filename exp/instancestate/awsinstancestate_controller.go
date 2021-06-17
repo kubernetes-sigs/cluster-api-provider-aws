@@ -42,7 +42,7 @@ import (
 // Ec2InstanceStateLabelKey defines an ec2 instance state label.
 const Ec2InstanceStateLabelKey = "ec2-instance-state"
 
-// AwsInstanceStateReconciler reconciles a AwsInstanceState object
+// AwsInstanceStateReconciler reconciles a AwsInstanceState object.
 type AwsInstanceStateReconciler struct {
 	client.Client
 	Log               logr.Logger
@@ -205,7 +205,7 @@ func (r *AwsInstanceStateReconciler) processMessage(ctx context.Context, msg mes
 	}
 }
 
-// getQueueURL retrieves the SQS queue URL for a given cluster
+// getQueueURL retrieves the SQS queue URL for a given cluster.
 func (r *AwsInstanceStateReconciler) getQueueURL(cluster *infrav1.AWSCluster) (string, error) {
 	sqsSvs, err := r.getSQSService(cluster.Spec.Region)
 	if err != nil {

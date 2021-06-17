@@ -59,7 +59,7 @@ import (
 // InstanceIDIndex defines the aws machine controller's instance ID index.
 const InstanceIDIndex = ".spec.instanceID"
 
-// AWSMachineReconciler reconciles a AwsMachine object
+// AWSMachineReconciler reconciles a AwsMachine object.
 type AWSMachineReconciler struct {
 	client.Client
 	Log                          logr.Logger
@@ -72,7 +72,7 @@ type AWSMachineReconciler struct {
 }
 
 const (
-	// AWSManagedControlPlaneRefKind is the string value indicating that a cluster is AWS managed
+	// AWSManagedControlPlaneRefKind is the string value indicating that a cluster is AWS managed.
 	AWSManagedControlPlaneRefKind = "AWSManagedControlPlane"
 )
 
@@ -854,7 +854,7 @@ func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log logr.Log
 
 		if err := r.Get(ctx, controlPlaneName, controlPlane); err != nil {
 			// AWSManagedControlPlane is not ready
-			return nil, nil
+			return nil, nil // nolint:nilerr
 		}
 
 		managedControlPlaneScope, err = scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
@@ -881,7 +881,7 @@ func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log logr.Log
 
 	if err := r.Client.Get(ctx, infraClusterName, awsCluster); err != nil {
 		// AWSCluster is not ready
-		return nil, nil
+		return nil, nil // nolint:nilerr
 	}
 
 	// Create the cluster scope

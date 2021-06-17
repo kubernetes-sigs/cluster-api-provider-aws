@@ -18,13 +18,13 @@ package instancestate
 
 import (
 	"fmt"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"os"
 	"path"
 	"testing"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/instancestate/mock_sqsiface"
@@ -39,7 +39,6 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var (
-	cfg                     *rest.Config
 	k8sClient               client.Client
 	instanceStateReconciler *AwsInstanceStateReconciler
 	sqsSvs                  *mock_sqsiface.MockSQSAPI

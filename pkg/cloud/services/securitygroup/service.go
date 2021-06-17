@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 
-// Scope is a scope for use with the security group reconciling service
+// Scope is a scope for use with the security group reconciling service.
 type Scope interface {
 	cloud.ClusterScoper
 
@@ -66,7 +66,7 @@ func NewService(sgScope Scope) *Service {
 }
 
 // NewServiceWithRoles returns a new service given the api clients with a defined
-// set of roles
+// set of roles.
 func NewServiceWithRoles(sgScope Scope, roles []infrav1.SecurityGroupRole) *Service {
 	return &Service{
 		scope:     sgScope,

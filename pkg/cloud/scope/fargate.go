@@ -114,7 +114,7 @@ func (s *FargateProfileScope) ManagedPoolName() string {
 	return s.FargateProfile.Name
 }
 
-// ServiceLimiter returns the AWS SDK session. Used for creating clients
+// ServiceLimiter returns the AWS SDK session. Used for creating clients.
 func (s *FargateProfileScope) ServiceLimiter(service string) *throttle.ServiceLimiter {
 	if sl, ok := s.serviceLimiters[service]; ok {
 		return sl
@@ -127,7 +127,7 @@ func (s *FargateProfileScope) ClusterName() string {
 	return s.Cluster.Name
 }
 
-// EnableIAM indicates that reconciliation should create IAM roles
+// EnableIAM indicates that reconciliation should create IAM roles.
 func (s *FargateProfileScope) EnableIAM() bool {
 	return s.enableIAM
 }
@@ -142,7 +142,7 @@ func (s *FargateProfileScope) AdditionalTags() infrav1.Tags {
 	return s.FargateProfile.Spec.AdditionalTags.DeepCopy()
 }
 
-// RoleName returns the node group role name
+// RoleName returns the node group role name.
 func (s *FargateProfileScope) RoleName() string {
 	return s.FargateProfile.Spec.RoleName
 }
@@ -158,7 +158,7 @@ func (s *FargateProfileScope) SubnetIDs() []string {
 }
 
 // IAMReadyFalse marks the ready condition false using warning if error isn't
-// empty
+// empty.
 func (s *FargateProfileScope) IAMReadyFalse(reason string, err string) error {
 	severity := clusterv1.ConditionSeverityWarning
 	if err == "" {
@@ -200,7 +200,7 @@ func (s *FargateProfileScope) InfraCluster() cloud.ClusterObject {
 	return s.ControlPlane
 }
 
-// Session returns the AWS SDK session. Used for creating clients
+// Session returns the AWS SDK session. Used for creating clients.
 func (s *FargateProfileScope) Session() awsclient.ConfigProvider {
 	return s.session
 }

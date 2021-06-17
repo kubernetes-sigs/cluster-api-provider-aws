@@ -116,7 +116,7 @@ func TestAWSInstanceStateController(t *testing.T) {
 		k8sClient = testEnv.GetClient()
 
 		persistObject(g, createAWSCluster("aws-cluster-1"))
-		persistObject(g,createAWSCluster("aws-cluster-2"))
+		persistObject(g, createAWSCluster("aws-cluster-2"))
 
 		machine1 := &infrav1.AWSMachine{
 			Spec: infrav1.AWSMachineSpec{
@@ -124,7 +124,7 @@ func TestAWSInstanceStateController(t *testing.T) {
 			},
 			ObjectMeta: failingMachineMeta,
 		}
-		persistObject(g,machine1)
+		persistObject(g, machine1)
 
 		t.Log("Ensuring queue URLs are up-to-date")
 		g.Eventually(func() bool {
@@ -136,7 +136,7 @@ func TestAWSInstanceStateController(t *testing.T) {
 			return exist
 		}, 10*time.Second).Should(Equal(true))
 
-		deleteAWSCluster(g,"aws-cluster-2")
+		deleteAWSCluster(g, "aws-cluster-2")
 		t.Log("Ensuring we stop tracking deleted queue")
 		g.Eventually(func() bool {
 			_, ok := instanceStateReconciler.queueURLs.Load("aws-cluster-2")

@@ -81,9 +81,6 @@ func init() {
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint
 	root = path.Join(path.Dir(filename), "..", "..")
-
-	// Create the test environment.
-
 }
 
 type webhookConfiguration struct {
@@ -91,7 +88,7 @@ type webhookConfiguration struct {
 	relativeFilePath string
 }
 
-// TestEnvironmentConfiguration encapsulates the interim, mutable configuration of the Kubernetes local test environment
+// TestEnvironmentConfiguration encapsulates the interim, mutable configuration of the Kubernetes local test environment.
 type TestEnvironmentConfiguration struct {
 	env                   *envtest.Environment
 	webhookConfigurations []webhookConfiguration
@@ -136,7 +133,7 @@ func (t *TestEnvironment) CreateNamespace(ctx context.Context, generateName stri
 	return ns, nil
 }
 
-// NewTestEnvironmentConfiguration creates a new test environment configuration for running tests
+// NewTestEnvironmentConfiguration creates a new test environment configuration for running tests.
 func NewTestEnvironmentConfiguration(crdDirectoryPaths []string) *TestEnvironmentConfiguration {
 	resolvedCrdDirectoryPaths := make([]string, len(crdDirectoryPaths))
 
@@ -154,10 +151,9 @@ func NewTestEnvironmentConfiguration(crdDirectoryPaths []string) *TestEnvironmen
 			},
 		},
 	}
-
 }
 
-// WithWebhookConfiguration adds the CRD webhook configuration given a named tag and file path for the webhook manifest
+// WithWebhookConfiguration adds the CRD webhook configuration given a named tag and file path for the webhook manifest.
 func (t *TestEnvironmentConfiguration) WithWebhookConfiguration(tag string, relativeFilePath string) *TestEnvironmentConfiguration {
 	t.webhookConfigurations = append(t.webhookConfigurations, webhookConfiguration{tag: tag, relativeFilePath: relativeFilePath})
 	return t
@@ -208,13 +204,12 @@ func (t *TestEnvironmentConfiguration) Build() (*TestEnvironment, error) {
 		Config:  mgr.GetConfig(),
 		env:     t.env,
 	}, nil
-
 }
 
 func buildModifiedWebhook(tag string, relativeFilePath string) (client.Object, client.Object, error) {
 	var mutatingWebhook client.Object
 	var validatingWebhook client.Object
-	data, err := ioutil.ReadFile(filepath.Join(root, relativeFilePath))
+	data, err := ioutil.ReadFile(filepath.Clean(filepath.Join(root, relativeFilePath)))
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to read webhook configuration file")
 	}
@@ -242,14 +237,14 @@ func buildModifiedWebhook(tag string, relativeFilePath string) (client.Object, c
 	return mutatingWebhook, validatingWebhook, nil
 }
 
-// StartManager starts the test controller against the local API server
+// StartManager starts the test controller against the local API server.
 func (t *TestEnvironment) StartManager(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	t.cancel = cancel
 	return t.Manager.Start(ctx)
 }
 
-// WaitForWebhooks will not return until the webhook port is open
+// WaitForWebhooks will not return until the webhook port is open.
 func (t *TestEnvironment) WaitForWebhooks() {
 	port := t.env.WebhookInstallOptions.LocalServingPort
 	klog.V(2).Infof("Waiting for webhook port %d to be open prior to running tests", port)
@@ -267,7 +262,7 @@ func (t *TestEnvironment) WaitForWebhooks() {
 	}
 }
 
-// Stop stops the test environment
+// Stop stops the test environment.
 func (t *TestEnvironment) Stop() error {
 	t.cancel()
 	return t.env.Stop()

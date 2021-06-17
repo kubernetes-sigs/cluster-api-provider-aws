@@ -25,7 +25,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -41,7 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// AWSManagedClusterReconciler reconciles AWSManagedCluster
+// AWSManagedClusterReconciler reconciles AWSManagedCluster.
 type AWSManagedClusterReconciler struct {
 	client.Client
 	Log              logr.Logger
@@ -114,7 +113,6 @@ func (r *AWSManagedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	log.Info("Successfully reconciled AWSManagedCluster")
 
 	return reconcile.Result{}, nil
-
 }
 
 func (r *AWSManagedClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -154,7 +152,7 @@ func (r *AWSManagedClusterReconciler) managedControlPlaneToManagedCluster(o clie
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	awsManagedControlPlane, ok := o.(*controlplanev1.AWSManagedControlPlane)
+	awsManagedControlPlane, ok := o.(*ekscontrolplanev1.AWSManagedControlPlane)
 	if !ok {
 		panic(fmt.Sprintf("Expected a managedControlPlane but got a %T", o))
 	}

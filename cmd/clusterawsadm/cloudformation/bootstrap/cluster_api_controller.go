@@ -380,7 +380,6 @@ func (t Template) ControllersPolicy() *infrav1.PolicyDocument {
 				Effect: infrav1.EffectAllow,
 			},
 		}...)
-
 	}
 
 	if t.Spec.EventBridge.Enable {

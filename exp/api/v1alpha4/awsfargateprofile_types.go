@@ -27,14 +27,14 @@ import (
 )
 
 const (
-	// FargateProfileFinalizer allows the controller to clean up resources on delete
+	// FargateProfileFinalizer allows the controller to clean up resources on delete.
 	FargateProfileFinalizer = "awsfargateprofile.infrastructure.cluster.x-k8s.io"
 )
 
 var (
 	// DefaultEKSFargateRole is the name of the default IAM role to use for fargate
 	// profiles if no other role is supplied in the spec and if iam role creation
-	// is not enabled. The default can be created using clusterawsadm or created manually
+	// is not enabled. The default can be created using clusterawsadm or created manually.
 	DefaultEKSFargateRole = fmt.Sprintf("eks-fargate%s", infrav1.DefaultNameSuffix)
 )
 
@@ -156,7 +156,7 @@ func (r *AWSFargateProfile) SetConditions(conditions clusterv1.Conditions) {
 
 // +kubebuilder:object:root=true
 
-// AWSFargateProfileList contains a list of FargateProfiles
+// AWSFargateProfileList contains a list of FargateProfiles.
 type AWSFargateProfileList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

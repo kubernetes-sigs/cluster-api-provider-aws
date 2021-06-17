@@ -17,10 +17,11 @@ limitations under the License.
 package asg
 
 import (
-	"k8s.io/apimachinery/pkg/runtime"
 	"reflect"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
+
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
@@ -103,7 +104,7 @@ func TestService_GetASGByName(t *testing.T) {
 			client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 			cs, err := scope.NewClusterScope(scope.ClusterScopeParams{
-				Client: client,
+				Client:     client,
 				Cluster:    &clusterv1.Cluster{},
 				AWSCluster: &infrav1.AWSCluster{},
 			})

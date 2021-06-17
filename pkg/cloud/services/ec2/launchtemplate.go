@@ -34,7 +34,7 @@ import (
 )
 
 // GetLaunchTemplate returns the existing LaunchTemplate or nothing if it doesn't exist.
-// For now by name until we need the input to be something different
+// For now by name until we need the input to be something different.
 func (s *Service) GetLaunchTemplate(launchTemplateName string) (*expinfrav1.AWSLaunchTemplate, string, error) {
 	if launchTemplateName == "" {
 		return nil, "", nil
@@ -89,7 +89,7 @@ func (s *Service) GetLaunchTemplateID(launchTemplateName string) (string, error)
 	return aws.StringValue(out.LaunchTemplateVersions[0].LaunchTemplateId), nil
 }
 
-// CreateLaunchTemplate generates a launch template to be used with the autoscaling group
+// CreateLaunchTemplate generates a launch template to be used with the autoscaling group.
 func (s *Service) CreateLaunchTemplate(scope *scope.MachinePoolScope, imageID *string, userData []byte) (string, error) {
 	s.scope.Info("Create a new launch template")
 
@@ -229,7 +229,7 @@ func (s *Service) createLaunchTemplateData(scope *scope.MachinePoolScope, imageI
 	return data, nil
 }
 
-// DeleteLaunchTemplate delete a launch template
+// DeleteLaunchTemplate delete a launch template.
 func (s *Service) DeleteLaunchTemplate(id string) error {
 	s.scope.V(2).Info("Deleting launch template", "id", id)
 
@@ -406,7 +406,6 @@ func (s *Service) buildLaunchTemplateTagSpecificationRequest(scope *scope.Machin
 			})
 		}
 		tagSpecifications = append(tagSpecifications, spec)
-
 	}
 	return tagSpecifications
 }

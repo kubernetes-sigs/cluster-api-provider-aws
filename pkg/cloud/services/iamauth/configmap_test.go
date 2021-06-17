@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -34,7 +34,7 @@ import (
 )
 
 var (
-	existingNodeRoleMap string = `
+	existingNodeRoleMap = `
     - groups:
       - system:bootstrappers
       - system:nodes
@@ -42,7 +42,7 @@ var (
       username: system:node:{{EC2PrivateDNSName}}
 `
 
-	existingUserMap string = `
+	existingUserMap = `
     - userarn: arn:aws:iam::000000000000:user/Alice
       username: alice
       groups:
@@ -135,7 +135,7 @@ func TestAddRoleMappingCM(t *testing.T) {
 
 			var client crclient.Client
 			if tc.existingAuthConfigMap == nil {
-				client =  fake.NewClientBuilder().Build()
+				client = fake.NewClientBuilder().Build()
 			} else {
 				client = fake.NewClientBuilder().WithObjects(tc.existingAuthConfigMap).Build()
 			}
@@ -146,9 +146,9 @@ func TestAddRoleMappingCM(t *testing.T) {
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())
 				return
-			} else {
-				g.Expect(err).To(BeNil())
 			}
+
+			g.Expect(err).To(BeNil())
 
 			key := types.NamespacedName{
 				Name:      "aws-auth",
@@ -279,9 +279,9 @@ func TestAddUserMappingCM(t *testing.T) {
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())
 				return
-			} else {
-				g.Expect(err).To(BeNil())
 			}
+
+			g.Expect(err).To(BeNil())
 
 			key := types.NamespacedName{
 				Name:      "aws-auth",
@@ -312,14 +312,13 @@ func TestAddUserMappingCM(t *testing.T) {
 
 			_, roleMappingsFound := cm.Data["mapRoles"]
 			g.Expect(roleMappingsFound).To(BeFalse())
-
 		})
 	}
 }
 
 func createFakeConfigMap(roleMappings string, userMappings string) *corev1.ConfigMap {
 	cm := &corev1.ConfigMap{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "aws-auth",
 			Namespace: "kube-system",
 			UID:       "1234567",
