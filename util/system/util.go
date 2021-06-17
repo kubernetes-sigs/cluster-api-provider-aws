@@ -48,6 +48,7 @@ func GetManagerNamespace() string {
 	return managerNamespace
 }
 
+// GetNamespaceFromFile returns the namespace from a file.
 // This code is copied from controller-runtime, because it is a private method there.
 // https://github.com/kubernetes-sigs/controller-runtime/blob/316aea4229158103123166a5e45076f1a86bd807/pkg/leaderelection/leader_election.go#L104
 func GetNamespaceFromFile(nsFilePath string) (string, error) {

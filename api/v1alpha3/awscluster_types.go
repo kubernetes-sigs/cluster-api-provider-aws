@@ -91,6 +91,7 @@ type AWSClusterSpec struct {
 	IdentityRef *AWSIdentityReference `json:"identityRef,omitempty"`
 }
 
+// AWSIdentityKind defines allowed AWS identity types
 type AWSIdentityKind string
 
 var (
@@ -115,6 +116,7 @@ type AWSIdentityReference struct {
 	Kind AWSIdentityKind `json:"kind"`
 }
 
+// Bastion defines a bastion host.
 type Bastion struct {
 	// Enabled allows this provider to create a bastion host instance
 	// with a public ip to access the VPC private network.
@@ -208,10 +210,12 @@ type AWSClusterList struct {
 	Items           []AWSCluster `json:"items"`
 }
 
+// GetConditions returns the observations of the operational state of the AWSCluster resource.
 func (r *AWSCluster) GetConditions() clusterv1.Conditions {
 	return r.Status.Conditions
 }
 
+// SetConditions sets the underlying service state of the AWSCluster to the predescribed clusterv1.Conditions.
 func (r *AWSCluster) SetConditions(conditions clusterv1.Conditions) {
 	r.Status.Conditions = conditions
 }

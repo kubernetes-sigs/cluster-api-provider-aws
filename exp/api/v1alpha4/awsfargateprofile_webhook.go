@@ -65,6 +65,7 @@ func (r *AWSFargateProfile) Default() {
 	}
 }
 
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSFargateProfile) ValidateUpdate(oldObj runtime.Object) error {
 	gv := r.GroupVersionKind().GroupKind()
 	old, ok := oldObj.(*AWSFargateProfile)
@@ -105,10 +106,12 @@ func (r *AWSFargateProfile) ValidateUpdate(oldObj runtime.Object) error {
 	)
 }
 
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSFargateProfile) ValidateCreate() error {
 	return nil
 }
 
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSFargateProfile) ValidateDelete() error {
 	return nil
 }

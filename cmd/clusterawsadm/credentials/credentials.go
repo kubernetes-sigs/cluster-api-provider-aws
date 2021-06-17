@@ -20,11 +20,12 @@ import (
 	"bytes"
 	"encoding/base64"
 	"errors"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/util"
 	"text/template"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/util"
 )
 
 // AWSCredentialsTemplate generates an AWS credentials file that can
@@ -38,10 +39,13 @@ aws_session_token = {{ .SessionToken }}
 {{end}}
 `
 
+// AWSDefaultRegion is the default AWS region.
 const AWSDefaultRegion = "us-east-1"
 
+// ErrNoAWSRegionConfigured is an error singleton for when no AWS region is configured.
 var ErrNoAWSRegionConfigured = errors.New("no AWS region configured. Use --region or set AWS_REGION or DEFAULT_AWS_REGION environment variable")
 
+// AWSCredentials defines the specs for AWS credentials.
 type AWSCredentials struct {
 	AccessKeyID     string
 	SecretAccessKey string
@@ -49,6 +53,8 @@ type AWSCredentials struct {
 	Region          string
 }
 
+// NewAWSCredentialFromDefaultChain will create a new credential provider chain from the
+// default chain.
 func NewAWSCredentialFromDefaultChain(region string) (*AWSCredentials, error) {
 	creds := AWSCredentials{}
 	conf := aws.NewConfig()
@@ -72,6 +78,7 @@ func NewAWSCredentialFromDefaultChain(region string) (*AWSCredentials, error) {
 	return &creds, nil
 }
 
+// ResolveRegion will attempt to resolve an AWS region based on the customer's configuration.
 func ResolveRegion(explicitRegion string) (string, error) {
 	if explicitRegion != "" {
 		return explicitRegion, nil
@@ -87,6 +94,7 @@ func ResolveRegion(explicitRegion string) (string, error) {
 	return "", ErrNoAWSRegionConfigured
 }
 
+// RenderAWSDefaultProfile will render the AWS default profile.
 func (c AWSCredentials) RenderAWSDefaultProfile() (string, error) {
 	tmpl, err := template.New("AWS Credentials").Parse(AWSCredentialsTemplate)
 	if err != nil {
@@ -102,6 +110,7 @@ func (c AWSCredentials) RenderAWSDefaultProfile() (string, error) {
 	return credsFileStr.String(), nil
 }
 
+// RenderBase64EncodedAWSDefaultProfile will render the AWS default profile, encoded in base 64.
 func (c AWSCredentials) RenderBase64EncodedAWSDefaultProfile() (string, error) {
 	profile, err := c.RenderAWSDefaultProfile()
 	if err != nil {

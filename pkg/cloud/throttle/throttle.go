@@ -25,14 +25,18 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/internal/rate"
 )
 
+// ServiceLimiters defines a mapping of service limiters.
 type ServiceLimiters map[string]*ServiceLimiter
 
+// ServiceLimiter defines a buffer of operation limiters.
 type ServiceLimiter []*OperationLimiter
 
+// NewMultiOperationMatch will create a multi operation matching.
 func NewMultiOperationMatch(strs ...string) string {
 	return "^" + strings.Join(strs, "|^")
 }
 
+// OperationLimiter defines the specs of an operation limiter.
 type OperationLimiter struct {
 	Operation  string
 	RefillRate rate.Limit
@@ -41,10 +45,12 @@ type OperationLimiter struct {
 	limiter    *rate.Limiter
 }
 
+// Wait will wait on a request.
 func (o *OperationLimiter) Wait(r *request.Request) error {
 	return o.getLimiter().Wait(r.Context())
 }
 
+// Match will match a request.
 func (o *OperationLimiter) Match(r *request.Request) (bool, error) {
 	if o.regexp == nil {
 		var err error
@@ -56,6 +62,7 @@ func (o *OperationLimiter) Match(r *request.Request) (bool, error) {
 	return o.regexp.Match([]byte(r.Operation.Name)), nil
 }
 
+// LimitRequest will limit a request.
 func (s ServiceLimiter) LimitRequest(r *request.Request) {
 	if ol, ok := s.matchRequest(r); ok {
 		_ = ol.Wait(r)
@@ -69,6 +76,7 @@ func (o *OperationLimiter) getLimiter() *rate.Limiter {
 	return o.limiter
 }
 
+// ReviewResponse will review the limits of a Request's response.
 func (s ServiceLimiter) ReviewResponse(r *request.Request) {
 	if r.Error != nil {
 		if errorCode, ok := awserrors.Code(r.Error); ok {

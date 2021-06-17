@@ -30,7 +30,10 @@ const (
 )
 
 var (
+	// TestClusterCRD will generate a test cluster CustomResourceDefinition.
 	TestClusterCRD = generateTestClusterAPICRD("cluster", "clusters")
+
+	// TestMachineCRD will generate a test machine CustomResourceDefinition.
 	TestMachineCRD = generateTestClusterAPICRD("machine", "machines")
 )
 

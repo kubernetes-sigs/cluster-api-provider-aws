@@ -20,16 +20,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 
+	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
 )
 
+// PolicyName defines the name of a managed IAM policy.
 type PolicyName string
 
 // ManagedIAMPolicyNames slice of managed IAM policies
 var ManagedIAMPolicyNames = [4]PolicyName{ControllersPolicy, ControlPlanePolicy, NodePolicy, CSIPolicy}
 
+// IsValid will check if a given policy name is valid. That is, it will check if the given policy name is
+// one of the ManagedIAMPolicyNames.
 func (p PolicyName) IsValid() bool {
 	for i := range ManagedIAMPolicyNames {
 		if ManagedIAMPolicyNames[i] == p {
@@ -67,6 +70,7 @@ func (t Template) policyFunctionMap() map[PolicyName]func() *v1alpha4.PolicyDocu
 	}
 }
 
+// GetPolicyDocFromPolicyName returns a Template's policy document.
 func (t Template) GetPolicyDocFromPolicyName(policyName PolicyName) *v1alpha4.PolicyDocument {
 	return t.policyFunctionMap()[policyName]()
 }

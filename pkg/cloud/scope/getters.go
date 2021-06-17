@@ -17,26 +17,35 @@ limitations under the License.
 package scope
 
 var (
+	// DefaultClusterScopeGetter defines the default cluster scope getter.
 	DefaultClusterScopeGetter ClusterScopeGetter = ClusterScopeGetterFunc(NewClusterScope)
+
+	// DefaultMachineScopeGetter defines the default machine scope getter.
 	DefaultMachineScopeGetter MachineScopeGetter = MachineScopeGetterFunc(NewMachineScope)
 )
 
+// ClusterScopeGetter defines the cluster scope getter interface.
 type ClusterScopeGetter interface {
 	ClusterScope(params ClusterScopeParams) (*ClusterScope, error)
 }
 
+// ClusterScopeGetterFunc defines handler types for cluster scope getters.
 type ClusterScopeGetterFunc func(params ClusterScopeParams) (*ClusterScope, error)
 
+// ClusterScope will return the cluster scope.
 func (f ClusterScopeGetterFunc) ClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	return f(params)
 }
 
+// MachineScopeGetter defines the machine scope getter interface.
 type MachineScopeGetter interface {
 	MachineScope(params MachineScopeParams) (*MachineScope, error)
 }
 
+// MachineScopeGetterFunc defines handler types for machine scope getters.
 type MachineScopeGetterFunc func(params MachineScopeParams) (*MachineScope, error)
 
+// MachineScope will return the machine scope.
 func (f MachineScopeGetterFunc) MachineScope(params MachineScopeParams) (*MachineScope, error) {
 	return f(params)
 }

@@ -62,7 +62,7 @@ func (s *Service) GetLaunchTemplate(launchTemplateName string) (*expinfrav1.AWSL
 	return s.SDKToLaunchTemplate(out.LaunchTemplateVersions[0])
 }
 
-// GetLaunchTemplateId returns the existing LaunchTemplateId or empty string if it doesn't exist.
+// GetLaunchTemplateID returns the existing LaunchTemplateId or empty string if it doesn't exist.
 func (s *Service) GetLaunchTemplateID(launchTemplateName string) (string, error) {
 	if launchTemplateName == "" {
 		return "", nil
@@ -133,6 +133,7 @@ func (s *Service) CreateLaunchTemplate(scope *scope.MachinePoolScope, imageID *s
 	return aws.StringValue(result.LaunchTemplate.LaunchTemplateId), nil
 }
 
+// CreateLaunchTemplateVersion will create a launch template.
 func (s *Service) CreateLaunchTemplateVersion(scope *scope.MachinePoolScope, imageID *string, userData []byte) error {
 	s.scope.V(2).Info("creating new launch template version", "machine-pool", scope.Name())
 
@@ -324,6 +325,7 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope *scope.MachinePoolScope, incom
 	return false, nil
 }
 
+// DiscoverLaunchTemplateAMI will discover the AMI launch template.
 func (s *Service) DiscoverLaunchTemplateAMI(scope *scope.MachinePoolScope) (*string, error) {
 	lt := scope.AWSMachinePool.Spec.AWSLaunchTemplate
 

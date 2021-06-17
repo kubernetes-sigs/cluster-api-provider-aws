@@ -60,6 +60,7 @@ var (
 	}
 )
 
+// ReconcileSecurityGroups will reconcile security groups against the Service object.
 func (s *Service) ReconcileSecurityGroups() error {
 	s.scope.V(2).Info("Reconciling security groups")
 
@@ -261,6 +262,7 @@ func (s *Service) ec2SecurityGroupToSecurityGroup(ec2SecurityGroup *ec2.Security
 	return sg
 }
 
+// DeleteSecurityGroups will delete a service's security groups.
 func (s *Service) DeleteSecurityGroups() error {
 	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	if s.scope.VPC().ID == "" {

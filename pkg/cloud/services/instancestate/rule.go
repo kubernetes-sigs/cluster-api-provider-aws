@@ -19,14 +19,17 @@ package instancestate
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/eventbridge"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/pkg/errors"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 )
 
+// Ec2StateChangeNotification defines the EC2 instance's state change notification.
 const Ec2StateChangeNotification = "EC2 Instance State-change Notification"
 
 // reconcileRules creates rules and attaches the queue as a target
@@ -157,6 +160,7 @@ func (s Service) deleteRules() error {
 	return err
 }
 
+// AddInstanceToEventPattern will add an instance to an event pattern.
 func (s Service) AddInstanceToEventPattern(instanceID string) error {
 	ruleResp, err := s.EventBridgeClient.DescribeRule(&eventbridge.DescribeRuleInput{
 		Name: aws.String(s.getEC2RuleName()),

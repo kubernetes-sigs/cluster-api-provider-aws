@@ -369,6 +369,7 @@ spec:
                 description: Taints specifies the taints to apply to the nodes of
                   the machine pool
                 items:
+                  description: Taint defines the specs for a Kubernetes taint.
                   properties:
                     effect:
                       description: Effect specifies the effect for the taint

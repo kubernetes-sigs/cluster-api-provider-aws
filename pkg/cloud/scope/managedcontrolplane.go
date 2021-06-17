@@ -184,6 +184,7 @@ func (s *ManagedControlPlaneScope) SecurityGroups() map[infrav1.SecurityGroupRol
 	return s.ControlPlane.Status.Network.SecurityGroups
 }
 
+// SecondaryCidrBlock returns the SecondaryCidrBlock of the control plane.
 func (s *ManagedControlPlaneScope) SecondaryCidrBlock() *string {
 	return s.ControlPlane.Spec.SecondaryCidrBlock
 }
@@ -198,7 +199,7 @@ func (s *ManagedControlPlaneScope) Name() string {
 	return s.Cluster.Name
 }
 
-// Name returns the AWS cluster name.
+// InfraClusterName returns the AWS cluster name.
 func (s *ManagedControlPlaneScope) InfraClusterName() string {
 	return s.ControlPlane.Name
 }

@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 
+// Service defines the specs for a service.
 type Service struct {
 	scope             scope.EC2Scope
 	EventBridgeClient eventbridgeiface.EventBridgeAPI

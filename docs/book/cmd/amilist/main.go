@@ -48,6 +48,7 @@ func main() {
 	lambda.Start(LambdaHandler)
 }
 
+// LambdaHandler defines a Lambda function handler.
 func LambdaHandler() error {
 	amis, err := ami.List(
 		ami.ListInput{},

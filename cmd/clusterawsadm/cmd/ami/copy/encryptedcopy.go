@@ -32,6 +32,7 @@ var (
 	kmsKeyID string
 )
 
+// EncryptedCopyAMICmd is a command to encrypt and copy AMI snapshots, then create an AMI with that snapshot.
 func EncryptedCopyAMICmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "encrypted-copy",

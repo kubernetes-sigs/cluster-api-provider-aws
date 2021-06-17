@@ -30,30 +30,35 @@ import (
 	infrav1alpha4exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
 )
 
+// ConvertTo converts the v1alpha3 AWSMachinePool receiver to a v1alpha4 AWSMachinePool.
 func (r *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha4.AWSMachinePool)
 
 	return Convert_v1alpha3_AWSMachinePool_To_v1alpha4_AWSMachinePool(r, dst, nil)
 }
 
+// ConvertFrom converts the v1alpha4 AWSMachinePool receiver to a v1alpha3 AWSMachinePool.
 func (r *AWSMachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha4.AWSMachinePool)
 
 	return Convert_v1alpha4_AWSMachinePool_To_v1alpha3_AWSMachinePool(src, r, nil)
 }
 
+// ConvertTo converts the v1alpha3 AWSMachinePoolList receiver to a v1alpha4 AWSMachinePoolList.
 func (r *AWSMachinePoolList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha4.AWSMachinePoolList)
 
 	return Convert_v1alpha3_AWSMachinePoolList_To_v1alpha4_AWSMachinePoolList(r, dst, nil)
 }
 
+// ConvertFrom converts the v1alpha4 AWSMachinePoolList receiver to a v1alpha3 AWSMachinePoolList.
 func (r *AWSMachinePoolList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha4.AWSMachinePoolList)
 
 	return Convert_v1alpha4_AWSMachinePoolList_To_v1alpha3_AWSMachinePoolList(src, r, nil)
 }
 
+// ConvertTo converts the v1alpha3 AWSManagedMachinePool receiver to a v1alpha4 AWSManagedMachinePool.
 func (r *AWSManagedMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha4.AWSManagedMachinePool)
 	if err := Convert_v1alpha3_AWSManagedMachinePool_To_v1alpha4_AWSManagedMachinePool(r, dst, nil); err != nil {
@@ -70,6 +75,7 @@ func (r *AWSManagedMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	return nil
 }
 
+// ConvertFrom converts the v1alpha4 AWSManagedMachinePool receiver to a v1alpha3 AWSManagedMachinePool.
 func (r *AWSManagedMachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha4.AWSManagedMachinePool)
 
@@ -84,60 +90,70 @@ func (r *AWSManagedMachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 	return nil
 }
 
+// ConvertTo converts the v1alpha3 AWSManagedMachinePoolList receiver to a v1alpha4 AWSManagedMachinePoolList.
 func (r *AWSManagedMachinePoolList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha4.AWSManagedMachinePoolList)
 
 	return Convert_v1alpha3_AWSManagedMachinePoolList_To_v1alpha4_AWSManagedMachinePoolList(r, dst, nil)
 }
 
+// ConvertFrom converts the v1alpha4 AWSManagedMachinePoolList receiver to a v1alpha3 AWSManagedMachinePoolList.
 func (r *AWSManagedMachinePoolList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha4.AWSManagedMachinePoolList)
 
 	return Convert_v1alpha4_AWSManagedMachinePoolList_To_v1alpha3_AWSManagedMachinePoolList(src, r, nil)
 }
 
+// ConvertTo converts the v1alpha3 AWSManagedCluster receiver to a v1alpha4 AWSManagedCluster.
 func (r *AWSManagedCluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha4.AWSManagedCluster)
 
 	return Convert_v1alpha3_AWSManagedCluster_To_v1alpha4_AWSManagedCluster(r, dst, nil)
 }
 
+// ConvertFrom converts the v1alpha4 AWSManagedCluster receiver to a v1alpha3 AWSManagedCluster.
 func (r *AWSManagedCluster) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha4.AWSManagedCluster)
 
 	return Convert_v1alpha4_AWSManagedCluster_To_v1alpha3_AWSManagedCluster(src, r, nil)
 }
 
+// ConvertTo converts the v1alpha3 AWSManagedClusterList receiver to a v1alpha4 AWSManagedClusterList.
 func (r *AWSManagedClusterList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha4.AWSManagedClusterList)
 
 	return Convert_v1alpha3_AWSManagedClusterList_To_v1alpha4_AWSManagedClusterList(r, dst, nil)
 }
 
+// ConvertFrom converts the v1alpha4 AWSManagedClusterList receiver to a v1alpha3 AWSManagedClusterList.
 func (r *AWSManagedClusterList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha4.AWSManagedClusterList)
 
 	return Convert_v1alpha4_AWSManagedClusterList_To_v1alpha3_AWSManagedClusterList(src, r, nil)
 }
 
+// ConvertTo converts the v1alpha3 AWSFargateProfile receiver to a v1alpha4 AWSFargateProfile.
 func (r *AWSFargateProfile) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha4.AWSFargateProfile)
 
 	return Convert_v1alpha3_AWSFargateProfile_To_v1alpha4_AWSFargateProfile(r, dst, nil)
 }
 
+// ConvertFrom converts the v1alpha4 AWSFargateProfile receiver to a v1alpha3 AWSFargateProfile.
 func (r *AWSFargateProfile) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha4.AWSFargateProfile)
 
 	return Convert_v1alpha4_AWSFargateProfile_To_v1alpha3_AWSFargateProfile(src, r, nil)
 }
 
+// ConvertTo converts the v1alpha3 AWSFargateProfileList receiver to a v1alpha4 AWSFargateProfileList.
 func (r *AWSFargateProfileList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha4.AWSFargateProfileList)
 
 	return Convert_v1alpha3_AWSFargateProfileList_To_v1alpha4_AWSFargateProfileList(r, dst, nil)
 }
 
+// ConvertFrom converts the v1alpha4 AWSFargateProfileList receiver to a v1alpha3 AWSFargateProfileList.
 func (r *AWSFargateProfileList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha4.AWSFargateProfileList)
 
@@ -164,6 +180,7 @@ func Convert_v1alpha4_AWSResourceReference_To_v1alpha3_AWSResourceReference(in *
 	return infrav1alpha3.Convert_v1alpha4_AWSResourceReference_To_v1alpha3_AWSResourceReference(in, out, s)
 }
 
+// Convert_v1alpha4_AWSManagedMachinePoolSpec_To_v1alpha3_AWSManagedMachinePoolSpec is an autogenerated conversion function.
 func Convert_v1alpha4_AWSManagedMachinePoolSpec_To_v1alpha3_AWSManagedMachinePoolSpec(in *infrav1alpha4exp.AWSManagedMachinePoolSpec, out *AWSManagedMachinePoolSpec, s apiconversion.Scope) error {
 	return autoConvert_v1alpha4_AWSManagedMachinePoolSpec_To_v1alpha3_AWSManagedMachinePoolSpec(in, out, s)
 }

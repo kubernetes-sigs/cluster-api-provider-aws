@@ -18,6 +18,7 @@ package addons
 
 import "github.com/spf13/cobra"
 
+// RootCmd is EKS addons root CLI command.
 func RootCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "addons",

@@ -21,10 +21,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// AWSClusterIdentitySpec defines the Spec struct for AWSClusterIdentity types.
 type AWSClusterIdentitySpec struct {
 	// AllowedNamespaces is used to identify which namespaces are allowed to use the identity from.
 	// Namespaces can be selected either using an array of namespaces or with label selector.
-	// An empty allowedNamespaces object indicates that AWSClusters can use this identity from any namespace.
+	// An empty AllowedNamespaces object indicates that AWSClusters can use this identity from any namespace.
 	// If this object is nil, no namespaces will be allowed (default behaviour, if this field is not provided)
 	// A namespace should be either in the NamespaceList or match with Selector to use the identity.
 	//
@@ -33,6 +34,10 @@ type AWSClusterIdentitySpec struct {
 	AllowedNamespaces *AllowedNamespaces `json:"allowedNamespaces"`
 }
 
+// AllowedNamespaces is a selector of namespaces that AWSClusters can
+// use this ClusterPrincipal from. This is a standard Kubernetes LabelSelector,
+// a label query over a set of resources. The result of matchLabels and
+// matchExpressions are ANDed.
 type AllowedNamespaces struct {
 	// An nil or empty list indicates that AWSClusters cannot use the identity from any namespace.
 	//
@@ -40,17 +45,13 @@ type AllowedNamespaces struct {
 	// +nullable
 	NamespaceList []string `json:"list"`
 
-	// AllowedNamespaces is a selector of namespaces that AWSClusters can
-	// use this ClusterPrincipal from. This is a standard Kubernetes LabelSelector,
-	// a label query over a set of resources. The result of matchLabels and
-	// matchExpressions are ANDed.
-	//
 	// An empty selector indicates that AWSClusters cannot use this
 	// AWSClusterIdentity from any namespace.
 	// +optional
 	Selector metav1.LabelSelector `json:"selector"`
 }
 
+// AWSRoleSpec defines the specifications for all identities based around AWS roles.
 type AWSRoleSpec struct {
 	// The Amazon Resource Name (ARN) of the role to assume.
 	RoleArn string `json:"roleARN"`
@@ -91,6 +92,7 @@ type AWSClusterStaticIdentityList struct {
 	Items           []AWSClusterStaticIdentity `json:"items"`
 }
 
+// AWSClusterStaticIdentitySpec defines the specifications for AWSClusterStaticIdentity.
 type AWSClusterStaticIdentitySpec struct {
 	AWSClusterIdentitySpec `json:",inline"`
 	// Reference to a secret containing the credentials. The secret should
@@ -123,6 +125,7 @@ type AWSClusterRoleIdentityList struct {
 	Items           []AWSClusterRoleIdentity `json:"items"`
 }
 
+// AWSClusterRoleIdentitySpec defines the specifications for AWSClusterRoleIdentity.
 type AWSClusterRoleIdentitySpec struct {
 	AWSClusterIdentitySpec `json:",inline"`
 	AWSRoleSpec            `json:",inline"`
@@ -165,6 +168,7 @@ type AWSClusterControllerIdentityList struct {
 	Items           []AWSClusterControllerIdentity `json:"items"`
 }
 
+// AWSClusterControllerIdentitySpec defines the specifications for AWSClusterControllerIdentity.
 type AWSClusterControllerIdentitySpec struct {
 	AWSClusterIdentitySpec `json:",inline"`
 }

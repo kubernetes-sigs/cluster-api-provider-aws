@@ -38,7 +38,7 @@ func (t Tags) HasOwned(cluster string) bool {
 	return ok && ResourceLifecycle(value) == ResourceLifecycleOwned
 }
 
-// HasOwned returns true if the tags contains a tag that marks the resource as owned by the cluster from the perspective of the in-tree cloud provider.
+// HasAWSCloudProviderOwned returns true if the tags contains a tag that marks the resource as owned by the cluster from the perspective of the in-tree cloud provider.
 func (t Tags) HasAWSCloudProviderOwned(cluster string) bool {
 	value, ok := t[ClusterAWSCloudProviderTagKey(cluster)]
 	return ok && ResourceLifecycle(value) == ResourceLifecycleOwned
@@ -85,7 +85,7 @@ const (
 	// if the cluster is destroyed.
 	ResourceLifecycleShared = ResourceLifecycle("shared")
 
-	// NameKubernetesClusterPrefix is the tag name used by the cloud provider to logically
+	// NameKubernetesAWSCloudProviderPrefix is the tag name used by the cloud provider to logically
 	// separate independent cluster resources. We use it to identify which resources we expect
 	// to be permissive about state changes.
 	// logically independent clusters running in the same AZ.
@@ -107,8 +107,10 @@ const (
 	// dedicated to this cluster api provider implementation.
 	NameAWSClusterAPIRole = NameAWSProviderPrefix + "role"
 
+	// NameAWSSubnetAssociation is the tag name we use to mark subnet associations.
 	NameAWSSubnetAssociation = NameAWSProviderPrefix + "association"
 
+	// SecondarySubnetTagValue describes the value for the secondary subnet.
 	SecondarySubnetTagValue = "secondary"
 
 	// APIServerRoleTagValue describes the value for the apiserver role

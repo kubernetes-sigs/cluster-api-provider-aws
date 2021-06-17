@@ -393,7 +393,7 @@ func (s *Service) GetCoreSecurityGroups(scope *scope.MachineScope) ([]string, er
 	return ids, nil
 }
 
-// GetCoreSecurityGroups looks up the security group IDs managed by this actuator
+// GetCoreNodeSecurityGroups looks up the security group IDs managed by this actuator
 // They are considered "core" to its proper functioning
 func (s *Service) GetCoreNodeSecurityGroups(scope *scope.MachinePoolScope) ([]string, error) {
 	// These are common across both controlplane and node machines

@@ -230,6 +230,7 @@ func (s *Service) runPool(i *expinfrav1.AutoScalingGroup, launchTemplateID strin
 	return nil
 }
 
+// DeleteASGAndWait will delete an ASG and wait until it is deleted.
 func (s *Service) DeleteASGAndWait(name string) error {
 	if err := s.DeleteASG(name); err != nil {
 		return err
@@ -248,6 +249,7 @@ func (s *Service) DeleteASGAndWait(name string) error {
 	return nil
 }
 
+// DeleteASG will delete the ASG of a service.
 func (s *Service) DeleteASG(name string) error {
 	s.scope.V(2).Info("Attempting to delete ASG", "name", name)
 
@@ -264,6 +266,7 @@ func (s *Service) DeleteASG(name string) error {
 	return nil
 }
 
+// UpdateASG will update the ASG of a service.
 func (s *Service) UpdateASG(scope *scope.MachinePoolScope) error {
 	subnetIDs := make([]string, len(scope.AWSMachinePool.Spec.Subnets))
 	for i, v := range scope.AWSMachinePool.Spec.Subnets {
@@ -304,6 +307,7 @@ func (s *Service) UpdateASG(scope *scope.MachinePoolScope) error {
 	return nil
 }
 
+// CanStartASGInstanceRefresh will start an ASG instance with refresh.
 func (s *Service) CanStartASGInstanceRefresh(scope *scope.MachinePoolScope) (bool, error) {
 	describeInput := &autoscaling.DescribeInstanceRefreshesInput{AutoScalingGroupName: aws.String(scope.Name())}
 	refreshes, err := s.ASGClient.DescribeInstanceRefreshes(describeInput)
@@ -326,6 +330,7 @@ func (s *Service) CanStartASGInstanceRefresh(scope *scope.MachinePoolScope) (boo
 	return true, nil
 }
 
+// StartASGInstanceRefresh will start an ASG instance with refresh.
 func (s *Service) StartASGInstanceRefresh(scope *scope.MachinePoolScope) error {
 	strategy := pointer.StringPtr(autoscaling.RefreshStrategyRolling)
 	var minHealthyPercentage, instanceWarmup *int64

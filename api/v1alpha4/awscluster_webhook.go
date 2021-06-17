@@ -47,6 +47,7 @@ var (
 	_ webhook.Defaulter = &AWSCluster{}
 )
 
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSCluster) ValidateCreate() error {
 	var allErrs field.ErrorList
 
@@ -56,10 +57,12 @@ func (r *AWSCluster) ValidateCreate() error {
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSCluster) ValidateDelete() error {
 	return nil
 }
 
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 	var allErrs field.ErrorList
 
@@ -117,6 +120,7 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 
+// Default satisfies the defaulting webhook interface.
 func (r *AWSCluster) Default() {
 	SetDefaults_Bastion(&r.Spec.Bastion)
 	SetDefaults_NetworkSpec(&r.Spec.NetworkSpec)

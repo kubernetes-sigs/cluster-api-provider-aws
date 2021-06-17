@@ -56,6 +56,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
+// InstanceIDIndex defines the aws machine controller's instance ID index.
 const InstanceIDIndex = ".spec.instanceID"
 
 // AWSMachineReconciler reconciles a AwsMachine object

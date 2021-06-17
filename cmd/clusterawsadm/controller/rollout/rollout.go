@@ -30,8 +30,10 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/controller"
 )
 
+// ControllerDeploymentName is a tag for capa controller manager.
 const ControllerDeploymentName = "capa-controller-manager"
 
+// RolloutControllersInput defines the specs for rollout controllers input.
 type RolloutControllersInput struct {
 	KubeconfigPath    string
 	KubeconfigContext string

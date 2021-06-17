@@ -28,6 +28,7 @@ var (
 	kubeconfigContext string
 )
 
+// RolloutControllersCmd is a CLI command that initiates rollout and restart on capa-controller-manager deployment.
 func RolloutControllersCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "rollout-controller",

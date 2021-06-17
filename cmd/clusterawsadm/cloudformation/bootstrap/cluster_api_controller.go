@@ -73,6 +73,7 @@ func (t Template) controllersRolePolicy() []cfn_iam.Role_Policy {
 	return policies
 }
 
+// ControllersPolicy will create a policy from a Template for AWS Controllers.
 func (t Template) ControllersPolicy() *infrav1.PolicyDocument {
 	statement := []infrav1.StatementEntry{
 		{

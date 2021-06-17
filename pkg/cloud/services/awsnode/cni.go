@@ -40,6 +40,7 @@ const (
 	awsNodeNamespace = "kube-system"
 )
 
+// ReconcileCNI will reconcile the CNI of a service.
 func (s *Service) ReconcileCNI(ctx context.Context) error {
 	s.scope.Info("Reconciling aws-node DaemonSet in cluster", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
 

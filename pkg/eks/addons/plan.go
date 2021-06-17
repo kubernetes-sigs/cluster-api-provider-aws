@@ -116,14 +116,3 @@ func convertTags(tags infrav1.Tags) map[string]*string {
 
 	return converted
 }
-
-func convertSDKTags(tags map[string]*string) infrav1.Tags {
-	converted := infrav1.Tags{}
-
-	for k, v := range tags {
-		copiedVal := v
-		converted[k] = *copiedVal
-	}
-
-	return converted
-}

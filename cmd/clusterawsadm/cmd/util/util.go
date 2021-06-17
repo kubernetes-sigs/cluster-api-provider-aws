@@ -21,12 +21,15 @@ import (
 	"os"
 )
 
+// ErrEnvironmentVariableNotFound is an error string for environment variable not found error.
 type ErrEnvironmentVariableNotFound string
 
+// Error defines the error interface for ErrEnvironmentVariableNotFound.
 func (e ErrEnvironmentVariableNotFound) Error() string {
 	return fmt.Sprintf("environment variable %q not found", string(e))
 }
 
+// GetEnv will lookup and return an environment variable.
 func GetEnv(key string) (string, error) {
 	val, ok := os.LookupEnv(key)
 	if !ok {

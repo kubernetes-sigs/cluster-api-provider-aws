@@ -16,6 +16,7 @@ limitations under the License.
 
 package credentials
 
+// ZeroCredentialsInput defines the specs for zero credentials input.
 type ZeroCredentialsInput struct {
 	KubeconfigPath    string
 	KubeconfigContext string

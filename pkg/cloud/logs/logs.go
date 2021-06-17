@@ -26,6 +26,7 @@ const (
 	logWithHTTPBody   = 10
 )
 
+// GetAWSLogLevel will return the log level of an AWS Logger.
 func GetAWSLogLevel(logger logr.Logger) aws.LogLevelType {
 	if logger.V(logWithHTTPBody).Enabled() {
 		return aws.LogDebugWithHTTPBody
@@ -38,6 +39,7 @@ func GetAWSLogLevel(logger logr.Logger) aws.LogLevelType {
 	return aws.LogOff
 }
 
+// NewWrapLogr will create an AWS Logger wrapper.
 func NewWrapLogr(logger logr.Logger) aws.Logger {
 	return &logrWrapper{
 		log: logger,

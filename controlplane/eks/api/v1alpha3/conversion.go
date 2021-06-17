@@ -26,24 +26,28 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
+// ConvertTo converts the v1alpha3 AWSManagedControlPlane receiver to a v1alpha4 AWSManagedControlPlane.
 func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha4.AWSManagedControlPlane)
 
 	return Convert_v1alpha3_AWSManagedControlPlane_To_v1alpha4_AWSManagedControlPlane(r, dst, nil)
 }
 
+// ConvertFrom converts the v1alpha4 AWSManagedControlPlane receiver to a v1alpha3 AWSManagedControlPlane.
 func (r *AWSManagedControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha4.AWSManagedControlPlane)
 
 	return Convert_v1alpha4_AWSManagedControlPlane_To_v1alpha3_AWSManagedControlPlane(src, r, nil)
 }
 
+// ConvertTo converts the v1alpha3 AWSManagedControlPlaneList receiver to a v1alpha4 AWSManagedControlPlaneList.
 func (r *AWSManagedControlPlaneList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha4.AWSManagedControlPlaneList)
 
 	return Convert_v1alpha3_AWSManagedControlPlaneList_To_v1alpha4_AWSManagedControlPlaneList(r, dst, nil)
 }
 
+// ConvertFrom converts the v1alpha4 AWSManagedControlPlaneList receiver to a v1alpha3 AWSManagedControlPlaneList.
 func (r *AWSManagedControlPlaneList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha4.AWSManagedControlPlaneList)
 

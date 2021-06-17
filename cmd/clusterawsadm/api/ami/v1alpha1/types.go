@@ -22,11 +22,14 @@ import (
 )
 
 const (
-	AWSAMIKind     = "AWSAMI"
+	// AWSAMIKind defines an AMI kind.
+	AWSAMIKind = "AWSAMI"
+
+	// AWSAMIListKind defines an AWSAMIList kind.
 	AWSAMIListKind = "AWSAMIList"
 )
 
-// AWSAMI defines an AMI
+// AWSAMISpec defines an AMI
 type AWSAMISpec struct {
 	OS                string `json:"os"`
 	Region            string `json:"region"`
@@ -36,7 +39,8 @@ type AWSAMISpec struct {
 
 // +kubebuilder:object:root=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// AMI defines an AMI
+
+// AWSAMI defines an AMI
 type AWSAMI struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -45,6 +49,7 @@ type AWSAMI struct {
 
 // +kubebuilder:object:root=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // AWSAMIList defines a list of AMIs
 type AWSAMIList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -52,6 +57,7 @@ type AWSAMIList struct {
 	Items           []AWSAMI `json:"items"`
 }
 
+// ToTable will convert an AWSAMIList to a Table.
 func (a *AWSAMIList) ToTable() *metav1.Table {
 	table := &metav1.Table{
 		TypeMeta: metav1.TypeMeta{
@@ -93,6 +99,7 @@ func (a *AWSAMIList) ToTable() *metav1.Table {
 	return table
 }
 
+// GetObjectKind will return the ObjectKind of an AWSAMI.
 func (a *AWSAMI) GetObjectKind() schema.ObjectKind {
 	return &metav1.TypeMeta{
 		APIVersion: SchemeGroupVersion.String(),
@@ -100,6 +107,7 @@ func (a *AWSAMI) GetObjectKind() schema.ObjectKind {
 	}
 }
 
+// GetObjectKind will return the ObjectKind of an AWSAMIList.
 func (a *AWSAMIList) GetObjectKind() schema.ObjectKind {
 	return &metav1.TypeMeta{
 		APIVersion: SchemeGroupVersion.String(),

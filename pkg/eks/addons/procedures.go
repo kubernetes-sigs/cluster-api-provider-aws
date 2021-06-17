@@ -26,8 +26,11 @@ import (
 )
 
 var (
-	ErrNilAddon           = errors.New("nil addon returned from create")
-	ErrAddonNotFound      = errors.New("addon not found")
+	// ErrNilAddon defines an error for when a nil addon is returned.
+	ErrNilAddon = errors.New("nil addon returned from create")
+	// ErrAddonNotFound defines an error for when an addon is not found.
+	ErrAddonNotFound = errors.New("addon not found")
+	// ErrAddonAlreadyExists defines an error for when an addon already exists.
 	ErrAddonAlreadyExists = errors.New("addon already exists")
 )
 

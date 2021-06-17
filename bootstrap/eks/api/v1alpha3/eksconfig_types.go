@@ -72,10 +72,12 @@ type EKSConfig struct {
 	Status EKSConfigStatus `json:"status,omitempty"`
 }
 
+// GetConditions returns the observations of the operational state of the EKSConfig resource.
 func (r *EKSConfig) GetConditions() clusterv1.Conditions {
 	return r.Status.Conditions
 }
 
+// SetConditions sets the underlying service state of the EKSConfig to the predescribed clusterv1.Conditions.
 func (r *EKSConfig) SetConditions(conditions clusterv1.Conditions) {
 	r.Status.Conditions = conditions
 }

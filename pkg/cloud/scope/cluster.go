@@ -155,7 +155,7 @@ func (s *ClusterScope) Namespace() string {
 	return s.Cluster.Namespace
 }
 
-// Name returns the AWS cluster name.
+// InfraClusterName returns the AWS cluster name.
 func (s *ClusterScope) InfraClusterName() string {
 	return s.AWSCluster.Name
 }

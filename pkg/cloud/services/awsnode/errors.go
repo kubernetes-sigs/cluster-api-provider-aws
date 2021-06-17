@@ -19,5 +19,6 @@ package awsnode
 import "errors"
 
 var (
+	// ErrCNIMissing defines an error for when an aws node's CNI daemonset is missing.
 	ErrCNIMissing = errors.New("aws-node CNI daemonset missing")
 )

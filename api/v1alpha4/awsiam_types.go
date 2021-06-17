@@ -23,9 +23,14 @@ import (
 )
 
 type (
-	Effect            string
+	// Effect defines an AWS IAM effect.
+	Effect string
+
+	// ConditionOperator defines an AWS condition operator.
 	ConditionOperator string
-	PrincipalType     string
+
+	// PrincipalType defines an AWS principle type.
+	PrincipalType string
 )
 
 const (
@@ -95,6 +100,7 @@ type Principals map[PrincipalType]PrincipalID
 // Actions is the list of actions
 type Actions []string
 
+// UnmarshalJSON is an Actions Unmarshaler.
 func (actions *Actions) UnmarshalJSON(data []byte) error {
 	var ids []string
 	if err := json.Unmarshal(data, &ids); err == nil {
@@ -115,6 +121,7 @@ type Resources []string
 // PrincipalID represents the list of all identities, such as ARNs
 type PrincipalID []string
 
+// UnmarshalJSON defines an Unmarshaler for a PrincipalID.
 func (identityID *PrincipalID) UnmarshalJSON(data []byte) error {
 	var ids []string
 	if err := json.Unmarshal(data, &ids); err == nil {

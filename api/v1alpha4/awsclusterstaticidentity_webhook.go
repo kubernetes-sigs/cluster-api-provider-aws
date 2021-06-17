@@ -45,6 +45,7 @@ var (
 	_ webhook.Defaulter = &AWSClusterStaticIdentity{}
 )
 
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSClusterStaticIdentity) ValidateCreate() error {
 	// Validate selector parses as Selector
 	if r.Spec.AllowedNamespaces != nil {
@@ -57,10 +58,12 @@ func (r *AWSClusterStaticIdentity) ValidateCreate() error {
 	return nil
 }
 
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSClusterStaticIdentity) ValidateDelete() error {
 	return nil
 }
 
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSClusterStaticIdentity) ValidateUpdate(old runtime.Object) error {
 	oldP, ok := old.(*AWSClusterStaticIdentity)
 	if !ok {
@@ -83,5 +86,6 @@ func (r *AWSClusterStaticIdentity) ValidateUpdate(old runtime.Object) error {
 	return nil
 }
 
+// Default should return the default AWSClusterStaticIdentity.
 func (r *AWSClusterStaticIdentity) Default() {
 }

@@ -56,7 +56,8 @@ const (
 	  3. Check for the DEFAULT_AWS_REGION environment variable.
 	  4. Check that a region is specified in the shared configuration file.
 	`
-
+	// EncodingHelp provides an explanation for how clusterawsadm will generate ini-files
+	// for the resolved credentials.
 	EncodingHelp = `
 	The utility will then generate an ini-file with a default profile corresponding to
 	the resolved credentials.

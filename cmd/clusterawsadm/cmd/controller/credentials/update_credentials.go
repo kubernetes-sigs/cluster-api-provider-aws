@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
+// UpdateCredentialsCmd is a CLI command that will update credentials the controller is using.
 func UpdateCredentialsCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "update-credentials",

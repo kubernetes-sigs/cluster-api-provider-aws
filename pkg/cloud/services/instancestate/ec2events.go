@@ -16,6 +16,7 @@ limitations under the License.
 
 package instancestate
 
+// ReconcileEC2Events will reconcile a Service's EC2 events.
 func (s Service) ReconcileEC2Events() error {
 	if err := s.reconcileSQSQueue(); err != nil {
 		return err
@@ -27,6 +28,7 @@ func (s Service) ReconcileEC2Events() error {
 	return nil
 }
 
+// DeleteEC2Events will delete a Service's EC2 events.
 func (s Service) DeleteEC2Events() error {
 	if err := s.deleteRules(); err != nil {
 		return err

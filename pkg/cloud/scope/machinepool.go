@@ -214,6 +214,7 @@ func (m *MachinePoolScope) SetLaunchTemplateIDStatus(id string) {
 	m.AWSMachinePool.Status.LaunchTemplateID = id
 }
 
+// IsEKSManaged checks if the AWSMachinePool is EKS managed.
 func (m *MachinePoolScope) IsEKSManaged() bool {
 	return m.InfraCluster.InfraCluster().GetObjectKind().GroupVersionKind().Kind == "AWSManagedControlPlane"
 }

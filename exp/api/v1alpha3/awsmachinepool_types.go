@@ -25,7 +25,10 @@ import (
 )
 
 const (
-	MachinePoolFinalizer        = "awsmachinepool.infrastructure.cluster.x-k8s.io"
+	// MachinePoolFinalizer is the finalizer for the machine pool.
+	MachinePoolFinalizer = "awsmachinepool.infrastructure.cluster.x-k8s.io"
+
+	// LaunchTemplateLatestVersion defines the launching of the latest version of the template.
 	LaunchTemplateLatestVersion = "$Latest"
 )
 
@@ -35,12 +38,12 @@ type AWSMachinePoolSpec struct {
 	// +optional
 	ProviderID string `json:"providerID,omitempty"`
 
-	// The minimum size of the group.
+	// MinSize defines the minimum size of the group.
 	// +kubebuilder:default=1
 	// +kubebuilder:validation:Minimum=1
 	MinSize int32 `json:"minSize"`
 
-	// The maximum size of the group.
+	// MaxSize defines the maximum size of the group.
 	// +kubebuilder:default=1
 	// +kubebuilder:validation:Minimum=1
 	MaxSize int32 `json:"maxSize"`
@@ -83,6 +86,7 @@ type AWSMachinePoolSpec struct {
 	CapacityRebalance bool `json:"capacityRebalance,omitempty"`
 }
 
+// RefreshPreferences defines the specs for instance refreshing.
 type RefreshPreferences struct {
 	// The strategy to use for the instance refresh. The only valid value is Rolling.
 	// A rolling update is an update that is applied to all instances in an Auto
@@ -163,6 +167,8 @@ type AWSMachinePoolStatus struct {
 
 	ASGStatus *ASGStatus `json:"asgStatus,omitempty"`
 }
+
+// AWSMachinePoolInstanceStatus defines the status of the AWSMachinePoolInstance.
 type AWSMachinePoolInstanceStatus struct {
 	// InstanceID is the identification of the Machine Instance within ASG
 	// +optional
@@ -204,18 +210,22 @@ func init() {
 	SchemeBuilder.Register(&AWSMachinePool{}, &AWSMachinePoolList{})
 }
 
+// GetConditions returns the observations of the operational state of the AWSMachinePool resource.
 func (r *AWSMachinePool) GetConditions() clusterv1.Conditions {
 	return r.Status.Conditions
 }
 
+// SetConditions sets the underlying service state of the AWSMachinePool to the predescribed clusterv1.Conditions.
 func (r *AWSMachinePool) SetConditions(conditions clusterv1.Conditions) {
 	r.Status.Conditions = conditions
 }
 
+// GetObjectKind will return the ObjectKind of an AWSMachinePool.
 func (r *AWSMachinePool) GetObjectKind() schema.ObjectKind {
 	return &r.TypeMeta
 }
 
+// GetObjectKind will return the ObjectKind of an AWSMachinePoolList.
 func (r *AWSMachinePoolList) GetObjectKind() schema.ObjectKind {
 	return &r.TypeMeta
 }

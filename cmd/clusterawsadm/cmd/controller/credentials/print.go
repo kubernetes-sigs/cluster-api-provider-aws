@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
+// PrintCredentialsCmd is a CLI command that will print credentials the controller is using.
 func PrintCredentialsCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "print-credentials",

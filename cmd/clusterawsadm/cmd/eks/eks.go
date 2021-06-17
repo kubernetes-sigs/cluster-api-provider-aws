@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/eks/addons"
 )
 
+// RootCmd is an EKS root CLI command.
 func RootCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "eks",

@@ -17,12 +17,12 @@ limitations under the License.
 package v1alpha4
 
 import (
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"

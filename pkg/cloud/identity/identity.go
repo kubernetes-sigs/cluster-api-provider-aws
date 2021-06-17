@@ -32,6 +32,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 )
 
+// AWSPrincipalTypeProvider defines the interface for AWS Principal Type Provider.
 type AWSPrincipalTypeProvider interface {
 	credentials.Provider
 	// Hash returns a unique hash of the data forming the credentials
@@ -40,6 +41,7 @@ type AWSPrincipalTypeProvider interface {
 	Name() string
 }
 
+// NewAWSStaticPrincipalTypeProvider will create a new AWSStaticPrincipalTypeProvider from a given AWSClusterStaticIdentity.
 func NewAWSStaticPrincipalTypeProvider(identity *infrav1.AWSClusterStaticIdentity, secret *corev1.Secret) *AWSStaticPrincipalTypeProvider {
 	accessKeyID := string(secret.Data["AccessKeyID"])
 	secretAccessKey := string(secret.Data["SecretAccessKey"])
@@ -54,6 +56,7 @@ func NewAWSStaticPrincipalTypeProvider(identity *infrav1.AWSClusterStaticIdentit
 	}
 }
 
+// GetAssumeRoleCredentials will return the Credentials of a given AWSRolePrincipalTypeProvider.
 func GetAssumeRoleCredentials(roleIdentityProvider *AWSRolePrincipalTypeProvider, awsConfig *aws.Config) *credentials.Credentials {
 	sess := session.Must(session.NewSession(awsConfig))
 
@@ -74,6 +77,7 @@ func GetAssumeRoleCredentials(roleIdentityProvider *AWSRolePrincipalTypeProvider
 	return creds
 }
 
+// NewAWSRolePrincipalTypeProvider will create a new AWSRolePrincipalTypeProvider from an AWSClusterRoleIdentity.
 func NewAWSRolePrincipalTypeProvider(identity *infrav1.AWSClusterRoleIdentity, sourceProvider *AWSPrincipalTypeProvider, log logr.Logger) *AWSRolePrincipalTypeProvider {
 	return &AWSRolePrincipalTypeProvider{
 		credentials:    nil,
@@ -84,6 +88,7 @@ func NewAWSRolePrincipalTypeProvider(identity *infrav1.AWSClusterRoleIdentity, s
 	}
 }
 
+// AWSStaticPrincipalTypeProvider defines the specs for a static AWSPrincipalTypeProvider.
 type AWSStaticPrincipalTypeProvider struct {
 	Principal   *infrav1.AWSClusterStaticIdentity
 	credentials *credentials.Credentials
@@ -93,6 +98,7 @@ type AWSStaticPrincipalTypeProvider struct {
 	SessionToken    string
 }
 
+// Hash returns the byte encoded AWSStaticPrincipalTypeProvider.
 func (p *AWSStaticPrincipalTypeProvider) Hash() (string, error) {
 	var roleIdentityValue bytes.Buffer
 	err := gob.NewEncoder(&roleIdentityValue).Encode(p)
@@ -103,18 +109,22 @@ func (p *AWSStaticPrincipalTypeProvider) Hash() (string, error) {
 	return string(hash.Sum(roleIdentityValue.Bytes())), nil
 }
 
+// Retrieve returns the credential values for the AWSStaticPrincipalTypeProvider.
 func (p *AWSStaticPrincipalTypeProvider) Retrieve() (credentials.Value, error) {
 	return p.credentials.Get()
 }
 
+// Name returns the name of the AWSStaticPrincipalTypeProvider.
 func (p *AWSStaticPrincipalTypeProvider) Name() string {
 	return p.Principal.Name
 }
 
+// IsExpired checks the expiration state of the AWSStaticPrincipalTypeProvider.
 func (p *AWSStaticPrincipalTypeProvider) IsExpired() bool {
 	return p.credentials.IsExpired()
 }
 
+// AWSRolePrincipalTypeProvider defines the specs for a AWSPrincipalTypeProvider with a role.
 type AWSRolePrincipalTypeProvider struct {
 	Principal      *infrav1.AWSClusterRoleIdentity
 	credentials    *credentials.Credentials
@@ -123,6 +133,7 @@ type AWSRolePrincipalTypeProvider struct {
 	stsClient      stsiface.STSAPI
 }
 
+// Hash returns the byte encoded AWSRolePrincipalTypeProvider.
 func (p *AWSRolePrincipalTypeProvider) Hash() (string, error) {
 	var roleIdentityValue bytes.Buffer
 	err := gob.NewEncoder(&roleIdentityValue).Encode(p)
@@ -133,9 +144,12 @@ func (p *AWSRolePrincipalTypeProvider) Hash() (string, error) {
 	return string(hash.Sum(roleIdentityValue.Bytes())), nil
 }
 
+// Name returns the name of the AWSRolePrincipalTypeProvider.
 func (p *AWSRolePrincipalTypeProvider) Name() string {
 	return p.Principal.Name
 }
+
+// Retrieve returns the credential values for the AWSRolePrincipalTypeProvider.
 func (p *AWSRolePrincipalTypeProvider) Retrieve() (credentials.Value, error) {
 	if p.credentials == nil || p.IsExpired() {
 		awsConfig := aws.NewConfig()
@@ -154,6 +168,7 @@ func (p *AWSRolePrincipalTypeProvider) Retrieve() (credentials.Value, error) {
 	return p.credentials.Get()
 }
 
+// IsExpired checks the expiration state of the AWSRolePrincipalTypeProvider.
 func (p *AWSRolePrincipalTypeProvider) IsExpired() bool {
 	return p.credentials.IsExpired()
 }

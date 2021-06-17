@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Errors for validation of Amazon EKS nodes that are registered with the control plane.
 var (
 	ErrRoleARNRequired  = errors.New("rolearn is required")
 	ErrUserARNRequired  = errors.New("userarn is required")

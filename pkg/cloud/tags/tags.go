@@ -31,8 +31,11 @@ import (
 )
 
 var (
+	// ErrBuildParamsRequired defines an error for when no build params are supplied.
 	ErrBuildParamsRequired = errors.New("no build params supplied")
-	ErrApplyFuncRequired   = errors.New("no tags apply function supplied")
+
+	// ErrApplyFuncRequired defines an error for when tags are not supplied.
+	ErrApplyFuncRequired = errors.New("no tags apply function supplied")
 )
 
 // BuilderOption represents an option when creating a tags builder
@@ -108,7 +111,7 @@ func WithEC2(ec2client ec2iface.EC2API) BuilderOption {
 	}
 }
 
-// WithEKS is used to specify that the tags builder will be targetting EKS
+// WithEKS is used to specify that the tags builder will be targeting EKS
 func WithEKS(eksclient eksiface.EKSAPI) BuilderOption {
 	return func(b *Builder) {
 		b.applyFunc = func(params *infrav1.BuildParams) error {
