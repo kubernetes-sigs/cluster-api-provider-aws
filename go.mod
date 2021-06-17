@@ -6,14 +6,14 @@ replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.4.0-beta.0
 
 require (
 	github.com/apparentlymart/go-cidr v1.1.0
-	github.com/aws/amazon-vpc-cni-k8s v1.7.10
+	github.com/aws/amazon-vpc-cni-k8s v1.8.0
 	github.com/aws/aws-lambda-go v1.24.0
-	github.com/aws/aws-sdk-go v1.38.61
-	github.com/awslabs/goformation/v4 v4.19.4
+	github.com/aws/aws-sdk-go v1.38.62
+	github.com/awslabs/goformation/v4 v4.19.5
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/go-logr/logr v0.4.0
 	github.com/gofrs/flock v0.8.0
-	github.com/golang/mock v1.4.4
+	github.com/golang/mock v1.6.0
 	github.com/google/goexpect v0.0.0-20210430020637-ab937bf7fd6f
 	github.com/google/gofuzz v1.2.0
 	github.com/google/goterm v0.0.0-20200907032337-555d40f16ae2 // indirect

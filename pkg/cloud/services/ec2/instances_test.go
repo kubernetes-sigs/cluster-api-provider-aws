@@ -351,15 +351,6 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
-				m.
-					DescribeImages(gomock.Any()).
-					Return(&ec2.DescribeImagesOutput{
-						Images: []*ec2.Image{
-							{
-								Name: aws.String("ami-1"),
-							},
-						},
-					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
 					RunInstances(gomock.Any()).
 					Return(&ec2.Reservation{
@@ -466,16 +457,6 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
-				m.
-					DescribeImages(gomock.Any()).
-					Return(&ec2.DescribeImagesOutput{
-						Images: []*ec2.Image{
-							{
-								Name: aws.String("ami-1"),
-							},
-						},
-					}, nil)
-
 				m.
 					RunInstances(gomock.Any()).
 					Return(&ec2.Reservation{
@@ -966,15 +947,6 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.
-					DescribeImages(gomock.Any()).
-					Return(&ec2.DescribeImagesOutput{
-						Images: []*ec2.Image{
-							{
-								Name: aws.String("ami-1"),
-							},
-						},
-					}, nil)
-				m.
 					DescribeSubnets(&ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
@@ -1095,7 +1067,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 		},
 		{
-			name: "with multriple block device mappings",
+			name: "with multiple block device mappings",
 			machine: clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
@@ -1151,15 +1123,6 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
-				m.
-					DescribeImages(gomock.Any()).
-					Return(&ec2.DescribeImagesOutput{
-						Images: []*ec2.Image{
-							{
-								Name: aws.String("ami-1"),
-							},
-						},
-					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
 					RunInstances(gomock.Any()).
 					Return(&ec2.Reservation{
@@ -1261,15 +1224,6 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
-				m.
-					DescribeImages(gomock.Any()).
-					Return(&ec2.DescribeImagesOutput{
-						Images: []*ec2.Image{
-							{
-								Name: aws.String("ami-1"),
-							},
-						},
-					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
 					RunInstances(gomock.Eq(&ec2.RunInstancesInput{
 						ImageId:      aws.String("abc"),
@@ -1359,12 +1313,10 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("bootstrap-data"),
 					},
+					Version: pointer.StringPtr("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
-				AMI: infrav1.AWSResourceReference{
-					ID: aws.String("abc"),
-				},
 				InstanceType: "m5.large",
 			},
 			awsCluster: &infrav1.AWSCluster{
@@ -1407,7 +1359,8 @@ func TestCreateInstance(t *testing.T) {
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
 							{
-								Name: aws.String("ami-1"),
+								Name:         aws.String("ami-1"),
+								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
 							},
 						},
 					}, nil)
@@ -1468,12 +1421,10 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("bootstrap-data"),
 					},
+					Version: pointer.StringPtr("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
-				AMI: infrav1.AWSResourceReference{
-					ID: aws.String("abc"),
-				},
 				InstanceType: "m5.large",
 			},
 			awsCluster: &infrav1.AWSCluster{
@@ -1517,7 +1468,8 @@ func TestCreateInstance(t *testing.T) {
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
 							{
-								Name: aws.String("ami-1"),
+								Name:         aws.String("ami-1"),
+								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
 							},
 						},
 					}, nil)
@@ -1578,12 +1530,10 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("bootstrap-data"),
 					},
+					Version: pointer.StringPtr("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
-				AMI: infrav1.AWSResourceReference{
-					ID: aws.String("abc"),
-				},
 				InstanceType: "m5.large",
 				SSHKeyName:   aws.String("specific-machine-ssh-key-name"),
 			},
@@ -1628,7 +1578,8 @@ func TestCreateInstance(t *testing.T) {
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
 							{
-								Name: aws.String("ami-1"),
+								Name:         aws.String("ami-1"),
+								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
 							},
 						},
 					}, nil)
@@ -1689,12 +1640,10 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("bootstrap-data"),
 					},
+					Version: pointer.StringPtr("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
-				AMI: infrav1.AWSResourceReference{
-					ID: aws.String("abc"),
-				},
 				InstanceType: "m5.large",
 				SSHKeyName:   nil,
 			},
@@ -1739,7 +1688,8 @@ func TestCreateInstance(t *testing.T) {
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
 							{
-								Name: aws.String("ami-1"),
+								Name:         aws.String("ami-1"),
+								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
 							},
 						},
 					}, nil)
@@ -1797,12 +1747,10 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("bootstrap-data"),
 					},
+					Version: pointer.StringPtr("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
-				AMI: infrav1.AWSResourceReference{
-					ID: aws.String("abc"),
-				},
 				InstanceType: "m5.large",
 				SSHKeyName:   aws.String(""),
 			},
@@ -1847,7 +1795,8 @@ func TestCreateInstance(t *testing.T) {
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
 							{
-								Name: aws.String("ami-1"),
+								Name:         aws.String("ami-1"),
+								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
 							},
 						},
 					}, nil)
@@ -1905,12 +1854,10 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("bootstrap-data"),
 					},
+					Version: pointer.StringPtr("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
-				AMI: infrav1.AWSResourceReference{
-					ID: aws.String("abc"),
-				},
 				InstanceType: "m5.large",
 				SSHKeyName:   aws.String(""),
 			},
@@ -1955,7 +1902,8 @@ func TestCreateInstance(t *testing.T) {
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
 							{
-								Name: aws.String("ami-1"),
+								Name:         aws.String("ami-1"),
+								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
 							},
 						},
 					}, nil)
