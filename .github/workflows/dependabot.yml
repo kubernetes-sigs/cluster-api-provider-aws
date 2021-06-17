@@ -2,8 +2,17 @@ name: dependabot
 
 on:
   pull_request:
-    branches: [ dependabot/* ]
-
+    branches:
+      - dependabot/**
+  push:
+    branches:
+      - dependabot/**
+  workflow_dispatch:
+      inputs:
+        name:
+          description: 'Run code generation manually from GH CLI'
+          required: true
+          default: 'Make Generate'
 jobs:
   build:
     name: Build
@@ -14,6 +23,8 @@ jobs:
       with:
         go-version: '1.16'
       id: go
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
     - uses: actions/cache@v2
       name: Restore go cache
       with:
