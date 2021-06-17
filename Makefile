@@ -510,6 +510,14 @@ release-staging: ## Builds and push container images and manifests to the stagin
 	$(MAKE) staging-manifests
 	$(MAKE) upload-staging-artifacts
 
+.PHONY: release-staging-nightly
+release-staging-nightly: ## Tags and push container images to the staging bucket.
+	$(eval NEW_RELEASE_ALIAS_TAG := nightly_$(RELEASE_ALIAS_TAG)_$(shell date +'%Y%m%d'))
+	echo $(NEW_RELEASE_ALIAS_TAG)
+	$(MAKE) release-alias-tag TAG=$(RELEASE_ALIAS_TAG) RELEASE_ALIAS_TAG=$(NEW_RELEASE_ALIAS_TAG)
+	$(MAKE) staging-manifests RELEASE_ALIAS_TAG=$(NEW_RELEASE_ALIAS_TAG)
+	$(MAKE) upload-staging-artifacts RELEASE_ALIAS_TAG=$(NEW_RELEASE_ALIAS_TAG)
+
 .PHONY: upload-staging-artifacts
 upload-staging-artifacts: ## Upload release artifacts to the staging bucket
 	gsutil cp $(RELEASE_DIR)/* gs://$(BUCKET)/components/$(RELEASE_ALIAS_TAG)
