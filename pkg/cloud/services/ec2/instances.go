@@ -527,7 +527,9 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		})
 	}
 
-	for _, nonRootVolume := range i.NonRootVolumes {
+	for vi := range i.NonRootVolumes {
+		nonRootVolume := i.NonRootVolumes[vi]
+
 		if nonRootVolume.DeviceName == "" {
 			return nil, errors.Errorf("non root volume should have device name specified")
 		}

@@ -157,7 +157,8 @@ func (s *Service) reconcileSubnets() error {
 
 	// Proceed to create the rest of the subnets that don't have an ID.
 	if !unmanagedVPC {
-		for _, subnet := range subnets {
+		for i := range subnets {
+			subnet := subnets[i]
 			if subnet.ID != "" {
 				continue
 			}

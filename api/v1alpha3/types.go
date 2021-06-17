@@ -294,7 +294,8 @@ type Subnets []SubnetSpec
 // ToMap returns a map from id to subnet.
 func (s Subnets) ToMap() map[string]*SubnetSpec {
 	res := make(map[string]*SubnetSpec)
-	for _, x := range s {
+	for i := range s {
+		x := s[i]
 		res[x.ID] = &x
 	}
 	return res
@@ -491,9 +492,11 @@ type IngressRules []IngressRule
 
 // Difference returns the difference between this slice and the other slice.
 func (i IngressRules) Difference(o IngressRules) (out IngressRules) {
-	for _, x := range i {
+	for index := range i {
+		x := i[index]
 		found := false
-		for _, y := range o {
+		for oIndex := range o {
+			y := o[oIndex]
 			if x.Equals(&y) {
 				found = true
 				break

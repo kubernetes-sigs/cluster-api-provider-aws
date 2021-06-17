@@ -59,7 +59,7 @@ func AddonSDKToAddonState(eksAddon *eks.Addon) *ekscontrolplanev1.AddonState {
 	return addonState
 }
 
-// FromAWSStringSlice will converts an AWS string pointer slice
+// FromAWSStringSlice will converts an AWS string pointer slice.
 func FromAWSStringSlice(from []*string) []string {
 	converted := []string{}
 	for _, s := range from {

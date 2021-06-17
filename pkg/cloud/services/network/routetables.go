@@ -50,7 +50,9 @@ func (s *Service) reconcileRouteTables() error {
 		return err
 	}
 
-	for _, sn := range s.scope.Subnets() {
+	subnets := s.scope.Subnets()
+	for i := range subnets {
+		sn := subnets[i]
 		// We need to compile the minimum routes for this subnet first, so we can compare it or create them.
 		var routes []*ec2.Route
 		if sn.IsPublic {

@@ -423,7 +423,8 @@ func (s *Service) createSecurityGroup(role infrav1.SecurityGroupRole, input *ec2
 
 func (s *Service) authorizeSecurityGroupIngressRules(id string, rules infrav1.IngressRules) error {
 	input := &ec2.AuthorizeSecurityGroupIngressInput{GroupId: aws.String(id)}
-	for _, rule := range rules {
+	for i := range rules {
+		rule := rules[i]
 		input.IpPermissions = append(input.IpPermissions, ingressRuleToSDKType(&rule))
 	}
 
@@ -438,7 +439,8 @@ func (s *Service) authorizeSecurityGroupIngressRules(id string, rules infrav1.In
 
 func (s *Service) revokeSecurityGroupIngressRules(id string, rules infrav1.IngressRules) error {
 	input := &ec2.RevokeSecurityGroupIngressInput{GroupId: aws.String(id)}
-	for _, rule := range rules {
+	for i := range rules {
+		rule := rules[i]
 		input.IpPermissions = append(input.IpPermissions, ingressRuleToSDKType(&rule))
 	}
 
