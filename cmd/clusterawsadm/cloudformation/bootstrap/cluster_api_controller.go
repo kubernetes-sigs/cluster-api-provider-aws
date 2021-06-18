@@ -361,6 +361,21 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				},
 				Effect: iamv1.EffectAllow,
 			},
+			{
+				Action: iamv1.Actions{
+					"kms:CreateGrant",
+					"kms:DescribeKey",
+				},
+				Resource: iamv1.Resources{
+					"*",
+				},
+				Effect: iamv1.EffectAllow,
+				Condition: iamv1.Conditions{
+					"ForAnyValue:StringLike": map[string]string{
+						"kms:ResourceAliases": fmt.Sprintf("alias/%s", t.Spec.EKS.KMSAliasPrefix),
+					},
+				},
+			},
 		}...)
 
 	}

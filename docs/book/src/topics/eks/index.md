@@ -31,4 +31,5 @@ And a number of new templates are available in the templates folder for creating
 * [Creating a cluster](creating-a-cluster.md)
 * [Using EKS Console](eks-console.md)
 * [Using EKS Addons](addons.md)
+* [Enabling Encryption](encryption.md)
 * [Cluster Upgrades](cluster-upgrades.md)

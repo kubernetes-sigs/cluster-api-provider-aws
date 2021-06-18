@@ -30,6 +30,8 @@ const (
 	DefaultStackName = "cluster-api-provider-aws-sigs-k8s-io"
 	// DefaultParittionName is the default security partition for AWS ARNs.
 	DefaultPartitionName = "aws"
+	// DefaultKMSAliasPattern is the default KMS alias
+	DefaultKMSAliasPattern = "cluster-api-provider-aws-*"
 )
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
@@ -84,6 +86,9 @@ func SetDefaults_AWSIAMConfigurationSpec(obj *AWSIAMConfigurationSpec) { //nolin
 		obj.SecureSecretsBackends = []infrav1.SecretBackend{
 			infrav1.SecretBackendSecretsManager,
 		}
+	}
+	if len(obj.EKS.KMSAliasPrefix) == 0 {
+		obj.EKS.KMSAliasPrefix = DefaultKMSAliasPattern
 	}
 }
 

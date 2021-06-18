@@ -108,6 +108,10 @@ type EKSConfig struct {
 	// Fargate controls the configuration of the AWS IAM role for
 	// used by EKS managed machine pools.
 	Fargate *AWSIAMRoleSpec `json:"fargate,omitempty"`
+	// KMSAliasPrefix is prefix to use to restrict permission to KMS keys to only those that have an alias
+	// name that is prefixed by this.
+	// Defaults to cluster-api-provider-aws-*
+	KMSAliasPrefix string `json:"kmsAliasPrefix,omitempty"`
 }
 
 // EventBridgeConfig represents configuration for enabling experimental feature to consume

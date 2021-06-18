@@ -330,6 +330,15 @@ Resources:
           Effect: Allow
           Resource:
           - '*'
+        - Action:
+          - kms:CreateGrant
+          - kms:DescribeKey
+          Condition:
+            ForAnyValue:StringLike:
+              kms:ResourceAliases: alias/cluster-api-provider-aws-*
+          Effect: Allow
+          Resource:
+          - '*'
         Version: 2012-10-17
       Roles:
       - Ref: AWSIAMRoleControllers
