@@ -335,7 +335,7 @@ Resources:
           - kms:DescribeKey
           Condition:
             ForAnyValue:StringLike:
-              kms:ResourceAliases: alias/cluster-api-provider-aws-*
+              kms:ResourceAliases: alias/custom-prefix-*
           Effect: Allow
           Resource:
           - '*'
@@ -369,54 +369,6 @@ Resources:
             - ec2.amazonaws.com
         Version: 2012-10-17
       RoleName: controllers.cluster-api-provider-aws.sigs.k8s.io
-    Type: AWS::IAM::Role
-  AWSIAMRoleEKSControlPlane:
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Action:
-          - sts:AssumeRole
-          Effect: Allow
-          Principal:
-            Service:
-            - eks.amazonaws.com
-        Version: 2012-10-17
-      ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
-      RoleName: eks-controlplane.cluster-api-provider-aws.sigs.k8s.io
-    Type: AWS::IAM::Role
-  AWSIAMRoleEKSFargate:
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Action:
-          - sts:AssumeRole
-          Effect: Allow
-          Principal:
-            Service:
-            - eks-fargate-pods.amazonaws.com
-        Version: 2012-10-17
-      ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy
-      RoleName: eks-fargate.cluster-api-provider-aws.sigs.k8s.io
-    Type: AWS::IAM::Role
-  AWSIAMRoleEKSNodegroup:
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Action:
-          - sts:AssumeRole
-          Effect: Allow
-          Principal:
-            Service:
-            - ec2.amazonaws.com
-            - eks.amazonaws.com
-        Version: 2012-10-17
-      ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
-      - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
-      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
-      RoleName: eks-nodegroup.cluster-api-provider-aws.sigs.k8s.io
     Type: AWS::IAM::Role
   AWSIAMRoleNodes:
     Properties:
