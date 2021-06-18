@@ -20,7 +20,10 @@ import (
 	"context"
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
 
 func TestAWSClusterRoleValidateCreate(t *testing.T) {
@@ -218,6 +221,86 @@ func TestAWSClusterRoleIdentityUpdateValidation(t *testing.T) {
 			if err := testEnv.Update(ctx, identity); (err != nil) != tt.wantError {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantError)
 			}
+		})
+	}
+}
+
+func TestAWSClusterRoleIdentity_Default(t *testing.T) {
+	g := NewWithT(t)
+	tests := []struct {
+		name                         string
+		beforeAWSClusterRoleIdentity *AWSClusterRoleIdentity
+		afterAWSClusterRoleIdentity  *AWSClusterRoleIdentity
+	}{
+		{
+			name: "Set label while creating AWSClusterRoleIdentity if labels are undefined",
+			beforeAWSClusterRoleIdentity: &AWSClusterRoleIdentity{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "default",
+				},
+				Spec: AWSClusterRoleIdentitySpec{
+					SourceIdentityRef: &AWSIdentityReference{
+						Name: "another-role",
+						Kind: ClusterRoleIdentityKind,
+					},
+				},
+			},
+			afterAWSClusterRoleIdentity: &AWSClusterRoleIdentity{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "default",
+					Labels: map[string]string{
+						clusterv1.ClusterctlMoveHierarchyLabelName: "",
+					},
+				},
+				Spec: AWSClusterRoleIdentitySpec{
+					SourceIdentityRef: &AWSIdentityReference{
+						Name: "another-role",
+						Kind: ClusterRoleIdentityKind,
+					},
+				},
+			},
+		},
+		{
+			name: "Not update any label while creating AWSClusterRoleIdentity if labels are already defined",
+			beforeAWSClusterRoleIdentity: &AWSClusterRoleIdentity{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "default",
+					Labels: map[string]string{
+						clusterv1.ClusterctlMoveHierarchyLabelName: "abc",
+					},
+				},
+				Spec: AWSClusterRoleIdentitySpec{
+					SourceIdentityRef: &AWSIdentityReference{
+						Name: "another-role",
+						Kind: ClusterRoleIdentityKind,
+					},
+				},
+			},
+			afterAWSClusterRoleIdentity: &AWSClusterRoleIdentity{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "default",
+					Labels: map[string]string{
+						clusterv1.ClusterctlMoveHierarchyLabelName: "abc",
+					},
+				},
+				Spec: AWSClusterRoleIdentitySpec{
+					SourceIdentityRef: &AWSIdentityReference{
+						Name: "another-role",
+						Kind: ClusterRoleIdentityKind,
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.TODO()
+			awsClusterRoleIdentity := tt.beforeAWSClusterRoleIdentity.DeepCopy()
+			g.Expect(testEnv.Create(ctx, awsClusterRoleIdentity)).To(Succeed())
+			g.Expect(len(awsClusterRoleIdentity.ObjectMeta.Labels)).To(Not(Equal(0)))
+			g.Expect(awsClusterRoleIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabelName]).To(Equal(tt.afterAWSClusterRoleIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabelName]))
+			g.Expect(testEnv.Delete(ctx, awsClusterRoleIdentity)).To(Succeed())
 		})
 	}
 }

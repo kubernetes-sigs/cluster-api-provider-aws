@@ -94,4 +94,5 @@ func (r *AWSClusterRoleIdentity) ValidateUpdate(old runtime.Object) error {
 
 // Default will set default values for the AWSClusterRoleIdentity.
 func (r *AWSClusterRoleIdentity) Default() {
+	SetDefaults_Labels(&r.ObjectMeta)
 }

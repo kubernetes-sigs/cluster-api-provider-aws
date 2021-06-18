@@ -88,4 +88,5 @@ func (r *AWSClusterStaticIdentity) ValidateUpdate(old runtime.Object) error {
 
 // Default should return the default AWSClusterStaticIdentity.
 func (r *AWSClusterStaticIdentity) Default() {
+	SetDefaults_Labels(&r.ObjectMeta)
 }

@@ -20,7 +20,10 @@ import (
 	"context"
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
 
 func TestAWSClusterControllerIdentityCreationValidation(t *testing.T) {
@@ -241,6 +244,62 @@ func TestAWSClusterControllerIdentityUpdateValidation(t *testing.T) {
 			if err := testEnv.Update(ctx, identity); (err != nil) != tt.wantError {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantError)
 			}
+		})
+	}
+}
+
+func TestAWSClusterControllerIdentity_Default(t *testing.T) {
+	g := NewWithT(t)
+	tests := []struct {
+		name                               string
+		beforeAWSClusterControllerIdentity *AWSClusterControllerIdentity
+		afterAWSClusterControllerIdentity  *AWSClusterControllerIdentity
+	}{
+		{
+			name: "Set label while creating AWSClusterControllerIdentity if labels are undefined",
+			beforeAWSClusterControllerIdentity: &AWSClusterControllerIdentity{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "default",
+				},
+			},
+			afterAWSClusterControllerIdentity: &AWSClusterControllerIdentity{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "default",
+					Labels: map[string]string{
+						clusterv1.ClusterctlMoveHierarchyLabelName: "",
+					},
+				},
+			},
+		},
+		{
+			name: "Not update any label while creating AWSClusterControllerIdentity if labels are already defined",
+			beforeAWSClusterControllerIdentity: &AWSClusterControllerIdentity{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "default",
+					Labels: map[string]string{
+						clusterv1.ClusterctlMoveHierarchyLabelName: "abc",
+					},
+				},
+			},
+			afterAWSClusterControllerIdentity: &AWSClusterControllerIdentity{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "default",
+					Labels: map[string]string{
+						clusterv1.ClusterctlMoveHierarchyLabelName: "abc",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.TODO()
+			awsClusterControllerIdentity := tt.beforeAWSClusterControllerIdentity.DeepCopy()
+			g.Expect(testEnv.Create(ctx, awsClusterControllerIdentity)).To(Succeed())
+			g.Expect(len(awsClusterControllerIdentity.ObjectMeta.Labels)).To(Not(Equal(0)))
+			g.Expect(awsClusterControllerIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabelName]).To(Equal(tt.afterAWSClusterControllerIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabelName]))
+			g.Expect(testEnv.Delete(ctx, awsClusterControllerIdentity)).To(Succeed())
 		})
 	}
 }

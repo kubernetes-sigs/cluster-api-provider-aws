@@ -20,7 +20,10 @@ import (
 	"context"
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
 
 func TestCreateAWSClusterStaticIdentityValidation(t *testing.T) {
@@ -192,6 +195,82 @@ func TestAWSClusterStaticIdentityUpdateLabelSelectorValidation(t *testing.T) {
 			if err := testEnv.Update(ctx, identity); (err != nil) != tt.wantError {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantError)
 			}
+		})
+	}
+}
+
+func TestAWSClusterStaticIdentity_Default(t *testing.T) {
+	g := NewWithT(t)
+	tests := []struct {
+		name                           string
+		beforeAWSClusterStaticIdentity *AWSClusterStaticIdentity
+		afterAWSClusterStaticIdentity  *AWSClusterStaticIdentity
+	}{
+		{
+			name: "Set label while creating AWSClusterStaticIdentity if labels are undefined",
+			beforeAWSClusterStaticIdentity: &AWSClusterStaticIdentity{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "default",
+				},
+				Spec: AWSClusterStaticIdentitySpec{
+					AWSClusterIdentitySpec: AWSClusterIdentitySpec{
+						AllowedNamespaces: &AllowedNamespaces{},
+					},
+				},
+			},
+			afterAWSClusterStaticIdentity: &AWSClusterStaticIdentity{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "default",
+					Labels: map[string]string{
+						clusterv1.ClusterctlMoveHierarchyLabelName: "",
+					},
+				},
+				Spec: AWSClusterStaticIdentitySpec{
+					AWSClusterIdentitySpec: AWSClusterIdentitySpec{
+						AllowedNamespaces: &AllowedNamespaces{},
+					},
+				},
+			},
+		},
+		{
+			name: "Not update any label while creating AWSClusterStaticIdentity if labels are already defined",
+			beforeAWSClusterStaticIdentity: &AWSClusterStaticIdentity{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "default",
+					Labels: map[string]string{
+						clusterv1.ClusterctlMoveHierarchyLabelName: "abc",
+					},
+				},
+				Spec: AWSClusterStaticIdentitySpec{
+					AWSClusterIdentitySpec: AWSClusterIdentitySpec{
+						AllowedNamespaces: &AllowedNamespaces{},
+					},
+				},
+			},
+			afterAWSClusterStaticIdentity: &AWSClusterStaticIdentity{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "default",
+					Labels: map[string]string{
+						clusterv1.ClusterctlMoveHierarchyLabelName: "abc",
+					},
+				},
+				Spec: AWSClusterStaticIdentitySpec{
+					AWSClusterIdentitySpec: AWSClusterIdentitySpec{
+						AllowedNamespaces: &AllowedNamespaces{},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.TODO()
+			awsClusterStaticIdentity := tt.beforeAWSClusterStaticIdentity.DeepCopy()
+			g.Expect(testEnv.Create(ctx, awsClusterStaticIdentity)).To(Succeed())
+			g.Expect(len(awsClusterStaticIdentity.ObjectMeta.Labels)).To(Not(Equal(0)))
+			g.Expect(awsClusterStaticIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabelName]).To(Equal(tt.afterAWSClusterStaticIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabelName]))
+			g.Expect(testEnv.Delete(ctx, awsClusterStaticIdentity)).To(Succeed())
 		})
 	}
 }
