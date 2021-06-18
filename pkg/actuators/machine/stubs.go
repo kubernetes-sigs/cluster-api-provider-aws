@@ -258,7 +258,11 @@ func stubDescribeTargetGroupsOutput() *elbv2.DescribeTargetGroupsOutput {
 	}
 }
 
-func stubReservation(imageID, instanceID string) *ec2.Reservation {
+func stubDescribeTargetHealthOutput() *elbv2.DescribeTargetHealthOutput {
+	return &elbv2.DescribeTargetHealthOutput{}
+}
+
+func stubReservation(imageID, instanceID string, privateIP string) *ec2.Reservation {
 	az := defaultAvailabilityZone
 	return &ec2.Reservation{
 		Instances: []*ec2.Instance{
@@ -273,12 +277,13 @@ func stubReservation(imageID, instanceID string) *ec2.Reservation {
 				Placement: &ec2.Placement{
 					AvailabilityZone: &az,
 				},
+				PrivateIpAddress: aws.String(privateIP),
 			},
 		},
 	}
 }
 
-func stubDescribeInstancesOutput(imageID, instanceID string, state string) *ec2.DescribeInstancesOutput {
+func stubDescribeInstancesOutput(imageID, instanceID string, state string, privateIP string) *ec2.DescribeInstancesOutput {
 	return &ec2.DescribeInstancesOutput{
 		Reservations: []*ec2.Reservation{
 			{
@@ -290,7 +295,8 @@ func stubDescribeInstancesOutput(imageID, instanceID string, state string) *ec2.
 							Name: aws.String(state),
 							Code: aws.Int64(16),
 						},
-						LaunchTime: aws.Time(time.Now()),
+						LaunchTime:       aws.Time(time.Now()),
+						PrivateIpAddress: aws.String(privateIP),
 					},
 				},
 			},

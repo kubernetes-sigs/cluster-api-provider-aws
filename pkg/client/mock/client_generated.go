@@ -246,6 +246,21 @@ func (mr *MockClientMockRecorder) ELBv2DescribeTargetGroups(arg0 interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ELBv2DescribeTargetGroups", reflect.TypeOf((*MockClient)(nil).ELBv2DescribeTargetGroups), arg0)
 }
 
+// ELBv2DescribeTargetHealth mocks base method
+func (m *MockClient) ELBv2DescribeTargetHealth(arg0 *elbv2.DescribeTargetHealthInput) (*elbv2.DescribeTargetHealthOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ELBv2DescribeTargetHealth", arg0)
+	ret0, _ := ret[0].(*elbv2.DescribeTargetHealthOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ELBv2DescribeTargetHealth indicates an expected call of ELBv2DescribeTargetHealth
+func (mr *MockClientMockRecorder) ELBv2DescribeTargetHealth(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ELBv2DescribeTargetHealth", reflect.TypeOf((*MockClient)(nil).ELBv2DescribeTargetHealth), arg0)
+}
+
 // ELBv2RegisterTargets mocks base method
 func (m *MockClient) ELBv2RegisterTargets(arg0 *elbv2.RegisterTargetsInput) (*elbv2.RegisterTargetsOutput, error) {
 	m.ctrl.T.Helper()

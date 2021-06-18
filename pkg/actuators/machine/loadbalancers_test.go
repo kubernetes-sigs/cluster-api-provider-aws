@@ -45,6 +45,7 @@ func TestRegisterWithNetworkLoadBalancers(t *testing.T) {
 			mockAWSClient.EXPECT().ELBv2DescribeLoadBalancers(gomock.Any()).Return(stubDescribeLoadBalancersOutput(), tc.lbErr)
 			mockAWSClient.EXPECT().ELBv2DescribeTargetGroups(gomock.Any()).Return(stubDescribeTargetGroupsOutput(), tc.targetGroupErr).AnyTimes()
 			mockAWSClient.EXPECT().ELBv2RegisterTargets(gomock.Any()).Return(nil, tc.registerTargetErr).AnyTimes()
+			mockAWSClient.EXPECT().ELBv2DescribeTargetHealth(gomock.Any()).Return(&elbv2.DescribeTargetHealthOutput{}, nil).AnyTimes()
 			registerWithNetworkLoadBalancers(mockAWSClient, []string{"name1", "name2"}, instance)
 		})
 	}

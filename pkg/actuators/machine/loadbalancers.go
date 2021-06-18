@@ -45,7 +45,6 @@ func registerWithNetworkLoadBalancers(client awsclient.Client, names []string, i
 
 	errs := []error{}
 	for _, targetGroup := range targetGroups {
-		klog.V(4).Infof("Unregistering instance %q registered by ip from target group: %v", *instance.InstanceId, *targetGroup.TargetGroupArn)
 
 		var target *elbv2.TargetDescription
 		switch *targetGroup.TargetType {
@@ -53,17 +52,31 @@ func registerWithNetworkLoadBalancers(client awsclient.Client, names []string, i
 			target = &elbv2.TargetDescription{
 				Id: instance.InstanceId,
 			}
+			klog.V(4).Infof("Registering instance %q by instance ID to target group: %v", *instance.InstanceId, *targetGroup.TargetGroupArn)
 		case elbv2.TargetTypeEnumIp:
 			target = &elbv2.TargetDescription{
 				Id: instance.PrivateIpAddress,
 			}
+			klog.V(4).Infof("Registering instance %q by IP to target group: %v", *instance.InstanceId, *targetGroup.TargetGroupArn)
 		}
+
+		registeredTargets, err := gatherLoadBalancerTargetGroupRegisteredTargets(client, targetGroup.TargetGroupArn)
+		if err != nil {
+			klog.Errorf("Failed to gather registered targets for target group %q: %v", *targetGroup.TargetGroupArn, err)
+			errs = append(errs, fmt.Errorf("%s: %v", *targetGroup.TargetGroupArn, err))
+		}
+		if registeredTargets != nil {
+			if _, ok := registeredTargets[*target.Id]; ok {
+				klog.V(4).Infof("Skipping registration for instance %q to target group %q: Instance already registered", *instance.InstanceId, *targetGroup.TargetGroupArn)
+				continue
+			}
+		}
+
 		registerTargetsInput := &elbv2.RegisterTargetsInput{
 			TargetGroupArn: targetGroup.TargetGroupArn,
 			Targets:        []*elbv2.TargetDescription{target},
 		}
-		_, err := client.ELBv2RegisterTargets(registerTargetsInput)
-		if err != nil {
+		if _, err := client.ELBv2RegisterTargets(registerTargetsInput); err != nil {
 			klog.Errorf("Failed to register instance %q with target group %q: %v", *instance.InstanceId, *targetGroup.TargetGroupArn, err)
 			errs = append(errs, fmt.Errorf("%s: %v", *targetGroup.TargetGroupArn, err))
 		}
@@ -153,4 +166,25 @@ func gatherLoadBalancerTargetGroups(client awsclient.Client, names []string) ([]
 	}
 
 	return targetGroups, nil
+}
+
+// gatherLoadBalancerTargetGroupRegisteredTargets looks for all targets that are registered to a particular targetGroup.
+// Within the AWS API, the only way to find the targets that are registered is to look at the target health for the group.
+// The target health response contains all of the targets and importantly, their IDs which we need later to compare with
+// the target ID we are wanting to register.
+func gatherLoadBalancerTargetGroupRegisteredTargets(client awsclient.Client, targetGroupArn *string) (map[string]struct{}, error) {
+	targetHealthRequest := &elbv2.DescribeTargetHealthInput{
+		TargetGroupArn: targetGroupArn,
+	}
+	targetHealthResponse, err := client.ELBv2DescribeTargetHealth(targetHealthRequest)
+	if err != nil {
+		klog.Errorf("Failed to describe target health: %v", err)
+		return nil, err
+	}
+
+	targetIDs := make(map[string]struct{})
+	for _, targetHealth := range targetHealthResponse.TargetHealthDescriptions {
+		targetIDs[*targetHealth.Target.Id] = struct{}{}
+	}
+	return targetIDs, nil
 }
