@@ -1,7 +1,5 @@
 # Kubernetes Cluster API Provider AWS
 
-[![Go Report Card](https://goreportcard.com/badge/kubernetes-sigs/cluster-api-provider-aws)](https://goreportcard.com/report/kubernetes-sigs/cluster-api-provider-aws)
-
 <img src="https://github.com/kubernetes/kubernetes/raw/master/logo/logo.png"  width="100"><a href="https://aws.amazon.com/opensource/"><img hspace="90px" src="https://d0.awsstatic.com/logos/powered-by-aws.png" alt="Powered by AWS Cloud Computing"></a>
 
 ------
@@ -48,7 +46,7 @@ cluster on AWS.
 This provider's versions are compatible with the following versions of Cluster API:
 
 |                              | Cluster API v1alpha3 (v0.3) | Cluster API v1alpha4 (v0.4) |
-|------------------------------|-----------------------------|-----------------------------|
+| ---------------------------- | --------------------------- | --------------------------- |
 | AWS Provider v1alpha3 (v0.5) | ✓                           |                             |
 | AWS Provider v1alpha3 (v0.6) | ✓                           |                             |
 | AWS Provider v1alpha4 (v0.7) |                             | ✓                           |
@@ -57,7 +55,7 @@ This provider's versions are compatible with the following versions of Cluster A
 This provider's versions are able to install and manage the following versions of Kubernetes:
 
 |                              | Kubernetes 1.16 | Kubernetes 1.17 | Kubernetes 1.18 | Kubernetes 1.19 | Kubernetes 1.20 | Kubernetes 1.21 |
-|------------------------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|
+| ---------------------------- | --------------- | --------------- | --------------- | --------------- | --------------- | --------------- |
 | AWS Provider v1alpha3 (v0.5) | ✓               | ✓               | ✓               | ✓               | ✓               |                 |
 | AWS Provider v1alpha3 (v0.6) | ✓               | ✓               | ✓               | ✓               | ✓               |                 |
 | AWS Provider v1alpha4 (v0.7) |                 |                 |                 | ✓               | ✓               | ✓               |
