@@ -11,7 +11,7 @@ require (
 	github.com/itchyny/gojq v0.12.4
 	github.com/onsi/ginkgo v1.16.4
 	k8s.io/apimachinery v0.21.1
-	k8s.io/code-generator v0.21.1
+	k8s.io/code-generator v0.21.2
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/release v0.9.0
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20210608223532-0792a6068376
