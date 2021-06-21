@@ -7,7 +7,7 @@ require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/docker/docker v1.4.2-0.20191219165747-a9416c67da9f // indirect
 	github.com/golang/mock v1.6.0
-	github.com/golangci/golangci-lint v1.40.1
+	github.com/golangci/golangci-lint v1.41.1
 	github.com/itchyny/gojq v0.12.4
 	github.com/onsi/ginkgo v1.16.4
 	k8s.io/apimachinery v0.21.1
