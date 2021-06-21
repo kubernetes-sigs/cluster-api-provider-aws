@@ -30,7 +30,7 @@ const (
 	AWSClusterControllerIdentityName = "default"
 )
 
-// AWSClusterSpec defines the desired state of AWSCluster
+// AWSClusterSpec defines the desired state of AWSCluster.
 type AWSClusterSpec struct {
 	// NetworkSpec encapsulates all things related to AWS network.
 	NetworkSpec NetworkSpec `json:"networkSpec,omitempty"`
@@ -91,7 +91,7 @@ type AWSClusterSpec struct {
 	IdentityRef *AWSIdentityReference `json:"identityRef,omitempty"`
 }
 
-// AWSIdentityKind defines allowed AWS identity types
+// AWSIdentityKind defines allowed AWS identity types.
 type AWSIdentityKind string
 
 var (
@@ -173,7 +173,7 @@ type AWSLoadBalancerSpec struct {
 	AdditionalSecurityGroups []string `json:"additionalSecurityGroups,omitempty"`
 }
 
-// AWSClusterStatus defines the observed state of AWSCluster
+// AWSClusterStatus defines the observed state of AWSCluster.
 type AWSClusterStatus struct {
 	// +kubebuilder:default=false
 	Ready          bool                     `json:"ready"`
@@ -189,10 +189,10 @@ type AWSClusterStatus struct {
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this AWSCluster belongs"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Cluster infrastructure is ready for EC2 instances"
 // +kubebuilder:printcolumn:name="VPC",type="string",JSONPath=".spec.networkSpec.vpc.id",description="AWS VPC the cluster is using"
-// +kubebuilder:printcolumn:name="Endpoint",type="string",JSONPath=".status.apiEndpoints[0]",description="API Endpoint",priority=1
+// +kubebuilder:printcolumn:name="Endpoint",type="string",JSONPath=".spec.controlPlaneEndpoint",description="API Endpoint",priority=1
 // +kubebuilder:printcolumn:name="Bastion IP",type="string",JSONPath=".status.bastion.publicIp",description="Bastion IP address for breakglass access"
 
-// AWSCluster is the Schema for the awsclusters API
+// AWSCluster is the Schema for the awsclusters API.
 type AWSCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

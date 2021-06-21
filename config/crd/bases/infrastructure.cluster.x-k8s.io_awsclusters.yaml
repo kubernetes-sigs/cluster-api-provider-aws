@@ -34,7 +34,7 @@ spec:
       name: VPC
       type: string
     - description: API Endpoint
-      jsonPath: .status.apiEndpoints[0]
+      jsonPath: .spec.controlPlaneEndpoint
       name: Endpoint
       priority: 1
       type: string
@@ -45,7 +45,7 @@ spec:
     name: v1alpha3
     schema:
       openAPIV3Schema:
-        description: AWSCluster is the Schema for the awsclusters API
+        description: AWSCluster is the Schema for the awsclusters API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -60,7 +60,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: AWSClusterSpec defines the desired state of AWSCluster
+            description: AWSClusterSpec defines the desired state of AWSCluster.
             properties:
               additionalTags:
                 additionalProperties:
@@ -335,7 +335,7 @@ spec:
                 type: string
             type: object
           status:
-            description: AWSClusterStatus defines the observed state of AWSCluster
+            description: AWSClusterStatus defines the observed state of AWSCluster.
             properties:
               bastion:
                 description: Instance describes an AWS instance.
@@ -782,7 +782,7 @@ spec:
       name: VPC
       type: string
     - description: API Endpoint
-      jsonPath: .status.apiEndpoints[0]
+      jsonPath: .spec.controlPlaneEndpoint
       name: Endpoint
       priority: 1
       type: string
@@ -793,7 +793,7 @@ spec:
     name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: AWSCluster is the Schema for the awsclusters API
+        description: AWSCluster is the Schema for the awsclusters API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
