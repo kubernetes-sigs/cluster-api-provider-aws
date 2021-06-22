@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elbv2"
+	configv1 "github.com/openshift/api/config/v1"
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	machinecontroller "github.com/openshift/machine-api-operator/pkg/controller/machine"
 	corev1 "k8s.io/api/core/v1"
@@ -270,7 +271,7 @@ func stubReservation(imageID, instanceID string, privateIP string) *ec2.Reservat
 				ImageId:    aws.String(imageID),
 				InstanceId: aws.String(instanceID),
 				State: &ec2.InstanceState{
-					Name: aws.String(ec2.InstanceStateNameRunning),
+					Name: aws.String(ec2.InstanceStateNamePending),
 					Code: aws.Int64(16),
 				},
 				LaunchTime: aws.Time(time.Now()),
@@ -330,4 +331,12 @@ func StubDescribeVPCs() (*ec2.DescribeVpcsOutput, error) {
 			},
 		},
 	}, nil
+}
+
+func stubInfraObject() *configv1.Infrastructure {
+	return &configv1.Infrastructure{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: awsclient.GlobalInfrastuctureName,
+		},
+	}
 }
