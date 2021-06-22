@@ -20,6 +20,7 @@ import (
 	"encoding/base64"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -241,6 +242,63 @@ func (s *Service) DeleteLaunchTemplate(id string) error {
 	}
 
 	s.scope.V(2).Info("Deleted launch template", "id", id)
+	return nil
+}
+
+// PruneLaunchTemplateVersions deletes one old launch template version.
+// It does not delete the "latest" version, because that version may still be in use.
+// It does not delete the "default" version, because that version cannot be deleted.
+// It does not assume that versions are sequential. Versions may be deleted out of band.
+func (s *Service) PruneLaunchTemplateVersions(id string) error {
+	// When there is one version available, it is the default and the latest.
+	// When there are two versions available, one the is the default, the other is the latest.
+	// Therefore we only prune when there are at least 3 versions available.
+	const minCountToAllowPrune = 3
+
+	input := &ec2.DescribeLaunchTemplateVersionsInput{
+		LaunchTemplateId: aws.String(id),
+		MinVersion:       aws.String("0"),
+		MaxVersion:       aws.String(expinfrav1.LaunchTemplateLatestVersion),
+		MaxResults:       aws.Int64(minCountToAllowPrune),
+	}
+
+	out, err := s.EC2Client.DescribeLaunchTemplateVersions(input)
+	if err != nil {
+		s.scope.Info("", "aerr", err.Error())
+		return err
+	}
+
+	// len(out.LaunchTemplateVersions)	|	items
+	// -------------------------------- + -----------------------
+	// 								1	|	[default/latest]
+	// 								2	|	[default, latest]
+	// 								3	| 	[default, versionToPrune, latest]
+	if len(out.LaunchTemplateVersions) < minCountToAllowPrune {
+		return nil
+	}
+	versionToPrune := out.LaunchTemplateVersions[1].VersionNumber
+	return s.deleteLaunchTemplateVersion(id, versionToPrune)
+}
+
+func (s *Service) deleteLaunchTemplateVersion(id string, version *int64) error {
+	s.scope.V(2).Info("Deleting launch template version", "id", id)
+
+	if version == nil {
+		return errors.New("version is a nil pointer")
+	}
+	versions := []string{strconv.FormatInt(*version, 10)}
+
+	input := &ec2.DeleteLaunchTemplateVersionsInput{
+		LaunchTemplateId: aws.String(id),
+		Versions:         aws.StringSlice(versions),
+	}
+
+	_, err := s.EC2Client.DeleteLaunchTemplateVersions(input)
+	if err != nil {
+		return err
+	}
+
+	s.scope.V(2).Info("Deleted launch template", "id", id, "version", *version)
 	return nil
 }
 
