@@ -113,6 +113,8 @@ providers:
         targetName: "cluster-template-md-remediation.yaml"
       - sourcePath: "./infrastructure-aws/cluster-template-kcp-remediation.yaml"
         targetName: "cluster-template-kcp-remediation.yaml"
+      - sourcePath: "./infrastructure-aws/cluster-template-kcp-scale-in.yaml"
+        targetName: "cluster-template-kcp-scale-in.yaml"
       - sourcePath: "./infrastructure-aws/cluster-template-machine-pool.yaml"
         targetName: "cluster-template-machine-pool.yaml"
       - sourcePath: "./infrastructure-aws/cluster-template-upgrade-to-main.yaml"
@@ -129,17 +131,18 @@ variables:
   AWS_CONTROL_PLANE_MACHINE_TYPE: t3.large
   AWS_NODE_MACHINE_TYPE: t3.large
   AWS_SSH_KEY_NAME: "cluster-api-provider-aws-sigs-k8s-io"
-  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.20.6"
+  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.21.2"
   CONFORMANCE_WORKER_MACHINE_COUNT: "5"
   CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT: "1"
   EXP_MACHINE_POOL: "true"
-  ETCD_VERSION_UPGRADE_TO: "3.4.13-0"
-  COREDNS_VERSION_UPGRADE_TO: "1.7.1"
-  KUBERNETES_VERSION: "v1.20.6"
-  KUBERNETES_VERSION_UPGRADE_TO: "v1.20.6"
-  KUBERNETES_VERSION_UPGRADE_FROM: "v1.19.8"
+  ETCD_VERSION_UPGRADE_TO: "3.4.13-2"
+  COREDNS_VERSION_UPGRADE_TO: "v1.8.4"
+  KUBERNETES_VERSION: "v1.21.2"
+  KUBERNETES_VERSION_UPGRADE_TO: "v1.21.2"
+  KUBERNETES_VERSION_UPGRADE_FROM: "v1.20.8"
   MULTI_TENANCY_ROLE_NAME: "multi-tenancy-role"
   MULTI_TENANCY_NESTED_ROLE_NAME: "multi-tenancy-nested-role"
+  IP_FAMILY: "IPv4"
 
 intervals:
   default/wait-cluster: ["25m", "10s"]

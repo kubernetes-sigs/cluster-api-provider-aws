@@ -48,6 +48,7 @@ const (
 	UpgradeToMain                = "upgrade-to-main"
 	SimpleMultitenancyFlavor     = "simple-multitenancy"
 	NestedMultitenancyFlavor     = "nested-multitenancy"
+	KCPScaleInFlavor             = "kcp-scale-in"
 	StorageClassFailureZoneLabel = "failure-domain.beta.kubernetes.io/zone"
 )
 

@@ -1,0 +1,4 @@
+resources:
+  - ../limit-az
+patchesStrategicMerge:
+  - patches/kcp-surge.yaml

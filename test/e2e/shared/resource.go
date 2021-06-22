@@ -42,10 +42,10 @@ type TestResource struct {
 	ClassicLB int `json:"classiclb"`
 }
 
-func WriteResourceQuotesToFile(serviceQuotas map[string]*ServiceQuota) {
-	if _, err := os.Stat(ResourceQuotaFilePath); err == nil {
+func WriteResourceQuotesToFile(logPath string, serviceQuotas map[string]*ServiceQuota) {
+	if _, err := os.Stat(logPath); err == nil {
 		// If resource-quotas file exists, remove it. Should not fail on error, another ginkgo node might have already deleted it.
-		os.Remove(ResourceQuotaFilePath)
+		os.Remove(logPath)
 	}
 
 	resources := TestResource{
@@ -59,7 +59,7 @@ func WriteResourceQuotesToFile(serviceQuotas map[string]*ServiceQuota) {
 	data, err := yaml.Marshal(resources)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = ioutil.WriteFile(ResourceQuotaFilePath, data, 0644)
+	err = ioutil.WriteFile(logPath, data, 0644)
 	Expect(err).NotTo(HaveOccurred())
 }
 

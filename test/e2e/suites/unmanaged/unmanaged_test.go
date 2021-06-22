@@ -1165,7 +1165,7 @@ func LatestCIReleaseForVersion(searchVersion string) (string, error) {
 	return strings.TrimSpace(string(b)), nil
 }
 
-func getStatefulSetInfo() statefulSetInfo{
+func getStatefulSetInfo() statefulSetInfo {
 	return statefulSetInfo{
 		name:                      "nginx-statefulset",
 		namespace:                 metav1.NamespaceDefault,
