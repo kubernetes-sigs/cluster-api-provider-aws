@@ -1751,6 +1751,11 @@ spec:
                       which is run upon bootstrap. This field must not be base64 encoded
                       and should only be used when running a new instance.
                     type: string
+                  volumeIDs:
+                    description: IDs of the instance's volumes
+                    items:
+                      type: string
+                    type: array
                 required:
                 - id
                 type: object

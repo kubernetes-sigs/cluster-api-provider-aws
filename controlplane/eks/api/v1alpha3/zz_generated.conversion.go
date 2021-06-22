@@ -199,6 +199,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha3.Instance)(nil), (*clusterapiproviderawsapiv1alpha4.Instance)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha3_Instance_To_v1alpha4_Instance(a.(*clusterapiproviderawsapiv1alpha3.Instance), b.(*clusterapiproviderawsapiv1alpha4.Instance), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha3.NetworkSpec)(nil), (*clusterapiproviderawsapiv1alpha4.NetworkSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_NetworkSpec_To_v1alpha4_NetworkSpec(a.(*clusterapiproviderawsapiv1alpha3.NetworkSpec), b.(*clusterapiproviderawsapiv1alpha4.NetworkSpec), scope)
 	}); err != nil {
@@ -216,6 +221,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha4.Bastion)(nil), (*clusterapiproviderawsapiv1alpha3.Bastion)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_Bastion_To_v1alpha3_Bastion(a.(*clusterapiproviderawsapiv1alpha4.Bastion), b.(*clusterapiproviderawsapiv1alpha3.Bastion), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha4.Instance)(nil), (*clusterapiproviderawsapiv1alpha3.Instance)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_Instance_To_v1alpha3_Instance(a.(*clusterapiproviderawsapiv1alpha4.Instance), b.(*clusterapiproviderawsapiv1alpha3.Instance), scope)
 	}); err != nil {
 		return err
 	}
@@ -391,7 +401,15 @@ func autoConvert_v1alpha3_AWSManagedControlPlaneStatus_To_v1alpha4_AWSManagedCon
 		return err
 	}
 	out.FailureDomains = *(*apiv1alpha4.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
-	out.Bastion = (*clusterapiproviderawsapiv1alpha4.Instance)(unsafe.Pointer(in.Bastion))
+	if in.Bastion != nil {
+		in, out := &in.Bastion, &out.Bastion
+		*out = new(clusterapiproviderawsapiv1alpha4.Instance)
+		if err := Convert_v1alpha3_Instance_To_v1alpha4_Instance(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Bastion = nil
+	}
 	if err := Convert_v1alpha3_OIDCProviderStatus_To_v1alpha4_OIDCProviderStatus(&in.OIDCProvider, &out.OIDCProvider, s); err != nil {
 		return err
 	}
@@ -414,7 +432,15 @@ func autoConvert_v1alpha4_AWSManagedControlPlaneStatus_To_v1alpha3_AWSManagedCon
 		return err
 	}
 	out.FailureDomains = *(*apiv1alpha3.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
-	out.Bastion = (*clusterapiproviderawsapiv1alpha3.Instance)(unsafe.Pointer(in.Bastion))
+	if in.Bastion != nil {
+		in, out := &in.Bastion, &out.Bastion
+		*out = new(clusterapiproviderawsapiv1alpha3.Instance)
+		if err := Convert_v1alpha4_Instance_To_v1alpha3_Instance(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Bastion = nil
+	}
 	if err := Convert_v1alpha4_OIDCProviderStatus_To_v1alpha3_OIDCProviderStatus(&in.OIDCProvider, &out.OIDCProvider, s); err != nil {
 		return err
 	}

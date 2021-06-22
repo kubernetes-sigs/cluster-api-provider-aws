@@ -794,6 +794,10 @@ func (s *Service) SDKToInstance(v *ec2.Instance) (*infrav1.Instance, error) {
 
 	i.AvailabilityZone = aws.StringValue(v.Placement.AvailabilityZone)
 
+	for _, volume := range v.BlockDeviceMappings {
+		i.VolumeIDs = append(i.VolumeIDs, *volume.Ebs.VolumeId)
+	}
+
 	return i, nil
 }
 

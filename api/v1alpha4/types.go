@@ -675,6 +675,10 @@ type Instance struct {
 	// Tenancy indicates if instance should run on shared or single-tenant hardware.
 	// +optional
 	Tenancy string `json:"tenancy,omitempty"`
+
+	// IDs of the instance's volumes
+	// +optional
+	VolumeIDs []string `json:"volumeIDs,omitempty"`
 }
 
 // Volume encapsulates the configuration options for the storage device
