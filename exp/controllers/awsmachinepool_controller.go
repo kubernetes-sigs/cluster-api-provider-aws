@@ -455,6 +455,11 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 	// userdata, OR we've discovered a new AMI ID.
 	if needsUpdate || tagsChanged || *imageID != *launchTemplate.AMI.ID || launchTemplateUserDataHash != bootstrapDataHash {
 		machinePoolScope.Info("creating new version for launch template", "existing", launchTemplate, "incoming", machinePoolScope.AWSMachinePool.Spec.AWSLaunchTemplate)
+		// There is a limit to the number of Launch Template Versions.
+		// We ensure that the number of versions does not grow without bound by following a simple rule: Before we create a new version, we delete one old version, if there is at least one old version that is not in use.
+		if err := ec2svc.PruneLaunchTemplateVersions(machinePoolScope.AWSMachinePool.Status.LaunchTemplateID); err != nil {
+			return err
+		}
 		if err := ec2svc.CreateLaunchTemplateVersion(machinePoolScope, imageID, bootstrapData); err != nil {
 			return err
 		}
