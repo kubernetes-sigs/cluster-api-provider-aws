@@ -31,7 +31,7 @@ providers:
     versions:
       - name: v0.4.0
         # Use manifest from source files
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210525/core-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.0-rc.0/core-components.yaml"
         type: "url"
         files:
           - sourcePath: "./shared/v1alpha4/metadata.yaml"
@@ -50,7 +50,7 @@ providers:
     versions:
       - name: v0.4.0
         # Use manifest from source files
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210525/bootstrap-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.0-rc.0/bootstrap-components.yaml"
         type: "url"
         replacements:
           - old: "imagePullPolicy: Always"
@@ -67,7 +67,7 @@ providers:
     versions:
       - name: v0.4.0
         # Use manifest from source files
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_master_20210525/control-plane-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.0-rc.0/control-plane-components.yaml"
         type: "url"
         replacements:
           - old: "imagePullPolicy: Always"

@@ -2,7 +2,7 @@ module sigs.k8s.io/cluster-api-provider-aws
 
 go 1.16
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.4.0-beta.0
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.4.0-rc.0
 
 require (
 	github.com/apparentlymart/go-cidr v1.1.0
@@ -23,22 +23,21 @@ require (
 	github.com/prometheus/client_golang v1.11.0
 	github.com/sergi/go-diff v1.2.0
 	github.com/spf13/cobra v1.1.3
-	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
 	golang.org/x/net v0.0.0-20210525063256-abc453219eb5
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.21.1
-	k8s.io/apiextensions-apiserver v0.21.1
-	k8s.io/apimachinery v0.21.1
-	k8s.io/cli-runtime v0.21.1
-	k8s.io/client-go v0.21.1
-	k8s.io/component-base v0.21.1
+	k8s.io/api v0.21.2
+	k8s.io/apiextensions-apiserver v0.21.2
+	k8s.io/apimachinery v0.21.2
+	k8s.io/cli-runtime v0.21.2
+	k8s.io/client-go v0.21.2
+	k8s.io/component-base v0.21.2
 	k8s.io/klog/v2 v2.9.0
 	k8s.io/utils v0.0.0-20210527160623-6fdb442a123b
 	sigs.k8s.io/aws-iam-authenticator v0.5.3
-	sigs.k8s.io/cluster-api v0.4.0-beta.0
-	sigs.k8s.io/cluster-api/test v0.4.0-beta.0
-	sigs.k8s.io/controller-runtime v0.9.0
+	sigs.k8s.io/cluster-api v0.4.0-rc.0
+	sigs.k8s.io/cluster-api/test v0.4.0-rc.0
+	sigs.k8s.io/controller-runtime v0.9.1
 	sigs.k8s.io/yaml v1.2.0
 )
