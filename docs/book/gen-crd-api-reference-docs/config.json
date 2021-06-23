@@ -29,11 +29,11 @@
     },
     {
       "typeMatchPrefix": "^sigs\\.k8s\\.io/cluster-api/api/v1alpha3",
-      "docsURLTemplate": "https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v0.3.17"
+      "docsURLTemplate": "https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v0.3.19"
     },
     {
       "typeMatchPrefix": "^sigs\\.k8s\\.io/cluster-api/errors",
-      "docsURLTemplate": "https://pkg.go.dev/sigs.k8s.io/cluster-api@v0.3.17/errors#{{.TypeIdentifier}}"
+      "docsURLTemplate": "https://pkg.go.dev/sigs.k8s.io/cluster-api@v0.3.19/errors#{{.TypeIdentifier}}"
     },
     {
       "typeMatchPrefix": "^time\\.Duration",
