@@ -16,6 +16,11 @@ limitations under the License.
 
 package v1alpha4
 
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
+)
+
 // TODO (richardcase): get this working with defaulter-gen
 
 // SetDefaults_Bastion is used by defaulter-gen.
@@ -46,5 +51,14 @@ func SetDefaults_NetworkSpec(obj *NetworkSpec) { //nolint:golint,stylecheck
 				},
 			},
 		}
+	}
+}
+
+// SetDefaults_Labels is used by defaulter-gen.
+func SetDefaults_Labels(obj *metav1.ObjectMeta) { //nolint:golint,stylecheck
+	// Defaults to set label if no labels have been set
+	if obj.Labels == nil {
+		obj.Labels = map[string]string{
+			clusterv1.ClusterctlMoveHierarchyLabelName: ""}
 	}
 }

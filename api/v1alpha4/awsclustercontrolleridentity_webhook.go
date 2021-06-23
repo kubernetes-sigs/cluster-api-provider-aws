@@ -98,4 +98,5 @@ func (r *AWSClusterControllerIdentity) ValidateUpdate(old runtime.Object) error 
 
 // Default will set default values for the AWSClusterControllerIdentity.
 func (r *AWSClusterControllerIdentity) Default() {
+	SetDefaults_Labels(&r.ObjectMeta)
 }
