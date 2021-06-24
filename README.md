@@ -57,7 +57,7 @@ This provider's versions are able to install and manage the following versions o
 |                              | Kubernetes 1.16 | Kubernetes 1.17 | Kubernetes 1.18 | Kubernetes 1.19 | Kubernetes 1.20 | Kubernetes 1.21 |
 | ---------------------------- | --------------- | --------------- | --------------- | --------------- | --------------- | --------------- |
 | AWS Provider v1alpha3 (v0.5) | ✓               | ✓               | ✓               | ✓               | ✓               |                 |
-| AWS Provider v1alpha3 (v0.6) | ✓               | ✓               | ✓               | ✓               | ✓               |                 |
+| AWS Provider v1alpha3 (v0.6) | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
 | AWS Provider v1alpha4 (v0.7) |                 |                 |                 | ✓               | ✓               | ✓               |
 
 
