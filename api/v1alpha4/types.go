@@ -96,6 +96,10 @@ var (
 	ClassicELBSchemeInternal = ClassicELBScheme("internal")
 )
 
+func (e ClassicELBScheme) String() string {
+	return string(e)
+}
+
 // ClassicELBProtocol defines listener protocols for a classic load balancer.
 type ClassicELBProtocol string
 
