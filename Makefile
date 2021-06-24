@@ -132,6 +132,7 @@ E2E_UNMANAGED_FOCUS ?= "functional tests - unmanaged"
 # Instead, you can run a quick smoke test, it should run fast (9 minutes)...
 # E2E_UNMANAGED_FOCUS := "Create cluster with name having"
 # For running CAPI e2e tests: E2E_UNMANAGED_FOCUS := "Cluster API E2E tests"
+# For running CAPI blocking e2e test: E2E_UNMANAGED_FOCUS := "PR-Blocking"
 USE_EXISTING_CLUSTER ?= "false"
 
 GINKGO_NODES ?= 3
@@ -150,6 +151,7 @@ test: ## Run tests
 
 .PHONY: generate-test-flavors
 generate-test-flavors: $(KUSTOMIZE)  ## Generate test template flavors
+	./hack/gen-test-flavors.sh
 
 .PHONY: test-e2e ## Run e2e tests using clusterctl
 test-e2e: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run e2e tests

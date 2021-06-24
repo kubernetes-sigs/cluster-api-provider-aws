@@ -151,7 +151,9 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	SetEnvVar("AWS_B64ENCODED_CREDENTIALS", encodeCredentials(e2eCtx.Environment.BootstrapAccessKey, boostrapTemplate.Spec.Region), true)
 
 	By("Writing AWS service quotas to a file for parallel tests")
-	WriteResourceQuotesToFile(GetServiceQuotas(e2eCtx.BootstratpUserAWSSession))
+	quotas := GetServiceQuotas(e2eCtx.BootstratpUserAWSSession)
+	WriteResourceQuotesToFile(ResourceQuotaFilePath, quotas)
+	WriteResourceQuotesToFile(path.Join(e2eCtx.Settings.ArtifactFolder, "initial-resource-quotas.yaml"), quotas)
 
 	By("Initializing the bootstrap cluster")
 	initBootstrapCluster(e2eCtx)
@@ -255,6 +257,9 @@ func Node1AfterSuite(e2eCtx *E2EContext) {
 		DumpSpecResourcesAndCleanup(ctx, "", k, e2eCtx)
 		DumpMachines(ctx, e2eCtx, k)
 	}
+
+	quotas := GetServiceQuotas(e2eCtx.BootstratpUserAWSSession)
+	WriteResourceQuotesToFile(path.Join(e2eCtx.Settings.ArtifactFolder, "end-resource-quotas.yaml"), quotas)
 }
 
 // AllNodesAfterSuite is cleanup that runs on all ginkgo parallel nodes after the test suite finishes
