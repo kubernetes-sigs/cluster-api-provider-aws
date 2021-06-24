@@ -77,20 +77,29 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 		)
 	}
 
-	existingLoadBalancer := &AWSLoadBalancerSpec{}
 	newLoadBalancer := &AWSLoadBalancerSpec{}
 
-	if oldC.Spec.ControlPlaneLoadBalancer != nil {
-		existingLoadBalancer = oldC.Spec.ControlPlaneLoadBalancer.DeepCopy()
-	}
 	if r.Spec.ControlPlaneLoadBalancer != nil {
 		newLoadBalancer = r.Spec.ControlPlaneLoadBalancer.DeepCopy()
 	}
-	if !reflect.DeepEqual(existingLoadBalancer.Scheme, newLoadBalancer.Scheme) {
-		allErrs = append(allErrs,
-			field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "scheme"),
-				r.Spec.ControlPlaneLoadBalancer.Scheme, "field is immutable"),
-		)
+
+	if oldC.Spec.ControlPlaneLoadBalancer == nil {
+		// If old scheme was nil, the only value accepted here is the default value: Internet-facing
+		if newLoadBalancer.Scheme != nil && newLoadBalancer.Scheme.String() != ClassicELBSchemeInternetFacing.String() {
+			allErrs = append(allErrs,
+				field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "scheme"),
+					r.Spec.ControlPlaneLoadBalancer.Scheme, "field is immutable, default value was set to Internet-facing"),
+			)
+		}
+	} else {
+		// If old scheme was not nil, the new scheme should be the same.
+		existingLoadBalancer := oldC.Spec.ControlPlaneLoadBalancer.DeepCopy()
+		if !reflect.DeepEqual(existingLoadBalancer.Scheme, newLoadBalancer.Scheme) {
+			allErrs = append(allErrs,
+				field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "scheme"),
+					r.Spec.ControlPlaneLoadBalancer.Scheme, "field is immutable"),
+			)
+		}
 	}
 
 	if !reflect.DeepEqual(oldC.Spec.ControlPlaneEndpoint, clusterv1.APIEndpoint{}) &&

@@ -98,6 +98,34 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "controlPlaneLoadBalancer scheme is immutable when left empty",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						Scheme: &ClassicELBSchemeInternal,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "controlPlaneLoadBalancer scheme can be set to default when left empty",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						Scheme: &ClassicELBSchemeInternetFacing,
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "controlPlaneLoadBalancer crossZoneLoadBalancer is mutable",
 			oldCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
