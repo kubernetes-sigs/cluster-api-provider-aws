@@ -1583,10 +1583,10 @@ sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.15/go.mod h1:LEScyz
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.19/go.mod h1:LEScyzhFmoF5pso/YSeBstl57mOzx9xlU9n85RGrDQg=
 sigs.k8s.io/aws-iam-authenticator v0.5.3 h1:EyqQ/uxzbe2mDETZZmuMnv0xHITnyLhZfPlGb6Mma20=
 sigs.k8s.io/aws-iam-authenticator v0.5.3/go.mod h1:DIq7gy0lvnyaG88AgFyJzUVeix+ia5msHEp4RL0102I=
-sigs.k8s.io/cluster-api v0.4.0-rc.0 h1:E52O4W62snVvlGneSUtsvPM/+sfR4+TwcVMbhrkc5No=
-sigs.k8s.io/cluster-api v0.4.0-rc.0/go.mod h1:9ALETQ/6KGZ/kYiqvQGfjOx0CfVGE39d4VP3UrS5B24=
-sigs.k8s.io/cluster-api/test v0.4.0-rc.0 h1:M0TOVHbbz88ZM//LmQbxVnaQyWqJVy57lmm/FP8omSw=
-sigs.k8s.io/cluster-api/test v0.4.0-rc.0/go.mod h1:Smn0J1FPtwLmd4ipXLb42RSXhKW+ur46qHWXoOAfpgw=
+sigs.k8s.io/cluster-api v0.4.0 h1:y9MxtU1uW9r9JtDyOQ/9BRXZEau2PGl2yOIozaxXO0E=
+sigs.k8s.io/cluster-api v0.4.0/go.mod h1:9ALETQ/6KGZ/kYiqvQGfjOx0CfVGE39d4VP3UrS5B24=
+sigs.k8s.io/cluster-api/test v0.4.0 h1:iD9WWGPQWCk85xRWNIdLYKvaZvk3wYD+rTzyqFg7yAg=
+sigs.k8s.io/cluster-api/test v0.4.0/go.mod h1:Smn0J1FPtwLmd4ipXLb42RSXhKW+ur46qHWXoOAfpgw=
 sigs.k8s.io/controller-runtime v0.6.3/go.mod h1:WlZNXcM0++oyaQt4B7C2lEE5JYRs8vJUzRP4N4JpdAY=
 sigs.k8s.io/controller-runtime v0.9.1 h1:+LAqHAhkVW4lt/jLlrKmnGPA7OORMw/xEUH3Ey1h1Bs=
 sigs.k8s.io/controller-runtime v0.9.1/go.mod h1:cTqsgnwSOsYS03XwySYZj8k6vf0+eC4FJRcCgQ9elb4=

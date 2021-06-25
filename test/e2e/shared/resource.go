@@ -147,7 +147,7 @@ func (r *TestResource) release(request *TestResource) {
 }
 
 func AcquireResources(request *TestResource, nodeNum int, fileLock *flock.Flock) error {
-	timeoutInSec := 60 * 60
+	timeoutInSec := 60 * 60 * 4
 	defer func() error {
 		if err := fileLock.Unlock(); err != nil {
 			return err
@@ -191,7 +191,7 @@ func AcquireResources(request *TestResource, nodeNum int, fileLock *flock.Flock)
 			return err
 		}
 	}
-	return errors.New("giving up on releasing resource due to timeout")
+	return errors.New("giving up on acquiring resource due to timeout")
 }
 
 func ReleaseResources(request *TestResource, nodeNum int, fileLock *flock.Flock) error {
