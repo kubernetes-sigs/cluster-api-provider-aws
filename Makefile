@@ -180,9 +180,9 @@ test-conformance-fast: ## Run clusterctl based conformance test on workload clus
 
 .PHONY: test-cover
 test-cover: ## Run tests with code coverage and code generate  reports
-	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v -coverprofile=out/coverage.out ./... $(TEST_ARGS)
-	go tool cover -func=out/coverage.out -o out/coverage.txt
-	go tool cover -html=out/coverage.out -o out/coverage.html
+	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v -coverprofile=coverage.out ./... $(TEST_ARGS)
+	go tool cover -func=coverage.out -o coverage.txt
+	go tool cover -html=coverage.out -o coverage.html
 ## --------------------------------------
 ## Binaries
 ## --------------------------------------
