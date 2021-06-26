@@ -109,10 +109,30 @@ func TestReconcileNatGateways(t *testing.T) {
 				m.DescribeAddresses(gomock.Any()).
 					Return(&ec2.DescribeAddressesOutput{}, nil)
 
-				m.AllocateAddress(&ec2.AllocateAddressInput{Domain: aws.String("vpc")}).
-					Return(&ec2.AllocateAddressOutput{
-						AllocationId: aws.String(ElasticIPAllocationID),
-					}, nil)
+				m.AllocateAddress(&ec2.AllocateAddressInput{
+					Domain: aws.String("vpc"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("elastic-ip"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-eip-apiserver"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("apiserver"),
+								},
+							},
+						},
+					},
+				}).Return(&ec2.AllocateAddressOutput{
+					AllocationId: aws.String(ElasticIPAllocationID),
+				}, nil)
 
 				m.CreateNatGateway(&ec2.CreateNatGatewayInput{
 					AllocationId: aws.String(ElasticIPAllocationID),
@@ -147,9 +167,6 @@ func TestReconcileNatGateways(t *testing.T) {
 				m.WaitUntilNatGatewayAvailable(&ec2.DescribeNatGatewaysInput{
 					NatGatewayIds: []*string{aws.String("natgateway")},
 				}).Return(nil)
-
-				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
-					Return(nil, nil)
 			},
 		},
 		{
@@ -199,10 +216,30 @@ func TestReconcileNatGateways(t *testing.T) {
 				m.DescribeAddresses(gomock.Any()).
 					Return(&ec2.DescribeAddressesOutput{}, nil)
 
-				m.AllocateAddress(&ec2.AllocateAddressInput{Domain: aws.String("vpc")}).
-					Return(&ec2.AllocateAddressOutput{
-						AllocationId: aws.String(ElasticIPAllocationID),
-					}, nil)
+				m.AllocateAddress(&ec2.AllocateAddressInput{
+					Domain: aws.String("vpc"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("elastic-ip"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-eip-apiserver"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("apiserver"),
+								},
+							},
+						},
+					},
+				}).Return(&ec2.AllocateAddressOutput{
+					AllocationId: aws.String(ElasticIPAllocationID),
+				}, nil)
 
 				m.CreateNatGateway(&ec2.CreateNatGatewayInput{
 					AllocationId: aws.String(ElasticIPAllocationID),
@@ -238,7 +275,7 @@ func TestReconcileNatGateways(t *testing.T) {
 				}).Return(nil)
 
 				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
-					Return(nil, nil).Times(2)
+					Return(nil, nil).Times(1)
 			},
 		},
 		{
