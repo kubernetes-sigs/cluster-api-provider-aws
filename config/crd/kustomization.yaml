@@ -41,6 +41,14 @@ patchesStrategicMerge:
 
 # +kubebuilder:scaffold:crdkustomizecainjectionpatch
 
+# [LABEL] To enable label, uncomment all the sections with [LABEL] prefix.
+# patches here are for adding the label to each global identity CRDs
+- patches/label_in_awsclustercontrolleridentities.yaml
+- patches/label_in_awsclusterroleidentities.yaml
+- patches/label_in_awsclusterstaticidentities.yaml
+
+# +kubebuilder:scaffold:crdkustomizelabelpatch
+
 # the following config is for teaching kustomize how to do kustomization for CRDs.
 configurations:
 - kustomizeconfig.yaml
