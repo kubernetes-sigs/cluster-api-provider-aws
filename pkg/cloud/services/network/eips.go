@@ -55,24 +55,16 @@ func (s *Service) getOrAllocateAddresses(num int, role string) (eips []string, e
 }
 
 func (s *Service) allocateAddress(role string) (string, error) {
+	tagSpecifications := tags.BuildParamsToTagSpecification(ec2.ResourceTypeElasticIp, s.getEIPTagParams(role))
 	out, err := s.EC2Client.AllocateAddress(&ec2.AllocateAddressInput{
 		Domain: aws.String("vpc"),
+		TagSpecifications: []*ec2.TagSpecification{
+			tagSpecifications,
+		},
 	})
 	if err != nil {
 		record.Warnf(s.scope.InfraCluster(), "FailedAllocateEIP", "Failed to allocate Elastic IP for %q: %v", role, err)
 		return "", errors.Wrap(err, "failed to allocate Elastic IP")
-	}
-
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-		buildParams := s.getEIPTagParams(*out.AllocationId, role)
-		tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
-		if err := tagsBuilder.Apply(); err != nil {
-			return false, err
-		}
-		return true, nil
-	}, awserrors.EIPNotFound); err != nil {
-		record.Eventf(s.scope.InfraCluster(), "FailedAllocateAddress", "Failed to tag elastic IP %q: %v", aws.StringValue(out.AllocationId), err)
-		return "", errors.Wrapf(err, "failed to tag Elastic IP %q", aws.StringValue(out.AllocationId))
 	}
 
 	return aws.StringValue(out.AllocationId), nil
@@ -152,12 +144,11 @@ func (s *Service) releaseAddresses() error {
 	return nil
 }
 
-func (s *Service) getEIPTagParams(allocationID, role string) infrav1.BuildParams {
+func (s *Service) getEIPTagParams(role string) infrav1.BuildParams {
 	name := fmt.Sprintf("%s-eip-%s", s.scope.Name(), role)
 
 	return infrav1.BuildParams{
 		ClusterName: s.scope.Name(),
-		ResourceID:  allocationID,
 		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(name),
 		Role:        aws.String(role),
