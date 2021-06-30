@@ -17,6 +17,7 @@ limitations under the License.
 package securitygroup
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -385,5 +386,97 @@ func TestControlPlaneSecurityGroupNotOpenToAnyCIDR(t *testing.T) {
 		if sets.NewString(r.CidrBlocks...).Has(services.AnyIPv4CidrBlock) {
 			t.Fatal("Ingress rule allows any CIDR block")
 		}
+	}
+}
+
+func TestDeleteSecurityGroups(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	testCases := []struct {
+		name   string
+		input  *infrav1.NetworkSpec
+		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		err    error
+	}{
+		{
+			name: "do not delete overridden security groups",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID:                "vpc-securitygroups",
+					InternetGatewayID: aws.String("igw-01"),
+				},
+				Subnets: infrav1.Subnets{
+					infrav1.SubnetSpec{
+						ID:               "subnet-securitygroups-private",
+						IsPublic:         false,
+						AvailabilityZone: "us-east-1a",
+					},
+					infrav1.SubnetSpec{
+						ID:               "subnet-securitygroups-public",
+						IsPublic:         true,
+						NatGatewayID:     aws.String("nat-01"),
+						AvailabilityZone: "us-east-1a",
+					},
+				},
+				SecurityGroupOverrides: map[infrav1.SecurityGroupRole]string{
+					infrav1.SecurityGroupBastion:      "sg-bastion",
+					infrav1.SecurityGroupAPIServerLB:  "sg-apiserver-lb",
+					infrav1.SecurityGroupLB:           "sg-lb",
+					infrav1.SecurityGroupControlPlane: "sg-control",
+					infrav1.SecurityGroupNode:         "sg-node",
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeSecurityGroupsPages(gomock.Any(), gomock.Any()).Return(nil)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			awsCluster := &infrav1.AWSCluster{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       "AWSCluster",
+				},
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: *tc.input,
+				},
+			}
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).Build()
+
+			ctx := context.TODO()
+			client.Create(ctx, awsCluster)
+
+			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client: client,
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
+				},
+				AWSCluster: awsCluster,
+			})
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+
+			tc.expect(ec2Mock.EXPECT())
+
+			s := NewService(scope)
+			s.EC2Client = ec2Mock
+
+			if err := s.DeleteSecurityGroups(); err != nil && tc.err != nil {
+				if !strings.Contains(err.Error(), tc.err.Error()) {
+					t.Fatalf("was expecting error to look like '%v', but got '%v'", tc.err, err)
+				}
+			} else if err != nil {
+				t.Fatalf("got an unexpected error: %v", err)
+			}
+		})
 	}
 }

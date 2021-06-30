@@ -79,6 +79,7 @@ func (s *Service) ReconcileSecurityGroups() error {
 	}
 
 	// Security group overrides should not be specified for a managed VPC
+	// because VPC id should be provided during security group creation
 	if securityGroupOverrides != nil && s.scope.VPC().IsManaged(s.scope.Name()) {
 		return errors.Errorf("security group overrides provided for managed vpc %q", s.scope.Name())
 	}
@@ -220,11 +221,10 @@ func (s *Service) describeSecurityGroupOverridesByID() (map[infrav1.SecurityGrou
 	if len(overrides) > 0 {
 		for _, role := range defaultRoles {
 			securityGroupID, ok := s.scope.SecurityGroupOverrides()[role]
-			if !ok {
-				return nil, errors.Errorf("security group overrides have been provided for some but not all roles - missing security group for role %s", role)
+			if ok {
+				securityGroupIds[role] = aws.String(securityGroupID)
+				input.GroupIds = append(input.GroupIds, aws.String(securityGroupID))
 			}
-			securityGroupIds[role] = aws.String(securityGroupID)
-			input.GroupIds = append(input.GroupIds, aws.String(securityGroupID))
 		}
 	}
 
@@ -236,6 +236,9 @@ func (s *Service) describeSecurityGroupOverridesByID() (map[infrav1.SecurityGrou
 	res := make(map[infrav1.SecurityGroupRole]*ec2.SecurityGroup, len(out.SecurityGroups))
 	for _, role := range defaultRoles {
 		for _, ec2sg := range out.SecurityGroups {
+			if securityGroupIds[role] == nil {
+				continue
+			}
 			if *ec2sg.GroupId == *securityGroupIds[role] {
 				s.scope.V(2).Info("found security group override", "role", role, "security group", *ec2sg.GroupName)
 
@@ -274,34 +277,6 @@ func (s *Service) DeleteSecurityGroups() error {
 		return err
 	}
 
-	for _, sg := range s.scope.SecurityGroups() {
-		current := sg.IngressRules
-
-		if s.isEKSOwned(sg) {
-			continue
-		}
-
-		if err := s.revokeAllSecurityGroupIngressRules(sg.ID); awserrors.IsIgnorableSecurityGroupError(err) != nil {
-			conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
-			return err
-		}
-
-		s.scope.V(2).Info("Revoked ingress rules from security group", "revoked-ingress-rules", current, "security-group-id", sg.ID)
-	}
-
-	for i := range s.scope.SecurityGroups() {
-		sg := s.scope.SecurityGroups()[i]
-
-		if s.isEKSOwned(sg) {
-			continue
-		}
-
-		if err := s.deleteSecurityGroup(&sg, "managed"); err != nil {
-			conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
-			return err
-		}
-	}
-
 	clusterGroups, err := s.describeClusterOwnedSecurityGroups()
 	if err != nil {
 		return err
@@ -309,6 +284,14 @@ func (s *Service) DeleteSecurityGroups() error {
 
 	for i := range clusterGroups {
 		sg := clusterGroups[i]
+		current := sg.IngressRules
+		if err := s.revokeAllSecurityGroupIngressRules(sg.ID); awserrors.IsIgnorableSecurityGroupError(err) != nil {
+			conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
+			return err
+		}
+
+		s.scope.V(2).Info("Revoked ingress rules from security group", "revoked-ingress-rules", current, "security-group-id", sg.ID)
+
 		if deleteErr := s.deleteSecurityGroup(&sg, "cluster managed"); deleteErr != nil {
 			err = kerrors.NewAggregate([]error{err, deleteErr})
 		}
@@ -343,7 +326,7 @@ func (s *Service) describeClusterOwnedSecurityGroups() ([]infrav1.SecurityGroup,
 	input := &ec2.DescribeSecurityGroupsInput{
 		Filters: []*ec2.Filter{
 			filter.EC2.VPC(s.scope.VPC().ID),
-			filter.EC2.ProviderOwned(s.scope.Name()),
+			filter.EC2.ClusterOwned(s.scope.Name()),
 		},
 	}
 
