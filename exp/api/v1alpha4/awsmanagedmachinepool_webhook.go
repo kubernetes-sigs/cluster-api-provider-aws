@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	maxNodegroupNameLength = 100
+	maxNodegroupNameLength = 64
 )
 
 // log is for logging in this package.
