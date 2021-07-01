@@ -36,12 +36,17 @@ func (r *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	if err := Convert_v1alpha3_AWSMachinePool_To_v1alpha4_AWSMachinePool(r, dst, nil); err != nil {
 		return err
 	}
+
 	restored := &v1alpha4.AWSMachinePool{}
 	if ok, err := utilconversion.UnmarshalData(r, restored); err != nil || !ok {
 		return err
 	}
 
 	infrav1alpha3.RestoreAMIReference(&restored.Spec.AWSLaunchTemplate.AMI, &dst.Spec.AWSLaunchTemplate.AMI)
+	if restored.Spec.AWSLaunchTemplate.RootVolume != nil {
+		dst.Spec.AWSLaunchTemplate.RootVolume.Throughput = restored.Spec.AWSLaunchTemplate.RootVolume.Throughput
+	}
+
 	return nil
 }
 

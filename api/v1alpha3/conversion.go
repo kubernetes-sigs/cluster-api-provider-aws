@@ -89,6 +89,10 @@ func (r *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	RestoreAMIReference(&restored.Spec.AMI, &dst.Spec.AMI)
+
+	restoreVolume(restored.Spec.RootVolume, dst.Spec.RootVolume)
+	restoreVolumes(restored.Spec.NonRootVolumes, dst.Spec.NonRootVolumes)
+
 	return nil
 }
 
@@ -136,6 +140,10 @@ func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	RestoreAMIReference(&restored.Spec.Template.Spec.AMI, &dst.Spec.Template.Spec.AMI)
+
+	restoreVolume(restored.Spec.Template.Spec.RootVolume, dst.Spec.Template.Spec.RootVolume)
+	restoreVolumes(restored.Spec.Template.Spec.NonRootVolumes, dst.Spec.Template.Spec.NonRootVolumes)
+
 	return nil
 }
 
@@ -301,6 +309,22 @@ func restoreInstance(restored, dst *v1alpha4.Instance) {
 		return
 	}
 	dst.VolumeIDs = restored.VolumeIDs
+	restoreVolume(restored.RootVolume, dst.RootVolume)
+	restoreVolumes(restored.NonRootVolumes, dst.NonRootVolumes)
+
+}
+
+func restoreVolumes(restored, dst []v1alpha4.Volume) {
+	for i := range restored {
+		restoreVolume(&restored[i], &dst[i])
+	}
+}
+
+func restoreVolume(restored, dst *v1alpha4.Volume) {
+	if restored == nil {
+		return
+	}
+	dst.Throughput = restored.Throughput
 }
 
 // Convert_v1alpha3_AWSResourceReference_To_v1alpha4_AMIReference is a conversion function.
