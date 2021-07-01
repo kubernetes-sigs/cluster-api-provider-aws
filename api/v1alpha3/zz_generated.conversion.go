@@ -1986,7 +1986,7 @@ func Convert_v1alpha4_VPCSpec_To_v1alpha3_VPCSpec(in *v1alpha4.VPCSpec, out *VPC
 func autoConvert_v1alpha3_Volume_To_v1alpha4_Volume(in *Volume, out *v1alpha4.Volume, s conversion.Scope) error {
 	out.DeviceName = in.DeviceName
 	out.Size = in.Size
-	out.Type = in.Type
+	out.Type = v1alpha4.VolumeType(in.Type)
 	out.IOPS = in.IOPS
 	out.Encrypted = in.Encrypted
 	out.EncryptionKey = in.EncryptionKey
@@ -2001,7 +2001,7 @@ func Convert_v1alpha3_Volume_To_v1alpha4_Volume(in *Volume, out *v1alpha4.Volume
 func autoConvert_v1alpha4_Volume_To_v1alpha3_Volume(in *v1alpha4.Volume, out *Volume, s conversion.Scope) error {
 	out.DeviceName = in.DeviceName
 	out.Size = in.Size
-	out.Type = in.Type
+	out.Type = string(in.Type)
 	out.IOPS = in.IOPS
 	// WARNING: in.Throughput requires manual conversion: does not exist in peer-type
 	out.Encrypted = in.Encrypted

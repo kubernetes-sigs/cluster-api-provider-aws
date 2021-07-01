@@ -19,6 +19,8 @@ package v1alpha4
 import (
 	"time"
 
+	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -46,12 +48,38 @@ var _ webhook.Validator = &AWSMachinePool{}
 
 func (r *AWSMachinePool) validateDefaultCoolDown() field.ErrorList {
 	var allErrs field.ErrorList
+
 	if int(r.Spec.DefaultCoolDown.Duration.Seconds()) < 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("spec.DefaultCoolDown"), "DefaultCoolDown must be greater than zero"))
 	}
-	if len(allErrs) == 0 {
-		return nil
+
+	return allErrs
+}
+
+func (r *AWSMachinePool) validateRootVolume() field.ErrorList {
+	var allErrs field.ErrorList
+
+	if r.Spec.AWSLaunchTemplate.RootVolume == nil {
+		return allErrs
 	}
+
+	if v1alpha4.VolumeTypesProvisioned.Has(string(r.Spec.AWSLaunchTemplate.RootVolume.Type)) && r.Spec.AWSLaunchTemplate.RootVolume.IOPS == 0 {
+		allErrs = append(allErrs, field.Required(field.NewPath("spec.awsLaunchTemplate.rootVolume.iops"), "iops required if type is 'io1' or 'io2'"))
+	}
+
+	if r.Spec.AWSLaunchTemplate.RootVolume.Throughput != nil {
+		if r.Spec.AWSLaunchTemplate.RootVolume.Type != v1alpha4.VolumeTypeGP3 {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.awsLaunchTemplate.rootVolume.throughput"), "throughput is valid only for type 'gp3'"))
+		}
+		if *r.Spec.AWSLaunchTemplate.RootVolume.Throughput < 0 {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.awsLaunchTemplate.rootVolume.throughput"), "throughput must be nonnegative"))
+		}
+	}
+
+	if r.Spec.AWSLaunchTemplate.RootVolume.DeviceName != "" {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.rootVolume.deviceName"), "root volume shouldn't have device name"))
+	}
+
 	return allErrs
 }
 
@@ -61,9 +89,8 @@ func (r *AWSMachinePool) ValidateCreate() error {
 
 	var allErrs field.ErrorList
 
-	if errs := r.validateDefaultCoolDown(); errs != nil || len(errs) == 0 {
-		allErrs = append(allErrs, errs...)
-	}
+	allErrs = append(allErrs, r.validateDefaultCoolDown()...)
+	allErrs = append(allErrs, r.validateRootVolume()...)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -79,9 +106,8 @@ func (r *AWSMachinePool) ValidateCreate() error {
 // ValidateUpdate will do any extra validation when updating a AWSMachinePool.
 func (r *AWSMachinePool) ValidateUpdate(old runtime.Object) error {
 	var allErrs field.ErrorList
-	if errs := r.validateDefaultCoolDown(); errs != nil || len(errs) == 0 {
-		allErrs = append(allErrs, errs...)
-	}
+
+	allErrs = append(allErrs, r.validateDefaultCoolDown()...)
 
 	if len(allErrs) == 0 {
 		return nil

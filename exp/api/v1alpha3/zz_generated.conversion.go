@@ -335,13 +335,13 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha4.AMIReference)(nil), (*clusterapiproviderawsapiv1alpha3.AWSResourceReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_AMIReference_To_v1alpha3_AWSResourceReference(a.(*clusterapiproviderawsapiv1alpha4.AMIReference), b.(*clusterapiproviderawsapiv1alpha3.AWSResourceReference), scope)
+	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha3.Volume)(nil), (*clusterapiproviderawsapiv1alpha4.Volume)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha3_Volume_To_v1alpha4_Volume(a.(*clusterapiproviderawsapiv1alpha3.Volume), b.(*clusterapiproviderawsapiv1alpha4.Volume), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha3.Volume)(nil), (*clusterapiproviderawsapiv1alpha4.Volume)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha3_Volume_To_v1alpha4_Volume(a.(*clusterapiproviderawsapiv1alpha3.Volume), b.(*clusterapiproviderawsapiv1alpha4.Volume), scope)
+	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha4.AMIReference)(nil), (*clusterapiproviderawsapiv1alpha3.AWSResourceReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_AMIReference_To_v1alpha3_AWSResourceReference(a.(*clusterapiproviderawsapiv1alpha4.AMIReference), b.(*clusterapiproviderawsapiv1alpha3.AWSResourceReference), scope)
 	}); err != nil {
 		return err
 	}

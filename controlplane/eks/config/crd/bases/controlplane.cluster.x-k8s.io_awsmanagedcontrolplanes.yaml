@@ -1663,8 +1663,8 @@ spec:
                           minimum: 8
                           type: integer
                         throughput:
-                          description: Throughput to provision in MB/s supported for
-                            the volume type. Not applicable to all types.
+                          description: Throughput to provision in MiB/s supported
+                            for the volume type. Not applicable to all types.
                           format: int64
                           type: integer
                         type:
@@ -1712,7 +1712,7 @@ spec:
                         minimum: 8
                         type: integer
                       throughput:
-                        description: Throughput to provision in MB/s supported for
+                        description: Throughput to provision in MiB/s supported for
                           the volume type. Not applicable to all types.
                         format: int64
                         type: integer

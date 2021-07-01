@@ -69,7 +69,7 @@ func TestAWSMachine_Create(t *testing.T) {
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
 					RootVolume: &Volume{
-						Throughput: -125,
+						Throughput: aws.Int64(-125),
 					},
 				},
 			},
@@ -131,7 +131,7 @@ func TestAWSMachine_Create(t *testing.T) {
 				Spec: AWSMachineSpec{
 					NonRootVolumes: []Volume{
 						{
-							Throughput: -125,
+							Throughput: aws.Int64(-125),
 						},
 					},
 				},

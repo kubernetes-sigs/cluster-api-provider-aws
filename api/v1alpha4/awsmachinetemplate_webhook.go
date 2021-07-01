@@ -38,6 +38,61 @@ var (
 	_ webhook.Validator = &AWSMachineTemplate{}
 )
 
+func (r *AWSMachineTemplate) validateRootVolume() field.ErrorList {
+	var allErrs field.ErrorList
+
+	spec := r.Spec.Template.Spec
+	if spec.RootVolume == nil {
+		return allErrs
+	}
+
+	if VolumeTypesProvisioned.Has(string(spec.RootVolume.Type)) && spec.RootVolume.IOPS == 0 {
+		allErrs = append(allErrs, field.Required(field.NewPath("spec.template.spec.rootVolume.iops"), "iops required if type is 'io1' or 'io2'"))
+	}
+
+	if spec.RootVolume.Throughput != nil {
+		if spec.RootVolume.Type != VolumeTypeGP3 {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.template.spec.rootVolume.throughput"), "throughput is valid only for type 'gp3'"))
+		}
+		if *spec.RootVolume.Throughput < 0 {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.template.spec.rootVolume.throughput"), "throughput must be nonnegative"))
+		}
+	}
+
+	if spec.RootVolume.DeviceName != "" {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.template.spec.rootVolume.deviceName"), "root volume shouldn't have device name"))
+	}
+
+	return allErrs
+}
+
+func (r *AWSMachineTemplate) validateNonRootVolumes() field.ErrorList {
+	var allErrs field.ErrorList
+
+	spec := r.Spec.Template.Spec
+
+	for _, volume := range spec.NonRootVolumes {
+		if VolumeTypesProvisioned.Has(string(volume.Type)) && volume.IOPS == 0 {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.template.spec.nonRootVolumes.iops"), "iops required if type is 'io1' or 'io2'"))
+		}
+
+		if volume.Throughput != nil {
+			if volume.Type != VolumeTypeGP3 {
+				allErrs = append(allErrs, field.Required(field.NewPath("spec.template.spec.nonRootVolumes.throughput"), "throughput is valid only for type 'gp3'"))
+			}
+			if *volume.Throughput < 0 {
+				allErrs = append(allErrs, field.Required(field.NewPath("spec.template.spec.nonRootVolumes.throughput"), "throughput must be nonnegative"))
+			}
+		}
+
+		if volume.DeviceName == "" {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.template.spec.nonRootVolumes.deviceName"), "non root volume should have device name"))
+		}
+	}
+
+	return allErrs
+}
+
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSMachineTemplate) ValidateCreate() error {
 	var allErrs field.ErrorList
@@ -54,6 +109,9 @@ func (r *AWSMachineTemplate) ValidateCreate() error {
 	if spec.ProviderID != nil {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "providerID"), "cannot be set in templates"))
 	}
+
+	allErrs = append(allErrs, r.validateRootVolume()...)
+	allErrs = append(allErrs, r.validateNonRootVolumes()...)
 
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
