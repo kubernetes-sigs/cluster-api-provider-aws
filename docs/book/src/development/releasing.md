@@ -26,7 +26,7 @@
     10. `eks-controlplane-components.yaml`
     11. `eks-bootstrap-components.yaml`
     12. `metadata.yaml`
-13. Perform the [image promotion process](https://github.com/kubernetes/k8s.io/tree/master/k8s.gcr.io#image-promoter):
+13. Perform the [image promotion process](https://github.com/kubernetes/k8s.io/tree/main/k8s.gcr.io#image-promoter):
     1. Clone and pull down the latest from [kubernetes/k8s.io](https://github.com/kubernetes/k8s.io)
     2. Create a new branch in your fork of `kubernetes/k8s.io`.
     3. The staging repository is [here](https://console.cloud.google.com/gcr/images/k8s-staging-cluster-api-aws/GLOBAL). 
