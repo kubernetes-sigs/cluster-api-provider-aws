@@ -23,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	errlist "k8s.io/apimachinery/pkg/util/errors"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
@@ -273,34 +273,6 @@ func (s *Service) DeleteSecurityGroups() error {
 		return err
 	}
 
-	for _, sg := range s.scope.SecurityGroups() {
-		current := sg.IngressRules
-
-		if s.isEKSOwned(sg) {
-			continue
-		}
-
-		if err := s.revokeAllSecurityGroupIngressRules(sg.ID); awserrors.IsIgnorableSecurityGroupError(err) != nil {
-			conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
-			return err
-		}
-
-		s.scope.V(2).Info("Revoked ingress rules from security group", "revoked-ingress-rules", current, "security-group-id", sg.ID)
-	}
-
-	for i := range s.scope.SecurityGroups() {
-		sg := s.scope.SecurityGroups()[i]
-
-		if s.isEKSOwned(sg) {
-			continue
-		}
-
-		if err := s.deleteSecurityGroup(&sg, "managed"); err != nil {
-			conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
-			return err
-		}
-	}
-
 	clusterGroups, err := s.describeClusterOwnedSecurityGroups()
 	if err != nil {
 		return err
@@ -308,8 +280,20 @@ func (s *Service) DeleteSecurityGroups() error {
 
 	for i := range clusterGroups {
 		sg := clusterGroups[i]
+		if s.isEKSOwned(sg) {
+			continue
+		}
+
+		current := sg.IngressRules
+		if err := s.revokeAllSecurityGroupIngressRules(sg.ID); awserrors.IsIgnorableSecurityGroupError(err) != nil {
+			conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
+			return err
+		}
+
+		s.scope.V(2).Info("Revoked ingress rules from security group", "revoked-ingress-rules", current, "security-group-id", sg.ID)
+
 		if deleteErr := s.deleteSecurityGroup(&sg, "cluster managed"); deleteErr != nil {
-			err = errlist.NewAggregate([]error{err, deleteErr})
+			err = kerrors.NewAggregate([]error{err, deleteErr})
 		}
 	}
 
