@@ -242,8 +242,6 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 
 // Node1AfterSuite is cleanup that runs on the first ginkgo node after the test suite finishes
 func Node1AfterSuite(e2eCtx *E2EContext) {
-	DeleteResourceQuotaFile()
-
 	if e2eCtx.Environment.ResourceTickerDone != nil {
 		e2eCtx.Environment.ResourceTickerDone <- true
 	}

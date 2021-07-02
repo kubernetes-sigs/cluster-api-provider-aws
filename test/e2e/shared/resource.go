@@ -228,7 +228,3 @@ func ReleaseResources(request *TestResource, nodeNum int, fileLock *flock.Flock)
 	}
 	return errors.New("giving up on releasing resource due to timeout")
 }
-
-func DeleteResourceQuotaFile()  {
-	Expect(os.Remove(ResourceQuotaFilePath)).To(Succeed())
-}

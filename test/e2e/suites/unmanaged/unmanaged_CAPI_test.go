@@ -53,26 +53,6 @@ var _ = Describe("Cluster API E2E tests - unmanaged", func() {
 
 	SetDefaultEventuallyTimeout(20 * time.Minute)
 	SetDefaultEventuallyPollingInterval(10 * time.Second)
-	Context("Running the quick-start spec [PR-Blocking]", func() {
-		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
-		requiredResources := &shared.TestResource{EC2: 2, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3}
-		BeforeEach(func() {
-			requiredResources.WriteRequestedResources(e2eCtx, "capi-quick-start-test")
-			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
-		})
-		capi_e2e.QuickStartSpec(context.TODO(), func() capi_e2e.QuickStartSpecInput {
-			return capi_e2e.QuickStartSpecInput{
-				E2EConfig:             e2eCtx.E2EConfig,
-				ClusterctlConfigPath:  e2eCtx.Environment.ClusterctlConfigPath,
-				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-				ArtifactFolder:        e2eCtx.Settings.ArtifactFolder,
-				SkipCleanup:           e2eCtx.Settings.SkipCleanup,
-			}
-		})
-		AfterEach(func() {
-			shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
-		})
-	})
 	Context("Running the KCP upgrade spec - a single control plane cluster", func() {
 		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 		requiredResources := &shared.TestResource{EC2: 2, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3}
@@ -92,28 +72,29 @@ var _ = Describe("Cluster API E2E tests - unmanaged", func() {
 			}
 		})
 	})
-	Context("Running the KCP upgrade spec - HA cluster", func() {
-		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
-		requiredResources := &shared.TestResource{EC2: 4, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3}
-		BeforeEach(func() {
-			requiredResources.WriteRequestedResources(e2eCtx, "capi-kcp-ha-upgrade-test")
-			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
-		})
-		capi_e2e.KCPUpgradeSpec(context.TODO(), func() capi_e2e.KCPUpgradeSpecInput {
-			return capi_e2e.KCPUpgradeSpecInput{
-				E2EConfig:                e2eCtx.E2EConfig,
-				ClusterctlConfigPath:     e2eCtx.Environment.ClusterctlConfigPath,
-				BootstrapClusterProxy:    e2eCtx.Environment.BootstrapClusterProxy,
-				Flavor:                   clusterctl.DefaultFlavor,
-				ControlPlaneMachineCount: 3,
-				ArtifactFolder:           e2eCtx.Settings.ArtifactFolder,
-				SkipCleanup:              e2eCtx.Settings.SkipCleanup,
-			}
-		})
-		AfterEach(func() {
-			shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
-		})
-	})
+	// TODO: Enable when there are more resources in the test infra
+	//Context("Running the KCP upgrade spec - HA cluster", func() {
+	//	// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
+	//	requiredResources := &shared.TestResource{EC2: 4, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3}
+	//	BeforeEach(func() {
+	//		requiredResources.WriteRequestedResources(e2eCtx, "capi-kcp-ha-upgrade-test")
+	//		Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+	//	})
+	//	capi_e2e.KCPUpgradeSpec(context.TODO(), func() capi_e2e.KCPUpgradeSpecInput {
+	//		return capi_e2e.KCPUpgradeSpecInput{
+	//			E2EConfig:                e2eCtx.E2EConfig,
+	//			ClusterctlConfigPath:     e2eCtx.Environment.ClusterctlConfigPath,
+	//			BootstrapClusterProxy:    e2eCtx.Environment.BootstrapClusterProxy,
+	//			Flavor:                   clusterctl.DefaultFlavor,
+	//			ControlPlaneMachineCount: 3,
+	//			ArtifactFolder:           e2eCtx.Settings.ArtifactFolder,
+	//			SkipCleanup:              e2eCtx.Settings.SkipCleanup,
+	//		}
+	//	})
+	//	AfterEach(func() {
+	//		shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+	//	})
+	//})
 	Context("Running the KCP upgrade spec - HA cluster using scale in rollout", func() {
 		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 		requiredResources := &shared.TestResource{EC2: 4, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
