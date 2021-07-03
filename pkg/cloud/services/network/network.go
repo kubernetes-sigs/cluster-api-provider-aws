@@ -64,6 +64,11 @@ func (s *Service) ReconcileNetwork() (err error) {
 		return err
 	}
 
+	// Persist the new network to AWSCluster
+	if err := s.scope.PatchObject(); err != nil {
+		return err
+	}
+
 	s.scope.V(2).Info("Reconcile network completed successfully")
 	return nil
 }
