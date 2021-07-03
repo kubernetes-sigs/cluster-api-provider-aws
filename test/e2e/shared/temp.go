@@ -63,7 +63,7 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 		clusterctl.Init(context.TODO(), clusterctl.InitInput{
 			// pass reference to the management cluster hosting this test
 			KubeconfigPath: input.ClusterProxy.GetKubeconfigPath(),
-			// pass the clusterctl config file that points to the local provider repository created for this test
+			// pass the clusterctl generate file that points to the local provider repository created for this test
 			ClusterctlConfigPath: input.ClusterctlConfigPath,
 			// setup the desired list of providers for a single-tenant management cluster
 			CoreProvider:            config.ClusterAPIProviderName,

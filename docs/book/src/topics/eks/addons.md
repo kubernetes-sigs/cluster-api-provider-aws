@@ -27,7 +27,7 @@ Additionally, there is a cluster [flavor](https://cluster-api.sigs.k8s.io/cluste
 called [eks-managedmachinepool-vpccni](../../templates/cluster-template-eks-managedmachinepool-vpccni.yaml) that you can use with **clusterctl**:
 
 ```shell
-clusterctl config cluster my-cluster --kubernetes-version v1.18.0 --flavor eks-managedmachinepool-vpccni > my-cluster.yaml
+clusterctl generate cluster my-cluster --kubernetes-version v1.18.0 --flavor eks-managedmachinepool-vpccni > my-cluster.yaml
 ```
 
 ## Updating Addons
