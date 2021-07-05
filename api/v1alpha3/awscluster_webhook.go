@@ -96,6 +96,19 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 		)
 	}
 
+	// Modifying VPC id is not allowed because it will cause a new VPC creation if set to nil.
+	if !reflect.DeepEqual(oldC.Spec.NetworkSpec, NetworkSpec{}) &&
+		!reflect.DeepEqual(oldC.Spec.NetworkSpec.VPC, VPCSpec{}) &&
+		oldC.Spec.NetworkSpec.VPC.ID != "" {
+		if reflect.DeepEqual(r.Spec.NetworkSpec, NetworkSpec{}) ||
+			reflect.DeepEqual(r.Spec.NetworkSpec.VPC, VPCSpec{}) ||
+			oldC.Spec.NetworkSpec.VPC.ID != r.Spec.NetworkSpec.VPC.ID {
+			allErrs = append(allErrs,
+				field.Invalid(field.NewPath("spec", "networkSpec", "vpc", "id"),
+					r.Spec.IdentityRef, "field cannot be modified once set"))
+		}
+	}
+
 	// If a identityRef is already set, do not allow removal of it.
 	if oldC.Spec.IdentityRef != nil && r.Spec.IdentityRef == nil {
 		allErrs = append(allErrs,

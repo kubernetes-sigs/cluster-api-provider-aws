@@ -72,15 +72,22 @@ func (s *Service) ReconcileNetwork() (err error) {
 func (s *Service) DeleteNetwork() (err error) {
 	s.scope.V(2).Info("Deleting network")
 
-	// Search for a previously created and tagged VPC
-	vpc, err := s.describeVPC()
-	if err != nil {
-		if awserrors.IsNotFound(err) {
-			// If the VPC does not exist, nothing to do
-			return nil
+	vpc := &infrav1.VPCSpec{}
+	// Get VPC used for the cluster
+	if s.scope.VPC().ID != "" {
+		var err error
+		vpc, err = s.describeVPCByID()
+		if err != nil {
+			if awserrors.IsNotFound(err) {
+				// If the VPC does not exist, nothing to do
+				return nil
+			}
+			return err
 		}
-		return err
+	} else {
+		s.scope.Error(err, "non-fatal: VPC ID is missing, ")
 	}
+
 	vpc.DeepCopyInto(s.scope.VPC())
 
 	// Secondary CIDR

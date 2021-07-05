@@ -21,9 +21,13 @@ import (
 	"reflect"
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/diff"
@@ -68,13 +72,14 @@ func TestReconcileVPC(t *testing.T) {
 	selection := infrav1.AZSelectionSchemeOrdered
 
 	testCases := []struct {
-		name     string
-		input    *infrav1.VPCSpec
-		expected *infrav1.VPCSpec
-		expect   func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		name        string
+		input       *infrav1.VPCSpec
+		expected    *infrav1.VPCSpec
+		expect      func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expectError bool
 	}{
 		{
-			name:  "managed vpc exists",
+			name:  "if unmanaged vpc exists, updates tags with aws VPC resource tags",
 			input: &infrav1.VPCSpec{ID: "vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
 			expected: &infrav1.VPCSpec{
 				ID:        "vpc-exists",
@@ -87,6 +92,7 @@ func TestReconcileVPC(t *testing.T) {
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
 			},
+			expectError: false,
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
 					VpcIds: []*string{
@@ -128,8 +134,9 @@ func TestReconcileVPC(t *testing.T) {
 			},
 		},
 		{
-			name:  "managed vpc does not exist",
-			input: &infrav1.VPCSpec{AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
+			name:        "if managed vpc does not exist, creates a new VPC",
+			input:       &infrav1.VPCSpec{AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
+			expectError: false,
 			expected: &infrav1.VPCSpec{
 				ID:        "vpc-new",
 				CidrBlock: "10.1.0.0/16",
@@ -142,20 +149,6 @@ func TestReconcileVPC(t *testing.T) {
 				AvailabilityZoneSelection:  &selection,
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
-					Filters: []*ec2.Filter{
-						{
-							Name:   aws.String("state"),
-							Values: aws.StringSlice([]string{ec2.VpcStatePending, ec2.VpcStateAvailable}),
-						},
-						{
-							Name:   aws.String("tag-key"),
-							Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
-						},
-					},
-				})).
-					Return(&ec2.DescribeVpcsOutput{}, nil)
-
 				m.CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).
 					Return(&ec2.CreateVpcOutput{
 						Vpc: &ec2.Vpc{
@@ -184,11 +177,25 @@ func TestReconcileVPC(t *testing.T) {
 
 				m.ModifyVpcAttribute(gomock.AssignableToTypeOf(&ec2.ModifyVpcAttributeInput{})).
 					Return(&ec2.ModifyVpcAttributeOutput{}, nil).Times(2)
-
-				m.WaitUntilVpcAvailable(gomock.Eq(&ec2.DescribeVpcsInput{
-					VpcIds: []*string{aws.String("vpc-new")},
+			},
+		},
+		{
+			name:        "managed vpc id exists, but vpc resource is missing",
+			input:       &infrav1.VPCSpec{ID: "vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
+			expectError: true,
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
+					VpcIds: []*string{
+						aws.String("vpc-exists"),
+					},
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: aws.StringSlice([]string{ec2.VpcStatePending, ec2.VpcStateAvailable}),
+						},
+					},
 				})).
-					Return(nil)
+					Return(nil, awserr.New("404", "http not found err", errors.New("err")))
 			},
 		},
 	}
@@ -225,9 +232,14 @@ func TestReconcileVPC(t *testing.T) {
 
 			s := NewService(clusterScope)
 			s.EC2Client = ec2Mock
+			g := NewWithT(t)
 
-			if err := s.reconcileVPC(); err != nil {
-				t.Fatalf("got an unexpected error: %v", err)
+			err = s.reconcileVPC()
+			if tc.expectError {
+				g.Expect(err).ToNot(BeNil())
+				return
+			} else {
+				g.Expect(err).To(BeNil())
 			}
 
 			if !reflect.DeepEqual(tc.expected, &clusterScope.AWSCluster.Spec.NetworkSpec.VPC) {
