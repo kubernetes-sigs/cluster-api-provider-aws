@@ -46,7 +46,7 @@ func createClusterctlLocalRepository(config *clusterctl.E2EConfig, repositoryFol
 	createRepositoryInput.RegisterClusterResourceSetConfigMapTransformation(cniPath, capi_e2e.CNIResources)
 
 	clusterctlConfig := clusterctl.CreateRepository(context.TODO(), createRepositoryInput)
-	Expect(clusterctlConfig).To(BeAnExistingFile(), "The clusterctl config file does not exists in the local repository %s", repositoryFolder)
+	Expect(clusterctlConfig).To(BeAnExistingFile(), "The clusterctl generate file does not exists in the local repository %s", repositoryFolder)
 	return clusterctlConfig
 }
 

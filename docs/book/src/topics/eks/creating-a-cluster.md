@@ -3,13 +3,13 @@
 New "eks" cluster templates have been created that you can use with `clusterctl` to create a EKS cluster. To create a EKS cluster with self-managed nodes (a.k.a machines):
 
 ```bash
-clusterctl config cluster capi-eks-quickstart --flavor eks --kubernetes-version v1.17.3 --worker-machine-count=3 > capi-eks-quickstart.yaml
+clusterctl generate cluster capi-eks-quickstart --flavor eks --kubernetes-version v1.17.3 --worker-machine-count=3 > capi-eks-quickstart.yaml
 ```
 
 To create a EKS cluster with a managed node group (a.k.a managed machine pool):
 
 ```bash
-clusterctl config cluster capi-eks-quickstart --flavor eks-managedmachinepool --kubernetes-version v1.17.3 --worker-machine-count=3 > capi-eks-quickstart.yaml
+clusterctl generate cluster capi-eks-quickstart --flavor eks-managedmachinepool --kubernetes-version v1.17.3 --worker-machine-count=3 > capi-eks-quickstart.yaml
 ```
 
 NOTE: When creating an EKS cluster only the **MAJOR.MINOR** of the `-kubernetes-version` is taken into consideration.

@@ -2,11 +2,11 @@
 
 ## Overview
 
-After running `clusterctl config cluster` to generate the configuration for a new workload cluster (and then redirecting that output to a file for use with `kubectl apply`, or piping it directly to `kubectl apply`), the new workload cluster will be deployed. This document explains how to access the new workload cluster's nodes.
+After running `clusterctl generate cluster` to generate the configuration for a new workload cluster (and then redirecting that output to a file for use with `kubectl apply`, or piping it directly to `kubectl apply`), the new workload cluster will be deployed. This document explains how to access the new workload cluster's nodes.
 
 ## Prerequisites
 
-1. `clusterctl config cluster` was successfully executed to generate the configuration for a new workload cluster
+1. `clusterctl generate cluster` was successfully executed to generate the configuration for a new workload cluster
 2. The configuration for the new workload cluster was applied to the management cluster using `kubectl apply` and the cluster is up and running in an AWS environment.
 3. The SSH key referenced by `clusterctl` in step 1 exists in AWS and is stored in the correct location locally for use by SSH (on macOS/Linux systems, this is typically `$HOME/.ssh`). This document will refer to this key as `cluster-api-provider-aws.sigs.k8s.io`.
 4. _(If using AWS Session Manager)_ The AWS CLI and the Session Manager plugin have been installed and configured.
