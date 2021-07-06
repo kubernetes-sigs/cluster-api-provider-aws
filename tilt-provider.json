@@ -34,7 +34,7 @@
       "context": "controlplane/eks",
       "image": "gcr.io/k8s-staging-cluster-api-aws/eks-controlplane-controller",
       "live_reload_deps": [
-        "main.go", "api", "controllers"
+        "main.go", "api", "controllers", "../../pkg"
       ]
     }
   }

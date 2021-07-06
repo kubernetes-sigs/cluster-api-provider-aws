@@ -21,6 +21,8 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/utils/pointer"
+
 	. "github.com/onsi/gomega"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -354,6 +356,68 @@ func TestWebhookUpdate(t *testing.T) {
 			newClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				Version:        &vV1_17,
+			},
+			expectError: false,
+		},
+		{
+			name: "change in encryption config to nil",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				EncryptionConfig: &EncryptionConfig{
+					Provider:  pointer.String("provider"),
+					Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+				},
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+			},
+			expectError: true,
+		},
+		{
+			name: "change in encryption config from nil to valid encryption-config",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				EncryptionConfig: &EncryptionConfig{
+					Provider:  pointer.String("provider"),
+					Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "change in provider of encryption config",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				EncryptionConfig: &EncryptionConfig{
+					Provider:  pointer.String("provider"),
+					Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+				},
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				EncryptionConfig: &EncryptionConfig{
+					Provider:  pointer.String("new-provider"),
+					Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "no change in provider of encryption config",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				EncryptionConfig: &EncryptionConfig{
+					Provider: pointer.String("provider"),
+				},
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				EncryptionConfig: &EncryptionConfig{
+					Provider: pointer.String("provider"),
+				},
 			},
 			expectError: false,
 		},

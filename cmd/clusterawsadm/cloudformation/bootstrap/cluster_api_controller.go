@@ -342,6 +342,7 @@ func (t Template) ControllersPolicy() *infrav1.PolicyDocument {
 					"eks:DeleteNodegroup",
 					"eks:UpdateNodegroupConfig",
 					"eks:CreateNodegroup",
+					"eks:AssociateEncryptionConfig",
 				},
 				Resource: infrav1.Resources{
 					"arn:*:eks:*:*:cluster/*",

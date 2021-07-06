@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -421,6 +422,106 @@ func TestReconcileClusterVersion(t *testing.T) {
 			g.Expect(err).To(BeNil())
 
 			err = s.reconcileClusterVersion(cluster)
+			if tc.expectError {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).To(BeNil())
+		})
+	}
+}
+
+func TestReconcileEKSEncryptionConfig(t *testing.T) {
+	clusterName := "default.cluster"
+	tests := []struct {
+		name                string
+		oldEncryptionConfig *ekscontrolplanev1.EncryptionConfig
+		newEncryptionConfig *ekscontrolplanev1.EncryptionConfig
+		expect              func(m *mock_eksiface.MockEKSAPIMockRecorder)
+		expectError         bool
+	}{
+		{
+			name:                "no upgrade necessary",
+			oldEncryptionConfig: &ekscontrolplanev1.EncryptionConfig{},
+			newEncryptionConfig: &ekscontrolplanev1.EncryptionConfig{},
+			expect:              func(m *mock_eksiface.MockEKSAPIMockRecorder) {},
+			expectError:         false,
+		},
+		{
+			name:                "needs upgrade",
+			oldEncryptionConfig: nil,
+			newEncryptionConfig: &ekscontrolplanev1.EncryptionConfig{
+				Provider:  pointer.String("provider"),
+				Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+			},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.WaitUntilClusterUpdating(
+					gomock.AssignableToTypeOf(&eks.DescribeClusterInput{}), gomock.Any(),
+				).Return(nil)
+				m.AssociateEncryptionConfig(gomock.AssignableToTypeOf(&eks.AssociateEncryptionConfigInput{})).Return(&eks.AssociateEncryptionConfigOutput{}, nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "upgrade not allowed if encryption config updated as nil",
+			oldEncryptionConfig: &ekscontrolplanev1.EncryptionConfig{
+				Provider:  pointer.String("provider"),
+				Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+			},
+			newEncryptionConfig: nil,
+			expect:              func(m *mock_eksiface.MockEKSAPIMockRecorder) {},
+			expectError:         true,
+		},
+		{
+			name: "upgrade not allowed if encryption config exists",
+			oldEncryptionConfig: &ekscontrolplanev1.EncryptionConfig{
+				Provider:  pointer.String("provider"),
+				Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+			},
+			newEncryptionConfig: &ekscontrolplanev1.EncryptionConfig{
+				Provider:  pointer.String("new-provider"),
+				Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+			},
+			expect:      func(m *mock_eksiface.MockEKSAPIMockRecorder) {},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			mockControl := gomock.NewController(t)
+			defer mockControl.Finish()
+
+			eksMock := mock_eksiface.NewMockEKSAPI(mockControl)
+
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			_ = ekscontrolplanev1.AddToScheme(scheme)
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+			scope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+				Client: client,
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns",
+						Name:      clusterName,
+					},
+				},
+				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
+					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+						Version:          aws.String("1.16"),
+						EncryptionConfig: tc.newEncryptionConfig,
+					},
+				},
+			})
+			g.Expect(err).To(BeNil())
+
+			tc.expect(eksMock.EXPECT())
+			s := NewService(scope)
+			s.EKSClient = eksMock
+
+			err = s.reconcileEKSEncryptionConfig(makeEksEncryptionConfigs(tc.oldEncryptionConfig))
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
 				return
