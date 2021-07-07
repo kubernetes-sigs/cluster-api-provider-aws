@@ -83,7 +83,7 @@ type command struct {
 // commandsForMachine opens a terminal connection using AWS SSM Session Manager
 // and executes the given commands, outputting the results to a file for each.
 func commandsForMachine(ctx context.Context, e2eCtx *E2EContext, f *os.File, instanceID string, commands []command) {
-	ssmSvc := ssm.New(e2eCtx.AWSSession)
+	ssmSvc := ssm.New(e2eCtx.BootstrapUserAWSSession)
 	sess, err := ssmSvc.StartSessionWithContext(ctx, &ssm.StartSessionInput{
 		Target: aws.String(instanceID),
 	})

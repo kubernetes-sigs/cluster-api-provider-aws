@@ -21,7 +21,7 @@ package conformance
 import (
 	"testing"
 
-	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -39,18 +39,21 @@ func init() {
 }
 
 func TestE2EConformance(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecsWithDefaultAndCustomReporters(t, "capa-e2e-conformance", []Reporter{framework.CreateJUnitReporterForProw(e2eCtx.Settings.ArtifactFolder)})
+	RegisterFailHandler(ginkgo.Fail)
+	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "capa-e2e-conformance", []ginkgo.Reporter{framework.CreateJUnitReporterForProw(e2eCtx.Settings.ArtifactFolder)})
 }
 
-var _ = SynchronizedBeforeSuite(func() []byte {
+var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	return shared.Node1BeforeSuite(e2eCtx)
 }, func(data []byte) {
 	shared.AllNodesBeforeSuite(e2eCtx, data)
 })
 
-var _ = SynchronizedAfterSuite(func() {
-	shared.Node1AfterSuite(e2eCtx)
-}, func() {
-	shared.AllNodesAfterSuite(e2eCtx)
-})
+var _ = ginkgo.SynchronizedAfterSuite(
+	func() {
+		shared.AllNodesAfterSuite(e2eCtx)
+	},
+	func() {
+		shared.Node1AfterSuite(e2eCtx)
+	},
+)

@@ -27,6 +27,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -36,6 +37,7 @@ import (
 	awscreds "github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/eks"
@@ -302,6 +304,30 @@ func newUserAccessKey(prov client.ConfigProvider, userName string) *iam.AccessKe
 	}
 }
 
+func DumpCloudTrailEvents(e2eCtx *E2EContext) {
+	client := cloudtrail.New(e2eCtx.BootstrapUserAWSSession)
+	events := []*cloudtrail.Event{}
+	err := client.LookupEventsPages(
+		&cloudtrail.LookupEventsInput{
+			StartTime: aws.Time(e2eCtx.StartOfSuite),
+			EndTime:   aws.Time(time.Now()),
+		},
+		func(page *cloudtrail.LookupEventsOutput, lastPage bool) bool {
+			events = append(events, page.Events...)
+			return !lastPage
+		},
+	)
+	if err != nil {
+		fmt.Fprintf(GinkgoWriter, "couldn't get AWS CloudTrail events: err=%s", err)
+	}
+	logPath := filepath.Join(e2eCtx.Settings.ArtifactFolder, "cloudtrail-events.yaml")
+	dat, err := yaml.Marshal(events)
+	if err := ioutil.WriteFile(logPath, dat, 0600); err != nil {
+		fmt.Fprintf(GinkgoWriter, "couldn't write cloudtrail events to file: file=%s err=%s", logPath, err)
+		return
+	}
+}
+
 // conformanceImageID looks up a specific image for a given
 // Kubernetes version in the e2econfig
 func conformanceImageID(e2eCtx *E2EContext) string {
@@ -339,13 +365,15 @@ func GetAvailabilityZones(sess client.ConfigProvider) []*ec2.AvailabilityZone {
 }
 
 type ServiceQuota struct {
-	ServiceCode string
-	QuotaName   string
-	QuotaCode   string
-	Value       int
+	ServiceCode         string
+	QuotaName           string
+	QuotaCode           string
+	Value               int
+	DesiredMinimumValue int
+	RequestStatus       string
 }
 
-func GetServiceQuotas(sess client.ConfigProvider) map[string]*ServiceQuota {
+func EnsureServiceQuotas(sess client.ConfigProvider) map[string]*ServiceQuota {
 	limitedResources := getLimitedResources()
 	serviceQuotasClient := servicequotas.New(sess)
 
@@ -355,11 +383,57 @@ func GetServiceQuotas(sess client.ConfigProvider) map[string]*ServiceQuota {
 			ServiceCode: aws.String(v.ServiceCode),
 		})
 		Expect(err).NotTo(HaveOccurred())
-		v.Value = int(*out.Quota.Value)
+		v.Value = int(aws.Float64Value(out.Quota.Value))
 		limitedResources[k] = v
+		if v.Value < v.DesiredMinimumValue {
+			v.attemptRaiseServiceQuotaRequest(serviceQuotasClient)
+		}
 	}
 
 	return limitedResources
+}
+
+func (s *ServiceQuota) attemptRaiseServiceQuotaRequest(serviceQuotasClient *servicequotas.ServiceQuotas) {
+	s.updateServiceQuotaRequestStatus(serviceQuotasClient)
+	if s.RequestStatus == "" {
+		s.raiseServiceRequest(serviceQuotasClient)
+	}
+}
+
+func (s *ServiceQuota) raiseServiceRequest(serviceQuotasClient *servicequotas.ServiceQuotas) {
+	fmt.Printf("Requesting service quota increase for %s/%s to %d\n", s.ServiceCode, s.QuotaName, s.DesiredMinimumValue)
+	out, err := serviceQuotasClient.RequestServiceQuotaIncrease(
+		&servicequotas.RequestServiceQuotaIncreaseInput{
+			DesiredValue: aws.Float64(float64(s.DesiredMinimumValue)),
+			ServiceCode:  aws.String(s.ServiceCode),
+			QuotaCode:    aws.String(s.QuotaCode),
+		},
+	)
+	if err != nil {
+		fmt.Printf("Unable to raise quota for %s/%s: %s\n", s.ServiceCode, s.QuotaName, err)
+	} else {
+		s.RequestStatus = aws.StringValue(out.RequestedQuota.Status)
+	}
+}
+
+func (s *ServiceQuota) updateServiceQuotaRequestStatus(serviceQuotasClient *servicequotas.ServiceQuotas) {
+	params := &servicequotas.ListRequestedServiceQuotaChangeHistoryInput{
+		ServiceCode: aws.String(s.ServiceCode),
+	}
+	latestRequest := &servicequotas.RequestedServiceQuotaChange{}
+	serviceQuotasClient.ListRequestedServiceQuotaChangeHistoryPages(params,
+		func(page *servicequotas.ListRequestedServiceQuotaChangeHistoryOutput, lastPage bool) bool {
+			for _, v := range page.RequestedQuotas {
+				if int(aws.Float64Value(v.DesiredValue)) >= s.DesiredMinimumValue && aws.StringValue(v.QuotaCode) == s.QuotaCode && aws.TimeValue(v.Created).After(aws.TimeValue(latestRequest.Created)) {
+					latestRequest = v
+				}
+			}
+			return !lastPage
+		},
+	)
+	if latestRequest.Status != nil {
+		s.RequestStatus = aws.StringValue(latestRequest.Status)
+	}
 }
 
 func DumpEKSClusters(ctx context.Context, e2eCtx *E2EContext) {
@@ -370,7 +444,7 @@ func DumpEKSClusters(ctx context.Context, e2eCtx *E2EContext) {
 	fmt.Fprintf(GinkgoWriter, "folder created for eks clusters: %s\n", logPath)
 
 	input := &eks.ListClustersInput{}
-	eksClient := eks.New(e2eCtx.BootstratpUserAWSSession)
+	eksClient := eks.New(e2eCtx.BootstrapUserAWSSession)
 	output, err := eksClient.ListClusters(input)
 	if err != nil {
 		fmt.Fprintf(GinkgoWriter, "couldn't list EKS clusters: err=%s", err)

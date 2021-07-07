@@ -22,7 +22,7 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go/aws/client"
-	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
@@ -89,7 +89,7 @@ func ManagedMachinePoolSpec(ctx context.Context, inputGetter func() ManagedMachi
 	verifyManagedNodeGroup(input.ClusterName, eksClusterName, nodeGroupName, true, input.AWSSession)
 
 	if input.IncludeScaling { //TODO (richardcase): should this be a separate spec?
-		By("Scaling the machine pool up")
+		ginkgo.By("Scaling the machine pool up")
 		framework.ScaleMachinePoolAndWait(ctx, framework.ScaleMachinePoolAndWaitInput{
 			ClusterProxy:              input.BootstrapClusterProxy,
 			Cluster:                   cluster,
@@ -98,7 +98,7 @@ func ManagedMachinePoolSpec(ctx context.Context, inputGetter func() ManagedMachi
 			WaitForMachinePoolToScale: input.E2EConfig.GetIntervals("", "wait-worker-nodes"),
 		})
 
-		By("Scaling the machine pool down")
+		ginkgo.By("Scaling the machine pool down")
 		framework.ScaleMachinePoolAndWait(ctx, framework.ScaleMachinePoolAndWaitInput{
 			ClusterProxy:              input.BootstrapClusterProxy,
 			Cluster:                   cluster,

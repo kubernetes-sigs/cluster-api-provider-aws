@@ -90,11 +90,11 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 func renderCustomCloudFormation(t *cfn_bootstrap.Template) *cloudformation.Template {
 	cloudformationTemplate := t.RenderCloudFormation()
 	appendMultiTenancyRoles(t, cloudformationTemplate)
-	appendGetQuotasPolicyToBootstrap(t)
+	appendExtraPoliciesToBootstrapUser(t)
 	return cloudformationTemplate
 }
 
-func appendGetQuotasPolicyToBootstrap(t *cfn_bootstrap.Template) {
+func appendExtraPoliciesToBootstrapUser(t *cfn_bootstrap.Template) {
 	t.Spec.BootstrapUser.ExtraStatements = append(t.Spec.BootstrapUser.ExtraStatements, v1alpha4.StatementEntry{
 		Effect: v1alpha4.EffectAllow,
 		Resource: v1alpha4.Resources{
@@ -102,8 +102,30 @@ func appendGetQuotasPolicyToBootstrap(t *cfn_bootstrap.Template) {
 		},
 		Action: v1alpha4.Actions{
 			"servicequotas:GetServiceQuota",
+			"servicequotas:RequestServiceQuotaIncrease",
+			"servicequotas:ListRequestedServiceQuotaChangeHistory",
 			"elasticloadbalancing:DescribeAccountLimits",
 			"ec2:DescribeAccountLimits",
+			"cloudtrail:LookupEvents",
+			"ssm:StartSession",
+			"ssm:DescribeSessions",
+			"ssm:GetConnectionStatus",
+			"ssm:DescribeInstanceProperties",
+			"ssm:GetDocument",
+			"ssm:TerminateSession",
+			"ssm:ResumeSession",
+		},
+	})
+	t.Spec.BootstrapUser.ExtraStatements = append(t.Spec.BootstrapUser.ExtraStatements, v1alpha4.StatementEntry{
+		Effect: v1alpha4.EffectAllow,
+		Resource: v1alpha4.Resources{
+			"arn:*:iam::*:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling",
+			"arn:*:iam::*:role/aws-service-role/servicequotas.amazonaws.com/AWSServiceRoleForServiceQuotas",
+			"arn:*:iam::*:role/aws-service-role/support.amazonaws.com/AWSServiceRoleForSupport",
+			"arn:*:iam::*:role/aws-service-role/trustedadvisor.amazonaws.com/AWSServiceRoleForTrustedAdvisor",
+		},
+		Action: v1alpha4.Actions{
+			"iam:CreateServiceLinkedRole",
 		},
 	})
 }
