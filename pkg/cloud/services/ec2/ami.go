@@ -24,6 +24,8 @@ import (
 	"text/template"
 	"time"
 
+	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
@@ -55,6 +57,9 @@ const (
 
 	// EKS AMI ID SSM Parameter name.
 	eksAmiSSMParameterFormat = "/aws/service/eks/optimized-ami/%s/amazon-linux-2/recommended/image_id"
+
+	// EKS GPU AMI ID SSM Parameter name.
+	eksGPUAmiSSMParameterFormat = "/aws/service/eks/optimized-ami/%s/amazon-linux-2-gpu/recommended/image_id"
 )
 
 // AMILookup contains the parameters used to template AMI names used for lookup.
@@ -224,14 +229,25 @@ func (s *Service) defaultBastionAMILookup(region string) string {
 	}
 }
 
-func (s *Service) eksAMILookup(kubernetesVersion string) (string, error) {
+func (s *Service) eksAMILookup(kubernetesVersion string, amiType *v1alpha4.EKSAMILookupType) (string, error) {
 	// format ssm parameter path properly
 	formattedVersion, err := formatVersionForEKS(kubernetesVersion)
 	if err != nil {
 		return "", err
 	}
 
-	paramName := fmt.Sprintf(eksAmiSSMParameterFormat, formattedVersion)
+	var paramName string
+
+	if amiType == nil {
+		amiType = new(v1alpha4.EKSAMILookupType)
+	}
+
+	switch *amiType {
+	case v1alpha4.AmazonLinuxGPU:
+		paramName = fmt.Sprintf(eksGPUAmiSSMParameterFormat, formattedVersion)
+	default:
+		paramName = fmt.Sprintf(eksAmiSSMParameterFormat, formattedVersion)
+	}
 
 	input := &ssm.GetParameterInput{
 		Name: aws.String(paramName),

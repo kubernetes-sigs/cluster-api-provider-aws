@@ -32,6 +32,8 @@ import (
 func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		AWSClusterStaticIdentityFuzzer,
+		AWSMachineFuzzer,
+		AWSMachineTemplateFuzzer,
 	}
 }
 
@@ -40,6 +42,22 @@ func AWSClusterStaticIdentityFuzzer(obj *AWSClusterStaticIdentity, c fuzz.Contin
 
 	// AWSClusterStaticIdentity.Spec.SecretRef.Namespace has been removed in v1alpha4, so setting it to nil in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
 	obj.Spec.SecretRef.Namespace = ""
+}
+
+func AWSMachineFuzzer(obj *AWSMachine, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// AWSMachine.Spec.AMI.ARN and AWSMachine.Spec.AMI.Filters has been removed in v1alpha4, so setting it to nil in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
+	obj.Spec.AMI.ARN = nil
+	obj.Spec.AMI.Filters = nil
+}
+
+func AWSMachineTemplateFuzzer(obj *AWSMachineTemplate, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// AWSMachineTemplate.Spec.Template.Spec.AMI.ARN and AWSMachineTemplate.Spec.Template.Spec.AMI.Filters has been removed in v1alpha4, so setting it to nil in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
+	obj.Spec.Template.Spec.AMI.ARN = nil
+	obj.Spec.Template.Spec.AMI.Filters = nil
 }
 
 func TestFuzzyConversion(t *testing.T) {
@@ -55,15 +73,17 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 
 	t.Run("for AWSMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &v1alpha4.AWSMachine{},
-		Spoke:  &AWSMachine{},
+		Scheme:      scheme,
+		Hub:         &v1alpha4.AWSMachine{},
+		Spoke:       &AWSMachine{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 
 	t.Run("for AWSMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &v1alpha4.AWSMachineTemplate{},
-		Spoke:  &AWSMachineTemplate{},
+		Scheme:      scheme,
+		Hub:         &v1alpha4.AWSMachineTemplate{},
+		Spoke:       &AWSMachineTemplate{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 
 	t.Run("for AWSClusterStaticIdentity", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{

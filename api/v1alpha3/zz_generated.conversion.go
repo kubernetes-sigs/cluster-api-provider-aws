@@ -499,6 +499,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*AWSResourceReference)(nil), (*v1alpha4.AMIReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha3_AWSResourceReference_To_v1alpha4_AMIReference(a.(*AWSResourceReference), b.(*v1alpha4.AMIReference), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1alpha4.AMIReference)(nil), (*AWSResourceReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_AMIReference_To_v1alpha3_AWSResourceReference(a.(*v1alpha4.AMIReference), b.(*AWSResourceReference), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*apiv1alpha4.APIEndpoint)(nil), (*apiv1alpha3.APIEndpoint)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_APIEndpoint_To_v1alpha3_APIEndpoint(a.(*apiv1alpha4.APIEndpoint), b.(*apiv1alpha3.APIEndpoint), scope)
 	}); err != nil {
@@ -1079,7 +1089,7 @@ func Convert_v1alpha4_AWSMachineList_To_v1alpha3_AWSMachineList(in *v1alpha4.AWS
 func autoConvert_v1alpha3_AWSMachineSpec_To_v1alpha4_AWSMachineSpec(in *AWSMachineSpec, out *v1alpha4.AWSMachineSpec, s conversion.Scope) error {
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	out.InstanceID = (*string)(unsafe.Pointer(in.InstanceID))
-	if err := Convert_v1alpha3_AWSResourceReference_To_v1alpha4_AWSResourceReference(&in.AMI, &out.AMI, s); err != nil {
+	if err := Convert_v1alpha3_AWSResourceReference_To_v1alpha4_AMIReference(&in.AMI, &out.AMI, s); err != nil {
 		return err
 	}
 	out.ImageLookupFormat = in.ImageLookupFormat
@@ -1113,7 +1123,7 @@ func Convert_v1alpha3_AWSMachineSpec_To_v1alpha4_AWSMachineSpec(in *AWSMachineSp
 func autoConvert_v1alpha4_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *v1alpha4.AWSMachineSpec, out *AWSMachineSpec, s conversion.Scope) error {
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	out.InstanceID = (*string)(unsafe.Pointer(in.InstanceID))
-	if err := Convert_v1alpha4_AWSResourceReference_To_v1alpha3_AWSResourceReference(&in.AMI, &out.AMI, s); err != nil {
+	if err := Convert_v1alpha4_AMIReference_To_v1alpha3_AWSResourceReference(&in.AMI, &out.AMI, s); err != nil {
 		return err
 	}
 	out.ImageLookupFormat = in.ImageLookupFormat

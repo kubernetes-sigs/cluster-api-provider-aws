@@ -311,7 +311,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
-				AMI: infrav1.AWSResourceReference{
+				AMI: infrav1.AMIReference{
 					ID: aws.String("abc"),
 				},
 				InstanceType: "m5.large",
@@ -403,7 +403,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
-				AMI: infrav1.AWSResourceReference{
+				AMI: infrav1.AMIReference{
 					ID: aws.String("abc"),
 				},
 				InstanceType:  "m5.2xlarge",
@@ -905,7 +905,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
-				AMI: infrav1.AWSResourceReference{
+				AMI: infrav1.AMIReference{
 					ID: aws.String("abc"),
 				},
 				InstanceType: "m5.large",
@@ -1012,7 +1012,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
-				AMI: infrav1.AWSResourceReference{
+				AMI: infrav1.AMIReference{
 					ID: aws.String("abc"),
 				},
 				InstanceType: "m5.large",
@@ -1079,7 +1079,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
-				AMI: infrav1.AWSResourceReference{
+				AMI: infrav1.AMIReference{
 					ID: aws.String("abc"),
 				},
 				InstanceType: "m5.large",
@@ -1183,7 +1183,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
-				AMI: infrav1.AWSResourceReference{
+				AMI: infrav1.AMIReference{
 					ID: aws.String("abc"),
 				},
 				InstanceType: "m5.large",

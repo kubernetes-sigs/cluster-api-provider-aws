@@ -48,7 +48,7 @@ type AWSMachineSpec struct {
 	InstanceID *string `json:"instanceID,omitempty"`
 
 	// AMI is the reference to the AMI from which to create the machine instance.
-	AMI AWSResourceReference `json:"ami,omitempty"`
+	AMI AMIReference `json:"ami,omitempty"`
 
 	// ImageLookupFormat is the AMI naming format to look up the image for this
 	// machine It will be ignored if an explicit AMI is set. Supports

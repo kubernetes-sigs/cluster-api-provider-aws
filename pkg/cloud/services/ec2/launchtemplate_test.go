@@ -184,7 +184,7 @@ func TestService_SDKToLaunchTemplate(t *testing.T) {
 			},
 			wantLT: &expinfrav1.AWSLaunchTemplate{
 				Name: "foo",
-				AMI: infrav1.AWSResourceReference{
+				AMI: infrav1.AMIReference{
 					ID: aws.String("foo-image"),
 				},
 				IamInstanceProfile: "foo-profile",
