@@ -505,7 +505,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		ebsRootDevice := &ec2.EbsBlockDevice{
 			DeleteOnTermination: aws.Bool(true),
 			VolumeSize:          aws.Int64(i.RootVolume.Size),
-			Encrypted:           aws.Bool(i.RootVolume.Encrypted),
+			Encrypted:           i.RootVolume.Encrypted,
 		}
 
 		if i.RootVolume.IOPS != 0 {
@@ -537,7 +537,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		ebsDevice := &ec2.EbsBlockDevice{
 			DeleteOnTermination: aws.Bool(true),
 			VolumeSize:          aws.Int64(nonRootVolume.Size),
-			Encrypted:           aws.Bool(nonRootVolume.Encrypted),
+			Encrypted:           nonRootVolume.Encrypted,
 		}
 
 		if nonRootVolume.IOPS != 0 {
