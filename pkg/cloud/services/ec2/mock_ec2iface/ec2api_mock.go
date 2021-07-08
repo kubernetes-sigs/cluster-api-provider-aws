@@ -14200,6 +14200,89 @@ func (mr *MockEC2APIMockRecorder) DescribeSecurityGroupReferencesWithContext(arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeSecurityGroupReferencesWithContext", reflect.TypeOf((*MockEC2API)(nil).DescribeSecurityGroupReferencesWithContext), varargs...)
 }
 
+// DescribeSecurityGroupRules mocks base method.
+func (m *MockEC2API) DescribeSecurityGroupRules(arg0 *ec2.DescribeSecurityGroupRulesInput) (*ec2.DescribeSecurityGroupRulesOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeSecurityGroupRules", arg0)
+	ret0, _ := ret[0].(*ec2.DescribeSecurityGroupRulesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeSecurityGroupRules indicates an expected call of DescribeSecurityGroupRules.
+func (mr *MockEC2APIMockRecorder) DescribeSecurityGroupRules(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeSecurityGroupRules", reflect.TypeOf((*MockEC2API)(nil).DescribeSecurityGroupRules), arg0)
+}
+
+// DescribeSecurityGroupRulesPages mocks base method.
+func (m *MockEC2API) DescribeSecurityGroupRulesPages(arg0 *ec2.DescribeSecurityGroupRulesInput, arg1 func(*ec2.DescribeSecurityGroupRulesOutput, bool) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeSecurityGroupRulesPages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeSecurityGroupRulesPages indicates an expected call of DescribeSecurityGroupRulesPages.
+func (mr *MockEC2APIMockRecorder) DescribeSecurityGroupRulesPages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeSecurityGroupRulesPages", reflect.TypeOf((*MockEC2API)(nil).DescribeSecurityGroupRulesPages), arg0, arg1)
+}
+
+// DescribeSecurityGroupRulesPagesWithContext mocks base method.
+func (m *MockEC2API) DescribeSecurityGroupRulesPagesWithContext(arg0 context.Context, arg1 *ec2.DescribeSecurityGroupRulesInput, arg2 func(*ec2.DescribeSecurityGroupRulesOutput, bool) bool, arg3 ...request.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeSecurityGroupRulesPagesWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeSecurityGroupRulesPagesWithContext indicates an expected call of DescribeSecurityGroupRulesPagesWithContext.
+func (mr *MockEC2APIMockRecorder) DescribeSecurityGroupRulesPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeSecurityGroupRulesPagesWithContext", reflect.TypeOf((*MockEC2API)(nil).DescribeSecurityGroupRulesPagesWithContext), varargs...)
+}
+
+// DescribeSecurityGroupRulesRequest mocks base method.
+func (m *MockEC2API) DescribeSecurityGroupRulesRequest(arg0 *ec2.DescribeSecurityGroupRulesInput) (*request.Request, *ec2.DescribeSecurityGroupRulesOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeSecurityGroupRulesRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DescribeSecurityGroupRulesOutput)
+	return ret0, ret1
+}
+
+// DescribeSecurityGroupRulesRequest indicates an expected call of DescribeSecurityGroupRulesRequest.
+func (mr *MockEC2APIMockRecorder) DescribeSecurityGroupRulesRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeSecurityGroupRulesRequest", reflect.TypeOf((*MockEC2API)(nil).DescribeSecurityGroupRulesRequest), arg0)
+}
+
+// DescribeSecurityGroupRulesWithContext mocks base method.
+func (m *MockEC2API) DescribeSecurityGroupRulesWithContext(arg0 context.Context, arg1 *ec2.DescribeSecurityGroupRulesInput, arg2 ...request.Option) (*ec2.DescribeSecurityGroupRulesOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeSecurityGroupRulesWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DescribeSecurityGroupRulesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeSecurityGroupRulesWithContext indicates an expected call of DescribeSecurityGroupRulesWithContext.
+func (mr *MockEC2APIMockRecorder) DescribeSecurityGroupRulesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeSecurityGroupRulesWithContext", reflect.TypeOf((*MockEC2API)(nil).DescribeSecurityGroupRulesWithContext), varargs...)
+}
+
 // DescribeSecurityGroups mocks base method.
 func (m *MockEC2API) DescribeSecurityGroups(arg0 *ec2.DescribeSecurityGroupsInput) (*ec2.DescribeSecurityGroupsOutput, error) {
 	m.ctrl.T.Helper()
@@ -21968,6 +22051,56 @@ func (mr *MockEC2APIMockRecorder) ModifyReservedInstancesWithContext(arg0, arg1 
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyReservedInstancesWithContext", reflect.TypeOf((*MockEC2API)(nil).ModifyReservedInstancesWithContext), varargs...)
+}
+
+// ModifySecurityGroupRules mocks base method.
+func (m *MockEC2API) ModifySecurityGroupRules(arg0 *ec2.ModifySecurityGroupRulesInput) (*ec2.ModifySecurityGroupRulesOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ModifySecurityGroupRules", arg0)
+	ret0, _ := ret[0].(*ec2.ModifySecurityGroupRulesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ModifySecurityGroupRules indicates an expected call of ModifySecurityGroupRules.
+func (mr *MockEC2APIMockRecorder) ModifySecurityGroupRules(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifySecurityGroupRules", reflect.TypeOf((*MockEC2API)(nil).ModifySecurityGroupRules), arg0)
+}
+
+// ModifySecurityGroupRulesRequest mocks base method.
+func (m *MockEC2API) ModifySecurityGroupRulesRequest(arg0 *ec2.ModifySecurityGroupRulesInput) (*request.Request, *ec2.ModifySecurityGroupRulesOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ModifySecurityGroupRulesRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.ModifySecurityGroupRulesOutput)
+	return ret0, ret1
+}
+
+// ModifySecurityGroupRulesRequest indicates an expected call of ModifySecurityGroupRulesRequest.
+func (mr *MockEC2APIMockRecorder) ModifySecurityGroupRulesRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifySecurityGroupRulesRequest", reflect.TypeOf((*MockEC2API)(nil).ModifySecurityGroupRulesRequest), arg0)
+}
+
+// ModifySecurityGroupRulesWithContext mocks base method.
+func (m *MockEC2API) ModifySecurityGroupRulesWithContext(arg0 context.Context, arg1 *ec2.ModifySecurityGroupRulesInput, arg2 ...request.Option) (*ec2.ModifySecurityGroupRulesOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ModifySecurityGroupRulesWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.ModifySecurityGroupRulesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ModifySecurityGroupRulesWithContext indicates an expected call of ModifySecurityGroupRulesWithContext.
+func (mr *MockEC2APIMockRecorder) ModifySecurityGroupRulesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifySecurityGroupRulesWithContext", reflect.TypeOf((*MockEC2API)(nil).ModifySecurityGroupRulesWithContext), varargs...)
 }
 
 // ModifySnapshotAttribute mocks base method.
