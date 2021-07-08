@@ -33,7 +33,7 @@ const (
 // AWSClusterSpec defines the desired state of AWSCluster
 type AWSClusterSpec struct {
 	// NetworkSpec encapsulates all things related to AWS network.
-	NetworkSpec NetworkSpec `json:"networkSpec,omitempty"`
+	NetworkSpec NetworkSpec `json:"network,omitempty"`
 
 	// The AWS Region the cluster lives in.
 	Region string `json:"region,omitempty"`
@@ -177,7 +177,7 @@ type AWSLoadBalancerSpec struct {
 type AWSClusterStatus struct {
 	// +kubebuilder:default=false
 	Ready          bool                     `json:"ready"`
-	Network        Network                  `json:"network,omitempty"`
+	Network        NetworkStatus            `json:"networkStatus,omitempty"`
 	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
 	Bastion        *Instance                `json:"bastion,omitempty"`
 	Conditions     clusterv1.Conditions     `json:"conditions,omitempty"`
@@ -189,7 +189,7 @@ type AWSClusterStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this AWSCluster belongs"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Cluster infrastructure is ready for EC2 instances"
-// +kubebuilder:printcolumn:name="VPC",type="string",JSONPath=".spec.networkSpec.vpc.id",description="AWS VPC the cluster is using"
+// +kubebuilder:printcolumn:name="VPC",type="string",JSONPath=".spec.network.vpc.id",description="AWS VPC the cluster is using"
 // +kubebuilder:printcolumn:name="Endpoint",type="string",JSONPath=".spec.controlPlaneEndpoint",description="API Endpoint",priority=1
 // +kubebuilder:printcolumn:name="Bastion IP",type="string",JSONPath=".status.bastion.publicIp",description="Bastion IP address for breakglass access"
 

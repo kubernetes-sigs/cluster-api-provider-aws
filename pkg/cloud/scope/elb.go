@@ -26,7 +26,7 @@ type ELBScope interface {
 	cloud.ClusterScoper
 
 	// Network returns the cluster network object.
-	Network() *infrav1.Network
+	Network() *infrav1.NetworkStatus
 
 	// Subnets returns the cluster subnets.
 	Subnets() infrav1.Subnets

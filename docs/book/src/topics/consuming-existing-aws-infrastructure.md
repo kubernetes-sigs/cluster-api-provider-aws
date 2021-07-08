@@ -32,7 +32,7 @@ Finally, if the controller manager isn't started with the `--configure-cloud-rou
 
 ## Configuring the AWSCluster Specification
 
-Specifying existing infrastructure for Cluster API to use takes place in the specification for the AWSCluster object. Specifically, you will need to add an entry with the VPC ID and the IDs of all applicable subnets into the `networkSpec` field. Here is an example:
+Specifying existing infrastructure for Cluster API to use takes place in the specification for the AWSCluster object. Specifically, you will need to add an entry with the VPC ID and the IDs of all applicable subnets into the `network` field. Here is an example:
 
 For EC2
 ```yaml
@@ -47,7 +47,7 @@ kind: AWSManagedControlPlane
 
 ```yaml
 spec:
-  networkSpec:
+  network:
     vpc:
       id: vpc-0425c335226437144
     subnets:
@@ -107,7 +107,7 @@ To use existing security groups for instances for a cluster, add this to the AWS
 
 ```yaml
 spec:
-  networkSpec:
+  network:
     securityGroupOverrides:
       bastion: sg-0350a3507a5ad2c5c8c3
       controlplane: sg-0350a3507a5ad2c5c8c3

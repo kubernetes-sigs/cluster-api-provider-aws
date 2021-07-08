@@ -23,7 +23,7 @@ kind: AWSCluster
 metadata:
   name: ${CLUSTER_NAME}
 spec:
-  networkSpec:
+  network:
     subnets:
     - availabilityZone: ${AWS_AVAILABILITY_ZONE_1}
       cidrBlock: 10.0.0.0/24

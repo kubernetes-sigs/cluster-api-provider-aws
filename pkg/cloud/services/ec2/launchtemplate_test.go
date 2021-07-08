@@ -276,7 +276,7 @@ func TestService_LaunchTemplateNeedsUpdate(t *testing.T) {
 			ac := &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Status: infrav1.AWSClusterStatus{
-					Network: infrav1.Network{
+					Network: infrav1.NetworkStatus{
 						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 							infrav1.SecurityGroupNode: {
 								ID: "sg-111",

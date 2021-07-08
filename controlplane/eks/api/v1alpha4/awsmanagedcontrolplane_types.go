@@ -40,7 +40,7 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	IdentityRef *infrav1.AWSIdentityReference `json:"identityRef,omitempty"`
 
 	// NetworkSpec encapsulates all things related to AWS network.
-	NetworkSpec infrav1.NetworkSpec `json:"networkSpec,omitempty"`
+	NetworkSpec infrav1.NetworkSpec `json:"network,omitempty"`
 
 	// SecondaryCidrBlock is the additional CIDR range to use for pod IPs.
 	// Must be within the 100.64.0.0/10 or 198.19.0.0/16 range.
@@ -195,7 +195,7 @@ type OIDCProviderStatus struct {
 type AWSManagedControlPlaneStatus struct {
 	// Networks holds details about the AWS networking resources used by the control plane
 	// +optional
-	Network infrav1.Network `json:"network,omitempty"`
+	Network infrav1.NetworkStatus `json:"networkStatus,omitempty"`
 	// FailureDomains specifies a list fo available availability zones that can be used
 	// +optional
 	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
@@ -235,7 +235,7 @@ type AWSManagedControlPlaneStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this AWSManagedControl belongs"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Control plane infrastructure is ready for worker nodes"
-// +kubebuilder:printcolumn:name="VPC",type="string",JSONPath=".spec.networkSpec.vpc.id",description="AWS VPC the control plane is using"
+// +kubebuilder:printcolumn:name="VPC",type="string",JSONPath=".spec.network.vpc.id",description="AWS VPC the control plane is using"
 // +kubebuilder:printcolumn:name="Endpoint",type="string",JSONPath=".spec.controlPlaneEndpoint.host",description="API Endpoint",priority=1
 // +kubebuilder:printcolumn:name="Bastion IP",type="string",JSONPath=".status.bastion.publicIp",description="Bastion IP address for breakglass access"
 

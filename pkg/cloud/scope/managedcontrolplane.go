@@ -139,7 +139,7 @@ func (s *ManagedControlPlaneScope) RemoteClient() (client.Client, error) {
 }
 
 // Network returns the control plane network object.
-func (s *ManagedControlPlaneScope) Network() *infrav1.Network {
+func (s *ManagedControlPlaneScope) Network() *infrav1.NetworkStatus {
 	return &s.ControlPlane.Status.Network
 }
 

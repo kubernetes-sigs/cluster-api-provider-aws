@@ -209,8 +209,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha3.Network)(nil), (*clusterapiproviderawsapiv1alpha4.Network)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha3_Network_To_v1alpha4_Network(a.(*clusterapiproviderawsapiv1alpha3.Network), b.(*clusterapiproviderawsapiv1alpha4.Network), scope)
+	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha3.Network)(nil), (*clusterapiproviderawsapiv1alpha4.NetworkStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha3_Network_To_v1alpha4_NetworkStatus(a.(*clusterapiproviderawsapiv1alpha3.Network), b.(*clusterapiproviderawsapiv1alpha4.NetworkStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -234,8 +234,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha4.Network)(nil), (*clusterapiproviderawsapiv1alpha3.Network)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_Network_To_v1alpha3_Network(a.(*clusterapiproviderawsapiv1alpha4.Network), b.(*clusterapiproviderawsapiv1alpha3.Network), scope)
+	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha4.NetworkStatus)(nil), (*clusterapiproviderawsapiv1alpha3.Network)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_NetworkStatus_To_v1alpha3_Network(a.(*clusterapiproviderawsapiv1alpha4.NetworkStatus), b.(*clusterapiproviderawsapiv1alpha3.Network), scope)
 	}); err != nil {
 		return err
 	}
@@ -397,7 +397,7 @@ func Convert_v1alpha4_AWSManagedControlPlaneSpec_To_v1alpha3_AWSManagedControlPl
 }
 
 func autoConvert_v1alpha3_AWSManagedControlPlaneStatus_To_v1alpha4_AWSManagedControlPlaneStatus(in *AWSManagedControlPlaneStatus, out *v1alpha4.AWSManagedControlPlaneStatus, s conversion.Scope) error {
-	if err := Convert_v1alpha3_Network_To_v1alpha4_Network(&in.Network, &out.Network, s); err != nil {
+	if err := Convert_v1alpha3_Network_To_v1alpha4_NetworkStatus(&in.Network, &out.Network, s); err != nil {
 		return err
 	}
 	out.FailureDomains = *(*apiv1alpha4.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
@@ -428,7 +428,7 @@ func Convert_v1alpha3_AWSManagedControlPlaneStatus_To_v1alpha4_AWSManagedControl
 }
 
 func autoConvert_v1alpha4_AWSManagedControlPlaneStatus_To_v1alpha3_AWSManagedControlPlaneStatus(in *v1alpha4.AWSManagedControlPlaneStatus, out *AWSManagedControlPlaneStatus, s conversion.Scope) error {
-	if err := Convert_v1alpha4_Network_To_v1alpha3_Network(&in.Network, &out.Network, s); err != nil {
+	if err := Convert_v1alpha4_NetworkStatus_To_v1alpha3_Network(&in.Network, &out.Network, s); err != nil {
 		return err
 	}
 	out.FailureDomains = *(*apiv1alpha3.FailureDomains)(unsafe.Pointer(&in.FailureDomains))

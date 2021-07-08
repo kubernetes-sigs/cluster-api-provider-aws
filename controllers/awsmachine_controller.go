@@ -387,7 +387,7 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 		}
 		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 
-		// If the AWSMachine specifies Network Interfaces, detach the cluster's core Security Groups from them as part of deletion.
+		// If the AWSMachine specifies NetworkStatus Interfaces, detach the cluster's core Security Groups from them as part of deletion.
 		if len(machineScope.AWSMachine.Spec.NetworkInterfaces) > 0 {
 			core, err := ec2Service.GetCoreSecurityGroups(machineScope)
 			if err != nil {

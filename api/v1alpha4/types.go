@@ -88,8 +88,8 @@ const (
 	MachineCreated AWSMachineProviderConditionType = "MachineCreated"
 )
 
-// Network encapsulates AWS networking resources.
-type Network struct {
+// NetworkStatus encapsulates AWS networking resources.
+type NetworkStatus struct {
 	// SecurityGroups is a map from the role/kind of the security group to its unique name, if any.
 	SecurityGroups map[SecurityGroupRole]SecurityGroup `json:"securityGroups,omitempty"`
 

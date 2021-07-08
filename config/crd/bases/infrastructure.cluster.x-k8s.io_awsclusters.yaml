@@ -778,7 +778,7 @@ spec:
       name: Ready
       type: string
     - description: AWS VPC the cluster is using
-      jsonPath: .spec.networkSpec.vpc.id
+      jsonPath: .spec.network.vpc.id
       name: VPC
       type: string
     - description: API Endpoint
@@ -946,7 +946,7 @@ spec:
                   this will be used for all cluster machines unless a machine specifies
                   a different ImageLookupOrg.
                 type: string
-              networkSpec:
+              network:
                 description: NetworkSpec encapsulates all things related to AWS network.
                 properties:
                   cni:
@@ -1327,8 +1327,8 @@ spec:
                   type: object
                 description: FailureDomains is a slice of FailureDomains.
                 type: object
-              network:
-                description: Network encapsulates AWS networking resources.
+              networkStatus:
+                description: NetworkStatus encapsulates AWS networking resources.
                 properties:
                   apiServerElb:
                     description: APIServerELB is the Kubernetes api server classic
