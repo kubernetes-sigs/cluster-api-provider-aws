@@ -127,6 +127,7 @@ func (s *Service) reconcileRouteTables() error {
 
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 			if err := s.associateRouteTable(rt, sn.ID); err != nil {
+				s.scope.Error(err, "trying to associate route table", "subnet_id", sn.ID)
 				return false, err
 			}
 			return true, nil
