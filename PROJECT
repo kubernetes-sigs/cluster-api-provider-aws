@@ -38,3 +38,6 @@ resources:
 - group: infrastructure
   version: v1alpha4
   kind: AWSClusterControllerIdentity
+- group: infrastructure
+  version: v1alpha4
+  kind: AWSClusterTemplate

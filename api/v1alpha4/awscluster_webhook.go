@@ -131,17 +131,21 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 
 // Default satisfies the defaulting webhook interface.
 func (r *AWSCluster) Default() {
-	SetDefaults_Bastion(&r.Spec.Bastion)
-	SetDefaults_NetworkSpec(&r.Spec.NetworkSpec)
-
-	if r.Spec.IdentityRef == nil {
-		r.Spec.IdentityRef = &AWSIdentityReference{
-			Kind: ControllerIdentityKind,
-			Name: AWSClusterControllerIdentityName,
-		}
-	}
+	SetDefaultsAWSClusterSpec(&r.Spec)
 }
 
 func (r *AWSCluster) validateSSHKeyName() field.ErrorList {
 	return validateSSHKeyName(r.Spec.SSHKeyName)
+}
+
+func SetDefaultsAWSClusterSpec(s *AWSClusterSpec) {
+	SetDefaults_Bastion(&s.Bastion)
+	SetDefaults_NetworkSpec(&s.NetworkSpec)
+
+	if s.IdentityRef == nil {
+		s.IdentityRef = &AWSIdentityReference{
+			Kind: ControllerIdentityKind,
+			Name: AWSClusterControllerIdentityName,
+		}
+	}
 }

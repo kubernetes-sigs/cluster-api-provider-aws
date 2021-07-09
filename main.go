@@ -184,6 +184,10 @@ func main() {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSCluster")
 		os.Exit(1)
 	}
+	if err = (&infrav1alpha4.AWSClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterTemplate")
+		os.Exit(1)
+	}
 	if err = (&infrav1alpha4.AWSClusterList{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterList")
 		os.Exit(1)

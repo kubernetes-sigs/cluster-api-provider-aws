@@ -239,10 +239,10 @@ generate: ## Generate code
 
 .PHONY: generate-go
 generate-go: $(MOCKGEN)
-	go generate ./...
 	$(MAKE) generate-go-core
 	$(MAKE) generate-go-eks-bootstrap
 	$(MAKE) generate-go-eks-controlplane
+	go generate ./...
 
 .PHONY: generate-go-core
 generate-go-core: ## Runs Go related generate targets
