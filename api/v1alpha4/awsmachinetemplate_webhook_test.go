@@ -60,6 +60,38 @@ func TestAWSMachineTemplateValidateCreate(t *testing.T) {
 			},
 			wantError: true,
 		},
+		{
+			name: "don't allow to reference AMI using ARN",
+			inputTemplate: &AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: AWSMachineTemplateSpec{
+					Template: AWSMachineTemplateResource{
+						Spec: AWSMachineSpec{
+							AMI: AWSResourceReference{
+								ARN: pointer.String("arn"),
+							},
+						},
+					},
+				},
+			},
+			wantError: true,
+		},
+		{
+			name: "don't allow to reference AMI using Filters",
+			inputTemplate: &AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: AWSMachineTemplateSpec{
+					Template: AWSMachineTemplateResource{
+						Spec: AWSMachineSpec{
+							AMI: AWSResourceReference{
+								Filters: []Filter{{Name: "filter"}},
+							},
+						},
+					},
+				},
+			},
+			wantError: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

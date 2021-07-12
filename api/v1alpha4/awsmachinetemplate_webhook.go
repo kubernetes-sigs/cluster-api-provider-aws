@@ -55,6 +55,14 @@ func (r *AWSMachineTemplate) ValidateCreate() error {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "providerID"), "cannot be set in templates"))
 	}
 
+	if spec.AMI.ARN != nil {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "ami", "arn"), spec.AMI.ARN, "only ID can be used to reference AMI"))
+	}
+
+	if spec.AMI.Filters != nil {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "filters"), spec.AMI.Filters, "only ID can be used to reference AMI"))
+	}
+
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 
