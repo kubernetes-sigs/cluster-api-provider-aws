@@ -44,12 +44,11 @@ const (
 )
 
 func (s *Service) reconcileSubnets() error {
-	s.scope.V(2).Info("Reconciling subnets")
+	s.scope.Info("Reconciling subnets")
 
 	subnets := s.scope.Subnets()
-	updatedSubnets := subnets[:0]
 	defer func() {
-		s.scope.SetSubnets(updatedSubnets)
+		s.scope.SetSubnets(subnets)
 	}()
 
 	// Describe subnets in the vpc.
@@ -69,6 +68,7 @@ func (s *Service) reconcileSubnets() error {
 		}
 		// If we a managed VPC and have no subnets then create subnets. There will be 1 public and 1 private subnet
 		// for each az in a region up to a maximum of 3 azs
+		s.scope.Info("no subnets specified, setting defaults")
 		subnets, err = s.getDefaultSubnets()
 		if err != nil {
 			record.Warnf(s.scope.InfraCluster(), "FailedDefaultSubnets", "Failed getting default subnets: %v", err)
@@ -76,6 +76,7 @@ func (s *Service) reconcileSubnets() error {
 		}
 		// Persist the new default subnets to AWSCluster
 		if err := s.scope.PatchObject(); err != nil {
+			s.scope.Error(err, "failed to patch object to save subnets")
 			return err
 		}
 	}
@@ -108,8 +109,8 @@ func (s *Service) reconcileSubnets() error {
 	}
 
 	for i := range subnets {
-		sub := subnets[i]
-		existingSubnet := existing.FindEqual(&sub)
+		sub := &subnets[i]
+		existingSubnet := existing.FindEqual(sub)
 		if existingSubnet != nil {
 			if !unmanagedVPC {
 				subnetTags := sub.Tags
@@ -129,13 +130,12 @@ func (s *Service) reconcileSubnets() error {
 
 			// Update subnet spec with the existing subnet details
 			// TODO(vincepri): check if subnet needs to be updated.
-			existingSubnet.DeepCopyInto(&sub)
+			existingSubnet.DeepCopyInto(sub)
 		} else if unmanagedVPC {
 			// If there is no existing subnet and we have an umanaged vpc report an error
 			record.Warnf(s.scope.InfraCluster(), "FailedMatchSubnet", "Using unmanaged VPC and failed to find existing subnet for specified subnet id %d, cidr %q", sub.ID, sub.CidrBlock)
 			return errors.New(fmt.Errorf("usign unmanaged vpc and subnet %s (cidr %s) specified but it doesn't exist in vpc %s", sub.ID, sub.CidrBlock, s.scope.VPC().ID).Error())
 		}
-		updatedSubnets = append(updatedSubnets, sub)
 	}
 
 	if !unmanagedVPC {
@@ -158,20 +158,20 @@ func (s *Service) reconcileSubnets() error {
 	// Proceed to create the rest of the subnets that don't have an ID.
 	if !unmanagedVPC {
 		for i := range subnets {
-			subnet := subnets[i]
+			subnet := &subnets[i]
 			if subnet.ID != "" {
 				continue
 			}
 
-			nsn, err := s.createSubnet(&subnet)
+			nsn, err := s.createSubnet(subnet)
 			if err != nil {
 				return err
 			}
-			nsn.DeepCopyInto(&subnet)
+			nsn.DeepCopyInto(subnet)
 		}
 	}
 
-	s.scope.V(2).Info("Subnets available", "subnets", subnets)
+	s.scope.V(2).Info("reconciled subnets", "subnets", subnets)
 	conditions.MarkTrue(s.scope.InfraCluster(), infrav1.SubnetsReadyCondition)
 	return nil
 }
@@ -343,6 +343,7 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 		return nil, errors.Wrap(err, "failed to create subnet")
 	}
 
+	s.scope.Info("created subnet", "id", *out.Subnet.SubnetId, "public", sn.IsPublic, "az", sn.AvailabilityZone, "cidr", sn.CidrBlock)
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateSubnet", "Created new managed Subnet %q", *out.Subnet.SubnetId)
 
 	wReq := &ec2.DescribeSubnetsInput{SubnetIds: []*string{out.Subnet.SubnetId}}
