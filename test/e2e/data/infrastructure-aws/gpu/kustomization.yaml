@@ -1,0 +1,22 @@
+resources:
+  - ../base
+  - gpu-resource-set.yaml
+  - machine-deployment.yaml
+  - ../addons/cni/cluster-resource-set-cni.yaml
+
+patchesStrategicMerge:
+  - patches/gpu-label.yaml
+  - ../patches/cluster-cni.yaml
+configMapGenerator:
+  - name: nvidia-clusterpolicy-crd
+    files:
+      - clusterpolicy-crd.yaml
+  - name: nvidia-gpu-operator-components
+    files:
+      - gpu-operator-components.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    type: generated
+  annotations:
+    note: generated

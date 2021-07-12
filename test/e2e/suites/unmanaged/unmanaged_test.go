@@ -20,15 +20,15 @@ package unmanaged
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"github.com/gofrs/flock"
-	"github.com/onsi/ginkgo/config"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -40,12 +40,17 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/blang/semver"
+	"github.com/gofrs/flock"
+	"github.com/onsi/ginkgo/config"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
+	typedbatchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/exp/instancestate"
@@ -94,6 +99,50 @@ var _ = Describe("functional tests - unmanaged", func() {
 		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.KubernetesVersion))
 		result = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 		shared.CreateAWSClusterControllerIdentity(e2eCtx.Environment.BootstrapClusterProxy.GetClient())
+	})
+
+	Describe("GPU-enabled cluster test", func() {
+		It("should create cluster with single worker", func() {
+			requiredResources := &shared.TestResource{EC2: 1, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
+			requiredResources.WriteRequestedResources(e2eCtx, "gpu-test")
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+
+			By("Creating cluster with a single worker")
+			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
+
+			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+				ClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				ConfigCluster: clusterctl.ConfigClusterInput{
+					LogFolder:                filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
+					ClusterctlConfigPath:     e2eCtx.Environment.ClusterctlConfigPath,
+					KubeconfigPath:           e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
+					InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+					Flavor:                   shared.GPUFlavor,
+					Namespace:                namespace.Name,
+					ClusterName:              clusterName,
+					KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
+					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+					WorkerMachineCount:       pointer.Int64Ptr(1),
+				},
+				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster"),
+				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+				WaitForMachineDeployments:    e2eCtx.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+				// nvidia-gpu flavor creates a config map as part of a crs, that exceeds the annotations size limit when we do kubectl apply.
+				// This is because the entire config map is stored in `last-applied` annotation for tracking.
+				// The workaround is to use server side apply by passing `--server-side` flag to kubectl apply.
+				// More on server side apply here: https://kubernetes.io/docs/reference/using-api/server-side-apply/
+				Args: []string{"--server-side"},
+			}, result)
+
+			AWSGPUSpec(ctx, AWSGPUSpecInput{
+				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				NamespaceName:         namespace.Name,
+				ClusterName:           clusterName,
+				SkipCleanup:           false,
+			})
+			By("PASSED!")
+		})
 	})
 
 	Describe("Multitenancy test", func() {
@@ -1182,4 +1231,145 @@ func getStatefulSetInfo() statefulSetInfo {
 		podTerminationGracePeriod: int64(30),
 		volMountPath:              "/usr/share/nginx/html",
 	}
+}
+
+// AWSGPUSpecInput is the input for AWSGPUSpec.
+type AWSGPUSpecInput struct {
+	BootstrapClusterProxy framework.ClusterProxy
+	NamespaceName         string
+	ClusterName           string
+	SkipCleanup           bool
+}
+
+// AWSGPUSpec implements a test that verifies a GPU-enabled application runs on an "nvidia-gpu"-flavored CAPA cluster.
+func AWSGPUSpec(ctx context.Context, input AWSGPUSpecInput) {
+	specName := "aws-gpu"
+
+	Expect(input.NamespaceName).NotTo(BeNil(), "Invalid argument. input.Namespace can't be nil when calling %s spec", specName)
+	Expect(input.ClusterName).NotTo(BeEmpty(), "Invalid argument. input.ClusterName can't be empty when calling %s spec", specName)
+
+	By("creating a Kubernetes client to the workload cluster")
+	clusterProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.NamespaceName, input.ClusterName)
+	Expect(clusterProxy).NotTo(BeNil())
+	clientset := clusterProxy.GetClientSet()
+	Expect(clientset).NotTo(BeNil())
+
+	By("running a CUDA vector calculation job")
+	jobsClient := clientset.BatchV1().Jobs(corev1.NamespaceDefault)
+	jobName := "cuda-vector-add"
+	gpuJob := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      jobName,
+			Namespace: corev1.NamespaceDefault,
+		},
+		Spec: batchv1.JobSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyOnFailure,
+					Containers: []corev1.Container{
+						{
+							Name:  jobName,
+							Image: "nvcr.io/nvidia/k8s/cuda-sample:vectoradd-cuda11.1-ubuntu18.04",
+							Resources: corev1.ResourceRequirements{
+								Limits: corev1.ResourceList{
+									"nvidia.com/gpu": resource.MustParse("1"),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	_, err := jobsClient.Create(ctx, gpuJob, metav1.CreateOptions{})
+	Expect(err).NotTo(HaveOccurred())
+	gpuJobInput := WaitForJobCompleteInput{
+		Getter:    jobsClientAdapter{client: jobsClient},
+		Job:       gpuJob,
+		Clientset: clientset,
+	}
+	WaitForJobComplete(ctx, gpuJobInput, e2eCtx.E2EConfig.GetIntervals(specName, "wait-job")...)
+}
+
+// jobsClientAdapter adapts a Job to work with WaitForJobAvailable.
+type jobsClientAdapter struct {
+	client typedbatchv1.JobInterface
+}
+
+// Get fetches the job named by the key and updates the provided object.
+func (c jobsClientAdapter) Get(ctx context.Context, key client_runtime.ObjectKey, obj client_runtime.Object) error {
+	job, err := c.client.Get(ctx, key.Name, metav1.GetOptions{})
+	if jobObj, ok := obj.(*batchv1.Job); ok {
+		job.DeepCopyInto(jobObj)
+	}
+	return err
+}
+
+// WaitForJobCompleteInput is the input for WaitForJobComplete.
+type WaitForJobCompleteInput struct {
+	Getter    framework.Getter
+	Job       *batchv1.Job
+	Clientset *kubernetes.Clientset
+}
+
+// WaitForJobComplete waits until the Job completes with at least one success.
+func WaitForJobComplete(ctx context.Context, input WaitForJobCompleteInput, intervals ...interface{}) {
+	namespace, name := input.Job.GetNamespace(), input.Job.GetName()
+	Eventually(func() bool {
+		key := client_runtime.ObjectKey{Namespace: namespace, Name: name}
+		if err := input.Getter.Get(ctx, key, input.Job); err == nil {
+			for _, c := range input.Job.Status.Conditions {
+				if c.Type == batchv1.JobComplete && c.Status == corev1.ConditionTrue {
+					return input.Job.Status.Succeeded > 0
+				}
+			}
+		}
+		return false
+	}, intervals...).Should(BeTrue(), func() string { return DescribeFailedJob(ctx, input) })
+}
+
+// DescribeFailedJob returns a string with information to help debug a failed job.
+func DescribeFailedJob(ctx context.Context, input WaitForJobCompleteInput) string {
+	namespace, name := input.Job.GetNamespace(), input.Job.GetName()
+	b := strings.Builder{}
+	b.WriteString(fmt.Sprintf("Job %s/%s failed",
+		namespace, name))
+	b.WriteString(fmt.Sprintf("\nJob:\n%s\n", prettyPrint(input.Job)))
+	b.WriteString(describeEvents(ctx, input.Clientset, namespace, name))
+	return b.String()
+}
+
+// prettyPrint returns a formatted JSON version of the object given.
+func prettyPrint(v interface{}) string {
+	b, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return err.Error()
+	}
+	return string(b)
+}
+
+// describeEvents returns a string summarizing recent events involving the named object(s).
+func describeEvents(ctx context.Context, clientset *kubernetes.Clientset, namespace, name string) string {
+	b := strings.Builder{}
+	if clientset == nil {
+		b.WriteString("clientset is nil, so skipping output of relevant events")
+	} else {
+		opts := metav1.ListOptions{
+			FieldSelector: fmt.Sprintf("involvedObject.name=%s", name),
+			Limit:         20,
+		}
+		evts, err := clientset.CoreV1().Events(namespace).List(ctx, opts)
+		if err != nil {
+			b.WriteString(err.Error())
+		} else {
+			w := tabwriter.NewWriter(&b, 0, 4, 2, ' ', tabwriter.FilterHTML)
+			fmt.Fprintln(w, "LAST SEEN\tTYPE\tREASON\tOBJECT\tMESSAGE")
+			for _, e := range evts.Items {
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s/%s\t%s\n", e.LastTimestamp, e.Type, e.Reason,
+					strings.ToLower(e.InvolvedObject.Kind), e.InvolvedObject.Name, e.Message)
+			}
+			w.Flush()
+		}
+	}
+	return b.String()
 }
