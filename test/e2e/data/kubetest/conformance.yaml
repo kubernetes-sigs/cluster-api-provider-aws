@@ -1,7 +1,10 @@
-ginkgo.focus: \[Conformance\]
+# Adding Service Type=Loadbalancer migrated from functional test suite
+# In-tree volume storage removed
+ginkgo.focus: \[Conformance\]|LoadBalancers ESIPP
 disable-log-dump: true
 ginkgo.progress: true
 ginkgo.slowSpecThreshold: 120.0
 ginkgo.flakeAttempts: 3
 ginkgo.trace: true
 ginkgo.v: true
+provider: aws

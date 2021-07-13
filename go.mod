@@ -2,7 +2,7 @@ module sigs.k8s.io/cluster-api-provider-aws
 
 go 1.16
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.4.0
+replace sigs.k8s.io/cluster-api => github.com/sbueringer/cluster-api v0.0.0-20210713111551-0c3182ff8b06
 
 require (
 	github.com/apparentlymart/go-cidr v1.1.0
