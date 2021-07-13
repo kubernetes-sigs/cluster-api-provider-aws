@@ -22,6 +22,9 @@ import (
 	"path"
 	"testing"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/kubernetes/scheme"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
 	ctrl "sigs.k8s.io/controller-runtime"
 	// +kubebuilder:scaffold:imports
@@ -44,8 +47,10 @@ func TestMain(m *testing.M) {
 func setup() {
 	// utilruntime.Must(bootstrapv1.AddToScheme(scheme.Scheme))
 	// utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(ekscontrolplanev1.AddToScheme(scheme.Scheme))
 	testEnvConfig := helpers.NewTestEnvironmentConfiguration([]string{
 		path.Join("config", "crd", "bases"),
+		path.Join("controlplane", "eks", "config", "crd", "bases"),
 	},
 	)
 	var err error
