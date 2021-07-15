@@ -423,6 +423,7 @@ func (s *ServiceQuota) updateServiceQuotaRequestStatus(serviceQuotasClient *serv
 	latestRequest := &servicequotas.RequestedServiceQuotaChange{}
 	serviceQuotasClient.ListRequestedServiceQuotaChangeHistoryPages(params,
 		func(page *servicequotas.ListRequestedServiceQuotaChangeHistoryOutput, lastPage bool) bool {
+			latestRequest = page.RequestedQuotas[0]
 			for _, v := range page.RequestedQuotas {
 				if int(aws.Float64Value(v.DesiredValue)) >= s.DesiredMinimumValue && aws.StringValue(v.QuotaCode) == s.QuotaCode && aws.TimeValue(v.Created).After(aws.TimeValue(latestRequest.Created)) {
 					latestRequest = v
