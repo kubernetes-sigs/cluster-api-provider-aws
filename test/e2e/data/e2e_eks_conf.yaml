@@ -14,21 +14,28 @@
 # For more details, run `go run ./cmd/clusterawsadm bootstrap credentials`
 
 images:
-  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller:v0.3.14
-    loadBehavior: tryLoad
   # Use local dev images built source tree;
   - name: gcr.io/k8s-staging-cluster-api/capa-manager:e2e
     loadBehavior: mustLoad
   - name: gcr.io/k8s-staging-cluster-api/capa-eks-bootstrap-manager:e2e
     loadBehavior: mustLoad
   - name: gcr.io/k8s-staging-cluster-api/capa-eks-controlplane-manager:e2e
-    loadBehavior: mustLoad        
-  - name: quay.io/jetstack/cert-manager-cainjector:v0.16.1
+    loadBehavior: mustLoad
+
+## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
+  - name: quay.io/jetstack/cert-manager-cainjector:v1.1.0
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-webhook:v0.16.1
+  - name: quay.io/jetstack/cert-manager-webhook:v1.1.0
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-controller:v0.16.1
+  - name: quay.io/jetstack/cert-manager-controller:v1.1.0
     loadBehavior: tryLoad
+  - name: k8s.gcr.io/cluster-api/kubeadm-control-plane-controller:v0.4.0
+    loadBehavior: tryLoad
+  - name: k8s.gcr.io/cluster-api/kubeadm-bootstrap-controller:v0.4.0
+    loadBehavior: tryLoad
+  - name: k8s.gcr.io/cluster-api/cluster-api-controller:v0.4.0
+    loadBehavior: tryLoad
+
 
 providers:
 
@@ -117,7 +124,7 @@ providers:
         targetName: "cluster-template-eks-managed-machinepool-only.yaml"
       - sourcePath: "./eks/cluster-template-eks-managedmachinepool.yaml"
         targetName: "cluster-template-eks-managedmachinepool.yaml"
-        
+
 
 variables:
   KUBERNETES_VERSION: "v1.19.8"

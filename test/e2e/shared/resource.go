@@ -24,7 +24,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"strconv"
 	"time"
 
 	. "github.com/onsi/gomega"
@@ -106,22 +105,22 @@ func (r *TestResource) WriteRequestedResources(e2eCtx *E2EContext, testName stri
 }
 
 func (r *TestResource) doesSatisfy(request *TestResource) bool {
-	if request.EC2 != 0 && r.EC2 < request.EC2{
+	if request.EC2 != 0 && r.EC2 < request.EC2 {
 		return false
 	}
-	if request.IGW != 0 && r.IGW < request.IGW{
+	if request.IGW != 0 && r.IGW < request.IGW {
 		return false
 	}
-	if request.NGW != 0 && r.NGW < request.NGW{
+	if request.NGW != 0 && r.NGW < request.NGW {
 		return false
 	}
-	if request.ClassicLB != 0 && r.ClassicLB < request.ClassicLB{
+	if request.ClassicLB != 0 && r.ClassicLB < request.ClassicLB {
 		return false
 	}
-	if request.VPC != 0 && r.VPC < request.VPC{
+	if request.VPC != 0 && r.VPC < request.VPC {
 		return false
 	}
-	if request.EIP != 0 && r.EIP < request.EIP{
+	if request.EIP != 0 && r.EIP < request.EIP {
 		return false
 	}
 
@@ -147,7 +146,7 @@ func (r *TestResource) release(request *TestResource) {
 }
 
 func AcquireResources(request *TestResource, nodeNum int, fileLock *flock.Flock) error {
-	timeoutInSec := 60 * 60 * 4
+	timeoutAfter := time.Now().Add(time.Hour * 6)
 	defer func() error {
 		if err := fileLock.Unlock(); err != nil {
 			return err
@@ -155,10 +154,10 @@ func AcquireResources(request *TestResource, nodeNum int, fileLock *flock.Flock)
 		return nil
 	}()
 
-	var tryCount = 0
-	for range time.Tick(1 * time.Second) {
-		tryCount++
-		if tryCount > timeoutInSec {
+	Byf("Node %d acquiring resources: %s", nodeNum, request.String())
+	for range time.Tick(time.Second) {
+		if time.Now().After(timeoutAfter) {
+			Byf("Timeout reached for node %d", nodeNum)
 			break
 		}
 		err := fileLock.Lock()
@@ -184,14 +183,21 @@ func AcquireResources(request *TestResource, nodeNum int, fileLock *flock.Flock)
 			if err := ioutil.WriteFile(ResourceQuotaFilePath, data, 0644); err != nil {
 				return err
 			}
-			Byf("Node %s acquired resources: ",strconv.Itoa(nodeNum), request.String())
+			Byf("Node %d acquired resources: %s", nodeNum, request.String())
 			return nil
 		}
+		e2eDebugBy("Insufficient resources, retrying")
 		if err := fileLock.Unlock(); err != nil {
 			return err
 		}
 	}
 	return errors.New("giving up on acquiring resource due to timeout")
+}
+
+func e2eDebugBy(msg string) {
+	if os.Getenv("E2E_DEBUG") != "" {
+		Byf(msg)
+	}
 }
 
 func ReleaseResources(request *TestResource, nodeNum int, fileLock *flock.Flock) error {
@@ -223,7 +229,7 @@ func ReleaseResources(request *TestResource, nodeNum int, fileLock *flock.Flock)
 		if err := ioutil.WriteFile(ResourceQuotaFilePath, data, 0644); err != nil {
 			return err
 		}
-		Byf("Node %s released resources: ",strconv.Itoa(nodeNum), request.String())
+		Byf("Node %d released resources: %s", nodeNum, request.String())
 		return nil
 	}
 	return errors.New("giving up on releasing resource due to timeout")

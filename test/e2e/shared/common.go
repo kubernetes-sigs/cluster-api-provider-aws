@@ -48,6 +48,8 @@ func SetupSpecNamespace(ctx context.Context, specName string, e2eCtx *E2EContext
 	})
 
 	e2eCtx.Environment.Namespaces[namespace] = cancelWatches
+	Expect(e2eCtx.E2EConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil")
+	Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 
 	return namespace
 }

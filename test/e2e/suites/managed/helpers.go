@@ -21,7 +21,6 @@ package managed
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
 	//. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -34,13 +33,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 )
 
 const (
@@ -53,21 +50,6 @@ const (
 )
 
 type DefaultConfigClusterFn func(clusterName, namespace string) clusterctl.ConfigClusterInput
-
-func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigClusterInput {
-	return clusterctl.ConfigClusterInput{
-		LogFolder:                filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
-		ClusterctlConfigPath:     e2eCtx.Environment.ClusterctlConfigPath,
-		KubeconfigPath:           e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
-		InfrastructureProvider:   "aws",
-		Flavor:                   EKSManagedPoolFlavor,
-		Namespace:                namespace,
-		ClusterName:              clusterName,
-		KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
-		ControlPlaneMachineCount: pointer.Int64Ptr(1),
-		WorkerMachineCount:       pointer.Int64Ptr(0),
-	}
-}
 
 func getEKSClusterName(namespace, clusterName string) string {
 	return fmt.Sprintf("%s_%s-control-plane", namespace, clusterName)

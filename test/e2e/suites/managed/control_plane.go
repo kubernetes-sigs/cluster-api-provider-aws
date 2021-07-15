@@ -21,7 +21,7 @@ package managed
 import (
 	"context"
 
-	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -75,7 +75,7 @@ func UpgradeControlPlaneVersionSpec(ctx context.Context, inputGetter func() Upgr
 	controlPlane.Spec.Version = &input.UpgradeVersion
 	Expect(patchHelper.Patch(ctx, controlPlane)).To(Succeed())
 
-	By("Waiting for EKS control-plane to be upgraded to new version")
+	ginkgo.By("Waiting for EKS control-plane to be upgraded to new version")
 	waitForControlPlaneToBeUpgraded(ctx, waitForControlPlaneToBeUpgradedInput{
 		ControlPlane:   controlPlane,
 		AWSSession:     input.AWSSession,

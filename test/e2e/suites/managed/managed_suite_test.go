@@ -22,7 +22,7 @@ import (
 	"flag"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -50,21 +50,24 @@ func init() {
 }
 
 func TestE2E(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecsWithDefaultAndCustomReporters(t, "capa-eks-e2e", []Reporter{framework.CreateJUnitReporterForProw(e2eCtx.Settings.ArtifactFolder)})
+	RegisterFailHandler(ginkgo.Fail)
+	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "capa-eks-e2e", []ginkgo.Reporter{framework.CreateJUnitReporterForProw(e2eCtx.Settings.ArtifactFolder)})
 }
 
-var _ = SynchronizedBeforeSuite(func() []byte {
+var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	return shared.Node1BeforeSuite(e2eCtx)
 }, func(data []byte) {
 	shared.AllNodesBeforeSuite(e2eCtx, data)
 })
 
-var _ = SynchronizedAfterSuite(func() {
-	shared.Node1AfterSuite(e2eCtx)
-}, func() {
-	shared.AllNodesAfterSuite(e2eCtx)
-})
+var _ = ginkgo.SynchronizedAfterSuite(
+	func() {
+		shared.AllNodesAfterSuite(e2eCtx)
+	},
+	func() {
+		shared.Node1AfterSuite(e2eCtx)
+	},
+)
 
 func runGeneralTests() bool {
 	return !skipGeneralTests

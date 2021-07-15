@@ -63,6 +63,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	e2eCtx.E2EConfig = LoadE2EConfig(e2eCtx.Settings.ConfigPath)
 	sourceTemplate, err := ioutil.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, e2eCtx.Settings.SourceTemplate))
 	Expect(err).NotTo(HaveOccurred())
+	e2eCtx.StartOfSuite = time.Now()
 
 	var clusterctlCITemplate clusterctl.Files
 	if !e2eCtx.IsManaged {
@@ -135,7 +136,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	ensureNoServiceLinkedRoles(e2eCtx.AWSSession)
 	ensureSSHKeyPair(e2eCtx.AWSSession, DefaultSSHKeyPairName)
 	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(e2eCtx.AWSSession, boostrapTemplate.Spec.BootstrapUser.UserName)
-	e2eCtx.BootstratpUserAWSSession = NewAWSSessionWithKey(e2eCtx.Environment.BootstrapAccessKey)
+	e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(e2eCtx.Environment.BootstrapAccessKey)
 
 	// Image ID is needed when using a CI Kubernetes version. This is used in conformance test and upgrade to main test.
 	if !e2eCtx.IsManaged {
@@ -151,12 +152,14 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	SetEnvVar("AWS_B64ENCODED_CREDENTIALS", encodeCredentials(e2eCtx.Environment.BootstrapAccessKey, boostrapTemplate.Spec.Region), true)
 
 	By("Writing AWS service quotas to a file for parallel tests")
-	quotas := GetServiceQuotas(e2eCtx.BootstratpUserAWSSession)
+	quotas := EnsureServiceQuotas(e2eCtx.BootstrapUserAWSSession)
 	WriteResourceQuotesToFile(ResourceQuotaFilePath, quotas)
 	WriteResourceQuotesToFile(path.Join(e2eCtx.Settings.ArtifactFolder, "initial-resource-quotas.yaml"), quotas)
 
 	By("Initializing the bootstrap cluster")
 	initBootstrapCluster(e2eCtx)
+
+	CreateAWSClusterControllerIdentity(e2eCtx.Environment.BootstrapClusterProxy.GetClient())
 
 	conf := synchronizedBeforeTestSuiteConfig{
 		ArtifactFolder:          e2eCtx.Settings.ArtifactFolder,
@@ -187,7 +190,7 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 	e2eCtx.Environment.ClusterctlConfigPath = conf.ClusterctlConfigPath
 	e2eCtx.Environment.BootstrapClusterProxy = framework.NewClusterProxy("bootstrap", conf.KubeconfigPath, e2eCtx.Environment.Scheme)
 	e2eCtx.E2EConfig = &conf.E2EConfig
-	e2eCtx.BootstratpUserAWSSession = NewAWSSessionWithKey(conf.BootstrapAccessKey)
+	e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(conf.BootstrapAccessKey)
 	e2eCtx.Settings.FileLock = flock.New(ResourceQuotaFilePath)
 	e2eCtx.Settings.KubetestConfigFilePath = conf.KubetestConfigFilePath
 	e2eCtx.Settings.UseCIArtifacts = conf.UseCIArtifacts
@@ -199,7 +202,6 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 	SetEnvVar(AwsAvailabilityZone2, *azs[1].ZoneName, false)
 	SetEnvVar("AWS_REGION", conf.Region, false)
 	SetEnvVar("AWS_SSH_KEY_NAME", DefaultSSHKeyPairName, false)
-	Expect(SetMultitenancyEnvVars(e2eCtx.AWSSession)).To(Succeed())
 	e2eCtx.Environment.ResourceTicker = time.NewTicker(time.Second * 5)
 	e2eCtx.Environment.ResourceTickerDone = make(chan bool)
 	// Get EC2 logs every minute
@@ -242,31 +244,31 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 
 // Node1AfterSuite is cleanup that runs on the first ginkgo node after the test suite finishes
 func Node1AfterSuite(e2eCtx *E2EContext) {
-	if e2eCtx.Environment.ResourceTickerDone != nil {
-		e2eCtx.Environment.ResourceTickerDone <- true
-	}
-	if e2eCtx.Environment.MachineTickerDone != nil {
-		e2eCtx.Environment.MachineTickerDone <- true
-	}
-	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Minute)
-	defer cancel()
+	ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Minute)
 	DumpEKSClusters(ctx, e2eCtx)
-	for k := range e2eCtx.Environment.Namespaces {
-		DumpSpecResourcesAndCleanup(ctx, "", k, e2eCtx)
-		DumpMachines(ctx, e2eCtx, k)
-	}
-
-	quotas := GetServiceQuotas(e2eCtx.BootstratpUserAWSSession)
-	WriteResourceQuotesToFile(path.Join(e2eCtx.Settings.ArtifactFolder, "end-resource-quotas.yaml"), quotas)
-}
-
-// AllNodesAfterSuite is cleanup that runs on all ginkgo parallel nodes after the test suite finishes
-func AllNodesAfterSuite(e2eCtx *E2EContext) {
+	DumpCloudTrailEvents(e2eCtx)
+	defer cancel()
 	By("Tearing down the management cluster")
 	if !e2eCtx.Settings.SkipCleanup {
 		tearDown(e2eCtx.Environment.BootstrapClusterProvider, e2eCtx.Environment.BootstrapClusterProxy)
 		if !e2eCtx.Settings.SkipCloudFormationDeletion {
 			deleteCloudFormationStack(e2eCtx.AWSSession, getBootstrapTemplate(e2eCtx))
 		}
+	}
+}
+
+// AllNodesAfterSuite is cleanup that runs on all ginkgo parallel nodes after the test suite finishes
+func AllNodesAfterSuite(e2eCtx *E2EContext) {
+	if e2eCtx.Environment.ResourceTickerDone != nil {
+		e2eCtx.Environment.ResourceTickerDone <- true
+	}
+	if e2eCtx.Environment.MachineTickerDone != nil {
+		e2eCtx.Environment.MachineTickerDone <- true
+	}
+	ctx, cancel := context.WithTimeout(context.TODO(), 45*time.Minute)
+	defer cancel()
+	for k := range e2eCtx.Environment.Namespaces {
+		DumpSpecResourcesAndCleanup(ctx, "", k, e2eCtx)
+		DumpMachines(ctx, e2eCtx, k)
 	}
 }

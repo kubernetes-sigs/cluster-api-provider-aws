@@ -63,6 +63,8 @@ PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 DOCKER_CLI_EXPERIMENTAL=enabled
 DOCKER_BUILDKIT=1
 
+export ACK_GINKGO_DEPRECATIONS := 1.16.4
+
 # Set --output-base for conversion-gen if we are not within GOPATH
 ifneq ($(abspath $(REPO_ROOT)),$(shell go env GOPATH)/src/sigs.k8s.io/cluster-api-provider-aws)
 	GEN_OUTPUT_BASE := --output-base=$(REPO_ROOT)
@@ -127,16 +129,59 @@ PULL_POLICY ?= Always
 # Set build time variables including version details
 LDFLAGS := $(shell source ./hack/version.sh; version::ldflags)
 
-# 'functional tests' as the ginkgo filter will run ALL tests ~ 2 hours @ 3 node concurrency.
-E2E_UNMANAGED_FOCUS ?= "functional tests - unmanaged"
-# Instead, you can run a quick smoke test, it should run fast (9 minutes)...
-# E2E_UNMANAGED_FOCUS := "Create cluster with name having"
-# For running CAPI e2e tests: E2E_UNMANAGED_FOCUS := "Cluster API E2E tests"
-# For running CAPI blocking e2e test: E2E_UNMANAGED_FOCUS := "PR-Blocking"
+# Set USE_EXISTING_CLUSTER to use an existing kubernetes context
 USE_EXISTING_CLUSTER ?= "false"
 
-GINKGO_NODES ?= 3
-GINKGO_ARGS ?=
+# Set E2E_SKIP_EKS_UPGRADE to false to test EKS upgrades.
+# Warning, this takes a long time
+E2E_SKIP_EKS_UPGRADE ?= "true"
+
+# Set EKS_SOURCE_TEMPLATE to override the source template
+EKS_SOURCE_TEMPLATE ?= eks/cluster-template-eks-control-plane-only.yaml
+
+#### We are disable Cluster API Framework tests for the time being for lack of resources
+# With framework tests enables, tests exceed the 4 hour timeout.
+GINKGO_SKIP ?= \[Cluster API Framework\]
+
+# If someone sets an explicit focus for Cluster API Framework, remove the skip
+ifeq ($(findstring \[Cluster API Framework\],$(E2E_FOCUS)),\[Cluster API Framework\])
+  override undefine GINKGO_SKIP
+endif
+
+# Enable Cluster API Framework tests for the purposes of running the PR blocking test
+ifeq ($(findstring \[PR-Blocking\],$(E2E_FOCUS)),\[PR-Blocking\])
+  override undefine GINKGO_SKIP
+endif
+
+override E2E_ARGS += -artifacts-folder="$(ARTIFACTS)" --data-folder="$(E2E_DATA_DIR)" -use-existing-cluster=$(USE_EXISTING_CLUSTER)
+override GINKGO_ARGS += -stream -progress -v -trace
+
+ifdef GINKGO_SKIP
+	override GINKGO_ARGS += -skip "$(GINKGO_SKIP)"
+endif
+
+# DEPRECATED, use E2E_FOCUS instead
+ifdef E2E_UNMANAGED_FOCUS
+	override GINKGO_ARGS += -focus="$(E2E_UNMANAGED_FOCUS)"
+endif
+
+# ALL tests will take ~ 1 hour @ 24 node concurrency.
+# Set the number of nodes using GINKGO_ARGS=-nodes 24
+# Ginkgo will default to the number of logical CPUs you have available.
+# Should be safe to set more nodes than available CPU cores as most of the time is spent in
+# infrastructure reconciliation
+
+# Instead, you can run a quick smoke test, it should run fast (9 minutes)...
+# E2E_FOCUS := "\\[smoke\\]"
+# For running CAPI e2e tests: E2E_FOCUS := "\\[Cluster API Framework\\]"
+# For running CAPI blocking e2e test: E2E_FOCUS := "\\[PR-Blocking\\]"
+ifdef E2E_FOCUS
+	override GINKGO_ARGS += -focus="$(E2E_FOCUS)"
+endif
+
+ifeq ($(E2E_SKIP_EKS_UPGRADE),"true")
+	override EKS_E2E_ARGS += --skip-eks-upgrade-tests
+endif
 
 ## --------------------------------------
 ## Testing
@@ -155,11 +200,11 @@ generate-test-flavors: $(KUSTOMIZE)  ## Generate test template flavors
 
 .PHONY: test-e2e ## Run e2e tests using clusterctl
 test-e2e: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run e2e tests
-	time $(GINKGO) -trace -stream -progress -v -tags=e2e -focus="$(E2E_UNMANAGED_FOCUS)" $(GINKGO_ARGS) -nodes=$(GINKGO_NODES) ./test/e2e/suites/unmanaged/... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" --data-folder="$(E2E_DATA_DIR)" $(E2E_ARGS) -use-existing-cluster=$(USE_EXISTING_CLUSTER)
+	time $(GINKGO) -tags=e2e $(GINKGO_ARGS) -p ./test/e2e/suites/unmanaged/... -- -config-path="$(E2E_CONF_PATH)" $(E2E_ARGS)
 
 .PHONY: test-e2e-eks ## Run EKS e2e tests using clusterctl
 test-e2e-eks: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run eks e2e tests
-	time $(GINKGO) -trace -progress -v -tags=e2e $(GINKGO_ARGS) ./test/e2e/suites/managed/... -- -config-path="$(E2E_EKS_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" --data-folder="$(E2E_DATA_DIR)" --source-template="eks/cluster-template-eks-control-plane-only.yaml" --skip-eks-upgrade-tests $(E2E_ARGS)
+	time $(GINKGO) -tags=e2e $(GINKGO_ARGS) ./test/e2e/suites/managed/... -- -config-path="$(E2E_EKS_CONF_PATH)" --source-template="$(EKS_SOURCE_TEMPLATE)" $(E2E_ARGS) $(EKS_E2E_ARGS)
 
 .PHONY: e2e-image
 e2e-image: docker-pull-prerequisites
@@ -167,14 +212,12 @@ e2e-image: docker-pull-prerequisites
 	docker build -f Dockerfile --tag="gcr.io/k8s-staging-cluster-api/capa-eks-bootstrap-manager:e2e" --build-arg package=./bootstrap/eks  .
 	docker build -f Dockerfile --tag="gcr.io/k8s-staging-cluster-api/capa-eks-controlplane-manager:e2e" --build-arg package=./controlplane/eks  .
 
-E2E_ARGS ?=
 CONFORMANCE_E2E_ARGS ?= -kubetest.config-file=$(KUBETEST_CONF_PATH)
 CONFORMANCE_E2E_ARGS += $(E2E_ARGS)
-CONFORMANCE_GINKGO_ARGS ?= -stream
 CONFORMANCE_GINKGO_ARGS += $(GINKGO_ARGS)
 .PHONY: test-conformance
 test-conformance: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run clusterctl based conformance test on workload cluster (requires Docker).
-	time $(GINKGO) -trace -progress -v -tags=e2e -focus="conformance" $(CONFORMANCE_GINKGO_ARGS) ./test/e2e/suites/conformance/... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" --data-folder="$(E2E_DATA_DIR)" $(CONFORMANCE_E2E_ARGS)
+	time $(GINKGO) -tags=e2e -focus="conformance" $(CONFORMANCE_GINKGO_ARGS) ./test/e2e/suites/conformance/... -- -config-path="$(E2E_CONF_PATH)" $(CONFORMANCE_E2E_ARGS)
 
 
 test-conformance-fast: ## Run clusterctl based conformance test on workload cluster (requires Docker) using a subset of the conformance suite in parallel.
@@ -670,3 +713,16 @@ compile-e2e: ## Test e2e compilation
 	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/unmanaged
 	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/conformance
 	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/managed
+
+.PHONY: clean-artifacts
+clean-artifacts: ## Remove the _artifacts directory
+	rm -rf _artifacts
+
+.PHONY: docker-pull-e2e-preloads
+docker-pull-e2e-preloads: ## Preloads the docker images used for e2e testing and can speed it up
+	-docker pull k8s.gcr.io/cluster-api/kubeadm-control-plane-controller:$(CAPI_VERSION)
+	-docker pull k8s.gcr.io/cluster-api/kubeadm-bootstrap-controller:$(CAPI_VERSION)
+	-docker pull k8s.gcr.io/cluster-api/cluster-api-controller:$(CAPI_VERSION)
+	-docker pull quay.io/jetstack/cert-manager-controller:$(CERT_MANAGER_VERSION)
+	-docker pull quay.io/jetstack/cert-manager-cainjector:$(CERT_MANAGER_VERSION)
+	-docker pull quay.io/jetstack/cert-manager-webhook:$(CERT_MANAGER_VERSION)

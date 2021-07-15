@@ -63,12 +63,13 @@ type E2EContext struct {
 	Environment RuntimeEnvironment
 	// AWSSession is the AWS session for the tests
 	AWSSession client.ConfigProvider
-	// BootstratpUserAWSSession is the AWS session for the bootstrap user
-	BootstratpUserAWSSession client.ConfigProvider
+	// BootstrapUserAWSSession is the AWS session for the bootstrap user
+	BootstrapUserAWSSession client.ConfigProvider
 	// IsManaged indicates that this is for the managed part of the provider
 	IsManaged bool
 	// CloudFormationTemplate is the rendered template created for the test
 	CloudFormationTemplate *cloudformation.Template
+	StartOfSuite           time.Time
 }
 
 // Settings represents the test settings

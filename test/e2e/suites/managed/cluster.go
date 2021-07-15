@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/client"
-	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
@@ -93,10 +93,10 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 	verifyClusterActiveAndOwned(eksClusterName, input.ClusterName, input.AWSSession)
 
 	if input.CluserSpecificRoles {
-		By("Checking that the cluster specific IAM role exists")
+		ginkgo.By("Checking that the cluster specific IAM role exists")
 		verifyRoleExistsAndOwned(fmt.Sprintf("%s-iam-service-role", input.ClusterName), input.ClusterName, true, input.AWSSession)
 	} else {
-		By("Checking that the cluster default IAM role exists")
+		ginkgo.By("Checking that the cluster default IAM role exists")
 		verifyRoleExistsAndOwned(controlplanev1.DefaultEKSControlPlaneRole, input.ClusterName, false, input.AWSSession)
 	}
 

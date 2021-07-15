@@ -111,39 +111,45 @@ func (m MultitenancyRole) RoleARN(prov client.ConfigProvider) (string, error) {
 func getLimitedResources() map[string]*ServiceQuota {
 	serviceQuotas := map[string]*ServiceQuota{}
 	serviceQuotas["igw"] = &ServiceQuota{
-		ServiceCode: "vpc",
-		QuotaName:   "Internet gateways per Region",
-		QuotaCode:   "L-A4707A72",
+		ServiceCode:         "vpc",
+		QuotaName:           "Internet gateways per Region",
+		QuotaCode:           "L-A4707A72",
+		DesiredMinimumValue: 20,
 	}
 
 	serviceQuotas["ngw"] = &ServiceQuota{
-		ServiceCode: "vpc",
-		QuotaName:   "NAT gateways per Availability Zone",
-		QuotaCode:   "L-FE5A380F",
+		ServiceCode:         "vpc",
+		QuotaName:           "NAT gateways per Availability Zone",
+		QuotaCode:           "L-FE5A380F",
+		DesiredMinimumValue: 20,
 	}
 
 	serviceQuotas["vpc"] = &ServiceQuota{
-		ServiceCode: "vpc",
-		QuotaName:   "VPCs per Region",
-		QuotaCode:   "L-F678F1CE",
+		ServiceCode:         "vpc",
+		QuotaName:           "VPCs per Region",
+		QuotaCode:           "L-F678F1CE",
+		DesiredMinimumValue: 20,
 	}
 
 	serviceQuotas["ec2"] = &ServiceQuota{
-		ServiceCode: "ec2",
-		QuotaName:   "Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances",
-		QuotaCode:   "L-1216C47A",
+		ServiceCode:         "ec2",
+		QuotaName:           "Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances",
+		QuotaCode:           "L-1216C47A",
+		DesiredMinimumValue: 20,
 	}
 
 	serviceQuotas["eip"] = &ServiceQuota{
-		ServiceCode: "ec2",
-		QuotaName:   "EC2-VPC Elastic IPs",
-		QuotaCode:   "L-0263D0A3",
+		ServiceCode:         "ec2",
+		QuotaName:           "EC2-VPC Elastic IPs",
+		QuotaCode:           "L-0263D0A3",
+		DesiredMinimumValue: 100,
 	}
 
 	serviceQuotas["classiclb"] = &ServiceQuota{
-		ServiceCode: "elasticloadbalancing",
-		QuotaName:   "Classic Load Balancers per Region",
-		QuotaCode:   "L-E9E9831D",
+		ServiceCode:         "elasticloadbalancing",
+		QuotaName:           "Classic Load Balancers per Region",
+		QuotaCode:           "L-E9E9831D",
+		DesiredMinimumValue: 20,
 	}
 	return serviceQuotas
 }
