@@ -42,6 +42,7 @@ func (s *Service) SDKToAutoScalingGroup(v *autoscaling.Group) (*expinfrav1.AutoS
 		MaxSize:           int32(aws.Int64Value(v.MaxSize)),
 		MinSize:           int32(aws.Int64Value(v.MinSize)),
 		CapacityRebalance: aws.BoolValue(v.CapacityRebalance),
+		AvailabilityZones: aws.StringValueSlice(v.AvailabilityZones),
 		//TODO: determine what additional values go here and what else should be in the struct
 	}
 
@@ -156,6 +157,7 @@ func (s *Service) CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScal
 		DefaultCoolDown:      scope.AWSMachinePool.Spec.DefaultCoolDown,
 		CapacityRebalance:    scope.AWSMachinePool.Spec.CapacityRebalance,
 		MixedInstancesPolicy: scope.AWSMachinePool.Spec.MixedInstancesPolicy,
+		AvailabilityZones:    scope.AWSMachinePool.Spec.AvailabilityZones,
 	}
 
 	if scope.MachinePool.Spec.Replicas != nil {
@@ -202,6 +204,10 @@ func (s *Service) runPool(i *expinfrav1.AutoScalingGroup, launchTemplateID strin
 		VPCZoneIdentifier:    aws.String(strings.Join(i.Subnets, ", ")),
 		DefaultCooldown:      aws.Int64(int64(i.DefaultCoolDown.Duration.Seconds())),
 		CapacityRebalance:    aws.Bool(i.CapacityRebalance),
+	}
+
+	if i.AvailabilityZones != nil {
+		input.AvailabilityZones = aws.StringSlice(i.AvailabilityZones)
 	}
 
 	if i.DesiredCapacity != nil {
