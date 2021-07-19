@@ -576,30 +576,13 @@ spec:
                 description: AMI is the reference to the AMI from which to create
                   the machine instance.
                 properties:
-                  arn:
-                    description: ARN of resource
+                  eksLookupType:
+                    description: EKSOptimizedLookupType If specified, will look up
+                      an EKS Optimized image in SSM Parameter store
+                    enum:
+                    - AmazonLinux
+                    - AmazonLinuxGPU
                     type: string
-                  filters:
-                    description: 'Filters is a set of key/value pairs used to identify
-                      a resource They are applied according to the rules defined by
-                      the AWS API: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html'
-                    items:
-                      description: Filter is a filter used to identify an AWS resource
-                      properties:
-                        name:
-                          description: Name of the filter. Filter names are case-sensitive.
-                          type: string
-                        values:
-                          description: Values includes one or more filter values.
-                            Filter values are case-sensitive.
-                          items:
-                            type: string
-                          type: array
-                      required:
-                      - name
-                      - values
-                      type: object
-                    type: array
                   id:
                     description: ID of resource
                     type: string

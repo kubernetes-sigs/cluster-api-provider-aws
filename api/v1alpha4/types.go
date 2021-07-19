@@ -49,6 +49,20 @@ type AWSResourceReference struct {
 	Filters []Filter `json:"filters,omitempty"`
 }
 
+// AMIReference is a reference to a specific AWS resource by ID, ARN, or filters.
+// Only one of ID, ARN or Filters may be specified. Specifying more than one will result in
+// a validation error.
+type AMIReference struct {
+	// ID of resource
+	// +optional
+	ID *string `json:"id,omitempty"`
+
+	// EKSOptimizedLookupType If specified, will look up an EKS Optimized image in SSM Parameter store
+	// +kubebuilder:validation:Enum:=AmazonLinux;AmazonLinuxGPU
+	// +optional
+	EKSOptimizedLookupType *EKSAMILookupType `json:"eksLookupType,omitempty"`
+}
+
 // AWSMachineTemplateResource describes the data needed to create am AWSMachine from a template
 type AWSMachineTemplateResource struct {
 	// Spec is the specification of the desired behavior of the machine.
@@ -724,3 +738,13 @@ type SpotMarketOptions struct {
 	// +kubebuilder:validation:pattern="^[0-9]+(\.[0-9]+)?$"
 	MaxPrice *string `json:"maxPrice,omitempty"`
 }
+
+// EKSAMILookupType specifies which AWS AMI to use for a AWSMachine and AWSMachinePool.
+type EKSAMILookupType string
+
+const (
+	// AmazonLinux is the default AMI type.
+	AmazonLinux EKSAMILookupType = "AmazonLinux"
+	// AmazonLinuxGPU is the AmazonLinux GPU AMI type.
+	AmazonLinuxGPU EKSAMILookupType = "AmazonLinuxGPU"
+)

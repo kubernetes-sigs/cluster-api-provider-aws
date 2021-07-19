@@ -21,10 +21,27 @@ import (
 
 	. "github.com/onsi/gomega"
 
+	fuzz "github.com/google/gofuzz"
+	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	v1alpha4 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
+
+func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		AWSMachinePoolFuzzer,
+	}
+}
+
+func AWSMachinePoolFuzzer(obj *AWSMachinePool, c fuzz.Continue){
+	c.FuzzNoCustom(obj)
+
+	// AWSMachinePool.Spec.AWSLaunchTemplate.AMI.ARN and AWSMachinePool.Spec.AWSLaunchTemplate.AMI.Filters has been removed in v1alpha4, so setting it to nil in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
+	obj.Spec.AWSLaunchTemplate.AMI.ARN= nil
+	obj.Spec.AWSLaunchTemplate.AMI.Filters= nil
+}
 
 func TestFuzzyConversion(t *testing.T) {
 	g := NewWithT(t)
@@ -36,6 +53,7 @@ func TestFuzzyConversion(t *testing.T) {
 		Scheme: scheme,
 		Hub:    &v1alpha4.AWSMachinePool{},
 		Spoke:  &AWSMachinePool{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 
 	t.Run("for AWSManagedMachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{

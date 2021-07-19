@@ -65,7 +65,7 @@ type AWSLaunchTemplate struct {
 
 	// AMI is the reference to the AMI from which to create the machine instance.
 	// +optional
-	AMI infrav1.AWSResourceReference `json:"ami,omitempty"`
+	AMI infrav1.AMIReference `json:"ami,omitempty"`
 
 	// ImageLookupFormat is the AMI naming format to look up the image for this
 	// machine It will be ignored if an explicit AMI is set. Supports

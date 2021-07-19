@@ -320,6 +320,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha3.AWSResourceReference)(nil), (*clusterapiproviderawsapiv1alpha4.AMIReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha3_AWSResourceReference_To_v1alpha4_AMIReference(a.(*clusterapiproviderawsapiv1alpha3.AWSResourceReference), b.(*clusterapiproviderawsapiv1alpha4.AMIReference), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha3.AWSResourceReference)(nil), (*clusterapiproviderawsapiv1alpha4.AWSResourceReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_AWSResourceReference_To_v1alpha4_AWSResourceReference(a.(*clusterapiproviderawsapiv1alpha3.AWSResourceReference), b.(*clusterapiproviderawsapiv1alpha4.AWSResourceReference), scope)
 	}); err != nil {
@@ -327,6 +332,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha3.Instance)(nil), (*clusterapiproviderawsapiv1alpha4.Instance)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_Instance_To_v1alpha4_Instance(a.(*clusterapiproviderawsapiv1alpha3.Instance), b.(*clusterapiproviderawsapiv1alpha4.Instance), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha4.AMIReference)(nil), (*clusterapiproviderawsapiv1alpha3.AWSResourceReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_AMIReference_To_v1alpha3_AWSResourceReference(a.(*clusterapiproviderawsapiv1alpha4.AMIReference), b.(*clusterapiproviderawsapiv1alpha3.AWSResourceReference), scope)
 	}); err != nil {
 		return err
 	}
@@ -410,7 +420,7 @@ func Convert_v1alpha4_AWSFargateProfileList_To_v1alpha3_AWSFargateProfileList(in
 func autoConvert_v1alpha3_AWSLaunchTemplate_To_v1alpha4_AWSLaunchTemplate(in *AWSLaunchTemplate, out *v1alpha4.AWSLaunchTemplate, s conversion.Scope) error {
 	out.Name = in.Name
 	out.IamInstanceProfile = in.IamInstanceProfile
-	if err := Convert_v1alpha3_AWSResourceReference_To_v1alpha4_AWSResourceReference(&in.AMI, &out.AMI, s); err != nil {
+	if err := Convert_v1alpha3_AWSResourceReference_To_v1alpha4_AMIReference(&in.AMI, &out.AMI, s); err != nil {
 		return err
 	}
 	out.ImageLookupFormat = in.ImageLookupFormat
@@ -442,7 +452,7 @@ func Convert_v1alpha3_AWSLaunchTemplate_To_v1alpha4_AWSLaunchTemplate(in *AWSLau
 func autoConvert_v1alpha4_AWSLaunchTemplate_To_v1alpha3_AWSLaunchTemplate(in *v1alpha4.AWSLaunchTemplate, out *AWSLaunchTemplate, s conversion.Scope) error {
 	out.Name = in.Name
 	out.IamInstanceProfile = in.IamInstanceProfile
-	if err := Convert_v1alpha4_AWSResourceReference_To_v1alpha3_AWSResourceReference(&in.AMI, &out.AMI, s); err != nil {
+	if err := Convert_v1alpha4_AMIReference_To_v1alpha3_AWSResourceReference(&in.AMI, &out.AMI, s); err != nil {
 		return err
 	}
 	out.ImageLookupFormat = in.ImageLookupFormat

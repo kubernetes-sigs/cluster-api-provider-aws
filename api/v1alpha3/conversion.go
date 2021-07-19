@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"unsafe"
+
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	apiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -76,14 +78,34 @@ func (r *AWSClusterList) ConvertFrom(srcRaw conversion.Hub) error {
 func (r *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha4.AWSMachine)
 
-	return Convert_v1alpha3_AWSMachine_To_v1alpha4_AWSMachine(r, dst, nil)
+	if err := Convert_v1alpha3_AWSMachine_To_v1alpha4_AWSMachine(r, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &v1alpha4.AWSMachine{}
+	if ok, err := utilconversion.UnmarshalData(r, restored); err != nil || !ok {
+		return err
+	}
+
+	RestoreAMIReference(&restored.Spec.AMI, &dst.Spec.AMI)
+	return nil
 }
 
 // ConvertFrom converts the v1alpha4 AWSMachine receiver to a v1alpha3 AWSMachine.
 func (r *AWSMachine) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha4.AWSMachine)
 
-	return Convert_v1alpha4_AWSMachine_To_v1alpha3_AWSMachine(src, r, nil)
+	if err := Convert_v1alpha4_AWSMachine_To_v1alpha3_AWSMachine(src, r, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion.
+	if err := utilconversion.MarshalData(src, r); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ConvertTo converts the v1alpha3 AWSMachineList receiver to a v1alpha4 AWSMachineList.
@@ -104,14 +126,32 @@ func (r *AWSMachineList) ConvertFrom(srcRaw conversion.Hub) error {
 func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha4.AWSMachineTemplate)
 
-	return Convert_v1alpha3_AWSMachineTemplate_To_v1alpha4_AWSMachineTemplate(r, dst, nil)
+	if err := Convert_v1alpha3_AWSMachineTemplate_To_v1alpha4_AWSMachineTemplate(r, dst, nil); err != nil {
+		return err
+	}
+	// Manually restore data.
+	restored := &v1alpha4.AWSMachineTemplate{}
+	if ok, err := utilconversion.UnmarshalData(r, restored); err != nil || !ok {
+		return err
+	}
+
+	RestoreAMIReference(&restored.Spec.Template.Spec.AMI, &dst.Spec.Template.Spec.AMI)
+	return nil
 }
 
 // ConvertFrom converts the v1alpha4 AWSMachineTemplate receiver to a v1alpha3 AWSMachineTemplate.
 func (r *AWSMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha4.AWSMachineTemplate)
 
-	return Convert_v1alpha4_AWSMachineTemplate_To_v1alpha3_AWSMachineTemplate(src, r, nil)
+	if err := Convert_v1alpha4_AWSMachineTemplate_To_v1alpha3_AWSMachineTemplate(src, r, nil); err != nil {
+		return err
+	}
+	// Preserve Hub data on down-conversion.
+	if err := utilconversion.MarshalData(src, r); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ConvertTo converts the v1alpha3 AWSMachineTemplateList receiver to a v1alpha4 AWSMachineTemplateList.
@@ -257,4 +297,24 @@ func restoreInstance(restored, dst *v1alpha4.Instance) {
 		return
 	}
 	dst.VolumeIDs = restored.VolumeIDs
+}
+
+// Convert_v1alpha3_AWSResourceReference_To_v1alpha4_AMIReference is a conversion function.
+func Convert_v1alpha3_AWSResourceReference_To_v1alpha4_AMIReference(in *AWSResourceReference, out *v1alpha4.AMIReference, s apiconversion.Scope) error {
+	out.ID = (*string)(unsafe.Pointer(in.ID))
+	return nil
+}
+
+// Convert_v1alpha4_AMIReference_To_v1alpha3_AWSResourceReference is a conversion function.
+func Convert_v1alpha4_AMIReference_To_v1alpha3_AWSResourceReference(in *v1alpha4.AMIReference, out *AWSResourceReference, s apiconversion.Scope) error {
+	out.ID = (*string)(unsafe.Pointer(in.ID))
+	return nil
+}
+
+// RestoreAMIReference manually restore the EKSOptimizedLookupType for AWSMachine and AWSMachineTemplate
+func RestoreAMIReference(restored, dst *v1alpha4.AMIReference) {
+	if restored == nil || restored.EKSOptimizedLookupType == nil {
+		return
+	}
+	dst.EKSOptimizedLookupType = restored.EKSOptimizedLookupType
 }
