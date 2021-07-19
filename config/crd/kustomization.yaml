@@ -16,8 +16,7 @@ resources:
 - bases/infrastructure.cluster.x-k8s.io_awsclusterroleidentities.yaml
 - bases/infrastructure.cluster.x-k8s.io_awsclusterstaticidentities.yaml
 - bases/infrastructure.cluster.x-k8s.io_awsclustercontrolleridentities.yaml
-
-
+- bases/infrastructure.cluster.x-k8s.io_awsclustertemplates.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
@@ -28,7 +27,7 @@ patchesStrategicMerge:
 - patches/webhook_in_awsmachinetemplates.yaml
 - patches/webhook_in_awsclustercontrolleridentities.yaml
 - patches/webhook_in_awsclusterroleidentities.yaml
-
+- patches/webhook_in_awsclustertemplates.yaml
   # +kubebuilder:scaffold:crdkustomizewebhookpatch
 
 # [CERTMANAGER] To enable webhook, uncomment all the sections with [CERTMANAGER] prefix.
@@ -38,7 +37,7 @@ patchesStrategicMerge:
 - patches/cainjection_in_awsmachinetemplates.yaml
 - patches/cainjection_in_awsclustercontrolleridentities.yaml
 - patches/cainjection_in_awsclusterroleidentities.yaml
-
+- patches/cainjection_in_awsclustertemplates.yaml
 # +kubebuilder:scaffold:crdkustomizecainjectionpatch
 
 # [LABEL] To enable label, uncomment all the sections with [LABEL] prefix.
