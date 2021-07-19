@@ -145,12 +145,21 @@ func (r *AWSMachine) validateRootVolume() field.ErrorList {
 		return allErrs
 	}
 
-	if (r.Spec.RootVolume.Type == "io1" || r.Spec.RootVolume.Type == "io2") && r.Spec.RootVolume.IOPS == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("spec.rootVolumeOptions.iops"), "iops required if type is 'io1' or 'io2'"))
+	if VolumeTypesProvisioned.Has(string(r.Spec.RootVolume.Type)) && r.Spec.RootVolume.IOPS == 0 {
+		allErrs = append(allErrs, field.Required(field.NewPath("spec.rootVolume.iops"), "iops required if type is 'io1' or 'io2'"))
+	}
+
+	if r.Spec.RootVolume.Throughput != nil {
+		if r.Spec.RootVolume.Type != VolumeTypeGP3 {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.rootVolume.throughput"), "throughput is valid only for type 'gp3'"))
+		}
+		if *r.Spec.RootVolume.Throughput < 0 {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.rootVolume.throughput"), "throughput must be nonnegative"))
+		}
 	}
 
 	if r.Spec.RootVolume.DeviceName != "" {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.rootVolumeOptions.deviceName"), "root volume shouldn't have device name"))
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.rootVolume.deviceName"), "root volume shouldn't have device name"))
 	}
 
 	return allErrs
@@ -159,17 +168,22 @@ func (r *AWSMachine) validateRootVolume() field.ErrorList {
 func (r *AWSMachine) validateNonRootVolumes() field.ErrorList {
 	var allErrs field.ErrorList
 
-	if r.Spec.NonRootVolumes == nil {
-		return allErrs
-	}
-
 	for _, volume := range r.Spec.NonRootVolumes {
-		if (volume.Type == "io1" || volume.Type == "io2") && volume.IOPS == 0 {
-			allErrs = append(allErrs, field.Required(field.NewPath("spec.nonRootVolumes.volumeOptions.iops"), "iops required if type is 'io1' or 'io2'"))
+		if VolumeTypesProvisioned.Has(string(r.Spec.RootVolume.Type)) && volume.IOPS == 0 {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.nonRootVolumes.iops"), "iops required if type is 'io1' or 'io2'"))
+		}
+
+		if volume.Throughput != nil {
+			if volume.Type != VolumeTypeGP3 {
+				allErrs = append(allErrs, field.Required(field.NewPath("spec.nonRootVolumes.throughput"), "throughput is valid only for type 'gp3'"))
+			}
+			if *volume.Throughput < 0 {
+				allErrs = append(allErrs, field.Required(field.NewPath("spec.nonRootVolumes.throughput"), "throughput must be nonnegative"))
+			}
 		}
 
 		if volume.DeviceName == "" {
-			allErrs = append(allErrs, field.Required(field.NewPath("spec.nonRootVolumes.volumeOptions.deviceName"), "non root volume should have device name"))
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.nonRootVolumes.deviceName"), "non root volume should have device name"))
 		}
 	}
 

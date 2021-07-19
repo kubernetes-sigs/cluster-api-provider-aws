@@ -712,11 +712,15 @@ type Volume struct {
 
 	// Type is the type of the volume (e.g. gp2, io1, etc...).
 	// +optional
-	Type string `json:"type,omitempty"`
+	Type VolumeType `json:"type,omitempty"`
 
 	// IOPS is the number of IOPS requested for the disk. Not applicable to all types.
 	// +optional
 	IOPS int64 `json:"iops,omitempty"`
+
+	// Throughput to provision in MiB/s supported for the volume type. Not applicable to all types.
+	// +optional
+	Throughput *int64 `json:"throughput,omitempty"`
 
 	// Encrypted is whether the volume should be encrypted or not.
 	// +optional
@@ -728,6 +732,36 @@ type Volume struct {
 	// +optional
 	EncryptionKey string `json:"encryptionKey,omitempty"`
 }
+
+// VolumeType describes the EBS volume type.
+// See: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-volume-types.html
+type VolumeType string
+
+var (
+	// VolumeTypeIO1 is the string representing a provisioned iops ssd io1 volume
+	VolumeTypeIO1 = VolumeType("io1")
+
+	// VolumeTypeIO2 is the string representing a provisioned iops ssd io2 volume
+	VolumeTypeIO2 = VolumeType("io2")
+
+	// VolumeTypeGP2 is the string representing a general purpose ssd gp2 volume
+	VolumeTypeGP2 = VolumeType("gp2")
+
+	// VolumeTypeGP3 is the string representing a general purpose ssd gp3 volume
+	VolumeTypeGP3 = VolumeType("gp3")
+
+	// VolumeTypesGP are volume types provisioned for general purpose io
+	VolumeTypesGP = sets.NewString(
+		string(VolumeTypeIO1),
+		string(VolumeTypeIO2),
+	)
+
+	// VolumeTypesProvisioned are volume types provisioned for high performance io
+	VolumeTypesProvisioned = sets.NewString(
+		string(VolumeTypeIO1),
+		string(VolumeTypeIO2),
+	)
+)
 
 // SpotMarketOptions defines the options available to a user when configuring
 // Machines to run on Spot instances.
