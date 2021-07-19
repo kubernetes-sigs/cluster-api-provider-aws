@@ -17,8 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"bytes"
-	"context"
 	"fmt"
 	"testing"
 
@@ -26,13 +24,12 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
 	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/internal/userdata"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
@@ -41,65 +38,110 @@ import (
 func TestEKSConfigReconciler(t *testing.T) {
 	t.Run("Should reconcile an EKSConfig and create data Secret", func(t *testing.T) {
 		g := NewWithT(t)
-		cluster := newCluster("test-cluster")
+		amcp := newAMCP("test-cluster")
+		cluster := newCluster(amcp.Name)
 		machine := newMachine(cluster, "test-machine")
-		config := newEKSConfig(machine, "test-config")
-		expectedUserData, err := newUserData("test-cluster", map[string]string{"test-arg": "test-value"})
+		config := newEKSConfig(machine)
+		t.Log(dump("amcp", amcp))
+		t.Log(dump("config", config))
+		t.Log(dump("machine", machine))
+		t.Log(dump("cluster", cluster))
+		expectedUserData, err := newUserData(cluster.Name, map[string]string{"test-arg": "test-value"})
 		g.Expect(err).To(BeNil())
-		g.Expect(testEnv.Client.Create(ctx, newAMCP("test-cluster"))).To(Succeed())
-
-		machineBytes, err := yaml.Marshal(machine)
-		g.Expect(err).To(BeNil())
-
-		owner := &unstructured.Unstructured{}
-		err = yaml.Unmarshal(machineBytes, owner)
-		g.Expect(err).To(BeNil())
+		g.Expect(testEnv.Client.Create(ctx, amcp)).To(Succeed())
 
 		reconciler := EKSConfigReconciler{
 			Client: testEnv.Client,
 		}
-		t.Log("Calling reconcile should requeue")
-		result, err := reconciler.joinWorker(context.Background(), cluster, config)
-		g.Expect(err).To(Succeed())
-		g.Expect(result.Requeue).To(BeFalse())
+		t.Log(fmt.Sprintf("Calling reconcile on cluster '%s' and config '%s' should requeue", cluster.Name, config.Name))
+		g.Eventually(func() {
+			result, err := reconciler.joinWorker(ctx, cluster, config)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(result.Requeue).To(BeFalse())
+		}).Should(Succeed())
 
-		t.Log("Secret should exist and be correct")
+		t.Log(fmt.Sprintf("Secret '%s' should exist and be correct", config.Name))
+		secretList := &corev1.SecretList{}
+		testEnv.Client.List(ctx, secretList)
+		t.Log(dump("secrets", secretList))
 		secret := &corev1.Secret{}
-		g.Expect(testEnv.Client.Get(ctx, client.ObjectKey{
-			Name:      "test-config",
-			Namespace: "default",
-		}, secret)).To(Succeed())
-		g.Expect(bytes.Equal(secret.Data["value"], expectedUserData)).To(BeTrue())
+		g.Eventually(func() {
+			g.Expect(testEnv.Client.Get(ctx, client.ObjectKey{
+				Name:      config.Name,
+				Namespace: "default",
+			}, secret)).To(Succeed())
+		}).Should(Succeed())
+
+		g.Expect(string(secret.Data["value"])).To(Equal(string(expectedUserData)))
 	})
 
 	t.Run("Should reconcile an EKSConfig and update data Secret", func(t *testing.T) {
 		g := NewWithT(t)
-		cluster := newCluster("test-cluster")
+		amcp := newAMCP("test-cluster")
+		cluster := newCluster(amcp.Name)
 		machine := newMachine(cluster, "test-machine")
-		config := newEKSConfig(machine, "test-config")
-		oldUserData, err := newUserData("test-cluster", map[string]string{"old-test-arg": "old-test-value"})
+		config := newEKSConfig(machine)
+		t.Log(dump("amcp", amcp))
+		t.Log(dump("config", config))
+		t.Log(dump("machine", machine))
+		t.Log(dump("cluster", cluster))
+		oldUserData, err := newUserData(cluster.Name, map[string]string{"test-arg": "test-value"})
 		g.Expect(err).To(BeNil())
-		expectedUserData, err := newUserData("test-cluster", map[string]string{"test-arg": "test-value"})
+		expectedUserData, err := newUserData(cluster.Name, map[string]string{"test-arg": "updated-test-value"})
 		g.Expect(err).To(BeNil())
+		g.Expect(testEnv.Client.Create(ctx, amcp)).To(Succeed())
 
-		// Secret already exists in testEnv so we update it
-		g.Expect(testEnv.Client.Update(ctx, newSecret(cluster, config, oldUserData))).To(Succeed())
+		amcpList := &ekscontrolplanev1.AWSManagedControlPlaneList{}
+		testEnv.Client.List(ctx, amcpList)
+		t.Log(dump("stored-amcps", amcpList))
 
 		reconciler := EKSConfigReconciler{
 			Client: testEnv.Client,
 		}
-		t.Log("Calling reconcile should requeue")
-		result, err := reconciler.joinWorker(context.Background(), cluster, config)
-		g.Expect(err).To(Succeed())
-		g.Expect(result.Requeue).To(BeFalse())
+		t.Log(fmt.Sprintf("Calling reconcile on cluster '%s' and config '%s' should requeue", cluster.Name, config.Name))
+		g.Eventually(func() {
+			result, err := reconciler.joinWorker(ctx, cluster, config)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(result.Requeue).To(BeFalse())
+		}).Should(Succeed())
 
-		t.Log("Secret should exist and be up to date")
+		t.Log(fmt.Sprintf("Secret '%s' should exist and be correct", config.Name))
+		secretList := &corev1.SecretList{}
+		testEnv.Client.List(ctx, secretList)
+		t.Log(dump("secrets", secretList))
+
 		secret := &corev1.Secret{}
-		g.Expect(testEnv.Client.Get(ctx, client.ObjectKey{
-			Name:      "test-config",
-			Namespace: "default",
-		}, secret)).To(Succeed())
-		g.Expect(bytes.Equal(secret.Data["value"], expectedUserData)).To(BeTrue())
+		g.Eventually(func() {
+			g.Expect(testEnv.Client.Get(ctx, client.ObjectKey{
+				Name:      config.Name,
+				Namespace: "default",
+			}, secret)).To(Succeed())
+		}).Should(Succeed())
+
+		g.Expect(string(secret.Data["value"])).To(Equal(string(oldUserData)))
+
+		// Secret already exists in testEnv so we update it
+		config.Spec.KubeletExtraArgs = map[string]string{
+			"test-arg": "updated-test-value",
+		}
+		t.Log(dump("config", config))
+		g.Eventually(func() {
+			result, err := reconciler.joinWorker(ctx, cluster, config)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(result.Requeue).To(BeFalse())
+		}).Should(Succeed())
+
+		t.Log(fmt.Sprintf("Secret '%s' should exist and be up to date", config.Name))
+
+		testEnv.Client.List(ctx, secretList)
+		t.Log(dump("secrets", secretList))
+		g.Eventually(func() {
+			g.Expect(testEnv.Client.Get(ctx, client.ObjectKey{
+				Name:      config.Name,
+				Namespace: "default",
+			}, secret)).To(Succeed())
+		}).Should(Succeed())
+		g.Expect(string(secret.Data["value"])).To(Equal(string(expectedUserData)))
 	})
 }
 
@@ -129,8 +171,14 @@ func newCluster(name string) *clusterv1.Cluster {
 	return cluster
 }
 
+func dump(desc string, o interface{}) string {
+	dat, _ := yaml.Marshal(o)
+	return fmt.Sprintf("%s:\n%s", desc, string(dat))
+}
+
 // newMachine return a CAPI machine object; if cluster is not nil, the machine is linked to the cluster as well.
 func newMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
+	generatedName := fmt.Sprintf("%s-%s", name, util.RandomString(5))
 	machine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Machine",
@@ -138,7 +186,7 @@ func newMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
-			Name:      name,
+			Name:      generatedName,
 		},
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{
@@ -159,7 +207,7 @@ func newMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 }
 
 // newEKSConfig return an EKSConfig object; if machine is not nil, the EKSConfig is linked to the machine as well.
-func newEKSConfig(machine *clusterv1.Machine, name string) *bootstrapv1.EKSConfig {
+func newEKSConfig(machine *clusterv1.Machine) *bootstrapv1.EKSConfig {
 	config := &bootstrapv1.EKSConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "EKSConfig",
@@ -167,8 +215,6 @@ func newEKSConfig(machine *clusterv1.Machine, name string) *bootstrapv1.EKSConfi
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
-			Name:      name,
-			UID:       types.UID(fmt.Sprintf("%s uid", name)),
 		},
 		Spec: bootstrapv1.EKSConfigSpec{
 			KubeletExtraArgs: map[string]string{
@@ -177,6 +223,8 @@ func newEKSConfig(machine *clusterv1.Machine, name string) *bootstrapv1.EKSConfi
 		},
 	}
 	if machine != nil {
+		config.ObjectMeta.Name = machine.Name
+		config.ObjectMeta.UID = types.UID(fmt.Sprintf("%s uid", machine.Name))
 		config.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
 			{
 				Kind:       "Machine",
@@ -201,39 +249,18 @@ func newUserData(clusterName string, kubeletExtraArgs map[string]string) ([]byte
 
 // newAMCP returns an EKS AWSManagedControlPlane object.
 func newAMCP(name string) *ekscontrolplanev1.AWSManagedControlPlane {
+	generatedName := fmt.Sprintf("%s-%s", name, util.RandomString(5))
 	return &ekscontrolplanev1.AWSManagedControlPlane{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "AWSManagedControlPlane",
+			APIVersion: ekscontrolplanev1.GroupVersion.String(),
+		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      generatedName,
 			Namespace: "default",
 		},
 		Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
-			EKSClusterName: "test-cluster",
+			EKSClusterName: generatedName,
 		},
-	}
-}
-
-// newSecret returns a secret containing the given user data for the given Cluster and EKSConfig.
-func newSecret(cluster *clusterv1.Cluster, config *bootstrapv1.EKSConfig, data []byte) *corev1.Secret {
-	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      config.Name,
-			Namespace: config.Namespace,
-			Labels: map[string]string{
-				clusterv1.ClusterLabelName: cluster.Name,
-			},
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: bootstrapv1.GroupVersion.String(),
-					Kind:       "EKSConfig",
-					Name:       config.Name,
-					UID:        config.UID,
-					Controller: pointer.BoolPtr(true),
-				},
-			},
-		},
-		Data: map[string][]byte{
-			"value": data,
-		},
-		Type: clusterv1.ClusterSecretType,
 	}
 }
