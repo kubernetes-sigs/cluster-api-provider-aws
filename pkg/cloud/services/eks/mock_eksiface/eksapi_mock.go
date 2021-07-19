@@ -2034,6 +2034,72 @@ func (mr *MockEKSAPIMockRecorder) WaitUntilClusterUpdating(arg0 interface{}, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilClusterUpdating", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilClusterUpdating), varargs...)
 }
 
+// WaitUntilFargateProfileActive mocks base method.
+func (m *MockEKSAPI) WaitUntilFargateProfileActive(arg0 *eks.DescribeFargateProfileInput) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WaitUntilFargateProfileActive", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WaitUntilFargateProfileActive indicates an expected call of WaitUntilFargateProfileActive.
+func (mr *MockEKSAPIMockRecorder) WaitUntilFargateProfileActive(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilFargateProfileActive", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilFargateProfileActive), arg0)
+}
+
+// WaitUntilFargateProfileActiveWithContext mocks base method.
+func (m *MockEKSAPI) WaitUntilFargateProfileActiveWithContext(arg0 context.Context, arg1 *eks.DescribeFargateProfileInput, arg2 ...request.WaiterOption) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "WaitUntilFargateProfileActiveWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WaitUntilFargateProfileActiveWithContext indicates an expected call of WaitUntilFargateProfileActiveWithContext.
+func (mr *MockEKSAPIMockRecorder) WaitUntilFargateProfileActiveWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilFargateProfileActiveWithContext", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilFargateProfileActiveWithContext), varargs...)
+}
+
+// WaitUntilFargateProfileDeleted mocks base method.
+func (m *MockEKSAPI) WaitUntilFargateProfileDeleted(arg0 *eks.DescribeFargateProfileInput) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WaitUntilFargateProfileDeleted", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WaitUntilFargateProfileDeleted indicates an expected call of WaitUntilFargateProfileDeleted.
+func (mr *MockEKSAPIMockRecorder) WaitUntilFargateProfileDeleted(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilFargateProfileDeleted", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilFargateProfileDeleted), arg0)
+}
+
+// WaitUntilFargateProfileDeletedWithContext mocks base method.
+func (m *MockEKSAPI) WaitUntilFargateProfileDeletedWithContext(arg0 context.Context, arg1 *eks.DescribeFargateProfileInput, arg2 ...request.WaiterOption) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "WaitUntilFargateProfileDeletedWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WaitUntilFargateProfileDeletedWithContext indicates an expected call of WaitUntilFargateProfileDeletedWithContext.
+func (mr *MockEKSAPIMockRecorder) WaitUntilFargateProfileDeletedWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilFargateProfileDeletedWithContext", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilFargateProfileDeletedWithContext), varargs...)
+}
+
 // WaitUntilNodegroupActive mocks base method.
 func (m *MockEKSAPI) WaitUntilNodegroupActive(arg0 *eks.DescribeNodegroupInput) error {
 	m.ctrl.T.Helper()
