@@ -143,6 +143,38 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "VPC id is immutable cannot be emptied once set",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{ID: "managed-or-unmanaged-vpc"},
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{},
+			},
+			wantErr: true,
+		},
+		{
+			name: "VPC id is immutable, cannot be set to a different value once set",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{ID: "managed-or-unmanaged-vpc"},
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{ID: "a-new-vpc"},
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

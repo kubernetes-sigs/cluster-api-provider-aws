@@ -19,17 +19,16 @@ package network
 import (
 	"fmt"
 
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -43,55 +42,54 @@ const (
 func (s *Service) reconcileVPC() error {
 	s.scope.V(2).Info("Reconciling VPC")
 
-	vpc, err := s.describeVPC()
-	if awserrors.IsNotFound(err) { // nolint:nestif
-		// Create a new managed vpc.
-		if !conditions.Has(s.scope.InfraCluster(), infrav1.VpcReadyCondition) {
-			conditions.MarkFalse(s.scope.InfraCluster(), infrav1.VpcReadyCondition, infrav1.VpcCreationStartedReason, clusterv1.ConditionSeverityInfo, "")
-			if err := s.scope.PatchObject(); err != nil {
-				return errors.Wrap(err, "failed to patch conditions")
-			}
-		}
-		vpc, err = s.createVPC()
+	// If the ID is not nil, VPC is either managed or unmanaged but should exist in the AWS.
+	if s.scope.VPC().ID != "" { // nolint:nestif
+		vpc, err := s.describeVPCByID()
 		if err != nil {
-			return errors.Wrap(err, "failed to create new vpc")
+			return errors.Wrap(err, ".spec.vpc.id is set but VPC resource is missing in AWS; failed to describe VPC resources. (might be in creation process)")
 		}
 
-	} else if err != nil {
-		return errors.Wrap(err, "failed to describe VPCs")
-	}
+		s.scope.VPC().CidrBlock = vpc.CidrBlock
+		s.scope.VPC().Tags = vpc.Tags
 
-	// This function creates a new infrav1.VPCSpec, populates it with data from AWS, and then deep copies into the
-	// AWSCluster's VPC spec (see the DeepCopyInto lines below). This is potentially problematic, as it completely
-	// overwrites the data for the VPC spec as retrieved from the apiserver. This is a temporary band-aid to restore
-	// recently-added fields that descripe user intent and do not come from AWS resource descriptions.
-	//
-	// FIXME(ncdc): rather than copying these values from the scope to vpc, find a better way to merge AWS information
-	// with data in the scope retrieved from the apiserver. Could use something like mergo.
-	//
-	// NOTE: it may look like we are losing InternetGatewayID because it's not populated by describeVPC/createVPC or
-	// restored here, but that's ok. It is restored by reconcileInternetGateways, which is invoked after this.
-	vpc.AvailabilityZoneSelection = s.scope.VPC().AvailabilityZoneSelection
-	vpc.AvailabilityZoneUsageLimit = s.scope.VPC().AvailabilityZoneUsageLimit
+		// If VPC is unmanaged, return early.
+		if vpc.IsUnmanaged(s.scope.Name()) {
+			s.scope.V(2).Info("Working on unmanaged VPC", "vpc-id", vpc.ID)
+			if err := s.scope.PatchObject(); err != nil {
+				return errors.Wrap(err, "failed to patch unmanaged VPC fields")
+			}
+			record.Eventf(s.scope.InfraCluster(), "SuccessfulSetVPCAttributes", "Set managed VPC attributes for %q", vpc.ID)
+			return nil
+		}
 
-	if vpc.IsUnmanaged(s.scope.Name()) {
-		vpc.DeepCopyInto(s.scope.VPC())
-		s.scope.V(2).Info("Working on unmanaged VPC", "vpc-id", vpc.ID)
+		// if the VPC is managed, make managed sure attributes are configured.
+		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+			if err := s.ensureManagedVPCAttributes(vpc); err != nil {
+				return false, err
+			}
+			return true, nil
+		}, awserrors.VPCNotFound); err != nil {
+			return errors.Wrapf(err, "failed to to set vpc attributes for %q", vpc.ID)
+		}
+
 		return nil
 	}
 
-	// Make sure attributes are configured
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-		buildParams := s.getVPCTagParams(vpc.ID)
-		tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
-		if err := tagsBuilder.Ensure(vpc.Tags); err != nil {
-			return false, err
+	// .spec.vpc.id is nil, Create a new managed vpc.
+	if !conditions.Has(s.scope.InfraCluster(), infrav1.VpcReadyCondition) {
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.VpcReadyCondition, infrav1.VpcCreationStartedReason, clusterv1.ConditionSeverityInfo, "")
+		if err := s.scope.PatchObject(); err != nil {
+			return errors.Wrap(err, "failed to patch conditions")
 		}
-		return true, nil
-	}, awserrors.VPCNotFound); err != nil {
-		record.Warnf(s.scope.InfraCluster(), "FailedTagVPC", "Failed to tag managed VPC %q: %v", vpc.ID, err)
-		return errors.Wrapf(err, "failed to tag vpc %q", vpc.ID)
 	}
+	vpc, err := s.createVPC()
+	if err != nil {
+		return errors.Wrap(err, "failed to create new vpc")
+	}
+
+	s.scope.VPC().CidrBlock = vpc.CidrBlock
+	s.scope.VPC().Tags = vpc.Tags
+	s.scope.VPC().ID = vpc.ID
 
 	// Make sure attributes are configured
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
@@ -103,8 +101,6 @@ func (s *Service) reconcileVPC() error {
 		return errors.Wrapf(err, "failed to to set vpc attributes for %q", vpc.ID)
 	}
 
-	vpc.DeepCopyInto(s.scope.VPC())
-	s.scope.V(2).Info("Working on managed VPC", "vpc-id", vpc.ID)
 	return nil
 }
 
@@ -166,10 +162,6 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 }
 
 func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
-	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
-		return nil, errors.Errorf("cannot create a managed vpc in unmanaged mode")
-	}
-
 	if s.scope.VPC().CidrBlock == "" {
 		s.scope.VPC().CidrBlock = defaultVPCCidr
 	}
@@ -189,15 +181,6 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateVPC", "Created new managed VPC %q", *out.Vpc.VpcId)
 	s.scope.V(2).Info("Created new VPC with cidr", "vpc-id", *out.Vpc.VpcId, "cidr-block", *out.Vpc.CidrBlock)
-
-	// TODO: we should attempt to record the VPC ID as soon as possible by setting s.scope.VPC().ID
-	// however, the logic used for determining managed vs unmanaged VPCs relies on the tags and will
-	// need to be updated to accommodate for the recording of the VPC ID prior to the tagging.
-
-	wReq := &ec2.DescribeVpcsInput{VpcIds: []*string{out.Vpc.VpcId}}
-	if err := s.EC2Client.WaitUntilVpcAvailable(wReq); err != nil {
-		return nil, errors.Wrapf(err, "failed to wait for vpc %q", *out.Vpc.VpcId)
-	}
 
 	return &infrav1.VPCSpec{
 		ID:        *out.Vpc.VpcId,
@@ -233,19 +216,18 @@ func (s *Service) deleteVPC() error {
 	return nil
 }
 
-func (s *Service) describeVPC() (*infrav1.VPCSpec, error) {
+func (s *Service) describeVPCByID() (*infrav1.VPCSpec, error) {
+	if s.scope.VPC().ID == "" {
+		return nil, errors.New("VPC ID is not set, failed to describe VPCs by ID")
+	}
+
 	input := &ec2.DescribeVpcsInput{
 		Filters: []*ec2.Filter{
 			filter.EC2.VPCStates(ec2.VpcStatePending, ec2.VpcStateAvailable),
 		},
 	}
 
-	if s.scope.VPC().ID == "" {
-		// Try to find a previously created and tagged VPC
-		input.Filters = append(input.Filters, filter.EC2.Cluster(s.scope.Name()))
-	} else {
-		input.VpcIds = []*string{aws.String(s.scope.VPC().ID)}
-	}
+	input.VpcIds = []*string{aws.String(s.scope.VPC().ID)}
 
 	out, err := s.EC2Client.DescribeVpcs(input)
 	if err != nil {
