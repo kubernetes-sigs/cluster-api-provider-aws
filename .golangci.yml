@@ -15,11 +15,15 @@ linters:
     - godox
     - gofumpt
     - gomnd
+    - gomoddirectives
     - lll
     - makezero
+    - nilerr
     - nlreturn
     - predeclared
     - revive
+    - stylecheck
+    - tagliatelle
     - whitespace
     - wrapcheck
     - wsl
