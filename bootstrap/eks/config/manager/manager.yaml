@@ -26,4 +26,17 @@ spec:
       terminationGracePeriodSeconds: 10
       tolerations:
         - effect: NoSchedule
+          key: ${K8S_CP_LABEL:=node-role.kubernetes.io/control-plane}
+        - effect: NoSchedule
           key: node-role.kubernetes.io/master
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: ${K8S_CP_LABEL:=node-role.kubernetes.io/control-plane}
+                operator: Exists
+            # remove once usage of node-role.kubernetes.io/master is removed from Kubernetes
+            - matchExpressions:
+              - key: node-role.kubernetes.io/master
+                operator: Exists
