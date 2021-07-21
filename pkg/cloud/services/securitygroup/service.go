@@ -29,7 +29,7 @@ type Scope interface {
 	cloud.ClusterScoper
 
 	// Network returns the cluster network object.
-	Network() *infrav1.Network
+	Network() *infrav1.NetworkStatus
 
 	// SecurityGroups returns the cluster security groups as a map, it creates the map if empty.
 	SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.SecurityGroup

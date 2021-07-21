@@ -1041,7 +1041,7 @@ spec:
       name: Ready
       type: string
     - description: AWS VPC the control plane is using
-      jsonPath: .spec.networkSpec.vpc.id
+      jsonPath: .spec.network.vpc.id
       name: VPC
       type: string
     - description: API Endpoint
@@ -1348,7 +1348,7 @@ spec:
                 - controllerManager
                 - scheduler
                 type: object
-              networkSpec:
+              network:
                 description: NetworkSpec encapsulates all things related to AWS network.
                 properties:
                   cni:
@@ -1838,7 +1838,7 @@ spec:
                 description: Initialized denotes whether or not the control plane
                   has the uploaded kubernetes config-map.
                 type: boolean
-              network:
+              networkStatus:
                 description: Networks holds details about the AWS networking resources
                   used by the control plane
                 properties:

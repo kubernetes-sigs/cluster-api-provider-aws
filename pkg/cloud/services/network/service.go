@@ -29,7 +29,7 @@ type Scope interface {
 	cloud.ClusterScoper
 
 	// Network returns the cluster network object.
-	Network() *infrav1.Network
+	Network() *infrav1.NetworkStatus
 	// VPC returns the cluster VPC.
 	VPC() *infrav1.VPCSpec
 	// Subnets returns the cluster subnets.

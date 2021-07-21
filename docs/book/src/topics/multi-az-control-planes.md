@@ -6,11 +6,11 @@ By default, the control plane of a workload cluster created by CAPA will span mu
 
 ## Configuring CAPA to Use Specific AZs
 
-To explicitly instruct CAPA to create resources in specific AZs (and not by random), users can add a `networkSpec` object to the AWSCluster specification. Here is an example `networkSpec` that creates resources across three AZs in the "us-west-2" region:
+To explicitly instruct CAPA to create resources in specific AZs (and not by random), users can add a `network` object to the AWSCluster specification. Here is an example `network` that creates resources across three AZs in the "us-west-2" region:
 
 ```yaml
 spec:
-  networkSpec:
+  network:
     vpc:
       cidrBlock: 10.50.0.0/16
     subnets:
@@ -33,9 +33,9 @@ spec:
 
 Specifying the CIDR block alone for the VPC is not enough; users must also supply a list of subnets that provides the desired AZ, the CIDR for the subnet, and whether the subnet is public (has a route to an Internet gateway) or is private (does not have a route to an Internet gateway).
 
-Note that CAPA insists that there must be a public subnet (and associated Internet gateway), even if no public load balancer is requested for the control plane. Therefore, for every AZ where a control plane node should be placed, the `networkSpec` object must define both a public and private subnet.
+Note that CAPA insists that there must be a public subnet (and associated Internet gateway), even if no public load balancer is requested for the control plane. Therefore, for every AZ where a control plane node should be placed, the `network` object must define both a public and private subnet.
 
-Once CAPA is provided with a `networkSpec` that spans multiple AZs, the KubeadmControlPlane controller will automatically distribute control plane nodes across multiple AZs. No further configuration from the user is required.
+Once CAPA is provided with a `network` that spans multiple AZs, the KubeadmControlPlane controller will automatically distribute control plane nodes across multiple AZs. No further configuration from the user is required.
 
 > Note: this method can also be used if you do not want to split your EC2 instance across multiple AZs.
 
@@ -54,7 +54,7 @@ For example if you wanted have a maximum of 2 AZs using a random selection schem
 
 ```yaml
 spec:
-  networkSpec:
+  network:
     vpc:
       availabilityZoneUsageLimit: 2
       availabilityZoneSelection: Random

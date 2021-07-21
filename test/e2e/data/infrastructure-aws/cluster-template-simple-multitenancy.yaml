@@ -26,7 +26,7 @@ spec:
   identityRef:
     kind: AWSClusterRoleIdentity
     name: ${MULTI_TENANCY_SIMPLE_IDENTITY_NAME}
-  networkSpec:
+  network:
     vpc:
       availabilityZoneUsageLimit: 1
   region: ${AWS_REGION}

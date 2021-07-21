@@ -189,7 +189,7 @@ spec:
                           AMI. When set, this will be used for all cluster machines
                           unless a machine specifies a different ImageLookupOrg.
                         type: string
-                      networkSpec:
+                      network:
                         description: NetworkSpec encapsulates all things related to
                           AWS network.
                         properties:

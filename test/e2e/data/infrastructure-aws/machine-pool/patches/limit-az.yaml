@@ -4,6 +4,6 @@ kind: AWSCluster
 metadata:
   name: "${CLUSTER_NAME}"
 spec:
-  networkSpec:
+  network:
     vpc:
       availabilityZoneUsageLimit: 1

@@ -332,7 +332,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 				Status: infrav1.AWSClusterStatus{
-					Network: infrav1.Network{
+					Network: infrav1.NetworkStatus{
 						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 							infrav1.SecurityGroupControlPlane: {
 								ID: "1",
@@ -438,7 +438,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 				Status: infrav1.AWSClusterStatus{
-					Network: infrav1.Network{
+					Network: infrav1.NetworkStatus{
 						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 							infrav1.SecurityGroupControlPlane: {
 								ID: "1",
@@ -534,7 +534,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 				Status: infrav1.AWSClusterStatus{
-					Network: infrav1.Network{
+					Network: infrav1.NetworkStatus{
 						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 							infrav1.SecurityGroupControlPlane: {
 								ID: "1",
@@ -664,7 +664,7 @@ func TestCreateInstance(t *testing.T) {
 					ImageLookupOrg: "cluster-level-image-lookup-org",
 				},
 				Status: infrav1.AWSClusterStatus{
-					Network: infrav1.Network{
+					Network: infrav1.NetworkStatus{
 						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 							infrav1.SecurityGroupControlPlane: {
 								ID: "1",
@@ -795,7 +795,7 @@ func TestCreateInstance(t *testing.T) {
 					ImageLookupOrg: "cluster-level-image-lookup-org",
 				},
 				Status: infrav1.AWSClusterStatus{
-					Network: infrav1.Network{
+					Network: infrav1.NetworkStatus{
 						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 							infrav1.SecurityGroupControlPlane: {
 								ID: "1",
@@ -927,7 +927,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 				Status: infrav1.AWSClusterStatus{
-					Network: infrav1.Network{
+					Network: infrav1.NetworkStatus{
 						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 							infrav1.SecurityGroupControlPlane: {
 								ID: "1",
@@ -1035,7 +1035,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 				Status: infrav1.AWSClusterStatus{
-					Network: infrav1.Network{
+					Network: infrav1.NetworkStatus{
 						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 							infrav1.SecurityGroupControlPlane: {
 								ID: "1",
@@ -1104,7 +1104,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 				Status: infrav1.AWSClusterStatus{
-					Network: infrav1.Network{
+					Network: infrav1.NetworkStatus{
 						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 							infrav1.SecurityGroupControlPlane: {
 								ID: "1",
@@ -1205,7 +1205,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 				Status: infrav1.AWSClusterStatus{
-					Network: infrav1.Network{
+					Network: infrav1.NetworkStatus{
 						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 							infrav1.SecurityGroupControlPlane: {
 								ID: "1",
@@ -1335,7 +1335,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 				Status: infrav1.AWSClusterStatus{
-					Network: infrav1.Network{
+					Network: infrav1.NetworkStatus{
 						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 							infrav1.SecurityGroupControlPlane: {
 								ID: "1",
@@ -1444,7 +1444,7 @@ func TestCreateInstance(t *testing.T) {
 					SSHKeyName: aws.String("specific-cluster-key-name"),
 				},
 				Status: infrav1.AWSClusterStatus{
-					Network: infrav1.Network{
+					Network: infrav1.NetworkStatus{
 						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 							infrav1.SecurityGroupControlPlane: {
 								ID: "1",
@@ -1554,7 +1554,7 @@ func TestCreateInstance(t *testing.T) {
 					SSHKeyName: aws.String("specific-cluster-key-name"),
 				},
 				Status: infrav1.AWSClusterStatus{
-					Network: infrav1.Network{
+					Network: infrav1.NetworkStatus{
 						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 							infrav1.SecurityGroupControlPlane: {
 								ID: "1",
@@ -1664,7 +1664,7 @@ func TestCreateInstance(t *testing.T) {
 					SSHKeyName: aws.String(""),
 				},
 				Status: infrav1.AWSClusterStatus{
-					Network: infrav1.Network{
+					Network: infrav1.NetworkStatus{
 						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 							infrav1.SecurityGroupControlPlane: {
 								ID: "1",
@@ -1771,7 +1771,7 @@ func TestCreateInstance(t *testing.T) {
 					SSHKeyName: aws.String(""),
 				},
 				Status: infrav1.AWSClusterStatus{
-					Network: infrav1.Network{
+					Network: infrav1.NetworkStatus{
 						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 							infrav1.SecurityGroupControlPlane: {
 								ID: "1",
@@ -1878,7 +1878,7 @@ func TestCreateInstance(t *testing.T) {
 					SSHKeyName: nil,
 				},
 				Status: infrav1.AWSClusterStatus{
-					Network: infrav1.Network{
+					Network: infrav1.NetworkStatus{
 						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 							infrav1.SecurityGroupControlPlane: {
 								ID: "1",

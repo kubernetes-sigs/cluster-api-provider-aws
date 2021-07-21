@@ -117,7 +117,7 @@ spec:
       name: Ready
       type: string
     - description: AWS VPC the control plane is using
-      jsonPath: .spec.networkSpec.vpc.id
+      jsonPath: .spec.network.vpc.id
       name: VPC
       type: string
     - description: API Endpoint

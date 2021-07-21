@@ -98,7 +98,7 @@ type ClusterScope struct {
 }
 
 // Network returns the cluster network object.
-func (s *ClusterScope) Network() *infrav1.Network {
+func (s *ClusterScope) Network() *infrav1.NetworkStatus {
 	return &s.AWSCluster.Status.Network
 }
 
