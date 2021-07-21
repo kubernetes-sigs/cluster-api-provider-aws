@@ -976,6 +976,7 @@ func autoConvert_v1alpha3_AutoScalingGroup_To_v1alpha4_AutoScalingGroup(in *Auto
 	out.Subnets = *(*[]string)(unsafe.Pointer(&in.Subnets))
 	out.DefaultCoolDown = in.DefaultCoolDown
 	out.CapacityRebalance = in.CapacityRebalance
+	// WARNING: in.AvailabilityZones requires manual conversion: does not exist in peer-type
 	out.MixedInstancesPolicy = (*v1alpha4.MixedInstancesPolicy)(unsafe.Pointer(in.MixedInstancesPolicy))
 	out.Status = v1alpha4.ASGStatus(in.Status)
 	if in.Instances != nil {

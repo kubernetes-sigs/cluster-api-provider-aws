@@ -182,6 +182,7 @@ type AutoScalingGroup struct {
 	Subnets           []string        `json:"subnets,omitempty"`
 	DefaultCoolDown   metav1.Duration `json:"defaultCoolDown,omitempty"`
 	CapacityRebalance bool            `json:"capacityRebalance,omitempty"`
+	AvailabilityZones []string        `json:"availabilityZones,omitempty"`
 
 	MixedInstancesPolicy *MixedInstancesPolicy `json:"mixedInstancesPolicy,omitempty"`
 	Status               ASGStatus
