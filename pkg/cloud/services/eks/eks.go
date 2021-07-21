@@ -54,6 +54,13 @@ func (s *Service) ReconcileControlPlane(ctx context.Context) error {
 	}
 	conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSAddonsConfiguredCondition)
 
+	// EKS Identity Provider
+	if err := s.reconcileIdentityProvider(ctx); err != nil {
+		conditions.MarkFalse(s.scope.ControlPlane, ekscontrolplanev1.EKSIdentityProviderConfiguredCondition, ekscontrolplanev1.EKSIdentityProviderConfiguredFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		return errors.Wrap(err, "failed reconciling eks identity provider")
+	}
+	conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSIdentityProviderConfiguredCondition)
+
 	s.scope.V(2).Info("Reconcile EKS control plane completed successfully")
 	return nil
 }
