@@ -201,7 +201,7 @@ func (s *Service) createLaunchTemplateData(scope *scope.MachinePoolScope, imageI
 		ebsRootDevice := &ec2.LaunchTemplateEbsBlockDeviceRequest{
 			DeleteOnTermination: aws.Bool(true),
 			VolumeSize:          aws.Int64(lt.RootVolume.Size),
-			Encrypted:           aws.Bool(lt.RootVolume.Encrypted),
+			Encrypted:           lt.RootVolume.Encrypted,
 		}
 
 		if lt.RootVolume.IOPS != 0 {

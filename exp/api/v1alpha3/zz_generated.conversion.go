@@ -335,6 +335,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha3.Volume)(nil), (*clusterapiproviderawsapiv1alpha4.Volume)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha3_Volume_To_v1alpha4_Volume(a.(*clusterapiproviderawsapiv1alpha3.Volume), b.(*clusterapiproviderawsapiv1alpha4.Volume), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha4.AMIReference)(nil), (*clusterapiproviderawsapiv1alpha3.AWSResourceReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_AMIReference_To_v1alpha3_AWSResourceReference(a.(*clusterapiproviderawsapiv1alpha4.AMIReference), b.(*clusterapiproviderawsapiv1alpha3.AWSResourceReference), scope)
 	}); err != nil {
@@ -357,6 +362,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha4.Instance)(nil), (*clusterapiproviderawsapiv1alpha3.Instance)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_Instance_To_v1alpha3_Instance(a.(*clusterapiproviderawsapiv1alpha4.Instance), b.(*clusterapiproviderawsapiv1alpha3.Instance), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha4.Volume)(nil), (*clusterapiproviderawsapiv1alpha3.Volume)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_Volume_To_v1alpha3_Volume(a.(*clusterapiproviderawsapiv1alpha4.Volume), b.(*clusterapiproviderawsapiv1alpha3.Volume), scope)
 	}); err != nil {
 		return err
 	}
@@ -427,7 +437,15 @@ func autoConvert_v1alpha3_AWSLaunchTemplate_To_v1alpha4_AWSLaunchTemplate(in *AW
 	out.ImageLookupOrg = in.ImageLookupOrg
 	out.ImageLookupBaseOS = in.ImageLookupBaseOS
 	out.InstanceType = in.InstanceType
-	out.RootVolume = (*clusterapiproviderawsapiv1alpha4.Volume)(unsafe.Pointer(in.RootVolume))
+	if in.RootVolume != nil {
+		in, out := &in.RootVolume, &out.RootVolume
+		*out = new(clusterapiproviderawsapiv1alpha4.Volume)
+		if err := Convert_v1alpha3_Volume_To_v1alpha4_Volume(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.RootVolume = nil
+	}
 	out.SSHKeyName = (*string)(unsafe.Pointer(in.SSHKeyName))
 	out.VersionNumber = (*int64)(unsafe.Pointer(in.VersionNumber))
 	if in.AdditionalSecurityGroups != nil {
@@ -459,7 +477,15 @@ func autoConvert_v1alpha4_AWSLaunchTemplate_To_v1alpha3_AWSLaunchTemplate(in *v1
 	out.ImageLookupOrg = in.ImageLookupOrg
 	out.ImageLookupBaseOS = in.ImageLookupBaseOS
 	out.InstanceType = in.InstanceType
-	out.RootVolume = (*clusterapiproviderawsapiv1alpha3.Volume)(unsafe.Pointer(in.RootVolume))
+	if in.RootVolume != nil {
+		in, out := &in.RootVolume, &out.RootVolume
+		*out = new(clusterapiproviderawsapiv1alpha3.Volume)
+		if err := Convert_v1alpha4_Volume_To_v1alpha3_Volume(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.RootVolume = nil
+	}
 	out.SSHKeyName = (*string)(unsafe.Pointer(in.SSHKeyName))
 	out.VersionNumber = (*int64)(unsafe.Pointer(in.VersionNumber))
 	if in.AdditionalSecurityGroups != nil {

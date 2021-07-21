@@ -720,7 +720,7 @@ type Volume struct {
 
 	// Encrypted is whether the volume should be encrypted or not.
 	// +optional
-	Encrypted bool `json:"encrypted,omitempty"`
+	Encrypted *bool `json:"encrypted,omitempty"`
 
 	// EncryptionKey is the KMS key to use to encrypt the volume. Can be either a KMS key ID or ARN.
 	// If Encrypted is set and this is omitted, the default AWS key will be used.
