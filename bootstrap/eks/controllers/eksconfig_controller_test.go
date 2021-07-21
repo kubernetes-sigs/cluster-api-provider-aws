@@ -31,7 +31,7 @@ func TestEKSConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T) {
 
 	cluster := newCluster("cluster")
 	machine := newMachine(cluster, "machine")
-	config := newEKSConfig(machine, "cfg")
+	config := newEKSConfig(machine)
 
 	cluster.Status = clusterv1.ClusterStatus{
 		InfrastructureReady: false,
@@ -41,9 +41,11 @@ func TestEKSConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T) {
 		Client: testEnv.Client,
 	}
 
-	result, err := reconciler.joinWorker(context.Background(), cluster, config)
-	g.Expect(result).To(Equal(reconcile.Result{}))
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Eventually(func() {
+		result, err := reconciler.joinWorker(context.Background(), cluster, config)
+		g.Expect(result).To(Equal(reconcile.Result{}))
+		g.Expect(err).NotTo(HaveOccurred())
+	}).Should(Succeed())
 }
 
 func TestEKSConfigReconciler_ReturnEarlyIfClusterControlPlaneNotInitialized(t *testing.T) {
@@ -51,7 +53,7 @@ func TestEKSConfigReconciler_ReturnEarlyIfClusterControlPlaneNotInitialized(t *t
 
 	cluster := newCluster("cluster")
 	machine := newMachine(cluster, "machine")
-	config := newEKSConfig(machine, "cfg")
+	config := newEKSConfig(machine)
 
 	cluster.Status = clusterv1.ClusterStatus{
 		InfrastructureReady: true,
@@ -61,7 +63,9 @@ func TestEKSConfigReconciler_ReturnEarlyIfClusterControlPlaneNotInitialized(t *t
 		Client: testEnv.Client,
 	}
 
-	result, err := reconciler.joinWorker(context.Background(), cluster, config)
-	g.Expect(result).To(Equal(reconcile.Result{}))
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Eventually(func() {
+		result, err := reconciler.joinWorker(context.Background(), cluster, config)
+		g.Expect(result).To(Equal(reconcile.Result{}))
+		g.Expect(err).NotTo(HaveOccurred())
+	}).Should(Succeed())
 }

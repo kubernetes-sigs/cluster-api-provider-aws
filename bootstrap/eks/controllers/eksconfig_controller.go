@@ -269,6 +269,8 @@ func (r *EKSConfigReconciler) storeBootstrapData(ctx context.Context, cluster *c
 		}
 		if updated {
 			log.Info("updated bootstrap data secret for EKSConfig", "secret", secret.Name)
+		} else {
+			log.V(4).Info("no change in bootstrap data secret for EKSConfig", "secret", secret.Name)
 		}
 	}
 
