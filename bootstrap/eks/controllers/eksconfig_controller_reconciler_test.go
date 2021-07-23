@@ -116,9 +116,8 @@ func TestEKSConfigReconciler(t *testing.T) {
 				Name:      config.Name,
 				Namespace: "default",
 			}, secret)).To(Succeed())
+			g.Expect(string(secret.Data["value"])).To(Equal(string(oldUserData)))
 		}).Should(Succeed())
-
-		g.Expect(string(secret.Data["value"])).To(Equal(string(oldUserData)))
 
 		// Secret already exists in testEnv so we update it
 		config.Spec.KubeletExtraArgs = map[string]string{
@@ -140,8 +139,8 @@ func TestEKSConfigReconciler(t *testing.T) {
 				Name:      config.Name,
 				Namespace: "default",
 			}, secret)).To(Succeed())
+			g.Expect(string(secret.Data["value"])).To(Equal(string(expectedUserData)))
 		}).Should(Succeed())
-		g.Expect(string(secret.Data["value"])).To(Equal(string(expectedUserData)))
 	})
 }
 
