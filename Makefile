@@ -536,7 +536,8 @@ release-binary: $(RELEASE_DIR) versions.mk
 		-e CGO_ENABLED=0 \
 		-e GOOS=$(GOOS) \
 		-e GOARCH=$(GOARCH) \
-		-v source=gocache,target=/root/.cache/go-build \
+		--mount=source=gocache,target=/go/pkg/mod \
+		--mount=source=gocache,target=/root/.cache/go-build \
 		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
 		-w /workspace \
 		golang:$(GOLANG_VERSION) \
