@@ -492,7 +492,7 @@ release: $(RELEASE_NOTES) clean-release check-release-tag $(RELEASE_DIR)  ## Bui
 	git checkout "${RELEASE_TAG}"
 	$(MAKE) release-changelog
 	$(MAKE) release-binaries
-	$(MAKE) release-manifests
+	CORE_CONTROLLER_IMG=$(PROD_REGISTRY)/$(CORE_IMAGE_NAME) $(MAKE) release-manifests
 	$(MAKE) release-templates
 	$(MAKE) release-policies
 
