@@ -6,9 +6,9 @@ replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.4.1-0.202107150814
 
 require (
 	github.com/apparentlymart/go-cidr v1.1.0
-	github.com/aws/amazon-vpc-cni-k8s v1.8.0
+	github.com/aws/amazon-vpc-cni-k8s v1.9.0
 	github.com/aws/aws-lambda-go v1.24.0
-	github.com/aws/aws-sdk-go v1.39.2
+	github.com/aws/aws-sdk-go v1.40.6
 	github.com/awslabs/goformation/v4 v4.19.5
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/go-logr/logr v0.4.0
