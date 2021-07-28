@@ -19,6 +19,7 @@ package network
 import (
 	"fmt"
 
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/conditions"
 
@@ -139,20 +140,35 @@ func (s *Service) deleteNatGateways() error {
 		return err
 	}
 
+	var ngIDs []*ec2.NatGateway
 	for _, sn := range s.scope.Subnets().FilterPublic() {
 		if sn.ID == "" {
 			continue
 		}
 
 		if ngID, ok := existing[sn.ID]; ok {
-			err := s.deleteNatGateway(*ngID.NatGatewayId)
-			if err != nil {
-				return err
-			}
+			ngIDs = append(ngIDs, ngID)
 		}
 	}
 
-	return nil
+	c := make(chan error, len(ngIDs))
+	errs := []error{}
+
+	for _, ngID := range ngIDs {
+		go func(c chan error, ngID *ec2.NatGateway) {
+			err := s.deleteNatGateway(*ngID.NatGatewayId)
+			c <- err
+		}(c, ngID)
+	}
+
+	for i := 0; i < len(ngIDs); i++ {
+		ngwErr := <-c
+		if ngwErr != nil {
+			errs = append(errs, ngwErr)
+		}
+	}
+
+	return kerrors.NewAggregate(errs)
 }
 
 func (s *Service) describeNatGatewaysBySubnet() (map[string]*ec2.NatGateway, error) {
