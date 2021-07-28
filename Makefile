@@ -492,7 +492,7 @@ release: $(RELEASE_NOTES) clean-release check-release-tag $(RELEASE_DIR)  ## Bui
 	git checkout "${RELEASE_TAG}"
 	$(MAKE) release-changelog
 	$(MAKE) release-binaries
-	$(MAKE) release-manifests
+	CORE_CONTROLLER_IMG=$(PROD_REGISTRY)/$(CORE_IMAGE_NAME) $(MAKE) release-manifests
 	$(MAKE) release-templates
 	$(MAKE) release-policies
 
@@ -520,7 +520,7 @@ release-manifests:
 
 .PHONY: release-changelog
 release-changelog: $(RELEASE_NOTES) check-release-tag check-previous-release-tag check-github-token $(RELEASE_DIR) ## Builds the changelog for a release
-	$(RELEASE_NOTES) --debug --org $(GH_ORG_NAME) --repo $(GH_REPO_NAME) --start-sha $(shell git rev-list -n 1 ${PREVIOUS_VERSION}) --end-sha $(shell git rev-list -n 1 ${RELEASE_TAG}) --output $(RELEASE_DIR)/CHANGELOG.md --go-template go-template:$(REPO_ROOT)/hack/changelog.tpl --dependencies=false
+	$(RELEASE_NOTES) --debug --org $(GH_ORG_NAME) --repo $(GH_REPO_NAME) --start-sha $(shell git rev-list -n 1 ${PREVIOUS_VERSION}) --end-sha $(shell git rev-list -n 1 ${RELEASE_TAG}) --output $(RELEASE_DIR)/CHANGELOG.md --go-template go-template:$(REPO_ROOT)/hack/changelog.tpl --dependencies=false --branch=main
 
 .PHONY: release-binaries
 release-binaries: ## Builds the binaries to publish with a release
@@ -536,7 +536,8 @@ release-binary: $(RELEASE_DIR) versions.mk
 		-e CGO_ENABLED=0 \
 		-e GOOS=$(GOOS) \
 		-e GOARCH=$(GOARCH) \
-		-v source=gocache,target=/root/.cache/go-build \
+		--mount=source=gocache,target=/go/pkg/mod \
+		--mount=source=gocache,target=/root/.cache/go-build \
 		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
 		-w /workspace \
 		golang:$(GOLANG_VERSION) \
