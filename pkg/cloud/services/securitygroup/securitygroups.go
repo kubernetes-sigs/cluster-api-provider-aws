@@ -323,6 +323,7 @@ func (s *Service) deleteSecurityGroup(sg *infrav1.SecurityGroup, typ string) err
 }
 
 func (s *Service) describeClusterOwnedSecurityGroups() ([]infrav1.SecurityGroup, error) {
+
 	input := &ec2.DescribeSecurityGroupsInput{
 		Filters: []*ec2.Filter{
 			filter.EC2.VPC(s.scope.VPC().ID),
