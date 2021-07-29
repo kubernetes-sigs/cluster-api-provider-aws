@@ -45,3 +45,25 @@ func (t Template) bootstrapUserPolicy() []cfn_iam.User_Policy {
 	}
 	return userPolicies
 }
+
+func (t Template) eksViewNodesAndWorkloadsPolicies() *v1alpha4.PolicyDocument {
+	return &v1alpha4.PolicyDocument{
+		Version: v1alpha4.CurrentVersion,
+		Statement: []v1alpha4.StatementEntry{
+			{
+				Effect:   v1alpha4.EffectAllow,
+				Resource: v1alpha4.Resources{v1alpha4.Any},
+				Action: v1alpha4.Actions{
+					"eks:DescribeNodegroup",
+					"eks:ListNodegroups",
+					"eks:DescribeCluster",
+					"eks:ListClusters",
+					"eks:AccessKubernetesApi",
+					"ssm:GetParameter",
+					"eks:ListUpdates",
+					"eks:ListFargateProfiles",
+				},
+			},
+		},
+	}
+}

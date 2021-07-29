@@ -161,6 +161,14 @@ func Test_RenderCloudformation(t *testing.T) {
 				return t
 			},
 		},
+		{
+			fixture: "with_eks_view_nodes_workloads",
+			template: func() Template {
+				t := NewTemplate()
+				t.Spec.EKS.EnableNodesAndWorkloadsPolicy = true
+				return t
+			},
+		},
 	}
 
 	for _, c := range cases {

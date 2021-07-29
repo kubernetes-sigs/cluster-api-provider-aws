@@ -96,6 +96,8 @@ type EKSConfig struct {
 	// AllowIAMRoleCreation controls whether the EKS controllers have permissions for creating IAM
 	// roles per cluster
 	AllowIAMRoleCreation bool `json:"iamRoleCreation,omitempty"`
+	// EnableNodesAndWorkloadsPolicy controls the creation of the policy to view EKS nodes and workloads.
+	EnableNodesAndWorkloadsPolicy bool `json:"enableNodesAndWorkloadsPolicy,omitempty"`
 	// DefaultControlPlaneRole controls the configuration of the AWS IAM role for
 	// the EKS control plane. This is the default role that will be used if
 	// no role is included in the spec and automatic creation of the role
