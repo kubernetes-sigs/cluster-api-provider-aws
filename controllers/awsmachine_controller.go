@@ -470,14 +470,6 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		return ctrl.Result{}, nil
 	}
 
-	// If the AWSMachine doesn't have our finalizer, add it.
-	controllerutil.AddFinalizer(machineScope.AWSMachine, infrav1.MachineFinalizer)
-	// Register the finalizer immediately to avoid orphaning AWS resources on delete
-	if err := machineScope.PatchObject(); err != nil {
-		machineScope.Error(err, "unable to patch object")
-		return ctrl.Result{}, err
-	}
-
 	if !machineScope.Cluster.Status.InfrastructureReady {
 		machineScope.Info("Cluster infrastructure is not ready yet")
 		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
@@ -500,6 +492,15 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		conditions.MarkUnknown(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceNotFoundReason, err.Error())
 		return ctrl.Result{}, err
 	}
+
+	// If the AWSMachine doesn't have our finalizer, add it.
+	controllerutil.AddFinalizer(machineScope.AWSMachine, infrav1.MachineFinalizer)
+	// Register the finalizer after first read operation from AWS to avoid orphaning AWS resources on delete
+	if err := machineScope.PatchObject(); err != nil {
+		machineScope.Error(err, "unable to patch object")
+		return ctrl.Result{}, err
+	}
+
 	// Create new instance
 	if instance == nil {
 		// Avoid a flickering condition between InstanceProvisionStarted and InstanceProvisionFailed if there's a persistent failure with createInstance
