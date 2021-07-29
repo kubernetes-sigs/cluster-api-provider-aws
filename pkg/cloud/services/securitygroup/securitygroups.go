@@ -326,7 +326,7 @@ func (s *Service) describeClusterOwnedSecurityGroups() ([]infrav1.SecurityGroup,
 	input := &ec2.DescribeSecurityGroupsInput{
 		Filters: []*ec2.Filter{
 			filter.EC2.VPC(s.scope.VPC().ID),
-			filter.EC2.ProviderOwned(s.scope.Name()),
+			filter.EC2.ClusterOwned(s.scope.Name()),
 		},
 	}
 
