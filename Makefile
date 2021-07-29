@@ -136,7 +136,7 @@ E2E_UNMANAGED_FOCUS ?= "functional tests - unmanaged"
 # For running CAPI e2e tests: E2E_UNMANAGED_FOCUS := "Cluster API E2E tests"
 USE_EXISTING_CLUSTER ?= "false"
 
-GINKGO_NODES ?= 2
+GINKGO_NODES ?= 1
 GINKGO_ARGS ?=
 
 ## --------------------------------------
