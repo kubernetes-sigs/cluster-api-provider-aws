@@ -44,13 +44,16 @@ spec:
           key: node-role.kubernetes.io/control-plane
       affinity:
         nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: node-role.kubernetes.io/control-plane
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 10
+            preference:
+              matchExpressions:
+              - key: ${K8S_CP_LABEL:=node-role.kubernetes.io/control-plane}
                 operator: Exists
             # remove once usage of node-role.kubernetes.io/master is removed from Kubernetes
-            - matchExpressions:
+          - weight: 10
+            preference:
+              matchExpressions:
               - key: node-role.kubernetes.io/master
                 operator: Exists
       serviceAccountName: manager
