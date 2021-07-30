@@ -77,7 +77,7 @@ export ACK_GINKGO_DEPRECATIONS := v1.16.4
 STAGING_REGISTRY ?= gcr.io/k8s-staging-cluster-api-aws
 STAGING_BUCKET ?= artifacts.k8s-staging-cluster-api-aws.appspot.com
 BUCKET ?= $(STAGING_BUCKET)
-PROD_REGISTRY := us.gcr.io/k8s-artifacts-prod/cluster-api-aws
+PROD_REGISTRY := k8s.gcr.io/cluster-api-aws
 REGISTRY ?= $(STAGING_REGISTRY)
 RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
 PULL_BASE_REF ?= $(RELEASE_TAG) # PULL_BASE_REF will be provided by Prow
@@ -438,6 +438,7 @@ release: $(RELEASE_NOTES) clean-release check-release-tag $(RELEASE_DIR)  ## Bui
 	$(MAKE) release-binaries
 	$(MAKE) release-notes
 	$(MAKE) release-manifests
+	CORE_CONTROLLER_IMG=$(PROD_REGISTRY)/$(CORE_IMAGE_NAME) $(MAKE) release-manifests $(MAKE) release-manifests
 	$(MAKE) release-templates
 	$(MAKE) release-policies
 
@@ -465,11 +466,12 @@ release-manifests:
 
 .PHONY: release-changelog
 release-changelog: $(RELEASE_NOTES) check-release-tag check-previous-release-tag check-github-token $(RELEASE_DIR) ## Builds the changelog for a release
-	$(RELEASE_NOTES) --debug --org $(GH_ORG_NAME) --repo $(GH_REPO_NAME) --start-sha $(shell git rev-list -n 1 ${PREVIOUS_VERSION}) --end-sha $(shell git rev-list -n 1 ${RELEASE_TAG}) --output $(RELEASE_DIR)/CHANGELOG.md --go-template go-template:$(REPO_ROOT)/hack/changelog.tpl --dependencies=false
+	$(RELEASE_NOTES) --debug --org $(GH_ORG_NAME) --repo $(GH_REPO_NAME) --start-sha $(shell git rev-list -n 1 ${PREVIOUS_VERSION}) --end-sha $(shell git rev-list -n 1 ${RELEASE_TAG}) --output $(RELEASE_DIR)/CHANGELOG.md --go-template go-template:$(REPO_ROOT)/hack/changelog.tpl --dependencies=false --branch=main
 
 .PHONY: release-binaries
 release-binaries: ## Builds the binaries to publish with a release
 	RELEASE_BINARY=./cmd/clusterawsadm GOOS=linux GOARCH=amd64 $(MAKE) release-binary
+	RELEASE_BINARY=./cmd/clusterawsadm GOOS=linux GOARCH=arm64 $(MAKE) release-binary
 	RELEASE_BINARY=./cmd/clusterawsadm GOOS=darwin GOARCH=amd64 $(MAKE) release-binary
 
 .PHONY: release-binary
@@ -479,7 +481,8 @@ release-binary: $(RELEASE_DIR) versions.mk
 		-e CGO_ENABLED=0 \
 		-e GOOS=$(GOOS) \
 		-e GOARCH=$(GOARCH) \
-		-v source=gocache,target=/root/.cache/go-build \
+		--mount=source=gocache,target=/go/pkg/mod \
+		--mount=source=gocache,target=/root/.cache/go-build \
 		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
 		-w /workspace \
 		golang:$(GOLANG_VERSION) \
