@@ -49,6 +49,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	asg "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/autoscaling"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
 )
 
 // AWSMachinePoolReconciler reconciles a AWSMachinePool object
@@ -323,7 +324,7 @@ func (r *AWSMachinePoolReconciler) reconcileDelete(machinePoolScope *scope.Machi
 		}
 	}
 
-	launchTemplate, err := ec2Svc.GetLaunchTemplate(machinePoolScope.AWSMachinePool.Status.LaunchTemplateID)
+	launchTemplate, _, err := ec2Svc.GetLaunchTemplate(machinePoolScope.AWSMachinePool.Status.LaunchTemplateID)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -388,15 +389,16 @@ func (r *AWSMachinePoolReconciler) findASG(machinePoolScope *scope.MachinePoolSc
 }
 
 func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *scope.MachinePoolScope, ec2Scope scope.EC2Scope) error {
-	userData, err := machinePoolScope.GetRawBootstrapData()
+	bootstrapData, err := machinePoolScope.GetRawBootstrapData()
 	if err != nil {
 		r.Recorder.Eventf(machinePoolScope.AWSMachinePool, corev1.EventTypeWarning, "FailedGetBootstrapData", err.Error())
 	}
+	bootstrapDataHash := userdata.ComputeHash(bootstrapData)
 
 	ec2svc := r.getEC2Service(ec2Scope)
 
 	machinePoolScope.Info("checking for existing launch template")
-	launchTemplate, err := ec2svc.GetLaunchTemplate(machinePoolScope.AWSMachinePool.Name)
+	launchTemplate, launchTemplateUserDataHash, err := ec2svc.GetLaunchTemplate(machinePoolScope.AWSMachinePool.Name)
 	if err != nil {
 		conditions.MarkUnknown(machinePoolScope.AWSMachinePool, infrav1exp.LaunchTemplateReadyCondition, infrav1exp.LaunchTemplateNotFoundReason, err.Error())
 		return err
@@ -410,7 +412,7 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 
 	if launchTemplate == nil {
 		machinePoolScope.Info("no existing launch template found, creating")
-		launchTemplateID, err := ec2svc.CreateLaunchTemplate(machinePoolScope, imageID, userData)
+		launchTemplateID, err := ec2svc.CreateLaunchTemplate(machinePoolScope, imageID, bootstrapData)
 		if err != nil {
 			conditions.MarkFalse(machinePoolScope.AWSMachinePool, infrav1exp.LaunchTemplateReadyCondition, infrav1exp.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return err
@@ -440,11 +442,11 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 		return err
 	}
 
-	// create a new launch template version if there's a difference in configuration, tags,
-	// OR we've discovered a new AMI ID
-	if needsUpdate || tagsChanged || *imageID != *launchTemplate.AMI.ID {
+	// Create a new launch template version if there's a difference in configuration, tags,
+	// userdata, OR we've discovered a new AMI ID.
+	if needsUpdate || tagsChanged || *imageID != *launchTemplate.AMI.ID || launchTemplateUserDataHash != bootstrapDataHash {
 		machinePoolScope.Info("creating new version for launch template", "existing", launchTemplate, "incoming", machinePoolScope.AWSMachinePool.Spec.AWSLaunchTemplate)
-		if err := ec2svc.CreateLaunchTemplateVersion(machinePoolScope, imageID, userData); err != nil {
+		if err := ec2svc.CreateLaunchTemplateVersion(machinePoolScope, imageID, bootstrapData); err != nil {
 			return err
 		}
 	}

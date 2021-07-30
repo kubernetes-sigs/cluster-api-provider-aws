@@ -145,7 +145,7 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 			expectedErr := errors.New("no connection available ")
 
 			BeforeEach(func() {
-				ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, expectedErr).AnyTimes()
+				ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, "", expectedErr).AnyTimes()
 				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(nil, expectedErr).AnyTimes()
 			})
 
@@ -204,7 +204,7 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 			It("it should look up by provider ID when one exists", func() {
 				expectedErr := errors.New("no connection available ")
 				var launchtemplate *expinfrav1.AWSLaunchTemplate
-				ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(launchtemplate, expectedErr)
+				ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(launchtemplate, "", expectedErr)
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 				Expect(errors.Cause(err)).To(MatchError(expectedErr))
 			})
@@ -212,7 +212,7 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 			It("should try to create a new machinepool if none exists", func() {
 				expectedErr := errors.New("Invalid instance")
 				asgSvc.EXPECT().ASGIfExists(gomock.Any()).Return(nil, nil).AnyTimes()
-				ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, nil)
+				ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, "", nil)
 				ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any()).Return(nil, nil)
 				ec2Svc.EXPECT().CreateLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return("", expectedErr).AnyTimes()
 
@@ -223,7 +223,7 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 
 		When("ASG creation succeeds", func() {
 			BeforeEach(func() {
-				ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, nil).AnyTimes()
+				ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, "", nil).AnyTimes()
 				ec2Svc.EXPECT().CreateLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(nil, nil).AnyTimes()
 			})
@@ -248,7 +248,7 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 
 		It("should log and remove finalizer when no machinepool exists", func() {
 			asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(nil, nil)
-			ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, nil).AnyTimes()
+			ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, "", nil).AnyTimes()
 
 			buf := new(bytes.Buffer)
 			klog.SetOutput(buf)
@@ -266,7 +266,7 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 				Status: expinfrav1.ASGStatusDeleteInProgress,
 			}
 			asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(&inProgressASG, nil)
-			ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, nil).AnyTimes()
+			ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, "", nil).AnyTimes()
 
 			buf := new(bytes.Buffer)
 			klog.SetOutput(buf)

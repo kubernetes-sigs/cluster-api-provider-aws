@@ -17,6 +17,7 @@ limitations under the License.
 package ec2
 
 import (
+	"encoding/base64"
 	"reflect"
 	"testing"
 
@@ -28,7 +29,44 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+)
+
+const (
+	testUserData = `## template: jinja
+#cloud-config
+write_files:
+-   path: /tmp/kubeadm-join-config.yaml
+	owner: root:root
+	permissions: '0640'
+	content: |
+	  ---
+	  apiVersion: kubeadm.k8s.io/v1beta2
+	  discovery:
+		bootstrapToken:
+		  apiServerEndpoint: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+		  caCertHashes:
+		  - sha256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+		  token: xxxxxx.xxxxxxxxxxxxxxxx
+		  unsafeSkipCAVerification: false
+	  kind: JoinConfiguration
+	  nodeRegistration:
+		kubeletExtraArgs:
+		  cloud-provider: aws
+		name: '{{ ds.meta_data.local_hostname }}'
+runcmd:
+  - kubeadm join --config /tmp/kubeadm-join-config.yaml
+users:
+  - name: xxxxxxxx
+	sudo: ALL=(ALL) NOPASSWD:ALL
+	ssh_authorized_keys:
+	  - ssh-rsa xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx user@example.com
+`
+)
+
+var (
+	testUserDataHash = userdata.ComputeHash([]byte(testUserData))
 )
 
 func TestGetLaunchTemplate(t *testing.T) {
@@ -39,7 +77,7 @@ func TestGetLaunchTemplate(t *testing.T) {
 		name               string
 		launchTemplateName string
 		expect             func(m *mock_ec2iface.MockEC2APIMockRecorder)
-		check              func(launchtemplate *expinfrav1.AWSLaunchTemplate, err error)
+		check              func(launchtemplate *expinfrav1.AWSLaunchTemplate, userdatahash string, err error)
 	}{
 		{
 			name:               "does not exist",
@@ -51,9 +89,13 @@ func TestGetLaunchTemplate(t *testing.T) {
 				})).
 					Return(nil, awserrors.NewNotFound("not found"))
 			},
-			check: func(launchtemplate *expinfrav1.AWSLaunchTemplate, err error) {
+			check: func(launchtemplate *expinfrav1.AWSLaunchTemplate, userdatahash string, err error) {
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
+				}
+
+				if userdatahash != "" {
+					t.Fatalf("Did not expect a userdata hash, but got something: %s", userdatahash)
 				}
 
 				if launchtemplate != nil {
@@ -80,18 +122,19 @@ func TestGetLaunchTemplate(t *testing.T) {
 			s := NewService(scope)
 			s.EC2Client = ec2Mock
 
-			launchtemplate, err := s.GetLaunchTemplate(tc.launchTemplateName)
-			tc.check(launchtemplate, err)
+			launchtemplate, userdatahash, err := s.GetLaunchTemplate(tc.launchTemplateName)
+			tc.check(launchtemplate, userdatahash, err)
 		})
 	}
 }
 
 func TestService_SDKToLaunchTemplate(t *testing.T) {
 	tests := []struct {
-		name    string
-		input   *ec2.LaunchTemplateVersion
-		want    *expinfrav1.AWSLaunchTemplate
-		wantErr bool
+		name     string
+		input    *ec2.LaunchTemplateVersion
+		wantLT   *expinfrav1.AWSLaunchTemplate
+		wantHash string
+		wantErr  bool
 	}{
 		{
 			name: "lots of input",
@@ -120,10 +163,11 @@ func TestService_SDKToLaunchTemplate(t *testing.T) {
 							Groups:      []*string{aws.String("foo-group")},
 						},
 					},
+					UserData: aws.String(base64.StdEncoding.EncodeToString([]byte(testUserData))),
 				},
 				VersionNumber: aws.Int64(1),
 			},
-			want: &expinfrav1.AWSLaunchTemplate{
+			wantLT: &expinfrav1.AWSLaunchTemplate{
 				ID:   "lt-12345",
 				Name: "foo",
 				AMI: infrav1.AWSResourceReference{
@@ -133,17 +177,21 @@ func TestService_SDKToLaunchTemplate(t *testing.T) {
 				SSHKeyName:         aws.String("foo-keyname"),
 				VersionNumber:      aws.Int64(1),
 			},
+			wantHash: testUserDataHash,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Service{}
-			got, err := s.SDKToLaunchTemplate(tt.input)
+			gotLT, gotHash, err := s.SDKToLaunchTemplate(tt.input)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("error mismatch: got %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Fatalf("launchtemplate mismatch: got %v, want %v", got, tt.want)
+			if !reflect.DeepEqual(gotLT, tt.wantLT) {
+				t.Fatalf("launchtemplate mismatch: got %v, want %v", gotLT, tt.wantLT)
+			}
+			if !reflect.DeepEqual(gotHash, tt.wantHash) {
+				t.Fatalf("userdatahash mismatch: got %v, want %v", gotHash, tt.wantHash)
 			}
 		})
 	}

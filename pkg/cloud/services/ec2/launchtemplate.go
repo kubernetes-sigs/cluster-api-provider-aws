@@ -30,11 +30,12 @@ import (
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
 )
 
 // GetLaunchTemplate returns the existing LaunchTemplate or nothing if it doesn't exist.
 // For now by name until we need the input to be something different
-func (s *Service) GetLaunchTemplate(name string) (*expinfrav1.AWSLaunchTemplate, error) {
+func (s *Service) GetLaunchTemplate(name string) (*expinfrav1.AWSLaunchTemplate, string, error) {
 	s.scope.V(2).Info("Looking for existing LaunchTemplates")
 
 	input := &ec2.DescribeLaunchTemplateVersionsInput{
@@ -45,16 +46,43 @@ func (s *Service) GetLaunchTemplate(name string) (*expinfrav1.AWSLaunchTemplate,
 	out, err := s.EC2Client.DescribeLaunchTemplateVersions(input)
 	switch {
 	case awserrors.IsNotFound(err):
-		return nil, nil
+		return nil, "", nil
+	case err != nil:
+		s.scope.Info("", "aerr", err.Error())
+		return nil, "", err
+	}
+
+	if len(out.LaunchTemplateVersions) == 0 {
+		return nil, "", nil
+	}
+
+	return s.SDKToLaunchTemplate(out.LaunchTemplateVersions[0])
+}
+
+// GetLaunchTemplateId returns the existing LaunchTemplateId or empty string if it doesn't exist.
+func (s *Service) GetLaunchTemplateID(launchTemplateName string) (string, error) {
+	if launchTemplateName == "" {
+		return "", nil
+	}
+
+	input := &ec2.DescribeLaunchTemplateVersionsInput{
+		LaunchTemplateName: aws.String(launchTemplateName),
+		Versions:           aws.StringSlice([]string{expinfrav1.LaunchTemplateLatestVersion}),
+	}
+
+	out, err := s.EC2Client.DescribeLaunchTemplateVersions(input)
+	switch {
+	case awserrors.IsNotFound(err):
+		return "", nil
 	case err != nil:
 		s.scope.Info("", "aerr", err.Error())
 	}
 
 	if len(out.LaunchTemplateVersions) == 0 {
-		return nil, nil
+		return "", nil
 	}
 
-	return s.SDKToLaunchTemplate(out.LaunchTemplateVersions[0])
+	return aws.StringValue(out.LaunchTemplateVersions[0].LaunchTemplateId), nil
 }
 
 // CreateLaunchTemplate generates a launch template to be used with the autoscaling group
@@ -207,7 +235,7 @@ func (s *Service) DeleteLaunchTemplate(id string) error {
 }
 
 // SDKToLaunchTemplate converts an AWS EC2 SDK instance to the CAPA instance type.
-func (s *Service) SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1.AWSLaunchTemplate, error) {
+func (s *Service) SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1.AWSLaunchTemplate, string, error) {
 	v := d.LaunchTemplateData
 	i := &expinfrav1.AWSLaunchTemplate{
 		ID:   aws.StringValue(d.LaunchTemplateId),
@@ -230,16 +258,27 @@ func (s *Service) SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1
 	}
 
 	for _, id := range v.SecurityGroupIds {
-		// This will include the core security groups as well, making the "Additional" a bit
-		// dishonest. However, including the core groups drastically simplifies comparison with
-		// the incoming security groups.
+		// FIXME(dlipovetsky): This will include the core security groups as well, making the
+		// "Additional" a bit dishonest. However, including the core groups drastically simplifies
+		// comparison with the incoming security groups.
 		i.AdditionalSecurityGroups = append(i.AdditionalSecurityGroups, infrav1.AWSResourceReference{ID: id})
 	}
 
-	return i, nil
+	if v.UserData == nil {
+		return i, userdata.ComputeHash(nil), nil
+	}
+	decodedUserData, err := base64.StdEncoding.DecodeString(*v.UserData)
+	if err != nil {
+		return nil, "", errors.Wrap(err, "unable to decode UserData")
+	}
+
+	return i, userdata.ComputeHash(decodedUserData), nil
 }
 
-// LaunchTemplateNeedsUpdate checks if a new launch template version is needed
+// LaunchTemplateNeedsUpdate checks if a new launch template version is needed.
+//
+// FIXME(dlipovetsky): This check should account for changed userdata, but does not yet do so.
+// Although userdata is stored in an EC2 Launch Template, it is not a field of AWSLaunchTemplate.
 func (s *Service) LaunchTemplateNeedsUpdate(scope *scope.MachinePoolScope, incoming *expinfrav1.AWSLaunchTemplate, existing *expinfrav1.AWSLaunchTemplate) (bool, error) {
 	if incoming.IamInstanceProfile != existing.IamInstanceProfile {
 		return true, nil
