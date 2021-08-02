@@ -15,7 +15,7 @@ require (
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/release v0.9.0
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20210708124453-37c862b5c925
-	sigs.k8s.io/controller-tools v0.6.1
+	sigs.k8s.io/controller-tools v0.6.2
 	sigs.k8s.io/kind v0.11.1
 	sigs.k8s.io/kustomize/kustomize/v4 v4.2.0
 	sigs.k8s.io/testing_frameworks v0.1.2
