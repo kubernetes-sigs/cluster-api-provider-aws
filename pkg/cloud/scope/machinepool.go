@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -30,6 +31,7 @@ import (
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -221,9 +223,28 @@ func (m *MachinePoolScope) IsEKSManaged() bool {
 
 // SubnetIDs returns the machine pool subnet IDs.
 func (m *MachinePoolScope) SubnetIDs() ([]string, error) {
-	subnetIDs := make([]string, len(m.AWSMachinePool.Spec.Subnets))
-	for i, v := range m.AWSMachinePool.Spec.Subnets {
-		subnetIDs[i] = aws.StringValue(v.ID)
+	ec2Client := ec2.New(m.InfraCluster.Session())
+
+	var subnetIDs []string
+	for _, v := range m.AWSMachinePool.Spec.Subnets {
+		if v.ID != nil {
+			subnetIDs = append(subnetIDs, aws.StringValue(v.ID))
+		} else if v.Filters != nil {
+			criteria := []*ec2.Filter{
+				filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+				filter.EC2.VPC(m.InfraCluster.VPC().ID),
+			}
+			for _, f := range v.Filters {
+				criteria = append(criteria, &ec2.Filter{Name: aws.String(f.Name), Values: aws.StringSlice(f.Values)})
+			}
+			out, err := ec2Client.DescribeSubnets(&ec2.DescribeSubnetsInput{Filters: criteria})
+			if err != nil {
+				return subnetIDs, fmt.Errorf("describing subnets with filters: %w", err)
+			}
+			for _, s := range out.Subnets {
+				subnetIDs = append(subnetIDs, aws.StringValue(s.SubnetId))
+			}
+		}
 	}
 
 	strategy, err := newDefaultSubnetPlacementStrategy(m.Logger)
