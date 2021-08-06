@@ -174,8 +174,8 @@ $(ARTIFACTS):
 test: ## Run tests
 	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./...
 
-.PHONY: generate-test-flavors
-generate-test-flavors: $(KUSTOMIZE)  ## Generate test template flavors
+.PHONY: generate-test-flavors ## Generate test template flavors
+generate-test-flavors: $(KUSTOMIZE)
 	./hack/gen-test-flavors.sh
 
 .PHONY: test-e2e ## Run e2e tests using clusterctl

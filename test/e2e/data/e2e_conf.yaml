@@ -131,6 +131,8 @@ providers:
         targetName: "cluster-template-simple-multitenancy.yaml"
       - sourcePath: "./infrastructure-aws/cluster-template-nested-multitenancy.yaml"
         targetName: "cluster-template-nested-multitenancy.yaml"
+      - sourcePath: "./infrastructure-aws/cluster-template-external-cloud-provider.yaml"
+        targetName: "cluster-template-external-cloud-provider.yaml"
 
 variables:
   CNI: "../../data/cni/calico.yaml"

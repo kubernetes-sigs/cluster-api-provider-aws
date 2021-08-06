@@ -46,6 +46,7 @@ const (
 	SpotInstancesFlavor          = "spot-instances"
 	SSMFlavor                    = "ssm"
 	UpgradeToMain                = "upgrade-to-main"
+	ExternalCloudProvider        = "external-cloud-provider"
 	SimpleMultitenancyFlavor     = "simple-multitenancy"
 	NestedMultitenancyFlavor     = "nested-multitenancy"
 	KCPScaleInFlavor             = "kcp-scale-in"
