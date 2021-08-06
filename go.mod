@@ -27,9 +27,9 @@ require (
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.21.3
+	k8s.io/api v0.22.0
 	k8s.io/apiextensions-apiserver v0.21.3
-	k8s.io/apimachinery v0.21.3
+	k8s.io/apimachinery v0.22.0
 	k8s.io/cli-runtime v0.21.3
 	k8s.io/client-go v0.21.3
 	k8s.io/component-base v0.21.3
