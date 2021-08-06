@@ -21,6 +21,7 @@ package unmanaged
 import (
 	"context"
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"path/filepath"
 	"strings"
@@ -51,6 +52,65 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	ginkgo.BeforeEach(func() {
 		ctx = context.TODO()
 		result = &clusterctl.ApplyClusterTemplateAndWaitResult{}
+	})
+
+	ginkgo.Describe("Create a cluster that uses the external cloud provider", func() {
+
+		ginkgo.It("should create volumes dynamically with external cloud provider", func() {
+			specName := "functional-external-cloud-provider"
+			requiredResources := &shared.TestResource{EC2: 2, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
+			requiredResources.WriteRequestedResources(e2eCtx, "external-cloud-provider-test")
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+
+			Expect(e2eCtx.E2EConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
+			Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.KubernetesVersion))
+			shared.CreateAWSClusterControllerIdentity(e2eCtx.Environment.BootstrapClusterProxy.GetClient())
+
+			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
+			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
+			configCluster := defaultConfigCluster(clusterName, namespace.Name)
+			configCluster.Flavor = shared.ExternalCloudProvider
+			configCluster.ControlPlaneMachineCount = pointer.Int64Ptr(1)
+			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+			cluster, _, _ := createCluster(ctx, configCluster, result)
+
+			ginkgo.By("Creating the LB service")
+			clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterName).GetClient()
+			lbServiceName := "test-svc-" + util.RandomString(6)
+			elbName := createLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
+			verifyElbExists(elbName, true)
+
+			nginxStatefulsetInfo := statefulSetInfo{
+				name:                      "nginx-statefulset",
+				namespace:                 metav1.NamespaceDefault,
+				replicas:                  int32(2),
+				selector:                  map[string]string{"app": "nginx"},
+				storageClassName:          "aws-ebs-volumes",
+				volumeName:                "nginx-volumes",
+				svcName:                   "nginx-svc",
+				svcPort:                   int32(80),
+				svcPortName:               "nginx-web",
+				containerName:             "nginx",
+				containerImage:            "k8s.gcr.io/nginx-slim:0.8",
+				containerPort:             int32(80),
+				podTerminationGracePeriod: int64(30),
+				volMountPath:              "/usr/share/nginx/html",
+			}
+
+			ginkgo.By("Deploying StatefulSet on infra")
+			createStatefulSet(nginxStatefulsetInfo, clusterClient)
+			awsVolIds := getVolumeIds(nginxStatefulsetInfo, clusterClient)
+			verifyVolumesExists(awsVolIds)
+
+			ginkgo.By("Deleting LB service")
+			deleteLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
+
+			deleteCluster(ctx, cluster)
+			ginkgo.By("Deleting retained dynamically provisioned volumes")
+			deleteRetainedVolumes(awsVolIds)
+			ginkgo.By("PASSED!")
+		})
 	})
 
 	ginkgo.Describe("Multitenancy test", func() {
