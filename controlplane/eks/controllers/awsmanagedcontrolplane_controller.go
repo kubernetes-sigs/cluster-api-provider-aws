@@ -21,22 +21,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
-	"sigs.k8s.io/cluster-api-provider-aws/feature"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/awsnode"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/iamauth"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/network"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/securitygroup"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -49,6 +37,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
+	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	"sigs.k8s.io/cluster-api-provider-aws/feature"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/awsnode"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/iamauth"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/network"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/securitygroup"
 )
 
 const (
@@ -77,10 +77,6 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context,
 		For(awsManagedControlPlane).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log, r.WatchFilterValue)).
-		Watches(
-			&source.Kind{Type: &infrav1exp.AWSManagedCluster{}},
-			handler.EnqueueRequestsFromMapFunc(r.managedClusterToManagedControlPlane(log)),
-		).
 		Build(r)
 
 	if err != nil {
@@ -102,7 +98,6 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context,
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;delete;patch
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedclusters;awsmanagedclusters/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachines;awsmachines/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedmachinepools;awsmanagedmachinepools/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools;awsmachinepools/status,verbs=get;list;watch
@@ -254,7 +249,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 func (r *AWSManagedControlPlaneReconciler) reconcileDelete(ctx context.Context, managedScope *scope.ManagedControlPlaneScope) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	managedScope.Info("Reconciling AWSManagedClusterPlane delete")
+	managedScope.Info("Reconciling AWSManagedControlPlane delete")
 
 	controlPlane := managedScope.ControlPlane
 
@@ -317,48 +312,6 @@ func (r *AWSManagedControlPlaneReconciler) ClusterToAWSManagedControlPlane(o cli
 	}
 
 	return nil
-}
-
-func (r *AWSManagedControlPlaneReconciler) managedClusterToManagedControlPlane(log logr.Logger) handler.MapFunc {
-	return func(o client.Object) []ctrl.Request {
-		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-		defer cancel()
-
-		awsManagedCluster, ok := o.(*infrav1exp.AWSManagedCluster)
-		if !ok {
-			panic(fmt.Sprintf("Expected a AWSManagedCluster but got a %T", o))
-		}
-
-		if !awsManagedCluster.ObjectMeta.DeletionTimestamp.IsZero() {
-			log.V(4).Info("AWSManagedCluster has a deletion timestamp, skipping mapping")
-			return nil
-		}
-
-		cluster, err := util.GetOwnerCluster(ctx, r.Client, awsManagedCluster.ObjectMeta)
-		if err != nil {
-			log.Error(err, "failed to get owning cluster")
-			return nil
-		}
-		if cluster == nil {
-			log.V(4).Info("Owning cluster not set on AWSManagedCluster, skipping mapping")
-			return nil
-		}
-
-		controlPlaneRef := cluster.Spec.ControlPlaneRef
-		if controlPlaneRef == nil || controlPlaneRef.Kind != "AWSManagedControlPlane" {
-			log.V(4).Info("ControlPlaneRef is nil or not AWSManagedControlPlane, skipping mapping")
-			return nil
-		}
-
-		return []ctrl.Request{
-			{
-				NamespacedName: types.NamespacedName{
-					Name:      controlPlaneRef.Name,
-					Namespace: controlPlaneRef.Namespace,
-				},
-			},
-		}
-	}
 }
 
 func (r *AWSManagedControlPlaneReconciler) dependencyCount(ctx context.Context, managedScope *scope.ManagedControlPlaneScope) (int, error) {

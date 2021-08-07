@@ -371,6 +371,21 @@ Resources:
         Version: 2012-10-17
       RoleName: controllers.cluster-api-provider-aws.sigs.k8s.io
     Type: AWS::IAM::Role
+  AWSIAMRoleEKSControlPlane:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - eks.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+      RoleName: eks-controlplane.cluster-api-provider-aws.sigs.k8s.io
+    Type: AWS::IAM::Role
   AWSIAMRoleNodes:
     Properties:
       AssumeRolePolicyDocument:

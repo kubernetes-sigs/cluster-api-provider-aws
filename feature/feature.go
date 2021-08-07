@@ -43,6 +43,11 @@ const (
 	// alpha: v0.4
 	EKSAllowAddRoles featuregate.Feature = "EKSAllowAddRoles"
 
+	// EKSFargate is used to enable the usage of EKS fargate profiles
+	// owner: @richardcase
+	// alpha: v0.4
+	EKSFargate featuregate.Feature = "EKSFargate"
+
 	// MachinePool is used to enable ASG support
 	// owner: @mytunguyen
 	// alpha: v0.1
@@ -67,9 +72,10 @@ func init() {
 // To add a new feature, define a key for it above and add it here.
 var defaultCAPAFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	// Every feature should be initiated here:
-	EKS:                           {Default: false, PreRelease: featuregate.Alpha},
-	EKSEnableIAM:                  {Default: false, PreRelease: featuregate.Alpha},
-	EKSAllowAddRoles:              {Default: false, PreRelease: featuregate.Alpha},
+	EKS:                           {Default: true, PreRelease: featuregate.Beta},
+	EKSEnableIAM:                  {Default: false, PreRelease: featuregate.Beta},
+	EKSAllowAddRoles:              {Default: false, PreRelease: featuregate.Beta},
+	EKSFargate:                    {Default: false, PreRelease: featuregate.Alpha},
 	EventBridgeInstanceState:      {Default: false, PreRelease: featuregate.Alpha},
 	MachinePool:                   {Default: false, PreRelease: featuregate.Alpha},
 	AutoControllerIdentityCreator: {Default: true, PreRelease: featuregate.Alpha},

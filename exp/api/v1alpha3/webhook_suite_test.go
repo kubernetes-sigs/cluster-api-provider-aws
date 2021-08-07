@@ -74,9 +74,6 @@ func setup() {
 	if err := (&expv1alpha4.AWSMachinePool{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSMachinePool webhook: %v", err))
 	}
-	if err := (&expv1alpha4.AWSManagedCluster{}).SetupWebhookWithManager(testEnv); err != nil {
-		panic(fmt.Sprintf("Unable to setup AWSManagedCluster webhook: %v", err))
-	}
 	if err := (&expv1alpha4.AWSManagedMachinePool{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSManagedMachinePool webhook: %v", err))
 	}

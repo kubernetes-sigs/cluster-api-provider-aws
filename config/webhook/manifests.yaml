@@ -179,27 +179,6 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha4-awsmanagedcluster
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: default.awsmanagedcluster.infrastructure.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - infrastructure.cluster.x-k8s.io
-    apiVersions:
-    - v1alpha4
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - awsmanagedclusters
-  sideEffects: None
-- admissionReviewVersions:
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
       path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha4-awsmanagedmachinepool
   failurePolicy: Fail
   matchPolicy: Equivalent
@@ -214,6 +193,69 @@ webhooks:
     - UPDATE
     resources:
     - awsmanagedmachinepools
+  sideEffects: None
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-controlplane-cluster-x-k8s-io-v1alpha4-awsmanagedcontrolplane
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - controlplane.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - awsmanagedcontrolplanes
+  sideEffects: None
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-bootstrap-cluster-x-k8s-io-v1alpha4-eksconfig
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.eksconfigs.bootstrap.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - bootstrap.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - eksconfig
+  sideEffects: None
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-bootstrap-cluster-x-k8s-io-v1alpha4-eksconfigtemplate
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.eksconfigtemplates.bootstrap.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - bootstrap.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - eksconfigtemplate
   sideEffects: None
 
 ---
@@ -418,27 +460,6 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-awsmanagedcluster
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: validation.awsmanagedcluster.infrastructure.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - infrastructure.cluster.x-k8s.io
-    apiVersions:
-    - v1alpha4
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - awsmanagedclusters
-  sideEffects: None
-- admissionReviewVersions:
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
       path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-awsmanagedmachinepool
   failurePolicy: Fail
   matchPolicy: Equivalent
@@ -453,4 +474,67 @@ webhooks:
     - UPDATE
     resources:
     - awsmanagedmachinepools
+  sideEffects: None
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-controlplane-cluster-x-k8s-io-v1alpha4-awsmanagedcontrolplane
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - controlplane.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - awsmanagedcontrolplanes
+  sideEffects: None
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-bootstrap-cluster-x-k8s-io-v1alpha4-eksconfig
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.eksconfigs.bootstrap.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - bootstrap.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - eksconfig
+  sideEffects: None
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-bootstrap-cluster-x-k8s-io-v1alpha4-eksconfigtemplate
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.eksconfigtemplates.bootstrap.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - bootstrap.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - eksconfigtemplate
   sideEffects: None

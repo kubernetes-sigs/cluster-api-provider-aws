@@ -35,12 +35,12 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func AWSMachinePoolFuzzer(obj *AWSMachinePool, c fuzz.Continue){
+func AWSMachinePoolFuzzer(obj *AWSMachinePool, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
 	// AWSMachinePool.Spec.AWSLaunchTemplate.AMI.ARN and AWSMachinePool.Spec.AWSLaunchTemplate.AMI.Filters has been removed in v1alpha4, so setting it to nil in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
-	obj.Spec.AWSLaunchTemplate.AMI.ARN= nil
-	obj.Spec.AWSLaunchTemplate.AMI.Filters= nil
+	obj.Spec.AWSLaunchTemplate.AMI.ARN = nil
+	obj.Spec.AWSLaunchTemplate.AMI.Filters = nil
 }
 
 func TestFuzzyConversion(t *testing.T) {
@@ -50,9 +50,9 @@ func TestFuzzyConversion(t *testing.T) {
 	g.Expect(v1alpha4.AddToScheme(scheme)).To(Succeed())
 
 	t.Run("for AWSMachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &v1alpha4.AWSMachinePool{},
-		Spoke:  &AWSMachinePool{},
+		Scheme:      scheme,
+		Hub:         &v1alpha4.AWSMachinePool{},
+		Spoke:       &AWSMachinePool{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 
@@ -60,12 +60,6 @@ func TestFuzzyConversion(t *testing.T) {
 		Scheme: scheme,
 		Hub:    &v1alpha4.AWSManagedMachinePool{},
 		Spoke:  &AWSManagedMachinePool{},
-	}))
-
-	t.Run("for AWSManagedCluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &v1alpha4.AWSManagedCluster{},
-		Spoke:  &AWSManagedCluster{},
 	}))
 
 	t.Run("for AWSFargateProfile", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
