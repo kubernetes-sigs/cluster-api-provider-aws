@@ -502,29 +502,9 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 			return nil, err
 		}
 
-		ebsRootDevice := &ec2.EbsBlockDevice{
-			DeleteOnTermination: aws.Bool(true),
-			VolumeSize:          aws.Int64(i.RootVolume.Size),
-			Encrypted:           i.RootVolume.Encrypted,
-		}
-
-		if i.RootVolume.IOPS != 0 {
-			ebsRootDevice.Iops = aws.Int64(i.RootVolume.IOPS)
-		}
-
-		if i.RootVolume.EncryptionKey != "" {
-			ebsRootDevice.Encrypted = aws.Bool(true)
-			ebsRootDevice.KmsKeyId = aws.String(i.RootVolume.EncryptionKey)
-		}
-
-		if i.RootVolume.Type != "" {
-			ebsRootDevice.VolumeType = aws.String(i.RootVolume.Type)
-		}
-
-		blockdeviceMappings = append(blockdeviceMappings, &ec2.BlockDeviceMapping{
-			DeviceName: rootDeviceName,
-			Ebs:        ebsRootDevice,
-		})
+		i.RootVolume.DeviceName = aws.StringValue(rootDeviceName)
+		blockDeviceMapping := volumeToBlockDeviceMapping(i.RootVolume)
+		blockdeviceMappings = append(blockdeviceMappings, blockDeviceMapping)
 	}
 
 	for vi := range i.NonRootVolumes {
@@ -534,29 +514,8 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 			return nil, errors.Errorf("non root volume should have device name specified")
 		}
 
-		ebsDevice := &ec2.EbsBlockDevice{
-			DeleteOnTermination: aws.Bool(true),
-			VolumeSize:          aws.Int64(nonRootVolume.Size),
-			Encrypted:           nonRootVolume.Encrypted,
-		}
-
-		if nonRootVolume.IOPS != 0 {
-			ebsDevice.Iops = aws.Int64(nonRootVolume.IOPS)
-		}
-
-		if nonRootVolume.EncryptionKey != "" {
-			ebsDevice.Encrypted = aws.Bool(true)
-			ebsDevice.KmsKeyId = aws.String(nonRootVolume.EncryptionKey)
-		}
-
-		if nonRootVolume.Type != "" {
-			ebsDevice.VolumeType = aws.String(nonRootVolume.Type)
-		}
-
-		blockdeviceMappings = append(blockdeviceMappings, &ec2.BlockDeviceMapping{
-			DeviceName: &nonRootVolume.DeviceName,
-			Ebs:        ebsDevice,
-		})
+		blockDeviceMapping := volumeToBlockDeviceMapping(&nonRootVolume)
+		blockdeviceMappings = append(blockdeviceMappings, blockDeviceMapping)
 	}
 
 	if len(blockdeviceMappings) != 0 {
@@ -612,6 +571,36 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 	}
 
 	return s.SDKToInstance(out.Instances[0])
+}
+
+func volumeToBlockDeviceMapping(v *infrav1.Volume) *ec2.BlockDeviceMapping {
+	ebsDevice := &ec2.EbsBlockDevice{
+		DeleteOnTermination: aws.Bool(true),
+		VolumeSize:          aws.Int64(v.Size),
+		Encrypted:           v.Encrypted,
+	}
+
+	if v.Throughput != nil {
+		ebsDevice.Throughput = v.Throughput
+	}
+
+	if v.IOPS != 0 {
+		ebsDevice.Iops = aws.Int64(v.IOPS)
+	}
+
+	if v.EncryptionKey != "" {
+		ebsDevice.Encrypted = aws.Bool(true)
+		ebsDevice.KmsKeyId = aws.String(v.EncryptionKey)
+	}
+
+	if v.Type != "" {
+		ebsDevice.VolumeType = aws.String(string(v.Type))
+	}
+
+	return &ec2.BlockDeviceMapping{
+		DeviceName: &v.DeviceName,
+		Ebs:        ebsDevice,
+	}
 }
 
 // GetInstanceSecurityGroups returns a map from ENI id to the security groups applied to that ENI

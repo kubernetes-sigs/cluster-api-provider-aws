@@ -198,36 +198,47 @@ func (s *Service) createLaunchTemplateData(scope *scope.MachinePoolScope, imageI
 			return nil, err
 		}
 
-		ebsRootDevice := &ec2.LaunchTemplateEbsBlockDeviceRequest{
-			DeleteOnTermination: aws.Bool(true),
-			VolumeSize:          aws.Int64(lt.RootVolume.Size),
-			Encrypted:           lt.RootVolume.Encrypted,
-		}
+		lt.RootVolume.DeviceName = aws.StringValue(rootDeviceName)
 
-		if lt.RootVolume.IOPS != 0 {
-			ebsRootDevice.Iops = aws.Int64(lt.RootVolume.IOPS)
-		}
-
-		if lt.RootVolume.EncryptionKey != "" {
-			ebsRootDevice.Encrypted = aws.Bool(true)
-			ebsRootDevice.KmsKeyId = aws.String(lt.RootVolume.EncryptionKey)
-		}
-
-		if lt.RootVolume.Type != "" {
-			ebsRootDevice.VolumeType = aws.String(lt.RootVolume.Type)
-		}
-
+		req := volumeToLaunchTemplateBlockDeviceMappingRequest(lt.RootVolume)
 		data.BlockDeviceMappings = []*ec2.LaunchTemplateBlockDeviceMappingRequest{
-			{
-				DeviceName: rootDeviceName,
-				Ebs:        ebsRootDevice,
-			},
+			req,
 		}
 	}
 
 	data.TagSpecifications = s.buildLaunchTemplateTagSpecificationRequest(scope)
 
 	return data, nil
+}
+
+func volumeToLaunchTemplateBlockDeviceMappingRequest(v *infrav1.Volume) *ec2.LaunchTemplateBlockDeviceMappingRequest {
+	ltEbsDevice := &ec2.LaunchTemplateEbsBlockDeviceRequest{
+		DeleteOnTermination: aws.Bool(true),
+		VolumeSize:          aws.Int64(v.Size),
+		Encrypted:           v.Encrypted,
+	}
+
+	if v.Throughput != nil {
+		ltEbsDevice.Throughput = v.Throughput
+	}
+
+	if v.IOPS != 0 {
+		ltEbsDevice.Iops = aws.Int64(v.IOPS)
+	}
+
+	if v.EncryptionKey != "" {
+		ltEbsDevice.Encrypted = aws.Bool(true)
+		ltEbsDevice.KmsKeyId = aws.String(v.EncryptionKey)
+	}
+
+	if v.Type != "" {
+		ltEbsDevice.VolumeType = aws.String(string(v.Type))
+	}
+
+	return &ec2.LaunchTemplateBlockDeviceMappingRequest{
+		DeviceName: &v.DeviceName,
+		Ebs:        ltEbsDevice,
+	}
 }
 
 // DeleteLaunchTemplate delete a launch template.

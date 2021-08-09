@@ -671,6 +671,11 @@ spec:
                         format: int64
                         minimum: 8
                         type: integer
+                      throughput:
+                        description: Throughput to provision in MiB/s supported for
+                          the volume type. Not applicable to all types.
+                        format: int64
+                        type: integer
                       type:
                         description: Type is the type of the volume (e.g. gp2, io1,
                           etc...).

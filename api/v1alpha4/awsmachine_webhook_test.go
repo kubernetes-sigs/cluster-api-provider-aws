@@ -65,6 +65,17 @@ func TestAWSMachine_Create(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "ensure root volume throughput is nonnegative",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					RootVolume: &Volume{
+						Throughput: aws.Int64(-125),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "ensure root volume has no device name",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
@@ -108,6 +119,19 @@ func TestAWSMachine_Create(t *testing.T) {
 						{
 							DeviceName: "name",
 							Type:       "io2",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "ensure non root volume throughput is nonnegative",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					NonRootVolumes: []Volume{
+						{
+							Throughput: aws.Int64(-125),
 						},
 					},
 				},
