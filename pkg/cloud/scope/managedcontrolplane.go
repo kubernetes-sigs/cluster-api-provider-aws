@@ -358,3 +358,7 @@ func (s *ManagedControlPlaneScope) Addons() []ekscontrolplanev1.Addon {
 func (s *ManagedControlPlaneScope) DisableVPCCNI() bool {
 	return s.ControlPlane.Spec.DisableVPCCNI
 }
+
+func (s *ManagedControlPlaneScope) OIDCIdentityProviderConfig() *ekscontrolplanev1.OIDCIdentityProviderConfig {
+	return s.ControlPlane.Spec.OIDCIdentityProviderConfig
+}

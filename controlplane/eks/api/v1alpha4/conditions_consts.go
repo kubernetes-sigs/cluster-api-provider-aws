@@ -51,3 +51,10 @@ const (
 	// EKSAddonsConfiguredFailedReason used to report failures while reconciling the EKS addons.
 	EKSAddonsConfiguredFailedReason = "EKSAddonsConfiguredFailed"
 )
+
+const (
+	// EKSIdentityProviderConfiguredCondition condition reports on the successful association of identity provider config.
+	EKSIdentityProviderConfiguredCondition clusterv1.ConditionType = "EKSIdentityProviderConfigured"
+	// EKSIdentityProviderConfiguredFailedReason used to report failures while reconciling the identity provider config association.
+	EKSIdentityProviderConfiguredFailedReason = "EKSIdentityProviderConfiguredFailed"
+)
