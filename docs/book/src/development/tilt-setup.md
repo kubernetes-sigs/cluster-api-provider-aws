@@ -7,7 +7,7 @@ Also, visit the
 
 [tilt]: https://tilt.dev
 [cluster_api_tilt]: https://master.cluster-api.sigs.k8s.io/developer/tilt.html
-[Initial-setup-for-development-environment]: ../development/development.html#initial-setup-for-development-environment
+[Initial-setup-for-development-environment]: ./development.md/#initial-setup-for-development-environment
 
 ### Create a kind cluster
 First, make sure you have a kind cluster and that your `KUBECONFIG` is set up correctly:
