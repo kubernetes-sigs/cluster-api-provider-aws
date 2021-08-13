@@ -91,8 +91,8 @@ type AWSIAMRoleSpec struct {
 
 // EKSConfig represents the EKS related configuration config.
 type EKSConfig struct {
-	// Enable controls whether EKS-related permissions are granted
-	Enable bool `json:"enable"`
+	// Disable controls whether EKS-related permissions are granted
+	Disable bool `json:"disable"`
 	// AllowIAMRoleCreation controls whether the EKS controllers have permissions for creating IAM
 	// roles per cluster
 	AllowIAMRoleCreation bool `json:"iamRoleCreation,omitempty"`

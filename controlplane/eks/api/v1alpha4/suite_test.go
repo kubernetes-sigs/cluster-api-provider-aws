@@ -43,9 +43,9 @@ func TestMain(m *testing.M) {
 func setup() {
 	utilruntime.Must(AddToScheme(scheme.Scheme))
 	testEnvConfig := helpers.NewTestEnvironmentConfiguration([]string{
-		path.Join("controlplane", "eks", "config", "crd", "bases"),
+		path.Join("config", "crd", "bases"),
 	},
-	).WithWebhookConfiguration("managed", path.Join("controlplane", "eks", "config", "webhook", "manifests.yaml"))
+	).WithWebhookConfiguration("managed", path.Join("config", "webhook", "manifests.yaml"))
 	var err error
 	testEnv, err = testEnvConfig.Build()
 	if err != nil {

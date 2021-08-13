@@ -28,12 +28,6 @@ func (*AWSManagedMachinePool) Hub() {}
 // Hub marks AWSManagedMachinePoolList as a conversion hub.
 func (*AWSManagedMachinePoolList) Hub() {}
 
-// Hub marks AWSManagedCluster as a conversion hub.
-func (*AWSManagedCluster) Hub() {}
-
-// Hub marks AWSManagedClusterList as a conversion hub.
-func (*AWSManagedClusterList) Hub() {}
-
 // Hub marks AWSFargateProfile as a conversion hub.
 func (*AWSFargateProfile) Hub() {}
 

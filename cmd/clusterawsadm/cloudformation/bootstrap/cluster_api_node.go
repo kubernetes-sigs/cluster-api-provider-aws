@@ -66,7 +66,7 @@ func (t Template) sessionManagerPolicy() infrav1.StatementEntry {
 func (t Template) nodeManagedPolicies() []string {
 	policies := t.Spec.Nodes.ExtraPolicyAttachments
 
-	if t.Spec.EKS.Enable {
+	if !t.Spec.EKS.Disable {
 		policies = append(policies,
 			t.generateAWSManagedPolicyARN("AmazonEKSWorkerNodePolicy"),
 			t.generateAWSManagedPolicyARN("AmazonEKS_CNI_Policy"),

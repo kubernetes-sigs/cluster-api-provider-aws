@@ -121,34 +121,6 @@ func (r *AWSManagedMachinePoolList) ConvertFrom(srcRaw conversion.Hub) error {
 	return Convert_v1alpha4_AWSManagedMachinePoolList_To_v1alpha3_AWSManagedMachinePoolList(src, r, nil)
 }
 
-// ConvertTo converts the v1alpha3 AWSManagedCluster receiver to a v1alpha4 AWSManagedCluster.
-func (r *AWSManagedCluster) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1alpha4.AWSManagedCluster)
-
-	return Convert_v1alpha3_AWSManagedCluster_To_v1alpha4_AWSManagedCluster(r, dst, nil)
-}
-
-// ConvertFrom converts the v1alpha4 AWSManagedCluster receiver to a v1alpha3 AWSManagedCluster.
-func (r *AWSManagedCluster) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1alpha4.AWSManagedCluster)
-
-	return Convert_v1alpha4_AWSManagedCluster_To_v1alpha3_AWSManagedCluster(src, r, nil)
-}
-
-// ConvertTo converts the v1alpha3 AWSManagedClusterList receiver to a v1alpha4 AWSManagedClusterList.
-func (r *AWSManagedClusterList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1alpha4.AWSManagedClusterList)
-
-	return Convert_v1alpha3_AWSManagedClusterList_To_v1alpha4_AWSManagedClusterList(r, dst, nil)
-}
-
-// ConvertFrom converts the v1alpha4 AWSManagedClusterList receiver to a v1alpha3 AWSManagedClusterList.
-func (r *AWSManagedClusterList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1alpha4.AWSManagedClusterList)
-
-	return Convert_v1alpha4_AWSManagedClusterList_To_v1alpha3_AWSManagedClusterList(src, r, nil)
-}
-
 // ConvertTo converts the v1alpha3 AWSFargateProfile receiver to a v1alpha4 AWSFargateProfile.
 func (r *AWSFargateProfile) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha4.AWSFargateProfile)

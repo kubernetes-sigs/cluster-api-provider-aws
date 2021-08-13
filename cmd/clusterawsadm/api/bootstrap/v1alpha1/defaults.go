@@ -58,13 +58,13 @@ func SetDefaults_AWSIAMConfigurationSpec(obj *AWSIAMConfigurationSpec) { //nolin
 	}
 	if obj.EKS == nil {
 		obj.EKS = &EKSConfig{
-			Enable:               false,
+			Disable:              false,
 			AllowIAMRoleCreation: false,
 			DefaultControlPlaneRole: AWSIAMRoleSpec{
-				Disable: true,
+				Disable: false,
 			},
 		}
-	} else if obj.EKS.Enable {
+	} else if !obj.EKS.Disable {
 		obj.Nodes.EC2ContainerRegistryReadOnly = true
 	}
 	if obj.EventBridge == nil {

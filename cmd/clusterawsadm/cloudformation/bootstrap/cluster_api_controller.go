@@ -235,7 +235,7 @@ func (t Template) ControllersPolicy() *infrav1.PolicyDocument {
 			})
 		}
 	}
-	if t.Spec.EKS.Enable {
+	if !t.Spec.EKS.Disable {
 		allowedIAMActions := infrav1.Actions{
 			"iam:GetRole",
 			"iam:ListAttachedRolePolicies",

@@ -50,7 +50,6 @@ func setup() {
 	utilruntime.Must(ekscontrolplanev1.AddToScheme(scheme.Scheme))
 	testEnvConfig := helpers.NewTestEnvironmentConfiguration([]string{
 		path.Join("config", "crd", "bases"),
-		path.Join("controlplane", "eks", "config", "crd", "bases"),
 	},
 	)
 	var err error

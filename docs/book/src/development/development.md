@@ -1,7 +1,9 @@
 # Developer Guide
 
 ## Initial setup for development environment
+
 ### Install prerequisites
+
 1. Install [go][go]
     - Get the latest patch version for go v1.16.
 2. Install [jq][jq]
@@ -15,12 +17,13 @@
     - `choco install kustomize` on Windows.
     - [install instructions][kustomizelinux] on Linux
 5. Install [envsubst][envsubst]
-7. Install make.
-8. Install direnv
+6. Install make.
+7. Install direnv
     - `brew install direnv` on macOS.
 
 ### Get the source
-Fork cluster-api-provider-aws repo: https://github.com/kubernetes-sigs/cluster-api-provider-aws
+
+Fork the [cluster-api-provider-aws repo](https://github.com/kubernetes-sigs/cluster-api-provider-aws):
 
 ```bash
 cd "$(go env GOPATH)"
@@ -32,23 +35,23 @@ git remote add upstream git@github.com:kubernetes-sigs/cluster-api-provider-aws.
 git fetch upstream
 ```
 
-### Build clusterawsadm 
+### Build clusterawsadm
 
-Build `clusterawsadm` in `cluster-api-provider-aws` 
+Build `clusterawsadm` in `cluster-api-provider-aws`:
 
 ```bash
-$ cd "$(go env GOPATH)"/src/sigs.k8s.io/cluster-api-provider-aws
-$ make clusterawsadm
-$ mv ./bin/clusterawsadm /usr/local/bin/clusterawsadm
+cd "$(go env GOPATH)"/src/sigs.k8s.io/cluster-api-provider-aws
+make clusterawsadm
+mv ./bin/clusterawsadm /usr/local/bin/clusterawsadm
 ```
 
-### Setup AWS Environment 
-**For cluster-api-provider-aws managed clusters**
+### Setup AWS Environment
 
 Create bootstrap file and bootstrap IAM roles and policies using `clusterawsadm`
 
 ```bash
 $ cat config-bootstrap.yaml
+
 apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
 kind: AWSIAMConfiguration
 spec:
@@ -59,9 +62,9 @@ $ clusterawsadm bootstrap iam create-cloudformation-stack
 Attempting to create AWS CloudFormation stack cluster-api-provider-aws-sigs-k8s-io
 ```
 
-**For EKS clusters**
+#### Customizing the bootstrap permission
 
-Create IAM Resources that will be needed for bootstrapping EKS
+The IAM permissions can be customized by using a configuration file with **clusterawsadm**. For example, to create the default IAM role for use with managed machine pools:
 
 ```bash
 $ cat config-bootstrap.yaml
@@ -71,22 +74,23 @@ spec:
   bootstrapUser:
     enable: true
   eks:
-    enable: true
     iamRoleCreation: false # Set to true if you plan to use the EKSEnableIAM feature flag to enable automatic creation of IAM roles
-    defaultControlPlaneRole:
-      disable: false # Set to false to enable creation of the default control plane role
     managedMachinePool:
       disable: false # Set to false to enable creation of the default node role for managed machine pools
 ```
 
-create IAM Resources that will be needed for bootstrapping EKS
+Use the configuration file to create the additional IAM role:
 
 ```bash
 $ ./bin/clusterawsadm bootstrap iam create-cloudformation-stack --config=config-bootstrap.yaml
 Attempting to create AWS CloudFormation stack cluster-api-provider-aws-sigs-k8s-io
 ```
 
-This will create cloudformation stack for those IAM resources
+> If you don't plan on using EKS then see the [documentation on disabling EKS support](../topics/eks/disabling.md).
+
+#### Sample Output
+
+When creating the CloudFormation stack using **clusterawsadm** you will see output similar to this:
 
 ```bash
 Following resources are in the stack:
@@ -112,7 +116,6 @@ AWS::IAM::User            |bootstrapper.cluster-api-provider-aws.sigs.k8s.io    
 - Create a security credentials in the `bootstrapper.cluster-api-provider-aws.sigs.k8s.io` IAM user that is created by cloud-formation stack and copy the `AWS_ACCESS_KEY_ID` and `AWS_SECRETS_ACCESS_KEY`.
   (Or use admin user credentials instead)
 
-
 - Set AWS_B64ENCODED_CREDENTIALS environment variable
 
    ```bash
@@ -121,7 +124,6 @@ AWS::IAM::User            |bootstrapper.cluster-api-provider-aws.sigs.k8s.io    
    export AWS_REGION=eu-west-1
    export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)
    ```
-
 
 ## Running local management cluster for development
 
@@ -142,6 +144,7 @@ Many of the Cluster API engineers use it for quick iteration. Please see our [Ti
 ### Option 2: The Old-fashioned way
 
 Running cluster-api and cluster-api-provider-aws controllers in a kind cluster:
+
 1. Create a local kind cluster
    - `kind create cluster`
 2. Install core cluster-api controllers (the version must match the cluster-api version in [go.mod][go.mod])
@@ -152,7 +155,7 @@ Running cluster-api and cluster-api-provider-aws controllers in a kind cluster:
    - `RELEASE_TAG="e2e" make release-manifests`
 5. Apply the manifests
    - `kubectl apply -f ./out/infrastructure.yaml`
-   
+
 [go]: https://golang.org/doc/install
 [jq]: https://stedolan.github.io/jq/download/
 [go.mod]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/go.mod

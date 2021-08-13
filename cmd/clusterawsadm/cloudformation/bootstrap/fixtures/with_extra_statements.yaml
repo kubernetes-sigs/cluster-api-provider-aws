@@ -255,6 +255,96 @@ Resources:
           Effect: Allow
           Resource:
           - arn:*:secretsmanager:*:*:secret:aws.cluster.x-k8s.io/*
+        - Action:
+          - ssm:GetParameter
+          Effect: Allow
+          Resource:
+          - arn:*:ssm:*:*:parameter/aws/service/eks/optimized-ami/*
+        - Action:
+          - iam:CreateServiceLinkedRole
+          Condition:
+            StringLike:
+              iam:AWSServiceName: eks.amazonaws.com
+          Effect: Allow
+          Resource:
+          - arn:*:iam::*:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS
+        - Action:
+          - iam:CreateServiceLinkedRole
+          Condition:
+            StringLike:
+              iam:AWSServiceName: eks-nodegroup.amazonaws.com
+          Effect: Allow
+          Resource:
+          - arn:*:iam::*:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup
+        - Action:
+          - iam:CreateServiceLinkedRole
+          Condition:
+            StringLike:
+              iam:AWSServiceName: eks-fargate.amazonaws.com
+          Effect: Allow
+          Resource:
+          - arn:aws:iam::*:role/aws-service-role/eks-fargate-pods.amazonaws.com/AWSServiceRoleForAmazonEKSForFargate
+        - Action:
+          - iam:GetRole
+          - iam:ListAttachedRolePolicies
+          Effect: Allow
+          Resource:
+          - arn:*:iam::*:role/*
+        - Action:
+          - iam:GetPolicy
+          Effect: Allow
+          Resource:
+          - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+        - Action:
+          - eks:DescribeCluster
+          - eks:ListClusters
+          - eks:CreateCluster
+          - eks:TagResource
+          - eks:UpdateClusterVersion
+          - eks:DeleteCluster
+          - eks:UpdateClusterConfig
+          - eks:UntagResource
+          - eks:UpdateNodegroupVersion
+          - eks:DescribeNodegroup
+          - eks:DeleteNodegroup
+          - eks:UpdateNodegroupConfig
+          - eks:CreateNodegroup
+          - eks:AssociateEncryptionConfig
+          Effect: Allow
+          Resource:
+          - arn:*:eks:*:*:cluster/*
+          - arn:*:eks:*:*:nodegroup/*/*/*
+        - Action:
+          - eks:ListAddons
+          - eks:CreateAddon
+          - eks:DescribeAddonVersions
+          - eks:DescribeAddon
+          - eks:DeleteAddon
+          - eks:UpdateAddon
+          - eks:TagResource
+          - eks:DescribeFargateProfile
+          - eks:CreateFargateProfile
+          - eks:DeleteFargateProfile
+          Effect: Allow
+          Resource:
+          - '*'
+        - Action:
+          - iam:PassRole
+          Condition:
+            StringEquals:
+              iam:PassedToService: eks.amazonaws.com
+          Effect: Allow
+          Resource:
+          - '*'
+        - Action:
+          - kms:CreateGrant
+          - kms:DescribeKey
+          Condition:
+            ForAnyValue:StringLike:
+              kms:ResourceAliases: alias/cluster-api-provider-aws-*
+          Effect: Allow
+          Resource:
+          - '*'
         Version: 2012-10-17
       Roles:
       - Ref: AWSIAMRoleControllers
@@ -306,6 +396,21 @@ Resources:
         PolicyName: cluster-api-provider-aws-sigs-k8s-io
       RoleName: controllers.cluster-api-provider-aws.sigs.k8s.io
     Type: AWS::IAM::Role
+  AWSIAMRoleEKSControlPlane:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - eks.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+      RoleName: eks-controlplane.cluster-api-provider-aws.sigs.k8s.io
+    Type: AWS::IAM::Role
   AWSIAMRoleNodes:
     Properties:
       AssumeRolePolicyDocument:
@@ -317,6 +422,9 @@ Resources:
             Service:
             - ec2.amazonaws.com
         Version: 2012-10-17
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+      - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
       Policies:
       - PolicyDocument:
           Statement:

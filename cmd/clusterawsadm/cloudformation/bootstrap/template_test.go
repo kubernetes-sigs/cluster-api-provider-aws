@@ -95,19 +95,9 @@ func Test_RenderCloudformation(t *testing.T) {
 			},
 		},
 		{
-			fixture: "with_eks_enable",
-			template: func() Template {
-				t := NewTemplate()
-				t.Spec.EKS.Enable = true
-				t.Spec.Nodes.EC2ContainerRegistryReadOnly = true
-				return t
-			},
-		},
-		{
 			fixture: "with_eks_default_roles",
 			template: func() Template {
 				t := NewTemplate()
-				t.Spec.EKS.Enable = true
 				t.Spec.Nodes.EC2ContainerRegistryReadOnly = true
 				t.Spec.EKS.DefaultControlPlaneRole.Disable = false
 				t.Spec.EKS.ManagedMachinePool.Disable = false
@@ -119,7 +109,6 @@ func Test_RenderCloudformation(t *testing.T) {
 			fixture: "with_eks_kms_prefix",
 			template: func() Template {
 				t := NewTemplate()
-				t.Spec.EKS.Enable = true
 				t.Spec.Nodes.EC2ContainerRegistryReadOnly = true
 				t.Spec.EKS.KMSAliasPrefix = "custom-prefix-*"
 				return t
@@ -158,6 +147,14 @@ func Test_RenderCloudformation(t *testing.T) {
 						Action:   infrav1.Actions{"test:controller-action"},
 					},
 				}
+				return t
+			},
+		},
+		{
+			fixture: "with_eks_disable",
+			template: func() Template {
+				t := NewTemplate()
+				t.Spec.EKS.Disable = true
 				return t
 			},
 		},

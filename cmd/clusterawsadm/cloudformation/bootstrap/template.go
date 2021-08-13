@@ -167,7 +167,7 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 		},
 	}
 
-	if !t.Spec.EKS.DefaultControlPlaneRole.Disable {
+	if !t.Spec.EKS.DefaultControlPlaneRole.Disable && !t.Spec.EKS.Disable {
 		template.Resources[AWSIAMRoleEKSControlPlane] = &cfn_iam.Role{
 			RoleName:                 ekscontrolplanev1.DefaultEKSControlPlaneRole,
 			AssumeRolePolicyDocument: AssumeRolePolicy(v1alpha4.PrincipalService, []string{"eks.amazonaws.com"}),
@@ -176,7 +176,7 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 		}
 	}
 
-	if !t.Spec.EKS.ManagedMachinePool.Disable {
+	if !t.Spec.EKS.ManagedMachinePool.Disable && !t.Spec.EKS.Disable {
 		template.Resources[AWSIAMRoleEKSNodegroup] = &cfn_iam.Role{
 			RoleName:                 infrav1exp.DefaultEKSNodegroupRole,
 			AssumeRolePolicyDocument: AssumeRolePolicy(v1alpha4.PrincipalService, []string{"ec2.amazonaws.com", "eks.amazonaws.com"}),
@@ -185,7 +185,7 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 		}
 	}
 
-	if !t.Spec.EKS.Fargate.Disable {
+	if !t.Spec.EKS.Fargate.Disable && !t.Spec.EKS.Disable {
 		template.Resources[AWSIAMRoleEKSFargate] = &cfn_iam.Role{
 			RoleName:                 infrav1exp.DefaultEKSFargateRole,
 			AssumeRolePolicyDocument: AssumeRolePolicy(v1alpha4.PrincipalService, []string{eksiam.EKSFargateService}),

@@ -73,7 +73,7 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 	region, err := credentials.ResolveRegion("")
 	Expect(err).NotTo(HaveOccurred())
 	t.Spec.Region = region
-	t.Spec.EKS.Enable = true
+	t.Spec.EKS.Disable = false
 	t.Spec.EKS.AllowIAMRoleCreation = false
 	t.Spec.EKS.DefaultControlPlaneRole.Disable = false
 	t.Spec.EKS.ManagedMachinePool.Disable = false
