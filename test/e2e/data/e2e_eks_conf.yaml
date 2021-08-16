@@ -25,11 +25,11 @@ images:
     loadBehavior: tryLoad
   - name: quay.io/jetstack/cert-manager-controller:v1.1.0
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/kubeadm-control-plane-controller:v0.4.0
+  - name: k8s.gcr.io/cluster-api/kubeadm-control-plane-controller:v0.4.1
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/kubeadm-bootstrap-controller:v0.4.0
+  - name: k8s.gcr.io/cluster-api/kubeadm-bootstrap-controller:v0.4.1
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/cluster-api-controller:v0.4.0
+  - name: k8s.gcr.io/cluster-api/cluster-api-controller:v0.4.1
     loadBehavior: tryLoad
 
 
@@ -38,9 +38,9 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v0.4.0
+      - name: v0.4.1
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.0/core-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.1/core-components.yaml"
         type: "url"
         files:
           - sourcePath: "./shared/v1alpha4/metadata.yaml"
@@ -55,7 +55,7 @@ providers:
   - name: aws
     type: InfrastructureProvider
     versions:
-      - name: v0.6.0
+      - name: v0.7.0
         # Use manifest from source files
         value: ../../../config/default
         files:
