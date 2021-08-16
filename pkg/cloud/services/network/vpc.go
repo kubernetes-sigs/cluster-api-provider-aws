@@ -117,6 +117,10 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 	}
 	vpcAttr, err := s.EC2Client.DescribeVpcAttribute(descAttrInput)
 	if err != nil {
+		// If the returned error is a 'NotFound' error it should trigger retry
+		if code, ok := awserrors.Code(errors.Cause(err)); ok && code == awserrors.VPCNotFound {
+			return err
+		}
 		errs = append(errs, errors.Wrap(err, "failed to describe enableDnsHostnames vpc attribute"))
 	} else if !aws.BoolValue(vpcAttr.EnableDnsHostnames.Value) {
 		attrInput := &ec2.ModifyVpcAttributeInput{
@@ -136,6 +140,10 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 	}
 	vpcAttr, err = s.EC2Client.DescribeVpcAttribute(descAttrInput)
 	if err != nil {
+		// If the returned error is a 'NotFound' error it should trigger retry
+		if code, ok := awserrors.Code(errors.Cause(err)); ok && code == awserrors.VPCNotFound {
+			return err
+		}
 		errs = append(errs, errors.Wrap(err, "failed to describe enableDnsSupport vpc attribute"))
 	} else if !aws.BoolValue(vpcAttr.EnableDnsSupport.Value) {
 		attrInput := &ec2.ModifyVpcAttributeInput{
