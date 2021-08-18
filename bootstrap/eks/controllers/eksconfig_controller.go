@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"bytes"
 	"context"
 
 	"github.com/go-logr/logr"
@@ -252,37 +253,32 @@ func (r *EKSConfigReconciler) SetupWithManager(mgr ctrl.Manager, option controll
 // storeBootstrapData creates a new secret with the data passed in as input,
 // sets the reference in the configuration status and ready to true.
 func (r *EKSConfigReconciler) storeBootstrapData(ctx context.Context, log logr.Logger, cluster *clusterv1.Cluster, config *bootstrapv1.EKSConfig, data []byte) error {
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      config.Name,
-			Namespace: config.Namespace,
-			Labels: map[string]string{
-				clusterv1.ClusterLabelName: cluster.Name,
-			},
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: bootstrapv1.GroupVersion.String(),
-					Kind:       "EKSConfig",
-					Name:       config.Name,
-					UID:        config.UID,
-					Controller: pointer.BoolPtr(true),
-				},
-			},
-		},
-		Data: map[string][]byte{
-			"value": data,
-		},
-		Type: clusterv1.ClusterSecretType,
-	}
 
 	// as secret creation and scope.Config status patch are not atomic operations
 	// it is possible that secret creation happens but the config.Status patches are not applied
-	if err := r.Client.Create(ctx, secret); err != nil {
-		if !apierrors.IsAlreadyExists(err) {
-			return errors.Wrap(err, "failed to create bootstrap data secret for EKSConfig")
+	secret := &corev1.Secret{}
+	if err := r.Client.Get(ctx, client.ObjectKey{
+		Name:      config.Name,
+		Namespace: config.Namespace,
+	}, secret); err != nil {
+		if apierrors.IsNotFound(err) {
+			if err := r.createBootstrapSecret(ctx, cluster, config, data); err != nil {
+				return errors.Wrap(err, "failed to create bootstrap data secret for EKSConfig")
+			}
+			log.Info("created bootstrap data secret for EKSConfig", "secret", secret.Name)
+		} else {
+			return errors.Wrap(err, "failed to get data secret for EKSConfig")
 		}
-		log.Info("bootstrap data secret for EKSConfig already exists", "secret", secret.Name)
+	} else {
+		updated, err := r.updateBootstrapSecret(ctx, secret, data)
+		if err != nil {
+			return errors.Wrap(err, "failed to update data secret for EKSConfig")
+		}
+		if updated {
+			log.Info("updated bootstrap data secret for EKSConfig", "secret", secret.Name)
+		}
 	}
+
 	config.Status.DataSecretName = pointer.StringPtr(secret.Name)
 	config.Status.Ready = true
 	conditions.MarkTrue(config, bootstrapv1.DataSecretAvailableCondition)
@@ -355,4 +351,40 @@ func (r *EKSConfigReconciler) ClusterToEKSConfigs(o handler.MapObject) []ctrl.Re
 	}
 
 	return result
+}
+
+// Create the Secret containing bootstrap userdata.
+func (r *EKSConfigReconciler) createBootstrapSecret(ctx context.Context, cluster *clusterv1.Cluster, config *bootstrapv1.EKSConfig, data []byte) error {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      config.Name,
+			Namespace: config.Namespace,
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: cluster.Name,
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: bootstrapv1.GroupVersion.String(),
+					Kind:       "EKSConfig",
+					Name:       config.Name,
+					UID:        config.UID,
+					Controller: pointer.BoolPtr(true),
+				},
+			},
+		},
+		Data: map[string][]byte{
+			"value": data,
+		},
+		Type: clusterv1.ClusterSecretType,
+	}
+	return r.Client.Create(ctx, secret)
+}
+
+// Update the userdata in the bootstrap Secret.
+func (r *EKSConfigReconciler) updateBootstrapSecret(ctx context.Context, secret *corev1.Secret, data []byte) (bool, error) {
+	if !bytes.Equal(secret.Data["value"], data) {
+		secret.Data["value"] = data
+		return true, r.Client.Update(ctx, secret)
+	}
+	return false, nil
 }
