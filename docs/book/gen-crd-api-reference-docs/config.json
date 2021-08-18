@@ -28,12 +28,20 @@
       "docsURLTemplate": "https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha3.{{.TypeIdentifier}}"
     },
     {
+      "typeMatchPrefix": "^sigs\\.k8s\\.io/cluster-api-provider-aws/api/v1alpha4",
+      "docsURLTemplate": "https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.{{.TypeIdentifier}}"
+    },
+    {
       "typeMatchPrefix": "^sigs\\.k8s\\.io/cluster-api/api/v1alpha3",
       "docsURLTemplate": "https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v0.3.15"
     },
     {
+      "typeMatchPrefix": "^sigs\\.k8s\\.io/cluster-api/api/v1alpha4",
+      "docsURLTemplate": "https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v0.4.1"
+    },
+    {
       "typeMatchPrefix": "^sigs\\.k8s\\.io/cluster-api/errors",
-      "docsURLTemplate": "https://pkg.go.dev/sigs.k8s.io/cluster-api@v0.3.15/errors#{{.TypeIdentifier}}"
+      "docsURLTemplate": "https://pkg.go.dev/sigs.k8s.io/cluster-api@v0.4.1/errors#{{.TypeIdentifier}}"
     },
     {
       "typeMatchPrefix": "^time\\.Duration",
