@@ -114,4 +114,10 @@ function setup_envs {
   export TEST_ASSET_ETCD=/tmp/kubebuilder/bin/etcd
   export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT=10m
   export NO_DOCKER=1
+
+  # Ensure that some home var is set and that it's not the root
+  export HOME=${HOME:=/tmp/kubebuilder-testing}
+  if [ $HOME == "/" ]; then
+    export HOME=/tmp/kubebuilder-testing
+  fi
 }
