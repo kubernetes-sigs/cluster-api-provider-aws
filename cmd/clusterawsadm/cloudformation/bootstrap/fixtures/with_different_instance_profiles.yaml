@@ -65,7 +65,6 @@ Resources:
           - elasticloadbalancing:ModifyLoadBalancerAttributes
           - elasticloadbalancing:RegisterInstancesWithLoadBalancer
           - elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer
-          - elasticloadbalancing:AddTags
           - elasticloadbalancing:CreateListener
           - elasticloadbalancing:CreateTargetGroup
           - elasticloadbalancing:DeleteListener
