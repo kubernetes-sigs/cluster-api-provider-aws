@@ -46,6 +46,9 @@ src/crd/eks-control-plane.md:
 src/crd/clusterawsadm.md:
 	$(MAKE) gen_crd_docs API_DIR="../../cmd/clusterawsadm/api" OUT_FILE=$@
 
+src/crd/index.md:
+	$(MAKE) gen_crd_docs API_DIR="../.." OUT_FILE=$@
+
 .PHONY: gen_crd_docs
 gen_crd_docs: $(GENCRDAPIREFERENCEDOCS) src/crd $(API_SRCS) $(GENCRDAPIREFERENCEDOCS_SRCS)
 	$(GENCRDAPIREFERENCEDOCS) -template-dir gen-crd-api-reference-docs/template -config "gen-crd-api-reference-docs/config.json" \
@@ -85,7 +88,7 @@ verify: generate ## Verify that dependent artifacts are up to date
 		echo "generated files are out of date, run make generate"; exit 1; \
 	fi
 
-BOOK_DEPS := $(BOOK_SRCS) $(MDBOOK) $(MDBOOK_EMBED) $(MDBOOK_RELEASELINK) $(MDBOOK_TABULATE) release-policies src/SUMMARY.md $(CRD_DOCS)
+BOOK_DEPS := $(BOOK_SRCS) $(MDBOOK) $(MDBOOK_EMBED) $(MDBOOK_RELEASELINK) $(MDBOOK_TABULATE) release-policies src/SUMMARY.md src/crd/index.md
 
 .PHONY: build
 build: $(BOOK_DEPS) ## Build the book
