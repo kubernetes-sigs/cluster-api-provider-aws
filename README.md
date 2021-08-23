@@ -1,6 +1,13 @@
 # Kubernetes Cluster API Provider AWS
 
-<img src="https://github.com/kubernetes/kubernetes/raw/master/logo/logo.png"  width="100"><a href="https://aws.amazon.com/opensource/"><img hspace="90px" src="https://d0.awsstatic.com/logos/powered-by-aws.png" alt="Powered by AWS Cloud Computing"></a>
+<p align="center">
+<img src="https://github.com/kubernetes/kubernetes/raw/master/logo/logo.png"  width="100x"><a href="https://aws.amazon.com/opensource/"><img width="192x" src="https://d0.awsstatic.com/logos/powered-by-aws.png" alt="Powered by AWS Cloud Computing"></a>
+</p>
+<p align="center">
+<!-- go doc / reference card -->
+<a href="https://godoc.org/sigs.k8s.io/cluster-api-provider-aws">
+ <img src="https://godoc.org/sigs.k8s.io/cluster-api-provider-aws?status.svg"></a>
+</p>
 
 ------
 
