@@ -78,7 +78,6 @@ func (t Template) cloudProviderControlPlaneAwsPolicy() *v1alpha4.PolicyDocument 
 					"elasticloadbalancing:ModifyLoadBalancerAttributes",
 					"elasticloadbalancing:RegisterInstancesWithLoadBalancer",
 					"elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer",
-					"elasticloadbalancing:AddTags",
 					"elasticloadbalancing:CreateListener",
 					"elasticloadbalancing:CreateTargetGroup",
 					"elasticloadbalancing:DeleteListener",
