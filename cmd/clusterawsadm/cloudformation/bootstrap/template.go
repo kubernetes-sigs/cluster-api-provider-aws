@@ -45,6 +45,7 @@ const (
 	AWSIAMRoleEKSFargate                         = "AWSIAMRoleEKSFargate"
 	AWSIAMUserBootstrapper                       = "AWSIAMUserBootstrapper"
 	ControllersPolicy                 PolicyName = "AWSIAMManagedPolicyControllers"
+	ControllersPolicyEKS              PolicyName = "AWSIAMManagedPolicyControllersEKS"
 	ControlPlanePolicy                PolicyName = "AWSIAMManagedPolicyCloudProviderControlPlane"
 	NodePolicy                        PolicyName = "AWSIAMManagedPolicyCloudProviderNodes"
 	CSIPolicy                         PolicyName = "AWSEBSCSIPolicyController"
@@ -94,6 +95,16 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 		PolicyDocument:    t.ControllersPolicy(),
 		Groups:            t.controllersPolicyGroups(),
 		Roles:             t.controllersPolicyRoleAttachments(),
+	}
+
+	if !t.Spec.EKS.Disable {
+		template.Resources[string(ControllersPolicyEKS)] = &cfn_iam.ManagedPolicy{
+			ManagedPolicyName: t.NewManagedName("controllers-eks"),
+			Description:       `For the Kubernetes Cluster API Provider AWS Controllers`,
+			PolicyDocument:    t.ControllersPolicyEKS(),
+			Groups:            t.controllersPolicyGroups(),
+			Roles:             t.controllersPolicyRoleAttachments(),
+		}
 	}
 
 	if !t.Spec.ControlPlane.DisableCloudProviderPolicy {

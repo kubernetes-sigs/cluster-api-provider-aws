@@ -29,7 +29,7 @@ import (
 type PolicyName string
 
 // ManagedIAMPolicyNames slice of managed IAM policies.
-var ManagedIAMPolicyNames = [4]PolicyName{ControllersPolicy, ControlPlanePolicy, NodePolicy, CSIPolicy}
+var ManagedIAMPolicyNames = [5]PolicyName{ControllersPolicy, ControllersPolicyEKS, ControlPlanePolicy, NodePolicy, CSIPolicy}
 
 // IsValid will check if a given policy name is valid. That is, it will check if the given policy name is
 // one of the ManagedIAMPolicyNames.
@@ -63,10 +63,11 @@ func (t Template) GenerateManagedIAMPolicyDocuments(policyDocDir string) error {
 
 func (t Template) policyFunctionMap() map[PolicyName]func() *v1alpha4.PolicyDocument {
 	return map[PolicyName]func() *v1alpha4.PolicyDocument{
-		ControlPlanePolicy: t.cloudProviderControlPlaneAwsPolicy,
-		ControllersPolicy:  t.ControllersPolicy,
-		NodePolicy:         t.cloudProviderNodeAwsPolicy,
-		CSIPolicy:          t.csiControllerPolicy,
+		ControlPlanePolicy:   t.cloudProviderControlPlaneAwsPolicy,
+		ControllersPolicy:    t.ControllersPolicy,
+		ControllersPolicyEKS: t.ControllersPolicyEKS,
+		NodePolicy:           t.cloudProviderNodeAwsPolicy,
+		CSIPolicy:            t.csiControllerPolicy,
 	}
 }
 
