@@ -108,6 +108,10 @@ func (s *FargateService) reconcileFargateProfile() (requeue bool, err error) {
 		s.scope.V(2).Info("Found owned EKS fargate profile", "cluster-name", eksClusterName, "profile-name", profileName)
 	}
 
+	if err := s.reconcileTags(profile); err != nil {
+		return false, errors.Wrapf(err, "failed to reconcile profile tags")
+	}
+
 	return s.handleStatus(profile), nil
 }
 

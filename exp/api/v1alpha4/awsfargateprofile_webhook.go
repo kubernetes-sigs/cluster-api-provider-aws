@@ -23,11 +23,10 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
-
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
 )
 
 const (
@@ -88,6 +87,11 @@ func (r *AWSFargateProfile) ValidateUpdate(oldObj runtime.Object) error {
 			r.Spec.ProfileName = ""
 		}
 	}
+
+	// ignore checking additionalTags since they are mutable
+	old.Spec.AdditionalTags = nil
+	r.Spec.AdditionalTags = nil
+
 	if !reflect.DeepEqual(old.Spec, r.Spec) {
 		allErrs = append(
 			allErrs,
