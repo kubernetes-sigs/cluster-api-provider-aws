@@ -236,6 +236,98 @@ func TestReconcileRouteTables(t *testing.T) {
 					Return(nil, nil)
 			},
 		},
+		{
+			name: "extra routes exist, do nothing",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					InternetGatewayID: aws.String("igw-01"),
+					ID:                "vpc-routetables",
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+				},
+				Subnets: infrav1.Subnets{
+					infrav1.SubnetSpec{
+						ID:               "subnet-routetables-private",
+						IsPublic:         false,
+						AvailabilityZone: "us-east-1a",
+					},
+					infrav1.SubnetSpec{
+						ID:               "subnet-routetables-public",
+						IsPublic:         true,
+						NatGatewayID:     aws.String("nat-01"),
+						AvailabilityZone: "us-east-1a",
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+					Return(&ec2.DescribeRouteTablesOutput{
+						RouteTables: []*ec2.RouteTable{
+							{
+								RouteTableId: aws.String("route-table-private"),
+								Associations: []*ec2.RouteTableAssociation{
+									{
+										SubnetId: aws.String("subnet-routetables-private"),
+									},
+								},
+								Routes: []*ec2.Route{
+									{
+										DestinationCidrBlock: aws.String("0.0.0.0/0"),
+										NatGatewayId:         aws.String("nat-01"),
+									},
+									// Extra (managed outside of CAPA) route with Managed Prefix List destination.
+									{
+										DestinationPrefixListId: aws.String("pl-foobar"),
+									},
+								},
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("common"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("test-cluster-rt-private-us-east-1a"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+										Value: aws.String("owned"),
+									},
+								},
+							},
+							{
+								RouteTableId: aws.String("route-table-public"),
+								Associations: []*ec2.RouteTableAssociation{
+									{
+										SubnetId: aws.String("subnet-routetables-public"),
+									},
+								},
+								Routes: []*ec2.Route{
+									{
+										DestinationCidrBlock: aws.String("0.0.0.0/0"),
+										GatewayId:            aws.String("igw-01"),
+									},
+								},
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("common"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("test-cluster-rt-public-us-east-1a"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+										Value: aws.String("owned"),
+									},
+								},
+							},
+						},
+					}, nil)
+			},
+		},
 	}
 
 	for _, tc := range testCases {

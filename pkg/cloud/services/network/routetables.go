@@ -80,7 +80,8 @@ func (s *Service) reconcileRouteTables() error {
 					// Routes destination cidr blocks must be unique within a routing table.
 					// If there is a mistmatch, we replace the routing association.
 					specRoute := routes[i]
-					if *currentRoute.DestinationCidrBlock == *specRoute.DestinationCidrBlock &&
+					if (currentRoute.DestinationCidrBlock != nil && // Manually-created routes can have .DestinationIpv6CidrBlock or .DestinationPrefixListId set instead.
+						*currentRoute.DestinationCidrBlock == *specRoute.DestinationCidrBlock) &&
 						((currentRoute.GatewayId != nil && *currentRoute.GatewayId != *specRoute.GatewayId) ||
 							(currentRoute.NatGatewayId != nil && *currentRoute.NatGatewayId != *specRoute.NatGatewayId)) {
 						if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
