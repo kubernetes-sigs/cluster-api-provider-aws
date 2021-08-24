@@ -16491,6 +16491,39 @@ func (mr *MockEC2APIMockRecorder) DescribeTrunkInterfaceAssociations(arg0 interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrunkInterfaceAssociations", reflect.TypeOf((*MockEC2API)(nil).DescribeTrunkInterfaceAssociations), arg0)
 }
 
+// DescribeTrunkInterfaceAssociationsPages mocks base method.
+func (m *MockEC2API) DescribeTrunkInterfaceAssociationsPages(arg0 *ec2.DescribeTrunkInterfaceAssociationsInput, arg1 func(*ec2.DescribeTrunkInterfaceAssociationsOutput, bool) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeTrunkInterfaceAssociationsPages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeTrunkInterfaceAssociationsPages indicates an expected call of DescribeTrunkInterfaceAssociationsPages.
+func (mr *MockEC2APIMockRecorder) DescribeTrunkInterfaceAssociationsPages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrunkInterfaceAssociationsPages", reflect.TypeOf((*MockEC2API)(nil).DescribeTrunkInterfaceAssociationsPages), arg0, arg1)
+}
+
+// DescribeTrunkInterfaceAssociationsPagesWithContext mocks base method.
+func (m *MockEC2API) DescribeTrunkInterfaceAssociationsPagesWithContext(arg0 context.Context, arg1 *ec2.DescribeTrunkInterfaceAssociationsInput, arg2 func(*ec2.DescribeTrunkInterfaceAssociationsOutput, bool) bool, arg3 ...request.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeTrunkInterfaceAssociationsPagesWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeTrunkInterfaceAssociationsPagesWithContext indicates an expected call of DescribeTrunkInterfaceAssociationsPagesWithContext.
+func (mr *MockEC2APIMockRecorder) DescribeTrunkInterfaceAssociationsPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrunkInterfaceAssociationsPagesWithContext", reflect.TypeOf((*MockEC2API)(nil).DescribeTrunkInterfaceAssociationsPagesWithContext), varargs...)
+}
+
 // DescribeTrunkInterfaceAssociationsRequest mocks base method.
 func (m *MockEC2API) DescribeTrunkInterfaceAssociationsRequest(arg0 *ec2.DescribeTrunkInterfaceAssociationsInput) (*request.Request, *ec2.DescribeTrunkInterfaceAssociationsOutput) {
 	m.ctrl.T.Helper()
