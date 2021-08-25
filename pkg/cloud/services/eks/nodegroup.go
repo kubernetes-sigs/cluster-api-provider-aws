@@ -197,6 +197,13 @@ func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
 		}
 		input.Taints = taints
 	}
+	if managedPool.CapacityType != nil {
+		capacityType, err := converters.CapacityTypeToSDK(*managedPool.CapacityType)
+		if err != nil {
+			return nil, fmt.Errorf("converting capacity type: %w", err)
+		}
+		input.CapacityType = aws.String(capacityType)
+	}
 
 	if err := input.Validate(); err != nil {
 		return nil, errors.Wrap(err, "created invalid CreateNodegroupInput")

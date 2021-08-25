@@ -88,6 +88,7 @@ func (r *AWSManagedMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.Taints = restored.Spec.Taints
+	dst.Spec.CapacityType = restored.Spec.CapacityType
 
 	return nil
 }
