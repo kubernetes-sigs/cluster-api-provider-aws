@@ -32,6 +32,9 @@ import (
 var (
 	// ErrUnknowTaintEffect is an error when a unknown TaintEffect is used.
 	ErrUnknowTaintEffect = errors.New("uknown taint effect")
+
+	// ErrUnknownCapacityType is an error when a unknown CapacityType is used.
+	ErrUnknownCapacityType = errors.New("unknown capacity type")
 )
 
 // AddonSDKToAddonState is used to convert an AWS SDK Addon to a control plane AddonState.
@@ -159,4 +162,16 @@ func ConvertSDKToIdentityProvider(in *ekscontrolplanev1.OIDCIdentityProviderConf
 	}
 
 	return nil
+}
+
+// CapacityTypeToSDK is used to convert a CapacityType to the AWS SDK capacity type value.
+func CapacityTypeToSDK(capacityType infrav1exp.ManagedMachinePoolCapacityType) (string, error) {
+	switch capacityType {
+	case infrav1exp.ManagedMachinePoolCapacityTypeOnDemand:
+		return eks.CapacityTypesOnDemand, nil
+	case infrav1exp.ManagedMachinePoolCapacityTypeSpot:
+		return eks.CapacityTypesSpot, nil
+	default:
+		return "", ErrUnknownCapacityType
+	}
 }

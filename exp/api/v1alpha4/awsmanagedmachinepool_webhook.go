@@ -186,6 +186,7 @@ func (r *AWSManagedMachinePool) validateImmutable(old *AWSManagedMachinePool) fi
 	appendErrorIfMutated(old.Spec.DiskSize, r.Spec.DiskSize, "diskSize")
 	appendErrorIfMutated(old.Spec.AMIType, r.Spec.AMIType, "amiType")
 	appendErrorIfMutated(old.Spec.RemoteAccess, r.Spec.RemoteAccess, "remoteAccess")
+	appendErrorIfMutated(old.Spec.CapacityType, r.Spec.CapacityType, "capacityType")
 
 	return allErrs
 }

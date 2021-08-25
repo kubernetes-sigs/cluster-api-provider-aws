@@ -43,6 +43,16 @@ const (
 	Al2Arm64 ManagedMachineAMIType = "AL2_ARM_64"
 )
 
+// ManagedMachinePoolCapacityType specifies the capacity type to be used for the managed MachinePool.
+type ManagedMachinePoolCapacityType string
+
+const (
+	// ManagedMachinePoolCapacityTypeOnDemand is the default capacity type, to launch on-demand instances.
+	ManagedMachinePoolCapacityTypeOnDemand ManagedMachinePoolCapacityType = "onDemand"
+	// ManagedMachinePoolCapacityTypeSpot is the spot instance capacity type to launch spot instances.
+	ManagedMachinePoolCapacityTypeSpot ManagedMachinePoolCapacityType = "spot"
+)
+
 var (
 	// DefaultEKSNodegroupRole is the name of the default IAM role to use for EKS nodegroups
 	// if no other role is supplied in the spec and if iam role creation is not enabled. The default
@@ -121,6 +131,12 @@ type AWSManagedMachinePoolSpec struct {
 	// machine pool
 	// +optional
 	ProviderIDList []string `json:"providerIDList,omitempty"`
+
+	// CapacityType specifies the capacity type for the ASG behind this pool
+	// +kubebuilder:validation:Enum:=onDemand;spot
+	// +kubebuilder:default:=onDemand
+	// +optional
+	CapacityType *ManagedMachinePoolCapacityType `json:"capacityType,omitempty"`
 }
 
 // ManagedMachinePoolScaling specifies scaling options.

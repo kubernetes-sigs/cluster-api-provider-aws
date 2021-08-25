@@ -299,6 +299,14 @@ spec:
                 items:
                   type: string
                 type: array
+              capacityType:
+                default: onDemand
+                description: CapacityType specifies the capacity type for the ASG
+                  behind this pool
+                enum:
+                - onDemand
+                - spot
+                type: string
               diskSize:
                 description: DiskSize specifies the root disk size
                 format: int32
