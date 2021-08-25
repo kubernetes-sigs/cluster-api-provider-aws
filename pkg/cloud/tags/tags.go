@@ -90,12 +90,19 @@ func WithEC2(ec2client ec2iface.EC2API) BuilderOption {
 	return func(b *Builder) {
 		b.applyFunc = func(params *infrav1.BuildParams) error {
 			tags := infrav1.Build(*params)
-
 			awsTags := make([]*ec2.Tag, 0, len(tags))
-			for k, v := range tags {
+
+			// For testing, we need sorted keys
+			sortedKeys := make([]string, 0, len(tags))
+			for k := range tags {
+				sortedKeys = append(sortedKeys, k)
+			}
+			sort.Strings(sortedKeys)
+
+			for _, key := range sortedKeys {
 				tag := &ec2.Tag{
-					Key:   aws.String(k),
-					Value: aws.String(v),
+					Key:   aws.String(key),
+					Value: aws.String(tags[key]),
 				}
 				awsTags = append(awsTags, tag)
 			}

@@ -188,7 +188,9 @@ func Build(params BuildParams) Tags {
 		tags[k] = v
 	}
 
-	tags[ClusterTagKey(params.ClusterName)] = string(params.Lifecycle)
+	if params.ClusterName != "" {
+		tags[ClusterTagKey(params.ClusterName)] = string(params.Lifecycle)
+	}
 	if params.Role != nil {
 		tags[NameAWSClusterAPIRole] = *params.Role
 	}

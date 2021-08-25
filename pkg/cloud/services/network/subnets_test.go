@@ -18,6 +18,7 @@ package network
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -126,6 +127,36 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}),
 					gomock.Any()).Return(nil)
+
+				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+					Resources: aws.StringSlice([]string{"subnet-1"}),
+					Tags: []*ec2.Tag{
+						{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("shared"),
+						},
+						{
+							Key:   aws.String("kubernetes.io/role/elb"),
+							Value: aws.String("1"),
+						},
+					},
+				})).
+					Return(&ec2.CreateTagsOutput{}, nil)
+
+				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+					Resources: aws.StringSlice([]string{"subnet-2"}),
+					Tags: []*ec2.Tag{
+						{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("shared"),
+						},
+						{
+							Key:   aws.String("kubernetes.io/role/internal-elb"),
+							Value: aws.String("1"),
+						},
+					},
+				})).
+					Return(&ec2.CreateTagsOutput{}, nil)
 			},
 		},
 		{
@@ -192,8 +223,136 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}),
 					gomock.Any()).Return(nil)
+
+				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+					Resources: aws.StringSlice([]string{"subnet-1"}),
+					Tags: []*ec2.Tag{
+						{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("shared"),
+						},
+						{
+							Key:   aws.String("kubernetes.io/role/internal-elb"),
+							Value: aws.String("1"),
+						},
+					},
+				})).
+					Return(&ec2.CreateTagsOutput{}, nil)
+
+				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+					Resources: aws.StringSlice([]string{"subnet-2"}),
+					Tags: []*ec2.Tag{
+						{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("shared"),
+						},
+						{
+							Key:   aws.String("kubernetes.io/role/internal-elb"),
+							Value: aws.String("1"),
+						},
+					},
+				})).
+					Return(&ec2.CreateTagsOutput{}, nil)
 			},
 			errorExpected: false,
+		},
+		{
+			name: "Unmanaged VPC, 2 existing matching subnets, subnet tagging fails, should succeed",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID: subnetsVPCID,
+				},
+				Subnets: []infrav1.SubnetSpec{
+					{
+						ID: "subnet-1",
+					},
+					{
+						ID: "subnet-2",
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: []*string{aws.String("pending"), aws.String("available")},
+						},
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []*string{aws.String(subnetsVPCID)},
+						},
+					},
+				})).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{
+							{
+								VpcId:               aws.String(subnetsVPCID),
+								SubnetId:            aws.String("subnet-1"),
+								AvailabilityZone:    aws.String("us-east-1a"),
+								CidrBlock:           aws.String("10.0.10.0/24"),
+								MapPublicIpOnLaunch: aws.Bool(false),
+							},
+							{
+								VpcId:               aws.String(subnetsVPCID),
+								SubnetId:            aws.String("subnet-2"),
+								AvailabilityZone:    aws.String("us-east-1a"),
+								CidrBlock:           aws.String("10.0.20.0/24"),
+								MapPublicIpOnLaunch: aws.Bool(false),
+							},
+						},
+					}, nil)
+
+				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+					Return(&ec2.DescribeRouteTablesOutput{
+						RouteTables: []*ec2.RouteTable{
+							{
+								VpcId: aws.String(subnetsVPCID),
+								Associations: []*ec2.RouteTableAssociation{
+									{
+										SubnetId:     aws.String("subnet-1"),
+										RouteTableId: aws.String("rt-12345"),
+									},
+								},
+								Routes: []*ec2.Route{
+									{
+										GatewayId: aws.String("igw-12345"),
+									},
+								},
+							},
+						},
+					}, nil)
+
+				m.DescribeNatGatewaysPages(
+					gomock.Eq(&ec2.DescribeNatGatewaysInput{
+						Filter: []*ec2.Filter{
+							{
+								Name:   aws.String("vpc-id"),
+								Values: []*string{aws.String(subnetsVPCID)},
+							},
+							{
+								Name:   aws.String("state"),
+								Values: []*string{aws.String("pending"), aws.String("available")},
+							},
+						},
+					}),
+					gomock.Any()).Return(nil)
+
+				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+					Resources: aws.StringSlice([]string{"subnet-1"}),
+					Tags: []*ec2.Tag{
+						{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("shared"),
+						},
+						{
+							Key:   aws.String("kubernetes.io/role/elb"),
+							Value: aws.String("1"),
+						},
+					},
+				})).
+					Return(&ec2.CreateTagsOutput{}, fmt.Errorf("tagging failed"))
+			},
 		},
 		{
 			name: "Unmanaged VPC, 2 existing subnets in vpc, 0 subnet in spec, should fail",
@@ -377,6 +536,36 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}),
 					gomock.Any()).Return(nil)
+
+				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+					Resources: aws.StringSlice([]string{"subnet-1"}),
+					Tags: []*ec2.Tag{
+						{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("shared"),
+						},
+						{
+							Key:   aws.String("kubernetes.io/role/internal-elb"),
+							Value: aws.String("1"),
+						},
+					},
+				})).
+					Return(&ec2.CreateTagsOutput{}, nil)
+
+				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+					Resources: aws.StringSlice([]string{"subnet-2"}),
+					Tags: []*ec2.Tag{
+						{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("shared"),
+						},
+						{
+							Key:   aws.String("kubernetes.io/role/internal-elb"),
+							Value: aws.String("1"),
+						},
+					},
+				})).
+					Return(&ec2.CreateTagsOutput{}, nil)
 			},
 			errorExpected: false,
 		},
@@ -1464,6 +1653,9 @@ func TestDiscoverSubnets(t *testing.T) {
 						},
 					}),
 					gomock.Any()).Return(nil)
+
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+					Return(&ec2.CreateTagsOutput{}, nil).AnyTimes()
 			},
 			expect: []infrav1.SubnetSpec{
 				{
