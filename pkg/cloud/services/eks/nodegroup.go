@@ -406,8 +406,8 @@ func (s *NodegroupService) reconcileNodegroupConfig(ng *eks.Nodegroup) error {
 		input.ScalingConfig = s.scalingConfig()
 		needsUpdate = true
 	}
-	if (aws.Int64Value(ng.ScalingConfig.MaxSize) != int64(aws.Int32Value(managedPool.Scaling.MaxSize))) ||
-		(aws.Int64Value(ng.ScalingConfig.MinSize) != int64(aws.Int32Value(managedPool.Scaling.MinSize))) {
+	if managedPool.Scaling != nil && ((aws.Int64Value(ng.ScalingConfig.MaxSize) != int64(aws.Int32Value(managedPool.Scaling.MaxSize))) ||
+		(aws.Int64Value(ng.ScalingConfig.MinSize) != int64(aws.Int32Value(managedPool.Scaling.MinSize)))) {
 		s.V(2).Info("Nodegroup min/max differ from spec, updating scaling configuration", "nodegroup", ng.NodegroupName)
 		input.ScalingConfig = s.scalingConfig()
 		needsUpdate = true
