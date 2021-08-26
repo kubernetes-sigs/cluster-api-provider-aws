@@ -46,10 +46,11 @@ const (
 	SpotInstancesFlavor          = "spot-instances"
 	SSMFlavor                    = "ssm"
 	UpgradeToMain                = "upgrade-to-main"
+	ExternalCloudProvider        = "external-cloud-provider"
 	SimpleMultitenancyFlavor     = "simple-multitenancy"
 	NestedMultitenancyFlavor     = "nested-multitenancy"
 	KCPScaleInFlavor             = "kcp-scale-in"
-	StorageClassFailureZoneLabel = "failure-domain.beta.kubernetes.io/zone"
+	StorageClassOutTreeZoneLabel = "topology.ebs.csi.aws.com/zone"
 )
 
 var ResourceQuotaFilePath = "/tmp/capa-e2e-resource-usage.lock"

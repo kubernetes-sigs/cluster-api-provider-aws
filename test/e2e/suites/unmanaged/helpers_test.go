@@ -141,10 +141,27 @@ func createLBService(svcNamespace string, svcName string, k8sclient crclient.Cli
 	return elbName
 }
 
+func deleteLBService(svcNamespace string, svcName string, k8sclient crclient.Client){
+	svcSpec := corev1.ServiceSpec{
+		Type: corev1.ServiceTypeLoadBalancer,
+		Ports: []corev1.ServicePort{
+			{
+				Port:     80,
+				Protocol: corev1.ProtocolTCP,
+			},
+		},
+		Selector: map[string]string{
+			"app": "nginx",
+		},
+	}
+	deleteService(svcName, svcNamespace, nil, svcSpec, k8sclient)
+}
+
 func createPodTemplateSpec(statefulsetinfo statefulSetInfo) corev1.PodTemplateSpec {
 	ginkgo.By("Creating PodTemplateSpec config object")
 	podTemplateSpec := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
+			Name: statefulsetinfo.name,
 			Labels: statefulsetinfo.selector,
 		},
 		Spec: corev1.PodSpec{
@@ -156,6 +173,14 @@ func createPodTemplateSpec(statefulsetinfo statefulSetInfo) corev1.PodTemplateSp
 					Ports: []corev1.ContainerPort{{Name: statefulsetinfo.svcPortName, ContainerPort: statefulsetinfo.containerPort}},
 					VolumeMounts: []corev1.VolumeMount{
 						{Name: statefulsetinfo.volumeName, MountPath: statefulsetinfo.volMountPath},
+					},
+				},
+			},
+			Volumes: []corev1.Volume{
+				{
+					Name: statefulsetinfo.volumeName,
+					VolumeSource: corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: statefulsetinfo.volumeName },
 					},
 				},
 			},
@@ -175,7 +200,7 @@ func createPVC(statefulsetinfo statefulSetInfo) corev1.PersistentVolumeClaim {
 			StorageClassName: &statefulsetinfo.storageClassName,
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
-					corev1.ResourceName(corev1.ResourceStorage): resource.MustParse("1Gi"),
+					corev1.ResourceName(corev1.ResourceStorage): resource.MustParse("4Gi"),
 				},
 			},
 		},
@@ -197,9 +222,22 @@ func createService(svcName string, svcNamespace string, labels map[string]string
 	Expect(k8sClient.Create(context.TODO(), &svcToCreate)).NotTo(HaveOccurred())
 }
 
+func deleteService(svcName string, svcNamespace string, labels map[string]string, serviceSpec corev1.ServiceSpec, k8sClient crclient.Client) {
+	svcToDelete := corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: svcNamespace,
+			Name:      svcName,
+		},
+		Spec: serviceSpec,
+	}
+	if len(labels) > 0 {
+		svcToDelete.ObjectMeta.Labels = labels
+	}
+	Expect(k8sClient.Delete(context.TODO(), &svcToDelete)).NotTo(HaveOccurred())
+}
+
 func createStatefulSet(statefulsetinfo statefulSetInfo, k8sclient crclient.Client) {
 	ginkgo.By("Creating statefulset")
-	createStorageClass(statefulsetinfo.storageClassName, k8sclient)
 	svcSpec := corev1.ServiceSpec{
 		ClusterIP: "None",
 		Ports: []corev1.ServicePort{
@@ -211,6 +249,7 @@ func createStatefulSet(statefulsetinfo statefulSetInfo, k8sclient crclient.Clien
 		Selector: statefulsetinfo.selector,
 	}
 	createService(statefulsetinfo.svcName, statefulsetinfo.namespace, statefulsetinfo.selector, svcSpec, k8sclient)
+	createStorageClass(statefulsetinfo.storageClassName, k8sclient)
 	podTemplateSpec := createPodTemplateSpec(statefulsetinfo)
 	volClaimTemplate := createPVC(statefulsetinfo)
 	deployStatefulSet(statefulsetinfo, volClaimTemplate, podTemplateSpec, k8sclient)
@@ -220,7 +259,7 @@ func createStatefulSet(statefulsetinfo statefulSetInfo, k8sclient crclient.Clien
 func createStorageClass(storageClassName string, k8sclient crclient.Client) {
 	shared.Byf("Creating StorageClass object with name: %s", storageClassName)
 	volExpansion := true
-	bindingMode := storagev1.VolumeBindingImmediate
+	bindingMode := storagev1.VolumeBindingWaitForFirstConsumer
 	azs := shared.GetAvailabilityZones(e2eCtx.AWSSession)
 	storageClass := storagev1.StorageClass{
 		TypeMeta: metav1.TypeMeta{
@@ -231,15 +270,16 @@ func createStorageClass(storageClassName string, k8sclient crclient.Client) {
 			Name: storageClassName,
 		},
 		Parameters: map[string]string{
-			"type": "gp2",
+			"csi.storage.k8s.io/fstype": "xfs",
+			"type": "io1",
+			"iopsPerGB": "100",
 		},
-		Provisioner:          "kubernetes.io/aws-ebs",
+		Provisioner:         "ebs.csi.aws.com",
 		AllowVolumeExpansion: &volExpansion,
-		MountOptions:         []string{"debug"},
 		VolumeBindingMode:    &bindingMode,
 		AllowedTopologies: []corev1.TopologySelectorTerm{{
 			MatchLabelExpressions: []corev1.TopologySelectorLabelRequirement{{
-				Key:    shared.StorageClassFailureZoneLabel,
+				Key:    shared.StorageClassOutTreeZoneLabel,
 				Values: []string{*azs[0].ZoneName},
 			}},
 		}},
@@ -317,6 +357,7 @@ func deployStatefulSet(statefulsetinfo statefulSetInfo, volClaimTemp corev1.Pers
 	statefulset := appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{Name: statefulsetinfo.name, Namespace: statefulsetinfo.namespace},
 		Spec: appsv1.StatefulSetSpec{
+			ServiceName: statefulsetinfo.svcName,
 			Replicas:             &statefulsetinfo.replicas,
 			Selector:             &metav1.LabelSelector{MatchLabels: statefulsetinfo.selector},
 			Template:             podTemplate,
@@ -398,8 +439,8 @@ func getVolumeIds(info statefulSetInfo, k8sclient crclient.Client) []*string {
 		volDescription := &corev1.PersistentVolume{}
 		err = k8sclient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: info.namespace, Name: volName}, volDescription)
 		Expect(err).NotTo(HaveOccurred())
-		urlSlice := strings.Split(volDescription.Spec.AWSElasticBlockStore.VolumeID, "/")
-		volIds = append(volIds, &urlSlice[len(urlSlice)-1])
+		url := volDescription.Spec.PersistentVolumeSource.CSI.VolumeHandle
+		volIds = append(volIds, &url)
 	}
 	return volIds
 }
