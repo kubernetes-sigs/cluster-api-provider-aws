@@ -98,7 +98,7 @@ func (s *Service) ReconcileBastion() error {
 	return nil
 }
 
-// DeleteBastion deletes the Bastion instance
+// DeleteBastion deletes the Bastion instance and related security groups
 func (s *Service) DeleteBastion() error {
 	instance, err := s.describeBastionInstance()
 	if err != nil {
