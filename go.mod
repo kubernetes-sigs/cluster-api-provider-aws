@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go v1.40.33
 	github.com/awslabs/goformation/v4 v4.19.5
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/go-logr/logr v0.4.0
+	github.com/go-logr/logr v1.0.0
 	github.com/gofrs/flock v0.8.1
 	github.com/golang/mock v1.6.0
 	github.com/google/goexpect v0.0.0-20210430020637-ab937bf7fd6f
@@ -33,7 +33,7 @@ require (
 	k8s.io/cli-runtime v0.21.4
 	k8s.io/client-go v0.21.4
 	k8s.io/component-base v0.21.4
-	k8s.io/klog/v2 v2.10.0
+	k8s.io/klog/v2 v2.20.0
 	k8s.io/utils v0.0.0-20210802155522-efc7438f0176
 	sigs.k8s.io/aws-iam-authenticator v0.5.3
 	sigs.k8s.io/cluster-api v0.4.2
