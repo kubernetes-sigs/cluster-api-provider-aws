@@ -1,10 +1,10 @@
-#External AWS cloud provider with AWS EBS CSI driver
+# External AWS cloud provider with AWS EBS CSI driver
 
-##Overview
+## Overview
 From Kubernetes 1.21 onwards, the support for its in-tree AWS cloud provider and the EBS CSI driver is removed, hence there is a need to use [out-of-tree cloud provider (Cloud Controller Manager - CCM) ](https://github.com/kubernetes/cloud-provider-aws) and a CSI driver in CAPA.
 For details, see [Status of project and documentation of Cloud provider AWS](https://github.com/kubernetes/cloud-provider-aws/issues/42)
 
-##Using external cloud provider and EBS CSI driver in AWS workloads
+## Using external cloud provider and EBS CSI driver in AWS workloads
 Once Management cluster is ready, install external CCM and EBS CSI driver onto the CAPA workload cluster either manually or using ClusterResourceSets (CRS).
 To install them with CRS, create a CRS resource on the management cluster with labels, for example `csi: external` and `ccm: external` labels;  and `AWSCluster` should be created with matching labels `csi: external` and `ccm: external` for CSI and CCM, respectively.
 Below are the example CRS manifests:
