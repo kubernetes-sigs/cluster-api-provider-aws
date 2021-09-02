@@ -20,6 +20,7 @@
   - [Consuming Existing AWS Infrastructure](./topics/consuming-existing-aws-infrastructure.md)
   - [Specifying the IAM Role to use for Management Components](./topics/specify-management-iam-role.md)
   - [Multi-AZ Control Planes](./topics/multi-az-control-planes.md)
+  - [Using external cloud provider with EBS CSI driver](./topics/external-cloud-provider-with-ebs-csi-driver.md)
   - [Restricting Cluster API to certain namespaces](./topics/restricting-cluster-api-to-certain-namespaces.md)
   - [Using Cluster API with cross-account role assumption](./topics/using-cluster-api-with-cross-account-role-assumption.md)
   - [Userdata Privacy](./topics/userdata-privacy.md)
