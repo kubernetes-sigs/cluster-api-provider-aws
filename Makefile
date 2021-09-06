@@ -83,6 +83,8 @@ RELEASE_ALIAS_TAG ?= $(PULL_BASE_REF)
 RELEASE_DIR := out
 RELEASE_POLICIES := $(RELEASE_DIR)/AWSIAMManagedPolicyControllers.json $(RELEASE_DIR)/AWSIAMManagedPolicyControllersWithEKS.json $(RELEASE_DIR)/AWSIAMManagedPolicyCloudProviderControlPlane.json $(RELEASE_DIR)/AWSIAMManagedPolicyCloudProviderNodes.json
 
+# image name used to build the cmd/clusterawsadm
+TOOLCHAIN_IMAGE := toolchain
 
 TAG ?= dev
 ARCH ?= amd64
@@ -333,7 +335,6 @@ docker-push: ## Push the docker image
 .PHONY: docker-pull-prerequisites
 docker-pull-prerequisites:
 	docker pull docker.io/docker/dockerfile:1.1-experimental
-	docker pull docker.io/library/golang:$(GOLANG_VERSION)
 	docker pull gcr.io/distroless/static:latest
 
 ## --------------------------------------
@@ -436,8 +437,12 @@ release-binaries: ## Builds the binaries to publish with a release
 	RELEASE_BINARY=./cmd/clusterawsadm GOOS=darwin GOARCH=amd64 $(MAKE) release-binary
 	RELEASE_BINARY=./cmd/clusterawsadm GOOS=darwin GOARCH=arm64 $(MAKE) release-binary
 
+.PHONY: build-toolchain
+build-toolchain:
+	docker build --target toolchain -t $(TOOLCHAIN_IMAGE) .
+
 .PHONY: release-binary
-release-binary: $(RELEASE_DIR) versions.mk
+release-binary: $(RELEASE_DIR) versions.mk build-toolchain
 	docker run \
 		--rm \
 		-e CGO_ENABLED=0 \
@@ -447,7 +452,7 @@ release-binary: $(RELEASE_DIR) versions.mk
 		--mount=source=gocache,target=/root/.cache/go-build \
 		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
 		-w /workspace \
-		golang:$(GOLANG_VERSION) \
+		$(TOOLCHAIN_IMAGE) \
 		go build -ldflags '$(LDFLAGS) -extldflags "-static"' \
 		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))-$(GOOS)-$(GOARCH) $(RELEASE_BINARY)
 

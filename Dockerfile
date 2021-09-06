@@ -15,12 +15,14 @@
 # limitations under the License.
 
 # Build the manager binary
-FROM golang:1.16.7 as builder
-WORKDIR /workspace
+FROM golang:1.16.7 as toolchain
 
 # Run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
 ARG goproxy=https://proxy.golang.org
 ENV GOPROXY=$goproxy
+
+FROM toolchain as builder
+WORKDIR /workspace
 
 # Copy the Go Modules manifests
 COPY go.mod go.mod
