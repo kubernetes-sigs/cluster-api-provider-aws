@@ -183,7 +183,7 @@ type EndpointAccess struct {
 	BastionAccess *bool `json:"bastionAccess,omitempty"`
 	// AdditionalSecurityGroups specifies additional securirty groups that should be granted API access.
 	// +optional
-	AdditionalSecurityGroups []*string `json:"additionalSecurityGroups,omitempty"`
+	AdditionalSecurityGroups []string `json:"additionalSecurityGroups,omitempty"`
 }
 
 // EncryptionConfig specifies the encryption configuration for the EKS clsuter.

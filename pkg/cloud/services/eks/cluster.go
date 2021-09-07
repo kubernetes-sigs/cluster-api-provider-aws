@@ -282,12 +282,13 @@ func makeVpcConfig(subnets infrav1.Subnets, endpointAccess controlplanev1.Endpoi
 		vpcConfig.SecurityGroupIds = append(vpcConfig.SecurityGroupIds, &sg.ID)
 	}
 
-	if *(endpointAccess.BastionAccess) {
-		sgID := securityGroups[infrav1.SecurityGroupBastion].ID
-		endpointAccess.AdditionalSecurityGroups = append(endpointAccess.AdditionalSecurityGroups, &sgID)
+	if  securityGroup, okay := securityGroups[infrav1.SecurityGroupBastion]; okay {
+		endpointAccess.AdditionalSecurityGroups = append(endpointAccess.AdditionalSecurityGroups, securityGroup.ID)
 	}
 
-	vpcConfig.SecurityGroupIds = append(vpcConfig.SecurityGroupIds, endpointAccess.AdditionalSecurityGroups...)
+	for _, sg := range endpointAccess.AdditionalSecurityGroups {
+		vpcConfig.SecurityGroupIds = append(vpcConfig.SecurityGroupIds, &sg)
+	}
 
 	return vpcConfig, nil
 }

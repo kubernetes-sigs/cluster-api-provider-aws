@@ -401,14 +401,8 @@ func (in *EndpointAccess) DeepCopyInto(out *EndpointAccess) {
 	}
 	if in.AdditionalSecurityGroups != nil {
 		in, out := &in.AdditionalSecurityGroups, &out.AdditionalSecurityGroups
-		*out = make([]*string, len(*in))
-		for i := range *in {
-			if (*in)[i] != nil {
-				in, out := &(*in)[i], &(*out)[i]
-				*out = new(string)
-				**out = **in
-			}
-		}
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 }
 
