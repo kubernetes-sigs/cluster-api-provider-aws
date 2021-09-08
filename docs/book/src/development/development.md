@@ -139,7 +139,7 @@ There are two ways to build aws manager from local cluster-api-provider-aws sour
 Many of the Cluster API engineers use it for quick iteration. Please see our [Tilt instructions][Tilt instructions] to get started.
 
 [tilt]: https://tilt.dev
-[Tilt instructions]: ../developer/tilt-setup.md
+[Tilt instructions]: ../development/tilt-setup.md
 
 ### Option 2: The Old-fashioned way
 
