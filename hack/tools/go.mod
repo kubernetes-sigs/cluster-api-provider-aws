@@ -8,7 +8,7 @@ require (
 	github.com/docker/docker v20.10.8+incompatible // indirect
 	github.com/golang/mock v1.6.0
 	github.com/golangci/golangci-lint v1.42.0
-	github.com/itchyny/gojq v0.12.4
+	github.com/itchyny/gojq v0.12.5
 	github.com/onsi/ginkgo v1.16.4
 	k8s.io/apimachinery v0.21.4
 	k8s.io/code-generator v0.21.4
