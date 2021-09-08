@@ -262,34 +262,32 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 
 	switch {
 	case scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.ID != nil:
-		if failureDomain != nil {
-			subnet := s.scope.Subnets().FindByID(*scope.AWSMachine.Spec.Subnet.ID)
-			if subnet == nil {
-				record.Warnf(scope.AWSMachine, "FailedCreate",
-					"Failed to create instance: subnet with id %q not found", aws.StringValue(scope.AWSMachine.Spec.Subnet.ID))
-				return "", awserrors.NewFailedDependency(
-					fmt.Sprintf("failed to run machine %q, subnet with id %q not found",
-						scope.Name(),
-						aws.StringValue(scope.AWSMachine.Spec.Subnet.ID),
-					),
-				)
-			}
-
-			if subnet.AvailabilityZone != *failureDomain {
-				record.Warnf(scope.AWSMachine, "FailedCreate",
-					"Failed to create instance: subnet's availability zone %q does not match with the failure domain %q",
-					subnet.AvailabilityZone,
-					*failureDomain)
-				return "", awserrors.NewFailedDependency(
-					fmt.Sprintf("failed to run machine %q, subnet's availability zone %q does not match with the failure domain %q",
-						scope.Name(),
-						subnet.AvailabilityZone,
-						*failureDomain,
-					),
-				)
-			}
+		subnet := s.scope.Subnets().FindByID(*scope.AWSMachine.Spec.Subnet.ID)
+		if subnet == nil {
+			record.Warnf(scope.AWSMachine, "FailedCreate",
+				"Failed to create instance: subnet with id %q not found", aws.StringValue(scope.AWSMachine.Spec.Subnet.ID))
+			return "", awserrors.NewFailedDependency(
+				fmt.Sprintf("failed to run machine %q, subnet with id %q not found",
+					scope.Name(),
+					aws.StringValue(scope.AWSMachine.Spec.Subnet.ID),
+				),
+			)
 		}
-		return *scope.AWSMachine.Spec.Subnet.ID, nil
+
+		if failureDomain != nil && subnet.AvailabilityZone != *failureDomain {
+			record.Warnf(scope.AWSMachine, "FailedCreate",
+				"Failed to create instance: subnet's availability zone %q does not match with the failure domain %q",
+				subnet.AvailabilityZone,
+				*failureDomain)
+			return "", awserrors.NewFailedDependency(
+				fmt.Sprintf("failed to run machine %q, subnet's availability zone %q does not match with the failure domain %q",
+					scope.Name(),
+					subnet.AvailabilityZone,
+					*failureDomain,
+				),
+			)
+		}
+		return subnet.ID, nil
 	case scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.Filters != nil:
 		criteria := []*ec2.Filter{
 			filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
