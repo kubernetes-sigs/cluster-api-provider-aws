@@ -656,6 +656,7 @@ spec:
               instanceType:
                 description: 'InstanceType is the type of instance to create. Example:
                   m4.xlarge'
+                minLength: 2
                 type: string
               networkInterfaces:
                 description: NetworkInterfaces is a list of ENIs to associate with
@@ -817,6 +818,8 @@ spec:
                   built-in support for gzip-compressed user data user data stored
                   in aws secret manager is always gzip-compressed.
                 type: boolean
+            required:
+            - instanceType
             type: object
           status:
             description: AWSMachineStatus defines the observed state of AWSMachine

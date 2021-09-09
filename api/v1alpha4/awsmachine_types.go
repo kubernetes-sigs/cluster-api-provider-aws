@@ -72,7 +72,9 @@ type AWSMachineSpec struct {
 	ImageLookupBaseOS string `json:"imageLookupBaseOS,omitempty"`
 
 	// InstanceType is the type of instance to create. Example: m4.xlarge
-	InstanceType string `json:"instanceType,omitempty"`
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength:=2
+	InstanceType string `json:"instanceType"`
 
 	// AdditionalTags is an optional set of tags to add to an instance, in addition to the ones added by default by the
 	// AWS provider. If both the AWSCluster and the AWSMachine specify the same tag name with different values, the

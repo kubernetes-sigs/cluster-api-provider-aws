@@ -49,6 +49,7 @@ func TestAWSMachine_Create(t *testing.T) {
 					RootVolume: &Volume{
 						Type: "io1",
 					},
+					InstanceType: "test",
 				},
 			},
 			wantErr: true,
@@ -60,6 +61,7 @@ func TestAWSMachine_Create(t *testing.T) {
 					RootVolume: &Volume{
 						Type: "io2",
 					},
+					InstanceType: "test",
 				},
 			},
 			wantErr: true,
@@ -71,6 +73,7 @@ func TestAWSMachine_Create(t *testing.T) {
 					RootVolume: &Volume{
 						Throughput: aws.Int64(-125),
 					},
+					InstanceType: "test",
 				},
 			},
 			wantErr: true,
@@ -82,6 +85,7 @@ func TestAWSMachine_Create(t *testing.T) {
 					RootVolume: &Volume{
 						DeviceName: "name",
 					},
+					InstanceType: "test",
 				},
 			},
 			wantErr: true,
@@ -93,6 +97,7 @@ func TestAWSMachine_Create(t *testing.T) {
 					NonRootVolumes: []Volume{
 						{},
 					},
+					InstanceType: "test",
 				},
 			},
 			wantErr: true,
@@ -107,6 +112,7 @@ func TestAWSMachine_Create(t *testing.T) {
 							Type:       "io1",
 						},
 					},
+					InstanceType: "test",
 				},
 			},
 			wantErr: true,
@@ -121,6 +127,7 @@ func TestAWSMachine_Create(t *testing.T) {
 							Type:       "io2",
 						},
 					},
+					InstanceType: "test",
 				},
 			},
 			wantErr: true,
@@ -134,6 +141,7 @@ func TestAWSMachine_Create(t *testing.T) {
 							Throughput: aws.Int64(-125),
 						},
 					},
+					InstanceType: "test",
 				},
 			},
 			wantErr: true,
@@ -147,6 +155,7 @@ func TestAWSMachine_Create(t *testing.T) {
 							ID: aws.String("id"),
 						},
 					},
+					InstanceType: "test",
 				},
 			},
 			wantErr: false,
@@ -165,6 +174,7 @@ func TestAWSMachine_Create(t *testing.T) {
 							},
 						},
 					},
+					InstanceType: "test",
 				},
 			},
 			wantErr: false,
@@ -184,6 +194,25 @@ func TestAWSMachine_Create(t *testing.T) {
 							},
 						},
 					},
+					InstanceType: "test",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "empty instance type not allowed",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "instance type minimum length is 2",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "t",
 				},
 			},
 			wantErr: true,
@@ -219,11 +248,13 @@ func TestAWSMachine_Update(t *testing.T) {
 					ProviderID:               nil,
 					AdditionalTags:           nil,
 					AdditionalSecurityGroups: nil,
+					InstanceType:             "test",
 				},
 			},
 			newMachine: &AWSMachine{
 				Spec: AWSMachineSpec{
-					ProviderID: pointer.StringPtr("ID"),
+					ProviderID:   pointer.StringPtr("ID"),
+					InstanceType: "test",
 					AdditionalTags: Tags{
 						"key-1": "value-1",
 					},
@@ -247,6 +278,7 @@ func TestAWSMachine_Update(t *testing.T) {
 					ProviderID:               nil,
 					AdditionalTags:           nil,
 					AdditionalSecurityGroups: nil,
+					InstanceType:             "test",
 				},
 			},
 			newMachine: &AWSMachine{
@@ -292,6 +324,7 @@ func TestAWSMachine_SecretsBackend(t *testing.T) {
 			ProviderID:               nil,
 			AdditionalTags:           nil,
 			AdditionalSecurityGroups: nil,
+			InstanceType:             "test",
 		},
 	}
 

@@ -120,7 +120,8 @@ func TestAWSInstanceStateController(t *testing.T) {
 
 		machine1 := &infrav1.AWSMachine{
 			Spec: infrav1.AWSMachineSpec{
-				InstanceID: pointer.StringPtr("i-failing-instance-1"),
+				InstanceID:   pointer.StringPtr("i-failing-instance-1"),
+				InstanceType: "test",
 			},
 			ObjectMeta: failingMachineMeta,
 		}

@@ -81,7 +81,8 @@ func Test_SSHKeyName(t *testing.T) {
 					Namespace:    "default",
 				},
 				Spec: AWSMachineSpec{
-					SSHKeyName: tt.sshKeyName,
+					SSHKeyName:   tt.sshKeyName,
+					InstanceType: "test",
 				},
 			}
 			for _, obj := range []client.Object{cluster, machine} {

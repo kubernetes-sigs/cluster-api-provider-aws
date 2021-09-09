@@ -92,6 +92,7 @@ func TestAWSMachineTemplateValidateUpdate(t *testing.T) {
 							CloudInit: CloudInit{
 								SecureSecretsBackend: SecretBackendSSMParameterStore,
 							},
+							InstanceType: "test",
 						},
 					},
 				},
@@ -108,6 +109,7 @@ func TestAWSMachineTemplateValidateUpdate(t *testing.T) {
 							CloudInit: CloudInit{
 								SecureSecretsBackend: SecretBackendSecretsManager,
 							},
+							InstanceType: "test",
 						},
 					},
 				},
@@ -126,7 +128,8 @@ func TestAWSMachineTemplateValidateUpdate(t *testing.T) {
 				Spec: AWSMachineTemplateSpec{
 					Template: AWSMachineTemplateResource{
 						Spec: AWSMachineSpec{
-							CloudInit: CloudInit{},
+							CloudInit:    CloudInit{},
+							InstanceType: "test",
 						},
 					},
 				},
