@@ -178,6 +178,12 @@ type EndpointAccess struct {
 	// Private points VPC-internal control plane access to the private endpoint
 	// +optional
 	Private *bool `json:"private,omitempty"`
+	// BastionAccess controls whether API access is available from the bastion host.
+	// +optional
+	BastionAccess *bool `json:"bastionAccess,omitempty"`
+	// AdditionalSecurityGroups specifies additional securirty groups that should be granted API access.
+	// +optional
+	AdditionalSecurityGroups []string `json:"additionalSecurityGroups,omitempty"`
 }
 
 // EncryptionConfig specifies the encryption configuration for the EKS clsuter.
