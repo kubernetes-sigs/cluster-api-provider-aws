@@ -124,11 +124,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha4.EndpointAccess)(nil), (*EndpointAccess)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_EndpointAccess_To_v1alpha3_EndpointAccess(a.(*v1alpha4.EndpointAccess), b.(*EndpointAccess), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*IAMAuthenticatorConfig)(nil), (*v1alpha4.IAMAuthenticatorConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_IAMAuthenticatorConfig_To_v1alpha4_IAMAuthenticatorConfig(a.(*IAMAuthenticatorConfig), b.(*v1alpha4.IAMAuthenticatorConfig), scope)
 	}); err != nil {
@@ -221,6 +216,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*clusterapiproviderawsapiv1alpha4.Bastion)(nil), (*clusterapiproviderawsapiv1alpha3.Bastion)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_Bastion_To_v1alpha3_Bastion(a.(*clusterapiproviderawsapiv1alpha4.Bastion), b.(*clusterapiproviderawsapiv1alpha3.Bastion), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1alpha4.EndpointAccess)(nil), (*EndpointAccess)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_EndpointAccess_To_v1alpha3_EndpointAccess(a.(*v1alpha4.EndpointAccess), b.(*EndpointAccess), scope)
 	}); err != nil {
 		return err
 	}
