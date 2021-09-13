@@ -7,12 +7,11 @@ Kubernetes projects require that you sign a Contributor License Agreement (CLA) 
 ### Contributing A Patch
 
 1. Submit an issue describing your proposed change to the repo in question.
-1. The [repo owners](OWNERS) will respond to your issue promptly.
-1. If your proposed change is accepted, and you haven't already done so, sign a Contributor License Agreement (see details above).
-1. Fork the desired repo, develop and test your code changes.
-1. Submit a pull request.
-  1. All code PR titles must be prefixed with:
-    ⚠️ (`:warning:`, major or breaking changes), ✨ (`:sparkles:`, minor or feature additions), 🐛 (`:bug:`, patch and bugfixes), 📖 (`:book:`, documentation or proposals), or 🌱 (`:seedling:`, minor or other)
+2. The [repo owners](OWNERS) will respond to your issue promptly.
+3. If your proposed change is accepted, and you haven't already done so, sign a Contributor License Agreement (see details above).
+4. Fork the desired repo, develop and test your code changes. 
+> See the [developer guide](https://cluster-api-aws.sigs.k8s.io/development/development.html) on how to setup your development environment.
+5. Submit a pull request.
 
 ### Becoming a reviewer
 
