@@ -138,7 +138,8 @@ func TestMakeVPCConfig(t *testing.T) {
 	}
 
 	idOne := "one"
-	idTwo := "two"
+	idTwo := "two" 
+	idBastion := "bastion"
 	testCases := []struct {
 		name   string
 		input  input
@@ -230,6 +231,75 @@ func TestMakeVPCConfig(t *testing.T) {
 			expect: &eks.VpcConfigRequest{
 				SubnetIds:         []*string{&idOne, &idTwo},
 				PublicAccessCidrs: []*string{aws.String("10.0.0.0/24")},
+			},
+		},
+		{
+			name: "no bastion access to private only endpoint",
+			input: input{
+				subnets: []infrav1.SubnetSpec{
+					{
+						ID:               idOne,
+						CidrBlock:        "10.0.10.0/24",
+						AvailabilityZone: "us-west-2a",
+						IsPublic:         true,
+					},
+					{
+						ID:               idTwo,
+						CidrBlock:        "10.0.10.1/24",
+						AvailabilityZone: "us-west-2b",
+						IsPublic:         false,
+					},
+				},
+				endpointAccess: ekscontrolplanev1.EndpointAccess{
+					Public: pointer.BoolPtr(false),
+					Private: pointer.BoolPtr(true),
+					BastionAccess: pointer.BoolPtr(false),
+				},
+				securityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+					infrav1.SecurityGroupBastion: infrav1.SecurityGroup{
+						ID: idBastion,
+					},
+				},
+			},
+			expect: &eks.VpcConfigRequest{
+				EndpointPublicAccess: pointer.BoolPtr(false),
+				EndpointPrivateAccess: pointer.BoolPtr(true),
+				SubnetIds:         []*string{&idOne, &idTwo},
+			},
+		},
+		{
+			name: "bastion access to private only endpoint",
+			input: input{
+				subnets: []infrav1.SubnetSpec{
+					{
+						ID:               idOne,
+						CidrBlock:        "10.0.10.0/24",
+						AvailabilityZone: "us-west-2a",
+						IsPublic:         true,
+					},
+					{
+						ID:               idTwo,
+						CidrBlock:        "10.0.10.1/24",
+						AvailabilityZone: "us-west-2b",
+						IsPublic:         false,
+					},
+				},
+				endpointAccess: ekscontrolplanev1.EndpointAccess{
+					Public: pointer.BoolPtr(false),
+					Private: pointer.BoolPtr(true),
+					BastionAccess: pointer.BoolPtr(true),
+				},
+				securityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+					infrav1.SecurityGroupBastion: infrav1.SecurityGroup{
+						ID: idBastion,
+					},
+				},
+			},
+			expect: &eks.VpcConfigRequest{
+				EndpointPublicAccess: pointer.BoolPtr(false),
+				EndpointPrivateAccess: pointer.BoolPtr(true),
+				SubnetIds:         []*string{&idOne, &idTwo},
+				SecurityGroupIds: []*string{&idBastion},
 			},
 		},
 	}
