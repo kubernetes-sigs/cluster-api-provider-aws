@@ -112,19 +112,24 @@ func (s *Service) reconcileSubnets() error {
 		sub := &subnets[i]
 		existingSubnet := existing.FindEqual(sub)
 		if existingSubnet != nil {
-			if !unmanagedVPC {
-				subnetTags := sub.Tags
-				// Make sure tags are up to date if we have a managed VPC.
-				if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-					buildParams := s.getSubnetTagParams(existingSubnet.ID, existingSubnet.IsPublic, existingSubnet.AvailabilityZone, subnetTags)
-					tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
-					if err := tagsBuilder.Ensure(existingSubnet.Tags); err != nil {
-						return false, err
-					}
-					return true, nil
-				}, awserrors.SubnetNotFound); err != nil {
+			subnetTags := sub.Tags
+			// Make sure tags are up-to-date.
+			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+				buildParams := s.getSubnetTagParams(unmanagedVPC, existingSubnet.ID, existingSubnet.IsPublic, existingSubnet.AvailabilityZone, subnetTags)
+				tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
+				if err := tagsBuilder.Ensure(existingSubnet.Tags); err != nil {
+					return false, err
+				}
+				return true, nil
+			}, awserrors.SubnetNotFound); err != nil {
+				if !unmanagedVPC {
 					record.Warnf(s.scope.InfraCluster(), "FailedTagSubnet", "Failed tagging managed Subnet %q: %v", existingSubnet.ID, err)
 					return errors.Wrapf(err, "failed to ensure tags on subnet %q", existingSubnet.ID)
+				} else {
+					// We may not have a permission to tag unmanaged subnets.
+					// When tagging unmanaged subnet fails, record an event and proceed.
+					record.Warnf(s.scope.InfraCluster(), "FailedTagSubnet", "Failed tagging unmanaged Subnet %q: %v", existingSubnet.ID, err)
+					break
 				}
 			}
 
@@ -334,7 +339,7 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 		TagSpecifications: []*ec2.TagSpecification{
 			tags.BuildParamsToTagSpecification(
 				ec2.ResourceTypeSubnet,
-				s.getSubnetTagParams(services.TemporaryResourceID, sn.IsPublic, sn.AvailabilityZone, sn.Tags),
+				s.getSubnetTagParams(false, services.TemporaryResourceID, sn.IsPublic, sn.AvailabilityZone, sn.Tags),
 			),
 		},
 	})
@@ -399,7 +404,7 @@ func (s *Service) deleteSubnet(id string) error {
 	return nil
 }
 
-func (s *Service) getSubnetTagParams(id string, public bool, zone string, manualTags infrav1.Tags) infrav1.BuildParams {
+func (s *Service) getSubnetTagParams(unmanagedVPC bool, id string, public bool, zone string, manualTags infrav1.Tags) infrav1.BuildParams {
 	var role string
 	additionalTags := s.scope.AdditionalTags()
 
@@ -418,19 +423,26 @@ func (s *Service) getSubnetTagParams(id string, public bool, zone string, manual
 		additionalTags[k] = v
 	}
 
-	var name strings.Builder
-	name.WriteString(s.scope.Name())
-	name.WriteString("-subnet-")
-	name.WriteString(role)
-	name.WriteString("-")
-	name.WriteString(zone)
+	if !unmanagedVPC {
+		var name strings.Builder
+		name.WriteString(s.scope.Name())
+		name.WriteString("-subnet-")
+		name.WriteString(role)
+		name.WriteString("-")
+		name.WriteString(zone)
 
-	return infrav1.BuildParams{
-		ClusterName: s.scope.Name(),
-		ResourceID:  id,
-		Lifecycle:   infrav1.ResourceLifecycleOwned,
-		Name:        aws.String(name.String()),
-		Role:        aws.String(role),
-		Additional:  additionalTags,
+		return infrav1.BuildParams{
+			ClusterName: s.scope.Name(),
+			ResourceID:  id,
+			Lifecycle:   infrav1.ResourceLifecycleOwned,
+			Name:        aws.String(name.String()),
+			Role:        aws.String(role),
+			Additional:  additionalTags,
+		}
+	} else {
+		return infrav1.BuildParams{
+			ResourceID: id,
+			Additional: additionalTags,
+		}
 	}
 }
