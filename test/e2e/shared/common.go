@@ -131,7 +131,7 @@ func DumpMachine(ctx context.Context, e2eCtx *E2EContext, machine infrav1.AWSMac
 		[]command{
 			{
 				title: "systemd",
-				cmd:   "journalctl --no-pager --output=short-precise",
+				cmd:   "journalctl --no-pager --output=short-precise | grep -v  'audit:\\|audit\\['",
 			},
 			{
 				title: "kern",
