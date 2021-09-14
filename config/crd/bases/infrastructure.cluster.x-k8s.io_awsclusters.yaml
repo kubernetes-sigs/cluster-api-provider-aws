@@ -138,11 +138,11 @@ spec:
                       to false."
                     type: boolean
                   scheme:
-                    default: Internet-facing
+                    default: internet-facing
                     description: Scheme sets the scheme of the load balancer (defaults
-                      to Internet-facing)
+                      to internet-facing)
                     enum:
-                    - Internet-facing
+                    - internet-facing
                     - internal
                     type: string
                   subnets:
@@ -886,11 +886,11 @@ spec:
                       to false."
                     type: boolean
                   scheme:
-                    default: Internet-facing
+                    default: internet-facing
                     description: Scheme sets the scheme of the load balancer (defaults
-                      to Internet-facing)
+                      to internet-facing)
                     enum:
-                    - Internet-facing
+                    - internet-facing
                     - internal
                     type: string
                   subnets:
