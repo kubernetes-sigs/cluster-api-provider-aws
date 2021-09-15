@@ -126,4 +126,26 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 			shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
 		})
 	})
+
+	ginkgo.Describe("Running the Clusterctl Upgrade Spec", func() {
+		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
+		requiredResources := &shared.TestResource{EC2: 4, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
+		ginkgo.BeforeEach(func() {
+			requiredResources.WriteRequestedResources(e2eCtx, "capi-clusterctl-upgrade-test")
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+		})
+
+		capi_e2e.ClusterctlUpgradeSpec(context.TODO(), func() capi_e2e.ClusterctlUpgradeSpecInput {
+			return capi_e2e.ClusterctlUpgradeSpecInput{
+				E2EConfig:             e2eCtx.E2EConfig,
+				ClusterctlConfigPath:  e2eCtx.Environment.ClusterctlConfigPath,
+				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				ArtifactFolder:        e2eCtx.Settings.ArtifactFolder,
+				SkipCleanup:           e2eCtx.Settings.SkipCleanup,
+			}
+		})
+		ginkgo.AfterEach(func() {
+			shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+		})
+	})
 })
