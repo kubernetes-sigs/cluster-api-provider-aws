@@ -1224,6 +1224,513 @@ func TestCreateInstance(t *testing.T) {
 			},
 		},
 		{
+			name: "public IP true and failureDomain doesn't have public subnet",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType:  "m5.large",
+				FailureDomain: aws.String("us-east-1b"),
+				PublicIP:      aws.Bool(true),
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-id",
+						},
+						Subnets: infrav1.Subnets{{
+							ID:               "private-subnet-1",
+							AvailabilityZone: "us-east-1b",
+							IsPublic:         false,
+						}},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				expectedErrMsg := "failed to run machine \"aws-test1\" with public IP, no public subnets available in availability zone \"us-east-1b\""
+				if err == nil {
+					t.Fatalf("Expected error, but got nil")
+				}
+
+				if !strings.Contains(err.Error(), expectedErrMsg) {
+					t.Fatalf("Expected error: %s\nInstead got: `%s", expectedErrMsg, err.Error())
+				}
+			},
+		},
+		{
+			name: "public IP true and public subnet ID given",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+				Subnet: &infrav1.AWSResourceReference{
+					ID: aws.String("public-subnet-1"),
+				},
+				PublicIP: aws.Bool(true),
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-id",
+						},
+						Subnets: infrav1.Subnets{{
+							ID:       "public-subnet-1",
+							IsPublic: true,
+						}},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.
+					RunInstances(gomock.Any()).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:     aws.String("two"),
+								InstanceType:   aws.String("m5.large"),
+								SubnetId:       aws.String("public-subnet-1"),
+								ImageId:        aws.String("ami-1"),
+								RootDeviceName: aws.String("device-1"),
+								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									{
+										DeviceName: aws.String("device-1"),
+										Ebs: &ec2.EbsInstanceBlockDevice{
+											VolumeId: aws.String("volume-1"),
+										},
+									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
+								},
+							},
+						},
+					}, nil)
+				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "public IP true and private subnet ID given",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+				Subnet: &infrav1.AWSResourceReference{
+					ID: aws.String("private-subnet-1"),
+				},
+				PublicIP: aws.Bool(true),
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-id",
+						},
+						Subnets: infrav1.Subnets{{
+							ID:       "private-subnet-1",
+							IsPublic: false,
+						}},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				expectedErrMsg := "failed to run machine \"aws-test1\" with public IP, a specified subnet \"private-subnet-1\" is a private subnet"
+				if err == nil {
+					t.Fatalf("Expected error, but got nil")
+				}
+
+				if !strings.Contains(err.Error(), expectedErrMsg) {
+					t.Fatalf("Expected error: %s\nInstead got: `%s", expectedErrMsg, err.Error())
+				}
+			},
+		},
+		{
+			name: "both public IP and subnet filter defined",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+				Subnet: &infrav1.AWSResourceReference{
+					Filters: []infrav1.Filter{{
+						Name:   "tag:some-tag",
+						Values: []string{"some-value"},
+					}},
+				},
+				PublicIP: aws.Bool(true),
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-id",
+						},
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:       "private-subnet-1",
+								IsPublic: false,
+							},
+							infrav1.SubnetSpec{
+								ID:       "public-subnet-1",
+								IsPublic: true,
+							},
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.
+					DescribeSubnets(&ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+							filter.EC2.VPC("vpc-id"),
+							{Name: aws.String("map-public-ip-on-launch"), Values: aws.StringSlice([]string{"true"})},
+							{Name: aws.String("tag:some-tag"), Values: aws.StringSlice([]string{"some-value"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId: aws.String("filtered-subnet-1"),
+						}},
+					}, nil)
+				m.
+					RunInstances(gomock.Any()).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:     aws.String("two"),
+								InstanceType:   aws.String("m5.large"),
+								SubnetId:       aws.String("public-subnet-1"),
+								ImageId:        aws.String("ami-1"),
+								RootDeviceName: aws.String("device-1"),
+								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									{
+										DeviceName: aws.String("device-1"),
+										Ebs: &ec2.EbsInstanceBlockDevice{
+											VolumeId: aws.String("volume-1"),
+										},
+									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
+								},
+							},
+						},
+					}, nil)
+				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "public IP true and public subnet exists",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+				PublicIP:     aws.Bool(true),
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-id",
+						},
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:       "private-subnet-1",
+								IsPublic: false,
+							},
+							infrav1.SubnetSpec{
+								ID:       "public-subnet-1",
+								IsPublic: true,
+							},
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.
+					RunInstances(gomock.Any()).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:     aws.String("two"),
+								InstanceType:   aws.String("m5.large"),
+								SubnetId:       aws.String("public-subnet-1"),
+								ImageId:        aws.String("ami-1"),
+								RootDeviceName: aws.String("device-1"),
+								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									{
+										DeviceName: aws.String("device-1"),
+										Ebs: &ec2.EbsInstanceBlockDevice{
+											VolumeId: aws.String("volume-1"),
+										},
+									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
+								},
+							},
+						},
+					}, nil)
+				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "public IP true and no public subnet exists",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+				PublicIP:     aws.Bool(true),
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-id",
+						},
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:       "private-subnet-1",
+								IsPublic: false,
+							},
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				expectedErrMsg := "failed to run machine \"aws-test1\" with public IP, no public subnets available"
+				if err == nil {
+					t.Fatalf("Expected error, but got nil")
+				}
+
+				if !strings.Contains(err.Error(), expectedErrMsg) {
+					t.Fatalf("Expected error: %s\nInstead got: %s", expectedErrMsg, err.Error())
+				}
+			},
+		},
+		{
 			name: "with multiple block device mappings",
 			machine: clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
