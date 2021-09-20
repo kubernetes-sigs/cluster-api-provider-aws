@@ -71,17 +71,6 @@ var _ = Describe("Cluster API E2E tests - unmanaged", func() {
 			}
 		})
 	})
-	Context("Running the MachineDeployment upgrade spec", func() {
-		capi_e2e.MachineDeploymentUpgradesSpec(context.TODO(), func() capi_e2e.MachineDeploymentUpgradesSpecInput {
-			return capi_e2e.MachineDeploymentUpgradesSpecInput{
-				E2EConfig:             e2eCtx.E2EConfig,
-				ClusterctlConfigPath:  e2eCtx.Environment.ClusterctlConfigPath,
-				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-				ArtifactFolder:        filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
-				SkipCleanup:           e2eCtx.Settings.SkipCleanup,
-			}
-		})
-	})
 	Context("Running the MachineRemediation spec", func() {
 		capi_e2e.MachineRemediationSpec(context.TODO(), func() capi_e2e.MachineRemediationSpecInput {
 			return capi_e2e.MachineRemediationSpecInput{
