@@ -13,7 +13,8 @@ require (
 	k8s.io/apimachinery v0.21.4
 	k8s.io/code-generator v0.21.4
 	k8s.io/klog v1.0.0 // indirect
-	k8s.io/release v0.9.0
+	k8s.io/klog/v2 v2.9.0 // indirect
+	k8s.io/release v0.11.0
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20210812230458-f6fd5ed7dc0f
 	sigs.k8s.io/controller-tools v0.6.2
 	sigs.k8s.io/kind v0.11.1
