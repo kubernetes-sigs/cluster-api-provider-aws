@@ -59,7 +59,7 @@ func (r *AWSClusterTemplate) ValidateUpdate(oldRaw runtime.Object) error {
 	old := oldRaw.(*AWSClusterTemplate)
 
 	if !reflect.DeepEqual(r.Spec, old.Spec) {
-		return apierrors.NewBadRequest("AWSClusterTempalate.Spec is immutable")
+		return apierrors.NewBadRequest("AWSClusterTemplate.Spec is immutable")
 	}
 	return nil
 }
