@@ -143,7 +143,6 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				},
 				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster"),
 				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
-				WaitForMachineDeployments:    e2eCtx.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 			}, result)
 
 			ginkgo.By("PASSED!")
