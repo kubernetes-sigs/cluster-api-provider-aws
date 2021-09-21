@@ -478,11 +478,11 @@ func TestAWSCluster_DefaultAllowedCIDRBlocks(t *testing.T) {
 			},
 		},
 		{
-			name: "empty AllowedCIDRBlocks is kept if DisableIngressRules is true",
+			name: "AllowedCIDRBlocks change not allowed if DisableIngressRules is true",
 			beforeCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					Bastion: Bastion{
-						AllowedCIDRBlocks:   []string{},
+						AllowedCIDRBlocks:   []string{"0.0.0.0/0"},
 						DisableIngressRules: true,
 						Enabled:             true,
 					},
@@ -491,7 +491,6 @@ func TestAWSCluster_DefaultAllowedCIDRBlocks(t *testing.T) {
 			afterCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					Bastion: Bastion{
-						AllowedCIDRBlocks:   []string{},
 						DisableIngressRules: true,
 						Enabled:             true,
 					},
@@ -508,8 +507,12 @@ func TestAWSCluster_DefaultAllowedCIDRBlocks(t *testing.T) {
 				GenerateName: "cluster-",
 				Namespace:    "default",
 			}
-			g.Expect(testEnv.Create(ctx, cluster)).To(Succeed())
-			g.Expect(cluster.Spec.Bastion).To(Equal(tt.afterCluster.Spec.Bastion))
+			err := testEnv.Create(ctx, cluster)
+			if err != nil {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(cluster.Spec.Bastion).To(Equal(tt.afterCluster.Spec.Bastion))
+			}
 		})
 	}
 }
