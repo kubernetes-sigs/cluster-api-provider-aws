@@ -264,28 +264,24 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 	case scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.ID != nil:
 		subnet := s.scope.Subnets().FindByID(*scope.AWSMachine.Spec.Subnet.ID)
 		if subnet == nil {
-			record.Warnf(scope.AWSMachine, "FailedCreate",
-				"Failed to create instance: subnet with id %q not found", aws.StringValue(scope.AWSMachine.Spec.Subnet.ID))
-			return "", awserrors.NewFailedDependency(
-				fmt.Sprintf("failed to run machine %q, subnet with id %q not found",
-					scope.Name(),
-					aws.StringValue(scope.AWSMachine.Spec.Subnet.ID),
-				),
-			)
+			errMessage := fmt.Sprintf("failed to run machine %q, subnet with id %q not found",
+				scope.Name(), aws.StringValue(scope.AWSMachine.Spec.Subnet.ID))
+			record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
+			return "", awserrors.NewFailedDependency(errMessage)
 		}
-
+		if scope.AWSMachine.Spec.PublicIP != nil && *scope.AWSMachine.Spec.PublicIP {
+			if !subnet.IsPublic {
+				errMessage := fmt.Sprintf("failed to run machine %q with public IP, a specified subnet %q is a private subnet",
+					scope.Name(), aws.StringValue(scope.AWSMachine.Spec.Subnet.ID))
+				record.Eventf(scope.AWSMachine, "FailedCreate", errMessage)
+				return "", awserrors.NewFailedDependency(errMessage)
+			}
+		}
 		if failureDomain != nil && subnet.AvailabilityZone != *failureDomain {
-			record.Warnf(scope.AWSMachine, "FailedCreate",
-				"Failed to create instance: subnet's availability zone %q does not match with the failure domain %q",
-				subnet.AvailabilityZone,
-				*failureDomain)
-			return "", awserrors.NewFailedDependency(
-				fmt.Sprintf("failed to run machine %q, subnet's availability zone %q does not match with the failure domain %q",
-					scope.Name(),
-					subnet.AvailabilityZone,
-					*failureDomain,
-				),
-			)
+			errMessage := fmt.Sprintf("failed to run machine %q, subnet's availability zone %q does not match with the failure domain %q",
+				scope.Name(), subnet.AvailabilityZone, *failureDomain)
+			record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
+			return "", awserrors.NewFailedDependency(errMessage)
 		}
 		return subnet.ID, nil
 	case scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.Filters != nil:
@@ -298,6 +294,9 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 		if failureDomain != nil {
 			criteria = append(criteria, filter.EC2.AvailabilityZone(*failureDomain))
 		}
+		if scope.AWSMachine.Spec.PublicIP != nil && *scope.AWSMachine.Spec.PublicIP {
+			criteria = append(criteria, &ec2.Filter{Name: aws.String("map-public-ip-on-launch"), Values: aws.StringSlice([]string{"true"})})
+		}
 		for _, f := range scope.AWSMachine.Spec.Subnet.Filters {
 			criteria = append(criteria, &ec2.Filter{Name: aws.String(f.Name), Values: aws.StringSlice(f.Values)})
 		}
@@ -306,29 +305,38 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 			return "", errors.Wrapf(err, "failed to filter subnets for criteria %q", criteria)
 		}
 		if len(subnets) == 0 {
-			record.Warnf(scope.AWSMachine, "FailedCreate",
-				"Failed to create instance: no subnets available matching filters %q", scope.AWSMachine.Spec.Subnet.Filters)
-			return "", awserrors.NewFailedDependency(
-				fmt.Sprintf("failed to run machine %q, no subnets available matching filters %q",
-					scope.Name(),
-					scope.AWSMachine.Spec.Subnet.Filters,
-				),
-			)
+			errMessage := fmt.Sprintf("failed to run machine %q, no subnets available matching filters %q",
+				scope.Name(), scope.AWSMachine.Spec.Subnet.Filters)
+			record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
+			return "", awserrors.NewFailedDependency(errMessage)
 		}
 		return *subnets[0].SubnetId, nil
-
 	case failureDomain != nil:
+		if scope.AWSMachine.Spec.PublicIP != nil && *scope.AWSMachine.Spec.PublicIP {
+			subnets := s.scope.Subnets().FilterPublic().FilterByZone(*failureDomain)
+			if len(subnets) == 0 {
+				errMessage := fmt.Sprintf("failed to run machine %q with public IP, no public subnets available in availability zone %q",
+					scope.Name(), *failureDomain)
+				record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
+				return "", awserrors.NewFailedDependency(errMessage)
+			}
+			return subnets[0].ID, nil
+		}
+
 		subnets := s.scope.Subnets().FilterPrivate().FilterByZone(*failureDomain)
 		if len(subnets) == 0 {
-			record.Warnf(scope.AWSMachine, "FailedCreate",
-				"Failed to create instance: no subnets available in availability zone %q", *failureDomain)
-
-			return "", awserrors.NewFailedDependency(
-				fmt.Sprintf("failed to run machine %q, no subnets available in availability zone %q",
-					scope.Name(),
-					*failureDomain,
-				),
-			)
+			errMessage := fmt.Sprintf("failed to run machine %q, no subnets available in availability zone %q",
+				scope.Name(), *failureDomain)
+			record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
+			return "", awserrors.NewFailedDependency(errMessage)
+		}
+		return subnets[0].ID, nil
+	case scope.AWSMachine.Spec.PublicIP != nil && *scope.AWSMachine.Spec.PublicIP:
+		subnets := s.scope.Subnets().FilterPublic()
+		if len(subnets) == 0 {
+			errMessage := fmt.Sprintf("failed to run machine %q with public IP, no public subnets available", scope.Name())
+			record.Eventf(scope.AWSMachine, "FailedCreate", errMessage)
+			return "", awserrors.NewFailedDependency(errMessage)
 		}
 		return subnets[0].ID, nil
 
@@ -338,8 +346,9 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 	default:
 		sns := s.scope.Subnets().FilterPrivate()
 		if len(sns) == 0 {
-			record.Eventf(s.scope.InfraCluster(), "FailedCreateInstance", "Failed to run machine %q, no subnets available", scope.Name())
-			return "", awserrors.NewFailedDependency(fmt.Sprintf("failed to run machine %q, no subnets available", scope.Name()))
+			errMessage := fmt.Sprintf("failed to run machine %q, no subnets available", scope.Name())
+			record.Eventf(s.scope.InfraCluster(), "FailedCreateInstance", errMessage)
+			return "", awserrors.NewFailedDependency(errMessage)
 		}
 		return sns[0].ID, nil
 	}
