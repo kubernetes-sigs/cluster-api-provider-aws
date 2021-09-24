@@ -36,10 +36,6 @@ RUN  --mount=type=cache,target=/root/.local/share/golang \
 # Copy the sources
 COPY ./ ./
 
-RUN wget --output-document /restart.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/restart.sh  && \
-  wget --output-document /start.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/start.sh && \
-  chmod +x /start.sh && chmod +x /restart.sh
-
 # Build
 ARG package=.
 ARG ARCH

@@ -58,6 +58,11 @@ $(SHARE_DIR):
 $(GTAR):
 	@$(GTAR) --version > /dev/null || (echo Install GNU Tar with brew install gnu-tar && exit -1)
 
+$(BIN_DIR)/start.sh:
+	curl https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/start.sh -o $@
+
+$(BIN_DIR)/restart.sh:
+	curl https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/restart.sh -o $@
 
 GO_APIDIFF := $(BIN_DIR)/go-apidiff
 $(GO_APIDIFF): $(BIN_DIR) go.mod go.sum
