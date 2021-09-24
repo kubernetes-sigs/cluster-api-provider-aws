@@ -159,6 +159,14 @@ func Test_RenderCloudformation(t *testing.T) {
 				return t
 			},
 		},
+		{
+			fixture: "with_eks_console",
+			template: func() Template {
+				t := NewTemplate()
+				t.Spec.EKS.EnableUserEKSConsolePolicy = true
+				return t
+			},
+		},
 	}
 
 	for _, c := range cases {

@@ -49,6 +49,7 @@ const (
 	ControlPlanePolicy                PolicyName = "AWSIAMManagedPolicyCloudProviderControlPlane"
 	NodePolicy                        PolicyName = "AWSIAMManagedPolicyCloudProviderNodes"
 	CSIPolicy                         PolicyName = "AWSEBSCSIPolicyController"
+	EKSConsolePolicy                  PolicyName = "AWSIAMManagedPolicyEKSConsole"
 )
 
 // Template is an AWS CloudFormation template to bootstrap
@@ -202,6 +203,14 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 			AssumeRolePolicyDocument: AssumeRolePolicy(iamv1.PrincipalService, []string{eksiam.EKSFargateService}),
 			ManagedPolicyArns:        fargateProfilePolicies(t.Spec.EKS.Fargate),
 			Tags:                     converters.MapToCloudFormationTags(t.Spec.EKS.Fargate.Tags),
+		}
+	}
+
+	if t.Spec.EKS.EnableUserEKSConsolePolicy && !t.Spec.EKS.Disable {
+		template.Resources[string(EKSConsolePolicy)] = &cfn_iam.ManagedPolicy{
+			ManagedPolicyName: t.NewManagedName("eks-console"),
+			Description:       `For users/groups to view EKS nodes and workloads`,
+			PolicyDocument:    t.eksConsolePolicies(),
 		}
 	}
 

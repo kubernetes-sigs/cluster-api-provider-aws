@@ -331,6 +331,7 @@ func Convert_v1beta1_ControlPlane_To_v1alpha1_ControlPlane(in *v1beta1.ControlPl
 func autoConvert_v1alpha1_EKSConfig_To_v1beta1_EKSConfig(in *EKSConfig, out *v1beta1.EKSConfig, s conversion.Scope) error {
 	out.Disable = in.Disable
 	out.AllowIAMRoleCreation = in.AllowIAMRoleCreation
+	out.EnableUserEKSConsolePolicy = in.EnableUserEKSConsolePolicy
 	if err := Convert_v1alpha1_AWSIAMRoleSpec_To_v1beta1_AWSIAMRoleSpec(&in.DefaultControlPlaneRole, &out.DefaultControlPlaneRole, s); err != nil {
 		return err
 	}
@@ -348,6 +349,7 @@ func Convert_v1alpha1_EKSConfig_To_v1beta1_EKSConfig(in *EKSConfig, out *v1beta1
 func autoConvert_v1beta1_EKSConfig_To_v1alpha1_EKSConfig(in *v1beta1.EKSConfig, out *EKSConfig, s conversion.Scope) error {
 	out.Disable = in.Disable
 	out.AllowIAMRoleCreation = in.AllowIAMRoleCreation
+	out.EnableUserEKSConsolePolicy = in.EnableUserEKSConsolePolicy
 	if err := Convert_v1beta1_AWSIAMRoleSpec_To_v1alpha1_AWSIAMRoleSpec(&in.DefaultControlPlaneRole, &out.DefaultControlPlaneRole, s); err != nil {
 		return err
 	}

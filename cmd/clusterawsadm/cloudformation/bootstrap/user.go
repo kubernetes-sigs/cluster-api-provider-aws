@@ -45,3 +45,25 @@ func (t Template) bootstrapUserPolicy() []cfn_iam.User_Policy {
 	}
 	return userPolicies
 }
+
+func (t Template) eksConsolePolicies() *iamv1.PolicyDocument {
+	return &iamv1.PolicyDocument{
+		Version: iamv1.CurrentVersion,
+		Statement: []iamv1.StatementEntry{
+			{
+				Effect:   iamv1.EffectAllow,
+				Resource: iamv1.Resources{iamv1.Any},
+				Action: iamv1.Actions{
+					"eks:DescribeNodegroup",
+					"eks:ListNodegroups",
+					"eks:DescribeCluster",
+					"eks:ListClusters",
+					"eks:AccessKubernetesApi",
+					"ssm:GetParameter",
+					"eks:ListUpdates",
+					"eks:ListFargateProfiles",
+				},
+			},
+		},
+	}
+}
