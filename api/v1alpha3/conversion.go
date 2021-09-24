@@ -42,10 +42,6 @@ func (r *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	restoreInstance(restored.Status.Bastion, dst.Status.Bastion)
-	if restored.Status.Bastion != nil && dst.Status.Bastion != nil {
-		RestoreRootVolume(restored.Status.Bastion.RootVolume, dst.Status.Bastion.RootVolume)
-		restoreNonRootVolumes(restored.Status.Bastion.NonRootVolumes, dst.Status.Bastion.NonRootVolumes)
-	}
 	return nil
 }
 
@@ -146,7 +142,6 @@ func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 
 // ConvertFrom converts the v1alpha4 AWSMachineTemplate receiver to a v1alpha3 AWSMachineTemplate.
 func (r *AWSMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
-
 	src := srcRaw.(*v1alpha4.AWSMachineTemplate)
 
 	if err := Convert_v1alpha4_AWSMachineTemplate_To_v1alpha3_AWSMachineTemplate(src, r, nil); err != nil {
@@ -357,8 +352,8 @@ func restoreNonRootVolumes(restoredVolumes, dstVolumes []v1alpha4.Volume) {
 	if dstVolumes == nil {
 		dstVolumes = make([]v1alpha4.Volume, 0)
 	}
-	//restoring the nonrootvolumes which are missing in dstVolumes
-	//restoring dstVolumes[i].Encrypted to nil in order to avoid v1alpha4 --> v1alpha3 --> v1alpha4 round trip errors
+	// restoring the nonrootvolumes which are missing in dstVolumes
+	// restoring dstVolumes[i].Encrypted to nil in order to avoid v1alpha4 --> v1alpha3 --> v1alpha4 round trip errors
 	for i := range restoredVolumes {
 		if restoredVolumes[i].Encrypted == nil {
 			if len(dstVolumes) <= i {
