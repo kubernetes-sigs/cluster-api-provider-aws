@@ -21119,6 +21119,139 @@ func (mr *MockEC2APIMockRecorder) GetTransitGatewayRouteTablePropagationsWithCon
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransitGatewayRouteTablePropagationsWithContext", reflect.TypeOf((*MockEC2API)(nil).GetTransitGatewayRouteTablePropagationsWithContext), varargs...)
 }
 
+// GetVpnConnectionDeviceSampleConfiguration mocks base method.
+func (m *MockEC2API) GetVpnConnectionDeviceSampleConfiguration(arg0 *ec2.GetVpnConnectionDeviceSampleConfigurationInput) (*ec2.GetVpnConnectionDeviceSampleConfigurationOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVpnConnectionDeviceSampleConfiguration", arg0)
+	ret0, _ := ret[0].(*ec2.GetVpnConnectionDeviceSampleConfigurationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVpnConnectionDeviceSampleConfiguration indicates an expected call of GetVpnConnectionDeviceSampleConfiguration.
+func (mr *MockEC2APIMockRecorder) GetVpnConnectionDeviceSampleConfiguration(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVpnConnectionDeviceSampleConfiguration", reflect.TypeOf((*MockEC2API)(nil).GetVpnConnectionDeviceSampleConfiguration), arg0)
+}
+
+// GetVpnConnectionDeviceSampleConfigurationRequest mocks base method.
+func (m *MockEC2API) GetVpnConnectionDeviceSampleConfigurationRequest(arg0 *ec2.GetVpnConnectionDeviceSampleConfigurationInput) (*request.Request, *ec2.GetVpnConnectionDeviceSampleConfigurationOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVpnConnectionDeviceSampleConfigurationRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.GetVpnConnectionDeviceSampleConfigurationOutput)
+	return ret0, ret1
+}
+
+// GetVpnConnectionDeviceSampleConfigurationRequest indicates an expected call of GetVpnConnectionDeviceSampleConfigurationRequest.
+func (mr *MockEC2APIMockRecorder) GetVpnConnectionDeviceSampleConfigurationRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVpnConnectionDeviceSampleConfigurationRequest", reflect.TypeOf((*MockEC2API)(nil).GetVpnConnectionDeviceSampleConfigurationRequest), arg0)
+}
+
+// GetVpnConnectionDeviceSampleConfigurationWithContext mocks base method.
+func (m *MockEC2API) GetVpnConnectionDeviceSampleConfigurationWithContext(arg0 context.Context, arg1 *ec2.GetVpnConnectionDeviceSampleConfigurationInput, arg2 ...request.Option) (*ec2.GetVpnConnectionDeviceSampleConfigurationOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetVpnConnectionDeviceSampleConfigurationWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.GetVpnConnectionDeviceSampleConfigurationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVpnConnectionDeviceSampleConfigurationWithContext indicates an expected call of GetVpnConnectionDeviceSampleConfigurationWithContext.
+func (mr *MockEC2APIMockRecorder) GetVpnConnectionDeviceSampleConfigurationWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVpnConnectionDeviceSampleConfigurationWithContext", reflect.TypeOf((*MockEC2API)(nil).GetVpnConnectionDeviceSampleConfigurationWithContext), varargs...)
+}
+
+// GetVpnConnectionDeviceTypes mocks base method.
+func (m *MockEC2API) GetVpnConnectionDeviceTypes(arg0 *ec2.GetVpnConnectionDeviceTypesInput) (*ec2.GetVpnConnectionDeviceTypesOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVpnConnectionDeviceTypes", arg0)
+	ret0, _ := ret[0].(*ec2.GetVpnConnectionDeviceTypesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVpnConnectionDeviceTypes indicates an expected call of GetVpnConnectionDeviceTypes.
+func (mr *MockEC2APIMockRecorder) GetVpnConnectionDeviceTypes(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVpnConnectionDeviceTypes", reflect.TypeOf((*MockEC2API)(nil).GetVpnConnectionDeviceTypes), arg0)
+}
+
+// GetVpnConnectionDeviceTypesPages mocks base method.
+func (m *MockEC2API) GetVpnConnectionDeviceTypesPages(arg0 *ec2.GetVpnConnectionDeviceTypesInput, arg1 func(*ec2.GetVpnConnectionDeviceTypesOutput, bool) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVpnConnectionDeviceTypesPages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GetVpnConnectionDeviceTypesPages indicates an expected call of GetVpnConnectionDeviceTypesPages.
+func (mr *MockEC2APIMockRecorder) GetVpnConnectionDeviceTypesPages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVpnConnectionDeviceTypesPages", reflect.TypeOf((*MockEC2API)(nil).GetVpnConnectionDeviceTypesPages), arg0, arg1)
+}
+
+// GetVpnConnectionDeviceTypesPagesWithContext mocks base method.
+func (m *MockEC2API) GetVpnConnectionDeviceTypesPagesWithContext(arg0 context.Context, arg1 *ec2.GetVpnConnectionDeviceTypesInput, arg2 func(*ec2.GetVpnConnectionDeviceTypesOutput, bool) bool, arg3 ...request.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetVpnConnectionDeviceTypesPagesWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GetVpnConnectionDeviceTypesPagesWithContext indicates an expected call of GetVpnConnectionDeviceTypesPagesWithContext.
+func (mr *MockEC2APIMockRecorder) GetVpnConnectionDeviceTypesPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVpnConnectionDeviceTypesPagesWithContext", reflect.TypeOf((*MockEC2API)(nil).GetVpnConnectionDeviceTypesPagesWithContext), varargs...)
+}
+
+// GetVpnConnectionDeviceTypesRequest mocks base method.
+func (m *MockEC2API) GetVpnConnectionDeviceTypesRequest(arg0 *ec2.GetVpnConnectionDeviceTypesInput) (*request.Request, *ec2.GetVpnConnectionDeviceTypesOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVpnConnectionDeviceTypesRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.GetVpnConnectionDeviceTypesOutput)
+	return ret0, ret1
+}
+
+// GetVpnConnectionDeviceTypesRequest indicates an expected call of GetVpnConnectionDeviceTypesRequest.
+func (mr *MockEC2APIMockRecorder) GetVpnConnectionDeviceTypesRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVpnConnectionDeviceTypesRequest", reflect.TypeOf((*MockEC2API)(nil).GetVpnConnectionDeviceTypesRequest), arg0)
+}
+
+// GetVpnConnectionDeviceTypesWithContext mocks base method.
+func (m *MockEC2API) GetVpnConnectionDeviceTypesWithContext(arg0 context.Context, arg1 *ec2.GetVpnConnectionDeviceTypesInput, arg2 ...request.Option) (*ec2.GetVpnConnectionDeviceTypesOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetVpnConnectionDeviceTypesWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.GetVpnConnectionDeviceTypesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVpnConnectionDeviceTypesWithContext indicates an expected call of GetVpnConnectionDeviceTypesWithContext.
+func (mr *MockEC2APIMockRecorder) GetVpnConnectionDeviceTypesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVpnConnectionDeviceTypesWithContext", reflect.TypeOf((*MockEC2API)(nil).GetVpnConnectionDeviceTypesWithContext), varargs...)
+}
+
 // ImportClientVpnClientCertificateRevocationList mocks base method.
 func (m *MockEC2API) ImportClientVpnClientCertificateRevocationList(arg0 *ec2.ImportClientVpnClientCertificateRevocationListInput) (*ec2.ImportClientVpnClientCertificateRevocationListOutput, error) {
 	m.ctrl.T.Helper()

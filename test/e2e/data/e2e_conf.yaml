@@ -37,9 +37,9 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v0.4.1
+      - name: v0.4.3
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.1/core-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.3/core-components.yaml"
         type: "url"
         files:
           - sourcePath: "./shared/v1alpha4/metadata.yaml"
@@ -67,9 +67,9 @@ providers:
     files:
       - sourcePath: "./shared/v1alpha4/metadata.yaml"
     versions:
-      - name: v0.4.1
+      - name: v0.4.3
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.1/bootstrap-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.3/bootstrap-components.yaml"
         type: "url"
         replacements:
           - old: "imagePullPolicy: Always"
@@ -84,9 +84,9 @@ providers:
     files:
       - sourcePath: "./shared/v1alpha4/metadata.yaml"
     versions:
-      - name: v0.4.1
+      - name: v0.4.3
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.1/control-plane-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.3/control-plane-components.yaml"
         type: "url"
         replacements:
           - old: "imagePullPolicy: Always"
