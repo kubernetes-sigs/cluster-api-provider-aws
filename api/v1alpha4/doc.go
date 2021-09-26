@@ -18,5 +18,5 @@ limitations under the License.
 // +groupName=infrastructure.cluster.x-k8s.io
 
 // Package v1alpha4 contains the v1alpha4 API implementation.
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api/api/v1beta1
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-aws/api/v1beta1
 package v1alpha4
