@@ -14,8 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// +gencrdrefdocs:force // nolint: revive
-// +groupName=bootstrap.cluster.x-k8s.io
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta1
+package v1beta1
 
-package v1alpha4
+// Hub marks EKSConfig as a conversion hub.
+func (*EKSConfig) Hub() {}
+
+// Hub marks EKSConfigList as a conversion hub.
+func (*EKSConfigList) Hub() {}
+
+// Hub marks EKSConfigTemplate as a conversion hub.
+func (*EKSConfigTemplate) Hub() {}
+
+// Hub marks EKSConfigTemplateList as a conversion hub.
+func (*EKSConfigTemplateList) Hub() {}

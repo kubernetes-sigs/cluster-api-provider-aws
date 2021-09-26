@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,6 +32,7 @@ type EKSConfigTemplateResource struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=eksconfigtemplates,scope=Namespaced,categories=cluster-api,shortName=eksct
+// +kubebuilder:storageversion
 
 // EKSConfigTemplate is the Schema for the eksconfigtemplates API
 type EKSConfigTemplate struct {

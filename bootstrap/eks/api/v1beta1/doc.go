@@ -16,6 +16,5 @@ limitations under the License.
 
 // +gencrdrefdocs:force // nolint: revive
 // +groupName=bootstrap.cluster.x-k8s.io
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta1
 
-package v1alpha4
+package v1beta1
