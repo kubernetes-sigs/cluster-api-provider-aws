@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1beta1
 
 import (
 	"context"
@@ -26,29 +26,35 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
 
-func TestAWSClusterControllerIdentityCreationValidation(t *testing.T) {
+func TestAWSClusterRoleValidateCreate(t *testing.T) {
 	tests := []struct {
 		name      string
-		identity  *AWSClusterControllerIdentity
+		identity  *AWSClusterRoleIdentity
 		wantError bool
 	}{
 		{
-			name: "only allow AWSClusterControllerIdentity creation with name default",
-			identity: &AWSClusterControllerIdentity{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "default",
-				},
-			},
-			wantError: false,
-		},
-		{
-			name: "do not allow AWSClusterControllerIdentity creation with name other than default",
-			identity: &AWSClusterControllerIdentity{
+			name: "do not allow nil sourceIdentityRef",
+			identity: &AWSClusterRoleIdentity{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
 				},
 			},
 			wantError: true,
+		},
+		{
+			name: "successfully create AWSClusterRoleIdentity",
+			identity: &AWSClusterRoleIdentity{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "role",
+				},
+				Spec: AWSClusterRoleIdentitySpec{
+					SourceIdentityRef: &AWSIdentityReference{
+						Name: "another-role",
+						Kind: ClusterRoleIdentityKind,
+					},
+				},
+			},
+			wantError: false,
 		},
 	}
 	for _, tt := range tests {
@@ -56,7 +62,7 @@ func TestAWSClusterControllerIdentityCreationValidation(t *testing.T) {
 			identity := tt.identity.DeepCopy()
 			identity.TypeMeta = metav1.TypeMeta{
 				APIVersion: GroupVersion.String(),
-				Kind:       "AWSClusterControllerIdentity",
+				Kind:       "AWSClusterRoleIdentity",
 			}
 			ctx := context.TODO()
 			if err := testEnv.Create(ctx, identity); (err != nil) != tt.wantError {
@@ -67,7 +73,7 @@ func TestAWSClusterControllerIdentityCreationValidation(t *testing.T) {
 	}
 }
 
-func TestAWSClusterControllerIdentityLabelSelectorAsSelectorValidation(t *testing.T) {
+func TestCreateAWSClusterRoleIdentityLabelSelectorAsSelectorValidation(t *testing.T) {
 	tests := []struct {
 		name      string
 		selectors map[string]string
@@ -86,21 +92,21 @@ func TestAWSClusterControllerIdentityLabelSelectorAsSelectorValidation(t *testin
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			identity := &AWSClusterControllerIdentity{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: GroupVersion.String(),
-					Kind:       "AWSClusterControllerIdentity",
-				},
+			identity := &AWSClusterRoleIdentity{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: AWSClusterControllerIdentityName,
+					Name: "role",
 				},
-				Spec: AWSClusterControllerIdentitySpec{
+				Spec: AWSClusterRoleIdentitySpec{
 					AWSClusterIdentitySpec: AWSClusterIdentitySpec{
 						AllowedNamespaces: &AllowedNamespaces{
 							Selector: metav1.LabelSelector{
 								MatchLabels: tt.selectors,
 							},
 						},
+					},
+					SourceIdentityRef: &AWSIdentityReference{
+						Name: "another-role",
+						Kind: ClusterRoleIdentityKind,
 					},
 				},
 			}
@@ -114,83 +120,46 @@ func TestAWSClusterControllerIdentityLabelSelectorAsSelectorValidation(t *testin
 	}
 }
 
-func TestAWSClusterControllerValidateUpdate(t *testing.T) {
-	controllerIdentity := &AWSClusterControllerIdentity{
+func TestAWSClusterRoleValidateUpdate(t *testing.T) {
+	roleIdentity := &AWSClusterRoleIdentity{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: GroupVersion.String(),
-			Kind:       "AWSClusterControllerIdentity",
+			Kind:       string(ClusterRoleIdentityKind),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: AWSClusterControllerIdentityName,
+			Name: "role",
 		},
-		Spec: AWSClusterControllerIdentitySpec{
-			AWSClusterIdentitySpec: AWSClusterIdentitySpec{
-				AllowedNamespaces: &AllowedNamespaces{},
+		Spec: AWSClusterRoleIdentitySpec{
+			SourceIdentityRef: &AWSIdentityReference{
+				Name: "another-role",
+				Kind: ClusterRoleIdentityKind,
 			},
 		},
 	}
 
 	ctx := context.TODO()
-	defer testEnv.Delete(ctx, controllerIdentity)
+	defer testEnv.Delete(ctx, roleIdentity)
 
-	if err := testEnv.Create(ctx, controllerIdentity); err != nil {
-		t.Errorf("controllerIdentity creation failed %v", err)
+	if err := testEnv.Create(ctx, roleIdentity); err != nil {
+		t.Errorf("roleIdentity creation failed %v", err)
 	}
 
-	tests := []struct {
-		name      string
-		identity  *AWSClusterControllerIdentity
-		wantError bool
-	}{
-		{
-			name: "do not allow any spec changes",
-			identity: &AWSClusterControllerIdentity{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "default",
-				},
-			},
-			wantError: true,
-		},
-		{
-			name: "do not allow name change",
-			identity: &AWSClusterControllerIdentity{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test",
-				},
-			},
-			wantError: true,
-		},
-		{
-			name:      "no error when updating with same object",
-			identity:  controllerIdentity,
-			wantError: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			identity := tt.identity.DeepCopy()
-			identity.TypeMeta = metav1.TypeMeta{
-				APIVersion: GroupVersion.String(),
-				Kind:       "AWSClusterControllerIdentity",
-			}
-			ctx := context.TODO()
-			if err := testEnv.Update(ctx, identity); (err != nil) != tt.wantError {
-				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantError)
-			}
-		})
+	roleIdentity.Spec = AWSClusterRoleIdentitySpec{}
+	if err := testEnv.Update(ctx, roleIdentity); err == nil {
+		t.Errorf("roleIdentity is updated with nil sourceIdentityRef %v", err)
 	}
 }
 
-func TestAWSClusterControllerIdentityUpdateValidation(t *testing.T) {
-	controllerIdentity := &AWSClusterControllerIdentity{
+func TestAWSClusterRoleIdentityUpdateValidation(t *testing.T) {
+	roleIdentity := &AWSClusterRoleIdentity{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: GroupVersion.String(),
-			Kind:       "AWSClusterControllerIdentityName",
+			Kind:       string(ClusterRoleIdentityKind),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: AWSClusterControllerIdentityName,
+			Name: "role",
 		},
-		Spec: AWSClusterControllerIdentitySpec{
+		Spec: AWSClusterRoleIdentitySpec{
 			AWSClusterIdentitySpec: AWSClusterIdentitySpec{
 				AllowedNamespaces: &AllowedNamespaces{
 					Selector: metav1.LabelSelector{
@@ -198,39 +167,47 @@ func TestAWSClusterControllerIdentityUpdateValidation(t *testing.T) {
 					},
 				},
 			},
+			SourceIdentityRef: &AWSIdentityReference{
+				Name: "another-role",
+				Kind: ClusterRoleIdentityKind,
+			},
 		},
 	}
 
 	ctx := context.TODO()
-	defer testEnv.Delete(ctx, controllerIdentity)
+	defer testEnv.Delete(ctx, roleIdentity)
 
-	if err := testEnv.Create(ctx, controllerIdentity); err != nil {
-		t.Errorf("controllerIdentity creation failed %v", err)
+	if err := testEnv.Create(ctx, roleIdentity); err != nil {
+		t.Errorf("roleIdentity creation failed %v", err)
 	}
 
 	tests := []struct {
 		name      string
-		identity  *AWSClusterControllerIdentity
+		identity  *AWSClusterRoleIdentity
 		wantError bool
 	}{
 		{
 			name:      "should not return error for valid selector",
-			identity:  controllerIdentity,
+			identity:  roleIdentity,
 			wantError: false,
 		},
 		{
 			name: "should return error for invalid selector",
-			identity: &AWSClusterControllerIdentity{
+			identity: &AWSClusterRoleIdentity{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: AWSClusterControllerIdentityName,
+					Name: "role",
 				},
-				Spec: AWSClusterControllerIdentitySpec{
+				Spec: AWSClusterRoleIdentitySpec{
 					AWSClusterIdentitySpec: AWSClusterIdentitySpec{
 						AllowedNamespaces: &AllowedNamespaces{
 							Selector: metav1.LabelSelector{
 								MatchLabels: map[string]string{"-foo-123": "bar"},
 							},
 						},
+					},
+					SourceIdentityRef: &AWSIdentityReference{
+						Name: "another-role",
+						Kind: ClusterRoleIdentityKind,
 					},
 				},
 			},
@@ -248,44 +225,68 @@ func TestAWSClusterControllerIdentityUpdateValidation(t *testing.T) {
 	}
 }
 
-func TestAWSClusterControllerIdentity_Default(t *testing.T) {
+func TestAWSClusterRoleIdentity_Default(t *testing.T) {
 	g := NewWithT(t)
 	tests := []struct {
-		name                               string
-		beforeAWSClusterControllerIdentity *AWSClusterControllerIdentity
-		afterAWSClusterControllerIdentity  *AWSClusterControllerIdentity
+		name                         string
+		beforeAWSClusterRoleIdentity *AWSClusterRoleIdentity
+		afterAWSClusterRoleIdentity  *AWSClusterRoleIdentity
 	}{
 		{
-			name: "Set label while creating AWSClusterControllerIdentity if labels are undefined",
-			beforeAWSClusterControllerIdentity: &AWSClusterControllerIdentity{
+			name: "Set label while creating AWSClusterRoleIdentity if labels are undefined",
+			beforeAWSClusterRoleIdentity: &AWSClusterRoleIdentity{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "default",
 				},
+				Spec: AWSClusterRoleIdentitySpec{
+					SourceIdentityRef: &AWSIdentityReference{
+						Name: "another-role",
+						Kind: ClusterRoleIdentityKind,
+					},
+				},
 			},
-			afterAWSClusterControllerIdentity: &AWSClusterControllerIdentity{
+			afterAWSClusterRoleIdentity: &AWSClusterRoleIdentity{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "default",
 					Labels: map[string]string{
 						clusterv1.ClusterctlMoveHierarchyLabelName: "",
 					},
 				},
+				Spec: AWSClusterRoleIdentitySpec{
+					SourceIdentityRef: &AWSIdentityReference{
+						Name: "another-role",
+						Kind: ClusterRoleIdentityKind,
+					},
+				},
 			},
 		},
 		{
-			name: "Not update any label while creating AWSClusterControllerIdentity if labels are already defined",
-			beforeAWSClusterControllerIdentity: &AWSClusterControllerIdentity{
+			name: "Not update any label while creating AWSClusterRoleIdentity if labels are already defined",
+			beforeAWSClusterRoleIdentity: &AWSClusterRoleIdentity{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "default",
 					Labels: map[string]string{
 						clusterv1.ClusterctlMoveHierarchyLabelName: "abc",
 					},
 				},
+				Spec: AWSClusterRoleIdentitySpec{
+					SourceIdentityRef: &AWSIdentityReference{
+						Name: "another-role",
+						Kind: ClusterRoleIdentityKind,
+					},
+				},
 			},
-			afterAWSClusterControllerIdentity: &AWSClusterControllerIdentity{
+			afterAWSClusterRoleIdentity: &AWSClusterRoleIdentity{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "default",
 					Labels: map[string]string{
 						clusterv1.ClusterctlMoveHierarchyLabelName: "abc",
+					},
+				},
+				Spec: AWSClusterRoleIdentitySpec{
+					SourceIdentityRef: &AWSIdentityReference{
+						Name: "another-role",
+						Kind: ClusterRoleIdentityKind,
 					},
 				},
 			},
@@ -295,11 +296,11 @@ func TestAWSClusterControllerIdentity_Default(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.TODO()
-			awsClusterControllerIdentity := tt.beforeAWSClusterControllerIdentity.DeepCopy()
-			g.Expect(testEnv.Create(ctx, awsClusterControllerIdentity)).To(Succeed())
-			g.Expect(len(awsClusterControllerIdentity.ObjectMeta.Labels)).To(Not(Equal(0)))
-			g.Expect(awsClusterControllerIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabelName]).To(Equal(tt.afterAWSClusterControllerIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabelName]))
-			g.Expect(testEnv.Delete(ctx, awsClusterControllerIdentity)).To(Succeed())
+			awsClusterRoleIdentity := tt.beforeAWSClusterRoleIdentity.DeepCopy()
+			g.Expect(testEnv.Create(ctx, awsClusterRoleIdentity)).To(Succeed())
+			g.Expect(len(awsClusterRoleIdentity.ObjectMeta.Labels)).To(Not(Equal(0)))
+			g.Expect(awsClusterRoleIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabelName]).To(Equal(tt.afterAWSClusterRoleIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabelName]))
+			g.Expect(testEnv.Delete(ctx, awsClusterRoleIdentity)).To(Succeed())
 		})
 	}
 }

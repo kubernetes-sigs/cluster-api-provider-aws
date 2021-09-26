@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1beta1
 
 import (
 	"reflect"
@@ -32,7 +32,7 @@ func (r *AWSMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha4-awsmachinetemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,versions=v1alpha4,name=validation.awsmachinetemplate.infrastructure.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-awsmachinetemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,versions=v1beta1,name=validation.awsmachinetemplate.infrastructure.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
 
 var (
 	_ webhook.Validator = &AWSMachineTemplate{}
@@ -120,7 +120,7 @@ func (r *AWSMachineTemplate) ValidateCreate() error {
 func (r *AWSMachineTemplate) ValidateUpdate(old runtime.Object) error {
 	oldAWSMachineTemplate := old.(*AWSMachineTemplate)
 
-	// Allow setting of cloudInit.secureSecretsBackend to "secrets-manager" only to handle v1alpha4 upgrade
+	// Allow setting of cloudInit.secureSecretsBackend to "secrets-manager" only to handle v1beta1 upgrade
 	if oldAWSMachineTemplate.Spec.Template.Spec.CloudInit.SecureSecretsBackend == "" && r.Spec.Template.Spec.CloudInit.SecureSecretsBackend == SecretBackendSecretsManager {
 		r.Spec.Template.Spec.CloudInit.SecureSecretsBackend = ""
 	}

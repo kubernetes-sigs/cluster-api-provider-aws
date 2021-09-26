@@ -21,29 +21,29 @@ import (
 
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	"sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	apiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	apiv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	apiUpstreamv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
-// ConvertTo converts the v1alpha3 AWSCluster receiver to a v1alpha4 AWSCluster.
+// ConvertTo converts the v1alpha3 AWSCluster receiver to a v1beta1 AWSCluster.
 func (r *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1alpha4.AWSCluster)
+	dst := dstRaw.(*v1beta1.AWSCluster)
 
-	if err := Convert_v1alpha3_AWSCluster_To_v1alpha4_AWSCluster(r, dst, nil); err != nil {
+	if err := Convert_v1alpha3_AWSCluster_To_v1beta1_AWSCluster(r, dst, nil); err != nil {
 		return err
 	}
 	// Manually restore data.
-	restored := &v1alpha4.AWSCluster{}
+	restored := &v1beta1.AWSCluster{}
 	if ok, err := utilconversion.UnmarshalData(r, restored); err != nil || !ok {
 		return err
 	}
 
 	if restored.Status.Bastion != nil {
 		if dst.Status.Bastion == nil {
-			dst.Status.Bastion = &v1alpha4.Instance{}
+			dst.Status.Bastion = &v1beta1.Instance{}
 		}
 		restoreInstance(restored.Status.Bastion, dst.Status.Bastion)
 	}
@@ -51,11 +51,11 @@ func (r *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	return nil
 }
 
-// ConvertFrom converts the v1alpha4 AWSCluster receiver to a v1alpha3 AWSCluster.
+// ConvertFrom converts the v1beta1 AWSCluster receiver to a v1alpha3 AWSCluster.
 func (r *AWSCluster) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1alpha4.AWSCluster)
+	src := srcRaw.(*v1beta1.AWSCluster)
 
-	if err := Convert_v1alpha4_AWSCluster_To_v1alpha3_AWSCluster(src, r, nil); err != nil {
+	if err := Convert_v1beta1_AWSCluster_To_v1alpha3_AWSCluster(src, r, nil); err != nil {
 		return err
 	}
 
@@ -67,28 +67,28 @@ func (r *AWSCluster) ConvertFrom(srcRaw conversion.Hub) error {
 	return nil
 }
 
-// ConvertTo converts the v1alpha3 AWSClusterList receiver to a v1alpha4 AWSClusterList.
+// ConvertTo converts the v1alpha3 AWSClusterList receiver to a v1beta1 AWSClusterList.
 func (r *AWSClusterList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1alpha4.AWSClusterList)
+	dst := dstRaw.(*v1beta1.AWSClusterList)
 
-	return Convert_v1alpha3_AWSClusterList_To_v1alpha4_AWSClusterList(r, dst, nil)
+	return Convert_v1alpha3_AWSClusterList_To_v1beta1_AWSClusterList(r, dst, nil)
 }
 
-// ConvertFrom converts the v1alpha4 AWSClusterList receiver to a v1alpha3 AWSClusterList.
+// ConvertFrom converts the v1beta1 AWSClusterList receiver to a v1alpha3 AWSClusterList.
 func (r *AWSClusterList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1alpha4.AWSClusterList)
+	src := srcRaw.(*v1beta1.AWSClusterList)
 
-	return Convert_v1alpha4_AWSClusterList_To_v1alpha3_AWSClusterList(src, r, nil)
+	return Convert_v1beta1_AWSClusterList_To_v1alpha3_AWSClusterList(src, r, nil)
 }
 
-// ConvertTo converts the v1alpha3 AWSMachine receiver to a v1alpha4 AWSMachine.
+// ConvertTo converts the v1alpha3 AWSMachine receiver to a v1beta1 AWSMachine.
 func (r *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1alpha4.AWSMachine)
-	if err := Convert_v1alpha3_AWSMachine_To_v1alpha4_AWSMachine(r, dst, nil); err != nil {
+	dst := dstRaw.(*v1beta1.AWSMachine)
+	if err := Convert_v1alpha3_AWSMachine_To_v1beta1_AWSMachine(r, dst, nil); err != nil {
 		return err
 	}
 	// Manually restore data.
-	restored := &v1alpha4.AWSMachine{}
+	restored := &v1beta1.AWSMachine{}
 	if ok, err := utilconversion.UnmarshalData(r, restored); err != nil || !ok {
 		return err
 	}
@@ -96,24 +96,24 @@ func (r *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
 	RestoreAMIReference(&restored.Spec.AMI, &dst.Spec.AMI)
 	if restored.Spec.RootVolume != nil {
 		if dst.Spec.RootVolume == nil {
-			dst.Spec.RootVolume = &v1alpha4.Volume{}
+			dst.Spec.RootVolume = &v1beta1.Volume{}
 		}
 		RestoreRootVolume(restored.Spec.RootVolume, dst.Spec.RootVolume)
 	}
 	if restored.Spec.NonRootVolumes != nil {
 		if dst.Spec.NonRootVolumes == nil {
-			dst.Spec.NonRootVolumes = []v1alpha4.Volume{}
+			dst.Spec.NonRootVolumes = []v1beta1.Volume{}
 		}
 		restoreNonRootVolumes(restored.Spec.NonRootVolumes, dst.Spec.NonRootVolumes)
 	}
 	return nil
 }
 
-// ConvertFrom converts the v1alpha4 AWSMachine receiver to a v1alpha3 AWSMachine.
+// ConvertFrom converts the v1beta1 AWSMachine receiver to a v1alpha3 AWSMachine.
 func (r *AWSMachine) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1alpha4.AWSMachine)
+	src := srcRaw.(*v1beta1.AWSMachine)
 
-	if err := Convert_v1alpha4_AWSMachine_To_v1alpha3_AWSMachine(src, r, nil); err != nil {
+	if err := Convert_v1beta1_AWSMachine_To_v1alpha3_AWSMachine(src, r, nil); err != nil {
 		return err
 	}
 	// Preserve Hub data on down-conversion.
@@ -123,28 +123,28 @@ func (r *AWSMachine) ConvertFrom(srcRaw conversion.Hub) error {
 	return nil
 }
 
-// ConvertTo converts the v1alpha3 AWSMachineList receiver to a v1alpha4 AWSMachineList.
+// ConvertTo converts the v1alpha3 AWSMachineList receiver to a v1beta1 AWSMachineList.
 func (r *AWSMachineList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1alpha4.AWSMachineList)
+	dst := dstRaw.(*v1beta1.AWSMachineList)
 
-	return Convert_v1alpha3_AWSMachineList_To_v1alpha4_AWSMachineList(r, dst, nil)
+	return Convert_v1alpha3_AWSMachineList_To_v1beta1_AWSMachineList(r, dst, nil)
 }
 
-// ConvertFrom converts the v1alpha4 AWSMachineList receiver to a v1alpha3 AWSMachineList.
+// ConvertFrom converts the v1beta1 AWSMachineList receiver to a v1alpha3 AWSMachineList.
 func (r *AWSMachineList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1alpha4.AWSMachineList)
+	src := srcRaw.(*v1beta1.AWSMachineList)
 
-	return Convert_v1alpha4_AWSMachineList_To_v1alpha3_AWSMachineList(src, r, nil)
+	return Convert_v1beta1_AWSMachineList_To_v1alpha3_AWSMachineList(src, r, nil)
 }
 
-// ConvertTo converts the v1alpha3 AWSMachineTemplate receiver to a v1alpha4 AWSMachineTemplate.
+// ConvertTo converts the v1alpha3 AWSMachineTemplate receiver to a v1beta1 AWSMachineTemplate.
 func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1alpha4.AWSMachineTemplate)
-	if err := Convert_v1alpha3_AWSMachineTemplate_To_v1alpha4_AWSMachineTemplate(r, dst, nil); err != nil {
+	dst := dstRaw.(*v1beta1.AWSMachineTemplate)
+	if err := Convert_v1alpha3_AWSMachineTemplate_To_v1beta1_AWSMachineTemplate(r, dst, nil); err != nil {
 		return err
 	}
 	// Manually restore data.
-	restored := &v1alpha4.AWSMachineTemplate{}
+	restored := &v1beta1.AWSMachineTemplate{}
 	if ok, err := utilconversion.UnmarshalData(r, restored); err != nil || !ok {
 		return err
 	}
@@ -152,13 +152,13 @@ func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	RestoreAMIReference(&restored.Spec.Template.Spec.AMI, &dst.Spec.Template.Spec.AMI)
 	if restored.Spec.Template.Spec.RootVolume != nil {
 		if dst.Spec.Template.Spec.RootVolume == nil {
-			dst.Spec.Template.Spec.RootVolume = &v1alpha4.Volume{}
+			dst.Spec.Template.Spec.RootVolume = &v1beta1.Volume{}
 		}
 		RestoreRootVolume(restored.Spec.Template.Spec.RootVolume, dst.Spec.Template.Spec.RootVolume)
 	}
 	if restored.Spec.Template.Spec.NonRootVolumes != nil {
 		if dst.Spec.Template.Spec.NonRootVolumes == nil {
-			dst.Spec.Template.Spec.NonRootVolumes = []v1alpha4.Volume{}
+			dst.Spec.Template.Spec.NonRootVolumes = []v1beta1.Volume{}
 		}
 		restoreNonRootVolumes(restored.Spec.Template.Spec.NonRootVolumes, dst.Spec.Template.Spec.NonRootVolumes)
 	}
@@ -166,11 +166,11 @@ func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	return nil
 }
 
-// ConvertFrom converts the v1alpha4 AWSMachineTemplate receiver to a v1alpha3 AWSMachineTemplate.
+// ConvertFrom converts the v1beta1 AWSMachineTemplate receiver to a v1alpha3 AWSMachineTemplate.
 func (r *AWSMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1alpha4.AWSMachineTemplate)
+	src := srcRaw.(*v1beta1.AWSMachineTemplate)
 
-	if err := Convert_v1alpha4_AWSMachineTemplate_To_v1alpha3_AWSMachineTemplate(src, r, nil); err != nil {
+	if err := Convert_v1beta1_AWSMachineTemplate_To_v1alpha3_AWSMachineTemplate(src, r, nil); err != nil {
 		return err
 	}
 	// Preserve Hub data on down-conversion.
@@ -180,24 +180,24 @@ func (r *AWSMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	return nil
 }
 
-// ConvertTo converts the v1alpha3 AWSMachineTemplateList receiver to a v1alpha4 AWSMachineTemplateList.
+// ConvertTo converts the v1alpha3 AWSMachineTemplateList receiver to a v1beta1 AWSMachineTemplateList.
 func (r *AWSMachineTemplateList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1alpha4.AWSMachineTemplateList)
+	dst := dstRaw.(*v1beta1.AWSMachineTemplateList)
 
-	return Convert_v1alpha3_AWSMachineTemplateList_To_v1alpha4_AWSMachineTemplateList(r, dst, nil)
+	return Convert_v1alpha3_AWSMachineTemplateList_To_v1beta1_AWSMachineTemplateList(r, dst, nil)
 }
 
-// ConvertFrom converts the v1alpha4 AWSMachineTemplateList receiver to a v1alpha3 AWSMachineTemplateList.
+// ConvertFrom converts the v1beta1 AWSMachineTemplateList receiver to a v1alpha3 AWSMachineTemplateList.
 func (r *AWSMachineTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1alpha4.AWSMachineTemplateList)
+	src := srcRaw.(*v1beta1.AWSMachineTemplateList)
 
-	return Convert_v1alpha4_AWSMachineTemplateList_To_v1alpha3_AWSMachineTemplateList(src, r, nil)
+	return Convert_v1beta1_AWSMachineTemplateList_To_v1alpha3_AWSMachineTemplateList(src, r, nil)
 }
 
-// ConvertTo converts the v1alpha3 AWSClusterStaticIdentity receiver to a v1alpha4 AWSClusterStaticIdentity.
+// ConvertTo converts the v1alpha3 AWSClusterStaticIdentity receiver to a v1beta1 AWSClusterStaticIdentity.
 func (r *AWSClusterStaticIdentity) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1alpha4.AWSClusterStaticIdentity)
-	if err := Convert_v1alpha3_AWSClusterStaticIdentity_To_v1alpha4_AWSClusterStaticIdentity(r, dst, nil); err != nil {
+	dst := dstRaw.(*v1beta1.AWSClusterStaticIdentity)
+	if err := Convert_v1alpha3_AWSClusterStaticIdentity_To_v1beta1_AWSClusterStaticIdentity(r, dst, nil); err != nil {
 		return err
 	}
 
@@ -205,11 +205,11 @@ func (r *AWSClusterStaticIdentity) ConvertTo(dstRaw conversion.Hub) error {
 	return nil
 }
 
-// ConvertFrom converts the v1alpha4 AWSClusterStaticIdentity receiver to a v1alpha3 AWSClusterStaticIdentity.
+// ConvertFrom converts the v1beta1 AWSClusterStaticIdentity receiver to a v1alpha3 AWSClusterStaticIdentity.
 func (r *AWSClusterStaticIdentity) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1alpha4.AWSClusterStaticIdentity)
+	src := srcRaw.(*v1beta1.AWSClusterStaticIdentity)
 
-	if err := Convert_v1alpha4_AWSClusterStaticIdentity_To_v1alpha3_AWSClusterStaticIdentity(src, r, nil); err != nil {
+	if err := Convert_v1beta1_AWSClusterStaticIdentity_To_v1alpha3_AWSClusterStaticIdentity(src, r, nil); err != nil {
 		return err
 	}
 
@@ -217,124 +217,124 @@ func (r *AWSClusterStaticIdentity) ConvertFrom(srcRaw conversion.Hub) error {
 	return nil
 }
 
-// ConvertTo converts the v1alpha3 AWSClusterStaticIdentityList receiver to a v1alpha4 AWSClusterStaticIdentityList.
+// ConvertTo converts the v1alpha3 AWSClusterStaticIdentityList receiver to a v1beta1 AWSClusterStaticIdentityList.
 func (r *AWSClusterStaticIdentityList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1alpha4.AWSClusterStaticIdentityList)
+	dst := dstRaw.(*v1beta1.AWSClusterStaticIdentityList)
 
-	return Convert_v1alpha3_AWSClusterStaticIdentityList_To_v1alpha4_AWSClusterStaticIdentityList(r, dst, nil)
+	return Convert_v1alpha3_AWSClusterStaticIdentityList_To_v1beta1_AWSClusterStaticIdentityList(r, dst, nil)
 }
 
-// ConvertFrom converts the v1alpha4 AWSClusterStaticIdentityList receiver to a v1alpha3 AWSClusterStaticIdentityList.
+// ConvertFrom converts the v1beta1 AWSClusterStaticIdentityList receiver to a v1alpha3 AWSClusterStaticIdentityList.
 func (r *AWSClusterStaticIdentityList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1alpha4.AWSClusterStaticIdentityList)
+	src := srcRaw.(*v1beta1.AWSClusterStaticIdentityList)
 
-	return Convert_v1alpha4_AWSClusterStaticIdentityList_To_v1alpha3_AWSClusterStaticIdentityList(src, r, nil)
+	return Convert_v1beta1_AWSClusterStaticIdentityList_To_v1alpha3_AWSClusterStaticIdentityList(src, r, nil)
 }
 
-// ConvertTo converts the v1alpha3 AWSClusterRoleIdentity receiver to a v1alpha4 AWSClusterRoleIdentity.
+// ConvertTo converts the v1alpha3 AWSClusterRoleIdentity receiver to a v1beta1 AWSClusterRoleIdentity.
 func (r *AWSClusterRoleIdentity) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1alpha4.AWSClusterRoleIdentity)
+	dst := dstRaw.(*v1beta1.AWSClusterRoleIdentity)
 
-	return Convert_v1alpha3_AWSClusterRoleIdentity_To_v1alpha4_AWSClusterRoleIdentity(r, dst, nil)
+	return Convert_v1alpha3_AWSClusterRoleIdentity_To_v1beta1_AWSClusterRoleIdentity(r, dst, nil)
 }
 
-// ConvertFrom converts the v1alpha4 AWSClusterRoleIdentity receiver to a v1alpha3 AWSClusterRoleIdentity.
+// ConvertFrom converts the v1beta1 AWSClusterRoleIdentity receiver to a v1alpha3 AWSClusterRoleIdentity.
 func (r *AWSClusterRoleIdentity) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1alpha4.AWSClusterRoleIdentity)
+	src := srcRaw.(*v1beta1.AWSClusterRoleIdentity)
 
-	return Convert_v1alpha4_AWSClusterRoleIdentity_To_v1alpha3_AWSClusterRoleIdentity(src, r, nil)
+	return Convert_v1beta1_AWSClusterRoleIdentity_To_v1alpha3_AWSClusterRoleIdentity(src, r, nil)
 }
 
-// ConvertTo converts the v1alpha3 AWSClusterRoleIdentityList receiver to a v1alpha4 AWSClusterRoleIdentityList.
+// ConvertTo converts the v1alpha3 AWSClusterRoleIdentityList receiver to a v1beta1 AWSClusterRoleIdentityList.
 func (r *AWSClusterRoleIdentityList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1alpha4.AWSClusterRoleIdentityList)
+	dst := dstRaw.(*v1beta1.AWSClusterRoleIdentityList)
 
-	return Convert_v1alpha3_AWSClusterRoleIdentityList_To_v1alpha4_AWSClusterRoleIdentityList(r, dst, nil)
+	return Convert_v1alpha3_AWSClusterRoleIdentityList_To_v1beta1_AWSClusterRoleIdentityList(r, dst, nil)
 }
 
-// ConvertFrom converts the v1alpha4 AWSClusterRoleIdentityList receiver to a v1alpha3 AWSClusterRoleIdentityList.
+// ConvertFrom converts the v1beta1 AWSClusterRoleIdentityList receiver to a v1alpha3 AWSClusterRoleIdentityList.
 func (r *AWSClusterRoleIdentityList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1alpha4.AWSClusterRoleIdentityList)
+	src := srcRaw.(*v1beta1.AWSClusterRoleIdentityList)
 
-	return Convert_v1alpha4_AWSClusterRoleIdentityList_To_v1alpha3_AWSClusterRoleIdentityList(src, r, nil)
+	return Convert_v1beta1_AWSClusterRoleIdentityList_To_v1alpha3_AWSClusterRoleIdentityList(src, r, nil)
 }
 
-// ConvertTo converts the v1alpha3 AWSClusterControllerIdentity receiver to a v1alpha4 AWSClusterControllerIdentity.
+// ConvertTo converts the v1alpha3 AWSClusterControllerIdentity receiver to a v1beta1 AWSClusterControllerIdentity.
 func (r *AWSClusterControllerIdentity) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1alpha4.AWSClusterControllerIdentity)
+	dst := dstRaw.(*v1beta1.AWSClusterControllerIdentity)
 
-	return Convert_v1alpha3_AWSClusterControllerIdentity_To_v1alpha4_AWSClusterControllerIdentity(r, dst, nil)
+	return Convert_v1alpha3_AWSClusterControllerIdentity_To_v1beta1_AWSClusterControllerIdentity(r, dst, nil)
 }
 
-// ConvertFrom converts the v1alpha4 AWSClusterControllerIdentity receiver to a v1alpha3 AWSClusterControllerIdentity.
+// ConvertFrom converts the v1beta1 AWSClusterControllerIdentity receiver to a v1alpha3 AWSClusterControllerIdentity.
 func (r *AWSClusterControllerIdentity) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1alpha4.AWSClusterControllerIdentity)
+	src := srcRaw.(*v1beta1.AWSClusterControllerIdentity)
 
-	return Convert_v1alpha4_AWSClusterControllerIdentity_To_v1alpha3_AWSClusterControllerIdentity(src, r, nil)
+	return Convert_v1beta1_AWSClusterControllerIdentity_To_v1alpha3_AWSClusterControllerIdentity(src, r, nil)
 }
 
-// ConvertTo converts the v1alpha3 AWSClusterControllerIdentityList receiver to a v1alpha4 AWSClusterControllerIdentityList.
+// ConvertTo converts the v1alpha3 AWSClusterControllerIdentityList receiver to a v1beta1 AWSClusterControllerIdentityList.
 func (r *AWSClusterControllerIdentityList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1alpha4.AWSClusterControllerIdentityList)
+	dst := dstRaw.(*v1beta1.AWSClusterControllerIdentityList)
 
-	return Convert_v1alpha3_AWSClusterControllerIdentityList_To_v1alpha4_AWSClusterControllerIdentityList(r, dst, nil)
+	return Convert_v1alpha3_AWSClusterControllerIdentityList_To_v1beta1_AWSClusterControllerIdentityList(r, dst, nil)
 }
 
-// ConvertFrom converts the v1alpha4 AWSClusterControllerIdentityList receiver to a v1alpha3 AWSClusterControllerIdentityList.
+// ConvertFrom converts the v1beta1 AWSClusterControllerIdentityList receiver to a v1alpha3 AWSClusterControllerIdentityList.
 func (r *AWSClusterControllerIdentityList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1alpha4.AWSClusterControllerIdentityList)
+	src := srcRaw.(*v1beta1.AWSClusterControllerIdentityList)
 
-	return Convert_v1alpha4_AWSClusterControllerIdentityList_To_v1alpha3_AWSClusterControllerIdentityList(src, r, nil)
+	return Convert_v1beta1_AWSClusterControllerIdentityList_To_v1alpha3_AWSClusterControllerIdentityList(src, r, nil)
 }
 
-// Convert_v1alpha4_Volume_To_v1alpha3_Volume .
-func Convert_v1alpha4_Volume_To_v1alpha3_Volume(in *v1alpha4.Volume, out *Volume, s apiconversion.Scope) error {
-	return autoConvert_v1alpha4_Volume_To_v1alpha3_Volume(in, out, s)
+// Convert_v1beta1_Volume_To_v1alpha3_Volume .
+func Convert_v1beta1_Volume_To_v1alpha3_Volume(in *v1beta1.Volume, out *Volume, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_Volume_To_v1alpha3_Volume(in, out, s)
 }
 
-// Convert_v1alpha3_APIEndpoint_To_v1alpha4_APIEndpoint .
-func Convert_v1alpha3_APIEndpoint_To_v1alpha4_APIEndpoint(in *apiv1alpha3.APIEndpoint, out *apiv1alpha4.APIEndpoint, s apiconversion.Scope) error {
-	return apiv1alpha3.Convert_v1alpha3_APIEndpoint_To_v1alpha4_APIEndpoint(in, out, s)
+// Convert_v1alpha3_APIEndpoint_To_v1beta1_APIEndpoint .
+func Convert_v1alpha3_APIEndpoint_To_v1beta1_APIEndpoint(in *apiv1alpha3.APIEndpoint, out *apiUpstreamv1beta1.APIEndpoint, s apiconversion.Scope) error {
+	return apiv1alpha3.Convert_v1alpha3_APIEndpoint_To_v1beta1_APIEndpoint(in, out, s)
 }
 
-// Convert_v1alpha4_APIEndpoint_To_v1alpha3_APIEndpoint .
-func Convert_v1alpha4_APIEndpoint_To_v1alpha3_APIEndpoint(in *apiv1alpha4.APIEndpoint, out *apiv1alpha3.APIEndpoint, s apiconversion.Scope) error {
-	return apiv1alpha3.Convert_v1alpha4_APIEndpoint_To_v1alpha3_APIEndpoint(in, out, s)
+// Convert_v1beta1_APIEndpoint_To_v1alpha3_APIEndpoint .
+func Convert_v1beta1_APIEndpoint_To_v1alpha3_APIEndpoint(in *apiUpstreamv1beta1.APIEndpoint, out *apiv1alpha3.APIEndpoint, s apiconversion.Scope) error {
+	return apiv1alpha3.Convert_v1beta1_APIEndpoint_To_v1alpha3_APIEndpoint(in, out, s)
 }
 
-// Convert_v1alpha3_AWSClusterStaticIdentitySpec_To_v1alpha4_AWSClusterStaticIdentitySpec .
-func Convert_v1alpha3_AWSClusterStaticIdentitySpec_To_v1alpha4_AWSClusterStaticIdentitySpec(in *AWSClusterStaticIdentitySpec, out *v1alpha4.AWSClusterStaticIdentitySpec, s apiconversion.Scope) error {
-	return autoConvert_v1alpha3_AWSClusterStaticIdentitySpec_To_v1alpha4_AWSClusterStaticIdentitySpec(in, out, s)
+// Convert_v1alpha3_AWSClusterStaticIdentitySpec_To_v1beta1_AWSClusterStaticIdentitySpec .
+func Convert_v1alpha3_AWSClusterStaticIdentitySpec_To_v1beta1_AWSClusterStaticIdentitySpec(in *AWSClusterStaticIdentitySpec, out *v1beta1.AWSClusterStaticIdentitySpec, s apiconversion.Scope) error {
+	return autoConvert_v1alpha3_AWSClusterStaticIdentitySpec_To_v1beta1_AWSClusterStaticIdentitySpec(in, out, s)
 }
 
-// Convert_v1alpha4_AWSClusterStaticIdentitySpec_To_v1alpha3_AWSClusterStaticIdentitySpec .
-func Convert_v1alpha4_AWSClusterStaticIdentitySpec_To_v1alpha3_AWSClusterStaticIdentitySpec(in *v1alpha4.AWSClusterStaticIdentitySpec, out *AWSClusterStaticIdentitySpec, s apiconversion.Scope) error {
-	return autoConvert_v1alpha4_AWSClusterStaticIdentitySpec_To_v1alpha3_AWSClusterStaticIdentitySpec(in, out, s)
+// Convert_v1beta1_AWSClusterStaticIdentitySpec_To_v1alpha3_AWSClusterStaticIdentitySpec .
+func Convert_v1beta1_AWSClusterStaticIdentitySpec_To_v1alpha3_AWSClusterStaticIdentitySpec(in *v1beta1.AWSClusterStaticIdentitySpec, out *AWSClusterStaticIdentitySpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_AWSClusterStaticIdentitySpec_To_v1alpha3_AWSClusterStaticIdentitySpec(in, out, s)
 }
 
-// Convert_v1alpha4_AWSMachineSpec_To_v1alpha3_AWSMachineSpec .
-func Convert_v1alpha4_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *v1alpha4.AWSMachineSpec, out *AWSMachineSpec, s apiconversion.Scope) error {
-	return autoConvert_v1alpha4_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in, out, s)
+// Convert_v1beta1_AWSMachineSpec_To_v1alpha3_AWSMachineSpec .
+func Convert_v1beta1_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *v1beta1.AWSMachineSpec, out *AWSMachineSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in, out, s)
 }
 
-// Convert_v1alpha4_Instance_To_v1alpha3_Instance .
-func Convert_v1alpha4_Instance_To_v1alpha3_Instance(in *v1alpha4.Instance, out *Instance, s apiconversion.Scope) error {
-	return autoConvert_v1alpha4_Instance_To_v1alpha3_Instance(in, out, s)
+// Convert_v1beta1_Instance_To_v1alpha3_Instance .
+func Convert_v1beta1_Instance_To_v1alpha3_Instance(in *v1beta1.Instance, out *Instance, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_Instance_To_v1alpha3_Instance(in, out, s)
 }
 
-// Convert_v1alpha3_Network_To_v1alpha4_NetworkStatus is based on the autogenerated function and handles the renaming of the Network struct to NetworkStatus
-func Convert_v1alpha3_Network_To_v1alpha4_NetworkStatus(in *Network, out *v1alpha4.NetworkStatus, s apiconversion.Scope) error {
-	out.SecurityGroups = *(*map[v1alpha4.SecurityGroupRole]v1alpha4.SecurityGroup)(unsafe.Pointer(&in.SecurityGroups))
-	if err := Convert_v1alpha3_ClassicELB_To_v1alpha4_ClassicELB(&in.APIServerELB, &out.APIServerELB, s); err != nil {
+// Convert_v1alpha3_Network_To_v1beta1_NetworkStatus is based on the autogenerated function and handles the renaming of the Network struct to NetworkStatus
+func Convert_v1alpha3_Network_To_v1beta1_NetworkStatus(in *Network, out *v1beta1.NetworkStatus, s apiconversion.Scope) error {
+	out.SecurityGroups = *(*map[v1beta1.SecurityGroupRole]v1beta1.SecurityGroup)(unsafe.Pointer(&in.SecurityGroups))
+	if err := Convert_v1alpha3_ClassicELB_To_v1beta1_ClassicELB(&in.APIServerELB, &out.APIServerELB, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1alpha4_NetworkStatus_To_v1alpha3_Network is based on the autogenerated function and handles the renaming of the NetworkStatus struct to Network
-func Convert_v1alpha4_NetworkStatus_To_v1alpha3_Network(in *v1alpha4.NetworkStatus, out *Network, s apiconversion.Scope) error {
+// Convert_v1beta1_NetworkStatus_To_v1alpha3_Network is based on the autogenerated function and handles the renaming of the NetworkStatus struct to Network
+func Convert_v1beta1_NetworkStatus_To_v1alpha3_Network(in *v1beta1.NetworkStatus, out *Network, s apiconversion.Scope) error {
 	out.SecurityGroups = *(*map[SecurityGroupRole]SecurityGroup)(unsafe.Pointer(&in.SecurityGroups))
-	if err := Convert_v1alpha4_ClassicELB_To_v1alpha3_ClassicELB(&in.APIServerELB, &out.APIServerELB, s); err != nil {
+	if err := Convert_v1beta1_ClassicELB_To_v1alpha3_ClassicELB(&in.APIServerELB, &out.APIServerELB, s); err != nil {
 		return err
 	}
 	return nil
@@ -342,39 +342,39 @@ func Convert_v1alpha4_NetworkStatus_To_v1alpha3_Network(in *v1alpha4.NetworkStat
 
 // Manually restore the instance root device data.
 // Assumes restored and dst are non-nil.
-func restoreInstance(restored, dst *v1alpha4.Instance) {
+func restoreInstance(restored, dst *v1beta1.Instance) {
 	dst.VolumeIDs = restored.VolumeIDs
 
 	if restored.RootVolume != nil {
 		if dst.RootVolume == nil {
-			dst.RootVolume = &v1alpha4.Volume{}
+			dst.RootVolume = &v1beta1.Volume{}
 		}
 		RestoreRootVolume(restored.RootVolume, dst.RootVolume)
 	}
 
 	if restored.NonRootVolumes != nil {
 		if dst.NonRootVolumes == nil {
-			dst.NonRootVolumes = []v1alpha4.Volume{}
+			dst.NonRootVolumes = []v1beta1.Volume{}
 		}
 		restoreNonRootVolumes(restored.NonRootVolumes, dst.NonRootVolumes)
 	}
 }
 
-// Convert_v1alpha3_AWSResourceReference_To_v1alpha4_AMIReference is a conversion function.
-func Convert_v1alpha3_AWSResourceReference_To_v1alpha4_AMIReference(in *AWSResourceReference, out *v1alpha4.AMIReference, s apiconversion.Scope) error {
+// Convert_v1alpha3_AWSResourceReference_To_v1beta1_AMIReference is a conversion function.
+func Convert_v1alpha3_AWSResourceReference_To_v1beta1_AMIReference(in *AWSResourceReference, out *v1beta1.AMIReference, s apiconversion.Scope) error {
 	out.ID = (*string)(unsafe.Pointer(in.ID))
 	return nil
 }
 
-// Convert_v1alpha4_AMIReference_To_v1alpha3_AWSResourceReference is a conversion function.
-func Convert_v1alpha4_AMIReference_To_v1alpha3_AWSResourceReference(in *v1alpha4.AMIReference, out *AWSResourceReference, s apiconversion.Scope) error {
+// Convert_v1beta1_AMIReference_To_v1alpha3_AWSResourceReference is a conversion function.
+func Convert_v1beta1_AMIReference_To_v1alpha3_AWSResourceReference(in *v1beta1.AMIReference, out *AWSResourceReference, s apiconversion.Scope) error {
 	out.ID = (*string)(unsafe.Pointer(in.ID))
 	return nil
 }
 
 // RestoreAMIReference manually restore the EKSOptimizedLookupType for AWSMachine and AWSMachineTemplate
 // Assumes both restored and dst are non-nil.
-func RestoreAMIReference(restored, dst *v1alpha4.AMIReference) {
+func RestoreAMIReference(restored, dst *v1beta1.AMIReference) {
 	if restored.EKSOptimizedLookupType == nil {
 		return
 	}
@@ -383,9 +383,9 @@ func RestoreAMIReference(restored, dst *v1alpha4.AMIReference) {
 
 // restoreNonRootVolumes manually restores the non-root volumes
 // Assumes both restoredVolumes and dstVolumes are non-nil.
-func restoreNonRootVolumes(restoredVolumes, dstVolumes []v1alpha4.Volume) {
+func restoreNonRootVolumes(restoredVolumes, dstVolumes []v1beta1.Volume) {
 	// restoring the nonrootvolumes which are missing in dstVolumes
-	// restoring dstVolumes[i].Encrypted to nil in order to avoid v1alpha4 --> v1alpha3 --> v1alpha4 round trip errors
+	// restoring dstVolumes[i].Encrypted to nil in order to avoid v1beta1 --> v1alpha3 --> v1beta1 round trip errors
 	for i := range restoredVolumes {
 		if restoredVolumes[i].Encrypted == nil {
 			if len(dstVolumes) <= i {
@@ -400,9 +400,9 @@ func restoreNonRootVolumes(restoredVolumes, dstVolumes []v1alpha4.Volume) {
 
 // RestoreRootVolume manually restores the root volumes.
 // Assumes both restored and dst are non-nil.
-// Volume.Encrypted type changed from bool in v1alpha3 to *bool in v1alpha4
-// Volume.Encrypted value as nil/&false in v1alpha4 will convert to false in v1alpha3 by auto-conversion, so restoring it to nil in order to avoid v1alpha4 --> v1alpha3 --> v1alpha4 round trip errors
-func RestoreRootVolume(restored, dst *v1alpha4.Volume) {
+// Volume.Encrypted type changed from bool in v1alpha3 to *bool in v1beta1
+// Volume.Encrypted value as nil/&false in v1beta1 will convert to false in v1alpha3 by auto-conversion, so restoring it to nil in order to avoid v1beta1 --> v1alpha3 --> v1beta1 round trip errors
+func RestoreRootVolume(restored, dst *v1beta1.Volume) {
 	if dst.Encrypted == pointer.BoolPtr(true) {
 		return
 	}

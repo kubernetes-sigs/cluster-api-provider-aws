@@ -14,9 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// +gencrdrefdocs:force
-// +groupName=infrastructure.cluster.x-k8s.io
+package v1beta1
 
-// Package v1alpha4 contains the v1alpha4 API implementation.
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api/api/v1beta1
-package v1alpha4
+import (
+	ctrl "sigs.k8s.io/controller-runtime"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+)
+
+// log is for logging in this package.
+var _ = logf.Log.WithName("awsclusterroleidentitylist-resource")
+
+func (r *AWSClusterRoleIdentityList) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewWebhookManagedBy(mgr).
+		For(r).
+		Complete()
+}

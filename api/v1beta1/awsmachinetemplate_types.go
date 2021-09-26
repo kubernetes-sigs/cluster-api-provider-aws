@@ -14,41 +14,38 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// AWSClusterTemplateSpec defines the desired state of AWSClusterTemplate.
-type AWSClusterTemplateSpec struct {
-	Template AWSClusterTemplateResource `json:"template"`
+// AWSMachineTemplateSpec defines the desired state of AWSMachineTemplate
+type AWSMachineTemplateSpec struct {
+	Template AWSMachineTemplateResource `json:"template"`
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=awsclustertemplates,scope=Namespaced,categories=cluster-api,shortName=awsct
+// +kubebuilder:resource:path=awsmachinetemplates,scope=Namespaced,categories=cluster-api,shortName=awsmt
+// +kubebuilder:storageversion
 
-// AWSClusterTemplate is the Schema for the awsclustertemplates API.
-type AWSClusterTemplate struct {
+// AWSMachineTemplate is the Schema for the awsmachinetemplates API
+type AWSMachineTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec AWSClusterTemplateSpec `json:"spec,omitempty"`
+	Spec AWSMachineTemplateSpec `json:"spec,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
-// AWSClusterTemplateList contains a list of AWSClusterTemplate.
-type AWSClusterTemplateList struct {
+// AWSMachineTemplateList contains a list of AWSMachineTemplate.
+type AWSMachineTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []AWSClusterTemplate `json:"items"`
+	Items           []AWSMachineTemplate `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&AWSClusterTemplate{}, &AWSClusterTemplateList{})
-}
-
-type AWSClusterTemplateResource struct {
-	Spec AWSClusterSpec `json:"spec"`
+	SchemeBuilder.Register(&AWSMachineTemplate{}, &AWSMachineTemplateList{})
 }

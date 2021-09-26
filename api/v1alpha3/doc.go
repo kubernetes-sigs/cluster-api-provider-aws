@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4
+// Package v1alpha3 contains the v1alpha3 API implementation.
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-aws/api/v1beta1
 
 package v1alpha3

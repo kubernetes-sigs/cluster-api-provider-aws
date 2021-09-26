@@ -14,18 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+// +gencrdrefdocs:force
+// +groupName=infrastructure.cluster.x-k8s.io
 
-import (
-	ctrl "sigs.k8s.io/controller-runtime"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-)
-
-// log is for logging in this package.
-var _ = logf.Log.WithName("awsmachinelist-resource")
-
-func (r *AWSMachineList) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
-		Complete()
-}
+// Package v1beta1 contains the v1beta1 API implementation.
+package v1beta1

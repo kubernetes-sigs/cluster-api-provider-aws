@@ -14,22 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1beta1
 
 import (
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/validation/field"
+	ctrl "sigs.k8s.io/controller-runtime"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-func aggregateObjErrors(gk schema.GroupKind, name string, allErrs field.ErrorList) error {
-	if len(allErrs) == 0 {
-		return nil
-	}
+// log is for logging in this package.
+var _ = logf.Log.WithName("awsmachinetemplatelist-resource")
 
-	return apierrors.NewInvalid(
-		gk,
-		name,
-		allErrs,
-	)
+func (r *AWSMachineTemplateList) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewWebhookManagedBy(mgr).
+		For(r).
+		Complete()
 }

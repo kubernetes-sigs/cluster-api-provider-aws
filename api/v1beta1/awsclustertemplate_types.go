@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,6 +27,7 @@ type AWSClusterTemplateSpec struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=awsclustertemplates,scope=Namespaced,categories=cluster-api,shortName=awsct
+// +kubebuilder:storageversion
 
 // AWSClusterTemplate is the Schema for the awsclustertemplates API.
 type AWSClusterTemplate struct {

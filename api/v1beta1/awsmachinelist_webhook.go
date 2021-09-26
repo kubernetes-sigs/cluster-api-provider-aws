@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1beta1
 
 import (
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -22,9 +22,9 @@ import (
 )
 
 // log is for logging in this package.
-var _ = logf.Log.WithName("awsclusterroleidentitylist-resource")
+var _ = logf.Log.WithName("awsmachinelist-resource")
 
-func (r *AWSClusterRoleIdentityList) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (r *AWSMachineList) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()

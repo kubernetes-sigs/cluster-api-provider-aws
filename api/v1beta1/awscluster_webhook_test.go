@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1beta1
 
 import (
 	"context"
@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
