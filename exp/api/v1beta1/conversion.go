@@ -14,6 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1
+package v1beta1
 
-package v1alpha3
+// Hub marks AWSMachinePool as a conversion hub.
+func (*AWSMachinePool) Hub() {}
+
+// Hub marks AWSMachinePoolList as a conversion hub.
+func (*AWSMachinePoolList) Hub() {}
+
+// Hub marks AWSManagedMachinePool as a conversion hub.
+func (*AWSManagedMachinePool) Hub() {}
+
+// Hub marks AWSManagedMachinePoolList as a conversion hub.
+func (*AWSManagedMachinePoolList) Hub() {}
+
+// Hub marks AWSFargateProfile as a conversion hub.
+func (*AWSFargateProfile) Hub() {}
+
+// Hub marks AWSFargateProfileList as a conversion hub.
+func (*AWSFargateProfileList) Hub() {}

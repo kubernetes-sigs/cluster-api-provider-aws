@@ -14,17 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1beta1
 
 import (
 	"testing"
+
+	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
-func TestAWSManagedMachinePoolDefault(t *testing.T) {
-	fargate := &AWSManagedMachinePool{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
-	t.Run("for AWSManagedMachinePool", utildefaulting.DefaultValidateTest(fargate))
-	fargate.Default()
+func TestAWSMachinePoolDefault(t *testing.T) {
+	m := &AWSMachinePool{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
+	t.Run("for AWSCluster", utildefaulting.DefaultValidateTest(m))
+	m.Default()
+	g := NewWithT(t)
+	g.Expect(m.Spec.DefaultCoolDown.Duration).To(BeNumerically(">=", 0))
 }
