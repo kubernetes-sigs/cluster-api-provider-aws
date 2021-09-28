@@ -16,8 +16,36 @@ limitations under the License.
 
 package v1alpha4
 
-// Hub marks AWSManagedControlPlane as a conversion hub.
-func (*AWSManagedControlPlane) Hub() {}
+import (
+	"sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
+)
 
-// Hub marks AWSManagedControlPlaneList as a conversion hub.
-func (*AWSManagedControlPlaneList) Hub() {}
+// ConvertTo converts the v1alpha4 AWSManagedControlPlane receiver to a v1beta1 AWSManagedControlPlane.
+func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1beta1.AWSManagedControlPlane)
+
+	return Convert_v1alpha4_AWSManagedControlPlane_To_v1beta1_AWSManagedControlPlane(r, dst, nil)
+}
+
+// ConvertFrom converts the v1beta1 AWSManagedControlPlane receiver to a v1alpha4 AWSManagedControlPlane.
+func (r *AWSManagedControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1beta1.AWSManagedControlPlane)
+
+	return Convert_v1beta1_AWSManagedControlPlane_To_v1alpha4_AWSManagedControlPlane(src, r, nil)
+}
+
+
+// ConvertTo converts the v1alpha4 AWSManagedControlPlaneList receiver to a v1beta1 AWSManagedControlPlaneList.
+func (r *AWSManagedControlPlaneList) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1beta1.AWSManagedControlPlane)
+
+	return Convert_v1alpha4_AWSManagedControlPlaneList_To_v1beta1_AWSManagedControlPlaneList(r, dst, nil)
+}
+
+// ConvertFrom converts the v1beta1 AWSManagedControlPlaneList receiver to a v1alpha4 AWSManagedControlPlaneList.
+func (r *AWSManagedControlPlaneList) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1beta1.AWSManagedControlPlaneList)
+
+	return Convert_v1beta1_AWSManagedControlPlaneListe_To_v1alpha4_AWSManagedControlPlaneList(src, r, nil)
+}

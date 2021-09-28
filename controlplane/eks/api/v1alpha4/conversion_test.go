@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha3
+package v1alpha4
 
 import (
 	"testing"
@@ -36,5 +36,11 @@ func TestFuzzyConversion(t *testing.T) {
 		Scheme: scheme,
 		Hub:    &v1beta1.AWSManagedControlPlane{},
 		Spoke:  &AWSManagedControlPlane{},
+	}))
+
+	t.Run("for AWSManagedControlPlaneList", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Scheme: scheme,
+		Hub:    &v1beta1.AWSManagedControlPlaneList{},
+		Spoke:  &AWSManagedControlPlaneList{},
 	}))
 }

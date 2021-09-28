@@ -14,9 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha4 contains API Schema definitions for the controlplane v1alpha4 API group
+// Package v1beta1 contains API Schema definitions for the controlplane v1beta1 API group
 // +gencrdrefdocs:force
 // +groupName=controlplane.cluster.x-k8s.io
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1
-
-package v1alpha4
+package v1beta1
