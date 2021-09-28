@@ -105,6 +105,9 @@ var (
 	// accessible AWS Classic ELB scheme.
 	ClassicELBSchemeInternetFacing = ClassicELBScheme("internet-facing")
 
+	// ClassicELBSchemeIncorrectInternetFacing was inaccurately used to define an internet-facing LB in v0.6 releases > v0.6.6 and v0.7.0 release
+	ClassicELBSchemeIncorrectInternetFacing = ClassicELBScheme("Internet-facing")
+
 	// ClassicELBSchemeInternal defines an internal-only facing
 	// load balancer internal to an ELB.
 	ClassicELBSchemeInternal = ClassicELBScheme("internal")
@@ -140,7 +143,7 @@ type ClassicELB struct {
 	// DNSName is the dns name of the load balancer.
 	DNSName string `json:"dnsName,omitempty"`
 
-	// Scheme is the load balancer scheme, either internet-facing or private.
+	// Scheme is the load balancer scheme, either internet-facing or internal.
 	Scheme ClassicELBScheme `json:"scheme,omitempty"`
 
 	// AvailabilityZones is an array of availability zones in the VPC attached to the load balancer.

@@ -47,7 +47,6 @@ func (r *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 		}
 		restoreInstance(restored.Status.Bastion, dst.Status.Bastion)
 	}
-
 	return nil
 }
 
@@ -58,7 +57,6 @@ func (r *AWSCluster) ConvertFrom(srcRaw conversion.Hub) error {
 	if err := Convert_v1alpha4_AWSCluster_To_v1alpha3_AWSCluster(src, r, nil); err != nil {
 		return err
 	}
-
 	// Preserve Hub data on down-conversion.
 	if err := utilconversion.MarshalData(src, r); err != nil {
 		return err

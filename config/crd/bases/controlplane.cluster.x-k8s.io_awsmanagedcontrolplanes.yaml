@@ -2026,7 +2026,7 @@ spec:
                         type: string
                       scheme:
                         description: Scheme is the load balancer scheme, either internet-facing
-                          or private.
+                          or internal.
                         type: string
                       securityGroupIds:
                         description: SecurityGroupIDs is an array of security groups

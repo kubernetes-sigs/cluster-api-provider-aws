@@ -95,10 +95,14 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 		// If old scheme was not nil, the new scheme should be the same.
 		existingLoadBalancer := oldC.Spec.ControlPlaneLoadBalancer.DeepCopy()
 		if !reflect.DeepEqual(existingLoadBalancer.Scheme, newLoadBalancer.Scheme) {
-			allErrs = append(allErrs,
-				field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "scheme"),
-					r.Spec.ControlPlaneLoadBalancer.Scheme, "field is immutable"),
-			)
+			// Only allow changes from Internet-facing scheme to internet-facing.
+			if !(existingLoadBalancer.Scheme.String() == ClassicELBSchemeIncorrectInternetFacing.String() &&
+				newLoadBalancer.Scheme.String() == ClassicELBSchemeInternetFacing.String()) {
+				allErrs = append(allErrs,
+					field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "scheme"),
+						r.Spec.ControlPlaneLoadBalancer.Scheme, "field is immutable"),
+				)
+			}
 		}
 	}
 
@@ -154,6 +158,13 @@ func (r *AWSCluster) validateSSHKeyName() field.ErrorList {
 func SetDefaultsAWSClusterSpec(s *AWSClusterSpec) {
 	SetDefaults_Bastion(&s.Bastion)
 	SetDefaults_NetworkSpec(&s.NetworkSpec)
+
+	// 	If ELB scheme is set to Internet-facing due to an API bug in versions > v0.6.6 and v0.7.0, default it to internet-facing.
+	if s.ControlPlaneLoadBalancer == nil {
+		s.ControlPlaneLoadBalancer = &AWSLoadBalancerSpec{Scheme: &ClassicELBSchemeInternetFacing}
+	} else if s.ControlPlaneLoadBalancer.Scheme != nil && s.ControlPlaneLoadBalancer.Scheme.String() == ClassicELBSchemeIncorrectInternetFacing.String() {
+		s.ControlPlaneLoadBalancer.Scheme = &ClassicELBSchemeInternetFacing
+	}
 
 	if s.IdentityRef == nil {
 		s.IdentityRef = &AWSIdentityReference{
