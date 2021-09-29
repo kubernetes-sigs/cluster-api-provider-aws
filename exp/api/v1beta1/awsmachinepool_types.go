@@ -33,7 +33,7 @@ const (
 	LaunchTemplateLatestVersion = "$Latest"
 )
 
-// AWSMachinePoolSpec defines the desired state of AWSMachinePool
+// AWSMachinePoolSpec defines the desired state of AWSMachinePool.
 type AWSMachinePoolSpec struct {
 	// ProviderID is the ARN of the associated ASG
 	// +optional
@@ -107,7 +107,7 @@ type RefreshPreferences struct {
 	MinHealthyPercentage *int64 `json:"minHealthyPercentage,omitempty"`
 }
 
-// AWSMachinePoolStatus defines the observed state of AWSMachinePool
+// AWSMachinePoolStatus defines the observed state of AWSMachinePool.
 type AWSMachinePoolStatus struct {
 	// Ready is true when the provider resource is ready.
 	// +optional
@@ -190,7 +190,7 @@ type AWSMachinePoolInstanceStatus struct {
 // +kubebuilder:printcolumn:name="MaxSize",type="integer",JSONPath=".spec.maxSize",description="Maximum instanes in ASG"
 // +kubebuilder:printcolumn:name="LaunchTemplate ID",type="string",JSONPath=".status.launchTemplateID",description="Launch Template ID"
 
-// AWSMachinePool is the Schema for the awsmachinepools API
+// AWSMachinePool is the Schema for the awsmachinepools API.
 type AWSMachinePool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

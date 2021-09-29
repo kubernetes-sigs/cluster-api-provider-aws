@@ -20,12 +20,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EKSConfigTemplateSpec defines the desired state of EKSConfigTemplate
+// EKSConfigTemplateSpec defines the desired state of EKSConfigTemplate.
 type EKSConfigTemplateSpec struct {
 	Template EKSConfigTemplateResource `json:"template"`
 }
 
-// EKSConfigTemplateResource defines the Template structure
+// EKSConfigTemplateResource defines the Template structure.
 type EKSConfigTemplateResource struct {
 	Spec EKSConfigSpec `json:"spec,omitempty"`
 }
@@ -34,7 +34,7 @@ type EKSConfigTemplateResource struct {
 // +kubebuilder:resource:path=eksconfigtemplates,scope=Namespaced,categories=cluster-api,shortName=eksct
 // +kubebuilder:storageversion
 
-// EKSConfigTemplate is the Schema for the eksconfigtemplates API
+// EKSConfigTemplate is the Schema for the eksconfigtemplates API.
 type EKSConfigTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

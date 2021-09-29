@@ -17,7 +17,10 @@ limitations under the License.
 package v1alpha4
 
 import (
+	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	apiv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	apiUpstreamv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
@@ -177,4 +180,14 @@ func (dst *AWSClusterControllerIdentityList) ConvertFrom(srcRaw conversion.Hub) 
 	src := srcRaw.(*v1beta1.AWSClusterControllerIdentityList)
 
 	return Convert_v1beta1_AWSClusterControllerIdentityList_To_v1alpha4_AWSClusterControllerIdentityList(src, dst, nil)
+}
+
+// Convert_v1alpha4_APIEndpoint_To_v1beta1_APIEndpoint .
+func Convert_v1alpha4_APIEndpoint_To_v1beta1_APIEndpoint(in *apiv1alpha4.APIEndpoint, out *apiUpstreamv1beta1.APIEndpoint, s apiconversion.Scope) error {
+	return apiv1alpha4.Convert_v1alpha4_APIEndpoint_To_v1beta1_APIEndpoint(in, out, s)
+}
+
+// Convert_v1beta1_APIEndpoint_To_v1alpha4_APIEndpoint .
+func Convert_v1beta1_APIEndpoint_To_v1alpha4_APIEndpoint(in *apiUpstreamv1beta1.APIEndpoint, out *apiv1alpha4.APIEndpoint, s apiconversion.Scope) error {
+	return apiv1alpha4.Convert_v1beta1_APIEndpoint_To_v1alpha4_APIEndpoint(in, out, s)
 }

@@ -60,7 +60,7 @@ var (
 	DefaultEKSNodegroupRole = fmt.Sprintf("eks-nodegroup%s", infrav1.DefaultNameSuffix)
 )
 
-// AWSManagedMachinePoolSpec defines the desired state of AWSManagedMachinePool
+// AWSManagedMachinePoolSpec defines the desired state of AWSManagedMachinePool.
 type AWSManagedMachinePoolSpec struct {
 	// EKSNodegroupName specifies the name of the nodegroup in AWS
 	// corresponding to this MachinePool. If you don't specify a name
@@ -158,7 +158,7 @@ type ManagedRemoteAccess struct {
 	Public bool `json:"public,omitempty"`
 }
 
-// AWSManagedMachinePoolStatus defines the observed state of AWSManagedMachinePool
+// AWSManagedMachinePoolStatus defines the observed state of AWSManagedMachinePool.
 type AWSManagedMachinePoolStatus struct {
 	// Ready denotes that the AWSManagedMachinePool nodegroup has joined
 	// the cluster
@@ -219,7 +219,7 @@ type AWSManagedMachinePoolStatus struct {
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="MachinePool ready status"
 // +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".status.replicas",description="Number of replicas"
 
-// AWSManagedMachinePool is the Schema for the awsmanagedmachinepools API
+// AWSManagedMachinePool is the Schema for the awsmanagedmachinepools API.
 type AWSManagedMachinePool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

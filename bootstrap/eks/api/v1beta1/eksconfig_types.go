@@ -24,14 +24,14 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// EKSConfigSpec defines the desired state of EKSConfig
+// EKSConfigSpec defines the desired state of EKSConfig.
 type EKSConfigSpec struct {
 	// Passes the kubelet args into the EKS bootstrap script
 	// +optional
 	KubeletExtraArgs map[string]string `json:"kubeletExtraArgs,omitempty"`
 }
 
-// EKSConfigStatus defines the observed state of EKSConfig
+// EKSConfigStatus defines the observed state of EKSConfig.
 type EKSConfigStatus struct {
 	// Ready indicates the BootstrapData secret is ready to be consumed
 	Ready bool `json:"ready,omitempty"`
@@ -64,7 +64,7 @@ type EKSConfigStatus struct {
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Bootstrap configuration is ready"
 // +kubebuilder:printcolumn:name="DataSecretName",type="string",JSONPath=".status.dataSecretName",description="Name of Secret containing bootstrap data"
 
-// EKSConfig is the Schema for the eksconfigs API
+// EKSConfig is the Schema for the eksconfigs API.
 type EKSConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

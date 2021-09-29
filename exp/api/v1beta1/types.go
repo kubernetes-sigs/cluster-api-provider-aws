@@ -53,7 +53,7 @@ type BlockDeviceMapping struct {
 	Ebs EBS `json:"ebs,omitempty"`
 }
 
-// AWSLaunchTemplate defines the desired state of AWSLaunchTemplate
+// AWSLaunchTemplate defines the desired state of AWSLaunchTemplate.
 type AWSLaunchTemplate struct {
 	// The name of the launch template.
 	Name string `json:"name,omitempty"`
@@ -188,7 +188,7 @@ type AutoScalingGroup struct {
 	Instances            []infrav1.Instance `json:"instances,omitempty"`
 }
 
-// ASGStatus is a status string returned by the autoscaling API
+// ASGStatus is a status string returned by the autoscaling API.
 type ASGStatus string
 
 var (

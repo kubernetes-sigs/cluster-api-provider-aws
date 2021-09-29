@@ -18,7 +18,7 @@ package bootstrap
 
 import (
 	"github.com/awslabs/goformation/v4/cloudformation"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 )
 
 func (t Template) cloudProviderNodeAwsRoles() []string {
@@ -34,14 +34,14 @@ func (t Template) cloudProviderNodeAwsRoles() []string {
 }
 
 // From https://github.com/kubernetes/cloud-provider-aws
-func (t Template) cloudProviderNodeAwsPolicy() *v1beta1.PolicyDocument {
-	return &v1beta1.PolicyDocument{
-		Version: v1beta1.CurrentVersion,
-		Statement: []v1beta1.StatementEntry{
+func (t Template) cloudProviderNodeAwsPolicy() *v1alpha4.PolicyDocument {
+	return &v1alpha4.PolicyDocument{
+		Version: v1alpha4.CurrentVersion,
+		Statement: []v1alpha4.StatementEntry{
 			{
-				Effect:   v1beta1.EffectAllow,
-				Resource: v1beta1.Resources{v1beta1.Any},
-				Action: v1beta1.Actions{
+				Effect:   v1alpha4.EffectAllow,
+				Resource: v1alpha4.Resources{v1alpha4.Any},
+				Action: v1alpha4.Actions{
 					"ec2:DescribeInstances",
 					"ec2:DescribeRegions",
 					"ecr:GetAuthorizationToken",

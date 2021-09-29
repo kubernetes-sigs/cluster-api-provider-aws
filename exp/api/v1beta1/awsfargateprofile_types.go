@@ -38,7 +38,7 @@ var (
 	DefaultEKSFargateRole = fmt.Sprintf("eks-fargate%s", infrav1.DefaultNameSuffix)
 )
 
-// FargateProfileSpec defines the desired state of FargateProfile
+// FargateProfileSpec defines the desired state of FargateProfile.
 type FargateProfileSpec struct {
 	// ClusterName is the name of the Cluster this object belongs to.
 	// +kubebuilder:validation:MinLength=1
@@ -68,8 +68,7 @@ type FargateProfileSpec struct {
 	Selectors []FargateSelector `json:"selectors,omitempty"`
 }
 
-// FargateSelector specifies a selector for pods that should run on this fargate
-// pool
+// FargateSelector specifies a selector for pods that should run on this fargate pool.
 type FargateSelector struct {
 	// Labels specifies which pod labels this selector should match.
 	Labels map[string]string `json:"labels,omitempty"`
@@ -78,7 +77,7 @@ type FargateSelector struct {
 	Namespace string `json:"namespace,omitempty"`
 }
 
-// FargateProfileStatus defines the observed state of FargateProfile
+// FargateProfileStatus defines the observed state of FargateProfile.
 type FargateProfileStatus struct {
 	// Ready denotes that the FargateProfile is available.
 	// +kubebuilder:default=false
@@ -135,7 +134,7 @@ type FargateProfileStatus struct {
 // +kubebuilder:printcolumn:name="ProfileName",type="string",JSONPath=".spec.profileName",description="EKS Fargate profile name"
 // +kubebuilder:printcolumn:name="FailureReason",type="string",JSONPath=".status.failureReason",description="Failure reason"
 
-// AWSFargateProfile is the Schema for the awsfargateprofiles API
+// AWSFargateProfile is the Schema for the awsfargateprofiles API.
 type AWSFargateProfile struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

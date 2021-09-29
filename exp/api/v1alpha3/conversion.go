@@ -190,6 +190,7 @@ func Convert_v1alpha3_Instance_To_v1beta1_Instance(in *infrav1alpha3.Instance, o
 	return infrav1alpha3.Convert_v1alpha3_Instance_To_v1beta1_Instance(in, out, s)
 }
 
+// ConvertTo converts
 func Convert_v1alpha3_AWSResourceReference_To_v1beta1_AMIReference(in *infrav1alpha3.AWSResourceReference, out *infrav1beta1.AMIReference, s apiconversion.Scope) error {
 	return infrav1alpha3.Convert_v1alpha3_AWSResourceReference_To_v1beta1_AMIReference(in, out, s)
 }
