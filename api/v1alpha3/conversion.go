@@ -41,7 +41,13 @@ func (r *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
-	restoreInstance(restored.Status.Bastion, dst.Status.Bastion)
+	if restored.Status.Bastion != nil {
+		if dst.Status.Bastion == nil {
+			dst.Status.Bastion = &v1alpha4.Instance{}
+		}
+		restoreInstance(restored.Status.Bastion, dst.Status.Bastion)
+	}
+
 	return nil
 }
 
@@ -88,8 +94,18 @@ func (r *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	RestoreAMIReference(&restored.Spec.AMI, &dst.Spec.AMI)
-	RestoreRootVolume(restored.Spec.RootVolume, dst.Spec.RootVolume)
-	restoreNonRootVolumes(restored.Spec.NonRootVolumes, dst.Spec.NonRootVolumes)
+	if restored.Spec.RootVolume != nil {
+		if dst.Spec.RootVolume == nil {
+			dst.Spec.RootVolume = &v1alpha4.Volume{}
+		}
+		RestoreRootVolume(restored.Spec.RootVolume, dst.Spec.RootVolume)
+	}
+	if restored.Spec.NonRootVolumes != nil {
+		if dst.Spec.NonRootVolumes == nil {
+			dst.Spec.NonRootVolumes = []v1alpha4.Volume{}
+		}
+		restoreNonRootVolumes(restored.Spec.NonRootVolumes, dst.Spec.NonRootVolumes)
+	}
 	return nil
 }
 
@@ -134,8 +150,18 @@ func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	RestoreAMIReference(&restored.Spec.Template.Spec.AMI, &dst.Spec.Template.Spec.AMI)
-	RestoreRootVolume(restored.Spec.Template.Spec.RootVolume, dst.Spec.Template.Spec.RootVolume)
-	restoreNonRootVolumes(restored.Spec.Template.Spec.NonRootVolumes, dst.Spec.Template.Spec.NonRootVolumes)
+	if restored.Spec.Template.Spec.RootVolume != nil {
+		if dst.Spec.Template.Spec.RootVolume == nil {
+			dst.Spec.Template.Spec.RootVolume = &v1alpha4.Volume{}
+		}
+		RestoreRootVolume(restored.Spec.Template.Spec.RootVolume, dst.Spec.Template.Spec.RootVolume)
+	}
+	if restored.Spec.Template.Spec.NonRootVolumes != nil {
+		if dst.Spec.Template.Spec.NonRootVolumes == nil {
+			dst.Spec.Template.Spec.NonRootVolumes = []v1alpha4.Volume{}
+		}
+		restoreNonRootVolumes(restored.Spec.Template.Spec.NonRootVolumes, dst.Spec.Template.Spec.NonRootVolumes)
+	}
 
 	return nil
 }
@@ -314,14 +340,24 @@ func Convert_v1alpha4_NetworkStatus_To_v1alpha3_Network(in *v1alpha4.NetworkStat
 	return nil
 }
 
-// Manually restore the instance root device data
+// Manually restore the instance root device data.
+// Assumes restored and dst are non-nil.
 func restoreInstance(restored, dst *v1alpha4.Instance) {
-	if restored == nil {
-		return
-	}
 	dst.VolumeIDs = restored.VolumeIDs
-	RestoreRootVolume(restored.RootVolume, dst.RootVolume)
-	restoreNonRootVolumes(restored.NonRootVolumes, dst.NonRootVolumes)
+
+	if restored.RootVolume != nil {
+		if dst.RootVolume == nil {
+			dst.RootVolume = &v1alpha4.Volume{}
+		}
+		RestoreRootVolume(restored.RootVolume, dst.RootVolume)
+	}
+
+	if restored.NonRootVolumes != nil {
+		if dst.NonRootVolumes == nil {
+			dst.NonRootVolumes = []v1alpha4.Volume{}
+		}
+		restoreNonRootVolumes(restored.NonRootVolumes, dst.NonRootVolumes)
+	}
 }
 
 // Convert_v1alpha3_AWSResourceReference_To_v1alpha4_AMIReference is a conversion function.
@@ -337,21 +373,17 @@ func Convert_v1alpha4_AMIReference_To_v1alpha3_AWSResourceReference(in *v1alpha4
 }
 
 // RestoreAMIReference manually restore the EKSOptimizedLookupType for AWSMachine and AWSMachineTemplate
+// Assumes both restored and dst are non-nil.
 func RestoreAMIReference(restored, dst *v1alpha4.AMIReference) {
-	if restored == nil || restored.EKSOptimizedLookupType == nil {
+	if restored.EKSOptimizedLookupType == nil {
 		return
 	}
 	dst.EKSOptimizedLookupType = restored.EKSOptimizedLookupType
 }
 
 // restoreNonRootVolumes manually restores the non-root volumes
+// Assumes both restoredVolumes and dstVolumes are non-nil.
 func restoreNonRootVolumes(restoredVolumes, dstVolumes []v1alpha4.Volume) {
-	if restoredVolumes == nil {
-		return
-	}
-	if dstVolumes == nil {
-		dstVolumes = make([]v1alpha4.Volume, 0)
-	}
 	// restoring the nonrootvolumes which are missing in dstVolumes
 	// restoring dstVolumes[i].Encrypted to nil in order to avoid v1alpha4 --> v1alpha3 --> v1alpha4 round trip errors
 	for i := range restoredVolumes {
@@ -366,20 +398,16 @@ func restoreNonRootVolumes(restoredVolumes, dstVolumes []v1alpha4.Volume) {
 	}
 }
 
-// RestoreRootVolume manually restores the root volumes
+// RestoreRootVolume manually restores the root volumes.
+// Assumes both restored and dst are non-nil.
 // Volume.Encrypted type changed from bool in v1alpha3 to *bool in v1alpha4
 // Volume.Encrypted value as nil/&false in v1alpha4 will convert to false in v1alpha3 by auto-conversion, so restoring it to nil in order to avoid v1alpha4 --> v1alpha3 --> v1alpha4 round trip errors
 func RestoreRootVolume(restored, dst *v1alpha4.Volume) {
-	if dst == nil {
-		dst = restored
-		return
-	}
-	if dst.Encrypted == pointer.BoolPtr(true) || restored == nil {
+	if dst.Encrypted == pointer.BoolPtr(true) {
 		return
 	}
 	if restored.Encrypted == nil {
 		dst.Encrypted = nil
 	}
 	dst.Throughput = restored.Throughput
-	return
 }

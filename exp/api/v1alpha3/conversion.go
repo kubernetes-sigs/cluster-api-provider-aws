@@ -42,13 +42,17 @@ func (r *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	infrav1alpha3.RestoreAMIReference(&restored.Spec.AWSLaunchTemplate.AMI, &dst.Spec.AWSLaunchTemplate.AMI)
-	infrav1alpha3.RestoreRootVolume(restored.Spec.AWSLaunchTemplate.RootVolume, dst.Spec.AWSLaunchTemplate.RootVolume)
+	if restored.Spec.AWSLaunchTemplate.RootVolume != nil {
+		if dst.Spec.AWSLaunchTemplate.RootVolume == nil {
+			dst.Spec.AWSLaunchTemplate.RootVolume = &infrav1alpha4.Volume{}
+		}
+		infrav1alpha3.RestoreRootVolume(restored.Spec.AWSLaunchTemplate.RootVolume, dst.Spec.AWSLaunchTemplate.RootVolume)
+	}
 	return nil
 }
 
 // ConvertFrom converts the v1alpha4 AWSMachinePool receiver to a v1alpha3 AWSMachinePool.
 func (r *AWSMachinePool) ConvertFrom(srcRaw conversion.Hub) error {
-
 	src := srcRaw.(*v1alpha4.AWSMachinePool)
 
 	if err := Convert_v1alpha4_AWSMachinePool_To_v1alpha3_AWSMachinePool(src, r, nil); err != nil {
