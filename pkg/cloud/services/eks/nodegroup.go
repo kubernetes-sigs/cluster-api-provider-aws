@@ -128,13 +128,13 @@ func (s *NodegroupService) remoteAccess() (*eks.RemoteAccessConfig, error) {
 		sSGs = append(sSGs, clusterSG.ID)
 
 		if controlPlane.Spec.Bastion.Enabled {
-			additionalSG, ok := controlPlane.Status.Network.SecurityGroups[infrav1.SecurityGroupEKSNodeAdditional]
+			bastionSG, ok := controlPlane.Status.Network.SecurityGroups[infrav1.SecurityGroupBastion]
 			if !ok {
-				return nil, errors.Errorf("%s security group not found on control plane", infrav1.SecurityGroupEKSNodeAdditional)
+				return nil, errors.Errorf("%s security group not found on control plane", infrav1.SecurityGroupBastion)
 			}
 			sSGs = append(
 				sSGs,
-				additionalSG.ID,
+				bastionSG.ID,
 			)
 		}
 	}
