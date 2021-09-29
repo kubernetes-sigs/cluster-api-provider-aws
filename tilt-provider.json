@@ -14,7 +14,9 @@
         "pkg",
         "controlplane/eks",
         "bootstrap/eks"
-      ]
+      ],
+      "label": "CAPA",
+      "manager_name": "capa-controller-manager"
     }
   }
 ]
