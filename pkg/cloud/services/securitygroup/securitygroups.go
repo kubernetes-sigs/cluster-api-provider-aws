@@ -252,14 +252,10 @@ func (s *Service) describeSecurityGroupOverridesByID() (map[infrav1.SecurityGrou
 }
 
 func (s *Service) ec2SecurityGroupToSecurityGroup(ec2SecurityGroup *ec2.SecurityGroup) infrav1.SecurityGroup {
-	sg := infrav1.SecurityGroup{
-		ID:   *ec2SecurityGroup.GroupId,
-		Name: *ec2SecurityGroup.GroupName,
-		Tags: converters.TagsToMap(ec2SecurityGroup.Tags),
-	}
+	sg := makeInfraSecurityGroup(ec2SecurityGroup)
 
 	for _, ec2rule := range ec2SecurityGroup.IpPermissions {
-		sg.IngressRules = append(sg.IngressRules, ingressRuleFromSDKType(ec2rule))
+		sg.IngressRules = append(sg.IngressRules, ingressRulesFromSDKType(ec2rule)...)
 	}
 	return sg
 }
@@ -361,12 +357,7 @@ func (s *Service) describeSecurityGroupsByName() (map[string]infrav1.SecurityGro
 
 	res := make(map[string]infrav1.SecurityGroup, len(out.SecurityGroups))
 	for _, ec2sg := range out.SecurityGroups {
-		sg := makeInfraSecurityGroup(ec2sg)
-
-		for _, ec2rule := range ec2sg.IpPermissions {
-			sg.IngressRules = append(sg.IngressRules, ingressRuleFromSDKType(ec2rule))
-		}
-
+		sg := s.ec2SecurityGroupToSecurityGroup(ec2sg)
 		res[sg.Name] = sg
 	}
 
