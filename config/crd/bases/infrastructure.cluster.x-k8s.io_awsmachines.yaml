@@ -960,7 +960,7 @@ spec:
     name: v1beta1
     schema:
       openAPIV3Schema:
-        description: AWSMachine is the Schema for the awsmachines API
+        description: AWSMachine is the Schema for the awsmachines API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -975,7 +975,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: AWSMachineSpec defines the desired state of AWSMachine
+            description: AWSMachineSpec defines the desired state of AWSMachine.
             properties:
               additionalSecurityGroups:
                 description: AdditionalSecurityGroups is an array of references to
@@ -999,7 +999,7 @@ spec:
                         a resource They are applied according to the rules defined
                         by the AWS API: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html'
                       items:
-                        description: Filter is a filter used to identify an AWS resource
+                        description: Filter is a filter used to identify an AWS resource.
                         properties:
                           name:
                             description: Name of the filter. Filter names are case-sensitive.
@@ -1125,7 +1125,7 @@ spec:
                 description: Configuration options for the non root storage volumes.
                 items:
                   description: Volume encapsulates the configuration options for the
-                    storage device
+                    storage device.
                   properties:
                     deviceName:
                       description: Device name
@@ -1240,7 +1240,7 @@ spec:
                       a resource They are applied according to the rules defined by
                       the AWS API: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html'
                     items:
-                      description: Filter is a filter used to identify an AWS resource
+                      description: Filter is a filter used to identify an AWS resource.
                       properties:
                         name:
                           description: Name of the filter. Filter names are case-sensitive.
@@ -1278,7 +1278,7 @@ spec:
             - instanceType
             type: object
           status:
-            description: AWSMachineStatus defines the observed state of AWSMachine
+            description: AWSMachineStatus defines the observed state of AWSMachine.
             properties:
               addresses:
                 description: Addresses contains the AWS instance associated addresses.

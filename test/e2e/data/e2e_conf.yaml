@@ -42,7 +42,7 @@ providers:
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.1/core-components.yaml"
         type: "url"
         files:
-          - sourcePath: "./shared/v1alpha4/metadata.yaml"
+          - sourcePath: "./shared/v1beta1/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -65,7 +65,7 @@ providers:
   - name: kubeadm
     type: BootstrapProvider
     files:
-      - sourcePath: "./shared/v1alpha4/metadata.yaml"
+      - sourcePath: "./shared/v1beta1/metadata.yaml"
     versions:
       - name: v0.4.1
         # Use manifest from source files
@@ -82,7 +82,7 @@ providers:
   - name: kubeadm
     type: ControlPlaneProvider
     files:
-      - sourcePath: "./shared/v1alpha4/metadata.yaml"
+      - sourcePath: "./shared/v1beta1/metadata.yaml"
     versions:
       - name: v0.4.1
         # Use manifest from source files
@@ -103,7 +103,7 @@ providers:
         # Use manifest from source files
         value: ../../../config/default
         files:
-          - sourcePath: "./shared/v1alpha4_provider/metadata.yaml"
+          - sourcePath: "./shared/v1beta1_provider/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -117,7 +117,7 @@ providers:
             new: gcr.io/k8s-staging-cluster-api/capa-manager:e2e
     files:
       # Add a cluster template
-      - sourcePath: "./shared/v1alpha4/metadata.yaml"
+      - sourcePath: "./shared/v1beta1/metadata.yaml"
         targetName: "metadata.yaml"
       - sourcePath: "./infrastructure-aws/cluster-template.yaml"
       - sourcePath: "./infrastructure-aws/cluster-template-ssm.yaml"

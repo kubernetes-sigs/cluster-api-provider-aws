@@ -104,7 +104,7 @@ type KubernetesMapping struct {
 	Groups []string `json:"groups"`
 }
 
-// RoleMapping represents a mapping from a IAM role to Kubernetes users and groups
+// RoleMapping represents a mapping from a IAM role to Kubernetes users and groups.
 type RoleMapping struct {
 	// RoleARN is the AWS ARN for the role to map
 	// +kubebuilder:validation:MinLength:=31
@@ -113,7 +113,7 @@ type RoleMapping struct {
 	KubernetesMapping `json:",inline"`
 }
 
-// UserMapping represents a mapping from an IAM user to Kubernetes users and groups
+// UserMapping represents a mapping from an IAM user to Kubernetes users and groups.
 type UserMapping struct {
 	// UserARN is the AWS ARN for the user to map
 	// +kubebuilder:validation:MinLength:=31
@@ -122,7 +122,7 @@ type UserMapping struct {
 	KubernetesMapping `json:",inline"`
 }
 
-// Addon represents a EKS addon
+// Addon represents a EKS addon.
 type Addon struct {
 	// Name is the name of the addon
 	// +kubebuilder:validation:MinLength:=2
@@ -179,7 +179,7 @@ var (
 	AddonStatusDegraded = "degraded"
 )
 
-// AddonState represents the state of an addon
+// AddonState represents the state of an addon.
 type AddonState struct {
 	// Name is the name of the addon
 	Name string `json:"name"`
@@ -199,7 +199,7 @@ type AddonState struct {
 	Issues []AddonIssue `json:"issues,omitempty"`
 }
 
-// AddonIssue represents an issue with an addon
+// AddonIssue represents an issue with an addon.
 type AddonIssue struct {
 	// Code is the issue code
 	Code *string `json:"code,omitempty"`

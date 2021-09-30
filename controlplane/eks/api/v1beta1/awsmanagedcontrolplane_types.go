@@ -27,7 +27,7 @@ const (
 	ManagedControlPlaneFinalizer = "awsmanagedcontrolplane.controlplane.cluster.x-k8s.io"
 )
 
-// AWSManagedControlPlaneSpec defines the desired state of AWSManagedControlPlane
+// AWSManagedControlPlaneSpec defines the desired state of AWSManagedControlPlane.
 type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// EKSClusterName allows you to specify the name of the EKS cluster in
 	// AWS. If you don't specify a name then a default name will be created
@@ -204,7 +204,7 @@ type IdentityProviderStatus struct {
 	Status string `json:"status,omitempty"`
 }
 
-// AWSManagedControlPlaneStatus defines the observed state of AWSManagedControlPlane
+// AWSManagedControlPlaneStatus defines the observed state of AWSManagedControlPlane.
 type AWSManagedControlPlaneStatus struct {
 	// Networks holds details about the AWS networking resources used by the control plane
 	// +optional
@@ -256,7 +256,7 @@ type AWSManagedControlPlaneStatus struct {
 // +kubebuilder:printcolumn:name="Endpoint",type="string",JSONPath=".spec.controlPlaneEndpoint.host",description="API Endpoint",priority=1
 // +kubebuilder:printcolumn:name="Bastion IP",type="string",JSONPath=".status.bastion.publicIp",description="Bastion IP address for breakglass access"
 
-// AWSManagedControlPlane is the Schema for the awsmanagedcontrolplanes API
+// AWSManagedControlPlane is the Schema for the awsmanagedcontrolplanes API.
 type AWSManagedControlPlane struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

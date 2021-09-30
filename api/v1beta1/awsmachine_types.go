@@ -39,7 +39,7 @@ var (
 	SecretBackendSecretsManager = SecretBackend("secrets-manager")
 )
 
-// AWSMachineSpec defines the desired state of AWSMachine
+// AWSMachineSpec defines the desired state of AWSMachine.
 type AWSMachineSpec struct {
 	// ProviderID is the unique identifier as specified by the cloud provider.
 	ProviderID *string `json:"providerID,omitempty"`
@@ -178,7 +178,7 @@ type CloudInit struct {
 	SecureSecretsBackend SecretBackend `json:"secureSecretsBackend,omitempty"`
 }
 
-// AWSMachineStatus defines the observed state of AWSMachine
+// AWSMachineStatus defines the observed state of AWSMachine.
 type AWSMachineStatus struct {
 	// Ready is true when the provider resource is ready.
 	// +optional
@@ -249,7 +249,7 @@ type AWSMachineStatus struct {
 // +kubebuilder:printcolumn:name="InstanceID",type="string",JSONPath=".spec.providerID",description="EC2 instance ID"
 // +kubebuilder:printcolumn:name="Machine",type="string",JSONPath=".metadata.ownerReferences[?(@.kind==\"Machine\")].name",description="Machine object which owns with this AWSMachine"
 
-// AWSMachine is the Schema for the awsmachines API
+// AWSMachine is the Schema for the awsmachines API.
 type AWSMachine struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

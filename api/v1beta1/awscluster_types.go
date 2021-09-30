@@ -30,7 +30,7 @@ const (
 	AWSClusterControllerIdentityName = "default"
 )
 
-// AWSClusterSpec defines the desired state of AWSCluster
+// AWSClusterSpec defines the desired state of AWSCluster.
 type AWSClusterSpec struct {
 	// NetworkSpec encapsulates all things related to AWS network.
 	NetworkSpec NetworkSpec `json:"network,omitempty"`
@@ -173,7 +173,7 @@ type AWSLoadBalancerSpec struct {
 	AdditionalSecurityGroups []string `json:"additionalSecurityGroups,omitempty"`
 }
 
-// AWSClusterStatus defines the observed state of AWSCluster
+// AWSClusterStatus defines the observed state of AWSCluster.
 type AWSClusterStatus struct {
 	// +kubebuilder:default=false
 	Ready          bool                     `json:"ready"`

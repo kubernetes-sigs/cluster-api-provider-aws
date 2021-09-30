@@ -19,13 +19,8 @@ package v1alpha4
 import (
 	"fmt"
 	"net"
-	"regexp"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
-)
-
-var (
-	sshKeyValidNameRegex = regexp.MustCompile(`^[[:graph:]]+([[:print:]]*[[:graph:]]+)*$`)
 )
 
 // Validate will validate the bastion fields.

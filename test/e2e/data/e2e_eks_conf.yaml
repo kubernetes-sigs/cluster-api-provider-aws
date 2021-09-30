@@ -43,7 +43,7 @@ providers:
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.1/core-components.yaml"
         type: "url"
         files:
-          - sourcePath: "./shared/v1alpha4/metadata.yaml"
+          - sourcePath: "./shared/v1beta1/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -59,7 +59,7 @@ providers:
         # Use manifest from source files
         value: ../../../config/default
         files:
-          - sourcePath: "./shared/v1alpha4_provider/metadata.yaml"
+          - sourcePath: "./shared/v1beta1_provider/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -72,7 +72,7 @@ providers:
           - old: gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller:latest
             new: gcr.io/k8s-staging-cluster-api/capa-manager:e2e
     files:
-      - sourcePath: "./shared/v1alpha4/metadata.yaml"
+      - sourcePath: "./shared/v1beta1/metadata.yaml"
         targetName: "metadata.yaml"
       - sourcePath: "./eks/cluster-template-eks-control-plane-only.yaml"
         targetName: "cluster-template-eks-control-plane-only.yaml"

@@ -482,7 +482,6 @@ func TestAWSCluster_DefaultAllowedCIDRBlocks(t *testing.T) {
 			beforeCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					Bastion: Bastion{
-						AllowedCIDRBlocks:   []string{"0.0.0.0/0"},
 						DisableIngressRules: true,
 						Enabled:             true,
 					},

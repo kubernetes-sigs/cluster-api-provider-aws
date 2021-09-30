@@ -1571,7 +1571,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: AWSClusterSpec defines the desired state of AWSCluster
+            description: AWSClusterSpec defines the desired state of AWSCluster.
             properties:
               additionalTags:
                 additionalProperties:
@@ -1846,7 +1846,7 @@ spec:
                 type: string
             type: object
           status:
-            description: AWSClusterStatus defines the observed state of AWSCluster
+            description: AWSClusterStatus defines the observed state of AWSCluster.
             properties:
               bastion:
                 description: Instance describes an AWS instance.
@@ -1901,7 +1901,7 @@ spec:
                     description: Configuration options for the non root storage volumes.
                     items:
                       description: Volume encapsulates the configuration options for
-                        the storage device
+                        the storage device.
                       properties:
                         deviceName:
                           description: Device name

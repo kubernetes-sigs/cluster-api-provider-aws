@@ -30,7 +30,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	"sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/bootstrap/v1alpha1"
 	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/credentials"
@@ -52,7 +52,7 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 	By("Creating a bootstrap AWSIAMConfiguration")
 	t := cfn_bootstrap.NewTemplate()
 	t.Spec.BootstrapUser.Enable = true
-	t.Spec.BootstrapUser.ExtraStatements = []v1alpha4.StatementEntry{
+	t.Spec.BootstrapUser.ExtraStatements = []v1beta1.StatementEntry{
 		{
 			Effect: "Allow",
 			Action: []string{"sts:AssumeRole"},
@@ -62,9 +62,9 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 			},
 		},
 	}
-	t.Spec.SecureSecretsBackends = []v1alpha4.SecretBackend{
-		v1alpha4.SecretBackendSecretsManager,
-		v1alpha4.SecretBackendSSMParameterStore,
+	t.Spec.SecureSecretsBackends = []v1beta1.SecretBackend{
+		v1beta1.SecretBackendSecretsManager,
+		v1beta1.SecretBackendSSMParameterStore,
 	}
 	t.Spec.EventBridge = &v1alpha1.EventBridgeConfig{
 		Enable: true,
@@ -95,12 +95,12 @@ func renderCustomCloudFormation(t *cfn_bootstrap.Template) *cloudformation.Templ
 }
 
 func appendExtraPoliciesToBootstrapUser(t *cfn_bootstrap.Template) {
-	t.Spec.BootstrapUser.ExtraStatements = append(t.Spec.BootstrapUser.ExtraStatements, v1alpha4.StatementEntry{
-		Effect: v1alpha4.EffectAllow,
-		Resource: v1alpha4.Resources{
+	t.Spec.BootstrapUser.ExtraStatements = append(t.Spec.BootstrapUser.ExtraStatements, v1beta1.StatementEntry{
+		Effect: v1beta1.EffectAllow,
+		Resource: v1beta1.Resources{
 			"*",
 		},
-		Action: v1alpha4.Actions{
+		Action: v1beta1.Actions{
 			"servicequotas:GetServiceQuota",
 			"servicequotas:RequestServiceQuotaIncrease",
 			"servicequotas:ListRequestedServiceQuotaChangeHistory",
@@ -116,15 +116,15 @@ func appendExtraPoliciesToBootstrapUser(t *cfn_bootstrap.Template) {
 			"ssm:ResumeSession",
 		},
 	})
-	t.Spec.BootstrapUser.ExtraStatements = append(t.Spec.BootstrapUser.ExtraStatements, v1alpha4.StatementEntry{
-		Effect: v1alpha4.EffectAllow,
-		Resource: v1alpha4.Resources{
+	t.Spec.BootstrapUser.ExtraStatements = append(t.Spec.BootstrapUser.ExtraStatements, v1beta1.StatementEntry{
+		Effect: v1beta1.EffectAllow,
+		Resource: v1beta1.Resources{
 			"arn:*:iam::*:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling",
 			"arn:*:iam::*:role/aws-service-role/servicequotas.amazonaws.com/AWSServiceRoleForServiceQuotas",
 			"arn:*:iam::*:role/aws-service-role/support.amazonaws.com/AWSServiceRoleForSupport",
 			"arn:*:iam::*:role/aws-service-role/trustedadvisor.amazonaws.com/AWSServiceRoleForTrustedAdvisor",
 		},
-		Action: v1alpha4.Actions{
+		Action: v1beta1.Actions{
 			"iam:CreateServiceLinkedRole",
 		},
 	})
@@ -140,13 +140,13 @@ func appendMultiTenancyRoles(t *cfn_bootstrap.Template, cfnt *cloudformation.Tem
 	)
 	cfnt.Resources[MultiTenancyJumpPolicy] = &cfn_iam.ManagedPolicy{
 		ManagedPolicyName: MultiTenancyJumpPolicy,
-		PolicyDocument: &v1alpha4.PolicyDocument{
-			Version: v1alpha4.CurrentVersion,
-			Statement: []v1alpha4.StatementEntry{
+		PolicyDocument: &v1beta1.PolicyDocument{
+			Version: v1beta1.CurrentVersion,
+			Statement: []v1beta1.StatementEntry{
 				{
-					Effect:   v1alpha4.EffectAllow,
-					Resource: v1alpha4.Resources{cloudformation.GetAtt(MultiTenancyNestedRole.RoleName(), "Arn")},
-					Action:   v1alpha4.Actions{"sts:AssumeRole"},
+					Effect:   v1beta1.EffectAllow,
+					Resource: v1beta1.Resources{cloudformation.GetAtt(MultiTenancyNestedRole.RoleName(), "Arn")},
+					Action:   v1beta1.Actions{"sts:AssumeRole"},
 				},
 			},
 		},
@@ -155,15 +155,15 @@ func appendMultiTenancyRoles(t *cfn_bootstrap.Template, cfnt *cloudformation.Tem
 
 	cfnt.Resources[MultiTenancySimpleRole.RoleName()] = &cfn_iam.Role{
 		RoleName:                 MultiTenancySimpleRole.RoleName(),
-		AssumeRolePolicyDocument: cfn_bootstrap.AssumeRolePolicy(v1alpha4.PrincipalAWS, []string{accountRef}),
+		AssumeRolePolicyDocument: cfn_bootstrap.AssumeRolePolicy(v1beta1.PrincipalAWS, []string{accountRef}),
 	}
 	cfnt.Resources[MultiTenancyJumpRole.RoleName()] = &cfn_iam.Role{
 		RoleName:                 MultiTenancyJumpRole.RoleName(),
-		AssumeRolePolicyDocument: cfn_bootstrap.AssumeRolePolicy(v1alpha4.PrincipalAWS, []string{accountRef}),
+		AssumeRolePolicyDocument: cfn_bootstrap.AssumeRolePolicy(v1beta1.PrincipalAWS, []string{accountRef}),
 	}
 	cfnt.Resources[MultiTenancyNestedRole.RoleName()] = &cfn_iam.Role{
 		RoleName:                 MultiTenancyNestedRole.RoleName(),
-		AssumeRolePolicyDocument: cfn_bootstrap.AssumeRolePolicy(v1alpha4.PrincipalAWS, []string{accountRef}),
+		AssumeRolePolicyDocument: cfn_bootstrap.AssumeRolePolicy(v1beta1.PrincipalAWS, []string{accountRef}),
 	}
 }
 

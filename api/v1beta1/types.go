@@ -63,13 +63,13 @@ type AMIReference struct {
 	EKSOptimizedLookupType *EKSAMILookupType `json:"eksLookupType,omitempty"`
 }
 
-// AWSMachineTemplateResource describes the data needed to create am AWSMachine from a template
+// AWSMachineTemplateResource describes the data needed to create am AWSMachine from a template.
 type AWSMachineTemplateResource struct {
 	// Spec is the specification of the desired behavior of the machine.
 	Spec AWSMachineSpec `json:"spec"`
 }
 
-// Filter is a filter used to identify an AWS resource
+// Filter is a filter used to identify an AWS resource.
 type Filter struct {
 	// Name of the filter. Filter names are case-sensitive.
 	Name string `json:"name"`
@@ -401,7 +401,7 @@ type CNISpec struct {
 	CNIIngressRules CNIIngressRules `json:"cniIngressRules,omitempty"`
 }
 
-// CNIIngressRules is a slice of CNIIngressRule
+// CNIIngressRules is a slice of CNIIngressRule.
 type CNIIngressRules []CNIIngressRule
 
 // CNIIngressRule defines an AWS ingress rule for CNI requirements.
@@ -699,7 +699,7 @@ type Instance struct {
 	VolumeIDs []string `json:"volumeIDs,omitempty"`
 }
 
-// Volume encapsulates the configuration options for the storage device
+// Volume encapsulates the configuration options for the storage device.
 type Volume struct {
 	// Device name
 	// +optional
@@ -738,25 +738,25 @@ type Volume struct {
 type VolumeType string
 
 var (
-	// VolumeTypeIO1 is the string representing a provisioned iops ssd io1 volume
+	// VolumeTypeIO1 is the string representing a provisioned iops ssd io1 volume.
 	VolumeTypeIO1 = VolumeType("io1")
 
-	// VolumeTypeIO2 is the string representing a provisioned iops ssd io2 volume
+	// VolumeTypeIO2 is the string representing a provisioned iops ssd io2 volume.
 	VolumeTypeIO2 = VolumeType("io2")
 
-	// VolumeTypeGP2 is the string representing a general purpose ssd gp2 volume
+	// VolumeTypeGP2 is the string representing a general purpose ssd gp2 volume.
 	VolumeTypeGP2 = VolumeType("gp2")
 
-	// VolumeTypeGP3 is the string representing a general purpose ssd gp3 volume
+	// VolumeTypeGP3 is the string representing a general purpose ssd gp3 volume.
 	VolumeTypeGP3 = VolumeType("gp3")
 
-	// VolumeTypesGP are volume types provisioned for general purpose io
+	// VolumeTypesGP are volume types provisioned for general purpose io.
 	VolumeTypesGP = sets.NewString(
 		string(VolumeTypeIO1),
 		string(VolumeTypeIO2),
 	)
 
-	// VolumeTypesProvisioned are volume types provisioned for high performance io
+	// VolumeTypesProvisioned are volume types provisioned for high performance io.
 	VolumeTypesProvisioned = sets.NewString(
 		string(VolumeTypeIO1),
 		string(VolumeTypeIO2),

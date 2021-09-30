@@ -734,7 +734,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: AWSMachineTemplate is the Schema for the awsmachinetemplates
-          API
+          API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -749,11 +749,11 @@ spec:
           metadata:
             type: object
           spec:
-            description: AWSMachineTemplateSpec defines the desired state of AWSMachineTemplate
+            description: AWSMachineTemplateSpec defines the desired state of AWSMachineTemplate.
             properties:
               template:
                 description: AWSMachineTemplateResource describes the data needed
-                  to create am AWSMachine from a template
+                  to create am AWSMachine from a template.
                 properties:
                   spec:
                     description: Spec is the specification of the desired behavior
@@ -782,7 +782,7 @@ spec:
                                 to the rules defined by the AWS API: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html'
                               items:
                                 description: Filter is a filter used to identify an
-                                  AWS resource
+                                  AWS resource.
                                 properties:
                                   name:
                                     description: Name of the filter. Filter names
@@ -913,7 +913,7 @@ spec:
                           volumes.
                         items:
                           description: Volume encapsulates the configuration options
-                            for the storage device
+                            for the storage device.
                           properties:
                             deviceName:
                               description: Device name
@@ -1035,7 +1035,7 @@ spec:
                               the rules defined by the AWS API: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html'
                             items:
                               description: Filter is a filter used to identify an
-                                AWS resource
+                                AWS resource.
                               properties:
                                 name:
                                   description: Name of the filter. Filter names are

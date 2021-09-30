@@ -37,7 +37,7 @@ require (
 	k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a
 	sigs.k8s.io/aws-iam-authenticator v0.5.3
 	sigs.k8s.io/cluster-api v0.4.2
-	sigs.k8s.io/cluster-api/test v0.4.2
+	sigs.k8s.io/cluster-api/test v1.0.0-rc.0.0.20210930081857-0b49076dea24
 	sigs.k8s.io/controller-runtime v0.10.1
 	sigs.k8s.io/yaml v1.2.0
 )

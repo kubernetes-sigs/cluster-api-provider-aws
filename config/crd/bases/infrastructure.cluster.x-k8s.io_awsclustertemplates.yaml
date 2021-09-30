@@ -366,7 +366,7 @@ spec:
               template:
                 properties:
                   spec:
-                    description: AWSClusterSpec defines the desired state of AWSCluster
+                    description: AWSClusterSpec defines the desired state of AWSCluster.
                     properties:
                       additionalTags:
                         additionalProperties:

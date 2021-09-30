@@ -37,10 +37,4 @@ func TestFuzzyConversion(t *testing.T) {
 		Hub:    &v1beta1.AWSManagedControlPlane{},
 		Spoke:  &AWSManagedControlPlane{},
 	}))
-
-	t.Run("for AWSManagedControlPlaneList", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &v1beta1.AWSManagedControlPlaneList{},
-		Spoke:  &AWSManagedControlPlaneList{},
-	}))
 }

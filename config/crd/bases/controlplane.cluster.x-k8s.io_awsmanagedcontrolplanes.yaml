@@ -2160,7 +2160,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: AWSManagedControlPlane is the Schema for the awsmanagedcontrolplanes
-          API
+          API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -2175,7 +2175,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: AWSManagedControlPlaneSpec defines the desired state of AWSManagedControlPlane
+            description: AWSManagedControlPlaneSpec defines the desired state of AWSManagedControlPlane.
             properties:
               additionalTags:
                 additionalProperties:
@@ -2188,7 +2188,7 @@ spec:
                 description: Addons defines the EKS addons to enable with the EKS
                   cluster.
                 items:
-                  description: Addon represents a EKS addon
+                  description: Addon represents a EKS addon.
                   properties:
                     conflictResolution:
                       default: none
@@ -2325,7 +2325,7 @@ spec:
                     description: RoleMappings is a list of role mappings
                     items:
                       description: RoleMapping represents a mapping from a IAM role
-                        to Kubernetes users and groups
+                        to Kubernetes users and groups.
                       properties:
                         groups:
                           description: Groups is a list of kubernetes RBAC groups
@@ -2349,7 +2349,7 @@ spec:
                     description: UserMappings is a list of user mappings
                     items:
                       description: UserMapping represents a mapping from an IAM user
-                        to Kubernetes users and groups
+                        to Kubernetes users and groups.
                       properties:
                         groups:
                           description: Groups is a list of kubernetes RBAC groups
@@ -2689,12 +2689,12 @@ spec:
             type: object
           status:
             description: AWSManagedControlPlaneStatus defines the observed state of
-              AWSManagedControlPlane
+              AWSManagedControlPlane.
             properties:
               addons:
                 description: Addons holds the current status of the EKS addons
                 items:
-                  description: AddonState represents the state of an addon
+                  description: AddonState represents the state of an addon.
                   properties:
                     arn:
                       description: ARN is the AWS ARN of the addon
@@ -2707,7 +2707,7 @@ spec:
                     issues:
                       description: Issues is a list of issue associated with the addon
                       items:
-                        description: AddonIssue represents an issue with an addon
+                        description: AddonIssue represents an issue with an addon.
                         properties:
                           code:
                             description: Code is the issue code
@@ -2802,7 +2802,7 @@ spec:
                     description: Configuration options for the non root storage volumes.
                     items:
                       description: Volume encapsulates the configuration options for
-                        the storage device
+                        the storage device.
                       properties:
                         deviceName:
                           description: Device name
