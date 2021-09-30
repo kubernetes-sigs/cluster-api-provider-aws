@@ -18,14 +18,13 @@ package v1alpha3
 
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
-	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	clusterapiapiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterapiapiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	infrav1beta1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 )
@@ -45,7 +44,7 @@ func (r *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	infrav1alpha3.RestoreAMIReference(&restored.Spec.AWSLaunchTemplate.AMI, &dst.Spec.AWSLaunchTemplate.AMI)
 	if restored.Spec.AWSLaunchTemplate.RootVolume != nil {
 		if dst.Spec.AWSLaunchTemplate.RootVolume == nil {
-			dst.Spec.AWSLaunchTemplate.RootVolume = &infrav1alpha4.Volume{}
+			dst.Spec.AWSLaunchTemplate.RootVolume = &infrav1beta1.Volume{}
 		}
 		infrav1alpha3.RestoreRootVolume(restored.Spec.AWSLaunchTemplate.RootVolume, dst.Spec.AWSLaunchTemplate.RootVolume)
 	}
