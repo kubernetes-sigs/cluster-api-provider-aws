@@ -21,20 +21,21 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	. "github.com/onsi/gomega"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestReconcileSecurityGroups(t *testing.T) {
@@ -477,6 +478,90 @@ func TestDeleteSecurityGroups(t *testing.T) {
 			} else if err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
+		})
+	}
+}
+
+func TestIngressRulesFromSDKType(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    *ec2.IpPermission
+		expected infrav1.IngressRules
+	}{
+		{
+			name: "Two group pairs",
+			input: &ec2.IpPermission{
+				IpProtocol: aws.String("tcp"),
+				FromPort:   aws.Int64(10250),
+				ToPort:     aws.Int64(10250),
+				UserIdGroupPairs: []*ec2.UserIdGroupPair{
+					{
+						Description: aws.String("Kubelet API"),
+						UserId:      aws.String("aws-user-id-1"),
+						GroupId:     aws.String("sg-source-1"),
+					},
+					{
+						Description: aws.String("Kubelet API"),
+						UserId:      aws.String("aws-user-id-1"),
+						GroupId:     aws.String("sg-source-2"),
+					},
+				},
+			},
+			expected: infrav1.IngressRules{
+				{
+					Description:            "Kubelet API",
+					Protocol:               "tcp",
+					FromPort:               10250,
+					ToPort:                 10250,
+					SourceSecurityGroupIDs: []string{"sg-source-1", "sg-source-2"},
+				},
+			},
+		},
+		{
+			name: "Mix of group pairs and cidr blocks",
+			input: &ec2.IpPermission{
+				IpProtocol: aws.String("tcp"),
+				FromPort:   aws.Int64(22),
+				ToPort:     aws.Int64(22),
+				IpRanges: []*ec2.IpRange{
+					{
+						CidrIp:      aws.String("0.0.0.0/0"),
+						Description: aws.String("MY-SSH"),
+					},
+				},
+				UserIdGroupPairs: []*ec2.UserIdGroupPair{
+					{
+						UserId:      aws.String("aws-user-id-1"),
+						GroupId:     aws.String("sg-source-1"),
+						Description: aws.String("SSH"),
+					},
+				},
+			},
+			expected: infrav1.IngressRules{
+				{
+					Description: "MY-SSH",
+					Protocol:    "tcp",
+					FromPort:    22,
+					ToPort:      22,
+					CidrBlocks:  []string{"0.0.0.0/0"},
+				},
+				{
+					Description:            "SSH",
+					Protocol:               "tcp",
+					FromPort:               22,
+					ToPort:                 22,
+					SourceSecurityGroupIDs: []string{"sg-source-1"},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewGomegaWithT(t)
+			output := ingressRulesFromSDKType(tc.input)
+
+			g.Expect(output).To(Equal(tc.expected))
 		})
 	}
 }
