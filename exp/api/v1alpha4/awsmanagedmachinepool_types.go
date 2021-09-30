@@ -89,6 +89,12 @@ type AWSManagedMachinePoolSpec struct {
 	// +optional
 	RoleName string `json:"roleName,omitempty"`
 
+	// RoleAdditionalPolicies allows you to attach additional polices to
+	// the node group role. You must enable the EKSAllowAddRoles
+	// feature flag to incorporate these into the created role.
+	// +optional
+	RoleAdditionalPolicies []string `json:"roleAdditionalPolicies,omitempty"`
+
 	// AMIVersion defines the desired AMI release version. If no version number
 	// is supplied then the latest version for the Kubernetes version
 	// will be used
