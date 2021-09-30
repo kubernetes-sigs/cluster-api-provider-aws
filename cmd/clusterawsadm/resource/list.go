@@ -23,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
 	tagapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 )
 
 // ListAWSResource fetches all AWS resources created by CAPA.

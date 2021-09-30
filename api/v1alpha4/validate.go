@@ -48,16 +48,3 @@ func (b *Bastion) Validate() []*field.Error {
 	}
 	return errs
 }
-
-func validateSSHKeyName(sshKeyName *string) field.ErrorList {
-	var allErrs field.ErrorList
-	switch {
-	case sshKeyName == nil:
-	// nil is accepted
-	case sshKeyName != nil && *sshKeyName == "":
-	// empty string is accepted
-	case sshKeyName != nil && !sshKeyValidNameRegex.Match([]byte(*sshKeyName)):
-		allErrs = append(allErrs, field.Invalid(field.NewPath("sshKeyName"), sshKeyName, "Name is invalid. Must be specified in ASCII and must not start or end in whitespace"))
-	}
-	return allErrs
-}

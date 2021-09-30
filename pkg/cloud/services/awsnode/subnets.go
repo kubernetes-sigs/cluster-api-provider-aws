@@ -16,13 +16,13 @@ limitations under the License.
 
 package awsnode
 
-import "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+import "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 
-func (s *Service) secondarySubnets() []*v1alpha4.SubnetSpec {
-	subnets := []*v1alpha4.SubnetSpec{}
+func (s *Service) secondarySubnets() []*v1beta1.SubnetSpec {
+	subnets := []*v1beta1.SubnetSpec{}
 	for _, sub := range s.scope.Subnets() {
 		subnet := sub.DeepCopy()
-		if val, ok := subnet.Tags[v1alpha4.NameAWSSubnetAssociation]; ok && val == v1alpha4.SecondarySubnetTagValue {
+		if val, ok := subnet.Tags[v1beta1.NameAWSSubnetAssociation]; ok && val == v1beta1.SecondarySubnetTagValue {
 			subnets = append(subnets, subnet)
 		}
 	}

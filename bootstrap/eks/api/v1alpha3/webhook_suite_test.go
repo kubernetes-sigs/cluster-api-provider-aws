@@ -24,7 +24,7 @@ import (
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
-	bootstrapv1alpha4 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha4"
+	bootstrapv1beta1 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
 	ctrl "sigs.k8s.io/controller-runtime"
 	// +kubebuilder:scaffold:imports
@@ -45,7 +45,7 @@ func TestMain(m *testing.M) {
 
 func setup() {
 	utilruntime.Must(AddToScheme(scheme.Scheme))
-	utilruntime.Must(bootstrapv1alpha4.AddToScheme(scheme.Scheme))
+	utilruntime.Must(bootstrapv1beta1.AddToScheme(scheme.Scheme))
 
 	testEnvConfig := helpers.NewTestEnvironmentConfiguration([]string{
 		path.Join("bootstrap", "eks", "config", "crd", "bases"),
@@ -56,10 +56,10 @@ func setup() {
 	if err != nil {
 		panic(err)
 	}
-	if err := (&bootstrapv1alpha4.EKSConfig{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&bootstrapv1beta1.EKSConfig{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSCluster webhook: %v", err))
 	}
-	if err := (&bootstrapv1alpha4.EKSConfigTemplate{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&bootstrapv1beta1.EKSConfigTemplate{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSCluster webhook: %v", err))
 	}
 	go func() {

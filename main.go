@@ -37,20 +37,20 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 
 	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	bootstrapv1alpha3 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha3"
-	bootstrapv1alpha4 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha4"
+	bootstrapv1beta1 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta1"
 	bootstrapv1controllers "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/controllers"
 	"sigs.k8s.io/cluster-api-provider-aws/controllers"
 	controlplanev1alpha3 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
-	controlplanev1alpha4 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
+	controlplanev1beta1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	controlplanev1controllers "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/controllers"
 	infrav1alpha3exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
-	infrav1alpha4exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	infrav1beta1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/exp/controlleridentitycreator"
 	controllersexp "sigs.k8s.io/cluster-api-provider-aws/exp/controllers"
 	"sigs.k8s.io/cluster-api-provider-aws/exp/instancestate"
@@ -70,15 +70,15 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = infrav1alpha3.AddToScheme(scheme)
-	_ = infrav1alpha4.AddToScheme(scheme)
+	_ = infrav1beta1.AddToScheme(scheme)
 	_ = infrav1alpha3exp.AddToScheme(scheme)
-	_ = infrav1alpha4exp.AddToScheme(scheme)
+	_ = infrav1beta1exp.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
 	_ = controlplanev1alpha3.AddToScheme(scheme)
-	_ = controlplanev1alpha4.AddToScheme(scheme)
+	_ = controlplanev1beta1.AddToScheme(scheme)
 	_ = clusterv1exp.AddToScheme(scheme)
 	_ = bootstrapv1alpha3.AddToScheme(scheme)
-	_ = bootstrapv1alpha4.AddToScheme(scheme)
+	_ = bootstrapv1beta1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -183,68 +183,68 @@ func main() {
 	}
 	enableGates(ctx, mgr, AWSServiceEndpoints)
 
-	if err = (&infrav1alpha4.AWSMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1beta1.AWSMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplate")
 		os.Exit(1)
 	}
-	if err = (&infrav1alpha4.AWSMachineTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1beta1.AWSMachineTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplateList")
 		os.Exit(1)
 	}
-	if err = (&infrav1alpha4.AWSCluster{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1beta1.AWSCluster{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSCluster")
 		os.Exit(1)
 	}
-	if err = (&infrav1alpha4.AWSClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1beta1.AWSClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterTemplate")
 		os.Exit(1)
 	}
-	if err = (&infrav1alpha4.AWSClusterList{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1beta1.AWSClusterList{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterList")
 		os.Exit(1)
 	}
-	if err = (&infrav1alpha4.AWSClusterControllerIdentity{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1beta1.AWSClusterControllerIdentity{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterControllerIdentity")
 		os.Exit(1)
 	}
-	if err = (&infrav1alpha4.AWSClusterRoleIdentity{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1beta1.AWSClusterRoleIdentity{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterRoleIdentity")
 		os.Exit(1)
 	}
-	if err = (&infrav1alpha4.AWSClusterStaticIdentity{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1beta1.AWSClusterStaticIdentity{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterStaticIdentity")
 		os.Exit(1)
 	}
-	if err = (&infrav1alpha4.AWSMachine{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1beta1.AWSMachine{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachine")
 		os.Exit(1)
 	}
-	if err = (&infrav1alpha4.AWSMachineList{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1beta1.AWSMachineList{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineList")
 		os.Exit(1)
 	}
-	if err = (&infrav1alpha4.AWSClusterControllerIdentityList{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1beta1.AWSClusterControllerIdentityList{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterControllerIdentityList")
 		os.Exit(1)
 	}
-	if err = (&infrav1alpha4.AWSClusterRoleIdentityList{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1beta1.AWSClusterRoleIdentityList{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterRoleIdentityList")
 		os.Exit(1)
 	}
 	if feature.Gates.Enabled(feature.EKS) {
 		setupLog.Info("enabling EKS webhooks")
-		if err := (&controlplanev1alpha4.AWSManagedControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
+		if err := (&controlplanev1beta1.AWSManagedControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "AWSManagedControlPlane")
 			os.Exit(1)
 		}
 		if feature.Gates.Enabled(feature.EKSFargate) {
-			if err = (&infrav1alpha4exp.AWSFargateProfile{}).SetupWebhookWithManager(mgr); err != nil {
+			if err = (&infrav1beta1exp.AWSFargateProfile{}).SetupWebhookWithManager(mgr); err != nil {
 				setupLog.Error(err, "unable to create webhook", "webhook", "AWSFargateProfile")
 				os.Exit(1)
 			}
 		}
 		if feature.Gates.Enabled(feature.MachinePool) {
-			if err = (&infrav1alpha4exp.AWSManagedMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+			if err = (&infrav1beta1exp.AWSManagedMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
 				setupLog.Error(err, "unable to create webhook", "webhook", "AWSManagedMachinePool")
 				os.Exit(1)
 			}
@@ -252,7 +252,7 @@ func main() {
 	}
 	if feature.Gates.Enabled(feature.MachinePool) {
 		setupLog.Info("enabling webhook for AWSMachinePool")
-		if err = (&infrav1alpha4exp.AWSMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = (&infrav1beta1exp.AWSMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachinePool")
 			os.Exit(1)
 		}
