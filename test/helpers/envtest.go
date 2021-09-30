@@ -170,8 +170,14 @@ func (t *TestEnvironmentConfiguration) Build() (*TestEnvironment, error) {
 		if err != nil {
 			return nil, err
 		}
-		mutatingWebhooks = append(mutatingWebhooks, m)
-		validatingWebhooks = append(mutatingWebhooks, v)
+		if m != nil {
+			// No mutating webhook defined.
+			mutatingWebhooks = append(mutatingWebhooks, m)
+		}
+		if v != nil {
+			// No validating webhook defined.
+			validatingWebhooks = append(mutatingWebhooks, v)
+		}
 	}
 
 	t.env.WebhookInstallOptions = envtest.WebhookInstallOptions{
