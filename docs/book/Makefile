@@ -24,7 +24,11 @@ GENCRDAPIREFERENCEDOCS := $(TOOLS_BIN_DIR)/gen-crd-api-reference-docs
 GENCRDAPIREFERENCEDOCS_SRCS := $(call rwildcard,.,gen-crd-api-reference-docs/*.*)
 CRD_DOCS := src/crd/cluster-api-aws.md src/crd/experimental.md src/crd/eks-control-plane.md
 BOOK_SRCS :=  $(filter-out $(CRD_DOCS), $(call rwildcard,.,*.*))
-API_SRCS := $(call rwildcard,.,../../cmd/clusterawsadm/api) $(call rwildcard,.,../../api) $(call rwildcard,.,../../exp/api) $(call rwildcard,.,../../controlplane/eks/api)
+
+API_DIRS := cmd/clusterawsadm/api/bootstrap/v1beta1 api/v1beta1 exp/api/v1beta1 controlplane/eks/api/v1beta1 bootstrap/eks/api/v1beta1 iam/api/v1beta1
+API_SRCS := $(foreach dir, $(API_DIRS), $(call rwildcard,../../$(dir),*.go))
+GENERATED_SRCS := $(foreach dir, $(API_DIRS),../../$(dir)/zz_generated.deepcopy.go ../../$(dir)/zz_generated.conversion.go ../../$(dir)/zz_generated.defaults.go)
+API_FILTERED_SRCS := $(filter-out $(GENERATED_SRCS), $(API_SRCS))
 
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
@@ -34,23 +38,11 @@ export PATH
 src/crd:
 	mkdir -p src/crd
 
-src/crd/cluster-api-aws.md:
-	$(MAKE) gen_crd_docs API_DIR="../../api" OUT_FILE=$@
-
-src/crd/experimental.md:
-	$(MAKE) gen_crd_docs API_DIR="../../exp/api" OUT_FILE=$@
-
-src/crd/eks-control-plane.md:
-	$(MAKE) gen_crd_docs API_DIR="../../controlplane/eks/api/" OUT_FILE=$@
-
-src/crd/clusterawsadm.md:
-	$(MAKE) gen_crd_docs API_DIR="../../cmd/clusterawsadm/api" OUT_FILE=$@
-
-src/crd/index.md:
+src/crd/index.md: $(API_FILTERED_SRCS) src/crd
 	$(MAKE) gen_crd_docs API_DIR="../.." OUT_FILE=$@
 
 .PHONY: gen_crd_docs
-gen_crd_docs: $(GENCRDAPIREFERENCEDOCS) src/crd $(API_SRCS) $(GENCRDAPIREFERENCEDOCS_SRCS)
+gen_crd_docs: $(GENCRDAPIREFERENCEDOCS) src/crd $(GENCRDAPIREFERENCEDOCS_SRCS)
 	$(GENCRDAPIREFERENCEDOCS) -template-dir gen-crd-api-reference-docs/template -config "gen-crd-api-reference-docs/config.json" \
 		-api-dir $(API_DIR) \
 		-out-file $(OUT_FILE)
@@ -60,7 +52,6 @@ src/clusterawsadm:
 
 terraform/out:
 	mkdir -p terraform/out
-
 
 terraform/out/amilist: terraform/out
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $@ ./cmd/amilist && chmod 755 $@

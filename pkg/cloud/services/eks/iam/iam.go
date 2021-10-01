@@ -31,8 +31,9 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
 )
 
 const (
@@ -178,7 +179,7 @@ func RoleTags(key string, additionalTags infrav1.Tags) []*iam.Tag {
 func (s *IAMService) CreateRole(
 	roleName string,
 	key string,
-	trustRelationship *infrav1.PolicyDocument,
+	trustRelationship *iamv1.PolicyDocument,
 	additionalTags infrav1.Tags,
 ) (*iam.Role, error) {
 	tags := RoleTags(key, additionalTags)
@@ -206,7 +207,7 @@ func (s *IAMService) CreateRole(
 func (s *IAMService) EnsureTagsAndPolicy(
 	role *iam.Role,
 	key string,
-	trustRelationship *infrav1.PolicyDocument,
+	trustRelationship *iamv1.PolicyDocument,
 	additionalTags infrav1.Tags,
 ) (bool, error) {
 	s.V(2).Info("Ensuring tags and AssumeRolePolicyDocument are set on role")
@@ -216,7 +217,7 @@ func (s *IAMService) EnsureTagsAndPolicy(
 		return false, errors.Wrap(err, "couldn't decode AssumeRolePolicyDocument")
 	}
 
-	var rolePolicyDocument infrav1.PolicyDocument
+	var rolePolicyDocument iamv1.PolicyDocument
 	err = json.Unmarshal([]byte(rolePolicyDocumentRaw), &rolePolicyDocument)
 	if err != nil {
 		return false, errors.Wrap(err, "couldn't unmarshal AssumeRolePolicyDocument")
@@ -330,16 +331,16 @@ func (s *IAMService) IsUnmanaged(role *iam.Role, key string) bool {
 }
 
 // ControlPlaneTrustRelationship will generate a ControlPlane PolicyDocument.
-func ControlPlaneTrustRelationship(enableFargate bool) *infrav1.PolicyDocument {
-	identity := make(infrav1.Principals)
+func ControlPlaneTrustRelationship(enableFargate bool) *iamv1.PolicyDocument {
+	identity := make(iamv1.Principals)
 	identity["Service"] = []string{"eks.amazonaws.com"}
 	if enableFargate {
 		identity["Service"] = append(identity["Service"], EKSFargateService)
 	}
 
-	policy := &infrav1.PolicyDocument{
+	policy := &iamv1.PolicyDocument{
 		Version: "2012-10-17",
-		Statement: []infrav1.StatementEntry{
+		Statement: []iamv1.StatementEntry{
 			{
 				Effect: "Allow",
 				Action: []string{
@@ -354,13 +355,13 @@ func ControlPlaneTrustRelationship(enableFargate bool) *infrav1.PolicyDocument {
 }
 
 // FargateTrustRelationship will generate a Fargate PolicyDocument.
-func FargateTrustRelationship() *infrav1.PolicyDocument {
-	identity := make(infrav1.Principals)
+func FargateTrustRelationship() *iamv1.PolicyDocument {
+	identity := make(iamv1.Principals)
 	identity["Service"] = []string{EKSFargateService}
 
-	policy := &infrav1.PolicyDocument{
+	policy := &iamv1.PolicyDocument{
 		Version: "2012-10-17",
-		Statement: []infrav1.StatementEntry{
+		Statement: []iamv1.StatementEntry{
 			{
 				Effect: "Allow",
 				Action: []string{
@@ -375,13 +376,13 @@ func FargateTrustRelationship() *infrav1.PolicyDocument {
 }
 
 // NodegroupTrustRelationship will generate a Nodegroup PolicyDocument.
-func NodegroupTrustRelationship() *infrav1.PolicyDocument {
-	identity := make(infrav1.Principals)
+func NodegroupTrustRelationship() *iamv1.PolicyDocument {
+	identity := make(iamv1.Principals)
 	identity["Service"] = []string{"ec2.amazonaws.com"}
 
-	policy := &infrav1.PolicyDocument{
+	policy := &iamv1.PolicyDocument{
 		Version: "2012-10-17",
-		Statement: []infrav1.StatementEntry{
+		Statement: []iamv1.StatementEntry{
 			{
 				Effect: "Allow",
 				Action: []string{

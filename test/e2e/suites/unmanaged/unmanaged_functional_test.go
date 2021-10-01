@@ -21,11 +21,12 @@ package unmanaged
 import (
 	"context"
 	"fmt"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/blang/semver"
 	"github.com/gofrs/flock"
@@ -34,16 +35,16 @@ import (
 	. "github.com/onsi/gomega"
 
 	"k8s.io/utils/pointer"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/exp/instancestate"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 )
 
-var _ = ginkgo.Context("[unmanaged] [functional]", func() {
+var _ = ginkgo.PContext("[unmanaged] [functional]", func() {
 	var (
 		ctx    context.Context
 		result *clusterctl.ApplyClusterTemplateAndWaitResult

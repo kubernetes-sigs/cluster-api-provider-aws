@@ -22,7 +22,6 @@ linters:
   - ifshort
   - importas
   - ineffassign
-  - maligned
   - misspell
   - nakedret
   - nilerr
@@ -53,9 +52,8 @@ linters-settings:
     # Maximum length of variable declaration measured in number of characters, after which linter won't suggest using short syntax.
     max-decl-chars: 50
   importas:
-    no-unaliased: true
+    no-unaliased: false
     alias:
-      # Kubernetes
       - pkg: k8s.io/api/core/v1
         alias: corev1
       - pkg: k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1
@@ -66,9 +64,88 @@ linters-settings:
         alias: apierrors
       - pkg: k8s.io/apimachinery/pkg/util/errors
         alias: kerrors
-      # Controller Runtime
+      - pkg: sigs.k8s.io/controller-runtime/pkg/conversion
+        alias: ctrlconversion
+      - pkg: sigs.k8s.io/cluster-api/util/conversion
+        alias: utilconversion
+      - pkg: k8s.io/apimachinery/pkg/conversion
+        alias: apiconversion
+      - pkg: sigs.k8s.io/cluster-api-provider-aws/api/v1beta1
+        alias: infrav1
+      - pkg: sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3
+        alias: expinfrav1alpha3
+      - pkg: sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4
+        alias: expinfrav1alpha4
+      - pkg: sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1
+        alias: expinfrav1
+      - pkg: sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4
+        alias: infrav1alpha4
+      - pkg: sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3
+        alias: infrav1alpha3
+      - pkg: k8s.io/client-go/kubernetes/scheme
+        alias: cgscheme
+      - pkg: k8s.io/client-go/tools/record
+        alias: cgrecord
+      - pkg: sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha3
+        alias: eksbootstrapv1alpha3
+      - pkg: sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha4
+        alias: eksbootstrapv1alpha4
+      - pkg: sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta1
+        alias: eksbootstrapv1
+      - pkg: sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3
+        alias: ekscontrolplanev1alpha3
+      - pkg: sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4
+        alias: ekscontrolplanev1alpha4
+      - pkg: sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1
+        alias: ekscontrolplanev1
+      - pkg: "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/controllers"
+        alias: eksbootstrapcontrollers
+      - pkg: "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/controllers"
+        alias: ekscontrolplanecontrollers
+      - pkg: "sigs.k8s.io/cluster-api-provider-aws/exp/controllers"
+        alias: expcontrollers
+      - pkg: "k8s.io/apimachinery/pkg/runtime"
+        alias: runtime
+      - pkg: "k8s.io/apimachinery/pkg/runtime/serializer"
+        alias: runtimeserializer
+      - pkg: "k8s.io/apimachinery/pkg/runtime/serializer/yaml"
+        alias: yamlserializer
+      - pkg:  "sigs.k8s.io/cluster-api/api/v1alpha3"
+        alias: clusterv1alpha3
+      - pkg:  "sigs.k8s.io/cluster-api/api/v1alpha4"
+        alias: clusterv1alpha4
+      - pkg: "sigs.k8s.io/cluster-api/api/v1beta1"
+        alias: clusterv1
+      - pkg: "sigs.k8s.io/cluster-api/util/defaulting"
+        alias: utildefaulting
       - pkg: sigs.k8s.io/controller-runtime
         alias: ctrl
+      - pkg: "k8s.io/apimachinery/pkg/api/errors"
+        alias: apierrors
+      - pkg: "sigs.k8s.io/controller-runtime/pkg/log"
+        alias: logf
+      - pkg: "github.com/google/gofuzz"
+        alias: fuzz
+      - pkg: "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/logs"
+        alias: awslogs
+      - pkg: "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/metrics"
+        alias: awsmetrics
+      - pkg: "sigs.k8s.io/cluster-api/errors"
+        alias: capierrors
+      - pkg: "github.com/aws/aws-sdk-go/aws/client"
+        alias: awsclient
+      - pkg:  "github.com/aws/amazon-vpc-cni-k8s/pkg/apis/crd/v1alpha1"
+        alias: amazoncni
+      - pkg: "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
+        alias: rgapi
+      - pkg: "crypto/rand"
+        alias: crand
+      - pkg: "sigs.k8s.io/controller-runtime/pkg/client"
+        alias: crclient
+      - pkg: "k8s.io/apimachinery/pkg/types"
+        alias: apimachinerytypes
+      - pkg: "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+        alias: expclusterv1
   staticcheck:
     go: "1.16"
   stylecheck:
@@ -128,10 +205,10 @@ issues:
     - linters:
       - revive
       source: _ "embed"
-    # This directive allows the variable in defaults.go files to have underscore   
+    # This directive allows the variable in defaults.go files to have underscore
     - linters:
       - revive
-      text: "var-naming: don't use underscores in Go names; func (.+) should be (.+)" 
+      text: "var-naming: don't use underscores in Go names; func (.+) should be (.+)"
       path: .*/defaults.go
     # Disable unparam "always receives" which might not be really
     # useful when building libraries.
@@ -140,7 +217,7 @@ issues:
       text: always receives
     - linters:
       - unparam
-      text: (.+) - (`t`|`g`) is unused  
+      text: (.+) - (`t`|`g`) is unused
     - path: _test\.go
       text: cyclomatic complexity
     # Append should be able to assign to a different var/slice.

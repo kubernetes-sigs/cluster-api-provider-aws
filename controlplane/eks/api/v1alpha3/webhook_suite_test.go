@@ -24,7 +24,7 @@ import (
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
-	controlplanev1alpha4 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
 	ctrl "sigs.k8s.io/controller-runtime"
 	// +kubebuilder:scaffold:imports
@@ -45,7 +45,7 @@ func TestMain(m *testing.M) {
 
 func setup() {
 	utilruntime.Must(AddToScheme(scheme.Scheme))
-	utilruntime.Must(controlplanev1alpha4.AddToScheme(scheme.Scheme))
+	utilruntime.Must(ekscontrolplanev1.AddToScheme(scheme.Scheme))
 
 	testEnvConfig := helpers.NewTestEnvironmentConfiguration([]string{
 		path.Join("..", "config", "crd", "bases"),
@@ -56,7 +56,7 @@ func setup() {
 	if err != nil {
 		panic(err)
 	}
-	if err := (&controlplanev1alpha4.AWSManagedControlPlane{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&ekscontrolplanev1.AWSManagedControlPlane{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSCluster webhook: %v", err))
 	}
 

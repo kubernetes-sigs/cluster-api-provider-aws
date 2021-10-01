@@ -38,11 +38,11 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/internal/tristate"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 )
 
 func (s *Service) reconcileCluster(ctx context.Context) error {
@@ -143,12 +143,12 @@ func (s *Service) setStatus(cluster *eks.Cluster) error {
 	case eks.ClusterStatusActive:
 		s.scope.ControlPlane.Status.Ready = true
 		s.scope.ControlPlane.Status.FailureMessage = nil
-		if conditions.IsTrue(s.scope.ControlPlane, controlplanev1.EKSControlPlaneCreatingCondition) {
+		if conditions.IsTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneCreatingCondition) {
 			record.Eventf(s.scope.ControlPlane, "SuccessfulCreateEKSControlPlane", "Created new EKS control plane %s", s.scope.KubernetesClusterName())
-			conditions.MarkFalse(s.scope.ControlPlane, controlplanev1.EKSControlPlaneCreatingCondition, "created", clusterv1.ConditionSeverityInfo, "")
+			conditions.MarkFalse(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneCreatingCondition, "created", clusterv1.ConditionSeverityInfo, "")
 		}
-		if conditions.IsTrue(s.scope.ControlPlane, controlplanev1.EKSControlPlaneUpdatingCondition) {
-			conditions.MarkFalse(s.scope.ControlPlane, controlplanev1.EKSControlPlaneUpdatingCondition, "updated", clusterv1.ConditionSeverityInfo, "")
+		if conditions.IsTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneUpdatingCondition) {
+			conditions.MarkFalse(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneUpdatingCondition, "updated", clusterv1.ConditionSeverityInfo, "")
 			record.Eventf(s.scope.ControlPlane, "SuccessfulUpdateEKSControlPlane", "Updated EKS control plane %s", s.scope.KubernetesClusterName())
 		}
 		// TODO FailureReason
@@ -219,7 +219,7 @@ func (s *Service) deleteClusterAndWait(cluster *eks.Cluster) error {
 	return nil
 }
 
-func makeEksEncryptionConfigs(encryptionConfig *controlplanev1.EncryptionConfig) []*eks.EncryptionConfig {
+func makeEksEncryptionConfigs(encryptionConfig *ekscontrolplanev1.EncryptionConfig) []*eks.EncryptionConfig {
 	cfg := []*eks.EncryptionConfig{}
 
 	if encryptionConfig == nil {
@@ -241,7 +241,7 @@ func makeEksEncryptionConfigs(encryptionConfig *controlplanev1.EncryptionConfig)
 	})
 }
 
-func makeVpcConfig(subnets infrav1.Subnets, endpointAccess controlplanev1.EndpointAccess, securityGroups map[infrav1.SecurityGroupRole]infrav1.SecurityGroup) (*eks.VpcConfigRequest, error) {
+func makeVpcConfig(subnets infrav1.Subnets, endpointAccess ekscontrolplanev1.EndpointAccess, securityGroups map[infrav1.SecurityGroupRole]infrav1.SecurityGroup) (*eks.VpcConfigRequest, error) {
 	// TODO: Do we need to just add the private subnets?
 	if len(subnets) < 2 {
 		return nil, awserrors.NewFailedDependency("at least 2 subnets is required")
@@ -284,7 +284,7 @@ func makeVpcConfig(subnets infrav1.Subnets, endpointAccess controlplanev1.Endpoi
 	return vpcConfig, nil
 }
 
-func makeEksLogging(loggingSpec *controlplanev1.ControlPlaneLoggingSpec) *eks.Logging {
+func makeEksLogging(loggingSpec *ekscontrolplanev1.ControlPlaneLoggingSpec) *eks.Logging {
 	if loggingSpec == nil {
 		return nil
 	}
@@ -373,7 +373,7 @@ func (s *Service) createCluster(eksClusterName string) (*eks.Cluster, error) {
 			}
 			return false, err
 		}
-		conditions.MarkTrue(s.scope.ControlPlane, controlplanev1.EKSControlPlaneCreatingCondition)
+		conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneCreatingCondition)
 		record.Eventf(s.scope.ControlPlane, "InitiatedCreateEKSControlPlane", "Initiated creation of a new EKS control plane %s", s.scope.KubernetesClusterName())
 		return true, nil
 	}, awserrors.ResourceNotFound); err != nil { //TODO: change the error that can be retried
@@ -437,7 +437,7 @@ func (s *Service) reconcileClusterConfig(cluster *eks.Cluster) error {
 				}
 				return false, err
 			}
-			conditions.MarkTrue(s.scope.ControlPlane, controlplanev1.EKSControlPlaneUpdatingCondition)
+			conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneUpdatingCondition)
 			record.Eventf(s.scope.ControlPlane, "InitiatedUpdateEKSControlPlane", "Initiated update of a new EKS control plane %s", s.scope.KubernetesClusterName())
 			return true, nil
 		}); err != nil {
@@ -560,7 +560,7 @@ func (s *Service) reconcileClusterVersion(cluster *eks.Cluster) error {
 				return false, err
 			}
 
-			conditions.MarkTrue(s.scope.ControlPlane, controlplanev1.EKSControlPlaneUpdatingCondition)
+			conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneUpdatingCondition)
 			record.Eventf(s.scope.ControlPlane, "InitiatedUpdateEKSControlPlane", "Initiated update of EKS control plane %s to version %s", s.scope.KubernetesClusterName(), nextVersionString)
 
 			return true, nil
@@ -617,7 +617,7 @@ func (s *Service) updateEncryptionConfig(updatedEncryptionConfigs []*eks.Encrypt
 			return false, err
 		}
 
-		conditions.MarkTrue(s.scope.ControlPlane, controlplanev1.EKSControlPlaneUpdatingCondition)
+		conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneUpdatingCondition)
 		record.Eventf(s.scope.ControlPlane, "InitiatedUpdateEncryptionConfig", "Initiated update of encryption config in EKS control plane %s", s.scope.KubernetesClusterName())
 
 		return true, nil

@@ -26,12 +26,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/record"
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	capiv1exp "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -59,21 +59,21 @@ type AWSManagedMachinePoolReconciler struct {
 func (r *AWSManagedMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	gvk, err := apiutil.GVKForObject(new(infrav1exp.AWSManagedMachinePool), mgr.GetScheme())
+	gvk, err := apiutil.GVKForObject(new(expinfrav1.AWSManagedMachinePool), mgr.GetScheme())
 	if err != nil {
 		return errors.Wrapf(err, "failed to find GVK for AWSManagedMachinePool")
 	}
 	managedControlPlaneToManagedMachinePoolMap := managedControlPlaneToManagedMachinePoolMapFunc(r.Client, gvk, log)
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&infrav1exp.AWSManagedMachinePool{}).
+		For(&expinfrav1.AWSManagedMachinePool{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log, r.WatchFilterValue)).
 		Watches(
-			&source.Kind{Type: &capiv1exp.MachinePool{}},
+			&source.Kind{Type: &expclusterv1.MachinePool{}},
 			handler.EnqueueRequestsFromMapFunc(machinePoolToInfrastructureMapFunc(gvk)),
 		).
 		Watches(
-			&source.Kind{Type: &controlplanev1.AWSManagedControlPlane{}},
+			&source.Kind{Type: &ekscontrolplanev1.AWSManagedControlPlane{}},
 			handler.EnqueueRequestsFromMapFunc(managedControlPlaneToManagedMachinePoolMap),
 		).
 		Complete(r)
@@ -89,7 +89,7 @@ func (r *AWSManagedMachinePoolReconciler) SetupWithManager(ctx context.Context, 
 func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	awsPool := &infrav1exp.AWSManagedMachinePool{}
+	awsPool := &expinfrav1.AWSManagedMachinePool{}
 	if err := r.Get(ctx, req.NamespacedName, awsPool); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -121,7 +121,7 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 		Namespace: awsPool.Namespace,
 		Name:      cluster.Spec.ControlPlaneRef.Name,
 	}
-	controlPlane := &controlplanev1.AWSManagedControlPlane{}
+	controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 	if err := r.Client.Get(ctx, controlPlaneKey, controlPlane); err != nil {
 		log.Info("Failed to retrieve ControlPlane from MachinePool")
 		return reconcile.Result{}, nil
@@ -129,7 +129,7 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 
 	if !controlPlane.Status.Ready {
 		log.Info("Control plane is not ready yet")
-		conditions.MarkFalse(awsPool, infrav1exp.EKSNodegroupReadyCondition, infrav1exp.WaitingForEKSControlPlaneReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.MarkFalse(awsPool, expinfrav1.EKSNodegroupReadyCondition, expinfrav1.WaitingForEKSControlPlaneReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
@@ -150,8 +150,8 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 
 	defer func() {
 		applicableConditions := []clusterv1.ConditionType{
-			infrav1exp.EKSNodegroupReadyCondition,
-			infrav1exp.IAMNodegroupRolesReadyCondition,
+			expinfrav1.EKSNodegroupReadyCondition,
+			expinfrav1.IAMNodegroupRolesReadyCondition,
 		}
 
 		conditions.SetSummary(machinePoolScope.ManagedMachinePool, conditions.WithConditions(applicableConditions...), conditions.WithStepCounter())
@@ -174,7 +174,7 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 ) (ctrl.Result, error) {
 	machinePoolScope.Info("Reconciling AWSManagedMachinePool")
 
-	controllerutil.AddFinalizer(machinePoolScope.ManagedMachinePool, infrav1exp.ManagedMachinePoolFinalizer)
+	controllerutil.AddFinalizer(machinePoolScope.ManagedMachinePool, expinfrav1.ManagedMachinePoolFinalizer)
 	if err := machinePoolScope.PatchObject(); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -200,7 +200,7 @@ func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile machine pool deletion for AWSManagedMachinePool %s/%s", machinePoolScope.ManagedMachinePool.Namespace, machinePoolScope.ManagedMachinePool.Name)
 	}
 
-	controllerutil.RemoveFinalizer(machinePoolScope.ManagedMachinePool, infrav1exp.ManagedMachinePoolFinalizer)
+	controllerutil.RemoveFinalizer(machinePoolScope.ManagedMachinePool, expinfrav1.ManagedMachinePoolFinalizer)
 
 	return reconcile.Result{}, nil
 }
@@ -228,7 +228,7 @@ func GetOwnerClusterKey(obj metav1.ObjectMeta) (*client.ObjectKey, error) {
 func managedControlPlaneToManagedMachinePoolMapFunc(c client.Client, gvk schema.GroupVersionKind, log logr.Logger) handler.MapFunc {
 	return func(o client.Object) []reconcile.Request {
 		ctx := context.Background()
-		awsControlPlane, ok := o.(*controlplanev1.AWSManagedControlPlane)
+		awsControlPlane, ok := o.(*ekscontrolplanev1.AWSManagedControlPlane)
 		if !ok {
 			panic(fmt.Sprintf("Expected a AWSManagedControlPlane but got a %T", o))
 		}
@@ -246,7 +246,7 @@ func managedControlPlaneToManagedMachinePoolMapFunc(c client.Client, gvk schema.
 			return nil
 		}
 
-		managedPoolForClusterList := capiv1exp.MachinePoolList{}
+		managedPoolForClusterList := expclusterv1.MachinePoolList{}
 		if err := c.List(
 			ctx, &managedPoolForClusterList, client.InNamespace(clusterKey.Namespace), client.MatchingLabels{clusterv1.ClusterLabelName: clusterKey.Name},
 		); err != nil {

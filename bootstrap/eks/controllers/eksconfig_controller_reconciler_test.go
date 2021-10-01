@@ -25,10 +25,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha4"
+	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/internal/userdata"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -191,7 +191,7 @@ func newMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
 					Kind:       "EKSConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
+					APIVersion: eksbootstrapv1.GroupVersion.String(),
 				},
 			},
 		},
@@ -206,16 +206,16 @@ func newMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 }
 
 // newEKSConfig return an EKSConfig object; if machine is not nil, the EKSConfig is linked to the machine as well.
-func newEKSConfig(machine *clusterv1.Machine) *bootstrapv1.EKSConfig {
-	config := &bootstrapv1.EKSConfig{
+func newEKSConfig(machine *clusterv1.Machine) *eksbootstrapv1.EKSConfig {
+	config := &eksbootstrapv1.EKSConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "EKSConfig",
-			APIVersion: bootstrapv1.GroupVersion.String(),
+			APIVersion: eksbootstrapv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 		},
-		Spec: bootstrapv1.EKSConfigSpec{
+		Spec: eksbootstrapv1.EKSConfigSpec{
 			KubeletExtraArgs: map[string]string{
 				"test-arg": "test-value",
 			},

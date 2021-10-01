@@ -25,7 +25,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/record"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -38,9 +38,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/awsnode"
@@ -72,7 +72,7 @@ type AWSManagedControlPlaneReconciler struct {
 func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	awsManagedControlPlane := &controlplanev1.AWSManagedControlPlane{}
+	awsManagedControlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(awsManagedControlPlane).
 		WithOptions(options).
@@ -110,7 +110,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 	log := ctrl.LoggerFrom(ctx)
 
 	// Get the control plane instance
-	awsControlPlane := &controlplanev1.AWSManagedControlPlane{}
+	awsControlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 	if err := r.Client.Get(ctx, req.NamespacedName, awsControlPlane); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -150,10 +150,10 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 	// Always close the scope
 	defer func() {
 		applicableConditions := []clusterv1.ConditionType{
-			controlplanev1.EKSControlPlaneReadyCondition,
-			controlplanev1.IAMControlPlaneRolesReadyCondition,
-			controlplanev1.IAMAuthenticatorConfiguredCondition,
-			controlplanev1.EKSAddonsConfiguredCondition,
+			ekscontrolplanev1.EKSControlPlaneReadyCondition,
+			ekscontrolplanev1.IAMControlPlaneRolesReadyCondition,
+			ekscontrolplanev1.IAMAuthenticatorConfiguredCondition,
+			ekscontrolplanev1.EKSAddonsConfiguredCondition,
 			infrav1.VpcReadyCondition,
 			infrav1.SubnetsReadyCondition,
 			infrav1.ClusterSecurityGroupsReadyCondition,
@@ -191,7 +191,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 
 	awsManagedControlPlane := managedScope.ControlPlane
 
-	controllerutil.AddFinalizer(managedScope.ControlPlane, controlplanev1.ManagedControlPlaneFinalizer)
+	controllerutil.AddFinalizer(managedScope.ControlPlane, ekscontrolplanev1.ManagedControlPlaneFinalizer)
 	if err := managedScope.PatchObject(); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -232,10 +232,10 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 	}
 
 	if err := authService.ReconcileIAMAuthenticator(ctx); err != nil {
-		conditions.MarkFalse(awsManagedControlPlane, controlplanev1.IAMAuthenticatorConfiguredCondition, controlplanev1.IAMAuthenticatorConfigurationFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		conditions.MarkFalse(awsManagedControlPlane, ekscontrolplanev1.IAMAuthenticatorConfiguredCondition, ekscontrolplanev1.IAMAuthenticatorConfigurationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile aws-iam-authenticator config for AWSManagedControlPlane %s/%s", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name)
 	}
-	conditions.MarkTrue(awsManagedControlPlane, controlplanev1.IAMAuthenticatorConfiguredCondition)
+	conditions.MarkTrue(awsManagedControlPlane, ekscontrolplanev1.IAMAuthenticatorConfiguredCondition)
 
 	for _, subnet := range managedScope.Subnets().FilterPrivate() {
 		managedScope.SetFailureDomain(subnet.AvailabilityZone, clusterv1.FailureDomainSpec{
@@ -289,7 +289,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileDelete(ctx context.Context, 
 		return reconcile.Result{}, err
 	}
 
-	controllerutil.RemoveFinalizer(controlPlane, controlplanev1.ManagedControlPlaneFinalizer)
+	controllerutil.RemoveFinalizer(controlPlane, ekscontrolplanev1.ManagedControlPlaneFinalizer)
 
 	return reconcile.Result{}, nil
 }
@@ -336,14 +336,14 @@ func (r *AWSManagedControlPlaneReconciler) dependencyCount(ctx context.Context, 
 	dependencies += len(machines.Items)
 
 	if feature.Gates.Enabled(feature.MachinePool) {
-		managedMachinePools := &infrav1exp.AWSManagedMachinePoolList{}
+		managedMachinePools := &expinfrav1.AWSManagedMachinePoolList{}
 		if err := r.Client.List(ctx, managedMachinePools, listOptions...); err != nil {
 			return dependencies, fmt.Errorf("failed to list managed machine pools for cluster %s/%s: %w", namespace, clusterName, err)
 		}
 		log.V(2).Info("tested for AWSManagedMachinePool dependencies", "count", len(managedMachinePools.Items))
 		dependencies += len(managedMachinePools.Items)
 
-		machinePools := &infrav1exp.AWSMachinePoolList{}
+		machinePools := &expinfrav1.AWSMachinePoolList{}
 		if err := r.Client.List(ctx, machinePools, listOptions...); err != nil {
 			return dependencies, fmt.Errorf("failed to list machine pools for cluster %s/%s: %w", namespace, clusterName, err)
 		}

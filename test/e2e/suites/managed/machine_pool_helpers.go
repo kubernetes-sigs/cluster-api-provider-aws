@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -32,7 +32,7 @@ import (
 )
 
 type deleteMachinePoolInput struct {
-	MachinePool *clusterv1exp.MachinePool
+	MachinePool *expclusterv1.MachinePool
 	Deleter     framework.Deleter
 }
 
@@ -42,14 +42,14 @@ func deleteMachinePool(ctx context.Context, input deleteMachinePoolInput) {
 }
 
 type waitForMachinePoolDeletedInput struct {
-	MachinePool *clusterv1exp.MachinePool
+	MachinePool *expclusterv1.MachinePool
 	Getter      framework.Getter
 }
 
 func waitForMachinePoolDeleted(ctx context.Context, input waitForMachinePoolDeletedInput, intervals ...interface{}) {
 	shared.Byf("Waiting for machine pool %s to be deleted", input.MachinePool.GetName())
 	Eventually(func() bool {
-		mp := &clusterv1exp.MachinePool{}
+		mp := &expclusterv1.MachinePool{}
 		key := client.ObjectKey{
 			Namespace: input.MachinePool.GetNamespace(),
 			Name:      input.MachinePool.GetName(),

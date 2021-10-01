@@ -23,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks/identityprovider"
 )
@@ -73,7 +73,7 @@ func (s *Service) reconcileIdentityProvider(ctx context.Context) error {
 	}
 
 	if latest != nil {
-		s.scope.ControlPlane.Status.IdentityProviderStatus = v1alpha4.IdentityProviderStatus{
+		s.scope.ControlPlane.Status.IdentityProviderStatus = ekscontrolplanev1.IdentityProviderStatus{
 			ARN:    aws.StringValue(latest.IdentityProviderConfigArn),
 			Status: aws.StringValue(latest.Status),
 		}

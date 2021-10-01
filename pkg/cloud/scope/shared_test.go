@@ -24,7 +24,7 @@ import (
 
 	"k8s.io/klog/v2/klogr"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 )
 
 func TestSubnetPlacement(t *testing.T) {

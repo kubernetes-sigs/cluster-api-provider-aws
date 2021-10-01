@@ -28,23 +28,24 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/record"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/controllers"
-	ekscontrolplane "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	asg "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/autoscaling"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	capiv1exp "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -87,7 +88,7 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the AWSMachinePool .
-	awsMachinePool := &infrav1exp.AWSMachinePool{}
+	awsMachinePool := &expinfrav1.AWSMachinePool{}
 	err := r.Get(ctx, req.NamespacedName, awsMachinePool)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -143,12 +144,12 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		// set Ready condition before AWSMachinePool is patched
 		conditions.SetSummary(machinePoolScope.AWSMachinePool,
 			conditions.WithConditions(
-				infrav1exp.ASGReadyCondition,
-				infrav1exp.LaunchTemplateReadyCondition,
+				expinfrav1.ASGReadyCondition,
+				expinfrav1.LaunchTemplateReadyCondition,
 			),
 			conditions.WithStepCounterIfOnly(
-				infrav1exp.ASGReadyCondition,
-				infrav1exp.LaunchTemplateReadyCondition,
+				expinfrav1.ASGReadyCondition,
+				expinfrav1.LaunchTemplateReadyCondition,
 			),
 		)
 
@@ -175,12 +176,13 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 }
 
-func (r *AWSMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+func (r *AWSMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&infrav1exp.AWSMachinePool{}).
+		WithOptions(options).
+		For(&expinfrav1.AWSMachinePool{}).
 		Watches(
-			&source.Kind{Type: &capiv1exp.MachinePool{}},
-			handler.EnqueueRequestsFromMapFunc(machinePoolToInfrastructureMapFunc(infrav1exp.GroupVersion.WithKind("AWSMachinePool"))),
+			&source.Kind{Type: &expclusterv1.MachinePool{}},
+			handler.EnqueueRequestsFromMapFunc(machinePoolToInfrastructureMapFunc(expinfrav1.GroupVersion.WithKind("AWSMachinePool"))),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
@@ -199,7 +201,7 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	}
 
 	// If the AWSMachinepool doesn't have our finalizer, add it
-	controllerutil.AddFinalizer(machinePoolScope.AWSMachinePool, infrav1exp.MachinePoolFinalizer)
+	controllerutil.AddFinalizer(machinePoolScope.AWSMachinePool, expinfrav1.MachinePoolFinalizer)
 
 	// Register finalizer immediately to avoid orphaning AWS resources
 	if err := machinePoolScope.PatchObject(); err != nil {
@@ -208,14 +210,14 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 
 	if !machinePoolScope.Cluster.Status.InfrastructureReady {
 		machinePoolScope.Info("Cluster infrastructure is not ready yet")
-		conditions.MarkFalse(machinePoolScope.AWSMachinePool, infrav1exp.ASGReadyCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.MarkFalse(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
 	// Make sure bootstrap data is available and populated
 	if machinePoolScope.MachinePool.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
 		machinePoolScope.Info("Bootstrap data secret reference is not yet available")
-		conditions.MarkFalse(machinePoolScope.AWSMachinePool, infrav1exp.ASGReadyCondition, infrav1.WaitingForBootstrapDataReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.MarkFalse(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, infrav1.WaitingForBootstrapDataReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
@@ -226,7 +228,7 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	}
 
 	// set the LaunchTemplateReady condition
-	conditions.MarkTrue(machinePoolScope.AWSMachinePool, infrav1exp.LaunchTemplateReadyCondition)
+	conditions.MarkTrue(machinePoolScope.AWSMachinePool, expinfrav1.LaunchTemplateReadyCondition)
 
 	// Initialize ASG client
 	asgsvc := r.getASGService(clusterScope)
@@ -234,14 +236,14 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	// Find existing ASG
 	asg, err := r.findASG(machinePoolScope, asgsvc)
 	if err != nil {
-		conditions.MarkUnknown(machinePoolScope.AWSMachinePool, infrav1exp.ASGReadyCondition, infrav1exp.ASGNotFoundReason, err.Error())
+		conditions.MarkUnknown(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, expinfrav1.ASGNotFoundReason, err.Error())
 		return ctrl.Result{}, err
 	}
 
 	if asg == nil {
 		// Create new ASG
 		if _, err := r.createPool(machinePoolScope, clusterScope); err != nil {
-			conditions.MarkFalse(machinePoolScope.AWSMachinePool, infrav1exp.ASGReadyCondition, infrav1exp.ASGProvisionFailedReason, clusterv1.ConditionSeverityError, err.Error())
+			conditions.MarkFalse(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, expinfrav1.ASGProvisionFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil
@@ -270,7 +272,7 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	machinePoolScope.AWSMachinePool.Spec.ProviderIDList = providerIDList
 	machinePoolScope.AWSMachinePool.Status.Replicas = int32(len(providerIDList))
 	machinePoolScope.AWSMachinePool.Status.Ready = true
-	conditions.MarkTrue(machinePoolScope.AWSMachinePool, infrav1exp.ASGReadyCondition)
+	conditions.MarkTrue(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition)
 
 	err = machinePoolScope.UpdateInstanceStatuses(ctx, asg.Instances)
 	if err != nil {
@@ -297,10 +299,10 @@ func (r *AWSMachinePoolReconciler) reconcileDelete(machinePoolScope *scope.Machi
 	} else {
 		machinePoolScope.SetASGStatus(asg.Status)
 		switch asg.Status {
-		case infrav1exp.ASGStatusDeleteInProgress:
+		case expinfrav1.ASGStatusDeleteInProgress:
 			// ASG is already deleting
 			machinePoolScope.SetNotReady()
-			conditions.MarkFalse(machinePoolScope.AWSMachinePool, infrav1exp.ASGReadyCondition, infrav1exp.ASGDeletionInProgress, clusterv1.ConditionSeverityWarning, "")
+			conditions.MarkFalse(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, expinfrav1.ASGDeletionInProgress, clusterv1.ConditionSeverityWarning, "")
 			r.Recorder.Eventf(machinePoolScope.AWSMachinePool, corev1.EventTypeWarning, "DeletionInProgress", "ASG deletion in progress: %q", asg.Name)
 			machinePoolScope.Info("ASG is already deleting", "name", asg.Name)
 		default:
@@ -321,7 +323,7 @@ func (r *AWSMachinePoolReconciler) reconcileDelete(machinePoolScope *scope.Machi
 	if launchTemplate == nil {
 		machinePoolScope.V(2).Info("Unable to locate launch template")
 		r.Recorder.Eventf(machinePoolScope.AWSMachinePool, corev1.EventTypeNormal, "NoASGFound", "Unable to find matching ASG")
-		controllerutil.RemoveFinalizer(machinePoolScope.AWSMachinePool, infrav1exp.MachinePoolFinalizer)
+		controllerutil.RemoveFinalizer(machinePoolScope.AWSMachinePool, expinfrav1.MachinePoolFinalizer)
 		return ctrl.Result{}, nil
 	}
 
@@ -334,12 +336,12 @@ func (r *AWSMachinePoolReconciler) reconcileDelete(machinePoolScope *scope.Machi
 	machinePoolScope.Info("successfully deleted AutoScalingGroup and Launch Template")
 
 	// remove finalizer
-	controllerutil.RemoveFinalizer(machinePoolScope.AWSMachinePool, infrav1exp.MachinePoolFinalizer)
+	controllerutil.RemoveFinalizer(machinePoolScope.AWSMachinePool, expinfrav1.MachinePoolFinalizer)
 
 	return ctrl.Result{}, nil
 }
 
-func (r *AWSMachinePoolReconciler) updatePool(machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper, existingASG *infrav1exp.AutoScalingGroup) error {
+func (r *AWSMachinePoolReconciler) updatePool(machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper, existingASG *expinfrav1.AutoScalingGroup) error {
 	if asgNeedsUpdates(machinePoolScope, existingASG) {
 		machinePoolScope.Info("updating AutoScalingGroup")
 		asgSvc := r.getASGService(clusterScope)
@@ -353,7 +355,7 @@ func (r *AWSMachinePoolReconciler) updatePool(machinePoolScope *scope.MachinePoo
 	return nil
 }
 
-func (r *AWSMachinePoolReconciler) createPool(machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper) (*infrav1exp.AutoScalingGroup, error) {
+func (r *AWSMachinePoolReconciler) createPool(machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper) (*expinfrav1.AutoScalingGroup, error) {
 	clusterScope.Info("Initializing ASG client")
 
 	asgsvc := r.getASGService(clusterScope)
@@ -367,7 +369,7 @@ func (r *AWSMachinePoolReconciler) createPool(machinePoolScope *scope.MachinePoo
 	return asg, nil
 }
 
-func (r *AWSMachinePoolReconciler) findASG(machinePoolScope *scope.MachinePoolScope, asgsvc services.ASGInterface) (*infrav1exp.AutoScalingGroup, error) {
+func (r *AWSMachinePoolReconciler) findASG(machinePoolScope *scope.MachinePoolScope, asgsvc services.ASGInterface) (*expinfrav1.AutoScalingGroup, error) {
 	// Query the instance using tags.
 	asg, err := asgsvc.GetASGByName(machinePoolScope)
 	if err != nil {
@@ -389,13 +391,13 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 	machinePoolScope.Info("checking for existing launch template")
 	launchTemplate, launchTemplateUserDataHash, err := ec2svc.GetLaunchTemplate(machinePoolScope.Name())
 	if err != nil {
-		conditions.MarkUnknown(machinePoolScope.AWSMachinePool, infrav1exp.LaunchTemplateReadyCondition, infrav1exp.LaunchTemplateNotFoundReason, err.Error())
+		conditions.MarkUnknown(machinePoolScope.AWSMachinePool, expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNotFoundReason, err.Error())
 		return err
 	}
 
 	imageID, err := ec2svc.DiscoverLaunchTemplateAMI(machinePoolScope)
 	if err != nil {
-		conditions.MarkFalse(machinePoolScope.AWSMachinePool, infrav1exp.LaunchTemplateReadyCondition, infrav1exp.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		conditions.MarkFalse(machinePoolScope.AWSMachinePool, expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return err
 	}
 
@@ -403,7 +405,7 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 		machinePoolScope.Info("no existing launch template found, creating")
 		launchTemplateID, err := ec2svc.CreateLaunchTemplate(machinePoolScope, imageID, bootstrapData)
 		if err != nil {
-			conditions.MarkFalse(machinePoolScope.AWSMachinePool, infrav1exp.LaunchTemplateReadyCondition, infrav1exp.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, err.Error())
+			conditions.MarkFalse(machinePoolScope.AWSMachinePool, expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return err
 		}
 
@@ -416,7 +418,7 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 	if machinePoolScope.AWSMachinePool.Status.LaunchTemplateID == "" {
 		launchTemplateID, err := ec2svc.GetLaunchTemplateID(machinePoolScope.Name())
 		if err != nil {
-			conditions.MarkUnknown(machinePoolScope.AWSMachinePool, infrav1exp.LaunchTemplateReadyCondition, infrav1exp.LaunchTemplateNotFoundReason, err.Error())
+			conditions.MarkUnknown(machinePoolScope.AWSMachinePool, expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNotFoundReason, err.Error())
 			return err
 		}
 		machinePoolScope.SetLaunchTemplateIDStatus(launchTemplateID)
@@ -446,7 +448,7 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 			return err
 		}
 		if !canStart {
-			conditions.MarkFalse(machinePoolScope.AWSMachinePool, infrav1exp.InstanceRefreshStartedCondition, infrav1exp.InstanceRefreshNotReadyReason, clusterv1.ConditionSeverityWarning, "")
+			conditions.MarkFalse(machinePoolScope.AWSMachinePool, expinfrav1.InstanceRefreshStartedCondition, expinfrav1.InstanceRefreshNotReadyReason, clusterv1.ConditionSeverityWarning, "")
 			return errors.New("Cannot start a new instance refresh. Unfinished instance refresh exist")
 		}
 	}
@@ -478,10 +480,10 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 		machinePoolScope.Info("starting instance refresh", "number of instances", machinePoolScope.MachinePool.Spec.Replicas)
 		asgSvc := r.getASGService(ec2Scope)
 		if err := asgSvc.StartASGInstanceRefresh(machinePoolScope); err != nil {
-			conditions.MarkFalse(machinePoolScope.AWSMachinePool, infrav1exp.InstanceRefreshStartedCondition, infrav1exp.InstanceRefreshFailedReason, clusterv1.ConditionSeverityError, err.Error())
+			conditions.MarkFalse(machinePoolScope.AWSMachinePool, expinfrav1.InstanceRefreshStartedCondition, expinfrav1.InstanceRefreshFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return err
 		}
-		conditions.MarkTrue(machinePoolScope.AWSMachinePool, infrav1exp.InstanceRefreshStartedCondition)
+		conditions.MarkTrue(machinePoolScope.AWSMachinePool, expinfrav1.InstanceRefreshStartedCondition)
 	}
 
 	return nil
@@ -506,7 +508,7 @@ func (r *AWSMachinePoolReconciler) reconcileTags(machinePoolScope *scope.Machine
 }
 
 // asgNeedsUpdates compares incoming AWSMachinePool and compares against existing ASG.
-func asgNeedsUpdates(machinePoolScope *scope.MachinePoolScope, existingASG *infrav1exp.AutoScalingGroup) bool {
+func asgNeedsUpdates(machinePoolScope *scope.MachinePoolScope, existingASG *expinfrav1.AutoScalingGroup) bool {
 	if machinePoolScope.MachinePool.Spec.Replicas != nil && machinePoolScope.MachinePool.Spec.Replicas != existingASG.DesiredCapacity {
 		return true
 	}
@@ -534,7 +536,7 @@ func asgNeedsUpdates(machinePoolScope *scope.MachinePoolScope, existingASG *infr
 }
 
 // getOwnerMachinePool returns the MachinePool object owning the current resource.
-func getOwnerMachinePool(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*capiv1exp.MachinePool, error) {
+func getOwnerMachinePool(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*expclusterv1.MachinePool, error) {
 	for _, ref := range obj.OwnerReferences {
 		if ref.Kind != "MachinePool" {
 			continue
@@ -543,7 +545,7 @@ func getOwnerMachinePool(ctx context.Context, c client.Client, obj metav1.Object
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		if gv.Group == capiv1exp.GroupVersion.Group {
+		if gv.Group == expclusterv1.GroupVersion.Group {
 			return getMachinePoolByName(ctx, c, obj.Namespace, ref.Name)
 		}
 	}
@@ -551,8 +553,8 @@ func getOwnerMachinePool(ctx context.Context, c client.Client, obj metav1.Object
 }
 
 // getMachinePoolByName finds and return a Machine object using the specified params.
-func getMachinePoolByName(ctx context.Context, c client.Client, namespace, name string) (*capiv1exp.MachinePool, error) {
-	m := &capiv1exp.MachinePool{}
+func getMachinePoolByName(ctx context.Context, c client.Client, namespace, name string) (*expclusterv1.MachinePool, error) {
+	m := &expclusterv1.MachinePool{}
 	key := client.ObjectKey{Name: name, Namespace: namespace}
 	if err := c.Get(ctx, key, m); err != nil {
 		return nil, err
@@ -562,7 +564,7 @@ func getMachinePoolByName(ctx context.Context, c client.Client, namespace, name 
 
 func machinePoolToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.MapFunc {
 	return func(o client.Object) []reconcile.Request {
-		m, ok := o.(*capiv1exp.MachinePool)
+		m, ok := o.(*expclusterv1.MachinePool)
 		if !ok {
 			panic(fmt.Sprintf("Expected a MachinePool but got a %T", o))
 		}
@@ -585,13 +587,13 @@ func machinePoolToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.Map
 	}
 }
 
-func (r *AWSMachinePoolReconciler) getInfraCluster(ctx context.Context, log logr.Logger, cluster *clusterv1.Cluster, awsMachinePool *infrav1exp.AWSMachinePool) (scope.EC2Scope, error) {
+func (r *AWSMachinePoolReconciler) getInfraCluster(ctx context.Context, log logr.Logger, cluster *clusterv1.Cluster, awsMachinePool *expinfrav1.AWSMachinePool) (scope.EC2Scope, error) {
 	var clusterScope *scope.ClusterScope
 	var managedControlPlaneScope *scope.ManagedControlPlaneScope
 	var err error
 
 	if cluster.Spec.ControlPlaneRef != nil && cluster.Spec.ControlPlaneRef.Kind == controllers.AWSManagedControlPlaneRefKind {
-		controlPlane := &ekscontrolplane.AWSManagedControlPlane{}
+		controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 		controlPlaneName := client.ObjectKey{
 			Namespace: awsMachinePool.Namespace,
 			Name:      cluster.Spec.ControlPlaneRef.Name,

@@ -28,6 +28,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"os/exec"
+	"bytes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -42,8 +44,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
 	cloudformation "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/service"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/credentials"
@@ -233,6 +239,106 @@ func deleteCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Temp
 	CFN.WaitUntilStackDeleteComplete(&cfn.DescribeStacksInput{
 		StackName: aws.String(t.Spec.StackName),
 	})
+}
+
+func ensureTestImageUploaded(e2eCtx *E2EContext) (string, string, error) {
+	By("Determining the account ID")
+	stsSvc := sts.New(e2eCtx.BootstrapUserAWSSession)
+	accountInfo := &sts.GetCallerIdentityOutput{}
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		var intErr error
+		accountInfo, intErr = stsSvc.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+		if intErr != nil {
+			return false, intErr
+		}
+		return true, nil
+	}, awserrors.InvalidClientTokenID); err != nil {
+		return "", "", nil
+	}
+	region, err := credentials.ResolveRegion("")
+	if err != nil {
+		return "", "", err
+	}
+	accountID := aws.StringValue(accountInfo.Account)
+	bucketName := fmt.Sprintf("capi-images.%s.%s.oci-images", region, accountID)
+	By("Creating an S3 bucket for container images")
+	s3Svc := s3.New(e2eCtx.BootstrapUserAWSSession)
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		_, err = s3Svc.CreateBucket(&s3.CreateBucketInput{
+			ACL: aws.String("public-read"),
+			Bucket: aws.String(bucketName),
+		})
+		if err != nil && !awserrors.IsBucketAlreadyOwnedByYou(err) {
+			return false, err
+		}
+		return true, nil
+	}, awserrors.InvalidAccessKeyID); err != nil {
+		return "", "", nil
+	}
+
+	dir, err := ioutil.TempDir(e2eCtx.Settings.ArtifactFolder, "containers")
+	if err != nil {
+		return "", "", err
+	}
+	defer os.RemoveAll(dir)
+
+	dockerImage :=  fmt.Sprintf("%s/image.tar", dir)
+
+
+	Byf("Saving the e2e image to %s", dockerImage)
+	err = exec.Command("docker", "save", "gcr.io/k8s-staging-cluster-api/capa-manager:e2e", "-o", dockerImage).Run()
+
+	if err != nil {
+		return "", "", err
+	}
+
+	cmd := exec.Command("docker", "inspect", "--format='{{index .Id}}'", "gcr.io/k8s-staging-cluster-api/capa-manager:e2e")
+	var stdOut bytes.Buffer
+	cmd.Stdout = &stdOut
+	err = cmd.Run()
+
+	if err != nil {
+		return "","",  err
+	}
+
+	imageSha := strings.ReplaceAll(strings.TrimSuffix(string(stdOut.Bytes()), "\n"), "'", "")
+
+	uploader := s3manager.NewUploader(e2eCtx.AWSSession)
+
+	f, err := os.Open(dockerImage)
+	if err != nil {
+		return "", "", err
+	}
+
+	Byf("Uploading the e2e image to s3:///%s/%s", bucketName, imageSha)
+	_, err = uploader.Upload(&s3manager.UploadInput{
+		Bucket: aws.String(bucketName),
+		Key: aws.String(imageSha),
+		Body: f,
+	})
+
+	Byf("Making the image public")
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		_, err = s3Svc.PutObjectAcl(&s3.PutObjectAclInput{
+			ACL: aws.String("public-read"),
+			Bucket: aws.String(bucketName),
+			Key: aws.String(imageSha),
+		})
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	}, awserrors.NoSuchKey); err != nil {
+		return "", "", nil
+	}
+
+
+	if err != nil {
+		return "", "", err
+	}
+
+	Byf("Image uploaded to s3:///%s/%s", bucketName, imageSha)
+	return bucketName, imageSha, nil
 }
 
 // ensureNoServiceLinkedRoles removes an auto-created IAM role, and tests

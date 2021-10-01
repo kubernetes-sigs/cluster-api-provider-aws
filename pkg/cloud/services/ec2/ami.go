@@ -24,7 +24,7 @@ import (
 	"text/template"
 	"time"
 
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -229,7 +229,7 @@ func (s *Service) defaultBastionAMILookup(region string) string {
 	}
 }
 
-func (s *Service) eksAMILookup(kubernetesVersion string, amiType *v1alpha4.EKSAMILookupType) (string, error) {
+func (s *Service) eksAMILookup(kubernetesVersion string, amiType *infrav1.EKSAMILookupType) (string, error) {
 	// format ssm parameter path properly
 	formattedVersion, err := formatVersionForEKS(kubernetesVersion)
 	if err != nil {
@@ -239,11 +239,11 @@ func (s *Service) eksAMILookup(kubernetesVersion string, amiType *v1alpha4.EKSAM
 	var paramName string
 
 	if amiType == nil {
-		amiType = new(v1alpha4.EKSAMILookupType)
+		amiType = new(infrav1.EKSAMILookupType)
 	}
 
 	switch *amiType {
-	case v1alpha4.AmazonLinuxGPU:
+	case infrav1.AmazonLinuxGPU:
 		paramName = fmt.Sprintf(eksGPUAmiSSMParameterFormat, formattedVersion)
 	default:
 		paramName = fmt.Sprintf(eksAmiSSMParameterFormat, formattedVersion)

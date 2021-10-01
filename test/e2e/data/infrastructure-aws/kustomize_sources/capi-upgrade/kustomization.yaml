@@ -1,0 +1,4 @@
+resources:
+  - ../default
+patchesStrategicMerge:
+  - patches/image-injection.yaml

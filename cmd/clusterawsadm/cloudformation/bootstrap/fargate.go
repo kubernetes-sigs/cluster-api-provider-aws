@@ -17,7 +17,7 @@ limitations under the License.
 package bootstrap
 
 import (
-	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/bootstrap/v1alpha1"
+	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/bootstrap/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks"
 )
 

@@ -1,19 +1,19 @@
 ---
-apiVersion: cluster.x-k8s.io/v1alpha4
+apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
   name: "${CLUSTER_NAME}"
 spec:
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     kind: AWSCluster
     name: "${CLUSTER_NAME}"
   controlPlaneRef:
     kind: KubeadmControlPlane
-    apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     name: "${CLUSTER_NAME}-control-plane"
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSCluster
 metadata:
   name: "${CLUSTER_NAME}"
@@ -22,7 +22,7 @@ spec:
   sshKeyName: "${AWS_SSH_KEY_NAME}"
 ---
 kind: KubeadmControlPlane
-apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
 spec:
@@ -30,7 +30,7 @@ spec:
   machineTemplate:
     infrastructureRef:
       kind: AWSMachineTemplate
-      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
       name: "${CLUSTER_NAME}-control-plane"
   kubeadmConfigSpec:
     initConfiguration:
@@ -53,7 +53,7 @@ spec:
   version: "${KUBERNETES_VERSION}"
 ---
 kind: AWSMachineTemplate
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
 spec:
@@ -63,7 +63,7 @@ spec:
       iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
       sshKeyName: "${AWS_SSH_KEY_NAME}"
 ---
-apiVersion: cluster.x-k8s.io/v1alpha4
+apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachinePool
 metadata:
   name: ${CLUSTER_NAME}-mp-0
@@ -75,17 +75,17 @@ spec:
     spec:
       bootstrap:
         configRef:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
           kind: KubeadmConfig
           name: ${CLUSTER_NAME}-mp-0
       clusterName: ${CLUSTER_NAME}
       infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: AWSMachinePool
         name: ${CLUSTER_NAME}-mp-0
       version: ${KUBERNETES_VERSION}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSMachinePool
 metadata:
   name: ${CLUSTER_NAME}-mp-0
@@ -93,7 +93,7 @@ metadata:
 spec:
   minSize: 1
   maxSize: 10
-  availabilityZones: 
+  availabilityZones:
     - "${AWS_REGION}"
   awsLaunchTemplate:
     instanceType: "${AWS_CONTROL_PLANE_MACHINE_TYPE}"
@@ -101,7 +101,7 @@ spec:
   subnets:
   - ${AWS_SUBNET}
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfig
 metadata:
   name: ${CLUSTER_NAME}-mp-0

@@ -18,7 +18,7 @@ package v1alpha4
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
 const (
@@ -44,7 +44,7 @@ type AWSClusterSpec struct {
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
-	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
+	ControlPlaneEndpoint clusterv1alpha4.APIEndpoint `json:"controlPlaneEndpoint"`
 
 	// AdditionalTags is an optional set of tags to add to AWS resources managed by the AWS provider, in addition to the
 	// ones added by default.
@@ -176,22 +176,22 @@ type AWSLoadBalancerSpec struct {
 // AWSClusterStatus defines the observed state of AWSCluster
 type AWSClusterStatus struct {
 	// +kubebuilder:default=false
-	Ready          bool                     `json:"ready"`
-	Network        NetworkStatus            `json:"networkStatus,omitempty"`
-	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
-	Bastion        *Instance                `json:"bastion,omitempty"`
-	Conditions     clusterv1.Conditions     `json:"conditions,omitempty"`
+	Ready          bool                           `json:"ready"`
+	Network        NetworkStatus                  `json:"networkStatus,omitempty"`
+	FailureDomains clusterv1alpha4.FailureDomains `json:"failureDomains,omitempty"`
+	Bastion        *Instance                      `json:"bastion,omitempty"`
+	Conditions     clusterv1alpha4.Conditions     `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=awsclusters,scope=Namespaced,categories=cluster-api,shortName=awsc
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this AWSCluster belongs"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Cluster infrastructure is ready for EC2 instances"
 // +kubebuilder:printcolumn:name="VPC",type="string",JSONPath=".spec.network.vpc.id",description="AWS VPC the cluster is using"
 // +kubebuilder:printcolumn:name="Endpoint",type="string",JSONPath=".spec.controlPlaneEndpoint",description="API Endpoint",priority=1
 // +kubebuilder:printcolumn:name="Bastion IP",type="string",JSONPath=".status.bastion.publicIp",description="Bastion IP address for breakglass access"
+// +k8s:defaulter-gen=true
 
 // AWSCluster is the Schema for the awsclusters API.
 type AWSCluster struct {
@@ -212,12 +212,12 @@ type AWSClusterList struct {
 }
 
 // GetConditions returns the observations of the operational state of the AWSCluster resource.
-func (r *AWSCluster) GetConditions() clusterv1.Conditions {
+func (r *AWSCluster) GetConditions() clusterv1alpha4.Conditions {
 	return r.Status.Conditions
 }
 
-// SetConditions sets the underlying service state of the AWSCluster to the predescribed clusterv1.Conditions.
-func (r *AWSCluster) SetConditions(conditions clusterv1.Conditions) {
+// SetConditions sets the underlying service state of the AWSCluster to the predescribed clusterv1alpha4.Conditions.
+func (r *AWSCluster) SetConditions(conditions clusterv1alpha4.Conditions) {
 	r.Status.Conditions = conditions
 }
 

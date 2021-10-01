@@ -19,15 +19,15 @@ package bootstrap
 import (
 	"fmt"
 
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
 
 	"github.com/awslabs/goformation/v4/cloudformation"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 
-	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/bootstrap/v1alpha1"
+	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/bootstrap/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	eksiam "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/iam"
 )
 
@@ -181,7 +181,7 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 	if !t.Spec.EKS.DefaultControlPlaneRole.Disable && !t.Spec.EKS.Disable {
 		template.Resources[AWSIAMRoleEKSControlPlane] = &cfn_iam.Role{
 			RoleName:                 ekscontrolplanev1.DefaultEKSControlPlaneRole,
-			AssumeRolePolicyDocument: AssumeRolePolicy(v1alpha4.PrincipalService, []string{"eks.amazonaws.com"}),
+			AssumeRolePolicyDocument: AssumeRolePolicy(iamv1.PrincipalService, []string{"eks.amazonaws.com"}),
 			ManagedPolicyArns:        t.eksControlPlanePolicies(),
 			Tags:                     converters.MapToCloudFormationTags(t.Spec.EKS.DefaultControlPlaneRole.Tags),
 		}
@@ -189,8 +189,8 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 
 	if !t.Spec.EKS.ManagedMachinePool.Disable && !t.Spec.EKS.Disable {
 		template.Resources[AWSIAMRoleEKSNodegroup] = &cfn_iam.Role{
-			RoleName:                 infrav1exp.DefaultEKSNodegroupRole,
-			AssumeRolePolicyDocument: AssumeRolePolicy(v1alpha4.PrincipalService, []string{"ec2.amazonaws.com", "eks.amazonaws.com"}),
+			RoleName:                 expinfrav1.DefaultEKSNodegroupRole,
+			AssumeRolePolicyDocument: AssumeRolePolicy(iamv1.PrincipalService, []string{"ec2.amazonaws.com", "eks.amazonaws.com"}),
 			ManagedPolicyArns:        t.eksMachinePoolPolicies(),
 			Tags:                     converters.MapToCloudFormationTags(t.Spec.EKS.ManagedMachinePool.Tags),
 		}
@@ -198,8 +198,8 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 
 	if !t.Spec.EKS.Fargate.Disable && !t.Spec.EKS.Disable {
 		template.Resources[AWSIAMRoleEKSFargate] = &cfn_iam.Role{
-			RoleName:                 infrav1exp.DefaultEKSFargateRole,
-			AssumeRolePolicyDocument: AssumeRolePolicy(v1alpha4.PrincipalService, []string{eksiam.EKSFargateService}),
+			RoleName:                 expinfrav1.DefaultEKSFargateRole,
+			AssumeRolePolicyDocument: AssumeRolePolicy(iamv1.PrincipalService, []string{eksiam.EKSFargateService}),
 			ManagedPolicyArns:        fargateProfilePolicies(t.Spec.EKS.Fargate),
 			Tags:                     converters.MapToCloudFormationTags(t.Spec.EKS.Fargate.Tags),
 		}
@@ -208,29 +208,29 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 	return template
 }
 
-func ec2AssumeRolePolicy() *v1alpha4.PolicyDocument {
-	return AssumeRolePolicy(v1alpha4.PrincipalService, []string{"ec2.amazonaws.com"})
+func ec2AssumeRolePolicy() *iamv1.PolicyDocument {
+	return AssumeRolePolicy(iamv1.PrincipalService, []string{"ec2.amazonaws.com"})
 }
 
 // AWSArnAssumeRolePolicy will assume Policies using PolicyArns.
-func AWSArnAssumeRolePolicy(identityID string) *v1alpha4.PolicyDocument {
-	return AssumeRolePolicy(v1alpha4.PrincipalAWS, []string{identityID})
+func AWSArnAssumeRolePolicy(identityID string) *iamv1.PolicyDocument {
+	return AssumeRolePolicy(iamv1.PrincipalAWS, []string{identityID})
 }
 
 // AWSServiceAssumeRolePolicy will assume an AWS Service policy.
-func AWSServiceAssumeRolePolicy(identityID string) *v1alpha4.PolicyDocument {
-	return AssumeRolePolicy(v1alpha4.PrincipalService, []string{identityID})
+func AWSServiceAssumeRolePolicy(identityID string) *iamv1.PolicyDocument {
+	return AssumeRolePolicy(iamv1.PrincipalService, []string{identityID})
 }
 
 // AssumeRolePolicy will create a role session and pass session policies programmatically.
-func AssumeRolePolicy(identityType v1alpha4.PrincipalType, principalIDs []string) *v1alpha4.PolicyDocument {
-	return &v1alpha4.PolicyDocument{
-		Version: v1alpha4.CurrentVersion,
-		Statement: []v1alpha4.StatementEntry{
+func AssumeRolePolicy(identityType iamv1.PrincipalType, principalIDs []string) *iamv1.PolicyDocument {
+	return &iamv1.PolicyDocument{
+		Version: iamv1.CurrentVersion,
+		Statement: []iamv1.StatementEntry{
 			{
-				Effect:    v1alpha4.EffectAllow,
-				Principal: v1alpha4.Principals{identityType: principalIDs},
-				Action:    v1alpha4.Actions{"sts:AssumeRole"},
+				Effect:    iamv1.EffectAllow,
+				Principal: iamv1.Principals{identityType: principalIDs},
+				Action:    iamv1.Actions{"sts:AssumeRole"},
 			},
 		},
 	}

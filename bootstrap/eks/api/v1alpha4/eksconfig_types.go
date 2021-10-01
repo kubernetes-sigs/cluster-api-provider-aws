@@ -18,11 +18,8 @@ package v1alpha4
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
-
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // EKSConfigSpec defines the desired state of EKSConfig
 type EKSConfigSpec struct {
@@ -54,12 +51,11 @@ type EKSConfigStatus struct {
 
 	// Conditions defines current service state of the EKSConfig.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1alpha4.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=eksconfigs,scope=Namespaced,categories=cluster-api,shortName=eksc
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Bootstrap configuration is ready"
 // +kubebuilder:printcolumn:name="DataSecretName",type="string",JSONPath=".status.dataSecretName",description="Name of Secret containing bootstrap data"
@@ -74,12 +70,12 @@ type EKSConfig struct {
 }
 
 // GetConditions returns the observations of the operational state of the EKSConfig resource.
-func (r *EKSConfig) GetConditions() clusterv1.Conditions {
+func (r *EKSConfig) GetConditions() clusterv1alpha4.Conditions {
 	return r.Status.Conditions
 }
 
-// SetConditions sets the underlying service state of the EKSConfig to the predescribed clusterv1.Conditions.
-func (r *EKSConfig) SetConditions(conditions clusterv1.Conditions) {
+// SetConditions sets the underlying service state of the EKSConfig to the predescribed clusterv1alpha4.Conditions.
+func (r *EKSConfig) SetConditions(conditions clusterv1alpha4.Conditions) {
 	r.Status.Conditions = conditions
 }
 
