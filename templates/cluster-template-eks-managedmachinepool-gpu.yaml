@@ -1,5 +1,5 @@
 ---
-apiVersion: cluster.x-k8s.io/v1alpha4
+apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
   name: "${CLUSTER_NAME}"
@@ -11,15 +11,15 @@ spec:
       cidrBlocks: ["192.168.0.0/16"]
   infrastructureRef:
     kind: AWSManagedControlPlane
-    apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     name: "${CLUSTER_NAME}-control-plane"
   controlPlaneRef:
     kind: AWSManagedControlPlane
-    apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     name: "${CLUSTER_NAME}-control-plane"
 ---
 kind: AWSManagedControlPlane
-apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
 spec:
@@ -31,7 +31,7 @@ spec:
       version: "${VPC_ADDON_VERSION:=v1.7.5-eksbuild.1}"
       conflictResolution: "overwrite"
 ---
-apiVersion: cluster.x-k8s.io/v1alpha4
+apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachinePool
 metadata:
   name: "${CLUSTER_NAME}-pool-0"
@@ -45,10 +45,10 @@ spec:
         dataSecretName: ""
       infrastructureRef:
         name: "${CLUSTER_NAME}-pool-0"
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: AWSManagedMachinePool
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSManagedMachinePool
 metadata:
   name: "${CLUSTER_NAME}-pool-0"
@@ -56,7 +56,7 @@ spec:
   amiType: "AL2_x86_64_GPU"
   instanceType: "g4dn.xlarge"
 ---
-apiVersion: addons.cluster.x-k8s.io/v1alpha4
+apiVersion: addons.cluster.x-k8s.io/v1beta1
 kind: ClusterResourceSet
 metadata:
  name: crs-nvidia

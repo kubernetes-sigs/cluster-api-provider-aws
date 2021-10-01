@@ -1,16 +1,25 @@
 domain: cluster.x-k8s.io
 repo: sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks
 resources:
+# v1alpha3 types
 - group: bootstrap
   kind: EKSConfig
   version: v1alpha3
 - group: bootstrap
   kind: EKSConfigTemplate
   version: v1alpha3
+# v1alpha4 types
 - group: bootstrap
   kind: EKSConfig
   version: v1alpha4
 - group: bootstrap
   kind: EKSConfigTemplate
   version: v1alpha4
+# v1beta1 types
+- group: bootstrap
+  kind: EKSConfig
+  version: v1beta1
+- group: bootstrap
+  kind: EKSConfigTemplate
+  version: v1beta1
 version: "2"

@@ -552,6 +552,56 @@ func (mr *MockEKSAPIMockRecorder) DeleteNodegroupWithContext(arg0, arg1 interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNodegroupWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DeleteNodegroupWithContext), varargs...)
 }
 
+// DeregisterCluster mocks base method.
+func (m *MockEKSAPI) DeregisterCluster(arg0 *eks.DeregisterClusterInput) (*eks.DeregisterClusterOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeregisterCluster", arg0)
+	ret0, _ := ret[0].(*eks.DeregisterClusterOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeregisterCluster indicates an expected call of DeregisterCluster.
+func (mr *MockEKSAPIMockRecorder) DeregisterCluster(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterCluster", reflect.TypeOf((*MockEKSAPI)(nil).DeregisterCluster), arg0)
+}
+
+// DeregisterClusterRequest mocks base method.
+func (m *MockEKSAPI) DeregisterClusterRequest(arg0 *eks.DeregisterClusterInput) (*request.Request, *eks.DeregisterClusterOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeregisterClusterRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*eks.DeregisterClusterOutput)
+	return ret0, ret1
+}
+
+// DeregisterClusterRequest indicates an expected call of DeregisterClusterRequest.
+func (mr *MockEKSAPIMockRecorder) DeregisterClusterRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterClusterRequest", reflect.TypeOf((*MockEKSAPI)(nil).DeregisterClusterRequest), arg0)
+}
+
+// DeregisterClusterWithContext mocks base method.
+func (m *MockEKSAPI) DeregisterClusterWithContext(arg0 context.Context, arg1 *eks.DeregisterClusterInput, arg2 ...request.Option) (*eks.DeregisterClusterOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeregisterClusterWithContext", varargs...)
+	ret0, _ := ret[0].(*eks.DeregisterClusterOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeregisterClusterWithContext indicates an expected call of DeregisterClusterWithContext.
+func (mr *MockEKSAPIMockRecorder) DeregisterClusterWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterClusterWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DeregisterClusterWithContext), varargs...)
+}
+
 // DescribeAddon mocks base method.
 func (m *MockEKSAPI) DescribeAddon(arg0 *eks.DescribeAddonInput) (*eks.DescribeAddonOutput, error) {
 	m.ctrl.T.Helper()
@@ -1531,6 +1581,56 @@ func (mr *MockEKSAPIMockRecorder) ListUpdatesWithContext(arg0, arg1 interface{},
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUpdatesWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListUpdatesWithContext), varargs...)
+}
+
+// RegisterCluster mocks base method.
+func (m *MockEKSAPI) RegisterCluster(arg0 *eks.RegisterClusterInput) (*eks.RegisterClusterOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterCluster", arg0)
+	ret0, _ := ret[0].(*eks.RegisterClusterOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RegisterCluster indicates an expected call of RegisterCluster.
+func (mr *MockEKSAPIMockRecorder) RegisterCluster(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterCluster", reflect.TypeOf((*MockEKSAPI)(nil).RegisterCluster), arg0)
+}
+
+// RegisterClusterRequest mocks base method.
+func (m *MockEKSAPI) RegisterClusterRequest(arg0 *eks.RegisterClusterInput) (*request.Request, *eks.RegisterClusterOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterClusterRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*eks.RegisterClusterOutput)
+	return ret0, ret1
+}
+
+// RegisterClusterRequest indicates an expected call of RegisterClusterRequest.
+func (mr *MockEKSAPIMockRecorder) RegisterClusterRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterClusterRequest", reflect.TypeOf((*MockEKSAPI)(nil).RegisterClusterRequest), arg0)
+}
+
+// RegisterClusterWithContext mocks base method.
+func (m *MockEKSAPI) RegisterClusterWithContext(arg0 context.Context, arg1 *eks.RegisterClusterInput, arg2 ...request.Option) (*eks.RegisterClusterOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "RegisterClusterWithContext", varargs...)
+	ret0, _ := ret[0].(*eks.RegisterClusterOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RegisterClusterWithContext indicates an expected call of RegisterClusterWithContext.
+func (mr *MockEKSAPIMockRecorder) RegisterClusterWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterClusterWithContext", reflect.TypeOf((*MockEKSAPI)(nil).RegisterClusterWithContext), varargs...)
 }
 
 // TagResource mocks base method.

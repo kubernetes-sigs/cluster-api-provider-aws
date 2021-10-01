@@ -42,7 +42,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/test/helpers/external"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -215,7 +215,6 @@ func (t *TestEnvironmentConfiguration) Build() (*TestEnvironment, error) {
 func buildModifiedWebhook(tag string, relativeFilePath string) (admissionv1.MutatingWebhookConfiguration, admissionv1.ValidatingWebhookConfiguration, error) {
 	var mutatingWebhook admissionv1.MutatingWebhookConfiguration
 	var validatingWebhook admissionv1.ValidatingWebhookConfiguration
-
 	data, err := ioutil.ReadFile(filepath.Clean(filepath.Join(root, relativeFilePath)))
 	if err != nil {
 		return mutatingWebhook, validatingWebhook, errors.Wrap(err, "failed to read webhook configuration file")

@@ -25,8 +25,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2/klogr"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 func newMachine(clusterName, machineName string) *clusterv1.Machine {

@@ -19,7 +19,7 @@ package network
 import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )

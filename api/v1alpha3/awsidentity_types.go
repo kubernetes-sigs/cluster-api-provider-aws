@@ -72,6 +72,7 @@ type AWSRoleSpec struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=awsclusterstaticidentities,scope=Cluster,categories=cluster-api,shortName=awssi
+// +k8s:defaulter-gen=true
 
 // AWSClusterStaticIdentity is the Schema for the awsclusterstaticidentities API
 // It represents a reference to an AWS access key ID and secret access key, stored in a secret.
@@ -105,6 +106,7 @@ type AWSClusterStaticIdentitySpec struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=awsclusterroleidentities,scope=Cluster,categories=cluster-api,shortName=awsri
+// +k8s:defaulter-gen=true
 
 // AWSClusterRoleIdentity is the Schema for the awsclusterroleidentities API
 // It is used to assume a role using the provided sourceRef.
@@ -148,6 +150,7 @@ type AWSClusterRoleIdentitySpec struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=awsclustercontrolleridentities,scope=Cluster,categories=cluster-api,shortName=awsci
+// +k8s:defaulter-gen=true
 
 // AWSClusterControllerIdentity is the Schema for the awsclustercontrolleridentities API
 // It is used to grant access to use Cluster API Provider AWS Controller credentials.
@@ -160,6 +163,7 @@ type AWSClusterControllerIdentity struct {
 }
 
 // +kubebuilder:object:root=true
+// +k8s:defaulter-gen=true
 
 // AWSClusterControllerIdentityList contains a list of AWSClusterControllerIdentity.
 type AWSClusterControllerIdentityList struct {
