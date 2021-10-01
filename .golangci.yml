@@ -22,7 +22,6 @@ linters:
   - ifshort
   - importas
   - ineffassign
-  - maligned
   - misspell
   - nakedret
   - nilerr
@@ -128,10 +127,10 @@ issues:
     - linters:
       - revive
       source: _ "embed"
-    # This directive allows the variable in defaults.go files to have underscore   
+    # This directive allows the variable in defaults.go files to have underscore
     - linters:
       - revive
-      text: "var-naming: don't use underscores in Go names; func (.+) should be (.+)" 
+      text: "var-naming: don't use underscores in Go names; func (.+) should be (.+)"
       path: .*/defaults.go
     # Disable unparam "always receives" which might not be really
     # useful when building libraries.
@@ -140,7 +139,7 @@ issues:
       text: always receives
     - linters:
       - unparam
-      text: (.+) - (`t`|`g`) is unused  
+      text: (.+) - (`t`|`g`) is unused
     - path: _test\.go
       text: cyclomatic complexity
     # Append should be able to assign to a different var/slice.

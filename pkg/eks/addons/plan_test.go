@@ -26,7 +26,7 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/mock_eksiface"
 )
 

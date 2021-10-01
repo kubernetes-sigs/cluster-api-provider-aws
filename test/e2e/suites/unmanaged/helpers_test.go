@@ -45,11 +45,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	client_runtime "sigs.k8s.io/controller-runtime/pkg/client"
@@ -141,7 +141,7 @@ func createLBService(svcNamespace string, svcName string, k8sclient crclient.Cli
 	return elbName
 }
 
-func deleteLBService(svcNamespace string, svcName string, k8sclient crclient.Client){
+func deleteLBService(svcNamespace string, svcName string, k8sclient crclient.Client) {
 	svcSpec := corev1.ServiceSpec{
 		Type: corev1.ServiceTypeLoadBalancer,
 		Ports: []corev1.ServicePort{
@@ -161,7 +161,7 @@ func createPodTemplateSpec(statefulsetinfo statefulSetInfo) corev1.PodTemplateSp
 	ginkgo.By("Creating PodTemplateSpec config object")
 	podTemplateSpec := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: statefulsetinfo.name,
+			Name:   statefulsetinfo.name,
 			Labels: statefulsetinfo.selector,
 		},
 		Spec: corev1.PodSpec{
@@ -180,7 +180,7 @@ func createPodTemplateSpec(statefulsetinfo statefulSetInfo) corev1.PodTemplateSp
 				{
 					Name: statefulsetinfo.volumeName,
 					VolumeSource: corev1.VolumeSource{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: statefulsetinfo.volumeName },
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: statefulsetinfo.volumeName},
 					},
 				},
 			},
@@ -271,10 +271,10 @@ func createStorageClass(storageClassName string, k8sclient crclient.Client) {
 		},
 		Parameters: map[string]string{
 			"csi.storage.k8s.io/fstype": "xfs",
-			"type": "io1",
-			"iopsPerGB": "100",
+			"type":                      "io1",
+			"iopsPerGB":                 "100",
 		},
-		Provisioner:         "ebs.csi.aws.com",
+		Provisioner:          "ebs.csi.aws.com",
 		AllowVolumeExpansion: &volExpansion,
 		VolumeBindingMode:    &bindingMode,
 		AllowedTopologies: []corev1.TopologySelectorTerm{{
@@ -357,7 +357,7 @@ func deployStatefulSet(statefulsetinfo statefulSetInfo, volClaimTemp corev1.Pers
 	statefulset := appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{Name: statefulsetinfo.name, Namespace: statefulsetinfo.namespace},
 		Spec: appsv1.StatefulSetSpec{
-			ServiceName: statefulsetinfo.svcName,
+			ServiceName:          statefulsetinfo.svcName,
 			Replicas:             &statefulsetinfo.replicas,
 			Selector:             &metav1.LabelSelector{MatchLabels: statefulsetinfo.selector},
 			Template:             podTemplate,

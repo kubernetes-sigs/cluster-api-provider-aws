@@ -20,7 +20,7 @@ import (
 	"reflect"
 	"testing"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 )
 
 func TestTags_ComputeDiff(t *testing.T) {

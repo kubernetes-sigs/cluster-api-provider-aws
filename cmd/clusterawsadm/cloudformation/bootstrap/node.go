@@ -18,7 +18,7 @@ package bootstrap
 
 import (
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
 )
 
 func (t Template) nodePolicies() []cfn_iam.Role_Policy {
@@ -27,9 +27,9 @@ func (t Template) nodePolicies() []cfn_iam.Role_Policy {
 		policies = append(policies,
 			cfn_iam.Role_Policy{
 				PolicyName: t.Spec.StackName,
-				PolicyDocument: v1alpha4.PolicyDocument{
+				PolicyDocument: iamv1.PolicyDocument{
 					Statement: t.Spec.Nodes.ExtraStatements,
-					Version:   v1alpha4.CurrentVersion,
+					Version:   iamv1.CurrentVersion,
 				},
 			},
 		)
@@ -37,7 +37,7 @@ func (t Template) nodePolicies() []cfn_iam.Role_Policy {
 	return policies
 }
 
-func (t Template) nodeTrustPolicy() *v1alpha4.PolicyDocument {
+func (t Template) nodeTrustPolicy() *iamv1.PolicyDocument {
 	policyDocument := ec2AssumeRolePolicy()
 	policyDocument.Statement = append(policyDocument.Statement, t.Spec.Nodes.TrustStatements...)
 	return policyDocument

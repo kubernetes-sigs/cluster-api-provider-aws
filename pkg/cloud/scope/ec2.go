@@ -17,7 +17,7 @@ limitations under the License.
 package scope
 
 import (
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 )
 

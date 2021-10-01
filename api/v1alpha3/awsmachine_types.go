@@ -245,6 +245,7 @@ type AWSMachineStatus struct {
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Machine ready status"
 // +kubebuilder:printcolumn:name="InstanceID",type="string",JSONPath=".spec.providerID",description="EC2 instance ID"
 // +kubebuilder:printcolumn:name="Machine",type="string",JSONPath=".metadata.ownerReferences[?(@.kind==\"Machine\")].name",description="Machine object which owns with this AWSMachine"
+// +k8s:defaulter-gen=true
 
 // AWSMachine is the Schema for the awsmachines API
 type AWSMachine struct {

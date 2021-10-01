@@ -28,23 +28,24 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/record"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/controllers"
-	ekscontrolplane "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	ekscontrolplane "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	asg "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/autoscaling"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	capiv1exp "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	capiv1exp "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -175,8 +176,9 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 }
 
-func (r *AWSMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+func (r *AWSMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(options).
 		For(&infrav1exp.AWSMachinePool{}).
 		Watches(
 			&source.Kind{Type: &capiv1exp.MachinePool{}},

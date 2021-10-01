@@ -22,6 +22,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/errors"
 )
@@ -57,7 +58,7 @@ var (
 	// DefaultEKSNodegroupRole is the name of the default IAM role to use for EKS nodegroups
 	// if no other role is supplied in the spec and if iam role creation is not enabled. The default
 	// can be created using clusterawsadm or created manually.
-	DefaultEKSNodegroupRole = fmt.Sprintf("eks-nodegroup%s", infrav1.DefaultNameSuffix)
+	DefaultEKSNodegroupRole = fmt.Sprintf("eks-nodegroup%s", iamv1.DefaultNameSuffix)
 )
 
 // AWSManagedMachinePoolSpec defines the desired state of AWSManagedMachinePool
@@ -88,12 +89,6 @@ type AWSManagedMachinePoolSpec struct {
 	// flag is true and no name is supplied then a role is created.
 	// +optional
 	RoleName string `json:"roleName,omitempty"`
-
-	// RoleAdditionalPolicies allows you to attach additional polices to
-	// the node group role. You must enable the EKSAllowAddRoles
-	// feature flag to incorporate these into the created role.
-	// +optional
-	RoleAdditionalPolicies []string `json:"roleAdditionalPolicies,omitempty"`
 
 	// AMIVersion defines the desired AMI release version. If no version number
 	// is supplied then the latest version for the Kubernetes version
@@ -220,7 +215,6 @@ type AWSManagedMachinePoolStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=awsmanagedmachinepools,scope=Namespaced,categories=cluster-api,shortName=awsmmp
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="MachinePool ready status"
 // +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".status.replicas",description="Number of replicas"

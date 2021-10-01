@@ -22,6 +22,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/errors"
 )
@@ -35,7 +36,7 @@ var (
 	// DefaultEKSFargateRole is the name of the default IAM role to use for fargate
 	// profiles if no other role is supplied in the spec and if iam role creation
 	// is not enabled. The default can be created using clusterawsadm or created manually.
-	DefaultEKSFargateRole = fmt.Sprintf("eks-fargate%s", infrav1.DefaultNameSuffix)
+	DefaultEKSFargateRole = fmt.Sprintf("eks-fargate%s", iamv1.DefaultNameSuffix)
 )
 
 // FargateProfileSpec defines the desired state of FargateProfile

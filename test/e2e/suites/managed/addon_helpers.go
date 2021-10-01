@@ -27,7 +27,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/client"
 
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 )
 
 type waitForEKSAddonToHaveStatusInput struct {

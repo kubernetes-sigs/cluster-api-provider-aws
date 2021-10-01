@@ -25,12 +25,12 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"k8s.io/client-go/kubernetes/scheme"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/instancestate/mock_sqsiface"
 	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

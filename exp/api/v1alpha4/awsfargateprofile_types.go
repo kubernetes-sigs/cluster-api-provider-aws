@@ -22,6 +22,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/errors"
 )
@@ -35,7 +36,7 @@ var (
 	// DefaultEKSFargateRole is the name of the default IAM role to use for fargate
 	// profiles if no other role is supplied in the spec and if iam role creation
 	// is not enabled. The default can be created using clusterawsadm or created manually.
-	DefaultEKSFargateRole = fmt.Sprintf("eks-fargate%s", infrav1.DefaultNameSuffix)
+	DefaultEKSFargateRole = fmt.Sprintf("eks-fargate%s", iamv1.DefaultNameSuffix)
 )
 
 // FargateProfileSpec defines the desired state of FargateProfile
@@ -129,7 +130,6 @@ type FargateProfileStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=awsfargateprofiles,scope=Namespaced,categories=cluster-api,shortName=awsfp
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="AWSFargateProfile ready status"
 // +kubebuilder:printcolumn:name="ProfileName",type="string",JSONPath=".spec.profileName",description="EKS Fargate profile name"

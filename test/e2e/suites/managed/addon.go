@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 )
 
