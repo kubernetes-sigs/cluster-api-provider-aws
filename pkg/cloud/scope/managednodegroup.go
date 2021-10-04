@@ -50,7 +50,8 @@ type ManagedMachinePoolScopeParams struct {
 	Endpoints          []ServiceEndpoint
 	Session            awsclient.ConfigProvider
 
-	EnableIAM bool
+	EnableIAM            bool
+	AllowAdditionalRoles bool
 }
 
 // NewManagedMachinePoolScope creates a new Scope from the supplied parameters.
@@ -61,6 +62,9 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 	}
 	if params.MachinePool == nil {
 		return nil, errors.New("failed to generate new scope from nil MachinePool")
+	}
+	if params.ManagedMachinePool == nil {
+		return nil, errors.New("failed to generate new scope from nil ManagedMachinePool")
 	}
 	if params.Logger == nil {
 		params.Logger = klogr.New()
@@ -84,17 +88,18 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 	}
 
 	return &ManagedMachinePoolScope{
-		Logger:             params.Logger,
-		Client:             params.Client,
-		Cluster:            params.Cluster,
-		ControlPlane:       params.ControlPlane,
-		ManagedMachinePool: params.ManagedMachinePool,
-		MachinePool:        params.MachinePool,
-		patchHelper:        helper,
-		session:            session,
-		serviceLimiters:    serviceLimiters,
-		controllerName:     params.ControllerName,
-		enableIAM:          params.EnableIAM,
+		Logger:               params.Logger,
+		Client:               params.Client,
+		Cluster:              params.Cluster,
+		ControlPlane:         params.ControlPlane,
+		ManagedMachinePool:   params.ManagedMachinePool,
+		MachinePool:          params.MachinePool,
+		patchHelper:          helper,
+		session:              session,
+		serviceLimiters:      serviceLimiters,
+		controllerName:       params.ControllerName,
+		enableIAM:            params.EnableIAM,
+		allowAdditionalRoles: params.AllowAdditionalRoles,
 	}, nil
 }
 
@@ -113,7 +118,8 @@ type ManagedMachinePoolScope struct {
 	serviceLimiters throttle.ServiceLimiters
 	controllerName  string
 
-	enableIAM bool
+	enableIAM            bool
+	allowAdditionalRoles bool
 }
 
 // ManagedPoolName returns the managed machine pool name.
@@ -137,6 +143,11 @@ func (s *ManagedMachinePoolScope) ClusterName() string {
 // EnableIAM indicates that reconciliation should create IAM roles.
 func (s *ManagedMachinePoolScope) EnableIAM() bool {
 	return s.enableIAM
+}
+
+// AllowAdditionalRoles indicates if additional roles can be added to the created IAM roles.
+func (s *ManagedMachinePoolScope) AllowAdditionalRoles() bool {
+	return s.allowAdditionalRoles
 }
 
 // IdentityRef returns the cluster identityRef.

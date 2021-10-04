@@ -351,6 +351,13 @@ spec:
                       plane is used.
                     type: string
                 type: object
+              roleAdditionalPolicies:
+                description: RoleAdditionalPolicies allows you to attach additional
+                  polices to the node group role. You must enable the EKSAllowAddRoles
+                  feature flag to incorporate these into the created role.
+                items:
+                  type: string
+                type: array
               roleName:
                 description: RoleName specifies the name of IAM role for the node
                   group. If the role is pre-existing we will treat it as unmanaged

@@ -327,11 +327,12 @@ func enableGates(ctx context.Context, mgr ctrl.Manager, awsServiceEndpoints []sc
 		if feature.Gates.Enabled(feature.MachinePool) {
 			setupLog.V(2).Info("enabling EKS managed machine pool controller")
 			if err := (&controllersexp.AWSManagedMachinePoolReconciler{
-				Client:           mgr.GetClient(),
-				Recorder:         mgr.GetEventRecorderFor("awsmanagedmachinepool-reconciler"),
-				EnableIAM:        enableIAM,
-				Endpoints:        awsServiceEndpoints,
-				WatchFilterValue: watchFilterValue,
+				Client:               mgr.GetClient(),
+				Recorder:             mgr.GetEventRecorderFor("awsmanagedmachinepool-reconciler"),
+				EnableIAM:            enableIAM,
+				AllowAdditionalRoles: allowAddRoles,
+				Endpoints:            awsServiceEndpoints,
+				WatchFilterValue:     watchFilterValue,
 			}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
 				setupLog.Error(err, "unable to create controller", "controller", "AWSManagedMachinePool")
 				os.Exit(1)

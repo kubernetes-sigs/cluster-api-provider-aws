@@ -204,6 +204,14 @@ func (s *NodegroupService) reconcileNodegroupIAMRole() error {
 	}
 
 	policies := NodegroupRolePolicies()
+	if len(s.scope.ManagedMachinePool.Spec.RoleAdditionalPolicies) > 0 {
+		if !s.scope.AllowAdditionalRoles() {
+			return ErrCannotUseAdditionalRoles
+		}
+
+		policies = append(policies, s.scope.ManagedMachinePool.Spec.RoleAdditionalPolicies...)
+	}
+
 	_, err = s.EnsurePoliciesAttached(role, aws.StringSlice(policies))
 	if err != nil {
 		return errors.Wrapf(err, "error ensuring policies are attached: %v", policies)
