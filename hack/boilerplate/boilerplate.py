@@ -97,6 +97,8 @@ def file_passes(filename, refs, regexs):
 
     # remove extra content from the top of files
     if extension == "go" or extension == "generatego":
+        p = regexs["go_build_constraints_old"]
+        (data, found) = p.subn("", data, 1)
         p = regexs["go_build_constraints"]
         (data, found) = p.subn("", data, 1)
     elif extension == "sh":
@@ -204,7 +206,9 @@ def get_regexs():
     # company holder names can be anything
     regexs["date"] = re.compile(get_dates())
     # strip // +build \n\n build constraints
-    regexs["go_build_constraints"] = re.compile(r"^(// \+build.*\n)+\n", re.MULTILINE)
+    regexs["go_build_constraints_old"] = re.compile(r"^(// \+build.*\n)+\n", re.MULTILINE)
+    # strip // +build \n\n build constraints
+    regexs["go_build_constraints"] = re.compile(r"^(//go.build.*\n)", re.MULTILINE)
     # strip #!.* from shell scripts
     regexs["shebang"] = re.compile(r"^(#!.*\n)\n*", re.MULTILINE)
     # Search for generated files
