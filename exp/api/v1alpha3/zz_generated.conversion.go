@@ -275,48 +275,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*apiv1alpha3.AWSResourceReference)(nil), (*apiv1beta1.AMIReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha3_AWSResourceReference_To_v1beta1_AMIReference(a.(*apiv1alpha3.AWSResourceReference), b.(*apiv1beta1.AMIReference), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddConversionFunc((*apiv1alpha3.AWSResourceReference)(nil), (*apiv1beta1.AWSResourceReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha3_AWSResourceReference_To_v1beta1_AWSResourceReference(a.(*apiv1alpha3.AWSResourceReference), b.(*apiv1beta1.AWSResourceReference), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddConversionFunc((*apiv1alpha3.Instance)(nil), (*apiv1beta1.Instance)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha3_Instance_To_v1beta1_Instance(a.(*apiv1alpha3.Instance), b.(*apiv1beta1.Instance), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddConversionFunc((*apiv1alpha3.Volume)(nil), (*apiv1beta1.Volume)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha3_Volume_To_v1beta1_Volume(a.(*apiv1alpha3.Volume), b.(*apiv1beta1.Volume), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddConversionFunc((*apiv1beta1.AMIReference)(nil), (*apiv1alpha3.AWSResourceReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_AMIReference_To_v1alpha3_AWSResourceReference(a.(*apiv1beta1.AMIReference), b.(*apiv1alpha3.AWSResourceReference), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddConversionFunc((*v1beta1.AWSManagedMachinePoolSpec)(nil), (*AWSManagedMachinePoolSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_AWSManagedMachinePoolSpec_To_v1alpha3_AWSManagedMachinePoolSpec(a.(*v1beta1.AWSManagedMachinePoolSpec), b.(*AWSManagedMachinePoolSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddConversionFunc((*apiv1beta1.AWSResourceReference)(nil), (*apiv1alpha3.AWSResourceReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_AWSResourceReference_To_v1alpha3_AWSResourceReference(a.(*apiv1beta1.AWSResourceReference), b.(*apiv1alpha3.AWSResourceReference), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddConversionFunc((*apiv1beta1.Instance)(nil), (*apiv1alpha3.Instance)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_Instance_To_v1alpha3_Instance(a.(*apiv1beta1.Instance), b.(*apiv1alpha3.Instance), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddConversionFunc((*apiv1beta1.Volume)(nil), (*apiv1alpha3.Volume)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_Volume_To_v1alpha3_Volume(a.(*apiv1beta1.Volume), b.(*apiv1alpha3.Volume), scope)
 	}); err != nil {
 		return err
 	}
@@ -380,7 +340,7 @@ func Convert_v1beta1_AWSFargateProfileList_To_v1alpha3_AWSFargateProfileList(in 
 func autoConvert_v1alpha3_AWSLaunchTemplate_To_v1beta1_AWSLaunchTemplate(in *AWSLaunchTemplate, out *v1beta1.AWSLaunchTemplate, s conversion.Scope) error {
 	out.Name = in.Name
 	out.IamInstanceProfile = in.IamInstanceProfile
-	if err := Convert_v1alpha3_AWSResourceReference_To_v1beta1_AMIReference(&in.AMI, &out.AMI, s); err != nil {
+	if err := apiv1alpha3.Convert_v1alpha3_AWSResourceReference_To_v1beta1_AMIReference(&in.AMI, &out.AMI, s); err != nil {
 		return err
 	}
 	out.ImageLookupFormat = in.ImageLookupFormat
@@ -390,7 +350,7 @@ func autoConvert_v1alpha3_AWSLaunchTemplate_To_v1beta1_AWSLaunchTemplate(in *AWS
 	if in.RootVolume != nil {
 		in, out := &in.RootVolume, &out.RootVolume
 		*out = new(apiv1beta1.Volume)
-		if err := Convert_v1alpha3_Volume_To_v1beta1_Volume(*in, *out, s); err != nil {
+		if err := apiv1alpha3.Convert_v1alpha3_Volume_To_v1beta1_Volume(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -398,17 +358,7 @@ func autoConvert_v1alpha3_AWSLaunchTemplate_To_v1beta1_AWSLaunchTemplate(in *AWS
 	}
 	out.SSHKeyName = (*string)(unsafe.Pointer(in.SSHKeyName))
 	out.VersionNumber = (*int64)(unsafe.Pointer(in.VersionNumber))
-	if in.AdditionalSecurityGroups != nil {
-		in, out := &in.AdditionalSecurityGroups, &out.AdditionalSecurityGroups
-		*out = make([]apiv1beta1.AWSResourceReference, len(*in))
-		for i := range *in {
-			if err := Convert_v1alpha3_AWSResourceReference_To_v1beta1_AWSResourceReference(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.AdditionalSecurityGroups = nil
-	}
+	out.AdditionalSecurityGroups = *(*[]apiv1beta1.AWSResourceReference)(unsafe.Pointer(&in.AdditionalSecurityGroups))
 	return nil
 }
 
@@ -420,7 +370,7 @@ func Convert_v1alpha3_AWSLaunchTemplate_To_v1beta1_AWSLaunchTemplate(in *AWSLaun
 func autoConvert_v1beta1_AWSLaunchTemplate_To_v1alpha3_AWSLaunchTemplate(in *v1beta1.AWSLaunchTemplate, out *AWSLaunchTemplate, s conversion.Scope) error {
 	out.Name = in.Name
 	out.IamInstanceProfile = in.IamInstanceProfile
-	if err := Convert_v1beta1_AMIReference_To_v1alpha3_AWSResourceReference(&in.AMI, &out.AMI, s); err != nil {
+	if err := apiv1alpha3.Convert_v1beta1_AMIReference_To_v1alpha3_AWSResourceReference(&in.AMI, &out.AMI, s); err != nil {
 		return err
 	}
 	out.ImageLookupFormat = in.ImageLookupFormat
@@ -430,7 +380,7 @@ func autoConvert_v1beta1_AWSLaunchTemplate_To_v1alpha3_AWSLaunchTemplate(in *v1b
 	if in.RootVolume != nil {
 		in, out := &in.RootVolume, &out.RootVolume
 		*out = new(apiv1alpha3.Volume)
-		if err := Convert_v1beta1_Volume_To_v1alpha3_Volume(*in, *out, s); err != nil {
+		if err := apiv1alpha3.Convert_v1beta1_Volume_To_v1alpha3_Volume(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -438,17 +388,7 @@ func autoConvert_v1beta1_AWSLaunchTemplate_To_v1alpha3_AWSLaunchTemplate(in *v1b
 	}
 	out.SSHKeyName = (*string)(unsafe.Pointer(in.SSHKeyName))
 	out.VersionNumber = (*int64)(unsafe.Pointer(in.VersionNumber))
-	if in.AdditionalSecurityGroups != nil {
-		in, out := &in.AdditionalSecurityGroups, &out.AdditionalSecurityGroups
-		*out = make([]apiv1alpha3.AWSResourceReference, len(*in))
-		for i := range *in {
-			if err := Convert_v1beta1_AWSResourceReference_To_v1alpha3_AWSResourceReference(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.AdditionalSecurityGroups = nil
-	}
+	out.AdditionalSecurityGroups = *(*[]apiv1alpha3.AWSResourceReference)(unsafe.Pointer(&in.AdditionalSecurityGroups))
 	return nil
 }
 
@@ -558,17 +498,7 @@ func autoConvert_v1alpha3_AWSMachinePoolSpec_To_v1beta1_AWSMachinePoolSpec(in *A
 	out.MinSize = in.MinSize
 	out.MaxSize = in.MaxSize
 	out.AvailabilityZones = *(*[]string)(unsafe.Pointer(&in.AvailabilityZones))
-	if in.Subnets != nil {
-		in, out := &in.Subnets, &out.Subnets
-		*out = make([]apiv1beta1.AWSResourceReference, len(*in))
-		for i := range *in {
-			if err := Convert_v1alpha3_AWSResourceReference_To_v1beta1_AWSResourceReference(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Subnets = nil
-	}
+	out.Subnets = *(*[]apiv1beta1.AWSResourceReference)(unsafe.Pointer(&in.Subnets))
 	out.AdditionalTags = *(*apiv1beta1.Tags)(unsafe.Pointer(&in.AdditionalTags))
 	if err := Convert_v1alpha3_AWSLaunchTemplate_To_v1beta1_AWSLaunchTemplate(&in.AWSLaunchTemplate, &out.AWSLaunchTemplate, s); err != nil {
 		return err
@@ -591,17 +521,7 @@ func autoConvert_v1beta1_AWSMachinePoolSpec_To_v1alpha3_AWSMachinePoolSpec(in *v
 	out.MinSize = in.MinSize
 	out.MaxSize = in.MaxSize
 	out.AvailabilityZones = *(*[]string)(unsafe.Pointer(&in.AvailabilityZones))
-	if in.Subnets != nil {
-		in, out := &in.Subnets, &out.Subnets
-		*out = make([]apiv1alpha3.AWSResourceReference, len(*in))
-		for i := range *in {
-			if err := Convert_v1beta1_AWSResourceReference_To_v1alpha3_AWSResourceReference(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Subnets = nil
-	}
+	out.Subnets = *(*[]apiv1alpha3.AWSResourceReference)(unsafe.Pointer(&in.Subnets))
 	out.AdditionalTags = *(*apiv1alpha3.Tags)(unsafe.Pointer(&in.AdditionalTags))
 	if err := Convert_v1beta1_AWSLaunchTemplate_To_v1alpha3_AWSLaunchTemplate(&in.AWSLaunchTemplate, &out.AWSLaunchTemplate, s); err != nil {
 		return err
@@ -814,7 +734,7 @@ func autoConvert_v1alpha3_AutoScalingGroup_To_v1beta1_AutoScalingGroup(in *AutoS
 		in, out := &in.Instances, &out.Instances
 		*out = make([]apiv1beta1.Instance, len(*in))
 		for i := range *in {
-			if err := Convert_v1alpha3_Instance_To_v1beta1_Instance(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := apiv1alpha3.Convert_v1alpha3_Instance_To_v1beta1_Instance(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -846,7 +766,7 @@ func autoConvert_v1beta1_AutoScalingGroup_To_v1alpha3_AutoScalingGroup(in *v1bet
 		in, out := &in.Instances, &out.Instances
 		*out = make([]apiv1alpha3.Instance, len(*in))
 		for i := range *in {
-			if err := Convert_v1beta1_Instance_To_v1alpha3_Instance(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := apiv1alpha3.Convert_v1beta1_Instance_To_v1alpha3_Instance(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}

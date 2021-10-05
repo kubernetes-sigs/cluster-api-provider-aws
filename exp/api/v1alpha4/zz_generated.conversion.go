@@ -285,16 +285,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*apiv1alpha4.AMIReference)(nil), (*apiv1beta1.AMIReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_AMIReference_To_v1beta1_AMIReference(a.(*apiv1alpha4.AMIReference), b.(*apiv1beta1.AMIReference), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddConversionFunc((*apiv1beta1.AMIReference)(nil), (*apiv1alpha4.AMIReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_AMIReference_To_v1alpha4_AMIReference(a.(*apiv1beta1.AMIReference), b.(*apiv1alpha4.AMIReference), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddConversionFunc((*v1beta1.AWSManagedMachinePoolSpec)(nil), (*AWSManagedMachinePoolSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_AWSManagedMachinePoolSpec_To_v1alpha4_AWSManagedMachinePoolSpec(a.(*v1beta1.AWSManagedMachinePoolSpec), b.(*AWSManagedMachinePoolSpec), scope)
 	}); err != nil {
@@ -360,7 +350,7 @@ func Convert_v1beta1_AWSFargateProfileList_To_v1alpha4_AWSFargateProfileList(in 
 func autoConvert_v1alpha4_AWSLaunchTemplate_To_v1beta1_AWSLaunchTemplate(in *AWSLaunchTemplate, out *v1beta1.AWSLaunchTemplate, s conversion.Scope) error {
 	out.Name = in.Name
 	out.IamInstanceProfile = in.IamInstanceProfile
-	if err := Convert_v1alpha4_AMIReference_To_v1beta1_AMIReference(&in.AMI, &out.AMI, s); err != nil {
+	if err := apiv1alpha4.Convert_v1alpha4_AMIReference_To_v1beta1_AMIReference(&in.AMI, &out.AMI, s); err != nil {
 		return err
 	}
 	out.ImageLookupFormat = in.ImageLookupFormat
@@ -382,7 +372,7 @@ func Convert_v1alpha4_AWSLaunchTemplate_To_v1beta1_AWSLaunchTemplate(in *AWSLaun
 func autoConvert_v1beta1_AWSLaunchTemplate_To_v1alpha4_AWSLaunchTemplate(in *v1beta1.AWSLaunchTemplate, out *AWSLaunchTemplate, s conversion.Scope) error {
 	out.Name = in.Name
 	out.IamInstanceProfile = in.IamInstanceProfile
-	if err := Convert_v1beta1_AMIReference_To_v1alpha4_AMIReference(&in.AMI, &out.AMI, s); err != nil {
+	if err := apiv1alpha4.Convert_v1beta1_AMIReference_To_v1alpha4_AMIReference(&in.AMI, &out.AMI, s); err != nil {
 		return err
 	}
 	out.ImageLookupFormat = in.ImageLookupFormat

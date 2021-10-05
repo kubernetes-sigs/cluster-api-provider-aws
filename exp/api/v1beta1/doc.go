@@ -17,5 +17,4 @@ limitations under the License.
 // +gencrdrefdocs:force
 // +groupName=infrastructure.cluster.x-k8s.io
 // +k8s:defaulter-gen=TypeMeta
-
 package v1beta1

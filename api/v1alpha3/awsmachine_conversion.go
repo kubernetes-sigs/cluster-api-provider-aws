@@ -134,7 +134,6 @@ func (r *AWSMachineTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
 	return Convert_v1beta1_AWSMachineTemplateList_To_v1alpha3_AWSMachineTemplateList(src, r, nil)
 }
 
-
 // Convert_v1beta1_Volume_To_v1alpha3_Volume .
 func Convert_v1beta1_Volume_To_v1alpha3_Volume(in *infrav1.Volume, out *Volume, s apiconversion.Scope) error {
 	return autoConvert_v1beta1_Volume_To_v1alpha3_Volume(in, out, s)

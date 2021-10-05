@@ -18,6 +18,7 @@ package v1alpha4
 
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -30,4 +31,14 @@ func Convert_v1alpha4_ObjectMeta_To_v1beta1_ObjectMeta(in *clusterv1alpha4.Objec
 // Convert_v1beta1_APIEndpoint_To_v1alpha4_APIEndpoint .
 func Convert_v1beta1_ObjectMeta_To_v1alpha4_ObjectMeta(in *clusterv1.ObjectMeta, out *clusterv1alpha4.ObjectMeta, s apiconversion.Scope) error {
 	return clusterv1alpha4.Convert_v1beta1_ObjectMeta_To_v1alpha4_ObjectMeta(in, out, s)
+}
+
+// Convert_v1alpha4_AMIReference_To_v1beta1_AMIReference converts the v1alpha4 AMIReference receiver to a v1beta1 AMIReference.
+func Convert_v1alpha4_AMIReference_To_v1beta1_AMIReference(in *AMIReference, out *infrav1.AMIReference, s apiconversion.Scope) error {
+	return autoConvert_v1alpha4_AMIReference_To_v1beta1_AMIReference(in, out, s)
+}
+
+// Convert_v1beta1_AMIReference_To_v1alpha4_AMIReference converts the v1beta1 AMIReference receiver to a v1alpha4 AMIReference.
+func Convert_v1beta1_AMIReference_To_v1alpha4_AMIReference(in *infrav1.AMIReference, out *AMIReference, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_AMIReference_To_v1alpha4_AMIReference(in, out, s)
 }

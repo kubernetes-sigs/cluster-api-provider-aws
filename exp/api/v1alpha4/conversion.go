@@ -18,8 +18,6 @@ package v1alpha4
 
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
-	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
@@ -125,14 +123,4 @@ func (r *AWSFargateProfileList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1exp.AWSFargateProfileList)
 
 	return Convert_v1beta1_AWSFargateProfileList_To_v1alpha4_AWSFargateProfileList(src, r, nil)
-}
-
-// Convert_v1alpha4_AMIReference_To_v1beta1_AMIReference converts the v1alpha4 AMIReference receiver to a v1beta1 AMIReference.
-func Convert_v1alpha4_AMIReference_To_v1beta1_AMIReference(in *infrav1alpha4.AMIReference, out *infrav1.AMIReference, s apiconversion.Scope) error {
-	return infrav1alpha4.Convert_v1alpha4_AMIReference_To_v1beta1_AMIReference(in, out, s)
-}
-
-// Convert_v1beta1_AMIReference_To_v1alpha4_AMIReference converts the v1beta1 AMIReference receiver to a v1alpha4 AMIReference.
-func Convert_v1beta1_AMIReference_To_v1alpha4_AMIReference(in *infrav1.AMIReference, out *infrav1alpha4.AMIReference, s apiconversion.Scope) error {
-	return infrav1alpha4.Convert_v1beta1_AMIReference_To_v1alpha4_AMIReference(in, out, s)
 }

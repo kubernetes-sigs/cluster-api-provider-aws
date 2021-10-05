@@ -15,5 +15,4 @@ limitations under the License.
 */
 
 // +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1
-
 package v1alpha3
