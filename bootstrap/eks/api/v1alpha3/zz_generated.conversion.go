@@ -154,7 +154,17 @@ func Convert_v1beta1_EKSConfig_To_v1alpha3_EKSConfig(in *v1beta1.EKSConfig, out 
 
 func autoConvert_v1alpha3_EKSConfigList_To_v1beta1_EKSConfigList(in *EKSConfigList, out *v1beta1.EKSConfigList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta1.EKSConfig)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta1.EKSConfig, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha3_EKSConfig_To_v1beta1_EKSConfig(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -165,7 +175,17 @@ func Convert_v1alpha3_EKSConfigList_To_v1beta1_EKSConfigList(in *EKSConfigList, 
 
 func autoConvert_v1beta1_EKSConfigList_To_v1alpha3_EKSConfigList(in *v1beta1.EKSConfigList, out *EKSConfigList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]EKSConfig)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]EKSConfig, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_EKSConfig_To_v1alpha3_EKSConfig(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -200,7 +220,17 @@ func autoConvert_v1alpha3_EKSConfigStatus_To_v1beta1_EKSConfigStatus(in *EKSConf
 	out.FailureReason = in.FailureReason
 	out.FailureMessage = in.FailureMessage
 	out.ObservedGeneration = in.ObservedGeneration
-	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make(apiv1beta1.Conditions, len(*in))
+		for i := range *in {
+			if err := apiv1alpha3.Convert_v1alpha3_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
 	return nil
 }
 
@@ -215,7 +245,17 @@ func autoConvert_v1beta1_EKSConfigStatus_To_v1alpha3_EKSConfigStatus(in *v1beta1
 	out.FailureReason = in.FailureReason
 	out.FailureMessage = in.FailureMessage
 	out.ObservedGeneration = in.ObservedGeneration
-	out.Conditions = *(*apiv1alpha3.Conditions)(unsafe.Pointer(&in.Conditions))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make(apiv1alpha3.Conditions, len(*in))
+		for i := range *in {
+			if err := apiv1alpha3.Convert_v1beta1_Condition_To_v1alpha3_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
 	return nil
 }
 
