@@ -28,18 +28,12 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	cgrecord "k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
-
 	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	bootstrapv1alpha3 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha3"
@@ -59,6 +53,10 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/version"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -133,17 +131,18 @@ func main() {
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.UserAgent = "cluster-api-provider-aws-controller"
 	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
-		Scheme:                  scheme,
-		MetricsBindAddress:      metricsBindAddr,
-		LeaderElection:          enableLeaderElection,
-		LeaderElectionID:        "controller-leader-elect-capa",
-		LeaderElectionNamespace: leaderElectionNamespace,
-		SyncPeriod:              &syncPeriod,
-		Namespace:               watchNamespace,
-		EventBroadcaster:        broadcaster,
-		Port:                    webhookPort,
-		CertDir:                 webhookCertDir,
-		HealthProbeBindAddress:  healthAddr,
+		Scheme:                     scheme,
+		MetricsBindAddress:         metricsBindAddr,
+		LeaderElection:             enableLeaderElection,
+		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
+		LeaderElectionID:           "controller-leader-elect-capa",
+		LeaderElectionNamespace:    leaderElectionNamespace,
+		SyncPeriod:                 &syncPeriod,
+		Namespace:                  watchNamespace,
+		EventBroadcaster:           broadcaster,
+		Port:                       webhookPort,
+		CertDir:                    webhookCertDir,
+		HealthProbeBindAddress:     healthAddr,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
