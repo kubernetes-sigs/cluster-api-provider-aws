@@ -25,11 +25,11 @@ images:
     loadBehavior: tryLoad
   - name: quay.io/jetstack/cert-manager-controller:v1.5.0
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/kubeadm-control-plane-controller:v1.0.0-rc.0
+  - name: k8s.gcr.io/cluster-api/kubeadm-control-plane-controller:v1.0.0
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/kubeadm-bootstrap-controller:v1.0.0-rc.0
+  - name: k8s.gcr.io/cluster-api/kubeadm-bootstrap-controller:v1.0.0
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/cluster-api-controller:v1.0.0-rc.0
+  - name: k8s.gcr.io/cluster-api/cluster-api-controller:v1.0.0
     loadBehavior: tryLoad
 
 providers:
@@ -63,7 +63,7 @@ providers:
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
       - name: v1.0.0
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0-rc.0/core-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -103,7 +103,7 @@ providers:
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
       - name: v1.0.0
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0-rc.0/bootstrap-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -144,7 +144,7 @@ providers:
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
       - name: v1.0.0
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0-rc.0/control-plane-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:
