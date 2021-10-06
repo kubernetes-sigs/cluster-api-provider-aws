@@ -316,6 +316,14 @@ func (s *Service) getAPIServerClassicELBSpec() (*infrav1.ClassicELB, error) {
 	}
 	securityGroupIDs = append(securityGroupIDs, s.scope.SecurityGroups()[infrav1.SecurityGroupAPIServerLB].ID)
 
+	// If ELB scheme is set to Internet-facing due to an API bug in versions > v0.6.6 and v0.7.0, change it to internet-facing and patch.
+	if s.scope.ControlPlaneLoadBalancerScheme().String() == infrav1.ClassicELBSchemeIncorrectInternetFacing.String() {
+		s.scope.ControlPlaneLoadBalancer().Scheme = &infrav1.ClassicELBSchemeInternetFacing
+		if err := s.scope.PatchObject(); err != nil {
+			return nil, err
+		}
+	}
+
 	res := &infrav1.ClassicELB{
 		Name:   elbName,
 		Scheme: s.scope.ControlPlaneLoadBalancerScheme(),

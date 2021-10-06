@@ -131,6 +131,7 @@ spec:
                               (defaults to internet-facing)
                             enum:
                             - internet-facing
+                            - Internet-facing
                             - internal
                             type: string
                           subnets:

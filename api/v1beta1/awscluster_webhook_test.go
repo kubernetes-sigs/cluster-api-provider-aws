@@ -19,12 +19,14 @@ package v1beta1
 import (
 	"context"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func TestAWSClusterDefault(t *testing.T) {
@@ -36,12 +38,50 @@ func TestAWSClusterDefault(t *testing.T) {
 }
 
 func TestAWSCluster_ValidateCreate(t *testing.T) {
+	unsupportedIncorrectScheme := ClassicELBScheme("any-other-scheme")
+
 	tests := []struct {
 		name    string
 		cluster *AWSCluster
 		wantErr bool
+		expect  func(t *testing.T, res *AWSLoadBalancerSpec)
 	}{
 		// The SSHKeyName tests were moved to sshkeyname_test.go
+		{
+			name: "Default nil scheme to `internet-facing`",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{},
+			},
+			expect: func(t *testing.T, res *AWSLoadBalancerSpec) {
+				if res.Scheme.String() != ClassicELBSchemeInternetFacing.String() {
+					t.Error("Expected internet-facing defaulting for nil loadbalancer schemes")
+				}
+			},
+			wantErr: false,
+		},
+		{
+			name: "Internet-facing ELB scheme is defaulted to internet-facing during creation",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{Scheme: &ClassicELBSchemeIncorrectInternetFacing},
+				},
+			},
+			expect: func(t *testing.T, res *AWSLoadBalancerSpec) {
+				if res.Scheme.String() != ClassicELBSchemeInternetFacing.String() {
+					t.Error("Expected internet-facing defaulting for supported incorrect scheme: Internet-facing")
+				}
+			},
+			wantErr: false,
+		},
+		{
+			name: "Supported schemes are 'internet-facing, Internet-facing, internal, or nil', rest will be rejected",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{Scheme: &unsupportedIncorrectScheme},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -54,6 +94,24 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 			if err := testEnv.Create(ctx, cluster); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateCreate() error = %v, wantErr %v", err, tt.wantErr)
 			}
+
+			if tt.wantErr {
+				return
+			}
+
+			c := &AWSCluster{}
+			key := client.ObjectKey{
+				Name:      cluster.Name,
+				Namespace: "default",
+			}
+
+			g := NewWithT(t)
+			g.Eventually(func() bool {
+				err := testEnv.Get(ctx, key, c)
+				return err == nil
+			}, 10*time.Second).Should(Equal(true))
+
+			tt.expect(t, c.Spec.ControlPlaneLoadBalancer)
 		})
 	}
 }

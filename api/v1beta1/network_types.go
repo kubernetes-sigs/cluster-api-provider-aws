@@ -42,6 +42,9 @@ var (
 	// ClassicELBSchemeInternal defines an internal-only facing
 	// load balancer internal to an ELB.
 	ClassicELBSchemeInternal = ClassicELBScheme("internal")
+
+	// ClassicELBSchemeIncorrectInternetFacing was inaccurately used to define an internet-facing LB in v0.6 releases > v0.6.6 and v0.7.0 release.
+	ClassicELBSchemeIncorrectInternetFacing = ClassicELBScheme("Internet-facing")
 )
 
 func (e ClassicELBScheme) String() string {
