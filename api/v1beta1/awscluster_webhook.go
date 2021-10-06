@@ -95,10 +95,14 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 		// If old scheme was not nil, the new scheme should be the same.
 		existingLoadBalancer := oldC.Spec.ControlPlaneLoadBalancer.DeepCopy()
 		if !reflect.DeepEqual(existingLoadBalancer.Scheme, newLoadBalancer.Scheme) {
-			allErrs = append(allErrs,
-				field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "scheme"),
-					r.Spec.ControlPlaneLoadBalancer.Scheme, "field is immutable"),
-			)
+			// Only allow changes from Internet-facing scheme to internet-facing.
+			if !(existingLoadBalancer.Scheme.String() == ClassicELBSchemeIncorrectInternetFacing.String() &&
+				newLoadBalancer.Scheme.String() == ClassicELBSchemeInternetFacing.String()) {
+				allErrs = append(allErrs,
+					field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "scheme"),
+						r.Spec.ControlPlaneLoadBalancer.Scheme, "field is immutable"),
+				)
+			}
 		}
 	}
 
