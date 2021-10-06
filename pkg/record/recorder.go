@@ -21,22 +21,22 @@ import (
 	"sync"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	cgrecord "k8s.io/client-go/tools/record"
 )
 
 var (
 	initOnce        sync.Once
-	defaultRecorder record.EventRecorder
+	defaultRecorder cgrecord.EventRecorder
 )
 
 func init() {
-	defaultRecorder = new(record.FakeRecorder)
+	defaultRecorder = new(cgrecord.FakeRecorder)
 }
 
 // InitFromRecorder initializes the global default recorder. It can only be called once.
 // Subsequent calls are considered noops.
-func InitFromRecorder(recorder record.EventRecorder) {
+func InitFromRecorder(recorder cgrecord.EventRecorder) {
 	initOnce.Do(func() {
 		defaultRecorder = recorder
 	})

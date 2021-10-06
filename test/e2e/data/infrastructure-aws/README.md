@@ -6,12 +6,12 @@ All the flavors that are tested in e2e suites are located under `./test/e2e/data
 
 To generate all e2e test flavors, run `make generate-test-flavors`.
 
-To add a new cluster manifest for e2e tests, simply add a new directory under `./test/e2e/data/infrastructure-aws/` with a `kustomization.yaml`
+To add a new cluster manifest for e2e tests, simply add a new directory under `./test/e2e/data/infrastructure-aws/kustomize_sources` with a `kustomization.yaml`
 
 Example:
 ```bash
-cp ./test/e2e/data/infrastructure-aws/default/ ./test/e2e/data/infrastructure-aws/custom-template/
-# Do necessary changes in custom-template/. 
+cp -R ./test/e2e/data/infrastructure-aws/default/ ./test/e2e/data/infrastructure-aws/kustomize_sources/custom-template/
+# Do necessary changes in custom-template/.
 make generate-test-flavors
 ```
 `cluster-template-custom.yaml` will be automatically created and can be found under `./test/e2e/data/infrastructure-aws/`.
@@ -20,7 +20,7 @@ To use this new manifest in the tests, add it to `./test/e2e/data/e2e_conf.yaml`
 ```yaml
     files:
       # Add a cluster template
-      - sourcePath: "./infrastructure-aws/cluster-template-custom.yaml"
+      - sourcePath: "./infrastructure-aws/generated/cluster-template-custom.yaml"
         targetName: "cluster-template-custom.yaml"
 ```
 

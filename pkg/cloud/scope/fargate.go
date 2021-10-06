@@ -25,14 +25,14 @@ import (
 	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	controlplanev1exp "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 )
 
@@ -41,8 +41,8 @@ type FargateProfileScopeParams struct {
 	Client         client.Client
 	Logger         logr.Logger
 	Cluster        *clusterv1.Cluster
-	ControlPlane   *controlplanev1exp.AWSManagedControlPlane
-	FargateProfile *infrav1exp.AWSFargateProfile
+	ControlPlane   *ekscontrolplanev1.AWSManagedControlPlane
+	FargateProfile *expinfrav1.AWSFargateProfile
 	ControllerName string
 	Endpoints      []ServiceEndpoint
 	Session        awsclient.ConfigProvider
@@ -99,8 +99,8 @@ type FargateProfileScope struct {
 	patchHelper *patch.Helper
 
 	Cluster        *clusterv1.Cluster
-	ControlPlane   *controlplanev1exp.AWSManagedControlPlane
-	FargateProfile *infrav1exp.AWSFargateProfile
+	ControlPlane   *ekscontrolplanev1.AWSManagedControlPlane
+	FargateProfile *expinfrav1.AWSFargateProfile
 
 	session         awsclient.ConfigProvider
 	serviceLimiters throttle.ServiceLimiters
@@ -166,7 +166,7 @@ func (s *FargateProfileScope) IAMReadyFalse(reason string, err string) error {
 	}
 	conditions.MarkFalse(
 		s.FargateProfile,
-		infrav1exp.IAMFargateRolesReadyCondition,
+		expinfrav1.IAMFargateRolesReadyCondition,
 		reason,
 		severity,
 		err,
@@ -183,10 +183,10 @@ func (s *FargateProfileScope) PatchObject() error {
 		context.TODO(),
 		s.FargateProfile,
 		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-			infrav1exp.EKSFargateProfileReadyCondition,
-			infrav1exp.EKSFargateCreatingCondition,
-			infrav1exp.EKSFargateDeletingCondition,
-			infrav1exp.IAMFargateRolesReadyCondition,
+			expinfrav1.EKSFargateProfileReadyCondition,
+			expinfrav1.EKSFargateCreatingCondition,
+			expinfrav1.EKSFargateDeletingCondition,
+			expinfrav1.IAMFargateRolesReadyCondition,
 		}})
 }
 

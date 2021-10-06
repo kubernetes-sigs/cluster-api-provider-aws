@@ -26,15 +26,15 @@ import (
 	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	controlplanev1exp "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 )
 
@@ -43,9 +43,9 @@ type ManagedMachinePoolScopeParams struct {
 	Client             client.Client
 	Logger             logr.Logger
 	Cluster            *clusterv1.Cluster
-	ControlPlane       *controlplanev1exp.AWSManagedControlPlane
-	ManagedMachinePool *infrav1exp.AWSManagedMachinePool
-	MachinePool        *clusterv1exp.MachinePool
+	ControlPlane       *ekscontrolplanev1.AWSManagedControlPlane
+	ManagedMachinePool *expinfrav1.AWSManagedMachinePool
+	MachinePool        *expclusterv1.MachinePool
 	ControllerName     string
 	Endpoints          []ServiceEndpoint
 	Session            awsclient.ConfigProvider
@@ -110,9 +110,9 @@ type ManagedMachinePoolScope struct {
 	patchHelper *patch.Helper
 
 	Cluster            *clusterv1.Cluster
-	ControlPlane       *controlplanev1exp.AWSManagedControlPlane
-	ManagedMachinePool *infrav1exp.AWSManagedMachinePool
-	MachinePool        *clusterv1exp.MachinePool
+	ControlPlane       *ekscontrolplanev1.AWSManagedControlPlane
+	ManagedMachinePool *expinfrav1.AWSManagedMachinePool
+	MachinePool        *expclusterv1.MachinePool
 
 	session         awsclient.ConfigProvider
 	serviceLimiters throttle.ServiceLimiters
@@ -204,7 +204,7 @@ func (s *ManagedMachinePoolScope) NodegroupReadyFalse(reason string, err string)
 	}
 	conditions.MarkFalse(
 		s.ManagedMachinePool,
-		infrav1exp.EKSNodegroupReadyCondition,
+		expinfrav1.EKSNodegroupReadyCondition,
 		reason,
 		severity,
 		err,
@@ -224,7 +224,7 @@ func (s *ManagedMachinePoolScope) IAMReadyFalse(reason string, err string) error
 	}
 	conditions.MarkFalse(
 		s.ManagedMachinePool,
-		infrav1exp.IAMNodegroupRolesReadyCondition,
+		expinfrav1.IAMNodegroupRolesReadyCondition,
 		reason,
 		severity,
 		err,
@@ -241,8 +241,8 @@ func (s *ManagedMachinePoolScope) PatchObject() error {
 		context.TODO(),
 		s.ManagedMachinePool,
 		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-			infrav1exp.EKSNodegroupReadyCondition,
-			infrav1exp.IAMNodegroupRolesReadyCondition,
+			expinfrav1.EKSNodegroupReadyCondition,
+			expinfrav1.IAMNodegroupRolesReadyCondition,
 		}})
 }
 

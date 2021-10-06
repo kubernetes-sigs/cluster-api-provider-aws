@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	v1alpha4 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	v1beta1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
@@ -40,14 +40,14 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 func AWSClusterStaticIdentityFuzzer(obj *AWSClusterStaticIdentity, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// AWSClusterStaticIdentity.Spec.SecretRef.Namespace has been removed in v1alpha4, so setting it to nil in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
+	// AWSClusterStaticIdentity.Spec.SecretRef.Namespace has been removed in v1beta1, so setting it to nil in order to avoid v1alpha3 --> <hub> --> v1alpha3 round trip errors.
 	obj.Spec.SecretRef.Namespace = ""
 }
 
 func AWSMachineFuzzer(obj *AWSMachine, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// AWSMachine.Spec.AMI.ARN and AWSMachine.Spec.AMI.Filters has been removed in v1alpha4, so setting it to nil in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
+	// AWSMachine.Spec.AMI.ARN and AWSMachine.Spec.AMI.Filters has been removed in v1beta1, so setting it to nil in order to avoid v1alpha3 --> <hub> --> v1alpha3 round trip errors.
 	obj.Spec.AMI.ARN = nil
 	obj.Spec.AMI.Filters = nil
 }
@@ -55,7 +55,7 @@ func AWSMachineFuzzer(obj *AWSMachine, c fuzz.Continue) {
 func AWSMachineTemplateFuzzer(obj *AWSMachineTemplate, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// AWSMachineTemplate.Spec.Template.Spec.AMI.ARN and AWSMachineTemplate.Spec.Template.Spec.AMI.Filters has been removed in v1alpha4, so setting it to nil in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
+	// AWSMachineTemplate.Spec.Template.Spec.AMI.ARN and AWSMachineTemplate.Spec.Template.Spec.AMI.Filters has been removed in v1beta1, so setting it to nil in order to avoid v1alpha3 --> v1beta1 --> v1alpha3 round trip errors.
 	obj.Spec.Template.Spec.AMI.ARN = nil
 	obj.Spec.Template.Spec.AMI.Filters = nil
 }
@@ -64,44 +64,44 @@ func TestFuzzyConversion(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
 	g.Expect(AddToScheme(scheme)).To(Succeed())
-	g.Expect(v1alpha4.AddToScheme(scheme)).To(Succeed())
+	g.Expect(v1beta1.AddToScheme(scheme)).To(Succeed())
 
 	t.Run("for AWSCluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
-		Hub:    &v1alpha4.AWSCluster{},
+		Hub:    &v1beta1.AWSCluster{},
 		Spoke:  &AWSCluster{},
 	}))
 
 	t.Run("for AWSMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
-		Hub:         &v1alpha4.AWSMachine{},
+		Hub:         &v1beta1.AWSMachine{},
 		Spoke:       &AWSMachine{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 
 	t.Run("for AWSMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
-		Hub:         &v1alpha4.AWSMachineTemplate{},
+		Hub:         &v1beta1.AWSMachineTemplate{},
 		Spoke:       &AWSMachineTemplate{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 
 	t.Run("for AWSClusterStaticIdentity", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
-		Hub:         &v1alpha4.AWSClusterStaticIdentity{},
+		Hub:         &v1beta1.AWSClusterStaticIdentity{},
 		Spoke:       &AWSClusterStaticIdentity{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 
 	t.Run("for AWSClusterControllerIdentity", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
-		Hub:    &v1alpha4.AWSClusterControllerIdentity{},
+		Hub:    &v1beta1.AWSClusterControllerIdentity{},
 		Spoke:  &AWSClusterControllerIdentity{},
 	}))
 
 	t.Run("for AWSClusterRoleIdentity", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
-		Hub:    &v1alpha4.AWSClusterRoleIdentity{},
+		Hub:    &v1beta1.AWSClusterRoleIdentity{},
 		Spoke:  &AWSClusterRoleIdentity{},
 	}))
 }

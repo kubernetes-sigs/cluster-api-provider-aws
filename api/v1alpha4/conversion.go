@@ -16,38 +16,18 @@ limitations under the License.
 
 package v1alpha4
 
-// Hub marks AWSCluster as a conversion hub.
-func (*AWSCluster) Hub() {}
+import (
+	apiconversion "k8s.io/apimachinery/pkg/conversion"
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+)
 
-// Hub marks AWSClusterList as a conversion hub.
-func (*AWSClusterList) Hub() {}
+// Convert_v1alpha4_APIEndpoint_To_v1beta1_APIEndpoint .
+func Convert_v1alpha4_ObjectMeta_To_v1beta1_ObjectMeta(in *clusterv1alpha4.ObjectMeta, out *clusterv1.ObjectMeta, s apiconversion.Scope) error {
+	return clusterv1alpha4.Convert_v1alpha4_ObjectMeta_To_v1beta1_ObjectMeta(in, out, s)
+}
 
-// Hub marks AWSMachine as a conversion hub.
-func (*AWSMachine) Hub() {}
-
-// Hub marks AWSMachineList as a conversion hub.
-func (*AWSMachineList) Hub() {}
-
-// Hub marks AWSMachineTemplate as a conversion hub.
-func (*AWSMachineTemplate) Hub() {}
-
-// Hub marks AWSMachineTemplateList as a conversion hub.
-func (*AWSMachineTemplateList) Hub() {}
-
-// Hub marks AWSClusterStaticIdentity as a conversion hub.
-func (*AWSClusterStaticIdentity) Hub() {}
-
-// Hub marks AWSClusterStaticIdentityList as a conversion hub.
-func (*AWSClusterStaticIdentityList) Hub() {}
-
-// Hub marks AWSClusterRoleIdentity as a conversion hub.
-func (*AWSClusterRoleIdentity) Hub() {}
-
-// Hub marks AWSClusterRoleIdentityList as a conversion hub.
-func (*AWSClusterRoleIdentityList) Hub() {}
-
-// Hub marks AWSClusterControllerIdentity as a conversion hub.
-func (*AWSClusterControllerIdentity) Hub() {}
-
-// Hub marks AWSClusterControllerIdentityList as a conversion hub.
-func (*AWSClusterControllerIdentityList) Hub() {}
+// Convert_v1beta1_APIEndpoint_To_v1alpha4_APIEndpoint .
+func Convert_v1beta1_ObjectMeta_To_v1alpha4_ObjectMeta(in *clusterv1.ObjectMeta, out *clusterv1alpha4.ObjectMeta, s apiconversion.Scope) error {
+	return clusterv1alpha4.Convert_v1beta1_ObjectMeta_To_v1alpha4_ObjectMeta(in, out, s)
+}

@@ -16,8 +16,6 @@ limitations under the License.
 
 package v1alpha3
 
-// TODO (richardcase): get this working with defaulter-gen
-
 // SetDefaults_Bastion is used by defaulter-gen.
 func SetDefaults_Bastion(obj *Bastion) { //nolint:golint,stylecheck
 	// Default to allow open access to the bastion host if no CIDR Blocks have been set

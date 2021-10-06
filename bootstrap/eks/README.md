@@ -1,6 +1,6 @@
 # Cluster API bootstrap provider EKS
 
-Cluster API bootstrap provider EKS (CABPE) is a component of [Cluster API](https://github.com/kubernetes-sigs/cluster-api/blob/master/README.md) that is responsible for generating a cloud-init script to turn a Machine into a Kubernetes Node; this implementation uses the [AWS-provided EKS bootstrap script](https://github.com/awslabs/amazon-eks-ami/blob/master/files/bootstrap.sh) for joining Kubernetes Nodes to EKS clusters. 
+Cluster API bootstrap provider EKS (CABPE) is a component of [Cluster API](https://github.com/kubernetes-sigs/cluster-api/blob/master/README.md) that is responsible for generating a cloud-init script to turn a Machine into a Kubernetes Node; this implementation uses the [AWS-provided EKS bootstrap script](https://github.com/awslabs/amazon-eks-ami/blob/master/files/bootstrap.sh) for joining Kubernetes Nodes to EKS clusters.
 
 CABPE is the bootstrap component of Cluster API Provider AWS' (CAPA) EKS ecosystem. This ecosystem is comprised of:
 - EKS controlplane provider (AWSManagedControlPlane)
@@ -9,7 +9,7 @@ CABPE is the bootstrap component of Cluster API Provider AWS' (CAPA) EKS ecosyst
 
 ## How does CABPE work?
 
-CABPE generates cloud-init configuration that CAPA will use as the [user-data](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html) for new EC2 instances. The generated configuration relies on the `bootstrap.sh` script that is present on all official AWS EKS AMIs. 
+CABPE generates cloud-init configuration that CAPA will use as the [user-data](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html) for new EC2 instances. The generated configuration relies on the `bootstrap.sh` script that is present on all official AWS EKS AMIs.
 
 The output script looks something like this (assuming an EKS cluster with the name `my-cluster`):
 
@@ -24,7 +24,7 @@ Because the bootstrap script has no required fields other than the EKS cluster's
 
 ```yaml
 kind: EKSConfig
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 metadata:
   name: my-config
 spec: {}
@@ -34,7 +34,7 @@ The only configuration option available is `kubeletExtraArgs`, which is a `map[s
 
 ```yaml
 kind: EKSConfig
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 metadata:
   name: my-config
 spec:

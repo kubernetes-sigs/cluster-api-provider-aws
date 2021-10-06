@@ -24,8 +24,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -69,7 +69,7 @@ func (r *AWSControllerIdentityReconciler) Reconcile(ctx context.Context, req ctr
 
 	// If AWSCluster is not found, check if AWSManagedControlPlane is used.
 	if !clusterFound && feature.Gates.Enabled(feature.EKS) {
-		awsControlPlane := &controlplanev1.AWSManagedControlPlane{}
+		awsControlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 		if err := r.Client.Get(ctx, req.NamespacedName, awsControlPlane); err != nil {
 			if apierrors.IsNotFound(err) {
 				log.V(4).Info("AWSManagedMachinePool not found, no identityRef so no action taken")
@@ -138,7 +138,7 @@ func (r *AWSControllerIdentityReconciler) SetupWithManager(ctx context.Context, 
 
 	if feature.Gates.Enabled(feature.EKS) {
 		controller.Watches(
-			&source.Kind{Type: &controlplanev1.AWSManagedControlPlane{}},
+			&source.Kind{Type: &ekscontrolplanev1.AWSManagedControlPlane{}},
 			handler.EnqueueRequestsFromMapFunc(r.managedControlPlaneMap),
 		)
 	}
@@ -147,7 +147,7 @@ func (r *AWSControllerIdentityReconciler) SetupWithManager(ctx context.Context, 
 }
 
 func (r *AWSControllerIdentityReconciler) managedControlPlaneMap(o client.Object) []ctrl.Request {
-	managedControlPlane, ok := o.(*controlplanev1.AWSManagedControlPlane)
+	managedControlPlane, ok := o.(*ekscontrolplanev1.AWSManagedControlPlane)
 	if !ok {
 		panic(fmt.Sprintf("Expected a managedControlPlane but got a %T", o))
 	}

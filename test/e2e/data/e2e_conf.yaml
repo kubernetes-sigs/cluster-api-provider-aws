@@ -19,27 +19,41 @@ images:
     loadBehavior: mustLoad
 
 ## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
-  - name: quay.io/jetstack/cert-manager-cainjector:v1.1.0
+
+  # Cluster API v1beta1 Preloads
+  - name: quay.io/jetstack/cert-manager-cainjector:v1.5.0
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-webhook:v1.1.0
+  - name: quay.io/jetstack/cert-manager-webhook:v1.5.0
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-controller:v1.1.0
+  - name: quay.io/jetstack/cert-manager-controller:v1.5.0
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/kubeadm-control-plane-controller:v0.4.1
+  - name: k8s.gcr.io/cluster-api/cluster-api-controller:v1.0.0-rc.0
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/kubeadm-bootstrap-controller:v0.4.1
+  - name: k8s.gcr.io/cluster-api/kubeadm-bootstrap-controller:v1.0.0-rc.0
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/cluster-api-controller:v0.4.1
+  - name: k8s.gcr.io/cluster-api/kubeadm-control-plane-controller:v1.0.0-rc.0
     loadBehavior: tryLoad
 
 providers:
-
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v0.4.1
-        # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.1/core-components.yaml"
+      - name: v0.3.23 # latest published release in the v1alpha3 series; this is used for v1alpha3 --> v1beta1 clusterctl upgrades test only.
+        contract: v1alpha3
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/core-components.yaml"
+        type: "url"
+        files:
+          - sourcePath: "./shared/v1alpha3/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: "--leader-elect"
+            new: "--leader-elect=false"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
+      - name: v0.4.3 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+        contract: v1alpha4
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.3/core-components.yaml"
         type: "url"
         files:
           - sourcePath: "./shared/v1alpha4/metadata.yaml"
@@ -50,9 +64,12 @@ providers:
             new: "--leader-elect=false"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v0.3.16 # latest published release
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.16/core-components.yaml"
+      - name: v1.0.0
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0-rc.0/core-components.yaml"
         type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "./shared/v1beta1/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -60,17 +77,39 @@ providers:
             new: "--leader-elect=false"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-
-
   - name: kubeadm
     type: BootstrapProvider
     files:
       - sourcePath: "./shared/v1alpha4/metadata.yaml"
     versions:
-      - name: v0.4.1
-        # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.1/bootstrap-components.yaml"
+      - name: v0.3.23 # latest published release in the v1alpha3 series; this is used for v1alpha3 --> v1beta1 clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/bootstrap-components.yaml"
         type: "url"
+        contract: v1alpha3
+        files:
+          - sourcePath: "./shared/v1alpha3/metadata.yaml"
+        replacements:
+          - old: --metrics-addr=127.0.0.1:8080
+            new: --metrics-addr=:8080
+      - name: v0.4.3 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.3/bootstrap-components.yaml"
+        type: "url"
+        contract: v1alpha4
+        files:
+          - sourcePath: "./shared/v1alpha4/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: "--leader-elect"
+            new: "--leader-elect=false"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
+      - name: v1.0.0
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0-rc.0/bootstrap-components.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "./shared/v1beta1/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -84,10 +123,22 @@ providers:
     files:
       - sourcePath: "./shared/v1alpha4/metadata.yaml"
     versions:
-      - name: v0.4.1
-        # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.1/control-plane-components.yaml"
+      - name: v0.3.23 # latest published release in the v1alpha3 series; this is used for v1alpha3 --> v1beta1 clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/control-plane-components.yaml"
         type: "url"
+        contract: v1alpha3
+        files:
+          - sourcePath: "./shared/v1alpha3/metadata.yaml"
+        replacements:
+          - old: --metrics-addr=127.0.0.1:8080
+            new: --metrics-addr=:8080
+      - name: v0.4.3 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+        # Use manifest from source files
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.3/control-plane-components.yaml"
+        type: "url"
+        contract: v1alpha4
+        files:
+          - sourcePath: "./shared/v1alpha4/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -95,15 +146,56 @@ providers:
             new: "--leader-elect=false"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-
+      - name: v1.0.0
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0-rc.0/control-plane-components.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "./shared/v1beta1/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: "--leader-elect"
+            new: "--leader-elect=false"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
   - name: aws
     type: InfrastructureProvider
     versions:
-      - name: v0.7.0
-        # Use manifest from source files
-        value: ../../../config/default
+      - name: v0.6.8 # latest published release in the v1alpha3 series; this is used for v1alpha3 --> v1beta1 clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/download/v0.6.8/infrastructure-components.yaml"
+        type: "url"
+        contract: v1alpha3
+        files:
+          - sourcePath: "./shared/v1alpha3_provider/metadata.yaml"
+          - sourcePath: "./infrastructure-aws/capi-upgrades/v1alpha3/cluster-template.yaml"
+      - name: v0.7.0 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/download/v0.7.0/infrastructure-components.yaml"
+        type: "url"
+        contract: v1alpha4
         files:
           - sourcePath: "./shared/v1alpha4_provider/metadata.yaml"
+          - sourcePath: "./infrastructure-aws/capi-upgrades/v1alpha4/cluster-template.yaml"
+      - name: v1.0.0
+        # Use manifest from source files
+        value: ../../../config/default
+        contract: v1beta1
+        files:
+          - sourcePath: "./shared/v1beta1_provider/metadata.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-capi-upgrade.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-ssm.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-multi-az.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-limit-az.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-spot-instances.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-md-remediation.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-kcp-remediation.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-kcp-scale-in.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-machine-pool.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-upgrade-to-main.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-simple-multitenancy.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-nested-multitenancy.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-external-cloud-provider.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -115,35 +207,6 @@ providers:
             new: gcr.io/k8s-staging-cluster-api/capa-manager:e2e
           - old: gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller:latest
             new: gcr.io/k8s-staging-cluster-api/capa-manager:e2e
-    files:
-      # Add a cluster template
-      - sourcePath: "./shared/v1alpha4/metadata.yaml"
-        targetName: "metadata.yaml"
-      - sourcePath: "./infrastructure-aws/cluster-template.yaml"
-      - sourcePath: "./infrastructure-aws/cluster-template-ssm.yaml"
-        targetName: "cluster-template-ssm.yaml"
-      - sourcePath: "./infrastructure-aws/cluster-template-multi-az.yaml"
-        targetName: "cluster-template-multi-az.yaml"
-      - sourcePath: "./infrastructure-aws/cluster-template-limit-az.yaml"
-        targetName: "cluster-template-limit-az.yaml"
-      - sourcePath: "./infrastructure-aws/cluster-template-spot-instances.yaml"
-        targetName: "cluster-template-spot-instances.yaml"
-      - sourcePath: "./infrastructure-aws/cluster-template-md-remediation.yaml"
-        targetName: "cluster-template-md-remediation.yaml"
-      - sourcePath: "./infrastructure-aws/cluster-template-kcp-remediation.yaml"
-        targetName: "cluster-template-kcp-remediation.yaml"
-      - sourcePath: "./infrastructure-aws/cluster-template-kcp-scale-in.yaml"
-        targetName: "cluster-template-kcp-scale-in.yaml"
-      - sourcePath: "./infrastructure-aws/cluster-template-machine-pool.yaml"
-        targetName: "cluster-template-machine-pool.yaml"
-      - sourcePath: "./infrastructure-aws/cluster-template-upgrade-to-main.yaml"
-        targetName: "cluster-template-upgrade-to-main.yaml"
-      - sourcePath: "./infrastructure-aws/cluster-template-simple-multitenancy.yaml"
-        targetName: "cluster-template-simple-multitenancy.yaml"
-      - sourcePath: "./infrastructure-aws/cluster-template-nested-multitenancy.yaml"
-        targetName: "cluster-template-nested-multitenancy.yaml"
-      - sourcePath: "./infrastructure-aws/cluster-template-external-cloud-provider.yaml"
-        targetName: "cluster-template-external-cloud-provider.yaml"
 
 variables:
   CNI: "../../data/cni/calico.yaml"
@@ -164,6 +227,11 @@ variables:
   MULTI_TENANCY_ROLE_NAME: "multi-tenancy-role"
   MULTI_TENANCY_NESTED_ROLE_NAME: "multi-tenancy-nested-role"
   IP_FAMILY: "IPv4"
+  # NOTE: INIT_WITH_BINARY and INIT_WITH_KUBERNETES_VERSION are only used by the clusterctl upgrade test to initialize
+  # the management cluster to be upgraded.
+  INIT_WITH_BINARY: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/clusterctl-{OS}-{ARCH}"
+  INIT_WITH_PROVIDERS_CONTRACT: "v1alpha3"
+  INIT_WITH_KUBERNETES_VERSION: "v1.21.2"
 
 intervals:
   default/wait-cluster: ["25m", "10s"]

@@ -24,12 +24,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/pkg/errors"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	eksiam "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/iam"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const (
@@ -159,7 +159,7 @@ func (s *NodegroupService) reconcileNodegroupIAMRole() error {
 		var err error
 		if !s.scope.EnableIAM() {
 			s.scope.Info("no EKS nodegroup role specified, using default EKS nodegroup role")
-			roleName = infrav1exp.DefaultEKSNodegroupRole
+			roleName = expinfrav1.DefaultEKSNodegroupRole
 		} else {
 			s.scope.Info("no EKS nodegroup role specified, using role based on nodegroup name")
 			roleName, err = eks.GenerateEKSName(
@@ -276,7 +276,7 @@ func (s *FargateService) reconcileFargateIAMRole() (requeue bool, err error) {
 		var roleName string
 		if !s.scope.EnableIAM() {
 			s.scope.Info("no EKS fargate role specified, using default EKS fargate role")
-			roleName = infrav1exp.DefaultEKSFargateRole
+			roleName = expinfrav1.DefaultEKSFargateRole
 		} else {
 			s.scope.Info("no EKS fargate role specified, using role based on fargate profile name")
 			roleName, err = eks.GenerateEKSName(

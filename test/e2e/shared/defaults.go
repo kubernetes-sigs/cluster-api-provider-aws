@@ -27,7 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 )
 
@@ -159,7 +159,7 @@ func getLimitedResources() map[string]*ServiceQuota {
 func DefaultScheme() *runtime.Scheme {
 	sc := runtime.NewScheme()
 	framework.TryAddDefaultSchemes(sc)
-	_ = v1alpha4.AddToScheme(sc)
+	_ = infrav1.AddToScheme(sc)
 	_ = clientgoscheme.AddToScheme(sc)
 	return sc
 }
@@ -177,5 +177,5 @@ func CreateDefaultFlags(ctx *E2EContext) {
 	flag.BoolVar(&ctx.Settings.SkipCloudFormationDeletion, "skip-cloudformation-deletion", false, "if true, an AWS CloudFormation stack will not be deleted")
 	flag.BoolVar(&ctx.Settings.SkipCloudFormationCreation, "skip-cloudformation-creation", false, "if true, an AWS CloudFormation stack will not be created")
 	flag.StringVar(&ctx.Settings.DataFolder, "data-folder", "", "path to the data folder")
-	flag.StringVar(&ctx.Settings.SourceTemplate, "source-template", "infrastructure-aws/cluster-template.yaml", "path to the data folder")
+	flag.StringVar(&ctx.Settings.SourceTemplate, "source-template", "infrastructure-aws/generated/cluster-template.yaml", "path to the data folder")
 }

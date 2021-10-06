@@ -30,7 +30,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/version"
 
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 )
 
 type waitForControlPlaneToBeUpgradedInput struct {

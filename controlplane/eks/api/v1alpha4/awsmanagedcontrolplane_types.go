@@ -18,8 +18,8 @@ package v1alpha4
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
 const (
@@ -37,10 +37,10 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 
 	// IdentityRef is a reference to a identity to be used when reconciling the managed control plane.
 	// +optional
-	IdentityRef *infrav1.AWSIdentityReference `json:"identityRef,omitempty"`
+	IdentityRef *infrav1alpha4.AWSIdentityReference `json:"identityRef,omitempty"`
 
 	// NetworkSpec encapsulates all things related to AWS network.
-	NetworkSpec infrav1.NetworkSpec `json:"network,omitempty"`
+	NetworkSpec infrav1alpha4.NetworkSpec `json:"network,omitempty"`
 
 	// SecondaryCidrBlock is the additional CIDR range to use for pod IPs.
 	// Must be within the 100.64.0.0/10 or 198.19.0.0/16 range.
@@ -89,7 +89,7 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// AdditionalTags is an optional set of tags to add to AWS resources managed by the AWS provider, in addition to the
 	// ones added by default.
 	// +optional
-	AdditionalTags infrav1.Tags `json:"additionalTags,omitempty"`
+	AdditionalTags infrav1alpha4.Tags `json:"additionalTags,omitempty"`
 
 	// IAMAuthenticatorConfig allows the specification of any additional user or role mappings
 	// for use when generating the aws-iam-authenticator configuration. If this is nil the
@@ -103,7 +103,7 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
-	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
+	ControlPlaneEndpoint clusterv1alpha4.APIEndpoint `json:"controlPlaneEndpoint"`
 
 	// ImageLookupFormat is the AMI naming format to look up machine images when
 	// a machine does not specify an AMI. When set, this will be used for all
@@ -134,7 +134,7 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 
 	// Bastion contains options to configure the bastion host.
 	// +optional
-	Bastion infrav1.Bastion `json:"bastion"`
+	Bastion infrav1alpha4.Bastion `json:"bastion"`
 
 	// TokenMethod is used to specify the method for obtaining a client token for communicating with EKS
 	// iam-authenticator - obtains a client token using iam-authentictor
@@ -208,13 +208,13 @@ type IdentityProviderStatus struct {
 type AWSManagedControlPlaneStatus struct {
 	// Networks holds details about the AWS networking resources used by the control plane
 	// +optional
-	Network infrav1.NetworkStatus `json:"networkStatus,omitempty"`
+	Network infrav1alpha4.NetworkStatus `json:"networkStatus,omitempty"`
 	// FailureDomains specifies a list fo available availability zones that can be used
 	// +optional
-	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
+	FailureDomains clusterv1alpha4.FailureDomains `json:"failureDomains,omitempty"`
 	// Bastion holds details of the instance that is used as a bastion jump box
 	// +optional
-	Bastion *infrav1.Instance `json:"bastion,omitempty"`
+	Bastion *infrav1alpha4.Instance `json:"bastion,omitempty"`
 	// OIDCProvider holds the status of the identity provider for this cluster
 	// +optional
 	OIDCProvider OIDCProviderStatus `json:"oidcProvider,omitempty"`
@@ -235,7 +235,7 @@ type AWSManagedControlPlaneStatus struct {
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
 	// Conditions specifies the cpnditions for the managed control plane
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1alpha4.Conditions `json:"conditions,omitempty"`
 	// Addons holds the current status of the EKS addons
 	// +optional
 	Addons []AddonState `json:"addons,omitempty"`
@@ -248,7 +248,6 @@ type AWSManagedControlPlaneStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=awsmanagedcontrolplanes,shortName=awsmcp,scope=Namespaced,categories=cluster-api,shortName=awsmcp
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this AWSManagedControl belongs"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Control plane infrastructure is ready for worker nodes"
@@ -275,12 +274,12 @@ type AWSManagedControlPlaneList struct {
 }
 
 // GetConditions returns the control planes conditions.
-func (r *AWSManagedControlPlane) GetConditions() clusterv1.Conditions {
+func (r *AWSManagedControlPlane) GetConditions() clusterv1alpha4.Conditions {
 	return r.Status.Conditions
 }
 
 // SetConditions sets the status conditions for the AWSManagedControlPlane.
-func (r *AWSManagedControlPlane) SetConditions(conditions clusterv1.Conditions) {
+func (r *AWSManagedControlPlane) SetConditions(conditions clusterv1alpha4.Conditions) {
 	r.Status.Conditions = conditions
 }
 

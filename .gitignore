@@ -31,12 +31,8 @@ kubeconfig
 # Example and binary output directory
 /out
 
-# bazel
-/bazel-bin
-/bazel-cluster-api-provider-aws
-/bazel-genfiles
-/bazel-out
-/bazel-testlogs
+# build
+.build
 
 # vscode
 .vscode

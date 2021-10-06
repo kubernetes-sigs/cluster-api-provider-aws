@@ -25,25 +25,29 @@ import (
 
 // Error singletons for AWS errors.
 const (
-	AuthFailure                = "AuthFailure"
-	InUseIPAddress             = "InvalidIPAddress.InUse"
-	GroupNotFound              = "InvalidGroup.NotFound"
-	PermissionNotFound         = "InvalidPermission.NotFound"
-	VPCNotFound                = "InvalidVpcID.NotFound"
-	SubnetNotFound             = "InvalidSubnetID.NotFound"
-	InternetGatewayNotFound    = "InvalidInternetGatewayID.NotFound"
-	NATGatewayNotFound         = "InvalidNatGatewayID.NotFound"
-	GatewayNotFound            = "InvalidGatewayID.NotFound"
-	EIPNotFound                = "InvalidElasticIpID.NotFound"
-	RouteTableNotFound         = "InvalidRouteTableID.NotFound"
-	LoadBalancerNotFound       = "LoadBalancerNotFound"
-	ResourceNotFound           = "InvalidResourceID.NotFound"
-	InvalidSubnet              = "InvalidSubnet"
 	AssociationIDNotFound      = "InvalidAssociationID.NotFound"
+	AuthFailure                = "AuthFailure"
+	BucketAlreadyOwnedByYou    = "BucketAlreadyOwnedByYou"
+	EIPNotFound                = "InvalidElasticIpID.NotFound"
+	GatewayNotFound            = "InvalidGatewayID.NotFound"
+	GroupNotFound              = "InvalidGroup.NotFound"
+	InternetGatewayNotFound    = "InvalidInternetGatewayID.NotFound"
+	InUseIPAddress             = "InvalidIPAddress.InUse"
+	InvalidAccessKeyID         = "InvalidAccessKeyId"
+	InvalidClientTokenID       = "InvalidClientTokenId"
 	InvalidInstanceID          = "InvalidInstanceID.NotFound"
+	InvalidSubnet              = "InvalidSubnet"
 	LaunchTemplateNameNotFound = "InvalidLaunchTemplateName.NotFoundException"
-	ResourceExists             = "ResourceExistsException"
+	LoadBalancerNotFound       = "LoadBalancerNotFound"
+	NATGatewayNotFound         = "InvalidNatGatewayID.NotFound"
 	NoCredentialProviders      = "NoCredentialProviders"
+	NoSuchKey                  = "NoSuchKey"
+	PermissionNotFound         = "InvalidPermission.NotFound"
+	ResourceExists             = "ResourceExistsException"
+	ResourceNotFound           = "InvalidResourceID.NotFound"
+	RouteTableNotFound         = "InvalidRouteTableID.NotFound"
+	SubnetNotFound             = "InvalidSubnetID.NotFound"
+	VPCNotFound                = "InvalidVpcID.NotFound"
 )
 
 var _ error = &EC2Error{}
@@ -90,6 +94,13 @@ func NewConflict(msg string) error {
 		msg:  msg,
 		Code: http.StatusConflict,
 	}
+}
+
+func IsBucketAlreadyOwnedByYou(err error) bool {
+	if code, ok := Code(err); ok {
+		return code == BucketAlreadyOwnedByYou
+	}
+	return false
 }
 
 // IsResourceExists checks the state of the resource.

@@ -39,7 +39,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 	})
 
 	// DEPRECATED. Should be replaced with the conformance upgrade spec
-	ginkgo.Describe("KCP Upgrade Spec - Single Control Plane Cluster", func() {
+	ginkgo.PDescribe("[Deprecated] KCP Upgrade Spec - Single Control Plane Cluster", func() {
 		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 		requiredResources := &shared.TestResource{EC2: 2, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
 		ginkgo.BeforeEach(func() {
@@ -60,7 +60,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 	})
 
 	// DEPRECATED. Should be replaced with the conformance upgrade spec
-	ginkgo.Describe("KCP Upgrade Spec - HA Control Plane Cluster using Scale-In", func() {
+	ginkgo.PDescribe("[Deprecated] KCP Upgrade Spec - HA Control Plane Cluster using Scale-In", func() {
 		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 		requiredResources := &shared.TestResource{EC2: 4, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
 		ginkgo.BeforeEach(func() {
@@ -127,9 +127,9 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 		})
 	})
 
-	ginkgo.Describe("Running the Clusterctl Upgrade Spec", func() {
+	ginkgo.PDescribe("Running the v1alpha3->v1beta1 Clusterctl Upgrade Spec", func() {
 		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
-		requiredResources := &shared.TestResource{EC2: 4, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
+		requiredResources := &shared.TestResource{EC2: 13, IGW: 3, NGW: 3, VPC: 3, ClassicLB: 3, EIP: 3}
 		ginkgo.BeforeEach(func() {
 			requiredResources.WriteRequestedResources(e2eCtx, "capi-clusterctl-upgrade-test")
 			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
@@ -142,6 +142,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
 				ArtifactFolder:        e2eCtx.Settings.ArtifactFolder,
 				SkipCleanup:           e2eCtx.Settings.SkipCleanup,
+				MgmtFlavor:            "capi-upgrade",
 			}
 		})
 		ginkgo.AfterEach(func() {

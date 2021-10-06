@@ -27,12 +27,12 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/version"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	controlplanev1exp "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
@@ -121,9 +121,9 @@ func (s *NodegroupService) remoteAccess() (*eks.RemoteAccessConfig, error) {
 		// We add the EKS created cluster security group to the allowed security
 		// groups by default to prevent the API default of 0.0.0.0/0 from taking effect
 		// in case SourceSecurityGroups is empty
-		clusterSG, ok := controlPlane.Status.Network.SecurityGroups[controlplanev1exp.SecurityGroupCluster]
+		clusterSG, ok := controlPlane.Status.Network.SecurityGroups[ekscontrolplanev1.SecurityGroupCluster]
 		if !ok {
-			return nil, errors.Errorf("%s security group not found on control plane", controlplanev1exp.SecurityGroupCluster)
+			return nil, errors.Errorf("%s security group not found on control plane", ekscontrolplanev1.SecurityGroupCluster)
 		}
 		sSGs = append(sSGs, clusterSG.ID)
 
@@ -345,7 +345,7 @@ func createLabelUpdate(specLabels map[string]string, ng *eks.Nodegroup) *eks.Upd
 	return nil
 }
 
-func (s *NodegroupService) createTaintsUpdate(specTaints infrav1exp.Taints, ng *eks.Nodegroup) (*eks.UpdateTaintsPayload, error) {
+func (s *NodegroupService) createTaintsUpdate(specTaints expinfrav1.Taints, ng *eks.Nodegroup) (*eks.UpdateTaintsPayload, error) {
 	s.V(2).Info("Creating taints update for node group", "name", *ng.NodegroupName, "num_current", len(ng.Taints), "num_required", len(specTaints))
 	current, err := converters.TaintsFromSDK(ng.Taints)
 	if err != nil {

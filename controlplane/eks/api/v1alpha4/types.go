@@ -23,7 +23,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
 )
 
 // ControlPlaneLoggingSpec defines what EKS control plane logs that should be enabled.
@@ -83,7 +84,7 @@ var (
 	// DefaultEKSControlPlaneRole is the name of the default IAM role to use for the EKS control plane
 	// if no other role is supplied in the spec and if iam role creation is not enabled. The default
 	// can be created using clusterawsadm or created manually.
-	DefaultEKSControlPlaneRole = fmt.Sprintf("eks-controlplane%s", infrav1.DefaultNameSuffix)
+	DefaultEKSControlPlaneRole = fmt.Sprintf("eks-controlplane%s", iamv1.DefaultNameSuffix)
 )
 
 // IAMAuthenticatorConfig represents an aws-iam-authenticator configuration.
@@ -212,7 +213,7 @@ type AddonIssue struct {
 const (
 	// SecurityGroupCluster is the security group for communication between EKS
 	// control plane and managed node groups.
-	SecurityGroupCluster = infrav1.SecurityGroupRole("cluster")
+	SecurityGroupCluster = infrav1alpha4.SecurityGroupRole("cluster")
 )
 
 type OIDCIdentityProviderConfig struct {
@@ -274,5 +275,5 @@ type OIDCIdentityProviderConfig struct {
 
 	// tags to apply to oidc identity provider association
 	// +optional
-	Tags infrav1.Tags `json:"tags,omitempty"`
+	Tags infrav1alpha4.Tags `json:"tags,omitempty"`
 }

@@ -21,7 +21,7 @@ import (
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 // Tags defines a map of tags.
@@ -168,7 +168,7 @@ type BuildParams struct {
 
 // WithMachineName tags the namespaced machine name
 // The machine name will be tagged with key "MachineName".
-func (b BuildParams) WithMachineName(m *clusterv1.Machine) BuildParams {
+func (b BuildParams) WithMachineName(m *clusterv1alpha3.Machine) BuildParams {
 	machineNamespacedName := types.NamespacedName{Namespace: m.Namespace, Name: m.Name}
 	b.Additional[MachineNameTagKey] = machineNamespacedName.String()
 	return b

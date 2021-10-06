@@ -27,7 +27,6 @@ type AWSMachineTemplateSpec struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=awsmachinetemplates,scope=Namespaced,categories=cluster-api,shortName=awsmt
-// +kubebuilder:storageversion
 
 // AWSMachineTemplate is the Schema for the awsmachinetemplates API
 type AWSMachineTemplate struct {
