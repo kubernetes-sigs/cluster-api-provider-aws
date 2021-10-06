@@ -16,9 +16,9 @@ In order to have Cluster API consume existing AWS infrastructure, you will need 
 
 You will need the ID of the VPC and subnet IDs that Cluster API should use. This information is available via the AWS Management Console or the AWS CLI.
 
-Note that there is no need to create an Elastic Load Balancer (ELB), security groups, or EC2 instances; Cluster API will take care of these items. 
+Note that there is no need to create an Elastic Load Balancer (ELB), security groups, or EC2 instances; Cluster API will take care of these items.
 
-If you want to use existing security groups, these can be specified and new ones will not be created. 
+If you want to use existing security groups, these can be specified and new ones will not be created.
 
 ## Tagging AWS Resources
 
@@ -36,12 +36,12 @@ Specifying existing infrastructure for Cluster API to use takes place in the spe
 
 For EC2
 ```yaml
-apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: AWSCluster
 ```
 For EKS
 ```yaml
-apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: AWSManagedControlPlane
 ```
 
@@ -125,7 +125,7 @@ spec:
   controlPlaneLoadBalancer:
     AdditionalsecurityGroups:
     - sg-0200a3507a5ad2c5c8c3
-    - ...   
+    - ...
 ```
 
 ## Caveats/Notes

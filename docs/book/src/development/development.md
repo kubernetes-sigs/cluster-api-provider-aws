@@ -52,7 +52,7 @@ Create bootstrap file and bootstrap IAM roles and policies using `clusterawsadm`
 ```bash
 $ cat config-bootstrap.yaml
 
-apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSIAMConfiguration
 spec:
   bootstrapUser:
@@ -68,7 +68,7 @@ The IAM permissions can be customized by using a configuration file with **clust
 
 ```bash
 $ cat config-bootstrap.yaml
-apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSIAMConfiguration
 spec:
   bootstrapUser:
@@ -119,7 +119,7 @@ AWS::IAM::User            |bootstrapper.cluster-api-provider-aws.sigs.k8s.io    
 - Set AWS_B64ENCODED_CREDENTIALS environment variable
 
    ```bash
-   export AWS_ACCESS_KEY_ID=AKIATEST 
+   export AWS_ACCESS_KEY_ID=AKIATEST
    export AWS_SECRET_ACCESS_KEY=TESTTEST
    export AWS_REGION=eu-west-1
    export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)

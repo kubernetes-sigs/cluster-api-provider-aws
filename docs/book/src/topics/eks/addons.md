@@ -2,7 +2,7 @@
 
 [EKS Addons](https://aws.amazon.com/blogs/containers/introducing-amazon-eks-add-ons/) can be used with EKS clusters created using Cluster API Provider AWS.
 
-Addons are supported in EKS clusters using Kubernetes v1.18 or greater. 
+Addons are supported in EKS clusters using Kubernetes v1.18 or greater.
 
 ## Installing addons
 
@@ -10,7 +10,7 @@ To install an addon you need to declare them by specifying the name, version and
 
 ```yaml
 kind: AWSManagedControlPlane
-apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 metadata:
   name: "capi-managed-test-control-plane"
 spec:
@@ -49,7 +49,7 @@ To delete an addon from a cluster you need to edit the `AWSManagedControlPlane` 
 
 ## Viewing installed addons
 
-You can see what addons are installed on your EKS cluster by looking in the `Status`  of the `AWSManagedControlPlane` instance. 
+You can see what addons are installed on your EKS cluster by looking in the `Status`  of the `AWSManagedControlPlane` instance.
 
 Additionally you can run the following command:
 
