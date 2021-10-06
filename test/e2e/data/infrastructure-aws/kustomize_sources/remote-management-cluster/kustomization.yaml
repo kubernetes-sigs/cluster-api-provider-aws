@@ -1,4 +1,4 @@
 resources:
-  - ../default
+  - ../limit-az
 patchesStrategicMerge:
   - patches/image-injection.yaml

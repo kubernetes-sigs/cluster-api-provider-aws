@@ -47,21 +47,17 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--leader-elect"
-            new: "--leader-elect=false"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v0.4.3 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+      - name: v0.4.4 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
         contract: v1alpha4
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.3/core-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/core-components.yaml"
         type: "url"
         files:
           - sourcePath: "./shared/v1alpha4/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--leader-elect"
-            new: "--leader-elect=false"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
       - name: v1.0.0
@@ -73,8 +69,6 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--leader-elect"
-            new: "--leader-elect=false"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
   - name: kubeadm
@@ -91,8 +85,8 @@ providers:
         replacements:
           - old: --metrics-addr=127.0.0.1:8080
             new: --metrics-addr=:8080
-      - name: v0.4.3 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.3/bootstrap-components.yaml"
+      - name: v0.4.4 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/bootstrap-components.yaml"
         type: "url"
         contract: v1alpha4
         files:
@@ -100,8 +94,6 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--leader-elect"
-            new: "--leader-elect=false"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
       - name: v1.0.0
@@ -113,8 +105,6 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--leader-elect"
-            new: "--leader-elect=false"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
 
@@ -132,9 +122,9 @@ providers:
         replacements:
           - old: --metrics-addr=127.0.0.1:8080
             new: --metrics-addr=:8080
-      - name: v0.4.3 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+      - name: v0.4.4 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.3/control-plane-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/control-plane-components.yaml"
         type: "url"
         contract: v1alpha4
         files:
@@ -142,8 +132,6 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--leader-elect"
-            new: "--leader-elect=false"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
       - name: v1.0.0
@@ -155,8 +143,6 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--leader-elect"
-            new: "--leader-elect=false"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
   - name: aws
@@ -181,26 +167,27 @@ providers:
         value: ../../../config/default
         contract: v1beta1
         files:
-          - sourcePath: "./shared/v1beta1_provider/metadata.yaml"
-          - sourcePath: "./infrastructure-aws/generated/cluster-template.yaml"
-          - sourcePath: "./infrastructure-aws/generated/cluster-template-capi-upgrade.yaml"
-          - sourcePath: "./infrastructure-aws/generated/cluster-template-ssm.yaml"
-          - sourcePath: "./infrastructure-aws/generated/cluster-template-multi-az.yaml"
-          - sourcePath: "./infrastructure-aws/generated/cluster-template-limit-az.yaml"
-          - sourcePath: "./infrastructure-aws/generated/cluster-template-spot-instances.yaml"
-          - sourcePath: "./infrastructure-aws/generated/cluster-template-md-remediation.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-external-cloud-provider.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-kcp-remediation.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-kcp-scale-in.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-limit-az.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-machine-pool.yaml"
-          - sourcePath: "./infrastructure-aws/generated/cluster-template-upgrade-to-main.yaml"
-          - sourcePath: "./infrastructure-aws/generated/cluster-template-simple-multitenancy.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-md-remediation.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-multi-az.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-nested-multitenancy.yaml"
-          - sourcePath: "./infrastructure-aws/generated/cluster-template-external-cloud-provider.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-remote-management-cluster.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-simple-multitenancy.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-spot-instances.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-ssm.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-upgrade-to-main.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template.yaml"
+          - sourcePath: "./shared/v1beta1_provider/metadata.yaml"
         replacements:
+          # To allow bugs to be catched.
+          - old: "failureThreshold: 3"
+            new: "failureThreshold: 12"
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--leader-elect"
-            new: "--leader-elect=false"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
           - old: gcr.io/k8s-staging-cluster-api/cluster-api-aws-controller-amd64:dev
@@ -227,10 +214,10 @@ variables:
   MULTI_TENANCY_ROLE_NAME: "multi-tenancy-role"
   MULTI_TENANCY_NESTED_ROLE_NAME: "multi-tenancy-nested-role"
   IP_FAMILY: "IPv4"
-  # NOTE: INIT_WITH_BINARY and INIT_WITH_KUBERNETES_VERSION are only used by the clusterctl upgrade test to initialize
+  INIT_WITH_BINARY_V1ALPHA3: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/clusterctl-{OS}-{ARCH}"
+  INIT_WITH_BINARY_V1ALPHA4: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/clusterctl-{OS}-{ARCH}"
+    # INIT_WITH_KUBERNETES_VERSION are only used by the clusterctl upgrade test to initialize
   # the management cluster to be upgraded.
-  INIT_WITH_BINARY: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/clusterctl-{OS}-{ARCH}"
-  INIT_WITH_PROVIDERS_CONTRACT: "v1alpha3"
   INIT_WITH_KUBERNETES_VERSION: "v1.21.2"
 
 intervals:
@@ -239,7 +226,7 @@ intervals:
   default/wait-worker-nodes: ["10m", "10s"]
   conformance/wait-control-plane: ["30m", "10s"]
   conformance/wait-worker-nodes: ["30m", "10s"]
-  default/wait-controllers: ["3m", "10s"]
+  default/wait-controllers: ["5m", "10s"]
   default/wait-delete-cluster: ["20m", "10s"]
   default/wait-machine-upgrade: ["30m", "10s"]
   default/wait-machine-status: ["20m", "10s"]

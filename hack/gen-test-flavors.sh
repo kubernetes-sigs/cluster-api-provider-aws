@@ -23,7 +23,7 @@ root=$(dirname "${BASH_SOURCE[0]}")/..
 kustomize="${root}/hack/tools/bin/kustomize"
 test_dir_path="test/e2e/data/infrastructure-aws"
 test_dir="${root}/${test_dir_path}/"
-src_dir="${test_dir_path}/kustomize_sources/"
+src_dir="${test_dir}/kustomize_sources/"
 generated_dir="${test_dir}/generated"
 
 echo Checking for template sources in "$test_dir"
