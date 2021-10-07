@@ -40,8 +40,12 @@
       "docsURLTemplate": "https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v0.4.1"
     },
     {
+      "typeMatchPrefix": "^sigs\\.k8s\\.io/cluster-api/api/v1beta1",
+      "docsURLTemplate": "https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0"
+    },
+    {
       "typeMatchPrefix": "^sigs\\.k8s\\.io/cluster-api/errors",
-      "docsURLTemplate": "https://pkg.go.dev/sigs.k8s.io/cluster-api@v0.4.1/errors#{{.TypeIdentifier}}"
+      "docsURLTemplate": "https://pkg.go.dev/sigs.k8s.io/cluster-api@v1.0.0/errors#{{.TypeIdentifier}}"
     },
     {
       "typeMatchPrefix": "^time\\.Duration",

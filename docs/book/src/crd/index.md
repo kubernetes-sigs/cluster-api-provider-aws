@@ -2354,7 +2354,9 @@ int64
 <td>
 <code>conditions</code><br/>
 <em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1beta1.Conditions
+</a>
 </em>
 </td>
 <td>
@@ -4488,7 +4490,9 @@ EndpointAccess
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1beta1.APIEndpoint
+</a>
 </em>
 </td>
 <td>
@@ -4857,7 +4861,9 @@ EndpointAccess
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1beta1.APIEndpoint
+</a>
 </em>
 </td>
 <td>
@@ -5034,7 +5040,9 @@ Cluster API AWS api/v1beta1.NetworkStatus
 <td>
 <code>failureDomains</code><br/>
 <em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1beta1.FailureDomains
+</a>
 </em>
 </td>
 <td>
@@ -5122,7 +5130,9 @@ state, and will be set to a descriptive error message.</p>
 <td>
 <code>conditions</code><br/>
 <em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1beta1.Conditions
+</a>
 </em>
 </td>
 <td>
@@ -8071,7 +8081,7 @@ InstanceState
 <td>
 <code>failureReason</code><br/>
 <em>
-<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v0.4.1/errors#MachineStatusError">
+<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v1.0.0/errors#MachineStatusError">
 Cluster API errors.MachineStatusError
 </a>
 </em>
@@ -11454,7 +11464,7 @@ string
 <td>
 <code>failureReason</code><br/>
 <em>
-<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v0.4.1/errors#MachineStatusError">
+<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v1.0.0/errors#MachineStatusError">
 Cluster API errors.MachineStatusError
 </a>
 </em>
@@ -12041,7 +12051,7 @@ int32
 <td>
 <code>failureReason</code><br/>
 <em>
-<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v0.4.1/errors#MachineStatusError">
+<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v1.0.0/errors#MachineStatusError">
 Cluster API errors.MachineStatusError
 </a>
 </em>
@@ -12487,7 +12497,7 @@ bool
 <td>
 <code>failureReason</code><br/>
 <em>
-<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v0.4.1/errors#MachineStatusError">
+<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v1.0.0/errors#MachineStatusError">
 Cluster API errors.MachineStatusError
 </a>
 </em>
@@ -13143,7 +13153,9 @@ string
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1beta1.APIEndpoint
+</a>
 </em>
 </td>
 <td>
@@ -13656,7 +13668,9 @@ string
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1beta1.APIEndpoint
+</a>
 </em>
 </td>
 <td>
@@ -13941,7 +13955,9 @@ NetworkStatus
 <td>
 <code>failureDomains</code><br/>
 <em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1beta1.FailureDomains
+</a>
 </em>
 </td>
 <td>
@@ -13963,7 +13979,9 @@ Instance
 <td>
 <code>conditions</code><br/>
 <em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1beta1.Conditions
+</a>
 </em>
 </td>
 <td>
@@ -14047,7 +14065,9 @@ AWSClusterTemplateResource
 <td>
 <code>metadata</code><br/>
 <em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1beta1.ObjectMeta
+</a>
 </em>
 </td>
 <td>
@@ -14111,7 +14131,9 @@ string
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1beta1.APIEndpoint
+</a>
 </em>
 </td>
 <td>
@@ -15087,7 +15109,9 @@ This will be set to true when SpotMarketOptions is not nil (i.e. this machine is
 <td>
 <code>addresses</code><br/>
 <em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 []Cluster API api/v1beta1.MachineAddress
+</a>
 </em>
 </td>
 <td>
@@ -15112,7 +15136,7 @@ InstanceState
 <td>
 <code>failureReason</code><br/>
 <em>
-<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v0.4.1/errors#MachineStatusError">
+<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v1.0.0/errors#MachineStatusError">
 Cluster API errors.MachineStatusError
 </a>
 </em>
@@ -15164,7 +15188,9 @@ controller&rsquo;s output.</p>
 <td>
 <code>conditions</code><br/>
 <em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1beta1.Conditions
+</a>
 </em>
 </td>
 <td>
@@ -15251,7 +15277,9 @@ AWSMachineTemplateResource
 <td>
 <code>metadata</code><br/>
 <em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1beta1.ObjectMeta
+</a>
 </em>
 </td>
 <td>
@@ -16722,7 +16750,9 @@ string
 <td>
 <code>addresses</code><br/>
 <em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 []Cluster API api/v1beta1.MachineAddress
+</a>
 </em>
 </td>
 <td>
@@ -18243,7 +18273,9 @@ int32
 <td>
 <code>conditions</code><br/>
 <em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1beta1.Conditions
+</a>
 </em>
 </td>
 <td>
@@ -18280,7 +18312,7 @@ string
 <td>
 <code>failureReason</code><br/>
 <em>
-<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v0.4.1/errors#MachineStatusError">
+<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v1.0.0/errors#MachineStatusError">
 Cluster API errors.MachineStatusError
 </a>
 </em>
@@ -18891,7 +18923,7 @@ int32
 <td>
 <code>failureReason</code><br/>
 <em>
-<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v0.4.1/errors#MachineStatusError">
+<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v1.0.0/errors#MachineStatusError">
 Cluster API errors.MachineStatusError
 </a>
 </em>
@@ -18943,7 +18975,9 @@ controller&rsquo;s output.</p>
 <td>
 <code>conditions</code><br/>
 <em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1beta1.Conditions
+</a>
 </em>
 </td>
 <td>
@@ -19329,7 +19363,7 @@ bool
 <td>
 <code>failureReason</code><br/>
 <em>
-<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v0.4.1/errors#MachineStatusError">
+<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v1.0.0/errors#MachineStatusError">
 Cluster API errors.MachineStatusError
 </a>
 </em>
@@ -19381,7 +19415,9 @@ object and/or logged in the controller&rsquo;s output.</p>
 <td>
 <code>conditions</code><br/>
 <em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1beta1.Conditions
+</a>
 </em>
 </td>
 <td>
