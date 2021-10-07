@@ -57,6 +57,7 @@ func SetDefaults_Labels(obj *metav1.ObjectMeta) { //nolint:golint,stylecheck
 	// Defaults to set label if no labels have been set
 	if obj.Labels == nil {
 		obj.Labels = map[string]string{
-			clusterv1alpha4.ClusterctlMoveHierarchyLabelName: ""}
+			clusterv1alpha4.ClusterctlMoveHierarchyLabelName: "",
+		}
 	}
 }

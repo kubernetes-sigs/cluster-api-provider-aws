@@ -196,7 +196,7 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 				EC2Client: ec2Mock,
 			}
 
-			spec, err := s.getAPIServerClassicELBSpec()
+			spec, err := s.getAPIServerClassicELBSpec(clusterScope.Name())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -548,7 +548,11 @@ func TestDeleteLoadbalancers(t *testing.T) {
 
 			awsCluster := &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
-				Spec:       infrav1.AWSClusterSpec{},
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+						Name: pointer.String("bar-apiserver"),
+					},
+				},
 			}
 
 			client := fake.NewClientBuilder().WithScheme(scheme).Build()

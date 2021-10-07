@@ -42,4 +42,7 @@ type ELBScope interface {
 
 	// ControlPlaneLoadBalancerScheme returns the Classic ELB scheme (public or internal facing)
 	ControlPlaneLoadBalancerScheme() infrav1.ClassicELBScheme
+
+	// ControlPlaneLoadBalancerName returns the Classic ELB name
+	ControlPlaneLoadBalancerName() *string
 }
