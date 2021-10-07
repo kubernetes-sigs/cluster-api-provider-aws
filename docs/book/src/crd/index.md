@@ -14304,6 +14304,21 @@ AWSIdentityKind
 <tbody>
 <tr>
 <td>
+<code>name</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Name sets the name of the classic ELB load balancer. As per AWS, the name must be unique
+within your set of load balancers for the region, must have a maximum of 32 characters, must
+contain only alphanumeric characters or hyphens, and cannot begin or end with a hyphen. Once
+set, the value cannot be changed.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>scheme</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta1.ClassicELBScheme">
