@@ -45,21 +45,17 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--leader-elect"
-            new: "--leader-elect=false"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v0.4.3 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+      - name: v0.4.4 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
         contract: v1alpha4
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.3/core-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/core-components.yaml"
         type: "url"
         files:
           - sourcePath: "./shared/v1alpha4/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--leader-elect"
-            new: "--leader-elect=false"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
       - name: v1.0.0
@@ -71,8 +67,6 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--leader-elect"
-            new: "--leader-elect=false"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
   - name: kubeadm
@@ -89,8 +83,8 @@ providers:
         replacements:
           - old: --metrics-addr=127.0.0.1:8080
             new: --metrics-addr=:8080
-      - name: v0.4.3 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.3/bootstrap-components.yaml"
+      - name: v0.4.4 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/bootstrap-components.yaml"
         type: "url"
         contract: v1alpha4
         files:
@@ -98,8 +92,6 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--leader-elect"
-            new: "--leader-elect=false"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
       - name: v1.0.0
@@ -111,8 +103,6 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--leader-elect"
-            new: "--leader-elect=false"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
   - name: kubeadm
@@ -129,9 +119,9 @@ providers:
         replacements:
           - old: --metrics-addr=127.0.0.1:8080
             new: --metrics-addr=:8080
-      - name: v0.4.3 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+      - name: v0.4.4 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.3/control-plane-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/control-plane-components.yaml"
         type: "url"
         contract: v1alpha4
         files:
@@ -139,8 +129,6 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--leader-elect"
-            new: "--leader-elect=false"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
       - name: v1.0.0
@@ -152,8 +140,6 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--leader-elect"
-            new: "--leader-elect=false"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
   - name: aws
@@ -167,8 +153,6 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--leader-elect"
-            new: "--leader-elect=false"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
           - old: gcr.io/k8s-staging-cluster-api/cluster-api-aws-controller-amd64:dev
@@ -204,7 +188,7 @@ intervals:
   default/wait-cluster: ["30m", "10s"]
   default/wait-control-plane: ["30m", "10s"]
   default/wait-worker-nodes: ["30m", "10s"]
-  default/wait-controllers: ["3m", "10s"]
+  default/wait-controllers: ["5m", "10s"]
   default/wait-delete-cluster: ["35m", "30s"]
   default/wait-delete-machine: ["10m", "10s"]
   default/wait-delete-machine-deployment: ["10m", "10s"]

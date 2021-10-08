@@ -23,6 +23,7 @@ patchesStrategicMerge:
 - manager_webhook_patch.yaml
 - webhookcainjection_patch.yaml
 - manager_image_patch.yaml
+- manager_probes.yaml
 
 configurations:
   - kustomizeconfig.yaml

@@ -23,6 +23,9 @@ kind: AWSCluster
 metadata:
   name: ${CLUSTER_NAME}
 spec:
+  network:
+    vpc:
+      availabilityZoneUsageLimit: 1
   region: ${AWS_REGION}
   sshKeyName: ${AWS_SSH_KEY_NAME}
 ---
