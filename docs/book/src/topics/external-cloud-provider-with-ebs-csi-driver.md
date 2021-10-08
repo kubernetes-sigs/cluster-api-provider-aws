@@ -6,10 +6,14 @@ For details, see [Status of project and documentation of Cloud provider AWS](htt
 
 ## Using external cloud provider and EBS CSI driver in AWS workloads
 Once Management cluster is ready, install external CCM and EBS CSI driver onto the CAPA workload cluster either manually or using ClusterResourceSets (CRS).
-To install them with CRS, create a CRS resource on the management cluster with labels, for example `csi: external` and `ccm: external` labels;  and `AWSCluster` should be created with matching labels `csi: external` and `ccm: external` for CSI and CCM, respectively.
-Below are the example CRS manifests:
-* [AWS CCM manifest](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/test/e2e/data/infrastructure-aws/external-cloud-provider/aws-ccm-external.yaml)
-* [AWS EBS CSI driver manifest](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/test/e2e/data/infrastructure-aws/external-cloud-provider/aws-ebs-csi-external.yaml)
+To install them with CRS, create a CRS resource on the management cluster with labels, for example `csi: external` and `ccm: external` labels. 
+Then, when creating `Cluster` objects for workload clusters that should have this CSR applied, create them with matching labels `csi: external` and `ccm: external` for CSI and CCM, respectively.
+
+Example manifests for installing the AWS CCM and the AWS EBS CSI driver, and for creating corresponding CRS resources,
+can be found [here](https://github.com/kubernetes-sigs/cluster-api-provider-aws/tree/main/test/e2e/data/infrastructure-aws/kustomize_sources/external-cloud-provider).
+
+An example of a workload cluster manifest with labels assigned for matching to a CRS can be found 
+[here](https://github.com/kubernetes-sigs/cluster-api-provider-aws/tree/main/templates/cluster-template-external-cloud-provider.yaml).
 
 ### Verifying dynamically provisioned volumes with CSI driver
 Once you have the cluster with external CCM and CSI controller running successfully, you can test the CSI driver functioning with following steps after switching to workload cluster:
