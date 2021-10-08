@@ -150,7 +150,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 		})
 	})
 
-	ginkgo.Describe("Clusterctl Upgrade Spec [from v1alpha3]", func() {
+	ginkgo.PDescribe("Clusterctl Upgrade Spec [from v1alpha3]", func() {
 		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 		requiredResources := &shared.TestResource{EC2: 5, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2}
 		ginkgo.BeforeEach(func() {
