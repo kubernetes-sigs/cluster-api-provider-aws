@@ -7,7 +7,7 @@ Support for EKS is enabled by default when you use the AWS infrastructure provid
 To ensure that there are no IAM objects created for EKS you will need to use a configuration file with `clusterawsadm` and specify that EKS is disabled:
 
 ```yaml
-apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSIAMConfiguration
 spec:
   eks:

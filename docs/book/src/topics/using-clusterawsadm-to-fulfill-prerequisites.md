@@ -35,7 +35,7 @@ clusterawsadm bootstrap iam create-cloudformation-stack
 Additional policies can be added by creating a configuration file
 
 ```yaml
-apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSIAMConfiguration
 spec:
   controlPlane:
@@ -62,7 +62,7 @@ These will be added to the control plane and node roles respectively when they a
 > this:
 >
 > ```yaml
-> apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
+> apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1
 > kind: AWSIAMConfiguration
 > spec:
 >   bootstrapUser:
@@ -74,7 +74,7 @@ These will be added to the control plane and node roles respectively when they a
 The pre-requisities for EKS are enabled by default. However, if you want to use some of the optional features of EKS (see [here](eks/enabling.md) for more information on what these are) then you will need to enable these features via the configuration file. For example:
 
 ```yaml
-apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSIAMConfiguration
 spec:
   eks:
@@ -97,7 +97,7 @@ To enable EventBridge instance state events, additional permissions must be gran
 Additional permissions for events and queue management can be enabled through the configuration file as follows:
 
 ```yaml
-apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSIAMConfiguration
 spec:
   ...

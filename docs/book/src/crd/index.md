@@ -2027,7 +2027,7 @@ int64
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v0.4.1">
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1alpha4.Conditions
 </a>
 </em>
@@ -2561,9 +2561,7 @@ based on the namespace and name of the managed control plane.</p>
 <td>
 <code>identityRef</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.AWSIdentityReference">
 Cluster API AWS api/v1alpha4.AWSIdentityReference
-</a>
 </em>
 </td>
 <td>
@@ -2575,9 +2573,7 @@ Cluster API AWS api/v1alpha4.AWSIdentityReference
 <td>
 <code>network</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.NetworkSpec">
 Cluster API AWS api/v1alpha4.NetworkSpec
-</a>
 </em>
 </td>
 <td>
@@ -2697,9 +2693,7 @@ EncryptionConfig
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
 Cluster API AWS api/v1alpha4.Tags
-</a>
 </em>
 </td>
 <td>
@@ -2742,7 +2736,7 @@ EndpointAccess
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v0.4.1">
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1alpha4.APIEndpoint
 </a>
 </em>
@@ -2807,9 +2801,7 @@ different ImageLookupBaseOS.</p>
 <td>
 <code>bastion</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.Bastion">
 Cluster API AWS api/v1alpha4.Bastion
-</a>
 </em>
 </td>
 <td>
@@ -2940,9 +2932,7 @@ based on the namespace and name of the managed control plane.</p>
 <td>
 <code>identityRef</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.AWSIdentityReference">
 Cluster API AWS api/v1alpha4.AWSIdentityReference
-</a>
 </em>
 </td>
 <td>
@@ -2954,9 +2944,7 @@ Cluster API AWS api/v1alpha4.AWSIdentityReference
 <td>
 <code>network</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.NetworkSpec">
 Cluster API AWS api/v1alpha4.NetworkSpec
-</a>
 </em>
 </td>
 <td>
@@ -3076,9 +3064,7 @@ EncryptionConfig
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
 Cluster API AWS api/v1alpha4.Tags
-</a>
 </em>
 </td>
 <td>
@@ -3121,7 +3107,7 @@ EndpointAccess
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v0.4.1">
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1alpha4.APIEndpoint
 </a>
 </em>
@@ -3186,9 +3172,7 @@ different ImageLookupBaseOS.</p>
 <td>
 <code>bastion</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.Bastion">
 Cluster API AWS api/v1alpha4.Bastion
-</a>
 </em>
 </td>
 <td>
@@ -3290,9 +3274,7 @@ Amazon VPC CNI addon or if you have specified a secondary CIDR block.</p>
 <td>
 <code>networkStatus</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.NetworkStatus">
 Cluster API AWS api/v1alpha4.NetworkStatus
-</a>
 </em>
 </td>
 <td>
@@ -3304,7 +3286,7 @@ Cluster API AWS api/v1alpha4.NetworkStatus
 <td>
 <code>failureDomains</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v0.4.1">
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1alpha4.FailureDomains
 </a>
 </em>
@@ -3318,9 +3300,7 @@ Cluster API api/v1alpha4.FailureDomains
 <td>
 <code>bastion</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.Instance">
 Cluster API AWS api/v1alpha4.Instance
-</a>
 </em>
 </td>
 <td>
@@ -3396,7 +3376,7 @@ state, and will be set to a descriptive error message.</p>
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v0.4.1">
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1alpha4.Conditions
 </a>
 </em>
@@ -4108,9 +4088,7 @@ all prefixing.</p>
 <td>
 <code>tags</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
 Cluster API AWS api/v1alpha4.Tags
-</a>
 </em>
 </td>
 <td>
@@ -6115,7 +6093,7 @@ string
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v0.4.1">
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1alpha4.APIEndpoint
 </a>
 </em>
@@ -6630,7 +6608,7 @@ string
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v0.4.1">
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1alpha4.APIEndpoint
 </a>
 </em>
@@ -6917,7 +6895,7 @@ NetworkStatus
 <td>
 <code>failureDomains</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v0.4.1">
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1alpha4.FailureDomains
 </a>
 </em>
@@ -6941,7 +6919,7 @@ Instance
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v0.4.1">
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1alpha4.Conditions
 </a>
 </em>
@@ -7076,7 +7054,7 @@ string
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v0.4.1">
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1alpha4.APIEndpoint
 </a>
 </em>
@@ -8054,7 +8032,7 @@ This will be set to true when SpotMarketOptions is not nil (i.e. this machine is
 <td>
 <code>addresses</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v0.4.1">
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 []Cluster API api/v1alpha4.MachineAddress
 </a>
 </em>
@@ -8133,7 +8111,7 @@ controller&rsquo;s output.</p>
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v0.4.1">
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1alpha4.Conditions
 </a>
 </em>
@@ -9707,7 +9685,7 @@ string
 <td>
 <code>addresses</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v0.4.1">
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 []Cluster API api/v1alpha4.MachineAddress
 </a>
 </em>
@@ -10730,9 +10708,7 @@ auto scaling group of this nodegroup.</p>
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
 Cluster API AWS api/v1alpha4.Tags
-</a>
 </em>
 </td>
 <td>
@@ -10830,9 +10806,7 @@ role.</p>
 <td>
 <code>ami</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.AMIReference">
 Cluster API AWS api/v1alpha4.AMIReference
-</a>
 </em>
 </td>
 <td>
@@ -10900,9 +10874,7 @@ string
 <td>
 <code>rootVolume</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.Volume">
 Cluster API AWS api/v1alpha4.Volume
-</a>
 </em>
 </td>
 <td>
@@ -10942,9 +10914,7 @@ Typically a new version is created when at least one of the following happens:
 <td>
 <code>additionalSecurityGroups</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.AWSResourceReference">
 []Cluster API AWS api/v1alpha4.AWSResourceReference
-</a>
 </em>
 </td>
 <td>
@@ -11045,9 +11015,7 @@ int32
 <td>
 <code>subnets</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.AWSResourceReference">
 []Cluster API AWS api/v1alpha4.AWSResourceReference
-</a>
 </em>
 </td>
 <td>
@@ -11059,9 +11027,7 @@ int32
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
 Cluster API AWS api/v1alpha4.Tags
-</a>
 </em>
 </td>
 <td>
@@ -11274,9 +11240,7 @@ int32
 <td>
 <code>subnets</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.AWSResourceReference">
 []Cluster API AWS api/v1alpha4.AWSResourceReference
-</a>
 </em>
 </td>
 <td>
@@ -11288,9 +11252,7 @@ int32
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
 Cluster API AWS api/v1alpha4.Tags
-</a>
 </em>
 </td>
 <td>
@@ -11425,7 +11387,7 @@ int32
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v0.4.1">
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1alpha4.Conditions
 </a>
 </em>
@@ -11609,9 +11571,7 @@ auto scaling group of this nodegroup</p>
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
 Cluster API AWS api/v1alpha4.Tags
-</a>
 </em>
 </td>
 <td>
@@ -11845,9 +11805,7 @@ auto scaling group of this nodegroup</p>
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
 Cluster API AWS api/v1alpha4.Tags
-</a>
 </em>
 </td>
 <td>
@@ -12103,7 +12061,7 @@ controller&rsquo;s output.</p>
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v0.4.1">
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1alpha4.Conditions
 </a>
 </em>
@@ -12143,9 +12101,7 @@ string
 <td>
 <code>tags</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
 Cluster API AWS api/v1alpha4.Tags
-</a>
 </em>
 </td>
 <td>
@@ -12261,9 +12217,7 @@ ASGStatus
 <td>
 <code>instances</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.Instance">
 []Cluster API AWS api/v1alpha4.Instance
-</a>
 </em>
 </td>
 <td>
@@ -12425,9 +12379,7 @@ auto scaling group of this nodegroup.</p>
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="https://cluster-api-aws.sigs.k8s.io/crd/cluster-api-aws.html#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
 Cluster API AWS api/v1alpha4.Tags
-</a>
 </em>
 </td>
 <td>
@@ -12549,7 +12501,7 @@ object and/or logged in the controller&rsquo;s output.</p>
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v0.4.1">
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
 Cluster API api/v1alpha4.Conditions
 </a>
 </em>

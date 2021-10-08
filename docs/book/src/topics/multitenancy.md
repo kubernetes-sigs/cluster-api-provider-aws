@@ -7,7 +7,7 @@ For details, see the [multi-tenancy proposal](https://github.com/kubernetes-sigs
 For multi-tenancy support, a reference field (`identityRef`) is added to `AWSCluster`, which describes the identity to be used when reconciling the cluster.
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSCluster
 metadata:
   name: "test"
@@ -37,7 +37,7 @@ For backward compatibility, `AutoControllerIdentityCreator` experimental feature
 Example:
 ```yaml
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSCluster
 metadata:
   name: "test"
@@ -48,7 +48,7 @@ spec:
     kind: AWSClusterControllerIdentity
     name: default
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSClusterControllerIdentity
 metadata:
   name: "default"
@@ -66,7 +66,7 @@ The identity credentials that will be used by "test" AWSCluster are stored in "t
 
 ```yaml
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSCluster
 metadata:
   name: "test"
@@ -77,7 +77,7 @@ spec:
     kind: AWSClusterStaticIdentity
     name: test-account
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSClusterStaticIdentity
 metadata:
   name: "test-account"
@@ -118,7 +118,7 @@ Role is assumed in the beginning once and after, whenever the assumed role's cre
 
 ```yaml
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSCluster
 metadata:
   name: "test"
@@ -129,7 +129,7 @@ spec:
     kind: AWSClusterRoleIdentity
     name: test-account-role
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSClusterRoleIdentity
 metadata:
   name: "test-account-role"
@@ -147,7 +147,7 @@ Nested role assumption is also supported.
 Example: Below, "multi-tenancy-nested-role" will be assumed by "multi-tenancy-role", which will be assumed by the "default" `AWSClusterControllerIdentity`
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSClusterRoleIdentity
 metadata:
   name: multi-tenancy-role
@@ -158,11 +158,11 @@ spec:
   roleARN: arn:aws:iam::11122233344:role/multi-tenancy-role
   sessionName: multi-tenancy-role-session
   sourceidentityRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     kind: AWSClusterControllerIdentity
     name: default
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSClusterRoleIdentity
 metadata:
   name: multi-tenancy-nested-role
@@ -172,7 +172,7 @@ spec:
   roleARN: arn:aws:iam::11122233355:role/multi-tenancy-nested-role
   sessionName: multi-tenancy-nested-role-session
   sourceidentityRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     kind: AWSClusterRoleIdentity
     name: multi-tenancy-role
 ```
@@ -189,7 +189,7 @@ Note that the `capa-eks-control-plane-system` namespace will need to be included
 An empty `allowedNamespaces` indicates that the Identity can be used by all namespaces.
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSClusterControllerIdentity
 spec:
   allowedNamespaces:{}  # matches all namespaces
@@ -198,7 +198,7 @@ spec:
 Having a nil `list` and a nil `selector` is the same with having an empty `allowedNamespaces` (Identity can be used by all namespaces).
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSClusterControllerIdentity
 spec:
   allowedNamespaces:
@@ -209,7 +209,7 @@ spec:
 A nil `allowedNamespaces` indicates that the Identity cannot be used from any namespace.
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSClusterControllerIdentity
 spec:
   allowedNamespaces:  # this is same with not providing the field at all or allowedNamespaces: null
@@ -260,7 +260,7 @@ metadata:
   labels:
     environment: dev
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSClusterControllerIdentity
 spec:
   allowedNamespaces:

@@ -52,21 +52,25 @@ cluster on AWS.
 
 This provider's versions are compatible with the following versions of Cluster API:
 
-|                              | Cluster API v1alpha3 (v0.3) | Cluster API v1alpha4 (v0.4) |
-| ---------------------------- | --------------------------- | --------------------------- |
-| AWS Provider v1alpha3 (v0.5) | ✓                           |                             |
-| AWS Provider v1alpha3 (v0.6) | ✓                           |                             |
-| AWS Provider v1alpha4 (v0.7) |                             | ✓                           |
+
+|                              | v1alpha3 (v0.3) | v1alpha4 (v0.4) | v1beta1 (v1.0) |
+| ---------------------------- | --------------- | --------------- | -------------- |
+| AWS Provider v1alpha3 (v0.5) | ✓               |                 |                |
+| AWS Provider v1alpha3 (v0.6) | ✓               |                 |                |
+| AWS Provider v1alpha4 (v0.7) |                 | ✓               |                |
+| AWS Provider v1beta1 (v1.0)  |                 |                 | ✓              |
 
 
 This provider's versions are able to install and manage the following versions of Kubernetes:
 
-|                              | Kubernetes 1.16 | Kubernetes 1.17 | Kubernetes 1.18 | Kubernetes 1.19 | Kubernetes 1.20 | Kubernetes 1.21 |
-| ---------------------------- | --------------- | --------------- | --------------- | --------------- | --------------- | --------------- |
-| AWS Provider v1alpha3 (v0.5) | ✓               | ✓               | ✓               | ✓               | ✓               |                 |
-| AWS Provider v1alpha3 (v0.6) | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
-| AWS Provider v1alpha4 (v0.7) |                 |                 |                 | ✓               | ✓               | ✓               |
+|                              | v1.16 | v 1.17 | v1.18 | v1.19 | v1.20 | v1.21 | v1.22 |
+| ---------------------------- | ----- | ------ | ----- | ----- | ----- | ----- | ----- |
+| AWS Provider v1alpha3 (v0.5) | ✓     | ✓      | ✓     | ✓     | ✓     |       |       |
+| AWS Provider v1alpha3 (v0.6) | ✓     | ✓      | ✓     | ✓     | ✓     | ✓     | ✓*    |
+| AWS Provider v1alpha4 (v0.7) |       |        | ✓*    | ✓     | ✓     | ✓     | ✓     |
+| AWS Provider v1beta1 (v1.0)  |       |        |       | ✓     | ✓     | ✓     | ✓     |
 
+\* Not management clusters
 
 Each version of Cluster API for AWS will attempt to support two Kubernetes versions; e.g., Cluster API for AWS `v0.3` supports Kubernetes 1.16, 1.17, 1.18 etc.
 
