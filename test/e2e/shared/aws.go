@@ -337,7 +337,7 @@ func ensureTestImageUploaded(e2eCtx *E2EContext) (string, string, error) {
 		return "", "", err
 	}
 
-	Byf("Image uploaded to s3:///%s/%s", bucketName, imageSha)
+	Byf("Image uploaded to s3://%s/%s", bucketName, imageSha)
 	return bucketName, imageSha, nil
 }
 
