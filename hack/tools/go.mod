@@ -15,7 +15,7 @@ require (
 	k8s.io/code-generator v0.22.2
 	k8s.io/gengo v0.0.0-20201214224949-b6c5ce23f027
 	k8s.io/klog v1.0.0 // indirect
-	k8s.io/klog/v2 v2.10.0
+	k8s.io/klog/v2 v2.20.0
 	k8s.io/release v0.11.0
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20211006034833-18ecf48ff1ca
 	sigs.k8s.io/controller-tools v0.7.0
