@@ -234,21 +234,6 @@ func (s *Service) DeleteLoadbalancers() error {
 	return nil
 }
 
-// RegisterInstanceWithClassicELB registers an instance with a classic ELB.
-func (s *Service) RegisterInstanceWithClassicELB(instanceID, loadBalancer string) error {
-	input := &elb.RegisterInstancesWithLoadBalancerInput{
-		Instances:        []*elb.Instance{{InstanceId: aws.String(instanceID)}},
-		LoadBalancerName: aws.String(loadBalancer),
-	}
-
-	_, err := s.ELBClient.RegisterInstancesWithLoadBalancer(input)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // InstanceIsRegisteredWithAPIServerELB returns true if the instance is already registered with the APIServer ELB.
 func (s *Service) InstanceIsRegisteredWithAPIServerELB(i *infrav1.Instance) (bool, error) {
 	name := s.scope.ControlPlaneLoadBalancerName()
