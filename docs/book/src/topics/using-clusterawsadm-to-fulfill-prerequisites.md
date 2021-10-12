@@ -50,7 +50,7 @@ spec:
 and passing it to clusterawsadm as follows
 
 ```bash
-clusterawsadm bootstrap iam create-stack --config bootstrap-config.yaml
+clusterawsadm bootstrap iam create-cloudformation-stack --config bootstrap-config.yaml
 ```
 
 These will be added to the control plane and node roles respectively when they are created.
