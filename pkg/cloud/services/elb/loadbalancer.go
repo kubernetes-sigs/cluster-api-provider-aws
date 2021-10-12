@@ -192,7 +192,7 @@ func (s *Service) deleteAPIServerELB() error {
 func (s *Service) deleteClusterAWSProviderELBs() error {
 	s.scope.V(2).Info("Deleting Cluster AWS Provider load balancers")
 
-	elbs, err := s.listOwnedELBs()
+	elbs, err := s.listAWSCloudProviderOwnedELBs()
 	if err != nil {
 		return err
 	}
@@ -205,7 +205,7 @@ func (s *Service) deleteClusterAWSProviderELBs() error {
 	}
 
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (done bool, err error) {
-		elbs, err := s.listOwnedELBs()
+		elbs, err := s.listAWSCloudProviderOwnedELBs()
 		if err != nil {
 			return false, err
 		}
@@ -227,7 +227,7 @@ func (s *Service) DeleteLoadbalancers() error {
 		return errors.Wrap(err, "failed to delete control plane load balancer")
 	}
 
-	if err := s.deleteClusterAWSProviderELBs(); err != nil {
+	if err := s.deleteAWSCloudProviderELBs(); err != nil {
 		return errors.Wrap(err, "failed to delete cluster AWS provider load balancer(s)")
 	}
 
@@ -640,7 +640,7 @@ func (s *Service) filterByOwnedTag(tagKey string) ([]string, error) {
 	return ownedElbs, nil
 }
 
-func (s *Service) listOwnedELBs() ([]string, error) {
+func (s *Service) listAWSCloudProviderOwnedELBs() ([]string, error) {
 	// k8s.io/cluster/<name>, created by k/k cloud provider
 	serviceTag := infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())
 	arns, err := s.listByTag(serviceTag)
