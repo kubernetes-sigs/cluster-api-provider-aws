@@ -103,7 +103,7 @@ func (s *Service) ReconcileLoadbalancers() error {
 			}
 		}
 
-		if err := s.reconcileELBTags(apiELB.Name, spec.Tags); err != nil {
+		if err := s.reconcileELBTags(apiELB, spec.Tags); err != nil {
 			return errors.Wrapf(err, "failed to reconcile tags for apiserver load balancer %q", apiELB.Name)
 		}
 
@@ -701,41 +701,50 @@ func (s *Service) describeClassicELB(name string) (*infrav1.ClassicELB, error) {
 		return nil, errors.Wrapf(err, "failed to describe classic load balancer %q attributes", name)
 	}
 
-	return fromSDKTypeToClassicELB(out.LoadBalancerDescriptions[0], outAtt.LoadBalancerAttributes), nil
+	tags, err := s.describeClassicELBTags(name)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to describe classic load balancer tags")
+	}
+
+	return fromSDKTypeToClassicELB(out.LoadBalancerDescriptions[0], outAtt.LoadBalancerAttributes, tags), nil
 }
 
-func (s *Service) reconcileELBTags(name string, desiredTags map[string]string) error {
-	tags, err := s.ELBClient.DescribeTags(&elb.DescribeTagsInput{
+func (s *Service) describeClassicELBTags(name string) ([]*elb.Tag, error) {
+	output, err := s.ELBClient.DescribeTags(&elb.DescribeTagsInput{
 		LoadBalancerNames: []*string{aws.String(name)},
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if len(tags.TagDescriptions) == 0 {
-		return errors.Errorf("no tag information returned for load balancer %q", name)
+	if len(output.TagDescriptions) == 0 {
+		return nil, errors.Errorf("no tag information returned for load balancer %q", name)
 	}
 
-	currentTags := converters.ELBTagsToMap(tags.TagDescriptions[0].Tags)
+	return output.TagDescriptions[0].Tags, nil
+}
 
+func (s *Service) reconcileELBTags(lb *infrav1.ClassicELB, desiredTags map[string]string) error {
 	addTagsInput := &elb.AddTagsInput{
-		LoadBalancerNames: []*string{aws.String(name)},
+		LoadBalancerNames: []*string{aws.String(lb.Name)},
 	}
 
 	removeTagsInput := &elb.RemoveTagsInput{
-		LoadBalancerNames: []*string{aws.String(name)},
+		LoadBalancerNames: []*string{aws.String(lb.Name)},
 	}
+
+	currentTags := infrav1.Tags(lb.Tags)
 
 	for k, v := range desiredTags {
 		if val, ok := currentTags[k]; !ok || val != v {
-			s.scope.V(4).Info("adding tag to load balancer", "elb-name", name, "key", k, "value", v)
+			s.scope.V(4).Info("adding tag to load balancer", "elb-name", lb.Name, "key", k, "value", v)
 			addTagsInput.Tags = append(addTagsInput.Tags, &elb.Tag{Key: aws.String(k), Value: aws.String(v)})
 		}
 	}
 
 	for k := range currentTags {
 		if _, ok := desiredTags[k]; !ok {
-			s.scope.V(4).Info("removing tag from load balancer", "elb-name", name, "key", k)
+			s.scope.V(4).Info("removing tag from load balancer", "elb-name", lb.Name, "key", k)
 			removeTagsInput.Tags = append(removeTagsInput.Tags, &elb.TagKeyOnly{Key: aws.String(k)})
 		}
 	}
@@ -755,13 +764,14 @@ func (s *Service) reconcileELBTags(name string, desiredTags map[string]string) e
 	return nil
 }
 
-func fromSDKTypeToClassicELB(v *elb.LoadBalancerDescription, attrs *elb.LoadBalancerAttributes) *infrav1.ClassicELB {
+func fromSDKTypeToClassicELB(v *elb.LoadBalancerDescription, attrs *elb.LoadBalancerAttributes, tags []*elb.Tag) *infrav1.ClassicELB {
 	res := &infrav1.ClassicELB{
 		Name:             aws.StringValue(v.LoadBalancerName),
 		Scheme:           infrav1.ClassicELBScheme(*v.Scheme),
 		SubnetIDs:        aws.StringValueSlice(v.Subnets),
 		SecurityGroupIDs: aws.StringValueSlice(v.SecurityGroups),
 		DNSName:          aws.StringValue(v.DNSName),
+		Tags:             converters.ELBTagsToMap(tags),
 	}
 
 	if attrs.ConnectionSettings != nil && attrs.ConnectionSettings.IdleTimeout != nil {
