@@ -2,8 +2,6 @@ module sigs.k8s.io/cluster-api-provider-aws
 
 go 1.16
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.0.0
-
 // Versions to be held for v1beta1
 // sigs.k8s.io/controller-runtime on v0.10.x
 // k8s.io/* on v0.22.x
@@ -69,3 +67,5 @@ require (
 	sigs.k8s.io/controller-runtime v0.10.2
 	sigs.k8s.io/yaml v1.3.0
 )
+
+replace sigs.k8s.io/cluster-api => github.com/sbueringer/cluster-api v0.0.0-20211013094140-f5a9d76759c6
