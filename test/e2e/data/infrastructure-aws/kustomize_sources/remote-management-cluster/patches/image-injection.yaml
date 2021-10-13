@@ -7,8 +7,6 @@ spec:
   kubeadmConfigSpec:
     preKubeadmCommands:
     - mkdir -p /opt/cluster-api
-    - aws s3 cp "s3://${CAPI_IMAGES_BUCKET}/${E2E_IMAGE_SHA}" /opt/cluster-api/image.tar
-    - ctr -n k8s.io images import /opt/cluster-api/image.tar
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
@@ -19,5 +17,4 @@ spec:
     spec:
       preKubeadmCommands:
       - mkdir -p /opt/cluster-api
-      - aws s3 cp "s3://${CAPI_IMAGES_BUCKET}/${E2E_IMAGE_SHA}" /opt/cluster-api/image.tar
-      - ctr -n k8s.io images import /opt/cluster-api/image.tar
+
