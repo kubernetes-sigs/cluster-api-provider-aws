@@ -69,3 +69,5 @@ require (
 )
 
 replace sigs.k8s.io/cluster-api => github.com/sbueringer/cluster-api v0.0.0-20211013094140-f5a9d76759c6
+
+replace sigs.k8s.io/cluster-api/test => github.com/sbueringer/cluster-api/test v0.0.0-20211013094140-f5a9d76759c6
