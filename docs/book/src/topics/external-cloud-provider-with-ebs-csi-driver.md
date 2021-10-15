@@ -9,8 +9,9 @@ Once Management cluster is ready, install external CCM and EBS CSI driver onto t
 To install them with CRS, create a CRS resource on the management cluster with labels, for example `csi: external` and `ccm: external` labels. 
 Then, when creating `Cluster` objects for workload clusters that should have this CSR applied, create them with matching labels `csi: external` and `ccm: external` for CSI and CCM, respectively.
 
-Example manifests for installing the AWS CCM and the AWS EBS CSI driver, and for creating corresponding CRS resources,
-can be found [here](https://github.com/kubernetes-sigs/cluster-api-provider-aws/tree/main/test/e2e/data/infrastructure-aws/kustomize_sources/external-cloud-provider).
+Manifests for installing the AWS CCM and the AWS EBS CSI driver are available from their respective 
+GitHub repositories (see [here for the AWS CCM](https://github.com/kubernetes/cloud-provider-aws) and 
+[here for the AWS EBS CSI driver](https://github.com/kubernetes-sigs/aws-ebs-csi-driver)).
 
 An example of a workload cluster manifest with labels assigned for matching to a CRS can be found 
 [here](https://github.com/kubernetes-sigs/cluster-api-provider-aws/tree/main/templates/cluster-template-external-cloud-provider.yaml).
