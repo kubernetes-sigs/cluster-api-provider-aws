@@ -26,6 +26,37 @@ type EKSConfigSpec struct {
 	// KubeletExtraArgs passes the specified kubelet args into the Amazon EKS machine bootstrap script
 	// +optional
 	KubeletExtraArgs map[string]string `json:"kubeletExtraArgs,omitempty"`
+	// ContainerRuntime specify the container runtime to use when bootstrapping EKS.
+	// +optional
+	ContainerRuntime *string `json:"containerRuntime,omitempty"`
+	//  DNSClusterIP overrides the IP address to use for DNS queries within the cluster.
+	// +optional
+	DNSClusterIP *string `json:"dnsClusterIP,omitempty"`
+	// DockerConfigJson is used for the contents of the /etc/docker/daemon.json file. Useful if you want a custom config differing from the default one in the AMI.
+	// This is expected to be a json string.
+	// +optional
+	DockerConfigJson *string `json:"dockerConfigJson,omitempty"`
+	// APIRetryAttempts is the number of retry attempts for AWS API call.
+	// +optional
+	APIRetryAttempts *int `json:"apiRetryAttempts,omitempty"`
+	// PauseContainer allows customization of the pause container to use.
+	// +optional
+	PauseContainer *PauseContainer `json:"pauseContainer,omitempty"`
+	// UseMaxPods  sets --max-pods for the kubelet when true.
+	// +optional
+	UseMaxPods *bool `json:"useMaxPods,omitempty"`
+	// ServiceIPV6Cidr is the ipv6 cidr range of the cluster. If this is specifed then
+	// the ip family will be set to ipv6.
+	// +optional
+	ServiceIPV6Cidr *string `json:"serviceIPV6Cidr,omitempty"`
+}
+
+// PauseContainer
+type PauseContainer struct {
+	//  AccountNumber is the AWS account number to pull the pause container from.
+	AccountNumber string `json:"accountNumber"`
+	// Version is the tag of the pause container to use.
+	Version string `json:"version"`
 }
 
 // EKSConfigStatus defines the observed state of the Amazon EKS Bootstrap Configuration.

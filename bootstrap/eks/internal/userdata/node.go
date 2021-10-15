@@ -24,14 +24,23 @@ import (
 
 const (
 	nodeUserData = `#!/bin/bash
-/etc/eks/bootstrap.sh {{.ClusterName}} {{- template "args" .KubeletExtraArgs }}
+/etc/eks/bootstrap.sh {{.ClusterName}} {{- template "args" . }}
 `
 )
 
 // NodeInput defines the context to generate a node user data.
 type NodeInput struct {
-	ClusterName      string
-	KubeletExtraArgs map[string]string
+	ClusterName           string
+	KubeletExtraArgs      map[string]string
+	ContainerRuntime      *string
+	DNSClusterIP          *string
+	DockerConfigJson      *string
+	APIRetryAttempts      *int
+	PauseContainerAccount *string
+	PauseConatinerVersion *string
+	UseMaxPods            *bool
+	IPFamily              *string
+	ServiceIPV6Cidr       *string
 }
 
 // NewNode returns the user data string to be used on a node instance.
