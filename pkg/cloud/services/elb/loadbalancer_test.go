@@ -88,14 +88,17 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 		name   string
 		lb     *infrav1.AWSLoadBalancerSpec
 		mocks  func(m *mock_ec2iface.MockEC2APIMockRecorder)
-		expect func(t *testing.T, res *infrav1.ClassicELB)
+		expect func(t *testing.T, res []*infrav1.ClassicELB)
 	}{
 		{
 			name:  "nil load balancer config",
 			lb:    nil,
 			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
-			expect: func(t *testing.T, res *infrav1.ClassicELB) {
-				if res.Attributes.CrossZoneLoadBalancing {
+			expect: func(t *testing.T, res []*infrav1.ClassicELB) {
+				if len(res) != 1 {
+					t.Errorf("Expected 1 load balancer, got %v", len(res))
+				}
+				if res[0].Attributes.CrossZoneLoadBalancing {
 					t.Error("Expected load balancer not to have cross-zone load balancing enabled")
 				}
 			},
@@ -106,8 +109,11 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 				CrossZoneLoadBalancing: true,
 			},
 			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
-			expect: func(t *testing.T, res *infrav1.ClassicELB) {
-				if !res.Attributes.CrossZoneLoadBalancing {
+			expect: func(t *testing.T, res []*infrav1.ClassicELB) {
+				if len(res) != 1 {
+					t.Errorf("Expected 1 load balancer, got %v", len(res))
+				}
+				if !res[0].Attributes.CrossZoneLoadBalancing {
 					t.Error("Expected load balancer to have cross-zone load balancing enabled")
 				}
 			},
@@ -137,12 +143,15 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 						},
 					}, nil)
 			},
-			expect: func(t *testing.T, res *infrav1.ClassicELB) {
-				if len(res.SubnetIDs) != 2 {
-					t.Errorf("Expected load balancer to be configured for 2 subnets, got %v", len(res.SubnetIDs))
+			expect: func(t *testing.T, res []*infrav1.ClassicELB) {
+				if len(res) != 1 {
+					t.Errorf("Expected 1 load balancer, got %v", len(res))
 				}
-				if len(res.AvailabilityZones) != 2 {
-					t.Errorf("Expected load balancer to be configured for 2 availability zones, got %v", len(res.AvailabilityZones))
+				if len(res[0].SubnetIDs) != 2 {
+					t.Errorf("Expected load balancer to be configured for 2 subnets, got %v", len(res[0].SubnetIDs))
+				}
+				if len(res[0].AvailabilityZones) != 2 {
+					t.Errorf("Expected load balancer to be configured for 2 availability zones, got %v", len(res[0].AvailabilityZones))
 				}
 			},
 		},
@@ -152,9 +161,28 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 				AdditionalSecurityGroups: []string{"sg-00001", "sg-00002"},
 			},
 			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
-			expect: func(t *testing.T, res *infrav1.ClassicELB) {
-				if len(res.SecurityGroupIDs) != 3 {
-					t.Errorf("Expected load balancer to be configured for 3 security groups, got %v", len(res.SecurityGroupIDs))
+			expect: func(t *testing.T, res []*infrav1.ClassicELB) {
+				if len(res) != 1 {
+					t.Errorf("Expected 1 load balancer, got %v", len(res))
+				}
+				if len(res[0].SecurityGroupIDs) != 3 {
+					t.Errorf("Expected load balancer to be configured for 3 security groups, got %v", len(res[0].SecurityGroupIDs))
+				}
+			},
+		},
+		{
+			name: "load balancer for both internet and internal facing endpoints",
+			lb: &infrav1.AWSLoadBalancerSpec{
+				Scheme: &infrav1.ClassicELBSchemeBoth,
+			},
+			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
+			expect: func(t *testing.T, res []*infrav1.ClassicELB) {
+				if len(res) != 2 {
+					t.Errorf("Expected 2 load balancer, got %v", len(res))
+				}
+
+				if res[0].Scheme == res[1].Scheme {
+					t.Errorf("Expected load balancers to have different schemes")
 				}
 			},
 		},

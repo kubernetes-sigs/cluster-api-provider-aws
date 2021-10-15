@@ -52,64 +52,66 @@ func (s *Service) ReconcileLoadbalancers() error {
 	s.scope.V(2).Info("Reconciling load balancers")
 
 	// Get default api server spec.
-	spec, err := s.getAPIServerClassicELBSpec()
+	specs, err := s.getAPIServerClassicELBSpec()
 	if err != nil {
 		return err
 	}
 
-	// Describe or create.
-	apiELB, err := s.describeClassicELB(spec.Name)
-	if IsNotFound(err) {
-		apiELB, err = s.createClassicELB(spec)
-		if err != nil {
+	for _, spec := range specs {
+		// Describe or create.
+		apiELB, err := s.describeClassicELB(spec.Name)
+		if IsNotFound(err) {
+			apiELB, err = s.createClassicELB(spec)
+			if err != nil {
+				return err
+			}
+
+			s.scope.V(2).Info("Created new classic load balancer for apiserver", "api-server-elb-name", apiELB.Name)
+		} else if err != nil {
 			return err
 		}
 
-		s.scope.V(2).Info("Created new classic load balancer for apiserver", "api-server-elb-name", apiELB.Name)
-	} else if err != nil {
-		return err
-	}
-
-	if !reflect.DeepEqual(spec.Attributes, apiELB.Attributes) {
-		err := s.configureAttributes(apiELB.Name, spec.Attributes)
-		if err != nil {
-			return err
+		if !reflect.DeepEqual(spec.Attributes, apiELB.Attributes) {
+			err := s.configureAttributes(apiELB.Name, spec.Attributes)
+			if err != nil {
+				return err
+			}
 		}
-	}
 
-	if err := s.reconcileELBTags(apiELB.Name, spec.Tags); err != nil {
-		return errors.Wrapf(err, "failed to reconcile tags for apiserver load balancer %q", apiELB.Name)
-	}
-
-	// Reconcile the subnets and availability zones from the spec
-	// and the ones currently attached to the load balancer.
-	if len(apiELB.SubnetIDs) != len(spec.SubnetIDs) {
-		_, err := s.ELBClient.AttachLoadBalancerToSubnets(&elb.AttachLoadBalancerToSubnetsInput{
-			LoadBalancerName: &apiELB.Name,
-			Subnets:          aws.StringSlice(spec.SubnetIDs),
-		})
-		if err != nil {
-			return errors.Wrapf(err, "failed to attach apiserver load balancer %q to subnets", apiELB.Name)
+		if err := s.reconcileELBTags(apiELB.Name, spec.Tags); err != nil {
+			return errors.Wrapf(err, "failed to reconcile tags for apiserver load balancer %q", apiELB.Name)
 		}
-	}
-	if len(apiELB.AvailabilityZones) != len(spec.AvailabilityZones) {
-		apiELB.AvailabilityZones = spec.AvailabilityZones
-	}
 
-	// Reconcile the security groups from the spec and the ones currently attached to the load balancer
-	if !sets.NewString(apiELB.SecurityGroupIDs...).Equal(sets.NewString(spec.SecurityGroupIDs...)) {
-		_, err := s.ELBClient.ApplySecurityGroupsToLoadBalancer(&elb.ApplySecurityGroupsToLoadBalancerInput{
-			LoadBalancerName: &apiELB.Name,
-			SecurityGroups:   aws.StringSlice(spec.SecurityGroupIDs),
-		})
-		if err != nil {
-			return errors.Wrapf(err, "failed to apply security groups to load balancer %q", apiELB.Name)
+		// Reconcile the subnets and availability zones from the spec
+		// and the ones currently attached to the load balancer.
+		if len(apiELB.SubnetIDs) != len(spec.SubnetIDs) {
+			_, err := s.ELBClient.AttachLoadBalancerToSubnets(&elb.AttachLoadBalancerToSubnetsInput{
+				LoadBalancerName: &apiELB.Name,
+				Subnets:          aws.StringSlice(spec.SubnetIDs),
+			})
+			if err != nil {
+				return errors.Wrapf(err, "failed to attach apiserver load balancer %q to subnets", apiELB.Name)
+			}
 		}
-	}
+		if len(apiELB.AvailabilityZones) != len(spec.AvailabilityZones) {
+			apiELB.AvailabilityZones = spec.AvailabilityZones
+		}
 
-	// TODO(vincepri): check if anything has changed and reconcile as necessary.
-	apiELB.DeepCopyInto(&s.scope.Network().APIServerELB)
-	s.scope.V(4).Info("Control plane load balancer", "api-server-elb", apiELB)
+		// Reconcile the security groups from the spec and the ones currently attached to the load balancer
+		if !sets.NewString(apiELB.SecurityGroupIDs...).Equal(sets.NewString(spec.SecurityGroupIDs...)) {
+			_, err := s.ELBClient.ApplySecurityGroupsToLoadBalancer(&elb.ApplySecurityGroupsToLoadBalancerInput{
+				LoadBalancerName: &apiELB.Name,
+				SecurityGroups:   aws.StringSlice(spec.SecurityGroupIDs),
+			})
+			if err != nil {
+				return errors.Wrapf(err, "failed to apply security groups to load balancer %q", apiELB.Name)
+			}
+		}
+
+		// TODO(vincepri): check if anything has changed and reconcile as necessary.
+		apiELB.DeepCopyInto(&s.scope.Network().APIServerELB)
+		s.scope.V(4).Info("Control plane load balancer", "api-server-elb", apiELB)
+	}
 
 	s.scope.V(2).Info("Reconcile load balancers completed successfully")
 	return nil
@@ -303,11 +305,8 @@ func generateHashedELBName(clusterName string) (string, error) {
 	return fmt.Sprintf("%s-%s", shortName, "k8s"), nil
 }
 
-func (s *Service) getAPIServerClassicELBSpec() (*infrav1.ClassicELB, error) {
-	elbName, err := GenerateELBName(s.scope.Name())
-	if err != nil {
-		return nil, err
-	}
+func (s *Service) getAPIServerClassicELBSpec() ([]*infrav1.ClassicELB, error) {
+	elbs := []*infrav1.ClassicELB{}
 
 	securityGroupIDs := []string{}
 	controlPlaneLoadBalancer := s.scope.ControlPlaneLoadBalancer()
@@ -324,80 +323,122 @@ func (s *Service) getAPIServerClassicELBSpec() (*infrav1.ClassicELB, error) {
 		}
 	}
 
-	res := &infrav1.ClassicELB{
-		Name:   elbName,
-		Scheme: s.scope.ControlPlaneLoadBalancerScheme(),
-		Listeners: []infrav1.ClassicELBListener{
-			{
-				Protocol:         infrav1.ClassicELBProtocolTCP,
-				Port:             int64(s.scope.APIServerPort()),
-				InstanceProtocol: infrav1.ClassicELBProtocolTCP,
-				InstancePort:     6443,
-			},
-		},
-		HealthCheck: &infrav1.ClassicELBHealthCheck{
-			Target:             fmt.Sprintf("%v:%d", infrav1.ClassicELBProtocolSSL, 6443),
-			Interval:           10 * time.Second,
-			Timeout:            5 * time.Second,
-			HealthyThreshold:   5,
-			UnhealthyThreshold: 3,
-		},
-		SecurityGroupIDs: securityGroupIDs,
-		Attributes: infrav1.ClassicELBAttributes{
-			IdleTimeout: 10 * time.Minute,
-		},
-	}
+	scheme := s.scope.ControlPlaneLoadBalancerScheme().String()
 
-	if s.scope.ControlPlaneLoadBalancer() != nil {
-		res.Attributes.CrossZoneLoadBalancing = s.scope.ControlPlaneLoadBalancer().CrossZoneLoadBalancing
-	}
-
-	res.Tags = infrav1.Build(infrav1.BuildParams{
-		ClusterName: s.scope.Name(),
-		Lifecycle:   infrav1.ResourceLifecycleOwned,
-		Name:        aws.String(elbName),
-		Role:        aws.String(infrav1.APIServerRoleTagValue),
-		Additional:  s.scope.AdditionalTags(),
-	})
-
-	// If subnet IDs have been specified for this load balancer
-	if s.scope.ControlPlaneLoadBalancer() != nil && len(s.scope.ControlPlaneLoadBalancer().Subnets) > 0 {
-		// This set of subnets may not match the subnets specified on the Cluster, so we may not have already discovered them
-		// We need to call out to AWS to describe them just in case
-		input := &ec2.DescribeSubnetsInput{
-			SubnetIds: aws.StringSlice(s.scope.ControlPlaneLoadBalancer().Subnets),
-		}
-		out, err := s.EC2Client.DescribeSubnets(input)
+	if scheme == infrav1.ClassicELBSchemeBoth.String() || scheme == infrav1.ClassicELBSchemeInternetFacing.String() {
+		elbName, err := GenerateELBName(fmt.Sprintf("%s-%s", s.scope.Name(), "public"))
 		if err != nil {
 			return nil, err
 		}
-		for _, sn := range out.Subnets {
-			res.AvailabilityZones = append(res.AvailabilityZones, *sn.AvailabilityZone)
-			res.SubnetIDs = append(res.SubnetIDs, *sn.SubnetId)
-		}
-	} else {
-		// The load balancer APIs require us to only attach one subnet for each AZ.
-		subnets := s.scope.Subnets().FilterPrivate()
 
-		if s.scope.ControlPlaneLoadBalancerScheme() == infrav1.ClassicELBSchemeInternetFacing {
-			subnets = s.scope.Subnets().FilterPublic()
+		elbs = append(elbs, &infrav1.ClassicELB{
+			Name:   elbName,
+			Scheme: infrav1.ClassicELBSchemeInternetFacing,
+			Listeners: []infrav1.ClassicELBListener{
+				{
+					Protocol:         infrav1.ClassicELBProtocolTCP,
+					Port:             int64(s.scope.APIServerPort()),
+					InstanceProtocol: infrav1.ClassicELBProtocolTCP,
+					InstancePort:     6443,
+				},
+			},
+			HealthCheck: &infrav1.ClassicELBHealthCheck{
+				Target:             fmt.Sprintf("%v:%d", infrav1.ClassicELBProtocolSSL, 6443),
+				Interval:           10 * time.Second,
+				Timeout:            5 * time.Second,
+				HealthyThreshold:   5,
+				UnhealthyThreshold: 3,
+			},
+			SecurityGroupIDs: securityGroupIDs,
+			Attributes: infrav1.ClassicELBAttributes{
+				IdleTimeout: 10 * time.Minute,
+			},
+		})
+	}
+
+	if scheme == infrav1.ClassicELBSchemeBoth.String() || scheme == infrav1.ClassicELBSchemeInternal.String() {
+		elbName, err := GenerateELBName(fmt.Sprintf("%s-%s", s.scope.Name(), "private"))
+		if err != nil {
+			return nil, err
 		}
 
-	subnetLoop:
-		for _, sn := range subnets {
-			for _, az := range res.AvailabilityZones {
-				if sn.AvailabilityZone == az {
-					// If we already attached another subnet in the same AZ, there is no need to
-					// add this subnet to the list of the ELB's subnets.
-					continue subnetLoop
-				}
+		elbs = append(elbs, &infrav1.ClassicELB{
+			Name:   elbName,
+			Scheme: infrav1.ClassicELBSchemeInternal,
+			Listeners: []infrav1.ClassicELBListener{
+				{
+					Protocol:         infrav1.ClassicELBProtocolTCP,
+					Port:             int64(s.scope.APIServerPort()),
+					InstanceProtocol: infrav1.ClassicELBProtocolTCP,
+					InstancePort:     6443,
+				},
+			},
+			HealthCheck: &infrav1.ClassicELBHealthCheck{
+				Target:             fmt.Sprintf("%v:%d", infrav1.ClassicELBProtocolSSL, 6443),
+				Interval:           10 * time.Second,
+				Timeout:            5 * time.Second,
+				HealthyThreshold:   5,
+				UnhealthyThreshold: 3,
+			},
+			SecurityGroupIDs: securityGroupIDs,
+			Attributes: infrav1.ClassicELBAttributes{
+				IdleTimeout: 10 * time.Minute,
+			},
+		})
+	}
+
+	for _, res := range elbs {
+		if s.scope.ControlPlaneLoadBalancer() != nil {
+			res.Attributes.CrossZoneLoadBalancing = s.scope.ControlPlaneLoadBalancer().CrossZoneLoadBalancing
+		}
+
+		res.Tags = infrav1.Build(infrav1.BuildParams{
+			ClusterName: s.scope.Name(),
+			Lifecycle:   infrav1.ResourceLifecycleOwned,
+			Name:        aws.String(res.Name),
+			Role:        aws.String(infrav1.APIServerRoleTagValue),
+			Additional:  s.scope.AdditionalTags(),
+		})
+
+		// If subnet IDs have been specified for this load balancer
+		if s.scope.ControlPlaneLoadBalancer() != nil && len(s.scope.ControlPlaneLoadBalancer().Subnets) > 0 {
+			// This set of subnets may not match the subnets specified on the Cluster, so we may not have already discovered them
+			// We need to call out to AWS to describe them just in case
+			input := &ec2.DescribeSubnetsInput{
+				SubnetIds: aws.StringSlice(s.scope.ControlPlaneLoadBalancer().Subnets),
 			}
-			res.AvailabilityZones = append(res.AvailabilityZones, sn.AvailabilityZone)
-			res.SubnetIDs = append(res.SubnetIDs, sn.ID)
+			out, err := s.EC2Client.DescribeSubnets(input)
+			if err != nil {
+				return nil, err
+			}
+			for _, sn := range out.Subnets {
+				res.AvailabilityZones = append(res.AvailabilityZones, *sn.AvailabilityZone)
+				res.SubnetIDs = append(res.SubnetIDs, *sn.SubnetId)
+			}
+		} else {
+			// The load balancer APIs require us to only attach one subnet for each AZ.
+			subnets := s.scope.Subnets().FilterPrivate()
+
+			if res.Scheme == infrav1.ClassicELBSchemeInternetFacing {
+				subnets = s.scope.Subnets().FilterPublic()
+			}
+
+		subnetLoop:
+			for _, sn := range subnets {
+				for _, az := range res.AvailabilityZones {
+					if sn.AvailabilityZone == az {
+						// If we already attached another subnet in the same AZ, there is no need to
+						// add this subnet to the list of the ELB's subnets.
+						continue subnetLoop
+					}
+				}
+				res.AvailabilityZones = append(res.AvailabilityZones, sn.AvailabilityZone)
+				res.SubnetIDs = append(res.SubnetIDs, sn.ID)
+			}
 		}
 	}
 
-	return res, nil
+	return elbs, nil
 }
 
 func (s *Service) createClassicELB(spec *infrav1.ClassicELB) (*infrav1.ClassicELB, error) {
