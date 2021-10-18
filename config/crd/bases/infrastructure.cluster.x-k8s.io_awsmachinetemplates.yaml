@@ -891,6 +891,18 @@ spec:
                         description: IAMInstanceProfile is a name of an IAM instance
                           profile to assign to the instance
                         type: string
+                      ignition:
+                        description: Ignition defined options related to the bootstrapping
+                          systems where Ignition is used.
+                        properties:
+                          version:
+                            default: "2.3"
+                            description: Version defines which version of Ignition
+                              will be used to generate bootstrap data.
+                            enum:
+                            - "2.3"
+                            type: string
+                        type: object
                       imageLookupBaseOS:
                         description: ImageLookupBaseOS is the name of the base operating
                           system to use for image lookup the AMI is not set.

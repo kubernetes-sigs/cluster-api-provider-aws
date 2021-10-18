@@ -113,6 +113,12 @@ func (r *AWSMachineTemplate) ValidateCreate() error {
 	allErrs = append(allErrs, r.validateRootVolume()...)
 	allErrs = append(allErrs, r.validateNonRootVolumes()...)
 
+	cloudInitConfigured := spec.CloudInit.SecureSecretsBackend != "" || spec.CloudInit.InsecureSkipSecretsManager
+	if cloudInitConfigured && spec.Ignition != nil {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "cloudInit"),
+			"cannot be set if spec.template.spec.ignition is set"))
+	}
+
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 

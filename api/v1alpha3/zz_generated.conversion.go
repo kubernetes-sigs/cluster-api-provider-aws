@@ -1225,6 +1225,7 @@ func autoConvert_v1beta1_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *v1beta1.A
 	if err := Convert_v1beta1_CloudInit_To_v1alpha3_CloudInit(&in.CloudInit, &out.CloudInit, s); err != nil {
 		return err
 	}
+	// WARNING: in.Ignition requires manual conversion: does not exist in peer-type
 	out.SpotMarketOptions = (*SpotMarketOptions)(unsafe.Pointer(in.SpotMarketOptions))
 	out.Tenancy = in.Tenancy
 	return nil
