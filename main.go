@@ -105,7 +105,12 @@ var (
 	healthAddr               string
 	serviceEndpoints         string
 
-	errEKSInvalidFlags = errors.New("invalid EKS flag combination")
+	// maxEKSSyncPeriod is the maximum allowed duration for the sync-period flag when using EKS. It is set to 10 minutes
+	// because during resync it will create a new AWS auth token which can a maximum life of 15 minutes and this ensures
+	// the token (and kubeconfig secret) is refreshed before token expiration.
+	maxEKSSyncPeriod         = time.Minute * 10
+	errMaxSyncPeriodExceeded = errors.New("sync period greater than maximum allowed")
+	errEKSInvalidFlags       = errors.New("invalid EKS flag combination")
 )
 
 func main() {
@@ -289,6 +294,11 @@ func enableGates(ctx context.Context, mgr ctrl.Manager, awsServiceEndpoints []sc
 	if feature.Gates.Enabled(feature.EKS) {
 		setupLog.Info("enabling EKS controllers")
 
+		if syncPeriod > maxEKSSyncPeriod {
+			setupLog.Error(errMaxSyncPeriodExceeded, "failed to enable EKS", "max-sync-period", maxEKSSyncPeriod, "syn-period", syncPeriod)
+			os.Exit(1)
+		}
+
 		enableIAM := feature.Gates.Enabled(feature.EKSEnableIAM)
 		allowAddRoles := feature.Gates.Enabled(feature.EKSAllowAddRoles)
 		setupLog.V(2).Info("EKS IAM role creation", "enabled", enableIAM)
@@ -440,7 +450,7 @@ func initFlags(fs *pflag.FlagSet) {
 	fs.DurationVar(&syncPeriod,
 		"sync-period",
 		10*time.Minute,
-		"The minimum interval at which watched resources are reconciled (e.g. 15m)",
+		fmt.Sprintf("The minimum interval at which watched resources are reconciled. If EKS is enabled the maximum allowed is %s", maxEKSSyncPeriod),
 	)
 
 	fs.IntVar(&webhookPort,
