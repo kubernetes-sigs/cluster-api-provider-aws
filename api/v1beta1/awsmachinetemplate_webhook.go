@@ -24,6 +24,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	"sigs.k8s.io/cluster-api-provider-aws/feature"
 )
 
 func (r *AWSMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -112,6 +114,12 @@ func (r *AWSMachineTemplate) ValidateCreate() error {
 
 	allErrs = append(allErrs, r.validateRootVolume()...)
 	allErrs = append(allErrs, r.validateNonRootVolumes()...)
+
+	// Feature gate is not enabled but ignition is enabled then send a forbidden error.
+	if !feature.Gates.Enabled(feature.BootstrapFormatIgnition) && spec.Ignition != nil {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "ignition"),
+			"can be set only if the BootstrapFormatIgnition feature gate is enabled"))
+	}
 
 	cloudInitConfigured := spec.CloudInit.SecureSecretsBackend != "" || spec.CloudInit.InsecureSkipSecretsManager
 	if cloudInitConfigured && spec.Ignition != nil {

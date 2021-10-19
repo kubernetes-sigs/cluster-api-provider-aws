@@ -26,6 +26,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	"sigs.k8s.io/cluster-api-provider-aws/feature"
 )
 
 // log is for logging in this package.
@@ -158,6 +160,12 @@ func (r *AWSMachine) ignitionEnabled() bool {
 
 func (r *AWSMachine) validateIgnitionAndCloudInit() field.ErrorList {
 	var allErrs field.ErrorList
+
+	// Feature gate is not enabled but ignition is enabled then send a forbidden error.
+	if !feature.Gates.Enabled(feature.BootstrapFormatIgnition) && r.ignitionEnabled() {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "ignition"),
+			"can be set only if the BootstrapFormatIgnition feature gate is enabled"))
+	}
 
 	if r.ignitionEnabled() && r.cloudInitConfigured() {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "cloudInit"), "cannot be set if spec.ignition is set"))

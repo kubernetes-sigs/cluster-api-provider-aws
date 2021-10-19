@@ -392,6 +392,10 @@ func enableGates(ctx context.Context, mgr ctrl.Manager, awsServiceEndpoints []sc
 			os.Exit(1)
 		}
 	}
+
+	if feature.Gates.Enabled(feature.BootstrapFormatIgnition) {
+		setupLog.Info("Enabling Ignition support for machine bootstrap data")
+	}
 }
 func initFlags(fs *pflag.FlagSet) {
 	fs.StringVar(
