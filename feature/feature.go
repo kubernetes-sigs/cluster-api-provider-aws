@@ -62,6 +62,9 @@ const (
 	// owner: @sedefsavas
 	// alpha: v0.6
 	AutoControllerIdentityCreator featuregate.Feature = "AutoControllerIdentityCreator"
+
+	// BootstrapFormatIgnition will allow an user to enable alternate machine bootstrap format, viz. Ignition.
+	BootstrapFormatIgnition featuregate.Feature = "BootstrapFormatIgnition"
 )
 
 func init() {
@@ -79,4 +82,5 @@ var defaultCAPAFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	EventBridgeInstanceState:      {Default: false, PreRelease: featuregate.Alpha},
 	MachinePool:                   {Default: false, PreRelease: featuregate.Alpha},
 	AutoControllerIdentityCreator: {Default: true, PreRelease: featuregate.Alpha},
+	BootstrapFormatIgnition:       {Default: false, PreRelease: featuregate.Alpha},
 }

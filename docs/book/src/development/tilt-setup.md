@@ -56,7 +56,8 @@ Next, create a `tilt-settings.json` file and place it in your local copy of `clu
     "AWS_B64ENCODED_CREDENTIALS": "W2RlZmFZSZnRg==",
     "EXP_EKS_FARGATE": "false",
     "CAPA_EKS_IAM": "false",
-    "CAPA_EKS_ADD_ROLES": "false"
+    "CAPA_EKS_ADD_ROLES": "false",
+    "EXP_BOOTSTRAP_FORMAT_IGNITION": "true"
   },
   "extra_args": {
     "aws": ["--v=2"]
@@ -186,7 +187,7 @@ export EKS_KUBERNETES_VERSION=v1.15
 **Create CAPA managed workload cluster:**
 
 ```bash
-cat templates/cluster-template.yaml 
+cat templates/cluster-template.yaml
 cat templates/cluster-template.yaml | $HOME/go/bin/envsubst > test-cluster.yaml
 kubectl apply -f test-cluster.yaml
 ```
@@ -194,7 +195,7 @@ kubectl apply -f test-cluster.yaml
 **Create EKS workload cluster:**
 
 ```bash
-cat templates/cluster-template-eks.yaml 
+cat templates/cluster-template-eks.yaml
 cat templates/cluster-template-eks.yaml | $HOME/go/bin/envsubst > test-cluster.yaml
 kubectl apply -f test-cluster.yaml
 ```
