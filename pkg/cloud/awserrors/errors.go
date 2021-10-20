@@ -25,29 +25,31 @@ import (
 
 // Error singletons for AWS errors.
 const (
-	AssociationIDNotFound      = "InvalidAssociationID.NotFound"
-	AuthFailure                = "AuthFailure"
-	BucketAlreadyOwnedByYou    = "BucketAlreadyOwnedByYou"
-	EIPNotFound                = "InvalidElasticIpID.NotFound"
-	GatewayNotFound            = "InvalidGatewayID.NotFound"
-	GroupNotFound              = "InvalidGroup.NotFound"
-	InternetGatewayNotFound    = "InvalidInternetGatewayID.NotFound"
-	InUseIPAddress             = "InvalidIPAddress.InUse"
-	InvalidAccessKeyID         = "InvalidAccessKeyId"
-	InvalidClientTokenID       = "InvalidClientTokenId"
-	InvalidInstanceID          = "InvalidInstanceID.NotFound"
-	InvalidSubnet              = "InvalidSubnet"
-	LaunchTemplateNameNotFound = "InvalidLaunchTemplateName.NotFoundException"
-	LoadBalancerNotFound       = "LoadBalancerNotFound"
-	NATGatewayNotFound         = "InvalidNatGatewayID.NotFound"
-	NoCredentialProviders      = "NoCredentialProviders"
-	NoSuchKey                  = "NoSuchKey"
-	PermissionNotFound         = "InvalidPermission.NotFound"
-	ResourceExists             = "ResourceExistsException"
-	ResourceNotFound           = "InvalidResourceID.NotFound"
-	RouteTableNotFound         = "InvalidRouteTableID.NotFound"
-	SubnetNotFound             = "InvalidSubnetID.NotFound"
-	VPCNotFound                = "InvalidVpcID.NotFound"
+	AssociationIDNotFound                   = "InvalidAssociationID.NotFound"
+	AuthFailure                             = "AuthFailure"
+	BucketAlreadyOwnedByYou                 = "BucketAlreadyOwnedByYou"
+	EIPNotFound                             = "InvalidElasticIpID.NotFound"
+	GatewayNotFound                         = "InvalidGatewayID.NotFound"
+	GroupNotFound                           = "InvalidGroup.NotFound"
+	InternetGatewayNotFound                 = "InvalidInternetGatewayID.NotFound"
+	InUseIPAddress                          = "InvalidIPAddress.InUse"
+	InvalidAccessKeyID                      = "InvalidAccessKeyId"
+	InvalidClientTokenID                    = "InvalidClientTokenId"
+	InvalidInstanceID                       = "InvalidInstanceID.NotFound"
+	InvalidSubnet                           = "InvalidSubnet"
+	LaunchTemplateNameNotFound              = "InvalidLaunchTemplateName.NotFoundException"
+	LoadBalancerNotFound                    = "LoadBalancerNotFound"
+	NATGatewayNotFound                      = "InvalidNatGatewayID.NotFound"
+	NoCredentialProviders                   = "NoCredentialProviders"
+	NoSuchKey                               = "NoSuchKey"
+	PermissionNotFound                      = "InvalidPermission.NotFound"
+	ResourceExists                          = "ResourceExistsException"
+	ResourceNotFound                        = "InvalidResourceID.NotFound"
+	RouteTableNotFound                      = "InvalidRouteTableID.NotFound"
+	SubnetNotFound                          = "InvalidSubnetID.NotFound"
+	UnrecognizedClientException             = "UnrecognizedClientException"
+	VPCNotFound                             = "InvalidVpcID.NotFound"
+	ErrCodeRepositoryAlreadyExistsException = "RepositoryAlreadyExistsException"
 )
 
 var _ error = &EC2Error{}
@@ -107,6 +109,14 @@ func IsBucketAlreadyOwnedByYou(err error) bool {
 func IsResourceExists(err error) bool {
 	if code, ok := Code(err); ok {
 		return code == ResourceExists
+	}
+	return false
+}
+
+// IsRepositoryExists checks if there is already a repository with the same name.
+func IsRepositoryExists(err error) bool {
+	if code, ok := Code(err); ok {
+		return code == ErrCodeRepositoryAlreadyExistsException
 	}
 	return false
 }
