@@ -60,7 +60,7 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 				iamv1.Any,
 			},
 			Action: iamv1.Actions{
-				"s3:*",
+				"ecr-public:*",
 				"sts:*",
 				"servicequotas:GetServiceQuota",
 				"servicequotas:RequestServiceQuotaIncrease",
@@ -87,13 +87,6 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 			Action: iamv1.Actions{
 				"iam:CreateServiceLinkedRole",
 			},
-		},
-	}
-	t.Spec.Nodes.ExtraStatements = []iamv1.StatementEntry{
-		{
-			Effect:   iamv1.EffectAllow,
-			Action:   []string{"s3:Get*", "s3:List*"},
-			Resource: []string{iamv1.Any},
 		},
 	}
 	t.Spec.SecureSecretsBackends = []infrav1.SecretBackend{

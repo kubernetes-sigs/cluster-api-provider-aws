@@ -21,6 +21,7 @@ package shared
 import (
 	"bytes"
 	"context"
+	b64 "encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -42,12 +43,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ecrpublic"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
-	"github.com/aws/aws-sdk-go/service/sts"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
 	cloudformation "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/service"
@@ -66,6 +65,20 @@ func NewAWSSession() client.ConfigProvider {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 		Config:            *config,
+	})
+	Expect(err).NotTo(HaveOccurred())
+	_, err = sess.Config.Credentials.Get()
+	Expect(err).NotTo(HaveOccurred())
+	return sess
+}
+
+func NewAWSSessionRepoWithKey(accessKey *iam.AccessKey) client.ConfigProvider {
+	By("Getting an AWS IAM session - from access key")
+	config := aws.NewConfig().WithCredentialsChainVerboseErrors(true).WithRegion("us-east-1")
+	config.Credentials = awscreds.NewStaticCredentials(*accessKey.AccessKeyId, *accessKey.SecretAccessKey, "")
+
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Config: *config,
 	})
 	Expect(err).NotTo(HaveOccurred())
 	_, err = sess.Config.Credentials.Get()
@@ -242,101 +255,77 @@ func deleteCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Temp
 }
 
 func ensureTestImageUploaded(e2eCtx *E2EContext) (string, string, error) {
-	By("Determining the account ID")
-	stsSvc := sts.New(e2eCtx.BootstrapUserAWSSession)
-	accountInfo := &sts.GetCallerIdentityOutput{}
+	sessionForRepo := NewAWSSessionRepoWithKey(e2eCtx.Environment.BootstrapAccessKey)
+
+	ecrSvc := ecrpublic.New(sessionForRepo)
+	repoName := ""
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-		var intErr error
-		accountInfo, intErr = stsSvc.GetCallerIdentity(&sts.GetCallerIdentityInput{})
-		if intErr != nil {
-			return false, intErr
-		}
-		return true, nil
-	}, awserrors.InvalidClientTokenID); err != nil {
-		return "", "", nil
-	}
-	region, err := credentials.ResolveRegion("")
-	if err != nil {
-		return "", "", err
-	}
-	accountID := aws.StringValue(accountInfo.Account)
-	bucketName := fmt.Sprintf("capi-images.%s.%s.oci-images", region, accountID)
-	By("Creating an S3 bucket for container images")
-	s3Svc := s3.New(e2eCtx.BootstrapUserAWSSession)
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-		_, err = s3Svc.CreateBucket(&s3.CreateBucketInput{
-			ACL:    aws.String("public-read"),
-			Bucket: aws.String(bucketName),
+		output, err := ecrSvc.CreateRepository(&ecrpublic.CreateRepositoryInput{
+			RepositoryName: aws.String("capa/update"),
 		})
-		if err != nil && !awserrors.IsBucketAlreadyOwnedByYou(err) {
-			return false, err
+
+		if err != nil {
+			if !awserrors.IsRepositoryExists(err) {
+				return false, err
+			}
+			out, err := ecrSvc.DescribeRepositories(&ecrpublic.DescribeRepositoriesInput{RepositoryNames: []*string{aws.String("capa/update")}})
+			if err != nil || len(out.Repositories) == 0 {
+				return false, err
+			}
+			repoName = aws.StringValue(out.Repositories[0].RepositoryUri)
+		} else {
+			repoName = aws.StringValue(output.Repository.RepositoryUri)
 		}
+
 		return true, nil
-	}, awserrors.InvalidAccessKeyID); err != nil {
+	}, awserrors.UnrecognizedClientException); err != nil {
 		return "", "", nil
-	}
-
-	dir, err := ioutil.TempDir(e2eCtx.Settings.ArtifactFolder, "containers")
-	if err != nil {
-		return "", "", err
-	}
-	defer os.RemoveAll(dir)
-
-	dockerImage := fmt.Sprintf("%s/image.tar", dir)
-
-	Byf("Saving the e2e image to %s", dockerImage)
-	err = exec.Command("docker", "save", "gcr.io/k8s-staging-cluster-api/capa-manager:e2e", "-o", dockerImage).Run()
-
-	if err != nil {
-		return "", "", err
 	}
 
 	cmd := exec.Command("docker", "inspect", "--format='{{index .Id}}'", "gcr.io/k8s-staging-cluster-api/capa-manager:e2e")
 	var stdOut bytes.Buffer
 	cmd.Stdout = &stdOut
-	err = cmd.Run()
-
+	err := cmd.Run()
 	if err != nil {
 		return "", "", err
 	}
 
 	imageSha := strings.ReplaceAll(strings.TrimSuffix(string(stdOut.Bytes()), "\n"), "'", "")
 
-	uploader := s3manager.NewUploader(e2eCtx.AWSSession)
-
-	f, err := os.Open(dockerImage)
+	ecrImageName := repoName + ":e2e"
+	cmd = exec.Command("docker", "tag", imageSha, ecrImageName)
+	err = cmd.Run()
 	if err != nil {
 		return "", "", err
 	}
 
-	Byf("Uploading the e2e image to s3:///%s/%s", bucketName, imageSha)
-	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(bucketName),
-		Key:    aws.String(imageSha),
-		Body:   f,
-	})
-
-	Byf("Making the image public")
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-		_, err = s3Svc.PutObjectAcl(&s3.PutObjectAclInput{
-			ACL:    aws.String("public-read"),
-			Bucket: aws.String(bucketName),
-			Key:    aws.String(imageSha),
-		})
-		if err != nil {
-			return false, err
-		}
-		return true, nil
-	}, awserrors.NoSuchKey); err != nil {
-		return "", "", nil
-	}
-
+	outToken, err := ecrSvc.GetAuthorizationToken(&ecrpublic.GetAuthorizationTokenInput{})
 	if err != nil {
 		return "", "", err
 	}
 
-	Byf("Image uploaded to s3://%s/%s", bucketName, imageSha)
-	return bucketName, imageSha, nil
+	// Auth token is in username:password format. To login using it, we need to decode first and separate password and username
+	decodedUsernamePassword, _ := b64.StdEncoding.DecodeString(aws.StringValue(outToken.AuthorizationData.AuthorizationToken))
+
+	strList := strings.Split(string(decodedUsernamePassword), ":")
+	if len(strList) != 2 {
+		return "", "", errors.New("Failed to decode ECR authentication token")
+	}
+
+	cmd = exec.Command("docker", "login", "--username", strList[0], "--password", strList[1], "public.ecr.aws")
+	err = cmd.Run()
+	if err != nil {
+		return "", "", err
+	}
+
+	cmd = exec.Command("docker", "push", ecrImageName)
+	err = cmd.Run()
+	if err != nil {
+		return "", "", err
+	}
+	e2eCtx.E2EConfig.Variables["CAPI_IMAGES_REGISTRY"] = repoName
+	e2eCtx.E2EConfig.Variables["E2E_IMAGE_TAG"] = "e2e"
+	return "", "", nil
 }
 
 // ensureNoServiceLinkedRoles removes an auto-created IAM role, and tests
