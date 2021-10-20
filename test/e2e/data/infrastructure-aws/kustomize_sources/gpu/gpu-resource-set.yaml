@@ -1,0 +1,15 @@
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta1
+kind: ClusterResourceSet
+metadata:
+  name: crs-gpu-operator
+spec:
+  strategy: "ApplyOnce"
+  clusterSelector:
+    matchLabels:
+      gpu: nvidia
+  resources:
+    - name: nvidia-clusterpolicy-crd
+      kind: ConfigMap
+    - name: nvidia-gpu-operator-components
+      kind: ConfigMap
