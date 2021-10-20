@@ -56,18 +56,9 @@ type Service struct {
 	EC2Client ec2iface.EC2API
 }
 
-// NewService returns a new service given the api clients.
-func NewService(sgScope Scope) *Service {
-	return &Service{
-		scope:     sgScope,
-		roles:     defaultRoles,
-		EC2Client: scope.NewEC2Client(sgScope, sgScope, sgScope, sgScope.InfraCluster()),
-	}
-}
-
-// NewServiceWithRoles returns a new service given the api clients with a defined
+// NewService returns a new service given the api clients with a defined
 // set of roles.
-func NewServiceWithRoles(sgScope Scope, roles []infrav1.SecurityGroupRole) *Service {
+func NewService(sgScope Scope, roles []infrav1.SecurityGroupRole) *Service {
 	return &Service{
 		scope:     sgScope,
 		roles:     roles,

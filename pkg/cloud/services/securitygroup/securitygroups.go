@@ -50,16 +50,6 @@ const (
 	IPProtocolICMPv6 = "58"
 )
 
-var (
-	defaultRoles = []infrav1.SecurityGroupRole{
-		infrav1.SecurityGroupBastion,
-		infrav1.SecurityGroupAPIServerLB,
-		infrav1.SecurityGroupLB,
-		infrav1.SecurityGroupControlPlane,
-		infrav1.SecurityGroupNode,
-	}
-)
-
 // ReconcileSecurityGroups will reconcile security groups against the Service object.
 func (s *Service) ReconcileSecurityGroups() error {
 	s.scope.V(2).Info("Reconciling security groups")

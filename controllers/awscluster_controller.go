@@ -53,6 +53,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
+var (
+	awsSecurityGroupRoles = []infrav1.SecurityGroupRole{
+		infrav1.SecurityGroupBastion,
+		infrav1.SecurityGroupAPIServerLB,
+		infrav1.SecurityGroupLB,
+		infrav1.SecurityGroupControlPlane,
+		infrav1.SecurityGroupNode,
+	}
+)
+
 // AWSClusterReconciler reconciles a AwsCluster object.
 type AWSClusterReconciler struct {
 	client.Client
@@ -151,7 +161,7 @@ func reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 	ec2svc := ec2.NewService(clusterScope)
 	elbsvc := elb.NewService(clusterScope)
 	networkSvc := network.NewService(clusterScope)
-	sgService := securitygroup.NewService(clusterScope)
+	sgService := securitygroup.NewService(clusterScope, awsSecurityGroupRoles)
 
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 		instancestateSvc := instancestate.NewService(clusterScope)
@@ -203,7 +213,7 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 	ec2Service := ec2.NewService(clusterScope)
 	elbService := elb.NewService(clusterScope)
 	networkSvc := network.NewService(clusterScope)
-	sgService := securitygroup.NewService(clusterScope)
+	sgService := securitygroup.NewService(clusterScope, awsSecurityGroupRoles)
 
 	if err := networkSvc.ReconcileNetwork(); err != nil {
 		clusterScope.Error(err, "failed to reconcile network")

@@ -57,6 +57,13 @@ const (
 	deleteRequeueAfter = 20 * time.Second
 )
 
+var (
+	eksSecurityGroupRoles = []infrav1.SecurityGroupRole{
+		infrav1.SecurityGroupBastion,
+		infrav1.SecurityGroupEKSNodeAdditional,
+	}
+)
+
 // AWSManagedControlPlaneReconciler reconciles a AWSManagedControlPlane object.
 type AWSManagedControlPlaneReconciler struct {
 	client.Client
@@ -196,15 +203,10 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 		return ctrl.Result{}, err
 	}
 
-	sgRoles := []infrav1.SecurityGroupRole{
-		infrav1.SecurityGroupBastion,
-		infrav1.SecurityGroupEKSNodeAdditional,
-	}
-
 	ec2Service := ec2.NewService(managedScope)
 	networkSvc := network.NewService(managedScope)
 	ekssvc := eks.NewService(managedScope)
-	sgService := securitygroup.NewServiceWithRoles(managedScope, sgRoles)
+	sgService := securitygroup.NewService(managedScope, eksSecurityGroupRoles)
 	authService := iamauth.NewService(managedScope, iamauth.BackendTypeConfigMap, managedScope.Client)
 	awsnodeService := awsnode.NewService(managedScope)
 
@@ -267,7 +269,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileDelete(ctx context.Context, 
 	ekssvc := eks.NewService(managedScope)
 	ec2svc := ec2.NewService(managedScope)
 	networkSvc := network.NewService(managedScope)
-	sgService := securitygroup.NewService(managedScope)
+	sgService := securitygroup.NewService(managedScope, eksSecurityGroupRoles)
 
 	if err := ekssvc.DeleteControlPlane(); err != nil {
 		log.Error(err, "error deleting EKS cluster for EKS control plane", "namespace", controlPlane.Namespace, "name", controlPlane.Name)
