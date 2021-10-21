@@ -89,12 +89,16 @@ type ClassicELBScheme string
 var (
 	// ClassicELBSchemeInternetFacing defines an internet-facing, publicly
 	// accessible AWS Classic ELB scheme.
-	ClassicELBSchemeInternetFacing = ClassicELBScheme("Internet-facing")
+	ClassicELBSchemeInternetFacing = ClassicELBScheme("internet-facing")
 
 	// ClassicELBSchemeInternal defines an internal-only facing
 	// load balancer internal to an ELB.
 	ClassicELBSchemeInternal = ClassicELBScheme("internal")
 )
+
+func (e ClassicELBScheme) String() string {
+	return string(e)
+}
 
 // ClassicELBProtocol defines listener protocols for a classic load balancer.
 type ClassicELBProtocol string
