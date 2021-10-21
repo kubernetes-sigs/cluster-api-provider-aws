@@ -38,6 +38,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+var (
+	testSecurityGroupRoles = []infrav1.SecurityGroupRole{
+		infrav1.SecurityGroupBastion,
+		infrav1.SecurityGroupAPIServerLB,
+		infrav1.SecurityGroupLB,
+		infrav1.SecurityGroupControlPlane,
+		infrav1.SecurityGroupNode,
+	}
+)
+
 func TestReconcileSecurityGroups(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -348,7 +358,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 
 			tc.expect(ec2Mock.EXPECT())
 
-			s := NewService(scope)
+			s := NewService(scope, testSecurityGroupRoles)
 			s.EC2Client = ec2Mock
 
 			if err := s.ReconcileSecurityGroups(); err != nil && tc.err != nil {
@@ -377,7 +387,7 @@ func TestControlPlaneSecurityGroupNotOpenToAnyCIDR(t *testing.T) {
 		t.Fatalf("Failed to create test context: %v", err)
 	}
 
-	s := NewService(scope)
+	s := NewService(scope, testSecurityGroupRoles)
 	rules, err := s.getSecurityGroupIngressRules(infrav1.SecurityGroupControlPlane)
 	if err != nil {
 		t.Fatalf("Failed to lookup controlplane security group ingress rules: %v", err)
@@ -468,7 +478,7 @@ func TestDeleteSecurityGroups(t *testing.T) {
 
 			tc.expect(ec2Mock.EXPECT())
 
-			s := NewService(scope)
+			s := NewService(scope, testSecurityGroupRoles)
 			s.EC2Client = ec2Mock
 
 			if err := s.DeleteSecurityGroups(); err != nil && tc.err != nil {

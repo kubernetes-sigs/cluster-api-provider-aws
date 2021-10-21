@@ -50,16 +50,6 @@ const (
 	IPProtocolICMPv6 = "58"
 )
 
-var (
-	defaultRoles = []infrav1.SecurityGroupRole{
-		infrav1.SecurityGroupBastion,
-		infrav1.SecurityGroupAPIServerLB,
-		infrav1.SecurityGroupLB,
-		infrav1.SecurityGroupControlPlane,
-		infrav1.SecurityGroupNode,
-	}
-)
-
 // ReconcileSecurityGroups will reconcile security groups against the Service object.
 func (s *Service) ReconcileSecurityGroups() error {
 	s.scope.V(2).Info("Reconciling security groups")
@@ -219,7 +209,7 @@ func (s *Service) describeSecurityGroupOverridesByID() (map[infrav1.SecurityGrou
 	}
 
 	if len(overrides) > 0 {
-		for _, role := range defaultRoles {
+		for _, role := range s.roles {
 			securityGroupID, ok := s.scope.SecurityGroupOverrides()[role]
 			if ok {
 				securityGroupIds[role] = aws.String(securityGroupID)
@@ -234,7 +224,7 @@ func (s *Service) describeSecurityGroupOverridesByID() (map[infrav1.SecurityGrou
 	}
 
 	res := make(map[infrav1.SecurityGroupRole]*ec2.SecurityGroup, len(out.SecurityGroups))
-	for _, role := range defaultRoles {
+	for _, role := range s.roles {
 		for _, ec2sg := range out.SecurityGroups {
 			if securityGroupIds[role] == nil {
 				continue
