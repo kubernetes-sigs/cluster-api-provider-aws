@@ -30,13 +30,10 @@ import (
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
 	cgscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	cgrecord "k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-
-	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
@@ -62,6 +59,9 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/version"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -169,32 +169,14 @@ func main() {
 	setupLog.V(1).Info(fmt.Sprintf("feature gates: %+v\n", feature.Gates))
 
 	// Parse service endpoints.
-	AWSServiceEndpoints, err := endpoints.ParseFlag(serviceEndpoints)
+	awsServiceEndpoints, err := endpoints.ParseFlag(serviceEndpoints)
 	if err != nil {
 		setupLog.Error(err, "unable to parse service endpoints", "controller", "AWSCluster")
 		os.Exit(1)
 	}
 
-	if err = (&controllers.AWSMachineReconciler{
-		Client:           mgr.GetClient(),
-		Log:              ctrl.Log.WithName("controllers").WithName("AWSMachine"),
-		Recorder:         mgr.GetEventRecorderFor("awsmachine-controller"),
-		Endpoints:        AWSServiceEndpoints,
-		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsMachineConcurrency, RecoverPanic: true}); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "AWSMachine")
-		os.Exit(1)
-	}
-	if err = (&controllers.AWSClusterReconciler{
-		Client:           mgr.GetClient(),
-		Recorder:         mgr.GetEventRecorderFor("awscluster-controller"),
-		Endpoints:        AWSServiceEndpoints,
-		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: true}); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
-		os.Exit(1)
-	}
-	enableGates(ctx, mgr, AWSServiceEndpoints)
+	setUpReconcilers(ctx, mgr, awsServiceEndpoints)
+	enableGates(ctx, mgr, awsServiceEndpoints)
 
 	if err = (&infrav1.AWSMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplate")
@@ -286,6 +268,46 @@ func main() {
 	setupLog.Info("starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
+		os.Exit(1)
+	}
+}
+
+func setUpReconcilers(ctx context.Context, mgr ctrlmgr.Manager, awsServiceEndpoints []scope.ServiceEndpoint) {
+	if err := (&controllers.AWSMachineReconciler{
+		Client:           mgr.GetClient(),
+		Log:              ctrl.Log.WithName("controllers").WithName("AWSMachine"),
+		Recorder:         mgr.GetEventRecorderFor("awsmachine-controller"),
+		Endpoints:        awsServiceEndpoints,
+		WatchFilterValue: watchFilterValue,
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsMachineConcurrency, RecoverPanic: true}); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "AWSMachine")
+		os.Exit(1)
+	}
+	if err := (&controllers.AWSClusterReconciler{
+		Client:           mgr.GetClient(),
+		Recorder:         mgr.GetEventRecorderFor("awscluster-controller"),
+		Endpoints:        awsServiceEndpoints,
+		WatchFilterValue: watchFilterValue,
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: true}); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
+		os.Exit(1)
+	}
+	if err := (&controllers.AWSClusterStaticIdentityReconciler{
+		Client:           mgr.GetClient(),
+		Log:              ctrl.Log.WithName("controllers").WithName("StaticIdentity"),
+		Endpoints:        awsServiceEndpoints,
+		WatchFilterValue: watchFilterValue,
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: true}); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "AWSClusterStaticIdentity")
+		os.Exit(1)
+	}
+	if err := (&controllers.AWSClusterRoleIdentityReconciler{
+		Client:           mgr.GetClient(),
+		Log:              ctrl.Log.WithName("controllers").WithName("RoleIdentity"),
+		Endpoints:        awsServiceEndpoints,
+		WatchFilterValue: watchFilterValue,
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: true}); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "AWSClusterRoleIdentity")
 		os.Exit(1)
 	}
 }

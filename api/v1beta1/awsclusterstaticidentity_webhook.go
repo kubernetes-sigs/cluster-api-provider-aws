@@ -65,14 +65,9 @@ func (r *AWSClusterStaticIdentity) ValidateDelete() error {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSClusterStaticIdentity) ValidateUpdate(old runtime.Object) error {
-	oldP, ok := old.(*AWSClusterStaticIdentity)
+	_, ok := old.(*AWSClusterStaticIdentity)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected an AWSClusterStaticIdentity but got a %T", old))
-	}
-
-	if oldP.Spec.SecretRef != r.Spec.SecretRef {
-		return field.Invalid(field.NewPath("spec", "secretRef"),
-			r.Spec.SecretRef, "field cannot be updated")
 	}
 
 	// Validate selector parses as Selector

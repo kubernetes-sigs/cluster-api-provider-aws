@@ -23,14 +23,19 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/instancestate"
@@ -38,6 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/securitygroup"
 	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/util/conditions"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -54,6 +60,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
+const (
+	awsClusterKind = "AWSCluster"
+	notFoundErr    = "NotFound"
+)
+
 var (
 	awsSecurityGroupRoles = []infrav1.SecurityGroupRole{
 		infrav1.SecurityGroupBastion,
@@ -67,9 +78,45 @@ var (
 // AWSClusterReconciler reconciles a AwsCluster object.
 type AWSClusterReconciler struct {
 	client.Client
-	Recorder         record.EventRecorder
-	Endpoints        []scope.ServiceEndpoint
-	WatchFilterValue string
+	Recorder              record.EventRecorder
+	ec2ServiceFactory     func(scope.EC2Scope) services.EC2MachineInterface
+	networkServiceFactory func(scope.ClusterScope) services.NetworkInterface
+	elbServiceFactory     func(scope.ClusterScope) services.ELBClusterInterface
+	securityGroupFactory  func(scope.ClusterScope) services.SecurityGroupInterface
+	Endpoints             []scope.ServiceEndpoint
+	WatchFilterValue      string
+}
+
+// getEC2Service factory func is added for testing purpose so that we can inject mocked EC2Service to the AWSClusterReconciler.
+func (r *AWSClusterReconciler) getEC2Service(scope scope.EC2Scope) services.EC2MachineInterface {
+	if r.ec2ServiceFactory != nil {
+		return r.ec2ServiceFactory(scope)
+	}
+	return ec2.NewService(scope)
+}
+
+// getELBService factory func is added for testing purpose so that we can inject mocked ELBService to the AWSClusterReconciler.
+func (r *AWSClusterReconciler) getELBService(scope scope.ClusterScope) services.ELBClusterInterface {
+	if r.elbServiceFactory != nil {
+		return r.elbServiceFactory(scope)
+	}
+	return elb.NewService(&scope)
+}
+
+// getNetworkService factory func is added for testing purpose so that we can inject mocked NetworkService to the AWSClusterReconciler.
+func (r *AWSClusterReconciler) getNetworkService(scope scope.ClusterScope) services.NetworkInterface {
+	if r.networkServiceFactory != nil {
+		return r.networkServiceFactory(scope)
+	}
+	return network.NewService(&scope)
+}
+
+// getSecurityGroupService factory func is added for testing purpose so that we can inject mocked SecurityGroupService to the AWSClusterReconciler.
+func (r *AWSClusterReconciler) getSecurityGroupService(scope scope.ClusterScope) services.SecurityGroupInterface {
+	if r.securityGroupFactory != nil {
+		return r.securityGroupFactory(scope)
+	}
+	return securitygroup.NewService(&scope, awsSecurityGroupRoles)
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclusters,verbs=get;list;watch;create;update;patch;delete
@@ -148,20 +195,20 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Handle deleted clusters
 	if !awsCluster.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(clusterScope)
+		return r.reconcileDelete(ctx, clusterScope)
 	}
 
 	// Handle non-deleted clusters
-	return r.reconcileNormal(clusterScope)
+	return r.reconcileNormal(ctx, clusterScope)
 }
 
-func (r *AWSClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	clusterScope.Info("Reconciling AWSCluster delete")
 
-	ec2svc := ec2.NewService(clusterScope)
-	elbsvc := elb.NewService(clusterScope)
-	networkSvc := network.NewService(clusterScope)
-	sgService := securitygroup.NewService(clusterScope, awsSecurityGroupRoles)
+	ec2svc := r.getEC2Service(clusterScope)
+	elbsvc := r.getELBService(*clusterScope)
+	networkSvc := r.getNetworkService(*clusterScope)
+	sgService := r.getSecurityGroupService(*clusterScope)
 
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 		instancestateSvc := instancestate.NewService(clusterScope)
@@ -191,28 +238,39 @@ func (r *AWSClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope)
 		return reconcile.Result{}, err
 	}
 
+	err := r.deleteAWSClusterFromIdentityOwnerRef(ctx, clusterScope)
+	if err != nil && err.Error() != notFoundErr {
+		return reconcile.Result{}, err
+	}
 	// Cluster is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(clusterScope.AWSCluster, infrav1.ClusterFinalizer)
 
 	return reconcile.Result{}, nil
 }
 
-func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+// TODO(ncdc): should this be a function on ClusterScope?
+func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	clusterScope.Info("Reconciling AWSCluster")
 
 	awsCluster := clusterScope.AWSCluster
 
 	// If the AWSCluster doesn't have our finalizer, add it.
 	controllerutil.AddFinalizer(awsCluster, infrav1.ClusterFinalizer)
+
+	err := r.addAWSClusterAsOwnerForIdentityRef(ctx, clusterScope)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
 	// Register the finalizer immediately to avoid orphaning AWS resources on delete
 	if err := clusterScope.PatchObject(); err != nil {
 		return reconcile.Result{}, err
 	}
 
-	ec2Service := ec2.NewService(clusterScope)
-	elbService := elb.NewService(clusterScope)
-	networkSvc := network.NewService(clusterScope)
-	sgService := securitygroup.NewService(clusterScope, awsSecurityGroupRoles)
+	ec2Service := r.getEC2Service(clusterScope)
+	elbService := r.getELBService(*clusterScope)
+	networkSvc := r.getNetworkService(*clusterScope)
+	sgService := r.getSecurityGroupService(*clusterScope)
 
 	if err := networkSvc.ReconcileNetwork(); err != nil {
 		clusterScope.Error(err, "failed to reconcile network")
@@ -297,7 +355,7 @@ func (r *AWSClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 				// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates
 				// for AWSCluster resources only
 				UpdateFunc: func(e event.UpdateEvent) bool {
-					if e.ObjectOld.GetObjectKind().GroupVersionKind().Kind != "AWSCluster" {
+					if e.ObjectOld.GetObjectKind().GroupVersionKind().Kind != awsClusterKind {
 						return true
 					}
 
@@ -386,7 +444,7 @@ func (r *AWSClusterReconciler) requeueAWSClusterForUnpausedCluster(ctx context.C
 			return nil
 		}
 
-		if c.Spec.InfrastructureRef.GroupVersionKind().Kind != "AWSCluster" {
+		if c.Spec.InfrastructureRef.GroupVersionKind().Kind != awsClusterKind {
 			log.V(4).Info("Cluster has an InfrastructureRef for a different type, skipping mapping.")
 			return nil
 		}
@@ -411,4 +469,102 @@ func (r *AWSClusterReconciler) requeueAWSClusterForUnpausedCluster(ctx context.C
 			},
 		}
 	}
+}
+
+func (r *AWSClusterReconciler) deleteAWSClusterFromIdentityOwnerRef(ctx context.Context, clusterScope *scope.ClusterScope) error {
+	if identityRef := clusterScope.IdentityRef(); identityRef != nil {
+		unstructuredIdentityObject, err := getUnstructuredFromObjectReference(ctx, r.Client, string(identityRef.Kind), identityRef.Name)
+		if err != nil {
+			return err
+		}
+		ownerRefToRemove := metav1.OwnerReference{
+			APIVersion: infrav1.GroupVersion.String(),
+			Kind:       awsClusterKind,
+			Name:       clusterScope.InfraClusterName(),
+			UID:        clusterScope.InfraCluster().GetUID(),
+		}
+		ownerReferences := unstructuredIdentityObject.GetOwnerReferences()
+		objectFound := false
+		if util.HasOwnerRef(ownerReferences, ownerRefToRemove) {
+			ownerReferences = util.RemoveOwnerRef(ownerReferences, ownerRefToRemove)
+			unstructuredIdentityObject.SetOwnerReferences(ownerReferences)
+			if len(ownerReferences) == 0 {
+				objectFound = removeFinalizerFromIdentity(identityRef, unstructuredIdentityObject)
+			}
+			err = r.Client.Update(ctx, unstructuredIdentityObject)
+			if err != nil {
+				return err
+			}
+		}
+		if !objectFound {
+			return errors.Errorf(notFoundErr)
+		}
+	}
+	return nil
+}
+
+func (r *AWSClusterReconciler) addAWSClusterAsOwnerForIdentityRef(ctx context.Context, clusterScope *scope.ClusterScope) error {
+	if identityRef := clusterScope.IdentityRef(); identityRef != nil {
+		unstructuredIdentityObject, err := getUnstructuredFromObjectReference(ctx, r.Client, string(identityRef.Kind), identityRef.Name)
+		if err != nil {
+			return err
+		}
+		ownerReferences := unstructuredIdentityObject.GetOwnerReferences()
+		ownerReferences = util.EnsureOwnerRef(ownerReferences, metav1.OwnerReference{
+			APIVersion:         infrav1.GroupVersion.String(),
+			Kind:               awsClusterKind,
+			Name:               clusterScope.InfraClusterName(),
+			UID:                clusterScope.InfraCluster().GetUID(),
+			BlockOwnerDeletion: aws.Bool(true),
+		})
+		unstructuredIdentityObject.SetOwnerReferences(ownerReferences)
+		switch identityRef.Kind {
+		case infrav1.ClusterRoleIdentityKind:
+			controllerutil.AddFinalizer(unstructuredIdentityObject, infrav1.AWSRoleIdentityFinalizer)
+		case infrav1.ClusterStaticIdentityKind:
+			controllerutil.AddFinalizer(unstructuredIdentityObject, infrav1.AWSStaticIdentityFinalizer)
+		case infrav1.ControllerIdentityKind:
+			controllerutil.AddFinalizer(unstructuredIdentityObject, infrav1.AWSControllerIdentityFinalizer)
+		}
+		err = r.Client.Update(ctx, unstructuredIdentityObject)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func removeFinalizerFromIdentity(identityRef *infrav1.AWSIdentityReference, unstructuredIdentityObject *unstructured.Unstructured) bool {
+	objectFound := false
+	switch identityRef.Kind {
+	case infrav1.ClusterRoleIdentityKind:
+		if controllerutil.ContainsFinalizer(unstructuredIdentityObject, infrav1.AWSRoleIdentityFinalizer) {
+			objectFound = true
+			controllerutil.RemoveFinalizer(unstructuredIdentityObject, infrav1.AWSRoleIdentityFinalizer)
+		}
+	case infrav1.ClusterStaticIdentityKind:
+		if controllerutil.ContainsFinalizer(unstructuredIdentityObject, infrav1.AWSStaticIdentityFinalizer) {
+			objectFound = true
+			controllerutil.RemoveFinalizer(unstructuredIdentityObject, infrav1.AWSStaticIdentityFinalizer)
+		}
+	case infrav1.ControllerIdentityKind:
+		if controllerutil.ContainsFinalizer(unstructuredIdentityObject, infrav1.AWSControllerIdentityFinalizer) {
+			objectFound = true
+			controllerutil.RemoveFinalizer(unstructuredIdentityObject, infrav1.AWSControllerIdentityFinalizer)
+		}
+	}
+	return objectFound
+}
+
+func getUnstructuredFromObjectReference(ctx context.Context, client client.Client, kind, name string) (*unstructured.Unstructured, error) {
+	identityReference := corev1.ObjectReference{
+		Kind: kind,
+		Name: name,
+	}
+	identityReference.SetGroupVersionKind(infrav1.GroupVersion.WithKind(kind))
+	unstructuredIdentityObject, err := external.Get(ctx, client, &identityReference, identityReference.Namespace)
+	if err != nil {
+		return nil, err
+	}
+	return unstructuredIdentityObject, nil
 }

@@ -158,6 +158,7 @@ rules:
   - awsclusterstaticidentities
   verbs:
   - get
+  - update
   - list
   - watch
 - apiGroups:

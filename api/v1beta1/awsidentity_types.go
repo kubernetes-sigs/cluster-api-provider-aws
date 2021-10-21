@@ -20,6 +20,20 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	// AWSStaticIdentityFinalizer allows ReconcileAWSCluster to clean up static identity refs associated with AWSCluster before
+	// removing it from the apiserver.
+	AWSStaticIdentityFinalizer = "awsclusterstaticidentities.infrastructure.cluster.x-k8s.io"
+
+	// AWSControllerIdentityFinalizer allows ReconcileAWSCluster to clean up controller identity refs associated with AWSCluster before
+	// removing it from the apiserver.
+	AWSControllerIdentityFinalizer = "awsclustercontrolleridentities.infrastructure.cluster.x-k8s.io"
+
+	// AWSRoleIdentityFinalizer allows ReconcileAWSCluster to clean up role identity refs associated with AWSCluster before
+	// removing it from the apiserver.
+	AWSRoleIdentityFinalizer = "awsclusterroleidentities.infrastructure.cluster.x-k8s.io"
+)
+
 // AWSClusterIdentitySpec defines the Spec struct for AWSClusterIdentity types.
 type AWSClusterIdentitySpec struct {
 	// AllowedNamespaces is used to identify which namespaces are allowed to use the identity from.

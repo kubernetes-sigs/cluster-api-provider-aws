@@ -21,5 +21,11 @@ limitations under the License.
 //go:generate /usr/bin/env bash -c "cat ../../../../hack/boilerplate/boilerplate.generatego.txt secretsmanager_machine_interface_mock.go > _secretsmanager_machine_interface_mock.go && mv _secretsmanager_machine_interface_mock.go secretsmanager_machine_interface_mock.go"
 //go:generate ../../../../hack/tools/bin/mockgen -destination autoscaling_interface_mock.go -package mock_services sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services ASGInterface
 //go:generate /usr/bin/env bash -c "cat ../../../../hack/boilerplate/boilerplate.generatego.txt autoscaling_interface_mock.go > _autoscaling_interface_mock.go && mv _autoscaling_interface_mock.go autoscaling_interface_mock.go"
+//go:generate ../../../../hack/tools/bin/mockgen -destination elb_cluster_interface_mock.go -package mock_services sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services ELBClusterInterface
+//go:generate /usr/bin/env bash -c "cat ../../../../hack/boilerplate/boilerplate.generatego.txt elb_cluster_interface_mock.go > _elb_cluster_interface_mock.go && mv _elb_cluster_interface_mock.go elb_cluster_interface_mock.go"
+//go:generate ../../../../hack/tools/bin/mockgen -destination network_interface_mock.go -package mock_services sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services NetworkInterface
+//go:generate /usr/bin/env bash -c "cat ../../../../hack/boilerplate/boilerplate.generatego.txt network_interface_mock.go > _network_interface_mock.go && mv _network_interface_mock.go network_interface_mock.go"
+//go:generate ../../../../hack/tools/bin/mockgen -destination security_group_interface_mock.go -package mock_services sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services SecurityGroupInterface
+//go:generate /usr/bin/env bash -c "cat ../../../../hack/boilerplate/boilerplate.generatego.txt security_group_interface_mock.go > _security_group_interface_mock.go && mv _security_group_interface_mock.go security_group_interface_mock.go"
 
 package mock_services // nolint:stylecheck
