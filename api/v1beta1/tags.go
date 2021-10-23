@@ -159,6 +159,9 @@ const (
 
 	// MachineNameTagKey is the key for machine name.
 	MachineNameTagKey = "MachineName"
+
+	// NodeRoleTagValue describes the value for the node role.
+	NodeRoleTagValue = "node"
 )
 
 // ClusterTagKey generates the key for resources associated with a cluster.

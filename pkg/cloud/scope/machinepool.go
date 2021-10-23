@@ -122,6 +122,14 @@ func (m *MachinePoolScope) Namespace() string {
 	return m.AWSMachinePool.Namespace
 }
 
+// ClusterName returns the Cluster name.
+func (m *MachinePoolScope) ClusterName() string {
+	if m.Cluster != nil {
+		return m.Cluster.Name
+	}
+	return ""
+}
+
 // GetRawBootstrapData returns the bootstrap data from the secret in the Machine's bootstrap.dataSecretName.
 // todo(rudoi): stolen from MachinePool - any way to reuse?
 func (m *MachinePoolScope) GetRawBootstrapData() ([]byte, error) {

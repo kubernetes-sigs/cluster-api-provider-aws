@@ -29,6 +29,7 @@ import (
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
@@ -117,17 +118,21 @@ func (s *Service) ASGIfExists(name *string) (*expinfrav1.AutoScalingGroup, error
 	return s.SDKToAutoScalingGroup(out.AutoScalingGroups[0])
 }
 
-// GetASGByName returns the existing ASG or nothing if it doesn't exist.
-func (s *Service) GetASGByName(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
+// GetASGByTags returns the existing ASG or nothing if it doesn't exist.
+func (s *Service) GetASGByTags(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
 	s.scope.V(2).Info("Looking for existing AutoScalingGroup by name")
 
 	input := &autoscaling.DescribeAutoScalingGroupsInput{
-		AutoScalingGroupNames: []*string{
-			aws.String(scope.Name()),
+		Filters: []*autoscaling.Filter{
+			filter.ASG.Name(scope.Name()),
+			filter.ASG.ProviderOwned(scope.ClusterName()),
+			filter.ASG.ClusterOwned(scope.ClusterName()),
+			filter.ASG.ProviderRole(infrav1.NodeRoleTagValue),
 		},
 	}
 
 	out, err := s.ASGClient.DescribeAutoScalingGroups(input)
+
 	switch {
 	case awserrors.IsNotFound(err):
 		return nil, nil
@@ -176,7 +181,7 @@ func (s *Service) CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScal
 		ClusterName: s.scope.Name(),
 		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(scope.Name()),
-		Role:        aws.String("node"),
+		Role:        aws.String(infrav1.NodeRoleTagValue),
 		Additional:  additionalTags,
 	})
 
@@ -314,7 +319,7 @@ func (s *Service) CanStartASGInstanceRefresh(scope *scope.MachinePoolScope) (boo
 		return false, err
 	}
 	hasUnfinishedRefresh := false
-	if err == nil && len(refreshes.InstanceRefreshes) != 0 {
+	if len(refreshes.InstanceRefreshes) != 0 {
 		for i := range refreshes.InstanceRefreshes {
 			if *refreshes.InstanceRefreshes[i].Status == autoscaling.InstanceRefreshStatusInProgress ||
 				*refreshes.InstanceRefreshes[i].Status == autoscaling.InstanceRefreshStatusPending ||

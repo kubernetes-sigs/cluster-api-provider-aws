@@ -110,19 +110,19 @@ func (mr *MockASGInterfaceMockRecorder) DeleteASGAndWait(arg0 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteASGAndWait", reflect.TypeOf((*MockASGInterface)(nil).DeleteASGAndWait), arg0)
 }
 
-// GetASGByName mocks base method.
-func (m *MockASGInterface) GetASGByName(arg0 *scope.MachinePoolScope) (*v1beta1.AutoScalingGroup, error) {
+// GetASGByTags mocks base method.
+func (m *MockASGInterface) GetASGByTags(arg0 *scope.MachinePoolScope) (*v1beta1.AutoScalingGroup, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetASGByName", arg0)
+	ret := m.ctrl.Call(m, "GetASGByTags", arg0)
 	ret0, _ := ret[0].(*v1beta1.AutoScalingGroup)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetASGByName indicates an expected call of GetASGByName.
-func (mr *MockASGInterfaceMockRecorder) GetASGByName(arg0 interface{}) *gomock.Call {
+// GetASGByTags indicates an expected call of GetASGByTags.
+func (mr *MockASGInterfaceMockRecorder) GetASGByTags(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetASGByName", reflect.TypeOf((*MockASGInterface)(nil).GetASGByName), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetASGByTags", reflect.TypeOf((*MockASGInterface)(nil).GetASGByTags), arg0)
 }
 
 // StartASGInstanceRefresh mocks base method.

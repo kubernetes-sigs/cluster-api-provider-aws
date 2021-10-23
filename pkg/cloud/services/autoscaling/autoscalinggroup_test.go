@@ -39,7 +39,7 @@ import (
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
-func TestService_GetASGByName(t *testing.T) {
+func TestService_GetASGByTags(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	tests := []struct {
@@ -55,11 +55,7 @@ func TestService_GetASGByName(t *testing.T) {
 			wantErr:         false,
 			wantASG:         false,
 			expect: func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {
-				m.DescribeAutoScalingGroups(gomock.Eq(&autoscaling.DescribeAutoScalingGroupsInput{
-					AutoScalingGroupNames: []*string{
-						aws.String("test-asg-is-not-present"),
-					},
-				})).
+				m.DescribeAutoScalingGroups(gomock.AssignableToTypeOf(&autoscaling.DescribeAutoScalingGroupsInput{})).
 					Return(nil, awserrors.NewNotFound("not found"))
 			},
 		},
@@ -69,11 +65,7 @@ func TestService_GetASGByName(t *testing.T) {
 			wantErr:         true,
 			wantASG:         false,
 			expect: func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {
-				m.DescribeAutoScalingGroups(gomock.Eq(&autoscaling.DescribeAutoScalingGroupsInput{
-					AutoScalingGroupNames: []*string{
-						aws.String("dependency-failure-occurred"),
-					},
-				})).
+				m.DescribeAutoScalingGroups(gomock.AssignableToTypeOf(&autoscaling.DescribeAutoScalingGroupsInput{})).
 					Return(nil, awserrors.NewFailedDependency("unknown error occurred"))
 			},
 		},
@@ -83,11 +75,7 @@ func TestService_GetASGByName(t *testing.T) {
 			wantErr:         false,
 			wantASG:         true,
 			expect: func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {
-				m.DescribeAutoScalingGroups(gomock.Eq(&autoscaling.DescribeAutoScalingGroupsInput{
-					AutoScalingGroupNames: []*string{
-						aws.String("test-group-is-present"),
-					},
-				})).
+				m.DescribeAutoScalingGroups(gomock.AssignableToTypeOf(&autoscaling.DescribeAutoScalingGroupsInput{})).
 					Return(&autoscaling.DescribeAutoScalingGroupsOutput{
 						AutoScalingGroups: []*autoscaling.Group{
 							{
@@ -119,7 +107,7 @@ func TestService_GetASGByName(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 			mps.AWSMachinePool.Name = tt.machinePoolName
 
-			asg, err := s.GetASGByName(mps)
+			asg, err := s.GetASGByTags(mps)
 			checkErr(tt.wantErr, err, g)
 			checkASG(tt.wantASG, asg, g)
 		})

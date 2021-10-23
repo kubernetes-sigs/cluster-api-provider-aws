@@ -33,13 +33,13 @@ const (
 // actuator.
 type ASGInterface interface {
 	ASGIfExists(id *string) (*expinfrav1.AutoScalingGroup, error)
-	GetASGByName(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error)
 	CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error)
 	UpdateASG(scope *scope.MachinePoolScope) error
 	StartASGInstanceRefresh(scope *scope.MachinePoolScope) error
 	CanStartASGInstanceRefresh(scope *scope.MachinePoolScope) (bool, error)
 	UpdateResourceTags(resourceID *string, create, remove map[string]string) error
 	DeleteASGAndWait(id string) error
+	GetASGByTags(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error)
 }
 
 // EC2MachineInterface encapsulates the methods exposed to the machine

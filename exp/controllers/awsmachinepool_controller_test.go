@@ -163,7 +163,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				t.Helper()
 
 				ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, "", expectedErr).AnyTimes()
-				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(nil, expectedErr).AnyTimes()
+				asgSvc.EXPECT().GetASGByTags(gomock.Any()).Return(nil, expectedErr).AnyTimes()
 			}
 			t.Run("should exit immediately on an error state", func(t *testing.T) {
 				g := NewWithT(t)
@@ -280,7 +280,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			finalizer(t, g)
 
 			expectedErr := errors.New("no connection available ")
-			asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(nil, expectedErr).AnyTimes()
+			asgSvc.EXPECT().GetASGByTags(gomock.Any()).Return(nil, expectedErr).AnyTimes()
 
 			_, err := reconciler.reconcileDelete(ms, cs, cs)
 			g.Expect(errors.Cause(err)).To(MatchError(expectedErr))
@@ -291,7 +291,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			defer teardown(t, g)
 			finalizer(t, g)
 
-			asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(nil, nil)
+			asgSvc.EXPECT().GetASGByTags(gomock.Any()).Return(nil, nil)
 			ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, "", nil).AnyTimes()
 
 			buf := new(bytes.Buffer)
@@ -313,7 +313,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				Name:   "an-asg-that-is-currently-being-deleted",
 				Status: expinfrav1.ASGStatusDeleteInProgress,
 			}
-			asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(&inProgressASG, nil)
+			asgSvc.EXPECT().GetASGByTags(gomock.Any()).Return(&inProgressASG, nil)
 			ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, "", nil).AnyTimes()
 
 			buf := new(bytes.Buffer)

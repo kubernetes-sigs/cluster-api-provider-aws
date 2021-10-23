@@ -158,7 +158,6 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			reterr = err
 		}
 	}()
-
 	switch infraScope := infraCluster.(type) {
 	case *scope.ManagedControlPlaneScope:
 		if !awsMachinePool.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -372,7 +371,7 @@ func (r *AWSMachinePoolReconciler) createPool(machinePoolScope *scope.MachinePoo
 
 func (r *AWSMachinePoolReconciler) findASG(machinePoolScope *scope.MachinePoolScope, asgsvc services.ASGInterface) (*expinfrav1.AutoScalingGroup, error) {
 	// Query the instance using tags.
-	asg, err := asgsvc.GetASGByName(machinePoolScope)
+	asg, err := asgsvc.GetASGByTags(machinePoolScope)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to query AWSMachinePool by name")
 	}
