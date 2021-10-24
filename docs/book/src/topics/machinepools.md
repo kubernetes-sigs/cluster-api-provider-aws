@@ -90,7 +90,7 @@ spec:
   minSize: 1
   maxSize: 10
   availabilityZones:
-    - us-east-1
+    - "${AWS_AVAILABILITY_ZONE}"
   awsLaunchTemplate:
     instanceType: "${AWS_CONTROL_PLANE_MACHINE_TYPE}"
     sshKeyName: "${AWS_SSH_KEY_NAME}"
