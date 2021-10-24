@@ -315,6 +315,9 @@ Resources:
           - eks:UpdateNodegroupConfig
           - eks:CreateNodegroup
           - eks:AssociateEncryptionConfig
+          - eks:ListIdentityProviderConfigs
+          - eks:AssociateIdentityProviderConfig
+          - eks:DescribeIdentityProviderConfig
           Effect: Allow
           Resource:
           - arn:*:eks:*:*:cluster/*
