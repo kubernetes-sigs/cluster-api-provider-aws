@@ -220,9 +220,20 @@ func (s *Service) RegisterInstanceWithAPIServerELB(i *infrav1.Instance) error {
 		return errors.Errorf("failed to attach load balancer subnets, could not find subnet %q description in AWSCluster", i.SubnetID)
 	}
 	instanceAZ := subnet.AvailabilityZone
+
+	var subnets infrav1.Subnets
+	if s.scope.ControlPlaneLoadBalancer() != nil && len(s.scope.ControlPlaneLoadBalancer().Subnets) > 0 {
+		subnets, err = s.getControlPlaneLoadBalancerSubnets()
+		if err != nil {
+			return err
+		}
+	} else {
+		subnets = s.scope.Subnets()
+	}
+
 	found := false
 	for _, subnetID := range out.SubnetIDs {
-		if subnet := s.scope.Subnets().FindByID(subnetID); subnet != nil && instanceAZ == subnet.AvailabilityZone {
+		if subnet := subnets.FindByID(subnetID); subnet != nil && instanceAZ == subnet.AvailabilityZone {
 			found = true
 			break
 		}
@@ -238,6 +249,29 @@ func (s *Service) RegisterInstanceWithAPIServerELB(i *infrav1.Instance) error {
 
 	_, err = s.ELBClient.RegisterInstancesWithLoadBalancer(input)
 	return err
+}
+
+// getControlPlaneLoadBalancerSubnets retrieves ControlPlaneLoadBalancer subnets information.
+func (s *Service) getControlPlaneLoadBalancerSubnets() (infrav1.Subnets, error) {
+	var subnets infrav1.Subnets
+
+	input := &ec2.DescribeSubnetsInput{
+		SubnetIds: aws.StringSlice(s.scope.ControlPlaneLoadBalancer().Subnets),
+	}
+	res, err := s.EC2Client.DescribeSubnets(input)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, sn := range res.Subnets {
+		lbSn := infrav1.SubnetSpec{
+			AvailabilityZone: *sn.AvailabilityZone,
+			ID:               *sn.SubnetId,
+		}
+		subnets = append(subnets, lbSn)
+	}
+
+	return subnets, nil
 }
 
 // DeregisterInstanceFromAPIServerELB de-registers an instance from a classic ELB.
