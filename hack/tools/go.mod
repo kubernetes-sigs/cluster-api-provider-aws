@@ -9,7 +9,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/golangci/golangci-lint v1.42.1
 	github.com/itchyny/gojq v0.12.5
-	github.com/onsi/ginkgo v1.16.4
+	github.com/onsi/ginkgo v1.16.5
 	github.com/spf13/pflag v1.0.5
 	k8s.io/apimachinery v0.22.2
 	k8s.io/code-generator v0.22.2
