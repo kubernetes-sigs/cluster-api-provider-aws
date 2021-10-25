@@ -472,7 +472,7 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 
 	switch role {
 	case infrav1.SecurityGroupBastion:
-		return infrav1.IngressRules{
+		rules := infrav1.IngressRules{
 			{
 				Description: "SSH",
 				Protocol:    infrav1.SecurityGroupProtocolTCP,
@@ -480,7 +480,8 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 				ToPort:      22,
 				CidrBlocks:  s.scope.Bastion().AllowedCIDRBlocks,
 			},
-		}, nil
+		}
+		return append(rules, s.getAdditionalIngressRules(role)...), nil
 	case infrav1.SecurityGroupControlPlane:
 		rules := infrav1.IngressRules{
 			{
@@ -512,7 +513,8 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 		if s.scope.Bastion().Enabled {
 			rules = append(rules, s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID))
 		}
-		return append(cniRules, rules...), nil
+		rules = append(cniRules, rules...)
+		return append(rules, s.getAdditionalIngressRules(role)...), nil
 
 	case infrav1.SecurityGroupNode:
 		rules := infrav1.IngressRules{
@@ -538,16 +540,18 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 		if s.scope.Bastion().Enabled {
 			rules = append(rules, s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID))
 		}
-		return append(cniRules, rules...), nil
+		rules = append(cniRules, rules...)
+		return append(rules, s.getAdditionalIngressRules(role)...), nil
 	case infrav1.SecurityGroupEKSNodeAdditional:
+		rules := infrav1.IngressRules{}
 		if s.scope.Bastion().Enabled {
-			return infrav1.IngressRules{
+			rules = infrav1.IngressRules{
 				s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID),
-			}, nil
+			}
 		}
-		return infrav1.IngressRules{}, nil
+		return append(rules, s.getAdditionalIngressRules(role)...), nil
 	case infrav1.SecurityGroupAPIServerLB:
-		return infrav1.IngressRules{
+		rules := infrav1.IngressRules{
 			{
 				Description: "Kubernetes API",
 				Protocol:    infrav1.SecurityGroupProtocolTCP,
@@ -555,13 +559,23 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 				ToPort:      int64(s.scope.APIServerPort()),
 				CidrBlocks:  []string{services.AnyIPv4CidrBlock},
 			},
-		}, nil
+		}
+		return append(rules, s.getAdditionalIngressRules(role)...), nil
 	case infrav1.SecurityGroupLB:
 		// We hand this group off to the in-cluster cloud provider, so these rules aren't used
 		return infrav1.IngressRules{}, nil
 	}
 
 	return nil, errors.Errorf("Cannot determine ingress rules for unknown security group role %q", role)
+}
+
+func (s *Service) getAdditionalIngressRules(role infrav1.SecurityGroupRole) infrav1.IngressRules {
+	for r, ingressRules := range s.scope.AdditionalIngressRules() {
+		if r == role {
+			return ingressRules
+		}
+	}
+	return infrav1.IngressRules{}
 }
 
 func (s *Service) getSecurityGroupName(clusterName string, role infrav1.SecurityGroupRole) string {

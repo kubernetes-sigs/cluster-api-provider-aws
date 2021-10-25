@@ -136,6 +136,14 @@ func (s *ClusterScope) SecurityGroupOverrides() map[infrav1.SecurityGroupRole]st
 	return s.AWSCluster.Spec.NetworkSpec.SecurityGroupOverrides
 }
 
+// AdditionalIngressRules returns the optionally defined additional ingress rules, or an empty map if not specified.
+func (s *ClusterScope) AdditionalIngressRules() map[infrav1.SecurityGroupRole]infrav1.IngressRules {
+	if s.AWSCluster.Spec.NetworkSpec.AdditionalIngressRules != nil {
+		return s.AWSCluster.Spec.NetworkSpec.AdditionalIngressRules
+	}
+	return map[infrav1.SecurityGroupRole]infrav1.IngressRules{}
+}
+
 // SecurityGroups returns the cluster security groups as a map, it creates the map if empty.
 func (s *ClusterScope) SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.SecurityGroup {
 	return s.AWSCluster.Status.Network.SecurityGroups

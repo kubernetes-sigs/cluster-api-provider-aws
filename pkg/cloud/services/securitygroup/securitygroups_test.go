@@ -337,11 +337,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 
-			scheme := runtime.NewScheme()
-			_ = infrav1.AddToScheme(scheme)
-			client := fake.NewClientBuilder().WithScheme(scheme).Build()
-			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
-				Client: client,
+			scope := buildTestScope(t, scope.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
 				},
@@ -352,9 +348,6 @@ func TestReconcileSecurityGroups(t *testing.T) {
 					},
 				},
 			})
-			if err != nil {
-				t.Fatalf("Failed to create test context: %v", err)
-			}
 
 			tc.expect(ec2Mock.EXPECT())
 
@@ -373,19 +366,12 @@ func TestReconcileSecurityGroups(t *testing.T) {
 }
 
 func TestControlPlaneSecurityGroupNotOpenToAnyCIDR(t *testing.T) {
-	scheme := runtime.NewScheme()
-	_ = infrav1.AddToScheme(scheme)
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
-	scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
-		Client: client,
+	scope := buildTestScope(t, scope.ClusterScopeParams{
 		Cluster: &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
 		},
 		AWSCluster: &infrav1.AWSCluster{},
 	})
-	if err != nil {
-		t.Fatalf("Failed to create test context: %v", err)
-	}
 
 	s := NewService(scope, testSecurityGroupRoles)
 	rules, err := s.getSecurityGroupIngressRules(infrav1.SecurityGroupControlPlane)
@@ -574,4 +560,78 @@ func TestIngressRulesFromSDKType(t *testing.T) {
 			g.Expect(output).To(Equal(tc.expected))
 		})
 	}
+}
+
+func TestAdditionalIngressRulesAdded(t *testing.T) {
+	scope := buildTestScope(t, scope.ClusterScopeParams{
+		Cluster: &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
+		},
+		AWSCluster: &infrav1.AWSCluster{
+			Spec: infrav1.AWSClusterSpec{
+				NetworkSpec: infrav1.NetworkSpec{
+					CNI: &infrav1.CNISpec{
+						CNIIngressRules: infrav1.CNIIngressRules{
+							infrav1.CNIIngressRule{
+								Description: "cni-rule-test",
+								Protocol:    "tcp",
+								FromPort:    1234,
+								ToPort:      1234,
+							},
+						},
+					},
+					AdditionalIngressRules: map[infrav1.SecurityGroupRole]infrav1.IngressRules{
+						infrav1.SecurityGroupControlPlane: {
+							infrav1.IngressRule{
+								Description: "add-test",
+								Protocol:    "udp",
+								FromPort:    4567,
+								ToPort:      4567,
+								CidrBlocks:  []string{"0.0.0.0/0"},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	s := NewService(scope, []infrav1.SecurityGroupRole{infrav1.SecurityGroupControlPlane})
+	rules, err := s.getSecurityGroupIngressRules(infrav1.SecurityGroupControlPlane)
+	if err != nil {
+		t.Fatalf("Failed to lookup controlplane security group ingress rules: %v", err)
+	}
+
+	addedRuleFound := false
+	cniRuleFound := false
+	for _, r := range rules {
+		switch r.Description {
+		case "add-test":
+			addedRuleFound = true
+		case "cni-rule-test":
+			cniRuleFound = true
+		}
+	}
+	if !addedRuleFound {
+		t.Fatalf("Did not find add-test in ingress rules: %v", rules)
+	}
+	if !cniRuleFound {
+		t.Fatalf("Did not find cni-rule-test in ingress rules: %v", rules)
+	}
+}
+
+func buildTestScope(t *testing.T, clusterScopeParams scope.ClusterScopeParams) *scope.ClusterScope {
+	scheme := runtime.NewScheme()
+	_ = infrav1.AddToScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+	scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+		Client:     client,
+		Cluster:    clusterScopeParams.Cluster,
+		AWSCluster: clusterScopeParams.AWSCluster,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create test context: %v", err)
+	}
+
+	return scope
 }

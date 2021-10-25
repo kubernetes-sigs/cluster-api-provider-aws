@@ -187,6 +187,11 @@ func (s *ManagedControlPlaneScope) SecurityGroups() map[infrav1.SecurityGroupRol
 	return s.ControlPlane.Status.Network.SecurityGroups
 }
 
+// AdditionalIngressRules always returns an empty map for ManagedControlPlaneScope
+func (s *ManagedControlPlaneScope) AdditionalIngressRules() map[infrav1.SecurityGroupRole]infrav1.IngressRules {
+	return map[infrav1.SecurityGroupRole]infrav1.IngressRules{}
+}
+
 // SecondaryCidrBlock returns the SecondaryCidrBlock of the control plane.
 func (s *ManagedControlPlaneScope) SecondaryCidrBlock() *string {
 	return s.ControlPlane.Spec.SecondaryCidrBlock

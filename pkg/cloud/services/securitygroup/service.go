@@ -43,6 +43,9 @@ type Scope interface {
 	// CNIIngressRules returns the CNI spec ingress rules.
 	CNIIngressRules() infrav1.CNIIngressRules
 
+	// AdditionalIngressRules returns the additional ingress rules for the generated security groups
+	AdditionalIngressRules() map[infrav1.SecurityGroupRole]infrav1.IngressRules
+
 	// Bastion returns the bastion details for the cluster.
 	Bastion() *infrav1.Bastion
 }

@@ -159,6 +159,11 @@ type NetworkSpec struct {
 	// This is optional - if not provided new security groups will be created for the cluster
 	// +optional
 	SecurityGroupOverrides map[SecurityGroupRole]string `json:"securityGroupOverrides,omitempty"`
+
+	// AdditionalIngressRules is an optional map from security group role to a set of additional ingress
+	// rules to add to the security group rules created for that role
+	// +optional
+	AdditionalIngressRules map[SecurityGroupRole]IngressRules `json:"additionalIngressRules,omitempty"`
 }
 
 // VPCSpec configures an AWS VPC.
