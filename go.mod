@@ -24,7 +24,7 @@ require (
 	github.com/docker/docker v20.10.9+incompatible // indirect
 	github.com/drone/envsubst/v2 v2.0.0-20210730161058-179042472c46 // indirect
 	github.com/evanphx/json-patch/v5 v5.5.0 // indirect
-	github.com/go-logr/logr v0.4.0
+	github.com/go-logr/logr v1.2.0
 	github.com/gofrs/flock v0.8.1
 	github.com/golang/mock v1.6.0
 	github.com/google/go-querystring v1.1.0 // indirect
@@ -60,7 +60,7 @@ require (
 	k8s.io/cli-runtime v0.22.2
 	k8s.io/client-go v0.22.2
 	k8s.io/component-base v0.22.2
-	k8s.io/klog/v2 v2.10.0
+	k8s.io/klog/v2 v2.30.0
 	k8s.io/kube-openapi v0.0.0-20210929172449-94abcedd1aa4 // indirect
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
 	sigs.k8s.io/aws-iam-authenticator v0.5.3
