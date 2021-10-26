@@ -19,6 +19,7 @@ package scope
 import (
 	"context"
 	"fmt"
+	"time"
 
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/go-logr/logr"
@@ -130,10 +131,11 @@ func (s *ManagedControlPlaneScope) RemoteClient() (client.Client, error) {
 		Namespace: s.Namespace(),
 	}
 
-	restConfig, err := remote.RESTConfig(context.Background(), s.controllerName, s.Client, clusterKey)
+	restConfig, err := remote.RESTConfig(context.Background(), s.ControlPlane.Name, s.Client, clusterKey)
 	if err != nil {
-		return nil, fmt.Errorf("getting remote client for %s/%s: %w", s.Namespace(), s.Name(), err)
+		return nil, fmt.Errorf("getting remote rest config for %s/%s: %w", s.Namespace(), s.Name(), err)
 	}
+	restConfig.Timeout = 1 * time.Minute
 
 	return client.New(restConfig, client.Options{Scheme: scheme})
 }

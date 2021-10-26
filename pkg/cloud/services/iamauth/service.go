@@ -30,6 +30,8 @@ import (
 type Scope interface {
 	cloud.ClusterScoper
 
+	// RemoteClient returns the Kubernetes client for connecting to the workload cluster.
+	RemoteClient() (client.Client, error)
 	// IAMAuthConfig returns the IAM authenticator config
 	IAMAuthConfig() *ekscontrolplanev1.IAMAuthenticatorConfig
 }
