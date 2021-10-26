@@ -41,15 +41,12 @@ type Scope interface {
 
 // Service defines the spec for a service.
 type Service struct {
-	scope  Scope
-	client client.Client
+	scope Scope
 }
 
 // NewService will create a new service.
 func NewService(awsnodeScope Scope) *Service {
-	client, _ := awsnodeScope.RemoteClient()
 	return &Service{
-		scope:  awsnodeScope,
-		client: client,
+		scope: awsnodeScope,
 	}
 }

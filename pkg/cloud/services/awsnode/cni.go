@@ -44,8 +44,14 @@ const (
 func (s *Service) ReconcileCNI(ctx context.Context) error {
 	s.scope.Info("Reconciling aws-node DaemonSet in cluster", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
 
+	remoteClient, err := s.scope.RemoteClient()
+	if err != nil {
+		s.scope.Error(err, "getting client for remote cluster")
+		return fmt.Errorf("getting client for remote cluster: %w", err)
+	}
+
 	if s.scope.DisableVPCCNI() {
-		if err := s.deleteCNI(ctx); err != nil {
+		if err := s.deleteCNI(ctx, remoteClient); err != nil {
 			return fmt.Errorf("disabling aws vpc cni: %w", err)
 		}
 	}
@@ -55,7 +61,7 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 	}
 
 	var ds appsv1.DaemonSet
-	if err := s.client.Get(ctx, types.NamespacedName{Namespace: awsNodeNamespace, Name: awsNodeName}, &ds); err != nil {
+	if err := remoteClient.Get(ctx, types.NamespacedName{Namespace: awsNodeNamespace, Name: awsNodeName}, &ds); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return err
 		}
@@ -75,7 +81,7 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 	s.scope.Info("for each subnet", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
 	for _, subnet := range s.secondarySubnets() {
 		var eniConfig amazoncni.ENIConfig
-		if err := s.client.Get(ctx, types.NamespacedName{Namespace: metav1.NamespaceSystem, Name: subnet.AvailabilityZone}, &eniConfig); err != nil {
+		if err := remoteClient.Get(ctx, types.NamespacedName{Namespace: metav1.NamespaceSystem, Name: subnet.AvailabilityZone}, &eniConfig); err != nil {
 			if !apierrors.IsNotFound(err) {
 				return err
 			}
@@ -92,7 +98,7 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 				},
 			}
 
-			if err := s.client.Create(ctx, &eniConfig, &client.CreateOptions{}); err != nil {
+			if err := remoteClient.Create(ctx, &eniConfig, &client.CreateOptions{}); err != nil {
 				return err
 			}
 		}
@@ -103,14 +109,14 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 			SecurityGroups: sgs,
 		}
 
-		if err := s.client.Update(ctx, &eniConfig, &client.UpdateOptions{}); err != nil {
+		if err := remoteClient.Update(ctx, &eniConfig, &client.UpdateOptions{}); err != nil {
 			return err
 		}
 	}
 
 	// Removing any ENIConfig no longer needed
 	var eniConfigs amazoncni.ENIConfigList
-	err = s.client.List(ctx, &eniConfigs, &client.ListOptions{
+	err = remoteClient.List(ctx, &eniConfigs, &client.ListOptions{
 		Namespace:     metav1.NamespaceSystem,
 		LabelSelector: labels.SelectorFromSet(metaLabels),
 	})
@@ -129,7 +135,7 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 		if !matchFound {
 			oldEniConfig := eniConfig
 			s.scope.Info("Removing old ENIConfig", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace(), "eniConfig", oldEniConfig.Name)
-			if err := s.client.Delete(ctx, &oldEniConfig, &client.DeleteOptions{}); err != nil {
+			if err := remoteClient.Delete(ctx, &oldEniConfig, &client.DeleteOptions{}); err != nil {
 				return err
 			}
 		}
@@ -151,7 +157,7 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 		}
 	}
 
-	return s.client.Update(ctx, &ds, &client.UpdateOptions{})
+	return remoteClient.Update(ctx, &ds, &client.UpdateOptions{})
 }
 
 func (s *Service) getSecurityGroups() ([]string, error) {
@@ -182,11 +188,11 @@ func (s *Service) filterEnv(env []corev1.EnvVar) []corev1.EnvVar {
 	return env[:i]
 }
 
-func (s *Service) deleteCNI(ctx context.Context) error {
+func (s *Service) deleteCNI(ctx context.Context, remoteClient client.Client) error {
 	s.scope.Info("Ensuring aws-node DaemonSet in cluster is deleted", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
 
 	ds := &appsv1.DaemonSet{}
-	if err := s.client.Get(ctx, types.NamespacedName{Namespace: awsNodeNamespace, Name: awsNodeName}, ds); err != nil {
+	if err := remoteClient.Get(ctx, types.NamespacedName{Namespace: awsNodeNamespace, Name: awsNodeName}, ds); err != nil {
 		if apierrors.IsNotFound(err) {
 			s.scope.V(2).Info("The aws-node DaemonSet is not found, not action")
 			return nil
@@ -195,7 +201,7 @@ func (s *Service) deleteCNI(ctx context.Context) error {
 	}
 
 	s.scope.V(2).Info("The aws-node DaemonSet found, deleting")
-	if err := s.client.Delete(ctx, ds, &client.DeleteOptions{}); err != nil {
+	if err := remoteClient.Delete(ctx, ds, &client.DeleteOptions{}); err != nil {
 		if apierrors.IsNotFound(err) {
 			s.scope.V(2).Info("The aws-node DaemonSet is not found, not deleted")
 			return nil
