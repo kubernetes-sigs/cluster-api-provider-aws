@@ -105,8 +105,6 @@ CORE_NAMESPACE := capa-system
 # Allow overriding manifest generation destination directory
 MANIFEST_ROOT ?= config
 CRD_ROOT ?= $(MANIFEST_ROOT)/crd/bases
-CRD_DOCS_DIR := docs/book/src/crd
-CRD_DOCS := $(CRD_DOCS_DIR)/index.md
 WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/webhook
 RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 
@@ -238,10 +236,6 @@ modules: ## Runs go mod to ensure proper vendoring.
 .PHONY: generate
 generate: ## Generate code
 	$(MAKE) generate-go
-	$(MAKE) $(CRD_DOCS)
-
-$(CRD_DOCS_DIR)/%: $(API_SRCS)
-	$(MAKE) -C docs/book src/crd/$*
 
 .PHONY: generate-go
 generate-go: $(MOCKGEN)

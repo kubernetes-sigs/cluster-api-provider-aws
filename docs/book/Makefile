@@ -38,14 +38,9 @@ export PATH
 src/crd:
 	mkdir -p src/crd
 
-src/crd/index.md: $(API_FILTERED_SRCS) src/crd
-	$(MAKE) gen_crd_docs API_DIR="../.." OUT_FILE=$@
-
-.PHONY: gen_crd_docs
-gen_crd_docs: $(GENCRDAPIREFERENCEDOCS) src/crd $(GENCRDAPIREFERENCEDOCS_SRCS)
-	$(GENCRDAPIREFERENCEDOCS) -template-dir gen-crd-api-reference-docs/template -config "gen-crd-api-reference-docs/config.json" \
-		-api-dir $(API_DIR) \
-		-out-file $(OUT_FILE)
+.PHONY: src/crd/api.yaml
+src/crd/api.yaml:
+	go run ./cmd/crdstoopenapi --title "Cluster API AWS CRDs" --input-dirs ../../config/crd/bases > $@
 
 src/clusterawsadm:
 	mkdir -p src/clusterawsadm
@@ -79,7 +74,7 @@ verify: generate ## Verify that dependent artifacts are up to date
 		echo "generated files are out of date, run make generate"; exit 1; \
 	fi
 
-BOOK_DEPS := $(BOOK_SRCS) $(MDBOOK) $(MDBOOK_EMBED) $(MDBOOK_RELEASELINK) $(MDBOOK_TABULATE) release-policies src/SUMMARY.md src/crd/index.md
+BOOK_DEPS := $(BOOK_SRCS) $(MDBOOK) $(MDBOOK_EMBED) $(MDBOOK_RELEASELINK) $(MDBOOK_TABULATE) release-policies src/SUMMARY.md src/crd/api.yaml
 
 .PHONY: build
 build: $(BOOK_DEPS) ## Build the book
