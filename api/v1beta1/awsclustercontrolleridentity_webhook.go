@@ -87,10 +87,12 @@ func (r *AWSClusterControllerIdentity) ValidateUpdate(old runtime.Object) error 
 			r.Name, "AWSClusterControllerIdentity is a singleton and only acceptable name is default")
 	}
 
-	// Validate selector parses as Selector
-	_, err := metav1.LabelSelectorAsSelector(&r.Spec.AllowedNamespaces.Selector)
-	if err != nil {
-		return field.Invalid(field.NewPath("spec", "allowedNamespaces", "selectors"), r.Spec.AllowedNamespaces.Selector, err.Error())
+	// Validate selector parses as Selector if AllowedNameSpaces is not nil
+	if r.Spec.AllowedNamespaces != nil {
+		_, err := metav1.LabelSelectorAsSelector(&r.Spec.AllowedNamespaces.Selector)
+		if err != nil {
+			return field.Invalid(field.NewPath("spec", "allowedNamespaces", "selectors"), r.Spec.AllowedNamespaces.Selector, err.Error())
+		}
 	}
 
 	return nil
