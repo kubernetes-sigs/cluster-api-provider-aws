@@ -20,6 +20,8 @@ Note that there is no need to create an Elastic Load Balancer (ELB), security gr
 
 If you want to use existing security groups, these can be specified and new ones will not be created.
 
+If you want to use an existing control load load balancer, specify its name.
+
 ## Tagging AWS Resources
 
 Cluster API itself does tag AWS resources it creates. The `sigs.k8s.io/cluster-api-provider-aws/cluster/<cluster-name>` (where `<cluster-name>` matches the `metadata.name` field of the Cluster object) tag, with a value of `owned`, tells Cluster API that it has ownership of the resource. In this case, Cluster API will modify and manage the lifecycle of the resource.
@@ -127,6 +129,28 @@ spec:
     - sg-0200a3507a5ad2c5c8c3
     - ...
 ```
+
+## Control Plane Load Balancer
+
+The cluster control plane is accessed through a Classic ELB. By default, Cluster API creates the Classic ELB. To use an existing Classic ELB, add its name to the AWSCluster specification:
+
+```yaml
+spec:
+  controlPlaneLoadBalancer:
+    name: my-classic-elb-name
+```
+
+As control plane instances are added or removed, Cluster API will register and deregister them, respectively, with the Classic ELB.
+
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+Using an existing Classic ELB is an advanced feature. **If you use an existing Classic ELB, you must correctly configure it, and attach subnets to it.**
+
+An incorrectly configured Classic ELB can easily lead to a non-functional cluster. We strongly recommend you let Cluster API create the Classic ELB.
+
+</aside>
 
 ## Caveats/Notes
 
