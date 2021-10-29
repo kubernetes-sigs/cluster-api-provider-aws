@@ -186,6 +186,8 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		return ctrl.Result{}, err
 	}
 
+	//TODO get cluster, look to see if any services Cidrs have been specified and get ipv6 if there are any
+
 	log.Info("Generating userdata")
 
 	// generate userdata

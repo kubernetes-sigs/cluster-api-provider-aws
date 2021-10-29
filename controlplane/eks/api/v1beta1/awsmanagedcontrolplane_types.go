@@ -42,6 +42,10 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// NetworkSpec encapsulates all things related to AWS network.
 	NetworkSpec infrav1.NetworkSpec `json:"network,omitempty"`
 
+	// ClusterNetwork is used to specify Kubernetes cluster networking options.
+	// +optional
+	ClusterNetwork *ClusterNetwork `json:"clusterNetwork,omitempty"`
+
 	// SecondaryCidrBlock is the additional CIDR range to use for pod IPs.
 	// Must be within the 100.64.0.0/10 or 198.19.0.0/16 range.
 	// +optional

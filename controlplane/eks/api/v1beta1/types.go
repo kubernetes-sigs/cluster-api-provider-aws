@@ -22,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
@@ -276,4 +277,10 @@ type OIDCIdentityProviderConfig struct {
 	// tags to apply to oidc identity provider association
 	// +optional
 	Tags infrav1.Tags `json:"tags,omitempty"`
+}
+
+// ClusterNetwork represents options for the Kubernetes cluster network.
+type ClusterNetwork struct {
+	// ServiceCidrs is the CIDR blocks to assign Kubernetes service IP addresses from.
+	ServiceCidrs clusterv1.NetworkRanges
 }

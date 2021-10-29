@@ -22,6 +22,7 @@ import (
 	"net"
 	"time"
 
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/internal/cidr"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/internal/cmp"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -241,6 +242,25 @@ func makeEksEncryptionConfigs(encryptionConfig *ekscontrolplanev1.EncryptionConf
 	})
 }
 
+func makeKubernetesNetworkConfig(serviceCidrs *clusterv1.NetworkRanges) (*eks.KubernetesNetworkConfigRequest, error) {
+	if serviceCidrs == nil || len(serviceCidrs.CIDRBlocks) == 0 {
+		return nil, nil
+	}
+
+	ipv4cidrs, err := cidr.GetIPv4Cidrs(serviceCidrs.CIDRBlocks)
+	if err != nil {
+		return nil, fmt.Errorf("filtering service cidr blocks to IPv4: %w", err)
+	}
+
+	if len(ipv4cidrs) == 0 {
+		return nil, nil
+	}
+
+	return &eks.KubernetesNetworkConfigRequest{
+		ServiceIpv4Cidr: &ipv4cidrs[0],
+	}, nil
+}
+
 func makeVpcConfig(subnets infrav1.Subnets, endpointAccess ekscontrolplanev1.EndpointAccess, securityGroups map[infrav1.SecurityGroupRole]infrav1.SecurityGroup) (*eks.VpcConfigRequest, error) {
 	// TODO: Do we need to just add the private subnets?
 	if len(subnets) < 2 {
@@ -337,6 +357,10 @@ func (s *Service) createCluster(eksClusterName string) (*eks.Cluster, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't create vpc config for cluster")
 	}
+	netConfig, err := makeKubernetesNetworkConfig(s.scope.ServiceCidrs())
+	if err != nil {
+		return nil, errors.Wrap(err, "couldn't create kubernetes network config for cluster")
+	}
 
 	// Make sure to use the MachineScope here to get the merger of AWSCluster and AWSMachine tags
 	additionalTags := s.scope.AdditionalTags()
@@ -356,13 +380,14 @@ func (s *Service) createCluster(eksClusterName string) (*eks.Cluster, error) {
 
 	v := versionToEKS(parseEKSVersion(*s.scope.ControlPlane.Spec.Version))
 	input := &eks.CreateClusterInput{
-		Name:               aws.String(eksClusterName),
-		Version:            aws.String(v),
-		Logging:            logging,
-		EncryptionConfig:   encryptionConfigs,
-		ResourcesVpcConfig: vpcConfig,
-		RoleArn:            role.Arn,
-		Tags:               tags,
+		Name:                    aws.String(eksClusterName),
+		Version:                 aws.String(v),
+		Logging:                 logging,
+		EncryptionConfig:        encryptionConfigs,
+		ResourcesVpcConfig:      vpcConfig,
+		RoleArn:                 role.Arn,
+		Tags:                    tags,
+		KubernetesNetworkConfig: netConfig,
 	}
 
 	var out *eks.CreateClusterOutput

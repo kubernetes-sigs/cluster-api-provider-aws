@@ -26,11 +26,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/version"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
+	intcidr "sigs.k8s.io/cluster-api-provider-aws/pkg/internal/cidr"
 )
 
 const (
@@ -93,6 +95,7 @@ func (r *AWSManagedControlPlane) ValidateCreate() error {
 	allErrs = append(allErrs, r.validateSecondaryCIDR()...)
 	allErrs = append(allErrs, r.validateEKSAddons()...)
 	allErrs = append(allErrs, r.validateDisableVPCCNI()...)
+	allErrs = append(allErrs, r.validateServiceCidr()...)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -317,6 +320,38 @@ func (r *AWSManagedControlPlane) validateDisableVPCCNI() field.ErrorList {
 				}
 			}
 		}
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return allErrs
+}
+
+func (r *AWSManagedControlPlane) validateServiceCidr() field.ErrorList {
+	var allErrs field.ErrorList
+
+	cidrBlockField := field.NewPath("spec", "ClusterNetwork.ServiceCidrs.CIDRBlock")
+	if r.Spec.ClusterNetwork != nil {
+		numCidrs := len(r.Spec.ClusterNetwork.ServiceCidrs.CIDRBlocks)
+		if numCidrs == 0 {
+			return nil
+		}
+		//TODO (richardcase): this will need to be updated when we support ipv6 and dual-stack
+		if numCidrs > 1 {
+			allErrs = append(allErrs, field.Invalid(cidrBlockField, r.Spec.ClusterNetwork.ServiceCidrs.CIDRBlocks, "you cannot specify more than 1 services cidr block"))
+
+			return allErrs
+		}
+
+		ipv4Cidr, err := intcidr.GetIPv4Cidrs(r.Spec.ClusterNetwork.ServiceCidrs.CIDRBlocks)
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(cidrBlockField, r.Spec.ClusterNetwork.ServiceCidrs.CIDRBlocks, err))
+		}
+		if len(ipv4Cidr) == 0 {
+			allErrs = append(allErrs, field.Invalid(cidrBlockField, r.Spec.ClusterNetwork.ServiceCidrs.CIDRBlocks, "services cidr specified but done are ipv4"))
+		}
+
 	}
 
 	if len(allErrs) == 0 {
