@@ -132,3 +132,6 @@ spec:
 
 * When both public and private subnets are available in an AZ, CAPI will choose the private subnet in the AZ over the public subnet for placing EC2 instances.
 * If you configure CAPI to use existing infrastructure as outlined above, CAPI will _not_ create an SSH bastion host. Combined with the previous bullet, this means you must make sure you have established some form of connectivity to the instances that CAPI will create.
+
+Alternatively CAPA supports [externally managed cluster infrastructure](https://github.com/kubernetes-sigs/cluster-api/blob/10d89ceca938e4d3d94a1d1c2b60515bcdf39829/docs/proposals/20210203-externally-managed-cluster-infrastructure.md).
+If the `AWSCluster` resource includes a "cluster.x-k8s.io/managed-by" annotation then the [controller will skip any reconciliation](https://cluster-api.sigs.k8s.io/developer/providers/cluster-infrastructure.html#normal-resource).
