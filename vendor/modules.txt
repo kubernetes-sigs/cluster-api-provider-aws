@@ -3,7 +3,7 @@ cloud.google.com/go/compute/metadata
 # github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1
 github.com/Azure/go-ansiterm
 github.com/Azure/go-ansiterm/winterm
-# github.com/MakeNowJust/heredoc v1.0.0
+# github.com/MakeNowJust/heredoc v0.0.0-20170808103936-bb23615498cd
 github.com/MakeNowJust/heredoc
 # github.com/PuerkitoBio/purell v1.1.1
 github.com/PuerkitoBio/purell
@@ -206,27 +206,20 @@ github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
-# github.com/openshift/api v0.0.0-20210816181336-8ff39b776da3
+# github.com/openshift/api v0.0.0-20211028135425-c4970133b5ba
 ## explicit
 github.com/openshift/api/config/v1
-# github.com/openshift/client-go v0.0.0-20210730113412-1811c1b3fc0e
-github.com/openshift/client-go/config/clientset/versioned
-github.com/openshift/client-go/config/clientset/versioned/scheme
-github.com/openshift/client-go/config/clientset/versioned/typed/config/v1
-# github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20210615203611-a02074e8d5bb
-github.com/openshift/cluster-api-provider-gcp/pkg/apis/gcpprovider/v1beta1
-# github.com/openshift/machine-api-operator v0.2.1-0.20210820103535-d50698c302f5
+github.com/openshift/api/machine/v1beta1
+# github.com/openshift/client-go v0.0.0-20211025111749-96ca2abfc56c
+github.com/openshift/client-go/machine/clientset/versioned
+github.com/openshift/client-go/machine/clientset/versioned/scheme
+github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1beta1
+github.com/openshift/client-go/machine/informers/externalversions/internalinterfaces
+github.com/openshift/client-go/machine/informers/externalversions/machine/v1beta1
+github.com/openshift/client-go/machine/listers/machine/v1beta1
+# github.com/openshift/machine-api-operator v0.2.1-0.20211029132328-128c5c90918c
 ## explicit
-github.com/openshift/machine-api-operator/pkg/apis/machine
-github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1
-github.com/openshift/machine-api-operator/pkg/apis/vsphereprovider/v1beta1
 github.com/openshift/machine-api-operator/pkg/controller/machine
-github.com/openshift/machine-api-operator/pkg/generated/clientset/versioned
-github.com/openshift/machine-api-operator/pkg/generated/clientset/versioned/scheme
-github.com/openshift/machine-api-operator/pkg/generated/clientset/versioned/typed/machine/v1beta1
-github.com/openshift/machine-api-operator/pkg/generated/informers/externalversions/internalinterfaces
-github.com/openshift/machine-api-operator/pkg/generated/informers/externalversions/machine/v1beta1
-github.com/openshift/machine-api-operator/pkg/generated/listers/machine/v1beta1
 github.com/openshift/machine-api-operator/pkg/metrics
 github.com/openshift/machine-api-operator/pkg/util
 github.com/openshift/machine-api-operator/pkg/util/conditions
@@ -395,7 +388,7 @@ gopkg.in/tomb.v1
 gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 gopkg.in/yaml.v3
-# k8s.io/api v0.22.0
+# k8s.io/api v0.22.1
 ## explicit
 k8s.io/api/admission/v1
 k8s.io/api/admission/v1beta1
@@ -451,7 +444,7 @@ k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1
 k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1
-# k8s.io/apimachinery v0.22.0
+# k8s.io/apimachinery v0.22.1
 ## explicit
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/api/errors
@@ -462,7 +455,6 @@ k8s.io/apimachinery/pkg/apis/meta/internalversion/scheme
 k8s.io/apimachinery/pkg/apis/meta/v1
 k8s.io/apimachinery/pkg/apis/meta/v1/unstructured
 k8s.io/apimachinery/pkg/apis/meta/v1/unstructured/unstructuredscheme
-k8s.io/apimachinery/pkg/apis/meta/v1/validation
 k8s.io/apimachinery/pkg/apis/meta/v1beta1
 k8s.io/apimachinery/pkg/conversion
 k8s.io/apimachinery/pkg/conversion/queryparams
@@ -511,7 +503,7 @@ k8s.io/apimachinery/third_party/forked/golang/reflect
 k8s.io/cli-runtime/pkg/genericclioptions
 k8s.io/cli-runtime/pkg/printers
 k8s.io/cli-runtime/pkg/resource
-# k8s.io/client-go v0.22.0
+# k8s.io/client-go v0.22.1
 ## explicit
 k8s.io/client-go/applyconfigurations/admissionregistration/v1
 k8s.io/client-go/applyconfigurations/admissionregistration/v1beta1
@@ -678,8 +670,6 @@ k8s.io/utils/exec
 k8s.io/utils/integer
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# sigs.k8s.io/cluster-api-provider-azure v0.0.0-00010101000000-000000000000 => github.com/openshift/cluster-api-provider-azure v0.1.0-alpha.3.0.20210816141152-a7c40345b994
-sigs.k8s.io/cluster-api-provider-azure/pkg/apis/azureprovider/v1beta1
 # sigs.k8s.io/controller-runtime v0.9.6
 ## explicit
 sigs.k8s.io/controller-runtime
@@ -729,7 +719,7 @@ sigs.k8s.io/controller-runtime/pkg/webhook
 sigs.k8s.io/controller-runtime/pkg/webhook/admission
 sigs.k8s.io/controller-runtime/pkg/webhook/conversion
 sigs.k8s.io/controller-runtime/pkg/webhook/internal/metrics
-# sigs.k8s.io/controller-tools v0.6.2
+# sigs.k8s.io/controller-tools v0.6.3-0.20210916130746-94401651a6c3
 ## explicit
 sigs.k8s.io/controller-tools/cmd/controller-gen
 sigs.k8s.io/controller-tools/pkg/crd
@@ -828,7 +818,4 @@ sigs.k8s.io/structured-merge-diff/v4/schema
 sigs.k8s.io/structured-merge-diff/v4/typed
 sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.2.0
-## explicit
 sigs.k8s.io/yaml
-# sigs.k8s.io/cluster-api-provider-aws => github.com/openshift/cluster-api-provider-aws v0.2.1-0.20210622023641-c69a3acaee27
-# sigs.k8s.io/cluster-api-provider-azure => github.com/openshift/cluster-api-provider-azure v0.1.0-alpha.3.0.20210816141152-a7c40345b994

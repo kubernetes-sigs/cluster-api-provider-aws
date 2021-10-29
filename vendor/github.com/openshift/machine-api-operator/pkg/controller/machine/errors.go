@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	commonerrors "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
+	machinev1 "github.com/openshift/api/machine/v1beta1"
 )
 
 // A more descriptive kind of error that represents an error condition that
@@ -28,7 +28,7 @@ import (
 // enum-style constants meant to be interpreted by machines. The "Message"
 // field is meant to be read by humans.
 type MachineError struct {
-	Reason  commonerrors.MachineStatusError
+	Reason  machinev1.MachineStatusError
 	Message string
 }
 
@@ -42,28 +42,28 @@ func (e *MachineError) Error() string {
 
 func InvalidMachineConfiguration(msg string, args ...interface{}) *MachineError {
 	return &MachineError{
-		Reason:  commonerrors.InvalidConfigurationMachineError,
+		Reason:  machinev1.InvalidConfigurationMachineError,
 		Message: fmt.Sprintf(msg, args...),
 	}
 }
 
 func CreateMachine(msg string, args ...interface{}) *MachineError {
 	return &MachineError{
-		Reason:  commonerrors.CreateMachineError,
+		Reason:  machinev1.CreateMachineError,
 		Message: fmt.Sprintf(msg, args...),
 	}
 }
 
 func UpdateMachine(msg string, args ...interface{}) *MachineError {
 	return &MachineError{
-		Reason:  commonerrors.UpdateMachineError,
+		Reason:  machinev1.UpdateMachineError,
 		Message: fmt.Sprintf(msg, args...),
 	}
 }
 
 func DeleteMachine(msg string, args ...interface{}) *MachineError {
 	return &MachineError{
-		Reason:  commonerrors.DeleteMachineError,
+		Reason:  machinev1.DeleteMachineError,
 		Message: fmt.Sprintf(msg, args...),
 	}
 }

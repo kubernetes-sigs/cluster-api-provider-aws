@@ -21,18 +21,18 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
-	mapiv1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
+	machinev1 "github.com/openshift/api/machine/v1beta1"
 )
 
 // MatchConditions returns a custom matcher to check equality of mapiv1.Conditions
-func MatchConditions(expected mapiv1.Conditions) types.GomegaMatcher {
+func MatchConditions(expected machinev1.Conditions) types.GomegaMatcher {
 	return &matchConditions{
 		expected: expected,
 	}
 }
 
 type matchConditions struct {
-	expected mapiv1.Conditions
+	expected machinev1.Conditions
 }
 
 func (m matchConditions) Match(actual interface{}) (success bool, err error) {
@@ -53,18 +53,18 @@ func (m matchConditions) NegatedFailureMessage(actual interface{}) (message stri
 }
 
 // MatchCondition returns a custom matcher to check equality of mapiv1.Condition
-func MatchCondition(expected mapiv1.Condition) types.GomegaMatcher {
+func MatchCondition(expected machinev1.Condition) types.GomegaMatcher {
 	return &matchCondition{
 		expected: expected,
 	}
 }
 
 type matchCondition struct {
-	expected mapiv1.Condition
+	expected machinev1.Condition
 }
 
 func (m matchCondition) Match(actual interface{}) (success bool, err error) {
-	actualCondition, ok := actual.(mapiv1.Condition)
+	actualCondition, ok := actual.(machinev1.Condition)
 	if !ok {
 		return false, fmt.Errorf("actual should be of type Condition")
 	}
