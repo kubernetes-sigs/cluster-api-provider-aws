@@ -9,11 +9,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	configv1 "github.com/openshift/api/config/v1"
-	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
+	machinev1 "github.com/openshift/api/machine/v1beta1"
 	machinecontroller "github.com/openshift/machine-api-operator/pkg/controller/machine"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 )
 
@@ -41,35 +40,35 @@ runcmd:
 - [ cat, /root/node_bootstrap/node_settings.yaml]
 `
 
-func stubProviderConfig() *awsproviderv1.AWSMachineProviderConfig {
-	return &awsproviderv1.AWSMachineProviderConfig{
-		AMI: awsproviderv1.AWSResourceReference{
+func stubProviderConfig() *machinev1.AWSMachineProviderConfig {
+	return &machinev1.AWSMachineProviderConfig{
+		AMI: machinev1.AWSResourceReference{
 			ID: aws.String(stubAMIID),
 		},
 		CredentialsSecret: &corev1.LocalObjectReference{
 			Name: awsCredentialsSecretName,
 		},
 		InstanceType: "m4.xlarge",
-		Placement: awsproviderv1.Placement{
+		Placement: machinev1.Placement{
 			Region:           region,
 			AvailabilityZone: defaultAvailabilityZone,
 		},
-		Subnet: awsproviderv1.AWSResourceReference{
+		Subnet: machinev1.AWSResourceReference{
 			ID: aws.String("subnet-0e56b13a64ff8a941"),
 		},
-		IAMInstanceProfile: &awsproviderv1.AWSResourceReference{
+		IAMInstanceProfile: &machinev1.AWSResourceReference{
 			ID: aws.String("openshift_master_launch_instances"),
 		},
 		KeyName: aws.String(keyName),
 		UserDataSecret: &corev1.LocalObjectReference{
 			Name: userDataSecretName,
 		},
-		Tags: []awsproviderv1.TagSpecification{
+		Tags: []machinev1.TagSpecification{
 			{Name: "openshift-node-group-config", Value: "node-config-master"},
 			{Name: "host-type", Value: "master"},
 			{Name: "sub-host-type", Value: "default"},
 		},
-		SecurityGroups: []awsproviderv1.AWSResourceReference{
+		SecurityGroups: []machinev1.AWSResourceReference{
 			{ID: aws.String("sg-00868b02fbe29de17")},
 			{ID: aws.String("sg-0a4658991dc5eb40a")},
 			{ID: aws.String("sg-009a70e28fa4ba84e")},
@@ -77,22 +76,22 @@ func stubProviderConfig() *awsproviderv1.AWSMachineProviderConfig {
 			{ID: aws.String("sg-08b1ffd32874d59a2")},
 		},
 		PublicIP: aws.Bool(true),
-		LoadBalancers: []awsproviderv1.LoadBalancerReference{
+		LoadBalancers: []machinev1.LoadBalancerReference{
 			{
 				Name: "cluster-con",
-				Type: awsproviderv1.ClassicLoadBalancerType,
+				Type: machinev1.ClassicLoadBalancerType,
 			},
 			{
 				Name: "cluster-ext",
-				Type: awsproviderv1.ClassicLoadBalancerType,
+				Type: machinev1.ClassicLoadBalancerType,
 			},
 			{
 				Name: "cluster-int",
-				Type: awsproviderv1.ClassicLoadBalancerType,
+				Type: machinev1.ClassicLoadBalancerType,
 			},
 			{
 				Name: "cluster-net-lb",
-				Type: awsproviderv1.NetworkLoadBalancerType,
+				Type: machinev1.NetworkLoadBalancerType,
 			},
 		},
 	}
@@ -101,7 +100,7 @@ func stubProviderConfig() *awsproviderv1.AWSMachineProviderConfig {
 func stubMachine() (*machinev1.Machine, error) {
 	machinePc := stubProviderConfig()
 
-	providerSpec, err := awsproviderv1.RawExtensionFromProviderSpec(machinePc)
+	providerSpec, err := RawExtensionFromProviderSpec(machinePc)
 	if err != nil {
 		return nil, fmt.Errorf("codec.EncodeProviderSpec failed: %v", err)
 	}
@@ -203,31 +202,31 @@ func stubInstance(imageID, instanceID string, setIP bool) *ec2.Instance {
 	}
 }
 
-func stubPCSecurityGroups(groups []awsproviderv1.AWSResourceReference) *awsproviderv1.AWSMachineProviderConfig {
+func stubPCSecurityGroups(groups []machinev1.AWSResourceReference) *machinev1.AWSMachineProviderConfig {
 	pc := stubProviderConfig()
 	pc.SecurityGroups = groups
 	return pc
 }
 
-func stubPCSubnet(subnet awsproviderv1.AWSResourceReference) *awsproviderv1.AWSMachineProviderConfig {
+func stubPCSubnet(subnet machinev1.AWSResourceReference) *machinev1.AWSMachineProviderConfig {
 	pc := stubProviderConfig()
 	pc.Subnet = subnet
 	return pc
 }
 
-func stubPCAMI(ami awsproviderv1.AWSResourceReference) *awsproviderv1.AWSMachineProviderConfig {
+func stubPCAMI(ami machinev1.AWSResourceReference) *machinev1.AWSMachineProviderConfig {
 	pc := stubProviderConfig()
 	pc.AMI = ami
 	return pc
 }
 
-func stubDedicatedInstanceTenancy() *awsproviderv1.AWSMachineProviderConfig {
+func stubDedicatedInstanceTenancy() *machinev1.AWSMachineProviderConfig {
 	pc := stubProviderConfig()
-	pc.Placement.Tenancy = awsproviderv1.DedicatedTenancy
+	pc.Placement.Tenancy = machinev1.DedicatedTenancy
 	return pc
 }
 
-func stubInvalidInstanceTenancy() *awsproviderv1.AWSMachineProviderConfig {
+func stubInvalidInstanceTenancy() *machinev1.AWSMachineProviderConfig {
 	pc := stubProviderConfig()
 	pc.Placement.Tenancy = "invalid"
 	return pc

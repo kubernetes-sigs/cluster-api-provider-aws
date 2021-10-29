@@ -11,12 +11,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
-	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
+	machinev1 "github.com/openshift/api/machine/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/client/mock"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,8 +26,8 @@ import (
 
 const testNamespace = "aws-test"
 
-func machineWithSpec(spec *awsproviderv1.AWSMachineProviderConfig) *machinev1.Machine {
-	rawSpec, err := awsproviderv1.RawExtensionFromProviderSpec(spec)
+func machineWithSpec(spec *machinev1.AWSMachineProviderConfig) *machinev1.Machine {
+	rawSpec, err := RawExtensionFromProviderSpec(spec)
 	if err != nil {
 		panic("Failed to encode raw extension from provider spec")
 	}
@@ -49,7 +48,7 @@ func machineWithSpec(spec *awsproviderv1.AWSMachineProviderConfig) *machinev1.Ma
 func TestGetUserData(t *testing.T) {
 	userDataSecretName := "aws-ignition"
 
-	defaultProviderSpec := &awsproviderv1.AWSMachineProviderConfig{
+	defaultProviderSpec := &machinev1.AWSMachineProviderConfig{
 		UserDataSecret: &corev1.LocalObjectReference{
 			Name: userDataSecretName,
 		},
@@ -58,7 +57,7 @@ func TestGetUserData(t *testing.T) {
 	testCases := []struct {
 		testCase         string
 		userDataSecret   *corev1.Secret
-		providerSpec     *awsproviderv1.AWSMachineProviderConfig
+		providerSpec     *machinev1.AWSMachineProviderConfig
 		expectedUserdata []byte
 		expectError      bool
 	}{
@@ -107,7 +106,7 @@ func TestGetUserData(t *testing.T) {
 		{
 			testCase:         "no user-data in provider spec",
 			userDataSecret:   nil,
-			providerSpec:     &awsproviderv1.AWSMachineProviderConfig{},
+			providerSpec:     &machinev1.AWSMachineProviderConfig{},
 			expectError:      false,
 			expectedUserdata: nil,
 		},
@@ -177,7 +176,7 @@ func TestPatchMachine(t *testing.T) {
 
 	failedPhase := "Failed"
 
-	providerStatus := &awsproviderv1.AWSMachineProviderStatus{}
+	providerStatus := &machinev1.AWSMachineProviderStatus{}
 
 	testCases := []struct {
 		name   string
@@ -217,7 +216,7 @@ func TestPatchMachine(t *testing.T) {
 				providerStatus.InstanceState = &instanceState
 			},
 			expect: func(m *machinev1.Machine) error {
-				providerStatus, err := awsproviderv1.ProviderStatusFromRawExtension(m.Status.ProviderStatus)
+				providerStatus, err := ProviderStatusFromRawExtension(m.Status.ProviderStatus)
 				if err != nil {
 					return fmt.Errorf("unable to get provider status: %v", err)
 				}

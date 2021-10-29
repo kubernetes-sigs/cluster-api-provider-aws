@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	configv1 "github.com/openshift/api/config/v1"
+	machinev1 "github.com/openshift/api/machine/v1beta1"
 	machinecontroller "github.com/openshift/machine-api-operator/pkg/controller/machine"
 	"github.com/openshift/machine-api-operator/pkg/metrics"
 	corev1 "k8s.io/api/core/v1"
@@ -15,8 +16,6 @@ import (
 	"k8s.io/klog/v2"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 )
 
 const (
@@ -303,9 +302,9 @@ func (r *Reconciler) updateLoadBalancers(instance *ec2.Instance) error {
 	networkLoadBalancerNames := []string{}
 	for _, loadBalancerRef := range r.providerSpec.LoadBalancers {
 		switch loadBalancerRef.Type {
-		case awsproviderv1.NetworkLoadBalancerType:
+		case machinev1.NetworkLoadBalancerType:
 			networkLoadBalancerNames = append(networkLoadBalancerNames, loadBalancerRef.Name)
-		case awsproviderv1.ClassicLoadBalancerType:
+		case machinev1.ClassicLoadBalancerType:
 			classicLoadBalancerNames = append(classicLoadBalancerNames, loadBalancerRef.Name)
 		}
 	}
@@ -339,7 +338,7 @@ func (r *Reconciler) removeFromLoadBalancers(instances []*ec2.Instance) error {
 	}
 	networkLoadBalancerNames := []string{}
 	for _, loadBalancerRef := range r.providerSpec.LoadBalancers {
-		if loadBalancerRef.Type == awsproviderv1.NetworkLoadBalancerType {
+		if loadBalancerRef.Type == machinev1.NetworkLoadBalancerType {
 			networkLoadBalancerNames = append(networkLoadBalancerNames, loadBalancerRef.Name)
 		}
 	}
@@ -400,7 +399,7 @@ func (r *Reconciler) setMachineCloudProviderSpecifics(instance *ec2.Instance) er
 
 	// Reaching to machine provider config since the region is not directly
 	// providing by *ec2.Instance object
-	machineProviderConfig, err := awsproviderv1.ProviderSpecFromRawExtension(r.machine.Spec.ProviderSpec.Value)
+	machineProviderConfig, err := ProviderSpecFromRawExtension(r.machine.Spec.ProviderSpec.Value)
 	if err != nil {
 		return fmt.Errorf("error decoding MachineProviderConfig: %w", err)
 	}

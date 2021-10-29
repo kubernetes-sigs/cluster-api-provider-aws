@@ -6,11 +6,10 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
-	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
+	machinev1 "github.com/openshift/api/machine/v1beta1"
 	machineapierros "github.com/openshift/machine-api-operator/pkg/controller/machine"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
-	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -45,17 +44,17 @@ type machineScope struct {
 	// machine resource
 	machine            *machinev1.Machine
 	machineToBePatched runtimeclient.Patch
-	providerSpec       *awsproviderv1.AWSMachineProviderConfig
-	providerStatus     *awsproviderv1.AWSMachineProviderStatus
+	providerSpec       *machinev1.AWSMachineProviderConfig
+	providerStatus     *machinev1.AWSMachineProviderStatus
 }
 
 func newMachineScope(params machineScopeParams) (*machineScope, error) {
-	providerSpec, err := awsproviderv1.ProviderSpecFromRawExtension(params.machine.Spec.ProviderSpec.Value)
+	providerSpec, err := ProviderSpecFromRawExtension(params.machine.Spec.ProviderSpec.Value)
 	if err != nil {
 		return nil, machineapierros.InvalidMachineConfiguration("failed to get machine config: %v", err)
 	}
 
-	providerStatus, err := awsproviderv1.ProviderStatusFromRawExtension(params.machine.Status.ProviderStatus)
+	providerStatus, err := ProviderStatusFromRawExtension(params.machine.Status.ProviderStatus)
 	if err != nil {
 		return nil, machineapierros.InvalidMachineConfiguration("failed to get machine provider status: %v", err.Error())
 	}
@@ -85,7 +84,7 @@ func newMachineScope(params machineScopeParams) (*machineScope, error) {
 func (s *machineScope) patchMachine() error {
 	klog.V(3).Infof("%v: patching machine", s.machine.GetName())
 
-	providerStatus, err := awsproviderv1.RawExtensionFromProviderStatus(s.providerStatus)
+	providerStatus, err := RawExtensionFromProviderStatus(s.providerStatus)
 	if err != nil {
 		return machineapierros.InvalidMachineConfiguration("failed to get machine provider status: %v", err.Error())
 	}
@@ -136,7 +135,7 @@ func (s *machineScope) getUserData() ([]byte, error) {
 	return userData, nil
 }
 
-func (s *machineScope) setProviderStatus(instance *ec2.Instance, condition awsproviderv1.AWSMachineProviderCondition) error {
+func (s *machineScope) setProviderStatus(instance *ec2.Instance, condition machinev1.AWSMachineProviderCondition) error {
 	klog.Infof("%s: Updating status", s.machine.Name)
 
 	networkAddresses := []corev1.NodeAddress{}
