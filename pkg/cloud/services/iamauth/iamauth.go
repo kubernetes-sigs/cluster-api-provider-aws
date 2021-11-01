@@ -25,11 +25,15 @@ import (
 const (
 	// EC2NodeUserName is the username required for EC2 nodes.
 	EC2NodeUserName = "system:node:{{EC2PrivateDNSName}}"
+	// ControllersUserName is the username used for access from controllers.
+	ControllersUserName = "system:capa:controllers"
 )
 
 var (
 	// NodeGroups is the groups that are required for a node.
 	NodeGroups = []string{"system:bootstrappers", "system:nodes"}
+	// ControllersGroups is the groups that are required for access from controllers.
+	ControllersGroups = []string{"system:masters"}
 )
 
 // AuthenticatorBackend is the interface that represents an aws-iam-authenticator backend.

@@ -48,9 +48,9 @@ func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
 		return fmt.Errorf("getting aws-iam-authenticator backend: %w", err)
 	}
 
-	roleARN := fmt.Sprintf("arn:aws:iam::%s:role/nodes%s", accountID, iamv1.DefaultNameSuffix)
+	nodesRoleARN := fmt.Sprintf("arn:aws:iam::%s:role/nodes%s", accountID, iamv1.DefaultNameSuffix)
 	nodesRoleMapping := ekscontrolplanev1.RoleMapping{
-		RoleARN: roleARN,
+		RoleARN: nodesRoleARN,
 		KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 			UserName: EC2NodeUserName,
 			Groups:   NodeGroups,
@@ -59,6 +59,19 @@ func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
 	s.scope.V(2).Info("Mapping node IAM role", "iam-role", nodesRoleMapping.RoleARN, "user", nodesRoleMapping.UserName)
 	if err := authBackend.MapRole(nodesRoleMapping); err != nil {
 		return fmt.Errorf("mapping iam node role: %w", err)
+	}
+
+	controllersRoleARN := fmt.Sprintf("arn:aws:iam::%s:role/controllers%s", accountID, iamv1.DefaultNameSuffix)
+	controllersRoleMapping := ekscontrolplanev1.RoleMapping{
+		RoleARN: controllersRoleARN,
+		KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+			UserName: ControllersUserName,
+			Groups:   ControllersGroups,
+		},
+	}
+	s.scope.V(2).Info("Mapping controllers IAM role", "iam-role", controllersRoleMapping.RoleARN, "user", controllersRoleMapping.UserName)
+	if err := authBackend.MapRole(controllersRoleMapping); err != nil {
+		return fmt.Errorf("mapping iam controllers role: %w", err)
 	}
 
 	s.scope.V(2).Info("Mapping additional IAM roles and users")
