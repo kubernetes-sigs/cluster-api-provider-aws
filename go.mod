@@ -2,7 +2,7 @@ module sigs.k8s.io/cluster-api-provider-aws
 
 go 1.16
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.0.0
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.0.1-0.20211028151834-d72fd59c8483
 
 // Versions to be held for v1beta1
 // sigs.k8s.io/controller-runtime on v0.10.x
@@ -64,8 +64,8 @@ require (
 	k8s.io/kube-openapi v0.0.0-20210929172449-94abcedd1aa4 // indirect
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
 	sigs.k8s.io/aws-iam-authenticator v0.5.3
-	sigs.k8s.io/cluster-api v1.0.0
-	sigs.k8s.io/cluster-api/test v1.0.0
-	sigs.k8s.io/controller-runtime v0.10.2
+	sigs.k8s.io/cluster-api v1.0.1-0.20211028151834-d72fd59c8483
+	sigs.k8s.io/cluster-api/test v1.0.1-0.20211028151834-d72fd59c8483
+	sigs.k8s.io/controller-runtime v0.10.3-0.20211011182302-43ea648ec318
 	sigs.k8s.io/yaml v1.3.0
 )
