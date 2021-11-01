@@ -20,6 +20,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -432,6 +433,44 @@ func (s *IAMService) CreateOIDCProvider(cluster *eks.Cluster) (string, error) {
 		return "", errors.Wrap(err, "error creating provider")
 	}
 	return *provider.OpenIDConnectProviderArn, nil
+}
+
+// FindAndVerifyOIDCProvider will try to find an OIDC provider. It will return an error if the found provider does not
+// match the cluster spec.
+func (s *IAMService) FindAndVerifyOIDCProvider(cluster *eks.Cluster) (string, error) {
+	issuerURL, err := url.Parse(*cluster.Identity.Oidc.Issuer)
+	if err != nil {
+		return "", err
+	}
+	if issuerURL.Scheme != "https" {
+		return "", errors.Errorf("invalid scheme for issuer URL %s", issuerURL.String())
+	}
+
+	thumbprint, err := fetchRootCAThumbprint(issuerURL.String())
+	if err != nil {
+		return "", err
+	}
+	output, err := s.IAMClient.ListOpenIDConnectProviders(&iam.ListOpenIDConnectProvidersInput{})
+	if err != nil {
+		return "", errors.Wrap(err, "error listing providers")
+	}
+	for _, r := range output.OpenIDConnectProviderList {
+		provider, err := s.IAMClient.GetOpenIDConnectProvider(&iam.GetOpenIDConnectProviderInput{OpenIDConnectProviderArn: r.Arn})
+		if err != nil {
+			return "", errors.Wrap(err, "error getting provider")
+		}
+		if fmt.Sprintf("https://%s", *provider.Url) != issuerURL.String() {
+			continue
+		}
+		if len(provider.ThumbprintList) != 1 || *provider.ThumbprintList[0] != thumbprint {
+			return "", errors.Wrap(err, "found provider with matching issuerURL but with non-matching thumbprint")
+		}
+		if len(provider.ClientIDList) != 1 || *provider.ClientIDList[0] != stsAWSAudience {
+			return "", errors.Wrap(err, "found provider with matching issuerURL but with non-matching clientID")
+		}
+		return *r.Arn, nil
+	}
+	return "", nil
 }
 
 func fetchRootCAThumbprint(issuerURL string) (string, error) {
