@@ -115,7 +115,6 @@ func (r *AWSClusterControllerIdentityList) ConvertFrom(srcRaw conversion.Hub) er
 	return Convert_v1beta1_AWSClusterControllerIdentityList_To_v1alpha3_AWSClusterControllerIdentityList(src, r, nil)
 }
 
-
 // Convert_v1alpha3_AWSClusterStaticIdentitySpec_To_v1beta1_AWSClusterStaticIdentitySpec .
 func Convert_v1alpha3_AWSClusterStaticIdentitySpec_To_v1beta1_AWSClusterStaticIdentitySpec(in *AWSClusterStaticIdentitySpec, out *infrav1.AWSClusterStaticIdentitySpec, s apiconversion.Scope) error {
 	return autoConvert_v1alpha3_AWSClusterStaticIdentitySpec_To_v1beta1_AWSClusterStaticIdentitySpec(in, out, s)

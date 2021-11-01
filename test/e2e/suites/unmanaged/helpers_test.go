@@ -21,9 +21,9 @@ package unmanaged
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
+	"io"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -679,7 +679,7 @@ func LatestCIReleaseForVersion(searchVersion string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}

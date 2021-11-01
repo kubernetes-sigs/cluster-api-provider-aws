@@ -19,8 +19,8 @@ package helpers
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"path"
 	"path/filepath"
 	goruntime "runtime"
@@ -215,7 +215,7 @@ func (t *TestEnvironmentConfiguration) Build() (*TestEnvironment, error) {
 func buildModifiedWebhook(tag string, relativeFilePath string) (admissionv1.MutatingWebhookConfiguration, admissionv1.ValidatingWebhookConfiguration, error) {
 	var mutatingWebhook admissionv1.MutatingWebhookConfiguration
 	var validatingWebhook admissionv1.ValidatingWebhookConfiguration
-	data, err := ioutil.ReadFile(filepath.Clean(filepath.Join(root, relativeFilePath)))
+	data, err := os.ReadFile(filepath.Clean(filepath.Join(root, relativeFilePath)))
 	if err != nil {
 		return mutatingWebhook, validatingWebhook, errors.Wrap(err, "failed to read webhook configuration file")
 	}

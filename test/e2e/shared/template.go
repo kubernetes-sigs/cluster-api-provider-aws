@@ -20,7 +20,7 @@ package shared
 
 import (
 	"context"
-	"io/ioutil"
+	"os"
 	"path"
 
 	"github.com/awslabs/goformation/v4/cloudformation"
@@ -106,11 +106,11 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 	t.Spec.EKS.ManagedMachinePool.Disable = false
 	str, err := yaml.Marshal(t.Spec)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(ioutil.WriteFile(path.Join(e2eCtx.Settings.ArtifactFolder, "awsiamconfiguration.yaml"), str, 0644)).To(Succeed())
+	Expect(os.WriteFile(path.Join(e2eCtx.Settings.ArtifactFolder, "awsiamconfiguration.yaml"), str, 0644)).To(Succeed())
 	cloudformationTemplate := renderCustomCloudFormation(&t)
 	cfnData, err := cloudformationTemplate.YAML()
 	Expect(err).NotTo(HaveOccurred())
-	Expect(ioutil.WriteFile(path.Join(e2eCtx.Settings.ArtifactFolder, "cloudformation.yaml"), cfnData, 0644)).To(Succeed())
+	Expect(os.WriteFile(path.Join(e2eCtx.Settings.ArtifactFolder, "cloudformation.yaml"), cfnData, 0644)).To(Succeed())
 	return &t
 }
 
