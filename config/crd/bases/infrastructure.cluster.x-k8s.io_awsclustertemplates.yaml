@@ -470,6 +470,16 @@ spec:
                               registered instances in its Availability Zone only.
                               \n Defaults to false."
                             type: boolean
+                          name:
+                            description: Name sets the name of the classic ELB load
+                              balancer. As per AWS, the name must be unique within
+                              your set of load balancers for the region, must have
+                              a maximum of 32 characters, must contain only alphanumeric
+                              characters or hyphens, and cannot begin or end with
+                              a hyphen. Once set, the value cannot be changed.
+                            maxLength: 32
+                            pattern: ^[A-Za-z0-9]([A-Za-z0-9]{0,31}|[-A-Za-z0-9]{0,30}[A-Za-z0-9])$
+                            type: string
                           scheme:
                             default: internet-facing
                             description: Scheme sets the scheme of the load balancer

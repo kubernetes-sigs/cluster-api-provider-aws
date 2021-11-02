@@ -29,14 +29,45 @@ import (
 func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.AWSCluster)
 
-	return Convert_v1alpha4_AWSCluster_To_v1beta1_AWSCluster(src, dst, nil)
+	if err := Convert_v1alpha4_AWSCluster_To_v1beta1_AWSCluster(src, dst, nil); err != nil {
+		return err
+	}
+	// Manually restore data.
+	restored := &infrav1.AWSCluster{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	if restored.Spec.ControlPlaneLoadBalancer != nil {
+		if dst.Spec.ControlPlaneLoadBalancer == nil {
+			dst.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{}
+		}
+		restoreControlPlaneLoadBalancer(restored.Spec.ControlPlaneLoadBalancer, dst.Spec.ControlPlaneLoadBalancer)
+	}
+
+	return nil
+}
+
+// restoreControlPlaneLoadBalancer manually restores the control plane loadbalancer data.
+// Assumes restored and dst are non-nil.
+func restoreControlPlaneLoadBalancer(restored, dst *infrav1.AWSLoadBalancerSpec) {
+	dst.Name = restored.Name
 }
 
 // ConvertFrom converts the v1beta1 AWSCluster receiver to a v1alpha4 AWSCluster.
 func (r *AWSCluster) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.AWSCluster)
 
-	return Convert_v1beta1_AWSCluster_To_v1alpha4_AWSCluster(src, r, nil)
+	if err := Convert_v1beta1_AWSCluster_To_v1alpha4_AWSCluster(src, r, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion.
+	if err := utilconversion.MarshalData(src, r); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ConvertTo converts the v1alpha3 AWSCluster receiver to a v1beta1 AWSCluster.
@@ -100,4 +131,8 @@ func (r *AWSClusterList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.AWSClusterList)
 
 	return Convert_v1beta1_AWSClusterList_To_v1alpha4_AWSClusterList(src, r, nil)
+}
+
+func Convert_v1beta1_AWSLoadBalancerSpec_To_v1alpha4_AWSLoadBalancerSpec(in *infrav1.AWSLoadBalancerSpec, out *AWSLoadBalancerSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_AWSLoadBalancerSpec_To_v1alpha4_AWSLoadBalancerSpec(in, out, s)
 }

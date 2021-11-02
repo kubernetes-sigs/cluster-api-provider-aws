@@ -146,6 +146,15 @@ type Bastion struct {
 
 // AWSLoadBalancerSpec defines the desired state of an AWS load balancer.
 type AWSLoadBalancerSpec struct {
+	// Name sets the name of the classic ELB load balancer. As per AWS, the name must be unique
+	// within your set of load balancers for the region, must have a maximum of 32 characters, must
+	// contain only alphanumeric characters or hyphens, and cannot begin or end with a hyphen. Once
+	// set, the value cannot be changed.
+	// +kubebuilder:validation:MaxLength:=32
+	// +kubebuilder:validation:Pattern=`^[A-Za-z0-9]([A-Za-z0-9]{0,31}|[-A-Za-z0-9]{0,30}[A-Za-z0-9])$`
+	// +optional
+	Name *string `json:"name,omitempty"`
+
 	// Scheme sets the scheme of the load balancer (defaults to internet-facing)
 	// +kubebuilder:default=internet-facing
 	// +kubebuilder:validation:Enum=internet-facing;internal

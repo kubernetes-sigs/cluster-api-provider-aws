@@ -102,6 +102,16 @@ type ClassicELB struct {
 	Tags map[string]string `json:"tags,omitempty"`
 }
 
+// IsUnmanaged returns true if the Classic ELB is unmanaged.
+func (b *ClassicELB) IsUnmanaged(clusterName string) bool {
+	return b.Name != "" && !Tags(b.Tags).HasOwned(clusterName)
+}
+
+// IsManaged returns true if Classic ELB is managed.
+func (b *ClassicELB) IsManaged(clusterName string) bool {
+	return !b.IsUnmanaged(clusterName)
+}
+
 // ClassicELBAttributes defines extra attributes associated with a classic load balancer.
 type ClassicELBAttributes struct {
 	// IdleTimeout is time that the connection is allowed to be idle (no data
