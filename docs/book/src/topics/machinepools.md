@@ -13,8 +13,7 @@ The AWSMachinePool controller creates and manages an AWS AutoScaling Group using
 
 ### Using `clusterctl` to deploy
 
-To deploy a MachinePool / AWSMachinePool via `clusterctl generate` there's a [flavor](https://cluster-api.sigs.k8s.io/clusterctl/commands/config-cluster.html#flavors)
-for that.
+To deploy a MachinePool / AWSMachinePool via `clusterctl generate` there's a [flavor](https://cluster-api.sigs.k8s.io/clusterctl/commands/generate-cluster.html#flavors) for that.
 
 Make sure to set up your AWS environment as described [here](https://cluster-api.sigs.k8s.io/user/quick-start.html).
 
@@ -24,8 +23,7 @@ clusterctl init --infrastructure aws
 clusterctl generate cluster my-cluster --kubernetes-version v1.16.8 --flavor machinepool > my-cluster.yaml
 ```
 
-The template used for this [flavor](https://cluster-api.sigs.k8s.io/clusterctl/commands/config-cluster.html#flavors)
-is located [here](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/templates/cluster-template-machinepool.yaml).
+The template used for this [flavor](https://cluster-api.sigs.k8s.io/clusterctl/commands/generate-cluster.html#flavors) is located [here](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/templates/cluster-template-machinepool.yaml).
 
 ## AWSManagedMachinePool
 
@@ -37,7 +35,7 @@ To use the managed machine pools certain IAM permissions are needed. The easiest
 
 ### Using `clusterctl` to deploy
 
-To deploy an EKS managed node group using AWSManagedMachinePool via `clusterctl generate` you can use a [flavor](https://cluster-api.sigs.k8s.io/clusterctl/commands/config-cluster.html#flavors).
+To deploy an EKS managed node group using AWSManagedMachinePool via `clusterctl generate` you can use a [flavor](https://cluster-api.sigs.k8s.io/clusterctl/commands/generate-cluster.html#flavors).
 
 Make sure to set up your AWS environment as described [here](https://cluster-api.sigs.k8s.io/user/quick-start.html).
 
@@ -47,8 +45,7 @@ clusterctl init --infrastructure aws
 clusterctl generate cluster my-cluster --kubernetes-version v1.16.8 --flavor eks-managedmachinepool > my-cluster.yaml
 ```
 
-The template used for this [flavor](https://cluster-api.sigs.k8s.io/clusterctl/commands/config-cluster.html#flavors)
-is located [here](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/templates/cluster-template-eks-managedmachinepool.yaml).
+The template used for this [flavor](https://cluster-api.sigs.k8s.io/clusterctl/commands/generate-cluster.html#flavors) is located [here](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/templates/cluster-template-eks-managedmachinepool.yaml).
 
 
 
