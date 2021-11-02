@@ -2,7 +2,7 @@ module sigs.k8s.io/cluster-api-provider-aws
 
 go 1.16
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.4.1
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.4.3
 
 require (
 	github.com/apparentlymart/go-cidr v1.1.0
@@ -18,7 +18,7 @@ require (
 	github.com/google/gofuzz v1.2.0
 	github.com/google/goterm v0.0.0-20200907032337-555d40f16ae2 // indirect
 	github.com/onsi/ginkgo v1.16.4
-	github.com/onsi/gomega v1.14.0
+	github.com/onsi/gomega v1.15.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0
 	github.com/sergi/go-diff v1.2.0
@@ -36,8 +36,8 @@ require (
 	k8s.io/klog/v2 v2.10.0
 	k8s.io/utils v0.0.0-20210802155522-efc7438f0176
 	sigs.k8s.io/aws-iam-authenticator v0.5.3
-	sigs.k8s.io/cluster-api v0.4.1
-	sigs.k8s.io/cluster-api/test v0.4.1
-	sigs.k8s.io/controller-runtime v0.9.6
+	sigs.k8s.io/cluster-api v0.4.3
+	sigs.k8s.io/cluster-api/test v0.4.3
+	sigs.k8s.io/controller-runtime v0.9.7
 	sigs.k8s.io/yaml v1.2.0
 )

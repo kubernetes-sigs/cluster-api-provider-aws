@@ -54,7 +54,7 @@ func TestEKSConfigReconciler(t *testing.T) {
 			Client: testEnv.Client,
 		}
 		t.Log(fmt.Sprintf("Calling reconcile on cluster '%s' and config '%s' should requeue", cluster.Name, config.Name))
-		g.Eventually(func() {
+		g.Eventually(func(g Gomega) {
 			result, err := reconciler.joinWorker(ctx, cluster, config)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(result.Requeue).To(BeFalse())
@@ -65,7 +65,7 @@ func TestEKSConfigReconciler(t *testing.T) {
 		testEnv.Client.List(ctx, secretList)
 		t.Log(dump("secrets", secretList))
 		secret := &corev1.Secret{}
-		g.Eventually(func() {
+		g.Eventually(func(g Gomega) {
 			g.Expect(testEnv.Client.Get(ctx, client.ObjectKey{
 				Name:      config.Name,
 				Namespace: "default",
@@ -99,7 +99,7 @@ func TestEKSConfigReconciler(t *testing.T) {
 			Client: testEnv.Client,
 		}
 		t.Log(fmt.Sprintf("Calling reconcile on cluster '%s' and config '%s' should requeue", cluster.Name, config.Name))
-		g.Eventually(func() {
+		g.Eventually(func(g Gomega) {
 			result, err := reconciler.joinWorker(ctx, cluster, config)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(result.Requeue).To(BeFalse())
@@ -111,7 +111,7 @@ func TestEKSConfigReconciler(t *testing.T) {
 		t.Log(dump("secrets", secretList))
 
 		secret := &corev1.Secret{}
-		g.Eventually(func() {
+		g.Eventually(func(g Gomega) {
 			g.Expect(testEnv.Client.Get(ctx, client.ObjectKey{
 				Name:      config.Name,
 				Namespace: "default",
@@ -124,7 +124,7 @@ func TestEKSConfigReconciler(t *testing.T) {
 			"test-arg": "updated-test-value",
 		}
 		t.Log(dump("config", config))
-		g.Eventually(func() {
+		g.Eventually(func(g Gomega) {
 			result, err := reconciler.joinWorker(ctx, cluster, config)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(result.Requeue).To(BeFalse())
@@ -134,7 +134,7 @@ func TestEKSConfigReconciler(t *testing.T) {
 
 		testEnv.Client.List(ctx, secretList)
 		t.Log(dump("secrets", secretList))
-		g.Eventually(func() {
+		g.Eventually(func(g Gomega) {
 			g.Expect(testEnv.Client.Get(ctx, client.ObjectKey{
 				Name:      config.Name,
 				Namespace: "default",
