@@ -80,7 +80,6 @@ func (r *AWSClusterList) ConvertFrom(srcRaw conversion.Hub) error {
 	return Convert_v1beta1_AWSClusterList_To_v1alpha3_AWSClusterList(src, r, nil)
 }
 
-
 // Convert_v1alpha3_APIEndpoint_To_v1beta1_APIEndpoint .
 func Convert_v1alpha3_APIEndpoint_To_v1beta1_APIEndpoint(in *clusterv1alpha3.APIEndpoint, out *clusterv1.APIEndpoint, s apiconversion.Scope) error {
 	return clusterv1alpha3.Convert_v1alpha3_APIEndpoint_To_v1beta1_APIEndpoint(in, out, s)

@@ -18,7 +18,7 @@ package configreader
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -66,7 +66,7 @@ type fsLoader struct {
 
 // ReadFile reads a file.
 func (fsLoader) ReadFile(filename string) ([]byte, error) {
-	return ioutil.ReadFile(filepath.Clean(filename))
+	return os.ReadFile(filepath.Clean(filename))
 }
 
 // NewFsLoader returns a Loader that loads a AWSIAMConfiguration from the `config file`.

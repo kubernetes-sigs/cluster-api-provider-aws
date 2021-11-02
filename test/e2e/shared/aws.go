@@ -24,7 +24,6 @@ import (
 	b64 "encoding/base64"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -415,7 +414,7 @@ func DumpCloudTrailEvents(e2eCtx *E2EContext) {
 	}
 	logPath := filepath.Join(e2eCtx.Settings.ArtifactFolder, "cloudtrail-events.yaml")
 	dat, err := yaml.Marshal(events)
-	if err := ioutil.WriteFile(logPath, dat, 0600); err != nil {
+	if err := os.WriteFile(logPath, dat, 0600); err != nil {
 		fmt.Fprintf(GinkgoWriter, "couldn't write cloudtrail events to file: file=%s err=%s", logPath, err)
 		return
 	}
@@ -574,7 +573,7 @@ func dumpEKSCluster(cluster *eks.Cluster, logPath string) {
 	}
 	defer f.Close()
 
-	if err := ioutil.WriteFile(f.Name(), clusterYAML, 0600); err != nil {
+	if err := os.WriteFile(f.Name(), clusterYAML, 0600); err != nil {
 		fmt.Fprintf(GinkgoWriter, "couldn't write cluster yaml to file: name=%s file=%s err=%s", *cluster.Name, f.Name(), err)
 		return
 	}

@@ -18,7 +18,7 @@ package bootstrap
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
@@ -53,7 +53,7 @@ func (t Template) GenerateManagedIAMPolicyDocuments(policyDocDir string) error {
 		}
 
 		fn := path.Join(policyDocDir, fmt.Sprintf("%s.json", pn))
-		err = ioutil.WriteFile(fn, []byte(pds), 0o600)
+		err = os.WriteFile(fn, []byte(pds), 0o600)
 		if err != nil {
 			return fmt.Errorf("failed to generate policy document for ManagedIAMPolicy %q: %w", pn, err)
 		}

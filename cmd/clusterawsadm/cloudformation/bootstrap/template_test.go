@@ -18,7 +18,7 @@ package bootstrap
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 	"testing"
 
@@ -171,7 +171,7 @@ func Test_RenderCloudformation(t *testing.T) {
 
 	for _, c := range cases {
 		cfn := cloudformation.Template{}
-		data, err := ioutil.ReadFile(path.Join("fixtures", c.fixture+".yaml"))
+		data, err := os.ReadFile(path.Join("fixtures", c.fixture+".yaml"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -184,7 +184,7 @@ func Test_RenderCloudformation(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		ioutil.WriteFile("/tmp/tmp1", tData, 0600) // nolint:gosec
+		os.WriteFile("/tmp/tmp1", tData, 0600)
 
 		if string(tData) != string(data) {
 			dmp := diffmatchpatch.New()

@@ -33,9 +33,9 @@ func TestFuzzyConversion(t *testing.T) {
 	g.Expect(v1beta1.AddToScheme(scheme)).To(Succeed())
 
 	t.Run("for AWSMachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
-		Hub:         &v1beta1.AWSMachinePool{},
-		Spoke:       &AWSMachinePool{},
+		Scheme: scheme,
+		Hub:    &v1beta1.AWSMachinePool{},
+		Spoke:  &AWSMachinePool{},
 	}))
 
 	t.Run("for AWSManagedMachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{

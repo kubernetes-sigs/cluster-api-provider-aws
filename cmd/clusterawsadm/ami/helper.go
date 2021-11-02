@@ -18,7 +18,7 @@ package ami
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -88,11 +88,11 @@ func latestStableRelease() (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-	b, err := ioutil.ReadAll(resp.Body)
+
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
-
 	latestVersion := strings.TrimSpace(string(b))
 	tagPrefix := "v"
 	latestVersionSemVer, err := semver.Make(strings.TrimPrefix(latestVersion, tagPrefix))
@@ -110,7 +110,7 @@ func latestStableRelease() (string, error) {
 			return "", err
 		}
 		defer resp.Body.Close()
-		b, err = ioutil.ReadAll(resp.Body)
+		b, err = io.ReadAll(resp.Body)
 		if err != nil {
 			return "", err
 		}

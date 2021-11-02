@@ -21,7 +21,6 @@ package shared
 import (
 	"context"
 	"flag"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -62,16 +61,16 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	Expect(os.MkdirAll(e2eCtx.Settings.ArtifactFolder, 0o750)).To(Succeed(), "Invalid test suite argument. Can't create artifacts-folder %q", e2eCtx.Settings.ArtifactFolder)
 	Byf("Loading the e2e test configuration from %q", e2eCtx.Settings.ConfigPath)
 	e2eCtx.E2EConfig = LoadE2EConfig(e2eCtx.Settings.ConfigPath)
-	sourceTemplate, err := ioutil.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, e2eCtx.Settings.SourceTemplate))
+	sourceTemplate, err := os.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, e2eCtx.Settings.SourceTemplate))
 	Expect(err).NotTo(HaveOccurred())
 	e2eCtx.StartOfSuite = time.Now()
 
 	var clusterctlCITemplate clusterctl.Files
 	if !e2eCtx.IsManaged {
 		// Create CI manifest for upgrading to Kubernetes main test
-		platformKustomization, err := ioutil.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, "ci-artifacts-platform-kustomization-for-upgrade.yaml"))
+		platformKustomization, err := os.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, "ci-artifacts-platform-kustomization-for-upgrade.yaml"))
 		Expect(err).NotTo(HaveOccurred())
-		sourceTemplateForUpgrade, err := ioutil.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, "infrastructure-aws/generated/cluster-template-upgrade-to-main.yaml"))
+		sourceTemplateForUpgrade, err := os.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, "infrastructure-aws/generated/cluster-template-upgrade-to-main.yaml"))
 		Expect(err).NotTo(HaveOccurred())
 
 		ciTemplateForUpgradePath, err := kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebian(
@@ -96,7 +95,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 		}
 
 		// Create CI manifest for conformance test
-		platformKustomization, err = ioutil.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, "ci-artifacts-platform-kustomization.yaml"))
+		platformKustomization, err = os.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, "ci-artifacts-platform-kustomization.yaml"))
 		Expect(err).NotTo(HaveOccurred())
 		ciTemplatePath, err := kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebian(
 			kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebianInput{

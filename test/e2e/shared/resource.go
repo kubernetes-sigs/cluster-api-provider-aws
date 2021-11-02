@@ -21,7 +21,6 @@ package shared
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"time"
@@ -58,7 +57,7 @@ func WriteResourceQuotesToFile(logPath string, serviceQuotas map[string]*Service
 	data, err := yaml.Marshal(resources)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = ioutil.WriteFile(logPath, data, 0644)
+	err = os.WriteFile(logPath, data, 0644)
 	Expect(err).NotTo(HaveOccurred())
 }
 
@@ -86,7 +85,7 @@ func (r *TestResource) WriteRequestedResources(e2eCtx *E2EContext, testName stri
 	err := fileLock.Lock()
 	Expect(err).NotTo(HaveOccurred())
 
-	requestedResources, err := ioutil.ReadFile(requestedResourceFilePath)
+	requestedResources, err := os.ReadFile(requestedResourceFilePath)
 	Expect(err).NotTo(HaveOccurred())
 
 	resources := struct {
@@ -101,7 +100,7 @@ func (r *TestResource) WriteRequestedResources(e2eCtx *E2EContext, testName stri
 	resources.TestResourceMap[testName] = *r
 	str, err := yaml.Marshal(resources)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(ioutil.WriteFile(requestedResourceFilePath, str, 0644)).To(Succeed())
+	Expect(os.WriteFile(requestedResourceFilePath, str, 0644)).To(Succeed())
 }
 
 func (r *TestResource) doesSatisfy(request *TestResource) bool {
@@ -164,7 +163,7 @@ func AcquireResources(request *TestResource, nodeNum int, fileLock *flock.Flock)
 		if err != nil {
 			continue
 		}
-		resourceText, err := ioutil.ReadFile(ResourceQuotaFilePath)
+		resourceText, err := os.ReadFile(ResourceQuotaFilePath)
 		if err != nil {
 			return err
 		}
@@ -180,7 +179,7 @@ func AcquireResources(request *TestResource, nodeNum int, fileLock *flock.Flock)
 			if err != nil {
 				return err
 			}
-			if err := ioutil.WriteFile(ResourceQuotaFilePath, data, 0644); err != nil {
+			if err := os.WriteFile(ResourceQuotaFilePath, data, 0644); err != nil {
 				return err
 			}
 			Byf("Node %d acquired resources: %s", nodeNum, request.String())
@@ -213,7 +212,7 @@ func ReleaseResources(request *TestResource, nodeNum int, fileLock *flock.Flock)
 		if err := fileLock.Lock(); err != nil {
 			continue
 		}
-		resourceText, err := ioutil.ReadFile(ResourceQuotaFilePath)
+		resourceText, err := os.ReadFile(ResourceQuotaFilePath)
 		if err != nil {
 			return err
 		}
@@ -226,7 +225,7 @@ func ReleaseResources(request *TestResource, nodeNum int, fileLock *flock.Flock)
 		if err != nil {
 			return err
 		}
-		if err := ioutil.WriteFile(ResourceQuotaFilePath, data, 0644); err != nil {
+		if err := os.WriteFile(ResourceQuotaFilePath, data, 0644); err != nil {
 			return err
 		}
 		Byf("Node %d released resources: %s", nodeNum, request.String())

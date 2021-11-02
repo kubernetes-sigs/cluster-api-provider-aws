@@ -39,7 +39,6 @@ func (r *AWSCluster) ConvertFrom(srcRaw conversion.Hub) error {
 	return Convert_v1beta1_AWSCluster_To_v1alpha4_AWSCluster(src, r, nil)
 }
 
-
 // ConvertTo converts the v1alpha3 AWSCluster receiver to a v1beta1 AWSCluster.
 func (r *AWSClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.AWSClusterTemplate)
@@ -88,7 +87,6 @@ func Convert_v1alpha4_APIEndpoint_To_v1beta1_APIEndpoint(in *clusterv1alpha4.API
 func Convert_v1beta1_APIEndpoint_To_v1alpha4_APIEndpoint(in *clusterv1.APIEndpoint, out *clusterv1alpha4.APIEndpoint, s apiconversion.Scope) error {
 	return clusterv1alpha4.Convert_v1beta1_APIEndpoint_To_v1alpha4_APIEndpoint(in, out, s)
 }
-
 
 // ConvertTo converts the v1alpha4 AWSClusterList receiver to a v1beta1 AWSClusterList.
 func (src *AWSClusterList) ConvertTo(dstRaw conversion.Hub) error {

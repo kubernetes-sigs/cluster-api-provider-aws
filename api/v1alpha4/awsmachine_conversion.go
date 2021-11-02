@@ -30,7 +30,7 @@ func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
 }
 
 // ConvertFrom converts the v1beta1 AWSMachine to a v1alpha4 AWSMachine.
-func (dst *AWSMachine) ConvertFrom(srcRaw conversion.Hub) error{
+func (dst *AWSMachine) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.AWSMachine)
 
 	return Convert_v1beta1_AWSMachine_To_v1alpha4_AWSMachine(src, dst, nil)
@@ -43,7 +43,7 @@ func (src *AWSMachineList) ConvertTo(dstRaw conversion.Hub) error {
 }
 
 // ConvertFrom converts the v1beta1 AWSMachineList to a v1alpha4 AWSMachineList.
-func (dst *AWSMachineList) ConvertFrom(srcRaw conversion.Hub) error{
+func (dst *AWSMachineList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.AWSMachineList)
 
 	return Convert_v1beta1_AWSMachineList_To_v1alpha4_AWSMachineList(src, dst, nil)
@@ -57,13 +57,13 @@ func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
-		// Manually restore data.
-		restored := &infrav1.AWSMachineTemplate{}
-		if ok, err := utilconversion.UnmarshalData(r, restored); err != nil || !ok {
-			return err
-		}
+	// Manually restore data.
+	restored := &infrav1.AWSMachineTemplate{}
+	if ok, err := utilconversion.UnmarshalData(r, restored); err != nil || !ok {
+		return err
+	}
 
-		dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
+	dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
 
 	return nil
 }
@@ -91,12 +91,11 @@ func (src *AWSMachineTemplateList) ConvertTo(dstRaw conversion.Hub) error {
 }
 
 // ConvertFrom converts the v1beta1 AWSMachineTemplateList to a v1alpha4 AWSMachineTemplateList.
-func (dst *AWSMachineTemplateList) ConvertFrom(srcRaw conversion.Hub) error{
+func (dst *AWSMachineTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.AWSMachineTemplateList)
 
 	return Convert_v1beta1_AWSMachineTemplateList_To_v1alpha4_AWSMachineTemplateList(src, dst, nil)
 }
-
 
 func Convert_v1beta1_AWSMachineTemplateResource_To_v1alpha4_AWSMachineTemplateResource(in *infrav1.AWSMachineTemplateResource, out *AWSMachineTemplateResource, s apiconversion.Scope) error {
 	return autoConvert_v1beta1_AWSMachineTemplateResource_To_v1alpha4_AWSMachineTemplateResource(in, out, s)

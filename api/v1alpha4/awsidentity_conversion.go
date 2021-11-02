@@ -28,7 +28,7 @@ func (src *AWSClusterControllerIdentity) ConvertTo(dstRaw conversion.Hub) error 
 }
 
 // ConvertFrom converts the v1beta1 AWSClusterControllerIdentity to a v1alpha4 AWSClusterControllerIdentity.
-func (dst *AWSClusterControllerIdentity) ConvertFrom(srcRaw conversion.Hub) error{
+func (dst *AWSClusterControllerIdentity) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.AWSClusterControllerIdentity)
 
 	return Convert_v1beta1_AWSClusterControllerIdentity_To_v1alpha4_AWSClusterControllerIdentity(src, dst, nil)
@@ -41,7 +41,7 @@ func (src *AWSClusterControllerIdentityList) ConvertTo(dstRaw conversion.Hub) er
 }
 
 // ConvertFrom converts the v1beta1 AWSClusterControllerIdentityList to a v1alpha4 AWSClusterControllerIdentityList.
-func (dst *AWSClusterControllerIdentityList) ConvertFrom(srcRaw conversion.Hub) error{
+func (dst *AWSClusterControllerIdentityList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.AWSClusterControllerIdentityList)
 
 	return Convert_v1beta1_AWSClusterControllerIdentityList_To_v1alpha4_AWSClusterControllerIdentityList(src, dst, nil)
@@ -54,7 +54,7 @@ func (src *AWSClusterRoleIdentity) ConvertTo(dstRaw conversion.Hub) error {
 }
 
 // ConvertFrom converts the v1beta1 AWSClusterRoleIdentity to a v1alpha4 AWSClusterRoleIdentity.
-func (dst *AWSClusterRoleIdentity) ConvertFrom(srcRaw conversion.Hub) error{
+func (dst *AWSClusterRoleIdentity) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.AWSClusterRoleIdentity)
 
 	return Convert_v1beta1_AWSClusterRoleIdentity_To_v1alpha4_AWSClusterRoleIdentity(src, dst, nil)
@@ -67,12 +67,11 @@ func (src *AWSClusterRoleIdentityList) ConvertTo(dstRaw conversion.Hub) error {
 }
 
 // ConvertFrom converts the v1beta1 AWSClusterRoleIdentityList to a v1alpha4 AWSClusterRoleIdentityList.
-func (dst *AWSClusterRoleIdentityList) ConvertFrom(srcRaw conversion.Hub) error{
+func (dst *AWSClusterRoleIdentityList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.AWSClusterRoleIdentityList)
 
 	return Convert_v1beta1_AWSClusterRoleIdentityList_To_v1alpha4_AWSClusterRoleIdentityList(src, dst, nil)
 }
-
 
 // ConvertTo converts the v1alpha4 AWSClusterStaticIdentity receiver to a v1beta1 AWSClusterStaticIdentity.
 func (src *AWSClusterStaticIdentity) ConvertTo(dstRaw conversion.Hub) error {
@@ -81,7 +80,7 @@ func (src *AWSClusterStaticIdentity) ConvertTo(dstRaw conversion.Hub) error {
 }
 
 // ConvertFrom converts the v1beta1 AWSClusterStaticIdentity to a v1alpha4 AWSClusterStaticIdentity.
-func (dst *AWSClusterStaticIdentity) ConvertFrom(srcRaw conversion.Hub) error{
+func (dst *AWSClusterStaticIdentity) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.AWSClusterStaticIdentity)
 
 	return Convert_v1beta1_AWSClusterStaticIdentity_To_v1alpha4_AWSClusterStaticIdentity(src, dst, nil)
@@ -94,7 +93,7 @@ func (src *AWSClusterStaticIdentityList) ConvertTo(dstRaw conversion.Hub) error 
 }
 
 // ConvertFrom converts the v1beta1 AWSClusterStaticIdentityList to a v1alpha4 AWSClusterStaticIdentityList.
-func (dst *AWSClusterStaticIdentityList) ConvertFrom(srcRaw conversion.Hub) error{
+func (dst *AWSClusterStaticIdentityList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.AWSClusterStaticIdentityList)
 
 	return Convert_v1beta1_AWSClusterStaticIdentityList_To_v1alpha4_AWSClusterStaticIdentityList(src, dst, nil)
