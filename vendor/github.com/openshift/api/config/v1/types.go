@@ -324,6 +324,7 @@ type RequiredHSTSPolicy struct {
 	// The use of wildcards is allowed like this: *.foo.com matches everything under foo.com.
 	// foo.com only matches foo.com, so to cover foo.com and everything under it, you must specify *both*.
 	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:Required
 	// +required
 	DomainPatterns []string `json:"domainPatterns"`
 
@@ -332,7 +333,6 @@ type RequiredHSTSPolicy struct {
 	// If set to 0 and includeSubdomains is specified, all subdomains of the host are also removed as HSTS hosts.
 	// maxAge is a time-to-live value, and if this policy is not refreshed on a client, the HSTS
 	// policy will eventually expire on that client.
-	// +required
 	MaxAge MaxAgePolicy `json:"maxAge"`
 
 	// preloadPolicy directs the client to include hosts in its host preload list so that

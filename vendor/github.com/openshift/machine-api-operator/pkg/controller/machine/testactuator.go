@@ -20,7 +20,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
+	machinev1 "github.com/openshift/api/machine/v1beta1"
 )
 
 var _ Actuator = &TestActuator{}
@@ -39,7 +39,7 @@ type TestActuator struct {
 	Lock            sync.Mutex
 }
 
-func (a *TestActuator) Create(context.Context, *v1beta1.Machine) error {
+func (a *TestActuator) Create(context.Context, *machinev1.Machine) error {
 	defer func() {
 		if a.BlockOnCreate {
 			<-a.unblock
@@ -52,7 +52,7 @@ func (a *TestActuator) Create(context.Context, *v1beta1.Machine) error {
 	return nil
 }
 
-func (a *TestActuator) Delete(context.Context, *v1beta1.Machine) error {
+func (a *TestActuator) Delete(context.Context, *machinev1.Machine) error {
 	defer func() {
 		if a.BlockOnDelete {
 			<-a.unblock
@@ -65,7 +65,7 @@ func (a *TestActuator) Delete(context.Context, *v1beta1.Machine) error {
 	return nil
 }
 
-func (a *TestActuator) Update(ctx context.Context, machine *v1beta1.Machine) error {
+func (a *TestActuator) Update(ctx context.Context, machine *machinev1.Machine) error {
 	defer func() {
 		if a.BlockOnUpdate {
 			<-a.unblock
@@ -77,7 +77,7 @@ func (a *TestActuator) Update(ctx context.Context, machine *v1beta1.Machine) err
 	return nil
 }
 
-func (a *TestActuator) Exists(context.Context, *v1beta1.Machine) (bool, error) {
+func (a *TestActuator) Exists(context.Context, *machinev1.Machine) (bool, error) {
 	defer func() {
 		if a.BlockOnExists {
 			<-a.unblock

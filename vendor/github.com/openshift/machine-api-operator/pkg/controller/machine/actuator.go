@@ -19,7 +19,7 @@ package machine
 import (
 	"context"
 
-	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
+	machinev1 "github.com/openshift/api/machine/v1beta1"
 )
 
 /// [Actuator]

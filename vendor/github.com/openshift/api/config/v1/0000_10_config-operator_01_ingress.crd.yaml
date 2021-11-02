@@ -82,6 +82,8 @@ spec:
                   type: array
                   items:
                     type: object
+                    required:
+                      - domainPatterns
                     properties:
                       domainPatterns:
                         description: "domainPatterns is a list of domains for which the desired HSTS annotations are required. If domainPatterns is specified and a route is created with a spec.host matching one of the domains, the route must specify the HSTS Policy components described in the matching RequiredHSTSPolicy. \n The use of wildcards is allowed like this: *.foo.com matches everything under foo.com. foo.com only matches foo.com, so to cover foo.com and everything under it, you must specify *both*."

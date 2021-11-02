@@ -1,9 +1,9 @@
 package metrics
 
 import (
-	mapiv1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
-	machineinformers "github.com/openshift/machine-api-operator/pkg/generated/informers/externalversions/machine/v1beta1"
-	machinelisters "github.com/openshift/machine-api-operator/pkg/generated/listers/machine/v1beta1"
+	machinev1 "github.com/openshift/api/machine/v1beta1"
+	machineinformers "github.com/openshift/client-go/machine/informers/externalversions/machine/v1beta1"
+	machinelisters "github.com/openshift/client-go/machine/listers/machine/v1beta1"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
@@ -201,11 +201,11 @@ func (mc MachineCollector) collectMachineSetMetrics(ch chan<- prometheus.Metric)
 	}
 }
 
-func (mc MachineCollector) listMachines() ([]*mapiv1beta1.Machine, error) {
+func (mc MachineCollector) listMachines() ([]*machinev1.Machine, error) {
 	return mc.machineLister.Machines(mc.namespace).List(labels.Everything())
 }
 
-func (mc MachineCollector) listMachineSets() ([]*mapiv1beta1.MachineSet, error) {
+func (mc MachineCollector) listMachineSets() ([]*machinev1.MachineSet, error) {
 	return mc.machineSetLister.MachineSets(mc.namespace).List(labels.Everything())
 }
 

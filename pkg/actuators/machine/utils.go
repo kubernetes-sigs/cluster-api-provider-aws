@@ -17,19 +17,19 @@ limitations under the License.
 package machine
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
+	machinev1 "github.com/openshift/api/machine/v1beta1"
 	machinecontroller "github.com/openshift/machine-api-operator/pkg/controller/machine"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
-	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 )
 
@@ -257,7 +257,7 @@ func terminateInstances(client awsclient.Client, instances []*ec2.Instance) ([]*
 // a condition will be added to the slice
 // If the machine does already have a condition with the specified type,
 // the condition will be updated if either of the following are true.
-func setAWSMachineProviderCondition(condition awsproviderv1.AWSMachineProviderCondition, conditions []awsproviderv1.AWSMachineProviderCondition) []awsproviderv1.AWSMachineProviderCondition {
+func setAWSMachineProviderCondition(condition machinev1.AWSMachineProviderCondition, conditions []machinev1.AWSMachineProviderCondition) []machinev1.AWSMachineProviderCondition {
 	now := metav1.Now()
 
 	if existingCondition := findProviderCondition(conditions, condition.Type); existingCondition == nil {
@@ -271,7 +271,7 @@ func setAWSMachineProviderCondition(condition awsproviderv1.AWSMachineProviderCo
 	return conditions
 }
 
-func findProviderCondition(conditions []awsproviderv1.AWSMachineProviderCondition, conditionType awsproviderv1.AWSMachineProviderConditionType) *awsproviderv1.AWSMachineProviderCondition {
+func findProviderCondition(conditions []machinev1.AWSMachineProviderCondition, conditionType machinev1.ConditionType) *machinev1.AWSMachineProviderCondition {
 	for i := range conditions {
 		if conditions[i].Type == conditionType {
 			return &conditions[i]
@@ -280,7 +280,7 @@ func findProviderCondition(conditions []awsproviderv1.AWSMachineProviderConditio
 	return nil
 }
 
-func updateExistingCondition(newCondition, existingCondition *awsproviderv1.AWSMachineProviderCondition) {
+func updateExistingCondition(newCondition, existingCondition *machinev1.AWSMachineProviderCondition) {
 	if !shouldUpdateCondition(newCondition, existingCondition) {
 		return
 	}
@@ -294,7 +294,7 @@ func updateExistingCondition(newCondition, existingCondition *awsproviderv1.AWSM
 	existingCondition.LastProbeTime = newCondition.LastProbeTime
 }
 
-func shouldUpdateCondition(newCondition, existingCondition *awsproviderv1.AWSMachineProviderCondition) bool {
+func shouldUpdateCondition(newCondition, existingCondition *machinev1.AWSMachineProviderCondition) bool {
 	return newCondition.Reason != existingCondition.Reason || newCondition.Message != existingCondition.Message
 }
 
@@ -370,20 +370,20 @@ func extractNodeAddresses(instance *ec2.Instance, domainNames []string) ([]corev
 	return addresses, nil
 }
 
-func conditionSuccess() awsproviderv1.AWSMachineProviderCondition {
-	return awsproviderv1.AWSMachineProviderCondition{
-		Type:    awsproviderv1.MachineCreation,
+func conditionSuccess() machinev1.AWSMachineProviderCondition {
+	return machinev1.AWSMachineProviderCondition{
+		Type:    machinev1.MachineCreation,
 		Status:  corev1.ConditionTrue,
-		Reason:  awsproviderv1.MachineCreationSucceeded,
+		Reason:  machinev1.MachineCreationSucceededConditionReason,
 		Message: "Machine successfully created",
 	}
 }
 
-func conditionFailed() awsproviderv1.AWSMachineProviderCondition {
-	return awsproviderv1.AWSMachineProviderCondition{
-		Type:   awsproviderv1.MachineCreation,
+func conditionFailed() machinev1.AWSMachineProviderCondition {
+	return machinev1.AWSMachineProviderCondition{
+		Type:   machinev1.MachineCreation,
 		Status: corev1.ConditionFalse,
-		Reason: awsproviderv1.MachineCreationFailed,
+		Reason: machinev1.MachineCreationFailedConditionReason,
 	}
 }
 
@@ -405,4 +405,68 @@ func getClusterID(machine *machinev1.Machine) (string, bool) {
 		clusterID, ok = machine.Labels[upstreamMachineClusterIDLabel]
 	}
 	return clusterID, ok
+}
+
+// RawExtensionFromProviderSpec marshals the machine provider spec.
+func RawExtensionFromProviderSpec(spec *machinev1.AWSMachineProviderConfig) (*runtime.RawExtension, error) {
+	if spec == nil {
+		return &runtime.RawExtension{}, nil
+	}
+
+	var rawBytes []byte
+	var err error
+	if rawBytes, err = json.Marshal(spec); err != nil {
+		return nil, fmt.Errorf("error marshalling providerSpec: %v", err)
+	}
+
+	return &runtime.RawExtension{
+		Raw: rawBytes,
+	}, nil
+}
+
+// RawExtensionFromProviderStatus marshals the machine provider status
+func RawExtensionFromProviderStatus(status *machinev1.AWSMachineProviderStatus) (*runtime.RawExtension, error) {
+	if status == nil {
+		return &runtime.RawExtension{}, nil
+	}
+
+	var rawBytes []byte
+	var err error
+	if rawBytes, err = json.Marshal(status); err != nil {
+		return nil, fmt.Errorf("error marshalling providerStatus: %v", err)
+	}
+
+	return &runtime.RawExtension{
+		Raw: rawBytes,
+	}, nil
+}
+
+// ProviderSpecFromRawExtension unmarshals a raw extension into an AWSMachineProviderSpec type
+func ProviderSpecFromRawExtension(rawExtension *runtime.RawExtension) (*machinev1.AWSMachineProviderConfig, error) {
+	if rawExtension == nil {
+		return &machinev1.AWSMachineProviderConfig{}, nil
+	}
+
+	spec := new(machinev1.AWSMachineProviderConfig)
+	if err := json.Unmarshal(rawExtension.Raw, &spec); err != nil {
+		return nil, fmt.Errorf("error unmarshalling providerSpec: %v", err)
+	}
+
+	klog.V(5).Infof("Got provider Spec from raw extension: %+v", spec)
+	return spec, nil
+}
+
+// ProviderStatusFromRawExtension unmarshals a raw extension into an AWSMachineProviderStatus type
+func ProviderStatusFromRawExtension(rawExtension *runtime.RawExtension) (*machinev1.AWSMachineProviderStatus, error) {
+	if rawExtension == nil {
+		return &machinev1.AWSMachineProviderStatus{}, nil
+	}
+
+	providerStatus := new(machinev1.AWSMachineProviderStatus)
+	if err := json.Unmarshal(rawExtension.Raw, providerStatus); err != nil {
+		return nil, fmt.Errorf("error unmarshalling providerStatus: %v", err)
+	}
+
+	klog.V(5).Infof("Got provider Status from raw extension: %+v", providerStatus)
+	return providerStatus, nil
 }
