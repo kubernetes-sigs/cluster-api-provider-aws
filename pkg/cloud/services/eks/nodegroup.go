@@ -328,7 +328,9 @@ func (s *NodegroupService) reconcileNodegroupVersion(ng *eks.Nodegroup) error {
 
 func createLabelUpdate(specLabels map[string]string, ng *eks.Nodegroup) *eks.UpdateLabelsPayload {
 	current := ng.Labels
-	payload := eks.UpdateLabelsPayload{}
+	payload := eks.UpdateLabelsPayload{
+		AddOrUpdateLabels: map[string]*string{},
+	}
 	for k, v := range specLabels {
 		if currentV, ok := current[k]; !ok || currentV == nil || v != *currentV {
 			payload.AddOrUpdateLabels[k] = aws.String(v)
