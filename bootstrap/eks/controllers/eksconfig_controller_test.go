@@ -41,7 +41,7 @@ func TestEKSConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T) {
 		Client: testEnv.Client,
 	}
 
-	g.Eventually(func() {
+	g.Eventually(func(g Gomega) {
 		result, err := reconciler.joinWorker(context.Background(), cluster, config)
 		g.Expect(result).To(Equal(reconcile.Result{}))
 		g.Expect(err).NotTo(HaveOccurred())
@@ -63,7 +63,7 @@ func TestEKSConfigReconciler_ReturnEarlyIfClusterControlPlaneNotInitialized(t *t
 		Client: testEnv.Client,
 	}
 
-	g.Eventually(func() {
+	g.Eventually(func(g Gomega) {
 		result, err := reconciler.joinWorker(context.Background(), cluster, config)
 		g.Expect(result).To(Equal(reconcile.Result{}))
 		g.Expect(err).NotTo(HaveOccurred())
