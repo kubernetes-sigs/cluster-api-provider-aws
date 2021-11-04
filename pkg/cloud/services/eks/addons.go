@@ -191,7 +191,8 @@ func (s *Service) listAddons(eksClusterName string) ([]*string, error) {
 func (s *Service) translateAPIToAddon(addons []ekscontrolplanev1.Addon) []*eksaddons.EKSAddon {
 	converted := []*eksaddons.EKSAddon{}
 
-	for _, addon := range addons {
+	for i := range addons {
+		addon := addons[i]
 		convertedAddon := &eksaddons.EKSAddon{
 			Name:                  &addon.Name,
 			Version:               &addon.Version,
