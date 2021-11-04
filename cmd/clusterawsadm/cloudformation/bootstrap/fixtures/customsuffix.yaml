@@ -318,6 +318,7 @@ Resources:
           - eks:ListIdentityProviderConfigs
           - eks:AssociateIdentityProviderConfig
           - eks:DescribeIdentityProviderConfig
+          - eks:DisassociateIdentityProviderConfig
           Effect: Allow
           Resource:
           - arn:*:eks:*:*:cluster/*
