@@ -35,12 +35,14 @@ import (
 // General EKS e2e test
 var _ = Describe("EKS cluster tests", func() {
 	var (
-		namespace       *corev1.Namespace
-		ctx             context.Context
-		specName        = "eks-nodes"
-		clusterName     string
-		cniAddonName    = "vpc-cni"
-		cniAddonVersion = "v1.6.3-eksbuild.1"
+		namespace           *corev1.Namespace
+		ctx                 context.Context
+		specName            = "eks-nodes"
+		clusterName         string
+		cniAddonName        = "vpc-cni"
+		cniAddonVersion     = "v1.8.0-eksbuild.1"
+		corednsAddonName    = "coredns"
+		corednsAddonVersion = "v1.8.3-eksbuild.1"
 	)
 
 	shared.ConditionalIt(runGeneralTests, "should create a cluster and add nodes", func() {
@@ -82,6 +84,19 @@ var _ = Describe("EKS cluster tests", func() {
 				ClusterName:           clusterName,
 				AddonName:             cniAddonName,
 				AddonVersion:          cniAddonVersion,
+			}
+		})
+
+		By("should have the Coredns addon installed")
+		CheckAddonExistsSpec(ctx, func() CheckAddonExistsSpecInput {
+			return CheckAddonExistsSpecInput{
+				E2EConfig:             e2eCtx.E2EConfig,
+				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				AWSSession:            e2eCtx.BootstratpUserAWSSession,
+				Namespace:             namespace,
+				ClusterName:           clusterName,
+				AddonName:             corednsAddonName,
+				AddonVersion:          corednsAddonVersion,
 			}
 		})
 

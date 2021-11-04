@@ -35,7 +35,7 @@ type waitForEKSAddonToHaveStatusInput struct {
 	AWSSession   client.ConfigProvider
 	AddonName    string
 	AddonVersion string
-	AddonStatus  string
+	AddonStatus  []string
 }
 
 func waitForEKSAddonToHaveStatus(ctx context.Context, input waitForEKSAddonToHaveStatusInput, intervals ...interface{}) {
@@ -57,11 +57,15 @@ func waitForEKSAddonToHaveStatus(ctx context.Context, input waitForEKSAddonToHav
 			return false, err
 		}
 
-		if *installedAddon.Status != input.AddonStatus {
-			return false, nil
+		for i := range input.AddonStatus {
+			wantedStatus := input.AddonStatus[i]
+
+			if wantedStatus == *installedAddon.Status {
+				return true, nil
+			}
 		}
 
-		return true, nil
+		return false, nil
 
 	}, intervals...).Should(BeTrue())
 }

@@ -119,7 +119,10 @@ variables:
   EXP_EKS: "true"
   EXP_EKS_IAM: "false"
   EXP_EKS_ADD_ROLES: "false"
-  VPC_ADDON_VERSION: "v1.6.3-eksbuild.1"
+  VPC_ADDON_VERSION: "v1.8.0-eksbuild.1"
+  COREDNS_ADDON_VERSION: "v1.8.3-eksbuild.1"
+  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "1.21.2"
+  AUTO_CONTROLLER_IDENTITY_CREATOR: "false"
 
 intervals:
   default/wait-cluster: ["30m", "10s"]
