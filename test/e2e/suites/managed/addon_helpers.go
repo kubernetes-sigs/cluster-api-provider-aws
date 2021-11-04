@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -35,7 +36,7 @@ type waitForEKSAddonToHaveStatusInput struct {
 	AWSSession   client.ConfigProvider
 	AddonName    string
 	AddonVersion string
-	AddonStatus  string
+	AddonStatus  []string
 }
 
 func waitForEKSAddonToHaveStatus(ctx context.Context, input waitForEKSAddonToHaveStatusInput, intervals ...interface{}) {
@@ -45,7 +46,7 @@ func waitForEKSAddonToHaveStatus(ctx context.Context, input waitForEKSAddonToHav
 	Expect(input.AddonVersion).ShouldNot(HaveLen(0), "Invalid argument. input.AddonVersion can't be empty")
 	Expect(input.AddonStatus).ShouldNot(HaveLen(0), "Invalid argument. input.AddonStatus can't be empty")
 
-	ginkgo.By(fmt.Sprintf("Ensuring EKS addon %s has status %s for EKS cluster %s", input.AddonName, input.AddonStatus, input.ControlPlane.Spec.EKSClusterName))
+	ginkgo.By(fmt.Sprintf("Ensuring EKS addon %s has status in %q for EKS cluster %s", input.AddonName, input.AddonStatus, input.ControlPlane.Spec.EKSClusterName))
 
 	Eventually(func() (bool, error) {
 		installedAddon, err := getEKSClusterAddon(input.ControlPlane.Spec.EKSClusterName, input.AddonName, input.AWSSession)
@@ -57,11 +58,15 @@ func waitForEKSAddonToHaveStatus(ctx context.Context, input waitForEKSAddonToHav
 			return false, err
 		}
 
-		if *installedAddon.Status != input.AddonStatus {
-			return false, nil
+		for i := range input.AddonStatus {
+			wantedStatus := input.AddonStatus[i]
+
+			if wantedStatus == *installedAddon.Status {
+				return true, nil
+			}
 		}
 
-		return true, nil
+		return false, nil
 
 	}, intervals...).Should(BeTrue())
 }
