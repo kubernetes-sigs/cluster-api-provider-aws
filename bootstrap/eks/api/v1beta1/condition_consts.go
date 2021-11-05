@@ -19,7 +19,7 @@ package v1beta1
 import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 // Conditions and condition Reasons for the EKSConfig object
-// FROM: https://github.com/kubernetes-sigs/cluster-api/blob/master/bootstrap/kubeadm/api/v1beta1/condition_consts.go
+// FROM: https://github.com/kubernetes-sigs/cluster-api/blob/main/bootstrap/kubeadm/api/v1beta1/condition_consts.go
 
 const (
 	// DataSecretAvailableCondition documents the status of the bootstrap secret generation process.
