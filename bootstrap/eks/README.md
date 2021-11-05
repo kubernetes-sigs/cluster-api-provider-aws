@@ -1,6 +1,6 @@
 # Cluster API bootstrap provider EKS
 
-Cluster API bootstrap provider EKS (CABPE) is a component of [Cluster API](https://github.com/kubernetes-sigs/cluster-api/blob/master/README.md) that is responsible for generating a cloud-init script to turn a Machine into a Kubernetes Node; this implementation uses the [AWS-provided EKS bootstrap script](https://github.com/awslabs/amazon-eks-ami/blob/master/files/bootstrap.sh) for joining Kubernetes Nodes to EKS clusters.
+Cluster API bootstrap provider EKS (CABPE) is a component of [Cluster API](https://github.com/kubernetes-sigs/cluster-api/blob/main/README.md) that is responsible for generating a cloud-init script to turn a Machine into a Kubernetes Node; this implementation uses the [AWS-provided EKS bootstrap script](https://github.com/awslabs/amazon-eks-ami/blob/master/files/bootstrap.sh) for joining Kubernetes Nodes to EKS clusters.
 
 CABPE is the bootstrap component of Cluster API Provider AWS' (CAPA) EKS ecosystem. This ecosystem is comprised of:
 - EKS controlplane provider (AWSManagedControlPlane)
