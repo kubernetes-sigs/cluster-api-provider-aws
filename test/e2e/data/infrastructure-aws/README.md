@@ -10,7 +10,7 @@ To add a new cluster manifest for e2e tests, simply add a new directory under `.
 
 Example:
 ```bash
-cp -R ./test/e2e/data/infrastructure-aws/default/ ./test/e2e/data/infrastructure-aws/kustomize_sources/custom-template/
+cp -R ./test/e2e/data/infrastructure-aws/kustomize_sources/default/ ./test/e2e/data/infrastructure-aws/kustomize_sources/custom-template/
 # Do necessary changes in custom-template/.
 make generate-test-flavors
 ```
