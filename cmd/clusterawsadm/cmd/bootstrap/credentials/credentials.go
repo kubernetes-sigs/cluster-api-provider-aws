@@ -37,6 +37,7 @@ const (
 
 	// CredentialHelp provides an explanation as to how credentials are resolved by
 	// clusterawsadm.
+	// nolint:gosec
 	CredentialHelp = `
 	The utility will attempt to find credentials in the following order:
 
