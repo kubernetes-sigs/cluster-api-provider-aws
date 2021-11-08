@@ -148,7 +148,7 @@ type AWSClusterRoleIdentitySpec struct {
 
 	// SourceIdentityRef is a reference to another identity which will be chained to do
 	// role assumption. All identity types are accepted.
-	SourceIdentityRef *AWSIdentityReference `json:"sourceIdentityRef,omitempty"`
+	SourceIdentityRef *AWSIdentityReference `json:"sourceIdentityRef"`
 }
 
 // +kubebuilder:object:root=true

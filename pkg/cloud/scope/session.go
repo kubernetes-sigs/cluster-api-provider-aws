@@ -118,16 +118,21 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Cl
 		return endpoints.DefaultResolver().EndpointFor(service, region, optFns...)
 	}
 
-	providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScoper, log)
+	provider, err := getProvidersForCluster(context.Background(), k8sClient, clusterScoper)
 	if err != nil {
-		// could not get providers and retrieve the credentials
+		// could not get provider and retrieve the credentials
 		conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition, infrav1.PrincipalCredentialRetrievalFailedReason, clusterv1.ConditionSeverityError, err.Error())
-		return nil, nil, errors.Wrap(err, "Failed to get providers for cluster")
+		return nil, nil, errors.Wrap(err, "Failed to get provider for cluster")
 	}
 
+	awsConfig := &aws.Config{
+		Region:           aws.String(region),
+		EndpointResolver: endpoints.ResolverFunc(resolver),
+	}
+
+	var awsProvider credentials.Provider
 	isChanged := false
-	awsProviders := make([]credentials.Provider, len(providers))
-	for i, provider := range providers {
+	if provider != nil {
 		// load an existing matching providers from the cache if such a providers exists
 		providerHash, err := provider.Hash()
 		if err != nil {
@@ -141,28 +146,22 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Cl
 			// add this providers to the cache
 			providerCache.Store(providerHash, provider)
 		}
-		awsProviders[i] = provider.(credentials.Provider)
-	}
+		awsProvider = provider.(credentials.Provider)
 
-	if !isChanged {
-		if s, ok := sessionCache.Load(getSessionName(region, clusterScoper)); ok {
-			entry := s.(*sessionCacheEntry)
-			return entry.session, entry.serviceLimiters, nil
+		if !isChanged {
+			if s, ok := sessionCache.Load(getSessionName(region, clusterScoper)); ok {
+				entry := s.(*sessionCacheEntry)
+				return entry.session, entry.serviceLimiters, nil
+			}
 		}
-	}
-	awsConfig := &aws.Config{
-		Region:           aws.String(region),
-		EndpointResolver: endpoints.ResolverFunc(resolver),
-	}
 
-	if len(providers) > 0 {
 		// Check if identity credentials can be retrieved. One reason this will fail is that source identity is not authorized for assume role.
-		_, err := providers[0].Retrieve()
+		_, err = provider.Retrieve()
 		if err != nil {
 			conditions.MarkUnknown(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition, infrav1.CredentialProviderBuildFailedReason, err.Error())
 			return nil, nil, errors.Wrap(err, "Failed to retrieve identity credentials")
 		}
-		awsConfig = awsConfig.WithCredentials(credentials.NewChainCredentials(awsProviders))
+		awsConfig = awsConfig.WithCredentials(credentials.NewChainCredentials([]credentials.Provider{awsProvider}))
 	}
 
 	conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition)
@@ -245,78 +244,45 @@ func newEC2ServiceLimiter() *throttle.ServiceLimiter {
 
 func buildProvidersForRef(
 	ctx context.Context,
-	providers []identity.AWSPrincipalTypeProvider,
 	k8sClient client.Client,
 	clusterScoper cloud.ClusterScoper,
-	ref *infrav1.AWSIdentityReference,
-	log logr.Logger) ([]identity.AWSPrincipalTypeProvider, error) {
+	ref *infrav1.AWSIdentityReference) (identity.AWSPrincipalTypeProvider, error) {
+	// This will never be the case because when identityRef is not provided, it is defaulted AWSClusterControllerIdentity.
+	// Also, role identity's source reference is not allowed to be nil.
+	// This returns nil for tests.
 	if ref == nil {
-		log.V(4).Info("AWSCluster does not have a IdentityRef specified")
-		return providers, nil
+		return nil, nil
 	}
 
 	var provider identity.AWSPrincipalTypeProvider
+	var err error
 	identityObjectKey := client.ObjectKey{Name: ref.Name}
-	log = log.WithValues("identityKey", identityObjectKey)
-	log.V(4).Info("Getting identity")
 
 	switch ref.Kind {
 	case infrav1.ControllerIdentityKind:
+		fmt.Println("Controller identity e bakio")
 		err := buildAWSClusterControllerIdentity(ctx, identityObjectKey, k8sClient, clusterScoper)
 		if err != nil {
-			return providers, err
+			return nil, err
 		}
 		// returning empty provider list to default to Controller Principal.
-		return []identity.AWSPrincipalTypeProvider{}, nil
+		var emptyP identity.AWSPrincipalTypeProvider
+		return emptyP, nil
 	case infrav1.ClusterStaticIdentityKind:
-		provider, err := buildAWSClusterStaticIdentity(ctx, identityObjectKey, k8sClient, clusterScoper)
+		provider, err = buildAWSClusterStaticIdentity(ctx, identityObjectKey, k8sClient, clusterScoper)
 		if err != nil {
-			return providers, err
+			return nil, err
 		}
-		providers = append(providers, provider)
 	case infrav1.ClusterRoleIdentityKind:
-		roleIdentity := &infrav1.AWSClusterRoleIdentity{}
-		err := k8sClient.Get(ctx, identityObjectKey, roleIdentity)
+		provider, err = buildAWSClusterRoleIdentity(ctx, identityObjectKey, k8sClient, clusterScoper)
 		if err != nil {
-			return providers, err
+			return nil, err
 		}
-		log.V(4).Info("Principal retrieved")
-		canUse, err := isClusterPermittedToUsePrincipal(k8sClient, roleIdentity.Spec.AllowedNamespaces, clusterScoper.Namespace())
-		if err != nil {
-			return providers, err
-		}
-		if !canUse {
-			setPrincipalUsageNotAllowedCondition(infrav1.ClusterRoleIdentityKind, identityObjectKey, clusterScoper)
-			return providers, errors.Errorf(notPermittedError, infrav1.ClusterRoleIdentityKind, roleIdentity.Name)
-		}
-		setPrincipalUsageAllowedCondition(clusterScoper)
-
-		if roleIdentity.Spec.SourceIdentityRef != nil {
-			providers, err = buildProvidersForRef(ctx, providers, k8sClient, clusterScoper, roleIdentity.Spec.SourceIdentityRef, log)
-			if err != nil {
-				return providers, err
-			}
-		}
-		var sourceProvider identity.AWSPrincipalTypeProvider
-		if len(providers) > 0 {
-			sourceProvider = providers[len(providers)-1]
-			// Remove last provider
-			if len(providers) > 0 {
-				providers = providers[:len(providers)-1]
-			}
-		}
-
-		if sourceProvider != nil {
-			provider = identity.NewAWSRolePrincipalTypeProvider(roleIdentity, &sourceProvider, log)
-		} else {
-			provider = identity.NewAWSRolePrincipalTypeProvider(roleIdentity, nil, log)
-		}
-		providers = append(providers, provider)
 	default:
-		return providers, errors.Errorf("No such provider known: '%s'", ref.Kind)
+		return nil, errors.Errorf("No such provider known: '%s'", ref.Kind)
 	}
 	conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1.PrincipalUsageAllowedCondition)
-	return providers, nil
+	return provider, nil
 }
 
 func setPrincipalUsageAllowedCondition(clusterScoper cloud.ClusterScoper) {
@@ -331,6 +297,39 @@ func setPrincipalUsageNotAllowedCondition(kind infrav1.AWSIdentityKind, identity
 	} else {
 		conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1.PrincipalUsageAllowedCondition, infrav1.SourcePrincipalUsageUnauthorizedReason, clusterv1.ConditionSeverityError, errMsg)
 	}
+}
+
+func buildAWSClusterRoleIdentity(ctx context.Context, identityObjectKey client.ObjectKey, k8sClient client.Client, clusterScoper cloud.ClusterScoper) (*identity.AWSRolePrincipalTypeProvider, error) {
+	roleIdentity := &infrav1.AWSClusterRoleIdentity{}
+	err := k8sClient.Get(ctx, identityObjectKey, roleIdentity)
+	if err != nil {
+		return nil, err
+	}
+	canUse, err := isClusterPermittedToUsePrincipal(k8sClient, roleIdentity.Spec.AllowedNamespaces, clusterScoper.Namespace())
+	if err != nil {
+		return nil, err
+	}
+	if !canUse {
+		setPrincipalUsageNotAllowedCondition(infrav1.ClusterRoleIdentityKind, identityObjectKey, clusterScoper)
+		return nil, errors.Errorf(notPermittedError, infrav1.ClusterRoleIdentityKind, roleIdentity.Name)
+	}
+	setPrincipalUsageAllowedCondition(clusterScoper)
+
+	var sourceProvider identity.AWSPrincipalTypeProvider
+	if roleIdentity.Spec.SourceIdentityRef != nil {
+		sourceProvider, err = buildProvidersForRef(ctx, k8sClient, clusterScoper, roleIdentity.Spec.SourceIdentityRef)
+		if err != nil {
+			return nil, err
+		}
+	}
+	var provider *identity.AWSRolePrincipalTypeProvider
+	if sourceProvider != nil {
+		provider = identity.NewAWSRolePrincipalTypeProvider(roleIdentity, &sourceProvider)
+	} else {
+		provider = identity.NewAWSRolePrincipalTypeProvider(roleIdentity, nil)
+	}
+
+	return provider, nil
 }
 
 func buildAWSClusterStaticIdentity(ctx context.Context, identityObjectKey client.ObjectKey, k8sClient client.Client, clusterScoper cloud.ClusterScoper) (*identity.AWSStaticPrincipalTypeProvider, error) {
@@ -394,6 +393,8 @@ func buildAWSClusterControllerIdentity(ctx context.Context, identityObjectKey cl
 		return err
 	}
 	if !canUse {
+		fmt.Println("controller i cannot use cikti")
+
 		setPrincipalUsageNotAllowedCondition(infrav1.ControllerIdentityKind, identityObjectKey, clusterScoper)
 		return errors.Errorf(notPermittedError, infrav1.ControllerIdentityKind, controllerIdentity.Name)
 	}
@@ -401,14 +402,15 @@ func buildAWSClusterControllerIdentity(ctx context.Context, identityObjectKey cl
 	return nil
 }
 
-func getProvidersForCluster(ctx context.Context, k8sClient client.Client, clusterScoper cloud.ClusterScoper, log logr.Logger) ([]identity.AWSPrincipalTypeProvider, error) {
-	providers := make([]identity.AWSPrincipalTypeProvider, 0)
-	providers, err := buildProvidersForRef(ctx, providers, k8sClient, clusterScoper, clusterScoper.IdentityRef(), log)
+func getProvidersForCluster(ctx context.Context, k8sClient client.Client, clusterScoper cloud.ClusterScoper) (identity.AWSPrincipalTypeProvider, error) {
+	var provider identity.AWSPrincipalTypeProvider
+	var err error
+	provider, err = buildProvidersForRef(ctx, k8sClient, clusterScoper, clusterScoper.IdentityRef())
 	if err != nil {
 		return nil, err
 	}
 
-	return providers, nil
+	return provider, nil
 }
 
 func isClusterPermittedToUsePrincipal(k8sClient client.Client, allowedNs *infrav1.AllowedNamespaces, clusterNamespace string) (bool, error) {

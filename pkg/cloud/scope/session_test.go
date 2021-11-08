@@ -27,7 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/klog/v2/klogr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/identity"
 	"sigs.k8s.io/cluster-api-provider-aws/util/system"
@@ -227,7 +226,7 @@ func TestPrincipalParsing(t *testing.T) {
 		identityRef *corev1.ObjectReference
 		identity    runtime.Object
 		setup       func(client.Client, *testing.T)
-		expect      func([]identity.AWSPrincipalTypeProvider)
+		expect      func(identity.AWSPrincipalTypeProvider)
 		expectError bool
 	}{
 		{
@@ -245,9 +244,9 @@ func TestPrincipalParsing(t *testing.T) {
 			},
 			setup: func(c client.Client, t *testing.T) {
 			},
-			expect: func(providers []identity.AWSPrincipalTypeProvider) {
-				if len(providers) != 0 {
-					t.Fatalf("Expected 0 providers, got %v", len(providers))
+			expect: func(provider identity.AWSPrincipalTypeProvider) {
+				if provider != nil {
+					t.Fatalf("Provider should not be nil")
 				}
 			},
 		},
@@ -304,11 +303,11 @@ func TestPrincipalParsing(t *testing.T) {
 					t.Fatal(err)
 				}
 			},
-			expect: func(providers []identity.AWSPrincipalTypeProvider) {
-				if len(providers) != 1 {
-					t.Fatalf("Expected 1 provider, got %v", len(providers))
+			expect: func(provider identity.AWSPrincipalTypeProvider) {
+				if provider == nil {
+					t.Fatalf("provider should not be nil")
 				}
-				provider := providers[0]
+
 				p, ok := provider.(*identity.AWSStaticPrincipalTypeProvider)
 				if !ok {
 					t.Fatal("Expected providers to be of type AWSStaticPrincipalTypeProvider")
@@ -401,9 +400,9 @@ func TestPrincipalParsing(t *testing.T) {
 					t.Fatal(err)
 				}
 			},
-			expect: func(providers []identity.AWSPrincipalTypeProvider) {
-				if len(providers) != 1 {
-					t.Fatalf("Expected 1 providers, got %v", len(providers))
+			expect: func(provider identity.AWSPrincipalTypeProvider) {
+				if provider == nil {
+					t.Fatalf("Provider should not be nil")
 				}
 			},
 		},
@@ -445,11 +444,10 @@ func TestPrincipalParsing(t *testing.T) {
 					t.Fatal(err)
 				}
 			},
-			expect: func(providers []identity.AWSPrincipalTypeProvider) {
-				if len(providers) != 1 {
-					t.Fatalf("Expected 1 providers, got %v", len(providers))
+			expect: func(provider identity.AWSPrincipalTypeProvider) {
+				if provider == nil {
+					t.Fatalf("Provider should not be nil")
 				}
-				provider := providers[0]
 				p, ok := provider.(*identity.AWSRolePrincipalTypeProvider)
 				if !ok {
 					t.Fatal("Expected providers to be of type AWSRolePrincipalTypeProvider")
@@ -471,7 +469,7 @@ func TestPrincipalParsing(t *testing.T) {
 			k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 			tc.setup(k8sClient, t)
 			clusterScope.AWSCluster = &tc.awsCluster
-			providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScope, klogr.New())
+			providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScope)
 			if tc.expectError {
 				if err == nil {
 					t.Fatal("Expected an error but didn't get one")

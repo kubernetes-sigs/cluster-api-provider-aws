@@ -460,6 +460,7 @@ spec:
                 type: object
             required:
             - roleARN
+            - sourceIdentityRef
             type: object
         type: object
     served: true
