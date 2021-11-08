@@ -236,4 +236,4 @@ intervals:
   default/wait-machine-pool-nodes: ["40m", "10s"]
   default/wait-machine-pool-upgrade: [ "50m", "10s" ]
   default/wait-create-identity: ["1m", "10s"]
-  default/wait-job: ["5m", "10s"]
+  default/wait-job: ["10m", "10s"]
