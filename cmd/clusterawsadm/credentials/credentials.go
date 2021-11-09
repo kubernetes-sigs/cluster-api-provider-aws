@@ -30,6 +30,7 @@ import (
 
 // AWSCredentialsTemplate generates an AWS credentials file that can
 // be loaded by the various SDKs.
+// nolint:gosec
 const AWSCredentialsTemplate = `[default]
 aws_access_key_id = {{ .AccessKeyID }}
 aws_secret_access_key = {{ .SecretAccessKey }}

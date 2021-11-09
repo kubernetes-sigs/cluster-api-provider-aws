@@ -147,7 +147,7 @@ func (s *Service) ReconcileLoadbalancers() error {
 func (s *Service) deleteAPIServerELB() error {
 	s.scope.V(2).Info("Deleting control plane load balancer")
 
-	elbName := s.scope.ControlPlaneLoadBalancerName() //nolint:ifshort // false positive
+	elbName := s.scope.ControlPlaneLoadBalancerName()
 	if elbName == nil {
 		return fmt.Errorf("control plane load balancer name is not defined")
 	}
