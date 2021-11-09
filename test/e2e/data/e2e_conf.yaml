@@ -119,7 +119,7 @@ variables:
 
 intervals:
   default/wait-cluster: ["20m", "10s"]
-  default/wait-control-plane: ["10m", "10s"]
+  default/wait-control-plane: ["20m", "10s"]
   default/wait-worker-nodes: ["10m", "10s"]
   conformance/wait-control-plane: ["30m", "10s"]
   conformance/wait-worker-nodes: ["30m", "10s"]
