@@ -22,6 +22,7 @@ bin
 # envfiles
 .env
 envfile
+.envrc
 
 # kubeconfigs
 kind.kubeconfig
