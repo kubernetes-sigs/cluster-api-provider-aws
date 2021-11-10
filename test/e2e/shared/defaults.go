@@ -36,6 +36,7 @@ const (
 	AMIPrefix                    = "capa-ami-ubuntu-18.04-"
 	DefaultImageLookupOrg        = "258751437250"
 	KubernetesVersion            = "KUBERNETES_VERSION"
+	KubernetesVersionManagement  = "KUBERNETES_VERSION_MANAGEMENT"
 	CNIPath                      = "CNI"
 	CNIResources                 = "CNI_RESOURCES"
 	AwsNodeMachineType           = "AWS_NODE_MACHINE_TYPE"
