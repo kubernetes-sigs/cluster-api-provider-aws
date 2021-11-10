@@ -11,7 +11,7 @@ replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.0.1-0.202110281518
 // k8s.io/klog/v2 on v2.10.x
 require (
 	github.com/apparentlymart/go-cidr v1.1.0
-	github.com/aws/amazon-vpc-cni-k8s v1.9.3
+	github.com/aws/amazon-vpc-cni-k8s v1.10.0
 	github.com/aws/aws-lambda-go v1.27.0
 	github.com/aws/aws-sdk-go v1.40.56
 	github.com/awslabs/goformation/v4 v4.19.5
