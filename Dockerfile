@@ -5,6 +5,6 @@ COPY . .
 RUN unset VERSION \
   && GOPROXY=off NO_DOCKER=1 make build
 
-FROM registry.svc.ci.openshift.org/openshift/origin-v4.0:base
+FROM registry.ci.openshift.org/openshift/origin-v4.0:base
 COPY --from=builder /go/src/sigs.k8s.io/cluster-api-provider-aws/bin/machine-controller-manager /
 COPY --from=builder /go/src/sigs.k8s.io/cluster-api-provider-aws/bin/termination-handler /
