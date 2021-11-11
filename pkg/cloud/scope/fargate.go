@@ -39,7 +39,7 @@ import (
 // FargateProfileScopeParams defines the input parameters used to create a new Scope.
 type FargateProfileScopeParams struct {
 	Client         client.Client
-	Logger         logr.Logger
+	Logger         *logr.Logger
 	Cluster        *clusterv1.Cluster
 	ControlPlane   *ekscontrolplanev1.AWSManagedControlPlane
 	FargateProfile *expinfrav1.AWSFargateProfile
@@ -57,18 +57,19 @@ func NewFargateProfileScope(params FargateProfileScopeParams) (*FargateProfileSc
 		return nil, errors.New("failed to generate new scope from nil AWSFargateProfile")
 	}
 	if params.Logger == nil {
-		params.Logger = klogr.New()
+		log := klogr.New()
+		params.Logger = &log
 	}
 
 	managedScope := &ManagedControlPlaneScope{
-		Logger:         params.Logger,
+		Logger:         *params.Logger,
 		Client:         params.Client,
 		Cluster:        params.Cluster,
 		ControlPlane:   params.ControlPlane,
 		controllerName: params.ControllerName,
 	}
 
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, *params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
@@ -79,7 +80,7 @@ func NewFargateProfileScope(params FargateProfileScopeParams) (*FargateProfileSc
 	}
 
 	return &FargateProfileScope{
-		Logger:          params.Logger,
+		Logger:          *params.Logger,
 		Client:          params.Client,
 		Cluster:         params.Cluster,
 		ControlPlane:    params.ControlPlane,
