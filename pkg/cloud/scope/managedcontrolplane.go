@@ -54,7 +54,7 @@ func init() {
 // ManagedControlPlaneScopeParams defines the input parameters used to create a new Scope.
 type ManagedControlPlaneScopeParams struct {
 	Client         client.Client
-	Logger         logr.Logger
+	Logger         *logr.Logger
 	Cluster        *clusterv1.Cluster
 	ControlPlane   *ekscontrolplanev1.AWSManagedControlPlane
 	ControllerName string
@@ -75,11 +75,12 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 		return nil, errors.New("failed to generate new scope from nil AWSManagedControlPlane")
 	}
 	if params.Logger == nil {
-		params.Logger = klogr.New()
+		log := klogr.New()
+		params.Logger = &log
 	}
 
 	managedScope := &ManagedControlPlaneScope{
-		Logger:               params.Logger,
+		Logger:               *params.Logger,
 		Client:               params.Client,
 		Cluster:              params.Cluster,
 		ControlPlane:         params.ControlPlane,
@@ -90,7 +91,7 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 		allowAdditionalRoles: params.AllowAdditionalRoles,
 		enableIAM:            params.EnableIAM,
 	}
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, *params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}

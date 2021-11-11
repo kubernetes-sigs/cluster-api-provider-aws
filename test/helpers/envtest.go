@@ -145,9 +145,9 @@ func NewTestEnvironmentConfiguration(crdDirectoryPaths []string) *TestEnvironmen
 		env: &envtest.Environment{
 			ErrorIfCRDPathMissing: true,
 			CRDDirectoryPaths:     resolvedCrdDirectoryPaths,
-			CRDs: []apiextensionsv1.CustomResourceDefinition{
-				*external.TestClusterCRD.DeepCopy(),
-				*external.TestMachineCRD.DeepCopy(),
+			CRDs: []*apiextensionsv1.CustomResourceDefinition{
+				external.TestClusterCRD.DeepCopy(),
+				external.TestMachineCRD.DeepCopy(),
 			},
 		},
 	}
@@ -163,8 +163,8 @@ func (t *TestEnvironmentConfiguration) WithWebhookConfiguration(tag string, rela
 // This function should be called only once for each package you're running tests within,
 // usually the environment is initialized in a suite_test.go file within a `BeforeSuite` ginkgo block.
 func (t *TestEnvironmentConfiguration) Build() (*TestEnvironment, error) {
-	mutatingWebhooks := make([]admissionv1.MutatingWebhookConfiguration, 0, len(t.webhookConfigurations))
-	validatingWebhooks := make([]admissionv1.ValidatingWebhookConfiguration, 0, len(t.webhookConfigurations))
+	mutatingWebhooks := make([]*admissionv1.MutatingWebhookConfiguration, 0, len(t.webhookConfigurations))
+	validatingWebhooks := make([]*admissionv1.ValidatingWebhookConfiguration, 0, len(t.webhookConfigurations))
 	for _, w := range t.webhookConfigurations {
 		m, v, err := buildModifiedWebhook(w.tag, w.relativeFilePath)
 		if err != nil {
@@ -172,11 +172,11 @@ func (t *TestEnvironmentConfiguration) Build() (*TestEnvironment, error) {
 		}
 		if m.Webhooks != nil {
 			// No mutating webhook defined.
-			mutatingWebhooks = append(mutatingWebhooks, m)
+			mutatingWebhooks = append(mutatingWebhooks, &m)
 		}
 		if v.Webhooks != nil {
 			// No validating webhook defined.
-			validatingWebhooks = append(validatingWebhooks, v)
+			validatingWebhooks = append(validatingWebhooks, &v)
 		}
 	}
 

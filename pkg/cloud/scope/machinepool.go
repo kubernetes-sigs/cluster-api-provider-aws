@@ -54,7 +54,7 @@ type MachinePoolScope struct {
 // MachinePoolScopeParams defines a scope defined around a machine and its cluster.
 type MachinePoolScopeParams struct {
 	Client client.Client
-	Logger logr.Logger
+	Logger *logr.Logger
 
 	Cluster        *clusterv1.Cluster
 	MachinePool    *expclusterv1.MachinePool
@@ -90,7 +90,8 @@ func NewMachinePoolScope(params MachinePoolScopeParams) (*MachinePoolScope, erro
 	}
 
 	if params.Logger == nil {
-		params.Logger = klogr.New()
+		log := klogr.New()
+		params.Logger = &log
 	}
 
 	helper, err := patch.NewHelper(params.AWSMachinePool, params.Client)
@@ -99,7 +100,7 @@ func NewMachinePoolScope(params MachinePoolScopeParams) (*MachinePoolScope, erro
 	}
 
 	return &MachinePoolScope{
-		Logger:      params.Logger,
+		Logger:      *params.Logger,
 		client:      params.Client,
 		patchHelper: helper,
 
@@ -226,7 +227,7 @@ func (m *MachinePoolScope) SubnetIDs() ([]string, error) {
 		subnetIDs[i] = aws.StringValue(v.ID)
 	}
 
-	strategy, err := newDefaultSubnetPlacementStrategy(m.Logger)
+	strategy, err := newDefaultSubnetPlacementStrategy(&m.Logger)
 	if err != nil {
 		return subnetIDs, fmt.Errorf("getting subnet placement strategy: %w", err)
 	}

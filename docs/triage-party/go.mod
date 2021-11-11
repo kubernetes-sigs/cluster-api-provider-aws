@@ -1,6 +1,6 @@
 module triage-party-deployment
 
-go 1.16
+go 1.17
 
 require (
 	github.com/aws/aws-cdk-go/awscdk v1.110.0-devpreview

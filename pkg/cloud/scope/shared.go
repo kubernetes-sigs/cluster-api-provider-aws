@@ -46,13 +46,13 @@ type subnetsPlacementStratgey interface {
 	Place(input *placementInput) ([]string, error)
 }
 
-func newDefaultSubnetPlacementStrategy(logger logr.Logger) (subnetsPlacementStratgey, error) {
+func newDefaultSubnetPlacementStrategy(logger *logr.Logger) (subnetsPlacementStratgey, error) {
 	if logger == nil {
 		return nil, ErrLoggerRequired
 	}
 
 	return &defaultSubnetPlacementStrategy{
-		logger: logger,
+		logger: *logger,
 	}, nil
 }
 

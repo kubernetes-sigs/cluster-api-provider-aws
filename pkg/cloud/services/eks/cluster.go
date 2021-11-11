@@ -22,14 +22,13 @@ import (
 	"net"
 	"time"
 
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/internal/cmp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/eks"
-	"github.com/go-logr/logr"
-
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
@@ -629,7 +628,7 @@ func (s *Service) updateEncryptionConfig(updatedEncryptionConfigs []*eks.Encrypt
 
 // An internal type to satisfy aws' log interface.
 type awslog struct {
-	logr.Logger
+	cloud.Logger
 }
 
 func (a *awslog) Log(args ...interface{}) {

@@ -128,7 +128,7 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Create the scope.
 	clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 		Client:         r.Client,
-		Logger:         log,
+		Logger:         &log,
 		Cluster:        cluster,
 		AWSCluster:     awsCluster,
 		ControllerName: "awscluster",

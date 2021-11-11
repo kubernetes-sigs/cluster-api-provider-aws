@@ -41,7 +41,7 @@ import (
 // MachineScopeParams defines the input parameters used to create a new MachineScope.
 type MachineScopeParams struct {
 	Client       client.Client
-	Logger       logr.Logger
+	Logger       *logr.Logger
 	Cluster      *clusterv1.Cluster
 	Machine      *clusterv1.Machine
 	InfraCluster EC2Scope
@@ -68,7 +68,8 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 	}
 
 	if params.Logger == nil {
-		params.Logger = klogr.New()
+		log := klogr.New()
+		params.Logger = &log
 	}
 
 	helper, err := patch.NewHelper(params.AWSMachine, params.Client)
@@ -76,7 +77,7 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
 	return &MachineScope{
-		Logger:      params.Logger,
+		Logger:      *params.Logger,
 		client:      params.Client,
 		patchHelper: helper,
 

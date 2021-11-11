@@ -149,7 +149,7 @@ func TestSubnetPlacement(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewGomegaWithT(t)
 
-			strategy, err := newDefaultSubnetPlacementStrategy(tc.logger)
+			strategy, err := newDefaultSubnetPlacementStrategy(&tc.logger)
 			g.Expect(err).NotTo(HaveOccurred())
 
 			actualSubnetIDs, err := strategy.Place(&placementInput{

@@ -42,7 +42,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
-	"github.com/go-logr/logr"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -54,7 +53,7 @@ import (
 )
 
 // NewASGClient creates a new ASG API client for a given session.
-func NewASGClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logr.Logger, target runtime.Object) autoscalingiface.AutoScalingAPI {
+func NewASGClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger cloud.Logger, target runtime.Object) autoscalingiface.AutoScalingAPI {
 	asgClient := autoscaling.New(session.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(logger)).WithLogger(awslogs.NewWrapLogr(logger)))
 	asgClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
 	asgClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
@@ -64,7 +63,7 @@ func NewASGClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logr
 }
 
 // NewEC2Client creates a new EC2 API client for a given session.
-func NewEC2Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logr.Logger, target runtime.Object) ec2iface.EC2API {
+func NewEC2Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger cloud.Logger, target runtime.Object) ec2iface.EC2API {
 	ec2Client := ec2.New(session.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(logger)).WithLogger(awslogs.NewWrapLogr(logger)))
 	ec2Client.Handlers.Build.PushFrontNamed(getUserAgentHandler())
 	if session.ServiceLimiter(ec2.ServiceID) != nil {
@@ -80,7 +79,7 @@ func NewEC2Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logr
 }
 
 // NewELBClient creates a new ELB API client for a given session.
-func NewELBClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logr.Logger, target runtime.Object) elbiface.ELBAPI {
+func NewELBClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger cloud.Logger, target runtime.Object) elbiface.ELBAPI {
 	elbClient := elb.New(session.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(logger)).WithLogger(awslogs.NewWrapLogr(logger)))
 	elbClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
 	elbClient.Handlers.Sign.PushFront(session.ServiceLimiter(elb.ServiceID).LimitRequest)
@@ -121,7 +120,7 @@ func NewGlobalSQSClient(scopeUser cloud.ScopeUsage, session cloud.Session) sqsif
 }
 
 // NewResourgeTaggingClient creates a new Resource Tagging API client for a given session.
-func NewResourgeTaggingClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logr.Logger, target runtime.Object) resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI {
+func NewResourgeTaggingClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger cloud.Logger, target runtime.Object) resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI {
 	resourceTagging := resourcegroupstaggingapi.New(session.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(logger)).WithLogger(awslogs.NewWrapLogr(logger)))
 	resourceTagging.Handlers.Build.PushFrontNamed(getUserAgentHandler())
 	resourceTagging.Handlers.Sign.PushFront(session.ServiceLimiter(resourceTagging.ServiceID).LimitRequest)
@@ -133,7 +132,7 @@ func NewResourgeTaggingClient(scopeUser cloud.ScopeUsage, session cloud.Session,
 }
 
 // NewSecretsManagerClient creates a new Secrets API client for a given session..
-func NewSecretsManagerClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logr.Logger, target runtime.Object) secretsmanageriface.SecretsManagerAPI {
+func NewSecretsManagerClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger cloud.Logger, target runtime.Object) secretsmanageriface.SecretsManagerAPI {
 	secretsClient := secretsmanager.New(session.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(logger)).WithLogger(awslogs.NewWrapLogr(logger)))
 	secretsClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
 	secretsClient.Handlers.Sign.PushFront(session.ServiceLimiter(secretsClient.ServiceID).LimitRequest)
@@ -145,7 +144,7 @@ func NewSecretsManagerClient(scopeUser cloud.ScopeUsage, session cloud.Session, 
 }
 
 // NewEKSClient creates a new EKS API client for a given session.
-func NewEKSClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logr.Logger, target runtime.Object) eksiface.EKSAPI {
+func NewEKSClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger cloud.Logger, target runtime.Object) eksiface.EKSAPI {
 	eksClient := eks.New(session.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(logger)).WithLogger(awslogs.NewWrapLogr(logger)))
 	eksClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
 	eksClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
@@ -155,7 +154,7 @@ func NewEKSClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logr
 }
 
 // NewIAMClient creates a new IAM API client for a given session.
-func NewIAMClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logr.Logger, target runtime.Object) iamiface.IAMAPI {
+func NewIAMClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger cloud.Logger, target runtime.Object) iamiface.IAMAPI {
 	iamClient := iam.New(session.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(logger)).WithLogger(awslogs.NewWrapLogr(logger)))
 	iamClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
 	iamClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
@@ -165,7 +164,7 @@ func NewIAMClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logr
 }
 
 // NewSTSClient creates a new STS API client for a given session.
-func NewSTSClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logr.Logger, target runtime.Object) stsiface.STSAPI {
+func NewSTSClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger cloud.Logger, target runtime.Object) stsiface.STSAPI {
 	stsClient := sts.New(session.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(logger)).WithLogger(awslogs.NewWrapLogr(logger)))
 	stsClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
 	stsClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
@@ -175,7 +174,7 @@ func NewSTSClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logr
 }
 
 // NewSSMClient creates a new Secrets API client for a given session.
-func NewSSMClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logr.Logger, target runtime.Object) ssmiface.SSMAPI {
+func NewSSMClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger cloud.Logger, target runtime.Object) ssmiface.SSMAPI {
 	ssmClient := ssm.New(session.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(logger)).WithLogger(awslogs.NewWrapLogr(logger)))
 	ssmClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
 	ssmClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))

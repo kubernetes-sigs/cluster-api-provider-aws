@@ -606,7 +606,7 @@ func (r *AWSMachinePoolReconciler) getInfraCluster(ctx context.Context, log logr
 
 		managedControlPlaneScope, err = scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
 			Client:         r.Client,
-			Logger:         log,
+			Logger:         &log,
 			Cluster:        cluster,
 			ControlPlane:   controlPlane,
 			ControllerName: "awsManagedControlPlane",
@@ -633,7 +633,7 @@ func (r *AWSMachinePoolReconciler) getInfraCluster(ctx context.Context, log logr
 	// Create the cluster scope
 	clusterScope, err = scope.NewClusterScope(scope.ClusterScopeParams{
 		Client:         r.Client,
-		Logger:         log,
+		Logger:         &log,
 		Cluster:        cluster,
 		AWSCluster:     awsCluster,
 		ControllerName: "awsmachine",
