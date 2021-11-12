@@ -119,20 +119,6 @@ E2E_SKIP_EKS_UPGRADE ?= "true"
 # Set EKS_SOURCE_TEMPLATE to override the source template
 EKS_SOURCE_TEMPLATE ?= eks/cluster-template-eks-control-plane-only.yaml
 
-#### We are disable Cluster API Framework tests for the time being for lack of resources
-# With framework tests enables, tests exceed the 4 hour timeout.
-GINKGO_SKIP ?= \[Cluster API Framework\]
-
-# If someone sets an explicit focus for Cluster API Framework, remove the skip
-ifeq ($(findstring \[Cluster API Framework\],$(E2E_FOCUS)),\[Cluster API Framework\])
-  override undefine GINKGO_SKIP
-endif
-
-# Enable Cluster API Framework tests for the purposes of running the PR blocking test
-ifeq ($(findstring \[PR-Blocking\],$(E2E_FOCUS)),\[PR-Blocking\])
-  override undefine GINKGO_SKIP
-endif
-
 override E2E_ARGS += -artifacts-folder="$(ARTIFACTS)" --data-folder="$(E2E_DATA_DIR)" -use-existing-cluster=$(USE_EXISTING_CLUSTER)
 override GINKGO_ARGS += -stream -progress -v -trace
 
