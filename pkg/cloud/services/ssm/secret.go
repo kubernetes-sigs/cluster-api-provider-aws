@@ -93,11 +93,10 @@ func (s *Service) Create(m *scope.MachineScope, data []byte) (string, int32, err
 // retryableCreateSecret is a function to be passed into a waiter. In a separate function for ease of reading
 func (s *Service) retryableCreateSecret(name string, chunk []byte, tags infrav1.Tags) (bool, error) {
 	_, err := s.SSMClient.PutParameter(&ssm.PutParameterInput{
-		Name:     aws.String(name),
-		DataType: aws.String("text"),
-		Value:    aws.String(string(chunk)),
-		Tags:     converters.MapToSSMTags(tags),
-		Type:     aws.String("SecureString"),
+		Name:  aws.String(name),
+		Value: aws.String(string(chunk)),
+		Tags:  converters.MapToSSMTags(tags),
+		Type:  aws.String("SecureString"),
 	})
 	if err != nil {
 		return false, err
