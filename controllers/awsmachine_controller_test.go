@@ -36,12 +36,12 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/mock_services"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -185,17 +185,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 				g.Expect(buf).To(ContainSubstring("Error state detected, skipping reconciliation"))
 			})
 
-			t.Run("should add our finalizer to the machine", func(t *testing.T) {
-				g := NewWithT(t)
-				awsMachine := getAWSMachine()
-				setup(awsMachine, t, g)
-				defer teardown(t, g)
-				runningInstance(t, g)
-				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
-
-				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
-			})
-
 			t.Run("should exit immediately if cluster infra isn't ready", func(t *testing.T) {
 				g := NewWithT(t)
 				awsMachine := getAWSMachine()
@@ -240,6 +229,17 @@ func TestAWSMachineReconciler(t *testing.T) {
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
 				g.Expect(errors.Cause(err)).To(MatchError(expectedErr))
 			})
+
+			t.Run("shouldn't add our finalizer to the machine", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(awsMachine, t, g)
+				defer teardown(t, g)
+				runningInstance(t, g)
+				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+
+				g.Expect(len(ms.AWSMachine.Finalizers)).To(Equal(0))
+			})
 		})
 
 		t.Run("when there's a provider ID", func(t *testing.T) {
@@ -265,7 +265,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				g.Expect(errors.Cause(err)).To(MatchError(expectedErr))
 			})
 
-			t.Run("should try to create a new machine if none exists", func(t *testing.T) {
+			t.Run("should try to create a new machine if none exists and add finalizers", func(t *testing.T) {
 				g := NewWithT(t)
 				awsMachine := getAWSMachine()
 				setup(awsMachine, t, g)
@@ -279,6 +279,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
 				g.Expect(errors.Cause(err)).To(MatchError(expectedErr))
 			})
 		})

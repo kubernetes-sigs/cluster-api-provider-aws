@@ -19,6 +19,7 @@ package scope
 import (
 	"context"
 	"fmt"
+	"time"
 
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/go-logr/logr"
@@ -30,13 +31,13 @@ import (
 	amazoncni "github.com/aws/amazon-vpc-cni-k8s/pkg/apis/crd/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 )
 
@@ -53,7 +54,7 @@ func init() {
 // ManagedControlPlaneScopeParams defines the input parameters used to create a new Scope.
 type ManagedControlPlaneScopeParams struct {
 	Client         client.Client
-	Logger         logr.Logger
+	Logger         *logr.Logger
 	Cluster        *clusterv1.Cluster
 	ControlPlane   *ekscontrolplanev1.AWSManagedControlPlane
 	ControllerName string
@@ -74,11 +75,12 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 		return nil, errors.New("failed to generate new scope from nil AWSManagedControlPlane")
 	}
 	if params.Logger == nil {
-		params.Logger = klogr.New()
+		log := klogr.New()
+		params.Logger = &log
 	}
 
 	managedScope := &ManagedControlPlaneScope{
-		Logger:               params.Logger,
+		Logger:               *params.Logger,
 		Client:               params.Client,
 		Cluster:              params.Cluster,
 		ControlPlane:         params.ControlPlane,
@@ -89,7 +91,7 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 		allowAdditionalRoles: params.AllowAdditionalRoles,
 		enableIAM:            params.EnableIAM,
 	}
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, *params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
@@ -130,10 +132,11 @@ func (s *ManagedControlPlaneScope) RemoteClient() (client.Client, error) {
 		Namespace: s.Namespace(),
 	}
 
-	restConfig, err := remote.RESTConfig(context.Background(), s.controllerName, s.Client, clusterKey)
+	restConfig, err := remote.RESTConfig(context.Background(), s.ControlPlane.Name, s.Client, clusterKey)
 	if err != nil {
-		return nil, fmt.Errorf("getting remote client for %s/%s: %w", s.Namespace(), s.Name(), err)
+		return nil, fmt.Errorf("getting remote rest config for %s/%s: %w", s.Namespace(), s.Name(), err)
 	}
+	restConfig.Timeout = 1 * time.Minute
 
 	return client.New(restConfig, client.Options{Scheme: scheme})
 }
@@ -357,4 +360,8 @@ func (s *ManagedControlPlaneScope) Addons() []ekscontrolplanev1.Addon {
 // DisableVPCCNI returns whether the AWS VPC CNI should be disabled.
 func (s *ManagedControlPlaneScope) DisableVPCCNI() bool {
 	return s.ControlPlane.Spec.DisableVPCCNI
+}
+
+func (s *ManagedControlPlaneScope) OIDCIdentityProviderConfig() *ekscontrolplanev1.OIDCIdentityProviderConfig {
+	return s.ControlPlane.Spec.OIDCIdentityProviderConfig
 }

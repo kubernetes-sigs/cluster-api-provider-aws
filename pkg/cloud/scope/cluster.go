@@ -24,10 +24,10 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2/klogr"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,7 +36,7 @@ import (
 // ClusterScopeParams defines the input parameters used to create a new Scope.
 type ClusterScopeParams struct {
 	Client         client.Client
-	Logger         logr.Logger
+	Logger         *logr.Logger
 	Cluster        *clusterv1.Cluster
 	AWSCluster     *infrav1.AWSCluster
 	ControllerName string
@@ -55,18 +55,19 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	}
 
 	if params.Logger == nil {
-		params.Logger = klogr.New()
+		log := klogr.New()
+		params.Logger = &log
 	}
 
 	clusterScope := &ClusterScope{
-		Logger:         params.Logger,
+		Logger:         *params.Logger,
 		client:         params.Client,
 		Cluster:        params.Cluster,
 		AWSCluster:     params.AWSCluster,
 		controllerName: params.ControllerName,
 	}
 
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, clusterScope, params.AWSCluster.Spec.Region, params.Endpoints, params.Logger)
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, clusterScope, params.AWSCluster.Spec.Region, params.Endpoints, *params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
@@ -182,6 +183,13 @@ func (s *ClusterScope) ControlPlaneLoadBalancerScheme() infrav1.ClassicELBScheme
 		return *s.ControlPlaneLoadBalancer().Scheme
 	}
 	return infrav1.ClassicELBSchemeInternetFacing
+}
+
+func (s *ClusterScope) ControlPlaneLoadBalancerName() *string {
+	if s.AWSCluster.Spec.ControlPlaneLoadBalancer != nil {
+		return s.AWSCluster.Spec.ControlPlaneLoadBalancer.Name
+	}
+	return nil
 }
 
 // ControlPlaneConfigMapName returns the name of the ConfigMap used to

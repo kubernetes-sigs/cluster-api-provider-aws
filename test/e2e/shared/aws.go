@@ -19,11 +19,13 @@ limitations under the License.
 package shared
 
 import (
+	"bytes"
 	"context"
+	b64 "encoding/base64"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -40,6 +42,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ecrpublic"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
@@ -49,6 +52,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/credentials"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/yaml"
 )
 
@@ -60,6 +64,20 @@ func NewAWSSession() client.ConfigProvider {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 		Config:            *config,
+	})
+	Expect(err).NotTo(HaveOccurred())
+	_, err = sess.Config.Credentials.Get()
+	Expect(err).NotTo(HaveOccurred())
+	return sess
+}
+
+func NewAWSSessionRepoWithKey(accessKey *iam.AccessKey) client.ConfigProvider {
+	By("Getting an AWS IAM session - from access key")
+	config := aws.NewConfig().WithCredentialsChainVerboseErrors(true).WithRegion("us-east-1")
+	config.Credentials = awscreds.NewStaticCredentials(*accessKey.AccessKeyId, *accessKey.SecretAccessKey, "")
+
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Config: *config,
 	})
 	Expect(err).NotTo(HaveOccurred())
 	_, err = sess.Config.Credentials.Get()
@@ -235,6 +253,80 @@ func deleteCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Temp
 	})
 }
 
+func ensureTestImageUploaded(e2eCtx *E2EContext) (string, string, error) {
+	sessionForRepo := NewAWSSessionRepoWithKey(e2eCtx.Environment.BootstrapAccessKey)
+
+	ecrSvc := ecrpublic.New(sessionForRepo)
+	repoName := ""
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		output, err := ecrSvc.CreateRepository(&ecrpublic.CreateRepositoryInput{
+			RepositoryName: aws.String("capa/update"),
+		})
+
+		if err != nil {
+			if !awserrors.IsRepositoryExists(err) {
+				return false, err
+			}
+			out, err := ecrSvc.DescribeRepositories(&ecrpublic.DescribeRepositoriesInput{RepositoryNames: []*string{aws.String("capa/update")}})
+			if err != nil || len(out.Repositories) == 0 {
+				return false, err
+			}
+			repoName = aws.StringValue(out.Repositories[0].RepositoryUri)
+		} else {
+			repoName = aws.StringValue(output.Repository.RepositoryUri)
+		}
+
+		return true, nil
+	}, awserrors.UnrecognizedClientException); err != nil {
+		return "", "", nil
+	}
+
+	cmd := exec.Command("docker", "inspect", "--format='{{index .Id}}'", "gcr.io/k8s-staging-cluster-api/capa-manager:e2e")
+	var stdOut bytes.Buffer
+	cmd.Stdout = &stdOut
+	err := cmd.Run()
+	if err != nil {
+		return "", "", err
+	}
+
+	imageSha := strings.ReplaceAll(strings.TrimSuffix(string(stdOut.Bytes()), "\n"), "'", "")
+
+	ecrImageName := repoName + ":e2e"
+	cmd = exec.Command("docker", "tag", imageSha, ecrImageName)
+	err = cmd.Run()
+	if err != nil {
+		return "", "", err
+	}
+
+	outToken, err := ecrSvc.GetAuthorizationToken(&ecrpublic.GetAuthorizationTokenInput{})
+	if err != nil {
+		return "", "", err
+	}
+
+	// Auth token is in username:password format. To login using it, we need to decode first and separate password and username
+	decodedUsernamePassword, _ := b64.StdEncoding.DecodeString(aws.StringValue(outToken.AuthorizationData.AuthorizationToken))
+
+	strList := strings.Split(string(decodedUsernamePassword), ":")
+	if len(strList) != 2 {
+		return "", "", errors.New("Failed to decode ECR authentication token")
+	}
+
+	cmd = exec.Command("docker", "login", "--username", strList[0], "--password", strList[1], "public.ecr.aws")
+	err = cmd.Run()
+	if err != nil {
+		return "", "", err
+	}
+
+	cmd = exec.Command("docker", "push", ecrImageName)
+	err = cmd.Run()
+	if err != nil {
+		return "", "", err
+	}
+	e2eCtx.E2EConfig.Variables["CAPI_IMAGES_REGISTRY"] = repoName
+	e2eCtx.E2EConfig.Variables["E2E_IMAGE_TAG"] = "e2e"
+	return "", "", nil
+}
+
 // ensureNoServiceLinkedRoles removes an auto-created IAM role, and tests
 // the controller's IAM permissions to use ELB and Spot instances successfully
 func ensureNoServiceLinkedRoles(prov client.ConfigProvider) {
@@ -322,7 +414,7 @@ func DumpCloudTrailEvents(e2eCtx *E2EContext) {
 	}
 	logPath := filepath.Join(e2eCtx.Settings.ArtifactFolder, "cloudtrail-events.yaml")
 	dat, err := yaml.Marshal(events)
-	if err := ioutil.WriteFile(logPath, dat, 0600); err != nil {
+	if err := os.WriteFile(logPath, dat, 0600); err != nil {
 		fmt.Fprintf(GinkgoWriter, "couldn't write cloudtrail events to file: file=%s err=%s", logPath, err)
 		return
 	}
@@ -481,7 +573,7 @@ func dumpEKSCluster(cluster *eks.Cluster, logPath string) {
 	}
 	defer f.Close()
 
-	if err := ioutil.WriteFile(f.Name(), clusterYAML, 0600); err != nil {
+	if err := os.WriteFile(f.Name(), clusterYAML, 0600); err != nil {
 		fmt.Fprintf(GinkgoWriter, "couldn't write cluster yaml to file: name=%s file=%s err=%s", *cluster.Name, f.Name(), err)
 		return
 	}

@@ -17,7 +17,7 @@ When using an alternative CNI you will want to delete the Amazon VPC CNI, especi
 
 ```yaml
 kind: AWSManagedControlPlane
-apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 metadata:
   name: "capi-managed-test-control-plane"
 spec:

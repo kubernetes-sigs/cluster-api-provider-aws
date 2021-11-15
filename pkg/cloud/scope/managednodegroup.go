@@ -26,31 +26,32 @@ import (
 	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	controlplanev1exp "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 )
 
 // ManagedMachinePoolScopeParams defines the input parameters used to create a new Scope.
 type ManagedMachinePoolScopeParams struct {
 	Client             client.Client
-	Logger             logr.Logger
+	Logger             *logr.Logger
 	Cluster            *clusterv1.Cluster
-	ControlPlane       *controlplanev1exp.AWSManagedControlPlane
-	ManagedMachinePool *infrav1exp.AWSManagedMachinePool
-	MachinePool        *clusterv1exp.MachinePool
+	ControlPlane       *ekscontrolplanev1.AWSManagedControlPlane
+	ManagedMachinePool *expinfrav1.AWSManagedMachinePool
+	MachinePool        *expclusterv1.MachinePool
 	ControllerName     string
 	Endpoints          []ServiceEndpoint
 	Session            awsclient.ConfigProvider
 
-	EnableIAM bool
+	EnableIAM            bool
+	AllowAdditionalRoles bool
 }
 
 // NewManagedMachinePoolScope creates a new Scope from the supplied parameters.
@@ -62,18 +63,22 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 	if params.MachinePool == nil {
 		return nil, errors.New("failed to generate new scope from nil MachinePool")
 	}
+	if params.ManagedMachinePool == nil {
+		return nil, errors.New("failed to generate new scope from nil ManagedMachinePool")
+	}
 	if params.Logger == nil {
-		params.Logger = klogr.New()
+		log := klogr.New()
+		params.Logger = &log
 	}
 
 	managedScope := &ManagedControlPlaneScope{
-		Logger:         params.Logger,
+		Logger:         *params.Logger,
 		Client:         params.Client,
 		Cluster:        params.Cluster,
 		ControlPlane:   params.ControlPlane,
 		controllerName: params.ControllerName,
 	}
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, *params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
@@ -84,17 +89,18 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 	}
 
 	return &ManagedMachinePoolScope{
-		Logger:             params.Logger,
-		Client:             params.Client,
-		Cluster:            params.Cluster,
-		ControlPlane:       params.ControlPlane,
-		ManagedMachinePool: params.ManagedMachinePool,
-		MachinePool:        params.MachinePool,
-		patchHelper:        helper,
-		session:            session,
-		serviceLimiters:    serviceLimiters,
-		controllerName:     params.ControllerName,
-		enableIAM:          params.EnableIAM,
+		Logger:               *params.Logger,
+		Client:               params.Client,
+		Cluster:              params.Cluster,
+		ControlPlane:         params.ControlPlane,
+		ManagedMachinePool:   params.ManagedMachinePool,
+		MachinePool:          params.MachinePool,
+		patchHelper:          helper,
+		session:              session,
+		serviceLimiters:      serviceLimiters,
+		controllerName:       params.ControllerName,
+		enableIAM:            params.EnableIAM,
+		allowAdditionalRoles: params.AllowAdditionalRoles,
 	}, nil
 }
 
@@ -105,15 +111,16 @@ type ManagedMachinePoolScope struct {
 	patchHelper *patch.Helper
 
 	Cluster            *clusterv1.Cluster
-	ControlPlane       *controlplanev1exp.AWSManagedControlPlane
-	ManagedMachinePool *infrav1exp.AWSManagedMachinePool
-	MachinePool        *clusterv1exp.MachinePool
+	ControlPlane       *ekscontrolplanev1.AWSManagedControlPlane
+	ManagedMachinePool *expinfrav1.AWSManagedMachinePool
+	MachinePool        *expclusterv1.MachinePool
 
 	session         awsclient.ConfigProvider
 	serviceLimiters throttle.ServiceLimiters
 	controllerName  string
 
-	enableIAM bool
+	enableIAM            bool
+	allowAdditionalRoles bool
 }
 
 // ManagedPoolName returns the managed machine pool name.
@@ -137,6 +144,11 @@ func (s *ManagedMachinePoolScope) ClusterName() string {
 // EnableIAM indicates that reconciliation should create IAM roles.
 func (s *ManagedMachinePoolScope) EnableIAM() bool {
 	return s.enableIAM
+}
+
+// AllowAdditionalRoles indicates if additional roles can be added to the created IAM roles.
+func (s *ManagedMachinePoolScope) AllowAdditionalRoles() bool {
+	return s.allowAdditionalRoles
 }
 
 // IdentityRef returns the cluster identityRef.
@@ -171,7 +183,7 @@ func (s *ManagedMachinePoolScope) ControlPlaneSubnets() infrav1.Subnets {
 
 // SubnetIDs returns the machine pool subnet IDs.
 func (s *ManagedMachinePoolScope) SubnetIDs() ([]string, error) {
-	strategy, err := newDefaultSubnetPlacementStrategy(s.Logger)
+	strategy, err := newDefaultSubnetPlacementStrategy(&s.Logger)
 	if err != nil {
 		return []string{}, fmt.Errorf("getting subnet placement strategy: %w", err)
 	}
@@ -193,7 +205,7 @@ func (s *ManagedMachinePoolScope) NodegroupReadyFalse(reason string, err string)
 	}
 	conditions.MarkFalse(
 		s.ManagedMachinePool,
-		infrav1exp.EKSNodegroupReadyCondition,
+		expinfrav1.EKSNodegroupReadyCondition,
 		reason,
 		severity,
 		err,
@@ -213,7 +225,7 @@ func (s *ManagedMachinePoolScope) IAMReadyFalse(reason string, err string) error
 	}
 	conditions.MarkFalse(
 		s.ManagedMachinePool,
-		infrav1exp.IAMNodegroupRolesReadyCondition,
+		expinfrav1.IAMNodegroupRolesReadyCondition,
 		reason,
 		severity,
 		err,
@@ -230,8 +242,8 @@ func (s *ManagedMachinePoolScope) PatchObject() error {
 		context.TODO(),
 		s.ManagedMachinePool,
 		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-			infrav1exp.EKSNodegroupReadyCondition,
-			infrav1exp.IAMNodegroupRolesReadyCondition,
+			expinfrav1.EKSNodegroupReadyCondition,
+			expinfrav1.IAMNodegroupRolesReadyCondition,
 		}})
 }
 

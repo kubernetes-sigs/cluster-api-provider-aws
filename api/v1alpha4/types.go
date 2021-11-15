@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/sets"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
 const (
@@ -103,7 +103,7 @@ type ClassicELBScheme string
 var (
 	// ClassicELBSchemeInternetFacing defines an internet-facing, publicly
 	// accessible AWS Classic ELB scheme.
-	ClassicELBSchemeInternetFacing = ClassicELBScheme("Internet-facing")
+	ClassicELBSchemeInternetFacing = ClassicELBScheme("internet-facing")
 
 	// ClassicELBSchemeInternal defines an internal-only facing
 	// load balancer internal to an ELB.
@@ -656,7 +656,7 @@ type Instance struct {
 	IAMProfile string `json:"iamProfile,omitempty"`
 
 	// Addresses contains the AWS instance associated addresses.
-	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
+	Addresses []clusterv1alpha4.MachineAddress `json:"addresses,omitempty"`
 
 	// The private IPv4 address assigned to the instance.
 	PrivateIP *string `json:"privateIp,omitempty"`
@@ -712,11 +712,15 @@ type Volume struct {
 
 	// Type is the type of the volume (e.g. gp2, io1, etc...).
 	// +optional
-	Type string `json:"type,omitempty"`
+	Type VolumeType `json:"type,omitempty"`
 
 	// IOPS is the number of IOPS requested for the disk. Not applicable to all types.
 	// +optional
 	IOPS int64 `json:"iops,omitempty"`
+
+	// Throughput to provision in MiB/s supported for the volume type. Not applicable to all types.
+	// +optional
+	Throughput *int64 `json:"throughput,omitempty"`
 
 	// Encrypted is whether the volume should be encrypted or not.
 	// +optional
@@ -728,6 +732,36 @@ type Volume struct {
 	// +optional
 	EncryptionKey string `json:"encryptionKey,omitempty"`
 }
+
+// VolumeType describes the EBS volume type.
+// See: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-volume-types.html
+type VolumeType string
+
+var (
+	// VolumeTypeIO1 is the string representing a provisioned iops ssd io1 volume
+	VolumeTypeIO1 = VolumeType("io1")
+
+	// VolumeTypeIO2 is the string representing a provisioned iops ssd io2 volume
+	VolumeTypeIO2 = VolumeType("io2")
+
+	// VolumeTypeGP2 is the string representing a general purpose ssd gp2 volume
+	VolumeTypeGP2 = VolumeType("gp2")
+
+	// VolumeTypeGP3 is the string representing a general purpose ssd gp3 volume
+	VolumeTypeGP3 = VolumeType("gp3")
+
+	// VolumeTypesGP are volume types provisioned for general purpose io
+	VolumeTypesGP = sets.NewString(
+		string(VolumeTypeIO1),
+		string(VolumeTypeIO2),
+	)
+
+	// VolumeTypesProvisioned are volume types provisioned for high performance io
+	VolumeTypesProvisioned = sets.NewString(
+		string(VolumeTypeIO1),
+		string(VolumeTypeIO2),
+	)
+)
 
 // SpotMarketOptions defines the options available to a user when configuring
 // Machines to run on Spot instances.

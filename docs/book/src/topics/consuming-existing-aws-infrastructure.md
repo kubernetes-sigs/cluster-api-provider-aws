@@ -16,9 +16,11 @@ In order to have Cluster API consume existing AWS infrastructure, you will need 
 
 You will need the ID of the VPC and subnet IDs that Cluster API should use. This information is available via the AWS Management Console or the AWS CLI.
 
-Note that there is no need to create an Elastic Load Balancer (ELB), security groups, or EC2 instances; Cluster API will take care of these items. 
+Note that there is no need to create an Elastic Load Balancer (ELB), security groups, or EC2 instances; Cluster API will take care of these items.
 
-If you want to use existing security groups, these can be specified and new ones will not be created. 
+If you want to use existing security groups, these can be specified and new ones will not be created.
+
+If you want to use an existing control load load balancer, specify its name.
 
 ## Tagging AWS Resources
 
@@ -36,12 +38,12 @@ Specifying existing infrastructure for Cluster API to use takes place in the spe
 
 For EC2
 ```yaml
-apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: AWSCluster
 ```
 For EKS
 ```yaml
-apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: AWSManagedControlPlane
 ```
 
@@ -125,10 +127,35 @@ spec:
   controlPlaneLoadBalancer:
     AdditionalsecurityGroups:
     - sg-0200a3507a5ad2c5c8c3
-    - ...   
+    - ...
 ```
+
+## Control Plane Load Balancer
+
+The cluster control plane is accessed through a Classic ELB. By default, Cluster API creates the Classic ELB. To use an existing Classic ELB, add its name to the AWSCluster specification:
+
+```yaml
+spec:
+  controlPlaneLoadBalancer:
+    name: my-classic-elb-name
+```
+
+As control plane instances are added or removed, Cluster API will register and deregister them, respectively, with the Classic ELB.
+
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+Using an existing Classic ELB is an advanced feature. **If you use an existing Classic ELB, you must correctly configure it, and attach subnets to it.**
+
+An incorrectly configured Classic ELB can easily lead to a non-functional cluster. We strongly recommend you let Cluster API create the Classic ELB.
+
+</aside>
 
 ## Caveats/Notes
 
 * When both public and private subnets are available in an AZ, CAPI will choose the private subnet in the AZ over the public subnet for placing EC2 instances.
 * If you configure CAPI to use existing infrastructure as outlined above, CAPI will _not_ create an SSH bastion host. Combined with the previous bullet, this means you must make sure you have established some form of connectivity to the instances that CAPI will create.
+
+Alternatively CAPA supports [externally managed cluster infrastructure](https://github.com/kubernetes-sigs/cluster-api/blob/10d89ceca938e4d3d94a1d1c2b60515bcdf39829/docs/proposals/20210203-externally-managed-cluster-infrastructure.md).
+If the `AWSCluster` resource includes a "cluster.x-k8s.io/managed-by" annotation then the [controller will skip any reconciliation](https://cluster-api.sigs.k8s.io/developer/providers/cluster-infrastructure.html#normal-resource).

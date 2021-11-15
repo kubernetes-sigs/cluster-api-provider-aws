@@ -18,7 +18,7 @@ package logs
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/go-logr/logr"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 )
 
 const (
@@ -27,7 +27,7 @@ const (
 )
 
 // GetAWSLogLevel will return the log level of an AWS Logger.
-func GetAWSLogLevel(logger logr.Logger) aws.LogLevelType {
+func GetAWSLogLevel(logger cloud.Logger) aws.LogLevelType {
 	if logger.V(logWithHTTPBody).Enabled() {
 		return aws.LogDebugWithHTTPBody
 	}
@@ -40,14 +40,14 @@ func GetAWSLogLevel(logger logr.Logger) aws.LogLevelType {
 }
 
 // NewWrapLogr will create an AWS Logger wrapper.
-func NewWrapLogr(logger logr.Logger) aws.Logger {
+func NewWrapLogr(logger cloud.Logger) aws.Logger {
 	return &logrWrapper{
 		log: logger,
 	}
 }
 
 type logrWrapper struct {
-	log logr.Logger
+	log cloud.Logger
 }
 
 func (l *logrWrapper) Log(msgs ...interface{}) {

@@ -54,7 +54,7 @@ When creating the IAM role the following trust policy will need to be used with 
 If you plan to use the `controllers.cluster-api-provider-aws.sigs.k8s.io` role created by clusterawsadm then you'll need to add the following to your AWSIAMConfiguration:
 
 ```yaml
-apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSIAMConfiguration
 spec:
   clusterAPIControllers:
@@ -106,7 +106,7 @@ When creating the IAM role the you will need to give apply the `kubernetes.io/cl
 If you plan to use the `controllers.cluster-api-provider-aws.sigs.k8s.io` role created by clusterawsadm then you'll need to add the following to your AWSIAMConfiguration:
 
 ```yaml
-apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSIAMConfiguration
 spec:
   clusterAPIControllers:

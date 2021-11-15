@@ -18,7 +18,6 @@ package system
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -63,7 +62,7 @@ func GetNamespaceFromFile(nsFilePath string) (string, error) {
 	}
 
 	// Load the namespace file and return its content
-	namespace, err := ioutil.ReadFile(filepath.Clean(nsFilePath))
+	namespace, err := os.ReadFile(filepath.Clean(nsFilePath))
 	if err != nil {
 		return "", fmt.Errorf("error reading namespace file: %w", err)
 	}

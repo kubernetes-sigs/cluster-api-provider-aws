@@ -25,12 +25,12 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"k8s.io/client-go/kubernetes/scheme"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/instancestate/mock_sqsiface"
 	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -57,8 +57,8 @@ func TestMain(m *testing.M) {
 func setup() {
 	utilruntime.Must(infrav1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(infrav1exp.AddToScheme(scheme.Scheme))
-	utilruntime.Must(clusterv1exp.AddToScheme(scheme.Scheme))
+	utilruntime.Must(expinfrav1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(expclusterv1.AddToScheme(scheme.Scheme))
 	testEnvConfig := helpers.NewTestEnvironmentConfiguration([]string{
 		path.Join("config", "crd", "bases"),
 	},
@@ -80,10 +80,10 @@ func setup() {
 	if err := (&infrav1.AWSMachineList{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSMachineList webhook: %v", err))
 	}
-	if err := (&infrav1exp.AWSMachinePool{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&expinfrav1.AWSMachinePool{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSMachinePool webhook: %v", err))
 	}
-	if err := (&infrav1exp.AWSManagedMachinePool{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&expinfrav1.AWSManagedMachinePool{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSManagedMachinePool webhook: %v", err))
 	}
 }

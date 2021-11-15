@@ -22,7 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -41,10 +41,10 @@ func TestEKSConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T) {
 		Client: testEnv.Client,
 	}
 
-	g.Eventually(func() {
+	g.Eventually(func(gomega Gomega) {
 		result, err := reconciler.joinWorker(context.Background(), cluster, config)
-		g.Expect(result).To(Equal(reconcile.Result{}))
-		g.Expect(err).NotTo(HaveOccurred())
+		gomega.Expect(result).To(Equal(reconcile.Result{}))
+		gomega.Expect(err).NotTo(HaveOccurred())
 	}).Should(Succeed())
 }
 
@@ -63,9 +63,9 @@ func TestEKSConfigReconciler_ReturnEarlyIfClusterControlPlaneNotInitialized(t *t
 		Client: testEnv.Client,
 	}
 
-	g.Eventually(func() {
+	g.Eventually(func(gomega Gomega) {
 		result, err := reconciler.joinWorker(context.Background(), cluster, config)
-		g.Expect(result).To(Equal(reconcile.Result{}))
-		g.Expect(err).NotTo(HaveOccurred())
+		gomega.Expect(result).To(Equal(reconcile.Result{}))
+		gomega.Expect(err).NotTo(HaveOccurred())
 	}).Should(Succeed())
 }

@@ -18,7 +18,7 @@ package v1alpha4
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 )
 
 // EBS can be used to automatically set up EBS volumes when an instance is launched.
@@ -65,7 +65,7 @@ type AWSLaunchTemplate struct {
 
 	// AMI is the reference to the AMI from which to create the machine instance.
 	// +optional
-	AMI infrav1.AMIReference `json:"ami,omitempty"`
+	AMI infrav1alpha4.AMIReference `json:"ami,omitempty"`
 
 	// ImageLookupFormat is the AMI naming format to look up the image for this
 	// machine It will be ignored if an explicit AMI is set. Supports
@@ -93,7 +93,7 @@ type AWSLaunchTemplate struct {
 
 	// RootVolume encapsulates the configuration options for the root volume
 	// +optional
-	RootVolume *infrav1.Volume `json:"rootVolume,omitempty"`
+	RootVolume *infrav1alpha4.Volume `json:"rootVolume,omitempty"`
 
 	// SSHKeyName is the name of the ssh key to attach to the instance. Valid values are empty string
 	// (do not use SSH keys), a valid SSH key name, or omitted (use the default SSH key name)
@@ -111,7 +111,7 @@ type AWSLaunchTemplate struct {
 	// instances. These security groups would be set in addition to any security groups defined
 	// at the cluster level or in the actuator.
 	// +optional
-	AdditionalSecurityGroups []infrav1.AWSResourceReference `json:"additionalSecurityGroups,omitempty"`
+	AdditionalSecurityGroups []infrav1alpha4.AWSResourceReference `json:"additionalSecurityGroups,omitempty"`
 }
 
 // Overrides are used to override the instance type specified by the launch template with multiple
@@ -172,20 +172,20 @@ type Tags map[string]string
 // AutoScalingGroup describes an AWS autoscaling group.
 type AutoScalingGroup struct {
 	// The tags associated with the instance.
-	ID                string          `json:"id,omitempty"`
-	Tags              infrav1.Tags    `json:"tags,omitempty"`
-	Name              string          `json:"name,omitempty"`
-	DesiredCapacity   *int32          `json:"desiredCapacity,omitempty"`
-	MaxSize           int32           `json:"maxSize,omitempty"`
-	MinSize           int32           `json:"minSize,omitempty"`
-	PlacementGroup    string          `json:"placementGroup,omitempty"`
-	Subnets           []string        `json:"subnets,omitempty"`
-	DefaultCoolDown   metav1.Duration `json:"defaultCoolDown,omitempty"`
-	CapacityRebalance bool            `json:"capacityRebalance,omitempty"`
+	ID                string             `json:"id,omitempty"`
+	Tags              infrav1alpha4.Tags `json:"tags,omitempty"`
+	Name              string             `json:"name,omitempty"`
+	DesiredCapacity   *int32             `json:"desiredCapacity,omitempty"`
+	MaxSize           int32              `json:"maxSize,omitempty"`
+	MinSize           int32              `json:"minSize,omitempty"`
+	PlacementGroup    string             `json:"placementGroup,omitempty"`
+	Subnets           []string           `json:"subnets,omitempty"`
+	DefaultCoolDown   metav1.Duration    `json:"defaultCoolDown,omitempty"`
+	CapacityRebalance bool               `json:"capacityRebalance,omitempty"`
 
 	MixedInstancesPolicy *MixedInstancesPolicy `json:"mixedInstancesPolicy,omitempty"`
 	Status               ASGStatus
-	Instances            []infrav1.Instance `json:"instances,omitempty"`
+	Instances            []infrav1alpha4.Instance `json:"instances,omitempty"`
 }
 
 // ASGStatus is a status string returned by the autoscaling API

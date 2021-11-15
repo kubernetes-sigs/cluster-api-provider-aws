@@ -21,7 +21,7 @@ package managed
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 )
 
@@ -114,7 +114,7 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 
 	if input.CNIManifestPath != "" {
 		shared.Byf("Installing a CNI plugin to the workload cluster: %s", input.CNIManifestPath)
-		cniYaml, err := ioutil.ReadFile(input.CNIManifestPath)
+		cniYaml, err := os.ReadFile(input.CNIManifestPath)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Expect(workloadClusterProxy.Apply(ctx, cniYaml)).ShouldNot(HaveOccurred())

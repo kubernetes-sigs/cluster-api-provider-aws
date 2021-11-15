@@ -32,7 +32,6 @@ type EKSConfigTemplateResource struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=eksconfigtemplates,scope=Namespaced,categories=cluster-api,shortName=eksct
-// +kubebuilder:storageversion
 
 // EKSConfigTemplate is the Schema for the eksconfigtemplates API
 type EKSConfigTemplate struct {

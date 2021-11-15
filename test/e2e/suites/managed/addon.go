@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -32,7 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 )
 
@@ -75,6 +76,6 @@ func CheckAddonExistsSpec(ctx context.Context, inputGetter func() CheckAddonExis
 		AWSSession:   input.AWSSession,
 		AddonName:    input.AddonName,
 		AddonVersion: input.AddonVersion,
-		AddonStatus:  eks.AddonStatusActive,
+		AddonStatus:  []string{eks.AddonStatusActive, eks.AddonStatusDegraded},
 	}, input.E2EConfig.GetIntervals("", "wait-addon-status")...)
 }

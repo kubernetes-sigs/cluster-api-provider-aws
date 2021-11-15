@@ -29,13 +29,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
+  "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
+	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -56,7 +56,7 @@ type MachinePoolScope struct {
 // MachinePoolScopeParams defines a scope defined around a machine and its cluster.
 type MachinePoolScopeParams struct {
 	Client client.Client
-	Logger logr.Logger
+	Logger *logr.Logger
 
 	Cluster        *clusterv1.Cluster
 	MachinePool    *expclusterv1.MachinePool
@@ -92,7 +92,8 @@ func NewMachinePoolScope(params MachinePoolScopeParams) (*MachinePoolScope, erro
 	}
 
 	if params.Logger == nil {
-		params.Logger = klogr.New()
+		log := klogr.New()
+		params.Logger = &log
 	}
 
 	helper, err := patch.NewHelper(params.AWSMachinePool, params.Client)
@@ -101,7 +102,7 @@ func NewMachinePoolScope(params MachinePoolScopeParams) (*MachinePoolScope, erro
 	}
 
 	return &MachinePoolScope{
-		Logger:      params.Logger,
+		Logger:      *params.Logger,
 		client:      params.Client,
 		patchHelper: helper,
 
@@ -247,7 +248,7 @@ func (m *MachinePoolScope) SubnetIDs() ([]string, error) {
 		}
 	}
 
-	strategy, err := newDefaultSubnetPlacementStrategy(m.Logger)
+	strategy, err := newDefaultSubnetPlacementStrategy(&m.Logger)
 	if err != nil {
 		return subnetIDs, fmt.Errorf("getting subnet placement strategy: %w", err)
 	}

@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -29,19 +30,21 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/util"
 
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 )
 
 // General EKS e2e test
 var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 	var (
-		namespace       *corev1.Namespace
-		ctx             context.Context
-		specName        = "eks-nodes"
-		clusterName     string
-		cniAddonName    = "vpc-cni"
-		cniAddonVersion = "v1.6.3-eksbuild.1"
+		namespace           *corev1.Namespace
+		ctx                 context.Context
+		specName            = "eks-nodes"
+		clusterName         string
+		cniAddonName        = "vpc-cni"
+		cniAddonVersion     = "v1.8.0-eksbuild.1"
+		corednsAddonName    = "coredns"
+		corednsAddonVersion = "v1.8.3-eksbuild.1"
 	)
 
 	shared.ConditionalIt(runGeneralTests, "should create a cluster and add nodes", func() {
@@ -86,6 +89,19 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				ClusterName:           clusterName,
 				AddonName:             cniAddonName,
 				AddonVersion:          cniAddonVersion,
+			}
+		})
+
+		ginkgo.By("should have the Coredns addon installed")
+		CheckAddonExistsSpec(ctx, func() CheckAddonExistsSpecInput {
+			return CheckAddonExistsSpecInput{
+				E2EConfig:             e2eCtx.E2EConfig,
+				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				AWSSession:            e2eCtx.BootstrapUserAWSSession,
+				Namespace:             namespace,
+				ClusterName:           clusterName,
+				AddonName:             corednsAddonName,
+				AddonVersion:          corednsAddonVersion,
 			}
 		})
 

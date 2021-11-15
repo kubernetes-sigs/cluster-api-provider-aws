@@ -22,7 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	v1alpha4 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha4"
+	v1beta1 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
@@ -30,17 +30,17 @@ func TestFuzzyConversion(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
 	g.Expect(AddToScheme(scheme)).To(Succeed())
-	g.Expect(v1alpha4.AddToScheme(scheme)).To(Succeed())
+	g.Expect(v1beta1.AddToScheme(scheme)).To(Succeed())
 
 	t.Run("for EKSConfig", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
-		Hub:    &v1alpha4.EKSConfig{},
+		Hub:    &v1beta1.EKSConfig{},
 		Spoke:  &EKSConfig{},
 	}))
 
 	t.Run("for EKSConfigTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme: scheme,
-		Hub:    &v1alpha4.EKSConfigTemplate{},
+		Hub:    &v1beta1.EKSConfigTemplate{},
 		Spoke:  &EKSConfigTemplate{},
 	}))
 }

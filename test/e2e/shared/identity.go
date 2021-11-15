@@ -26,7 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 )
 
 const (
@@ -58,24 +58,6 @@ func SetupStaticCredentials(ctx context.Context, namespace *corev1.Namespace, e2
 	Eventually(func() error {
 		return client.Create(ctx, secret)
 	}, e2eCtx.E2EConfig.GetIntervals("", "wait-create-identity")...).Should(Succeed())
-
-	if e2eCtx.IsManaged {
-		//TODO: this doesn't feel right to be creating the secret in 2 places.
-		cpSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      credsSecretName,
-				Namespace: eksNamespace,
-			},
-			StringData: map[string]string{
-				"AccessKeyID":     *e2eCtx.Environment.BootstrapAccessKey.AccessKeyId,
-				"SecretAccessKey": *e2eCtx.Environment.BootstrapAccessKey.SecretAccessKey,
-			},
-		}
-		Byf("Creating credentials secret %s in namespace %s", cpSecret.Name, cpSecret.Namespace)
-		Eventually(func() error {
-			return client.Create(ctx, cpSecret)
-		}, e2eCtx.E2EConfig.GetIntervals("", "wait-create-identity")...).Should(Succeed())
-	}
 
 	id := &infrav1.AWSClusterStaticIdentity{
 		ObjectMeta: metav1.ObjectMeta{

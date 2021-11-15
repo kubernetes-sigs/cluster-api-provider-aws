@@ -18,7 +18,7 @@ package bootstrap
 
 import (
 	"github.com/awslabs/goformation/v4/cloudformation"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
 )
 
 func (t Template) csiControlPlaneAwsRoles() []string {
@@ -30,14 +30,14 @@ func (t Template) csiControlPlaneAwsRoles() []string {
 }
 
 // From https://github.com/kubernetes-sigs/aws-ebs-csi-driver/blob/master/docs/example-iam-policy.json
-func (t Template) csiControllerPolicy() *v1alpha4.PolicyDocument {
-	return &v1alpha4.PolicyDocument{
-		Version: v1alpha4.CurrentVersion,
-		Statement: []v1alpha4.StatementEntry{
+func (t Template) csiControllerPolicy() *iamv1.PolicyDocument {
+	return &iamv1.PolicyDocument{
+		Version: iamv1.CurrentVersion,
+		Statement: []iamv1.StatementEntry{
 			{
-				Effect:   v1alpha4.EffectAllow,
-				Resource: v1alpha4.Resources{v1alpha4.Any},
-				Action: v1alpha4.Actions{
+				Effect:   iamv1.EffectAllow,
+				Resource: iamv1.Resources{iamv1.Any},
+				Action: iamv1.Actions{
 					"ec2:AttachVolume",
 					"ec2:CreateSnapshot",
 					"ec2:CreateTags",

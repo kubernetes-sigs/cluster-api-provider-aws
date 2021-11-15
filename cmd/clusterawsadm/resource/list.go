@@ -22,8 +22,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
-	tagapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	rgapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 )
 
 // ListAWSResource fetches all AWS resources created by CAPA.
@@ -42,9 +42,9 @@ func ListAWSResource(region, clusterName *string) (AWSResourceList, error) {
 		return resourceList, err
 	}
 
-	resourceClient := tagapi.New(sess)
-	input := &tagapi.GetResourcesInput{
-		TagFilters: []*tagapi.TagFilter{},
+	resourceClient := rgapi.New(sess)
+	input := &rgapi.GetResourcesInput{
+		TagFilters: []*rgapi.TagFilter{},
 	}
 
 	awsResourceTags := infrav1.Build(infrav1.BuildParams{
@@ -53,7 +53,7 @@ func ListAWSResource(region, clusterName *string) (AWSResourceList, error) {
 	})
 
 	for tagKey, tagValue := range awsResourceTags {
-		tagFilter := &tagapi.TagFilter{}
+		tagFilter := &rgapi.TagFilter{}
 		tagFilter.SetKey(tagKey)
 		tagFilter.SetValues([]*string{aws.String(tagValue)})
 		input.TagFilters = append(input.TagFilters, tagFilter)

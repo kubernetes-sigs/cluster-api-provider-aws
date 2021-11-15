@@ -6,7 +6,6 @@ metadata:
   namespace: system
 spec:
   template:
-    spec:
-      metadata:
-        annotations:
-          iam.amazonaws.com/role: ${AWS_CONTROLLER_IAM_ROLE:=""}
+    metadata:
+      annotations:
+        iam.amazonaws.com/role: ${AWS_CONTROLLER_IAM_ROLE:=""}

@@ -10,7 +10,7 @@ To use the [Amazon EKS Console](https://docs.aws.amazon.com/eks/latest/userguide
 
 ```yaml
 kind: AWSManagedControlPlane
-apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 metadata:
   name: "capi-managed-test-control-plane"
 spec:
