@@ -31,7 +31,7 @@ import (
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
-  "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
