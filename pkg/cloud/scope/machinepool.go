@@ -41,6 +41,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	filterAvailabilityZone = "availability-zone"
+)
+
 // MachinePoolScope defines a scope defined around a machine and its cluster.
 type MachinePoolScope struct {
 	logr.Logger
@@ -237,6 +241,7 @@ func (m *MachinePoolScope) SubnetIDs() ([]string, error) {
 			for _, f := range v.Filters {
 				criteria = append(criteria, &ec2.Filter{Name: aws.String(f.Name), Values: aws.StringSlice(f.Values)})
 			}
+			criteria = append(criteria, &ec2.Filter{Name: aws.String(filterAvailabilityZone), Values: aws.StringSlice(m.AWSMachinePool.Spec.AvailabilityZones)})
 			out, err := ec2Client.DescribeSubnets(&ec2.DescribeSubnetsInput{Filters: criteria})
 			if err != nil {
 				return subnetIDs, fmt.Errorf("describing subnets with filters: %w", err)
