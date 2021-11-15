@@ -19,8 +19,8 @@ package helpers
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"path"
 	"path/filepath"
 	goruntime "runtime"
@@ -42,7 +42,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/test/helpers/external"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -145,7 +145,7 @@ func NewTestEnvironmentConfiguration(crdDirectoryPaths []string) *TestEnvironmen
 		env: &envtest.Environment{
 			ErrorIfCRDPathMissing: true,
 			CRDDirectoryPaths:     resolvedCrdDirectoryPaths,
-			CRDs: []client.Object{
+			CRDs: []*apiextensionsv1.CustomResourceDefinition{
 				external.TestClusterCRD.DeepCopy(),
 				external.TestMachineCRD.DeepCopy(),
 			},
@@ -163,15 +163,21 @@ func (t *TestEnvironmentConfiguration) WithWebhookConfiguration(tag string, rela
 // This function should be called only once for each package you're running tests within,
 // usually the environment is initialized in a suite_test.go file within a `BeforeSuite` ginkgo block.
 func (t *TestEnvironmentConfiguration) Build() (*TestEnvironment, error) {
-	mutatingWebhooks := []client.Object{}
-	validatingWebhooks := []client.Object{}
+	mutatingWebhooks := make([]*admissionv1.MutatingWebhookConfiguration, 0, len(t.webhookConfigurations))
+	validatingWebhooks := make([]*admissionv1.ValidatingWebhookConfiguration, 0, len(t.webhookConfigurations))
 	for _, w := range t.webhookConfigurations {
 		m, v, err := buildModifiedWebhook(w.tag, w.relativeFilePath)
 		if err != nil {
 			return nil, err
 		}
-		mutatingWebhooks = append(mutatingWebhooks, m)
-		validatingWebhooks = append(mutatingWebhooks, v)
+		if m.Webhooks != nil {
+			// No mutating webhook defined.
+			mutatingWebhooks = append(mutatingWebhooks, &m)
+		}
+		if v.Webhooks != nil {
+			// No validating webhook defined.
+			validatingWebhooks = append(validatingWebhooks, &v)
+		}
 	}
 
 	t.env.WebhookInstallOptions = envtest.WebhookInstallOptions{
@@ -206,16 +212,16 @@ func (t *TestEnvironmentConfiguration) Build() (*TestEnvironment, error) {
 	}, nil
 }
 
-func buildModifiedWebhook(tag string, relativeFilePath string) (client.Object, client.Object, error) {
-	var mutatingWebhook client.Object
-	var validatingWebhook client.Object
-	data, err := ioutil.ReadFile(filepath.Clean(filepath.Join(root, relativeFilePath)))
+func buildModifiedWebhook(tag string, relativeFilePath string) (admissionv1.MutatingWebhookConfiguration, admissionv1.ValidatingWebhookConfiguration, error) {
+	var mutatingWebhook admissionv1.MutatingWebhookConfiguration
+	var validatingWebhook admissionv1.ValidatingWebhookConfiguration
+	data, err := os.ReadFile(filepath.Clean(filepath.Join(root, relativeFilePath)))
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to read webhook configuration file")
+		return mutatingWebhook, validatingWebhook, errors.Wrap(err, "failed to read webhook configuration file")
 	}
 	objs, err := utilyaml.ToUnstructured(data)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to parse yaml")
+		return mutatingWebhook, validatingWebhook, errors.Wrap(err, "failed to parse yaml")
 	}
 	for i := range objs {
 		o := objs[i]
@@ -223,14 +229,18 @@ func buildModifiedWebhook(tag string, relativeFilePath string) (client.Object, c
 			// update the name in metadata
 			if o.GetName() == defaultMutatingWebhookName {
 				o.SetName(strings.Join([]string{defaultMutatingWebhookName, "-", tag}, ""))
-				mutatingWebhook = &o
+				if err := scheme.Scheme.Convert(&o, &mutatingWebhook, nil); err != nil {
+					klog.Fatalf("failed to convert MutatingWebhookConfiguration %s", o.GetName())
+				}
 			}
 		}
 		if o.GetKind() == validatingWebhookKind {
 			// update the name in metadata
 			if o.GetName() == defaultValidatingWebhookName {
 				o.SetName(strings.Join([]string{defaultValidatingWebhookName, "-", tag}, ""))
-				validatingWebhook = &o
+				if err := scheme.Scheme.Convert(&o, &validatingWebhook, nil); err != nil {
+					klog.Fatalf("failed to convert ValidatingWebhookConfiguration %s", o.GetName())
+				}
 			}
 		}
 	}

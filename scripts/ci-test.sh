@@ -22,8 +22,8 @@ REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 # shellcheck source=../hack/ensure-go.sh
 source "${REPO_ROOT}/hack/ensure-go.sh"
 
-cd "${REPO_ROOT}" && \
-	source ./scripts/fetch_ext_bins.sh && \
-	fetch_tools && \
-	setup_envs && \
-	make generate lint test
+cd "${REPO_ROOT}" &&
+  source ./scripts/fetch_ext_bins.sh &&
+  fetch_tools &&
+  setup_envs &&
+  make lint test

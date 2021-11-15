@@ -18,14 +18,15 @@ package bootstrap
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 	"testing"
 
 	"github.com/awslabs/goformation/v4/cloudformation"
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"k8s.io/utils/pointer"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -95,19 +96,9 @@ func Test_RenderCloudformation(t *testing.T) {
 			},
 		},
 		{
-			fixture: "with_eks_enable",
-			template: func() Template {
-				t := NewTemplate()
-				t.Spec.EKS.Enable = true
-				t.Spec.Nodes.EC2ContainerRegistryReadOnly = true
-				return t
-			},
-		},
-		{
 			fixture: "with_eks_default_roles",
 			template: func() Template {
 				t := NewTemplate()
-				t.Spec.EKS.Enable = true
 				t.Spec.Nodes.EC2ContainerRegistryReadOnly = true
 				t.Spec.EKS.DefaultControlPlaneRole.Disable = false
 				t.Spec.EKS.ManagedMachinePool.Disable = false
@@ -119,7 +110,6 @@ func Test_RenderCloudformation(t *testing.T) {
 			fixture: "with_eks_kms_prefix",
 			template: func() Template {
 				t := NewTemplate()
-				t.Spec.EKS.Enable = true
 				t.Spec.Nodes.EC2ContainerRegistryReadOnly = true
 				t.Spec.EKS.KMSAliasPrefix = "custom-prefix-*"
 				return t
@@ -130,34 +120,50 @@ func Test_RenderCloudformation(t *testing.T) {
 			template: func() Template {
 				t := NewTemplate()
 				t.Spec.BootstrapUser.Enable = true
-				t.Spec.ControlPlane.ExtraStatements = infrav1.Statements{
+				t.Spec.ControlPlane.ExtraStatements = iamv1.Statements{
 					{
-						Effect:   infrav1.EffectAllow,
-						Resource: infrav1.Resources{infrav1.Any},
-						Action:   infrav1.Actions{"test:action"},
+						Effect:   iamv1.EffectAllow,
+						Resource: iamv1.Resources{iamv1.Any},
+						Action:   iamv1.Actions{"test:action"},
 					},
 				}
-				t.Spec.Nodes.ExtraStatements = infrav1.Statements{
+				t.Spec.Nodes.ExtraStatements = iamv1.Statements{
 					{
-						Effect:   infrav1.EffectAllow,
-						Resource: infrav1.Resources{infrav1.Any},
-						Action:   infrav1.Actions{"test:node-action"},
+						Effect:   iamv1.EffectAllow,
+						Resource: iamv1.Resources{iamv1.Any},
+						Action:   iamv1.Actions{"test:node-action"},
 					},
 				}
-				t.Spec.BootstrapUser.ExtraStatements = infrav1.Statements{
+				t.Spec.BootstrapUser.ExtraStatements = iamv1.Statements{
 					{
-						Effect:   infrav1.EffectAllow,
-						Resource: infrav1.Resources{infrav1.Any},
-						Action:   infrav1.Actions{"test:user-action"},
+						Effect:   iamv1.EffectAllow,
+						Resource: iamv1.Resources{iamv1.Any},
+						Action:   iamv1.Actions{"test:user-action"},
 					},
 				}
-				t.Spec.ClusterAPIControllers.ExtraStatements = infrav1.Statements{
+				t.Spec.ClusterAPIControllers.ExtraStatements = iamv1.Statements{
 					{
-						Effect:   infrav1.EffectAllow,
-						Resource: infrav1.Resources{infrav1.Any},
-						Action:   infrav1.Actions{"test:controller-action"},
+						Effect:   iamv1.EffectAllow,
+						Resource: iamv1.Resources{iamv1.Any},
+						Action:   iamv1.Actions{"test:controller-action"},
 					},
 				}
+				return t
+			},
+		},
+		{
+			fixture: "with_eks_disable",
+			template: func() Template {
+				t := NewTemplate()
+				t.Spec.EKS.Disable = true
+				return t
+			},
+		},
+		{
+			fixture: "with_eks_console",
+			template: func() Template {
+				t := NewTemplate()
+				t.Spec.EKS.EnableUserEKSConsolePolicy = true
 				return t
 			},
 		},
@@ -165,7 +171,7 @@ func Test_RenderCloudformation(t *testing.T) {
 
 	for _, c := range cases {
 		cfn := cloudformation.Template{}
-		data, err := ioutil.ReadFile(path.Join("fixtures", c.fixture+".yaml"))
+		data, err := os.ReadFile(path.Join("fixtures", c.fixture+".yaml"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -178,7 +184,7 @@ func Test_RenderCloudformation(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		ioutil.WriteFile("/tmp/tmp1", tData, 0600) // nolint:gosec
+		os.WriteFile("/tmp/tmp1", tData, 0600)
 
 		if string(tData) != string(data) {
 			dmp := diffmatchpatch.New()

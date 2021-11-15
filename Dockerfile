@@ -15,12 +15,14 @@
 # limitations under the License.
 
 # Build the manager binary
-FROM golang:1.16.6 as builder
-WORKDIR /workspace
+FROM golang:1.17.3 as toolchain
 
 # Run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
 ARG goproxy=https://proxy.golang.org
 ENV GOPROXY=$goproxy
+
+FROM toolchain as builder
+WORKDIR /workspace
 
 # Copy the Go Modules manifests
 COPY go.mod go.mod
@@ -33,10 +35,6 @@ RUN  --mount=type=cache,target=/root/.local/share/golang \
 
 # Copy the sources
 COPY ./ ./
-
-RUN wget --output-document /restart.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/restart.sh  && \
-  wget --output-document /start.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/start.sh && \
-  chmod +x /start.sh && chmod +x /restart.sh
 
 # Build
 ARG package=.

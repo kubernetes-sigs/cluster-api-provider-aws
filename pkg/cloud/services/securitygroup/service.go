@@ -19,7 +19,7 @@ package securitygroup
 import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
@@ -56,18 +56,9 @@ type Service struct {
 	EC2Client ec2iface.EC2API
 }
 
-// NewService returns a new service given the api clients.
-func NewService(sgScope Scope) *Service {
-	return &Service{
-		scope:     sgScope,
-		roles:     defaultRoles,
-		EC2Client: scope.NewEC2Client(sgScope, sgScope, sgScope, sgScope.InfraCluster()),
-	}
-}
-
-// NewServiceWithRoles returns a new service given the api clients with a defined
+// NewService returns a new service given the api clients with a defined
 // set of roles.
-func NewServiceWithRoles(sgScope Scope, roles []infrav1.SecurityGroupRole) *Service {
+func NewService(sgScope Scope, roles []infrav1.SecurityGroupRole) *Service {
 	return &Service{
 		scope:     sgScope,
 		roles:     roles,

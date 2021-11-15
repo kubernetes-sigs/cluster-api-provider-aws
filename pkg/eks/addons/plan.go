@@ -22,7 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/planner"
 )
 
@@ -49,12 +49,13 @@ func (a *plan) Create(ctx context.Context) ([]planner.Procedure, error) {
 	procedures := []planner.Procedure{}
 
 	// Handle create and update
-	for _, desired := range a.desiredAddons {
+	for i := range a.desiredAddons {
+		desired := a.desiredAddons[i]
 		installed := a.getInstalled(*desired.Name)
 		if installed == nil {
 			// Need to add the addon
 			procedures = append(procedures, &CreateAddonProcedure{plan: a, name: *desired.Name})
-			procedures = append(procedures, &WaitAddonActiveProcedure{plan: a, name: *desired.Name})
+			procedures = append(procedures, &WaitAddonActiveProcedure{plan: a, name: *desired.Name, includeDegraded: true})
 		} else {
 			// Check if its just the tags that need updating
 			diffTags := desired.Tags.Difference(installed.Tags)
@@ -64,16 +65,17 @@ func (a *plan) Create(ctx context.Context) ([]planner.Procedure, error) {
 			// Check if we also need to update the addon
 			if !desired.IsEqual(installed, false) {
 				procedures = append(procedures, &UpdateAddonProcedure{plan: a, name: *installed.Name})
-				procedures = append(procedures, &WaitAddonActiveProcedure{plan: a, name: *desired.Name})
+				procedures = append(procedures, &WaitAddonActiveProcedure{plan: a, name: *desired.Name, includeDegraded: true})
 			} else if *installed.Status != eks.AddonStatusActive {
 				// If the desired and installed are the same make sure its active
-				procedures = append(procedures, &WaitAddonActiveProcedure{plan: a, name: *desired.Name})
+				procedures = append(procedures, &WaitAddonActiveProcedure{plan: a, name: *desired.Name, includeDegraded: true})
 			}
 		}
 	}
 
 	// look for deletions & unchanged
-	for _, installed := range a.installedAddons {
+	for i := range a.installedAddons {
+		installed := a.installedAddons[i]
 		desired := a.getDesired(*installed.Name)
 		if desired == nil {
 			if *installed.Status != eks.AddonStatusDeleting {
@@ -87,7 +89,8 @@ func (a *plan) Create(ctx context.Context) ([]planner.Procedure, error) {
 }
 
 func (a *plan) getInstalled(name string) *EKSAddon {
-	for _, installed := range a.installedAddons {
+	for i := range a.installedAddons {
+		installed := a.installedAddons[i]
 		if *installed.Name == name {
 			return installed
 		}
@@ -97,7 +100,8 @@ func (a *plan) getInstalled(name string) *EKSAddon {
 }
 
 func (a *plan) getDesired(name string) *EKSAddon {
-	for _, desired := range a.desiredAddons {
+	for i := range a.desiredAddons {
+		desired := a.desiredAddons[i]
 		if *desired.Name == name {
 			return desired
 		}

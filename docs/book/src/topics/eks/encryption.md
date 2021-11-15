@@ -8,7 +8,7 @@ You then need to specify this alias in the `encryptionConfig` of the `AWSManaged
 
 ```yaml
 kind: AWSManagedControlPlane
-apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 metadata:
   name: "capi-managed-test-control-plane"
 spec:
@@ -31,7 +31,7 @@ clusterawsadm bootstrap iam create-stack --config custom-prefix.yaml
 And the contents of the configuration file:
 
 ```yaml
-apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSIAMConfiguration
 spec:
   eks:

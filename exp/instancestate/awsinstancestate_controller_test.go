@@ -31,7 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/controllers"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/instancestate/mock_sqsiface"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -120,7 +120,8 @@ func TestAWSInstanceStateController(t *testing.T) {
 
 		machine1 := &infrav1.AWSMachine{
 			Spec: infrav1.AWSMachineSpec{
-				InstanceID: pointer.StringPtr("i-failing-instance-1"),
+				InstanceID:   pointer.StringPtr("i-failing-instance-1"),
+				InstanceType: "test",
 			},
 			ObjectMeta: failingMachineMeta,
 		}

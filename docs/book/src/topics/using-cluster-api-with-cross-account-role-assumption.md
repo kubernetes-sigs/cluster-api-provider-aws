@@ -1,4 +1,4 @@
-> For v1alpha1 please refer to https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/release-0.3/docs/roleassumption.md
+> For v0.3.x please refer to https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/release-0.3/docs/roleassumption.md
 
 # Creating clusters using cross account role assumption using KIAM
 

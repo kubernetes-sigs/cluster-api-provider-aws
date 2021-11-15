@@ -19,41 +19,25 @@ package iamauth
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pkg/errors"
 
-	"sigs.k8s.io/cluster-api/controllers/remote"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
 )
 
 // ReconcileIAMAuthenticator is used to create the aws-iam-authenticator in a cluster.
 func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
 	s.scope.Info("Reconciling aws-iam-authenticator configuration", "cluster-name", s.scope.Name())
 
-	clusterKey := client.ObjectKey{
-		Name:      s.scope.Name(),
-		Namespace: s.scope.Namespace(),
-	}
-
 	accountID, err := s.getAccountID()
 	if err != nil {
 		return fmt.Errorf("getting account id: %w", err)
 	}
 
-	restConfig, err := remote.RESTConfig(ctx, s.scope.Name(), s.client, clusterKey)
-	if err != nil {
-		s.scope.Error(err, "getting remote rest config", "namespace", s.scope.Namespace(), "name", s.scope.Name())
-		return fmt.Errorf("getting remote rest config for %s/%s: %w", s.scope.Namespace(), s.scope.Name(), err)
-	}
-	restConfig.Timeout = 1 * time.Minute
-
-	remoteClient, err := client.New(restConfig, client.Options{})
+	remoteClient, err := s.scope.RemoteClient()
 	if err != nil {
 		s.scope.Error(err, "getting client for remote cluster")
 		return fmt.Errorf("getting client for remote cluster: %w", err)
@@ -64,7 +48,7 @@ func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
 		return fmt.Errorf("getting aws-iam-authenticator backend: %w", err)
 	}
 
-	roleARN := fmt.Sprintf("arn:aws:iam::%s:role/nodes%s", accountID, infrav1.DefaultNameSuffix)
+	roleARN := fmt.Sprintf("arn:aws:iam::%s:role/nodes%s", accountID, iamv1.DefaultNameSuffix)
 	nodesRoleMapping := ekscontrolplanev1.RoleMapping{
 		RoleARN: roleARN,
 		KubernetesMapping: ekscontrolplanev1.KubernetesMapping{

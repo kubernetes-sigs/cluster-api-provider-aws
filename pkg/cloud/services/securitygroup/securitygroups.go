@@ -24,7 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -48,16 +48,6 @@ const (
 
 	// IPProtocolICMPv6 is how EC2 represents the ICMPv6 protocol in ingress rules.
 	IPProtocolICMPv6 = "58"
-)
-
-var (
-	defaultRoles = []infrav1.SecurityGroupRole{
-		infrav1.SecurityGroupBastion,
-		infrav1.SecurityGroupAPIServerLB,
-		infrav1.SecurityGroupLB,
-		infrav1.SecurityGroupControlPlane,
-		infrav1.SecurityGroupNode,
-	}
 )
 
 // ReconcileSecurityGroups will reconcile security groups against the Service object.
@@ -219,7 +209,7 @@ func (s *Service) describeSecurityGroupOverridesByID() (map[infrav1.SecurityGrou
 	}
 
 	if len(overrides) > 0 {
-		for _, role := range defaultRoles {
+		for _, role := range s.roles {
 			securityGroupID, ok := s.scope.SecurityGroupOverrides()[role]
 			if ok {
 				securityGroupIds[role] = aws.String(securityGroupID)
@@ -234,7 +224,7 @@ func (s *Service) describeSecurityGroupOverridesByID() (map[infrav1.SecurityGrou
 	}
 
 	res := make(map[infrav1.SecurityGroupRole]*ec2.SecurityGroup, len(out.SecurityGroups))
-	for _, role := range defaultRoles {
+	for _, role := range s.roles {
 		for _, ec2sg := range out.SecurityGroups {
 			if securityGroupIds[role] == nil {
 				continue
@@ -252,14 +242,10 @@ func (s *Service) describeSecurityGroupOverridesByID() (map[infrav1.SecurityGrou
 }
 
 func (s *Service) ec2SecurityGroupToSecurityGroup(ec2SecurityGroup *ec2.SecurityGroup) infrav1.SecurityGroup {
-	sg := infrav1.SecurityGroup{
-		ID:   *ec2SecurityGroup.GroupId,
-		Name: *ec2SecurityGroup.GroupName,
-		Tags: converters.TagsToMap(ec2SecurityGroup.Tags),
-	}
+	sg := makeInfraSecurityGroup(ec2SecurityGroup)
 
 	for _, ec2rule := range ec2SecurityGroup.IpPermissions {
-		sg.IngressRules = append(sg.IngressRules, ingressRuleFromSDKType(ec2rule))
+		sg.IngressRules = append(sg.IngressRules, ingressRulesFromSDKType(ec2rule)...)
 	}
 	return sg
 }
@@ -361,12 +347,7 @@ func (s *Service) describeSecurityGroupsByName() (map[string]infrav1.SecurityGro
 
 	res := make(map[string]infrav1.SecurityGroup, len(out.SecurityGroups))
 	for _, ec2sg := range out.SecurityGroups {
-		sg := makeInfraSecurityGroup(ec2sg)
-
-		for _, ec2rule := range ec2sg.IpPermissions {
-			sg.IngressRules = append(sg.IngressRules, ingressRuleFromSDKType(ec2rule))
-		}
-
+		sg := s.ec2SecurityGroupToSecurityGroup(ec2sg)
 		res[sg.Name] = sg
 	}
 
@@ -661,45 +642,54 @@ func ingressRuleToSDKType(i *infrav1.IngressRule) (res *ec2.IpPermission) {
 	return res
 }
 
-func ingressRuleFromSDKType(v *ec2.IpPermission) (res infrav1.IngressRule) {
+func ingressRulesFromSDKType(v *ec2.IpPermission) (res infrav1.IngressRules) {
 	// Ports are only well-defined for TCP and UDP protocols, but EC2 overloads the port range
 	// in the case of ICMP(v6) traffic to indicate which codes are allowed. For all other protocols,
-	// including the custom "-1" All Traffic protcol, FromPort and ToPort are omitted from the response.
+	// including the custom "-1" All Traffic protocol, FromPort and ToPort are omitted from the response.
 	// See: https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_IpPermission.html
+	var ir infrav1.IngressRule
 	switch *v.IpProtocol {
 	case IPProtocolTCP,
 		IPProtocolUDP,
 		IPProtocolICMP,
 		IPProtocolICMPv6:
-		res = infrav1.IngressRule{
+		ir = infrav1.IngressRule{
 			Protocol: infrav1.SecurityGroupProtocol(*v.IpProtocol),
 			FromPort: *v.FromPort,
 			ToPort:   *v.ToPort,
 		}
 	default:
-		res = infrav1.IngressRule{
+		ir = infrav1.IngressRule{
 			Protocol: infrav1.SecurityGroupProtocol(*v.IpProtocol),
 		}
 	}
 
-	for _, ec2range := range v.IpRanges {
-		if ec2range.Description != nil && *ec2range.Description != "" {
-			res.Description = *ec2range.Description
-		}
+	if len(v.IpRanges) > 0 {
+		r1 := ir
+		for _, ec2range := range v.IpRanges {
+			if ec2range.Description != nil && *ec2range.Description != "" {
+				r1.Description = *ec2range.Description
+			}
 
-		res.CidrBlocks = append(res.CidrBlocks, *ec2range.CidrIp)
+			r1.CidrBlocks = append(r1.CidrBlocks, *ec2range.CidrIp)
+		}
+		res = append(res, r1)
 	}
 
-	for _, pair := range v.UserIdGroupPairs {
-		if pair.GroupId == nil {
-			continue
-		}
+	if len(v.UserIdGroupPairs) > 0 {
+		r2 := ir
+		for _, pair := range v.UserIdGroupPairs {
+			if pair.GroupId == nil {
+				continue
+			}
 
-		if pair.Description != nil && *pair.Description != "" {
-			res.Description = *pair.Description
-		}
+			if pair.Description != nil && *pair.Description != "" {
+				r2.Description = *pair.Description
+			}
 
-		res.SourceSecurityGroupIDs = append(res.SourceSecurityGroupIDs, *pair.GroupId)
+			r2.SourceSecurityGroupIDs = append(r2.SourceSecurityGroupIDs, *pair.GroupId)
+		}
+		res = append(res, r2)
 	}
 
 	return res

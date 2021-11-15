@@ -25,10 +25,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha4"
+	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/internal/userdata"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -54,10 +54,10 @@ func TestEKSConfigReconciler(t *testing.T) {
 			Client: testEnv.Client,
 		}
 		t.Log(fmt.Sprintf("Calling reconcile on cluster '%s' and config '%s' should requeue", cluster.Name, config.Name))
-		g.Eventually(func() {
+		g.Eventually(func(gomega Gomega) {
 			result, err := reconciler.joinWorker(ctx, cluster, config)
-			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(result.Requeue).To(BeFalse())
+			gomega.Expect(err).NotTo(HaveOccurred())
+			gomega.Expect(result.Requeue).To(BeFalse())
 		}).Should(Succeed())
 
 		t.Log(fmt.Sprintf("Secret '%s' should exist and be correct", config.Name))
@@ -65,8 +65,8 @@ func TestEKSConfigReconciler(t *testing.T) {
 		testEnv.Client.List(ctx, secretList)
 		t.Log(dump("secrets", secretList))
 		secret := &corev1.Secret{}
-		g.Eventually(func() {
-			g.Expect(testEnv.Client.Get(ctx, client.ObjectKey{
+		g.Eventually(func(gomega Gomega) {
+			gomega.Expect(testEnv.Client.Get(ctx, client.ObjectKey{
 				Name:      config.Name,
 				Namespace: "default",
 			}, secret)).To(Succeed())
@@ -99,10 +99,10 @@ func TestEKSConfigReconciler(t *testing.T) {
 			Client: testEnv.Client,
 		}
 		t.Log(fmt.Sprintf("Calling reconcile on cluster '%s' and config '%s' should requeue", cluster.Name, config.Name))
-		g.Eventually(func() {
+		g.Eventually(func(gomega Gomega) {
 			result, err := reconciler.joinWorker(ctx, cluster, config)
-			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(result.Requeue).To(BeFalse())
+			gomega.Expect(err).NotTo(HaveOccurred())
+			gomega.Expect(result.Requeue).To(BeFalse())
 		}).Should(Succeed())
 
 		t.Log(fmt.Sprintf("Secret '%s' should exist and be correct", config.Name))
@@ -111,12 +111,12 @@ func TestEKSConfigReconciler(t *testing.T) {
 		t.Log(dump("secrets", secretList))
 
 		secret := &corev1.Secret{}
-		g.Eventually(func() {
-			g.Expect(testEnv.Client.Get(ctx, client.ObjectKey{
+		g.Eventually(func(gomega Gomega) {
+			gomega.Expect(testEnv.Client.Get(ctx, client.ObjectKey{
 				Name:      config.Name,
 				Namespace: "default",
 			}, secret)).To(Succeed())
-			g.Expect(string(secret.Data["value"])).To(Equal(string(oldUserData)))
+			gomega.Expect(string(secret.Data["value"])).To(Equal(string(oldUserData)))
 		}).Should(Succeed())
 
 		// Secret already exists in testEnv so we update it
@@ -124,22 +124,22 @@ func TestEKSConfigReconciler(t *testing.T) {
 			"test-arg": "updated-test-value",
 		}
 		t.Log(dump("config", config))
-		g.Eventually(func() {
+		g.Eventually(func(gomega Gomega) {
 			result, err := reconciler.joinWorker(ctx, cluster, config)
-			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(result.Requeue).To(BeFalse())
+			gomega.Expect(err).NotTo(HaveOccurred())
+			gomega.Expect(result.Requeue).To(BeFalse())
 		}).Should(Succeed())
 
 		t.Log(fmt.Sprintf("Secret '%s' should exist and be up to date", config.Name))
 
 		testEnv.Client.List(ctx, secretList)
 		t.Log(dump("secrets", secretList))
-		g.Eventually(func() {
-			g.Expect(testEnv.Client.Get(ctx, client.ObjectKey{
+		g.Eventually(func(gomega Gomega) {
+			gomega.Expect(testEnv.Client.Get(ctx, client.ObjectKey{
 				Name:      config.Name,
 				Namespace: "default",
 			}, secret)).To(Succeed())
-			g.Expect(string(secret.Data["value"])).To(Equal(string(expectedUserData)))
+			gomega.Expect(string(secret.Data["value"])).To(Equal(string(expectedUserData)))
 		}).Should(Succeed())
 	})
 }
@@ -191,7 +191,7 @@ func newMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
 					Kind:       "EKSConfig",
-					APIVersion: bootstrapv1.GroupVersion.String(),
+					APIVersion: eksbootstrapv1.GroupVersion.String(),
 				},
 			},
 		},
@@ -206,16 +206,16 @@ func newMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 }
 
 // newEKSConfig return an EKSConfig object; if machine is not nil, the EKSConfig is linked to the machine as well.
-func newEKSConfig(machine *clusterv1.Machine) *bootstrapv1.EKSConfig {
-	config := &bootstrapv1.EKSConfig{
+func newEKSConfig(machine *clusterv1.Machine) *eksbootstrapv1.EKSConfig {
+	config := &eksbootstrapv1.EKSConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "EKSConfig",
-			APIVersion: bootstrapv1.GroupVersion.String(),
+			APIVersion: eksbootstrapv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 		},
-		Spec: bootstrapv1.EKSConfigSpec{
+		Spec: eksbootstrapv1.EKSConfigSpec{
 			KubeletExtraArgs: map[string]string{
 				"test-arg": "test-value",
 			},

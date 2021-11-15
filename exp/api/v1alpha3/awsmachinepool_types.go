@@ -19,8 +19,8 @@ package v1alpha3
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/errors"
 )
 
@@ -54,12 +54,12 @@ type AWSMachinePoolSpec struct {
 
 	// Subnets is an array of subnet configurations
 	// +optional
-	Subnets []infrav1.AWSResourceReference `json:"subnets,omitempty"`
+	Subnets []infrav1alpha3.AWSResourceReference `json:"subnets,omitempty"`
 
 	// AdditionalTags is an optional set of tags to add to an instance, in addition to the ones added by default by the
 	// AWS provider.
 	// +optional
-	AdditionalTags infrav1.Tags `json:"additionalTags,omitempty"`
+	AdditionalTags infrav1alpha3.Tags `json:"additionalTags,omitempty"`
 
 	// AWSLaunchTemplate specifies the launch template and version to use when an instance is launched.
 	// +kubebuilder:validation:Required
@@ -119,7 +119,7 @@ type AWSMachinePoolStatus struct {
 
 	// Conditions defines current service state of the AWSMachinePool.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1alpha3.Conditions `json:"conditions,omitempty"`
 
 	// Instances contains the status for each instance in the pool
 	// +optional
@@ -212,12 +212,12 @@ func init() {
 }
 
 // GetConditions returns the observations of the operational state of the AWSMachinePool resource.
-func (r *AWSMachinePool) GetConditions() clusterv1.Conditions {
+func (r *AWSMachinePool) GetConditions() clusterv1alpha3.Conditions {
 	return r.Status.Conditions
 }
 
-// SetConditions sets the underlying service state of the AWSMachinePool to the predescribed clusterv1.Conditions.
-func (r *AWSMachinePool) SetConditions(conditions clusterv1.Conditions) {
+// SetConditions sets the underlying service state of the AWSMachinePool to the predescribed clusterv1alpha3.Conditions.
+func (r *AWSMachinePool) SetConditions(conditions clusterv1alpha3.Conditions) {
 	r.Status.Conditions = conditions
 }
 

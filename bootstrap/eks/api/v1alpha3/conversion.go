@@ -17,62 +17,62 @@ limitations under the License.
 package v1alpha3
 
 import (
-	"sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha4"
+	"sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
-// ConvertTo converts the v1alpha3 EKSConfig receiver to a v1alpha4 EKSConfig.
+// ConvertTo converts the v1alpha3 EKSConfig receiver to a v1beta1 EKSConfig.
 func (r *EKSConfig) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1alpha4.EKSConfig)
+	dst := dstRaw.(*v1beta1.EKSConfig)
 
-	return Convert_v1alpha3_EKSConfig_To_v1alpha4_EKSConfig(r, dst, nil)
+	return Convert_v1alpha3_EKSConfig_To_v1beta1_EKSConfig(r, dst, nil)
 }
 
-// ConvertFrom converts the v1alpha4 EKSConfig receiver to a v1alpha3 EKSConfig.
+// ConvertFrom converts the v1beta1 EKSConfig receiver to a v1alpha3 EKSConfig.
 func (r *EKSConfig) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1alpha4.EKSConfig)
+	src := srcRaw.(*v1beta1.EKSConfig)
 
-	return Convert_v1alpha4_EKSConfig_To_v1alpha3_EKSConfig(src, r, nil)
+	return Convert_v1beta1_EKSConfig_To_v1alpha3_EKSConfig(src, r, nil)
 }
 
-// ConvertTo converts the v1alpha3 EKSConfigList receiver to a v1alpha4 EKSConfigList.
+// ConvertTo converts the v1alpha3 EKSConfigList receiver to a v1beta1 EKSConfigList.
 func (r *EKSConfigList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1alpha4.EKSConfigList)
+	dst := dstRaw.(*v1beta1.EKSConfigList)
 
-	return Convert_v1alpha3_EKSConfigList_To_v1alpha4_EKSConfigList(r, dst, nil)
+	return Convert_v1alpha3_EKSConfigList_To_v1beta1_EKSConfigList(r, dst, nil)
 }
 
-// ConvertFrom converts the v1alpha4 EKSConfigList receiver to a v1alpha3 EKSConfigList.
+// ConvertFrom converts the v1beta1 EKSConfigList receiver to a v1alpha3 EKSConfigList.
 func (r *EKSConfigList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1alpha4.EKSConfigList)
+	src := srcRaw.(*v1beta1.EKSConfigList)
 
-	return Convert_v1alpha4_EKSConfigList_To_v1alpha3_EKSConfigList(src, r, nil)
+	return Convert_v1beta1_EKSConfigList_To_v1alpha3_EKSConfigList(src, r, nil)
 }
 
-// ConvertTo converts the v1alpha3 EKSConfigTemplate receiver to a v1alpha4 EKSConfigTemplate.
+// ConvertTo converts the v1alpha3 EKSConfigTemplate receiver to a v1beta1 EKSConfigTemplate.
 func (r *EKSConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1alpha4.EKSConfigTemplate)
+	dst := dstRaw.(*v1beta1.EKSConfigTemplate)
 
-	return Convert_v1alpha3_EKSConfigTemplate_To_v1alpha4_EKSConfigTemplate(r, dst, nil)
+	return Convert_v1alpha3_EKSConfigTemplate_To_v1beta1_EKSConfigTemplate(r, dst, nil)
 }
 
-// ConvertFrom converts the v1alpha4 EKSConfigTemplate receiver to a v1alpha3 EKSConfigTemplate.
+// ConvertFrom converts the v1beta1 EKSConfigTemplate receiver to a v1alpha3 EKSConfigTemplate.
 func (r *EKSConfigTemplate) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1alpha4.EKSConfigTemplate)
+	src := srcRaw.(*v1beta1.EKSConfigTemplate)
 
-	return Convert_v1alpha4_EKSConfigTemplate_To_v1alpha3_EKSConfigTemplate(src, r, nil)
+	return Convert_v1beta1_EKSConfigTemplate_To_v1alpha3_EKSConfigTemplate(src, r, nil)
 }
 
-// ConvertTo converts the v1alpha3 EKSConfigTemplateList receiver to a v1alpha4 EKSConfigTemplateList.
+// ConvertTo converts the v1alpha3 EKSConfigTemplateList receiver to a v1beta1 EKSConfigTemplateList.
 func (r *EKSConfigTemplateList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1alpha4.EKSConfigTemplateList)
+	dst := dstRaw.(*v1beta1.EKSConfigTemplateList)
 
-	return Convert_v1alpha3_EKSConfigTemplateList_To_v1alpha4_EKSConfigTemplateList(r, dst, nil)
+	return Convert_v1alpha3_EKSConfigTemplateList_To_v1beta1_EKSConfigTemplateList(r, dst, nil)
 }
 
-// ConvertFrom converts the v1alpha4 EKSConfigTemplateList receiver to a v1alpha3 EKSConfigTemplateList.
+// ConvertFrom converts the v1beta1 EKSConfigTemplateList receiver to a v1alpha3 EKSConfigTemplateList.
 func (r *EKSConfigTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1alpha4.EKSConfigTemplateList)
+	src := srcRaw.(*v1beta1.EKSConfigTemplateList)
 
-	return Convert_v1alpha4_EKSConfigTemplateList_To_v1alpha3_EKSConfigTemplateList(src, r, nil)
+	return Convert_v1beta1_EKSConfigTemplateList_To_v1alpha3_EKSConfigTemplateList(src, r, nil)
 }

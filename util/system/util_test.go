@@ -21,7 +21,6 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	"io/ioutil"
 	"os"
 	"testing"
 )
@@ -66,7 +65,7 @@ func TestGetNamespaceFromFile(t *testing.T) {
 	_, err = os.OpenFile(filepath.Clean(nsPath), os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	g.Expect(err).NotTo(HaveOccurred())
 	ns := []byte("different-ns")
-	g.Expect(ioutil.WriteFile(nsPath, ns, 0644)).NotTo(HaveOccurred()) //nolint:gosec
+	g.Expect(os.WriteFile(nsPath, ns, 0644)).NotTo(HaveOccurred()) //nolint:gosec
 	g.Expect(GetNamespaceFromFile(nsPath)).To(Equal("different-ns"))
 	g.Expect(os.Remove(nsPath)).NotTo(HaveOccurred())
 }

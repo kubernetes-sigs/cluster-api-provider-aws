@@ -16,7 +16,7 @@ retrieve instance userdata from http://169.254.169.254/latest/api/token
 
 ## How Cluster API secures TLS secrets
 
-In 0.5.x/v1alpha3, by default, Cluster API Provider AWS will use [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/)
+Since v0.5.x, Cluster API Provider AWS has used [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/)
 as a limited-time secret store, storing the userdata using KMS encryption at rest in AWS.
 The EC2 IMDS userdata will contain a boot script to download the encrypted userdata secret
 using instance profile permissions, then immediately delete it from AWS Secrets Manager, and then execute it.

@@ -26,7 +26,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	cli "k8s.io/cli-runtime/pkg/printers"
+	"k8s.io/cli-runtime/pkg/printers"
 )
 
 // PrinterType is a type declaration for a printer type.
@@ -79,10 +79,10 @@ func (p *tablePrinter) Print(in interface{}) error {
 		return ErrTableRequired
 	}
 
-	options := cli.PrintOptions{}
-	tablePrinter := cli.NewTablePrinter(options)
+	options := printers.PrintOptions{}
+	tablePrinter := printers.NewTablePrinter(options)
 	scheme := runtime.NewScheme()
-	printer, err := cli.NewTypeSetter(scheme).WrapToPrinter(tablePrinter, nil)
+	printer, err := printers.NewTypeSetter(scheme).WrapToPrinter(tablePrinter, nil)
 	if err != nil {
 		return err
 	}

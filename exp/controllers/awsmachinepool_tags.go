@@ -19,7 +19,7 @@ package controllers
 import (
 	"encoding/json"
 
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 )
 

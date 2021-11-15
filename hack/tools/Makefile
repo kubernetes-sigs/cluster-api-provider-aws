@@ -58,6 +58,11 @@ $(SHARE_DIR):
 $(GTAR):
 	@$(GTAR) --version > /dev/null || (echo Install GNU Tar with brew install gnu-tar && exit -1)
 
+$(BIN_DIR)/start.sh:
+	curl https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/start.sh -o $@
+
+$(BIN_DIR)/restart.sh:
+	curl https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/restart.sh -o $@
 
 GO_APIDIFF := $(BIN_DIR)/go-apidiff
 $(GO_APIDIFF): $(BIN_DIR) go.mod go.sum
@@ -68,8 +73,8 @@ $(CONTROLLER_GEN): $(BIN_DIR) go.mod go.sum # Build controller-gen from tools fo
 	go build -tags=tools -o $@ sigs.k8s.io/controller-tools/cmd/controller-gen
 
 CONVERSION_GEN := $(BIN_DIR)/conversion-gen
-$(CONVERSION_GEN): $(BIN_DIR) go.mod go.sum
-	go build -tags=tools -o $@ k8s.io/code-generator/cmd/conversion-gen
+$(CONVERSION_GEN): $(BIN_DIR) go.mod go.sum $(call rwildcard,.,third_party/conversion-gen/*.*)
+	go build -tags=tools -o $@ ./third_party/conversion-gen
 
 DEFAULTER_GEN := $(BIN_DIR)/defaulter-gen
 $(DEFAULTER_GEN): $(BIN_DIR) go.mod go.sum

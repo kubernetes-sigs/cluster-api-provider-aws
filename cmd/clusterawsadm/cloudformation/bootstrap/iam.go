@@ -18,18 +18,18 @@ package bootstrap
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
 )
 
 // PolicyName defines the name of a managed IAM policy.
 type PolicyName string
 
 // ManagedIAMPolicyNames slice of managed IAM policies.
-var ManagedIAMPolicyNames = [4]PolicyName{ControllersPolicy, ControlPlanePolicy, NodePolicy, CSIPolicy}
+var ManagedIAMPolicyNames = [5]PolicyName{ControllersPolicy, ControllersPolicyEKS, ControlPlanePolicy, NodePolicy, CSIPolicy}
 
 // IsValid will check if a given policy name is valid. That is, it will check if the given policy name is
 // one of the ManagedIAMPolicyNames.
@@ -53,7 +53,7 @@ func (t Template) GenerateManagedIAMPolicyDocuments(policyDocDir string) error {
 		}
 
 		fn := path.Join(policyDocDir, fmt.Sprintf("%s.json", pn))
-		err = ioutil.WriteFile(fn, []byte(pds), 0o600)
+		err = os.WriteFile(fn, []byte(pds), 0o600)
 		if err != nil {
 			return fmt.Errorf("failed to generate policy document for ManagedIAMPolicy %q: %w", pn, err)
 		}
@@ -61,16 +61,17 @@ func (t Template) GenerateManagedIAMPolicyDocuments(policyDocDir string) error {
 	return nil
 }
 
-func (t Template) policyFunctionMap() map[PolicyName]func() *v1alpha4.PolicyDocument {
-	return map[PolicyName]func() *v1alpha4.PolicyDocument{
-		ControlPlanePolicy: t.cloudProviderControlPlaneAwsPolicy,
-		ControllersPolicy:  t.ControllersPolicy,
-		NodePolicy:         t.cloudProviderNodeAwsPolicy,
-		CSIPolicy:          t.csiControllerPolicy,
+func (t Template) policyFunctionMap() map[PolicyName]func() *iamv1.PolicyDocument {
+	return map[PolicyName]func() *iamv1.PolicyDocument{
+		ControlPlanePolicy:   t.cloudProviderControlPlaneAwsPolicy,
+		ControllersPolicy:    t.ControllersPolicy,
+		ControllersPolicyEKS: t.ControllersPolicyEKS,
+		NodePolicy:           t.cloudProviderNodeAwsPolicy,
+		CSIPolicy:            t.csiControllerPolicy,
 	}
 }
 
 // GetPolicyDocFromPolicyName returns a Template's policy document.
-func (t Template) GetPolicyDocFromPolicyName(policyName PolicyName) *v1alpha4.PolicyDocument {
+func (t Template) GetPolicyDocFromPolicyName(policyName PolicyName) *iamv1.PolicyDocument {
 	return t.policyFunctionMap()[policyName]()
 }

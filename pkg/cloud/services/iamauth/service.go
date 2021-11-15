@@ -21,7 +21,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
@@ -30,6 +30,8 @@ import (
 type Scope interface {
 	cloud.ClusterScoper
 
+	// RemoteClient returns the Kubernetes client for connecting to the workload cluster.
+	RemoteClient() (client.Client, error)
 	// IAMAuthConfig returns the IAM authenticator config
 	IAMAuthConfig() *ekscontrolplanev1.IAMAuthenticatorConfig
 }

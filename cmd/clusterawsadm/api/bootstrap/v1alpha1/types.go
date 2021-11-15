@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,7 +19,8 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
 )
 
 // BootstrapUser contains a list of elements that is specific
@@ -47,7 +48,7 @@ type BootstrapUser struct {
 	ExtraGroups []string `json:"extraGroups,omitempty"`
 
 	// ExtraStatements are additional AWS IAM policy document statements to be included inline for the user.
-	ExtraStatements []infrav1.StatementEntry `json:"extraStatements,omitempty"`
+	ExtraStatements []iamv1.StatementEntry `json:"extraStatements,omitempty"`
 
 	// Tags is a map of tags to be applied to the AWS IAM user.
 	Tags infrav1.Tags `json:"tags,omitempty"`
@@ -79,11 +80,11 @@ type AWSIAMRoleSpec struct {
 	ExtraPolicyAttachments []string `json:"extraPolicyAttachments,omitempty"`
 
 	// ExtraStatements are additional IAM statements to be included inline for the role.
-	ExtraStatements []infrav1.StatementEntry `json:"extraStatements,omitempty"`
+	ExtraStatements []iamv1.StatementEntry `json:"extraStatements,omitempty"`
 
 	// TrustStatements is an IAM PolicyDocument defining what identities are allowed to assume this role.
-	// See "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1" for more documentation.
-	TrustStatements []infrav1.StatementEntry `json:"trustStatements,omitempty"`
+	// See "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1beta1" for more documentation.
+	TrustStatements []iamv1.StatementEntry `json:"trustStatements,omitempty"`
 
 	// Tags is a map of tags to be applied to the AWS IAM role.
 	Tags infrav1.Tags `json:"tags,omitempty"`
@@ -91,11 +92,13 @@ type AWSIAMRoleSpec struct {
 
 // EKSConfig represents the EKS related configuration config.
 type EKSConfig struct {
-	// Enable controls whether EKS-related permissions are granted
-	Enable bool `json:"enable"`
+	// Disable controls whether EKS-related permissions are granted
+	Disable bool `json:"disable"`
 	// AllowIAMRoleCreation controls whether the EKS controllers have permissions for creating IAM
 	// roles per cluster
 	AllowIAMRoleCreation bool `json:"iamRoleCreation,omitempty"`
+	// EnableUserEKSConsolePolicy controls the creation of the policy to view EKS nodes and workloads.
+	EnableUserEKSConsolePolicy bool `json:"enableUserEKSConsolePolicy,omitempty"`
 	// DefaultControlPlaneRole controls the configuration of the AWS IAM role for
 	// the EKS control plane. This is the default role that will be used if
 	// no role is included in the spec and automatic creation of the role

@@ -20,11 +20,11 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
@@ -53,6 +53,13 @@ func (s *Service) ReconcileControlPlane(ctx context.Context) error {
 		return errors.Wrap(err, "failed reconciling eks addons")
 	}
 	conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSAddonsConfiguredCondition)
+
+	// EKS Identity Provider
+	if err := s.reconcileIdentityProvider(ctx); err != nil {
+		conditions.MarkFalse(s.scope.ControlPlane, ekscontrolplanev1.EKSIdentityProviderConfiguredCondition, ekscontrolplanev1.EKSIdentityProviderConfiguredFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		return errors.Wrap(err, "failed reconciling eks identity provider")
+	}
+	conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSIdentityProviderConfiguredCondition)
 
 	s.scope.V(2).Info("Reconcile EKS control plane completed successfully")
 	return nil
@@ -88,26 +95,26 @@ func (s *NodegroupService) ReconcilePool() error {
 	if err := s.reconcileNodegroupIAMRole(); err != nil {
 		conditions.MarkFalse(
 			s.scope.ManagedMachinePool,
-			infrav1exp.IAMNodegroupRolesReadyCondition,
-			infrav1exp.IAMNodegroupRolesReconciliationFailedReason,
+			expinfrav1.IAMNodegroupRolesReadyCondition,
+			expinfrav1.IAMNodegroupRolesReconciliationFailedReason,
 			clusterv1.ConditionSeverityError,
 			err.Error(),
 		)
 		return err
 	}
-	conditions.MarkTrue(s.scope.ManagedMachinePool, infrav1exp.IAMNodegroupRolesReadyCondition)
+	conditions.MarkTrue(s.scope.ManagedMachinePool, expinfrav1.IAMNodegroupRolesReadyCondition)
 
 	if err := s.reconcileNodegroup(); err != nil {
 		conditions.MarkFalse(
 			s.scope.ManagedMachinePool,
-			infrav1exp.EKSNodegroupReadyCondition,
-			infrav1exp.EKSNodegroupReconciliationFailedReason,
+			expinfrav1.EKSNodegroupReadyCondition,
+			expinfrav1.EKSNodegroupReconciliationFailedReason,
 			clusterv1.ConditionSeverityError,
 			err.Error(),
 		)
 		return err
 	}
-	conditions.MarkTrue(s.scope.ManagedMachinePool, infrav1exp.EKSNodegroupReadyCondition)
+	conditions.MarkTrue(s.scope.ManagedMachinePool, expinfrav1.EKSNodegroupReadyCondition)
 
 	return nil
 }

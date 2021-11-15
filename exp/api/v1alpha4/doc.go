@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// +gencrdrefdocs:force
 // +groupName=infrastructure.cluster.x-k8s.io
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1
 
 package v1alpha4

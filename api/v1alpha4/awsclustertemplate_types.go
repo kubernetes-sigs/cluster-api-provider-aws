@@ -27,7 +27,6 @@ type AWSClusterTemplateSpec struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=awsclustertemplates,scope=Namespaced,categories=cluster-api,shortName=awsct
-// +kubebuilder:storageversion
 
 // AWSClusterTemplate is the Schema for the awsclustertemplates API.
 type AWSClusterTemplate struct {

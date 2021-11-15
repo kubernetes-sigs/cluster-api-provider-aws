@@ -20,7 +20,6 @@ package shared
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -107,7 +106,7 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 }
 
 func localLoadE2EConfig(configPath string) *clusterctl.E2EConfig {
-	configData, err := ioutil.ReadFile(configPath)
+	configData, err := os.ReadFile(configPath)
 	Expect(err).ToNot(HaveOccurred(), "Failed to read the e2e test config file")
 	Expect(configData).ToNot(BeEmpty(), "The e2e test config file should not be empty")
 
