@@ -18,6 +18,7 @@ package cidr
 
 import (
 	"encoding/binary"
+	"fmt"
 	"math"
 	"net"
 
@@ -62,4 +63,46 @@ func SplitIntoSubnetsIPv4(cidrBlock string, numSubnets int) ([]*net.IPNet, error
 	}
 
 	return subnets, nil
+}
+
+// GetIPv4Cidrs gets the IPv4 CIDRs from a string slice.
+func GetIPv4Cidrs(cidrs []string) ([]string, error) {
+	found := []string{}
+
+	for i := range cidrs {
+		cidr := cidrs[i]
+
+		ip, _, err := net.ParseCIDR(cidr)
+		if err != nil {
+			return found, fmt.Errorf("parsing %s as cidr: %w", cidr, err)
+		}
+
+		ipv4 := ip.To4()
+		if ipv4 != nil {
+			found = append(found, cidr)
+		}
+	}
+
+	return found, nil
+}
+
+// GetIPv6Cidrs gets the IPv6 CIDRs from a string slice.
+func GetIPv6Cidrs(cidrs []string) ([]string, error) {
+	found := []string{}
+
+	for i := range cidrs {
+		cidr := cidrs[i]
+
+		ip, _, err := net.ParseCIDR(cidr)
+		if err != nil {
+			return found, fmt.Errorf("parsing %s as cidr: %w", cidr, err)
+		}
+
+		ipv4 := ip.To4()
+		if ipv4 == nil {
+			found = append(found, cidr)
+		}
+	}
+
+	return found, nil
 }
