@@ -23,6 +23,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 )
 
 var (
@@ -168,10 +169,12 @@ func (p *CreateAddonProcedure) Name() string {
 }
 
 // WaitAddonActiveProcedure is a procedure that will wait for an EKS addon
-// to be active in a cluster.
+// to be active in a cluster. Abd optionally include the degraded state.
+// Note: addons may be degraded until there are worker nodes.
 type WaitAddonActiveProcedure struct {
-	plan *plan
-	name string
+	plan            *plan
+	name            string
+	includeDegraded bool
 }
 
 // Do implements the logic for the procedure.
@@ -181,8 +184,23 @@ func (p *WaitAddonActiveProcedure) Do(ctx context.Context) error {
 		ClusterName: aws.String(p.plan.clusterName),
 	}
 
-	if err := p.plan.eksClient.WaitUntilAddonActive(input); err != nil {
-		return fmt.Errorf("waiting for addon %s to be active: %w", p.name, err)
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		out, describeErr := p.plan.eksClient.DescribeAddon(input)
+		if describeErr != nil {
+			return false, describeErr
+		}
+
+		if *out.Addon.Status == eks.AddonStatusActive {
+			return true, nil
+		}
+
+		if p.includeDegraded && *out.Addon.Status == eks.AddonStatusDegraded {
+			return true, nil
+		}
+
+		return false, nil
+	}); err != nil {
+		return fmt.Errorf("failed waiting for addon %s to be ready: %w", p.name, err)
 	}
 
 	return nil

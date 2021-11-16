@@ -75,6 +75,6 @@ func CheckAddonExistsSpec(ctx context.Context, inputGetter func() CheckAddonExis
 		AWSSession:   input.AWSSession,
 		AddonName:    input.AddonName,
 		AddonVersion: input.AddonVersion,
-		AddonStatus:  eks.AddonStatusActive,
+		AddonStatus:  []string{eks.AddonStatusActive, eks.AddonStatusDegraded},
 	}, input.E2EConfig.GetIntervals("", "wait-addon-status")...)
 }
