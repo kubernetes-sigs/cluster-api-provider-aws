@@ -17,8 +17,17 @@ limitations under the License.
 package userdata
 
 const argsTemplate = `{{- define "args" -}}
-{{- if . }} --kubelet-extra-args '{{ template "kubeletArgsTemplate" . }}'
+{{- if .KubeletExtraArgs }} --kubelet-extra-args '{{ template "kubeletArgsTemplate" .KubeletExtraArgs }}'
 {{- end -}}
+{{- if .ContainerRuntime }} --container-runtime {{.ContainerRuntime}}{{- end -}}
+{{- if .IPFamily }} --ip-family {{.IPFamily}}{{- end -}}
+{{- if .ServiceIPV6Cidr }} --service-ipv6-cidr {{.ServiceIPV6Cidr}}{{- end -}}
+{{- if .UseMaxPods }} --use-max-pods {{.UseMaxPods}}{{- end -}}
+{{- if .APIRetryAttempts }} --aws-api-retry-attempts {{.APIRetryAttempts}}{{- end -}}
+{{- if .PauseContainerAccount }} --pause-container-account {{.PauseContainerAccount}}{{- end -}}
+{{- if .PauseContainerVersion }} --pause-container-version {{.PauseContainerVersion}}{{- end -}}
+{{- if .DNSClusterIP }} --dns-cluster-ip {{.DNSClusterIP}}{{- end -}}
+{{- if .DockerConfigJSON }} --docker-config-json {{ .DockerConfigJSONEscaped }}{{- end -}}
 {{- end -}}`
 
 const kubeletArgsTemplate = `{{- define "kubeletArgsTemplate" -}}

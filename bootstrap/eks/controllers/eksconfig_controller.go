@@ -27,9 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
-	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/internal/userdata"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bsutil "sigs.k8s.io/cluster-api/bootstrap/util"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -44,6 +42,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/internal/userdata"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 )
 
 // EKSConfigReconciler reconciles a EKSConfig object.
@@ -185,13 +187,28 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 
 	log.Info("Generating userdata")
 
-	// generate userdata
-	userDataScript, err := userdata.NewNode(&userdata.NodeInput{
+	nodeInput := &userdata.NodeInput{
 		// AWSManagedControlPlane webhooks default and validate EKSClusterName
-		ClusterName: controlPlane.Spec.EKSClusterName,
-
+		ClusterName:      controlPlane.Spec.EKSClusterName,
 		KubeletExtraArgs: config.Spec.KubeletExtraArgs,
-	})
+		ContainerRuntime: config.Spec.ContainerRuntime,
+		DNSClusterIP:     config.Spec.DNSClusterIP,
+		DockerConfigJSON: config.Spec.DockerConfigJSON,
+		APIRetryAttempts: config.Spec.APIRetryAttempts,
+		UseMaxPods:       config.Spec.UseMaxPods,
+	}
+	if config.Spec.PauseContainer != nil {
+		nodeInput.PauseContainerAccount = &config.Spec.PauseContainer.AccountNumber
+		nodeInput.PauseContainerVersion = &config.Spec.PauseContainer.Version
+	}
+	// TODO(richardcase): uncomment when we support ipv6 / dual stack
+	/*if config.Spec.ServiceIPV6Cidr != nil && *config.Spec.ServiceIPV6Cidr != "" {
+		nodeInput.ServiceIPV6Cidr = config.Spec.ServiceIPV6Cidr
+		nodeInput.IPFamily = pointer.String("ipv6")
+	}*/
+
+	// generate userdata
+	userDataScript, err := userdata.NewNode(nodeInput)
 	if err != nil {
 		log.Error(err, "Failed to create a worker join configuration")
 		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, "")
