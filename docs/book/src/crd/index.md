@@ -866,6 +866,17 @@ roles per cluster</p>
 </tr>
 <tr>
 <td>
+<code>enableUserEKSConsolePolicy</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>EnableUserEKSConsolePolicy controls the creation of the policy to view EKS nodes and workloads.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>defaultControlPlaneRole</code><br/>
 <em>
 <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1.AWSIAMRoleSpec">
@@ -1696,6 +1707,17 @@ bool
 <td>
 <p>AllowIAMRoleCreation controls whether the EKS controllers have permissions for creating IAM
 roles per cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>enableUserEKSConsolePolicy</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>EnableUserEKSConsolePolicy controls the creation of the policy to view EKS nodes and workloads.</p>
 </td>
 </tr>
 <tr>

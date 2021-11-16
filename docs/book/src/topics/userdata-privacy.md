@@ -12,7 +12,7 @@ retrieve instance userdata from http://169.254.169.254/latest/api/token
 * A working `/bin/bash` shell
 * LFS directory layout (i.e. `/etc` exists and is readable by CloudInit)
 
-[Listed AMIs](/amis.md) on 1.16 and up should include the AWS CLI.
+[Listed AMIs](./images/built-amis.md) on 1.16 and up should include the AWS CLI.
 
 ## How Cluster API secures TLS secrets
 

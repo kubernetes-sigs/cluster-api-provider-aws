@@ -2,7 +2,9 @@
 
 - [Introduction](./introduction.md)
 - [Getting Started](getting-started.md)
-- [Published AMIs](./amis.md)
+- [AMIs](./topics/images/amis.md)
+  - [Published AMIs](./topics/images/built-amis.md)
+  - [Custom AMIs](./topics/images/custom-amis.md)
 - [Topics](./topics/index.md)
   - [Using clusterawsadm to fulfill prerequisites](./topics/using-clusterawsadm-to-fulfill-prerequisites.md)
   - [Accessing EC2 instances](./topics/accessing-ec2-instances.md)
