@@ -183,7 +183,7 @@ ifeq ($(UNAME), Linux)
 endif
 ifeq ($(UNAME), Darwin)
 	$(MAKE) $(SSM_SHARE)/sessionmanager-bundle.zip
-	cd $(BIN_DIR) && unzip -j ../share/ssm/sessionmanager-bundle.zip sessionmanager-bundle/bin/session-manager-plugin
+	cd $(BIN_DIR) && unzip -o -j ../share/ssm/sessionmanager-bundle.zip sessionmanager-bundle/bin/session-manager-plugin
 endif
 
 .PHONY: clean
