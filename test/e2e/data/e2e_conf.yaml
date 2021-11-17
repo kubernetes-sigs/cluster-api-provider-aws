@@ -182,6 +182,7 @@ providers:
           - sourcePath: "./infrastructure-aws/generated/cluster-template-upgrade-to-main.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-gpu.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-upgrades.yaml"
           - sourcePath: "./shared/v1beta1_provider/metadata.yaml"
         replacements:
           # To allow bugs to be catched.
@@ -206,6 +207,7 @@ variables:
   KUBERNETES_VERSION_UPGRADE_TO: "v1.22.2"
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.21.6"
   CNI: "../../data/cni/calico.yaml"
+  KUBETEST_CONFIGURATION: "../../data/kubetest/conformance.yaml"
   EXP_CLUSTER_RESOURCE_SET: "true"
   EVENT_BRIDGE_INSTANCE_STATE: "true"
   AWS_CONTROL_PLANE_MACHINE_TYPE: t3.large
