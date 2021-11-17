@@ -75,7 +75,8 @@ func (s *Service) GetRunningInstanceByTags(scope *scope.MachineScope) (*infrav1.
 	return nil, nil
 }
 
-// InstanceIfExists returns the existing instance or nothing if it doesn't exist.
+// InstanceIfExists returns the existing instance by id and errors if it cannot find the instance(ErrInstanceNotFoundByID) or API call fails (ErrDescribeInstance).
+// Returns empty instance with nil error, only when providerID is nil.
 func (s *Service) InstanceIfExists(id *string) (*infrav1.Instance, error) {
 	if id == nil {
 		s.scope.Info("Instance does not have an instance id")
@@ -91,17 +92,20 @@ func (s *Service) InstanceIfExists(id *string) (*infrav1.Instance, error) {
 	out, err := s.EC2Client.DescribeInstances(input)
 	switch {
 	case awserrors.IsNotFound(err):
-		return nil, nil
+		record.Eventf(s.scope.InfraCluster(), "FailedFindInstances", "failed to find instance by providerId %q: %v", *id, err)
+		return nil, ErrInstanceNotFoundByID
 	case err != nil:
 		record.Eventf(s.scope.InfraCluster(), "FailedDescribeInstances", "failed to describe instance %q: %v", *id, err)
-		return nil, errors.Wrapf(err, "failed to describe instance: %q", *id)
+		return nil, ErrDescribeInstance
 	}
 
 	if len(out.Reservations) > 0 && len(out.Reservations[0].Instances) > 0 {
 		return s.SDKToInstance(out.Reservations[0].Instances[0])
+	} else {
+		// Failed to find instance with provider id.
+		record.Eventf(s.scope.InfraCluster(), "FailedFindInstances", "failed to find instance by providerId %q: %v", *id, err)
+		return nil, ErrInstanceNotFoundByID
 	}
-
-	return nil, nil
 }
 
 // CreateInstance runs an ec2 instance.

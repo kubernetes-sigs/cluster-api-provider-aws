@@ -61,8 +61,8 @@ func TestInstanceIfExists(t *testing.T) {
 					Return(nil, awserrors.NewNotFound("not found"))
 			},
 			check: func(instance *infrav1.Instance, err error) {
-				if err != nil {
-					t.Fatalf("did not expect error: %v", err)
+				if err == nil {
+					t.Fatalf("expects error when instance could not be found: %v", err)
 				}
 
 				if instance != nil {
@@ -80,8 +80,8 @@ func TestInstanceIfExists(t *testing.T) {
 					Return(nil, awserr.New(awserrors.InvalidInstanceID, "does not exist", nil))
 			},
 			check: func(instance *infrav1.Instance, err error) {
-				if err != nil {
-					t.Fatalf("did not expect error: %v", err)
+				if err == nil {
+					t.Fatalf("expects error when DescribeInstances returns error: %v", err)
 				}
 
 				if instance != nil {

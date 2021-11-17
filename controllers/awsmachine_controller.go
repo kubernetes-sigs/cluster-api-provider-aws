@@ -323,8 +323,8 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 	}
 
 	instance, err := r.findInstance(machineScope, ec2Service)
-	if err != nil {
-		machineScope.Error(err, "unable to find instance")
+	if err != nil && err != ec2.ErrInstanceNotFoundByID {
+		machineScope.Error(err, "query to find instance failed")
 		return ctrl.Result{}, err
 	}
 
@@ -426,29 +426,34 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 	return ctrl.Result{}, nil
 }
 
-// findInstance queries the EC2 apis and retrieves the instance if it exists, returns nil otherwise.
+// findInstance queries the EC2 apis and retrieves the instance if it exists.
+// If providerID is empty, finds instance by tags and if it cannot be found, returns empty instance with nil error.
+// If providerID is set, either finds the instance by ID or returns error.
 func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc services.EC2MachineInterface) (*infrav1.Instance, error) {
+	var instance *infrav1.Instance
+
 	// Parse the ProviderID.
 	pid, err := noderefutil.NewProviderID(scope.GetProviderID())
-	if err != nil && !errors.Is(err, noderefutil.ErrEmptyProviderID) {
-		return nil, errors.Wrapf(err, "failed to parse Spec.ProviderID")
-	}
-
-	// If the ProviderID is populated, describe the instance using the ID.
-	if err == nil {
-		instance, err := ec2svc.InstanceIfExists(pointer.StringPtr(pid.ID()))
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to query AWSMachine instance")
-		}
-		return instance, nil
-	}
-
-	// If the ProviderID is empty, try to query the instance using tags.
-	instance, err := ec2svc.GetRunningInstanceByTags(scope)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to query AWSMachine instance by tags")
+		if !errors.Is(err, noderefutil.ErrEmptyProviderID) {
+			return nil, errors.Wrapf(err, "failed to parse Spec.ProviderID")
+		}
+		// If the ProviderID is empty, try to query the instance using tags.
+		// If an instance cannot be found, GetRunningInstanceByTags returns empty instance with nil error.
+		instance, err = ec2svc.GetRunningInstanceByTags(scope)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to query AWSMachine instance by tags")
+		}
+	} else {
+		// If the ProviderID is populated, describe the instance using the ID.
+		// InstanceIfExists() returns error (ErrInstanceNotFoundByID or ErrDescribeInstance) if the instance could not be found.
+		instance, err = ec2svc.InstanceIfExists(pointer.StringPtr(pid.ID()))
+		if err != nil {
+			return nil, err
+		}
 	}
 
+	// The only case where the instance is nil here is when the providerId is empty and instance could not be found by tags.
 	return instance, nil
 }
 
@@ -501,7 +506,7 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		return ctrl.Result{}, err
 	}
 
-	// Create new instance
+	// Create new instance since providerId is nil and instance could not be found by tags.
 	if instance == nil {
 		// Avoid a flickering condition between InstanceProvisionStarted and InstanceProvisionFailed if there's a persistent failure with createInstance
 		if conditions.GetReason(machineScope.AWSMachine, infrav1.InstanceReadyCondition) != infrav1.InstanceProvisionFailedReason {
