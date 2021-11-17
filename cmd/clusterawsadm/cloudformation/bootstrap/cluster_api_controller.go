@@ -375,6 +375,10 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 				"eks:UpdateNodegroupConfig",
 				"eks:CreateNodegroup",
 				"eks:AssociateEncryptionConfig",
+				"eks:ListIdentityProviderConfigs",
+				"eks:AssociateIdentityProviderConfig",
+				"eks:DescribeIdentityProviderConfig",
+				"eks:DisassociateIdentityProviderConfig",
 			},
 			Resource: iamv1.Resources{
 				"arn:*:eks:*:*:cluster/*",
