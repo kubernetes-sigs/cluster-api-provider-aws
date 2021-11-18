@@ -224,7 +224,7 @@ variables:
   INIT_WITH_BINARY_V1ALPHA4: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/clusterctl-{OS}-{ARCH}"
     # INIT_WITH_KUBERNETES_VERSION are only used by the clusterctl upgrade test to initialize
   # the management cluster to be upgraded.
-  INIT_WITH_KUBERNETES_VERSION: "v1.22.2"
+  INIT_WITH_KUBERNETES_VERSION: "v1.21.6"
 
 intervals:
   default/wait-cluster: ["25m", "10s"]
