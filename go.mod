@@ -4,11 +4,6 @@ go 1.17
 
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.0.1-0.20211111175208-4cc2fce2111a
 
-// Versions to be held for v1beta1
-// sigs.k8s.io/controller-runtime on v0.10.x
-// k8s.io/* on v0.22.x
-// github.com/go-logr/logr on v0.4.x
-// k8s.io/klog/v2 on v2.10.x
 require (
 	github.com/apparentlymart/go-cidr v1.1.0
 	github.com/aws/amazon-vpc-cni-k8s v1.9.3
