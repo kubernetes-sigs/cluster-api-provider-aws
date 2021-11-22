@@ -33,6 +33,7 @@ REPO_PATH   ?= sigs.k8s.io/cluster-api-provider-aws
 LD_FLAGS    ?= -X $(REPO_PATH)/pkg/version.Raw=$(VERSION) -extldflags "-static"
 MUTABLE_TAG ?= latest
 IMAGE        = origin-aws-machine-controllers
+BUILD_IMAGE ?= registry.ci.openshift.org/openshift/release:golang-1.17
 
 # race tests need CGO_ENABLED, everything else should have it disabled
 CGO_ENABLED = 0
@@ -57,10 +58,10 @@ ifeq ($(USE_DOCKER), 1)
 endif
 
 ifeq ($(NO_DOCKER), 1)
-  DOCKER_CMD =
+  DOCKER_CMD = CGO_ENABLED=$(CGO_ENABLED) GOARCH=$(GOARCH) GOOS=$(GOOS)
   IMAGE_BUILD_CMD = imagebuilder
 else
-  DOCKER_CMD = $(ENGINE) run --rm -e CGO_ENABLED=$(CGO_ENABLED) -e GOARCH=$(GOARCH) -e GOOS=$(GOOS) -v "$(PWD)":/go/src/sigs.k8s.io/cluster-api-provider-aws:Z -w /go/src/sigs.k8s.io/cluster-api-provider-aws openshift/origin-release:golang-1.16
+  DOCKER_CMD = $(ENGINE) run --rm -e CGO_ENABLED=$(CGO_ENABLED) -e GOARCH=$(GOARCH) -e GOOS=$(GOOS) -v "$(PWD)":/go/src/sigs.k8s.io/cluster-api-provider-aws:Z -w /go/src/sigs.k8s.io/cluster-api-provider-aws $(BUILD_IMAGE)
   IMAGE_BUILD_CMD = $(ENGINE) build
 endif
 
@@ -83,9 +84,9 @@ bin:
 
 .PHONY: build
 build: ## build binaries
-	$(DOCKER_CMD) CGO_ENABLED=0 go build $(GOGCFLAGS) -o "bin/machine-controller-manager" \
+	$(DOCKER_CMD) go build $(GOGCFLAGS) -o "bin/machine-controller-manager" \
                -ldflags "$(LD_FLAGS)" "$(REPO_PATH)/cmd/manager"
-	$(DOCKER_CMD) CGO_ENABLED=0 go build  $(GOGCFLAGS) -o "bin/termination-handler" \
+	$(DOCKER_CMD) go build  $(GOGCFLAGS) -o "bin/termination-handler" \
 	             -ldflags "$(LD_FLAGS)" "$(REPO_PATH)/cmd/termination-handler"
 
 .PHONY: images
