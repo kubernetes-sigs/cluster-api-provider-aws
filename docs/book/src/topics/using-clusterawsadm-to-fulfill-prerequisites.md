@@ -148,7 +148,7 @@ Store with KMS encryption for security, you can use the following command:
 ```bash
 aws ssm put-parameter --name "/sigs.k8s.io/cluster-api-provider-aws/ssh-key" \
   --type SecureString \
-  --value "$(aws ec2 create-key-pair --key-name default  --output json | jq .KeyMaterial -r)"
+  --value "$(aws ec2 create-key-pair --key-name default --output json | jq .KeyMaterial -r)"
 ```
 
 ### Adding an existing public key to AWS
