@@ -35,6 +35,6 @@ kind: AWSFargateProfile
 metadata:
   name: "${CLUSTER_NAME}-fargate-0"
 spec:
-  clusterName: mb-test-1
+  clusterName: "${CLUSTER_NAME}"
   selectors:
     - namespace: default
