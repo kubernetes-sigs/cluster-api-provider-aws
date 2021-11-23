@@ -376,6 +376,8 @@ github.com/garyburd/redigo v0.0.0-20150301180006-535138d7bcd7/go.mod h1:NR3MbYis
 github.com/getsentry/raven-go v0.2.0/go.mod h1:KungGk8q33+aIAZUIVWZDr2OfAEBsO49PX4NzFV5kcQ=
 github.com/ghodss/yaml v0.0.0-20150909031657-73d445a93680/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
+github.com/giantswarm/cluster-api v0.3.13-gs.0.20211123133141-619f91edddec h1:BNK8bKZrVhFFDXKf0WOf8kJpgNoh7Lvp8xl1xRguj3Y=
+github.com/giantswarm/cluster-api v0.3.13-gs.0.20211123133141-619f91edddec/go.mod h1:CU6wckM1zQHveT1a1WZ47+gAWrchD1lAid9qp7w1UlY=
 github.com/globalsign/mgo v0.0.0-20180905125535-1ca0a4f7cbcb/go.mod h1:xkRDCp4j0OGD1HRkm4kmhM+pmpv3AKq5SU7GMg4oO/Q=
 github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8/go.mod h1:xkRDCp4j0OGD1HRkm4kmhM+pmpv3AKq5SU7GMg4oO/Q=
 github.com/go-errors/errors v1.0.1/go.mod h1:f4zRHt4oKfwPJE5k8C9vpYG+aDHdBFUsgrm6/TyX73Q=
@@ -974,6 +976,7 @@ github.com/urfave/cli v1.20.0/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijb
 github.com/urfave/cli v1.22.1/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtXRu0=
 github.com/urfave/cli v1.22.2/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtXRu0=
 github.com/urfave/cli/v2 v2.2.0/go.mod h1:SE9GqnLQmjVa0iPEY0f1w3ygNIYcIJ0OKPMoW2caLfQ=
+github.com/valyala/fastjson v1.6.3/go.mod h1:CLCAqky6SMuOcxStkYQvblddUtoRxhYMGLrsQns1aXY=
 github.com/vektah/gqlparser v1.1.2/go.mod h1:1ycwN7Ij5njmMkPPAOaRFY4rET2Enx7IkVv3vaXspKw=
 github.com/vishvananda/netlink v0.0.0-20181108222139-023a6dafdcdf/go.mod h1:+SR5DhBJrl6ZM7CoCKvpw5BKroDKQ+PJqOg65H/2ktk=
 github.com/vishvananda/netlink v1.1.0/go.mod h1:cTgwzPIzzgDAYoQrMm0EdrjRUBkTqKYppBueQtXaqoE=
@@ -1711,8 +1714,6 @@ sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.15/go.mod h1:LEScyz
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.23/go.mod h1:LEScyzhFmoF5pso/YSeBstl57mOzx9xlU9n85RGrDQg=
 sigs.k8s.io/aws-iam-authenticator v0.5.3 h1:EyqQ/uxzbe2mDETZZmuMnv0xHITnyLhZfPlGb6Mma20=
 sigs.k8s.io/aws-iam-authenticator v0.5.3/go.mod h1:DIq7gy0lvnyaG88AgFyJzUVeix+ia5msHEp4RL0102I=
-sigs.k8s.io/cluster-api v1.0.1-0.20211111175208-4cc2fce2111a h1:/cQ2TitFaxDSN7+H+tXilyYolwe9nrUZ4l1hBEgqje0=
-sigs.k8s.io/cluster-api v1.0.1-0.20211111175208-4cc2fce2111a/go.mod h1:QncwGzWU1PlPBaM2H85DGvnRvdmpyhtbcbNM7lU2xq0=
 sigs.k8s.io/cluster-api/test v1.0.1-0.20211111175208-4cc2fce2111a h1:bubhFkWAbs/BGlRTbWmm7+aaN5YdNls7vPH2bLaHTt0=
 sigs.k8s.io/cluster-api/test v1.0.1-0.20211111175208-4cc2fce2111a/go.mod h1:VDgiTRAZTTC9mayIn7g6TJ3g77mYFGzis/jKDjj4Ho0=
 sigs.k8s.io/controller-runtime v0.6.3/go.mod h1:WlZNXcM0++oyaQt4B7C2lEE5JYRs8vJUzRP4N4JpdAY=

@@ -2,7 +2,7 @@ module sigs.k8s.io/cluster-api-provider-aws
 
 go 1.17
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.0.1-0.20211111175208-4cc2fce2111a
+replace sigs.k8s.io/cluster-api => github.com/giantswarm/cluster-api v0.3.13-gs.0.20211123133141-619f91edddec
 
 // Versions to be held for v1beta1
 // sigs.k8s.io/controller-runtime on v0.10.x

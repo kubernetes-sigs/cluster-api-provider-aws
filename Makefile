@@ -78,8 +78,9 @@ endif
 STAGING_REGISTRY ?= gcr.io/k8s-staging-cluster-api-aws
 STAGING_BUCKET ?= artifacts.k8s-staging-cluster-api-aws.appspot.com
 BUCKET ?= $(STAGING_BUCKET)
-PROD_REGISTRY := k8s.gcr.io/cluster-api-aws
-REGISTRY ?= $(STAGING_REGISTRY)
+PROD_REGISTRY := us.gcr.io/k8s-artifacts-prod/cluster-api-aws
+REGISTRY ?= quay.io
+REGISTRY_CHINA ?= registry-intl.cn-shanghai.aliyuncs.com
 RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
 PULL_BASE_REF ?= $(RELEASE_TAG) # PULL_BASE_REF will be provided by Prow
 RELEASE_ALIAS_TAG ?= $(PULL_BASE_REF)
@@ -95,7 +96,8 @@ ALL_ARCH ?= amd64 arm arm64 ppc64le s390x
 
 # main controller
 CORE_IMAGE_NAME ?= cluster-api-aws-controller
-CORE_CONTROLLER_IMG ?= $(REGISTRY)/$(CORE_IMAGE_NAME)
+CORE_CONTROLLER_IMG ?= $(REGISTRY)/giantswarm/$(CORE_IMAGE_NAME)
+CORE_CONTROLLER_IMG_CHINA ?= $(REGISTRY_CHINA)/giantswarm/$(CORE_IMAGE_NAME)
 CORE_CONTROLLER_ORIGINAL_IMG := gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller
 CORE_CONTROLLER_NAME := capa-controller-manager
 CORE_MANIFEST_FILE := infrastructure-components
