@@ -41,5 +41,45 @@ func TestConvertAWSCluster(t *testing.T) {
 			g.Expect(dst.ConvertTo(restored)).To(Succeed())
 			g.Expect(restored.Spec.SSHKeyName).To(BeNil())
 		})
+
+		t.Run("should convert subnets to pointers", func(t *testing.T) {
+			src := &infrav1beta1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: infrav1beta1.AWSClusterSpec{
+					NetworkSpec: infrav1beta1.NetworkSpec{
+						Subnets: infrav1beta1.Subnets{
+							infrav1beta1.SubnetSpec{
+								ID: "test",
+							},
+						},
+					},
+				},
+			}
+			dst := &AWSCluster{}
+			g.Expect(dst.ConvertFrom(src)).To(Succeed())
+			g.Expect(dst.Spec.NetworkSpec.Subnets).ToNot(BeEmpty())
+			g.Expect(dst.Spec.NetworkSpec.Subnets[0].ID).To(Equal("test"))
+		})
+	})
+
+	t.Run("to hub", func(t *testing.T) {
+		t.Run("should convert subnets from pointers", func(t *testing.T) {
+			src := &AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						Subnets: Subnets{
+							&SubnetSpec{
+								ID: "test",
+							},
+						},
+					},
+				},
+			}
+			dst := &infrav1beta1.AWSCluster{}
+			g.Expect(src.ConvertTo(dst)).To(Succeed())
+			g.Expect(dst.Spec.NetworkSpec.Subnets).ToNot(BeEmpty())
+			g.Expect(dst.Spec.NetworkSpec.Subnets[0].ID).To(Equal("test"))
+		})
 	})
 }

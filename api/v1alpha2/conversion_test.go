@@ -36,12 +36,6 @@ func TestFuzzyConversion(t *testing.T) {
 	g.Expect(AddToScheme(scheme)).To(Succeed())
 	g.Expect(v1beta1.AddToScheme(scheme)).To(Succeed())
 
-	// t.Run("for AWSCluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-	// 	Scheme:      scheme,
-	// 	Hub:         &v1beta1.AWSCluster{},
-	// 	Spoke:       &AWSCluster{},
-	// 	FuzzerFuncs: []fuzzer.FuzzerFuncs{CustomObjectMetaFuzzFunc},
-	// }))
 	t.Run("for AWSMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
 		Hub:         &v1beta1.AWSMachine{},
