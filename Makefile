@@ -349,11 +349,12 @@ defaulters: $(DEFAULTER_GEN)
 
 .PHONY: docker-build
 docker-build: docker-pull-prerequisites ## Build the docker image for controller-manager
-	docker build --build-arg ARCH=$(ARCH) --build-arg LDFLAGS="$(LDFLAGS)" . -t $(CORE_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker build --build-arg ARCH=$(ARCH) --build-arg LDFLAGS="$(LDFLAGS)" . -t $(CORE_CONTROLLER_IMG):$(TAG)
+	docker build --build-arg ARCH=$(ARCH) --build-arg LDFLAGS="$(LDFLAGS)" . -t $(CORE_CONTROLLER_IMG_CHINA):$(TAG)
 
 .PHONY: docker-push
 docker-push: ## Push the docker image
-	docker push $(CORE_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker push $(CORE_CONTROLLER_IMG):$(TAG)
 
 .PHONY: docker-pull-prerequisites
 docker-pull-prerequisites:
