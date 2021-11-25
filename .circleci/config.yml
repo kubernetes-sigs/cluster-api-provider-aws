@@ -10,7 +10,7 @@ jobs:
       - run:
           name: Build the CAPI docker images
           command: |
-            make docker-build
+            make docker-build TAG=$CIRCLE_SHA1
       - run:
           name: Login to quay
           command: |
@@ -19,8 +19,6 @@ jobs:
           name: Push images to quay
           command: |
             docker push quay.io/$CIRCLE_PROJECT_USERNAME/cluster-api-aws-controller:$CIRCLE_SHA1
-            docker push quay.io/$CIRCLE_PROJECT_USERNAME/eks-bootstrap-controller:$CIRCLE_SHA1
-            docker push quay.io/$CIRCLE_PROJECT_USERNAME/eks-controlplane-controller:$CIRCLE_SHA1
       - run:
           name: Login to aliyun
           command: |
@@ -29,8 +27,6 @@ jobs:
           name: Push images to aliyun
           command: |
             docker push registry-intl.cn-shanghai.aliyuncs.com/$CIRCLE_PROJECT_USERNAME/cluster-api-aws-controller:$CIRCLE_SHA1
-            docker push registry-intl.cn-shanghai.aliyuncs.com/$CIRCLE_PROJECT_USERNAME/eks-bootstrap-controller:$CIRCLE_SHA1
-            docker push registry-intl.cn-shanghai.aliyuncs.com/$CIRCLE_PROJECT_USERNAME/eks-controlplane-controller:$CIRCLE_SHA1
 
 workflows:
   version: 2
