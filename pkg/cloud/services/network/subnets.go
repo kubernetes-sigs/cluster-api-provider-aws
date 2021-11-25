@@ -144,14 +144,10 @@ func (s *Service) reconcileSubnets() error {
 	}
 
 	if !unmanagedVPC {
-		// Check that we need at least 1 private and 1 public subnet after we have updated the metadata
-		if len(subnets.FilterPrivate()) < 1 {
-			record.Warnf(s.scope.InfraCluster(), "FailedNoPrivateSubnet", "Expected at least 1 private subnet but got 0")
-			return errors.New("expected at least 1 private subnet but got 0")
-		}
-		if len(subnets.FilterPublic()) < 1 {
-			record.Warnf(s.scope.InfraCluster(), "FailedNoPublicSubnet", "Expected at least 1 public subnet but got 0")
-			return errors.New("expected at least 1 public subnet but got 0")
+		// Check that we need at least 2 subnets
+		if len(subnets) < 2 {
+			record.Warnf(s.scope.InfraCluster(), "FailedNotEnoughSubnet", "Expected at least 2 subnets")
+			return errors.New("expected at least 2 subnets")
 		}
 	} else if unmanagedVPC {
 		if len(subnets) < 1 {

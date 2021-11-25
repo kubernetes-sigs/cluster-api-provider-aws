@@ -66,6 +66,7 @@ type defaultSubnetPlacementStrategy struct {
 // 2. If the spec has Availability Zones then get the subnets for these AZs
 // 3. If the parent resource has Availability Zones then get the subnets for these AZs
 // 4. All the private subnets from the control plane are used
+// 5. All the public subnets from the control plane if no private subnets
 // In Cluster API Availability Zone can also be referred to by the name `Failure Domain`.
 func (p *defaultSubnetPlacementStrategy) Place(input *placementInput) ([]string, error) {
 	if len(input.SpecSubnetIDs) > 0 {
@@ -93,9 +94,16 @@ func (p *defaultSubnetPlacementStrategy) Place(input *placementInput) ([]string,
 		return subnetIDs, nil
 	}
 
-	controlPlaneSubnetIDs := input.ControlplaneSubnets.FilterPrivate().IDs()
-	if len(controlPlaneSubnetIDs) > 0 {
+	var controlPlaneSubnetIDs []string
+	if len(input.ControlplaneSubnets.FilterPrivate()) == 0 {
+		controlPlaneSubnetIDs = input.ControlplaneSubnets.FilterPublic().IDs()
+		p.logger.V(2).Info("no private subnets, using all the public subnets from the control plane")
+	} else {
+		controlPlaneSubnetIDs = input.ControlplaneSubnets.FilterPrivate().IDs()
 		p.logger.V(2).Info("using all the private subnets from the control plane")
+	}
+
+	if len(controlPlaneSubnetIDs) > 0 {
 		return controlPlaneSubnetIDs, nil
 	}
 

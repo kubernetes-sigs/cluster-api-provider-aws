@@ -108,7 +108,7 @@ func TestSubnetPlacement(t *testing.T) {
 			expectError:       false,
 		},
 		{
-			name:          "use control plane subnets",
+			name:          "use control plane private subnets",
 			specSubnetIDs: []string{},
 			specAZs:       []string{},
 			parentAZs:     []string{},
@@ -131,6 +131,32 @@ func TestSubnetPlacement(t *testing.T) {
 			},
 			logger:            klogr.New(),
 			expectedSubnetIDs: []string{"az1", "az2"},
+			expectError:       false,
+		},
+		{
+			name:          "use control plane public subnets if no private subnets",
+			specSubnetIDs: []string{},
+			specAZs:       []string{},
+			parentAZs:     []string{},
+			controlPlaneSubnets: infrav1.Subnets{
+				infrav1.SubnetSpec{
+					ID:               "az1",
+					AvailabilityZone: "eu-west-1a",
+					IsPublic:         true,
+				},
+				infrav1.SubnetSpec{
+					ID:               "az2",
+					AvailabilityZone: "eu-west-1b",
+					IsPublic:         true,
+				},
+				infrav1.SubnetSpec{
+					ID:               "az3",
+					AvailabilityZone: "eu-west-1c",
+					IsPublic:         true,
+				},
+			},
+			logger:            klogr.New(),
+			expectedSubnetIDs: []string{"az1", "az2", "az3"},
 			expectError:       false,
 		},
 		{
