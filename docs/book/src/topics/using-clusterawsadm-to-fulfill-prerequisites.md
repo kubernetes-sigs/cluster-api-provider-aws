@@ -136,7 +136,7 @@ you plan on using. If you don't have one yet, a new one needs to be created.
 
 ```bash
 # Save the output to a secure location
-aws ec2 create-key-pair --key-name default | jq .KeyMaterial -r
+aws ec2 create-key-pair --key-name default --output json | jq .KeyMaterial -r
 -----BEGIN RSA PRIVATE KEY-----
 [... contents omitted ...]
 -----END RSA PRIVATE KEY-----
@@ -148,7 +148,7 @@ Store with KMS encryption for security, you can use the following command:
 ```bash
 aws ssm put-parameter --name "/sigs.k8s.io/cluster-api-provider-aws/ssh-key" \
   --type SecureString \
-  --value "$(aws ec2 create-key-pair --key-name default | jq .KeyMaterial -r)"
+  --value "$(aws ec2 create-key-pair --key-name default --output json | jq .KeyMaterial -r)"
 ```
 
 ### Adding an existing public key to AWS
