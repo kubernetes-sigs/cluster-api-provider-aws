@@ -30,11 +30,11 @@ import (
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
@@ -49,6 +49,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/secretsmanager"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ssm"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/coalescing"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -204,12 +205,17 @@ func (r *AWSMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 }
 
-func (r *AWSMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *AWSMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options Options) error {
 	log := ctrl.LoggerFrom(ctx)
 	AWSClusterToAWSMachines := r.AWSClusterToAWSMachines(log)
 
+	var acr reconcile.Reconciler = r
+	if options.Cache != nil {
+		acr = coalescing.NewReconciler(r, options.Cache, log)
+	}
+
 	controller, err := ctrl.NewControllerManagedBy(mgr).
-		WithOptions(options).
+		WithOptions(options.Options).
 		For(&infrav1.AWSMachine{}).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
@@ -242,7 +248,7 @@ func (r *AWSMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 				},
 			},
 		).
-		Build(r)
+		Build(acr)
 	if err != nil {
 		return err
 	}

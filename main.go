@@ -59,6 +59,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/coalescing"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/version"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -101,6 +102,7 @@ var (
 	awsMachineConcurrency    int
 	syncPeriod               time.Duration
 	webhookPort              int
+	debouncingTimer          time.Duration
 	webhookCertDir           string
 	healthAddr               string
 	serviceEndpoints         string
@@ -168,33 +170,7 @@ func main() {
 
 	setupLog.V(1).Info(fmt.Sprintf("feature gates: %+v\n", feature.Gates))
 
-	// Parse service endpoints.
-	AWSServiceEndpoints, err := endpoints.ParseFlag(serviceEndpoints)
-	if err != nil {
-		setupLog.Error(err, "unable to parse service endpoints", "controller", "AWSCluster")
-		os.Exit(1)
-	}
-
-	if err = (&controllers.AWSMachineReconciler{
-		Client:           mgr.GetClient(),
-		Log:              ctrl.Log.WithName("controllers").WithName("AWSMachine"),
-		Recorder:         mgr.GetEventRecorderFor("awsmachine-controller"),
-		Endpoints:        AWSServiceEndpoints,
-		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsMachineConcurrency, RecoverPanic: true}); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "AWSMachine")
-		os.Exit(1)
-	}
-	if err = (&controllers.AWSClusterReconciler{
-		Client:           mgr.GetClient(),
-		Recorder:         mgr.GetEventRecorderFor("awscluster-controller"),
-		Endpoints:        AWSServiceEndpoints,
-		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: true}); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
-		os.Exit(1)
-	}
-	enableGates(ctx, mgr, AWSServiceEndpoints)
+	registerControllers(ctx, mgr)
 
 	if err = (&infrav1.AWSMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplate")
@@ -288,6 +264,47 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func registerControllers(ctx context.Context, mgr ctrl.Manager) {
+	// Parse service endpoints.
+	AWSServiceEndpoints, err := endpoints.ParseFlag(serviceEndpoints)
+	if err != nil {
+		setupLog.Error(err, "unable to parse service endpoints", "controller", "AWSCluster")
+		os.Exit(1)
+	}
+
+	machineCache, err := coalescing.NewRequestCache(debouncingTimer)
+	if err != nil {
+		setupLog.Error(err, "unable to create aws machine cache", "cache", "AWSMachine")
+		os.Exit(1)
+	}
+	if err = (&controllers.AWSMachineReconciler{
+		Client:           mgr.GetClient(),
+		Log:              ctrl.Log.WithName("controllers").WithName("AWSMachine"),
+		Recorder:         mgr.GetEventRecorderFor("awsmachine-controller"),
+		Endpoints:        AWSServiceEndpoints,
+		WatchFilterValue: watchFilterValue,
+	}).SetupWithManager(ctx, mgr, controllers.Options{Options: controller.Options{MaxConcurrentReconciles: awsMachineConcurrency, RecoverPanic: true}, Cache: machineCache}); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "AWSMachine")
+		os.Exit(1)
+	}
+
+	clusterCache, err := coalescing.NewRequestCache(debouncingTimer)
+	if err != nil {
+		setupLog.Error(err, "unable to create aws cluster cache", "cache", "AWSCluster")
+		os.Exit(1)
+	}
+	if err = (&controllers.AWSClusterReconciler{
+		Client:           mgr.GetClient(),
+		Recorder:         mgr.GetEventRecorderFor("awscluster-controller"),
+		Endpoints:        AWSServiceEndpoints,
+		WatchFilterValue: watchFilterValue,
+	}).SetupWithManager(ctx, mgr, controllers.Options{Options: controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: true}, Cache: clusterCache}); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
+		os.Exit(1)
+	}
+	enableGates(ctx, mgr, AWSServiceEndpoints)
 }
 
 func enableGates(ctx context.Context, mgr ctrl.Manager, awsServiceEndpoints []scope.ServiceEndpoint) {
@@ -451,6 +468,12 @@ func initFlags(fs *pflag.FlagSet) {
 		"sync-period",
 		10*time.Minute,
 		fmt.Sprintf("The minimum interval at which watched resources are reconciled. If EKS is enabled the maximum allowed is %s", maxEKSSyncPeriod),
+	)
+
+	fs.DurationVar(&debouncingTimer,
+		"debouncing-timer",
+		10*time.Second,
+		"The minimum interval the controller should wait after a successful reconciliation of a particular object before reconciling it again",
 	)
 
 	fs.IntVar(&webhookPort,

@@ -30,7 +30,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -46,6 +45,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/instancestate"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/network"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/securitygroup"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/coalescing"
 	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/util/conditions"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
@@ -287,10 +287,16 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 	return reconcile.Result{}, nil
 }
 
-func (r *AWSClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *AWSClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options Options) error {
 	log := ctrl.LoggerFrom(ctx)
+
+	var acr reconcile.Reconciler = r
+	if options.Cache != nil {
+		acr = coalescing.NewReconciler(r, options.Cache, log)
+	}
+
 	controller, err := ctrl.NewControllerManagedBy(mgr).
-		WithOptions(options).
+		WithOptions(options.Options).
 		For(&infrav1.AWSCluster{}).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log, r.WatchFilterValue)).
 		WithEventFilter(
@@ -316,7 +322,7 @@ func (r *AWSClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 			},
 		).
 		WithEventFilter(predicates.ResourceIsNotExternallyManaged(log)).
-		Build(r)
+		Build(acr)
 	if err != nil {
 		return errors.Wrap(err, "error creating controller")
 	}
