@@ -147,15 +147,14 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Handle deleted clusters
 	if !awsCluster.DeletionTimestamp.IsZero() {
-		return reconcileDelete(clusterScope)
+		return r.reconcileDelete(clusterScope)
 	}
 
 	// Handle non-deleted clusters
-	return reconcileNormal(clusterScope)
+	return r.reconcileNormal(clusterScope)
 }
 
-// TODO(ncdc): should this be a function on ClusterScope?
-func reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+func (r *AWSClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	clusterScope.Info("Reconciling AWSCluster delete")
 
 	ec2svc := ec2.NewService(clusterScope)
@@ -197,8 +196,7 @@ func reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 	return reconcile.Result{}, nil
 }
 
-// TODO(ncdc): should this be a function on ClusterScope?
-func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	clusterScope.Info("Reconciling AWSCluster")
 
 	awsCluster := clusterScope.AWSCluster
