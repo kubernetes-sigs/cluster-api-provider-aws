@@ -27,7 +27,7 @@ jobs:
       - run:
           name: Push images with git tags to quay
           command: |
-            if [[ -n $CIRCLE_TAG ]]; docker push quay.io/$CIRCLE_PROJECT_USERNAME/cluster-api-aws-controller:$CIRCLE_TAG; fi
+            if [[ -n $CIRCLE_TAG ]]; then docker push quay.io/$CIRCLE_PROJECT_USERNAME/cluster-api-aws-controller:$CIRCLE_TAG; fi
       - run:
           name: Login to aliyun
           command: |
@@ -39,7 +39,7 @@ jobs:
       - run:
           name: Push images with git tags to aliyun
           command: |
-            if [[ -n $CIRCLE_TAG ]]; docker push registry-intl.cn-shanghai.aliyuncs.com/$CIRCLE_PROJECT_USERNAME/cluster-api-aws-controller:$CIRCLE_TAG; fi
+            if [[ -n $CIRCLE_TAG ]]; then docker push registry-intl.cn-shanghai.aliyuncs.com/$CIRCLE_PROJECT_USERNAME/cluster-api-aws-controller:$CIRCLE_TAG; fi
 
 workflows:
   version: 2
