@@ -18,7 +18,7 @@ require (
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20211111175208-4cc2fce2111a
 	sigs.k8s.io/controller-tools v0.7.1-0.20211110210727-ab52f76cc7d1
 	sigs.k8s.io/kind v0.11.1
-	sigs.k8s.io/kustomize/kustomize/v4 v4.4.0
+	sigs.k8s.io/kustomize/kustomize/v4 v4.4.1
 	sigs.k8s.io/testing_frameworks v0.1.2
 )
 
@@ -258,9 +258,9 @@ require (
 	mvdan.cc/unparam v0.0.0-20210104141923-aac4ce9116a7 // indirect
 	sigs.k8s.io/json v0.0.0-20211020170558-c049b76a60c6 // indirect
 	sigs.k8s.io/kubebuilder/docs/book/utils v0.0.0-20211028165026-57688c578b5d // indirect
-	sigs.k8s.io/kustomize/api v0.10.0 // indirect
-	sigs.k8s.io/kustomize/cmd/config v0.10.1 // indirect
-	sigs.k8s.io/kustomize/kyaml v0.12.0 // indirect
+	sigs.k8s.io/kustomize/api v0.10.1 // indirect
+	sigs.k8s.io/kustomize/cmd/config v0.10.2 // indirect
+	sigs.k8s.io/kustomize/kyaml v0.13.0 // indirect
 	sigs.k8s.io/mdtoc v1.1.0 // indirect
 	sigs.k8s.io/release-sdk v0.2.1-0.20211005095109-f50f5112261c // indirect
 	sigs.k8s.io/release-utils v0.3.0 // indirect
