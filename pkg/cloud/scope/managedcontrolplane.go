@@ -365,3 +365,16 @@ func (s *ManagedControlPlaneScope) DisableVPCCNI() bool {
 func (s *ManagedControlPlaneScope) OIDCIdentityProviderConfig() *ekscontrolplanev1.OIDCIdentityProviderConfig {
 	return s.ControlPlane.Spec.OIDCIdentityProviderConfig
 }
+
+// ServiceCidrs returns the CIDR blocks used for services.
+func (s *ManagedControlPlaneScope) ServiceCidrs() *clusterv1.NetworkRanges {
+	if s.Cluster.Spec.ClusterNetwork != nil {
+		if s.Cluster.Spec.ClusterNetwork.Services != nil {
+			if len(s.Cluster.Spec.ClusterNetwork.Services.CIDRBlocks) > 0 {
+				return s.Cluster.Spec.ClusterNetwork.Services
+			}
+		}
+	}
+
+	return nil
+}
