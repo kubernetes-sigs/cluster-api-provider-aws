@@ -16,9 +16,18 @@ jobs:
           command: |
             docker login --username $QUAY_USERNAME --password $QUAY_PASSWORD quay.io
       - run:
+          name: Retag images with git tags
+          command: |
+            if [[ -n $CIRCLE_TAG ]]; then docker tag quay.io/$CIRCLE_PROJECT_USERNAME/cluster-api-aws-controller:$CIRCLE_SHA1 quay.io/$CIRCLE_PROJECT_USERNAME/cluster-api-aws-controller:$CIRCLE_TAG; fi
+            if [[ -n $CIRCLE_TAG ]]; then docker tag registry-intl.cn-shanghai.aliyuncs.com/$CIRCLE_PROJECT_USERNAME/cluster-api-aws-controller:$CIRCLE_SHA1 registry-intl.cn-shanghai.aliyuncs.com/$CIRCLE_PROJECT_USERNAME/cluster-api-aws-controller:$CIRCLE_TAG; fi
+      - run:
           name: Push images to quay
           command: |
             docker push quay.io/$CIRCLE_PROJECT_USERNAME/cluster-api-aws-controller:$CIRCLE_SHA1
+      - run:
+          name: Push images with git tags to quay
+          command: |
+            if [[ -n $CIRCLE_TAG ]]; docker push quay.io/$CIRCLE_PROJECT_USERNAME/cluster-api-aws-controller:$CIRCLE_TAG; fi
       - run:
           name: Login to aliyun
           command: |
@@ -27,6 +36,10 @@ jobs:
           name: Push images to aliyun
           command: |
             docker push registry-intl.cn-shanghai.aliyuncs.com/$CIRCLE_PROJECT_USERNAME/cluster-api-aws-controller:$CIRCLE_SHA1
+      - run:
+          name: Push images with git tags to aliyun
+          command: |
+            if [[ -n $CIRCLE_TAG ]]; docker push registry-intl.cn-shanghai.aliyuncs.com/$CIRCLE_PROJECT_USERNAME/cluster-api-aws-controller:$CIRCLE_TAG; fi
 
 workflows:
   version: 2
@@ -35,3 +48,6 @@ workflows:
       - build:
           context:
             - architect
+          filters:
+            tags:
+              only: /^v.*/
