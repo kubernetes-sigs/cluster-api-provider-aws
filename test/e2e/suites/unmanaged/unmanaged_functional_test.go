@@ -59,7 +59,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 
 		ginkgo.It("should create volumes dynamically with external cloud provider", func() {
 			specName := "functional-external-cloud-provider"
-			requiredResources := &shared.TestResource{EC2: 2, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
+			requiredResources := &shared.TestResource{EC2Normal: 2, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
 			requiredResources.WriteRequestedResources(e2eCtx, "external-cloud-provider-test")
 			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
@@ -117,7 +117,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	ginkgo.PDescribe("GPU-enabled cluster test", func() {
 		ginkgo.It("should create cluster with single worker", func() {
 			specName := "functional-gpu-cluster"
-			requiredResources := &shared.TestResource{EC2: 1, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
+			requiredResources := &shared.TestResource{EC2GPU: 1, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
 			requiredResources.WriteRequestedResources(e2eCtx, "gpu-test")
 			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
@@ -165,7 +165,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		ginkgo.It("should create cluster with nested assumed role", func() {
 			// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
 			specName := "functional-multitenancy-nested"
-			requiredResources := &shared.TestResource{EC2: 1, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
+			requiredResources := &shared.TestResource{EC2Normal: 1, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
 			requiredResources.WriteRequestedResources(e2eCtx, specName)
 			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
@@ -201,7 +201,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		ginkgo.Context("in same namespace", func() {
 			ginkgo.It("should create the clusters", func() {
 				specName := "upgrade-to-main-branch-k8s"
-				requiredResources := &shared.TestResource{EC2: 2, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3}
+				requiredResources := &shared.TestResource{EC2Normal: 2, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3}
 				requiredResources.WriteRequestedResources(e2eCtx, "upgrade-to-master-test")
 				Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 				defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
@@ -256,7 +256,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	ginkgo.Describe("Workload cluster with AWS SSM Parameter as the Secret Backend", func() {
 		ginkgo.It("should be creatable and deletable", func() {
 			specName := "functional-test-ssm-parameter-store"
-			requiredResources := &shared.TestResource{EC2: 2, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
+			requiredResources := &shared.TestResource{EC2Normal: 2, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
 			requiredResources.WriteRequestedResources(e2eCtx, specName)
 			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
@@ -290,7 +290,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	ginkgo.Describe("MachineDeployment misconfigurations", func() {
 		ginkgo.It("MachineDeployment misconfigurations", func() {
 			specName := "functional-test-md-misconfigurations"
-			requiredResources := &shared.TestResource{EC2: 1, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
+			requiredResources := &shared.TestResource{EC2Normal: 1, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
 			requiredResources.WriteRequestedResources(e2eCtx, specName)
 			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
@@ -341,7 +341,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	ginkgo.Describe("Workload cluster in multiple AZs", func() {
 		ginkgo.It("It should be creatable and deletable", func() {
 			specName := "functional-test-multi-az"
-			requiredResources := &shared.TestResource{EC2: 3, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
+			requiredResources := &shared.TestResource{EC2Normal: 3, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
 			requiredResources.WriteRequestedResources(e2eCtx, specName)
 			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
@@ -388,7 +388,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		ginkgo.Context("in different namespaces with machine failures", func() {
 			ginkgo.It("should setup namespaces correctly for the two clusters", func() {
 				specName := "functional-test-multi-namespace"
-				requiredResources := &shared.TestResource{EC2: 4, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 6}
+				requiredResources := &shared.TestResource{EC2Normal: 4, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 6}
 				requiredResources.WriteRequestedResources(e2eCtx, specName)
 				Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 				defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
@@ -471,7 +471,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		ginkgo.Context("Defining clusters in the same namespace", func() {
 			specName := "functional-test-multi-cluster-single-namespace"
 			ginkgo.It("should create the clusters", func() {
-				requiredResources := &shared.TestResource{EC2: 2, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 6}
+				requiredResources := &shared.TestResource{EC2Normal: 2, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 6}
 				requiredResources.WriteRequestedResources(e2eCtx, specName)
 				Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 				defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
@@ -499,7 +499,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	ginkgo.Describe("Workload cluster with spot instances", func() {
 		ginkgo.It("should be creatable and deletable", func() {
 			specName := "functional-test-spot-instances"
-			requiredResources := &shared.TestResource{EC2: 2, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
+			requiredResources := &shared.TestResource{EC2Normal: 2, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
 			requiredResources.WriteRequestedResources(e2eCtx, specName)
 			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
