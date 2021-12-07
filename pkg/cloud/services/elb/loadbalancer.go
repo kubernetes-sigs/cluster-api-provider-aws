@@ -369,6 +369,11 @@ func ELBName(s scope.ELBScope) (string, error) {
 // GenerateELBName generates a formatted ELB name via either
 // concatenating the cluster name to the "-apiserver" suffix
 // or computing a hash for clusters with names above 32 characters.
+//
+// WARNING If this function's output is changed, a controller using the
+// new function will fail to generate the load balancer of an existing
+// cluster whose load balancer name was generated using the old
+// function.
 func GenerateELBName(clusterName string) (string, error) {
 	standardELBName := generateStandardELBName(clusterName)
 	if len(standardELBName) <= 32 {

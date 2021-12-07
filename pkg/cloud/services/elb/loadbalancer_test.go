@@ -94,6 +94,9 @@ func TestELBName(t *testing.T) {
 			}
 
 			elbName, err := ELBName(scope)
+			if err != nil {
+				t.Fatalf("failed to get ELB name: %s", err)
+			}
 			if elbName != tt.expected {
 				t.Errorf("expected ELB name: %v, got name: %v", tt.expected, elbName)
 			}
