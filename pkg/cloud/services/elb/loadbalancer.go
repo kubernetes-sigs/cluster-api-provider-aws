@@ -32,6 +32,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/hash"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
@@ -362,6 +363,15 @@ func (s *Service) DeregisterInstanceFromAPIServerELB(i *infrav1.Instance) error 
 		}
 	}
 	return err
+}
+
+// ELBName returns the user-defined API Server ELB name, or a generated default if the user has not defined the ELB
+// name.
+func ELBName(s scope.ELBScope) (string, error) {
+	if userDefinedName := s.ControlPlaneLoadBalancerName(); userDefinedName != nil {
+		return *userDefinedName, nil
+	}
+	return GenerateELBName(s.Name())
 }
 
 // GenerateELBName generates a formatted ELB name via either

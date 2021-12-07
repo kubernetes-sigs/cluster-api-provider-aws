@@ -41,6 +41,66 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+func TestELBName(t *testing.T) {
+	tests := []struct {
+		name       string
+		awsCluster infrav1.AWSCluster
+		expected   string
+	}{
+		{
+			name: "name is not defined by user, so generate the default",
+			awsCluster: infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "example",
+					Namespace: metav1.NamespaceDefault,
+				},
+			},
+			expected: "example-apiserver",
+		},
+		{
+			name: "name is defined by user, so use it",
+			awsCluster: infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "example",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+						Name: pointer.String("myapiserver"),
+					},
+				},
+			},
+			expected: "myapiserver",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client: client,
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      tt.awsCluster.Name,
+						Namespace: tt.awsCluster.Namespace,
+					},
+				},
+				AWSCluster: &tt.awsCluster,
+			})
+			if err != nil {
+				t.Fatalf("failed to create scope: %s", err)
+			}
+
+			elbName, err := ELBName(scope)
+			if elbName != tt.expected {
+				t.Errorf("expected ELB name: %v, got name: %v", tt.expected, elbName)
+			}
+		})
+	}
+}
+
 func TestGenerateELBName(t *testing.T) {
 	tests := []struct {
 		name     string
