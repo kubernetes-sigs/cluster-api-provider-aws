@@ -115,7 +115,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 	input := &infrav1.Instance{
 		Type:              scope.AWSMachine.Spec.InstanceType,
 		IAMProfile:        scope.AWSMachine.Spec.IAMInstanceProfile,
-		RootVolume:        scope.AWSMachine.Spec.RootVolume,
+		RootVolume:        scope.AWSMachine.Spec.RootVolume.DeepCopy(),
 		NonRootVolumes:    scope.AWSMachine.Spec.NonRootVolumes,
 		NetworkInterfaces: scope.AWSMachine.Spec.NetworkInterfaces,
 	}
