@@ -114,7 +114,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("GPU-enabled cluster test", func() {
+	ginkgo.PDescribe("GPU-enabled cluster test", func() {
 		ginkgo.It("should create cluster with single worker", func() {
 			specName := "functional-gpu-cluster"
 			requiredResources := &shared.TestResource{EC2: 1, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
