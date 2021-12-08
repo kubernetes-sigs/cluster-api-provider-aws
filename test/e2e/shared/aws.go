@@ -102,12 +102,12 @@ func NewAWSSessionWithKey(accessKey *iam.AccessKey) client.ConfigProvider {
 }
 
 // createCloudFormationStack ensures the cloudformation stack is up to date
-func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Template) error {
+func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Template, tags map[string]string) error {
 	Byf("Creating AWS CloudFormation stack for AWS IAM resources: stack-name=%s", t.Spec.StackName)
 	CFN := cfn.New(prov)
 	cfnSvc := cloudformation.NewService(CFN)
 
-	err := cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *renderCustomCloudFormation(t))
+	err := cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *renderCustomCloudFormation(t), tags)
 	if err != nil {
 		stack, err := CFN.DescribeStacks(&cfn.DescribeStacksInput{StackName: aws.String(t.Spec.StackName)})
 		if err == nil && len(stack.Stacks) > 0 {
@@ -355,6 +355,20 @@ func ensureSSHKeyPair(prov client.ConfigProvider, keyPairName string) {
 	_, err := ec2c.CreateKeyPair(&ec2.CreateKeyPairInput{KeyName: aws.String(keyPairName)})
 	if code, _ := awserrors.Code(err); code != "InvalidKeyPair.Duplicate" {
 		Expect(err).NotTo(HaveOccurred())
+	}
+}
+
+func ensureStackTags(prov client.ConfigProvider, stackName string, expectedTags map[string]string) {
+	Byf("Ensuring AWS CloudFormation stack is created or updated with the specified tags: stack-name=%s", stackName)
+	CFN := cfn.New(prov)
+	r, err := CFN.DescribeStacks(&cfn.DescribeStacksInput{StackName: &stackName})
+	Expect(err).NotTo(HaveOccurred())
+	stacks := r.Stacks
+	Expect(len(stacks)).To(BeNumerically("==", 1))
+	stackTags := stacks[0].Tags
+	Expect(len(stackTags)).To(BeNumerically("==", len(expectedTags)))
+	for _, tag := range stackTags {
+		Expect(*tag.Value).To(BeIdenticalTo(expectedTags[*tag.Key]))
 	}
 }
 
