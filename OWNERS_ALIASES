@@ -1,19 +1,20 @@
 # See the OWNERS docs: https://github.com/kubernetes/community/blob/master/contributors/guide/owners.md
 
 aliases:
-  # Correct as of 2021/08/13
+  # Correct as of 2021/12/02
   sig-cluster-lifecycle-leads:
     - fabriziopandini
     - justinsb
     - neolit123
     - timothysc
-  # Correct as of 2021/08/13
+  # Correct as of 2021/12/02
   cluster-api-admins:
     - CecileRobertMichon
     - vincepri
-  # Correct as of 2021/08/13
+  # Correct as of 2021/12/02
   cluster-api-maintainers:
     - CecileRobertMichon
+    - enxebre
     - fabriziopandini
     - vincepri
   cluster-api-aws-maintainers:
@@ -21,7 +22,7 @@ aliases:
     - richardcase
     - sedefsavas
   cluster-api-aws-reviewers:
+    - Ankitasw
     - dthorsen
     - dlipovetsky
     - shivi28
-    - Ankitasw
