@@ -139,7 +139,7 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "controlPlaneLoadBalancer name is immutable once set",
+			name: "controlPlaneLoadBalancer name is immutable",
 			oldCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
@@ -157,7 +157,7 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "controlPlaneLoadBalancer name can be set if undefined",
+			name: "controlPlaneLoadBalancer name is immutable, even if it is nil",
 			oldCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
@@ -172,7 +172,7 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name: "controlPlaneLoadBalancer scheme is immutable",

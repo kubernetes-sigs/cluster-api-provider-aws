@@ -104,8 +104,10 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 				)
 			}
 		}
-		// If old name was not nil, the new name should be the same.
-		if existingLoadBalancer.Name != nil && !reflect.DeepEqual(existingLoadBalancer.Name, newLoadBalancer.Name) {
+		// The name must be defined when the AWSCluster is created. If it is not defined,
+		// then the controller generates a default name at runtime, but does not store it,
+		// so the name remains nil. In either case, the name cannot be changed.
+		if !reflect.DeepEqual(existingLoadBalancer.Name, newLoadBalancer.Name) {
 			allErrs = append(allErrs,
 				field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "name"),
 					r.Spec.ControlPlaneLoadBalancer.Name, "field is immutable"),
