@@ -72,6 +72,7 @@ var (
 type ClassicELB struct {
 	// The name of the load balancer. It must be unique within the set of load balancers
 	// defined in the region. It also serves as identifier.
+	// +optional
 	Name string `json:"name,omitempty"`
 
 	// DNSName is the dns name of the load balancer.
