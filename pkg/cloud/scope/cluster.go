@@ -285,6 +285,11 @@ func (s *ClusterScope) InfraCluster() cloud.ClusterObject {
 	return s.AWSCluster
 }
 
+// ClusterObj returns the cluster object.
+func (s *ClusterScope) ClusterObj() cloud.ClusterObject {
+	return s.Cluster
+}
+
 // Session returns the AWS SDK session. Used for creating clients.
 func (s *ClusterScope) Session() awsclient.ConfigProvider {
 	return s.session

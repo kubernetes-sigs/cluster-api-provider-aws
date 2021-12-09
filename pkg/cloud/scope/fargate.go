@@ -201,6 +201,11 @@ func (s *FargateProfileScope) InfraCluster() cloud.ClusterObject {
 	return s.ControlPlane
 }
 
+// ClusterObj returns the cluster object.
+func (s *FargateProfileScope) ClusterObj() cloud.ClusterObject {
+	return s.Cluster
+}
+
 // Session returns the AWS SDK session. Used for creating clients.
 func (s *FargateProfileScope) Session() awsclient.ConfigProvider {
 	return s.session
