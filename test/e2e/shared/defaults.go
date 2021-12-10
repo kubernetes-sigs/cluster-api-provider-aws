@@ -138,7 +138,7 @@ func getLimitedResources() map[string]*ServiceQuota {
 		ServiceCode:         "ec2",
 		QuotaName:           "Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances",
 		QuotaCode:           "L-1216C47A",
-		DesiredMinimumValue: 20,
+		DesiredMinimumValue: 128,
 	}
 
 	serviceQuotas["eip"] = &ServiceQuota{
