@@ -107,6 +107,9 @@ type ClusterScoper interface {
 	// InfraCluster returns the AWS infrastructure cluster object.
 	InfraCluster() ClusterObject
 
+	// Cluster returns the cluster object.
+	ClusterObj() ClusterObject
+
 	// IdentityRef returns the AWS infrastructure cluster identityRef.
 	IdentityRef() *infrav1.AWSIdentityReference
 

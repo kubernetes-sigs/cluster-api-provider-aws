@@ -275,6 +275,11 @@ func (s *ManagedControlPlaneScope) InfraCluster() cloud.ClusterObject {
 	return s.ControlPlane
 }
 
+// ClusterObj returns the cluster object.
+func (s *ManagedControlPlaneScope) ClusterObj() cloud.ClusterObject {
+	return s.Cluster
+}
+
 // Session returns the AWS SDK session. Used for creating clients.
 func (s *ManagedControlPlaneScope) Session() awsclient.ConfigProvider {
 	return s.session
