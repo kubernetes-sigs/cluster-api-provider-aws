@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/go-logr/logr"
@@ -95,6 +96,9 @@ func (r *AwsInstanceStateReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	if _, ok := r.queueURLs.Load(awsCluster.Name); !ok {
 		URL, err := r.getQueueURL(awsCluster)
 		if err != nil {
+			if queueNotFoundError(err) {
+				return reconcile.Result{}, nil
+			}
 			return reconcile.Result{}, err
 		}
 		r.queueURLs.Store(awsCluster.Name, queueParams{region: awsCluster.Spec.Region, URL: URL})
@@ -219,6 +223,15 @@ func (r *AwsInstanceStateReconciler) getQueueURL(cluster *infrav1.AWSCluster) (s
 	}
 
 	return *resp.QueueUrl, nil
+}
+
+func queueNotFoundError(err error) bool {
+	if aerr, ok := err.(awserr.Error); ok {
+		if aerr.Code() == sqs.ErrCodeQueueDoesNotExist {
+			return true
+		}
+	}
+	return false
 }
 
 type queueParams struct {
