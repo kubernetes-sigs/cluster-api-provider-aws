@@ -17,22 +17,52 @@ limitations under the License.
 package v1alpha3
 
 import (
-	"sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta1"
+	apiconversion "k8s.io/apimachinery/pkg/conversion"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
+	"sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta1"
 )
 
 // ConvertTo converts the v1alpha3 EKSConfig receiver to a v1beta1 EKSConfig.
 func (r *EKSConfig) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1beta1.EKSConfig)
 
-	return Convert_v1alpha3_EKSConfig_To_v1beta1_EKSConfig(r, dst, nil)
+	if err := Convert_v1alpha3_EKSConfig_To_v1beta1_EKSConfig(r, dst, nil); err != nil {
+		return err
+	}
+
+	restored := &v1beta1.EKSConfig{}
+	if ok, err := utilconversion.UnmarshalData(r, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Spec.ContainerRuntime = restored.Spec.ContainerRuntime
+	dst.Spec.DNSClusterIP = restored.Spec.DNSClusterIP
+	dst.Spec.DockerConfigJSON = restored.Spec.DockerConfigJSON
+	dst.Spec.APIRetryAttempts = restored.Spec.APIRetryAttempts
+	if restored.Spec.PauseContainer != nil {
+		dst.Spec.PauseContainer.AccountNumber = restored.Spec.PauseContainer.AccountNumber
+		dst.Spec.PauseContainer.Version = restored.Spec.PauseContainer.Version
+	}
+	dst.Spec.UseMaxPods = restored.Spec.UseMaxPods
+
+	return nil
 }
 
 // ConvertFrom converts the v1beta1 EKSConfig receiver to a v1alpha3 EKSConfig.
 func (r *EKSConfig) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1beta1.EKSConfig)
 
-	return Convert_v1beta1_EKSConfig_To_v1alpha3_EKSConfig(src, r, nil)
+	if err := Convert_v1beta1_EKSConfig_To_v1alpha3_EKSConfig(src, r, nil); err != nil {
+		return err
+	}
+
+	if err := utilconversion.MarshalData(src, r); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ConvertTo converts the v1alpha3 EKSConfigList receiver to a v1beta1 EKSConfigList.
@@ -75,4 +105,10 @@ func (r *EKSConfigTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1beta1.EKSConfigTemplateList)
 
 	return Convert_v1beta1_EKSConfigTemplateList_To_v1alpha3_EKSConfigTemplateList(src, r, nil)
+}
+
+func Convert_v1beta1_EKSConfigSpec_To_v1alpha3_EKSConfigSpec(in *v1beta1.EKSConfigSpec, out *EKSConfigSpec, s apiconversion.Scope) error {
+	out.KubeletExtraArgs = in.KubeletExtraArgs
+
+	return nil
 }

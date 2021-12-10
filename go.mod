@@ -5,6 +5,7 @@ go 1.17
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.0.1-0.20211111175208-4cc2fce2111a
 
 require (
+	github.com/alessio/shellescape v1.4.1
 	github.com/apparentlymart/go-cidr v1.1.0
 	github.com/aws/amazon-vpc-cni-k8s v1.10.1
 	github.com/aws/aws-lambda-go v1.27.0
@@ -46,7 +47,6 @@ require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/Microsoft/go-winio v0.5.0 // indirect
-	github.com/alessio/shellescape v1.4.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/containerd/containerd v1.5.2 // indirect

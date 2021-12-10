@@ -20,18 +20,39 @@ import (
 	"bytes"
 	"fmt"
 	"text/template"
+
+	"github.com/alessio/shellescape"
 )
 
 const (
 	nodeUserData = `#!/bin/bash
-/etc/eks/bootstrap.sh {{.ClusterName}} {{- template "args" .KubeletExtraArgs }}
+/etc/eks/bootstrap.sh {{.ClusterName}} {{- template "args" . }}
 `
 )
 
 // NodeInput defines the context to generate a node user data.
 type NodeInput struct {
-	ClusterName      string
-	KubeletExtraArgs map[string]string
+	ClusterName           string
+	KubeletExtraArgs      map[string]string
+	ContainerRuntime      *string
+	DNSClusterIP          *string
+	DockerConfigJSON      *string
+	APIRetryAttempts      *int
+	PauseContainerAccount *string
+	PauseContainerVersion *string
+	UseMaxPods            *bool
+	// NOTE: currently the IPFamily/ServiceIPV6Cidr isn't exposed to the user.
+	// TODO (richardcase): remove the above comment when IPV6 / dual stack is implemented.
+	IPFamily        *string
+	ServiceIPV6Cidr *string
+}
+
+func (ni *NodeInput) DockerConfigJSONEscaped() string {
+	if ni.DockerConfigJSON == nil || len(*ni.DockerConfigJSON) == 0 {
+		return "''"
+	}
+
+	return shellescape.Quote(*ni.DockerConfigJSON)
 }
 
 // NewNode returns the user data string to be used on a node instance.
