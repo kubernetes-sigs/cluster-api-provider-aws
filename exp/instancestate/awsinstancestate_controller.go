@@ -88,8 +88,8 @@ func (r *AwsInstanceStateReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	// Handle deleted clusters
 	if !awsCluster.DeletionTimestamp.IsZero() {
-		r.Log.Info("cluster deleted, removing queue URL", "cluster", awsCluster.Name)
 		r.queueURLs.Delete(req.Name)
+		return reconcile.Result{}, nil
 	}
 
 	// retrieve queue URL if it isn't already tracked
