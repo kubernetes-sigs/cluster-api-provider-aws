@@ -63,7 +63,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 		})
 	})
 
-	ginkgo.Describe("Machine Remediation Spec", func() {
+	ginkgo.PDescribe("Machine Remediation Spec", func() {
 		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 		requiredResources := &shared.TestResource{EC2: 4, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3}
 		ginkgo.BeforeEach(func() {
@@ -85,7 +85,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 		})
 	})
 
-	ginkgo.Describe("Machine Pool Spec", func() {
+	ginkgo.PDescribe("Machine Pool Spec", func() {
 		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 		requiredResources := &shared.TestResource{EC2: 4, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
 		ginkgo.BeforeEach(func() {
@@ -180,7 +180,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 		})
 	})
 
-	ginkgo.Describe("Cluster Upgrade spec - Single Control Plane Cluster", func() {
+	ginkgo.PDescribe("Cluster Upgrade spec - Single Control Plane Cluster", func() {
 		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 		requiredResources := &shared.TestResource{EC2: 5, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2}
 		ginkgo.BeforeEach(func() {

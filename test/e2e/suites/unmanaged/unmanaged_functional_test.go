@@ -55,7 +55,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		result = &clusterctl.ApplyClusterTemplateAndWaitResult{}
 	})
 
-	ginkgo.Describe("Create a cluster that uses the external cloud provider", func() {
+	ginkgo.PDescribe("Create a cluster that uses the external cloud provider", func() {
 
 		ginkgo.It("should create volumes dynamically with external cloud provider", func() {
 			specName := "functional-external-cloud-provider"
@@ -160,7 +160,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("Multitenancy test", func() {
+	ginkgo.PDescribe("Multitenancy test", func() {
 
 		ginkgo.It("should create cluster with nested assumed role", func() {
 			// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
@@ -253,7 +253,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("Workload cluster with AWS SSM Parameter as the Secret Backend", func() {
+	ginkgo.PDescribe("Workload cluster with AWS SSM Parameter as the Secret Backend", func() {
 		ginkgo.It("should be creatable and deletable", func() {
 			specName := "functional-test-ssm-parameter-store"
 			requiredResources := &shared.TestResource{EC2: 2, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
@@ -287,7 +287,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("MachineDeployment misconfigurations", func() {
+	ginkgo.PDescribe("MachineDeployment misconfigurations", func() {
 		ginkgo.It("MachineDeployment misconfigurations", func() {
 			specName := "functional-test-md-misconfigurations"
 			requiredResources := &shared.TestResource{EC2: 1, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
@@ -338,7 +338,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("Workload cluster in multiple AZs", func() {
+	ginkgo.PDescribe("Workload cluster in multiple AZs", func() {
 		ginkgo.It("It should be creatable and deletable", func() {
 			specName := "functional-test-multi-az"
 			requiredResources := &shared.TestResource{EC2: 3, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
@@ -496,7 +496,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("Workload cluster with spot instances", func() {
+	ginkgo.PDescribe("Workload cluster with spot instances", func() {
 		ginkgo.It("should be creatable and deletable", func() {
 			specName := "functional-test-spot-instances"
 			requiredResources := &shared.TestResource{EC2: 2, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
