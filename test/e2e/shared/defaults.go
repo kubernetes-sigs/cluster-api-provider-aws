@@ -134,7 +134,7 @@ func getLimitedResources() map[string]*ServiceQuota {
 		DesiredMinimumValue: 20,
 	}
 
-	serviceQuotas["ec2"] = &ServiceQuota{
+	serviceQuotas["ec2-normal"] = &ServiceQuota{
 		ServiceCode:         "ec2",
 		QuotaName:           "Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances",
 		QuotaCode:           "L-1216C47A",
@@ -153,6 +153,13 @@ func getLimitedResources() map[string]*ServiceQuota {
 		QuotaName:           "Classic Load Balancers per Region",
 		QuotaCode:           "L-E9E9831D",
 		DesiredMinimumValue: 20,
+	}
+
+	serviceQuotas["ec2-GPU"] = &ServiceQuota{
+		ServiceCode:         "ec2",
+		QuotaName:           "Running On-Demand G and VT instances",
+		QuotaCode:           "L-DB2E81BA",
+		DesiredMinimumValue: 8,
 	}
 	return serviceQuotas
 }

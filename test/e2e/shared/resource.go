@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -32,12 +33,13 @@ import (
 )
 
 type TestResource struct {
-	EC2       int `json:"ec2"`
+	EC2Normal int `json:"ec2-normal"`
 	VPC       int `json:"vpc"`
 	EIP       int `json:"eip"`
 	IGW       int `json:"igw"`
 	NGW       int `json:"ngw"`
 	ClassicLB int `json:"classiclb"`
+	EC2GPU    int `json:"ec2-GPU"`
 }
 
 func WriteResourceQuotesToFile(logPath string, serviceQuotas map[string]*ServiceQuota) {
@@ -47,12 +49,13 @@ func WriteResourceQuotesToFile(logPath string, serviceQuotas map[string]*Service
 	}
 
 	resources := TestResource{
-		EC2:       serviceQuotas["ec2"].Value,
+		EC2Normal: serviceQuotas["ec2-normal"].Value,
 		VPC:       serviceQuotas["vpc"].Value,
 		EIP:       serviceQuotas["eip"].Value,
 		IGW:       serviceQuotas["igw"].Value,
 		NGW:       serviceQuotas["ngw"].Value,
 		ClassicLB: serviceQuotas["classiclb"].Value,
+		EC2GPU:    serviceQuotas["ec2-GPU"].Value,
 	}
 	data, err := yaml.Marshal(resources)
 	Expect(err).NotTo(HaveOccurred())
@@ -62,7 +65,7 @@ func WriteResourceQuotesToFile(logPath string, serviceQuotas map[string]*Service
 }
 
 func (r *TestResource) String() string {
-	return fmt.Sprintf("{ec2:%v, vpc:%v, eip:%v, ngw:%v, igw:%v, classiclb:%v}", r.EC2, r.VPC, r.EIP, r.NGW, r.IGW, r.ClassicLB)
+	return fmt.Sprintf("{ec2-normal:%v, vpc:%v, eip:%v, ngw:%v, igw:%v, classiclb:%v, ec2-GPU:%v}", r.EC2Normal, r.VPC, r.EIP, r.NGW, r.IGW, r.ClassicLB, r.EC2GPU)
 }
 
 func (r *TestResource) WriteRequestedResources(e2eCtx *E2EContext, testName string) {
@@ -104,7 +107,7 @@ func (r *TestResource) WriteRequestedResources(e2eCtx *E2EContext, testName stri
 }
 
 func (r *TestResource) doesSatisfy(request *TestResource) bool {
-	if request.EC2 != 0 && r.EC2 < request.EC2 {
+	if request.EC2Normal != 0 && r.EC2Normal < request.EC2Normal {
 		return false
 	}
 	if request.IGW != 0 && r.IGW < request.IGW {
@@ -122,26 +125,30 @@ func (r *TestResource) doesSatisfy(request *TestResource) bool {
 	if request.EIP != 0 && r.EIP < request.EIP {
 		return false
 	}
-
+	if request.EC2GPU != 0 && r.EC2GPU < request.EC2GPU {
+		return false
+	}
 	return true
 }
 
 func (r *TestResource) acquire(request *TestResource) {
-	r.EC2 -= request.EC2
+	r.EC2Normal -= request.EC2Normal
 	r.VPC -= request.VPC
 	r.EIP -= request.EIP
 	r.NGW -= request.NGW
 	r.IGW -= request.IGW
 	r.ClassicLB -= request.ClassicLB
+	r.EC2GPU -= request.EC2GPU
 }
 
 func (r *TestResource) release(request *TestResource) {
-	r.EC2 += request.EC2
+	r.EC2Normal += request.EC2Normal
 	r.VPC += request.VPC
 	r.EIP += request.EIP
 	r.NGW += request.NGW
 	r.IGW += request.IGW
 	r.ClassicLB += request.ClassicLB
+	r.EC2GPU += request.EC2GPU
 }
 
 func AcquireResources(request *TestResource, nodeNum int, fileLock *flock.Flock) error {
