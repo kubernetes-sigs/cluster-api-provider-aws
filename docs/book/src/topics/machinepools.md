@@ -48,10 +48,9 @@ clusterctl generate cluster my-cluster --kubernetes-version v1.16.8 --flavor eks
 The template used for this [flavor](https://cluster-api.sigs.k8s.io/clusterctl/commands/generate-cluster.html#flavors) is located [here](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/templates/cluster-template-eks-managedmachinepool.yaml).
 
 
-
 ## Examples
 
-### Example MachinePool, AWSMachinePool and KubeadmConfig Resources
+### Example: MachinePool, AWSMachinePool and KubeadmConfig Resources
 
 Below is an example of the resources needed to create a pool of EC2 machines orchestrated with
 an AWS Auto Scaling Group.
@@ -92,7 +91,7 @@ spec:
     instanceType: "${AWS_CONTROL_PLANE_MACHINE_TYPE}"
     sshKeyName: "${AWS_SSH_KEY_NAME}"
   subnets:
-  - ${AWS_SUBNET}
+    - id : "${AWS_SUBNET_ID}"
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfig
