@@ -103,6 +103,9 @@ var (
 
 	// ClusterStaticIdentityKind defines identity reference kind as AWSClusterStaticIdentity.
 	ClusterStaticIdentityKind = AWSIdentityKind("AWSClusterStaticIdentity")
+
+	// ServiceAccountIdentityKind defines identity reference kind as AWSServiceAccountIdentity.
+	ServiceAccountIdentityKind = AWSIdentityKind("AWSServiceAccountIdentity")
 )
 
 // AWSIdentityReference specifies a identity.
@@ -112,7 +115,7 @@ type AWSIdentityReference struct {
 	Name string `json:"name"`
 
 	// Kind of the identity.
-	// +kubebuilder:validation:Enum=AWSClusterControllerIdentity;AWSClusterRoleIdentity;AWSClusterStaticIdentity
+	// +kubebuilder:validation:Enum=AWSClusterControllerIdentity;AWSClusterRoleIdentity;AWSClusterStaticIdentity;AWSServiceAccountIdentity
 	Kind AWSIdentityKind `json:"kind"`
 }
 

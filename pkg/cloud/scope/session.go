@@ -34,6 +34,8 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/identity"
@@ -43,7 +45,6 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -312,6 +313,13 @@ func buildProvidersForRef(
 			provider = identity.NewAWSRolePrincipalTypeProvider(roleIdentity, nil, log)
 		}
 		providers = append(providers, provider)
+	case infrav1.ServiceAccountIdentityKind:
+		identityObjectKey.Namespace = clusterScoper.Namespace()
+		provider, err := buildAWSServiceAccountIdentity(ctx, identityObjectKey, k8sClient, log)
+		if err != nil {
+			return providers, err
+		}
+		providers = append(providers, provider)
 	default:
 		return providers, errors.Errorf("No such provider known: '%s'", ref.Kind)
 	}
@@ -399,6 +407,19 @@ func buildAWSClusterControllerIdentity(ctx context.Context, identityObjectKey cl
 	}
 	setPrincipalUsageAllowedCondition(clusterScoper)
 	return nil
+}
+
+func buildAWSServiceAccountIdentity(ctx context.Context, identityObjectKey client.ObjectKey, k8sClient client.Client, log logr.Logger) (*identity.AWSServiceAccountPrincipalTypeProvider, error) {
+	serviceAccountPrincipal := &infrav1.AWSServiceAccountIdentity{}
+	err := k8sClient.Get(ctx, identityObjectKey, serviceAccountPrincipal)
+	if err != nil {
+		return nil, err
+	}
+	provider, err := identity.NewAWSServiceAccountPrincipalTypeProvider(serviceAccountPrincipal, log, k8sClient)
+	if err != nil {
+		return nil, err
+	}
+	return provider, nil
 }
 
 func getProvidersForCluster(ctx context.Context, k8sClient client.Client, clusterScoper cloud.ClusterScoper, log logr.Logger) ([]identity.AWSPrincipalTypeProvider, error) {

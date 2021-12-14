@@ -22,6 +22,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	"encoding/json"
+
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -31,6 +33,10 @@ import (
 func RegisterDefaults(scheme *runtime.Scheme) error {
 	scheme.AddTypeDefaultingFunc(&AWSCluster{}, func(obj interface{}) { SetObjectDefaults_AWSCluster(obj.(*AWSCluster)) })
 	scheme.AddTypeDefaultingFunc(&AWSClusterTemplate{}, func(obj interface{}) { SetObjectDefaults_AWSClusterTemplate(obj.(*AWSClusterTemplate)) })
+	scheme.AddTypeDefaultingFunc(&AWSServiceAccountIdentity{}, func(obj interface{}) { SetObjectDefaults_AWSServiceAccountIdentity(obj.(*AWSServiceAccountIdentity)) })
+	scheme.AddTypeDefaultingFunc(&AWSServiceAccountIdentityList{}, func(obj interface{}) {
+		SetObjectDefaults_AWSServiceAccountIdentityList(obj.(*AWSServiceAccountIdentityList))
+	})
 	return nil
 }
 
@@ -44,4 +50,22 @@ func SetObjectDefaults_AWSClusterTemplate(in *AWSClusterTemplate) {
 	SetDefaults_AWSClusterSpec(&in.Spec.Template.Spec)
 	SetDefaults_NetworkSpec(&in.Spec.Template.Spec.NetworkSpec)
 	SetDefaults_Bastion(&in.Spec.Template.Spec.Bastion)
+}
+
+func SetObjectDefaults_AWSServiceAccountIdentity(in *AWSServiceAccountIdentity) {
+	if in.Spec.Audience == nil {
+		if err := json.Unmarshal([]byte(`"[sts.amazonaws.com]"`), &in.Spec.Audience); err != nil {
+			panic(err)
+		}
+	}
+	if in.Spec.ExpirationSeconds == 0 {
+		in.Spec.ExpirationSeconds = 86400
+	}
+}
+
+func SetObjectDefaults_AWSServiceAccountIdentityList(in *AWSServiceAccountIdentityList) {
+	for i := range in.Items {
+		a := &in.Items[i]
+		SetObjectDefaults_AWSServiceAccountIdentity(a)
+	}
 }

@@ -17,6 +17,7 @@ resources:
 - bases/infrastructure.cluster.x-k8s.io_awsclusterstaticidentities.yaml
 - bases/infrastructure.cluster.x-k8s.io_awsclustercontrolleridentities.yaml
 - bases/infrastructure.cluster.x-k8s.io_awsclustertemplates.yaml
+- bases/infrastructure.cluster.x-k8s.io_awsserviceaccountidentities.yaml
 - bases/controlplane.cluster.x-k8s.io_awsmanagedcontrolplanes.yaml
 - bases/bootstrap.cluster.x-k8s.io_eksconfigs.yaml
 - bases/bootstrap.cluster.x-k8s.io_eksconfigtemplates.yaml

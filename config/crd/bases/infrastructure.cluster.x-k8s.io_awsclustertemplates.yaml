@@ -506,6 +506,7 @@ spec:
                             - AWSClusterControllerIdentity
                             - AWSClusterRoleIdentity
                             - AWSClusterStaticIdentity
+                            - AWSServiceAccountIdentity
                             type: string
                           name:
                             description: Name of the identity.

@@ -18,6 +18,7 @@ package identity
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/gob"
 	"time"
@@ -26,10 +27,16 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	token "sigs.k8s.io/cluster-api-provider-aws/pkg/internal/token"
 )
 
 // AWSPrincipalTypeProvider defines the interface for AWS Principal Type Provider.
@@ -171,4 +178,105 @@ func (p *AWSRolePrincipalTypeProvider) Retrieve() (credentials.Value, error) {
 // IsExpired checks the expiration state of the AWSRolePrincipalTypeProvider.
 func (p *AWSRolePrincipalTypeProvider) IsExpired() bool {
 	return p.credentials.IsExpired()
+}
+
+type AWSServiceAccountPrincipalTypeProvider struct {
+	Principal    *infrav1.AWSServiceAccountIdentity
+	credentials  *credentials.Credentials
+	log          logr.Logger
+	stsClient    stsiface.STSAPI
+	k8sClient    client.Client
+	tokenFetcher *token.ServiceAcountTokenFetcher
+}
+
+// NewAWSServiceAccountPrincipalTypeProvider will create a new AWSServiceAccountPrincipalTypeProvider from an AWSClusterRoleIdentity.
+func NewAWSServiceAccountPrincipalTypeProvider(identity *infrav1.AWSServiceAccountIdentity, log logr.Logger, k8sClient client.Client) (*AWSServiceAccountPrincipalTypeProvider, error) {
+	awsConfig := aws.NewConfig()
+	sess := session.Must(session.NewSession(awsConfig))
+	tokenFetcher, err := token.NewServiceAccountTokenFetcher()
+	if err != nil {
+		return nil, err
+	}
+	return &AWSServiceAccountPrincipalTypeProvider{
+		Principal:    identity,
+		credentials:  nil,
+		stsClient:    sts.New(sess),
+		log:          log.WithName("AWSServiceAccountPrincipalTypeProvider"),
+		k8sClient:    k8sClient,
+		tokenFetcher: tokenFetcher,
+	}, nil
+}
+
+// Hash returns the byte encoded AWSServiceAccountPrincipalTypeProvider.
+func (p *AWSServiceAccountPrincipalTypeProvider) Hash() (string, error) {
+	var serviceAccountIdentityValue bytes.Buffer
+	err := gob.NewEncoder(&serviceAccountIdentityValue).Encode(p)
+	if err != nil {
+		return "", err
+	}
+	hash := sha256.New()
+	return string(hash.Sum(serviceAccountIdentityValue.Bytes())), nil
+}
+
+// Name returns the name of the AWSServiceAccountPrincipalTypeProvider.
+func (p *AWSServiceAccountPrincipalTypeProvider) Name() string {
+	return p.Principal.Name
+}
+
+// Retrieve returns the credential values for the AWSServiceAccountPrincipalTypeProvider.
+func (p *AWSServiceAccountPrincipalTypeProvider) Retrieve() (credentials.Value, error) {
+	if p.credentials == nil || p.IsExpired() {
+		if err := p.checkOrCreateServiceAccount(); err != nil {
+			return credentials.Value{}, err
+		}
+		params := &token.ServiceAccountTokenFetcherParams{
+			ServiceAccount:    p.Principal.Name,
+			Namespace:         p.Principal.Namespace,
+			ExpirationSeconds: int64(p.Principal.Spec.ExpirationSeconds),
+			Audiences:         p.Principal.Spec.Audience,
+		}
+		token, err := p.tokenFetcher.FetchToken(params)
+		if err != nil {
+			return credentials.Value{}, err
+		}
+		// Update credentials
+		p.credentials = GetAssumeRoleWithWebIdentityCredentials(p, token)
+	}
+	return p.credentials.Get()
+}
+
+func (p *AWSServiceAccountPrincipalTypeProvider) checkOrCreateServiceAccount() error {
+	serviceAccount := &corev1.ServiceAccount{}
+	serviceAccountKey := client.ObjectKey{Name: p.Principal.Name, Namespace: p.Principal.Namespace}
+	err := p.k8sClient.Get(context.TODO(), serviceAccountKey, serviceAccount)
+	if err != nil && apierrors.IsNotFound(err) {
+		serviceAccount := &corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      p.Principal.Name,
+				Namespace: p.Principal.Namespace,
+			},
+		}
+		if err = p.k8sClient.Create(context.TODO(), serviceAccount, &client.CreateOptions{}); err != nil {
+			return err
+		}
+	}
+	return err
+}
+
+// IsExpired checks the expiration state of the AWSServiceAccountPrincipalTypeProvider.
+func (p *AWSServiceAccountPrincipalTypeProvider) IsExpired() bool {
+	return p.credentials.IsExpired()
+}
+
+func GetAssumeRoleWithWebIdentityCredentials(serviceAccountIdentityProvider *AWSServiceAccountPrincipalTypeProvider, token []byte) *credentials.Credentials {
+	creds := credentials.NewCredentials(stscreds.NewWebIdentityRoleProviderWithToken(serviceAccountIdentityProvider.stsClient,
+		serviceAccountIdentityProvider.Principal.Spec.RoleArn, "session-name", Token(token)))
+	return creds
+}
+
+// Token type implements TokenFetcher interface as expected by stscreds.NewWebIdentityRoleProviderWithToken().
+type Token []byte
+
+func (t Token) FetchToken(ctx credentials.Context) ([]byte, error) {
+	return t, nil
 }

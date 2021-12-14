@@ -181,6 +181,46 @@ type AWSClusterControllerIdentitySpec struct {
 	AWSClusterIdentitySpec `json:",inline"`
 }
 
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=awsserviceaccountidentities,categories=cluster-api,shortName=awssai
+// +kubebuilder:storageversion
+// +k8s:defaulter-gen=true
+
+// AWSServiceAccountIdentity is the Schema for the awsserviceaccountidentities API.
+type AWSServiceAccountIdentity struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// Spec for this AWSServiceAccountIdentity
+	Spec AWSServiceAccountIdentitySpec `json:"spec,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+// +k8s:defaulter-gen=true
+
+// AWSServiceAccountIdentityList contains a list of AWSServiceAccountIdentity.
+type AWSServiceAccountIdentityList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []AWSServiceAccountIdentity `json:"items"`
+}
+
+type AWSServiceAccountIdentitySpec struct {
+	AWSRoleSpec `json:",inline"`
+	// Audience is the intended audience of the token. A recipient of a token
+	// must identify itself with an identifier specified in the audience of the
+	// token, and otherwise should reject the token. The audience defaults to
+	// sts.amazonaws.com
+	// +default="[sts.amazonaws.com]"
+	Audience []string `json:"audiences"`
+	// ExpirationSeconds is the requested duration of validity of the request. The
+	// token issuer may return a token with a different validity duration so a
+	// client needs to check the 'expiration' field in a response.
+	// +optional
+	// +default=86400
+	ExpirationSeconds int `json:"expirationSeconds,omitempty"`
+}
+
 func init() {
 	SchemeBuilder.Register(
 		&AWSClusterStaticIdentity{},
@@ -189,5 +229,7 @@ func init() {
 		&AWSClusterRoleIdentityList{},
 		&AWSClusterControllerIdentity{},
 		&AWSClusterControllerIdentityList{},
+		&AWSServiceAccountIdentity{},
+		&AWSServiceAccountIdentityList{},
 	)
 }
