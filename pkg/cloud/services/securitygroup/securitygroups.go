@@ -483,7 +483,6 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 		}, nil
 	case infrav1.SecurityGroupControlPlane:
 		rules := infrav1.IngressRules{
-			s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID),
 			{
 				Description: "Kubernetes API",
 				Protocol:    infrav1.SecurityGroupProtocolTCP,
@@ -510,11 +509,13 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 				SourceSecurityGroupIDs: []string{s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID},
 			},
 		}
+		if s.scope.Bastion().Enabled {
+			rules = append(rules, s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID))
+		}
 		return append(cniRules, rules...), nil
 
 	case infrav1.SecurityGroupNode:
 		rules := infrav1.IngressRules{
-			s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID),
 			{
 				Description: "Node Port Services",
 				Protocol:    infrav1.SecurityGroupProtocolTCP,
@@ -534,11 +535,17 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 				},
 			},
 		}
+		if s.scope.Bastion().Enabled {
+			rules = append(rules, s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID))
+		}
 		return append(cniRules, rules...), nil
 	case infrav1.SecurityGroupEKSNodeAdditional:
-		return infrav1.IngressRules{
-			s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID),
-		}, nil
+		if s.scope.Bastion().Enabled {
+			return infrav1.IngressRules{
+				s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID),
+			}, nil
+		}
+		return infrav1.IngressRules{}, nil
 	case infrav1.SecurityGroupAPIServerLB:
 		return infrav1.IngressRules{
 			{
