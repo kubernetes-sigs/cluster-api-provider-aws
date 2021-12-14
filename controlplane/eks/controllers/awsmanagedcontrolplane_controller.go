@@ -59,7 +59,6 @@ const (
 
 var (
 	eksSecurityGroupRoles = []infrav1.SecurityGroupRole{
-		infrav1.SecurityGroupBastion,
 		infrav1.SecurityGroupEKSNodeAdditional,
 	}
 )
@@ -201,6 +200,10 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 	controllerutil.AddFinalizer(managedScope.ControlPlane, ekscontrolplanev1.ManagedControlPlaneFinalizer)
 	if err := managedScope.PatchObject(); err != nil {
 		return ctrl.Result{}, err
+	}
+
+	if awsManagedControlPlane.Spec.Bastion.Enabled {
+		eksSecurityGroupRoles = append(eksSecurityGroupRoles, infrav1.SecurityGroupBastion)
 	}
 
 	ec2Service := ec2.NewService(managedScope)
