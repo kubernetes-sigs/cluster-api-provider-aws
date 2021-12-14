@@ -30,13 +30,11 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-type testCase struct {
-	fixture  string
-	template func() Template
-}
-
 func Test_RenderCloudformation(t *testing.T) {
-	cases := []testCase{
+	cases := []struct {
+		fixture  string
+		template func() Template
+	}{
 		{
 			fixture:  "default",
 			template: NewTemplate,
@@ -170,27 +168,29 @@ func Test_RenderCloudformation(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		cfn := cloudformation.Template{}
-		data, err := os.ReadFile(path.Join("fixtures", c.fixture+".yaml"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = yaml.Unmarshal(data, cfn)
-		if err != nil {
-			t.Fatal(err)
-		}
+		t.Run(c.fixture, func(t *testing.T) {
+			cfn := cloudformation.Template{}
+			data, err := os.ReadFile(path.Join("fixtures", c.fixture+".yaml"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = yaml.Unmarshal(data, cfn)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		tData, err := c.template().RenderCloudFormation().YAML()
-		if err != nil {
-			t.Fatal(err)
-		}
-		os.WriteFile("/tmp/tmp1", tData, 0600)
+			tData, err := c.template().RenderCloudFormation().YAML()
+			if err != nil {
+				t.Fatal(err)
+			}
+			os.WriteFile("/tmp/tmp1", tData, 0600)
 
-		if string(tData) != string(data) {
-			dmp := diffmatchpatch.New()
-			diffs := dmp.DiffMain(string(tData), string(data), false)
-			out := dmp.DiffPrettyText(diffs)
-			t.Fatal(fmt.Sprintf("Differing output (%s):\n%s", c.fixture, out))
-		}
+			if string(tData) != string(data) {
+				dmp := diffmatchpatch.New()
+				diffs := dmp.DiffMain(string(tData), string(data), false)
+				out := dmp.DiffPrettyText(diffs)
+				t.Fatal(fmt.Sprintf("Differing output (%s):\n%s", c.fixture, out))
+			}
+		})
 	}
 }
