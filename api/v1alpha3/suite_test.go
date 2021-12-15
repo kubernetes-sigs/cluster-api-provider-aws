@@ -44,10 +44,15 @@ func TestAPIs(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
+	// testMain wrapper is needed to support defers and panics.
+	// os.Exit will ignore those and exit silently.
+	os.Exit(testMain(m))
+}
+
+func testMain(m *testing.M) int {
 	setup()
-	code := m.Run()
-	teardown()
-	os.Exit(code)
+	defer teardown()
+	return m.Run()
 }
 
 func setup() {
