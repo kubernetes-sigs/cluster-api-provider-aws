@@ -25,6 +25,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/gofrs/flock"
@@ -162,6 +163,9 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	quotas := EnsureServiceQuotas(e2eCtx.BootstrapUserAWSSession)
 	WriteResourceQuotesToFile(ResourceQuotaFilePath, quotas)
 	WriteResourceQuotesToFile(path.Join(e2eCtx.Settings.ArtifactFolder, "initial-resource-quotas.yaml"), quotas)
+
+	e2eCtx.Settings.InstanceVCPU, err = strconv.Atoi(e2eCtx.E2EConfig.GetVariable(InstanceVcpu))
+	Expect(err).NotTo(HaveOccurred())
 
 	By("Initializing the bootstrap cluster")
 	initBootstrapCluster(e2eCtx)

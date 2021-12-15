@@ -100,6 +100,8 @@ type Settings struct {
 	SourceTemplate string
 	// FileLock is the lock to be used to read the resource quotas file
 	FileLock *flock.Flock
+	// InstanceVcpu is the number of vCPUs needed for the AWS instance type used for workers and control plane
+	InstanceVCPU int
 }
 
 // RuntimeEnvironment represents the runtime environment of the test
