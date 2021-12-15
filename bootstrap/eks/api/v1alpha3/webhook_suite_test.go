@@ -48,9 +48,9 @@ func setup() {
 	utilruntime.Must(eksbootstrapv1.AddToScheme(scheme.Scheme))
 
 	testEnvConfig := helpers.NewTestEnvironmentConfiguration([]string{
-		path.Join("bootstrap", "eks", "config", "crd", "bases"),
+		path.Join("config", "crd", "bases"),
 	},
-	).WithWebhookConfiguration("unmanaged", path.Join("bootstrap", "eks", "config", "webhook", "manifests.yaml"))
+	).WithWebhookConfiguration("unmanaged", path.Join("config", "webhook", "manifests.yaml"))
 	var err error
 	testEnv, err = testEnvConfig.Build()
 	if err != nil {
