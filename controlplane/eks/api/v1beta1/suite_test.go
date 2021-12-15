@@ -18,7 +18,6 @@ package v1beta1
 
 import (
 	"fmt"
-	"os"
 	"path"
 	"testing"
 
@@ -35,9 +34,8 @@ var (
 
 func TestMain(m *testing.M) {
 	setup()
-	code := m.Run()
-	teardown()
-	os.Exit(code)
+	defer teardown()
+	m.Run()
 }
 
 func setup() {
