@@ -183,6 +183,10 @@ type AWSIAMConfigurationSpec struct {
 	// StackName defines the name of the AWS CloudFormation stack.
 	StackName string `json:"stackName,omitempty"`
 
+	// StackTags defines the tags of the AWS CloudFormation stack.
+	// +optional
+	StackTags map[string]string `json:"stackTags,omitempty"`
+
 	// Region controls which region the control-plane is created in if not specified on the command line or
 	// via environment variables.
 	Region string `json:"region,omitempty"`

@@ -108,7 +108,7 @@ func createCloudFormationStackCmd() *cobra.Command {
 
 			cfnSvc := cloudformation.NewService(cfn.New(sess))
 
-			err = cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *t.RenderCloudFormation())
+			err = cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *t.RenderCloudFormation(), t.Spec.StackTags)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 				return err
