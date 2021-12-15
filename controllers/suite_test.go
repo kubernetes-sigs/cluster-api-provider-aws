@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"fmt"
-	"os"
 	"path"
 	"testing"
 
@@ -37,11 +36,9 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	code := 0
-	defer func() { os.Exit(code) }()
 	setup()
 	defer teardown()
-	code = m.Run()
+	m.Run()
 }
 
 func setup() {
