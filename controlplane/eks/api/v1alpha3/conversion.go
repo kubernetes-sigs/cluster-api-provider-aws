@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
 	clusterapiapiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterapiapiv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
@@ -30,14 +31,35 @@ import (
 func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha4.AWSManagedControlPlane)
 
-	return Convert_v1alpha3_AWSManagedControlPlane_To_v1alpha4_AWSManagedControlPlane(r, dst, nil)
+	if err := Convert_v1alpha3_AWSManagedControlPlane_To_v1alpha4_AWSManagedControlPlane(r, dst, nil); err != nil {
+		return err
+	}
+
+	restored := &v1alpha4.AWSManagedControlPlane{}
+	if ok, err := utilconversion.UnmarshalData(r, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Status.IdentityProviderStatus = restored.Status.IdentityProviderStatus
+	dst.Status.Bastion = restored.Status.Bastion
+	dst.Spec.OIDCIdentityProviderConfig = restored.Spec.OIDCIdentityProviderConfig
+
+	return nil
 }
 
 // ConvertFrom converts the v1alpha4 AWSManagedControlPlane receiver to a v1alpha3 AWSManagedControlPlane.
 func (r *AWSManagedControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha4.AWSManagedControlPlane)
 
-	return Convert_v1alpha4_AWSManagedControlPlane_To_v1alpha3_AWSManagedControlPlane(src, r, nil)
+	if err := Convert_v1alpha4_AWSManagedControlPlane_To_v1alpha3_AWSManagedControlPlane(src, r, nil); err != nil {
+		return err
+	}
+
+	if err := utilconversion.MarshalData(src, r); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ConvertTo converts the v1alpha3 AWSManagedControlPlaneList receiver to a v1alpha4 AWSManagedControlPlaneList.
