@@ -18,7 +18,6 @@ package v1alpha3
 
 import (
 	"fmt"
-	"os"
 	"path"
 	"testing"
 
@@ -36,11 +35,9 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	code := 0
-	defer func() { os.Exit(code) }()
 	setup()
 	defer teardown()
-	code = m.Run()
+	m.Run()
 }
 
 func setup() {
@@ -48,7 +45,7 @@ func setup() {
 	utilruntime.Must(controlplanev1alpha4.AddToScheme(scheme.Scheme))
 
 	testEnvConfig := helpers.NewTestEnvironmentConfiguration([]string{
-		path.Join("..", "config", "crd", "bases"),
+		path.Join("config", "crd", "bases"),
 	},
 	).WithWebhookConfiguration("unmanaged", path.Join("config", "webhook", "manifests.yaml"))
 	var err error
