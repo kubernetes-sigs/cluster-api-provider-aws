@@ -7,7 +7,7 @@ require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/golang/mock v1.6.0
 	github.com/golangci/golangci-lint v1.43.0
-	github.com/itchyny/gojq v0.12.5
+	github.com/itchyny/gojq v0.12.6
 	github.com/onsi/ginkgo v1.16.5
 	github.com/spf13/pflag v1.0.5
 	k8s.io/apimachinery v0.23.0-alpha.4
@@ -128,7 +128,6 @@ require (
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/in-toto/in-toto-golang v0.3.3 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/itchyny/go-flags v1.5.0 // indirect
 	github.com/itchyny/timefmt-go v0.1.3 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jgautheron/goconst v1.5.1 // indirect
@@ -230,7 +229,7 @@ require (
 	golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f // indirect
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20211019181941-9d821ace8654 // indirect
+	golang.org/x/sys v0.0.0-20211124211545-fe61309f8881 // indirect
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.8-0.20211029000441-d6a9af8af023 // indirect
