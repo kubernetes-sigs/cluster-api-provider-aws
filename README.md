@@ -38,13 +38,13 @@ cluster on AWS.
 - Native Kubernetes manifests and API
 - Manages the bootstrapping of VPCs, gateways, security groups and instances.
 - Choice of Linux distribution between Amazon Linux 2, CentOS 7 and Ubuntu 18.04,
-  using [pre-baked AMIs](/docs/book/topics/images/built-amis.md).
+  using [pre-baked AMIs][published_amis].
 - Deploys Kubernetes control planes into private subnets with a separate
   bastion server.
 - Doesn't use SSH for bootstrapping nodes.
 - Installs only the minimal components to bootstrap a control plane and workers.
 - Supports control planes on EC2 instances.
-- Experimental [EKS support](docs/book/src/topics/eks/index.md)
+- Experimental [EKS support][eks_support]
 
 ------
 
@@ -185,4 +185,6 @@ and/or other countries."
 [kubicorn]: http://kubicorn.io/
 [tilt]: https://tilt.dev
 [cluster_api_tilt]: https://master.cluster-api.sigs.k8s.io/developer/tilt.html
-[amis]: https://cluster-api-aws.sigs.k8s.io/amis.html
+[amis]: https://cluster-api-aws.sigs.k8s.io/topics/images/amis.html
+[published_amis]: https://cluster-api-aws.sigs.k8s.io/topics/images/built-amis.html
+[eks_support]: https://cluster-api-aws.sigs.k8s.io/topics/eks/index.html
