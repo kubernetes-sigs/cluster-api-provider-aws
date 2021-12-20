@@ -441,11 +441,24 @@ func TestReconcileEKSEncryptionConfig(t *testing.T) {
 		expectError         bool
 	}{
 		{
-			name:                "no upgrade necessary",
+			name:                "no upgrade necessary - encryption disabled",
 			oldEncryptionConfig: &ekscontrolplanev1.EncryptionConfig{},
 			newEncryptionConfig: &ekscontrolplanev1.EncryptionConfig{},
 			expect:              func(m *mock_eksiface.MockEKSAPIMockRecorder) {},
 			expectError:         false,
+		},
+		{
+			name: "no upgrade necessary - encryption config unchanged",
+			oldEncryptionConfig: &ekscontrolplanev1.EncryptionConfig{
+				Provider:  pointer.String("provider"),
+				Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+			},
+			newEncryptionConfig: &ekscontrolplanev1.EncryptionConfig{
+				Provider:  pointer.String("provider"),
+				Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+			},
+			expect:      func(m *mock_eksiface.MockEKSAPIMockRecorder) {},
+			expectError: false,
 		},
 		{
 			name:                "needs upgrade",

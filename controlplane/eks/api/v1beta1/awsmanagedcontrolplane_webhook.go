@@ -139,7 +139,11 @@ func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) error {
 	}
 
 	// If encryptionConfig is already set, do not allow change in provider
-	if r.Spec.EncryptionConfig != nil && oldAWSManagedControlplane.Spec.EncryptionConfig != nil && *r.Spec.EncryptionConfig.Provider != *oldAWSManagedControlplane.Spec.EncryptionConfig.Provider {
+	if r.Spec.EncryptionConfig != nil &&
+		r.Spec.EncryptionConfig.Provider != nil &&
+		oldAWSManagedControlplane.Spec.EncryptionConfig != nil &&
+		oldAWSManagedControlplane.Spec.EncryptionConfig.Provider != nil &&
+		*r.Spec.EncryptionConfig.Provider != *oldAWSManagedControlplane.Spec.EncryptionConfig.Provider {
 		allErrs = append(allErrs,
 			field.Invalid(field.NewPath("spec", "encryptionConfig", "provider"), r.Spec.EncryptionConfig.Provider, "changing EKS encryption is not allowed after it has been enabled"),
 		)
