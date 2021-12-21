@@ -2896,7 +2896,7 @@ bool
 </em>
 </td>
 <td>
-<p>DisableVPCCNI indcates the the Amazon VPC CNI should be disabled. With EKS clusters that
+<p>DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters
 the Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
 to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
 should be deleted. You cannot set this to true if you are using the
@@ -3267,7 +3267,7 @@ bool
 </em>
 </td>
 <td>
-<p>DisableVPCCNI indcates the the Amazon VPC CNI should be disabled. With EKS clusters that
+<p>DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters
 the Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
 to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
 should be deleted. You cannot set this to true if you are using the
@@ -4628,7 +4628,7 @@ bool
 </em>
 </td>
 <td>
-<p>DisableVPCCNI indcates the the Amazon VPC CNI should be disabled. With EKS clusters that
+<p>DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters
 the Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
 to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
 should be deleted. You cannot set this to true if you are using the
@@ -4999,7 +4999,7 @@ bool
 </em>
 </td>
 <td>
-<p>DisableVPCCNI indcates the the Amazon VPC CNI should be disabled. With EKS clusters that
+<p>DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters
 the Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
 to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
 should be deleted. You cannot set this to true if you are using the
