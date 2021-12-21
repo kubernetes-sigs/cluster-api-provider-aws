@@ -707,12 +707,19 @@ func compareEncryptionConfig(updatedEncryptionConfig, existingEncryptionConfig [
 		return false
 	}
 	for index, encryptionConfig := range updatedEncryptionConfig {
-		if encryptionConfig.Provider != existingEncryptionConfig[index].Provider {
+		if getKeyArn(encryptionConfig) != getKeyArn(existingEncryptionConfig[index]) {
 			return false
 		}
-		if cmp.Equals(encryptionConfig.Resources, existingEncryptionConfig[index].Resources) {
+		if !cmp.Equals(encryptionConfig.Resources, existingEncryptionConfig[index].Resources) {
 			return false
 		}
 	}
 	return true
+}
+
+func getKeyArn(encryptionConfig *eks.EncryptionConfig) string {
+	if encryptionConfig.Provider != nil {
+		return aws.StringValue(encryptionConfig.Provider.KeyArn)
+	}
+	return ""
 }

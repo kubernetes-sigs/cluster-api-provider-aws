@@ -30,9 +30,9 @@ func TestCompareSlices(t *testing.T) {
 	slice2 := []*string{pointer.String("bar"), pointer.String("foo")}
 
 	expected := Equals(slice1, slice2)
-	g.Expect(expected, true)
+	g.Expect(expected).To(BeTrue())
 
 	slice2 = append(slice2, pointer.String("test"))
 	expected = Equals(slice1, slice2)
-	g.Expect(expected, false)
+	g.Expect(expected).To(BeFalse())
 }
