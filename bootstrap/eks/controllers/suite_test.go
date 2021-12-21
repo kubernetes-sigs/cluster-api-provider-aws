@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"fmt"
-	"os"
 	"path"
 	"testing"
 
@@ -37,11 +36,8 @@ var (
 
 func TestMain(m *testing.M) {
 	setup()
-	defer func() {
-		teardown()
-	}()
-	code := m.Run()
-	os.Exit(code) // nolint:gocritic
+	defer teardown()
+	m.Run()
 }
 
 func setup() {

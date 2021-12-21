@@ -18,7 +18,6 @@ package v1alpha4
 
 import (
 	"fmt"
-	"os"
 	"path"
 	"testing"
 
@@ -47,9 +46,8 @@ func TestAPIs(t *testing.T) {
 
 func TestMain(m *testing.M) {
 	setup()
-	code := m.Run()
-	teardown()
-	os.Exit(code)
+	defer teardown()
+	m.Run()
 }
 
 func setup() {
