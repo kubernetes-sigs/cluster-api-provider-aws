@@ -39,11 +39,11 @@ apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSIAMConfiguration
 spec:
   controlPlane:
-    ExtraPolicyAttachments:
+    extraPolicyAttachments:
       - arn:aws:iam::<AWS_ACCOUNT>:policy/my-policy
       - arn:aws:iam::aws:policy/AmazonEC2FullAccess
   nodes:
-    ExtraPolicyAttachments:
+    extraPolicyAttachments:
       - arn:aws:iam::<AWS_ACCOUNT>:policy/my-other-policy
 ```
 
