@@ -179,7 +179,7 @@ providers:
   - name: aws
     type: InfrastructureProvider
     versions:
-      - name: v1.0.2
+      - name: v1.0.99
         # Use manifest from source files
         value: ../../../config/default
         contract: v1beta1
