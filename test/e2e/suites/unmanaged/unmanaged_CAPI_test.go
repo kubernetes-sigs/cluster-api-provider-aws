@@ -20,7 +20,6 @@ package unmanaged
 
 import (
 	"context"
-
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -32,7 +31,8 @@ import (
 
 var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 	var (
-		ctx = context.TODO()
+		ctx               = context.TODO()
+		requiredResources *shared.TestResource
 	)
 
 	ginkgo.BeforeEach(func() {
@@ -41,9 +41,9 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 
 	// DEPRECATED. Should be replaced with the conformance upgrade spec when ClusterUpgradeConformanceSpec supports different ControlPlaneMachineCount
 	ginkgo.PDescribe("[Deprecated] KCP Upgrade Spec - HA Control Plane Cluster using Scale-In", func() {
-		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
-		requiredResources := &shared.TestResource{EC2Normal: 4, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
 		ginkgo.BeforeEach(func() {
+			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
+			requiredResources = &shared.TestResource{EC2Normal: 4 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
 			requiredResources.WriteRequestedResources(e2eCtx, "capi-kcp-scale-in-upgrade-test")
 			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 		})
@@ -64,9 +64,9 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 	})
 
 	ginkgo.Describe("Machine Remediation Spec", func() {
-		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
-		requiredResources := &shared.TestResource{EC2Normal: 4, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3}
 		ginkgo.BeforeEach(func() {
+			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
+			requiredResources = &shared.TestResource{EC2Normal: 4 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3}
 			requiredResources.WriteRequestedResources(e2eCtx, "capi-remediation-test")
 			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 		})
@@ -86,9 +86,9 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 	})
 
 	ginkgo.Describe("Machine Pool Spec", func() {
-		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
-		requiredResources := &shared.TestResource{EC2Normal: 4, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
 		ginkgo.BeforeEach(func() {
+			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
+			requiredResources = &shared.TestResource{EC2Normal: 4 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
 			requiredResources.WriteRequestedResources(e2eCtx, "capi-machinepool-test")
 			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 		})
@@ -108,9 +108,9 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 	})
 
 	ginkgo.PDescribe("Self Hosted Spec", func() {
-		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
-		requiredResources := &shared.TestResource{EC2Normal: 2, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
 		ginkgo.BeforeEach(func() {
+			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
+			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
 			requiredResources.WriteRequestedResources(e2eCtx, "capi-clusterctl-self-hosted-test")
 			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 		})
@@ -131,9 +131,9 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 	})
 
 	ginkgo.Describe("Clusterctl Upgrade Spec [from v1alpha3]", func() {
-		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
-		requiredResources := &shared.TestResource{EC2Normal: 5, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2}
 		ginkgo.BeforeEach(func() {
+			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
+			requiredResources = &shared.TestResource{EC2Normal: 5 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2}
 			requiredResources.WriteRequestedResources(e2eCtx, "capi-clusterctl-upgrade-test-v1alpha3")
 			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 		})
@@ -156,9 +156,9 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 	})
 
 	ginkgo.Describe("Clusterctl Upgrade Spec [from v1alpha4]", func() {
-		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
-		requiredResources := &shared.TestResource{EC2Normal: 5, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2}
 		ginkgo.BeforeEach(func() {
+			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
+			requiredResources = &shared.TestResource{EC2Normal: 5 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2}
 			requiredResources.WriteRequestedResources(e2eCtx, "capi-clusterctl-upgrade-test-v1alpha4")
 			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 		})
@@ -181,9 +181,9 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 	})
 
 	ginkgo.Describe("Cluster Upgrade spec - Single Control Plane Cluster", func() {
-		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
-		requiredResources := &shared.TestResource{EC2Normal: 5, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2}
 		ginkgo.BeforeEach(func() {
+			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
+			requiredResources = &shared.TestResource{EC2Normal: 5 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2}
 			requiredResources.WriteRequestedResources(e2eCtx, "capi-cluster-upgrade-test")
 			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 		})

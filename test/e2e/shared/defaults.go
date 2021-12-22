@@ -53,6 +53,7 @@ const (
 	KCPScaleInFlavor             = "kcp-scale-in"
 	StorageClassOutTreeZoneLabel = "topology.ebs.csi.aws.com/zone"
 	GPUFlavor                    = "gpu"
+	InstanceVcpu                 = "AWS_MACHINE_TYPE_VCPU_USAGE"
 )
 
 var ResourceQuotaFilePath = "/tmp/capa-e2e-resource-usage.lock"
