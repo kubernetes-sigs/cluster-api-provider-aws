@@ -195,7 +195,7 @@ providers:
         files:
           - sourcePath: "./shared/v1alpha4_provider/metadata.yaml"
           - sourcePath: "./infrastructure-aws/capi-upgrades/v1alpha4/cluster-template.yaml"
-      - name: v1.2.0
+      - name: v1.0.99
         # Use manifest from source files
         value: ../../../config/default
         contract: v1beta1
