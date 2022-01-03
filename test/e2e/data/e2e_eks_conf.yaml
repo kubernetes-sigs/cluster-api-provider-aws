@@ -1,7 +1,7 @@
 ---
 # E2E test scenario using local dev images and manifests built from the source tree for following providers:
 # - cluster-api
-# - infratrsucture aws
+# - infrastructure aws
 # - boostrap aws-eks
 # - control-plane aws-eks
 
