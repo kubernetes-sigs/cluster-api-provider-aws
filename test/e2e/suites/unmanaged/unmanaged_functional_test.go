@@ -57,7 +57,6 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	})
 
 	ginkgo.Describe("Create a cluster that uses the external cloud provider", func() {
-
 		ginkgo.It("should create volumes dynamically with external cloud provider", func() {
 			specName := "functional-external-cloud-provider"
 			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
@@ -163,7 +162,6 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	})
 
 	ginkgo.Describe("Multitenancy test", func() {
-
 		ginkgo.It("should create cluster with nested assumed role", func() {
 			// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
 			specName := "functional-multitenancy-nested"
@@ -530,5 +528,4 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			Expect(len(controlPlaneMachines)).To(Equal(1))
 		})
 	})
-
 })
