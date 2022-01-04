@@ -284,6 +284,7 @@ variables:
   # the management cluster to be upgraded.
   INIT_WITH_KUBERNETES_VERSION: "v1.21.6"
   EXP_BOOTSTRAP_FORMAT_IGNITION: "true"
+  EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
 
 intervals:
   default/wait-cluster: ["30m", "10s"]
