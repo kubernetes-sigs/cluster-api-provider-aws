@@ -13,12 +13,9 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ main, chunk-secrets, conformance-fixup-july-2021, fix-metadata, is-netlify-broken, release-0.6, release-0.7, release-1.0, release-1.1, release-1.2 ]
-  pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ main ]
+    branches: [ main, release-0.6, release-0.7, release-1.0, release-1.1, release-1.2 ]
   schedule:
-    - cron: '15 18 * * 3'
+    - cron: '15 18 1 * *'
 
 jobs:
   analyze:
