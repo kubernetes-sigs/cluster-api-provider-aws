@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/pkg/errors"
@@ -31,6 +32,7 @@ import (
 
 const (
 	maxProfileNameLength = 100
+	maxIAMRoleNameLength = 64
 )
 
 // SetupWebhookWithManager will setup the webhooks for the AWSFargateProfile.
@@ -75,6 +77,23 @@ func (r *AWSFargateProfile) ValidateUpdate(oldObj runtime.Object) error {
 	}
 
 	var allErrs field.ErrorList
+
+	// Spec is immutable, but if the new RoleName is the generated one(or default if EnableIAM is disabled) and
+	// the old RoleName is nil, then ignore checking that field.
+	if old.Spec.RoleName == "" {
+		roleName, err := eks.GenerateEKSName(
+			"fargate",
+			fmt.Sprintf("%s-%s", r.Spec.ClusterName, r.Spec.ProfileName),
+			maxIAMRoleNameLength,
+		)
+		if err != nil {
+			mmpLog.Error(err, "failed to create EKS fargate role name")
+		}
+
+		if r.Spec.RoleName == roleName || r.Spec.RoleName == DefaultEKSFargateRole {
+			r.Spec.RoleName = ""
+		}
+	}
 
 	// Spec is immutable, but if the new ProfileName is the defaulted one and
 	// the old ProfileName is nil, then ignore checking that field.
