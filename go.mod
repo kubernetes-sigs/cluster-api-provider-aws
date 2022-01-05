@@ -2,7 +2,7 @@ module sigs.k8s.io/cluster-api-provider-aws
 
 go 1.17
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.0.1-0.20211111175208-4cc2fce2111a
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.1.0-beta.1
 
 require (
 	github.com/alessio/shellescape v1.4.1
@@ -27,18 +27,18 @@ require (
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	golang.org/x/net v0.0.0-20211005215030-d2e5035098b3
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.23.0-alpha.4
-	k8s.io/apiextensions-apiserver v0.23.0-alpha.4
-	k8s.io/apimachinery v0.23.0-alpha.4
-	k8s.io/cli-runtime v0.23.0-alpha.4
-	k8s.io/client-go v0.23.0-alpha.4
-	k8s.io/component-base v0.23.0-alpha.4
+	k8s.io/api v0.23.0
+	k8s.io/apiextensions-apiserver v0.23.0
+	k8s.io/apimachinery v0.23.0
+	k8s.io/cli-runtime v0.23.0
+	k8s.io/client-go v0.23.0
+	k8s.io/component-base v0.23.0
 	k8s.io/klog/v2 v2.40.1
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
 	sigs.k8s.io/aws-iam-authenticator v0.5.3
-	sigs.k8s.io/cluster-api v1.0.1-0.20211111175208-4cc2fce2111a
-	sigs.k8s.io/cluster-api/test v1.0.1-0.20211111175208-4cc2fce2111a
-	sigs.k8s.io/controller-runtime v0.11.0-beta.0.0.20211110210527-619e6b92dab9
+	sigs.k8s.io/cluster-api v1.1.0-beta.1
+	sigs.k8s.io/cluster-api/test v1.1.0-beta.1
+	sigs.k8s.io/controller-runtime v0.11.0
 	sigs.k8s.io/yaml v1.3.0
 )
 
@@ -51,19 +51,19 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/containerd/containerd v1.5.2 // indirect
 	github.com/coredns/caddy v1.1.0 // indirect
-	github.com/coredns/corefile-migration v1.0.13 // indirect
+	github.com/coredns/corefile-migration v1.0.14 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/docker v20.10.7+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
-	github.com/drone/envsubst/v2 v2.0.0-20210615175204-7bf45dbf5372 // indirect
+	github.com/drone/envsubst/v2 v2.0.0-20210730161058-179042472c46 // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
-	github.com/gobuffalo/flect v0.2.3 // indirect
+	github.com/gobuffalo/flect v0.2.4 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
@@ -123,11 +123,11 @@ require (
 	gopkg.in/ini.v1 v1.66.2 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
-	k8s.io/apiserver v0.23.0-alpha.4 // indirect
-	k8s.io/cluster-bootstrap v0.23.0-alpha.4 // indirect
-	k8s.io/kube-openapi v0.0.0-20210817084001-7fbd8d59e5b8 // indirect
-	k8s.io/kubectl v0.23.0-alpha.4 // indirect
+	k8s.io/apiserver v0.23.0 // indirect
+	k8s.io/cluster-bootstrap v0.23.0 // indirect
+	k8s.io/kube-openapi v0.0.0-20211115234752-e816edb12b65 // indirect
+	k8s.io/kubectl v0.23.0 // indirect
 	sigs.k8s.io/json v0.0.0-20211020170558-c049b76a60c6 // indirect
 	sigs.k8s.io/kind v0.11.1 // indirect
-	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
+	sigs.k8s.io/structured-merge-diff/v4 v4.2.0 // indirect
 )
