@@ -19,7 +19,9 @@ package userdata
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/sha256"
 	"encoding/base64"
+	"fmt"
 	"strings"
 	"text/template"
 
@@ -54,4 +56,9 @@ func GzipBytes(dat []byte) ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
+}
+
+// ComputeHash returns the SHA256 hash of the user data byte array.
+func ComputeHash(dat []byte) string {
+	return fmt.Sprintf("%x", sha256.Sum256(dat))
 }
