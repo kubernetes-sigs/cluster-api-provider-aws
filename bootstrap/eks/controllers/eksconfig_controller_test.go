@@ -22,7 +22,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/test/helpers"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -38,11 +37,9 @@ func TestEKSConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T) {
 		InfrastructureReady: false,
 	}
 
-	testEnv = helpers.NewTestEnvironment()
-
 	reconciler := EKSConfigReconciler{
 		Log:    log.Log,
-		Client: testEnv.Client,
+		Client: k8sClient,
 	}
 
 	result, err := reconciler.joinWorker(context.Background(), log.Log, cluster, config)
@@ -62,11 +59,9 @@ func TestEKSConfigReconciler_ReturnEarlyIfClusterControlPlaneNotInitialized(t *t
 		ControlPlaneInitialized: false,
 	}
 
-	testEnv = helpers.NewTestEnvironment()
-
 	reconciler := EKSConfigReconciler{
 		Log:    log.Log,
-		Client: testEnv.Client,
+		Client: k8sClient,
 	}
 
 	result, err := reconciler.joinWorker(context.Background(), log.Log, cluster, config)

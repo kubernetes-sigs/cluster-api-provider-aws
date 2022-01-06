@@ -24,14 +24,17 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha3"
+	controlplanev1alpha3 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/yaml"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 var _ = Describe("EKSConfigReconciler", func() {
@@ -53,13 +56,50 @@ var _ = Describe("EKSConfigReconciler", func() {
 
 			reconciler := EKSConfigReconciler{
 				Log:    log.Log,
-				Client: testEnv.Client,
+				Client: k8sClient,
 			}
 
 			By("Calling reconcile should requeue")
 			result, err := reconciler.joinWorker(context.Background(), log.Log, cluster, config)
 			Expect(err).To(Succeed())
 			Expect(result.Requeue).To(BeFalse())
+		})
+		It("should update an existing secret", func() {
+			cluster := newCluster("cluster")
+			machine := newMachine(cluster, "machine")
+			config := newEKSConfig(machine, "cfg")
+			config.Status.DataSecretName = pointer.StringPtr("cfg")
+
+			cluster.Status = clusterv1.ClusterStatus{
+				InfrastructureReady:     true,
+				ControlPlaneInitialized: true,
+			}
+
+			secret := newSecret("cfg")
+			err := k8sClient.Create(context.Background(), secret)
+			Expect(err).NotTo(HaveOccurred())
+
+			awsmcp := newAWSManagedCotrolPlane("cluster")
+			err = k8sClient.Create(context.Background(), awsmcp)
+			Expect(err).NotTo(HaveOccurred())
+
+			reconciler := EKSConfigReconciler{
+				Log:    log.Log,
+				Client: k8sClient,
+			}
+
+			result, err := reconciler.joinWorker(context.Background(), log.Log, cluster, config)
+
+			// try to get the new EKSConfig
+			createdEKSConfig := &bootstrapv1.EKSConfig{}
+			err = k8sClient.Get(context.Background(), types.NamespacedName{Namespace: config.Namespace, Name: config.Name}, createdEKSConfig)
+			fmt.Println(createdEKSConfig.Status)
+
+			updateSecret := &corev1.Secret{}
+			err = k8sClient.Get(context.Background(), types.NamespacedName{Namespace: secret.Namespace, Name: secret.Name}, updateSecret)
+			Expect(string(updateSecret.Data["value"])).NotTo(Equal("fake-data"))
+			Expect(result).To(Equal(reconcile.Result{}))
+			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 })
@@ -81,6 +121,20 @@ func newCluster(name string) *clusterv1.Cluster {
 				Kind:      "AWSManagedControlPlane",
 				Namespace: "default",
 			},
+		},
+	}
+}
+
+// newCluster return a CAPI cluster object
+func newAWSManagedCotrolPlane(name string) *controlplanev1alpha3.AWSManagedControlPlane {
+	return &controlplanev1alpha3.AWSManagedControlPlane{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "AWSManagedControlPlane",
+			APIVersion: controlplanev1alpha3.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      name,
 		},
 	}
 }
@@ -140,4 +194,18 @@ func newEKSConfig(machine *clusterv1.Machine, name string) *bootstrapv1.EKSConfi
 		machine.Spec.Bootstrap.ConfigRef.Namespace = config.Namespace
 	}
 	return config
+}
+
+// newSecret return an EKSConfig object; if machine is not nil, the EKSConfig is linked to the machine as well
+func newSecret(name string) *corev1.Secret {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      name,
+		},
+		Data: map[string][]byte{
+			"value": []byte("fake-data"),
+		},
+	}
+	return secret
 }

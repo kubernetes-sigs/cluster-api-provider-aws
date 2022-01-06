@@ -149,13 +149,7 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, log logr.Logger, c
 		log = log.WithValues("data-secret-name", secretKey.Name)
 		existingSecret := &corev1.Secret{}
 
-		// No error here means the Secret exists and we have no
-		// reason to proceed.
-		err := r.Client.Get(ctx, secretKey, existingSecret)
-		switch {
-		case err == nil:
-			return ctrl.Result{}, nil
-		case !apierrors.IsNotFound(err):
+		if err := r.Client.Get(ctx, secretKey, existingSecret); err != nil && !apierrors.IsNotFound(err) {
 			log.Error(err, "unable to check for existing bootstrap secret")
 			return ctrl.Result{}, err
 		}
