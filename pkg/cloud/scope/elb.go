@@ -45,4 +45,7 @@ type ELBScope interface {
 
 	// ControlPlaneLoadBalancerName returns the Classic ELB name
 	ControlPlaneLoadBalancerName() *string
+
+	// KubeadmControlPlaneBindPort returns the cluster KubeadmControlPlane Bind port
+	KubeadmControlPlaneBindPort() (int32, error)
 }

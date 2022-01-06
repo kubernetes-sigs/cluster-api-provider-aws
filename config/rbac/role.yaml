@@ -296,3 +296,11 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
+  - kubeadmcontrolplanes
+  verbs:
+  - get
+  - list
+

@@ -29,6 +29,8 @@ import (
 	rgapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
@@ -38,6 +40,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_resourcegroupstaggingapiiface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -1000,12 +1004,109 @@ func TestChunkELBs(t *testing.T) {
 	}
 }
 
+func TestInstancePortCustomizationsInELB(t *testing.T) {
+	tests := []struct {
+		name                 string
+		expectedInstancePort int64
+		kcp                  *controlplanev1.KubeadmControlPlane
+		mocks                func(m *mock_ec2iface.MockEC2APIMockRecorder)
+	}{
+		{
+			name:                 "load balancer config with kcp bind port customization",
+			expectedInstancePort: int64(443),
+			kcp: &controlplanev1.KubeadmControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cp",
+					Namespace: "foo",
+				},
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "KubeadmControlPlane",
+					APIVersion: "kubeadm.k8s.io/v1beta2",
+				},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
+						InitConfiguration: &cabpkv1.InitConfiguration{
+							LocalAPIEndpoint: cabpkv1.APIEndpoint{
+								BindPort: 443,
+							},
+						},
+					},
+				},
+			},
+			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
+		},
+		{
+			name:                 "load balancer config with no kcp bind port customization",
+			expectedInstancePort: int64(6443),
+			kcp:                  &controlplanev1.KubeadmControlPlane{},
+			mocks:                func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+
+			scheme, err := setupScheme()
+			if err != nil {
+				t.Fatal(err)
+			}
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tc.kcp).Build()
+			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client: client,
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "foo",
+						Name:      "bar",
+					},
+					Spec: clusterv1.ClusterSpec{
+						ControlPlaneRef: &corev1.ObjectReference{
+							Name:      "test-cp",
+							Kind:      "KubeadmControlPlane",
+							Namespace: "foo",
+						},
+					},
+				},
+				AWSCluster: &infrav1.AWSCluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test"},
+					Spec: infrav1.AWSClusterSpec{
+						ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+							CrossZoneLoadBalancing: true,
+						},
+					},
+				},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			tc.mocks(ec2Mock.EXPECT())
+
+			s := &Service{
+				scope:     clusterScope,
+				EC2Client: ec2Mock,
+			}
+
+			spec, err := s.getAPIServerClassicELBSpec(clusterScope.Name())
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.Equal(t, tc.expectedInstancePort, spec.Listeners[0].InstancePort)
+		})
+	}
+}
+
 func setupScheme() (*runtime.Scheme, error) {
 	scheme := runtime.NewScheme()
 	if err := clusterv1.AddToScheme(scheme); err != nil {
 		return nil, err
 	}
 	if err := infrav1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+	if err := controlplanev1.AddToScheme(scheme); err != nil {
 		return nil, err
 	}
 	return scheme, nil

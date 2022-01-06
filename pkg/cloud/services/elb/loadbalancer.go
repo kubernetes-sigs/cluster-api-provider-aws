@@ -19,6 +19,7 @@ package elb
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -419,6 +420,12 @@ func (s *Service) getAPIServerClassicELBSpec(elbName string) (*infrav1.ClassicEL
 	}
 	securityGroupIDs = append(securityGroupIDs, s.scope.SecurityGroups()[infrav1.SecurityGroupAPIServerLB].ID)
 
+	elbPort, err := s.scope.KubeadmControlPlaneBindPort()
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to fetch KCP bind port")
+	}
+	s.scope.V(4).Info("BindPort as configured in KCP", "elbPort", strconv.FormatInt(int64(elbPort), 10))
+
 	res := &infrav1.ClassicELB{
 		Name:   elbName,
 		Scheme: s.scope.ControlPlaneLoadBalancerScheme(),
@@ -427,11 +434,11 @@ func (s *Service) getAPIServerClassicELBSpec(elbName string) (*infrav1.ClassicEL
 				Protocol:         infrav1.ClassicELBProtocolTCP,
 				Port:             int64(s.scope.APIServerPort()),
 				InstanceProtocol: infrav1.ClassicELBProtocolTCP,
-				InstancePort:     6443,
+				InstancePort:     int64(elbPort),
 			},
 		},
 		HealthCheck: &infrav1.ClassicELBHealthCheck{
-			Target:             fmt.Sprintf("%v:%d", infrav1.ClassicELBProtocolSSL, 6443),
+			Target:             fmt.Sprintf("%v:%d", infrav1.ClassicELBProtocolSSL, elbPort),
 			Interval:           10 * time.Second,
 			Timeout:            5 * time.Second,
 			HealthyThreshold:   5,

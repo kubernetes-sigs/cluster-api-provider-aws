@@ -23,15 +23,20 @@ import (
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/v2/klogr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+const defaultELBPort int32 = 6443
 
 // ClusterScopeParams defines the input parameters used to create a new Scope.
 type ClusterScopeParams struct {
@@ -96,6 +101,28 @@ type ClusterScope struct {
 	session         awsclient.ConfigProvider
 	serviceLimiters throttle.ServiceLimiters
 	controllerName  string
+}
+
+// KubeadmControlPlaneBindPort returns the bind port used in KCP kubeconfig.
+func (s *ClusterScope) KubeadmControlPlaneBindPort() (int32, error) {
+	if s.Cluster.Spec.ControlPlaneRef != nil {
+		cpObjectKey := client.ObjectKey{
+			Namespace: s.Cluster.Namespace,
+			Name:      s.Cluster.Spec.ControlPlaneRef.Name,
+		}
+		var kubeadmCP controlplanev1.KubeadmControlPlane
+		err := s.client.Get(context.TODO(), cpObjectKey, &kubeadmCP)
+
+		if err != nil && !apierrors.IsNotFound(err) {
+			return 0, err
+		}
+
+		var apiEndpoint bootstrapv1.APIEndpoint
+		if kubeadmCP.Spec.KubeadmConfigSpec.InitConfiguration != nil && kubeadmCP.Spec.KubeadmConfigSpec.InitConfiguration.LocalAPIEndpoint != apiEndpoint {
+			return kubeadmCP.Spec.KubeadmConfigSpec.InitConfiguration.LocalAPIEndpoint.BindPort, nil
+		}
+	}
+	return defaultELBPort, nil
 }
 
 // Network returns the cluster network object.

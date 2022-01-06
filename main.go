@@ -61,6 +61,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/version"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	// +kubebuilder:scaffold:imports
 )
@@ -86,6 +87,7 @@ func init() {
 	_ = infrav1alpha4.AddToScheme(scheme)
 	_ = expinfrav1alpha4.AddToScheme(scheme)
 	_ = expinfrav1.AddToScheme(scheme)
+	_ = controlplanev1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
