@@ -38,14 +38,12 @@ import (
 )
 
 var _ = Describe("EKSConfigReconciler", func() {
-	BeforeEach(func() {})
-	AfterEach(func() {})
 
 	Context("Reconcile an EKSConfig", func() {
 		It("should wait until infrastructure is ready", func() {
-			cluster := newCluster("test-cluster")
-			machine := newMachine(cluster, "test-machine")
-			config := newEKSConfig(machine, "test-config")
+			cluster := newCluster("cluster")
+			machine := newMachine(cluster, "machine")
+			config := newEKSConfig(machine, "cfg")
 
 			bytes, err := yaml.Marshal(machine)
 			Expect(err).To(BeNil())
@@ -64,10 +62,25 @@ var _ = Describe("EKSConfigReconciler", func() {
 			Expect(err).To(Succeed())
 			Expect(result.Requeue).To(BeFalse())
 		})
-		It("should update an existing secret", func() {
-			cluster := newCluster("cluster")
-			machine := newMachine(cluster, "machine")
-			config := newEKSConfig(machine, "cfg")
+
+	})
+
+	Context("Reconcile an EKSConfig and check secret", func() {
+		var cluster *clusterv1.Cluster
+		var machine *clusterv1.Machine
+		var config *bootstrapv1.EKSConfig
+		var reconciler EKSConfigReconciler
+		var awsmcp *controlplanev1alpha3.AWSManagedControlPlane
+		var eksSecret *corev1.Secret
+
+		BeforeEach(func() {
+			cluster = newCluster("cluster")
+			machine = newMachine(cluster, "machine")
+			config = newEKSConfig(machine, "cfg")
+			awsmcp = newAWSManagedCotrolPlane("cluster")
+			err := k8sClient.Create(context.Background(), awsmcp)
+			Expect(err).NotTo(HaveOccurred())
+
 			config.Status.DataSecretName = pointer.StringPtr("cfg")
 
 			cluster.Status = clusterv1.ClusterStatus{
@@ -75,33 +88,61 @@ var _ = Describe("EKSConfigReconciler", func() {
 				ControlPlaneInitialized: true,
 			}
 
-			secret := newSecret("cfg")
-			err := k8sClient.Create(context.Background(), secret)
-			Expect(err).NotTo(HaveOccurred())
-
-			awsmcp := newAWSManagedCotrolPlane("cluster")
-			err = k8sClient.Create(context.Background(), awsmcp)
-			Expect(err).NotTo(HaveOccurred())
-
-			reconciler := EKSConfigReconciler{
+			reconciler = EKSConfigReconciler{
 				Log:    log.Log,
 				Client: k8sClient,
 			}
 
+			eksSecret = &corev1.Secret{}
+
+		})
+
+		AfterEach(func() {
+			k8sClient.Delete(context.Background(), cluster)
+			k8sClient.Delete(context.Background(), machine)
+			k8sClient.Delete(context.Background(), config)
+			k8sClient.Delete(context.Background(), awsmcp)
+			k8sClient.Delete(context.Background(), eksSecret)
+		})
+
+		It("should not have a secret before joinWorker is called", func() {
+			emptySecret := &corev1.Secret{}
+			err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: config.Namespace, Name: config.Name}, emptySecret)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(emptySecret.Data["value"])).To(Equal(""))
+
 			result, err := reconciler.joinWorker(context.Background(), log.Log, cluster, config)
-
-			// try to get the new EKSConfig
-			createdEKSConfig := &bootstrapv1.EKSConfig{}
-			err = k8sClient.Get(context.Background(), types.NamespacedName{Namespace: config.Namespace, Name: config.Name}, createdEKSConfig)
-			fmt.Println(createdEKSConfig.Status)
-
-			updateSecret := &corev1.Secret{}
-			err = k8sClient.Get(context.Background(), types.NamespacedName{Namespace: secret.Namespace, Name: secret.Name}, updateSecret)
-			Expect(string(updateSecret.Data["value"])).NotTo(Equal("fake-data"))
 			Expect(result).To(Equal(reconcile.Result{}))
 			Expect(err).NotTo(HaveOccurred())
 		})
+
+		It("should have a secret after joinWorker is called", func() {
+
+			result, err := reconciler.joinWorker(context.Background(), log.Log, cluster, config)
+
+			err = k8sClient.Get(context.Background(), types.NamespacedName{Namespace: config.Namespace, Name: config.Name}, eksSecret)
+			Expect(string(eksSecret.Data["value"])).To(Equal("#!/bin/bash\n/etc/eks/bootstrap.sh \n"))
+			Expect(result).To(Equal(reconcile.Result{}))
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should update an existing secret", func() {
+
+			eksSecret = newSecret("cfg")
+			err := k8sClient.Create(context.Background(), eksSecret)
+			Expect(err).NotTo(HaveOccurred())
+
+			result, err := reconciler.joinWorker(context.Background(), log.Log, cluster, config)
+
+			updatedSecret := &corev1.Secret{}
+			err = k8sClient.Get(context.Background(), types.NamespacedName{Namespace: eksSecret.Namespace, Name: eksSecret.Name}, updatedSecret)
+			Expect(string(updatedSecret.Data["value"])).NotTo(Equal("fake-data"))
+			Expect(result).To(Equal(reconcile.Result{}))
+			Expect(err).NotTo(HaveOccurred())
+		})
+
 	})
+
 })
 
 // newCluster return a CAPI cluster object
