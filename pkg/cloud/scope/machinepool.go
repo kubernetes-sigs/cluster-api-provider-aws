@@ -235,6 +235,18 @@ func (m *MachinePoolScope) SubnetIDs(subnetIDs []string) ([]string, error) {
 	})
 }
 
+// AvailabilityZones returns the machine pool availability zones.
+// In case availability zones are not given in the AWSMachinePoolSpec, we fall back to the Failure Domains on the MachinePool.
+func (m *MachinePoolScope) AvailabilityZones() []string {
+	if m.AWSMachinePool.Spec.AvailabilityZones != nil {
+		return m.AWSMachinePool.Spec.AvailabilityZones
+	}
+	if m.MachinePool.Spec.FailureDomains != nil {
+		return m.MachinePool.Spec.FailureDomains
+	}
+	return nil
+}
+
 // NodeStatus represents the status of a Kubernetes node.
 type NodeStatus struct {
 	Ready   bool

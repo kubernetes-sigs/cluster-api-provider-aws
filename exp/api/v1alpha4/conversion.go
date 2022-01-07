@@ -146,3 +146,8 @@ func Convert_v1beta1_Instance_To_v1alpha4_Instance(in *infrav1.Instance, out *in
 func Convert_v1alpha4_Instance_To_v1beta1_Instance(in *infrav1alpha4.Instance, out *infrav1.Instance, s apiconversion.Scope) error {
 	return infrav1alpha4.Convert_v1alpha4_Instance_To_v1beta1_Instance(in, out, s)
 }
+
+// Convert_v1beta1_AutoScalingGroup_To_v1alpha4_AutoScalingGroup is a conversion function.
+func Convert_v1beta1_AutoScalingGroup_To_v1alpha4_AutoScalingGroup(in *infrav1exp.AutoScalingGroup, out *AutoScalingGroup, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_AutoScalingGroup_To_v1alpha4_AutoScalingGroup(in, out, s)
+}

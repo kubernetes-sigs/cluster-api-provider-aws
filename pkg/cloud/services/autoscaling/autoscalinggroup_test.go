@@ -144,6 +144,7 @@ func TestService_SDKToAutoScalingGroup(t *testing.T) {
 				MaxSize:              aws.Int64(1234),
 				MinSize:              aws.Int64(1234),
 				CapacityRebalance:    aws.Bool(true),
+				AvailabilityZones:    aws.StringSlice([]string{"test-az"}),
 				MixedInstancesPolicy: &autoscaling.MixedInstancesPolicy{
 					InstancesDistribution: &autoscaling.InstancesDistribution{
 						OnDemandAllocationStrategy:          aws.String("prioritized"),
@@ -168,6 +169,7 @@ func TestService_SDKToAutoScalingGroup(t *testing.T) {
 				MaxSize:           int32(1234),
 				MinSize:           int32(1234),
 				CapacityRebalance: true,
+				AvailabilityZones: []string{"test-az"},
 				MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
 					InstancesDistribution: &expinfrav1.InstancesDistribution{
 						OnDemandAllocationStrategy:          expinfrav1.OnDemandAllocationStrategyPrioritized,
@@ -222,6 +224,7 @@ func TestService_SDKToAutoScalingGroup(t *testing.T) {
 						LifecycleState: aws.String("lifecycleState"),
 					},
 				},
+				AvailabilityZones: []*string{aws.String("az1")},
 			},
 			want: &expinfrav1.AutoScalingGroup{
 				ID:                "test-id",
@@ -253,6 +256,7 @@ func TestService_SDKToAutoScalingGroup(t *testing.T) {
 						State: "lifecycleState",
 					},
 				},
+				AvailabilityZones: []string{"az1"},
 			},
 			wantErr: false,
 		},
@@ -265,6 +269,7 @@ func TestService_SDKToAutoScalingGroup(t *testing.T) {
 				MaxSize:              aws.Int64(1234),
 				MinSize:              aws.Int64(1234),
 				CapacityRebalance:    aws.Bool(true),
+				AvailabilityZones:    aws.StringSlice([]string{"test-az"}),
 				MixedInstancesPolicy: nil,
 			},
 			want: &expinfrav1.AutoScalingGroup{
@@ -274,6 +279,7 @@ func TestService_SDKToAutoScalingGroup(t *testing.T) {
 				MaxSize:              int32(1234),
 				MinSize:              int32(1234),
 				CapacityRebalance:    true,
+				AvailabilityZones:    []string{"test-az"},
 				MixedInstancesPolicy: nil,
 			},
 			wantErr: false,

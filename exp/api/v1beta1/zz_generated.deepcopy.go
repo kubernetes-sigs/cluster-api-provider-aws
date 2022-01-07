@@ -500,6 +500,11 @@ func (in *AutoScalingGroup) DeepCopyInto(out *AutoScalingGroup) {
 		copy(*out, *in)
 	}
 	out.DefaultCoolDown = in.DefaultCoolDown
+	if in.AvailabilityZones != nil {
+		in, out := &in.AvailabilityZones, &out.AvailabilityZones
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.MixedInstancesPolicy != nil {
 		in, out := &in.MixedInstancesPolicy, &out.MixedInstancesPolicy
 		*out = new(MixedInstancesPolicy)

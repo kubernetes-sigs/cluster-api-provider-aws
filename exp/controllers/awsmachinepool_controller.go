@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sort"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -531,9 +532,24 @@ func asgNeedsUpdates(machinePoolScope *scope.MachinePoolScope, existingASG *expi
 		return true
 	}
 
+	if checkAZsNeedsUpdate(machinePoolScope.AvailabilityZones(), existingASG.AvailabilityZones) {
+		return true
+	}
+
 	// todo subnet diff
 
 	return false
+}
+
+func checkAZsNeedsUpdate(input, existing []string) bool {
+	sort.Slice(input, func(i, j int) bool {
+		return input[i] < input[j]
+	})
+	sort.Slice(existing, func(i, j int) bool {
+		return existing[i] < existing[j]
+	})
+
+	return reflect.DeepEqual(input, existing)
 }
 
 // getOwnerMachinePool returns the MachinePool object owning the current resource.

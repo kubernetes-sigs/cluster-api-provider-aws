@@ -44,6 +44,7 @@ func (s *Service) SDKToAutoScalingGroup(v *autoscaling.Group) (*expinfrav1.AutoS
 		MaxSize:           int32(aws.Int64Value(v.MaxSize)),
 		MinSize:           int32(aws.Int64Value(v.MinSize)),
 		CapacityRebalance: aws.BoolValue(v.CapacityRebalance),
+		AvailabilityZones: aws.StringValueSlice(v.AvailabilityZones),
 		//TODO: determine what additional values go here and what else should be in the struct
 	}
 
@@ -158,6 +159,7 @@ func (s *Service) CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScal
 		DefaultCoolDown:      scope.AWSMachinePool.Spec.DefaultCoolDown,
 		CapacityRebalance:    scope.AWSMachinePool.Spec.CapacityRebalance,
 		MixedInstancesPolicy: scope.AWSMachinePool.Spec.MixedInstancesPolicy,
+		AvailabilityZones:    scope.AvailabilityZones(),
 	}
 
 	if scope.MachinePool.Spec.Replicas != nil {
@@ -221,6 +223,10 @@ func (s *Service) runPool(i *expinfrav1.AutoScalingGroup, launchTemplateID strin
 
 	if i.Tags != nil {
 		input.Tags = BuildTagsFromMap(i.Name, i.Tags)
+	}
+
+	if i.AvailabilityZones != nil {
+		input.AvailabilityZones = aws.StringSlice(i.AvailabilityZones)
 	}
 
 	if _, err := s.ASGClient.CreateAutoScalingGroup(input); err != nil {
@@ -294,6 +300,10 @@ func (s *Service) UpdateASG(scope *scope.MachinePoolScope) error {
 		}
 	}
 
+	if scope.AvailabilityZones() != nil {
+		input.AvailabilityZones = aws.StringSlice(scope.AWSMachinePool.Spec.AvailabilityZones)
+	}
+
 	if _, err := s.ASGClient.UpdateAutoScalingGroup(input); err != nil {
 		return errors.Wrapf(err, "failed to update ASG %q", scope.Name())
 	}
@@ -309,7 +319,7 @@ func (s *Service) CanStartASGInstanceRefresh(scope *scope.MachinePoolScope) (boo
 		return false, err
 	}
 	hasUnfinishedRefresh := false
-	if err == nil && len(refreshes.InstanceRefreshes) != 0 {
+	if len(refreshes.InstanceRefreshes) != 0 {
 		for i := range refreshes.InstanceRefreshes {
 			if *refreshes.InstanceRefreshes[i].Status == autoscaling.InstanceRefreshStatusInProgress ||
 				*refreshes.InstanceRefreshes[i].Status == autoscaling.InstanceRefreshStatusPending ||
