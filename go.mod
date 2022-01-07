@@ -8,7 +8,7 @@ require (
 	github.com/alessio/shellescape v1.4.1
 	github.com/apparentlymart/go-cidr v1.1.0
 	github.com/aws/amazon-vpc-cni-k8s v1.10.1
-	github.com/aws/aws-lambda-go v1.27.1
+	github.com/aws/aws-lambda-go v1.28.0
 	github.com/aws/aws-sdk-go v1.40.56
 	github.com/awslabs/goformation/v4 v4.19.5
 	github.com/blang/semver v3.5.1+incompatible
