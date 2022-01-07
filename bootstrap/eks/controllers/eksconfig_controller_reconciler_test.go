@@ -105,18 +105,11 @@ var _ = Describe("EKSConfigReconciler", func() {
 			k8sClient.Delete(context.Background(), eksSecret)
 		})
 
-		It("should not have a secret before joinWorker is called", func() {
+		It("should have a secret after joinWorker is called", func() {
 			emptySecret := &corev1.Secret{}
 			err := k8sClient.Get(context.Background(), types.NamespacedName{Namespace: config.Namespace, Name: config.Name}, emptySecret)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(emptySecret.Data["value"])).To(Equal(""))
-
-			result, err := reconciler.joinWorker(context.Background(), log.Log, cluster, config)
-			Expect(result).To(Equal(reconcile.Result{}))
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("should have a secret after joinWorker is called", func() {
 
 			result, err := reconciler.joinWorker(context.Background(), log.Log, cluster, config)
 
