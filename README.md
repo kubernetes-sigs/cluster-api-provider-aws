@@ -174,6 +174,14 @@ We also use the issue tracker to track features. If you have an idea for a featu
 trademarks of Amazon.com, Inc. or its affiliates in the United States
 and/or other countries."
 
+## Our Contributors
+
+<p>
+<a href="https://github.com/kubernetes-sigs/cluster-api-provider-aws/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=kubernetes-sigs/cluster-api-provider-aws" />
+</a>
+</p>
+
 <!-- References -->
 [slack]: https://kubernetes.slack.com/messages/CD6U2V71N
 [good_first_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22
