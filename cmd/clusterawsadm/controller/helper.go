@@ -45,7 +45,7 @@ func GetClient(kubeconfigPath string, kubeconfigContext string) (*kubernetes.Cli
 	}
 
 	configOverrides := &clientcmd.ConfigOverrides{}
-	if kubeconfigContext == "" {
+	if kubeconfigContext != "" {
 		configOverrides.CurrentContext = kubeconfigContext
 	}
 
