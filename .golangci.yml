@@ -215,6 +215,14 @@ issues:
     - linters:
       - unparam
       text: always receives
+    # Dot imports for gomega or ginkgo are allowed
+    # within test files.
+    - path: _test\.go
+      text: should not use dot imports
+    - path: (framework|e2e)/.*.go
+      text: should not use dot imports
+    - path: _test\.go
+      text: cyclomatic complexity
     - linters:
       - unparam
       text: (.+) - (`t`|`g`) is unused
@@ -227,6 +235,9 @@ issues:
 
 run:
   timeout: 10m
+  build-tags:
+    - tools
+    - e2e
   skip-files:
   - "zz_generated.*\\.go$"
   - ".*conversion.*\\.go$"

@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -22,8 +23,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	. "github.com/onsi/ginkgo"
+	"strings"
+	"text/tabwriter"
+
 	. "github.com/onsi/gomega"
+
+	"github.com/onsi/ginkgo"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -31,9 +36,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	typedbatchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
 	"sigs.k8s.io/cluster-api/test/framework"
-	client_runtime "sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
-	"text/tabwriter"
+	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // AWSGPUSpecInput is the input for AWSGPUSpec.
@@ -51,13 +54,13 @@ func AWSGPUSpec(ctx context.Context, e2eCtx *E2EContext, input AWSGPUSpecInput) 
 	Expect(input.NamespaceName).NotTo(BeNil(), "Invalid argument. input.Namespace can't be nil when calling %s spec", specName)
 	Expect(input.ClusterName).NotTo(BeEmpty(), "Invalid argument. input.ClusterName can't be empty when calling %s spec", specName)
 
-	By("creating a Kubernetes client to the workload cluster")
+	ginkgo.By("creating a Kubernetes client to the workload cluster")
 	clusterProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.NamespaceName, input.ClusterName)
 	Expect(clusterProxy).NotTo(BeNil())
 	clientset := clusterProxy.GetClientSet()
 	Expect(clientset).NotTo(BeNil())
 
-	By("running a CUDA vector calculation job")
+	ginkgo.By("running a CUDA vector calculation job")
 	jobsClient := clientset.BatchV1().Jobs(corev1.NamespaceDefault)
 	jobName := "cuda-vector-add"
 	gpuJob := &batchv1.Job{
@@ -100,7 +103,7 @@ type jobsClientAdapter struct {
 }
 
 // Get fetches the job named by the key and updates the provided object.
-func (c jobsClientAdapter) Get(ctx context.Context, key client_runtime.ObjectKey, obj client_runtime.Object) error {
+func (c jobsClientAdapter) Get(ctx context.Context, key crclient.ObjectKey, obj crclient.Object) error {
 	job, err := c.client.Get(ctx, key.Name, metav1.GetOptions{})
 	if jobObj, ok := obj.(*batchv1.Job); ok {
 		job.DeepCopyInto(jobObj)
@@ -119,7 +122,7 @@ type WaitForJobCompleteInput struct {
 func WaitForJobComplete(ctx context.Context, input WaitForJobCompleteInput, intervals ...interface{}) {
 	namespace, name := input.Job.GetNamespace(), input.Job.GetName()
 	Eventually(func() bool {
-		key := client_runtime.ObjectKey{Namespace: namespace, Name: name}
+		key := crclient.ObjectKey{Namespace: namespace, Name: name}
 		if err := input.Getter.Get(ctx, key, input.Job); err == nil {
 			for _, c := range input.Job.Status.Conditions {
 				if c.Type == batchv1.JobComplete && c.Status == corev1.ConditionTrue {

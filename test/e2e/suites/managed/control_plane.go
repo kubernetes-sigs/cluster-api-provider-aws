@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -32,11 +33,11 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 )
 
-// UpgradeControlPlaneVersionAndWaitInput is the input type for upgradeControlPlaneVersionAndWait.
+// UpgradeControlPlaneVersionSpecInput is the input type for UpgradeControlPlaneVersionSpec.
 type UpgradeControlPlaneVersionSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	AWSSession            client.ConfigProvider
@@ -46,14 +47,9 @@ type UpgradeControlPlaneVersionSpecInput struct {
 	UpgradeVersion        string
 }
 
-// UpgradeControlPlaneVersionSpec updates the EKS control plane version and waits for the upgrade
+// UpgradeControlPlaneVersionSpec updates the EKS control plane version and waits for the upgrade.
 func UpgradeControlPlaneVersionSpec(ctx context.Context, inputGetter func() UpgradeControlPlaneVersionSpecInput) {
-	var (
-		input UpgradeControlPlaneVersionSpecInput
-	)
-
-	input = inputGetter()
-
+	input := inputGetter()
 	Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil")
 	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
 	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")
@@ -65,7 +61,7 @@ func UpgradeControlPlaneVersionSpec(ctx context.Context, inputGetter func() Upgr
 	controlPlaneName := getControlPlaneName(input.ClusterName)
 
 	shared.Byf("Getting control plane: %s", controlPlaneName)
-	controlPlane := &controlplanev1.AWSManagedControlPlane{}
+	controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 	err := mgmtClient.Get(ctx, crclient.ObjectKey{Namespace: input.Namespace.Name, Name: controlPlaneName}, controlPlane)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -76,7 +72,7 @@ func UpgradeControlPlaneVersionSpec(ctx context.Context, inputGetter func() Upgr
 	Expect(patchHelper.Patch(ctx, controlPlane)).To(Succeed())
 
 	ginkgo.By("Waiting for EKS control-plane to be upgraded to new version")
-	waitForControlPlaneToBeUpgraded(ctx, waitForControlPlaneToBeUpgradedInput{
+	waitForControlPlaneToBeUpgraded(waitForControlPlaneToBeUpgradedInput{
 		ControlPlane:   controlPlane,
 		AWSSession:     input.AWSSession,
 		UpgradeVersion: input.UpgradeVersion,

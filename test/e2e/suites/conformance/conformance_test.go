@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -35,7 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// TODO @randomvariable: Replace with CAPI e2e framework ClusterUpgradeConformanceSpec
+// TODO @randomvariable: Replace with CAPI e2e framework ClusterUpgradeConformanceSpec.
 var _ = ginkgo.Describe("[unmanaged] [conformance] tests", func() {
 	var (
 		namespace *corev1.Namespace

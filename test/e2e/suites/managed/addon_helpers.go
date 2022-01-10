@@ -20,7 +20,6 @@ limitations under the License.
 package managed
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/onsi/ginkgo"
@@ -28,18 +27,18 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/client"
 
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 )
 
 type waitForEKSAddonToHaveStatusInput struct {
-	ControlPlane *controlplanev1.AWSManagedControlPlane
+	ControlPlane *ekscontrolplanev1.AWSManagedControlPlane
 	AWSSession   client.ConfigProvider
 	AddonName    string
 	AddonVersion string
 	AddonStatus  []string
 }
 
-func waitForEKSAddonToHaveStatus(ctx context.Context, input waitForEKSAddonToHaveStatusInput, intervals ...interface{}) {
+func waitForEKSAddonToHaveStatus(input waitForEKSAddonToHaveStatusInput, intervals ...interface{}) {
 	Expect(input.ControlPlane).ToNot(BeNil(), "Invalid argument. input.ControlPlane can't be nil")
 	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
 	Expect(input.AddonName).ShouldNot(HaveLen(0), "Invalid argument. input.AddonName can't be empty")
@@ -67,6 +66,5 @@ func waitForEKSAddonToHaveStatus(ctx context.Context, input waitForEKSAddonToHav
 		}
 
 		return false, nil
-
 	}, intervals...).Should(BeTrue())
 }
