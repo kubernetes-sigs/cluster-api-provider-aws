@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -40,6 +41,7 @@ import (
 )
 
 const (
+	// MultiTenancyJumpPolicy is the policy name for jump host to be used in multi-tenancy test.
 	MultiTenancyJumpPolicy = "CAPAMultiTenancyJumpPolicy"
 )
 
@@ -48,7 +50,7 @@ var (
 )
 
 // newBootstrapTemplate generates a clusterawsadm configuration, and prints it
-// and the resultant cloudformation template to the artifacts directory
+// and the resultant cloudformation template to the artifacts directory.
 func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 	By("Creating a bootstrap AWSIAMConfiguration")
 	t := cfn_bootstrap.NewTemplate()
@@ -106,11 +108,11 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 	t.Spec.EKS.ManagedMachinePool.Disable = false
 	str, err := yaml.Marshal(t.Spec)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(os.WriteFile(path.Join(e2eCtx.Settings.ArtifactFolder, "awsiamconfiguration.yaml"), str, 0644)).To(Succeed())
+	Expect(os.WriteFile(path.Join(e2eCtx.Settings.ArtifactFolder, "awsiamconfiguration.yaml"), str, 0644)).To(Succeed()) //nolint:gosec
 	cloudformationTemplate := renderCustomCloudFormation(&t)
 	cfnData, err := cloudformationTemplate.YAML()
 	Expect(err).NotTo(HaveOccurred())
-	Expect(os.WriteFile(path.Join(e2eCtx.Settings.ArtifactFolder, "cloudformation.yaml"), cfnData, 0644)).To(Succeed())
+	Expect(os.WriteFile(path.Join(e2eCtx.Settings.ArtifactFolder, "cloudformation.yaml"), cfnData, 0644)).To(Succeed()) //nolint:gosec
 	return &t
 }
 
@@ -121,7 +123,6 @@ func renderCustomCloudFormation(t *cfn_bootstrap.Template) *cloudformation.Templ
 }
 
 func appendMultiTenancyRoles(t *cfn_bootstrap.Template, cfnt *cloudformation.Template) {
-
 	controllersPolicy := cfnt.Resources[string(cfn_bootstrap.ControllersPolicy)].(*cfn_iam.ManagedPolicy)
 	controllersPolicy.Roles = append(
 		controllersPolicy.Roles,
@@ -157,7 +158,7 @@ func appendMultiTenancyRoles(t *cfn_bootstrap.Template, cfnt *cloudformation.Tem
 	}
 }
 
-// getBootstrapTemplate gets or generates a new bootstrap template
+// getBootstrapTemplate gets or generates a new bootstrap template.
 func getBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 	if e2eCtx.Environment.BootstrapTemplate == nil {
 		e2eCtx.Environment.BootstrapTemplate = newBootstrapTemplate(e2eCtx)
@@ -165,7 +166,7 @@ func getBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 	return e2eCtx.Environment.BootstrapTemplate
 }
 
-// ApplyTemplate will render a cluster template and apply it to the management cluster
+// ApplyTemplate will render a cluster template and apply it to the management cluster.
 func ApplyTemplate(ctx context.Context, configCluster clusterctl.ConfigClusterInput, clusterProxy framework.ClusterProxy) error {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for ApplyClusterTemplateAndWait")
 

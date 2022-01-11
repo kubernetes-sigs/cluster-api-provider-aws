@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -39,8 +40,7 @@ type instance struct {
 	instanceID string
 }
 
-// allMachines gets all EC2 instances at once, to save on DescribeInstances
-// calls
+// allMachines gets all EC2 instances at once, to save on DescribeInstances calls.
 func allMachines(ctx context.Context, e2eCtx *E2EContext) ([]instance, error) {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 	resp, err := ec2Svc.DescribeInstancesWithContext(ctx, &ec2.DescribeInstancesInput{})

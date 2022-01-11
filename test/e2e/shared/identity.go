@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -30,9 +31,8 @@ import (
 )
 
 const (
-	credsSecretName = "e2e-account-creds"
+	credsSecretName = "e2e-account-creds" //nolint:gosec
 	capaNamespace   = "capa-system"
-	eksNamespace    = "capa-eks-control-plane-system"
 	idName          = "e2e-account"
 )
 

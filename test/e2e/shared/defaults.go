@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -26,11 +27,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"k8s.io/apimachinery/pkg/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	cgscheme "k8s.io/client-go/kubernetes/scheme"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 )
 
+// Constants.
 const (
 	DefaultSSHKeyPairName        = "cluster-api-provider-aws-sigs-k8s-io"
 	AMIPrefix                    = "capa-ami-ubuntu-18.04-"
@@ -165,16 +167,16 @@ func getLimitedResources() map[string]*ServiceQuota {
 	return serviceQuotas
 }
 
-// DefaultScheme returns the default scheme to use for testing
+// DefaultScheme returns the default scheme to use for testing.
 func DefaultScheme() *runtime.Scheme {
 	sc := runtime.NewScheme()
 	framework.TryAddDefaultSchemes(sc)
 	_ = infrav1.AddToScheme(sc)
-	_ = clientgoscheme.AddToScheme(sc)
+	_ = cgscheme.AddToScheme(sc)
 	return sc
 }
 
-// CreateDefaultFlags will create the default flags used for the tests and binds them to the e2e context
+// CreateDefaultFlags will create the default flags used for the tests and binds them to the e2e context.
 func CreateDefaultFlags(ctx *E2EContext) {
 	flag.StringVar(&ctx.Settings.ConfigPath, "config-path", "", "path to the e2e config file")
 	flag.StringVar(&ctx.Settings.ArtifactFolder, "artifacts-folder", "", "folder where e2e test artifact should be stored")

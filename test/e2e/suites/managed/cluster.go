@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -35,11 +36,11 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 )
 
-// ManagedClusterSpecInput is the input for ManagedClusterSpec
+// ManagedClusterSpecInput is the input for ManagedClusterSpec.
 type ManagedClusterSpecInput struct {
 	E2EConfig                *clusterctl.E2EConfig
 	ConfigClusterFn          DefaultConfigClusterFn
@@ -55,13 +56,9 @@ type ManagedClusterSpecInput struct {
 	CluserSpecificRoles      bool
 }
 
-// ManagedClusterSpec implements a test for creating a managed cluster using CAPA
+// ManagedClusterSpec implements a test for creating a managed cluster using CAPA.
 func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSpecInput) {
-	var (
-		input ManagedClusterSpecInput
-	)
-
-	input = inputGetter()
+	input := inputGetter()
 	Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil")
 	Expect(input.ConfigClusterFn).ToNot(BeNil(), "Invalid argument. input.ConfigClusterFn can't be nil")
 	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")
@@ -97,7 +94,7 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 		verifyRoleExistsAndOwned(fmt.Sprintf("%s-iam-service-role", input.ClusterName), input.ClusterName, true, input.AWSSession)
 	} else {
 		ginkgo.By("Checking that the cluster default IAM role exists")
-		verifyRoleExistsAndOwned(controlplanev1.DefaultEKSControlPlaneRole, input.ClusterName, false, input.AWSSession)
+		verifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, input.ClusterName, false, input.AWSSession)
 	}
 
 	shared.Byf("Checking kubeconfig secrets exist")
@@ -119,10 +116,9 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 
 		Expect(workloadClusterProxy.Apply(ctx, cniYaml)).ShouldNot(HaveOccurred())
 	}
-
 }
 
-// DeleteClusterSpecInput is the input to DeleteClusterSpec
+// DeleteClusterSpecInput is the input to DeleteClusterSpec.
 type DeleteClusterSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	BootstrapClusterProxy framework.ClusterProxy
@@ -130,14 +126,9 @@ type DeleteClusterSpecInput struct {
 	ClusterName           string
 }
 
-// DeleteClusterSpec implements a test for deleting a Cluster
+// DeleteClusterSpec implements a test for deleting a Cluster.
 func DeleteClusterSpec(ctx context.Context, inputGetter func() DeleteClusterSpecInput) {
-	var (
-		input DeleteClusterSpecInput
-	)
-
-	input = inputGetter()
-
+	input := inputGetter()
 	Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil")
 	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")
 	Expect(input.Namespace).NotTo(BeNil(), "Invalid argument. input.Namespace can't be nil")

@@ -21,6 +21,7 @@ package unmanaged
 
 import (
 	"context"
+
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -34,8 +35,8 @@ import (
 
 var _ = ginkgo.Context("[unmanaged] [Cluster API Framework] [smoke] [PR-Blocking]", func() {
 	var (
-		namespace *corev1.Namespace
-		ctx       context.Context
+		namespace         *corev1.Namespace
+		ctx               context.Context
 		requiredResources *shared.TestResource
 	)
 
@@ -64,7 +65,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework] [smoke] [PR-Blocking
 			}
 		})
 		ginkgo.AfterEach(func() {
-			shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+			_ = shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
 		})
 	})
 	ginkgo.AfterEach(func() {

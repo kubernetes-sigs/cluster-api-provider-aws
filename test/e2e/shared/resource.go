@@ -60,7 +60,7 @@ func WriteResourceQuotesToFile(logPath string, serviceQuotas map[string]*Service
 	data, err := yaml.Marshal(resources)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = os.WriteFile(logPath, data, 0644)
+	err = os.WriteFile(logPath, data, 0644) //nolint:gosec
 	Expect(err).NotTo(HaveOccurred())
 }
 
@@ -78,17 +78,18 @@ func (r *TestResource) WriteRequestedResources(e2eCtx *E2EContext, testName stri
 	}
 
 	fileLock := flock.New(requestedResourceFilePath)
-	defer func() error {
+	defer func() {
 		if err := fileLock.Unlock(); err != nil {
-			return err
+			time.Sleep(1 * time.Second)
+			err = fileLock.Unlock()
+			Expect(err).NotTo(HaveOccurred())
 		}
-		return nil
 	}()
 
 	err := fileLock.Lock()
 	Expect(err).NotTo(HaveOccurred())
 
-	requestedResources, err := os.ReadFile(requestedResourceFilePath)
+	requestedResources, err := os.ReadFile(requestedResourceFilePath) //nolint:gosec
 	Expect(err).NotTo(HaveOccurred())
 
 	resources := struct {
@@ -98,12 +99,12 @@ func (r *TestResource) WriteRequestedResources(e2eCtx *E2EContext, testName stri
 	Expect(err).NotTo(HaveOccurred())
 
 	if resources.TestResourceMap == nil {
-		resources.TestResourceMap = make(map[string]TestResource, 0)
+		resources.TestResourceMap = make(map[string]TestResource)
 	}
 	resources.TestResourceMap[testName] = *r
 	str, err := yaml.Marshal(resources)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(os.WriteFile(requestedResourceFilePath, str, 0644)).To(Succeed())
+	Expect(os.WriteFile(requestedResourceFilePath, str, 0644)).To(Succeed()) //nolint:gosec
 }
 
 func (r *TestResource) doesSatisfy(request *TestResource) bool {
@@ -153,15 +154,16 @@ func (r *TestResource) release(request *TestResource) {
 
 func AcquireResources(request *TestResource, nodeNum int, fileLock *flock.Flock) error {
 	timeoutAfter := time.Now().Add(time.Hour * 6)
-	defer func() error {
+	defer func() {
 		if err := fileLock.Unlock(); err != nil {
-			return err
+			time.Sleep(1 * time.Second)
+			err = fileLock.Unlock()
+			Expect(err).NotTo(HaveOccurred())
 		}
-		return nil
 	}()
 
 	Byf("Node %d acquiring resources: %s", nodeNum, request.String())
-	for range time.Tick(time.Second) {
+	for range time.Tick(time.Second) { //nolint:staticcheck
 		if time.Now().After(timeoutAfter) {
 			Byf("Timeout reached for node %d", nodeNum)
 			break
@@ -186,7 +188,7 @@ func AcquireResources(request *TestResource, nodeNum int, fileLock *flock.Flock)
 			if err != nil {
 				return err
 			}
-			if err := os.WriteFile(ResourceQuotaFilePath, data, 0644); err != nil {
+			if err := os.WriteFile(ResourceQuotaFilePath, data, 0644); err != nil { //nolint:gosec
 				return err
 			}
 			Byf("Node %d acquired resources: %s", nodeNum, request.String())
@@ -209,9 +211,16 @@ func e2eDebugBy(msg string) {
 func ReleaseResources(request *TestResource, nodeNum int, fileLock *flock.Flock) error {
 	timeoutInSec := 20
 
-	defer fileLock.Unlock()
+	defer func() {
+		if err := fileLock.Unlock(); err != nil {
+			time.Sleep(1 * time.Second)
+			err = fileLock.Unlock()
+			Expect(err).NotTo(HaveOccurred())
+		}
+	}()
+
 	var tryCount = 0
-	for range time.Tick(1 * time.Second) {
+	for range time.Tick(1 * time.Second) { //nolint:staticcheck
 		tryCount++
 		if tryCount > timeoutInSec {
 			break
@@ -232,7 +241,7 @@ func ReleaseResources(request *TestResource, nodeNum int, fileLock *flock.Flock)
 		if err != nil {
 			return err
 		}
-		if err := os.WriteFile(ResourceQuotaFilePath, data, 0644); err != nil {
+		if err := os.WriteFile(ResourceQuotaFilePath, data, 0644); err != nil { //nolint:gosec
 			return err
 		}
 		Byf("Node %d released resources: %s", nodeNum, request.String())

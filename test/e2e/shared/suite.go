@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -55,7 +56,7 @@ type synchronizedBeforeTestSuiteConfig struct {
 	Base64EncodedCredentials string               `json:"base64EncodedCredentials,omitempty"`
 }
 
-// Node1BeforeSuite is the common setup down on the first ginkgo node before the test suite runs
+// Node1BeforeSuite is the common setup down on the first ginkgo node before the test suite runs.
 func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	flag.Parse()
 	Expect(e2eCtx.Settings.ConfigPath).To(BeAnExistingFile(), "Invalid test suite argument. configPath should be an existing file.")
@@ -87,7 +88,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 		templateDir := path.Join(e2eCtx.Settings.ArtifactFolder, "templates")
 		newTemplatePath := templateDir + "/" + ciTemplateForUpgradeName
 
-		err = exec.Command("cp", ciTemplateForUpgradePath, newTemplatePath).Run()
+		err = exec.Command("cp", ciTemplateForUpgradePath, newTemplatePath).Run() //nolint:gosec
 		Expect(err).NotTo(HaveOccurred())
 
 		clusterctlCITemplateForUpgrade := clusterctl.Files{
@@ -140,10 +141,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	ensureSSHKeyPair(e2eCtx.AWSSession, DefaultSSHKeyPairName)
 	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(e2eCtx.AWSSession, boostrapTemplate.Spec.BootstrapUser.UserName)
 	e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(e2eCtx.Environment.BootstrapAccessKey)
-	bucket, imageSha, err := ensureTestImageUploaded(e2eCtx)
-	Expect(err).NotTo(HaveOccurred())
-	e2eCtx.E2EConfig.Variables["CAPI_IMAGES_BUCKET"] = bucket
-	e2eCtx.E2EConfig.Variables["E2E_IMAGE_SHA"] = imageSha
+	Expect(ensureTestImageUploaded(e2eCtx)).NotTo(HaveOccurred())
 
 	// Image ID is needed when using a CI Kubernetes version. This is used in conformance test and upgrade to main test.
 	if !e2eCtx.IsManaged {
@@ -192,7 +190,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	return data
 }
 
-// AllNodesBeforeSuite is the common setup down on each ginkgo parallel node before the test suite runs
+// AllNodesBeforeSuite is the common setup down on each ginkgo parallel node before the test suite runs.
 func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 	conf := &synchronizedBeforeTestSuiteConfig{}
 	err := yaml.UnmarshalStrict(data, conf)
@@ -255,7 +253,7 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 	}()
 }
 
-// Node1AfterSuite is cleanup that runs on the first ginkgo node after the test suite finishes
+// Node1AfterSuite is cleanup that runs on the first ginkgo node after the test suite finishes.
 func Node1AfterSuite(e2eCtx *E2EContext) {
 	ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Minute)
 	DumpEKSClusters(ctx, e2eCtx)
@@ -270,7 +268,7 @@ func Node1AfterSuite(e2eCtx *E2EContext) {
 	}
 }
 
-// AllNodesAfterSuite is cleanup that runs on all ginkgo parallel nodes after the test suite finishes
+// AllNodesAfterSuite is cleanup that runs on all ginkgo parallel nodes after the test suite finishes.
 func AllNodesAfterSuite(e2eCtx *E2EContext) {
 	if e2eCtx.Environment.ResourceTickerDone != nil {
 		e2eCtx.Environment.ResourceTickerDone <- true

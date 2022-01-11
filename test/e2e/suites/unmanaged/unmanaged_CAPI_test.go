@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -20,6 +21,7 @@ package unmanaged
 
 import (
 	"context"
+
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 

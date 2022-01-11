@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -30,7 +31,7 @@ import (
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 )
@@ -81,7 +82,7 @@ func initScheme() *runtime.Scheme {
 	sc := shared.DefaultScheme()
 	_ = expinfrav1.AddToScheme(sc)
 	_ = clusterv1.AddToScheme(sc)
-	_ = controlplanev1.AddToScheme(sc)
+	_ = ekscontrolplanev1.AddToScheme(sc)
 	_ = expclusterv1.AddToScheme(sc)
 
 	return sc

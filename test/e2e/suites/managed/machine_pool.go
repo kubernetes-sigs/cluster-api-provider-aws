@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -34,7 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 )
 
-// ManagedMachinePoolSpecInput is the input for ManagedMachinePoolSpec
+// ManagedMachinePoolSpecInput is the input for ManagedMachinePoolSpec.
 type ManagedMachinePoolSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ConfigClusterFn       DefaultConfigClusterFn
@@ -46,13 +47,9 @@ type ManagedMachinePoolSpecInput struct {
 	Cleanup               bool
 }
 
-// ManagedMachinePoolSpec implements a test for creating a managed machine pool
+// ManagedMachinePoolSpec implements a test for creating a managed machine pool.
 func ManagedMachinePoolSpec(ctx context.Context, inputGetter func() ManagedMachinePoolSpecInput) {
-	var (
-		input ManagedMachinePoolSpecInput
-	)
-
-	input = inputGetter()
+	input := inputGetter()
 	Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil")
 	Expect(input.ConfigClusterFn).ToNot(BeNil(), "Invalid argument. input.ConfigClusterFn can't be nil")
 	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")
@@ -88,7 +85,7 @@ func ManagedMachinePoolSpec(ctx context.Context, inputGetter func() ManagedMachi
 	eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName)
 	verifyManagedNodeGroup(input.ClusterName, eksClusterName, nodeGroupName, true, input.AWSSession)
 
-	if input.IncludeScaling { //TODO (richardcase): should this be a separate spec?
+	if input.IncludeScaling { // TODO (richardcase): should this be a separate spec?
 		ginkgo.By("Scaling the machine pool up")
 		framework.ScaleMachinePoolAndWait(ctx, framework.ScaleMachinePoolAndWaitInput{
 			ClusterProxy:              input.BootstrapClusterProxy,

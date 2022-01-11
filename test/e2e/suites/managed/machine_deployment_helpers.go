@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -58,16 +59,6 @@ func waitForMachineDeploymentDeleted(ctx context.Context, input waitForMachineDe
 		notFound := apierrors.IsNotFound(err)
 		return notFound
 	}, intervals...).Should(BeTrue())
-}
-
-type deleteMachineInput struct {
-	Machine *clusterv1.Machine
-	Deleter framework.Deleter
-}
-
-func deleteMachine(ctx context.Context, input deleteMachineInput) {
-	shared.Byf("Deleting machine %s", input.Machine.Name)
-	Expect(input.Deleter.Delete(ctx, input.Machine)).To(Succeed())
 }
 
 type waitForMachineDeletedInput struct {
