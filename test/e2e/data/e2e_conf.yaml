@@ -168,7 +168,7 @@ providers:
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
       - name: v1.1.99 # next; use manifest from source files
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220101/control-plane-components.yaml"
+        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220109/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:
