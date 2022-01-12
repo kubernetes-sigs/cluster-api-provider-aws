@@ -67,6 +67,8 @@ type EC2MachineInterface interface {
 	PruneLaunchTemplateVersions(id string) error
 	DeleteLaunchTemplate(id string) error
 	LaunchTemplateNeedsUpdate(scope *scope.MachinePoolScope, incoming *expinfrav1.AWSLaunchTemplate, existing *expinfrav1.AWSLaunchTemplate) (bool, error)
+	DeleteBastion() error
+	ReconcileBastion() error
 }
 
 // SecretInterface encapsulated the methods exposed to the
@@ -75,4 +77,19 @@ type SecretInterface interface {
 	Delete(m *scope.MachineScope) error
 	Create(m *scope.MachineScope, data []byte) (string, int32, error)
 	UserData(secretPrefix string, chunks int32, region string, endpoints []scope.ServiceEndpoint) ([]byte, error)
+}
+
+type ELBInterface interface {
+	DeleteLoadbalancers() error
+	ReconcileLoadbalancers() error
+}
+
+type NetworkInterface interface {
+	DeleteNetwork() error
+	ReconcileNetwork() error
+}
+
+type SecurityGroupInterface interface {
+	DeleteSecurityGroups() error
+	ReconcileSecurityGroups() error
 }
