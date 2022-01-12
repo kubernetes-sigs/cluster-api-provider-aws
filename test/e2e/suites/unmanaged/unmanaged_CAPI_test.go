@@ -26,9 +26,11 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
+	"k8s.io/utils/pointer"
 
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
 var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
@@ -112,7 +114,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 		ginkgo.BeforeEach(func() {
 			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 			requiredResources = &shared.TestResource{EC2Normal: 5 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2}
-			requiredResources.WriteRequestedResources(e2eCtx, "capi-clusterctl-upgrade-test-v1alpha3")
+			requiredResources.WriteRequestedResources(e2eCtx, "capi-clusterctl-upgrade-test-v1beta1")
 			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 		})
 
@@ -193,12 +195,42 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 
 		capi_e2e.ClusterUpgradeConformanceSpec(ctx, func() capi_e2e.ClusterUpgradeConformanceSpecInput {
 			return capi_e2e.ClusterUpgradeConformanceSpecInput{
-				E2EConfig:             e2eCtx.E2EConfig,
-				ClusterctlConfigPath:  e2eCtx.Environment.ClusterctlConfigPath,
-				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-				ArtifactFolder:        e2eCtx.Settings.ArtifactFolder,
-				SkipCleanup:           e2eCtx.Settings.SkipCleanup,
-				SkipConformanceTests:  true,
+				E2EConfig:                e2eCtx.E2EConfig,
+				ClusterctlConfigPath:     e2eCtx.Environment.ClusterctlConfigPath,
+				BootstrapClusterProxy:    e2eCtx.Environment.BootstrapClusterProxy,
+				ArtifactFolder:           e2eCtx.Settings.ArtifactFolder,
+				SkipCleanup:              e2eCtx.Settings.SkipCleanup,
+				SkipConformanceTests:     true,
+				ControlPlaneMachineCount: pointer.Int64(1),
+				WorkerMachineCount:       pointer.Int64(1),
+				Flavor:                   pointer.String("upgrades"), // upgrades flavor includes a MachinePool template.
+			}
+		})
+
+		ginkgo.AfterEach(func() {
+			shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+		})
+	})
+
+	ginkgo.Describe("Cluster Upgrade spec - HA Control Plane Cluster", func() {
+		ginkgo.BeforeEach(func() {
+			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
+			requiredResources = &shared.TestResource{EC2Normal: 10 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2}
+			requiredResources.WriteRequestedResources(e2eCtx, "capi-ha-cluster-upgrade-test")
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+		})
+
+		capi_e2e.ClusterUpgradeConformanceSpec(ctx, func() capi_e2e.ClusterUpgradeConformanceSpecInput {
+			return capi_e2e.ClusterUpgradeConformanceSpecInput{
+				E2EConfig:                e2eCtx.E2EConfig,
+				ClusterctlConfigPath:     e2eCtx.Environment.ClusterctlConfigPath,
+				BootstrapClusterProxy:    e2eCtx.Environment.BootstrapClusterProxy,
+				ArtifactFolder:           e2eCtx.Settings.ArtifactFolder,
+				SkipCleanup:              e2eCtx.Settings.SkipCleanup,
+				SkipConformanceTests:     true,
+				ControlPlaneMachineCount: pointer.Int64(3),
+				WorkerMachineCount:       pointer.Int64(1),
+				Flavor:                   pointer.String(clusterctl.DefaultFlavor),
 			}
 		})
 
