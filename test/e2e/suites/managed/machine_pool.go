@@ -25,14 +25,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 
+	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 )
 
 // ManagedMachinePoolSpecInput is the input for ManagedMachinePoolSpec.

@@ -21,7 +21,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
-
 	"k8s.io/utils/pointer"
 )
 

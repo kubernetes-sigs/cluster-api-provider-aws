@@ -28,16 +28,17 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/controllers"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/instancestate"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // Ec2InstanceStateLabelKey defines an ec2 instance state label.

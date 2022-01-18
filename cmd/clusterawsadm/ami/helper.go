@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
+
 	ec2service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
 )

@@ -32,13 +32,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_resourcegroupstaggingapiiface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestELBName(t *testing.T) {

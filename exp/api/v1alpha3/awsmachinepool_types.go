@@ -19,6 +19,7 @@ package v1alpha3
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/errors"

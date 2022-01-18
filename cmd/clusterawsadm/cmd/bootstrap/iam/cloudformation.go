@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/spf13/cobra"
+
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
 	cloudformation "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/service"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/bootstrap/credentials"

@@ -19,17 +19,17 @@ package eks
 import (
 	"testing"
 
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/pointer"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"

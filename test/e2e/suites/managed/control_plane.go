@@ -22,19 +22,17 @@ package managed
 import (
 	"context"
 
+	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/aws/aws-sdk-go/aws/client"
-
 	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/cluster-api/test/framework"
-	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-	"sigs.k8s.io/cluster-api/util/patch"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
+	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // UpgradeControlPlaneVersionSpecInput is the input type for UpgradeControlPlaneVersionSpec.

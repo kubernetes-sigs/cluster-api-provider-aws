@@ -18,6 +18,7 @@ package converters
 
 import (
 	"github.com/awslabs/goformation/v4/cloudformation/tags"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 )
 

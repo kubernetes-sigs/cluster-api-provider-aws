@@ -26,17 +26,17 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	. "github.com/onsi/gomega"
-
 	"github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	typedbatchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
-	"sigs.k8s.io/cluster-api/test/framework"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	"sigs.k8s.io/cluster-api/test/framework"
 )
 
 // AWSGPUSpecInput is the input for AWSGPUSpec.

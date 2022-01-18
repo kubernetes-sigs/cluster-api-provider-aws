@@ -18,6 +18,7 @@ package logs
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
+
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 )
 

@@ -18,7 +18,6 @@ package iamauth
 
 import (
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"

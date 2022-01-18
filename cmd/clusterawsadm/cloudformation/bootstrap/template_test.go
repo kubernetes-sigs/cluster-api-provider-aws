@@ -25,9 +25,10 @@ import (
 	"github.com/awslabs/goformation/v4/cloudformation"
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/yaml"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
-	"sigs.k8s.io/yaml"
 )
 
 func Test_RenderCloudformation(t *testing.T) {

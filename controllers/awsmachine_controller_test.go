@@ -21,14 +21,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"testing"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
-
-	"testing"
-
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,6 +34,8 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
@@ -45,7 +45,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestAWSMachineReconciler(t *testing.T) {

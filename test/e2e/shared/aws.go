@@ -32,9 +32,6 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	awscreds "github.com/aws/aws-sdk-go/aws/credentials"
@@ -48,13 +45,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"sigs.k8s.io/yaml"
+
 	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
 	cloudformation "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/service"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/credentials"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
-	"sigs.k8s.io/yaml"
 )
 
 func NewAWSSession() client.ConfigProvider {

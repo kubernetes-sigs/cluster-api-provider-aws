@@ -26,11 +26,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/version"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
 )
 
 const (

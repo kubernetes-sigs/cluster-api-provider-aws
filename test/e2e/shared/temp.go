@@ -26,7 +26,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	"sigs.k8s.io/yaml"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"

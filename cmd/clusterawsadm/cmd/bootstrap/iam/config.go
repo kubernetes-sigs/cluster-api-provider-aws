@@ -20,11 +20,12 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
+
 	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/bootstrap/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/configreader"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
-	"sigs.k8s.io/yaml"
 )
 
 func printConfigCmd() *cobra.Command {

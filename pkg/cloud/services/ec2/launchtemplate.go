@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	"k8s.io/utils/pointer"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"

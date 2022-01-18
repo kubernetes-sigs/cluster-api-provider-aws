@@ -29,16 +29,15 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/gofrs/flock"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/yaml"
 
-	"github.com/aws/aws-sdk-go/service/iam"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
-	"sigs.k8s.io/yaml"
 )
 
 type synchronizedBeforeTestSuiteConfig struct {

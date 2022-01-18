@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/endpoints"
+
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 

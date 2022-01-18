@@ -22,11 +22,11 @@ package unmanaged
 import (
 	"context"
 
+	"github.com/gofrs/flock"
 	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
 
-	"github.com/gofrs/flock"
-	"github.com/onsi/ginkgo/config"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 )

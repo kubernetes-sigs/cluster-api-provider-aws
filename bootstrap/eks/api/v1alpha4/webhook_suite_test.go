@@ -23,10 +23,11 @@ import (
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
+
+	// +kubebuilder:scaffold:imports
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
-	ctrl "sigs.k8s.io/controller-runtime"
-	// +kubebuilder:scaffold:imports
 )
 
 var (

@@ -22,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/pkg/errors"
+
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 )
 

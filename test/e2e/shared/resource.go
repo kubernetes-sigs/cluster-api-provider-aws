@@ -26,9 +26,8 @@ import (
 	"path"
 	"time"
 
-	. "github.com/onsi/gomega"
-
 	"github.com/gofrs/flock"
+	. "github.com/onsi/gomega"
 	"sigs.k8s.io/yaml"
 )
 

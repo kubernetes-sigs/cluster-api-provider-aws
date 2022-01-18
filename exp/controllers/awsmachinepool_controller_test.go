@@ -23,9 +23,8 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/onsi/gomega"
-
 	"github.com/golang/mock/gomock"
+	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,6 +32,8 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
@@ -41,7 +42,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/mock_services"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	// "sigs.k8s.io/cluster-api/controllers/noderefutil" //nolint:godot.
 	capierrors "sigs.k8s.io/cluster-api/errors"

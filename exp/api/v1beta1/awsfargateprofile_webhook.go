@@ -24,10 +24,11 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const (

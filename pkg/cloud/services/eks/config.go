@@ -25,7 +25,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pkg/errors"
-
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,11 +32,10 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 
-	"sigs.k8s.io/cluster-api/util/kubeconfig"
-	"sigs.k8s.io/cluster-api/util/secret"
-
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/cluster-api/util/secret"
 )
 
 const (

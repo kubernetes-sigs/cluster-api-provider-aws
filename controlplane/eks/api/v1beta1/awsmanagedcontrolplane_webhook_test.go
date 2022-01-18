@@ -21,12 +21,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
+	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
-	. "github.com/onsi/gomega"
-
-	"github.com/aws/aws-sdk-go/aws"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )

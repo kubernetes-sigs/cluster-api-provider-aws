@@ -23,13 +23,12 @@ import (
 	"context"
 
 	. "github.com/onsi/gomega"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
+	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	"sigs.k8s.io/cluster-api/test/framework"
 )
 
 type deleteMachinePoolInput struct {

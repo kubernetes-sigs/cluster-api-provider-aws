@@ -22,10 +22,9 @@ package managed
 import (
 	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/aws/aws-sdk-go/aws/client"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 )

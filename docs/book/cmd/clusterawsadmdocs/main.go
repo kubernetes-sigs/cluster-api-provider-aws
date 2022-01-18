@@ -22,10 +22,10 @@ import (
 	"sort"
 	"strings"
 
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
+
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd"
 )
 
 type byName []*cobra.Command

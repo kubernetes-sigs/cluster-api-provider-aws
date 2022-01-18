@@ -42,7 +42,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
-
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
