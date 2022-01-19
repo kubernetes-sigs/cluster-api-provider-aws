@@ -70,7 +70,7 @@ var (
 type AWSClusterReconciler struct {
 	client.Client
 	Recorder              record.EventRecorder
-	ec2ServiceFactory     func(scope.EC2Scope) services.EC2MachineInterface
+	ec2ServiceFactory     func(scope.EC2Scope) services.EC2Interface
 	networkServiceFactory func(scope.ClusterScope) services.NetworkInterface
 	elbServiceFactory     func(scope.ELBScope) services.ELBInterface
 	securityGroupFactory  func(scope.ClusterScope) services.SecurityGroupInterface
@@ -79,7 +79,7 @@ type AWSClusterReconciler struct {
 }
 
 // getEC2Service factory func is added for testing purpose so that we can inject mocked EC2Service to the AWSClusterReconciler.
-func (r *AWSClusterReconciler) getEC2Service(scope scope.EC2Scope) services.EC2MachineInterface {
+func (r *AWSClusterReconciler) getEC2Service(scope scope.EC2Scope) services.EC2Interface {
 	if r.ec2ServiceFactory != nil {
 		return r.ec2ServiceFactory(scope)
 	}
