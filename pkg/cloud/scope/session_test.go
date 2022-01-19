@@ -41,7 +41,7 @@ func TestIsClusterPermittedToUsePrincipal(t *testing.T) {
 		name             string
 		clusterNamespace string
 		allowedNs        *infrav1.AllowedNamespaces
-		setup            func(client.Client, *testing.T)
+		setup            func(*testing.T, client.Client)
 		expectedResult   bool
 		expectErr        bool
 	}{
@@ -66,7 +66,9 @@ func TestIsClusterPermittedToUsePrincipal(t *testing.T) {
 				NamespaceList: []string{"match"},
 				Selector:      metav1.LabelSelector{},
 			},
-			setup: func(c client.Client, t *testing.T) {
+			setup: func(t *testing.T, c client.Client) {
+				t.Helper()
+
 				ns := &corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "match",
@@ -88,7 +90,9 @@ func TestIsClusterPermittedToUsePrincipal(t *testing.T) {
 				NamespaceList: []string{"nomatch"},
 				Selector:      metav1.LabelSelector{},
 			},
-			setup: func(c client.Client, t *testing.T) {
+			setup: func(t *testing.T, c client.Client) {
+				t.Helper()
+
 				ns := &corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "default",
@@ -112,7 +116,9 @@ func TestIsClusterPermittedToUsePrincipal(t *testing.T) {
 					MatchLabels: map[string]string{"ns": "nomatchlabel"},
 				},
 			},
-			setup: func(c client.Client, t *testing.T) {
+			setup: func(t *testing.T, c client.Client) {
+				t.Helper()
+
 				ns := &corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "match",
@@ -136,7 +142,9 @@ func TestIsClusterPermittedToUsePrincipal(t *testing.T) {
 					MatchLabels: map[string]string{"ns": "nomatchlabel"},
 				},
 			},
-			setup: func(c client.Client, t *testing.T) {
+			setup: func(t *testing.T, c client.Client) {
+				t.Helper()
+
 				ns := &corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "default",
@@ -160,7 +168,9 @@ func TestIsClusterPermittedToUsePrincipal(t *testing.T) {
 					MatchLabels: map[string]string{"ns": "matchlabel"},
 				},
 			},
-			setup: func(c client.Client, t *testing.T) {
+			setup: func(t *testing.T, c client.Client) {
+				t.Helper()
+
 				ns := &corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   "default",
@@ -188,7 +198,7 @@ func TestIsClusterPermittedToUsePrincipal(t *testing.T) {
 			}
 			k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 			if tc.setup != nil {
-				tc.setup(k8sClient, t)
+				tc.setup(t, k8sClient)
 			}
 			result, err := isClusterPermittedToUsePrincipal(k8sClient, tc.allowedNs, tc.clusterNamespace)
 			if tc.expectErr {
@@ -226,7 +236,7 @@ func TestPrincipalParsing(t *testing.T) {
 		awsCluster  infrav1.AWSCluster
 		identityRef *corev1.ObjectReference
 		identity    runtime.Object
-		setup       func(client.Client, *testing.T)
+		setup       func(*testing.T, client.Client)
 		expect      func([]identity.AWSPrincipalTypeProvider)
 		expectError bool
 	}{
@@ -243,7 +253,8 @@ func TestPrincipalParsing(t *testing.T) {
 				},
 				Spec: infrav1.AWSClusterSpec{},
 			},
-			setup: func(c client.Client, t *testing.T) {
+			setup: func(t *testing.T, c client.Client) {
+				t.Helper()
 			},
 			expect: func(providers []identity.AWSPrincipalTypeProvider) {
 				if len(providers) != 0 {
@@ -269,7 +280,9 @@ func TestPrincipalParsing(t *testing.T) {
 					},
 				},
 			},
-			setup: func(c client.Client, t *testing.T) {
+			setup: func(t *testing.T, c client.Client) {
+				t.Helper()
+
 				identity := &infrav1.AWSClusterStaticIdentity{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "static-identity",
@@ -342,7 +355,9 @@ func TestPrincipalParsing(t *testing.T) {
 					},
 				},
 			},
-			setup: func(c client.Client, t *testing.T) {
+			setup: func(t *testing.T, c client.Client) {
+				t.Helper()
+
 				staticPrincipal := &infrav1.AWSClusterStaticIdentity{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "static-identity",
@@ -425,7 +440,9 @@ func TestPrincipalParsing(t *testing.T) {
 					},
 				},
 			},
-			setup: func(c client.Client, t *testing.T) {
+			setup: func(t *testing.T, c client.Client) {
+				t.Helper()
+
 				identity := &infrav1.AWSClusterRoleIdentity{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "role-identity",
@@ -469,7 +486,7 @@ func TestPrincipalParsing(t *testing.T) {
 				t.Fatal(err)
 			}
 			k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
-			tc.setup(k8sClient, t)
+			tc.setup(t, k8sClient)
 			clusterScope.AWSCluster = &tc.awsCluster
 			providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScope, klogr.New())
 			if tc.expectError {

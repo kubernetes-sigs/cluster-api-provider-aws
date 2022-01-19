@@ -54,6 +54,8 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 				Spec: AWSClusterSpec{},
 			},
 			expect: func(t *testing.T, res *AWSLoadBalancerSpec) {
+				t.Helper()
+
 				if res.Scheme.String() != ClassicELBSchemeInternetFacing.String() {
 					t.Error("Expected internet-facing defaulting for nil loadbalancer schemes")
 				}
@@ -68,6 +70,8 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 				},
 			},
 			expect: func(t *testing.T, res *AWSLoadBalancerSpec) {
+				t.Helper()
+
 				if res.Scheme.String() != ClassicELBSchemeInternetFacing.String() {
 					t.Error("Expected internet-facing defaulting for supported incorrect scheme: Internet-facing")
 				}
