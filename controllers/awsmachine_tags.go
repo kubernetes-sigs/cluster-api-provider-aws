@@ -39,7 +39,7 @@ const (
 // Returns bool, error
 // Bool indicates if changes were made or not, allowing the caller to decide
 // if the machine should be updated.
-func (r *AWSMachineReconciler) ensureTags(svc service.EC2MachineInterface, machine *infrav1.AWSMachine, instanceID *string, additionalTags map[string]string) (bool, error) {
+func (r *AWSMachineReconciler) ensureTags(svc service.EC2Interface, machine *infrav1.AWSMachine, instanceID *string, additionalTags map[string]string) (bool, error) {
 	annotation, err := r.machineAnnotationJSON(machine, TagsLastAppliedAnnotation)
 	if err != nil {
 		return false, err
@@ -68,7 +68,7 @@ func (r *AWSMachineReconciler) ensureTags(svc service.EC2MachineInterface, machi
 
 // Ensure that the tags of the volumes in the machine are correct
 // Returns tags which are being created/updated/deleted and error.
-func (r *AWSMachineReconciler) ensureVolumeTags(svc service.EC2MachineInterface, volumeID *string, annotation map[string]interface{}, additionalTags map[string]string) (map[string]interface{}, error) {
+func (r *AWSMachineReconciler) ensureVolumeTags(svc service.EC2Interface, volumeID *string, annotation map[string]interface{}, additionalTags map[string]string) (map[string]interface{}, error) {
 	// Check if the volume tags were changed. If they were, update them.
 	// It would be possible here to only send new/updated tags, but for the
 	// moment we send everything, even if only a single tag was created or

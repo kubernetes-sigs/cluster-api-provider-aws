@@ -59,7 +59,7 @@ type AWSMachinePoolReconciler struct {
 	Recorder          record.EventRecorder
 	WatchFilterValue  string
 	asgServiceFactory func(cloud.ClusterScoper) services.ASGInterface
-	ec2ServiceFactory func(scope.EC2Scope) services.EC2MachineInterface
+	ec2ServiceFactory func(scope.EC2Scope) services.EC2Interface
 }
 
 func (r *AWSMachinePoolReconciler) getASGService(scope cloud.ClusterScoper) services.ASGInterface {
@@ -69,7 +69,7 @@ func (r *AWSMachinePoolReconciler) getASGService(scope cloud.ClusterScoper) serv
 	return asg.NewService(scope)
 }
 
-func (r *AWSMachinePoolReconciler) getEC2Service(scope scope.EC2Scope) services.EC2MachineInterface {
+func (r *AWSMachinePoolReconciler) getEC2Service(scope scope.EC2Scope) services.EC2Interface {
 	if r.ec2ServiceFactory != nil {
 		return r.ec2ServiceFactory(scope)
 	}

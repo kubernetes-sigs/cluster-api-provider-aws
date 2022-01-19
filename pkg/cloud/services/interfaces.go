@@ -42,9 +42,9 @@ type ASGInterface interface {
 	DeleteASGAndWait(id string) error
 }
 
-// EC2MachineInterface encapsulates the methods exposed to the machine
+// EC2Interface encapsulates the methods exposed to the machine
 // actuator.
-type EC2MachineInterface interface {
+type EC2Interface interface {
 	InstanceIfExists(id *string) (*infrav1.Instance, error)
 	TerminateInstance(id string) error
 	CreateInstance(scope *scope.MachineScope, userData []byte) (*infrav1.Instance, error)
@@ -79,16 +79,25 @@ type SecretInterface interface {
 	UserData(secretPrefix string, chunks int32, region string, endpoints []scope.ServiceEndpoint) ([]byte, error)
 }
 
+// ELBInterface encapsulates the methods exposed to the cluster and machine
+// controller.
 type ELBInterface interface {
 	DeleteLoadbalancers() error
 	ReconcileLoadbalancers() error
+	InstanceIsRegisteredWithAPIServerELB(i *infrav1.Instance) (bool, error)
+	DeregisterInstanceFromAPIServerELB(i *infrav1.Instance) error
+	RegisterInstanceWithAPIServerELB(i *infrav1.Instance) error
 }
 
+// NetworkInterface encapsulates the methods exposed to the cluster
+// controller.
 type NetworkInterface interface {
 	DeleteNetwork() error
 	ReconcileNetwork() error
 }
 
+// SecurityGroupInterface encapsulates the methods exposed to the cluster
+// controller.
 type SecurityGroupInterface interface {
 	DeleteSecurityGroups() error
 	ReconcileSecurityGroups() error
