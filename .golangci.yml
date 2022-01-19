@@ -29,6 +29,7 @@ linters:
   - noctx
   - nolintlint
   - prealloc
+  - predeclared
   - revive
   - rowserrcheck
   - staticcheck
