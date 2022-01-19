@@ -18,6 +18,7 @@ package ami
 
 import (
 	"github.com/spf13/cobra"
+
 	cp "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/ami/copy"
 	ls "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/ami/list"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"

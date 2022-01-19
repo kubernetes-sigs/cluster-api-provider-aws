@@ -20,11 +20,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/spf13/cobra"
 
 	cmdout "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/printers"
 )

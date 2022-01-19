@@ -25,8 +25,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/prometheus/client_golang/prometheus"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
+
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 )
 
 const (

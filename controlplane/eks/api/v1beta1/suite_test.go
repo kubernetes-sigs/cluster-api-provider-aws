@@ -23,8 +23,9 @@ import (
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
 )
 
 var (

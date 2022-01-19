@@ -19,6 +19,7 @@ package network
 import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
+
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 

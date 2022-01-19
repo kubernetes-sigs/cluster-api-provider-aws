@@ -24,8 +24,8 @@ import (
 	"path/filepath"
 
 	. "github.com/onsi/gomega"
-
 	"k8s.io/apimachinery/pkg/runtime"
+
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"

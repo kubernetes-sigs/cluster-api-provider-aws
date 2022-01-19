@@ -22,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/pkg/errors"
+
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 )
 

@@ -22,11 +22,10 @@ import (
 	"fmt"
 	"io"
 
-	"sigs.k8s.io/yaml"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/printers"
+	"sigs.k8s.io/yaml"
 )
 
 // PrinterType is a type declaration for a printer type.

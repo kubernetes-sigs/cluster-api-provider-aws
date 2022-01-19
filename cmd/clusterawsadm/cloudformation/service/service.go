@@ -30,6 +30,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
+
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 )
 

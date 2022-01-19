@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
