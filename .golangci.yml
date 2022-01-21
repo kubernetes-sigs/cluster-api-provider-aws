@@ -29,6 +29,7 @@ linters:
   - noctx
   - nolintlint
   - prealloc
+  - predeclared
   - revive
   - rowserrcheck
   - staticcheck
@@ -38,6 +39,7 @@ linters:
   - typecheck
   - unconvert
   - unparam
+  - unused
   - varcheck
   - whitespace
 

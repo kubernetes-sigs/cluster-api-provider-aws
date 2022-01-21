@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package copy
+package common
 
 import (
 	"fmt"
@@ -29,42 +29,25 @@ import (
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
-var (
-	kmsKeyID string
-)
-
-// EncryptedCopyAMICmd is a command to encrypt and copy AMI snapshots, then create an AMI with that snapshot.
-func EncryptedCopyAMICmd() *cobra.Command {
+// CopyAMICmd will copy AMIs from an AWS account to the AWS account which credentials are provided.
+func CopyAMICmd() *cobra.Command {
 	newCmd := &cobra.Command{
-		Use:   "encrypted-copy",
-		Short: "Encrypt and copy AMI snapshot, then create an AMI with that snapshot",
+		Use:   "copy",
+		Short: "Copy AMIs from an AWS account to the AWS account which credentials are provided",
 		Long: cmd.LongDesc(`
-			Find the AMI based on Kubernetes version, OS, region in the AWS account where AMIs are stored.
-			Encrypt and copy the snapshot of the AMI to the current AWS account.
-			Create an AMI with that snapshot.
+			Copy AMIs based on Kubernetes version, OS, region from an AWS account where AMIs are stored
+            to the current AWS account (use case: air-gapped deployments)
 		`),
 		Example: cmd.Examples(`
-		# Create an encrypted AMI:
+		# Copy AMI from the default AWS account where AMIs are stored.
 		# Available os options: centos-7, ubuntu-18.04, ubuntu-20.04, amazon-2
-		clusterawsadm ami encrypted-copy --kubernetes-version=v1.18.12 --os=ubuntu-20.04  --region=us-west-2
+		clusterawsadm ami copy --kubernetes-version=v1.18.12 --os=ubuntu-20.04  --region=us-west-2
 
 		# owner-id and dry-run flags are optional. region can be set via flag or env
-		clusterawsadm ami encrypted-copy --os centos-7 --kubernetes-version=v1.19.4 --owner-id=111111111111 --dry-run
+		clusterawsadm ami copy --os centos-7 --kubernetes-version=v1.19.4 --owner-id=111111111111 --dry-run
 
 		# copy from us-east-1 to us-east-2
-		clusterawsadm ami encrypted-copy --os centos-7 --kubernetes-version=v1.19.4 --owner-id=111111111111 --region us-east-2 --source-region us-east-1
-
-		# Encrypt using a non-default KmsKeyId specified using Key ID:
-		clusterawsadm ami encrypted-copy --os centos-7 --kubernetes-version=v1.19.4 --kms-key-id=key/1234abcd-12ab-34cd-56ef-1234567890ab
-
-		# Encrypt using a non-default KmsKeyId specified using Key alias:
-		clusterawsadm ami encrypted-copy --os centos-7 --kubernetes-version=v1.19.4 --kms-key-id=alias/ExampleAlias
-
-		# Encrypt using a non-default KmsKeyId specified using Key ARN:
-		clusterawsadm ami encrypted-copy --os centos-7 --kubernetes-version=v1.19.4 --kms-key-id=arn:aws:kms:us-east-1:012345678910:key/abcd1234-a123-456a-a12b-a123b4cd56ef
-
-		# Encrypt using a non-default KmsKeyId specified using Alias ARN:
-		clusterawsadm ami encrypted-copy --os centos-7 --kubernetes-version=v1.19.4 --kms-key-id=arn:aws:kms:us-east-1:012345678910:alias/ExampleAlias
+		clusterawsadm ami copy --os centos-7 --kubernetes-version=v1.19.4 --region us-east-2 --source-region us-east-1
 		`),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -91,8 +74,6 @@ func EncryptedCopyAMICmd() *cobra.Command {
 			ami, err := ami.Copy(ami.CopyInput{
 				DestinationRegion: region,
 				DryRun:            dryRun,
-				Encrypted:         true,
-				KmsKeyID:          kmsKeyID,
 				KubernetesVersion: kubernetesVersion,
 				Log:               log,
 				OperatingSystem:   opSystem,
@@ -108,6 +89,7 @@ func EncryptedCopyAMICmd() *cobra.Command {
 
 			printer.Print(ami)
 
+			// klog.V(0).Infof("Completed copying %v\n", *image.ImageId)
 			return nil
 		},
 	}
@@ -117,11 +99,6 @@ func EncryptedCopyAMICmd() *cobra.Command {
 	addKubernetesVersionFlag(newCmd)
 	addDryRunFlag(newCmd)
 	addOwnerIDFlag(newCmd)
-	addKmsKeyIDFlag(newCmd)
 	addSourceRegion(newCmd)
 	return newCmd
-}
-
-func addKmsKeyIDFlag(c *cobra.Command) {
-	c.Flags().StringVar(&kmsKeyID, "kms-key-id", "", "The ID of the KMS key for Amazon EBS encryption")
 }
