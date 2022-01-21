@@ -71,9 +71,10 @@ func TestDeleteBastion(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		expect      func(m *mock_ec2iface.MockEC2APIMockRecorder)
-		expectError bool
+		name          string
+		expect        func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expectError   bool
+		bastionStatus *infrav1.Instance
 	}{
 		{
 			name: "instance not found",
@@ -153,7 +154,8 @@ func TestDeleteBastion(t *testing.T) {
 					).
 					Return(nil)
 			},
-			expectError: false,
+			expectError:   false,
+			bastionStatus: nil,
 		},
 	}
 
@@ -217,6 +219,8 @@ func TestDeleteBastion(t *testing.T) {
 				}
 
 				g.Expect(err).To(BeNil())
+
+				g.Expect(scope.AWSCluster.Status.Bastion).To(BeEquivalentTo(tc.bastionStatus))
 			})
 		}
 	}
