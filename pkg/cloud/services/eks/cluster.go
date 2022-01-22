@@ -523,22 +523,23 @@ func (s *Service) reconcileEKSEncryptionConfig(currentClusterConfig []*eks.Encry
 	encryptionConfigs := s.scope.ControlPlane.Spec.EncryptionConfig
 	updatedEncryptionConfigs := makeEksEncryptionConfigs(encryptionConfigs)
 
-	switch {
-	case compareEncryptionConfig(currentClusterConfig, updatedEncryptionConfigs):
+	if compareEncryptionConfig(currentClusterConfig, updatedEncryptionConfigs) {
 		s.V(2).Info("encryption configuration unchanged, no action")
 		return nil
-	case len(currentClusterConfig) == 0 && len(updatedEncryptionConfigs) > 0:
+	}
+
+	if len(currentClusterConfig) == 0 && len(updatedEncryptionConfigs) > 0 {
 		s.V(2).Info("enabling encryption for eks cluster", "cluster", s.scope.KubernetesClusterName())
 		if err := s.updateEncryptionConfig(updatedEncryptionConfigs); err != nil {
 			record.Warnf(s.scope.ControlPlane, "FailedUpdateEKSControlPlane", "failed to update the EKS control plane encryption configuration: %v", err)
 			return errors.Wrapf(err, "failed to update EKS cluster")
 		}
-	default:
-		record.Warnf(s.scope.ControlPlane, "FailedUpdateEKSControlPlane", "failed to update the EKS control plane: disabling EKS encryption is not allowed after it has been enabled")
-		return errors.Errorf("failed to update the EKS control plane: disabling EKS encryption is not allowed after it has been enabled")
+
+		return nil
 	}
 
-	return nil
+	record.Warnf(s.scope.ControlPlane, "FailedUpdateEKSControlPlane", "failed to update the EKS control plane: disabling EKS encryption is not allowed after it has been enabled")
+	return errors.Errorf("failed to update the EKS control plane: disabling EKS encryption is not allowed after it has been enabled")
 }
 
 func parseEKSVersion(raw string) *version.Version {
@@ -704,7 +705,9 @@ func compareEncryptionConfig(updatedEncryptionConfig, existingEncryptionConfig [
 	if len(updatedEncryptionConfig) != len(existingEncryptionConfig) {
 		return false
 	}
-	for index, encryptionConfig := range updatedEncryptionConfig {
+	for index := range updatedEncryptionConfig {
+		encryptionConfig := updatedEncryptionConfig[index]
+
 		if getKeyArn(encryptionConfig) != getKeyArn(existingEncryptionConfig[index]) {
 			return false
 		}
