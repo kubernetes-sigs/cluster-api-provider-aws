@@ -132,7 +132,7 @@ func verifyRoleExistsAndOwned(roleName string, clusterName string, checkOwned bo
 	}
 }
 
-func verifyManagedNodeGroup(clusterName, eksClusterName, nodeGroupName string, checkOwned bool, sess client.ConfigProvider) {
+func verifyManagedNodeGroup(eksClusterName, nodeGroupName string, checkOwned bool, sess client.ConfigProvider) {
 	eksClient := eks.New(sess)
 	input := &eks.DescribeNodegroupInput{
 		ClusterName:   aws.String(eksClusterName),
@@ -143,7 +143,7 @@ func verifyManagedNodeGroup(clusterName, eksClusterName, nodeGroupName string, c
 	Expect(*result.Nodegroup.Status).To(BeEquivalentTo(eks.NodegroupStatusActive))
 
 	if checkOwned {
-		tagName := infrav1.ClusterAWSCloudProviderTagKey(clusterName)
+		tagName := infrav1.ClusterAWSCloudProviderTagKey(eksClusterName)
 		tagValue, ok := result.Nodegroup.Tags[tagName]
 		Expect(ok).To(BeTrue(), "expecting the cluster owned tag to exist")
 		Expect(*tagValue).To(BeEquivalentTo(string(infrav1.ResourceLifecycleOwned)))
