@@ -83,7 +83,7 @@ func getASGTagUpdates(clusterName string, currentTags map[string]string, tags ma
 		eksNodeGroupNameTag,
 		fmt.Sprintf("k8s.io/cluster-autoscaler/%s", clusterName),
 		eksClusterAutoscalerEnabledTag,
-		fmt.Sprintf("kubernetes.io/cluster/%s", clusterName),
+		infrav1.ClusterAWSCloudProviderTagKey(clusterName),
 	}
 	tagsToDelete = make(map[string]string)
 	tagsToAdd = make(map[string]string)
