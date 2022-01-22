@@ -57,7 +57,7 @@ func (s *Service) GetLaunchTemplate(launchTemplateName string) (*expinfrav1.AWSL
 		return nil, "", err
 	}
 
-	if len(out.LaunchTemplateVersions) == 0 {
+	if out == nil || out.LaunchTemplateVersions == nil || len(out.LaunchTemplateVersions) == 0 {
 		return nil, "", nil
 	}
 
@@ -84,7 +84,7 @@ func (s *Service) GetLaunchTemplateID(launchTemplateName string) (string, error)
 		return "", err
 	}
 
-	if len(out.LaunchTemplateVersions) == 0 {
+	if out == nil || out.LaunchTemplateVersions == nil || len(out.LaunchTemplateVersions) == 0 {
 		return "", nil
 	}
 
