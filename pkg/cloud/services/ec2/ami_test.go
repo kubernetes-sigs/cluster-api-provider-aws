@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
@@ -184,10 +185,16 @@ func TestAMIs(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			scheme, err := setupScheme()
+			g.Expect(err).NotTo(HaveOccurred())
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock.EXPECT())
 
-			clusterScope := setupClusterScope(g)
+			clusterScope, err := setupClusterScope(client)
+			g.Expect(err).NotTo(HaveOccurred())
+
 			s := NewService(clusterScope)
 			s.EC2Client = ec2Mock
 
@@ -443,12 +450,18 @@ func TestEKSAMILookUp(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			scheme, err := setupScheme()
+			g.Expect(err).NotTo(HaveOccurred())
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
 			ssmMock := mock_ssmiface.NewMockSSMAPI(mockCtrl)
 			if tt.expect != nil {
 				tt.expect(ssmMock.EXPECT())
 			}
 
-			clusterScope := setupClusterScope(g)
+			clusterScope, err := setupClusterScope(client)
+			g.Expect(err).NotTo(HaveOccurred())
+
 			s := NewService(clusterScope)
 			s.SSMClient = ssmMock
 
