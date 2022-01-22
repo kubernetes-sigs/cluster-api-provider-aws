@@ -83,7 +83,7 @@ func ManagedMachinePoolSpec(ctx context.Context, inputGetter func() ManagedMachi
 	shared.Byf("Check the status of the node group")
 	nodeGroupName := getEKSNodegroupName(input.Namespace.Name, input.ClusterName)
 	eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName)
-	verifyManagedNodeGroup(input.ClusterName, eksClusterName, nodeGroupName, true, input.AWSSession)
+	verifyManagedNodeGroup(eksClusterName, nodeGroupName, true, input.AWSSession)
 
 	if input.IncludeScaling { // TODO (richardcase): should this be a separate spec?
 		ginkgo.By("Scaling the machine pool up")
