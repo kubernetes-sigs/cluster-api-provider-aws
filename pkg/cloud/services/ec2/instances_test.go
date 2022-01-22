@@ -2886,17 +2886,3 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 		})
 	}
 }
-
-func setupScheme() (*runtime.Scheme, error) {
-	scheme := runtime.NewScheme()
-	if err := clusterv1.AddToScheme(scheme); err != nil {
-		return nil, err
-	}
-	if err := corev1.AddToScheme(scheme); err != nil {
-		return nil, err
-	}
-	if err := infrav1.AddToScheme(scheme); err != nil {
-		return nil, err
-	}
-	return scheme, nil
-}
