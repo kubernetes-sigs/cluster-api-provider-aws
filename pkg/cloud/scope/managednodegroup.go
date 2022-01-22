@@ -137,7 +137,7 @@ func (s *ManagedMachinePoolScope) ServiceLimiter(service string) *throttle.Servi
 
 // ClusterName returns the cluster name.
 func (s *ManagedMachinePoolScope) ClusterName() string {
-	return s.Cluster.Name
+	return s.ControlPlane.Spec.EKSClusterName
 }
 
 // EnableIAM indicates that reconciliation should create IAM roles.
