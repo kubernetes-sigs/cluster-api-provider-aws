@@ -324,45 +324,7 @@ func (r *AWSClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	return controller.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(r.requeueAWSClusterForUnpausedCluster(ctx, log)),
-		predicate.Funcs{
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
-				newCluster := e.ObjectNew.(*clusterv1.Cluster)
-				log := log.WithValues("predicate", "updateEvent", "namespace", newCluster.Namespace, "cluster", newCluster.Name)
-				switch {
-				// return true if Cluster.Spec.Paused has changed from true to false
-				case oldCluster.Spec.Paused && !newCluster.Spec.Paused:
-					log.V(4).Info("Cluster was unpaused, will attempt to map associated AWSCluster.")
-					return true
-				// otherwise, return false
-				default:
-					log.V(4).Info("Cluster did not match expected conditions, will not attempt to map associated AWSCluster.")
-					return false
-				}
-			},
-			CreateFunc: func(e event.CreateEvent) bool {
-				cluster := e.Object.(*clusterv1.Cluster)
-				log := log.WithValues("predicate", "createEvent", "namespace", cluster.Namespace, "cluster", cluster.Name)
-
-				// Only need to trigger a reconcile if the Cluster.Spec.Paused is false
-				if !cluster.Spec.Paused {
-					log.V(4).Info("Cluster is not paused, will attempt to map associated AWSCluster.")
-					return true
-				}
-				log.V(4).Info("Cluster did not match expected conditions, will not attempt to map associated AWSCluster.")
-				return false
-			},
-			DeleteFunc: func(e event.DeleteEvent) bool {
-				log := log.WithValues("predicate", "deleteEvent", "namespace", e.Object.GetNamespace(), "cluster", e.Object.GetName())
-				log.V(4).Info("Cluster did not match expected conditions, will not attempt to map associated AWSCluster.")
-				return false
-			},
-			GenericFunc: func(e event.GenericEvent) bool {
-				log := log.WithValues("predicate", "genericEvent", "namespace", e.Object.GetNamespace(), "cluster", e.Object.GetName())
-				log.V(4).Info("Cluster did not match expected conditions, will not attempt to map associated AWSCluster.")
-				return false
-			},
-		},
+		predicates.ClusterUnpaused(log),
 	)
 }
 
