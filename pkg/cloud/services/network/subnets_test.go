@@ -1740,3 +1740,117 @@ func TestDiscoverSubnets(t *testing.T) {
 		})
 	}
 }
+
+func TestDeleteSubnets(t *testing.T) {
+	testCases := []struct {
+		name          string
+		input         *infrav1.NetworkSpec
+		expect        func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		errorExpected bool
+	}{
+		{
+			name: "managed vpc - success",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID: subnetsVPCID,
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+				},
+				Subnets: []infrav1.SubnetSpec{
+					{
+						ID: "subnet-1",
+					},
+					{
+						ID: "subnet-2",
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: []*string{aws.String("pending"), aws.String("available")},
+						},
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []*string{aws.String(subnetsVPCID)},
+						},
+					},
+				})).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{
+							{
+								VpcId:               aws.String(subnetsVPCID),
+								SubnetId:            aws.String("subnet-1"),
+								AvailabilityZone:    aws.String("us-east-1a"),
+								CidrBlock:           aws.String("10.0.10.0/24"),
+								MapPublicIpOnLaunch: aws.Bool(true),
+							},
+							{
+								VpcId:               aws.String(subnetsVPCID),
+								SubnetId:            aws.String("subnet-2"),
+								AvailabilityZone:    aws.String("us-east-1a"),
+								CidrBlock:           aws.String("10.0.20.0/24"),
+								MapPublicIpOnLaunch: aws.Bool(false),
+							},
+						},
+					}, nil)
+
+				m.DeleteSubnet(&ec2.DeleteSubnetInput{
+					SubnetId: aws.String("subnet-1"),
+				}).
+					Return(nil, nil)
+
+				m.DeleteSubnet(&ec2.DeleteSubnetInput{
+					SubnetId: aws.String("subnet-2"),
+				}).
+					Return(nil, nil)
+			},
+			errorExpected: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client: client,
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
+				},
+				AWSCluster: &infrav1.AWSCluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test"},
+					Spec: infrav1.AWSClusterSpec{
+						NetworkSpec: *tc.input,
+					},
+				},
+			})
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+
+			tc.expect(ec2Mock.EXPECT())
+
+			s := NewService(scope)
+			s.EC2Client = ec2Mock
+
+			err = s.deleteSubnets()
+			if tc.errorExpected && err == nil {
+				t.Fatal("expected error but not no error")
+			}
+			if !tc.errorExpected && err != nil {
+				t.Fatalf("got an unexpected error: %v", err)
+			}
+		})
+	}
+}
