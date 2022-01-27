@@ -4,7 +4,7 @@ To enable encryption when creating a cluster you need to create a new KMS key th
 
 For example, `arn:aws:kms:eu-north-1:12345678901:alias/cluster-api-provider-aws-key1`.
 
-You then need to specify this alias in the `encryptionConfig` of the `AWSManagedControlPlane`:
+You then need to specify the **key ARN**  in the `encryptionConfig` of the `AWSManagedControlPlane`:
 
 ```yaml
 kind: AWSManagedControlPlane
@@ -14,10 +14,12 @@ metadata:
 spec:
   ...
   encryptionConfig:
-    provider: "arn:aws:kms:eu-north-1:12345678901:alias/cluster-api-provider-aws-key1"
+    provider: "arn:aws:kms:eu-north-1:12345678901:key/351f5544-6130-42e4-8786-2c85e546fc2d"
     resources:
     - "secrets"
 ```
+
+> You must use the ARN of the key and not the ARN of the alias.
 
 ## Custom KMS Alias Prefix
 
