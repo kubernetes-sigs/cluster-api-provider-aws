@@ -20,7 +20,44 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/golang/mock/gomock"
+	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/mock_eksiface"
+)
+
+var (
+	bp = infrav1.BuildParams{
+		Lifecycle:   infrav1.ResourceLifecycleOwned,
+		ClusterName: "testcluster",
+		Name:        aws.String("test"),
+		Role:        aws.String("testrole"),
+		Additional:  map[string]string{"k1": "v1"},
+	}
+	tags = []*ec2.Tag{
+		{
+			Key:   aws.String("Name"),
+			Value: aws.String("test"),
+		},
+		{
+			Key:   aws.String("k1"),
+			Value: aws.String("v1"),
+		},
+		{
+			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/testcluster"),
+			Value: aws.String("owned"),
+		},
+		{
+			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+			Value: aws.String("testrole"),
+		},
+	}
 )
 
 func TestTags_ComputeDiff(t *testing.T) {
@@ -93,4 +130,122 @@ func TestTags_ComputeDiff(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTags_EnsureWithEC2(t *testing.T) {
+	tests := []struct {
+		name    string
+		builder Builder
+		expect  func(m *mock_ec2iface.MockEC2APIMockRecorder)
+	}{
+		{
+			name:    "Should return error when create tag fails",
+			builder: Builder{params: &bp},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+					Resources: aws.StringSlice([]string{""}),
+					Tags:      tags,
+				})).Return(nil, errors.New("failed to create tag"))
+			},
+		},
+		{
+			name:    "Should return error when optional configuration for builder is nil",
+			builder: Builder{params: &bp, applyFunc: nil},
+		},
+		{
+			name:    "Should return error when build params is nil",
+			builder: Builder{params: nil},
+		},
+		{
+			name:    "Should ensure tags successfully",
+			builder: Builder{params: &bp},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+					Resources: aws.StringSlice([]string{""}),
+					Tags:      tags,
+				})).Return(nil, nil)
+			},
+		},
+	}
+
+	g := NewWithT(t)
+	mockCtrl := gomock.NewController(t)
+	ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var builder *Builder
+			if tc.expect != nil {
+				tc.expect(ec2Mock.EXPECT())
+				builder = New(tc.builder.params, WithEC2(ec2Mock))
+			} else {
+				builder = New(tc.builder.params, func(builder *Builder) {})
+			}
+			err := builder.Ensure(nil)
+			if err != nil {
+				g.Expect(err).To(Not(BeNil()))
+			} else {
+				g.Expect(err).To(BeNil())
+			}
+		})
+	}
+}
+
+func TestTags_EnsureWithEKS(t *testing.T) {
+	tests := []struct {
+		name    string
+		builder Builder
+		expect  func(m *mock_eksiface.MockEKSAPIMockRecorder)
+	}{
+		{
+			name:    "Should return error when tag resources fails",
+			builder: Builder{params: &bp},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.TagResource(gomock.Eq(&eks.TagResourceInput{
+					ResourceArn: aws.String(""),
+					Tags:        map[string]*string{"Name": aws.String("test"), "k1": aws.String("v1"), "sigs.k8s.io/cluster-api-provider-aws/cluster/testcluster": aws.String("owned"), "sigs.k8s.io/cluster-api-provider-aws/role": aws.String("testrole")},
+				})).Return(nil, errors.New("failed to tag resource"))
+			},
+		},
+		{
+			name:    "Should ensure tags successfully",
+			builder: Builder{params: &bp},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.TagResource(gomock.Eq(&eks.TagResourceInput{
+					ResourceArn: aws.String(""),
+					Tags:        map[string]*string{"Name": aws.String("test"), "k1": aws.String("v1"), "sigs.k8s.io/cluster-api-provider-aws/cluster/testcluster": aws.String("owned"), "sigs.k8s.io/cluster-api-provider-aws/role": aws.String("testrole")},
+				})).Return(nil, nil)
+			},
+		},
+	}
+
+	g := NewWithT(t)
+	mockCtrl := gomock.NewController(t)
+	eksMock := mock_eksiface.NewMockEKSAPI(mockCtrl)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var builder *Builder
+			if tc.expect != nil {
+				tc.expect(eksMock.EXPECT())
+				builder = New(tc.builder.params, WithEKS(eksMock))
+			} else {
+				builder = New(tc.builder.params, func(builder *Builder) {})
+			}
+			err := builder.Ensure(nil)
+			if err != nil {
+				g.Expect(err).To(Not(BeNil()))
+			} else {
+				g.Expect(err).To(BeNil())
+			}
+		})
+	}
+}
+
+func TestTags_BuildParamsToTagSpecification(t *testing.T) {
+	g := NewWithT(t)
+	tagSpec := BuildParamsToTagSpecification("test-resource", bp)
+	expectedTagSpec := &ec2.TagSpecification{
+		ResourceType: aws.String("test-resource"),
+		Tags:         tags,
+	}
+	g.Expect(expectedTagSpec).To(Equal(tagSpec))
 }
