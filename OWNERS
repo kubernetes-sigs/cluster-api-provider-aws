@@ -11,19 +11,9 @@ reviewers:
   - cluster-api-aws-reviewers
 
 emeritus_approvers:
-  - davidewatson
-  - ingvagabund
-  - enxebre
-
-emeritus_maintainers:
   - chuckha
   - detiber
   - ncdc
-  - vincepri
-  - rudoi
   - randomvariable
-
-emeritus_reviewers:
-  - sethp-nr
-  - ashish-amarnath
-  - michaelbeaumont
+  - rudoi
+  - vincepri

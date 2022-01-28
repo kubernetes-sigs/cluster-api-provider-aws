@@ -182,6 +182,24 @@ and/or other countries."
 </a>
 </p>
 
+Thank you to all contributors and a special thanks to:
+
+emeritus reviewers:
+- @ashish-amarnath
+- @davidewatson
+- @enxebre
+- @ingvagabund
+- @michaelbeaumont
+- @sethp-nr
+
+emeritus approvers/maintainers:
+- @chuckha
+- @detiber
+- @ncdc
+- @randomvariable
+- @rudoi
+- @vincepri
+
 <!-- References -->
 [slack]: https://kubernetes.slack.com/messages/CD6U2V71N
 [good_first_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22
