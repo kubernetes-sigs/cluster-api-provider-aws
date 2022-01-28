@@ -185,20 +185,20 @@ and/or other countries."
 Thank you to all contributors and a special thanks to:
 
 emeritus reviewers:
-- @ashish-amarnath
-- @davidewatson
-- @enxebre
-- @ingvagabund
-- @michaelbeaumont
-- @sethp-nr
+- [@ashish-amarnath](https://github.com/ashish-amarnath)
+- [@davidewatson](https://github.com/davidewatson)
+- [@enxebre](https://github.com/enxebre)
+- [@ingvagabund](https://github.com/ingvagabund)
+- [@michaelbeaumont](https://github.com/michaelbeaumont)
+- [@sethp-nr](https://github.com/sethp-nr)
 
 emeritus approvers/maintainers:
-- @chuckha
-- @detiber
-- @ncdc
-- @randomvariable
-- @rudoi
-- @vincepri
+- [@chuckha](https://github.com/chuckha)
+- [@detiber](https://github.com/detiber)
+- [@ncdc](https://github.com/ncdc)
+- [@randomvariable](https://github.com/randomvariable)
+- [@rudoi](https://github.com/rudoi)
+- [@vincepri](https://github.com/vincepri)
 
 <!-- References -->
 [slack]: https://kubernetes.slack.com/messages/CD6U2V71N
