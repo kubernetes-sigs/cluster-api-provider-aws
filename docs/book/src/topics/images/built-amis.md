@@ -105,3 +105,7 @@ See [clusterawsadm ami list](../clusterawsadm/clusterawsadm_ami_list.md) for det
   .catch((error) => console.error('Error:', error));
 </script>
 
+If you want to query any other AMI which is not listed in the table, then use below command
+```
+clusterawsadm ami list --kubernetes-version <some-k8s-version> --region <supported-aws-region> --os <supported-os-name>
+```
