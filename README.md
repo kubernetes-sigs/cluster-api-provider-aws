@@ -44,7 +44,7 @@ cluster on AWS.
 - Doesn't use SSH for bootstrapping nodes.
 - Installs only the minimal components to bootstrap a control plane and workers.
 - Supports control planes on EC2 instances.
-- Experimental [EKS support][eks_support]
+- [EKS support][eks_support]
 
 ------
 
@@ -136,7 +136,7 @@ Maintainers hold office hours every two weeks, with sessions open to all
 developers working on this project.
 
 Office hours are hosted on a zoom video chat every other Monday
-at 10:00 (Pacific) / 13:00 (Eastern) / 18:00 (Europe/London),
+at 09:00 (Pacific) / 12:00 (Eastern) / 17:00 (Europe/London),
 and are published on the [Kubernetes community meetings calendar][gcal].
 
 ### Other ways to communicate with the contributors
@@ -176,29 +176,35 @@ and/or other countries."
 
 ## Our Contributors
 
+Thank you to all contributors and a special thanks to our current maintainers & reviewers:
+
+| Maintainers                                       | Reviewers                                      |
+| ------------------------------------------------- | ---------------------------------------------- |
+| [@richardcase](https://github.com/richardcase)    | [@Ankitasw](https://github.com/Ankitasw)       |
+| [@sedefsavas](https://github.com/sedefsavas)      | [@dthorsen](https://github.com/dthorsen)       |
+|                                                   | [@dlipovetsky](https://github.com/dlipovetsky) |
+|                                                   | [@pydctw](https://github.com/pydctw)           |
+|                                                   | [@shivi28](https://github.com/shivi28)         |
+
+and the previous/emeritus maintainers & reviwers:
+
+| Emeritus Maintainers                                 | Emeritus Reviewers                                     |
+| ---------------------------------------------------- | ------------------------------------------------------ |
+| [@chuckha](https://github.com/chuckha)               | [@ashish-amarnath](https://github.com/ashish-amarnath) |
+| [@detiber](https://github.com/detiber)               | [@davidewatson](https://github.com/davidewatson)       |
+| [@ncdc](https://github.com/ncdc)                     | [@enxebre](https://github.com/enxebre)                 |
+| [@randomvariable](https://github.com/randomvariable) | [@ingvagabund](https://github.com/ingvagabund)         |
+| [@rudoi](https://github.com/rudoi)                   | [@michaelbeaumont](https://github.com/michaelbeaumont) |
+| [@vincepri](https://github.com/vincepri)             | [@sethp-nr](https://github.com/sethp-nr)               |
+
+All the CAPA contributors:
+
 <p>
 <a href="https://github.com/kubernetes-sigs/cluster-api-provider-aws/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=kubernetes-sigs/cluster-api-provider-aws" />
 </a>
 </p>
 
-Thank you to all contributors and a special thanks to:
-
-emeritus reviewers:
-- [@ashish-amarnath](https://github.com/ashish-amarnath)
-- [@davidewatson](https://github.com/davidewatson)
-- [@enxebre](https://github.com/enxebre)
-- [@ingvagabund](https://github.com/ingvagabund)
-- [@michaelbeaumont](https://github.com/michaelbeaumont)
-- [@sethp-nr](https://github.com/sethp-nr)
-
-emeritus approvers/maintainers:
-- [@chuckha](https://github.com/chuckha)
-- [@detiber](https://github.com/detiber)
-- [@ncdc](https://github.com/ncdc)
-- [@randomvariable](https://github.com/randomvariable)
-- [@rudoi](https://github.com/rudoi)
-- [@vincepri](https://github.com/vincepri)
 
 <!-- References -->
 [slack]: https://kubernetes.slack.com/messages/CD6U2V71N
