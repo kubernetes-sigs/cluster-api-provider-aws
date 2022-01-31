@@ -1,37 +1,28 @@
-# See the OWNERS docs: https://git.k8s.io/community/docs/devel/owners.md
+# See the OWNERS docs: https://github.com/kubernetes/community/blob/master/contributors/guide/owners.md
 
 aliases:
+  # Correct as of 2021/12/02
   sig-cluster-lifecycle-leads:
-    - lukemarsden
-    - luxas
-    - roberthbailey
+    - fabriziopandini
+    - justinsb
+    - neolit123
     - timothysc
+  # Correct as of 2021/12/02
   cluster-api-admins:
-    - justinsb
-    - krousey
-    - luxas
-    - roberthbailey
-    - kris-nova
+    - CecileRobertMichon
+    - vincepri
+  # Correct as of 2021/12/02
   cluster-api-maintainers:
-    - jessicaochen
-    - k4leung4
-    - karan
-    - kris-nova
-    - krousey
-    - medinatiger
-    - mkjelland
-    - roberthbailey
-    - rsdcastro
-    - spew
-  sig-aws-leads:
-    - justinsb
-    - kris-nova
-    - countspongebob
-  cluster-api-aws-maintainers:
-    - detiber
-    - chuckha
-    - davidewatson
-    - d-nishi
+    - CecileRobertMichon
     - enxebre
-    - ingvagabund
-
+    - fabriziopandini
+    - vincepri
+  cluster-api-aws-maintainers:
+    - randomvariable
+    - richardcase
+    - sedefsavas
+  cluster-api-aws-reviewers:
+    - Ankitasw
+    - dthorsen
+    - dlipovetsky
+    - shivi28

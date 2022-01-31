@@ -1,212 +1,188 @@
-# OpenShift cluster-api-provider-aws
+# Kubernetes Cluster API Provider AWS
 
-This repository hosts an implementation of a provider for AWS for the
-OpenShift [machine-api](https://github.com/openshift/cluster-api).
+<p align="center">
+<img src="https://github.com/kubernetes/kubernetes/raw/master/logo/logo.png"  width="100x"><a href="https://aws.amazon.com/opensource/"><img width="192x" src="https://d0.awsstatic.com/logos/powered-by-aws.png" alt="Powered by AWS Cloud Computing"></a>
+</p>
+<p align="center">
+<!-- go doc / reference card -->
+<a href="https://godoc.org/sigs.k8s.io/cluster-api-provider-aws">
+ <img src="https://godoc.org/sigs.k8s.io/cluster-api-provider-aws?status.svg"></a>
+</p>
 
-This provider runs as a machine-controller deployed by the
-[machine-api-operator](https://github.com/openshift/machine-api-operator)
+------
 
-### How to build the images in the RH infrastructure
-The Dockerfiles use `as builder` in the `FROM` instruction which is not currently supported
-by the RH's docker fork (see [https://github.com/kubernetes-sigs/kubebuilder/issues/268](https://github.com/kubernetes-sigs/kubebuilder/issues/268)).
-One needs to run the `imagebuilder` command instead of the `docker build`.
+Kubernetes-native declarative infrastructure for AWS.
 
-Note: this info is RH only, it needs to be backported every time the `README.md` is synced with the upstream one.
+## What is the Cluster API Provider AWS
 
-## Deploy machine API plane with minikube
+The [Cluster API][cluster_api] brings
+declarative, Kubernetes-style APIs to cluster creation, configuration and
+management.
 
-1. **Install kvm**
+The API itself is shared across multiple cloud providers allowing for true AWS
+hybrid deployments of Kubernetes. It is built atop the lessons learned from
+previous cluster managers such as [kops][kops] and
+[kubicorn][kubicorn].
 
-    Depending on your virtualization manager you can choose a different [driver](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md).
-    In order to install kvm, you can run (as described in the [drivers](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md#kvm2-driver) documentation):
+## Documentation
 
-    ```sh
-    $ sudo yum install libvirt-daemon-kvm qemu-kvm libvirt-daemon-config-network
-    $ systemctl start libvirtd
-    $ sudo usermod -a -G libvirt $(whoami)
-    $ newgrp libvirt
-    ```
+Please see our [book](https://cluster-api-aws.sigs.k8s.io) for in-depth documentation.
 
-    To install to kvm2 driver:
+## Launching a Kubernetes cluster on AWS
 
-    ```sh
-    curl -Lo docker-machine-driver-kvm2 https://storage.googleapis.com/minikube/releases/latest/docker-machine-driver-kvm2 \
-    && chmod +x docker-machine-driver-kvm2 \
-    && sudo cp docker-machine-driver-kvm2 /usr/local/bin/ \
-    && rm docker-machine-driver-kvm2
-    ```
+Check out the [Cluster API Quick Start](https://cluster-api.sigs.k8s.io/user/quick-start.html) for launching a
+cluster on AWS.
 
-2. **Deploying the cluster**
+## Features
 
-    To install minikube `v1.1.0`, you can run:
+- Native Kubernetes manifests and API
+- Manages the bootstrapping of VPCs, gateways, security groups and instances.
+- Choice of Linux distribution between Amazon Linux 2, CentOS 7 and Ubuntu 18.04,
+  using [pre-baked AMIs](/docs/book/topics/images/built-amis.md).
+- Deploys Kubernetes control planes into private subnets with a separate
+  bastion server.
+- Doesn't use SSH for bootstrapping nodes.
+- Installs only the minimal components to bootstrap a control plane and workers.
+- Supports control planes on EC2 instances.
+- Experimental [EKS support](docs/book/src/topics/eks/index.md)
 
-    ```sg
-    $ curl -Lo minikube https://storage.googleapis.com/minikube/releases/v1.1.0/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
-    ```
+------
 
-    To deploy the cluster:
+## Compatibility with Cluster API and Kubernetes Versions
 
-    ```
-    $ minikube start --vm-driver kvm2 --kubernetes-version v1.13.1 --v 5
-    $ eval $(minikube docker-env)
-    ```
+This provider's versions are compatible with the following versions of Cluster API:
 
-3. **Deploying machine API controllers**
 
-    For development purposes the aws machine controller itself will run out of the machine API stack.
-    Otherwise, docker images needs to be built, pushed into a docker registry and deployed within the stack.
+|                              | v1alpha3 (v0.3) | v1alpha4 (v0.4) | v1beta1 (v1.0) |
+| ---------------------------- | --------------- | --------------- | -------------- |
+| AWS Provider v1alpha3 (v0.5) | ✓               |                 |                |
+| AWS Provider v1alpha3 (v0.6) | ✓               |                 |                |
+| AWS Provider v1alpha4 (v0.7) |                 | ✓               |                |
+| AWS Provider v1beta1 (v1.0)  |                 |                 | ✓              |
 
-    To deploy the stack:
-    ```
-    kustomize build config | kubectl apply -f -
-    ```
 
-4. **Deploy secret with AWS credentials**
+This provider's versions are able to install and manage the following versions of Kubernetes:
 
-   AWS actuator assumes existence of a secret file (references in machine object) with base64 encoded credentials:
+|                              | v1.16 | v 1.17 | v1.18 | v1.19 | v1.20 | v1.21 | v1.22 |
+| ---------------------------- | ----- | ------ | ----- | ----- | ----- | ----- | ----- |
+| AWS Provider v1alpha3 (v0.5) | ✓     | ✓      | ✓     | ✓     | ✓     |       |       |
+| AWS Provider v1alpha3 (v0.6) | ✓     | ✓      | ✓     | ✓     | ✓     | ✓     | ✓*    |
+| AWS Provider v1alpha4 (v0.7) |       |        | ✓*    | ✓     | ✓     | ✓     | ✓     |
+| AWS Provider v1beta1 (v1.0)  |       |        |       | ✓     | ✓     | ✓     | ✓     |
 
-   ```yaml
-   apiVersion: v1
-   kind: Secret
-   metadata:
-     name: aws-credentials-secret
-     namespace: default
-   type: Opaque
-   data:
-     aws_access_key_id: FILLIN
-     aws_secret_access_key: FILLIN
-   ```
+\* Not management clusters
 
-   You can use `examples/render-aws-secrets.sh` script to generate the secret:
-   ```sh
-   ./examples/render-aws-secrets.sh examples/addons.yaml | kubectl apply -f -
-   ```
+Each version of Cluster API for AWS will attempt to support two Kubernetes versions; e.g., Cluster API for AWS `v0.3` supports Kubernetes 1.16, 1.17, 1.18 etc.
 
-5. **Provision AWS resource**
+**NOTE:** As the versioning for this project is tied to the versioning of Cluster API, future modifications to this
+policy may be made to more closely align with other providers in the Cluster API ecosystem.
 
-   The actuator expects existence of certain resource in AWS such as:
-   - vpc
-   - subnets
-   - security groups
-   - etc.
+------
 
-   To create them, you can run:
+## Kubernetes versions with published AMIs
 
-   ```sh
-   $ ENVIRONMENT_ID=aws-actuator-k8s ./hack/aws-provision.sh install
-   ```
+See [amis] for the list of most recently published AMIs.
 
-   To delete the resources, you can run:
+------
 
-   ```sh
-   $ ENVIRONMENT_ID=aws-actuator-k8s ./hack/aws-provision.sh destroy
-   ```
+## clusterawsadm
 
-   All machine manifests expect `ENVIRONMENT_ID` to be set to `aws-actuator-k8s`.
+`clusterawsadm` CLI tool provides bootstrapping, AMI, EKS, and controller related helpers.
 
-## Test locally built aws actuator
+`clusterawsadm` binaries are released with each release, can be found under [assets](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/latest) section.
 
-1. **Tear down machine-controller**
+------
+## Getting involved and contributing
 
-   Deployed machine API plane (`machine-api-controllers` deployment) is (among other
-   controllers) running `machine-controller`. In order to run locally built one,
-   simply edit `machine-api-controllers` deployment and remove `machine-controller` container from it.
+Are you interested in contributing to cluster-api-provider-aws? We, the
+maintainers and community, would love your suggestions, contributions, and help!
+Also, the maintainers can be contacted at any time to learn more about how to get
+involved.
 
-1. **Build and run aws actuator outside of the cluster**
+In the interest of getting more new people involved we tag issues with
+[`good first issue`][good_first_issue].
+These are typically issues that have smaller scope but are good ways to start
+to get acquainted with the codebase.
 
-   ```sh
-   $ go build -o bin/machine-controller-manager sigs.k8s.io/cluster-api-provider-aws/cmd/manager
-   ```
+We also encourage ALL active community participants to act as if they are
+maintainers, even if you don't have "official" write permissions. This is a
+community effort, we are here to serve the Kubernetes community. If you have an
+active interest and you want to get involved, you have real power! Don't assume
+that the only people who can get things done around here are the "maintainers".
 
-   ```sh
-   $ .bin/machine-controller-manager --kubeconfig ~/.kube/config --logtostderr -v 5 -alsologtostderr
-   ```
-      If running in container with `podman`, or locally without `docker` installed, and encountering issues, see [hacking-guide](https://github.com/openshift/machine-api-operator/blob/master/docs/dev/hacking-guide.md#troubleshooting-make-targets).
+We also would love to add more "official" maintainers, so show us what you can
+do!
 
+This repository uses the Kubernetes bots.  See a full list of the commands [here][prow].
 
-1. **Deploy k8s apiserver through machine manifest**:
+### Build the images locally
 
-   To deploy user data secret with kubernetes apiserver initialization (under [config/master-user-data-secret.yaml](config/master-user-data-secret.yaml)):
+If you want to just build the CAPA containers locally, run
 
-   ```yaml
-   $ kubectl apply -f config/master-user-data-secret.yaml
-   ```
+```
+	REGISTRY=docker.io/my-reg make docker-build
+```
 
-   To deploy kubernetes master machine (under [config/master-machine.yaml](config/master-machine.yaml)):
+### Tilt-based development environment
 
-   ```yaml
-   $ kubectl apply -f config/master-machine.yaml
-   ```
+See [development][development] section for details
 
-1. **Pull kubeconfig from created master machine**
+[development]: https://cluster-api-aws.sigs.k8s.io/development/development.html
 
-   The master public IP can be accessed from AWS Portal. Once done, you
-   can collect the kube config by running:
 
-   ```
-   $ ssh -i SSHPMKEY ec2-user@PUBLICIP 'sudo cat /root/.kube/config' > kubeconfig
-   $ kubectl --kubeconfig=kubeconfig config set-cluster kubernetes --server=https://PUBLICIP:8443
-   ```
+### Implementer office hours
 
-   Once done, you can access the cluster via `kubectl`. E.g.
+Maintainers hold office hours every two weeks, with sessions open to all
+developers working on this project.
 
-   ```sh
-   $ kubectl --kubeconfig=kubeconfig get nodes
-   ```
+Office hours are hosted on a zoom video chat every other Monday
+at 10:00 (Pacific) / 13:00 (Eastern) / 18:00 (Europe/London),
+and are published on the [Kubernetes community meetings calendar][gcal].
 
-## Deploy k8s cluster in AWS with machine API plane deployed
+### Other ways to communicate with the contributors
 
-1. **Generate bootstrap user data**
+Please check in with us in the [#cluster-api-aws][slack] channel on Slack.
 
-   To generate bootstrap script for machine api plane, simply run:
+## Github issues
 
-   ```sh
-   $ ./config/generate-bootstrap.sh
-   ```
+### Bugs
 
-   The script requires `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables to be set.
-   It generates `config/bootstrap.yaml` secret for master machine
-   under `config/master-machine.yaml`.
+If you think you have found a bug please follow the instructions below.
 
-   The generated bootstrap secret contains user data responsible for:
-   - deployment of kube-apiserver
-   - deployment of machine API plane with aws machine controllers
-   - generating worker machine user data script secret deploying a node
-   - deployment of worker machineset
+- Please spend a small amount of time giving due diligence to the issue tracker. Your issue might be a duplicate.
+- Get the logs from the cluster controllers. Please paste this into your issue.
+- Open a [new issue][new_issue].
+- Remember that users might be searching for your issue in the future, so please give it a meaningful title to help others.
+- Feel free to reach out to the cluster-api community on the [kubernetes slack][slack].
 
-1. **Deploy machine API plane through machine manifest**:
+### Tracking new features
 
-   First, deploy generated bootstrap secret:
+We also use the issue tracker to track features. If you have an idea for a feature, or think you can help kops become even more awesome follow the steps below.
 
-   ```yaml
-   $ kubectl apply -f config/bootstrap.yaml
-   ```
+- Open a [new issue][new_issue].
+- Remember that users might be searching for your issue in the future, so please
+  give it a meaningful title to help others.
+- Clearly define the use case, using concrete examples. EG: I type `this` and
+  cluster-api-provider-aws does `that`.
+- Some of our larger features will require some design. If you would like to
+  include a technical design for your feature please include it in the issue.
+- After the new feature is well understood, and the design agreed upon, we can
+  start coding the feature. We would love for you to code it. So please open
+  up a **WIP** *(work in progress)* pull request, and happy coding.
 
-   Then, deploy master machine (under [config/master-machine.yaml](config/master-machine.yaml)):
+>“Amazon Web Services, AWS, and the “Powered by AWS” logo materials are
+trademarks of Amazon.com, Inc. or its affiliates in the United States
+and/or other countries."
 
-   ```yaml
-   $ kubectl apply -f config/master-machine.yaml
-   ```
-
-1. **Pull kubeconfig from created master machine**
-
-   The master public IP can be accessed from AWS Portal. Once done, you
-   can collect the kube config by running:
-
-   ```
-   $ ssh -i SSHPMKEY ec2-user@PUBLICIP 'sudo cat /root/.kube/config' > kubeconfig
-   $ kubectl --kubeconfig=kubeconfig config set-cluster kubernetes --server=https://PUBLICIP:8443
-   ```
-
-   Once done, you can access the cluster via `kubectl`. E.g.
-
-   ```sh
-   $ kubectl --kubeconfig=kubeconfig get nodes
-   ```
-
-# Upstream Implementation
-Other branches of this repository may choose to track the upstream
-Kubernetes [Cluster-API AWS provider](https://github.com/kubernetes-sigs/cluster-api-provider-aws/)
-
-In the future, we may align the master branch with the upstream project as it
-stabilizes within the community.
+<!-- References -->
+[slack]: https://kubernetes.slack.com/messages/CD6U2V71N
+[good_first_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22
+[gcal]: https://calendar.google.com/calendar/embed?src=cgnt364vd8s86hr2phapfjc6uk%40group.calendar.google.com
+[prow]: https://go.k8s.io/bot-commands
+[new_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/new
+[cluster_api]: https://github.com/kubernetes-sigs/cluster-api
+[kops]: https://github.com/kubernetes/kops
+[kubicorn]: http://kubicorn.io/
+[tilt]: https://tilt.dev
+[cluster_api_tilt]: https://master.cluster-api.sigs.k8s.io/developer/tilt.html
+[amis]: https://cluster-api-aws.sigs.k8s.io/amis.html
