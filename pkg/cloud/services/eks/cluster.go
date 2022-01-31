@@ -264,8 +264,7 @@ func makeVpcConfig(subnets infrav1.Subnets, endpointAccess ekscontrolplanev1.End
 		return nil, awserrors.NewFailedDependency("at least 2 subnets is required")
 	}
 
-	zones := subnets.GetUniqueZones()
-	if len(zones) < 2 {
+	if zones := subnets.GetUniqueZones(); len(zones) < 2 {
 		return nil, awserrors.NewFailedDependency("subnets in at least 2 different az's are required")
 	}
 
