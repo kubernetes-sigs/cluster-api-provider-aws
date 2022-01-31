@@ -78,8 +78,7 @@ func (b *Builder) Apply() error {
 
 // Ensure applies the tags if the current tags differ from the params.
 func (b *Builder) Ensure(current infrav1.Tags) error {
-	diff := computeDiff(current, *b.params)
-	if len(diff) > 0 {
+	if diff := computeDiff(current, *b.params); len(diff) > 0 {
 		return b.Apply()
 	}
 	return nil
