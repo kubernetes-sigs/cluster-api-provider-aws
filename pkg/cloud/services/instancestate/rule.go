@@ -129,10 +129,13 @@ func (s Service) createRule() error {
 			States: []infrav1.InstanceState{infrav1.InstanceStateShuttingDown, infrav1.InstanceStateTerminated},
 		},
 	}
-	data, _ := json.Marshal(eventPattern)
+	data, err := json.Marshal(eventPattern)
+	if err != nil {
+		return err
+	}
 	// create in disabled state so the rule doesn't pick up all EC2 instances. As machines get created,
 	// the rule will get updated to track those machines
-	_, err := s.EventBridgeClient.PutRule(&eventbridge.PutRuleInput{
+	_, err = s.EventBridgeClient.PutRule(&eventbridge.PutRuleInput{
 		Name:         aws.String(s.getEC2RuleName()),
 		EventPattern: aws.String(string(data)),
 		State:        aws.String(eventbridge.RuleStateDisabled),

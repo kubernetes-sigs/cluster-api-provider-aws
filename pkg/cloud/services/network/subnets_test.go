@@ -1728,8 +1728,14 @@ func TestDiscoverSubnets(t *testing.T) {
 				}
 
 				if !reflect.DeepEqual(sn, exp) {
-					expected, _ := json.MarshalIndent(exp, "", "\t")
-					actual, _ := json.MarshalIndent(sn, "", "\t")
+					expected, err := json.MarshalIndent(exp, "", "\t")
+					if err != nil {
+						t.Fatalf("got an unexpected error: %v", err)
+					}
+					actual, err := json.MarshalIndent(sn, "", "\t")
+					if err != nil {
+						t.Fatalf("got an unexpected error: %v", err)
+					}
 					t.Errorf("Expected %s, got %s", string(expected), string(actual))
 				}
 				delete(out, exp.ID)
