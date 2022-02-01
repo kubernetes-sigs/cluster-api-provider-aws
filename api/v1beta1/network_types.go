@@ -54,6 +54,10 @@ func (e ClassicELBScheme) String() string {
 // ClassicELBProtocol defines listener protocols for a classic load balancer.
 type ClassicELBProtocol string
 
+func (e ClassicELBProtocol) String() string {
+	return string(e)
+}
+
 var (
 	// ClassicELBProtocolTCP defines the ELB API string representing the TCP protocol.
 	ClassicELBProtocolTCP = ClassicELBProtocol("TCP")
