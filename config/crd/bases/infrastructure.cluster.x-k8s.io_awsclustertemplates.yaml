@@ -474,6 +474,11 @@ spec:
                               registered instances in its Availability Zone only.
                               \n Defaults to false."
                             type: boolean
+                          healthCheckProtocol:
+                            description: HealthCheckProtocol sets the protocol type
+                              for classic ELB health check target default value is
+                              ClassicELBProtocolSSL
+                            type: string
                           name:
                             description: Name sets the name of the classic ELB load
                               balancer. As per AWS, the name must be unique within

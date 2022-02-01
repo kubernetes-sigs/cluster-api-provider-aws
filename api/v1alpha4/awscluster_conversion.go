@@ -52,6 +52,7 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 // Assumes restored and dst are non-nil.
 func restoreControlPlaneLoadBalancer(restored, dst *infrav1.AWSLoadBalancerSpec) {
 	dst.Name = restored.Name
+	dst.HealthCheckProtocol = restored.HealthCheckProtocol
 }
 
 // ConvertFrom converts the v1beta1 AWSCluster receiver to a v1alpha4 AWSCluster.
