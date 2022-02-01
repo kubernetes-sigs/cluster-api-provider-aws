@@ -10,7 +10,20 @@
 # DO NOT REPORT SECURITY VULNERABILITIES DIRECTLY TO THESE NAMES, FOLLOW THE
 # INSTRUCTIONS AT https://kubernetes.io/security/
 
-lukemarsden
-luxas
-roberthbailey
-timothysc
+## Start SIG Cluster Lifecycle Leads correct as of 2021/12/09
+fabriziopandini
+justinsb
+neolit123
+vincepri
+## End SIG Cluster Lifecycle Leads
+
+## Start Cluster API Admins correct as of 2021/12/09
+CecileRobertMichon
+vincepri
+## End Cluster API admins
+
+## Start Cluster API Provider AWS Maintainers
+randomvariable
+richardcase
+sedefsavas
+## End Cluster API Provider AWS Admins

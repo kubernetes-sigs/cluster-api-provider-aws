@@ -1,0 +1,9 @@
+# This file is a line-delimited list of MD5 checksums of AWS keys that should
+# not be used with the CAPA e2e tests or any janitorial work that occurs after
+# the test execution.
+#
+# To add a new key to the file, execute:
+#
+#   $ echo "${AWS_ACCESS_KEY_ID}" | { md5sum 2>/dev/null || md5; } | awk '{print $1}' >> hack/e2e-aws-disallowed.txt
+
+afbf8e5c5622470940b050594f82c47e

@@ -31,15 +31,16 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	logf "sigs.k8s.io/controller-runtime/pkg/internal/log"
 	intrec "sigs.k8s.io/controller-runtime/pkg/internal/recorder"
 	"sigs.k8s.io/controller-runtime/pkg/leaderelection"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/recorder"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
@@ -365,8 +366,14 @@ func New(config *rest.Config, options Options) (Manager, error) {
 		return nil, err
 	}
 
+	errChan := make(chan error)
+	runnables := newRunnables(errChan)
+
 	return &controllerManager{
+		stopProcedureEngaged:          pointer.Int64(0),
 		cluster:                       cluster,
+		runnables:                     runnables,
+		errChan:                       errChan,
 		recorderProvider:              recorderProvider,
 		resourceLock:                  resourceLock,
 		metricsListener:               metricsListener,
@@ -571,8 +578,8 @@ func setOptionsDefaults(options Options) Options {
 		options.GracefulShutdownTimeout = &gracefulShutdownTimeout
 	}
 
-	if options.Logger == nil {
-		options.Logger = logf.RuntimeLog.WithName("manager")
+	if options.Logger.GetSink() == nil {
+		options.Logger = log.Log
 	}
 
 	return options

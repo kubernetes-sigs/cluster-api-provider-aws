@@ -1,9 +1,9 @@
+# See the OWNERS docs: https://git.k8s.io/community/contributors/guide/owners.md
 component: "Cloud Compute"
 subcomponent: "Other Providers"
 approvers:
-  - enxebre
-  - michaelgugino
+  - damdo
   - alexander-demichev
-  - Danil-Grigorev
   - JoelSpeed
   - elmiko
+  - Fedosin

@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+bin
 
 # Test binary, build with `go test -c`
 *.test
@@ -11,19 +12,48 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
-### Terraform ###
-# Local .terraform directories
-**/.terraform/*
+# Ansible
+*.retry
 
-# .tfstate files
-*.tfstate
-*.tfstate.*
+# vim
+*~
+*.swp
 
-# Terraform plan file
-*.tfplan.*
+# envfiles
+.env
+envfile
+.envrc
 
-# Auto-generated manifests
-tfManifests/
+# kubeconfigs
+kind.kubeconfig
+minikube.kubeconfig
+kubeconfig
 
-bin/
-.gobincache/
+# Example and binary output directory
+/out
+
+# build
+.build
+
+# vscode
+.vscode
+
+# goland
+.idea
+
+# Ignore output manifests
+config/samples
+manager_image_patch.yaml-e
+manager_pull_policy.yaml-e
+
+# junit files
+junit.*.xml
+
+.DS_Store
+
+.tiltbuild
+
+# test results
+_artifacts
+awsiamconfiguration.yaml
+cloudformation.yaml

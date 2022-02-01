@@ -1,0 +1,13 @@
+domain: controlplane.cluster.x-k8s.io
+repo: sigs.k8s.io/cluster-api-provider-aws/controlplane/eks
+resources:
+- group: controlplane
+  kind: AWSManagedControlPlane
+  version: v1alpha3
+- group: controlplane
+  kind: AWSManagedControlPlane
+  version: v1alpha4
+- group: controlplane
+  kind: AWSManagedControlPlane
+  version: v1beta1
+version: "2"

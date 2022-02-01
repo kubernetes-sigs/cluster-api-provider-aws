@@ -1,0 +1,42 @@
+@startuml 20200506-single-controller-multitenancy-flow
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/release/1-0/C4_Container.puml
+
+start
+:AWS controller;
+:enqueue AWSCluster/Machine for reconciliation;
+:fetch AWSCluster;
+if (AWSCluster has spec.identityRef?) then (yes)
+  if (Referenced object is cluster scoped CRD) then (yes)
+    :fetch cluster scoped resource;
+  else (no)
+    :fetch referenced resource in same namespace;
+  endif
+  :set or append referenced resource as OwnerReference to AWSCluster object;
+  if (error?) then (yes)
+    stop
+  else (no)
+    :construct new credential provider;
+    if (cache contains value for provider.Hash()) then (no)
+      :store credential provider in cache;
+    endif
+    :fetch cached credential provider;
+  endif
+else (no)
+  : default spec.identityRef to AWSClusterControllerIdentity;
+  if (AWSCluster namespace matches with allowedNamespaces) then (yes)
+    :use controller's credential providers;
+  else (no)
+    :return with error;
+    stop
+  endif
+endif
+:call STS::GetCallerIdentity():
+if (awscluster.AccountID != nil && awscluster.AccountID != GetCallerIdentity?) then (error)
+  stop
+endif
+:update awscluster.accountID;
+:create new service clients;
+:reconcile AWSCluster or AWSMachine;
+stop
+
+@enduml

@@ -1,0 +1,5 @@
+resources:
+  - ../limit-az
+  - role.yaml
+patchesStrategicMerge:
+  - patches/role-identity.yaml
