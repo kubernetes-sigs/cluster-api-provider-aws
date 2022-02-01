@@ -431,7 +431,7 @@ func (s *Service) getAPIServerClassicELBSpec(elbName string) (*infrav1.ClassicEL
 			},
 		},
 		HealthCheck: &infrav1.ClassicELBHealthCheck{
-			Target:             fmt.Sprintf("%v:%d", infrav1.ClassicELBProtocolSSL, 6443),
+			Target:             fmt.Sprintf("%v:%d", s.getHealthCheckELBProtocol(), 6443),
 			Interval:           10 * time.Second,
 			Timeout:            5 * time.Second,
 			HealthyThreshold:   5,
@@ -779,6 +779,14 @@ func (s *Service) reconcileELBTags(lb *infrav1.ClassicELB, desiredTags map[strin
 	}
 
 	return nil
+}
+
+func (s *Service) getHealthCheckELBProtocol() *infrav1.ClassicELBProtocol {
+	controlPlaneELB := s.scope.ControlPlaneLoadBalancer()
+	if controlPlaneELB != nil && controlPlaneELB.HealthCheckProtocol != nil {
+		return controlPlaneELB.HealthCheckProtocol
+	}
+	return &infrav1.ClassicELBProtocolSSL
 }
 
 func fromSDKTypeToClassicELB(v *elb.LoadBalancerDescription, attrs *elb.LoadBalancerAttributes, tags []*elb.Tag) *infrav1.ClassicELB {
