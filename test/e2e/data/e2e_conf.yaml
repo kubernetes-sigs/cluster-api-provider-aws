@@ -27,11 +27,11 @@ images:
     loadBehavior: tryLoad
   - name: quay.io/jetstack/cert-manager-controller:v1.5.3
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/cluster-api-controller:v1.1.0-beta.1
+  - name: k8s.gcr.io/cluster-api/cluster-api-controller:v1.1.0-rc.0
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/kubeadm-bootstrap-controller:v1.1.0-beta.1
+  - name: k8s.gcr.io/cluster-api/kubeadm-bootstrap-controller:v1.1.0-rc.0
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/kubeadm-control-plane-controller:v1.1.0-beta.1
+  - name: k8s.gcr.io/cluster-api/kubeadm-control-plane-controller:v1.1.0-rc.0
     loadBehavior: tryLoad
 
 providers:
@@ -60,8 +60,8 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.0-beta.1 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0-beta.1/core-components.yaml"
+      - name: v1.1.0-rc.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0-rc.0/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -72,7 +72,7 @@ providers:
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
       - name: v1.1.99 # next; use manifest from source files
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220101/core-components.yaml"
+        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220131/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -107,8 +107,8 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.0-beta.1 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0-beta.1/bootstrap-components.yaml"
+      - name: v1.1.0-rc.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0-rc.0/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -119,7 +119,7 @@ providers:
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
       - name: v1.1.99 # next; use manifest from source files
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220101/bootstrap-components.yaml"
+        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220131/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -156,8 +156,8 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.0-beta.1 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0-beta.1/control-plane-components.yaml"
+      - name: v1.1.0-rc.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0-rc.0/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -168,7 +168,7 @@ providers:
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
       - name: v1.1.99 # next; use manifest from source files
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220109/control-plane-components.yaml"
+        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220131/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -267,7 +267,7 @@ variables:
   EXP_CLUSTER_RESOURCE_SET: "true"
   EXP_MACHINE_POOL: "true"
   CLUSTER_TOPOLOGY: "true"
-  INIT_WITH_BINARY_V1BETA1: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0-beta.1/clusterctl-{OS}-{ARCH}"
+  INIT_WITH_BINARY_V1BETA1: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0-rc.0/clusterctl-{OS}-{ARCH}"
   INIT_WITH_BINARY_V1ALPHA3: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/clusterctl-{OS}-{ARCH}"
   INIT_WITH_BINARY_V1ALPHA4: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.5/clusterctl-{OS}-{ARCH}"
   # INIT_WITH_KUBERNETES_VERSION are only used by the clusterctl upgrade test to initialize
