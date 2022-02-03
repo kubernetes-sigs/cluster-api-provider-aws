@@ -266,7 +266,7 @@ func ensureTestImageUploaded(e2eCtx *E2EContext) error {
 	repoName := ""
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		output, err := ecrSvc.CreateRepository(&ecrpublic.CreateRepositoryInput{
-			RepositoryName: aws.String("capa/up"),
+			RepositoryName: aws.String("capa/update"),
 		})
 
 		if err != nil {
