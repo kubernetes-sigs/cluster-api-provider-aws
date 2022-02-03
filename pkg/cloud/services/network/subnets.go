@@ -357,8 +357,8 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 		return nil, errors.Wrap(err, "failed to create subnet")
 	}
 
-	s.scope.Info("created subnet", "id", *out.Subnet.SubnetId, "public", sn.IsPublic, "az", sn.AvailabilityZone, "cidr", sn.CidrBlock)
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateSubnet", "Created new managed Subnet %q", *out.Subnet.SubnetId)
+	s.scope.Info("Created subnet", "id", *out.Subnet.SubnetId, "public", sn.IsPublic, "az", sn.AvailabilityZone, "cidr", sn.CidrBlock)
 
 	wReq := &ec2.DescribeSubnetsInput{SubnetIds: []*string{out.Subnet.SubnetId}}
 	if err := s.EC2Client.WaitUntilSubnetAvailable(wReq); err != nil {
@@ -408,7 +408,7 @@ func (s *Service) deleteSubnet(id string) error {
 		return errors.Wrapf(err, "failed to delete subnet %q", id)
 	}
 
-	s.scope.V(2).Info("Deleted subnet in vpc", "subnet-id", id, "vpc-id", s.scope.VPC().ID)
+	s.scope.Info("Deleted subnet", "subnet-id", id, "vpc-id", s.scope.VPC().ID)
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulDeleteSubnet", "Deleted managed Subnet %q", id)
 	return nil
 }

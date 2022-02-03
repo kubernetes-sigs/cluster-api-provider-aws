@@ -83,7 +83,7 @@ func (s *Service) ReconcileBastion() error {
 		}
 
 		record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateBastion", "Created bastion instance %q", instance.ID)
-		s.scope.V(2).Info("Created new bastion host", "instance", instance)
+		s.scope.Info("Created new bastion host", "id", instance.ID)
 	} else if err != nil {
 		return err
 	}
@@ -123,6 +123,7 @@ func (s *Service) DeleteBastion() error {
 
 	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.BastionHostReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulTerminateBastion", "Terminated bastion instance %q", instance.ID)
+	s.scope.Info("Deleted bastion host", "id", instance.ID)
 
 	return nil
 }
