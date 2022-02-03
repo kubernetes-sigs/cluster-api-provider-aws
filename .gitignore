@@ -28,6 +28,7 @@ envfile
 kind.kubeconfig
 minikube.kubeconfig
 kubeconfig
+!kubeconfig/
 
 # Example and binary output directory
 /out
