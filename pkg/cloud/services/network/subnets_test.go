@@ -40,15 +40,16 @@ const (
 )
 
 func TestReconcileSubnets(t *testing.T) {
+
 	testCases := []struct {
 		name          string
-		input         *infrav1.NetworkSpec
+		input         ScopeBuilder
 		expect        func(m *mock_ec2iface.MockEC2APIMockRecorder)
 		errorExpected bool
 	}{
 		{
 			name: "Unmanaged VPC, 2 existing subnets in vpc, 2 subnet in spec, subnets match, with routes, should succeed",
-			input: &infrav1.NetworkSpec{
+			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
 				},
@@ -60,7 +61,7 @@ func TestReconcileSubnets(t *testing.T) {
 						ID: "subnet-2",
 					},
 				},
-			},
+			}),
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
@@ -161,7 +162,7 @@ func TestReconcileSubnets(t *testing.T) {
 		},
 		{
 			name: "Unmanaged VPC, 2 existing subnets in vpc, 2 subnet in spec, subnets match, no routes, should succeed",
-			input: &infrav1.NetworkSpec{
+			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
 				},
@@ -173,7 +174,7 @@ func TestReconcileSubnets(t *testing.T) {
 						ID: "subnet-2",
 					},
 				},
-			},
+			}),
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
@@ -258,7 +259,7 @@ func TestReconcileSubnets(t *testing.T) {
 		},
 		{
 			name: "Unmanaged VPC, 2 existing matching subnets, subnet tagging fails, should succeed",
-			input: &infrav1.NetworkSpec{
+			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
 				},
@@ -270,7 +271,7 @@ func TestReconcileSubnets(t *testing.T) {
 						ID: "subnet-2",
 					},
 				},
-			},
+			}),
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
@@ -356,12 +357,12 @@ func TestReconcileSubnets(t *testing.T) {
 		},
 		{
 			name: "Unmanaged VPC, 2 existing subnets in vpc, 0 subnet in spec, should fail",
-			input: &infrav1.NetworkSpec{
+			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
 				},
 				Subnets: []infrav1.SubnetSpec{},
-			},
+			}),
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
@@ -416,7 +417,7 @@ func TestReconcileSubnets(t *testing.T) {
 		},
 		{
 			name: "Unmanaged VPC, 0 existing subnets in vpc, 2 subnets in spec, should fail",
-			input: &infrav1.NetworkSpec{
+			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
 				},
@@ -432,7 +433,7 @@ func TestReconcileSubnets(t *testing.T) {
 						IsPublic:         true,
 					},
 				},
-			},
+			}),
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
@@ -470,7 +471,7 @@ func TestReconcileSubnets(t *testing.T) {
 		},
 		{
 			name: "Unmanaged VPC, 2 subnets exist, 2 private subnet in spec, should succeed",
-			input: &infrav1.NetworkSpec{
+			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
 				},
@@ -486,7 +487,7 @@ func TestReconcileSubnets(t *testing.T) {
 						IsPublic:         false,
 					},
 				},
-			},
+			}),
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
@@ -571,7 +572,7 @@ func TestReconcileSubnets(t *testing.T) {
 		},
 		{
 			name: "Managed VPC, no subnets exist, 1 private and 1 public subnet in spec, create both",
-			input: &infrav1.NetworkSpec{
+			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
 					Tags: infrav1.Tags{
@@ -590,7 +591,7 @@ func TestReconcileSubnets(t *testing.T) {
 						IsPublic:         true,
 					},
 				},
-			},
+			}),
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				describeCall := m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
@@ -728,7 +729,7 @@ func TestReconcileSubnets(t *testing.T) {
 		},
 		{
 			name: "Managed VPC, no subnets exist, 1 private subnet in spec (no public subnet), should fail",
-			input: &infrav1.NetworkSpec{
+			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
 					Tags: infrav1.Tags{
@@ -742,7 +743,7 @@ func TestReconcileSubnets(t *testing.T) {
 						IsPublic:         false,
 					},
 				},
-			},
+			}),
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
@@ -780,7 +781,7 @@ func TestReconcileSubnets(t *testing.T) {
 		},
 		{
 			name: "Managed VPC, no existing subnets exist, one az, expect one private and one public from default",
-			input: &infrav1.NetworkSpec{
+			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
 					Tags: infrav1.Tags{
@@ -789,7 +790,7 @@ func TestReconcileSubnets(t *testing.T) {
 					CidrBlock: defaultVPCCidr,
 				},
 				Subnets: []infrav1.SubnetSpec{},
-			},
+			}),
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeAvailabilityZones(gomock.Any()).
 					Return(&ec2.DescribeAvailabilityZonesOutput{
@@ -936,7 +937,7 @@ func TestReconcileSubnets(t *testing.T) {
 		},
 		{
 			name: "Managed VPC, no existing subnets exist, two az's, expect two private and two public from default",
-			input: &infrav1.NetworkSpec{
+			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
 					Tags: infrav1.Tags{
@@ -945,7 +946,7 @@ func TestReconcileSubnets(t *testing.T) {
 					CidrBlock: defaultVPCCidr,
 				},
 				Subnets: []infrav1.SubnetSpec{},
-			},
+			}),
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeAvailabilityZones(gomock.Any()).
 					Return(&ec2.DescribeAvailabilityZonesOutput{
@@ -1198,7 +1199,7 @@ func TestReconcileSubnets(t *testing.T) {
 		},
 		{
 			name: "Managed VPC, no existing subnets exist, two az's, max num azs is 1, expect one private and one public from default",
-			input: &infrav1.NetworkSpec{
+			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
 					Tags: infrav1.Tags{
@@ -1209,7 +1210,7 @@ func TestReconcileSubnets(t *testing.T) {
 					AvailabilityZoneSelection:  &infrav1.AZSelectionSchemeOrdered,
 				},
 				Subnets: []infrav1.SubnetSpec{},
-			},
+			}),
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeAvailabilityZones(gomock.Any()).
 					Return(&ec2.DescribeAvailabilityZonesOutput{
@@ -1359,7 +1360,7 @@ func TestReconcileSubnets(t *testing.T) {
 		},
 		{
 			name: "Managed VPC, existing public subnet, 2 subnets in spec, should create 1 subnet",
-			input: &infrav1.NetworkSpec{
+			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
 					Tags: infrav1.Tags{
@@ -1379,7 +1380,7 @@ func TestReconcileSubnets(t *testing.T) {
 						IsPublic:         false,
 					},
 				},
-			},
+			}),
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
@@ -1496,21 +1497,7 @@ func TestReconcileSubnets(t *testing.T) {
 			defer mockCtrl.Finish()
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 
-			scheme := runtime.NewScheme()
-			_ = infrav1.AddToScheme(scheme)
-			client := fake.NewClientBuilder().WithScheme(scheme).Build()
-			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
-				Client: client,
-				Cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
-				},
-				AWSCluster: &infrav1.AWSCluster{
-					ObjectMeta: metav1.ObjectMeta{Name: "test"},
-					Spec: infrav1.AWSClusterSpec{
-						NetworkSpec: *tc.input,
-					},
-				},
-			})
+			scope, err := tc.input.Build()
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
 			}
@@ -1859,4 +1846,55 @@ func TestDeleteSubnets(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Test helpers
+
+type ScopeBuilder interface {
+	Build() (Scope, error)
+}
+
+func NewClusterScope() *ClusterScopeBuilder {
+	return &ClusterScopeBuilder{
+		customizers: []func(p *scope.ClusterScopeParams){},
+	}
+}
+
+type ClusterScopeBuilder struct {
+	customizers []func(p *scope.ClusterScopeParams)
+}
+
+func (b *ClusterScopeBuilder) WithNetwork(n *infrav1.NetworkSpec) *ClusterScopeBuilder {
+
+	b.customizers = append(b.customizers, func(p *scope.ClusterScopeParams) {
+		p.AWSCluster.Spec.NetworkSpec = *n
+	})
+
+	return b
+
+}
+
+func (b *ClusterScopeBuilder) Build() (Scope, error) {
+
+	scheme := runtime.NewScheme()
+	_ = infrav1.AddToScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	param := &scope.ClusterScopeParams{
+		Client: client,
+		Cluster: &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
+		},
+		AWSCluster: &infrav1.AWSCluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "test"},
+			Spec:       infrav1.AWSClusterSpec{},
+		},
+	}
+
+	for _, customizer := range b.customizers {
+		customizer(param)
+	}
+
+	return scope.NewClusterScope(*param)
+
 }
