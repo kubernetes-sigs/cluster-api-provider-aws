@@ -261,7 +261,7 @@ func (s *Service) createNatGateway(subnetID, ip string) (*ec2.NatGateway, error)
 		return nil, errors.Wrapf(err, "failed to wait for nat gateway %q in subnet %q", *out.NatGateway.NatGatewayId, subnetID)
 	}
 
-	s.scope.Info("NAT gateway for subnet is now available", "nat-gateway-id", *out.NatGateway.NatGatewayId, "subnet-id", subnetID)
+	s.scope.Info("Created NAT gateway for subnet", "nat-gateway-id", *out.NatGateway.NatGatewayId, "subnet-id", subnetID)
 	return out.NatGateway, nil
 }
 

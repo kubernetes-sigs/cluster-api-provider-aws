@@ -87,6 +87,7 @@ func (s *Service) reconcileVPC() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create new vpc")
 	}
+	s.scope.Info("Created VPC", "vpc-id", vpc.ID)
 
 	s.scope.VPC().CidrBlock = vpc.CidrBlock
 	s.scope.VPC().Tags = vpc.Tags
@@ -220,7 +221,7 @@ func (s *Service) deleteVPC() error {
 		return errors.Wrapf(err, "failed to delete vpc %q", vpc.ID)
 	}
 
-	s.scope.V(2).Info("Deleted VPC", "vpc-id", vpc.ID)
+	s.scope.Info("Deleted VPC", "vpc-id", vpc.ID)
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulDeleteVPC", "Deleted managed VPC %q", vpc.ID)
 	return nil
 }
