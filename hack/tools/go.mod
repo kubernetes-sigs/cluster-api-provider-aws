@@ -278,5 +278,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
-
-replace sigs.k8s.io/cluster-api/hack/tools => github.com/sbueringer/cluster-api/hack/tools v0.0.0-20211111153850-3b4953a9021d

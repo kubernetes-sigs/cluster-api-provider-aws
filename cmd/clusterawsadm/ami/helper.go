@@ -32,7 +32,10 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
 )
 
-const latestStableReleaseURL = "https://dl.k8s.io/release/stable%s.txt"
+const (
+	latestStableReleaseURL = "https://dl.k8s.io/release/stable%s.txt"
+	tagPrefix              = "v"
+)
 
 func getSupportedOsList() []string {
 	return []string{"centos-7", "ubuntu-18.04", "ubuntu-20.04", "amazon-2"}
@@ -58,27 +61,52 @@ func getimageRegionList() []string {
 	}
 }
 
-func getSupportedKubernetesVersions() ([]string, error) {
-	supportedVersions := make([]string, 0)
-	latestVersion, err := latestStableRelease()
+// getSupportedKubernetesVersions returns all possible k8s versions till last nth kubernetes release.
+func getSupportedKubernetesVersions(lastNReleases int) ([]string, error) {
+	currentVersion, err := latestStableRelease()
 	if err != nil {
 		return nil, err
 	}
 
-	supportedVersions = append(supportedVersions, latestVersion)
-	nMinusOne, err := kubernetesversions.PreviousMinorRelease(latestVersion)
+	versionPatches, err := allPatchesForVersion(currentVersion)
 	if err != nil {
 		return nil, err
 	}
-	supportedVersions = append(supportedVersions, nMinusOne)
 
-	nMinusTwo, err := kubernetesversions.PreviousMinorRelease(nMinusOne)
+	versionPatches = append(versionPatches, currentVersion)
+
+	for lastNReleases != 0 {
+		currentVersion, err = kubernetesversions.PreviousMinorRelease(currentVersion)
+		if err != nil {
+			return nil, err
+		}
+
+		currentVersionPatches, err := allPatchesForVersion(currentVersion)
+		if err != nil {
+			return nil, err
+		}
+
+		versionPatches = append(versionPatches, currentVersion)
+		versionPatches = append(versionPatches, currentVersionPatches...)
+
+		lastNReleases--
+	}
+	return versionPatches, nil
+}
+
+// allPatchesForVersion return all patches for a given version starting with given minor release.
+func allPatchesForVersion(latestVersion string) ([]string, error) {
+	semVer, err := semver.Make(strings.TrimPrefix(latestVersion, tagPrefix))
 	if err != nil {
 		return nil, err
 	}
-	supportedVersions = append(supportedVersions, nMinusTwo)
-
-	return supportedVersions, nil
+	patchVersions := make([]string, 0)
+	versionStr := fmt.Sprintf("%s%d.%d", tagPrefix, semVer.Major, semVer.Minor)
+	for semVer.Patch != 0 {
+		semVer.Patch--
+		patchVersions = append(patchVersions, fmt.Sprintf("%s.%d", versionStr, semVer.Patch))
+	}
+	return patchVersions, nil
 }
 
 // latestStableRelease fetches the latest stable Kubernetes version
@@ -176,7 +204,7 @@ func findAMI(imagesMap map[string][]*ec2.Image, baseOS, kubernetesVersion string
 		return nil, errors.Wrapf(err, "failed to process ami format: %q", amiNameFormat)
 	}
 
-	if val, ok := imagesMap[amiName]; ok {
+	if val, ok := imagesMap[amiName]; ok && val != nil {
 		latestImage, err := ec2service.GetLatestImage(val)
 		if err != nil {
 			return nil, err
@@ -184,5 +212,5 @@ func findAMI(imagesMap map[string][]*ec2.Image, baseOS, kubernetesVersion string
 		return latestImage, nil
 	}
 
-	return nil, errors.Errorf("failed to find ami %s", amiName)
+	return nil, nil
 }

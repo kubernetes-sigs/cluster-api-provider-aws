@@ -1345,8 +1345,6 @@ github.com/saschagrunert/ccli v1.0.2-0.20200423111659-b68f755cc0f5/go.mod h1:nF6
 github.com/saschagrunert/go-modiff v1.3.0 h1:K/CJGaWH8poLrg/NpNQzHU60T/FiFtgZl2w8JhZequA=
 github.com/saschagrunert/go-modiff v1.3.0/go.mod h1:SSVmjiafeH2c1ITdPSmVDJ4/plhYJteb2VytMaD5/ZE=
 github.com/satori/go.uuid v1.2.0/go.mod h1:dA0hQrYB0VpLJoorglMZABFdXlWrHn1NEOzdhQKdks0=
-github.com/sbueringer/cluster-api/hack/tools v0.0.0-20211111153850-3b4953a9021d h1:X4Jq69BedTGvRAQkpKi3H5SLQm+oWen8EESr1q3kocc=
-github.com/sbueringer/cluster-api/hack/tools v0.0.0-20211111153850-3b4953a9021d/go.mod h1:Bib3nYZoRjwPdZ1+X1MVRWcQL18dJ4q2U+Ok603lcAE=
 github.com/sclevine/spec v1.4.0/go.mod h1:LvpgJaFyvQzRvc1kaDs0bulYwzC70PbiYjC4QnFHkOM=
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
 github.com/seccomp/libseccomp-golang v0.9.1/go.mod h1:GbW5+tmTXfcxTToHLXlScSlAvWlF4P2Ca7zGrPiEpWo=
@@ -2405,6 +2403,8 @@ rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.14/go.mod h1:LEScyzhFmoF5pso/YSeBstl57mOzx9xlU9n85RGrDQg=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.15/go.mod h1:LEScyzhFmoF5pso/YSeBstl57mOzx9xlU9n85RGrDQg=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.23/go.mod h1:LEScyzhFmoF5pso/YSeBstl57mOzx9xlU9n85RGrDQg=
+sigs.k8s.io/cluster-api/hack/tools v0.0.0-20211111175208-4cc2fce2111a h1:VrYPmq0nN1VQuhid22yD9Z5Hn+M6p/N0f0dCkuM5C2s=
+sigs.k8s.io/cluster-api/hack/tools v0.0.0-20211111175208-4cc2fce2111a/go.mod h1:Bib3nYZoRjwPdZ1+X1MVRWcQL18dJ4q2U+Ok603lcAE=
 sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20211110210527-619e6b92dab9/go.mod h1:+sJcI1F0QI0Cv+8fp5rH5B2fK1LxzrAQqYnaPx9nY8I=
 sigs.k8s.io/controller-tools v0.7.1-0.20211110210727-ab52f76cc7d1 h1:fsnXNyvliKAKkcOZ5l9gGinGqjGM8eKKT+4TW/LoI7A=
 sigs.k8s.io/controller-tools v0.7.1-0.20211110210727-ab52f76cc7d1/go.mod h1:h59umkqeBKj3TNpLmLoqDCwXDcbN+mkhQzlNjoUDJ3I=
