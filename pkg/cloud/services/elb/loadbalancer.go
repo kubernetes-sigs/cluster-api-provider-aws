@@ -179,7 +179,7 @@ func (s *Service) deleteAPIServerELB() error {
 	}
 
 	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
-	s.scope.V(2).Info("Deleting control plane load balancer completed successfully")
+	s.scope.Info("Deleted control plane load balancer", "name", elbName)
 	return nil
 }
 
@@ -213,7 +213,6 @@ func (s *Service) deleteAWSCloudProviderELBs() error {
 		return errors.Wrapf(err, "failed to wait for %q load balancer deletions", s.scope.Name())
 	}
 
-	s.scope.V(2).Info("Deleting AWS cloud provider load balancer(s) completed successfully")
 	return nil
 }
 
@@ -539,7 +538,7 @@ func (s *Service) createClassicELB(spec *infrav1.ClassicELB) (*infrav1.ClassicEL
 		}
 	}
 
-	s.scope.V(2).Info("Created classic load balancer", "dns-name", *out.DNSName)
+	s.scope.Info("Created classic load balancer", "dns-name", *out.DNSName)
 
 	res := spec.DeepCopy()
 	res.DNSName = *out.DNSName
@@ -582,6 +581,8 @@ func (s *Service) deleteClassicELB(name string) error {
 	if _, err := s.ELBClient.DeleteLoadBalancer(input); err != nil {
 		return err
 	}
+
+	s.scope.Info("Deleted AWS cloud provider load balancers")
 	return nil
 }
 

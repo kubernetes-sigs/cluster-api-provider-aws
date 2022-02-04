@@ -101,7 +101,7 @@ func (s *Service) deleteInternetGateways() error {
 		}
 
 		record.Eventf(s.scope.InfraCluster(), "SuccessfulDetachInternetGateway", "Detached Internet Gateway %q from VPC %q", *ig.InternetGatewayId, s.scope.VPC().ID)
-		s.scope.Info("Detached internet gateway from VPC", "internet-gateway-id", *ig.InternetGatewayId, "vpc-id", s.scope.VPC().ID)
+		s.scope.V(2).Info("Detached internet gateway from VPC", "internet-gateway-id", *ig.InternetGatewayId, "vpc-id", s.scope.VPC().ID)
 
 		deleteReq := &ec2.DeleteInternetGatewayInput{
 			InternetGatewayId: ig.InternetGatewayId,
@@ -113,7 +113,7 @@ func (s *Service) deleteInternetGateways() error {
 		}
 
 		record.Eventf(s.scope.InfraCluster(), "SuccessfulDeleteInternetGateway", "Deleted Internet Gateway %q previously attached to VPC %q", *ig.InternetGatewayId, s.scope.VPC().ID)
-		s.scope.Info("Deleted internet gateway in VPC", "internet-gateway-id", *ig.InternetGatewayId, "vpc-id", s.scope.VPC().ID)
+		s.scope.Info("Deleted Internet gateway in VPC", "internet-gateway-id", *ig.InternetGatewayId, "vpc-id", s.scope.VPC().ID)
 	}
 
 	return nil
@@ -130,7 +130,7 @@ func (s *Service) createInternetGateway() (*ec2.InternetGateway, error) {
 		return nil, errors.Wrap(err, "failed to create internet gateway")
 	}
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateInternetGateway", "Created new managed Internet Gateway %q", *ig.InternetGateway.InternetGatewayId)
-	s.scope.Info("Created internet gateway for VPC", "vpc-id", s.scope.VPC().ID)
+	s.scope.Info("Created Internet gateway for VPC", "internet-gateway-id", *ig.InternetGateway.InternetGatewayId, "vpc-id", s.scope.VPC().ID)
 
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		if _, err := s.EC2Client.AttachInternetGateway(&ec2.AttachInternetGatewayInput{
@@ -145,7 +145,7 @@ func (s *Service) createInternetGateway() (*ec2.InternetGateway, error) {
 		return nil, errors.Wrapf(err, "failed to attach internet gateway %q to vpc %q", *ig.InternetGateway.InternetGatewayId, s.scope.VPC().ID)
 	}
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulAttachInternetGateway", "Internet Gateway %q attached to VPC %q", *ig.InternetGateway.InternetGatewayId, s.scope.VPC().ID)
-	s.scope.Info("attached internet gateway to VPC", "internet-gateway-id", *ig.InternetGateway.InternetGatewayId, "vpc-id", s.scope.VPC().ID)
+	s.scope.V(2).Info("attached internet gateway to VPC", "internet-gateway-id", *ig.InternetGateway.InternetGatewayId, "vpc-id", s.scope.VPC().ID)
 
 	return ig.InternetGateway, nil
 }

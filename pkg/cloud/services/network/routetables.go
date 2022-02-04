@@ -192,7 +192,7 @@ func (s *Service) deleteRouteTables() error {
 			}
 
 			record.Eventf(s.scope.InfraCluster(), "SuccessfulDisassociateRouteTable", "Disassociated managed RouteTable %q from subnet %q", *rt.RouteTableId, *as.SubnetId)
-			s.scope.Info("Deleted association between route table and subnet", "route-table-id", *rt.RouteTableId, "subnet-id", *as.SubnetId)
+			s.scope.V(2).Info("Deleted association between route table and subnet", "route-table-id", *rt.RouteTableId, "subnet-id", *as.SubnetId)
 		}
 
 		if _, err := s.EC2Client.DeleteRouteTable(&ec2.DeleteRouteTableInput{RouteTableId: rt.RouteTableId}); err != nil {
@@ -237,6 +237,7 @@ func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool,
 		return nil, errors.Wrapf(err, "failed to create route table in vpc %q", s.scope.VPC().ID)
 	}
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateRouteTable", "Created managed RouteTable %q", *out.RouteTable.RouteTableId)
+	s.scope.Info("Created route table", "route-table-id", *out.RouteTable.RouteTableId)
 
 	for i := range routes {
 		route := routes[i]

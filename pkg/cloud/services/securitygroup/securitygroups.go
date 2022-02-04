@@ -108,7 +108,6 @@ func (s *Service) ReconcileSecurityGroups() error {
 				ID:   *sg.GroupId,
 				Name: *sg.GroupName,
 			}
-			s.scope.V(2).Info("Created security group for role", "role", role, "security-group", s.scope.SecurityGroups()[role])
 			continue
 		}
 
@@ -304,7 +303,7 @@ func (s *Service) deleteSecurityGroup(sg *infrav1.SecurityGroup, typ string) err
 	}
 
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulDeleteSecurityGroup", "Deleted %s SecurityGroup %q", typ, sg.ID)
-	s.scope.V(2).Info("Deleted security group", "security-group-id", sg.ID, "kind", typ)
+	s.scope.Info("Deleted security group", "security-group-id", sg.ID, "kind", typ)
 
 	return nil
 }
@@ -379,6 +378,7 @@ func (s *Service) createSecurityGroup(role infrav1.SecurityGroupRole, input *ec2
 	}
 
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateSecurityGroup", "Created managed SecurityGroup %q for Role %q", aws.StringValue(out.GroupId), role)
+	s.scope.Info("Created security group for role", "security-group", aws.StringValue(out.GroupId), "role", role)
 
 	// Set the group id.
 	input.GroupId = out.GroupId
