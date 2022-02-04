@@ -14,7 +14,7 @@
 # For more details, run `go run ./cmd/clusterawsadm bootstrap credentials`
 
 images:
-  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller:v0.3.21
+  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller:v0.3.25
     loadBehavior: tryLoad
   # Use local dev images built source tree;
   - name: gcr.io/k8s-staging-cluster-api/capa-manager:e2e
@@ -35,9 +35,9 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v0.3.21
+      - name: v0.3.25
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.21/core-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.25/core-components.yaml"
         type: "url"
         replacements:
           - old: "imagePullPolicy: Always"
