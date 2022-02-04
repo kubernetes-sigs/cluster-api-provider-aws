@@ -1,4 +1,6 @@
 resources:
   - ../base
+  - ../addons/cni/cluster-resource-set-cni.yaml
 patchesStrategicMerge:
   - patches/awsmachinetemplate.yaml
+  - ../patches/cluster-cni.yaml
