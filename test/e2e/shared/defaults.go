@@ -56,6 +56,7 @@ const (
 	KCPScaleInFlavor             = "kcp-scale-in"
 	StorageClassOutTreeZoneLabel = "topology.ebs.csi.aws.com/zone"
 	GPUFlavor                    = "gpu"
+	CustomAMI                    = "custom-ami"
 	InstanceVcpu                 = "AWS_MACHINE_TYPE_VCPU_USAGE"
 )
 

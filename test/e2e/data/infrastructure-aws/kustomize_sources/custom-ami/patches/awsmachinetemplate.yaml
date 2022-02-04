@@ -1,0 +1,9 @@
+kind: AWSMachineTemplate
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  template:
+    spec:
+      ami:
+        id: ami-0acbb55c4f3ae116c
