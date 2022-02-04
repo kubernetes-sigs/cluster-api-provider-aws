@@ -557,7 +557,6 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				Namespace:   namespace.Name,
 			})
 			Expect(len(workerMachines)).To(Equal(1))
-			assertSpotInstanceType(*workerMachines[0].Spec.ProviderID)
 			Expect(len(controlPlaneMachines)).To(Equal(1))
 		})
 	})
