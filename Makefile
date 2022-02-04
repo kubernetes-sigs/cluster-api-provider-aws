@@ -31,6 +31,7 @@ GH_ORG_NAME ?= kubernetes-sigs
 GH_REPO_NAME ?= cluster-api-provider-aws
 GH_REPO ?= $(GH_ORG_NAME)/$(GH_REPO_NAME)
 TEST_E2E_DIR := test/e2e
+BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 
 # Files
 E2E_DATA_DIR ?= $(REPO_ROOT)/test/e2e/data
@@ -466,7 +467,7 @@ release-manifests:
 
 .PHONY: release-changelog
 release-changelog: $(RELEASE_NOTES) check-release-tag check-previous-release-tag check-github-token $(RELEASE_DIR) ## Builds the changelog for a release
-	$(RELEASE_NOTES) --debug --org $(GH_ORG_NAME) --repo $(GH_REPO_NAME) --start-sha $(shell git rev-list -n 1 ${PREVIOUS_VERSION}) --end-sha $(shell git rev-list -n 1 ${RELEASE_TAG}) --output $(RELEASE_DIR)/CHANGELOG.md --go-template go-template:$(REPO_ROOT)/hack/changelog.tpl --dependencies=false --branch=release-0.6
+	$(RELEASE_NOTES) --debug --org $(GH_ORG_NAME) --repo $(GH_REPO_NAME) --start-sha $(shell git rev-list -n 1 ${PREVIOUS_VERSION}) --end-sha $(shell git rev-list -n 1 ${RELEASE_TAG}) --output $(RELEASE_DIR)/CHANGELOG.md --go-template go-template:$(REPO_ROOT)/hack/changelog.tpl --dependencies=false --branch=$(BRANCH)
 
 .PHONY: release-binaries
 release-binaries: ## Builds the binaries to publish with a release
