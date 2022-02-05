@@ -1492,16 +1492,18 @@ func TestReconcileSubnets(t *testing.T) {
 		},
 		{
 			name: "With ManagedControlPlaneScope, Managed VPC, no existing subnets exist, two az's, expect two private and two public from default, created with tag including eksClusterName not a name of Cluster resource",
-			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
-				VPC: infrav1.VPCSpec{
-					ID: subnetsVPCID,
-					Tags: infrav1.Tags{
-						infrav1.ClusterTagKey("test-cluster"): "owned",
+			input: NewManagedControlPlaneScope().
+				WithEKSClusterName("test-eks-cluster").
+				WithNetwork(&infrav1.NetworkSpec{
+					VPC: infrav1.VPCSpec{
+						ID: subnetsVPCID,
+						Tags: infrav1.Tags{
+							infrav1.ClusterTagKey("test-cluster"): "owned",
+						},
+						CidrBlock: defaultVPCCidr,
 					},
-					CidrBlock: defaultVPCCidr,
-				},
-				Subnets: []infrav1.SubnetSpec{},
-			}),
+					Subnets: []infrav1.SubnetSpec{},
+				}),
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeAvailabilityZones(gomock.Any()).
 					Return(&ec2.DescribeAvailabilityZonesOutput{
@@ -2194,6 +2196,7 @@ func (b *ManagedControlPlaneScopeBuilder) Build() (Scope, error) {
 
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
+	_ = ekscontrolplanev1.AddToScheme(scheme)
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	param := &scope.ManagedControlPlaneScopeParams{
