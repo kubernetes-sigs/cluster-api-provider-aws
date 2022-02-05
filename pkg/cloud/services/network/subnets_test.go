@@ -41,7 +41,6 @@ const (
 )
 
 func TestReconcileSubnets(t *testing.T) {
-
 	testCases := []struct {
 		name          string
 		input         ScopeBuilder
@@ -2130,17 +2129,14 @@ type ClusterScopeBuilder struct {
 }
 
 func (b *ClusterScopeBuilder) WithNetwork(n *infrav1.NetworkSpec) *ClusterScopeBuilder {
-
 	b.customizers = append(b.customizers, func(p *scope.ClusterScopeParams) {
 		p.AWSCluster.Spec.NetworkSpec = *n
 	})
 
 	return b
-
 }
 
 func (b *ClusterScopeBuilder) Build() (Scope, error) {
-
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
@@ -2161,7 +2157,6 @@ func (b *ClusterScopeBuilder) Build() (Scope, error) {
 	}
 
 	return scope.NewClusterScope(*param)
-
 }
 
 func NewManagedControlPlaneScope() *ManagedControlPlaneScopeBuilder {
@@ -2175,7 +2170,6 @@ type ManagedControlPlaneScopeBuilder struct {
 }
 
 func (b *ManagedControlPlaneScopeBuilder) WithNetwork(n *infrav1.NetworkSpec) *ManagedControlPlaneScopeBuilder {
-
 	b.customizers = append(b.customizers, func(p *scope.ManagedControlPlaneScopeParams) {
 		p.ControlPlane.Spec.NetworkSpec = *n
 	})
@@ -2184,7 +2178,6 @@ func (b *ManagedControlPlaneScopeBuilder) WithNetwork(n *infrav1.NetworkSpec) *M
 }
 
 func (b *ManagedControlPlaneScopeBuilder) WithEKSClusterName(name string) *ManagedControlPlaneScopeBuilder {
-
 	b.customizers = append(b.customizers, func(p *scope.ManagedControlPlaneScopeParams) {
 		p.ControlPlane.Spec.EKSClusterName = name
 	})
@@ -2193,7 +2186,6 @@ func (b *ManagedControlPlaneScopeBuilder) WithEKSClusterName(name string) *Manag
 }
 
 func (b *ManagedControlPlaneScopeBuilder) Build() (Scope, error) {
-
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
 	_ = ekscontrolplanev1.AddToScheme(scheme)
@@ -2215,5 +2207,4 @@ func (b *ManagedControlPlaneScopeBuilder) Build() (Scope, error) {
 	}
 
 	return scope.NewManagedControlPlaneScope(*param)
-
 }
