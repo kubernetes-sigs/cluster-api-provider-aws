@@ -57,6 +57,7 @@ const (
 	StorageClassOutTreeZoneLabel = "topology.ebs.csi.aws.com/zone"
 	GPUFlavor                    = "gpu"
 	CustomAMI                    = "custom-ami"
+	InternalELB                  = "internal-elb"
 	InstanceVcpu                 = "AWS_MACHINE_TYPE_VCPU_USAGE"
 )
 

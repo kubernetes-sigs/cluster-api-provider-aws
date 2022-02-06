@@ -560,4 +560,36 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			Expect(len(controlPlaneMachines)).To(Equal(1))
 		})
 	})
+
+	ginkgo.Describe("Create a cluster using an internal ELB", func() {
+		ginkgo.It("Should be creatable and surface an internal IP", func() {
+			specName := "functional-test-internal-elb"
+			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
+			requiredResources.WriteRequestedResources(e2eCtx, specName)
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
+			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
+			ginkgo.By("Creating a cluster")
+			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
+			configCluster := defaultConfigCluster(clusterName, namespace.Name)
+			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+			configCluster.Flavor = shared.InternalELB
+			_, md, _ := createCluster(ctx, configCluster, result)
+
+			// workerMachines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
+			// 	Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			// 	ClusterName:       clusterName,
+			// 	Namespace:         namespace.Name,
+			// 	MachineDeployment: *md[0],
+			// })
+			controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
+				Lister:      e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				ClusterName: clusterName,
+				Namespace:   namespace.Name,
+			})
+			Expect(len(workerMachines)).To(Equal(1))
+			Expect(len(controlPlaneMachines)).To(Equal(1))
+		})
+	})
 })

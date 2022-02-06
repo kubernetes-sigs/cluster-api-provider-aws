@@ -225,6 +225,7 @@ providers:
           - sourcePath: "./infrastructure-aws/generated/cluster-template-gpu.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-upgrades.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-custom-ami.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-internal-elb.yaml"
           - sourcePath: "./infrastructure-aws/kustomize_sources/topology/clusterclass-quick-start.yaml"
           - sourcePath: "./shared/v1beta1_provider/metadata.yaml"
         replacements:
