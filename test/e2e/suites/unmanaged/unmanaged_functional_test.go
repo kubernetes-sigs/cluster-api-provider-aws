@@ -575,20 +575,14 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
 			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
 			configCluster.Flavor = shared.InternalELB
-			_, md, _ := createCluster(ctx, configCluster, result)
+			createCluster(ctx, configCluster, result)
 
-			// workerMachines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
-			// 	Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-			// 	ClusterName:       clusterName,
-			// 	Namespace:         namespace.Name,
-			// 	MachineDeployment: *md[0],
-			// })
 			controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
 				Lister:      e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 				ClusterName: clusterName,
 				Namespace:   namespace.Name,
 			})
-			Expect(len(workerMachines)).To(Equal(1))
+
 			Expect(len(controlPlaneMachines)).To(Equal(1))
 		})
 	})
