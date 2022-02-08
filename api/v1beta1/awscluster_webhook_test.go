@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -83,6 +84,20 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{Scheme: &unsupportedIncorrectScheme},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Invalid tags are rejected",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					AdditionalTags: Tags{
+						"key-1":                    "value-1",
+						"":                         "value-2",
+						strings.Repeat("CAPI", 33): "value-3",
+						"key-4":                    strings.Repeat("CAPI", 65),
+					},
 				},
 			},
 			wantErr: true,
@@ -326,6 +341,28 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 				Spec: AWSClusterSpec{
 					NetworkSpec: NetworkSpec{
 						VPC: VPCSpec{ID: "a-new-vpc"},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid keys are not accepted during update",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					AdditionalTags: Tags{
+						"key-1": "value-1",
+						"key-2": "value-2",
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					AdditionalTags: Tags{
+						"key-1":                    "value-1",
+						"":                         "value-2",
+						strings.Repeat("CAPI", 33): "value-3",
+						"key-4":                    strings.Repeat("CAPI", 65),
 					},
 				},
 			},
