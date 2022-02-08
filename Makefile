@@ -47,6 +47,7 @@ GO_APIDIFF := $(TOOLS_BIN_DIR)/go-apidiff
 CLUSTERCTL := $(BIN_DIR)/clusterctl
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
 CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
+CONVERSION_VERIFIER := $(TOOLS_BIN_DIR)/conversion-verifier
 DEFAULTER_GEN := $(TOOLS_BIN_DIR)/defaulter-gen
 ENVSUBST := $(TOOLS_BIN_DIR)/envsubst
 GH := $(TOOLS_BIN_DIR)/gh
@@ -591,7 +592,7 @@ clean-release: ## Remove the release folder
 	rm -rf $(RELEASE_DIR)
 
 .PHONY: verify
-verify: verify-boilerplate verify-modules verify-gen release-manifests
+verify: verify-boilerplate verify-modules verify-gen verify-conversions release-manifests
 
 .PHONY: verify-boilerplate
 verify-boilerplate:
@@ -604,6 +605,11 @@ verify-modules: modules
 		git diff; \
 		echo "go module files are out of date"; exit 1; \
 	fi
+
+.PHONY: verify-conversions
+verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion are in place
+	echo verification of api conversions initiated
+	$(CONVERSION_VERIFIER)
 
 verify-gen: generate
 	@if !(git diff --quiet HEAD); then \

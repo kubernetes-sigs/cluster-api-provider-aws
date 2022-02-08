@@ -1,3 +1,4 @@
+//go:build tools
 // +build tools
 
 /*
@@ -21,6 +22,7 @@ package tools
 
 import (
 	_ "embed"
+
 	_ "github.com/a8m/envsubst"
 	_ "github.com/ahmetb/gen-crd-api-reference-docs"
 	_ "github.com/golang/mock/mockgen"
@@ -31,6 +33,7 @@ import (
 	_ "k8s.io/code-generator"
 	_ "k8s.io/code-generator/cmd/conversion-gen"
 	_ "k8s.io/release/cmd/release-notes"
+	_ "sigs.k8s.io/cluster-api/hack/tools/conversion-verifier"
 	_ "sigs.k8s.io/cluster-api/hack/tools/mdbook/embed"
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
 	_ "sigs.k8s.io/kind"
