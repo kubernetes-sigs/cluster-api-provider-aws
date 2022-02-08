@@ -76,6 +76,10 @@ CONVERSION_GEN := $(BIN_DIR)/conversion-gen
 $(CONVERSION_GEN): $(BIN_DIR) go.mod go.sum $(call rwildcard,.,third_party/conversion-gen/*.*)
 	go build -tags=tools -o $@ ./third_party/conversion-gen
 
+CONVERSION_VERIFIER := $(BIN_DIR)/conversion-verifier
+$(CONVERSION_VERIFIER): $(BIN_DIR) go.mod go.sum
+	go build -tags=tools -o $@ sigs.k8s.io/cluster-api/hack/tools/conversion-verifier
+
 DEFAULTER_GEN := $(BIN_DIR)/defaulter-gen
 $(DEFAULTER_GEN): $(BIN_DIR) go.mod go.sum
 	go build -tags=tools -o $@ k8s.io/code-generator/cmd/defaulter-gen
