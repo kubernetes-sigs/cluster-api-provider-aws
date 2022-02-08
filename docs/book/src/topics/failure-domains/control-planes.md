@@ -1,12 +1,47 @@
-# Multi-AZ Control Plane
-
-## Overview
+# Failure domains in control-plane nodes
 
 By default, the control plane of a workload cluster created by CAPA will span multiple availability zones (AZs) (also referred to as "failure domains") when using multiple control plane nodes. This is because CAPA will, by default, create public and private subnets in all the AZs of a region (up to a maximum of 3 AZs by default). If a region has more than 3 AZs then CAPA will pick 3 AZs to use.
 
 ## Configuring CAPA to Use Specific AZs
 
-To explicitly instruct CAPA to create resources in specific AZs (and not by random), users can add a `network` object to the AWSCluster specification. Here is an example `network` that creates resources across three AZs in the "us-west-2" region:
+The Cluster API controller will look for the **FailureDomain** status field and will set the **FailureDomain** field in a `Machine` if a value hasn't already been explicitly set. It will try to ensure that the machines are spread across all the failure domains.
+
+The `AWSMachine` controller looks for a failure domain (i.e. Availability Zone) first in the `Machine` before checking in the `network` specification of `AWSMachine`. This failure domain is then used when provisioning the `AWSMachine`.
+
+### Using FailureDomain in Machine/MachineDeployment spec
+
+To control the placement of `AWSMachine` into a failure domain (i.e. Availability Zones), we can explicitly state the failure domain in `Machine`. The best way is to specify this using the **FailureDomain** field within the `Machine` (or `MachineDeployment`) spec.
+
+For example:
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Machine
+metadata:
+  labels:
+    cluster.x-k8s.io/cluster-name: my-cluster
+    cluster.x-k8s.io/control-plane: "true"
+  name: controlplane-0
+  namespace: default
+spec:
+  version: "v1.22.1"
+  clusterName: my-cluster
+  failureDomain: "1"
+  bootstrap:
+    configRef:
+        apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+        kind: KubeadmConfigTemplate
+        name: my-cluster-md-0
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: AWSMachineTemplate
+    name: my-cluster-md-0
+```
+>**IMPORTANT WARNING:** All the replicas within a `MachineDeployment` will reside in the same Availability Zone.
+
+### Using FailureDomain in network object of AWSMachine
+
+Another way to explicitly instruct CAPA to create resources in specific AZs (and not by random), users can add a `network` object to the AWSCluster specification. Here is an example `network` that creates resources across three AZs in the "us-west-2" region:
 
 ```yaml
 spec:
@@ -31,13 +66,15 @@ spec:
       cidrBlock: 10.50.80.0/20
 ```
 
+> Note: This method can also be used with worker nodes as well.
+
 Specifying the CIDR block alone for the VPC is not enough; users must also supply a list of subnets that provides the desired AZ, the CIDR for the subnet, and whether the subnet is public (has a route to an Internet gateway) or is private (does not have a route to an Internet gateway).
 
 Note that CAPA insists that there must be a public subnet (and associated Internet gateway), even if no public load balancer is requested for the control plane. Therefore, for every AZ where a control plane node should be placed, the `network` object must define both a public and private subnet.
 
 Once CAPA is provided with a `network` that spans multiple AZs, the KubeadmControlPlane controller will automatically distribute control plane nodes across multiple AZs. No further configuration from the user is required.
 
-> Note: this method can also be used if you do not want to split your EC2 instance across multiple AZs.
+> Note: This method can also be used if you do not want to split your EC2 instances across multiple AZs.
 
 ## Changing AZ defaults
 
