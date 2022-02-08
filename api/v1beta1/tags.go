@@ -21,6 +21,7 @@ import (
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -70,6 +71,32 @@ func (t Tags) Merge(other Tags) {
 	for k, v := range other {
 		t[k] = v
 	}
+}
+
+// Validate checks if tags are valid for the AWS API. Keys must have at
+// least 1 character and max 128. Values must be max 256 characters long.
+func (t Tags) Validate() []*field.Error {
+	var errs field.ErrorList
+
+	for k, v := range t {
+		if len(k) < 1 {
+			errs = append(errs,
+				field.Invalid(field.NewPath("spec", "additionalTags"), k, "key cannot be empty"),
+			)
+		}
+		if len(k) > 128 {
+			errs = append(errs,
+				field.Invalid(field.NewPath("spec", "additionalTags"), k, "key cannot be longer than 128 characters"),
+			)
+		}
+		if len(v) > 256 {
+			errs = append(errs,
+				field.Invalid(field.NewPath("spec", "additionalTags"), v, "value cannot be longer than 256 characters"),
+			)
+		}
+	}
+
+	return errs
 }
 
 // ResourceLifecycle configures the lifecycle of a resource.

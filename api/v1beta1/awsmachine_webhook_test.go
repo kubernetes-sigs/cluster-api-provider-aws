@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -200,6 +201,19 @@ func TestAWSMachine_Create(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "valid additional tags are accepted",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					AdditionalTags: Tags{
+						"key-1": "value-1",
+						"key-2": "value-2",
+					},
+					InstanceType: "test",
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "empty instance type not allowed",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
@@ -213,6 +227,21 @@ func TestAWSMachine_Create(t *testing.T) {
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
 					InstanceType: "t",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid tags return error",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					AdditionalTags: Tags{
+						"key-1":                    "value-1",
+						"":                         "value-2",
+						strings.Repeat("CAPI", 33): "value-3",
+						"key-4":                    strings.Repeat("CAPI", 65),
+					},
+					InstanceType: "test",
 				},
 			},
 			wantErr: true,
@@ -294,6 +323,33 @@ func TestAWSMachine_Update(t *testing.T) {
 							ID: pointer.StringPtr("ID"),
 						},
 					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change in tags adding invalid ones",
+			oldMachine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					ProviderID: nil,
+					AdditionalTags: Tags{
+						"key-1": "value-1",
+					},
+					AdditionalSecurityGroups: nil,
+					InstanceType:             "test",
+				},
+			},
+			newMachine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					ProviderID: nil,
+					AdditionalTags: Tags{
+						"key-1":                    "value-1",
+						"":                         "value-2",
+						strings.Repeat("CAPI", 33): "value-3",
+						"key-4":                    strings.Repeat("CAPI", 65),
+					},
+					AdditionalSecurityGroups: nil,
+					InstanceType:             "test",
 				},
 			},
 			wantErr: true,

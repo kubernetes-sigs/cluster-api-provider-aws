@@ -110,6 +110,8 @@ func (r *AWSManagedMachinePool) ValidateCreate() error {
 		allErrs = append(allErrs, errs...)
 	}
 
+	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
+
 	if len(allErrs) == 0 {
 		return nil
 	}
@@ -133,6 +135,7 @@ func (r *AWSManagedMachinePool) ValidateUpdate(old runtime.Object) error {
 
 	var allErrs field.ErrorList
 	allErrs = append(allErrs, r.validateImmutable(oldPool)...)
+	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
 	if errs := r.validateScaling(); errs != nil || len(errs) == 0 {
 		allErrs = append(allErrs, errs...)

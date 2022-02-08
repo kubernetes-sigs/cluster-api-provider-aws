@@ -17,11 +17,13 @@ limitations under the License.
 package v1beta1
 
 import (
+	"strings"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
@@ -31,4 +33,114 @@ func TestAWSMachinePoolDefault(t *testing.T) {
 	m.Default()
 	g := NewWithT(t)
 	g.Expect(m.Spec.DefaultCoolDown.Duration).To(BeNumerically(">=", 0))
+}
+
+func TestAWSMachinePool_ValidateCreate(t *testing.T) {
+	g := NewWithT(t)
+
+	tests := []struct {
+		name    string
+		pool    *AWSMachinePool
+		wantErr bool
+	}{
+		{
+			name: "pool with valid tags is accepted",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AdditionalTags: infrav1.Tags{
+						"key-1": "value-1",
+						"key-2": "value-2",
+					},
+				},
+			},
+
+			wantErr: false,
+		},
+		{
+			name: "invalid tags are rejected",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AdditionalTags: infrav1.Tags{
+						"key-1":                    "value-1",
+						"":                         "value-2",
+						strings.Repeat("CAPI", 33): "value-3",
+						"key-4":                    strings.Repeat("CAPI", 65),
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.pool.ValidateCreate()
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).To(Succeed())
+			}
+		})
+	}
+}
+
+func TestAWSMachinePool_ValidateUpdate(t *testing.T) {
+	g := NewWithT(t)
+
+	tests := []struct {
+		name    string
+		new     *AWSMachinePool
+		old     *AWSMachinePool
+		wantErr bool
+	}{
+		{
+			name: "adding tags is accepted",
+			old: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AdditionalTags: infrav1.Tags{
+						"key-1": "value-1",
+					},
+				},
+			},
+			new: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AdditionalTags: infrav1.Tags{
+						"key-1": "value-1",
+						"key-2": "value-2",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "adding invalid tags is rejected",
+			old: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AdditionalTags: infrav1.Tags{
+						"key-1": "value-1",
+					},
+				},
+			},
+			new: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AdditionalTags: infrav1.Tags{
+						"key-1":                    "value-1",
+						"":                         "value-2",
+						strings.Repeat("CAPI", 33): "value-3",
+						"key-4":                    strings.Repeat("CAPI", 65),
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.new.ValidateUpdate(tt.old.DeepCopy())
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).To(Succeed())
+			}
+		})
+	}
 }
