@@ -699,6 +699,5 @@ func ingressRulesFromSDKType(v *ec2.IpPermission) (res infrav1.IngressRules) {
 		}
 		res = append(res, r2)
 	}
-
 	return res
 }
