@@ -45,13 +45,23 @@ const (
 )
 
 const (
-	// EKSNodegroupReadyCondition condition reports on the successful reconciliation of eks control plane.
+	// EKSNodegroupReadyCondition reports on the successful reconciliation of EKS node group.
 	EKSNodegroupReadyCondition clusterv1.ConditionType = "EKSNodegroupReady"
-	// EKSNodegroupReconciliationFailedReason used to report failures while reconciling EKS control plane.
+	// EKSNodegroupUpdateSucceededCondition reports on whether the EKS node group update has succeeded.
+	EKSNodegroupUpdateSucceededCondition clusterv1.ConditionType = "EKSNodegroupUpdateSucceeded"
+	// EKSNodegroupReconciliationFailedReason used to report failures while reconciling EKS node group.
 	EKSNodegroupReconciliationFailedReason = "EKSNodegroupReconciliationFailed"
 	// WaitingForEKSControlPlaneReason used when the machine pool is waiting for
 	// EKS control plane infrastructure to be ready before proceeding.
 	WaitingForEKSControlPlaneReason = "WaitingForEKSControlPlane"
+	// EKSNodegroupCreatingReason is used to report that the EKS node group is currently being created.
+	EKSNodegroupCreatingReason = "Creating"
+	// EKSNodegroupUpdatingReason is used to report that the EKS node group is currently being updated.
+	EKSNodegroupUpdatingReason = "Updating"
+	// EKSNodegroupFailedToCreateReason is used to report that the EKS node group has failed to create.
+	EKSNodegroupFailedToCreateReason = "FailedToCreate"
+	// EKSNodegroupFailedToUpdateReason is used to report that the EKS node group has failed to update.
+	EKSNodegroupFailedToUpdateReason = "FailedToUpdate"
 )
 
 const (

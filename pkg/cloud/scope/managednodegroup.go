@@ -242,6 +242,7 @@ func (s *ManagedMachinePoolScope) PatchObject() error {
 		s.ManagedMachinePool,
 		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 			expinfrav1.EKSNodegroupReadyCondition,
+			expinfrav1.EKSNodegroupUpdateSucceededCondition,
 			expinfrav1.IAMNodegroupRolesReadyCondition,
 		}})
 }

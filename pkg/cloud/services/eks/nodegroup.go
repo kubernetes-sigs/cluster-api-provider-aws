@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func (s *NodegroupService) describeNodegroup() (*eks.Nodegroup, error) {
@@ -337,6 +338,13 @@ func (s *NodegroupService) reconcileNodegroupVersion(ng *eks.Nodegroup) error {
 			updateMsg = fmt.Sprintf("to AMI version %s", *input.ReleaseVersion)
 		}
 
+		conditions.MarkFalse(
+			s.scope.ManagedMachinePool,
+			expinfrav1.EKSNodegroupUpdateSucceededCondition,
+			expinfrav1.EKSNodegroupUpdatingReason,
+			clusterv1.ConditionSeverityInfo,
+			"",
+		)
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 			if _, err := s.EKSClient.UpdateNodegroupVersion(input); err != nil {
 				if aerr, ok := err.(awserr.Error); ok {
@@ -344,10 +352,21 @@ func (s *NodegroupService) reconcileNodegroupVersion(ng *eks.Nodegroup) error {
 				}
 				return false, err
 			}
-			record.Eventf(s.scope.ManagedMachinePool, "SuccessfulUpdateEKSNodegroup", "Updated EKS nodegroup %s %s", eksClusterName, updateMsg)
+			record.Eventf(s.scope.ManagedMachinePool, "UpdatingEKSNodegroup", "Updating EKS nodegroup %s %s", eksClusterName, updateMsg)
 			return true, nil
 		}); err != nil {
-			record.Warnf(s.scope.ManagedMachinePool, "FailedUpdateEKSNodegroup", "failed to update the EKS nodegroup %s %s: %v", eksClusterName, updateMsg, err)
+			errorMessage := "failed to update the EKS nodegroup %s %s: %v"
+			record.Warnf(s.scope.ManagedMachinePool, "FailedUpdateEKSNodegroup", errorMessage, eksClusterName, updateMsg, err)
+			conditions.MarkFalse(
+				s.scope.ManagedMachinePool,
+				expinfrav1.EKSNodegroupUpdateSucceededCondition,
+				expinfrav1.EKSNodegroupFailedToUpdateReason,
+				clusterv1.ConditionSeverityError,
+				errorMessage,
+				eksClusterName,
+				updateMsg,
+				err,
+			)
 			return errors.Wrapf(err, "failed to update EKS nodegroup")
 		}
 	}
@@ -460,8 +479,23 @@ func (s *NodegroupService) reconcileNodegroupConfig(ng *eks.Nodegroup) error {
 		return errors.Wrap(err, "created invalid UpdateNodegroupConfigInput")
 	}
 
+	conditions.MarkFalse(
+		s.scope.ManagedMachinePool,
+		expinfrav1.EKSNodegroupUpdateSucceededCondition,
+		expinfrav1.EKSNodegroupUpdatingReason,
+		clusterv1.ConditionSeverityInfo,
+		"",
+	)
 	_, err = s.EKSClient.UpdateNodegroupConfig(input)
 	if err != nil {
+		conditions.MarkFalse(
+			s.scope.ManagedMachinePool,
+			expinfrav1.EKSNodegroupUpdateSucceededCondition,
+			expinfrav1.EKSNodegroupFailedToUpdateReason,
+			clusterv1.ConditionSeverityError,
+			"failed to update nodegroup config: %v",
+			err,
+		)
 		return errors.Wrap(err, "failed to update nodegroup config")
 	}
 
@@ -475,8 +509,23 @@ func (s *NodegroupService) reconcileNodegroup() error {
 	}
 
 	if eksClusterName, eksNodegroupName := s.scope.KubernetesClusterName(), s.scope.NodegroupName(); ng == nil {
+		conditions.MarkFalse(
+			s.scope.ManagedMachinePool,
+			expinfrav1.EKSNodegroupReadyCondition,
+			expinfrav1.EKSNodegroupCreatingReason,
+			clusterv1.ConditionSeverityInfo,
+			"",
+		)
 		ng, err = s.createNodegroup()
 		if err != nil {
+			conditions.MarkFalse(
+				s.scope.ManagedMachinePool,
+				expinfrav1.EKSNodegroupReadyCondition,
+				expinfrav1.EKSNodegroupFailedToCreateReason,
+				clusterv1.ConditionSeverityError,
+				"failed to create nodegroup: %v",
+				err,
+			)
 			return errors.Wrap(err, "failed to create nodegroup")
 		}
 		s.scope.Info("Created EKS nodegroup in AWS", "cluster-name", eksClusterName, "nodegroup-name", eksNodegroupName)
@@ -496,12 +545,12 @@ func (s *NodegroupService) reconcileNodegroup() error {
 	switch *ng.Status {
 	case eks.NodegroupStatusCreating, eks.NodegroupStatusUpdating:
 		ng, err = s.waitForNodegroupActive()
+		if err != nil {
+			return errors.Wrap(err, "failed to wait for nodegroup to be active")
+		}
+		s.markReadyAndUpdateConditionsTrue()
 	default:
 		break
-	}
-
-	if err != nil {
-		return errors.Wrap(err, "failed to wait for nodegroup to be active")
 	}
 
 	if err := s.reconcileNodegroupVersion(ng); err != nil {
@@ -598,4 +647,20 @@ func (s *NodegroupService) waitForNodegroupActive() (*eks.Nodegroup, error) {
 	}
 
 	return ng, nil
+}
+
+// markReadyAndUpdateConditionsTrue sets the EKSNodegroupReadyCondition to true, and if an update was in progress,
+// it also sets the EKSNodegroupUpdateSucceededCondition to true.
+func (s *NodegroupService) markReadyAndUpdateConditionsTrue() {
+	conditions.MarkTrue(s.scope.ManagedMachinePool, expinfrav1.EKSNodegroupReadyCondition)
+	if s.isNodegroupConditionUpdating() {
+		conditions.MarkTrue(s.scope.ManagedMachinePool, expinfrav1.EKSNodegroupUpdateSucceededCondition)
+	}
+}
+
+// isNodegroupConditionUpdating checks if the node group is currently in an updating condition (i.e. an update
+// was previously initiated).
+func (s *NodegroupService) isNodegroupConditionUpdating() bool {
+	return conditions.IsFalse(s.scope.ManagedMachinePool, expinfrav1.EKSNodegroupUpdateSucceededCondition) &&
+		conditions.GetReason(s.scope.ManagedMachinePool, expinfrav1.EKSNodegroupUpdateSucceededCondition) == expinfrav1.EKSNodegroupUpdatingReason
 }
