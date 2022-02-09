@@ -54,6 +54,7 @@ func (r *AWSCluster) ValidateCreate() error {
 
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
 	allErrs = append(allErrs, r.validateSSHKeyName()...)
+	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
@@ -152,6 +153,7 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 	}
 
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
+	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }

@@ -17,11 +17,13 @@ limitations under the License.
 package v1beta1
 
 import (
+	"strings"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
@@ -58,6 +60,14 @@ func TestAWSFargateProfileValidateRoleNameUpdate(t *testing.T) {
 
 	invalidRoleNameUpdate := before.DeepCopy()
 	invalidRoleNameUpdate.Spec.RoleName = "invalid-role-name"
+
+	invalidTagsUpdate := before.DeepCopy()
+	invalidTagsUpdate.Spec.AdditionalTags = infrav1.Tags{
+		"key-1":                    "value-1",
+		"":                         "value-2",
+		strings.Repeat("CAPI", 33): "value-3",
+		"key-4":                    strings.Repeat("CAPI", 65),
+	}
 
 	defaultRoleNameUpdate := before.DeepCopy()
 	defaultRoleNameUpdate.Spec.RoleName = DefaultEKSFargateRole
@@ -98,12 +108,78 @@ func TestAWSFargateProfileValidateRoleNameUpdate(t *testing.T) {
 			before:         beforeWithDifferentRoleName,
 			fargateProfile: validRoleNameUpdate,
 		},
+		{
+			name:           "update tags should fail when invalid tags are present",
+			expectErr:      true,
+			before:         before,
+			fargateProfile: invalidTagsUpdate,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.fargateProfile.ValidateUpdate(tt.before.DeepCopy())
 			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).To(Succeed())
+			}
+		})
+	}
+}
+
+func TestAWSFargateProfile_ValidateCreate(t *testing.T) {
+	g := NewWithT(t)
+
+	tests := []struct {
+		name    string
+		profile *AWSFargateProfile
+		wantErr bool
+	}{
+		{
+			name: "profile with name is accepted",
+			profile: &AWSFargateProfile{
+				Spec: FargateProfileSpec{
+					ClusterName: "cluster-1",
+				},
+			},
+
+			wantErr: false,
+		},
+		{
+			name: "profile with valid tags is accepted",
+			profile: &AWSFargateProfile{
+				Spec: FargateProfileSpec{
+					ClusterName: "cluster-1",
+					AdditionalTags: infrav1.Tags{
+						"key-1": "value-1",
+						"key-2": "value-2",
+					},
+				},
+			},
+
+			wantErr: false,
+		},
+		{
+			name: "invalid tags are rejected",
+			profile: &AWSFargateProfile{
+				Spec: FargateProfileSpec{
+					ClusterName: "cluster-2",
+					AdditionalTags: infrav1.Tags{
+						"key-1":                    "value-1",
+						"":                         "value-2",
+						strings.Repeat("CAPI", 33): "value-3",
+						"key-4":                    strings.Repeat("CAPI", 65),
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.profile.ValidateCreate()
+			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).To(Succeed())

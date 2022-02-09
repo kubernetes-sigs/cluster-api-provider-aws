@@ -18,7 +18,11 @@ package v1beta1
 
 import (
 	"reflect"
+	"sort"
+	"strings"
 	"testing"
+
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 func TestTags_Merge(t *testing.T) {
@@ -159,5 +163,141 @@ func TestTags_Difference(t *testing.T) {
 				t.Errorf("expected %#v, got %#v", e, a)
 			}
 		})
+	}
+}
+
+func TestTags_Validate(t *testing.T) {
+	tests := []struct {
+		name     string
+		self     Tags
+		expected []*field.Error
+	}{
+		{
+			name: "no errors",
+			self: Tags{
+				"validKey": "validValue",
+			},
+			expected: nil,
+		},
+		{
+			name: "key cannot be empty",
+			self: Tags{
+				"": "validValue",
+			},
+			expected: []*field.Error{
+				{
+					Type:     field.ErrorTypeInvalid,
+					Detail:   "key cannot be empty",
+					Field:    "spec.additionalTags",
+					BadValue: "",
+				},
+			},
+		},
+		{
+			name: "key cannot be empty - second element",
+			self: Tags{
+				"validKey": "validValue",
+				"":         "secondValidValue",
+			},
+			expected: []*field.Error{
+				{
+					Type:     field.ErrorTypeInvalid,
+					Detail:   "key cannot be empty",
+					Field:    "spec.additionalTags",
+					BadValue: "",
+				},
+			},
+		},
+		{
+			name: "key with 128 characters is accepted",
+			self: Tags{
+				strings.Repeat("CAPI", 32): "validValue",
+			},
+			expected: nil,
+		},
+		{
+			name: "key too long",
+			self: Tags{
+				strings.Repeat("CAPI", 33): "validValue",
+			},
+			expected: []*field.Error{
+				{
+					Type:     field.ErrorTypeInvalid,
+					Detail:   "key cannot be longer than 128 characters",
+					Field:    "spec.additionalTags",
+					BadValue: strings.Repeat("CAPI", 33),
+				},
+			},
+		},
+		{
+			name: "value too long",
+			self: Tags{
+				"validKey": strings.Repeat("CAPI", 65),
+			},
+			expected: []*field.Error{
+				{
+					Type:     field.ErrorTypeInvalid,
+					Detail:   "value cannot be longer than 256 characters",
+					Field:    "spec.additionalTags",
+					BadValue: strings.Repeat("CAPI", 65),
+				},
+			},
+		},
+		{
+			name: "multiple errors are appended",
+			self: Tags{
+				"validKey":                 strings.Repeat("CAPI", 65),
+				strings.Repeat("CAPI", 33): "validValue",
+				"":                         "thirdValidValue",
+			},
+			expected: []*field.Error{
+				{
+					Type:     field.ErrorTypeInvalid,
+					Detail:   "value cannot be longer than 256 characters",
+					Field:    "spec.additionalTags",
+					BadValue: strings.Repeat("CAPI", 65),
+				},
+				{
+					Type:     field.ErrorTypeInvalid,
+					Detail:   "key cannot be longer than 128 characters",
+					Field:    "spec.additionalTags",
+					BadValue: strings.Repeat("CAPI", 33),
+				},
+				{
+					Type:     field.ErrorTypeInvalid,
+					Detail:   "key cannot be empty",
+					Field:    "spec.additionalTags",
+					BadValue: "",
+				},
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			out := tc.self.Validate()
+			sort.Slice(out, getSortFieldErrorsFunc(out))
+			sort.Slice(tc.expected, getSortFieldErrorsFunc(tc.expected))
+
+			if !reflect.DeepEqual(out, tc.expected) {
+				t.Errorf("expected %+v, got %+v", tc.expected, out)
+			}
+		})
+	}
+}
+
+func getSortFieldErrorsFunc(errs []*field.Error) func(i, j int) bool {
+	return func(i, j int) bool {
+		if errs[i].Detail != errs[j].Detail {
+			return errs[i].Detail < errs[j].Detail
+		}
+		iBV, ok := errs[i].BadValue.(string)
+		if !ok {
+			panic("unexpected error converting BadValue to string")
+		}
+		jBV, ok := errs[j].BadValue.(string)
+		if !ok {
+			panic("unexpected error converting BadValue to string")
+		}
+		return iBV < jBV
 	}
 }
