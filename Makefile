@@ -592,7 +592,7 @@ clean-release: ## Remove the release folder
 	rm -rf $(RELEASE_DIR)
 
 .PHONY: verify
-verify: verify-boilerplate verify-modules verify-gen verify-conversions release-manifests
+verify: verify-boilerplate verify-modules verify-gen verify-conversions verify-shellcheck release-manifests
 
 .PHONY: verify-boilerplate
 verify-boilerplate:
@@ -610,6 +610,10 @@ verify-modules: modules
 verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion are in place
 	echo verification of api conversions initiated
 	$(CONVERSION_VERIFIER)
+
+.PHONY: verify-shellcheck
+verify-shellcheck: ## Verify shell files
+	./hack/verify-shellcheck.sh
 
 verify-gen: generate
 	@if !(git diff --quiet HEAD); then \
