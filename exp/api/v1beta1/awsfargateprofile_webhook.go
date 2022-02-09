@@ -108,7 +108,8 @@ func (r *AWSFargateProfile) ValidateUpdate(oldObj runtime.Object) error {
 		}
 	}
 
-	// ignore checking additionalTags since they are mutable
+	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
+	// remove additionalTags from equal check since they are mutable
 	old.Spec.AdditionalTags = nil
 	r.Spec.AdditionalTags = nil
 
@@ -132,7 +133,18 @@ func (r *AWSFargateProfile) ValidateUpdate(oldObj runtime.Object) error {
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSFargateProfile) ValidateCreate() error {
-	return nil
+	var allErrs field.ErrorList
+
+	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return apierrors.NewInvalid(
+		r.GroupVersionKind().GroupKind(),
+		r.Name,
+		allErrs,
+	)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.

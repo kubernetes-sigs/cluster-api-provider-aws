@@ -17,10 +17,13 @@ limitations under the License.
 package v1beta1
 
 import (
+	"strings"
 	"testing"
 
+	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
@@ -28,4 +31,154 @@ func TestAWSManagedMachinePoolDefault(t *testing.T) {
 	fargate := &AWSManagedMachinePool{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
 	t.Run("for AWSManagedMachinePool", utildefaulting.DefaultValidateTest(fargate))
 	fargate.Default()
+}
+
+func TestAWSManagedMachinePool_ValidateCreate(t *testing.T) {
+	g := NewWithT(t)
+
+	tests := []struct {
+		name    string
+		pool    *AWSManagedMachinePool
+		wantErr bool
+	}{
+		{
+			name: "pool requires a EKS Node group name",
+			pool: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "",
+				},
+			},
+
+			wantErr: true,
+		},
+		{
+			name: "pool with valid EKS Node group name",
+			pool: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+
+			wantErr: false,
+		},
+		{
+			name: "pool with valid tags is accepted",
+			pool: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-2",
+					AdditionalTags: infrav1.Tags{
+						"key-1": "value-1",
+						"key-2": "value-2",
+					},
+				},
+			},
+
+			wantErr: false,
+		},
+		{
+			name: "invalid tags are rejected",
+			pool: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-3",
+					AdditionalTags: infrav1.Tags{
+						"key-1":                    "value-1",
+						"":                         "value-2",
+						strings.Repeat("CAPI", 33): "value-3",
+						"key-4":                    strings.Repeat("CAPI", 65),
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.pool.ValidateCreate()
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).To(Succeed())
+			}
+		})
+	}
+}
+
+func TestAWSManagedMachinePool_ValidateUpdate(t *testing.T) {
+	g := NewWithT(t)
+
+	tests := []struct {
+		name    string
+		new     *AWSManagedMachinePool
+		old     *AWSManagedMachinePool
+		wantErr bool
+	}{
+		{
+			name: "update EKS node groups name is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-2",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "adding tags is accepted",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					AdditionalTags: infrav1.Tags{
+						"key-1": "value-1",
+					},
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					AdditionalTags: infrav1.Tags{
+						"key-1": "value-1",
+						"key-2": "value-2",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "adding invalid tags is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-3",
+					AdditionalTags: infrav1.Tags{
+						"key-1": "value-1",
+					},
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-3",
+					AdditionalTags: infrav1.Tags{
+						"key-1":                    "value-1",
+						"":                         "value-2",
+						strings.Repeat("CAPI", 33): "value-3",
+						"key-4":                    strings.Repeat("CAPI", 65),
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.new.ValidateUpdate(tt.old.DeepCopy())
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).To(Succeed())
+			}
+		})
+	}
 }

@@ -172,6 +172,7 @@ func TestWebhookCreate(t *testing.T) {
 		eksVersion     string
 		hasAddon       bool
 		disableVPCCNI  bool
+		additionalTags infrav1.Tags
 		secondaryCidr  *string
 	}{
 		{
@@ -180,6 +181,10 @@ func TestWebhookCreate(t *testing.T) {
 			expectError:    false,
 			hasAddon:       false,
 			disableVPCCNI:  false,
+			additionalTags: infrav1.Tags{
+				"a":     "b",
+				"key-2": "value-2",
+			},
 		},
 		{
 			name:           "ekscluster NOT specified",
@@ -237,6 +242,19 @@ func TestWebhookCreate(t *testing.T) {
 			disableVPCCNI:  true,
 			secondaryCidr:  aws.String("100.64.0.0/10"),
 		},
+		{
+			name:           "invalid tags not allowed",
+			eksClusterName: "default_cluster1",
+			expectError:    true,
+			hasAddon:       false,
+			disableVPCCNI:  false,
+			additionalTags: infrav1.Tags{
+				"key-1":                    "value-1",
+				"":                         "value-2",
+				strings.Repeat("CAPI", 33): "value-3",
+				"key-4":                    strings.Repeat("CAPI", 65),
+			},
+		},
 	}
 
 	for _, tc := range tests {
@@ -252,6 +270,7 @@ func TestWebhookCreate(t *testing.T) {
 				Spec: AWSManagedControlPlaneSpec{
 					EKSClusterName: tc.eksClusterName,
 					DisableVPCCNI:  tc.disableVPCCNI,
+					AdditionalTags: tc.additionalTags,
 				},
 			}
 			if tc.eksVersion != "" {
@@ -419,6 +438,22 @@ func TestWebhookUpdate(t *testing.T) {
 				},
 			},
 			expectError: false,
+		},
+		{
+			name: "ekscluster specified, same name, invalid tags",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AdditionalTags: infrav1.Tags{
+					"key-1":                    "value-1",
+					"":                         "value-2",
+					strings.Repeat("CAPI", 33): "value-3",
+					"key-4":                    strings.Repeat("CAPI", 65),
+				},
+			},
+			expectError: true,
 		},
 	}
 
