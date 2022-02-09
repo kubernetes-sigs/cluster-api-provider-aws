@@ -286,7 +286,7 @@ func (s *Service) deleteNatGateway(id string) error {
 			return false, err
 		}
 
-		if len(out.NatGateways) == 0 {
+		if out == nil || len(out.NatGateways) == 0 {
 			return false, errors.New(fmt.Sprintf("no NAT gateway returned for id %q", id))
 		}
 
