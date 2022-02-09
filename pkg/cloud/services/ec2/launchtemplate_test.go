@@ -25,9 +25,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
+	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
@@ -35,7 +34,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const (
@@ -118,23 +116,13 @@ func TestGetLaunchTemplate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-
-			scheme := runtime.NewScheme()
-			_ = infrav1.AddToScheme(scheme)
-			client := fake.NewClientBuilder().WithScheme(scheme).Build()
-			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
-				Client:     client,
-				Cluster:    &clusterv1.Cluster{},
-				AWSCluster: &infrav1.AWSCluster{},
-			})
-			if err != nil {
-				t.Fatalf("Failed to create test context: %v", err)
-			}
-
 			tc.expect(ec2Mock.EXPECT())
 
-			s := NewService(scope)
+			clusterScope := setupClusterScope(g)
+			s := NewService(clusterScope)
 			s.EC2Client = ec2Mock
 
 			launchtemplate, userdatahash, err := s.GetLaunchTemplate(tc.launchTemplateName)
