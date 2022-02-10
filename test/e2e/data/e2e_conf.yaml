@@ -244,9 +244,9 @@ variables:
   # allowing the same e2e config file to be re-used in different Prow jobs e.g. each one with a K8s version permutation.
   # The following Kubernetes versions should be the latest versions with already published kindest/node images.
   # This avoids building node images in the default case which improves the test duration significantly.
-  KUBERNETES_VERSION_MANAGEMENT: "v1.23.0"
-  KUBERNETES_VERSION: "v1.23.0"
-  KUBERNETES_VERSION_UPGRADE_TO: "v1.23.0"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.23.3"
+  KUBERNETES_VERSION: "v1.23.3"
+  KUBERNETES_VERSION_UPGRADE_TO: "v1.23.3"
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.22.4"
   CNI: "../../data/cni/calico.yaml"
   KUBETEST_CONFIGURATION: "../../data/kubetest/conformance.yaml"
@@ -255,7 +255,7 @@ variables:
   AWS_NODE_MACHINE_TYPE: t3.large
   AWS_MACHINE_TYPE_VCPU_USAGE: 2
   AWS_SSH_KEY_NAME: "cluster-api-provider-aws-sigs-k8s-io"
-  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.23.0"
+  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.23.3"
   CONFORMANCE_WORKER_MACHINE_COUNT: "5"
   CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT: "1"
   ETCD_VERSION_UPGRADE_TO: "3.5.1-0"
