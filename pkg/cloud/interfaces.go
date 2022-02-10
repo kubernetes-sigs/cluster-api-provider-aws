@@ -18,11 +18,12 @@ package cloud
 
 import (
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
-	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/logger"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
@@ -69,22 +70,52 @@ type Logger interface {
 	// triggered this log line, if present.
 	Error(err error, msg string, keysAndValues ...interface{})
 
-	// V returns a Logger value for a specific verbosity level, relative to
-	// this Logger.  In other words, V values are additive.  V higher verbosity
-	// level means a log message is less important.  It's illegal to pass a log
-	// level less than zero.
-	V(level int) logr.Logger
+	// Warning logs a warning, with the given message and key/value pairs as context.
+	//
+	// The msg argument should be used to add some constant description to
+	// the log line. The key/value pairs can then be used to add additional
+	// variable information.  The key/value pairs should alternate string
+	// keys and arbitrary values.
+	Warning(msg string, keysAndValues ...interface{})
+
+	// Fatal logs a fatal, unrecoverable error, with the given message and key/value
+	// pairs as context.
+	//
+	// The msg argument should be used to add some constant description to
+	// the log line.The key/value pairs can then be used to add additional
+	// variable information. The key/value pairs should alternate string
+	// keys and arbitrary values.
+	Fatal(msg string, keysAndValues ...interface{})
+
+	// Debug logs a debug message. Additional fields should be provided to
+	// give more context on the debug information. Should only be used for
+	// non-user facing information.
+	//
+	// The msg argument should be used to add some constant description to
+	// the log line.The key/value pairs can then be used to add additional
+	// variable information. The key/value pairs should alternate string
+	// keys and arbitrary values.
+	Debug(msg string, keysAndValues ...interface{})
+
+	// Trace logs an error, with the given message and key/value pairs as context.
+	// Trace should be a non-user facing error log which contains the full trace of
+	// the error including causing function, line number, etc.
+	//
+	// The msg field should be used to add context to any underlying error,
+	// while the `err` field should be used to attach the actual error that
+	// triggered this log line, if present.
+	Trace(err error, msg string, keysAndValues ...interface{})
 
 	// WithValues adds some key-value pairs of context to a logger.
 	// See Info for documentation on how key/value pairs work.
-	WithValues(keysAndValues ...interface{}) logr.Logger
+	WithValues(keysAndValues ...interface{}) *logger.Logger
 
 	// WithName adds a new element to the logger's name.
 	// Successive calls with WithName continue to append
 	// suffixes to the logger's name.  It's strongly recommended
 	// that name segments contain only letters, digits, and hyphens
 	// (see the package documentation for more information).
-	WithName(name string) logr.Logger
+	WithName(name string) *logger.Logger
 }
 
 // ClusterScoper is the interface for a cluster scope.

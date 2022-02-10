@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,6 +28,8 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/logger"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -37,7 +38,7 @@ import (
 // ClusterScopeParams defines the input parameters used to create a new Scope.
 type ClusterScopeParams struct {
 	Client         client.Client
-	Logger         *logr.Logger
+	Logger         *logger.Logger
 	Cluster        *clusterv1.Cluster
 	AWSCluster     *infrav1.AWSCluster
 	ControllerName string
@@ -57,7 +58,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 
 	if params.Logger == nil {
 		log := klogr.New()
-		params.Logger = &log
+		params.Logger = logger.NewWithLogger(log)
 	}
 
 	clusterScope := &ClusterScope{
@@ -87,7 +88,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 
 // ClusterScope defines the basic context for an actuator to operate upon.
 type ClusterScope struct {
-	logr.Logger
+	logger.Logger
 	client      client.Client
 	patchHelper *patch.Helper
 

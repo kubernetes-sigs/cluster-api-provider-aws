@@ -30,21 +30,22 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/identity"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
-	"sigs.k8s.io/cluster-api-provider-aws/util/system"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/identity"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/util/system"
 )
 
 const (
@@ -103,9 +104,9 @@ func sessionForRegion(region string, endpoint []ServiceEndpoint) (*session.Sessi
 	return ns, sl, nil
 }
 
-func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.ClusterScoper, region string, endpoint []ServiceEndpoint, logger logr.Logger) (*session.Session, throttle.ServiceLimiters, error) {
+func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.ClusterScoper, region string, endpoint []ServiceEndpoint, logger logger.Logger) (*session.Session, throttle.ServiceLimiters, error) {
 	log := logger.WithName("identity")
-	log.V(4).Info("Creating an AWS Session")
+	log.Info("Creating an AWS Session")
 
 	resolver := func(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
 		for _, s := range endpoint {
@@ -119,7 +120,7 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Cl
 		return endpoints.DefaultResolver().EndpointFor(service, region, optFns...)
 	}
 
-	providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScoper, log)
+	providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScoper, *log)
 	if err != nil {
 		// could not get providers and retrieve the credentials
 		conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition, infrav1.PrincipalCredentialRetrievalFailedReason, clusterv1.ConditionSeverityError, err.Error())
@@ -250,16 +251,16 @@ func buildProvidersForRef(
 	k8sClient client.Client,
 	clusterScoper cloud.ClusterScoper,
 	ref *infrav1.AWSIdentityReference,
-	log logr.Logger) ([]identity.AWSPrincipalTypeProvider, error) {
+	log logger.Logger) ([]identity.AWSPrincipalTypeProvider, error) {
 	if ref == nil {
-		log.V(4).Info("AWSCluster does not have a IdentityRef specified")
+		log.Warning("AWSCluster does not have a IdentityRef specified")
 		return providers, nil
 	}
 
 	var provider identity.AWSPrincipalTypeProvider
 	identityObjectKey := client.ObjectKey{Name: ref.Name}
-	log = log.WithValues("identityKey", identityObjectKey)
-	log.V(4).Info("Getting identity")
+	log = *log.WithValues("identityKey", identityObjectKey)
+	log.Info("Getting identity")
 
 	switch ref.Kind {
 	case infrav1.ControllerIdentityKind:
@@ -281,7 +282,7 @@ func buildProvidersForRef(
 		if err != nil {
 			return providers, err
 		}
-		log.V(4).Info("Principal retrieved")
+		log.Info("Principal retrieved")
 		canUse, err := isClusterPermittedToUsePrincipal(k8sClient, roleIdentity.Spec.AllowedNamespaces, clusterScoper.Namespace())
 		if err != nil {
 			return providers, err
@@ -402,7 +403,7 @@ func buildAWSClusterControllerIdentity(ctx context.Context, identityObjectKey cl
 	return nil
 }
 
-func getProvidersForCluster(ctx context.Context, k8sClient client.Client, clusterScoper cloud.ClusterScoper, log logr.Logger) ([]identity.AWSPrincipalTypeProvider, error) {
+func getProvidersForCluster(ctx context.Context, k8sClient client.Client, clusterScoper cloud.ClusterScoper, log logger.Logger) ([]identity.AWSPrincipalTypeProvider, error) {
 	providers := make([]identity.AWSPrincipalTypeProvider, 0)
 	providers, err := buildProvidersForRef(ctx, providers, k8sClient, clusterScoper, clusterScoper.IdentityRef(), log)
 	if err != nil {

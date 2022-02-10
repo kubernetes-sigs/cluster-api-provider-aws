@@ -49,6 +49,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/secretsmanager"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ssm"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/logger"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -119,7 +121,7 @@ func (r *AWSMachineReconciler) getSecretService(machineScope *scope.MachineScope
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 
 func (r *AWSMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
-	log := ctrl.LoggerFrom(ctx)
+	log := logger.FromContext(ctx)
 
 	// Fetch the AWSMachine instance.
 	awsMachine := &infrav1.AWSMachine{}
@@ -157,7 +159,7 @@ func (r *AWSMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	log = log.WithValues("cluster", cluster.Name)
 
-	infraCluster, err := r.getInfraCluster(ctx, log, cluster, awsMachine)
+	infraCluster, err := r.getInfraCluster(ctx, *log, cluster, awsMachine)
 	if err != nil {
 		return ctrl.Result{}, errors.New("error getting infra provider cluster or control plane object")
 	}
@@ -804,7 +806,7 @@ func (r *AWSMachineReconciler) requestsForCluster(log logr.Logger, namespace, na
 	return result
 }
 
-func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log logr.Logger, cluster *clusterv1.Cluster, awsMachine *infrav1.AWSMachine) (scope.EC2Scope, error) {
+func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log logger.Logger, cluster *clusterv1.Cluster, awsMachine *infrav1.AWSMachine) (scope.EC2Scope, error) {
 	var clusterScope *scope.ClusterScope
 	var managedControlPlaneScope *scope.ManagedControlPlaneScope
 	var err error

@@ -23,7 +23,6 @@ import (
 
 	amazoncni "github.com/aws/amazon-vpc-cni-k8s/pkg/apis/crd/v1alpha1"
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -35,6 +34,8 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/logger"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -53,7 +54,7 @@ func init() {
 // ManagedControlPlaneScopeParams defines the input parameters used to create a new Scope.
 type ManagedControlPlaneScopeParams struct {
 	Client         client.Client
-	Logger         *logr.Logger
+	Logger         *logger.Logger
 	Cluster        *clusterv1.Cluster
 	ControlPlane   *ekscontrolplanev1.AWSManagedControlPlane
 	ControllerName string
@@ -75,11 +76,11 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 	}
 	if params.Logger == nil {
 		log := klogr.New()
-		params.Logger = &log
+		params.Logger = logger.NewWithLogger(log)
 	}
 
 	managedScope := &ManagedControlPlaneScope{
-		Logger:               *params.Logger,
+		Logger:               params.Logger,
 		Client:               params.Client,
 		Cluster:              params.Cluster,
 		ControlPlane:         params.ControlPlane,
@@ -109,7 +110,7 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 
 // ManagedControlPlaneScope defines the basic context for an actuator to operate upon.
 type ManagedControlPlaneScope struct {
-	logr.Logger
+	*logger.Logger
 	Client      client.Client
 	patchHelper *patch.Helper
 

@@ -43,6 +43,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/iamauth"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/network"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/securitygroup"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/logger"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -75,13 +77,13 @@ type AWSManagedControlPlaneReconciler struct {
 
 // SetupWithManager is used to setup the controller.
 func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	log := ctrl.LoggerFrom(ctx)
+	log := logger.LoggerFrom(ctx)
 
 	awsManagedControlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(awsManagedControlPlane).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log.Logger(), r.WatchFilterValue)).
 		Build(r)
 
 	if err != nil {
@@ -91,7 +93,7 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context,
 	if err = c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(awsManagedControlPlane.GroupVersionKind())),
-		predicates.ClusterUnpausedAndInfrastructureReady(log),
+		predicates.ClusterUnpausedAndInfrastructureReady(log.Logger()),
 	); err != nil {
 		return fmt.Errorf("failed adding a watch for ready clusters: %w", err)
 	}
