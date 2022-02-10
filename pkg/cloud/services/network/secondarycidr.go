@@ -17,11 +17,17 @@ limitations under the License.
 package network
 
 import (
+	"reflect"
+
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
+
+func isVPCPresent(vpcs *ec2.DescribeVpcsOutput) bool {
+	return vpcs != nil && len(vpcs.Vpcs) > 0
+}
 
 func (s *Service) associateSecondaryCidr() error {
 	if s.scope.SecondaryCidrBlock() == nil {
@@ -35,8 +41,8 @@ func (s *Service) associateSecondaryCidr() error {
 		return err
 	}
 
-	if len(vpcs.Vpcs) != 1 {
-		return errors.Errorf("VPC not found")
+	if !isVPCPresent(vpcs) {
+		return errors.Errorf("failed to associateSecondaryCidr as there are no VPCs present")
 	}
 
 	existingAssociations := vpcs.Vpcs[0].CidrBlockAssociationSet
@@ -55,6 +61,7 @@ func (s *Service) associateSecondaryCidr() error {
 		return err
 	}
 
+	// once IPv6 is supported, we need to modify out.CidrBlockAssociation.AssociationId to out.Ipv6CidrBlockAssociation.AssociationId
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulAssociateSecondaryCidr", "Associated secondary CIDR with VPC %q", *out.CidrBlockAssociation.AssociationId)
 
 	return nil
@@ -72,17 +79,16 @@ func (s *Service) disassociateSecondaryCidr() error {
 		return err
 	}
 
-	if len(vpcs.Vpcs) != 1 {
-		return errors.Errorf("VPC not found")
+	if !isVPCPresent(vpcs) {
+		return errors.Errorf("failed to associateSecondaryCidr as there are no VPCs present")
 	}
 
 	existingAssociations := vpcs.Vpcs[0].CidrBlockAssociationSet
 	for _, existing := range existingAssociations {
-		if existing.CidrBlock == s.scope.SecondaryCidrBlock() {
-			_, err := s.EC2Client.DisassociateVpcCidrBlock(&ec2.DisassociateVpcCidrBlockInput{
+		if reflect.DeepEqual(existing.CidrBlock, s.scope.SecondaryCidrBlock()) {
+			if _, err := s.EC2Client.DisassociateVpcCidrBlock(&ec2.DisassociateVpcCidrBlockInput{
 				AssociationId: existing.AssociationId,
-			})
-			if err != nil {
+			}); err != nil {
 				record.Warnf(s.scope.InfraCluster(), "FailedDisassociateSecondaryCidr", "Failed disassociating secondary CIDR with VPC %v", err)
 				return err
 			}
