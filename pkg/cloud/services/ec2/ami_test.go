@@ -39,6 +39,7 @@ func Test_DefaultAMILookup(t *testing.T) {
 	type args struct {
 		ownerID           string
 		baseOS            string
+		architecture      string
 		kubernetesVersion string
 		amiNameFormat     string
 	}
@@ -54,6 +55,7 @@ func Test_DefaultAMILookup(t *testing.T) {
 			args: args{
 				ownerID:           "ownerID",
 				baseOS:            "baseOS",
+				architecture:      "x86_64",
 				kubernetesVersion: "v1.0.0",
 				amiNameFormat:     "ami-name",
 			},
@@ -112,7 +114,7 @@ func Test_DefaultAMILookup(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock.EXPECT())
 
-			img, err := DefaultAMILookup(ec2Mock, tc.args.ownerID, tc.args.baseOS, tc.args.kubernetesVersion, tc.args.amiNameFormat)
+			img, err := DefaultAMILookup(ec2Mock, tc.args.ownerID, tc.args.baseOS, tc.args.architecture, tc.args.kubernetesVersion, tc.args.amiNameFormat)
 			tc.check(g, img, err)
 		})
 	}
@@ -198,7 +200,7 @@ func TestAMIs(t *testing.T) {
 			s := NewService(clusterScope)
 			s.EC2Client = ec2Mock
 
-			id, err := s.defaultAMIIDLookup("", "", "base os-baseos version", "v1.11.1")
+			id, err := s.defaultAMIIDLookup("", "", "base os-baseos version", "x86_64", "v1.11.1")
 			tc.check(g, id, err)
 		})
 	}
@@ -384,6 +386,7 @@ func TestEKSAMILookUp(t *testing.T) {
 	tests := []struct {
 		name       string
 		k8sVersion string
+		arch       string
 		amiType    *infrav1.EKSAMILookupType
 		expect     func(m *mock_ssmiface.MockSSMAPIMockRecorder)
 		want       string
@@ -392,6 +395,7 @@ func TestEKSAMILookUp(t *testing.T) {
 		{
 			name:       "Should return an id corresponding to GPU if GPU based AMI type passed",
 			k8sVersion: "v1.23.3",
+			arch:       "x86_64",
 			amiType:    &gpuAMI,
 			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
 				m.GetParameter(gomock.Eq(&ssm.GetParameterInput{
@@ -408,6 +412,7 @@ func TestEKSAMILookUp(t *testing.T) {
 		{
 			name:       "Should return an id not corresponding to GPU if AMI type is default",
 			k8sVersion: "v1.23.3",
+			arch:       "x86_64",
 			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
 				m.GetParameter(gomock.Eq(&ssm.GetParameterInput{
 					Name: aws.String("/aws/service/eks/optimized-ami/1.23/amazon-linux-2/recommended/image_id"),
@@ -423,6 +428,7 @@ func TestEKSAMILookUp(t *testing.T) {
 		{
 			name:       "Should return an error if GetParameter call fails with some AWS error",
 			k8sVersion: "v1.23.3",
+			arch:       "x86_64",
 			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
 				m.GetParameter(gomock.Eq(&ssm.GetParameterInput{
 					Name: aws.String("/aws/service/eks/optimized-ami/1.23/amazon-linux-2/recommended/image_id"),
@@ -433,11 +439,13 @@ func TestEKSAMILookUp(t *testing.T) {
 		{
 			name:       "Should return an error if invalid Kubernetes version passed",
 			k8sVersion: "__$__",
+			arch:       "x86_64",
 			wantErr:    true,
 		},
 		{
 			name:       "Should return an error if no SSM parameter found",
 			k8sVersion: "v1.23.3",
+			arch:       "x86_64",
 			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
 				m.GetParameter(gomock.Eq(&ssm.GetParameterInput{
 					Name: aws.String("/aws/service/eks/optimized-ami/1.23/amazon-linux-2/recommended/image_id"),
@@ -465,7 +473,7 @@ func TestEKSAMILookUp(t *testing.T) {
 			s := NewService(clusterScope)
 			s.SSMClient = ssmMock
 
-			got, err := s.eksAMILookup(tt.k8sVersion, tt.amiType)
+			got, err := s.eksAMILookup(tt.k8sVersion, tt.arch, tt.amiType)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

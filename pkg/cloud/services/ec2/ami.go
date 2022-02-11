@@ -65,6 +65,9 @@ const (
 	// EKS AMI ID SSM Parameter name.
 	eksAmiSSMParameterFormat = "/aws/service/eks/optimized-ami/%s/amazon-linux-2/recommended/image_id"
 
+	// EKS ARM64 AMI ID SSM Parameter name.
+	eksARM64AmiSSMParameterFormat = "/aws/service/eks/optimized-ami/%s/amazon-linux-2-arm64/recommended/image_id"
+
 	// EKS GPU AMI ID SSM Parameter name.
 	eksGPUAmiSSMParameterFormat = "/aws/service/eks/optimized-ami/%s/amazon-linux-2-gpu/recommended/image_id"
 )
@@ -94,8 +97,51 @@ func GenerateAmiName(amiNameFormat, baseOS, kubernetesVersion string) (string, e
 	return templateBytes.String(), nil
 }
 
+func containsArch(archList []*string, arch string) bool {
+	for _, item := range archList {
+		if *item == arch {
+			return true
+		}
+	}
+	return false
+}
+
+// Determine architecture based on instance type.
+func (s *Service) pickArchitectureForInstanceType(instanceType string) (string, error) {
+	descInstanceTypeInput := &ec2.DescribeInstanceTypesInput{
+		InstanceTypes: []*string{&instanceType},
+	}
+	describeInstanceTypeResult, err := s.EC2Client.DescribeInstanceTypes(descInstanceTypeInput)
+	if err != nil {
+		return "", err
+	}
+
+	supportedArchs := describeInstanceTypeResult.InstanceTypes[0].ProcessorInfo.SupportedArchitectures
+
+	logger := s.scope.V(2).WithValues("instance type", instanceType, "supported architectures", supportedArchs)
+	logger.Info("Obtained a list of supported architectures for instance type")
+
+	architecture := ""
+	switch len(supportedArchs) {
+	case 1:
+		architecture = *(supportedArchs[0])
+	case 2:
+		if containsArch(supportedArchs, "x86_64") && containsArch(supportedArchs, "i386") {
+			architecture = "x86_64"
+		}
+	}
+
+	if architecture == "" {
+		return "", fmt.Errorf("cannot choose preferred architeture for instance type %q", instanceType)
+	}
+
+	logger.Info("Chosen architecture", "architecture", architecture)
+
+	return architecture, nil
+}
+
 // DefaultAMILookup will do a default AMI lookup.
-func DefaultAMILookup(ec2Client ec2iface.EC2API, ownerID, baseOS, kubernetesVersion, amiNameFormat string) (*ec2.Image, error) {
+func DefaultAMILookup(ec2Client ec2iface.EC2API, ownerID, baseOS, architecture, kubernetesVersion, amiNameFormat string) (*ec2.Image, error) {
 	if amiNameFormat == "" {
 		amiNameFormat = DefaultAmiNameFormat
 	}
@@ -122,7 +168,7 @@ func DefaultAMILookup(ec2Client ec2iface.EC2API, ownerID, baseOS, kubernetesVers
 			},
 			{
 				Name:   aws.String("architecture"),
-				Values: []*string{aws.String("x86_64")},
+				Values: []*string{aws.String(architecture)},
 			},
 			{
 				Name:   aws.String("state"),
@@ -151,10 +197,10 @@ func DefaultAMILookup(ec2Client ec2iface.EC2API, ownerID, baseOS, kubernetesVers
 }
 
 // defaultAMIIDLookup returns the default AMI based on region.
-func (s *Service) defaultAMIIDLookup(amiNameFormat, ownerID, baseOS, kubernetesVersion string) (string, error) {
-	latestImage, err := DefaultAMILookup(s.EC2Client, ownerID, baseOS, kubernetesVersion, amiNameFormat)
+func (s *Service) defaultAMIIDLookup(amiNameFormat, ownerID, baseOS, architecture, kubernetesVersion string) (string, error) {
+	latestImage, err := DefaultAMILookup(s.EC2Client, ownerID, baseOS, architecture, kubernetesVersion, amiNameFormat)
 	if err != nil {
-		record.Eventf(s.scope.InfraCluster(), "FailedDescribeImages", "Failed to find ami for OS=%s and Kubernetes-version=%s: %v", baseOS, kubernetesVersion, err)
+		record.Eventf(s.scope.InfraCluster(), "FailedDescribeImages", "Failed to find ami for OS=%s, Architecture=%s and Kubernetes-version=%s: %v", baseOS, architecture, kubernetesVersion, err)
 		return "", errors.Wrapf(err, "failed to find ami")
 	}
 
@@ -234,7 +280,7 @@ func (s *Service) defaultBastionAMILookup() (string, error) {
 	return *latestImage.ImageId, nil
 }
 
-func (s *Service) eksAMILookup(kubernetesVersion string, amiType *infrav1.EKSAMILookupType) (string, error) {
+func (s *Service) eksAMILookup(kubernetesVersion, architecture string, amiType *infrav1.EKSAMILookupType) (string, error) {
 	// format ssm parameter path properly
 	formattedVersion, err := formatVersionForEKS(kubernetesVersion)
 	if err != nil {
@@ -251,7 +297,14 @@ func (s *Service) eksAMILookup(kubernetesVersion string, amiType *infrav1.EKSAMI
 	case infrav1.AmazonLinuxGPU:
 		paramName = fmt.Sprintf(eksGPUAmiSSMParameterFormat, formattedVersion)
 	default:
-		paramName = fmt.Sprintf(eksAmiSSMParameterFormat, formattedVersion)
+		switch architecture {
+		case "arm64":
+			paramName = fmt.Sprintf(eksARM64AmiSSMParameterFormat, formattedVersion)
+		case "x86_64":
+			paramName = fmt.Sprintf(eksAmiSSMParameterFormat, formattedVersion)
+		default:
+			return "", errors.Errorf("cannot look up eks-optimized image for architecture %q", architecture)
+		}
 	}
 
 	input := &ssm.GetParameterInput{

@@ -132,6 +132,12 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 	}.WithCloudProvider(s.scope.KubernetesClusterName()).WithMachineName(scope.Machine))
 
 	var err error
+
+	imageArchitecture, err := s.pickArchitectureForInstanceType(input.Type)
+	if err != nil {
+		return nil, err
+	}
+
 	// Pick image from the machine configuration, or use a default one.
 	if scope.AWSMachine.Spec.AMI.ID != nil { // nolint:nestif
 		input.ImageID = *scope.AWSMachine.Spec.AMI.ID
@@ -159,12 +165,12 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 		}
 
 		if scope.IsEKSManaged() && imageLookupFormat == "" && imageLookupOrg == "" && imageLookupBaseOS == "" {
-			input.ImageID, err = s.eksAMILookup(*scope.Machine.Spec.Version, scope.AWSMachine.Spec.AMI.EKSOptimizedLookupType)
+			input.ImageID, err = s.eksAMILookup(*scope.Machine.Spec.Version, imageArchitecture, scope.AWSMachine.Spec.AMI.EKSOptimizedLookupType)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			input.ImageID, err = s.defaultAMIIDLookup(imageLookupFormat, imageLookupOrg, imageLookupBaseOS, *scope.Machine.Spec.Version)
+			input.ImageID, err = s.defaultAMIIDLookup(imageLookupFormat, imageLookupOrg, imageLookupBaseOS, imageArchitecture, *scope.Machine.Spec.Version)
 			if err != nil {
 				return nil, err
 			}
