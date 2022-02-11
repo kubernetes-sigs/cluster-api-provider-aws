@@ -18,6 +18,7 @@ package controllers
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -28,6 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
@@ -90,6 +92,16 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 		awsCluster := getAWSCluster("test", ns.Name)
 
 		g.Expect(testEnv.Create(ctx, &awsCluster)).To(Succeed())
+		g.Eventually(func() bool {
+			cluster := &infrav1.AWSCluster{}
+			key := client.ObjectKey{
+				Name:      awsCluster.Name,
+				Namespace: ns.Name,
+			}
+			err := testEnv.Get(ctx, key, cluster)
+			return err == nil
+		}, 10*time.Second).Should(Equal(true))
+
 		defer teardown()
 		defer t.Cleanup(func() {
 			g.Expect(testEnv.Cleanup(ctx, &awsCluster, controllerIdentity, ns)).To(Succeed())
@@ -177,6 +189,15 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 		g.Expect(testEnv.Create(ctx, &awsCluster)).To(Succeed())
 		setup(t)
 		defer teardown()
+		g.Eventually(func() bool {
+			cluster := &infrav1.AWSCluster{}
+			key := client.ObjectKey{
+				Name:      awsCluster.Name,
+				Namespace: ns.Name,
+			}
+			err := testEnv.Get(ctx, key, cluster)
+			return err == nil
+		}, 10*time.Second).Should(Equal(true))
 		defer t.Cleanup(func() {
 			g.Expect(testEnv.Cleanup(ctx, &awsCluster, controllerIdentity, ns)).To(Succeed())
 		})
@@ -213,6 +234,16 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 		setup(t)
 		g.Expect(testEnv.Create(ctx, &awsCluster)).To(Succeed())
 		defer teardown()
+		g.Eventually(func() bool {
+			cluster := &infrav1.AWSCluster{}
+			key := client.ObjectKey{
+				Name:      awsCluster.Name,
+				Namespace: ns.Name,
+			}
+			err := testEnv.Get(ctx, key, cluster)
+			return err == nil
+		}, 10*time.Second).Should(Equal(true))
+
 		defer t.Cleanup(func() {
 			g.Expect(testEnv.Cleanup(ctx, &awsCluster, controllerIdentity, ns)).To(Succeed())
 		})
