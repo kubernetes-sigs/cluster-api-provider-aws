@@ -41,7 +41,6 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/instancestate"
@@ -69,45 +68,9 @@ var (
 // AWSClusterReconciler reconciles a AwsCluster object.
 type AWSClusterReconciler struct {
 	client.Client
-	Recorder              record.EventRecorder
-	ec2ServiceFactory     func(scope.EC2Scope) services.EC2MachineInterface
-	networkServiceFactory func(scope.ClusterScope) services.NetworkInterface
-	elbServiceFactory     func(scope.ELBScope) services.ELBInterface
-	securityGroupFactory  func(scope.ClusterScope) services.SecurityGroupInterface
-	Endpoints             []scope.ServiceEndpoint
-	WatchFilterValue      string
-}
-
-// getEC2Service factory func is added for testing purpose so that we can inject mocked EC2Service to the AWSClusterReconciler.
-func (r *AWSClusterReconciler) getEC2Service(scope scope.EC2Scope) services.EC2MachineInterface {
-	if r.ec2ServiceFactory != nil {
-		return r.ec2ServiceFactory(scope)
-	}
-	return ec2.NewService(scope)
-}
-
-// getELBService factory func is added for testing purpose so that we can inject mocked ELBService to the AWSClusterReconciler.
-func (r *AWSClusterReconciler) getELBService(scope scope.ELBScope) services.ELBInterface {
-	if r.elbServiceFactory != nil {
-		return r.elbServiceFactory(scope)
-	}
-	return elb.NewService(scope)
-}
-
-// getNetworkService factory func is added for testing purpose so that we can inject mocked NetworkService to the AWSClusterReconciler.
-func (r *AWSClusterReconciler) getNetworkService(scope scope.ClusterScope) services.NetworkInterface {
-	if r.networkServiceFactory != nil {
-		return r.networkServiceFactory(scope)
-	}
-	return network.NewService(&scope)
-}
-
-// getSecurityGroupService factory func is added for testing purpose so that we can inject mocked SecurityGroupService to the AWSClusterReconciler.
-func (r *AWSClusterReconciler) getSecurityGroupService(scope scope.ClusterScope) services.SecurityGroupInterface {
-	if r.securityGroupFactory != nil {
-		return r.securityGroupFactory(scope)
-	}
-	return securitygroup.NewService(&scope, awsSecurityGroupRoles)
+	Recorder         record.EventRecorder
+	Endpoints        []scope.ServiceEndpoint
+	WatchFilterValue string
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclusters,verbs=get;list;watch;create;update;patch;delete
@@ -196,10 +159,10 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 func (r *AWSClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	clusterScope.Info("Reconciling AWSCluster delete")
 
-	ec2svc := r.getEC2Service(clusterScope)
-	elbsvc := r.getELBService(clusterScope)
-	networkSvc := r.getNetworkService(*clusterScope)
-	sgService := r.getSecurityGroupService(*clusterScope)
+	ec2svc := ec2.NewService(clusterScope)
+	elbsvc := elb.NewService(clusterScope)
+	networkSvc := network.NewService(clusterScope)
+	sgService := securitygroup.NewService(clusterScope, awsSecurityGroupRoles)
 
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 		instancestateSvc := instancestate.NewService(clusterScope)
@@ -247,10 +210,10 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 		return reconcile.Result{}, err
 	}
 
-	ec2Service := r.getEC2Service(clusterScope)
-	elbService := r.getELBService(clusterScope)
-	networkSvc := r.getNetworkService(*clusterScope)
-	sgService := r.getSecurityGroupService(*clusterScope)
+	ec2Service := ec2.NewService(clusterScope)
+	elbService := elb.NewService(clusterScope)
+	networkSvc := network.NewService(clusterScope)
+	sgService := securitygroup.NewService(clusterScope, awsSecurityGroupRoles)
 
 	if err := networkSvc.ReconcileNetwork(); err != nil {
 		clusterScope.Error(err, "failed to reconcile network")
