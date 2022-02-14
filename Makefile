@@ -527,9 +527,9 @@ release-manifests: ## Release manifest files
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
 
 .PHONY: release-changelog
-release-changelog: $(RELEASE_NOTES) check-release-tag check-previous-release-tag check-github-token $(RELEASE_DIR) ## Builds the changelog for a release
-	$(RELEASE_NOTES) --debug --org $(GH_ORG_NAME) --repo $(GH_REPO_NAME) --start-sha $(shell git rev-list -n 1 ${PREVIOUS_VERSION}) --end-sha $(shell git rev-list -n 1 ${RELEASE_TAG}) --output $(RELEASE_DIR)/CHANGELOG.md --go-template go-template:$(REPO_ROOT)/hack/changelog.tpl --dependencies=false --branch=$(BRANCH)
-
+release-changelog: $(GH) ## Generates release notes using Github release notes.
+	./hack/releasechangelog.sh -v $(VERSION) -pv $(PREVIOUS_VERSION) -gh $(GH) -ghorg $(GH_ORG_NAME) -ghrepo $(GH_REPO_NAME) -cimg $(CORE_CONTROLLER_IMG) > $(RELEASE_DIR)/CHANGELOG.md
+	  
 .PHONY: release-binaries
 release-binaries: ## Builds the binaries to publish with a release
 	RELEASE_BINARY=./cmd/clusterawsadm GOOS=linux GOARCH=amd64 $(MAKE) release-binary

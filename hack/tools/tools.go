@@ -33,7 +33,6 @@ import (
 	_ "k8s.io/apimachinery/pkg/util/intstr"
 	_ "k8s.io/code-generator"
 	_ "k8s.io/code-generator/cmd/conversion-gen"
-	_ "k8s.io/release/cmd/release-notes"
 	_ "sigs.k8s.io/cluster-api/hack/tools/conversion-verifier"
 	_ "sigs.k8s.io/cluster-api/hack/tools/mdbook/embed"
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
