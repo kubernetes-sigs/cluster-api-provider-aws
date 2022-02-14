@@ -104,7 +104,7 @@ func (s *FargateService) reconcileFargateProfile() (requeue bool, err error) {
 		tagKey := infrav1.ClusterAWSCloudProviderTagKey(s.scope.ClusterName())
 		ownedTag := profile.Tags[tagKey]
 		if ownedTag == nil {
-			return false, errors.Wrapf(err, "owned tag not found for this cluster")
+			return false, errors.New("owned tag not found for this cluster")
 		}
 		s.scope.V(2).Info("Found owned EKS fargate profile", "cluster-name", eksClusterName, "profile-name", profileName)
 	}

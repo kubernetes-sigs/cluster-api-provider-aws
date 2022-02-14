@@ -484,7 +484,7 @@ func (s *NodegroupService) reconcileNodegroup() error {
 		tagKey := infrav1.ClusterAWSCloudProviderTagKey(s.scope.ClusterName())
 		ownedTag := ng.Tags[tagKey]
 		if ownedTag == nil {
-			return errors.Wrapf(err, "owner of %s mismatch: %s", eksNodegroupName, s.scope.ClusterName())
+			return errors.Errorf("owner of %s mismatch: %s", eksNodegroupName, s.scope.ClusterName())
 		}
 		s.scope.V(2).Info("Found owned EKS nodegroup in AWS", "cluster-name", eksClusterName, "nodegroup-name", eksNodegroupName)
 	}
