@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"time"
 
 	"github.com/gofrs/flock"
@@ -71,7 +72,7 @@ func (r *TestResource) WriteRequestedResources(e2eCtx *E2EContext, testName stri
 	requestedResourceFilePath := path.Join(e2eCtx.Settings.ArtifactFolder, "requested-resources.yaml")
 	if _, err := os.Stat(ResourceQuotaFilePath); err != nil {
 		// If requested-resources file does not exist, create it
-		f, err := os.Create(requestedResourceFilePath) //nolint:gosec
+		f, err := os.Create(filepath.Clean(requestedResourceFilePath))
 		Expect(err).NotTo(HaveOccurred())
 		Expect(f.Close()).NotTo(HaveOccurred())
 	}

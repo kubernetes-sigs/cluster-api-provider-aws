@@ -42,6 +42,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -114,6 +115,11 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 	if err != nil {
 		log.Info("Failed to retrieve Cluster from MachinePool")
 		return reconcile.Result{}, nil
+	}
+
+	if annotations.IsPaused(cluster, awsPool) {
+		log.Info("Reconciliation is paused for this object")
+		return ctrl.Result{}, nil
 	}
 
 	log = log.WithValues("Cluster", cluster.Name)
