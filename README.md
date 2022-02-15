@@ -6,7 +6,10 @@
 <p align="center">
 <!-- go doc / reference card -->
 <a href="https://godoc.org/sigs.k8s.io/cluster-api-provider-aws">
- <img src="https://godoc.org/sigs.k8s.io/cluster-api-provider-aws?status.svg"></a>
+<img src="https://godoc.org/sigs.k8s.io/cluster-api-provider-aws?status.svg"></a>
+<!-- goreportcard badge -->
+<a href="https://goreportcard.com/report/sigs.k8s.io/cluster-api-provider-aws">
+<img src="https://goreportcard.com/badge/sigs.k8s.io/cluster-api-provider-aws"></a>
 </p>
 
 ------
