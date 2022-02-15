@@ -27,10 +27,10 @@
 # 	${IMAGE_TAG} \
 # 	-v /figures/*.plantuml
 
-FROM maven:3-jdk-14
+FROM maven:3-openjdk-17-slim
 ARG PLANTUML_VERSION
 
-RUN apt-get update && apt-get install -y --no-install-recommends graphviz fonts-symbola fonts-wqy-zenhei && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends wget graphviz fonts-symbola fonts-wqy-zenhei && rm -rf /var/lib/apt/lists/*
 RUN wget -O /plantuml.jar http://sourceforge.net/projects/plantuml/files/plantuml.${PLANTUML_VERSION}.jar/download
 
 # By default, java writes a 'hsperfdata_<username>' directory in the work dir.
