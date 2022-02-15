@@ -283,12 +283,12 @@ func (r *AWSManagedControlPlaneReconciler) reconcileDelete(ctx context.Context, 
 		return reconcile.Result{}, err
 	}
 
-	if conditions.GetReason(managedScope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition) != clusterv1.DeletedReason {
-		if err := sgService.DeleteSecurityGroups(); err != nil {
-			log.Error(err, "error deleting general security groups for AWSManagedControlPlane", "namespace", controlPlane.Namespace, "name", controlPlane.Name)
-			return reconcile.Result{}, err
-		}
+	if err := sgService.DeleteSecurityGroups(); err != nil {
+		log.Error(err, "error deleting general security groups for AWSManagedControlPlane", "namespace", controlPlane.Namespace, "name", controlPlane.Name)
+		conditions.MarkFalse(managedScope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletionFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		return reconcile.Result{}, err
 	}
+	conditions.MarkFalse(managedScope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 
 	if err := networkSvc.DeleteNetwork(); err != nil {
 		log.Error(err, "error deleting network for AWSManagedControlPlane", "namespace", controlPlane.Namespace, "name", controlPlane.Name)
