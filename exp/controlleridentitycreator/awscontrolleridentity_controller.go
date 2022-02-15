@@ -91,7 +91,7 @@ func (r *AWSControllerIdentityReconciler) Reconcile(ctx context.Context, req ctr
 	// If identity type is not AWSClusterControllerIdentity, then no need to create AWSClusterControllerIdentity singleton.
 	if identityRef.Kind == infrav1.ClusterRoleIdentityKind ||
 		identityRef.Kind == infrav1.ClusterStaticIdentityKind {
-		log.Info("Cluster does not use AWSClusterControllerIdentity as identityRef, skipping new instance creation")
+		log.V(4).Info("Cluster does not use AWSClusterControllerIdentity as identityRef, skipping new instance creation")
 		return ctrl.Result{}, nil
 	}
 
