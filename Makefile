@@ -279,7 +279,7 @@ modules: ## Runs go mod to ensure proper vendoring.
 	cd $(TOOLS_DIR); go mod tidy
 
 .PHONY: verify ## Verify ties together the rest of the verification targets into one target
-verify: verify-boilerplate verify-modules verify-gen verify-conversions verify-shellcheck release-manifests
+verify: verify-boilerplate verify-modules verify-gen verify-conversions verify-shellcheck verify-book-links release-manifests
 
 .PHONY: verify-boilerplate
 verify-boilerplate: ## Verify boilerplate
@@ -301,6 +301,10 @@ verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion 
 .PHONY: verify-shellcheck
 verify-shellcheck: ## Verify shell files
 	./hack/verify-shellcheck.sh
+
+.PHONY: verify-book-links
+verify-book-links: ## Verify book links
+	$(MAKE) -C docs/book verify 
 
 .PHONY: verify-gen
 verify-gen: generate ## Verify generated files
