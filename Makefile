@@ -43,7 +43,8 @@ KUBETEST_CONF_PATH ?= $(abspath $(E2E_DATA_DIR)/kubetest/conformance.yaml)
 EXP_DIR := exp
 
 # Binaries.
-GO_APIDIFF := $(TOOLS_BIN_DIR)/go-apidiff
+GO_APIDIFF_BIN := $(BIN_DIR)/go-apidiff
+GO_APIDIFF := $(TOOLS_DIR)/$(GO_APIDIFF_BIN)
 CLUSTERCTL := $(BIN_DIR)/clusterctl
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
 CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
@@ -312,6 +313,10 @@ verify-gen: generate ## Verify generated files
 		git diff; \
 		echo "generated files are out of date, run make generate"; exit 1; \
 	fi
+
+.PHONY: apidiff
+apidiff: $(GO_APIDIFF) ## Check for API differences
+	$(GO_APIDIFF) $(shell git rev-parse origin/main) --print-compatible
 
 ##@ build:
 
@@ -629,3 +634,4 @@ clean-temporary: ## Remove all temporary files and folders
 	rm -rf test/e2e/capi-kubeadm-control-plane-controller-manager
 	rm -rf test/e2e/logs
 	rm -rf test/e2e/resources
+
