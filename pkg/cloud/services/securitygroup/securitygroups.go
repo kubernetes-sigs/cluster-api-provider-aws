@@ -423,7 +423,7 @@ func (s *Service) revokeAllSecurityGroupIngressRules(id string) error {
 
 	securityGroups, err := s.EC2Client.DescribeSecurityGroups(describeInput)
 	if err != nil {
-		return errors.Wrapf(err, "failed to query security group %q", id)
+		return err
 	}
 
 	for _, sg := range securityGroups.SecurityGroups {
@@ -434,7 +434,7 @@ func (s *Service) revokeAllSecurityGroupIngressRules(id string) error {
 			}
 			if _, err := s.EC2Client.RevokeSecurityGroupIngress(revokeInput); err != nil {
 				record.Warnf(s.scope.InfraCluster(), "FailedRevokeSecurityGroupIngressRules", "Failed to revoke all security group ingress rules for SecurityGroup %q: %v", *sg.GroupId, err)
-				return errors.Wrapf(err, "failed to revoke security group %q ingress rules", id)
+				return err
 			}
 			record.Eventf(s.scope.InfraCluster(), "SuccessfulRevokeSecurityGroupIngressRules", "Revoked all security group ingress rules for SecurityGroup %q", *sg.GroupId)
 		}
