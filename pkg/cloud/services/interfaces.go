@@ -84,7 +84,7 @@ type SecretInterface interface {
 type ELBInterface interface {
 	DeleteLoadbalancers() error
 	ReconcileLoadbalancers() error
-	InstanceIsRegisteredWithAPIServerELB(i *infrav1.Instance) (bool, error)
+	IsInstanceRegisteredWithAPIServerELB(i *infrav1.Instance) (bool, error)
 	DeregisterInstanceFromAPIServerELB(i *infrav1.Instance) error
 	RegisterInstanceWithAPIServerELB(i *infrav1.Instance) error
 }

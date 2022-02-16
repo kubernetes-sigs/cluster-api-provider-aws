@@ -234,8 +234,8 @@ func (s *Service) DeleteLoadbalancers() error {
 	return nil
 }
 
-// InstanceIsRegisteredWithAPIServerELB returns true if the instance is already registered with the APIServer ELB.
-func (s *Service) InstanceIsRegisteredWithAPIServerELB(i *infrav1.Instance) (bool, error) {
+// IsInstanceRegisteredWithAPIServerELB returns true if the instance is already registered with the APIServer ELB.
+func (s *Service) IsInstanceRegisteredWithAPIServerELB(i *infrav1.Instance) (bool, error) {
 	name, err := ELBName(s.scope)
 	if err != nil {
 		return false, errors.Wrap(err, "failed to get control plane load balancer name")
