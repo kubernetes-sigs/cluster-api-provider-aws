@@ -16,13 +16,64 @@ limitations under the License.
 package controllers
 
 import (
+	"reflect"
+	"sort"
+	"testing"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
+)
+
+const DNSName = "www.google.com"
+
+var (
+	lbName          = aws.String("test-cluster-apiserver")
+	describeLBInput = &elb.DescribeLoadBalancersInput{
+		LoadBalancerNames: aws.StringSlice([]string{"test-cluster-apiserver"}),
+	}
+	describeLBAttributesInput = &elb.DescribeLoadBalancerAttributesInput{
+		LoadBalancerName: lbName,
+	}
+	describeLBOutput = &elb.DescribeLoadBalancersOutput{
+		LoadBalancerDescriptions: []*elb.LoadBalancerDescription{
+			{
+				Scheme:            aws.String(string(infrav1.ClassicELBSchemeInternetFacing)),
+				Subnets:           []*string{aws.String("subnet-1")},
+				AvailabilityZones: []*string{aws.String("us-east-1a")},
+				VPCId:             aws.String("vpc-exists"),
+			},
+		},
+	}
+	describeLBAttributesOutput = &elb.DescribeLoadBalancerAttributesOutput{
+		LoadBalancerAttributes: &elb.LoadBalancerAttributes{
+			CrossZoneLoadBalancing: &elb.CrossZoneLoadBalancing{
+				Enabled: aws.Bool(false),
+			},
+		},
+	}
+	expectedTags = []*elb.Tag{
+		{
+			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+			Value: aws.String("owned"),
+		},
+		{
+			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+			Value: aws.String("apiserver"),
+		},
+		{
+			Key:   aws.String("Name"),
+			Value: lbName,
+		},
+	}
 )
 
 func expectAWSClusterConditions(g *WithT, m *infrav1.AWSCluster, expected []conditionAssertion) {
@@ -83,4 +134,82 @@ func getClusterScope(awsCluster infrav1.AWSCluster) (*scope.ClusterScope, error)
 			AWSCluster: &awsCluster,
 		},
 	)
+}
+
+func mockedCreateLBCalls(t *testing.T, m *mock_elbiface.MockELBAPIMockRecorder) {
+	t.Helper()
+	m.DescribeLoadBalancers(gomock.Eq(describeLBInput)).
+		Return(describeLBOutput, nil).MinTimes(1)
+	m.DescribeLoadBalancerAttributes(gomock.Eq(describeLBAttributesInput)).
+		Return(describeLBAttributesOutput, nil)
+	m.DescribeTags(&elb.DescribeTagsInput{LoadBalancerNames: aws.StringSlice([]string{*lbName})}).Return(
+		&elb.DescribeTagsOutput{
+			TagDescriptions: []*elb.TagDescription{
+				{
+					LoadBalancerName: lbName,
+					Tags: []*elb.Tag{{
+						Key:   aws.String(infrav1.ClusterTagKey("test-cluster-apiserver")),
+						Value: aws.String(string(infrav1.ResourceLifecycleOwned)),
+					}},
+				},
+			},
+		}, nil)
+	m.ModifyLoadBalancerAttributes(gomock.Eq(&elb.ModifyLoadBalancerAttributesInput{
+		LoadBalancerAttributes: &elb.LoadBalancerAttributes{
+			ConnectionSettings:     &elb.ConnectionSettings{IdleTimeout: aws.Int64(600)},
+			CrossZoneLoadBalancing: &elb.CrossZoneLoadBalancing{Enabled: aws.Bool(false)},
+		},
+		LoadBalancerName: aws.String(""),
+	})).MaxTimes(1)
+
+	m.AddTags(gomock.Eq(&elb.AddTagsInput{
+		LoadBalancerNames: aws.StringSlice([]string{""}),
+		Tags:              expectedTags,
+	})).Do(func(actual *elb.AddTagsInput) (*elb.AddTagsOutput, error) {
+		sortTagsByKey := func(tags []*elb.Tag) {
+			sort.Slice(tags, func(i, j int) bool {
+				return *(tags[i].Key) < *(tags[j].Key)
+			})
+		}
+
+		sortTagsByKey(actual.Tags)
+		sortTagsByKey(expectedTags)
+		if !reflect.DeepEqual(expectedTags, actual.Tags) {
+			t.Fatalf("Actual AddTagsInput did not match expected, Actual : %v, Expected: %v", actual.Tags, expectedTags)
+		}
+		return &elb.AddTagsOutput{}, nil
+	}).AnyTimes()
+	m.RemoveTags(gomock.Eq(&elb.RemoveTagsInput{
+		LoadBalancerNames: aws.StringSlice([]string{""}),
+		Tags: []*elb.TagKeyOnly{
+			{
+				Key: aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster-apiserver"),
+			},
+		},
+	})).MaxTimes(1)
+	m.ApplySecurityGroupsToLoadBalancer(gomock.Eq(&elb.ApplySecurityGroupsToLoadBalancerInput{
+		LoadBalancerName: aws.String(""),
+		SecurityGroups:   aws.StringSlice([]string{"sg-apiserver-lb"}),
+	})).MaxTimes(1)
+	m.RegisterInstancesWithLoadBalancer(gomock.Eq(&elb.RegisterInstancesWithLoadBalancerInput{Instances: []*elb.Instance{{InstanceId: aws.String("two")}}, LoadBalancerName: lbName})).MaxTimes(1)
+}
+
+func mockedDeleteLBCalls(m *mock_elbiface.MockELBAPIMockRecorder) {
+	m.DescribeLoadBalancers(gomock.Eq(describeLBInput)).
+		Return(describeLBOutput, nil)
+	m.DescribeLoadBalancers(gomock.Eq(describeLBInput)).
+		Return(&elb.DescribeLoadBalancersOutput{}, nil).AnyTimes()
+	m.DescribeTags(&elb.DescribeTagsInput{LoadBalancerNames: aws.StringSlice([]string{*lbName})}).Return(
+		&elb.DescribeTagsOutput{
+			TagDescriptions: []*elb.TagDescription{
+				{
+					LoadBalancerName: lbName,
+				},
+			},
+		}, nil).MaxTimes(1)
+	m.DescribeLoadBalancerAttributes(gomock.Eq(describeLBAttributesInput)).
+		Return(describeLBAttributesOutput, nil).MaxTimes(1)
+	m.DeleteLoadBalancer(gomock.Eq(&elb.DeleteLoadBalancerInput{LoadBalancerName: lbName})).
+		Return(&elb.DeleteLoadBalancerOutput{}, nil).MaxTimes(1)
+	m.DescribeLoadBalancersPages(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 }
