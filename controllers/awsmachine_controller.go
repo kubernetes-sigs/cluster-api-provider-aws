@@ -112,12 +112,11 @@ func (r *AWSMachineReconciler) getSecretService(machineScope *scope.MachineScope
 	return nil, errors.New("invalid secret backend")
 }
 
-func (r *AWSMachineReconciler) getELBService(scope scope.ELBScope) services.ELBInterface {
+func (r *AWSMachineReconciler) getELBService(elbScope scope.ELBScope) services.ELBInterface {
 	if r.elbServiceFactory != nil {
-		return r.elbServiceFactory(scope)
+		return r.elbServiceFactory(elbScope)
 	}
-
-	return elb.NewService(scope)
+	return elb.NewService(elbScope)
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachines,verbs=get;list;watch;create;update;patch;delete
@@ -682,17 +681,17 @@ func (r *AWSMachineReconciler) resolveUserData(machineScope *scope.MachineScope,
 	return encryptedCloudInit, nil
 }
 
-func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.MachineScope, clusterScope scope.ELBScope, i *infrav1.Instance) error {
+func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.MachineScope, elbScope scope.ELBScope, i *infrav1.Instance) error {
 	if !machineScope.IsControlPlane() {
 		return nil
 	}
 
-	elbsvc := r.getELBService(clusterScope)
+	elbsvc := r.getELBService(elbScope)
 
 	// In order to prevent sending request to a "not-ready" control plane machines, it is required to remove the machine
 	// from the ELB as soon as the machine gets deleted or when the machine is in a not running state.
 	if !machineScope.AWSMachine.DeletionTimestamp.IsZero() || !machineScope.InstanceIsRunning() {
-		registered, err := elbsvc.InstanceIsRegisteredWithAPIServerELB(i)
+		registered, err := elbsvc.IsInstanceRegisteredWithAPIServerELB(i)
 		if err != nil {
 			r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedDetachControlPlaneELB",
 				"Failed to deregister control plane instance %q from load balancer: failed to determine registration status: %v", i.ID, err)
@@ -714,7 +713,7 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.Machine
 		return nil
 	}
 
-	registered, err := elbsvc.InstanceIsRegisteredWithAPIServerELB(i)
+	registered, err := elbsvc.IsInstanceRegisteredWithAPIServerELB(i)
 	if err != nil {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedAttachControlPlaneELB",
 			"Failed to register control plane instance %q with load balancer: failed to determine registration status: %v", i.ID, err)
