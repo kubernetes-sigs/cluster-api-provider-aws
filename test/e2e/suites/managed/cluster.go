@@ -123,27 +123,3 @@ type DeleteClusterSpecInput struct {
 	Namespace             *corev1.Namespace
 	ClusterName           string
 }
-
-// DeleteClusterSpec implements a test for deleting a Cluster.
-func DeleteClusterSpec(ctx context.Context, inputGetter func() DeleteClusterSpecInput) {
-	input := inputGetter()
-	Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil")
-	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")
-	Expect(input.Namespace).NotTo(BeNil(), "Invalid argument. input.Namespace can't be nil")
-	Expect(input.ClusterName).ShouldNot(HaveLen(0), "Invalid argument. input.ClusterName can't be empty")
-
-	shared.Byf("getting cluster with name %s", input.ClusterName)
-	cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
-		Getter:    input.BootstrapClusterProxy.GetClient(),
-		Namespace: input.Namespace.Name,
-		Name:      input.ClusterName,
-	})
-	Expect(cluster).NotTo(BeNil(), "couldn't find cluster")
-
-	shared.Byf("Deleting cluster %s/%s", input.Namespace, input.ClusterName)
-
-	framework.DeleteCluster(ctx, framework.DeleteClusterInput{
-		Deleter: input.BootstrapClusterProxy.GetClient(),
-		Cluster: cluster,
-	})
-}
