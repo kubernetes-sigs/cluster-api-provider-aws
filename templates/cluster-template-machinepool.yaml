@@ -96,7 +96,7 @@ spec:
   availabilityZones:
     - "${AWS_AVAILABILITY_ZONE}"
   awsLaunchTemplate:
-    instanceType: "${AWS_CONTROL_PLANE_MACHINE_TYPE}"
+    instanceType: "${AWS_NODE_MACHINE_TYPE}"
     sshKeyName: "${AWS_SSH_KEY_NAME}"
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
