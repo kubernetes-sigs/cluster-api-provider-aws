@@ -21,17 +21,101 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ssm/mock_ssmiface"
 )
+
+func Test_DefaultAMILookup(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	type args struct {
+		ownerID           string
+		baseOS            string
+		kubernetesVersion string
+		amiNameFormat     string
+	}
+
+	testCases := []struct {
+		name   string
+		args   args
+		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		check  func(g *WithT, img *ec2.Image, err error)
+	}{
+		{
+			name: "Should return latest AMI in case of valid inputs",
+			args: args{
+				ownerID:           "ownerID",
+				baseOS:            "baseOS",
+				kubernetesVersion: "v1.0.0",
+				amiNameFormat:     "ami-name",
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []*ec2.Image{
+							{
+								ImageId:      aws.String("ancient"),
+								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
+							},
+							{
+								ImageId:      aws.String("latest"),
+								CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
+							},
+							{
+								ImageId:      aws.String("oldest"),
+								CreationDate: aws.String("2014-02-08T17:02:31.000Z"),
+							},
+						},
+					}, nil)
+			},
+			check: func(g *WithT, img *ec2.Image, err error) {
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(*img.ImageId).Should(ContainSubstring("latest"))
+			},
+		},
+		{
+			name: "Should return with error if AWS DescribeImages call failed with some error",
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+					Return(nil, awserrors.NewFailedDependency("dependency failure"))
+			},
+			check: func(g *WithT, img *ec2.Image, err error) {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(img).To(BeNil())
+			},
+		},
+		{
+			name: "Should return with error if empty list of images returned from AWS ",
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+					Return(&ec2.DescribeImagesOutput{}, nil)
+			},
+			check: func(g *WithT, img *ec2.Image, err error) {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(img).To(BeNil())
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			tc.expect(ec2Mock.EXPECT())
+
+			img, err := DefaultAMILookup(ec2Mock, tc.args.ownerID, tc.args.baseOS, tc.args.kubernetesVersion, tc.args.amiNameFormat)
+			tc.check(g, img, err)
+		})
+	}
+}
 
 func TestAMIs(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
@@ -40,9 +124,10 @@ func TestAMIs(t *testing.T) {
 	testCases := []struct {
 		name   string
 		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		check  func(g *WithT, id string, err error)
 	}{
 		{
-			name: "simple test",
+			name: "Should return latest AMI in case of valid inputs",
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{
@@ -52,53 +137,23 @@ func TestAMIs(t *testing.T) {
 								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
 							},
 							{
-								ImageId:      aws.String("pretty new"),
+								ImageId:      aws.String("latest"),
 								CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
 							},
 							{
-								ImageId:      aws.String("pretty old"),
+								ImageId:      aws.String("oldest"),
 								CreationDate: aws.String("2014-02-08T17:02:31.000Z"),
 							},
 						},
 					}, nil)
 			},
+			check: func(g *WithT, id string, err error) {
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(id).Should(ContainSubstring("latest"))
+			},
 		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-			tc.expect(ec2Mock.EXPECT())
-
-			clusterScope, err := setupCluster("test-cluster")
-			g.Expect(err).To(Not(HaveOccurred()))
-
-			s := NewService(clusterScope)
-			s.EC2Client = ec2Mock
-
-			id, err := s.defaultAMIIDLookup("", "", "base os-baseos version", "1.11.1")
-			if err != nil {
-				t.Fatalf("did not expect error calling a mock: %v", err)
-			}
-			if id != "pretty new" {
-				t.Fatalf("returned %q expected 'pretty new'", id)
-			}
-		})
-	}
-}
-
-func TestAMIsWithInvalidCreationDate(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	testCases := []struct {
-		name   string
-		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
-	}{
 		{
-			name: "simple test",
+			name: "Should return error if invalid creation date passed",
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{
@@ -108,53 +163,301 @@ func TestAMIsWithInvalidCreationDate(t *testing.T) {
 								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
 							},
 							{
-								ImageId:      aws.String("pretty new"),
+								ImageId:      aws.String("latest"),
 								CreationDate: aws.String("invalid creation date"),
 							},
 							{
-								ImageId:      aws.String("pretty old"),
+								ImageId:      aws.String("oldest"),
 								CreationDate: aws.String("2014-02-08T17:02:31.000Z"),
 							},
 						},
 					}, nil)
+			},
+			check: func(g *WithT, id string, err error) {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(id).Should(BeEmpty())
 			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			g := NewWithT(t)
 
-			clusterScope, err := setupCluster("test-cluster")
-			g.Expect(err).To(Not(HaveOccurred()))
-
+			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock.EXPECT())
 
+			clusterScope := setupClusterScope(g)
 			s := NewService(clusterScope)
 			s.EC2Client = ec2Mock
 
-			_, err = s.defaultAMIIDLookup("", "", "base os-baseos version", "1.11.1")
-			if err == nil {
-				t.Fatalf("expected an error but did not get one")
-			}
+			id, err := s.defaultAMIIDLookup("", "", "base os-baseos version", "v1.11.1")
+			tc.check(g, id, err)
 		})
 	}
 }
 
-func setupCluster(clusterName string) (*scope.ClusterScope, error) {
-	scheme := runtime.NewScheme()
-	_ = infrav1.AddToScheme(scheme)
-	awsCluster := &infrav1.AWSCluster{
-		ObjectMeta: metav1.ObjectMeta{Name: "test"},
-		Spec:       infrav1.AWSClusterSpec{},
-	}
-	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).Build()
-	return scope.NewClusterScope(scope.ClusterScopeParams{
-		Cluster: &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{Name: clusterName},
+func TestFormatVersionForEKS(t *testing.T) {
+	tests := []struct {
+		name    string
+		version string
+		want    string
+		wantErr bool
+	}{
+		{
+			name:    "Should remove non zero patch from version",
+			version: "v1.23.2",
+			want:    "1.23",
+			wantErr: false,
 		},
-		AWSCluster: awsCluster,
-		Client:     client,
-	})
+		{
+			name:    "Should return major.minor in case patch is nil",
+			version: "v1.23",
+			want:    "1.23",
+			wantErr: false,
+		},
+		{
+			name:    "Should return minor as zero if only major is present in version",
+			version: "v1",
+			want:    "1.0",
+			wantErr: false,
+		},
+		{
+			name:    "Should return error if invalid version is given",
+			version: "v1-23.3",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			got, err := formatVersionForEKS(tt.version)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).Should(BeEquivalentTo(tt.want))
+		})
+	}
+}
+
+func TestGenerateAmiName(t *testing.T) {
+	type args struct {
+		amiNameFormat     string
+		baseOS            string
+		kubernetesVersion string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "Should return image name even if OS and amiNameFormat is empty",
+			args: args{
+				kubernetesVersion: "v1.23.3",
+			},
+			want: "capa-ami--?1.23.3-*",
+		},
+		{
+			name: "Should return valid amiName if default AMI name format passed",
+			args: args{
+				amiNameFormat:     DefaultAmiNameFormat,
+				baseOS:            "centos-7",
+				kubernetesVersion: "1.23.3",
+			},
+			want: "capa-ami-centos-7-?1.23.3-*",
+		},
+		{
+			name: "Should return valid amiName if custom AMI name format passed",
+			args: args{
+				amiNameFormat:     "random-{{.BaseOS}}-?{{.K8sVersion}}-*",
+				baseOS:            "centos-7",
+				kubernetesVersion: "1.23.3",
+			},
+			want: "random-centos-7-?1.23.3-*",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			got, err := GenerateAmiName(tt.args.amiNameFormat, tt.args.baseOS, tt.args.kubernetesVersion)
+			g.Expect(err).To(BeNil())
+			g.Expect(got).Should(Equal(tt.want))
+		})
+	}
+}
+
+func TestGetLatestImage(t *testing.T) {
+	tests := []struct {
+		name    string
+		imgs    []*ec2.Image
+		want    *ec2.Image
+		wantErr bool
+	}{
+		{
+			name: "Should return image with latest creation date",
+			imgs: []*ec2.Image{
+				{
+					ImageId:      aws.String("ancient"),
+					CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
+				},
+				{
+					ImageId:      aws.String("latest"),
+					CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
+				},
+				{
+					ImageId:      aws.String("oldest"),
+					CreationDate: aws.String("2014-02-08T17:02:31.000Z"),
+				},
+			},
+			want: &ec2.Image{
+				ImageId:      aws.String("latest"),
+				CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "Should return last image if all images have same creation date",
+			imgs: []*ec2.Image{
+				{
+					ImageId:      aws.String("image 1"),
+					CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
+				},
+				{
+					ImageId:      aws.String("image 2"),
+					CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
+				},
+				{
+					ImageId:      aws.String("image 3"),
+					CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
+				},
+			},
+			want: &ec2.Image{
+				ImageId:      aws.String("image 3"),
+				CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "Should return error if creation date is given in wrong format",
+			imgs: []*ec2.Image{
+				{
+					ImageId:      aws.String("image 1"),
+					CreationDate: aws.String("2019-02-08"),
+				},
+				{
+					ImageId:      aws.String("image 2"),
+					CreationDate: aws.String("2019-02-08"),
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			got, err := GetLatestImage(tt.imgs)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(got).Should(Equal(tt.want))
+		})
+	}
+}
+
+func TestEKSAMILookUp(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	gpuAMI := infrav1.AmazonLinuxGPU
+	tests := []struct {
+		name       string
+		k8sVersion string
+		amiType    *infrav1.EKSAMILookupType
+		expect     func(m *mock_ssmiface.MockSSMAPIMockRecorder)
+		want       string
+		wantErr    bool
+	}{
+		{
+			name:       "Should return an id corresponding to GPU if GPU based AMI type passed",
+			k8sVersion: "v1.23.3",
+			amiType:    &gpuAMI,
+			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
+				m.GetParameter(gomock.Eq(&ssm.GetParameterInput{
+					Name: aws.String("/aws/service/eks/optimized-ami/1.23/amazon-linux-2-gpu/recommended/image_id"),
+				})).Return(&ssm.GetParameterOutput{
+					Parameter: &ssm.Parameter{
+						Value: aws.String("id"),
+					},
+				}, nil)
+			},
+			want:    "id",
+			wantErr: false,
+		},
+		{
+			name:       "Should return an id not corresponding to GPU if AMI type is default",
+			k8sVersion: "v1.23.3",
+			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
+				m.GetParameter(gomock.Eq(&ssm.GetParameterInput{
+					Name: aws.String("/aws/service/eks/optimized-ami/1.23/amazon-linux-2/recommended/image_id"),
+				})).Return(&ssm.GetParameterOutput{
+					Parameter: &ssm.Parameter{
+						Value: aws.String("id"),
+					},
+				}, nil)
+			},
+			want:    "id",
+			wantErr: false,
+		},
+		{
+			name:       "Should return an error if GetParameter call fails with some AWS error",
+			k8sVersion: "v1.23.3",
+			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
+				m.GetParameter(gomock.Eq(&ssm.GetParameterInput{
+					Name: aws.String("/aws/service/eks/optimized-ami/1.23/amazon-linux-2/recommended/image_id"),
+				})).Return(nil, awserrors.NewFailedDependency("dependency failure"))
+			},
+			wantErr: true,
+		},
+		{
+			name:       "Should return an error if invalid Kubernetes version passed",
+			k8sVersion: "__$__",
+			wantErr:    true,
+		},
+		{
+			name:       "Should return an error if no SSM parameter found",
+			k8sVersion: "v1.23.3",
+			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
+				m.GetParameter(gomock.Eq(&ssm.GetParameterInput{
+					Name: aws.String("/aws/service/eks/optimized-ami/1.23/amazon-linux-2/recommended/image_id"),
+				})).Return(&ssm.GetParameterOutput{}, nil)
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			ssmMock := mock_ssmiface.NewMockSSMAPI(mockCtrl)
+			if tt.expect != nil {
+				tt.expect(ssmMock.EXPECT())
+			}
+
+			clusterScope := setupClusterScope(g)
+			s := NewService(clusterScope)
+			s.SSMClient = ssmMock
+
+			got, err := s.eksAMILookup(tt.k8sVersion, tt.amiType)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(got).Should(Equal(tt.want))
+		})
+	}
 }

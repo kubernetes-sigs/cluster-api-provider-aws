@@ -54,3 +54,6 @@ func (*AWSClusterControllerIdentityList) Hub() {}
 
 // Hub marks AWSClusterTemplate as a conversion hub.
 func (*AWSClusterTemplate) Hub() {}
+
+// Hub marks AWSClusterTemplateList as a conversion hub.
+func (*AWSClusterTemplateList) Hub() {}

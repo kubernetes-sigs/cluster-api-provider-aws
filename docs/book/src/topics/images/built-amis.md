@@ -11,6 +11,7 @@ See [clusterawsadm ami list](../clusterawsadm/clusterawsadm_ami_list.md) for det
 - Amazon Linux 2 (amazon-2)
 - Ubuntu (ubuntu-20.04, ubuntu-18.04)
 - Centos (centos-7)
+- Flatcar (flatcar-stable)
 
 ## Supported AWS Regions
 - ap-northeast-1

@@ -389,58 +389,6 @@ func createSDKMixedInstancesPolicy(name string, i *expinfrav1.MixedInstancesPoli
 	return mixedInstancesPolicy
 }
 
-// BuildTags takes the tag configuration from the resources and returns a slice of autoscaling Tags
-// usable in autoscaling API calls.
-func BuildTags(name string, params infrav1.BuildParams) []*autoscaling.Tag {
-	tags := make([]*autoscaling.Tag, 0)
-	resourceName := aws.String(name)
-	propagateAtLaunch := aws.Bool(false)
-	resourceType := aws.String("auto-scaling-group")
-	if params.Additional != nil {
-		for k, v := range params.Additional {
-			tags = append(tags, &autoscaling.Tag{
-				Key:   aws.String(k),
-				Value: aws.String(v),
-				// We set the instance tags in the LaunchTemplate, disabling propagation to prevent the two
-				// resources from clobbering each other's tags
-				PropagateAtLaunch: propagateAtLaunch,
-				ResourceId:        resourceName,
-				ResourceType:      resourceType,
-			})
-		}
-	}
-
-	tags = append(tags, &autoscaling.Tag{
-		Key:               aws.String(infrav1.ClusterTagKey(params.ClusterName)),
-		Value:             aws.String(string(params.Lifecycle)),
-		PropagateAtLaunch: propagateAtLaunch,
-		ResourceId:        resourceName,
-		ResourceType:      resourceType,
-	})
-
-	if params.Role != nil {
-		tags = append(tags, &autoscaling.Tag{
-			Key:               aws.String(infrav1.NameAWSClusterAPIRole),
-			Value:             params.Role,
-			PropagateAtLaunch: propagateAtLaunch,
-			ResourceId:        resourceName,
-			ResourceType:      resourceType,
-		})
-	}
-
-	if params.Name != nil {
-		tags = append(tags, &autoscaling.Tag{
-			Key:               aws.String("Name"),
-			Value:             params.Name,
-			PropagateAtLaunch: propagateAtLaunch,
-			ResourceId:        resourceName,
-			ResourceType:      resourceType,
-		})
-	}
-
-	return tags
-}
-
 // BuildTagsFromMap takes a map of keys and values and returns them as autoscaling group tags.
 func BuildTagsFromMap(asgName string, inTags map[string]string) []*autoscaling.Tag {
 	if inTags == nil {

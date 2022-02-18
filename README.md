@@ -6,7 +6,10 @@
 <p align="center">
 <!-- go doc / reference card -->
 <a href="https://godoc.org/sigs.k8s.io/cluster-api-provider-aws">
- <img src="https://godoc.org/sigs.k8s.io/cluster-api-provider-aws?status.svg"></a>
+<img src="https://godoc.org/sigs.k8s.io/cluster-api-provider-aws?status.svg"></a>
+<!-- goreportcard badge -->
+<a href="https://goreportcard.com/report/sigs.k8s.io/cluster-api-provider-aws">
+<img src="https://goreportcard.com/badge/sigs.k8s.io/cluster-api-provider-aws"></a>
 </p>
 
 ------
@@ -50,32 +53,17 @@ cluster on AWS.
 
 ## Compatibility with Cluster API and Kubernetes Versions
 
-This provider's versions are compatible with the following versions of Cluster API:
+This provider's versions are compatible with the following versions of Cluster API
+and support all Kubernetes versions that is supported by its compatible Cluster API version:
 
-
-|                              | v1alpha3 (v0.3) | v1alpha4 (v0.4) | v1beta1 (v1.0) |
+|                              | v1alpha3 (v0.3) | v1alpha4 (v0.4) | v1beta1 (v1.x) |
 | ---------------------------- | --------------- | --------------- | -------------- |
-| AWS Provider v1alpha3 (v0.5) | ✓               |                 |                |
 | AWS Provider v1alpha3 (v0.6) | ✓               |                 |                |
 | AWS Provider v1alpha4 (v0.7) |                 | ✓               |                |
-| AWS Provider v1beta1 (v1.0)  |                 |                 | ✓              |
+| AWS Provider v1beta1 (v1.x)  |                 |                 | ✓              |
 
 
-This provider's versions are able to install and manage the following versions of Kubernetes:
-
-|                              | v1.16 | v 1.17 | v1.18 | v1.19 | v1.20 | v1.21 | v1.22 |
-| ---------------------------- | ----- | ------ | ----- | ----- | ----- | ----- | ----- |
-| AWS Provider v1alpha3 (v0.5) | ✓     | ✓      | ✓     | ✓     | ✓     |       |       |
-| AWS Provider v1alpha3 (v0.6) | ✓     | ✓      | ✓     | ✓     | ✓     | ✓     | ✓*    |
-| AWS Provider v1alpha4 (v0.7) |       |        | ✓*    | ✓     | ✓     | ✓     | ✓     |
-| AWS Provider v1beta1 (v1.0)  |       |        |       | ✓     | ✓     | ✓     | ✓     |
-
-\* Not management clusters
-
-Each version of Cluster API for AWS will attempt to support two Kubernetes versions; e.g., Cluster API for AWS `v0.3` supports Kubernetes 1.16, 1.17, 1.18 etc.
-
-**NOTE:** As the versioning for this project is tied to the versioning of Cluster API, future modifications to this
-policy may be made to more closely align with other providers in the Cluster API ecosystem.
+(See [Kubernetes support matrix][cluster-api-supported-v] of Cluster API versions).
 
 ------
 
@@ -220,3 +208,4 @@ All the CAPA contributors:
 [amis]: https://cluster-api-aws.sigs.k8s.io/topics/images/amis.html
 [published_amis]: https://cluster-api-aws.sigs.k8s.io/topics/images/built-amis.html
 [eks_support]: https://cluster-api-aws.sigs.k8s.io/topics/eks/index.html
+[cluster-api-supported-v]: https://cluster-api.sigs.k8s.io/reference/versions.html

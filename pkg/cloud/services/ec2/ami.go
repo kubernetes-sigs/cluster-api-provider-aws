@@ -260,7 +260,7 @@ func (s *Service) eksAMILookup(kubernetesVersion string, amiType *infrav1.EKSAMI
 		return "", errors.Wrapf(err, "failed to get ami SSM parameter: %q", paramName)
 	}
 
-	if out.Parameter.Value == nil {
+	if out.Parameter == nil || out.Parameter.Value == nil {
 		return "", errors.Errorf("SSM parameter returned with nil value: %q", paramName)
 	}
 
