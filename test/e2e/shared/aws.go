@@ -692,3 +692,464 @@ func ListVPC(e2eCtx *E2EContext) int {
 
 	return len(out.Vpcs)
 }
+
+func GetVPC(e2eCtx *E2EContext, vpcId string) (*ec2.Vpc, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("vpc-id"),
+		Values: aws.StringSlice([]string{vpcId}),
+	}
+
+	input := &ec2.DescribeVpcsInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeVpcs(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.Vpcs[0], nil
+}
+
+func CreateVPC(e2eCtx *E2EContext, vpcName string, cidrBlock string) (*ec2.Vpc, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.CreateVpcInput{
+		CidrBlock: aws.String(cidrBlock),
+		TagSpecifications: []*ec2.TagSpecification{
+			{
+				ResourceType: aws.String("vpc"),
+				Tags: []*ec2.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String(vpcName),
+					},
+				},
+			},
+		},
+	}
+	result, err := ec2Svc.CreateVpc(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.Vpc, nil
+}
+
+func DeleteVPC(e2eCtx *E2EContext, vpcId string) (bool, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DeleteVpcInput{
+		VpcId: aws.String(vpcId),
+	}
+	_, err := ec2Svc.DeleteVpc(input)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func GetSubnet(e2eCtx *E2EContext, subnetId string) (*ec2.Subnet, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("subnet-id"),
+		Values: aws.StringSlice([]string{subnetId}),
+	}
+
+	input := &ec2.DescribeSubnetsInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeSubnets(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.Subnets[0], nil
+}
+
+func CreateSubnet(e2eCtx *E2EContext, subnetName string, cidrBlock string, az string, vpcId string) (*ec2.Subnet, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.CreateSubnetInput{
+		CidrBlock: aws.String(cidrBlock),
+		VpcId:     aws.String(vpcId),
+		TagSpecifications: []*ec2.TagSpecification{
+			{
+				ResourceType: aws.String("subnet"),
+				Tags: []*ec2.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String(subnetName),
+					},
+				},
+			},
+		},
+	}
+
+	if az != "" {
+		input.AvailabilityZone = aws.String(az)
+	}
+
+	result, err := ec2Svc.CreateSubnet(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.Subnet, nil
+}
+
+func DeleteSubnet(e2eCtx *E2EContext, subnetId string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DeleteSubnetInput{
+		SubnetId: aws.String(subnetId),
+	}
+
+	_, err := ec2Svc.DeleteSubnet(input)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
+func AllocateAddress(eipName string) (*ec2.AllocateAddressOutput, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.AllocateAddressInput{
+		Domain: aws.String("vpc"),
+		TagSpecifications: []*ec2.TagSpecification{
+			{
+				ResourceType: aws.String("elastic-ip"),
+				Tags: []*ec2.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String(eipName),
+					},
+				},
+			},
+		},
+	}
+
+	result, err := ec2Svc.AllocateAddress(input)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func ReleaseAddress(allocId string) (bool, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.ReleaseAddressInput{
+		AllocationId: aws.String(allocId),
+	}
+
+	_, err := ec2Svc.ReleaseAddress(input)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func CreateNatGateway(gatewayName string, connectType string, allocId string, subnetId string) (*ec2.NatGateway, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.CreateNatGatewayInput{
+		SubnetId: aws.String(subnetId),
+		TagSpecifications: []*ec2.TagSpecification{
+			{
+				ResourceType: aws.String("natgateway"),
+				Tags: []*ec2.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String(gatewayName),
+					},
+				},
+			},
+		},
+	}
+
+	if connectType != "" {
+		input.ConnectivityType = aws.String(connectType)
+	}
+
+	if allocId != "" {
+		input.AllocationId = aws.String(allocId)
+	}
+
+	result, err := ec2Svc.CreateNatGateway(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.NatGateway, nil
+}
+
+func GetNatGateway(gatewayId string) (*ec2.NatGateway, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("nat-gateway-id"),
+		Values: aws.StringSlice([]string{gatewayId}),
+	}
+
+	input := &ec2.DescribeNatGatewaysInput{
+		Filter: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeNatGateways(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.NatGateways[0], nil
+}
+
+func DeleteNatGateway(gatewayId string) (bool, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DeleteNatGatewayInput{
+		NatGatewayId: aws.String(gatewayId),
+	}
+
+	_, err := ec2Svc.DeleteNatGateway(input)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func CreateInternetGateway(gatewayName string) (*ec2.InternetGateway, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.CreateInternetGatewayInput{
+		TagSpecifications: []*ec2.TagSpecification{
+			{
+				ResourceType: aws.String("internet-gateway"),
+				Tags: []*ec2.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String(gatewayName),
+					},
+				},
+			},
+		},
+	}
+
+	result, err := ec2Svc.CreateInternetGateway(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.InternetGateway, nil
+}
+
+func GetInternetGateway(gatewayId string) (*ec2.InternetGateway, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("internet-gateway-id"),
+		Values: aws.StringSlice([]string{gatewayId}),
+	}
+
+	input := &ec2.DescribeInternetGatewaysInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeInternetGateways(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.InternetGateways[0], nil
+}
+
+func DeleteInternetGateway(gatewayId string) (bool, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DeleteInternetGatewayInput{
+		InternetGatewayId: aws.String(gatewayId),
+	}
+
+	_, err := ec2Svc.DeleteInternetGateway(input)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func AttachInternetGateway(gatewayId string, vpcId string) (bool, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.AttachInternetGatewayInput{
+		InternetGatewayId: aws.String(gatewayId),
+		VpcId:             aws.String(vpcId),
+	}
+
+	_, err := ec2Svc.AttachInternetGateway(input)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func CreatePeering(peerName string, vpcId string, peerVpcId string) (*ec2.VpcPeeringConnection, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.CreateVpcPeeringConnectionInput{
+		VpcId:     aws.String(vpcId),
+		PeerVpcId: aws.String(peerVpcId),
+		TagSpecifications: []*ec2.TagSpecification{
+			{
+				ResourceType: aws.String("vpc-peering-connection"),
+				Tags: []*ec2.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String(peerName),
+					},
+				},
+			},
+		},
+	}
+
+	result, err := ec2Svc.CreateVpcPeeringConnection(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.VpcPeeringConnection, nil
+}
+
+func DeletePeering(peeringId string) (bool, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DeleteVpcPeeringConnectionInput{
+		VpcPeeringConnectionId: aws.String(peeringId),
+	}
+
+	_, err := ec2Svc.DeleteVpcPeeringConnection(input)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func AcceptPeering(peeringId string) (*ec2.VpcPeeringConnection, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.AcceptVpcPeeringConnectionInput{
+		VpcPeeringConnectionId: aws.String(peeringId),
+	}
+
+	result, err := ec2Svc.AcceptVpcPeeringConnection(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.VpcPeeringConnection, nil
+}
+
+func CreateRouteTable(rtName string, vpcId string) (*ec2.RouteTable, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.CreateRouteTableInput{
+		VpcId: aws.String(vpcId),
+		TagSpecifications: []*ec2.TagSpecification{
+			{
+				ResourceType: aws.String("route-table"),
+				Tags: []*ec2.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String(rtName),
+					},
+				},
+			},
+		},
+	}
+
+	result, err := ec2Svc.CreateRouteTable(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.RouteTable, nil
+}
+
+func GetRouteTable(rtId string) (*ec2.RouteTable, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("route-table-id"),
+		Values: aws.StringSlice([]string{rtId}),
+	}
+
+	input := &ec2.DescribeRouteTablesInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeRouteTables(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.RouteTables[0], nil
+}
+
+func DeleteRouteTable(rtId string) (bool, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DeleteRouteTableInput{
+		RouteTableId: aws.String(rtId),
+	}
+
+	_, err := ec2Svc.DeleteRouteTable(input)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func CreateRoute(rtId string, DestinationCidr string, natId *string, igwId *string, pcxId *string) (bool, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.CreateRouteInput{
+		RouteTableId:         &rtId,
+		DestinationCidrBlock: aws.String(DestinationCidr),
+	}
+
+	if natId != nil {
+		input.NatGatewayId = natId
+	}
+
+	if igwId != nil {
+		input.GatewayId = igwId
+	}
+
+	if pcxId != nil {
+		input.VpcPeeringConnectionId = pcxId
+	}
+
+	result, err := ec2Svc.CreateRoute(input)
+	if err != nil {
+		return false, err
+	}
+	created := *result.Return
+	return created, nil
+}
+
+func DeleteRoute(rtId string, DestinationCidr string) (bool, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DeleteRouteInput{
+		RouteTableId:         aws.String(rtId),
+		DestinationCidrBlock: aws.String(DestinationCidr),
+	}
+
+	_, err := ec2Svc.DeleteRoute(input)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
