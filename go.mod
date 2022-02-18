@@ -34,7 +34,7 @@ require (
 	k8s.io/component-base v0.23.0
 	k8s.io/klog/v2 v2.40.1
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
-	sigs.k8s.io/aws-iam-authenticator v0.5.4
+	sigs.k8s.io/aws-iam-authenticator v0.5.5
 	sigs.k8s.io/cluster-api v1.1.2
 	sigs.k8s.io/cluster-api/test v1.1.2
 	sigs.k8s.io/controller-runtime v0.11.1
