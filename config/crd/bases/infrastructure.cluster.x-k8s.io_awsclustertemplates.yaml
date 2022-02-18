@@ -342,7 +342,12 @@ spec:
         type: object
     served: true
     storage: false
-  - name: v1beta1
+  - additionalPrinterColumns:
+    - description: Time duration since creation of AWSClusterTemplate
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
     schema:
       openAPIV3Schema:
         description: AWSClusterTemplate is the schema for Amazon EC2 based Kubernetes
@@ -696,6 +701,7 @@ spec:
         type: object
     served: true
     storage: true
+    subresources: {}
 status:
   acceptedNames:
     kind: ""
