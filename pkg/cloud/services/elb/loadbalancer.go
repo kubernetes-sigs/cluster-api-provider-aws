@@ -77,14 +77,17 @@ func (s *Service) ReconcileLoadbalancers() error {
 	}
 
 	apiELB, err := s.describeClassicELB(spec.Name)
-	if IsNotFound(err) {
+	switch {
+	case IsNotFound(err) && s.scope.ControlPlaneEndpoint().IsValid():
+		// if elb is not found and owner cluster ControlPlaneEndpoint is already populated, then we should not recreate the elb.
+		return errors.Wrapf(err, "no loadbalancer exists for the AWSCluster %s, the cluster has become unrecoverable and should be deleted manually", s.scope.InfraClusterName())
+	case IsNotFound(err):
 		apiELB, err = s.createClassicELB(spec)
 		if err != nil {
 			return err
 		}
-
 		s.scope.V(2).Info("Created new classic load balancer for apiserver", "api-server-elb-name", apiELB.Name)
-	} else if err != nil {
+	case err != nil:
 		// Failed to describe the classic ELB
 		return err
 	}
