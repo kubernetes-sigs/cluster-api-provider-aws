@@ -42,8 +42,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/mock_services"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
-
-	// "sigs.k8s.io/cluster-api/controllers/noderefutil" //nolint:godot.
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
