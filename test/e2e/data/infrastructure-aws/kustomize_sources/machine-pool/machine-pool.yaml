@@ -25,7 +25,7 @@ kind: AWSMachinePool
 metadata:
   name: ${CLUSTER_NAME}-mp-0
 spec:
-  minSize: 1
+  minSize: 0
   maxSize: 4
   awsLaunchTemplate:
     instanceType: "${AWS_CONTROL_PLANE_MACHINE_TYPE}"
