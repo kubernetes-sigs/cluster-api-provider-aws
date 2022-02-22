@@ -158,7 +158,6 @@ spec:
   roleARN: arn:aws:iam::11122233344:role/multi-tenancy-role
   sessionName: multi-tenancy-role-session
   sourceidentityRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     kind: AWSClusterControllerIdentity
     name: default
 ---
@@ -172,17 +171,14 @@ spec:
   roleARN: arn:aws:iam::11122233355:role/multi-tenancy-nested-role
   sessionName: multi-tenancy-nested-role-session
   sourceidentityRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     kind: AWSClusterRoleIdentity
     name: multi-tenancy-role
 ```
 
-## Secure Access to Identitys
-`allowedNamespaces` field is used to grant access to the namespaces to use Identitys.
+## Secure Access to Identities
+`allowedNamespaces` field is used to grant access to the namespaces to use Identities.
 Only AWSClusters that are created in one of the Identity's allowed namespaces can use that Identity.
 `allowedNamespaces` are defined by providing either a list of namespaces or label selector to select namespaces.
-
-Note that the `capa-eks-control-plane-system` namespace will need to be included in the allow namespace list and/or have labels added to allow access to identities used by AWSClusters.
 
 ### Examples
 
@@ -245,7 +241,7 @@ allowedNamespaces:
   selector: {}
 ```
 
-**Important** The default behaviour of an empty label selector is to match all objects, however here we do not follow that behavior to avoid unintended access to the identitys.
+**Important** The default behaviour of an empty label selector is to match all objects, however here we do not follow that behavior to avoid unintended access to the identities.
 This is consistent with core cluster API selectors, e.g., Machine and ClusterResourceSet selectors. The result of matchLabels and matchExpressions are ANDed.
 
 
