@@ -80,7 +80,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				Namespace: "default",
 			},
 			Spec: expinfrav1.AWSMachinePoolSpec{
-				MinSize: int32(1),
+				MinSize: int32(0),
 				MaxSize: int32(1),
 			},
 		}
