@@ -20,7 +20,7 @@
     - [Using EKS Addons](./topics/eks/addons.md)
     - [Enabling Encryption](./topics/eks/encryption.md)
     - [Cluster Upgrades](./topics/eks/cluster-upgrades.md)
-  - [Consuming Existing AWS Infrastructure](./topics/consuming-existing-aws-infrastructure.md)
+    - [Bring Your Own AWS Infrastructure](./topics/bring-your-own-aws-infrastructure.md)
   - [Specifying the IAM Role to use for Management Components](./topics/specify-management-iam-role.md)
   - [Using external cloud provider with EBS CSI driver](./topics/external-cloud-provider-with-ebs-csi-driver.md)
   - [Restricting Cluster API to certain namespaces](./topics/restricting-cluster-api-to-certain-namespaces.md)
