@@ -750,6 +750,27 @@ func DeleteVPC(e2eCtx *E2EContext, vpcID string) (bool, error) {
 	return true, nil
 }
 
+func ListVpcSubnets(e2eCtx *E2EContext, vpcID string) ([]*ec2.Subnet, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("vpc-id"),
+		Values: aws.StringSlice([]string{vpcID}),
+	}
+
+	input := &ec2.DescribeSubnetsInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeSubnets(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.Subnets, nil
+}
+
 func GetSubnet(e2eCtx *E2EContext, subnetID string) (*ec2.Subnet, error) {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
@@ -771,7 +792,7 @@ func GetSubnet(e2eCtx *E2EContext, subnetID string) (*ec2.Subnet, error) {
 	return result.Subnets[0], nil
 }
 
-func CreateSubnet(e2eCtx *E2EContext, subnetName string, cidrBlock string, az string, vpcID string) (*ec2.Subnet, error) {
+func CreateSubnet(e2eCtx *E2EContext, clusterName string, cidrBlock string, az string, vpcID string, st string) (*ec2.Subnet, error) {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
 	input := &ec2.CreateSubnetInput{
@@ -783,11 +804,29 @@ func CreateSubnet(e2eCtx *E2EContext, subnetName string, cidrBlock string, az st
 				Tags: []*ec2.Tag{
 					{
 						Key:   aws.String("Name"),
-						Value: aws.String(subnetName),
+						Value: aws.String(clusterName + "-subnet-" + st),
+					},
+					{
+						Key:   aws.String("kubernetes.io/cluster/" + clusterName),
+						Value: aws.String("shared"),
 					},
 				},
 			},
 		},
+	}
+
+	// Tag subnet based on type(st)
+	switch st {
+	case "private":
+		input.TagSpecifications[0].Tags = append(input.TagSpecifications[0].Tags, &ec2.Tag{
+			Key:   aws.String("kubernetes.io/role/internal-elb"),
+			Value: aws.String("1"),
+		})
+	case "public":
+		input.TagSpecifications[0].Tags = append(input.TagSpecifications[0].Tags, &ec2.Tag{
+			Key:   aws.String("kubernetes.io/role/elb"),
+			Value: aws.String("1"),
+		})
 	}
 
 	if az != "" {
@@ -1069,6 +1108,48 @@ func CreateRouteTable(e2eCtx *E2EContext, rtName string, vpcID string) (*ec2.Rou
 	return result.RouteTable, nil
 }
 
+func ListVpcRouteTables(e2eCtx *E2EContext, vpcID string) ([]*ec2.RouteTable, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("vpc-id"),
+		Values: aws.StringSlice([]string{vpcID}),
+	}
+
+	input := &ec2.DescribeRouteTablesInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeRouteTables(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.RouteTables, nil
+}
+
+func ListSubnetRouteTables(e2eCtx *E2EContext, subnetID string) ([]*ec2.RouteTable, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("association.subnet-id"),
+		Values: aws.StringSlice([]string{subnetID}),
+	}
+
+	input := &ec2.DescribeRouteTablesInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeRouteTables(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.RouteTables, nil
+}
+
 func GetRouteTable(e2eCtx *E2EContext, rtID string) (*ec2.RouteTable, error) {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
@@ -1143,4 +1224,212 @@ func DeleteRoute(e2eCtx *E2EContext, rtID string, destinationCidr string) (bool,
 		return false, err
 	}
 	return true, nil
+}
+
+func CreateSecurityGroup(e2eCtx *E2EContext, sgName string, sgDescription string, vpcID string) (*ec2.CreateSecurityGroupOutput, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.CreateSecurityGroupInput{
+		VpcId:       aws.String(vpcID),
+		GroupName:   aws.String(sgName),
+		Description: aws.String(sgDescription),
+		TagSpecifications: []*ec2.TagSpecification{
+			{
+				ResourceType: aws.String("security-group"),
+				Tags: []*ec2.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String(sgName),
+					},
+				},
+			},
+		},
+	}
+
+	result, err := ec2Svc.CreateSecurityGroup(input)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func GetSecurityGroup(e2eCtx *E2EContext, sgID string) (*ec2.SecurityGroup, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("group-id"),
+		Values: aws.StringSlice([]string{sgID}),
+	}
+
+	input := &ec2.DescribeSecurityGroupsInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeSecurityGroups(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.SecurityGroups[0], nil
+}
+
+func DeleteSecurityGroup(e2eCtx *E2EContext, sgID string) (bool, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DeleteSecurityGroupInput{
+		GroupId: aws.String(sgID),
+	}
+
+	if _, err := ec2Svc.DeleteSecurityGroup(input); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func ListSecurityGroupRules(e2eCtx *E2EContext, sgID string) ([]*ec2.SecurityGroupRule, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("group-id"),
+		Values: aws.StringSlice([]string{sgID}),
+	}
+
+	input := &ec2.DescribeSecurityGroupRulesInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeSecurityGroupRules(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.SecurityGroupRules, nil
+}
+
+func GetSecurityGroupRule(e2eCtx *E2EContext, sgrID string) (*ec2.SecurityGroupRule, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("security-group-rule-id"),
+		Values: aws.StringSlice([]string{sgrID}),
+	}
+
+	input := &ec2.DescribeSecurityGroupRulesInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeSecurityGroupRules(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.SecurityGroupRules[0], nil
+}
+
+func CreateSecurityGroupIngressRule(e2eCtx *E2EContext, sgID string, sgrDescription string, cidr string, protocol string, fromPort int64, toPort int64) (bool, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	ipPerm := &ec2.IpPermission{
+		FromPort:   aws.Int64(fromPort),
+		ToPort:     aws.Int64(toPort),
+		IpProtocol: aws.String(protocol),
+		IpRanges: []*ec2.IpRange{
+			{
+				CidrIp:      aws.String(cidr),
+				Description: aws.String(sgrDescription),
+			},
+		},
+	}
+
+	input := &ec2.AuthorizeSecurityGroupIngressInput{
+		GroupId: aws.String(sgID),
+		IpPermissions: []*ec2.IpPermission{
+			ipPerm,
+		},
+	}
+
+	result, err := ec2Svc.AuthorizeSecurityGroupIngress(input)
+	if err != nil {
+		return false, err
+	}
+	return *result.Return, nil
+}
+
+func CreateSecurityGroupEgressRule(e2eCtx *E2EContext, sgID string, sgrDescription string, cidr string, protocol string, fromPort int64, toPort int64) (bool, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	ipPerm := &ec2.IpPermission{
+		FromPort:   aws.Int64(fromPort),
+		ToPort:     aws.Int64(toPort),
+		IpProtocol: aws.String(protocol),
+		IpRanges: []*ec2.IpRange{
+			{
+				CidrIp:      aws.String(cidr),
+				Description: aws.String(sgrDescription),
+			},
+		},
+	}
+
+	input := &ec2.AuthorizeSecurityGroupEgressInput{
+		GroupId: aws.String(sgID),
+		IpPermissions: []*ec2.IpPermission{
+			ipPerm,
+		},
+	}
+	result, err := ec2Svc.AuthorizeSecurityGroupEgress(input)
+	if err != nil {
+		return false, err
+	}
+	return *result.Return, nil
+}
+
+func CreateSecurityGroupRule(e2eCtx *E2EContext, sgID string, sgrDescription string, cidr string, protocol string, fromPort int64, toPort int64, rt string) (bool, error) {
+	switch rt {
+	case "ingress":
+		return CreateSecurityGroupIngressRule(e2eCtx, sgID, sgrDescription, cidr, protocol, fromPort, toPort)
+	case "egress":
+		return CreateSecurityGroupEgressRule(e2eCtx, sgID, sgrDescription, cidr, protocol, fromPort, toPort)
+	}
+	return false, nil
+}
+
+func DeleteSecurityGroupIngressRule(e2eCtx *E2EContext, sgrID string) (bool, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.RevokeSecurityGroupIngressInput{
+		SecurityGroupRuleIds: aws.StringSlice([]string{sgrID}),
+	}
+
+	result, err := ec2Svc.RevokeSecurityGroupIngress(input)
+	if err != nil {
+		return false, err
+	}
+	return *result.Return, nil
+}
+
+func DeleteSecurityGroupEgressRule(e2eCtx *E2EContext, sgrID string) (bool, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.RevokeSecurityGroupEgressInput{
+		SecurityGroupRuleIds: aws.StringSlice([]string{sgrID}),
+	}
+
+	result, err := ec2Svc.RevokeSecurityGroupEgress(input)
+	if err != nil {
+		return false, err
+	}
+	return *result.Return, nil
+}
+
+func DeleteSecurityGroupRule(e2eCtx *E2EContext, sgrID string, rt string) (bool, error) {
+	switch rt {
+	case "ingress":
+		return DeleteSecurityGroupIngressRule(e2eCtx, sgrID)
+	case "egress":
+		return DeleteSecurityGroupEgressRule(e2eCtx, sgrID)
+	}
+	return false, nil
 }
