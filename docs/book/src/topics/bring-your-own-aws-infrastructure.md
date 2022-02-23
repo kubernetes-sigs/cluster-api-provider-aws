@@ -1,8 +1,23 @@
-# Consuming Existing AWS Infrastructure
+# Bring Your Own AWS Infrastructure
 
-Normally, Cluster API will create infrastructure on AWS when standing up a new workload cluster. However, it is possible to have Cluster API re-use existing AWS infrastructure instead of creating its own infrastructure. Follow the instructions below to configure Cluster API to consume existing AWS infrastructure.
+Normally, Cluster API will create infrastructure on AWS when standing up a new workload cluster. However, it is possible to have Cluster API re-use external AWS infrastructure instead of creating its own infrastructure. 
 
-## Prerequisites
+There are two possible ways to do this:
+* By consuming existing AWS infrastructure
+* By using externally managed AWS infrastructure
+> **IMPORTANT NOTE**: This externally managed AWS infrastructure should not be confused with EKS-managed clusters.
+
+Follow the instructions below to configure Cluster API to consume existing AWS infrastructure.
+
+## Consuming Existing AWS Infrastructure
+
+### Overview
+
+CAPA supports using existing AWS resources while creating AWS Clusters which gives flexibility to the users to bring their own existing resources into the cluster instead of creating new resources again.
+
+Follow the instructions below to configure Cluster API to consume existing AWS infrastructure.
+
+### Prerequisites
 
 In order to have Cluster API consume existing AWS infrastructure, you will need to have already created the following resources:
 
@@ -22,7 +37,7 @@ If you want to use existing security groups, these can be specified and new ones
 
 If you want to use an existing control load load balancer, specify its name.
 
-## Tagging AWS Resources
+### Tagging AWS Resources
 
 Cluster API itself does tag AWS resources it creates. The `sigs.k8s.io/cluster-api-provider-aws/cluster/<cluster-name>` (where `<cluster-name>` matches the `metadata.name` field of the Cluster object) tag, with a value of `owned`, tells Cluster API that it has ownership of the resource. In this case, Cluster API will modify and manage the lifecycle of the resource.
 
@@ -32,7 +47,7 @@ However, the built-in Kubernetes AWS cloud provider _does_ require certain tags 
 
 Finally, if the controller manager isn't started with the `--configure-cloud-routes: "false"` parameter, the route table(s) will also need the `kubernetes.io/cluster/<cluster-name>` tag. (This parameter can be added by customizing the `KubeadmConfigSpec` object of the `KubeadmControlPlane` object.)
 
-## Configuring the AWSCluster Specification
+### Configuring the AWSCluster Specification
 
 Specifying existing infrastructure for Cluster API to use takes place in the specification for the AWSCluster object. Specifically, you will need to add an entry with the VPC ID and the IDs of all applicable subnets into the `network` field. Here is an example:
 
@@ -59,7 +74,7 @@ spec:
 
 When you use `kubectl apply` to apply the Cluster and AWSCluster specifications to the management cluster, Cluster API will use the specified VPC ID and subnet IDs, and will not create a new VPC, new subnets, or other associated resources. It _will_, however, create a new ELB and new security groups.
 
-## Placing EC2 Instances in Specific AZs
+### Placing EC2 Instances in Specific AZs
 
 To distribute EC2 instances across multiple AZs, you can add information to the Machine specification. This is optional and only necessary if control over AZ placement is desired.
 
@@ -81,7 +96,7 @@ spec:
 
 Note that all replicas within a MachineDeployment will reside in the same AZ.
 
-## Placing EC2 Instances in Specific Subnets
+### Placing EC2 Instances in Specific Subnets
 
 To specify that an EC2 instance should be placed in a specific subnet, add this to the AWSMachine specification:
 
@@ -103,7 +118,7 @@ spec:
 
 Users may either specify `failureDomain` on the Machine or MachineDeployment objects, _or_ users may explicitly specify subnet IDs on the AWSMachine or AWSMachineTemplate objects. If both are specified, the subnet ID is used and the `failureDomain` is ignored.
 
-## Security Groups
+### Security Groups
 
 To use existing security groups for instances for a cluster, add this to the AWSCluster specification:
 
@@ -130,7 +145,7 @@ spec:
     - ...
 ```
 
-## Control Plane Load Balancer
+### Control Plane Load Balancer
 
 The cluster control plane is accessed through a Classic ELB. By default, Cluster API creates the Classic ELB. To use an existing Classic ELB, add its name to the AWSCluster specification:
 
@@ -142,20 +157,60 @@ spec:
 
 As control plane instances are added or removed, Cluster API will register and deregister them, respectively, with the Classic ELB.
 
-<aside class="note warning">
+> **WARNING:** Using an existing Classic ELB is an advanced feature. **If you use an existing Classic ELB, you must correctly configure it, and attach subnets to it.**
+> 
+>An incorrectly configured Classic ELB can easily lead to a non-functional cluster. We strongly recommend you let Cluster API create the Classic ELB.
 
-<h1>Warning</h1>
-
-Using an existing Classic ELB is an advanced feature. **If you use an existing Classic ELB, you must correctly configure it, and attach subnets to it.**
-
-An incorrectly configured Classic ELB can easily lead to a non-functional cluster. We strongly recommend you let Cluster API create the Classic ELB.
-
-</aside>
-
-## Caveats/Notes
+### Caveats/Notes
 
 * When both public and private subnets are available in an AZ, CAPI will choose the private subnet in the AZ over the public subnet for placing EC2 instances.
 * If you configure CAPI to use existing infrastructure as outlined above, CAPI will _not_ create an SSH bastion host. Combined with the previous bullet, this means you must make sure you have established some form of connectivity to the instances that CAPI will create.
 
-Alternatively CAPA supports [externally managed cluster infrastructure](https://github.com/kubernetes-sigs/cluster-api/blob/10d89ceca938e4d3d94a1d1c2b60515bcdf39829/docs/proposals/20210203-externally-managed-cluster-infrastructure.md).
-If the `AWSCluster` resource includes a "cluster.x-k8s.io/managed-by" annotation then the [controller will skip any reconciliation](https://cluster-api.sigs.k8s.io/developer/providers/cluster-infrastructure.html#normal-resource).
+## Using Externally managed AWS Clusters
+
+### Overview
+
+Alternatively, CAPA supports externally managed cluster infrastructure which is useful for scenarios where a different persona is managing the cluster infrastructure out-of-band(external system) while still wanting to use CAPI for automated machine management.
+Users can make use of existing AWSCluster CRDs in their externally managed clusters.
+
+### How to use externally managed clusters?
+
+Users have to use `cluster.x-k8s.io/managed-by: "<name-of-system>"` annotation to depict that AWS resources are managed externally. If CAPA controllers come across this annotation in any of the AWS resources while reconciliation, then it will ignore the resource and not perform any reconciliation(including creating/modifying any of the AWS resources, or it's status).
+
+A predicate `ResourceIsNotExternallyManaged` is exposed by Cluster API which allows CAPA controllers to differentiate between externally managed vs CAPA managed resources. For example:
+```go
+c, err := ctrl.NewControllerManagedBy(mgr).
+        For(&providerv1.InfraCluster{}).
+        Watches(...).
+        WithOptions(options).
+        WithEventFilter(predicates.ResourceIsNotExternallyManaged(ctrl.LoggerFrom(ctx))).
+        Build(r)
+if err != nil {
+	return errors.Wrap(err, "failed setting up with a controller manager")
+}
+```
+The external system must provide all required fields within the spec of the AWSCluster and must adhere to the CAPI provider contract and set the AWSCluster status to be ready when it is appropriate to do so.
+
+> **IMPORTANT NOTE**: Users should take care of skipping reconciliation in external controllers within mapping function while enqueuing requests. For example:
+> ```go
+> err := c.Watch(
+>		&source.Kind{Type: &infrav1.AWSCluster{}},
+>		handler.EnqueueRequestsFromMapFunc(func(a client.Object) []reconcile.Request {
+>		   if annotations.IsExternallyManaged(awsCluster) {
+>			    log.Info("AWSCluster is externally managed, skipping mapping.")
+>			    return nil
+>		   }
+>            return []reconcile.Request{
+>	           {
+>		         NamespacedName: client.ObjectKey{Namespace: c.Namespace, Name: c.Spec.InfrastructureRef.Name},
+>	           },
+>	        }}))
+> if err != nil {
+>    // handle it
+> }
+> ```
+
+### Caveats
+Once the user has created externally managed AWSCluster, it is not allowed to convert it to CAPA managed cluster. However, converting from managed to externally managed is allowed.
+
+User should only use this feature if their cluster infrastructure lifecycle management has constraints that the reference implementation does not support. See [user stories](https://github.com/kubernetes-sigs/cluster-api/blob/10d89ceca938e4d3d94a1d1c2b60515bcdf39829/docs/proposals/20210203-externally-managed-cluster-infrastructure.md#user-stories) for more details.
