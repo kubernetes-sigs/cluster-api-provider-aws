@@ -22,6 +22,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	"k8s.io/utils/pointer"
 
@@ -144,7 +145,7 @@ func (s *Service) GetASGByName(scope *scope.MachinePoolScope) (*expinfrav1.AutoS
 
 // CreateASG runs an autoscaling group.
 func (s *Service) CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
-	subnets, err := scope.SubnetIDs()
+	subnets, err := s.SubnetIDs(scope)
 	if err != nil {
 		return nil, fmt.Errorf("getting subnets for ASG: %w", err)
 	}
@@ -267,15 +268,9 @@ func (s *Service) DeleteASG(name string) error {
 
 // UpdateASG will update the ASG of a service.
 func (s *Service) UpdateASG(scope *scope.MachinePoolScope) error {
-	subnetIDs := make([]string, len(scope.AWSMachinePool.Spec.Subnets))
-	for i, v := range scope.AWSMachinePool.Spec.Subnets {
-		subnetIDs[i] = aws.StringValue(v.ID)
-	}
-
-	if len(subnetIDs) == 0 {
-		for _, subnet := range scope.InfraCluster.Subnets() {
-			subnetIDs = append(subnetIDs, subnet.ID)
-		}
+	subnetIDs, err := s.SubnetIDs(scope)
+	if err != nil {
+		return fmt.Errorf("getting subnets for ASG: %w", err)
 	}
 
 	input := &autoscaling.UpdateAutoScalingGroupInput{
@@ -464,4 +459,39 @@ func mapToTags(input map[string]string, resourceID *string) []*autoscaling.Tag {
 		})
 	}
 	return tags
+}
+
+// SubnetIDs return subnet IDs of a AWSMachinePool based on given subnetIDs and filters.
+func (s *Service) SubnetIDs(scope *scope.MachinePoolScope) ([]string, error) {
+	subnetIDs := make([]string, 0)
+	var inputFilters = make([]*ec2.Filter, 0)
+
+	for _, subnet := range scope.AWSMachinePool.Spec.Subnets {
+		switch {
+		case subnet.ID != nil:
+			subnetIDs = append(subnetIDs, aws.StringValue(subnet.ID))
+		case subnet.Filters != nil:
+			for _, eachFilter := range subnet.Filters {
+				inputFilters = append(inputFilters, &ec2.Filter{
+					Name:   aws.String(eachFilter.Name),
+					Values: aws.StringSlice(eachFilter.Values),
+				})
+			}
+		}
+	}
+
+	if len(inputFilters) > 0 {
+		out, err := s.EC2Client.DescribeSubnets(&ec2.DescribeSubnetsInput{
+			Filters: inputFilters,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, subnet := range out.Subnets {
+			subnetIDs = append(subnetIDs, *subnet.SubnetId)
+		}
+	}
+
+	return scope.SubnetIDs(subnetIDs)
 }
