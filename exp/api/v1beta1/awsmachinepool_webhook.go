@@ -81,6 +81,23 @@ func (r *AWSMachinePool) validateRootVolume() field.ErrorList {
 	return allErrs
 }
 
+func (r *AWSMachinePool) validateSubnets() field.ErrorList {
+	var allErrs field.ErrorList
+
+	if r.Spec.Subnets == nil {
+		return allErrs
+	}
+
+	for _, subnet := range r.Spec.Subnets {
+		if subnet.ID != nil && subnet.Filters != nil {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.subnets.filters"), "providing either subnet ID or filter is supported, should not provide both"))
+			break
+		}
+	}
+
+	return allErrs
+}
+
 // ValidateCreate will do any extra validation when creating a AWSMachinePool.
 func (r *AWSMachinePool) ValidateCreate() error {
 	log.Info("AWSMachinePool validate create", "name", r.Name)
@@ -90,6 +107,7 @@ func (r *AWSMachinePool) ValidateCreate() error {
 	allErrs = append(allErrs, r.validateDefaultCoolDown()...)
 	allErrs = append(allErrs, r.validateRootVolume()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
+	allErrs = append(allErrs, r.validateSubnets()...)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -108,6 +126,7 @@ func (r *AWSMachinePool) ValidateUpdate(old runtime.Object) error {
 
 	allErrs = append(allErrs, r.validateDefaultCoolDown()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
+	allErrs = append(allErrs, r.validateSubnets()...)
 
 	if len(allErrs) == 0 {
 		return nil
