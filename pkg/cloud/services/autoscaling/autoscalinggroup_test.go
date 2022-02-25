@@ -1095,8 +1095,7 @@ func getMachinePoolScope(client client.Client, clusterScope *scope.ClusterScope)
 		Spec: expinfrav1.AWSMachinePoolSpec{
 			Subnets: []infrav1.AWSResourceReference{
 				{
-					ID:  aws.String("subnet1"),
-					ARN: aws.String("subnetARN"),
+					ID: aws.String("subnet1"),
 				},
 			},
 			RefreshPreferences: &expinfrav1.RefreshPreferences{

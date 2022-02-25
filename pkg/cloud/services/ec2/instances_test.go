@@ -3195,7 +3195,7 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 				EC2Client: ec2Mock,
 			}
 
-			id, err := s.GetFilteredSecurityGroupID(tc.securityGroup)
+			id, err := s.getFilteredSecurityGroupID(tc.securityGroup)
 			tc.check(id, err)
 		})
 	}

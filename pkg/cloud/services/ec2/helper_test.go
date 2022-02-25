@@ -96,12 +96,11 @@ func newAWSMachinePool() *expinfrav1.AWSMachinePool {
 			AvailabilityZones: []string{"us-east-1"},
 			AdditionalTags:    infrav1.Tags{},
 			AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
-				Name:                     "aws-launch-template",
-				IamInstanceProfile:       "instance-profile",
-				AMI:                      infrav1.AMIReference{},
-				InstanceType:             "t3.large",
-				SSHKeyName:               aws.String("default"),
-				AdditionalSecurityGroups: []infrav1.AWSResourceReference{{ID: aws.String("1")}},
+				Name:               "aws-launch-template",
+				IamInstanceProfile: "instance-profile",
+				AMI:                infrav1.AMIReference{},
+				InstanceType:       "t3.large",
+				SSHKeyName:         aws.String("default"),
 			},
 		},
 		Status: expinfrav1.AWSMachinePoolStatus{
