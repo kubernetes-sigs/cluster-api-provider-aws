@@ -990,26 +990,3 @@ func getInstanceMarketOptionsRequest(spotMarketOptions *infrav1.SpotMarketOption
 
 	return instanceMarketOptionsRequest
 }
-
-// GetFilteredSecurityGroupID get security group ID using filters.
-func (s *Service) GetFilteredSecurityGroupID(securityGroup infrav1.AWSResourceReference) (string, error) {
-	if securityGroup.Filters == nil {
-		return "", nil
-	}
-
-	filters := []*ec2.Filter{}
-	for _, f := range securityGroup.Filters {
-		filters = append(filters, &ec2.Filter{Name: aws.String(f.Name), Values: aws.StringSlice(f.Values)})
-	}
-
-	sgs, err := s.EC2Client.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{Filters: filters})
-	if err != nil {
-		return "", err
-	}
-
-	if len(sgs.SecurityGroups) == 0 {
-		return "", fmt.Errorf("failed to find security group matching filters: %q, reason: %w", filters, err)
-	}
-
-	return *sgs.SecurityGroups[0].GroupId, nil
-}

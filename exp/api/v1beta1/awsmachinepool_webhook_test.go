@@ -20,6 +20,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
@@ -67,6 +68,23 @@ func TestAWSMachinePool_ValidateCreate(t *testing.T) {
 						strings.Repeat("CAPI", 33): "value-3",
 						"key-4":                    strings.Repeat("CAPI", 65),
 					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Should fail if additional security groups are provided with both ID and Filters",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{AdditionalSecurityGroups: []infrav1.AWSResourceReference{{
+						ID: aws.String("sg-1"),
+						Filters: []infrav1.Filter{
+							{
+								Name:   "sg-1",
+								Values: []string{"test"},
+							},
+						},
+					}}},
 				},
 			},
 			wantErr: true,
