@@ -676,6 +676,52 @@ func ListRunningEC2(e2eCtx *E2EContext) ([]instance, error) {
 	return instances, nil
 }
 
+func ListClusterEC2Instances(e2eCtx *E2EContext, clusterName string) ([]*ec2.Instance, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	filter := &ec2.Filter{
+		Name:   aws.String("tag-key"),
+		Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/" + clusterName}),
+	}
+	input := &ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeInstances(input)
+	if err != nil {
+		return nil, err
+	}
+	instances := []*ec2.Instance{}
+	for _, r := range result.Reservations {
+		instances = append(instances, r.Instances...)
+	}
+	return instances, nil
+}
+
+func WaitForInstanceState(e2eCtx *E2EContext, clusterName string, timeout int, state string) bool {
+	t := 0
+	for t < timeout {
+		st := map[string]int{
+			"pending":       0,
+			"running":       0,
+			"shutting-down": 0,
+			"terminated":    0,
+		}
+		instances, _ := ListClusterEC2Instances(e2eCtx, clusterName)
+		for _, i := range instances {
+			iState := *i.State.Name
+			st[iState]++
+		}
+		if st[state] == len(instances) || len(instances) == 0 {
+			return true
+		}
+		time.Sleep(1 * time.Second)
+		t++
+	}
+	return false
+}
+
 func ListVPC(e2eCtx *E2EContext) int {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
@@ -738,16 +784,29 @@ func CreateVPC(e2eCtx *E2EContext, vpcName string, cidrBlock string) (*ec2.Vpc, 
 	return result.Vpc, nil
 }
 
-func DeleteVPC(e2eCtx *E2EContext, vpcID string) (bool, error) {
+func DisassociateVpcCidrBlock(e2eCtx *E2EContext, assocID string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DisassociateVpcCidrBlockInput{
+		AssociationId: aws.String(assocID),
+	}
+
+	if _, err := ec2Svc.DisassociateVpcCidrBlock(input); err != nil {
+		return false
+	}
+	return true
+}
+
+func DeleteVPC(e2eCtx *E2EContext, vpcID string) bool {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
 	input := &ec2.DeleteVpcInput{
 		VpcId: aws.String(vpcID),
 	}
 	if _, err := ec2Svc.DeleteVpc(input); err != nil {
-		return false, err
+		return false
 	}
-	return true, nil
+	return true
 }
 
 func ListVpcSubnets(e2eCtx *E2EContext, vpcID string) ([]*ec2.Subnet, error) {
@@ -878,7 +937,20 @@ func AllocateAddress(e2eCtx *E2EContext, eipName string) (*ec2.AllocateAddressOu
 	return result, nil
 }
 
-func ReleaseAddress(e2eCtx *E2EContext, allocID string) (bool, error) {
+func DisassociateAddress(e2eCtx *E2EContext, assocID string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DisassociateAddressInput{
+		AssociationId: aws.String(assocID),
+	}
+
+	if _, err := ec2Svc.DisassociateAddress(input); err != nil {
+		return false
+	}
+	return true
+}
+
+func ReleaseAddress(e2eCtx *E2EContext, allocID string) bool {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
 	input := &ec2.ReleaseAddressInput{
@@ -886,9 +958,9 @@ func ReleaseAddress(e2eCtx *E2EContext, allocID string) (bool, error) {
 	}
 
 	if _, err := ec2Svc.ReleaseAddress(input); err != nil {
-		return false, err
+		return false
 	}
-	return true, nil
+	return true
 }
 
 func CreateNatGateway(e2eCtx *E2EContext, gatewayName string, connectType string, allocID string, subnetID string) (*ec2.NatGateway, error) {
@@ -945,7 +1017,7 @@ func GetNatGateway(e2eCtx *E2EContext, gatewayID string) (*ec2.NatGateway, error
 	return result.NatGateways[0], nil
 }
 
-func DeleteNatGateway(e2eCtx *E2EContext, gatewayID string) (bool, error) {
+func DeleteNatGateway(e2eCtx *E2EContext, gatewayID string) bool {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
 	input := &ec2.DeleteNatGatewayInput{
@@ -953,9 +1025,23 @@ func DeleteNatGateway(e2eCtx *E2EContext, gatewayID string) (bool, error) {
 	}
 
 	if _, err := ec2Svc.DeleteNatGateway(input); err != nil {
-		return false, err
+		return false
 	}
-	return true, nil
+	return true
+}
+
+func WaitForNatGatewayState(e2eCtx *E2EContext, gatewayID string, timeout int, state string) bool {
+	t := 0
+	for t < timeout {
+		gw, _ := GetNatGateway(e2eCtx, gatewayID)
+		gwState := *gw.State
+		if gwState == state {
+			return true
+		}
+		time.Sleep(1 * time.Second)
+		t++
+	}
+	return false
 }
 
 func CreateInternetGateway(e2eCtx *E2EContext, gatewayName string) (*ec2.InternetGateway, error) {
@@ -1003,7 +1089,7 @@ func GetInternetGateway(e2eCtx *E2EContext, gatewayID string) (*ec2.InternetGate
 	return result.InternetGateways[0], nil
 }
 
-func DeleteInternetGateway(e2eCtx *E2EContext, gatewayID string) (bool, error) {
+func DeleteInternetGateway(e2eCtx *E2EContext, gatewayID string) bool {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
 	input := &ec2.DeleteInternetGatewayInput{
@@ -1011,9 +1097,9 @@ func DeleteInternetGateway(e2eCtx *E2EContext, gatewayID string) (bool, error) {
 	}
 
 	if _, err := ec2Svc.DeleteInternetGateway(input); err != nil {
-		return false, err
+		return false
 	}
-	return true, nil
+	return true
 }
 
 func AttachInternetGateway(e2eCtx *E2EContext, gatewayID string, vpcID string) (bool, error) {
@@ -1028,6 +1114,20 @@ func AttachInternetGateway(e2eCtx *E2EContext, gatewayID string, vpcID string) (
 		return false, err
 	}
 	return true, nil
+}
+
+func DetachInternetGateway(e2eCtx *E2EContext, gatewayID string, vpcID string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DetachInternetGatewayInput{
+		InternetGatewayId: aws.String(gatewayID),
+		VpcId:             aws.String(vpcID),
+	}
+
+	if _, err := ec2Svc.DetachInternetGateway(input); err != nil {
+		return false
+	}
+	return true
 }
 
 func CreatePeering(e2eCtx *E2EContext, peerName string, vpcID string, peerVpcID string) (*ec2.VpcPeeringConnection, error) {
@@ -1056,7 +1156,7 @@ func CreatePeering(e2eCtx *E2EContext, peerName string, vpcID string, peerVpcID 
 	return result.VpcPeeringConnection, nil
 }
 
-func DeletePeering(e2eCtx *E2EContext, peeringID string) (bool, error) {
+func DeletePeering(e2eCtx *E2EContext, peeringID string) bool {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
 	input := &ec2.DeleteVpcPeeringConnectionInput{
@@ -1064,9 +1164,9 @@ func DeletePeering(e2eCtx *E2EContext, peeringID string) (bool, error) {
 	}
 
 	if _, err := ec2Svc.DeleteVpcPeeringConnection(input); err != nil {
-		return false, err
+		return false
 	}
-	return true, nil
+	return true
 }
 
 func AcceptPeering(e2eCtx *E2EContext, peeringID string) (*ec2.VpcPeeringConnection, error) {
@@ -1171,7 +1271,7 @@ func GetRouteTable(e2eCtx *E2EContext, rtID string) (*ec2.RouteTable, error) {
 	return result.RouteTables[0], nil
 }
 
-func DeleteRouteTable(e2eCtx *E2EContext, rtID string) (bool, error) {
+func DeleteRouteTable(e2eCtx *E2EContext, rtID string) bool {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
 	input := &ec2.DeleteRouteTableInput{
@@ -1179,9 +1279,9 @@ func DeleteRouteTable(e2eCtx *E2EContext, rtID string) (bool, error) {
 	}
 
 	if _, err := ec2Svc.DeleteRouteTable(input); err != nil {
-		return false, err
+		return false
 	}
-	return true, nil
+	return true
 }
 
 func CreateRoute(e2eCtx *E2EContext, rtID string, destinationCidr string, natID *string, igwID *string, pcxID *string) (bool, error) {
@@ -1212,7 +1312,7 @@ func CreateRoute(e2eCtx *E2EContext, rtID string, destinationCidr string, natID 
 	return created, nil
 }
 
-func DeleteRoute(e2eCtx *E2EContext, rtID string, destinationCidr string) (bool, error) {
+func DeleteRoute(e2eCtx *E2EContext, rtID string, destinationCidr string) bool {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
 	input := &ec2.DeleteRouteInput{
@@ -1221,9 +1321,37 @@ func DeleteRoute(e2eCtx *E2EContext, rtID string, destinationCidr string) (bool,
 	}
 
 	if _, err := ec2Svc.DeleteRoute(input); err != nil {
-		return false, err
+		return false
 	}
-	return true, nil
+	return true
+}
+
+func AssociateRouteTable(e2eCtx *E2EContext, rtID string, subnetID string) (*ec2.AssociateRouteTableOutput, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.AssociateRouteTableInput{
+		RouteTableId: aws.String(rtID),
+		SubnetId:     aws.String(subnetID),
+	}
+
+	result, err := ec2Svc.AssociateRouteTable(input)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func DisassociateRouteTable(e2eCtx *E2EContext, assocID string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DisassociateRouteTableInput{
+		AssociationId: aws.String(assocID),
+	}
+
+	if _, err := ec2Svc.DisassociateRouteTable(input); err != nil {
+		return false
+	}
+	return true
 }
 
 func CreateSecurityGroup(e2eCtx *E2EContext, sgName string, sgDescription string, vpcID string) (*ec2.CreateSecurityGroupOutput, error) {
@@ -1274,7 +1402,7 @@ func GetSecurityGroup(e2eCtx *E2EContext, sgID string) (*ec2.SecurityGroup, erro
 	return result.SecurityGroups[0], nil
 }
 
-func DeleteSecurityGroup(e2eCtx *E2EContext, sgID string) (bool, error) {
+func DeleteSecurityGroup(e2eCtx *E2EContext, sgID string) bool {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
 	input := &ec2.DeleteSecurityGroupInput{
@@ -1282,9 +1410,9 @@ func DeleteSecurityGroup(e2eCtx *E2EContext, sgID string) (bool, error) {
 	}
 
 	if _, err := ec2Svc.DeleteSecurityGroup(input); err != nil {
-		return false, err
+		return false
 	}
-	return true, nil
+	return true
 }
 
 func ListSecurityGroupRules(e2eCtx *E2EContext, sgID string) ([]*ec2.SecurityGroupRule, error) {
@@ -1396,40 +1524,38 @@ func CreateSecurityGroupRule(e2eCtx *E2EContext, sgID string, sgrDescription str
 	return false, nil
 }
 
-func DeleteSecurityGroupIngressRule(e2eCtx *E2EContext, sgrID string) (bool, error) {
+func DeleteSecurityGroupIngressRule(e2eCtx *E2EContext, sgrID string) bool {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
 	input := &ec2.RevokeSecurityGroupIngressInput{
 		SecurityGroupRuleIds: aws.StringSlice([]string{sgrID}),
 	}
 
-	result, err := ec2Svc.RevokeSecurityGroupIngress(input)
-	if err != nil {
-		return false, err
+	if _, err := ec2Svc.RevokeSecurityGroupIngress(input); err != nil {
+		return false
 	}
-	return *result.Return, nil
+	return true
 }
 
-func DeleteSecurityGroupEgressRule(e2eCtx *E2EContext, sgrID string) (bool, error) {
+func DeleteSecurityGroupEgressRule(e2eCtx *E2EContext, sgrID string) bool {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
 	input := &ec2.RevokeSecurityGroupEgressInput{
 		SecurityGroupRuleIds: aws.StringSlice([]string{sgrID}),
 	}
 
-	result, err := ec2Svc.RevokeSecurityGroupEgress(input)
-	if err != nil {
-		return false, err
+	if _, err := ec2Svc.RevokeSecurityGroupEgress(input); err != nil {
+		return false
 	}
-	return *result.Return, nil
+	return true
 }
 
-func DeleteSecurityGroupRule(e2eCtx *E2EContext, sgrID string, rt string) (bool, error) {
+func DeleteSecurityGroupRule(e2eCtx *E2EContext, sgrID string, rt string) bool {
 	switch rt {
 	case "ingress":
 		return DeleteSecurityGroupIngressRule(e2eCtx, sgrID)
 	case "egress":
 		return DeleteSecurityGroupEgressRule(e2eCtx, sgrID)
 	}
-	return false, nil
+	return false
 }
