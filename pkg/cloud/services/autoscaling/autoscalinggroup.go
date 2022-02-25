@@ -213,6 +213,13 @@ func (s *Service) runPool(i *expinfrav1.AutoScalingGroup, launchTemplateID strin
 		VPCZoneIdentifier:    aws.String(strings.Join(i.Subnets, ", ")),
 		DefaultCooldown:      aws.Int64(int64(i.DefaultCoolDown.Duration.Seconds())),
 		CapacityRebalance:    aws.Bool(i.CapacityRebalance),
+		LifecycleHookSpecificationList: []*autoscaling.LifecycleHookSpecification{{
+			LifecycleHookName:   aws.String(GeneratePreDeletionHookName(i.Name)),
+			LifecycleTransition: aws.String("autoscaling:EC2_INSTANCE_TERMINATING"),
+			DefaultResult:       aws.String("CONTINUE"),
+			HeartbeatTimeout:    aws.Int64(900),
+		},
+		},
 	}
 
 	if i.DesiredCapacity != nil {
@@ -525,4 +532,26 @@ func (s *Service) SubnetIDs(scope *scope.MachinePoolScope) ([]string, error) {
 	}
 
 	return scope.SubnetIDs(subnetIDs)
+}
+
+// CompleteLifeCycleEvent completes pre deletion lifecycle hook of an EC2 instance in an ASG
+func (s *Service) CompleteLifeCycleEvent(asgName string, instanceID string) error {
+
+	input := &autoscaling.CompleteLifecycleActionInput{
+		AutoScalingGroupName:  aws.String(asgName),
+		LifecycleActionResult: aws.String("CONTINUE"),
+		InstanceId:            aws.String(instanceID),
+		LifecycleHookName:     aws.String(GeneratePreDeletionHookName(asgName)),
+	}
+	_, err := s.ASGClient.CompleteLifecycleAction(input)
+	if err != nil {
+		return errors.Wrap(err, "failed to completed lifeclycle hook")
+	}
+	return nil
+}
+
+// GeneratePreDeletionHookName will generate a pre-deletion-hook
+func GeneratePreDeletionHookName(asgName string) string {
+	adjusted := strings.ReplaceAll(asgName, ".", "-")
+	return fmt.Sprintf("%s-pre-deletion-hook", adjusted)
 }
