@@ -44,7 +44,7 @@ type ASGInterface interface {
 	DeleteASGAndWait(id string) error
 	SuspendProcesses(name string, processes []string) error
 	ResumeProcesses(name string, processes []string) error
-	CompleteLifeCycleEvent(asgName string, instanceID string) errorßßß
+	CompleteLifeCycleEvent(asgName string, instanceID string) error
 }
 
 // EC2Interface encapsulates the methods exposed to the machine
