@@ -22,6 +22,7 @@ package shared
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 	"os/exec"
 	"path"
@@ -135,12 +136,18 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 			Expect(err).NotTo(HaveOccurred())
 		}
 	}
-	ensureStackTags(e2eCtx.AWSSession, boostrapTemplate.Spec.StackName, bootstrapTags)
-	ensureNoServiceLinkedRoles(e2eCtx.AWSSession)
-	ensureSSHKeyPair(e2eCtx.AWSSession, DefaultSSHKeyPairName)
-	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(e2eCtx.AWSSession, boostrapTemplate.Spec.BootstrapUser.UserName)
+	//ensureStackTags(e2eCtx.AWSSession, boostrapTemplate.Spec.StackName, bootstrapTags)
+	//ensureNoServiceLinkedRoles(e2eCtx.AWSSession)
+	//ensureSSHKeyPair(e2eCtx.AWSSession, DefaultSSHKeyPairName)
+	//e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(e2eCtx.AWSSession, boostrapTemplate.Spec.BootstrapUser.UserName)
+	AccessKeyId := "<your aws access key id>"
+	SecretAccessKey := "<your aws access key secret>"
+	e2eCtx.Environment.BootstrapAccessKey = &iam.AccessKey{
+		AccessKeyId: &AccessKeyId,
+		SecretAccessKey: &SecretAccessKey,
+	}
 	e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(e2eCtx.Environment.BootstrapAccessKey)
-	Expect(ensureTestImageUploaded(e2eCtx)).NotTo(HaveOccurred())
+	//Expect(ensureTestImageUploaded(e2eCtx)).NotTo(HaveOccurred())
 
 	// Image ID is needed when using a CI Kubernetes version. This is used in conformance test and upgrade to main test.
 	if !e2eCtx.IsManaged {
@@ -153,21 +160,25 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	By("Setting up the bootstrap cluster")
 	e2eCtx.Environment.BootstrapClusterProvider, e2eCtx.Environment.BootstrapClusterProxy = setupBootstrapCluster(e2eCtx.E2EConfig, e2eCtx.Environment.Scheme, e2eCtx.Settings.UseExistingCluster)
 
-	base64EncodedCredentials := encodeCredentials(e2eCtx.Environment.BootstrapAccessKey, boostrapTemplate.Spec.Region)
+	//base64EncodedCredentials := encodeCredentials(e2eCtx.Environment.BootstrapAccessKey, boostrapTemplate.Spec.Region)
+	base64EncodedCredentials := encodeCredentials(e2eCtx.Environment.BootstrapAccessKey, "us-west-2")
+	fmt.Println(base64EncodedCredentials)
+	// base64EncodedCredentials is the result of running `AWS_REGION=xxx AWS_ACCESS_KEY_ID=xxx AWS_SECRET_ACCESS_KEY=xxx AWS_SESSION_TOKEN=xxx ~/Documents/tools/clusterawsadm-darwin-amd64 bootstrap credentials encode-as-profile`
+	//base64EncodedCredentials := "xxx"
 	SetEnvVar("AWS_B64ENCODED_CREDENTIALS", base64EncodedCredentials, true)
 
-	By("Writing AWS service quotas to a file for parallel tests")
-	quotas := EnsureServiceQuotas(e2eCtx.BootstrapUserAWSSession)
-	WriteResourceQuotesToFile(ResourceQuotaFilePath, quotas)
-	WriteResourceQuotesToFile(path.Join(e2eCtx.Settings.ArtifactFolder, "initial-resource-quotas.yaml"), quotas)
+	//By("Writing AWS service quotas to a file for parallel tests")
+	//quotas := EnsureServiceQuotas(e2eCtx.BootstrapUserAWSSession)
+	//WriteResourceQuotesToFile(ResourceQuotaFilePath, quotas)
+	//WriteResourceQuotesToFile(path.Join(e2eCtx.Settings.ArtifactFolder, "initial-resource-quotas.yaml"), quotas)
 
 	e2eCtx.Settings.InstanceVCPU, err = strconv.Atoi(e2eCtx.E2EConfig.GetVariable(InstanceVcpu))
 	Expect(err).NotTo(HaveOccurred())
 
-	By("Initializing the bootstrap cluster")
-	initBootstrapCluster(e2eCtx)
-
-	CreateAWSClusterControllerIdentity(e2eCtx.Environment.BootstrapClusterProxy.GetClient())
+	//By("Initializing the bootstrap cluster")
+	//initBootstrapCluster(e2eCtx)
+	//
+	//CreateAWSClusterControllerIdentity(e2eCtx.Environment.BootstrapClusterProxy.GetClient())
 
 	conf := synchronizedBeforeTestSuiteConfig{
 		ArtifactFolder:           e2eCtx.Settings.ArtifactFolder,
