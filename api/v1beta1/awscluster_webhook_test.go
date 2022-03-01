@@ -46,7 +46,7 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 		name    string
 		cluster *AWSCluster
 		wantErr bool
-		expect  func(t *testing.T, res *AWSLoadBalancerSpec)
+		expect  func(g *WithT, res *AWSLoadBalancerSpec)
 	}{
 		// The SSHKeyName tests were moved to sshkeyname_test.go
 		{
@@ -54,12 +54,8 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{},
 			},
-			expect: func(t *testing.T, res *AWSLoadBalancerSpec) {
-				t.Helper()
-
-				if res.Scheme.String() != ClassicELBSchemeInternetFacing.String() {
-					t.Error("Expected internet-facing defaulting for nil loadbalancer schemes")
-				}
+			expect: func(g *WithT, res *AWSLoadBalancerSpec) {
+				g.Expect(res.Scheme.String(), ClassicELBSchemeInternetFacing.String())
 			},
 			wantErr: false,
 		},
@@ -70,12 +66,8 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{Scheme: &ClassicELBSchemeIncorrectInternetFacing},
 				},
 			},
-			expect: func(t *testing.T, res *AWSLoadBalancerSpec) {
-				t.Helper()
-
-				if res.Scheme.String() != ClassicELBSchemeInternetFacing.String() {
-					t.Error("Expected internet-facing defaulting for supported incorrect scheme: Internet-facing")
-				}
+			expect: func(g *WithT, res *AWSLoadBalancerSpec) {
+				g.Expect(res.Scheme.String(), ClassicELBSchemeInternetFacing.String())
 			},
 			wantErr: false,
 		},
@@ -131,7 +123,7 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 				return err == nil
 			}, 10*time.Second).Should(Equal(true))
 
-			tt.expect(t, c.Spec.ControlPlaneLoadBalancer)
+			tt.expect(g, c.Spec.ControlPlaneLoadBalancer)
 		})
 	}
 }
@@ -363,6 +355,56 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 						"":                         "value-2",
 						strings.Repeat("CAPI", 33): "value-3",
 						"key-4":                    strings.Repeat("CAPI", 65),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Should fail if controlPlaneLoadBalancer healthcheckprotocol is updated",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						HealthCheckProtocol: &ClassicELBProtocolTCP,
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						HealthCheckProtocol: &ClassicELBProtocolSSL,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Should pass if controlPlaneLoadBalancer healthcheckprotocol is same after update",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						HealthCheckProtocol: &ClassicELBProtocolTCP,
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						HealthCheckProtocol: &ClassicELBProtocolTCP,
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Should fail if controlPlaneLoadBalancer healthcheckprotocol is changed to non-default if it was not set before update",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						HealthCheckProtocol: &ClassicELBProtocolTCP,
 					},
 				},
 			},
