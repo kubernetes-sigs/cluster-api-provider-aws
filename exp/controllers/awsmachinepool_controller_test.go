@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -362,4 +363,215 @@ func setupCluster(clusterName string) (*scope.ClusterScope, error) {
 		AWSCluster: awsCluster,
 		Client:     client,
 	})
+}
+
+func Test_asgNeedsUpdates(t *testing.T) {
+	type args struct {
+		machinePoolScope *scope.MachinePoolScope
+		existingASG      *expinfrav1.AutoScalingGroup
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "replicas != asg.desiredCapacity",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: pointer.Int32(0),
+						},
+					},
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity: pointer.Int32(1),
+				},
+			},
+			want: true,
+		},
+		{
+			name: "replicas (nil) != asg.desiredCapacity",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: nil,
+						},
+					},
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity: pointer.Int32(1),
+				},
+			},
+			want: true,
+		},
+		{
+			name: "replicas != asg.desiredCapacity (nil)",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: pointer.Int32(0),
+						},
+					},
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity: nil,
+				},
+			},
+			want: true,
+		},
+		{
+			name: "maxSize != asg.maxSize",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: pointer.Int32(1),
+						},
+					},
+					AWSMachinePool: &expinfrav1.AWSMachinePool{
+						Spec: expinfrav1.AWSMachinePoolSpec{
+							MaxSize: 1,
+						},
+					},
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity: pointer.Int32(1),
+					MaxSize:         2,
+				},
+			},
+			want: true,
+		},
+		{
+			name: "minSize != asg.minSize",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: pointer.Int32(1),
+						},
+					},
+					AWSMachinePool: &expinfrav1.AWSMachinePool{
+						Spec: expinfrav1.AWSMachinePoolSpec{
+							MaxSize: 2,
+							MinSize: 0,
+						},
+					},
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity: pointer.Int32(1),
+					MaxSize:         2,
+					MinSize:         1,
+				},
+			},
+			want: true,
+		},
+		{
+			name: "capacityRebalance != asg.capacityRebalance",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: pointer.Int32(1),
+						},
+					},
+					AWSMachinePool: &expinfrav1.AWSMachinePool{
+						Spec: expinfrav1.AWSMachinePoolSpec{
+							MaxSize:           2,
+							MinSize:           0,
+							CapacityRebalance: true,
+						},
+					},
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity:   pointer.Int32(1),
+					MaxSize:           2,
+					MinSize:           0,
+					CapacityRebalance: false,
+				},
+			},
+			want: true,
+		},
+		{
+			name: "MixedInstancesPolicy != asg.MixedInstancesPolicy",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: pointer.Int32(1),
+						},
+					},
+					AWSMachinePool: &expinfrav1.AWSMachinePool{
+						Spec: expinfrav1.AWSMachinePoolSpec{
+							MaxSize:           2,
+							MinSize:           0,
+							CapacityRebalance: true,
+							MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
+								InstancesDistribution: &expinfrav1.InstancesDistribution{
+									OnDemandAllocationStrategy: expinfrav1.OnDemandAllocationStrategyPrioritized,
+								},
+								Overrides: nil,
+							},
+						},
+					},
+					Logger: logr.Discard(),
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity:      pointer.Int32(1),
+					MaxSize:              2,
+					MinSize:              0,
+					CapacityRebalance:    true,
+					MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "all matches",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: pointer.Int32(1),
+						},
+					},
+					AWSMachinePool: &expinfrav1.AWSMachinePool{
+						Spec: expinfrav1.AWSMachinePoolSpec{
+							MaxSize:           2,
+							MinSize:           0,
+							CapacityRebalance: true,
+							MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
+								InstancesDistribution: &expinfrav1.InstancesDistribution{
+									OnDemandAllocationStrategy: expinfrav1.OnDemandAllocationStrategyPrioritized,
+								},
+								Overrides: nil,
+							},
+						},
+					},
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity:   pointer.Int32(1),
+					MaxSize:           2,
+					MinSize:           0,
+					CapacityRebalance: true,
+					MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
+						InstancesDistribution: &expinfrav1.InstancesDistribution{
+							OnDemandAllocationStrategy: expinfrav1.OnDemandAllocationStrategyPrioritized,
+						},
+						Overrides: nil,
+					},
+				},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(asgNeedsUpdates(tt.args.machinePoolScope, tt.args.existingASG)).To(Equal(tt.want))
+		})
+	}
 }
