@@ -267,7 +267,6 @@ func (s *Service) DeleteSecurityGroups() error {
 	if len(clusterGroups) == 0 {
 		return nil
 	}
-	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 
 	for i := range clusterGroups {
 		sg := clusterGroups[i]
@@ -286,7 +285,7 @@ func (s *Service) DeleteSecurityGroups() error {
 	if err != nil {
 		return err
 	}
-	return err
+	return nil
 }
 
 func (s *Service) deleteSecurityGroup(sg *infrav1.SecurityGroup, typ string) error {
