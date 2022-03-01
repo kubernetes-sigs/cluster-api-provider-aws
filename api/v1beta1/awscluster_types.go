@@ -177,6 +177,11 @@ type AWSLoadBalancerSpec struct {
 	// +optional
 	Subnets []string `json:"subnets,omitempty"`
 
+	// HealthCheckProtocol sets the protocol type for classic ELB health check target
+	// default value is ClassicELBProtocolSSL
+	// +optional
+	HealthCheckProtocol *ClassicELBProtocol `json:"healthCheckProtocol,omitempty"`
+
 	// AdditionalSecurityGroups sets the security groups used by the load balancer. Expected to be security group IDs
 	// This is optional - if not provided new security groups will be created for the load balancer
 	// +optional

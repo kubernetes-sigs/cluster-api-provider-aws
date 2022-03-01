@@ -28,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb"
 	rgapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/golang/mock/gomock"
+	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -154,13 +155,13 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 		name   string
 		lb     *infrav1.AWSLoadBalancerSpec
 		mocks  func(m *mock_ec2iface.MockEC2APIMockRecorder)
-		expect func(t *testing.T, res *infrav1.ClassicELB)
+		expect func(t *testing.T, g *WithT, res *infrav1.ClassicELB)
 	}{
 		{
 			name:  "nil load balancer config",
 			lb:    nil,
 			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
-			expect: func(t *testing.T, res *infrav1.ClassicELB) {
+			expect: func(t *testing.T, g *WithT, res *infrav1.ClassicELB) {
 				t.Helper()
 				if res.Attributes.CrossZoneLoadBalancing {
 					t.Error("Expected load balancer not to have cross-zone load balancing enabled")
@@ -173,7 +174,7 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 				CrossZoneLoadBalancing: true,
 			},
 			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
-			expect: func(t *testing.T, res *infrav1.ClassicELB) {
+			expect: func(t *testing.T, g *WithT, res *infrav1.ClassicELB) {
 				t.Helper()
 				if !res.Attributes.CrossZoneLoadBalancing {
 					t.Error("Expected load balancer to have cross-zone load balancing enabled")
@@ -205,7 +206,7 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 						},
 					}, nil)
 			},
-			expect: func(t *testing.T, res *infrav1.ClassicELB) {
+			expect: func(t *testing.T, g *WithT, res *infrav1.ClassicELB) {
 				t.Helper()
 				if len(res.SubnetIDs) != 2 {
 					t.Errorf("Expected load balancer to be configured for 2 subnets, got %v", len(res.SubnetIDs))
@@ -221,17 +222,40 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 				AdditionalSecurityGroups: []string{"sg-00001", "sg-00002"},
 			},
 			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
-			expect: func(t *testing.T, res *infrav1.ClassicELB) {
+			expect: func(t *testing.T, g *WithT, res *infrav1.ClassicELB) {
 				t.Helper()
 				if len(res.SecurityGroupIDs) != 3 {
 					t.Errorf("Expected load balancer to be configured for 3 security groups, got %v", len(res.SecurityGroupIDs))
 				}
 			},
 		},
+		{
+			name: "Should create load balancer spec if elb health check protocol specified in config",
+			lb: &infrav1.AWSLoadBalancerSpec{
+				HealthCheckProtocol: &infrav1.ClassicELBProtocolTCP,
+			},
+			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
+			expect: func(t *testing.T, g *WithT, res *infrav1.ClassicELB) {
+				t.Helper()
+				expectedTarget := fmt.Sprintf("%v:%d", infrav1.ClassicELBProtocolTCP, 6443)
+				g.Expect(expectedTarget, res.HealthCheck.Target)
+			},
+		},
+		{
+			name:  "Should create load balancer spec with default elb health check protocol",
+			lb:    &infrav1.AWSLoadBalancerSpec{},
+			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
+			expect: func(t *testing.T, g *WithT, res *infrav1.ClassicELB) {
+				t.Helper()
+				expectedTarget := fmt.Sprintf("%v:%d", infrav1.ClassicELBProtocolTCP, 6443)
+				g.Expect(expectedTarget, res.HealthCheck.Target)
+			},
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
@@ -270,7 +294,7 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			tc.expect(t, spec)
+			tc.expect(t, g, spec)
 		})
 	}
 }

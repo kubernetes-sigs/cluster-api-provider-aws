@@ -1219,6 +1219,7 @@ func autoConvert_v1beta1_AWSLoadBalancerSpec_To_v1alpha4_AWSLoadBalancerSpec(in 
 	out.Scheme = (*ClassicELBScheme)(unsafe.Pointer(in.Scheme))
 	out.CrossZoneLoadBalancing = in.CrossZoneLoadBalancing
 	out.Subnets = *(*[]string)(unsafe.Pointer(&in.Subnets))
+	// WARNING: in.HealthCheckProtocol requires manual conversion: does not exist in peer-type
 	out.AdditionalSecurityGroups = *(*[]string)(unsafe.Pointer(&in.AdditionalSecurityGroups))
 	return nil
 }
