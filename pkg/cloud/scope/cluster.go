@@ -193,6 +193,10 @@ func (s *ClusterScope) ControlPlaneLoadBalancerName() *string {
 	return nil
 }
 
+func (s *ClusterScope) ControlPlaneEndpoint() clusterv1.APIEndpoint {
+	return s.AWSCluster.Spec.ControlPlaneEndpoint
+}
+
 // ControlPlaneConfigMapName returns the name of the ConfigMap used to
 // coordinate the bootstrapping of control plane nodes.
 func (s *ClusterScope) ControlPlaneConfigMapName() string {
