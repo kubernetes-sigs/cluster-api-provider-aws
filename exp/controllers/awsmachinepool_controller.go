@@ -510,7 +510,11 @@ func (r *AWSMachinePoolReconciler) reconcileTags(machinePoolScope *scope.Machine
 
 // asgNeedsUpdates compares incoming AWSMachinePool and compares against existing ASG.
 func asgNeedsUpdates(machinePoolScope *scope.MachinePoolScope, existingASG *expinfrav1.AutoScalingGroup) bool {
-	if machinePoolScope.MachinePool.Spec.Replicas != nil && machinePoolScope.MachinePool.Spec.Replicas != existingASG.DesiredCapacity {
+	if machinePoolScope.MachinePool.Spec.Replicas != nil {
+		if existingASG.DesiredCapacity == nil || *machinePoolScope.MachinePool.Spec.Replicas != *existingASG.DesiredCapacity {
+			return true
+		}
+	} else if existingASG.DesiredCapacity != nil {
 		return true
 	}
 
