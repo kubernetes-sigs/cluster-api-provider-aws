@@ -252,19 +252,24 @@ func (s *Service) ec2SecurityGroupToSecurityGroup(ec2SecurityGroup *ec2.Security
 
 // DeleteSecurityGroups will delete a service's security groups.
 func (s *Service) DeleteSecurityGroups() error {
-	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	if s.scope.VPC().ID == "" {
 		s.scope.V(2).Info("Skipping security group deletion, vpc-id is nil", "vpc-id", s.scope.VPC().ID)
 		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 		return nil
 	}
 
-	if err := s.scope.PatchObject(); err != nil {
+	clusterGroups, err := s.describeClusterOwnedSecurityGroups()
+	if err != nil {
 		return err
 	}
 
-	clusterGroups, err := s.describeClusterOwnedSecurityGroups()
-	if err != nil {
+	// Security groups already deleted, exit early
+	if len(clusterGroups) == 0 {
+		return nil
+	}
+
+	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	if err := s.scope.PatchObject(); err != nil {
 		return err
 	}
 
