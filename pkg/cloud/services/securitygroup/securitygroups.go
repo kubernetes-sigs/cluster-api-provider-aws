@@ -268,10 +268,16 @@ func (s *Service) DeleteSecurityGroups() error {
 		return nil
 	}
 
+	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	if err := s.scope.PatchObject(); err != nil {
+		return err
+	}
+
 	for i := range clusterGroups {
 		sg := clusterGroups[i]
 		current := sg.IngressRules
 		if err := s.revokeAllSecurityGroupIngressRules(sg.ID); awserrors.IsIgnorableSecurityGroupError(err) != nil {
+			conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
 			return err
 		}
 
@@ -283,6 +289,7 @@ func (s *Service) DeleteSecurityGroups() error {
 	}
 
 	if err != nil {
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
 		return err
 	}
 	return nil
