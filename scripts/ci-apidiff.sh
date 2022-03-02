@@ -19,10 +19,9 @@ set -o nounset
 set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+APIDIFF="${REPO_ROOT}/hack/tools/bin/go-apidiff"
 
-APIDIFF="hack/tools/bin/go-apidiff"
-
-cd "${REPO_ROOT}" && make ${APIDIFF}
+cd "${REPO_ROOT}" && make apidiff
 echo "*** Running go-apidiff ***"
 
 ${APIDIFF} "${PULL_BASE_SHA}" --print-compatible
