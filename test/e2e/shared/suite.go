@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -25,18 +26,18 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strconv"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/gofrs/flock"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/yaml"
 
-	"github.com/aws/aws-sdk-go/service/iam"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
-	"sigs.k8s.io/yaml"
 )
 
 type synchronizedBeforeTestSuiteConfig struct {
@@ -54,7 +55,7 @@ type synchronizedBeforeTestSuiteConfig struct {
 	Base64EncodedCredentials string               `json:"base64EncodedCredentials,omitempty"`
 }
 
-// Node1BeforeSuite is the common setup down on the first ginkgo node before the test suite runs
+// Node1BeforeSuite is the common setup down on the first ginkgo node before the test suite runs.
 func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	flag.Parse()
 	Expect(e2eCtx.Settings.ConfigPath).To(BeAnExistingFile(), "Invalid test suite argument. configPath should be an existing file.")
@@ -86,7 +87,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 		templateDir := path.Join(e2eCtx.Settings.ArtifactFolder, "templates")
 		newTemplatePath := templateDir + "/" + ciTemplateForUpgradeName
 
-		err = exec.Command("cp", ciTemplateForUpgradePath, newTemplatePath).Run()
+		err = exec.Command("cp", ciTemplateForUpgradePath, newTemplatePath).Run() //nolint:gosec
 		Expect(err).NotTo(HaveOccurred())
 
 		clusterctlCITemplateForUpgrade := clusterctl.Files{
@@ -124,23 +125,22 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	Expect(err).NotTo(HaveOccurred())
 	e2eCtx.AWSSession = NewAWSSession()
 	boostrapTemplate := getBootstrapTemplate(e2eCtx)
+	bootstrapTags := map[string]string{"capa-e2e-test": "true"}
 	e2eCtx.CloudFormationTemplate = renderCustomCloudFormation(boostrapTemplate)
 	if !e2eCtx.Settings.SkipCloudFormationCreation {
-		err = createCloudFormationStack(e2eCtx.AWSSession, boostrapTemplate)
+		err = createCloudFormationStack(e2eCtx.AWSSession, boostrapTemplate, bootstrapTags)
 		if err != nil {
 			deleteCloudFormationStack(e2eCtx.AWSSession, boostrapTemplate)
-			err = createCloudFormationStack(e2eCtx.AWSSession, boostrapTemplate)
+			err = createCloudFormationStack(e2eCtx.AWSSession, boostrapTemplate, bootstrapTags)
 			Expect(err).NotTo(HaveOccurred())
 		}
 	}
+	ensureStackTags(e2eCtx.AWSSession, boostrapTemplate.Spec.StackName, bootstrapTags)
 	ensureNoServiceLinkedRoles(e2eCtx.AWSSession)
 	ensureSSHKeyPair(e2eCtx.AWSSession, DefaultSSHKeyPairName)
 	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(e2eCtx.AWSSession, boostrapTemplate.Spec.BootstrapUser.UserName)
 	e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(e2eCtx.Environment.BootstrapAccessKey)
-	bucket, imageSha, err := ensureTestImageUploaded(e2eCtx)
-	Expect(err).NotTo(HaveOccurred())
-	e2eCtx.E2EConfig.Variables["CAPI_IMAGES_BUCKET"] = bucket
-	e2eCtx.E2EConfig.Variables["E2E_IMAGE_SHA"] = imageSha
+	Expect(ensureTestImageUploaded(e2eCtx)).NotTo(HaveOccurred())
 
 	// Image ID is needed when using a CI Kubernetes version. This is used in conformance test and upgrade to main test.
 	if !e2eCtx.IsManaged {
@@ -160,6 +160,9 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	quotas := EnsureServiceQuotas(e2eCtx.BootstrapUserAWSSession)
 	WriteResourceQuotesToFile(ResourceQuotaFilePath, quotas)
 	WriteResourceQuotesToFile(path.Join(e2eCtx.Settings.ArtifactFolder, "initial-resource-quotas.yaml"), quotas)
+
+	e2eCtx.Settings.InstanceVCPU, err = strconv.Atoi(e2eCtx.E2EConfig.GetVariable(InstanceVcpu))
+	Expect(err).NotTo(HaveOccurred())
 
 	By("Initializing the bootstrap cluster")
 	initBootstrapCluster(e2eCtx)
@@ -186,7 +189,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	return data
 }
 
-// AllNodesBeforeSuite is the common setup down on each ginkgo parallel node before the test suite runs
+// AllNodesBeforeSuite is the common setup down on each ginkgo parallel node before the test suite runs.
 func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 	conf := &synchronizedBeforeTestSuiteConfig{}
 	err := yaml.UnmarshalStrict(data, conf)
@@ -249,7 +252,7 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 	}()
 }
 
-// Node1AfterSuite is cleanup that runs on the first ginkgo node after the test suite finishes
+// Node1AfterSuite is cleanup that runs on the first ginkgo node after the test suite finishes.
 func Node1AfterSuite(e2eCtx *E2EContext) {
 	ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Minute)
 	DumpEKSClusters(ctx, e2eCtx)
@@ -264,7 +267,7 @@ func Node1AfterSuite(e2eCtx *E2EContext) {
 	}
 }
 
-// AllNodesAfterSuite is cleanup that runs on all ginkgo parallel nodes after the test suite finishes
+// AllNodesAfterSuite is cleanup that runs on all ginkgo parallel nodes after the test suite finishes.
 func AllNodesAfterSuite(e2eCtx *E2EContext) {
 	if e2eCtx.Environment.ResourceTickerDone != nil {
 		e2eCtx.Environment.ResourceTickerDone <- true

@@ -18,6 +18,7 @@ package rollout
 
 import (
 	"github.com/spf13/cobra"
+
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/controller/rollout"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )

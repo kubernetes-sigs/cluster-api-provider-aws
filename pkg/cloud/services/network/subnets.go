@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
@@ -247,13 +248,13 @@ func (s *Service) deleteSubnets() error {
 	}
 
 	// Describe subnets in the vpc.
-	existing, err := s.describeVpcSubnets()
+	existing, err := s.describeSubnets()
 	if err != nil {
 		return err
 	}
 
-	for _, sn := range existing {
-		if err := s.deleteSubnet(sn.ID); err != nil {
+	for _, sn := range existing.Subnets {
+		if err := s.deleteSubnet(aws.StringValue(sn.SubnetId)); err != nil {
 			return err
 		}
 	}
@@ -262,22 +263,9 @@ func (s *Service) deleteSubnets() error {
 }
 
 func (s *Service) describeVpcSubnets() (infrav1.Subnets, error) {
-	input := &ec2.DescribeSubnetsInput{
-		Filters: []*ec2.Filter{
-			filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-		},
-	}
-
-	if s.scope.VPC().ID == "" {
-		input.Filters = append(input.Filters, filter.EC2.Cluster(s.scope.Name()))
-	} else {
-		input.Filters = append(input.Filters, filter.EC2.VPC(s.scope.VPC().ID))
-	}
-
-	out, err := s.EC2Client.DescribeSubnets(input)
+	sns, err := s.describeSubnets()
 	if err != nil {
-		record.Eventf(s.scope.InfraCluster(), "FailedDescribeSubnet", "Failed to describe subnets in vpc %q: %v", s.scope.VPC().ID, err)
-		return nil, errors.Wrapf(err, "failed to describe subnets in vpc %q", s.scope.VPC().ID)
+		return nil, err
 	}
 
 	routeTables, err := s.describeVpcRouteTablesBySubnet()
@@ -290,10 +278,10 @@ func (s *Service) describeVpcSubnets() (infrav1.Subnets, error) {
 		return nil, err
 	}
 
-	subnets := make([]infrav1.SubnetSpec, 0, len(out.Subnets))
+	subnets := make([]infrav1.SubnetSpec, 0, len(sns.Subnets))
 	// Besides what the AWS API tells us directly about the subnets, we also want to discover whether the subnet is "public" (i.e. directly connected to the internet) and if there are any associated NAT gateways.
 	// We also look for a tag indicating that a particular subnet should be public, to try and determine whether a managed VPC's subnet should have such a route, but does not.
-	for _, ec2sn := range out.Subnets {
+	for _, ec2sn := range sns.Subnets {
 		spec := infrav1.SubnetSpec{
 			ID:               *ec2sn.SubnetId,
 			CidrBlock:        *ec2sn.CidrBlock,
@@ -331,6 +319,27 @@ func (s *Service) describeVpcSubnets() (infrav1.Subnets, error) {
 	return subnets, nil
 }
 
+func (s *Service) describeSubnets() (*ec2.DescribeSubnetsOutput, error) {
+	input := &ec2.DescribeSubnetsInput{
+		Filters: []*ec2.Filter{
+			filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+		},
+	}
+
+	if s.scope.VPC().ID == "" {
+		input.Filters = append(input.Filters, filter.EC2.Cluster(s.scope.Name()))
+	} else {
+		input.Filters = append(input.Filters, filter.EC2.VPC(s.scope.VPC().ID))
+	}
+
+	out, err := s.EC2Client.DescribeSubnets(input)
+	if err != nil {
+		record.Eventf(s.scope.InfraCluster(), "FailedDescribeSubnet", "Failed to describe subnets in vpc %q: %v", s.scope.VPC().ID, err)
+		return nil, errors.Wrapf(err, "failed to describe subnets in vpc %q", s.scope.VPC().ID)
+	}
+	return out, nil
+}
+
 func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, error) {
 	out, err := s.EC2Client.CreateSubnet(&ec2.CreateSubnetInput{
 		VpcId:            aws.String(s.scope.VPC().ID),
@@ -348,8 +357,8 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 		return nil, errors.Wrap(err, "failed to create subnet")
 	}
 
-	s.scope.Info("created subnet", "id", *out.Subnet.SubnetId, "public", sn.IsPublic, "az", sn.AvailabilityZone, "cidr", sn.CidrBlock)
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateSubnet", "Created new managed Subnet %q", *out.Subnet.SubnetId)
+	s.scope.Info("Created subnet", "id", *out.Subnet.SubnetId, "public", sn.IsPublic, "az", sn.AvailabilityZone, "cidr", sn.CidrBlock)
 
 	wReq := &ec2.DescribeSubnetsInput{SubnetIds: []*string{out.Subnet.SubnetId}}
 	if err := s.EC2Client.WaitUntilSubnetAvailable(wReq); err != nil {
@@ -399,7 +408,7 @@ func (s *Service) deleteSubnet(id string) error {
 		return errors.Wrapf(err, "failed to delete subnet %q", id)
 	}
 
-	s.scope.V(2).Info("Deleted subnet in vpc", "subnet-id", id, "vpc-id", s.scope.VPC().ID)
+	s.scope.Info("Deleted subnet", "subnet-id", id, "vpc-id", s.scope.VPC().ID)
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulDeleteSubnet", "Deleted managed Subnet %q", id)
 	return nil
 }

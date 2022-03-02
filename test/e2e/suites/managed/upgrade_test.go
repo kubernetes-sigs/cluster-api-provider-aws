@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -24,15 +25,14 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/cluster-api/test/framework"
-	"sigs.k8s.io/cluster-api/util"
 
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
+	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/util"
 )
 
-// EKS cluster upgrade tests
+// EKS cluster upgrade tests.
 var _ = Describe("EKS Cluster upgrade test", func() {
 	const (
 		initialVersion   = "v1.17.0"
@@ -64,8 +64,8 @@ var _ = Describe("EKS Cluster upgrade test", func() {
 				AWSSession:               e2eCtx.BootstrapUserAWSSession,
 				Namespace:                namespace,
 				ClusterName:              clusterName,
-				Flavour:                  EKSControlPlaneOnlyFlavor, //TODO (richardcase) - change in the future when upgrades to machinepools work
-				ControlPlaneMachineCount: 1,                         //NOTE: this cannot be zero as clusterctl returns an error
+				Flavour:                  EKSControlPlaneOnlyFlavor, // TODO (richardcase) - change in the future when upgrades to machinepools work
+				ControlPlaneMachineCount: 1,                         // NOTE: this cannot be zero as clusterctl returns an error
 				WorkerMachineCount:       1,
 				CNIManifestPath:          e2eCtx.E2EConfig.GetVariable(shared.CNIPath),
 				KubernetesVersion:        initialVersion,
@@ -81,7 +81,7 @@ var _ = Describe("EKS Cluster upgrade test", func() {
 		})
 		Expect(cluster).NotTo(BeNil(), "couldn't find cluster")
 
-		//TODO (richardcase) - uncomment when we use machine pools again
+		// TODO (richardcase) - uncomment when we use machine pools again
 		// shared.Byf("Waiting for the machine pool to be running")
 		// mp := framework.DiscoveryAndWaitForMachinePools(ctx, framework.DiscoveryAndWaitForMachinePoolsInput{
 		// 	Lister:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
@@ -102,7 +102,7 @@ var _ = Describe("EKS Cluster upgrade test", func() {
 			}
 		})
 
-		//TODO (richardcase): add test for the node group upgrade
+		// TODO (richardcase): add test for the node group upgrade
 
 		shared.Byf("should delete cluster %s", clusterName)
 		DeleteClusterSpec(ctx, func() DeleteClusterSpecInput {

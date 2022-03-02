@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -23,18 +24,16 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/client"
 	. "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 
+	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 )
 
-// MachineDeploymentSpecInput is the input for MachineDeploymentSpec
+// MachineDeploymentSpecInput is the input for MachineDeploymentSpec.
 type MachineDeploymentSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ConfigClusterFn       DefaultConfigClusterFn
@@ -46,13 +45,9 @@ type MachineDeploymentSpecInput struct {
 	Cleanup               bool
 }
 
-// MachineDeploymentSpec implements a test for creating a machine deployment for use with CAPA
+// MachineDeploymentSpec implements a test for creating a machine deployment for use with CAPA.
 func MachineDeploymentSpec(ctx context.Context, inputGetter func() MachineDeploymentSpecInput) {
-	var (
-		input MachineDeploymentSpecInput
-	)
-
-	input = inputGetter()
+	input := inputGetter()
 	Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil")
 	Expect(input.ConfigClusterFn).ToNot(BeNil(), "Invalid argument. input.ConfigClusterFn can't be nil")
 	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")

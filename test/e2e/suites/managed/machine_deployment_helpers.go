@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -22,13 +23,12 @@ import (
 	"context"
 
 	. "github.com/onsi/gomega"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/test/framework"
 )
 
 type deleteMachineDeploymentInput struct {
@@ -58,16 +58,6 @@ func waitForMachineDeploymentDeleted(ctx context.Context, input waitForMachineDe
 		notFound := apierrors.IsNotFound(err)
 		return notFound
 	}, intervals...).Should(BeTrue())
-}
-
-type deleteMachineInput struct {
-	Machine *clusterv1.Machine
-	Deleter framework.Deleter
-}
-
-func deleteMachine(ctx context.Context, input deleteMachineInput) {
-	shared.Byf("Deleting machine %s", input.Machine.Name)
-	Expect(input.Deleter.Delete(ctx, input.Machine)).To(Succeed())
 }
 
 type waitForMachineDeletedInput struct {

@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+
 	"sigs.k8s.io/cluster-api-provider-aws/version"
 )
 
@@ -45,7 +46,7 @@ func GetClient(kubeconfigPath string, kubeconfigContext string) (*kubernetes.Cli
 	}
 
 	configOverrides := &clientcmd.ConfigOverrides{}
-	if kubeconfigContext == "" {
+	if kubeconfigContext != "" {
 		configOverrides.CurrentContext = kubeconfigContext
 	}
 

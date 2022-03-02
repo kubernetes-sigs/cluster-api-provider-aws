@@ -21,7 +21,6 @@ import (
 
 	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
-
 	"k8s.io/klog/v2/klogr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"

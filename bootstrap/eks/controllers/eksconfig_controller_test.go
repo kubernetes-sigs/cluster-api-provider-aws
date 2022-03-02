@@ -21,9 +21,9 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 func TestEKSConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T) {

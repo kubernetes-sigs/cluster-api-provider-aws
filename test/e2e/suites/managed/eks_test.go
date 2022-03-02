@@ -25,16 +25,15 @@ import (
 
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
+
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/util"
-
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 )
 
-// General EKS e2e test
+// General EKS e2e test.
 var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 	var (
 		namespace           *corev1.Namespace
@@ -61,7 +60,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 		shared.SetupStaticCredentials(ctx, namespace, e2eCtx)
 
 		ginkgo.By("default iam role should exist")
-		verifyRoleExistsAndOwned(controlplanev1.DefaultEKSControlPlaneRole, clusterName, false, e2eCtx.BootstrapUserAWSSession)
+		verifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, clusterName, false, e2eCtx.BootstrapUserAWSSession)
 
 		ginkgo.By("should create an EKS control plane")
 		ManagedClusterSpec(ctx, func() ManagedClusterSpecInput {

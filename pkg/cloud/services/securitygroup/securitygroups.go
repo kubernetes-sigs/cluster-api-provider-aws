@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
@@ -107,7 +108,6 @@ func (s *Service) ReconcileSecurityGroups() error {
 				ID:   *sg.GroupId,
 				Name: *sg.GroupName,
 			}
-			s.scope.V(2).Info("Created security group for role", "role", role, "security-group", s.scope.SecurityGroups()[role])
 			continue
 		}
 
@@ -303,7 +303,7 @@ func (s *Service) deleteSecurityGroup(sg *infrav1.SecurityGroup, typ string) err
 	}
 
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulDeleteSecurityGroup", "Deleted %s SecurityGroup %q", typ, sg.ID)
-	s.scope.V(2).Info("Deleted security group", "security-group-id", sg.ID, "kind", typ)
+	s.scope.Info("Deleted security group", "security-group-id", sg.ID, "kind", typ)
 
 	return nil
 }
@@ -378,6 +378,7 @@ func (s *Service) createSecurityGroup(role infrav1.SecurityGroupRole, input *ec2
 	}
 
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateSecurityGroup", "Created managed SecurityGroup %q for Role %q", aws.StringValue(out.GroupId), role)
+	s.scope.Info("Created security group for role", "security-group", aws.StringValue(out.GroupId), "role", role)
 
 	// Set the group id.
 	input.GroupId = out.GroupId
@@ -483,7 +484,6 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 		}, nil
 	case infrav1.SecurityGroupControlPlane:
 		rules := infrav1.IngressRules{
-			s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID),
 			{
 				Description: "Kubernetes API",
 				Protocol:    infrav1.SecurityGroupProtocolTCP,
@@ -510,11 +510,13 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 				SourceSecurityGroupIDs: []string{s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID},
 			},
 		}
+		if s.scope.Bastion().Enabled {
+			rules = append(rules, s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID))
+		}
 		return append(cniRules, rules...), nil
 
 	case infrav1.SecurityGroupNode:
 		rules := infrav1.IngressRules{
-			s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID),
 			{
 				Description: "Node Port Services",
 				Protocol:    infrav1.SecurityGroupProtocolTCP,
@@ -534,11 +536,17 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 				},
 			},
 		}
+		if s.scope.Bastion().Enabled {
+			rules = append(rules, s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID))
+		}
 		return append(cniRules, rules...), nil
 	case infrav1.SecurityGroupEKSNodeAdditional:
-		return infrav1.IngressRules{
-			s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID),
-		}, nil
+		if s.scope.Bastion().Enabled {
+			return infrav1.IngressRules{
+				s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID),
+			}, nil
+		}
+		return infrav1.IngressRules{}, nil
 	case infrav1.SecurityGroupAPIServerLB:
 		return infrav1.IngressRules{
 			{

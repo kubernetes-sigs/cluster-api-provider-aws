@@ -18,6 +18,7 @@ package controller
 
 import (
 	"github.com/spf13/cobra"
+
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/controller/credentials"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/controller/rollout"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"

@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -23,9 +24,8 @@ import (
 
 	"k8s.io/utils/pointer"
 
-	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
 func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigClusterInput {

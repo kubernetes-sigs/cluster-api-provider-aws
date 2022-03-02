@@ -28,6 +28,15 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/feature"
@@ -47,14 +56,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/predicates"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // InstanceIDIndex defines the aws machine controller's instance ID index.
@@ -258,55 +259,7 @@ func (r *AWSMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	return controller.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(requeueAWSMachinesForUnpausedCluster),
-		predicate.Funcs{
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
-				newCluster := e.ObjectNew.(*clusterv1.Cluster)
-				log := log.WithValues("predicate", "updateEvent", "namespace", newCluster.Namespace, "cluster", newCluster.Name)
-
-				switch {
-				// never return true for a paused Cluster
-				case newCluster.Spec.Paused:
-					log.V(4).Info("Cluster is paused, will not attempt to map associated AWSMachine.")
-					return false
-				// return true if Cluster.Status.InfrastructureReady has changed from false to true
-				case !oldCluster.Status.InfrastructureReady && newCluster.Status.InfrastructureReady:
-					log.V(4).Info("Cluster InfrastructureReady became ready, will attempt to map associated AWSMachine.")
-					return true
-				// return true if Cluster.Spec.Paused has changed from true to false
-				case oldCluster.Spec.Paused && !newCluster.Spec.Paused:
-					log.V(4).Info("Cluster was unpaused, will attempt to map associated AWSMachine.")
-					return true
-				// otherwise, return false
-				default:
-					log.V(4).Info("Cluster did not match expected conditions, will not attempt to map associated AWSMachine.")
-					return false
-				}
-			},
-			CreateFunc: func(e event.CreateEvent) bool {
-				cluster := e.Object.(*clusterv1.Cluster)
-				log := log.WithValues("predicateEvent", "create", "namespace", cluster.Namespace, "cluster", cluster.Name)
-
-				// Only need to trigger a reconcile if the Cluster.Spec.Paused is false and
-				// Cluster.Status.InfrastructureReady is true
-				if !cluster.Spec.Paused && cluster.Status.InfrastructureReady {
-					log.V(4).Info("Cluster is not paused and has infrastructure ready, will attempt to map associated AWSMachine.")
-					return true
-				}
-				log.V(4).Info("Cluster did not match expected conditions, will not attempt to map associated AWSMachine.")
-				return false
-			},
-			DeleteFunc: func(e event.DeleteEvent) bool {
-				log := log.WithValues("predicateEvent", "delete", "namespace", e.Object.GetNamespace(), "cluster", e.Object.GetName())
-				log.V(4).Info("Cluster did not match expected conditions, will not attempt to map associated AWSMachine.")
-				return false
-			},
-			GenericFunc: func(e event.GenericEvent) bool {
-				log := log.WithValues("predicateEvent", "generic", "namespace", e.Object.GetNamespace(), "cluster", e.Object.GetName())
-				log.V(4).Info("Cluster did not match expected conditions, will not attempt to map associated AWSMachine.")
-				return false
-			},
-		},
+		predicates.ClusterUnpausedAndInfrastructureReady(log),
 	)
 }
 

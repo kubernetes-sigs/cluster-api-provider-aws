@@ -23,9 +23,8 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/onsi/gomega"
-
 	"github.com/golang/mock/gomock"
+	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,6 +32,8 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
@@ -41,7 +42,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/mock_services"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	// "sigs.k8s.io/cluster-api/controllers/noderefutil" //nolint:godot.
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -63,6 +63,8 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 		secret         *corev1.Secret
 	)
 	setup := func(t *testing.T, g *WithT) {
+		t.Helper()
+
 		var err error
 
 		if err := flag.Set("logtostderr", "false"); err != nil {
@@ -144,6 +146,8 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 	}
 
 	teardown := func(t *testing.T, g *WithT) {
+		t.Helper()
+
 		ctx := context.TODO()
 		mpPh, err := patch.NewHelper(awsMachinePool, testEnv)
 		g.Expect(err).ShouldNot(HaveOccurred())
@@ -158,6 +162,8 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 		t.Run("when can't reach amazon", func(t *testing.T) {
 			expectedErr := errors.New("no connection available ")
 			getASG := func(t *testing.T, g *WithT) {
+				t.Helper()
+
 				ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, "", expectedErr).AnyTimes()
 				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(nil, expectedErr).AnyTimes()
 			}
@@ -223,6 +229,8 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 		t.Run("there's a provider ID", func(t *testing.T) {
 			id := "<cloudProvider>://<optional>/<segments>/<providerid>"
 			setProviderID := func(t *testing.T, g *WithT) {
+				t.Helper()
+
 				_, err := noderefutil.NewProviderID(id)
 				g.Expect(err).To(BeNil())
 
@@ -260,6 +268,8 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 
 	t.Run("Deleting an AWSMachinePool", func(t *testing.T) {
 		finalizer := func(t *testing.T, g *WithT) {
+			t.Helper()
+
 			ms.AWSMachinePool.Finalizers = []string{
 				expinfrav1.MachinePoolFinalizer,
 				metav1.FinalizerDeleteDependents,

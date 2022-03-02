@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
 	rgapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 )
 

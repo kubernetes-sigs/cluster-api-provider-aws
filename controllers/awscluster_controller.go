@@ -28,6 +28,16 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
@@ -43,15 +53,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 var (
@@ -323,45 +324,7 @@ func (r *AWSClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	return controller.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(r.requeueAWSClusterForUnpausedCluster(ctx, log)),
-		predicate.Funcs{
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
-				newCluster := e.ObjectNew.(*clusterv1.Cluster)
-				log := log.WithValues("predicate", "updateEvent", "namespace", newCluster.Namespace, "cluster", newCluster.Name)
-				switch {
-				// return true if Cluster.Spec.Paused has changed from true to false
-				case oldCluster.Spec.Paused && !newCluster.Spec.Paused:
-					log.V(4).Info("Cluster was unpaused, will attempt to map associated AWSCluster.")
-					return true
-				// otherwise, return false
-				default:
-					log.V(4).Info("Cluster did not match expected conditions, will not attempt to map associated AWSCluster.")
-					return false
-				}
-			},
-			CreateFunc: func(e event.CreateEvent) bool {
-				cluster := e.Object.(*clusterv1.Cluster)
-				log := log.WithValues("predicate", "createEvent", "namespace", cluster.Namespace, "cluster", cluster.Name)
-
-				// Only need to trigger a reconcile if the Cluster.Spec.Paused is false
-				if !cluster.Spec.Paused {
-					log.V(4).Info("Cluster is not paused, will attempt to map associated AWSCluster.")
-					return true
-				}
-				log.V(4).Info("Cluster did not match expected conditions, will not attempt to map associated AWSCluster.")
-				return false
-			},
-			DeleteFunc: func(e event.DeleteEvent) bool {
-				log := log.WithValues("predicate", "deleteEvent", "namespace", e.Object.GetNamespace(), "cluster", e.Object.GetName())
-				log.V(4).Info("Cluster did not match expected conditions, will not attempt to map associated AWSCluster.")
-				return false
-			},
-			GenericFunc: func(e event.GenericEvent) bool {
-				log := log.WithValues("predicate", "genericEvent", "namespace", e.Object.GetNamespace(), "cluster", e.Object.GetName())
-				log.V(4).Info("Cluster did not match expected conditions, will not attempt to map associated AWSCluster.")
-				return false
-			},
-		},
+		predicates.ClusterUnpaused(log),
 	)
 }
 

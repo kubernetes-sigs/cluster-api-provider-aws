@@ -137,16 +137,6 @@ metadata:
 spec:
   template:
     spec:
-      # The replicas value be overridden by the corresponding 
-      # Cluster's spec.topology.controlPlane.replicas.
-      replicas: 1
-      machineTemplate:
-        # The infrastructureRef will be overridden by the corresponding
-        # ClusterClass's spec.controlPlane.machineInfrastructure.
-        infrastructureRef:
-          kind: AWSMachineTemplate
-          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-          name: quick-start-control-plane
       kubeadmConfigSpec:
         clusterConfiguration:
           apiServer:
@@ -165,9 +155,6 @@ spec:
             name: '{{ ds.meta_data.local_hostname }}'
             kubeletExtraArgs:
               cloud-provider: aws
-      # The version value will be overridden by the corresponding
-      # Cluster's spec.topology.version.
-      version: v1.21.2
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSMachineTemplate

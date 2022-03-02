@@ -26,11 +26,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/version"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
 )
 
 const (
@@ -139,7 +140,11 @@ func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) error {
 	}
 
 	// If encryptionConfig is already set, do not allow change in provider
-	if r.Spec.EncryptionConfig != nil && oldAWSManagedControlplane.Spec.EncryptionConfig != nil && *r.Spec.EncryptionConfig.Provider != *oldAWSManagedControlplane.Spec.EncryptionConfig.Provider {
+	if r.Spec.EncryptionConfig != nil &&
+		r.Spec.EncryptionConfig.Provider != nil &&
+		oldAWSManagedControlplane.Spec.EncryptionConfig != nil &&
+		oldAWSManagedControlplane.Spec.EncryptionConfig.Provider != nil &&
+		*r.Spec.EncryptionConfig.Provider != *oldAWSManagedControlplane.Spec.EncryptionConfig.Provider {
 		allErrs = append(allErrs,
 			field.Invalid(field.NewPath("spec", "encryptionConfig", "provider"), r.Spec.EncryptionConfig.Provider, "changing EKS encryption is not allowed after it has been enabled"),
 		)

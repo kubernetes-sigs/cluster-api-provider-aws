@@ -27,6 +27,7 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/instancestate/mock_eventbridgeiface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/instancestate/mock_sqsiface"
@@ -57,7 +58,10 @@ func TestReconcileRules(t *testing.T) {
 						States: []infrav1.InstanceState{infrav1.InstanceStateShuttingDown, infrav1.InstanceStateTerminated},
 					},
 				}
-				data, _ := json.Marshal(e)
+				data, err := json.Marshal(e)
+				if err != nil {
+					t.Fatalf("got an unexpected error: %v", err)
+				}
 				m.PutRule(gomock.Eq(&eventbridge.PutRuleInput{
 					Name:         aws.String(ruleName),
 					State:        aws.String(eventbridge.RuleStateDisabled),
@@ -239,7 +243,10 @@ func TestAddInstanceToRule(t *testing.T) {
 			InstanceIDs: []string{"instance-a"},
 		},
 	}
-	patternData, _ := json.Marshal(pattern)
+	patternData, err := json.Marshal(pattern)
+	if err != nil {
+		t.Fatalf("got an unexpected error: %v", err)
+	}
 
 	testCases := []struct {
 		name              string
@@ -257,7 +264,10 @@ func TestAddInstanceToRule(t *testing.T) {
 				}, nil)
 				expectedPattern := pattern
 				expectedPattern.EventDetail.InstanceIDs = append(expectedPattern.EventDetail.InstanceIDs, "instance-b")
-				expectedData, _ := json.Marshal(expectedPattern)
+				expectedData, err := json.Marshal(expectedPattern)
+				if err != nil {
+					t.Fatalf("got an unexpected error: %v", err)
+				}
 				m.PutRule(&eventbridge.PutRuleInput{
 					Name:         aws.String("test-cluster-ec2-rule"),
 					EventPattern: aws.String(string(expectedData)),
@@ -312,7 +322,7 @@ func TestRemoveInstanceStateFromEventPattern(t *testing.T) {
 			InstanceIDs: []string{"instance-a", "instance-b", "instance-c"},
 		},
 	}
-	patternData, _ := json.Marshal(pattern)
+	patternData, _ := json.Marshal(pattern) //nolint
 
 	testCases := []struct {
 		name              string
@@ -324,7 +334,10 @@ func TestRemoveInstanceStateFromEventPattern(t *testing.T) {
 			eventBridgeExpect: func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder) {
 				singleInstanceEventPattern := pattern
 				singleInstanceEventPattern.EventDetail.InstanceIDs = []string{"instance-a"}
-				patternData, _ := json.Marshal(pattern)
+				patternData, err := json.Marshal(pattern)
+				if err != nil {
+					t.Fatalf("got an unexpected error: %v", err)
+				}
 				m.DescribeRule(&eventbridge.DescribeRuleInput{
 					Name: aws.String("test-cluster-ec2-rule"),
 				}).Return(&eventbridge.DescribeRuleOutput{
@@ -332,7 +345,8 @@ func TestRemoveInstanceStateFromEventPattern(t *testing.T) {
 				}, nil)
 				expectedPattern := pattern
 				expectedPattern.EventDetail.InstanceIDs = []string{}
-				expectedData, _ := json.Marshal(expectedPattern)
+				expectedData, _ := json.Marshal(expectedPattern) //nolint
+
 				m.PutRule(&eventbridge.PutRuleInput{
 					Name:         aws.String("test-cluster-ec2-rule"),
 					EventPattern: aws.String(string(expectedData)),
@@ -351,7 +365,10 @@ func TestRemoveInstanceStateFromEventPattern(t *testing.T) {
 				}, nil)
 				expectedPattern := pattern
 				expectedPattern.EventDetail.InstanceIDs = []string{"instance-a", "instance-c"}
-				expectedData, _ := json.Marshal(expectedPattern)
+				expectedData, err := json.Marshal(expectedPattern)
+				if err != nil {
+					t.Fatalf("got an unexpected error: %v", err)
+				}
 				m.PutRule(&eventbridge.PutRuleInput{
 					Name:         aws.String("test-cluster-ec2-rule"),
 					EventPattern: aws.String(string(expectedData)),

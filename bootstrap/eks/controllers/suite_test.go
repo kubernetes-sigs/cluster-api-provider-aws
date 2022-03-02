@@ -18,16 +18,16 @@ package controllers
 
 import (
 	"fmt"
-	"os"
 	"path"
 	"testing"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
+
+	// +kubebuilder:scaffold:imports
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
-	ctrl "sigs.k8s.io/controller-runtime"
-	// +kubebuilder:scaffold:imports
 )
 
 var (
@@ -37,11 +37,8 @@ var (
 
 func TestMain(m *testing.M) {
 	setup()
-	defer func() {
-		teardown()
-	}()
-	code := m.Run()
-	os.Exit(code) // nolint:gocritic
+	defer teardown()
+	m.Run()
 }
 
 func setup() {

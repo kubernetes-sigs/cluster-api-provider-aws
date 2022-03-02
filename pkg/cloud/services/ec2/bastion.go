@@ -21,17 +21,17 @@ import (
 	"fmt"
 	"strings"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/conditions"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 const (
@@ -83,7 +83,7 @@ func (s *Service) ReconcileBastion() error {
 		}
 
 		record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateBastion", "Created bastion instance %q", instance.ID)
-		s.scope.V(2).Info("Created new bastion host", "instance", instance)
+		s.scope.Info("Created new bastion host", "id", instance.ID)
 	} else if err != nil {
 		return err
 	}
@@ -118,8 +118,12 @@ func (s *Service) DeleteBastion() error {
 		record.Warnf(s.scope.InfraCluster(), "FailedTerminateBastion", "Failed to terminate bastion instance %q: %v", instance.ID, err)
 		return errors.Wrap(err, "unable to delete bastion instance")
 	}
+
+	s.scope.SetBastionInstance(nil)
+
 	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.BastionHostReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulTerminateBastion", "Terminated bastion instance %q", instance.ID)
+	s.scope.Info("Deleted bastion host", "id", instance.ID)
 
 	return nil
 }

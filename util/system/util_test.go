@@ -17,12 +17,11 @@ limitations under the License.
 package system
 
 import (
+	"os"
 	"path/filepath"
+	"testing"
 
 	. "github.com/onsi/gomega"
-
-	"os"
-	"testing"
 )
 
 func TestGetManagerNamespace(t *testing.T) {

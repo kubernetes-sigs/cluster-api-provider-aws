@@ -26,7 +26,7 @@
 Fork the [cluster-api-provider-aws repo](https://github.com/kubernetes-sigs/cluster-api-provider-aws):
 
 ```bash
-cd "$(go env GOPATH)"
+cd "$(go env GOPATH)"/src
 mkdir sigs.k8s.io
 cd sigs.k8s.io/
 git clone git@github.com:<GITHUB USERNAME>/cluster-api-provider-aws.git

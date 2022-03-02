@@ -19,6 +19,7 @@ package scope
 import (
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/pkg/errors"
+
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
 )
 

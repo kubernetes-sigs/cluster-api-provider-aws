@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -21,20 +22,21 @@ package unmanaged
 import (
 	"context"
 
-	"github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/gofrs/flock"
+	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 )
 
 var _ = ginkgo.Context("[unmanaged] [Cluster API Framework] [smoke] [PR-Blocking]", func() {
 	var (
-		namespace *corev1.Namespace
-		ctx       context.Context
+		namespace         *corev1.Namespace
+		ctx               context.Context
+		requiredResources *shared.TestResource
 	)
 
 	ginkgo.BeforeEach(func() {
@@ -45,9 +47,9 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework] [smoke] [PR-Blocking
 	})
 
 	ginkgo.Describe("Running the quick-start spec", func() {
-		// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
-		requiredResources := &shared.TestResource{EC2: 2, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
 		ginkgo.BeforeEach(func() {
+			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
+			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
 			requiredResources.WriteRequestedResources(e2eCtx, "capi-quick-start-test")
 			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 		})

@@ -38,13 +38,13 @@ cluster on AWS.
 - Native Kubernetes manifests and API
 - Manages the bootstrapping of VPCs, gateways, security groups and instances.
 - Choice of Linux distribution between Amazon Linux 2, CentOS 7 and Ubuntu 18.04,
-  using [pre-baked AMIs](/docs/book/topics/images/built-amis.md).
+  using [pre-baked AMIs][published_amis].
 - Deploys Kubernetes control planes into private subnets with a separate
   bastion server.
 - Doesn't use SSH for bootstrapping nodes.
 - Installs only the minimal components to bootstrap a control plane and workers.
 - Supports control planes on EC2 instances.
-- Experimental [EKS support](docs/book/src/topics/eks/index.md)
+- [EKS support][eks_support]
 
 ------
 
@@ -136,7 +136,7 @@ Maintainers hold office hours every two weeks, with sessions open to all
 developers working on this project.
 
 Office hours are hosted on a zoom video chat every other Monday
-at 10:00 (Pacific) / 13:00 (Eastern) / 18:00 (Europe/London),
+at 09:00 (Pacific) / 12:00 (Eastern) / 17:00 (Europe/London),
 and are published on the [Kubernetes community meetings calendar][gcal].
 
 ### Other ways to communicate with the contributors
@@ -174,6 +174,38 @@ We also use the issue tracker to track features. If you have an idea for a featu
 trademarks of Amazon.com, Inc. or its affiliates in the United States
 and/or other countries."
 
+## Our Contributors
+
+Thank you to all contributors and a special thanks to our current maintainers & reviewers:
+
+| Maintainers                                       | Reviewers                                      |
+| ------------------------------------------------- | ---------------------------------------------- |
+| [@richardcase](https://github.com/richardcase)    | [@Ankitasw](https://github.com/Ankitasw)       |
+| [@sedefsavas](https://github.com/sedefsavas)      | [@dthorsen](https://github.com/dthorsen)       |
+|                                                   | [@dlipovetsky](https://github.com/dlipovetsky) |
+|                                                   | [@pydctw](https://github.com/pydctw)           |
+|                                                   | [@shivi28](https://github.com/shivi28)         |
+
+and the previous/emeritus maintainers & reviwers:
+
+| Emeritus Maintainers                                 | Emeritus Reviewers                                     |
+| ---------------------------------------------------- | ------------------------------------------------------ |
+| [@chuckha](https://github.com/chuckha)               | [@ashish-amarnath](https://github.com/ashish-amarnath) |
+| [@detiber](https://github.com/detiber)               | [@davidewatson](https://github.com/davidewatson)       |
+| [@ncdc](https://github.com/ncdc)                     | [@enxebre](https://github.com/enxebre)                 |
+| [@randomvariable](https://github.com/randomvariable) | [@ingvagabund](https://github.com/ingvagabund)         |
+| [@rudoi](https://github.com/rudoi)                   | [@michaelbeaumont](https://github.com/michaelbeaumont) |
+| [@vincepri](https://github.com/vincepri)             | [@sethp-nr](https://github.com/sethp-nr)               |
+
+All the CAPA contributors:
+
+<p>
+<a href="https://github.com/kubernetes-sigs/cluster-api-provider-aws/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=kubernetes-sigs/cluster-api-provider-aws" />
+</a>
+</p>
+
+
 <!-- References -->
 [slack]: https://kubernetes.slack.com/messages/CD6U2V71N
 [good_first_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22
@@ -185,4 +217,6 @@ and/or other countries."
 [kubicorn]: http://kubicorn.io/
 [tilt]: https://tilt.dev
 [cluster_api_tilt]: https://master.cluster-api.sigs.k8s.io/developer/tilt.html
-[amis]: https://cluster-api-aws.sigs.k8s.io/amis.html
+[amis]: https://cluster-api-aws.sigs.k8s.io/topics/images/amis.html
+[published_amis]: https://cluster-api-aws.sigs.k8s.io/topics/images/built-amis.html
+[eks_support]: https://cluster-api-aws.sigs.k8s.io/topics/eks/index.html

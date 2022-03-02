@@ -22,10 +22,6 @@ import (
 	"net"
 	"time"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/internal/cidr"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/internal/cmp"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
@@ -34,15 +30,17 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/internal/cidr"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/internal/cmp"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/internal/tristate"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
-
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 )
 
 func (s *Service) reconcileCluster(ctx context.Context) error {
@@ -266,8 +264,7 @@ func makeVpcConfig(subnets infrav1.Subnets, endpointAccess ekscontrolplanev1.End
 		return nil, awserrors.NewFailedDependency("at least 2 subnets is required")
 	}
 
-	zones := subnets.GetUniqueZones()
-	if len(zones) < 2 {
+	if zones := subnets.GetUniqueZones(); len(zones) < 2 {
 		return nil, awserrors.NewFailedDependency("subnets in at least 2 different az's are required")
 	}
 
@@ -525,22 +522,23 @@ func (s *Service) reconcileEKSEncryptionConfig(currentClusterConfig []*eks.Encry
 	encryptionConfigs := s.scope.ControlPlane.Spec.EncryptionConfig
 	updatedEncryptionConfigs := makeEksEncryptionConfigs(encryptionConfigs)
 
-	switch {
-	case compareEncryptionConfig(currentClusterConfig, updatedEncryptionConfigs):
+	if compareEncryptionConfig(currentClusterConfig, updatedEncryptionConfigs) {
 		s.V(2).Info("encryption configuration unchanged, no action")
 		return nil
-	case len(currentClusterConfig) == 0 && len(updatedEncryptionConfigs) > 0:
+	}
+
+	if len(currentClusterConfig) == 0 && len(updatedEncryptionConfigs) > 0 {
 		s.V(2).Info("enabling encryption for eks cluster", "cluster", s.scope.KubernetesClusterName())
 		if err := s.updateEncryptionConfig(updatedEncryptionConfigs); err != nil {
 			record.Warnf(s.scope.ControlPlane, "FailedUpdateEKSControlPlane", "failed to update the EKS control plane encryption configuration: %v", err)
 			return errors.Wrapf(err, "failed to update EKS cluster")
 		}
-	default:
-		record.Warnf(s.scope.ControlPlane, "FailedUpdateEKSControlPlane", "failed to update the EKS control plane: disabling EKS encryption is not allowed after it has been enabled")
-		return errors.Errorf("failed to update the EKS control plane: disabling EKS encryption is not allowed after it has been enabled")
+
+		return nil
 	}
 
-	return nil
+	record.Warnf(s.scope.ControlPlane, "FailedUpdateEKSControlPlane", "failed to update the EKS control plane: disabling EKS encryption is not allowed after it has been enabled")
+	return errors.Errorf("failed to update the EKS control plane: disabling EKS encryption is not allowed after it has been enabled")
 }
 
 func parseEKSVersion(raw string) *version.Version {
@@ -706,13 +704,22 @@ func compareEncryptionConfig(updatedEncryptionConfig, existingEncryptionConfig [
 	if len(updatedEncryptionConfig) != len(existingEncryptionConfig) {
 		return false
 	}
-	for index, encryptionConfig := range updatedEncryptionConfig {
-		if encryptionConfig.Provider != existingEncryptionConfig[index].Provider {
+	for index := range updatedEncryptionConfig {
+		encryptionConfig := updatedEncryptionConfig[index]
+
+		if getKeyArn(encryptionConfig) != getKeyArn(existingEncryptionConfig[index]) {
 			return false
 		}
-		if cmp.Equals(encryptionConfig.Resources, existingEncryptionConfig[index].Resources) {
+		if !cmp.Equals(encryptionConfig.Resources, existingEncryptionConfig[index].Resources) {
 			return false
 		}
 	}
 	return true
+}
+
+func getKeyArn(encryptionConfig *eks.EncryptionConfig) string {
+	if encryptionConfig.Provider != nil {
+		return aws.StringValue(encryptionConfig.Provider.KeyArn)
+	}
+	return ""
 }

@@ -18,7 +18,8 @@ package ami
 
 import (
 	"github.com/spf13/cobra"
-	cp "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/ami/copy"
+
+	cm "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/ami/common"
 	ls "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/ami/list"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
@@ -40,8 +41,8 @@ func RootCmd() *cobra.Command {
 		},
 	}
 
-	newCmd.AddCommand(cp.CopyAMICmd())
-	newCmd.AddCommand(cp.EncryptedCopyAMICmd())
+	newCmd.AddCommand(cm.CopyAMICmd())
+	newCmd.AddCommand(cm.EncryptedCopyAMICmd())
 	newCmd.AddCommand(ls.ListAMICmd())
 
 	return newCmd

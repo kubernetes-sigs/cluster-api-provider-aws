@@ -18,14 +18,14 @@ package v1beta1
 
 import (
 	"fmt"
-	"os"
 	"path"
 	"testing"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
 )
 
 var (
@@ -35,9 +35,8 @@ var (
 
 func TestMain(m *testing.M) {
 	setup()
-	code := m.Run()
-	teardown()
-	os.Exit(code)
+	defer teardown()
+	m.Run()
 }
 
 func setup() {
