@@ -221,10 +221,8 @@ func (r *AWSClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope)
 
 	if err := sgService.DeleteSecurityGroups(); err != nil {
 		clusterScope.Error(err, "error deleting security groups")
-		conditions.MarkFalse(clusterScope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletionFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return reconcile.Result{}, err
 	}
-	conditions.MarkFalse(clusterScope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 
 	if err := networkSvc.DeleteNetwork(); err != nil {
 		clusterScope.Error(err, "error deleting network")
