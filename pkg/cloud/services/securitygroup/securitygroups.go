@@ -293,6 +293,7 @@ func (s *Service) DeleteSecurityGroups() error {
 		return err
 	}
 	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+
 	return nil
 }
 
