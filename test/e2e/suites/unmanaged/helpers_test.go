@@ -353,7 +353,7 @@ func getEvents(namespace string) *corev1.EventList {
 	return eventsList
 }
 
-func getSubnetID(filterKey, filterValue string) *string {
+func getSubnetID(filterKey, filterValue, clusterName string) *string {
 	var subnetOutput *ec2.DescribeSubnetsOutput
 	var err error
 
@@ -365,6 +365,10 @@ func getSubnetID(filterKey, filterValue string) *string {
 				Values: []*string{
 					aws.String(filterValue),
 				},
+			},
+			{
+				Name:   aws.String("tag-key"),
+				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/" + clusterName}),
 			},
 		},
 	}

@@ -367,13 +367,13 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				Creator:                 e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 				MachineDeployment:       md1,
 				BootstrapConfigTemplate: makeJoinBootstrapConfigTemplate(namespace.Name, mdName1),
-				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, mdName1, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), pointer.StringPtr(az1), getSubnetID("cidr-block", "10.0.0.0/24")),
+				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, mdName1, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), pointer.StringPtr(az1), getSubnetID("cidr-block", "10.0.0.0/24", clusterName)),
 			})
 			framework.CreateMachineDeployment(ctx, framework.CreateMachineDeploymentInput{
 				Creator:                 e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 				MachineDeployment:       md2,
 				BootstrapConfigTemplate: makeJoinBootstrapConfigTemplate(namespace.Name, mdName2),
-				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, mdName2, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), pointer.StringPtr(az2), getSubnetID("cidr-block", "10.0.2.0/24")),
+				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, mdName2, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), pointer.StringPtr(az2), getSubnetID("cidr-block", "10.0.2.0/24", clusterName)),
 			})
 
 			ginkgo.By("Waiting for new worker nodes to become ready")
@@ -526,6 +526,144 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			Expect(len(workerMachines)).To(Equal(1))
 			assertSpotInstanceType(*workerMachines[0].Spec.ProviderID)
 			Expect(len(controlPlaneMachines)).To(Equal(1))
+		})
+	})
+
+	ginkgo.Describe("Externally managed security groups", func() {
+		ginkgo.It("should create a cluster using external security groups", func() {
+			specName := "functional-test-external-securitygroups"
+			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
+			requiredResources.WriteRequestedResources(e2eCtx, specName)
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
+			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
+
+			ginkgo.By("Creating the VPC and subnets")
+			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
+			vpc, vpcErr := shared.CreateVPC(e2eCtx, clusterName+"-vpc", "10.0.0.0/22")
+			Expect(vpcErr).To(BeNil())
+			vpcID := *vpc.VpcId
+			shared.SetEnvVar("VPC_ID", vpcID, false)
+			pubSubnet, pubSErr := shared.CreateSubnet(e2eCtx, clusterName, "10.0.0.0/24", "", vpcID, "public")
+			Expect(pubSErr).To(BeNil())
+			pubSubnetID := *pubSubnet.SubnetId
+			shared.SetEnvVar("PUBLIC_SUBNET_ID", pubSubnetID, false)
+			priSubnet, priSErr := shared.CreateSubnet(e2eCtx, clusterName, "10.0.1.0/24", "", vpcID, "private")
+			Expect(priSErr).To(BeNil())
+			priSubnetID := *priSubnet.SubnetId
+			shared.SetEnvVar("PRIVATE_SUBNET_ID", priSubnetID, false)
+
+			ginkgo.By("Creating security groups")
+			cpSG, _ := shared.CreateSecurityGroup(e2eCtx, clusterName+"-controlplane", clusterName+" controlplane", vpcID)
+			Expect(cpSG).NotTo(BeNil())
+			cpSGID := *cpSG.GroupId
+			shared.SetEnvVar("CP_SG_ID", cpSGID, false)
+			shared.CreateSecurityGroupIngressRule(e2eCtx, cpSGID, "controlplane default", "0.0.0.0/0", "-1", -1, -1)
+			apiSG, _ := shared.CreateSecurityGroup(e2eCtx, clusterName+"-apiserver-lb", clusterName+" apiserver", vpcID)
+			Expect(apiSG).NotTo(BeNil())
+			apiSGID := *apiSG.GroupId
+			shared.SetEnvVar("API_SG_ID", apiSGID, false)
+			shared.CreateSecurityGroupIngressRule(e2eCtx, apiSGID, "apiserver default", "0.0.0.0/0", "-1", -1, -1)
+			nodeSG, _ := shared.CreateSecurityGroup(e2eCtx, clusterName+"-node", clusterName+" node", vpcID)
+			Expect(nodeSG).NotTo(BeNil())
+			nodeSGID := *nodeSG.GroupId
+			shared.SetEnvVar("NODE_SG_ID", nodeSGID, false)
+			shared.CreateSecurityGroupIngressRule(e2eCtx, nodeSGID, "node default", "0.0.0.0/0", "-1", -1, -1)
+			lbSG, _ := shared.CreateSecurityGroup(e2eCtx, clusterName+"-lb", clusterName+" load balancer", vpcID)
+			Expect(lbSG).NotTo(BeNil())
+			lbSGID := *lbSG.GroupId
+			shared.SetEnvVar("LB_SG_ID", lbSGID, false)
+			shared.CreateSecurityGroupIngressRule(e2eCtx, lbSGID, "load balancer default", "0.0.0.0/0", "-1", -1, -1)
+
+			ginkgo.By("Creating Internet gateway")
+			igw, _ := shared.CreateInternetGateway(e2eCtx, clusterName+"-igw")
+			Expect(igw).NotTo(BeNil())
+			igwID := *igw.InternetGatewayId
+			igwA, _ := shared.AttachInternetGateway(e2eCtx, igwID, vpcID)
+			Expect(igwA).To(BeTrue())
+
+			ginkgo.By("Allocating Elastic IP")
+			eip, _ := shared.AllocateAddress(e2eCtx, clusterName+"-eip")
+			Expect(eip).NotTo(BeNil())
+			allocationID := *eip.AllocationId
+
+			ginkgo.By("Creating NAT gateway")
+			ngw, _ := shared.CreateNatGateway(e2eCtx, clusterName+"-nat", "public", allocationID, pubSubnetID)
+			Expect(ngw).NotTo(BeNil())
+			ngwID := *ngw.NatGatewayId
+			shared.WaitForNatGatewayState(e2eCtx, ngwID, 180, "available")
+
+			ginkgo.By("Creating route tables")
+			pubRoute, _ := shared.CreateRouteTable(e2eCtx, clusterName+"-rt-public", vpcID)
+			priRoute, _ := shared.CreateRouteTable(e2eCtx, clusterName+"-rt-private", vpcID)
+
+			ginkgo.By("Creating associating routes")
+			pubRouteID := *pubRoute.RouteTableId
+			priRouteID := *priRoute.RouteTableId
+			pubAssocRT, _ := shared.AssociateRouteTable(e2eCtx, pubRouteID, pubSubnetID)
+			priAssocRT, _ := shared.AssociateRouteTable(e2eCtx, priRouteID, priSubnetID)
+
+			ginkgo.By("Creating routes")
+			shared.CreateRoute(e2eCtx, pubRouteID, "0.0.0.0/0", nil, igw.InternetGatewayId, nil)
+			shared.CreateRoute(e2eCtx, priRouteID, "0.0.0.0/0", ngw.NatGatewayId, nil, nil)
+
+			configCluster := defaultConfigCluster(clusterName, namespace.Name)
+			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+			configCluster.Flavor = "external-securitygroups"
+			cluster, md, _ := createCluster(ctx, configCluster, result)
+
+			workerMachines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
+				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				ClusterName:       clusterName,
+				Namespace:         namespace.Name,
+				MachineDeployment: *md[0],
+			})
+			controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
+				Lister:      e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				ClusterName: clusterName,
+				Namespace:   namespace.Name,
+			})
+			Expect(len(workerMachines)).To(Equal(1))
+			Expect(len(controlPlaneMachines)).To(Equal(1))
+
+			deleteCluster(ctx, cluster)
+
+			ginkgo.By("Disassociating route tables")
+			pubAssocID := *pubAssocRT.AssociationId
+			priAssocID := *priAssocRT.AssociationId
+			Expect(shared.DisassociateRouteTable(e2eCtx, pubAssocID)).To(BeTrue())
+			Expect(shared.DisassociateRouteTable(e2eCtx, priAssocID)).To(BeTrue())
+
+			ginkgo.By("Deleting route tables")
+			Expect(shared.DeleteRouteTable(e2eCtx, priRouteID)).To(BeTrue())
+			Expect(shared.DeleteRouteTable(e2eCtx, pubRouteID)).To(BeTrue())
+
+			ginkgo.By("Deleting NAT gateway")
+			Expect(shared.DeleteNatGateway(e2eCtx, ngwID)).To(BeTrue())
+			shared.WaitForNatGatewayState(e2eCtx, ngwID, 180, "deleted")
+
+			ginkgo.By("Releasing Elastic IP")
+			Expect(shared.ReleaseAddress(e2eCtx, allocationID)).To(BeTrue())
+
+			ginkgo.By("Detaching Internet gateway")
+			Expect(shared.DetachInternetGateway(e2eCtx, igwID, vpcID)).To(BeTrue())
+
+			ginkgo.By("Deleting Internet gateway")
+			Expect(shared.DeleteInternetGateway(e2eCtx, igwID)).To(BeTrue())
+
+			ginkgo.By("Deleting security groups")
+			Expect(shared.DeleteSecurityGroup(e2eCtx, cpSGID)).To(BeTrue())
+			Expect(shared.DeleteSecurityGroup(e2eCtx, apiSGID)).To(BeTrue())
+			Expect(shared.DeleteSecurityGroup(e2eCtx, nodeSGID)).To(BeTrue())
+			Expect(shared.DeleteSecurityGroup(e2eCtx, lbSGID)).To(BeTrue())
+
+			ginkgo.By("Deleting subnets")
+			Expect(shared.DeleteSubnet(e2eCtx, priSubnetID)).To(BeTrue())
+			Expect(shared.DeleteSubnet(e2eCtx, pubSubnetID)).To(BeTrue())
+
+			ginkgo.By("Deleting the VPC")
+			Expect(shared.DeleteVPC(e2eCtx, vpcID)).To(BeTrue())
 		})
 	})
 })
