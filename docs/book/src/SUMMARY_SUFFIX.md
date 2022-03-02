@@ -1,5 +1,6 @@
 - [Developer Guide](./development/development.md)
   - [Development with Tilt](./development/tilt-setup.md)
+  - [Developing E2E tests](./development/e2e.md)
   - [Coding Conventions](./development/conventions.md)
 - [CRD Reference](./crd/index.md)
 - [Reference](./topics/reference/reference.md)

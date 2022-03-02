@@ -1145,6 +1145,18 @@ string
 </tr>
 <tr>
 <td>
+<code>stackTags</code><br/>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>StackTags defines the tags of the AWS CloudFormation stack.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>region</code><br/>
 <em>
 string
@@ -1312,6 +1324,18 @@ string
 </td>
 <td>
 <p>StackName defines the name of the AWS CloudFormation stack.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>stackTags</code><br/>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>StackTags defines the tags of the AWS CloudFormation stack.</p>
 </td>
 </tr>
 <tr>
@@ -2250,6 +2274,81 @@ map[string]string
 <p>KubeletExtraArgs passes the specified kubelet args into the Amazon EKS machine bootstrap script</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>containerRuntime</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ContainerRuntime specify the container runtime to use when bootstrapping EKS.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dnsClusterIP</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DNSClusterIP overrides the IP address to use for DNS queries within the cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dockerConfigJson</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DockerConfigJson is used for the contents of the /etc/docker/daemon.json file. Useful if you want a custom config differing from the default one in the AMI.
+This is expected to be a json string.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>apiRetryAttempts</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>APIRetryAttempts is the number of retry attempts for AWS API call.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pauseContainer</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta1.PauseContainer">
+PauseContainer
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PauseContainer allows customization of the pause container to use.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>useMaxPods</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UseMaxPods  sets &ndash;max-pods for the kubelet when true.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -2293,6 +2392,81 @@ map[string]string
 <td>
 <em>(Optional)</em>
 <p>KubeletExtraArgs passes the specified kubelet args into the Amazon EKS machine bootstrap script</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>containerRuntime</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ContainerRuntime specify the container runtime to use when bootstrapping EKS.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dnsClusterIP</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DNSClusterIP overrides the IP address to use for DNS queries within the cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dockerConfigJson</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DockerConfigJson is used for the contents of the /etc/docker/daemon.json file. Useful if you want a custom config differing from the default one in the AMI.
+This is expected to be a json string.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>apiRetryAttempts</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>APIRetryAttempts is the number of retry attempts for AWS API call.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pauseContainer</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta1.PauseContainer">
+PauseContainer
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PauseContainer allows customization of the pause container to use.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>useMaxPods</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UseMaxPods  sets &ndash;max-pods for the kubelet when true.</p>
 </td>
 </tr>
 </tbody>
@@ -2486,6 +2660,81 @@ map[string]string
 <p>KubeletExtraArgs passes the specified kubelet args into the Amazon EKS machine bootstrap script</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>containerRuntime</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ContainerRuntime specify the container runtime to use when bootstrapping EKS.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dnsClusterIP</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DNSClusterIP overrides the IP address to use for DNS queries within the cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dockerConfigJson</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DockerConfigJson is used for the contents of the /etc/docker/daemon.json file. Useful if you want a custom config differing from the default one in the AMI.
+This is expected to be a json string.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>apiRetryAttempts</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>APIRetryAttempts is the number of retry attempts for AWS API call.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pauseContainer</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta1.PauseContainer">
+PauseContainer
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PauseContainer allows customization of the pause container to use.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>useMaxPods</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UseMaxPods  sets &ndash;max-pods for the kubelet when true.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -2517,6 +2766,46 @@ EKSConfigTemplateResource
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta1.PauseContainer">PauseContainer
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta1.EKSConfigSpec">EKSConfigSpec</a>)
+</p>
+<p>
+<p>PauseContainer contains details of pause container.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accountNumber</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AccountNumber is the AWS account number to pull the pause container from.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Version is the tag of the pause container to use.</p>
 </td>
 </tr>
 </tbody>
@@ -2896,8 +3185,8 @@ bool
 </em>
 </td>
 <td>
-<p>DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters
-the Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
+<p>DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters the
+Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
 to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
 should be deleted. You cannot set this to true if you are using the
 Amazon VPC CNI addon or if you have specified a secondary CIDR block.</p>
@@ -3267,8 +3556,8 @@ bool
 </em>
 </td>
 <td>
-<p>DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters
-the Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
+<p>DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters the
+Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
 to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
 should be deleted. You cannot set this to true if you are using the
 Amazon VPC CNI addon or if you have specified a secondary CIDR block.</p>
@@ -4628,8 +4917,8 @@ bool
 </em>
 </td>
 <td>
-<p>DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters
-the Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
+<p>DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters the
+Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
 to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
 should be deleted. You cannot set this to true if you are using the
 Amazon VPC CNI addon or if you have specified a secondary CIDR block.</p>
@@ -4999,8 +5288,8 @@ bool
 </em>
 </td>
 <td>
-<p>DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters
-the Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
+<p>DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters the
+Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
 to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
 should be deleted. You cannot set this to true if you are using the
 Amazon VPC CNI addon or if you have specified a secondary CIDR block.</p>
@@ -14384,6 +14673,21 @@ the registered instances in its Availability Zone only.</p>
 </tr>
 <tr>
 <td>
+<code>healthCheckProtocol</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.ClassicELBProtocol">
+ClassicELBProtocol
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>HealthCheckProtocol sets the protocol type for classic ELB health check target
+default value is ClassicELBProtocolSSL</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>additionalSecurityGroups</code><br/>
 <em>
 []string
@@ -16099,6 +16403,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>The name of the load balancer. It must be unique within the set of load balancers
 defined in the region. It also serves as identifier.</p>
 </td>
@@ -16393,7 +16698,7 @@ int64
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.ClassicELBProtocol">ClassicELBProtocol
 (<code>string</code> alias)</p></h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.ClassicELBListener">ClassicELBListener</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSLoadBalancerSpec">AWSLoadBalancerSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.ClassicELBListener">ClassicELBListener</a>)
 </p>
 <p>
 <p>ClassicELBProtocol defines listener protocols for a classic load balancer.</p>
