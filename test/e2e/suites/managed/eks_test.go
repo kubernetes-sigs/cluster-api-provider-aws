@@ -56,9 +56,6 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 		namespace = shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 		clusterName = fmt.Sprintf("cluster-%s", util.RandomString(6))
 
-		ginkgo.By("setting up AWS static credentials")
-		shared.SetupStaticCredentials(ctx, namespace, e2eCtx)
-
 		ginkgo.By("default iam role should exist")
 		verifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, clusterName, false, e2eCtx.BootstrapUserAWSSession)
 
@@ -148,8 +145,5 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 			Getter:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Cluster: cluster,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
-
-		ginkgo.By("Deleting AWS static credentials")
-		shared.CleanupStaticCredentials(ctx, namespace, e2eCtx)
 	})
 })

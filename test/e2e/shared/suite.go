@@ -169,6 +169,11 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 
 	CreateAWSClusterControllerIdentity(e2eCtx.Environment.BootstrapClusterProxy.GetClient())
 
+	if e2eCtx.IsManaged {
+		By("Setting up AWS static credentials")
+		SetupStaticCredentials(e2eCtx)
+	}
+
 	conf := synchronizedBeforeTestSuiteConfig{
 		ArtifactFolder:           e2eCtx.Settings.ArtifactFolder,
 		ConfigPath:               e2eCtx.Settings.ConfigPath,
@@ -257,6 +262,12 @@ func Node1AfterSuite(e2eCtx *E2EContext) {
 	ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Minute)
 	DumpEKSClusters(ctx, e2eCtx)
 	DumpCloudTrailEvents(e2eCtx)
+
+	if e2eCtx.IsManaged {
+		By("Deleting AWS static credentials")
+		CleanupStaticCredentials(ctx, e2eCtx)
+	}
+
 	defer cancel()
 	By("Tearing down the management cluster")
 	if !e2eCtx.Settings.SkipCleanup {
