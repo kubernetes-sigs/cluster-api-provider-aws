@@ -35,12 +35,11 @@ const (
 	idName          = "e2e-account"
 )
 
-func SetupStaticCredentials(ctx context.Context, namespace *corev1.Namespace, e2eCtx *E2EContext) {
-	Expect(ctx).NotTo(BeNil(), "ctx is required for SetupStaticCredentials")
-	Expect(namespace).NotTo(BeNil(), "namespace is required for SetupStaticCredentials")
+func SetupStaticCredentials(e2eCtx *E2EContext) {
 	Expect(e2eCtx).NotTo(BeNil(), "e2eCtx is required for SetupStaticCredentials")
 	Expect(e2eCtx.Environment.BootstrapAccessKey).NotTo(BeNil(), "e2eCtx.Environment.BootstrapAccessKey is required for SetupStaticCredentials")
 
+	ctx := context.TODO()
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      credsSecretName,
@@ -60,38 +59,33 @@ func SetupStaticCredentials(ctx context.Context, namespace *corev1.Namespace, e2
 
 	id := &infrav1.AWSClusterStaticIdentity{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      idName,
-			Namespace: namespace.Name,
+			Name: idName,
 		},
 		Spec: infrav1.AWSClusterStaticIdentitySpec{
 			SecretRef: credsSecretName,
 			AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
-				AllowedNamespaces: &infrav1.AllowedNamespaces{
-					NamespaceList: []string{namespace.Name},
-				},
+				AllowedNamespaces: &infrav1.AllowedNamespaces{},
 			},
 		},
 	}
 
-	Byf("Creating AWSClusterStaticIdentity %s in namespace %s", id.Name, namespace.Name)
+	Byf("Creating AWSClusterStaticIdentity %s", id.Name)
 	Eventually(func() error {
 		return client.Create(ctx, id)
 	}, e2eCtx.E2EConfig.GetIntervals("", "wait-create-identity")...).Should(Succeed())
 }
 
-func CleanupStaticCredentials(ctx context.Context, namespace *corev1.Namespace, e2eCtx *E2EContext) {
+func CleanupStaticCredentials(ctx context.Context, e2eCtx *E2EContext) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for SetupStaticCredentials")
-	Expect(namespace).NotTo(BeNil(), "namespace is required for SetupStaticCredentials")
 	Expect(e2eCtx).NotTo(BeNil(), "e2eCtx is required for SetupStaticCredentials")
 
 	id := &infrav1.AWSClusterStaticIdentity{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      idName,
-			Namespace: namespace.Name,
+			Name: idName,
 		},
 	}
 
-	Byf("Deleting AWSClusterStaticIdentity %s in namespace %s", idName, namespace.Name)
+	Byf("Deleting AWSClusterStaticIdentity %s", idName)
 	client := e2eCtx.Environment.BootstrapClusterProxy.GetClient()
 	Eventually(func() error {
 		return client.Delete(ctx, id)

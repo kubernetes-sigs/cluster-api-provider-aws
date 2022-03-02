@@ -123,7 +123,7 @@ USE_EXISTING_CLUSTER ?= "false"
 
 # Set E2E_SKIP_EKS_UPGRADE to false to test EKS upgrades.
 # Warning, this takes a long time
-E2E_SKIP_EKS_UPGRADE ?= "true"
+E2E_SKIP_EKS_UPGRADE ?= "false"
 
 # Set EKS_SOURCE_TEMPLATE to override the source template
 EKS_SOURCE_TEMPLATE ?= eks/cluster-template-eks-control-plane-only.yaml
