@@ -107,9 +107,15 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					},
 				},
 				MachinePool: &expclusterv1.MachinePool{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mp",
+						Namespace: "default",
+					},
 					Spec: expclusterv1.MachinePoolSpec{
+						ClusterName: "test",
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
+								ClusterName: "test",
 								Bootstrap: clusterv1.Bootstrap{
 									DataSecretName: pointer.StringPtr("bootstrap-data"),
 								},
@@ -368,6 +374,34 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 				g.Expect(err).To(Succeed())
 			})
+		})
+
+		t.Run("externally managed annotation", func(t *testing.T) {
+			g := NewWithT(t)
+			setup(t, g)
+			defer teardown(t, g)
+
+			asg := expinfrav1.AutoScalingGroup{
+				Name:            "an-asg",
+				DesiredCapacity: pointer.Int32(1),
+			}
+			asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(&asg, nil).AnyTimes()
+			asgSvc.EXPECT().UpdateASG(gomock.Any()).Return(nil).AnyTimes()
+			ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, "", nil).AnyTimes()
+			ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any()).Return(nil, nil).AnyTimes()
+			ec2Svc.EXPECT().CreateLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
+			ec2Svc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			ec2Svc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+			ms.MachinePool.Annotations = map[string]string{
+				scope.ReplicasManagedByAnnotation: scope.ExternalAutoscalerReplicasManagedByAnnotationValue,
+			}
+			ms.MachinePool.Spec.Replicas = pointer.Int32(0)
+
+			g.Expect(testEnv.Create(ctx, ms.MachinePool)).To(Succeed())
+
+			_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+			g.Expect(*ms.MachinePool.Spec.Replicas).To(Equal(int32(1)))
 		})
 	})
 
@@ -713,6 +747,49 @@ func TestASGNeedsUpdates(t *testing.T) {
 				},
 			},
 			want: false,
+		},
+		{
+			name: "externally managed annotation ignores difference between desiredCapacity and replicas",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						ObjectMeta: metav1.ObjectMeta{
+							Annotations: map[string]string{
+								scope.ReplicasManagedByAnnotation: scope.ExternalAutoscalerReplicasManagedByAnnotationValue,
+							},
+						},
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: pointer.Int32(0),
+						},
+					},
+					AWSMachinePool: &expinfrav1.AWSMachinePool{
+						Spec: expinfrav1.AWSMachinePoolSpec{},
+					},
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity: pointer.Int32(1),
+				},
+			},
+			want: false,
+		},
+		{
+			name: "without externally managed annotation ignores difference between desiredCapacity and replicas",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: pointer.Int32(0),
+						},
+					},
+					AWSMachinePool: &expinfrav1.AWSMachinePool{
+						Spec: expinfrav1.AWSMachinePoolSpec{},
+					},
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity: pointer.Int32(1),
+				},
+			},
+			want: true,
 		},
 	}
 	for _, tt := range tests {

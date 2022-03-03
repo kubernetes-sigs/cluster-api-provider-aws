@@ -79,7 +79,7 @@ func (r *AWSMachinePoolReconciler) getEC2Service(scope scope.EC2Scope) services.
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinepools;machinepools/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinepools;machinepools/status,verbs=get;list;watch;patch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
@@ -267,6 +267,19 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil
+	}
+
+	if scope.ReplicasExternallyManaged(machinePoolScope.MachinePool) {
+		// Set MachinePool replicas to the ASG DesiredCapacity
+		if *machinePoolScope.MachinePool.Spec.Replicas != *asg.DesiredCapacity {
+			machinePoolScope.Info("Setting MachinePool replicas to ASG DesiredCapacity",
+				"local", machinePoolScope.MachinePool.Spec.Replicas,
+				"external", asg.DesiredCapacity)
+			machinePoolScope.MachinePool.Spec.Replicas = asg.DesiredCapacity
+			if err := machinePoolScope.PatchCAPIMachinePoolObject(ctx); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
 	}
 
 	if err := r.updatePool(machinePoolScope, clusterScope, asg); err != nil {
@@ -465,12 +478,14 @@ func (r *AWSMachinePoolReconciler) findASG(machinePoolScope *scope.MachinePoolSc
 
 // asgNeedsUpdates compares incoming AWSMachinePool and compares against existing ASG.
 func asgNeedsUpdates(machinePoolScope *scope.MachinePoolScope, existingASG *expinfrav1.AutoScalingGroup) bool {
-	if machinePoolScope.MachinePool.Spec.Replicas != nil {
-		if existingASG.DesiredCapacity == nil || *machinePoolScope.MachinePool.Spec.Replicas != *existingASG.DesiredCapacity {
+	if !scope.ReplicasExternallyManaged(machinePoolScope.MachinePool) {
+		if machinePoolScope.MachinePool.Spec.Replicas != nil {
+			if existingASG.DesiredCapacity == nil || *machinePoolScope.MachinePool.Spec.Replicas != *existingASG.DesiredCapacity {
+				return true
+			}
+		} else if existingASG.DesiredCapacity != nil {
 			return true
 		}
-	} else if existingASG.DesiredCapacity != nil {
-		return true
 	}
 
 	if machinePoolScope.AWSMachinePool.Spec.MaxSize != existingASG.MaxSize {

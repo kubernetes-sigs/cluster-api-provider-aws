@@ -206,5 +206,8 @@ func setupScheme() (*runtime.Scheme, error) {
 	if err := ekscontrolplanev1.AddToScheme(scheme); err != nil {
 		return nil, err
 	}
+	if err := v1beta1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
 	return scheme, nil
 }
