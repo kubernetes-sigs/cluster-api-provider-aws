@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -22,27 +23,22 @@ import (
 	"context"
 	"fmt"
 
-	//. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
-
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
+// EKS related constants.
 const (
-	EKSManagedPoolFlavor = "eks-managedmachinepool"
-
+	EKSManagedPoolFlavor               = "eks-managedmachinepool"
 	EKSControlPlaneOnlyFlavor          = "eks-control-plane-only"
 	EKSControlPlaneOnlyWithAddonFlavor = "eks-control-plane-only-withaddon"
 	EKSMachineDeployOnlyFlavor         = "eks-machine-deployment-only"
@@ -109,7 +105,7 @@ func verifySecretExists(ctx context.Context, secretName, namespace string, k8scl
 
 func verifyConfigMapExists(ctx context.Context, name, namespace string, k8sclient crclient.Client) {
 	cm := &corev1.ConfigMap{}
-	err := k8sclient.Get(ctx, apimachinerytypes.NamespacedName{Name: "aws-auth", Namespace: metav1.NamespaceSystem}, cm)
+	err := k8sclient.Get(ctx, apimachinerytypes.NamespacedName{Name: name, Namespace: namespace}, cm)
 
 	Expect(err).ShouldNot(HaveOccurred())
 }
@@ -136,7 +132,7 @@ func verifyRoleExistsAndOwned(roleName string, clusterName string, checkOwned bo
 	}
 }
 
-func verifyManagedNodeGroup(clusterName, eksClusterName, nodeGroupName string, checkOwned bool, sess client.ConfigProvider) {
+func verifyManagedNodeGroup(eksClusterName, nodeGroupName string, checkOwned bool, sess client.ConfigProvider) {
 	eksClient := eks.New(sess)
 	input := &eks.DescribeNodegroupInput{
 		ClusterName:   aws.String(eksClusterName),
@@ -147,7 +143,7 @@ func verifyManagedNodeGroup(clusterName, eksClusterName, nodeGroupName string, c
 	Expect(*result.Nodegroup.Status).To(BeEquivalentTo(eks.NodegroupStatusActive))
 
 	if checkOwned {
-		tagName := infrav1.ClusterAWSCloudProviderTagKey(clusterName)
+		tagName := infrav1.ClusterAWSCloudProviderTagKey(eksClusterName)
 		tagValue, ok := result.Nodegroup.Tags[tagName]
 		Expect(ok).To(BeTrue(), "expecting the cluster owned tag to exist")
 		Expect(*tagValue).To(BeEquivalentTo(string(infrav1.ResourceLifecycleOwned)))

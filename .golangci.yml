@@ -1,43 +1,48 @@
 linters:
-  disable-all: true
-  enable:
-  - asciicheck
-  - bodyclose
-  - deadcode
-  - depguard
-  - dogsled
-  - errcheck
-  - exportloopref
-  - goconst
-  - gocritic
-  - gocyclo
-  - godot
-  - gofmt
-  - goheader
-  - goimports
-  - goprintffuncname
-  - gosec
-  - gosimple
-  - govet
-  - ifshort
-  - importas
-  - ineffassign
-  - misspell
-  - nakedret
-  - nilerr
-  - noctx
-  - nolintlint
-  - prealloc
-  - revive
-  - rowserrcheck
-  - staticcheck
-  - structcheck
-  - stylecheck
-  - typecheck
-  - unconvert
-  - unparam
-  - varcheck
-  - whitespace
+  enable-all: true
+  disable:
+    - bidichk
+    - contextcheck
+    - cyclop
+    - dupl
+    - durationcheck
+    - errname
+    - errorlint
+    - exhaustive
+    - exhaustivestruct
+    - forcetypeassert
+    - forbidigo
+    - funlen
+    - gochecknoglobals
+    - gochecknoinits
+    - gocognit
+    - godox
+    - goerr113
+    - gofumpt
+    - golint
+    - gomnd
+    - gomoddirectives
+    - gomodguard
+    - interfacer
+    - ireturn
+    - lll
+    - makezero
+    - maligned
+    - nestif
+    - nilnil
+    - nlreturn
+    - paralleltest
+    - promlinter
+    - scopelint
+    - sqlclosecheck
+    - tagliatelle
+    - tenv
+    - testpackage
+    - tparallel
+    - varnamelen
+    - wastedassign
+    - wrapcheck
+    - wsl
 
 linters-settings:
   # Restrict revive to exported.
@@ -51,6 +56,8 @@ linters-settings:
   ifshort:
     # Maximum length of variable declaration measured in number of characters, after which linter won't suggest using short syntax.
     max-decl-chars: 50
+  gci:
+    local-prefixes: "sigs.k8s.io/cluster-api"
   importas:
     no-unaliased: false
     alias:
@@ -215,6 +222,14 @@ issues:
     - linters:
       - unparam
       text: always receives
+    # Dot imports for gomega or ginkgo are allowed
+    # within test files.
+    - path: _test\.go
+      text: should not use dot imports
+    - path: (framework|e2e)/.*.go
+      text: should not use dot imports
+    - path: _test\.go
+      text: cyclomatic complexity
     - linters:
       - unparam
       text: (.+) - (`t`|`g`) is unused
@@ -227,6 +242,9 @@ issues:
 
 run:
   timeout: 10m
+  build-tags:
+    - tools
+    - e2e
   skip-files:
   - "zz_generated.*\\.go$"
   - ".*conversion.*\\.go$"

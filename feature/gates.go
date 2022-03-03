@@ -18,6 +18,7 @@ package feature
 
 import (
 	"k8s.io/component-base/featuregate"
+
 	"sigs.k8s.io/cluster-api/feature"
 )
 

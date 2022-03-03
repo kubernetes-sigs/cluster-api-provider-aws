@@ -18,21 +18,19 @@ package v1alpha3
 
 import (
 	"fmt"
-	"os"
 	"path"
 	"testing"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
+
 	// +kubebuilder:scaffold:imports
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -52,11 +50,9 @@ func TestAPIs(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	code := 0
-	defer func() { os.Exit(code) }()
 	setup()
 	defer teardown()
-	code = m.Run()
+	m.Run()
 }
 
 func setup() {

@@ -37,17 +37,23 @@ func (r *EKSConfig) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
-	dst.Spec.ContainerRuntime = restored.Spec.ContainerRuntime
-	dst.Spec.DNSClusterIP = restored.Spec.DNSClusterIP
-	dst.Spec.DockerConfigJSON = restored.Spec.DockerConfigJSON
-	dst.Spec.APIRetryAttempts = restored.Spec.APIRetryAttempts
-	if restored.Spec.PauseContainer != nil {
-		dst.Spec.PauseContainer.AccountNumber = restored.Spec.PauseContainer.AccountNumber
-		dst.Spec.PauseContainer.Version = restored.Spec.PauseContainer.Version
-	}
-	dst.Spec.UseMaxPods = restored.Spec.UseMaxPods
+	restoreSpec(&restored.Spec, &dst.Spec)
 
 	return nil
+}
+
+func restoreSpec(rSpec, dSpec *v1beta1.EKSConfigSpec) {
+	dSpec.ContainerRuntime = rSpec.ContainerRuntime
+	dSpec.DNSClusterIP = rSpec.DNSClusterIP
+	dSpec.DockerConfigJSON = rSpec.DockerConfigJSON
+	dSpec.APIRetryAttempts = rSpec.APIRetryAttempts
+	if rSpec.PauseContainer != nil {
+		dSpec.PauseContainer = &v1beta1.PauseContainer{
+			AccountNumber: rSpec.PauseContainer.AccountNumber,
+			Version:       rSpec.PauseContainer.Version,
+		}
+	}
+	dSpec.UseMaxPods = rSpec.UseMaxPods
 }
 
 // ConvertFrom converts the v1beta1 EKSConfig receiver to a v1alpha3 EKSConfig.
@@ -83,14 +89,33 @@ func (r *EKSConfigList) ConvertFrom(srcRaw conversion.Hub) error {
 func (r *EKSConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1beta1.EKSConfigTemplate)
 
-	return Convert_v1alpha3_EKSConfigTemplate_To_v1beta1_EKSConfigTemplate(r, dst, nil)
+	if err := Convert_v1alpha3_EKSConfigTemplate_To_v1beta1_EKSConfigTemplate(r, dst, nil); err != nil {
+		return err
+	}
+
+	restored := &v1beta1.EKSConfigTemplate{}
+	if ok, err := utilconversion.UnmarshalData(r, restored); err != nil || !ok {
+		return err
+	}
+
+	restoreSpec(&restored.Spec.Template.Spec, &dst.Spec.Template.Spec)
+
+	return nil
 }
 
 // ConvertFrom converts the v1beta1 EKSConfigTemplate receiver to a v1alpha3 EKSConfigTemplate.
 func (r *EKSConfigTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1beta1.EKSConfigTemplate)
 
-	return Convert_v1beta1_EKSConfigTemplate_To_v1alpha3_EKSConfigTemplate(src, r, nil)
+	if err := Convert_v1beta1_EKSConfigTemplate_To_v1alpha3_EKSConfigTemplate(src, r, nil); err != nil {
+		return err
+	}
+
+	if err := utilconversion.MarshalData(src, r); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ConvertTo converts the v1alpha3 EKSConfigTemplateList receiver to a v1beta1 EKSConfigTemplateList.

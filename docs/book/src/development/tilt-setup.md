@@ -6,7 +6,7 @@ Before the next steps, make sure [initial setup for development environment][Ini
 Also, visit the [Cluster API documentation on Tilt][cluster_api_tilt] for more information on how to set up your development environment.
 
 [tilt]: https://tilt.dev
-[cluster_api_tilt]: https://master.cluster-api.sigs.k8s.io/developer/tilt.html
+[cluster_api_tilt]: https://cluster-api.sigs.k8s.io/developer/tilt.html
 [Initial-setup-for-development-environment]: ./development.md/#initial-setup-for-development-environment
 
 ## Create a kind cluster

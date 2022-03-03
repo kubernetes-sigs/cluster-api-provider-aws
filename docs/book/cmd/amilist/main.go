@@ -24,8 +24,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/ami"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/ami"
 )
 
 var svc *s3manager.Uploader

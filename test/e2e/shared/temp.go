@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -25,7 +26,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	"sigs.k8s.io/yaml"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -106,7 +106,7 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 }
 
 func localLoadE2EConfig(configPath string) *clusterctl.E2EConfig {
-	configData, err := os.ReadFile(configPath)
+	configData, err := os.ReadFile(configPath) //nolint:gosec
 	Expect(err).ToNot(HaveOccurred(), "Failed to read the e2e test config file")
 	Expect(configData).ToNot(BeEmpty(), "The e2e test config file should not be empty")
 
@@ -116,8 +116,8 @@ func localLoadE2EConfig(configPath string) *clusterctl.E2EConfig {
 	config.Defaults()
 	config.AbsPaths(filepath.Dir(configPath))
 
-	//TODO: this is the reason why we can't use this at present for the EKS tests
-	//Expect(config.Validate()).To(Succeed(), "The e2e test config file is not valid")
+	// TODO: this is the reason why we can't use this at present for the EKS tests
+	// Expect(config.Validate()).To(Succeed(), "The e2e test config file is not valid")
 
 	return config
 }

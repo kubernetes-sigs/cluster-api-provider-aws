@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -19,27 +20,24 @@ limitations under the License.
 package managed
 
 import (
-	"context"
 	"fmt"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/eks"
-
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/util/version"
 
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 )
 
 type waitForControlPlaneToBeUpgradedInput struct {
-	ControlPlane   *controlplanev1.AWSManagedControlPlane
+	ControlPlane   *ekscontrolplanev1.AWSManagedControlPlane
 	AWSSession     client.ConfigProvider
 	UpgradeVersion string
 }
 
-func waitForControlPlaneToBeUpgraded(ctx context.Context, input waitForControlPlaneToBeUpgradedInput, intervals ...interface{}) {
+func waitForControlPlaneToBeUpgraded(input waitForControlPlaneToBeUpgradedInput, intervals ...interface{}) {
 	Expect(input.ControlPlane).ToNot(BeNil(), "Invalid argument. input.ControlPlane can't be nil")
 	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
 	Expect(input.UpgradeVersion).ToNot(BeNil(), "Invalid argument. input.UpgradeVersion can't be nil")
@@ -66,7 +64,5 @@ func waitForControlPlaneToBeUpgraded(ctx context.Context, input waitForControlPl
 		default:
 			return false, nil
 		}
-
 	}, intervals...).Should(BeTrue())
-
 }

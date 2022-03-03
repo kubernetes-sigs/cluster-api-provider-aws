@@ -24,12 +24,13 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-	"sigs.k8s.io/cluster-api/test/framework/internal/log"
-	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	kind "sigs.k8s.io/kind/pkg/cluster"
 	kindnodes "sigs.k8s.io/kind/pkg/cluster/nodes"
 	kindnodesutils "sigs.k8s.io/kind/pkg/cluster/nodeutils"
+
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	"sigs.k8s.io/cluster-api/test/framework/internal/log"
+	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 )
 
 // CreateKindBootstrapClusterAndLoadImagesInput is the input for CreateKindBootstrapClusterAndLoadImages.
@@ -48,6 +49,9 @@ type CreateKindBootstrapClusterAndLoadImagesInput struct {
 
 	// IPFamily is either ipv4 or ipv6. Default is ipv4.
 	IPFamily string
+
+	// LogFolder where to dump logs in case of errors
+	LogFolder string
 }
 
 // CreateKindBootstrapClusterAndLoadImages returns a new Kubernetes cluster with pre-loaded images.
@@ -66,6 +70,9 @@ func CreateKindBootstrapClusterAndLoadImages(ctx context.Context, input CreateKi
 	}
 	if input.IPFamily == "IPv6" {
 		options = append(options, WithIPv6Family())
+	}
+	if input.LogFolder != "" {
+		options = append(options, LogFolder(input.LogFolder))
 	}
 
 	clusterProvider := NewKindClusterProvider(input.Name, options...)
@@ -106,6 +113,12 @@ func LoadImagesToKindCluster(ctx context.Context, input LoadImagesToKindClusterI
 		return errors.New("Invalid argument. Name can't be empty when calling LoadImagesToKindCluster")
 	}
 
+	containerRuntime, err := container.NewDockerClient()
+	if err != nil {
+		return errors.Wrap(err, "failed to get Docker runtime client")
+	}
+	ctx = container.RuntimeInto(ctx, containerRuntime)
+
 	for _, image := range input.Images {
 		log.Logf("Loading image: %q", image.Name)
 		if err := loadImage(ctx, input.Name, image.Name); err != nil {
@@ -130,9 +143,14 @@ func loadImage(ctx context.Context, cluster, image string) error {
 	defer os.RemoveAll(dir)
 	imageTarPath := filepath.Join(dir, "image.tar")
 
-	err = save(ctx, image, imageTarPath)
+	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to access container runtime")
+	}
+
+	err = containerRuntime.SaveContainerImage(ctx, image, imageTarPath)
+	if err != nil {
+		return errors.Wrapf(err, "error saving image %q to %q", image, imageTarPath)
 	}
 
 	// Gets the nodes in the cluster
@@ -150,18 +168,6 @@ func loadImage(ctx context.Context, cluster, image string) error {
 	}
 
 	return nil
-}
-
-// copied from kind https://github.com/kubernetes-sigs/kind/blob/v0.7.0/pkg/cmd/kind/load/docker-image/docker-image.go#L168
-// save saves image to dest, as in `docker save`.
-func save(ctx context.Context, image, dest string) error {
-	containerRuntime, err := container.NewDockerClient()
-	if err != nil {
-		return errors.Wrap(err, "failed to get Docker runtime client")
-	}
-
-	err = containerRuntime.SaveContainerImage(ctx, image, dest)
-	return errors.Wrapf(err, "error saving image %q to %q", image, dest)
 }
 
 // copied from kind https://github.com/kubernetes-sigs/kind/blob/v0.7.0/pkg/cmd/kind/load/docker-image/docker-image.go#L158

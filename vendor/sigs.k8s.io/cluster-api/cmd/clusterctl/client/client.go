@@ -75,7 +75,7 @@ type Client interface {
 	// DescribeCluster returns the object tree representing the status of a Cluster API cluster.
 	DescribeCluster(options DescribeClusterOptions) (*tree.ObjectTree, error)
 
-	// Interface for alpha features in clusterctl
+	// AlphaClient is an Interface for alpha features in clusterctl
 	AlphaClient
 }
 
@@ -89,6 +89,8 @@ type AlphaClient interface {
 	RolloutResume(options RolloutOptions) error
 	// RolloutUndo provides rollout rollback of cluster-api resources
 	RolloutUndo(options RolloutOptions) error
+	// TopologyPlan dry runs the topology reconciler
+	TopologyPlan(options TopologyPlanOptions) (*TopologyPlanOutput, error)
 }
 
 // YamlPrinter exposes methods that prints the processed template and

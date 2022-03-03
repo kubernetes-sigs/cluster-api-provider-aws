@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	amiv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/ami/v1beta1"
 )
 
@@ -33,6 +34,8 @@ type ListInput struct {
 	KubernetesVersion string
 	OperatingSystem   string
 }
+
+const lastNReleases = 3
 
 // List will create an AWSAMIList from a given ListInput.
 func List(input ListInput) (*amiv1.AWSAMIList, error) {
@@ -52,7 +55,7 @@ func List(input ListInput) (*amiv1.AWSAMIList, error) {
 	supportedVersions := []string{}
 	if input.KubernetesVersion == "" {
 		var err error
-		supportedVersions, err = getSupportedKubernetesVersions()
+		supportedVersions, err = getSupportedKubernetesVersions(lastNReleases)
 		if err != nil {
 			fmt.Println("Failed to calculate supported Kubernetes versions")
 			return nil, err
@@ -95,6 +98,9 @@ func List(input ListInput) (*amiv1.AWSAMIList, error) {
 				image, err := findAMI(imageMap, os, version)
 				if err != nil {
 					return nil, err
+				}
+				if image == nil {
+					continue
 				}
 				creationTimestamp, err := time.Parse(time.RFC3339, aws.StringValue(image.CreationDate))
 				if err != nil {

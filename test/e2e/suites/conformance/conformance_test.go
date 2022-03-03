@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -28,6 +29,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
+
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
@@ -35,7 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// TODO @randomvariable: Replace with CAPI e2e framework ClusterUpgradeConformanceSpec
+// TODO @randomvariable: Replace with CAPI e2e framework ClusterUpgradeConformanceSpec.
 var _ = ginkgo.Describe("[unmanaged] [conformance] tests", func() {
 	var (
 		namespace *corev1.Namespace

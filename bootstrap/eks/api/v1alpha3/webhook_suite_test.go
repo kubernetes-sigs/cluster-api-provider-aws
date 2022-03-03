@@ -18,16 +18,16 @@ package v1alpha3
 
 import (
 	"fmt"
-	"os"
 	"path"
 	"testing"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
+
+	// +kubebuilder:scaffold:imports
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
-	ctrl "sigs.k8s.io/controller-runtime"
-	// +kubebuilder:scaffold:imports
 )
 
 var (
@@ -36,11 +36,9 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	code := 0
-	defer func() { os.Exit(code) }()
 	setup()
 	defer teardown()
-	code = m.Run()
+	m.Run()
 }
 
 func setup() {
@@ -48,9 +46,9 @@ func setup() {
 	utilruntime.Must(eksbootstrapv1.AddToScheme(scheme.Scheme))
 
 	testEnvConfig := helpers.NewTestEnvironmentConfiguration([]string{
-		path.Join("bootstrap", "eks", "config", "crd", "bases"),
+		path.Join("config", "crd", "bases"),
 	},
-	).WithWebhookConfiguration("unmanaged", path.Join("bootstrap", "eks", "config", "webhook", "manifests.yaml"))
+	).WithWebhookConfiguration("unmanaged", path.Join("config", "webhook", "manifests.yaml"))
 	var err error
 	testEnv, err = testEnvConfig.Build()
 	if err != nil {

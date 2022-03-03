@@ -18,10 +18,14 @@ limitations under the License.
 package predicates
 
 import (
+	"fmt"
+
 	"github.com/go-logr/logr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // ClusterCreateInfraReady returns a predicate that returns true for a create event when a cluster has Status.InfrastructureReady set as true
@@ -33,7 +37,7 @@ func ClusterCreateInfraReady(logger logr.Logger) predicate.Funcs {
 
 			c, ok := e.Object.(*clusterv1.Cluster)
 			if !ok {
-				log.V(4).Info("Expected Cluster", "type", e.Object.GetObjectKind().GroupVersionKind().String())
+				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.Object))
 				return false
 			}
 			log = log.WithValues("namespace", c.Namespace, "cluster", c.Name)
@@ -62,7 +66,7 @@ func ClusterCreateNotPaused(logger logr.Logger) predicate.Funcs {
 
 			c, ok := e.Object.(*clusterv1.Cluster)
 			if !ok {
-				log.V(4).Info("Expected Cluster", "type", e.Object.GetObjectKind().GroupVersionKind().String())
+				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.Object))
 				return false
 			}
 			log = log.WithValues("namespace", c.Namespace, "cluster", c.Name)
@@ -91,7 +95,7 @@ func ClusterUpdateInfraReady(logger logr.Logger) predicate.Funcs {
 
 			oldCluster, ok := e.ObjectOld.(*clusterv1.Cluster)
 			if !ok {
-				log.V(4).Info("Expected Cluster", "type", e.ObjectOld.GetObjectKind().GroupVersionKind().String())
+				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.ObjectOld))
 				return false
 			}
 			log = log.WithValues("namespace", oldCluster.Namespace, "cluster", oldCluster.Name)
@@ -121,7 +125,7 @@ func ClusterUpdateUnpaused(logger logr.Logger) predicate.Funcs {
 
 			oldCluster, ok := e.ObjectOld.(*clusterv1.Cluster)
 			if !ok {
-				log.V(4).Info("Expected Cluster", "type", e.ObjectOld.GetObjectKind().GroupVersionKind().String())
+				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.ObjectOld))
 				return false
 			}
 			log = log.WithValues("namespace", oldCluster.Namespace, "cluster", oldCluster.Name)
@@ -187,4 +191,41 @@ func ClusterUnpausedAndInfrastructureReady(logger logr.Logger) predicate.Funcs {
 
 	// Use any to ensure we process either create or update events we care about
 	return Any(log, createPredicates, updatePredicates)
+}
+
+// ClusterHasTopology returns a Predicate that returns true when cluster.Spec.Topology
+// is NOT nil and false otherwise.
+func ClusterHasTopology(logger logr.Logger) predicate.Funcs {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return processIfTopologyManaged(logger.WithValues("predicate", "ClusterHasTopology", "eventType", "update"), e.ObjectNew)
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			return processIfTopologyManaged(logger.WithValues("predicate", "ClusterHasTopology", "eventType", "create"), e.Object)
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return processIfTopologyManaged(logger.WithValues("predicate", "ClusterHasTopology", "eventType", "delete"), e.Object)
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return processIfTopologyManaged(logger.WithValues("predicate", "ClusterHasTopology", "eventType", "generic"), e.Object)
+		},
+	}
+}
+
+func processIfTopologyManaged(logger logr.Logger, object client.Object) bool {
+	cluster, ok := object.(*clusterv1.Cluster)
+	if !ok {
+		logger.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", object))
+		return false
+	}
+
+	log := logger.WithValues("namespace", cluster.Namespace, "cluster", cluster.Name)
+
+	if cluster.Spec.Topology != nil {
+		log.V(6).Info("Cluster has topology, allowing further processing")
+		return true
+	}
+
+	log.V(6).Info("Cluster does not have topology, blocking further processing")
+	return false
 }

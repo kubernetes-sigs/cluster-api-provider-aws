@@ -23,11 +23,11 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	. "github.com/onsi/gomega"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func TestAWSClusterDefault(t *testing.T) {
@@ -54,6 +54,8 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 				Spec: AWSClusterSpec{},
 			},
 			expect: func(t *testing.T, res *AWSLoadBalancerSpec) {
+				t.Helper()
+
 				if res.Scheme.String() != ClassicELBSchemeInternetFacing.String() {
 					t.Error("Expected internet-facing defaulting for nil loadbalancer schemes")
 				}
@@ -68,6 +70,8 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 				},
 			},
 			expect: func(t *testing.T, res *AWSLoadBalancerSpec) {
+				t.Helper()
+
 				if res.Scheme.String() != ClassicELBSchemeInternetFacing.String() {
 					t.Error("Expected internet-facing defaulting for supported incorrect scheme: Internet-facing")
 				}

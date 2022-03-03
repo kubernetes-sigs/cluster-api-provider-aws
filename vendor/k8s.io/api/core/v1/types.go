@@ -371,6 +371,7 @@ type VolumeNodeAffinity struct {
 }
 
 // PersistentVolumeReclaimPolicy describes a policy for end-of-life maintenance of persistent volumes.
+// +enum
 type PersistentVolumeReclaimPolicy string
 
 const (
@@ -386,6 +387,7 @@ const (
 )
 
 // PersistentVolumeMode describes how a volume is intended to be consumed, either Block or Filesystem.
+// +enum
 type PersistentVolumeMode string
 
 const (
@@ -472,6 +474,9 @@ type PersistentVolumeClaimSpec struct {
 	// +optional
 	Selector *metav1.LabelSelector `json:"selector,omitempty" protobuf:"bytes,4,opt,name=selector"`
 	// Resources represents the minimum resources the volume should have.
+	// If RecoverVolumeExpansionFailure feature is enabled users are allowed to specify resource requirements
+	// that are lower than previous value but must still be higher than capacity recorded in the
+	// status field of the claim.
 	// More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources
 	// +optional
 	Resources ResourceRequirements `json:"resources,omitempty" protobuf:"bytes,2,opt,name=resources"`
@@ -517,6 +522,7 @@ type PersistentVolumeClaimSpec struct {
 }
 
 // PersistentVolumeClaimConditionType is a valid value of PersistentVolumeClaimCondition.Type
+// +enum
 type PersistentVolumeClaimConditionType string
 
 const (
@@ -524,6 +530,26 @@ const (
 	PersistentVolumeClaimResizing PersistentVolumeClaimConditionType = "Resizing"
 	// PersistentVolumeClaimFileSystemResizePending - controller resize is finished and a file system resize is pending on node
 	PersistentVolumeClaimFileSystemResizePending PersistentVolumeClaimConditionType = "FileSystemResizePending"
+)
+
+// +enum
+type PersistentVolumeClaimResizeStatus string
+
+const (
+	// When expansion is complete, the empty string is set by resize controller or kubelet.
+	PersistentVolumeClaimNoExpansionInProgress PersistentVolumeClaimResizeStatus = ""
+	// State set when resize controller starts expanding the volume in control-plane
+	PersistentVolumeClaimControllerExpansionInProgress PersistentVolumeClaimResizeStatus = "ControllerExpansionInProgress"
+	// State set when expansion has failed in resize controller with a terminal error.
+	// Transient errors such as timeout should not set this status and should leave ResizeStatus
+	// unmodified, so as resize controller can resume the volume expansion.
+	PersistentVolumeClaimControllerExpansionFailed PersistentVolumeClaimResizeStatus = "ControllerExpansionFailed"
+	// State set when resize controller has finished expanding the volume but further expansion is needed on the node.
+	PersistentVolumeClaimNodeExpansionPending PersistentVolumeClaimResizeStatus = "NodeExpansionPending"
+	// State set when kubelet starts expanding the volume.
+	PersistentVolumeClaimNodeExpansionInProgress PersistentVolumeClaimResizeStatus = "NodeExpansionInProgress"
+	// State set when expansion has failed in kubelet with a terminal error. Transient errors don't set NodeExpansionFailed.
+	PersistentVolumeClaimNodeExpansionFailed PersistentVolumeClaimResizeStatus = "NodeExpansionFailed"
 )
 
 // PersistentVolumeClaimCondition contails details about state of pvc
@@ -564,8 +590,27 @@ type PersistentVolumeClaimStatus struct {
 	// +patchMergeKey=type
 	// +patchStrategy=merge
 	Conditions []PersistentVolumeClaimCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,4,rep,name=conditions"`
+	// The storage resource within AllocatedResources tracks the capacity allocated to a PVC. It may
+	// be larger than the actual capacity when a volume expansion operation is requested.
+	// For storage quota, the larger value from allocatedResources and PVC.spec.resources is used.
+	// If allocatedResources is not set, PVC.spec.resources alone is used for quota calculation.
+	// If a volume expansion capacity request is lowered, allocatedResources is only
+	// lowered if there are no expansion operations in progress and if the actual volume capacity
+	// is equal or lower than the requested capacity.
+	// This is an alpha field and requires enabling RecoverVolumeExpansionFailure feature.
+	// +featureGate=RecoverVolumeExpansionFailure
+	// +optional
+	AllocatedResources ResourceList `json:"allocatedResources,omitempty" protobuf:"bytes,5,rep,name=allocatedResources,casttype=ResourceList,castkey=ResourceName"`
+	// ResizeStatus stores status of resize operation.
+	// ResizeStatus is not set by default but when expansion is complete resizeStatus is set to empty
+	// string by resize controller or kubelet.
+	// This is an alpha field and requires enabling RecoverVolumeExpansionFailure feature.
+	// +featureGate=RecoverVolumeExpansionFailure
+	// +optional
+	ResizeStatus *PersistentVolumeClaimResizeStatus `json:"resizeStatus,omitempty" protobuf:"bytes,6,opt,name=resizeStatus,casttype=PersistentVolumeClaimResizeStatus"`
 }
 
+// +enum
 type PersistentVolumeAccessMode string
 
 const (
@@ -580,6 +625,7 @@ const (
 	ReadWriteOncePod PersistentVolumeAccessMode = "ReadWriteOncePod"
 )
 
+// +enum
 type PersistentVolumePhase string
 
 const (
@@ -598,6 +644,7 @@ const (
 	VolumeFailed PersistentVolumePhase = "Failed"
 )
 
+// +enum
 type PersistentVolumeClaimPhase string
 
 const (
@@ -611,6 +658,7 @@ const (
 	ClaimLost PersistentVolumeClaimPhase = "Lost"
 )
 
+// +enum
 type HostPathType string
 
 const (
@@ -939,6 +987,7 @@ const (
 )
 
 // Protocol defines network protocols supported for things like container ports.
+// +enum
 type Protocol string
 
 const (
@@ -1367,7 +1416,10 @@ type PhotonPersistentDiskVolumeSource struct {
 	FSType string `json:"fsType,omitempty" protobuf:"bytes,2,opt,name=fsType"`
 }
 
+// +enum
 type AzureDataDiskCachingMode string
+
+// +enum
 type AzureDataDiskKind string
 
 const (
@@ -1892,6 +1944,7 @@ type VolumeMount struct {
 }
 
 // MountPropagationMode describes mount propagation.
+// +enum
 type MountPropagationMode string
 
 const (
@@ -2082,6 +2135,7 @@ type HTTPGetAction struct {
 }
 
 // URIScheme identifies the scheme used for connection to a host for Get actions
+// +enum
 type URIScheme string
 
 const (
@@ -2100,6 +2154,19 @@ type TCPSocketAction struct {
 	// Optional: Host name to connect to, defaults to the pod IP.
 	// +optional
 	Host string `json:"host,omitempty" protobuf:"bytes,2,opt,name=host"`
+}
+
+type GRPCAction struct {
+	// Port number of the gRPC service. Number must be in the range 1 to 65535.
+	Port int32 `json:"port" protobuf:"bytes,1,opt,name=port"`
+
+	// Service is the name of the service to place in the gRPC HealthCheckRequest
+	// (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
+	//
+	// If this is not specified, the default behavior is defined by gRPC.
+	// +optional
+	// +default=""
+	Service *string `json:"service" protobuf:"bytes,2,opt,name=service"`
 }
 
 // ExecAction describes a "run in container" action.
@@ -2154,6 +2221,7 @@ type Probe struct {
 }
 
 // PullPolicy describes a policy for if/when to pull a container image
+// +enum
 type PullPolicy string
 
 const (
@@ -2166,6 +2234,7 @@ const (
 )
 
 // PreemptionPolicy describes a policy for if/when to preempt a pod.
+// +enum
 type PreemptionPolicy string
 
 const (
@@ -2176,6 +2245,7 @@ const (
 )
 
 // TerminationMessagePolicy describes how termination messages are retrieved from a container.
+// +enum
 type TerminationMessagePolicy string
 
 const (
@@ -2382,11 +2452,8 @@ type Container struct {
 }
 
 // ProbeHandler defines a specific action that should be taken in a probe.
-// This type has a strong relationship to LifecycleHandler - overlapping fields
-// should be identical.
-// TODO: pass structured data to these actions, and document that data here.
+// One and only one of the fields must be specified.
 type ProbeHandler struct {
-	// One and only one of the following should be specified.
 	// Exec specifies the action to take.
 	// +optional
 	Exec *ExecAction `json:"exec,omitempty" protobuf:"bytes,1,opt,name=exec"`
@@ -2394,27 +2461,28 @@ type ProbeHandler struct {
 	// +optional
 	HTTPGet *HTTPGetAction `json:"httpGet,omitempty" protobuf:"bytes,2,opt,name=httpGet"`
 	// TCPSocket specifies an action involving a TCP port.
-	// TCP hooks not yet supported
-	// TODO: implement a realistic TCP lifecycle hook
 	// +optional
 	TCPSocket *TCPSocketAction `json:"tcpSocket,omitempty" protobuf:"bytes,3,opt,name=tcpSocket"`
+
+	// GRPC specifies an action involving a GRPC port.
+	// This is an alpha field and requires enabling GRPCContainerProbe feature gate.
+	// +featureGate=GRPCContainerProbe
+	// +optional
+	GRPC *GRPCAction `json:"grpc,omitempty" protobuf:"bytes,4,opt,name=grpc"`
 }
 
 // LifecycleHandler defines a specific action that should be taken in a lifecycle
-// hook.  This type has a strong relationship to ProbeHandler - overlapping fields
-// should be identical.
-// TODO: pass structured data to these actions, and document that data here.
+// hook. One and only one of the fields, except TCPSocket must be specified.
 type LifecycleHandler struct {
-	// One and only one of the following should be specified.
 	// Exec specifies the action to take.
 	// +optional
 	Exec *ExecAction `json:"exec,omitempty" protobuf:"bytes,1,opt,name=exec"`
 	// HTTPGet specifies the http request to perform.
 	// +optional
 	HTTPGet *HTTPGetAction `json:"httpGet,omitempty" protobuf:"bytes,2,opt,name=httpGet"`
-	// TCPSocket specifies an action involving a TCP port.
-	// TCP hooks not yet supported
-	// TODO: implement a realistic TCP lifecycle hook
+	// Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept
+	// for the backward compatibility. There are no validation of this field and
+	// lifecycle hooks will fail in runtime when tcp handler is specified.
 	// +optional
 	TCPSocket *TCPSocketAction `json:"tcpSocket,omitempty" protobuf:"bytes,3,opt,name=tcpSocket"`
 }
@@ -2432,11 +2500,10 @@ type Lifecycle struct {
 	// PreStop is called immediately before a container is terminated due to an
 	// API request or management event such as liveness/startup probe failure,
 	// preemption, resource contention, etc. The handler is not called if the
-	// container crashes or exits. The reason for termination is passed to the
-	// handler. The Pod's termination grace period countdown begins before the
-	// PreStop hooked is executed. Regardless of the outcome of the handler, the
+	// container crashes or exits. The Pod's termination grace period countdown begins before the
+	// PreStop hook is executed. Regardless of the outcome of the handler, the
 	// container will eventually terminate within the Pod's termination grace
-	// period. Other management of the container blocks until the hook completes
+	// period (unless delayed by finalizers). Other management of the container blocks until the hook completes
 	// or until the termination grace period is reached.
 	// More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks
 	// +optional
@@ -2543,6 +2610,7 @@ type ContainerStatus struct {
 }
 
 // PodPhase is a label for the condition of a pod at the current time.
+// +enum
 type PodPhase string
 
 // These are the valid statuses of pods.
@@ -2567,6 +2635,7 @@ const (
 )
 
 // PodConditionType is a valid value for PodCondition.Type
+// +enum
 type PodConditionType string
 
 // These are valid conditions of pod.
@@ -2616,6 +2685,7 @@ type PodCondition struct {
 // Only one of the following restart policies may be specified.
 // If none of the following policies is specified, the default one
 // is RestartPolicyAlways.
+// +enum
 type RestartPolicy string
 
 const (
@@ -2625,6 +2695,7 @@ const (
 )
 
 // DNSPolicy defines how a pod's DNS will be configured.
+// +enum
 type DNSPolicy string
 
 const (
@@ -2695,6 +2766,7 @@ type NodeSelectorRequirement struct {
 
 // A node selector operator is the set of operators that can be used in
 // a node selector requirement.
+// +enum
 type NodeSelectorOperator string
 
 const (
@@ -2912,6 +2984,7 @@ type Taint struct {
 	TimeAdded *metav1.Time `json:"timeAdded,omitempty" protobuf:"bytes,4,opt,name=timeAdded"`
 }
 
+// +enum
 type TaintEffect string
 
 const (
@@ -2965,6 +3038,7 @@ type Toleration struct {
 }
 
 // A toleration operator is the set of operators that can be used in a toleration.
+// +enum
 type TolerationOperator string
 
 const (
@@ -3254,6 +3328,7 @@ type PodOS struct {
 	Name OSName `json:"name" protobuf:"bytes,1,opt,name=name"`
 }
 
+// +enum
 type UnsatisfiableConstraintAction string
 
 const (
@@ -3336,6 +3411,7 @@ type HostAlias struct {
 
 // PodFSGroupChangePolicy holds policies that will be used for applying fsGroup to a volume
 // when volume is mounted.
+// +enum
 type PodFSGroupChangePolicy string
 
 const (
@@ -3451,6 +3527,7 @@ type SeccompProfile struct {
 }
 
 // SeccompProfileType defines the supported seccomp profile types.
+// +enum
 type SeccompProfileType string
 
 const (
@@ -3464,6 +3541,7 @@ const (
 )
 
 // PodQOSClass defines the supported qos classes of Pods.
+// +enum
 type PodQOSClass string
 
 const (
@@ -4015,6 +4093,7 @@ type ReplicationControllerList struct {
 }
 
 // Session Affinity Type string
+// +enum
 type ServiceAffinity string
 
 const (
@@ -4044,6 +4123,7 @@ type ClientIPConfig struct {
 }
 
 // Service Type string describes ingress methods for a service
+// +enum
 type ServiceType string
 
 const (
@@ -4068,6 +4148,7 @@ const (
 
 // ServiceInternalTrafficPolicyType describes the type of traffic routing for
 // internal traffic
+// +enum
 type ServiceInternalTrafficPolicyType string
 
 const (
@@ -4080,6 +4161,7 @@ const (
 )
 
 // Service External Traffic Policy Type string
+// +enum
 type ServiceExternalTrafficPolicyType string
 
 const (
@@ -4141,6 +4223,7 @@ type LoadBalancerIngress struct {
 
 // IPFamily represents the IP Family (IPv4 or IPv6). This type is used
 // to express the family of an IP expressed by a type (e.g. service.spec.ipFamilies).
+// +enum
 type IPFamily string
 
 const (
@@ -4151,6 +4234,7 @@ const (
 )
 
 // IPFamilyPolicyType represents the dual-stack-ness requested or required by a Service
+// +enum
 type IPFamilyPolicyType string
 
 const (
@@ -4958,6 +5042,7 @@ type ContainerImage struct {
 	SizeBytes int64 `json:"sizeBytes,omitempty" protobuf:"varint,2,opt,name=sizeBytes"`
 }
 
+// +enum
 type NodePhase string
 
 // These are the valid phases of node.
@@ -4970,6 +5055,7 @@ const (
 	NodeTerminated NodePhase = "Terminated"
 )
 
+// +enum
 type NodeConditionType string
 
 // These are valid conditions of node. Currently, we don't have enough information to decide
@@ -5008,6 +5094,7 @@ type NodeCondition struct {
 	Message string `json:"message,omitempty" protobuf:"bytes,6,opt,name=message"`
 }
 
+// +enum
 type NodeAddressType string
 
 // These are valid address type of node.
@@ -5163,6 +5250,7 @@ type NamespaceStatus struct {
 	Conditions []NamespaceCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,2,rep,name=conditions"`
 }
 
+// +enum
 type NamespacePhase string
 
 // These are the valid phases of a namespace.
@@ -5179,6 +5267,7 @@ const (
 	NamespaceTerminatingCause metav1.CauseType = "NamespaceTerminating"
 )
 
+// +enum
 type NamespaceConditionType string
 
 // These are valid conditions of a namespace.
@@ -5670,6 +5759,7 @@ type EventList struct {
 type List metav1.List
 
 // LimitType is a type of object that is limited
+// +enum
 type LimitType string
 
 const (
@@ -5786,6 +5876,7 @@ const (
 )
 
 // A ResourceQuotaScope defines a filter that must match each object tracked by a quota
+// +enum
 type ResourceQuotaScope string
 
 const (
@@ -5848,6 +5939,7 @@ type ScopedResourceSelectorRequirement struct {
 
 // A scope selector operator is the set of operators that can be used in
 // a scope selector requirement.
+// +enum
 type ScopeSelectorOperator string
 
 const (
@@ -6290,6 +6382,7 @@ type SecurityContext struct {
 	SeccompProfile *SeccompProfile `json:"seccompProfile,omitempty" protobuf:"bytes,11,opt,name=seccompProfile"`
 }
 
+// +enum
 type ProcMountType string
 
 const (

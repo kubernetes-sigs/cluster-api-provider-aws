@@ -26,12 +26,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/util/patch"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // CreateKubeadmControlPlaneInput is the input for CreateKubeadmControlPlane.
@@ -227,12 +228,15 @@ func DiscoveryAndWaitForControlPlaneInitialized(ctx context.Context, input Disco
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling DiscoveryAndWaitForControlPlaneInitialized")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling DiscoveryAndWaitForControlPlaneInitialized")
 
-	controlPlane := GetKubeadmControlPlaneByCluster(ctx, GetKubeadmControlPlaneByClusterInput{
-		Lister:      input.Lister,
-		ClusterName: input.Cluster.Name,
-		Namespace:   input.Cluster.Namespace,
-	})
-	Expect(controlPlane).ToNot(BeNil())
+	var controlPlane *controlplanev1.KubeadmControlPlane
+	Eventually(func(g Gomega) {
+		controlPlane = GetKubeadmControlPlaneByCluster(ctx, GetKubeadmControlPlaneByClusterInput{
+			Lister:      input.Lister,
+			ClusterName: input.Cluster.Name,
+			Namespace:   input.Cluster.Namespace,
+		})
+		g.Expect(controlPlane).ToNot(BeNil())
+	}, "10s", "1s").Should(Succeed())
 
 	log.Logf("Waiting for the first control plane machine managed by %s/%s to be provisioned", controlPlane.Namespace, controlPlane.Name)
 	WaitForOneKubeadmControlPlaneMachineToExist(ctx, WaitForOneKubeadmControlPlaneMachineToExistInput{
@@ -285,6 +289,7 @@ type UpgradeControlPlaneAndWaitForUpgradeInput struct {
 	DNSImageTag                 string
 	WaitForMachinesToBeUpgraded []interface{}
 	WaitForDNSUpgrade           []interface{}
+	WaitForKubeProxyUpgrade     []interface{}
 	WaitForEtcdUpgrade          []interface{}
 }
 
@@ -311,18 +316,12 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 		input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration = new(bootstrapv1.ClusterConfiguration)
 	}
 
-	input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = bootstrapv1.Etcd{
-		Local: &bootstrapv1.LocalEtcd{
-			ImageMeta: bootstrapv1.ImageMeta{
-				ImageTag: input.EtcdImageTag,
-			},
-		},
+	if input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local == nil {
+		input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = new(bootstrapv1.LocalEtcd)
 	}
-	input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = bootstrapv1.DNS{
-		ImageMeta: bootstrapv1.ImageMeta{
-			ImageTag: input.DNSImageTag,
-		},
-	}
+
+	input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageMeta.ImageTag = input.EtcdImageTag
+	input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageMeta.ImageTag = input.DNSImageTag
 
 	Expect(patchHelper.Patch(ctx, input.ControlPlane)).To(Succeed())
 
@@ -340,13 +339,13 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 	WaitForKubeProxyUpgrade(ctx, WaitForKubeProxyUpgradeInput{
 		Getter:            workloadClient,
 		KubernetesVersion: input.KubernetesUpgradeVersion,
-	}, input.WaitForDNSUpgrade...)
+	}, input.WaitForKubeProxyUpgrade...)
 
 	log.Logf("Waiting for CoreDNS to have the upgraded image tag")
 	WaitForDNSUpgrade(ctx, WaitForDNSUpgradeInput{
 		Getter:     workloadClient,
 		DNSVersion: input.DNSImageTag,
-	})
+	}, input.WaitForDNSUpgrade...)
 
 	log.Logf("Waiting for etcd to have the upgraded image tag")
 	lblSelector, err := labels.Parse("component=etcd")

@@ -33,9 +33,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
 	apiyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/yaml"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/yaml"
 )
 
 // ExtractClusterReferences returns the references in a Cluster object.
@@ -239,7 +240,7 @@ func JoinYaml(yamls ...[]byte) []byte {
 	var yamlSeparator = []byte("---")
 
 	var cr = []byte("\n")
-	var b [][]byte //nolint
+	var b [][]byte //nolint:prealloc
 	for _, y := range yamls {
 		if !bytes.HasPrefix(y, cr) {
 			y = append(cr, y...)
@@ -259,7 +260,7 @@ func JoinYaml(yamls ...[]byte) []byte {
 
 // FromUnstructured takes a list of Unstructured objects and converts it into a YAML.
 func FromUnstructured(objs []unstructured.Unstructured) ([]byte, error) {
-	var ret [][]byte //nolint
+	var ret [][]byte //nolint:prealloc
 	for _, o := range objs {
 		content, err := yaml.Marshal(o.UnstructuredContent())
 		if err != nil {

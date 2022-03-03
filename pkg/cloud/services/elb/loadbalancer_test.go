@@ -32,13 +32,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_resourcegroupstaggingapiiface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestELBName(t *testing.T) {
@@ -160,6 +161,7 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 			lb:    nil,
 			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
 			expect: func(t *testing.T, res *infrav1.ClassicELB) {
+				t.Helper()
 				if res.Attributes.CrossZoneLoadBalancing {
 					t.Error("Expected load balancer not to have cross-zone load balancing enabled")
 				}
@@ -172,6 +174,7 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 			},
 			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
 			expect: func(t *testing.T, res *infrav1.ClassicELB) {
+				t.Helper()
 				if !res.Attributes.CrossZoneLoadBalancing {
 					t.Error("Expected load balancer to have cross-zone load balancing enabled")
 				}
@@ -203,6 +206,7 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 					}, nil)
 			},
 			expect: func(t *testing.T, res *infrav1.ClassicELB) {
+				t.Helper()
 				if len(res.SubnetIDs) != 2 {
 					t.Errorf("Expected load balancer to be configured for 2 subnets, got %v", len(res.SubnetIDs))
 				}
@@ -218,6 +222,7 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 			},
 			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
 			expect: func(t *testing.T, res *infrav1.ClassicELB) {
+				t.Helper()
 				if len(res.SecurityGroupIDs) != 3 {
 					t.Errorf("Expected load balancer to be configured for 3 security groups, got %v", len(res.SecurityGroupIDs))
 				}
@@ -351,6 +356,7 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 			},
 			ec2Mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
 			check: func(t *testing.T, err error) {
+				t.Helper()
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
 				}
@@ -433,6 +439,7 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 					}, nil)
 			},
 			check: func(t *testing.T, err error) {
+				t.Helper()
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
 				}
@@ -507,6 +514,7 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 					}, nil)
 			},
 			check: func(t *testing.T, err error) {
+				t.Helper()
 				expectedErrMsg := "failed to register instance with APIServer ELB \"bar-apiserver\": instance is in availability zone \"us-west-1a\", no public subnets attached to the ELB in the same zone"
 				if err == nil {
 					t.Fatalf("Expected error, but got nil")

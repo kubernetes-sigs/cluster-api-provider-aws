@@ -98,8 +98,6 @@ spec:
   awsLaunchTemplate:
     instanceType: "${AWS_CONTROL_PLANE_MACHINE_TYPE}"
     sshKeyName: "${AWS_SSH_KEY_NAME}"
-  subnets:
-  - ${AWS_SUBNET}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfig

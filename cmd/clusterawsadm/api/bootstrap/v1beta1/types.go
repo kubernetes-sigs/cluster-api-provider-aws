@@ -19,6 +19,7 @@ package v1beta1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
 )
@@ -182,6 +183,10 @@ type AWSIAMConfigurationSpec struct {
 
 	// StackName defines the name of the AWS CloudFormation stack.
 	StackName string `json:"stackName,omitempty"`
+
+	// StackTags defines the tags of the AWS CloudFormation stack.
+	// +optional
+	StackTags map[string]string `json:"stackTags,omitempty"`
 
 	// Region controls which region the control-plane is created in if not specified on the command line or
 	// via environment variables.

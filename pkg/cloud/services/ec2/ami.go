@@ -24,14 +24,14 @@ import (
 	"text/template"
 	"time"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 

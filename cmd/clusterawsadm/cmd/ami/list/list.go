@@ -14,13 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package copy
+package list
 
 import (
 	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
+
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/ami"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/flags"
 	cmdout "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/printers"

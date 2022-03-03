@@ -30,10 +30,11 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	"k8s.io/client-go/util/homedir"
+	"sigs.k8s.io/yaml"
+
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/cluster-api/version"
-	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -145,7 +146,7 @@ func (v *versionChecker) getLatestRelease() (*ReleaseInfo, error) {
 			log.V(1).Info("⚠️ Unable to get latest github release for clusterctl")
 			// failing silently here so we don't error out in air-gapped
 			// environments.
-			return nil, nil // nolint:nilerr
+			return nil, nil //nolint:nilerr
 		}
 
 		vs = &VersionState{

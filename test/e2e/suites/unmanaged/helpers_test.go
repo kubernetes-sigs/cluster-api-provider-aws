@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -21,23 +22,20 @@ package unmanaged
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
-	"io"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/blang/semver"
+	"github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -45,6 +43,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
+	crclient "sigs.k8s.io/controller-runtime/pkg/client"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -52,8 +52,6 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-	client_runtime "sigs.k8s.io/controller-runtime/pkg/client"
-	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type statefulSetInfo struct {
@@ -73,10 +71,10 @@ type statefulSetInfo struct {
 	volMountPath              string
 }
 
-// GetClusterByName returns a Cluster object given his name
+// GetClusterByName returns a Cluster object given his name.
 func GetAWSClusterByName(ctx context.Context, namespace, name string) (*infrav1.AWSCluster, error) {
 	awsCluster := &infrav1.AWSCluster{}
-	key := client_runtime.ObjectKey{
+	key := crclient.ObjectKey{
 		Namespace: namespace,
 		Name:      name,
 	}
@@ -200,7 +198,7 @@ func createPVC(statefulsetinfo statefulSetInfo) corev1.PersistentVolumeClaim {
 			StorageClassName: &statefulsetinfo.storageClassName,
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
-					corev1.ResourceName(corev1.ResourceStorage): resource.MustParse("4Gi"),
+					corev1.ResourceStorage: resource.MustParse("4Gi"),
 				},
 			},
 		},
@@ -287,16 +285,6 @@ func createStorageClass(storageClassName string, k8sclient crclient.Client) {
 	Expect(k8sclient.Create(context.TODO(), &storageClass)).NotTo(HaveOccurred())
 }
 
-func createVPC(sess client.ConfigProvider, cidrblock string) string {
-	ec2Client := ec2.New(sess)
-	input := &ec2.CreateVpcInput{
-		CidrBlock: aws.String(cidrblock),
-	}
-	result, err := ec2Client.CreateVpc(input)
-	Expect(err).NotTo(HaveOccurred())
-	return *result.Vpc.VpcId
-}
-
 func deleteCluster(ctx context.Context, cluster *clusterv1.Cluster) {
 	framework.DeleteCluster(ctx, framework.DeleteClusterInput{
 		Deleter: e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
@@ -328,27 +316,16 @@ func deleteMachine(namespace *corev1.Namespace, md *clusterv1.MachineDeployment)
 	Expect(bootstrapClient.Delete(context.TODO(), machine)).To(Succeed())
 }
 
-func deleteRetainedVolumes(awsVolIds []*string) {
+func deleteRetainedVolumes(awsVolIDs []*string) {
 	ginkgo.By("Deleting dynamically provisioned volumes")
 	ec2Client := ec2.New(e2eCtx.AWSSession)
-	for _, volumeId := range awsVolIds {
+	for _, volumeID := range awsVolIDs {
 		input := &ec2.DeleteVolumeInput{
-			VolumeId: aws.String(*volumeId),
+			VolumeId: aws.String(*volumeID),
 		}
 		_, err := ec2Client.DeleteVolume(input)
 		Expect(err).NotTo(HaveOccurred())
-		shared.Byf("Deleted dynamically provisioned volume with ID: %s", *volumeId)
-	}
-}
-
-func deleteVPCs(sess client.ConfigProvider, vpcIds []string) {
-	ec2Client := ec2.New(sess)
-	for _, vpcId := range vpcIds {
-		input := &ec2.DeleteVpcInput{
-			VpcId: aws.String(vpcId),
-		}
-		_, err := ec2Client.DeleteVpc(input)
-		Expect(err).NotTo(HaveOccurred())
+		shared.Byf("Deleted dynamically provisioned volume with ID: %s", *volumeID)
 	}
 }
 
@@ -367,28 +344,6 @@ func deployStatefulSet(statefulsetinfo statefulSetInfo, volClaimTemp corev1.Pers
 	Expect(k8sclient.Create(context.TODO(), &statefulset)).NotTo(HaveOccurred())
 }
 
-func getCurrentVPCsCount(sess client.ConfigProvider) int {
-	ec2Client := ec2.New(sess)
-	input := &ec2.DescribeVpcsInput{}
-	result, err := ec2Client.DescribeVpcs(input)
-	Expect(err).NotTo(HaveOccurred())
-	return len(result.Vpcs)
-}
-
-func getElasticIPsLimit(sess client.ConfigProvider) int {
-	ec2Client := ec2.New(sess)
-	input := &ec2.DescribeAccountAttributesInput{
-		AttributeNames: []*string{
-			aws.String("vpc-max-elastic-ips"),
-		},
-	}
-	result, err := ec2Client.DescribeAccountAttributes(input)
-	Expect(err).NotTo(HaveOccurred())
-	res, err := strconv.Atoi(*result.AccountAttributes[0].AttributeValues[0].AttributeValue)
-	Expect(err).NotTo(HaveOccurred())
-	return res
-}
-
 func getEvents(namespace string) *corev1.EventList {
 	eventsList := &corev1.EventList{}
 	if err := e2eCtx.Environment.BootstrapClusterProxy.GetClient().List(context.TODO(), eventsList, crclient.InNamespace(namespace), crclient.MatchingLabels{}); err != nil {
@@ -398,7 +353,7 @@ func getEvents(namespace string) *corev1.EventList {
 	return eventsList
 }
 
-func getSubnetId(filterKey, filterValue string) *string {
+func getSubnetID(filterKey, filterValue string) *string {
 	var subnetOutput *ec2.DescribeSubnetsOutput
 	var err error
 
@@ -433,16 +388,16 @@ func getVolumeIds(info statefulSetInfo, k8sclient crclient.Client) []*string {
 	pvcList := &corev1.PersistentVolumeClaimList{}
 	err = k8sclient.List(context.TODO(), pvcList, crclient.InNamespace(info.namespace), crclient.MatchingLabels(podSelector))
 	Expect(err).NotTo(HaveOccurred())
-	var volIds []*string
-	for _, pvc := range pvcList.Items {
+	volIDs := make([]*string, len(pvcList.Items))
+	for i, pvc := range pvcList.Items {
 		volName := pvc.Spec.VolumeName
 		volDescription := &corev1.PersistentVolume{}
 		err = k8sclient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: info.namespace, Name: volName}, volDescription)
 		Expect(err).NotTo(HaveOccurred())
 		url := volDescription.Spec.PersistentVolumeSource.CSI.VolumeHandle
-		volIds = append(volIds, &url)
+		volIDs[i] = &url
 	}
-	return volIds
+	return volIDs
 }
 
 func isErrorEventExists(namespace, machineDeploymentName, eventReason, errorMsg string, eList *corev1.EventList) bool {
@@ -474,10 +429,7 @@ func isErrorEventExists(namespace, machineDeploymentName, eventReason, errorMsg 
 			}
 		}
 	}
-	if len(awsMachineList.Items) == eventMachinesCnt {
-		return true
-	}
-	return false
+	return len(awsMachineList.Items) == eventMachinesCnt
 }
 
 func getAWSMachinesForDeployment(namespace string, machineDeployment clusterv1.MachineDeployment) *infrav1.AWSMachineList {
@@ -489,7 +441,7 @@ func getAWSMachinesForDeployment(namespace string, machineDeployment clusterv1.M
 	return awsMachineList
 }
 
-func makeAWSMachineTemplate(namespace, name, instanceType string, az, subnetId *string) *infrav1.AWSMachineTemplate {
+func makeAWSMachineTemplate(namespace, name, instanceType string, az, subnetID *string) *infrav1.AWSMachineTemplate {
 	awsMachine := &infrav1.AWSMachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -509,9 +461,9 @@ func makeAWSMachineTemplate(namespace, name, instanceType string, az, subnetId *
 		awsMachine.Spec.Template.Spec.FailureDomain = az
 	}
 
-	if subnetId != nil {
+	if subnetID != nil {
 		resRef := &infrav1.AWSResourceReference{
-			ID: subnetId,
+			ID: subnetID,
 		}
 		awsMachine.Spec.Template.Spec.Subnet = resRef
 	}
@@ -589,12 +541,12 @@ func makeMachineDeployment(namespace, mdName, clusterName string, replicas int32
 	}
 }
 
-func assertSpotInstanceType(instanceId string) {
-	shared.Byf("Finding EC2 spot instance with ID: %s", instanceId)
+func assertSpotInstanceType(instanceID string) {
+	shared.Byf("Finding EC2 spot instance with ID: %s", instanceID)
 	ec2Client := ec2.New(e2eCtx.AWSSession)
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{
-			aws.String(instanceId[strings.LastIndex(instanceId, "/")+1:]),
+			aws.String(instanceID[strings.LastIndex(instanceID, "/")+1:]),
 		},
 		Filters: []*ec2.Filter{{Name: aws.String("instance-lifecycle"), Values: aws.StringSlice([]string{"spot"})}},
 	}
@@ -605,12 +557,12 @@ func assertSpotInstanceType(instanceId string) {
 	Expect(len(result.Reservations[0].Instances)).To(Equal(1))
 }
 
-func terminateInstance(instanceId string) {
-	shared.Byf("Terminating EC2 instance with ID: %s", instanceId)
+func terminateInstance(instanceID string) {
+	shared.Byf("Terminating EC2 instance with ID: %s", instanceID)
 	ec2Client := ec2.New(e2eCtx.AWSSession)
 	input := &ec2.TerminateInstancesInput{
 		InstanceIds: []*string{
-			aws.String(instanceId[strings.LastIndex(instanceId, "/")+1:]),
+			aws.String(instanceID[strings.LastIndex(instanceID, "/")+1:]),
 		},
 	}
 
@@ -685,23 +637,4 @@ func LatestCIReleaseForVersion(searchVersion string) (string, error) {
 	}
 
 	return strings.TrimSpace(string(b)), nil
-}
-
-func getStatefulSetInfo() statefulSetInfo {
-	return statefulSetInfo{
-		name:                      "nginx-statefulset",
-		namespace:                 metav1.NamespaceDefault,
-		replicas:                  int32(2),
-		selector:                  map[string]string{"app": "nginx"},
-		storageClassName:          "aws-ebs-volumes",
-		volumeName:                "nginx-volumes",
-		svcName:                   "nginx-svc",
-		svcPort:                   int32(80),
-		svcPortName:               "nginx-web",
-		containerName:             "nginx",
-		containerImage:            "k8s.gcr.io/nginx-slim:0.8",
-		containerPort:             int32(80),
-		podTerminationGracePeriod: int64(30),
-		volMountPath:              "/usr/share/nginx/html",
-	}
 }

@@ -22,6 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
+
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
 	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
@@ -86,6 +87,9 @@ type Client interface {
 
 	// WorkloadCluster has methods for fetching kubeconfig of workload cluster from management cluster.
 	WorkloadCluster() WorkloadCluster
+
+	// Topology returns a TopologyClient that can be used for performing dry run executions of the topology reconciler.
+	Topology() TopologyClient
 }
 
 // PollImmediateWaiter tries a condition func until it returns true, an error, or the timeout is reached.
@@ -145,6 +149,10 @@ func (c *clusterClient) Template() TemplateClient {
 
 func (c *clusterClient) WorkloadCluster() WorkloadCluster {
 	return newWorkloadCluster(c.proxy)
+}
+
+func (c *clusterClient) Topology() TopologyClient {
+	return newTopologyClient(c.proxy, c.ProviderInventory())
 }
 
 // Option is a configuration option supplied to New.

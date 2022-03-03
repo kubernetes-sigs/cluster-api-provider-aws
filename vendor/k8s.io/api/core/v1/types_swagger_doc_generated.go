@@ -749,6 +749,15 @@ func (GCEPersistentDiskVolumeSource) SwaggerDoc() map[string]string {
 	return map_GCEPersistentDiskVolumeSource
 }
 
+var map_GRPCAction = map[string]string{
+	"port":    "Port number of the gRPC service. Number must be in the range 1 to 65535.",
+	"service": "Service is the name of the service to place in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).\n\nIf this is not specified, the default behavior is defined by gRPC.",
+}
+
+func (GRPCAction) SwaggerDoc() map[string]string {
+	return map_GRPCAction
+}
+
 var map_GitRepoVolumeSource = map[string]string{
 	"":           "Represents a volume that is populated with the contents of a git repository. Git repo volumes do not support ownership management. Git repo volumes support SELinux relabeling.\n\nDEPRECATED: GitRepo is deprecated. To provision a container with a git repo, mount an EmptyDir into an InitContainer that clones the repo using git, then mount the EmptyDir into the Pod's container.",
 	"repository": "Repository URL",
@@ -878,7 +887,7 @@ func (KeyToPath) SwaggerDoc() map[string]string {
 var map_Lifecycle = map[string]string{
 	"":          "Lifecycle describes actions that the management system should take in response to container lifecycle events. For the PostStart and PreStop lifecycle handlers, management of the container blocks until the action is complete, unless the container process fails, in which case the handler is aborted.",
 	"postStart": "PostStart is called immediately after a container is created. If the handler fails, the container is terminated and restarted according to its restart policy. Other management of the container blocks until the hook completes. More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks",
-	"preStop":   "PreStop is called immediately before a container is terminated due to an API request or management event such as liveness/startup probe failure, preemption, resource contention, etc. The handler is not called if the container crashes or exits. The reason for termination is passed to the handler. The Pod's termination grace period countdown begins before the PreStop hooked is executed. Regardless of the outcome of the handler, the container will eventually terminate within the Pod's termination grace period. Other management of the container blocks until the hook completes or until the termination grace period is reached. More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks",
+	"preStop":   "PreStop is called immediately before a container is terminated due to an API request or management event such as liveness/startup probe failure, preemption, resource contention, etc. The handler is not called if the container crashes or exits. The Pod's termination grace period countdown begins before the PreStop hook is executed. Regardless of the outcome of the handler, the container will eventually terminate within the Pod's termination grace period (unless delayed by finalizers). Other management of the container blocks until the hook completes or until the termination grace period is reached. More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks",
 }
 
 func (Lifecycle) SwaggerDoc() map[string]string {
@@ -886,10 +895,10 @@ func (Lifecycle) SwaggerDoc() map[string]string {
 }
 
 var map_LifecycleHandler = map[string]string{
-	"":          "LifecycleHandler defines a specific action that should be taken in a lifecycle hook.  This type has a strong relationship to ProbeHandler - overlapping fields should be identical.",
-	"exec":      "One and only one of the following should be specified. Exec specifies the action to take.",
+	"":          "LifecycleHandler defines a specific action that should be taken in a lifecycle hook. One and only one of the fields, except TCPSocket must be specified.",
+	"exec":      "Exec specifies the action to take.",
 	"httpGet":   "HTTPGet specifies the http request to perform.",
-	"tcpSocket": "TCPSocket specifies an action involving a TCP port. TCP hooks not yet supported",
+	"tcpSocket": "Deprecated. TCPSocket is NOT supported as a LifecycleHandler and kept for the backward compatibility. There are no validation of this field and lifecycle hooks will fail in runtime when tcp handler is specified.",
 }
 
 func (LifecycleHandler) SwaggerDoc() map[string]string {
@@ -1297,7 +1306,7 @@ var map_PersistentVolumeClaimSpec = map[string]string{
 	"":                 "PersistentVolumeClaimSpec describes the common attributes of storage devices and allows a Source for provider-specific attributes",
 	"accessModes":      "AccessModes contains the desired access modes the volume should have. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#access-modes-1",
 	"selector":         "A label query over volumes to consider for binding.",
-	"resources":        "Resources represents the minimum resources the volume should have. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources",
+	"resources":        "Resources represents the minimum resources the volume should have. If RecoverVolumeExpansionFailure feature is enabled users are allowed to specify resource requirements that are lower than previous value but must still be higher than capacity recorded in the status field of the claim. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources",
 	"volumeName":       "VolumeName is the binding reference to the PersistentVolume backing this claim.",
 	"storageClassName": "Name of the StorageClass required by the claim. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#class-1",
 	"volumeMode":       "volumeMode defines what type of volume is required by the claim. Value of Filesystem is implied when not included in claim spec.",
@@ -1310,11 +1319,13 @@ func (PersistentVolumeClaimSpec) SwaggerDoc() map[string]string {
 }
 
 var map_PersistentVolumeClaimStatus = map[string]string{
-	"":            "PersistentVolumeClaimStatus is the current status of a persistent volume claim.",
-	"phase":       "Phase represents the current phase of PersistentVolumeClaim.",
-	"accessModes": "AccessModes contains the actual access modes the volume backing the PVC has. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#access-modes-1",
-	"capacity":    "Represents the actual resources of the underlying volume.",
-	"conditions":  "Current Condition of persistent volume claim. If underlying persistent volume is being resized then the Condition will be set to 'ResizeStarted'.",
+	"":                   "PersistentVolumeClaimStatus is the current status of a persistent volume claim.",
+	"phase":              "Phase represents the current phase of PersistentVolumeClaim.",
+	"accessModes":        "AccessModes contains the actual access modes the volume backing the PVC has. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#access-modes-1",
+	"capacity":           "Represents the actual resources of the underlying volume.",
+	"conditions":         "Current Condition of persistent volume claim. If underlying persistent volume is being resized then the Condition will be set to 'ResizeStarted'.",
+	"allocatedResources": "The storage resource within AllocatedResources tracks the capacity allocated to a PVC. It may be larger than the actual capacity when a volume expansion operation is requested. For storage quota, the larger value from allocatedResources and PVC.spec.resources is used. If allocatedResources is not set, PVC.spec.resources alone is used for quota calculation. If a volume expansion capacity request is lowered, allocatedResources is only lowered if there are no expansion operations in progress and if the actual volume capacity is equal or lower than the requested capacity. This is an alpha field and requires enabling RecoverVolumeExpansionFailure feature.",
+	"resizeStatus":       "ResizeStatus stores status of resize operation. ResizeStatus is not set by default but when expansion is complete resizeStatus is set to empty string by resize controller or kubelet. This is an alpha field and requires enabling RecoverVolumeExpansionFailure feature.",
 }
 
 func (PersistentVolumeClaimStatus) SwaggerDoc() map[string]string {
@@ -1793,10 +1804,11 @@ func (Probe) SwaggerDoc() map[string]string {
 }
 
 var map_ProbeHandler = map[string]string{
-	"":          "ProbeHandler defines a specific action that should be taken in a probe. This type has a strong relationship to LifecycleHandler - overlapping fields should be identical.",
-	"exec":      "One and only one of the following should be specified. Exec specifies the action to take.",
+	"":          "ProbeHandler defines a specific action that should be taken in a probe. One and only one of the fields must be specified.",
+	"exec":      "Exec specifies the action to take.",
 	"httpGet":   "HTTPGet specifies the http request to perform.",
-	"tcpSocket": "TCPSocket specifies an action involving a TCP port. TCP hooks not yet supported",
+	"tcpSocket": "TCPSocket specifies an action involving a TCP port.",
+	"grpc":      "GRPC specifies an action involving a GRPC port. This is an alpha field and requires enabling GRPCContainerProbe feature gate.",
 }
 
 func (ProbeHandler) SwaggerDoc() map[string]string {

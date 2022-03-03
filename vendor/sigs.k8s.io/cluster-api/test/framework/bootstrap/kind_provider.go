@@ -22,10 +22,14 @@ import (
 	"os"
 
 	. "github.com/onsi/gomega"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/test/framework/internal/log"
+	"github.com/pkg/errors"
 	kindv1 "sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	kind "sigs.k8s.io/kind/pkg/cluster"
+	"sigs.k8s.io/kind/pkg/cmd"
+	"sigs.k8s.io/kind/pkg/exec"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 )
 
 const (
@@ -33,7 +37,7 @@ const (
 	DefaultNodeImageRepository = "kindest/node"
 
 	// DefaultNodeImageVersion is the default Kubernetes version to be used for creating a kind cluster.
-	DefaultNodeImageVersion = "v1.22.0"
+	DefaultNodeImageVersion = "v1.23.3"
 )
 
 // KindClusterOption is a NewKindClusterProvider option.
@@ -70,6 +74,13 @@ func WithIPv6Family() KindClusterOption {
 	})
 }
 
+// LogFolder implements a New Option that instruct the kindClusterProvider to dump bootstrap logs in a folder in case of errors.
+func LogFolder(path string) KindClusterOption {
+	return kindClusterOptionAdapter(func(k *KindClusterProvider) {
+		k.logFolder = path
+	})
+}
+
 // NewKindClusterProvider returns a ClusterProvider that can create a kind cluster.
 func NewKindClusterProvider(name string, options ...KindClusterOption) *KindClusterProvider {
 	Expect(name).ToNot(BeEmpty(), "name is required for NewKindClusterProvider")
@@ -90,6 +101,7 @@ type KindClusterProvider struct {
 	kubeconfigPath string
 	nodeImage      string
 	ipFamily       clusterv1.ClusterIPFamily
+	logFolder      string
 }
 
 // Create a Kubernetes cluster using kind.
@@ -137,9 +149,26 @@ func (k *KindClusterProvider) createKindCluster() {
 		nodeImage = k.nodeImage
 	}
 	kindCreateOptions = append(kindCreateOptions, kind.CreateWithNodeImage(nodeImage))
+	kindCreateOptions = append(kindCreateOptions, kind.CreateWithRetain(true))
 
-	err := kind.NewProvider().Create(k.name, kindCreateOptions...)
-	Expect(err).ToNot(HaveOccurred(), "Failed to create the kind cluster %q")
+	provider := kind.NewProvider(kind.ProviderWithLogger(cmd.NewLogger()))
+	err := provider.Create(k.name, kindCreateOptions...)
+	if err != nil {
+		// if requested, dump kind logs
+		if k.logFolder != "" {
+			if err := provider.CollectLogs(k.name, k.logFolder); err != nil {
+				log.Logf("Failed to collect logs from kind: %v", err)
+			}
+		}
+
+		errStr := fmt.Sprintf("Failed to create kind cluster %q: %v", k.name, err)
+		// Extract the details of the RunError, if the cluster creation was triggered by a RunError.
+		var runErr *exec.RunError
+		if errors.As(err, &runErr) {
+			errStr += "\n" + string(runErr.Output)
+		}
+		Expect(err).ToNot(HaveOccurred(), errStr)
+	}
 }
 
 // setDockerSockConfig returns a kind config for mounting /var/run/docker.sock into the kind node.

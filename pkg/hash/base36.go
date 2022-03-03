@@ -29,8 +29,8 @@ const base36set = "0123456789abcdefghijklmnopqrstuvwxyz"
 // Base36TruncatedHash returns a consistent hash using blake2b
 // and truncating the byte values to alphanumeric only
 // of a fixed length specified by the consumer.
-func Base36TruncatedHash(str string, len int) (string, error) {
-	hasher, err := blake2b.New(len, nil)
+func Base36TruncatedHash(str string, length int) (string, error) {
+	hasher, err := blake2b.New(length, nil)
 	if err != nil {
 		return "", errors.Wrap(err, "unable to create hash function")
 	}

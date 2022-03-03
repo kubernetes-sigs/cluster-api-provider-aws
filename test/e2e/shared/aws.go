@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -31,9 +32,6 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	awscreds "github.com/aws/aws-sdk-go/aws/credentials"
@@ -47,13 +45,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"sigs.k8s.io/yaml"
+
 	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
 	cloudformation "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/service"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/credentials"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
-	"sigs.k8s.io/yaml"
 )
 
 func NewAWSSession() client.ConfigProvider {
@@ -101,13 +102,13 @@ func NewAWSSessionWithKey(accessKey *iam.AccessKey) client.ConfigProvider {
 	return sess
 }
 
-// createCloudFormationStack ensures the cloudformation stack is up to date
-func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Template) error {
+// createCloudFormationStack ensures the cloudformation stack is up to date.
+func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Template, tags map[string]string) error {
 	Byf("Creating AWS CloudFormation stack for AWS IAM resources: stack-name=%s", t.Spec.StackName)
 	CFN := cfn.New(prov)
 	cfnSvc := cloudformation.NewService(CFN)
 
-	err := cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *renderCustomCloudFormation(t))
+	err := cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *renderCustomCloudFormation(t), tags)
 	if err != nil {
 		stack, err := CFN.DescribeStacks(&cfn.DescribeStacksInput{StackName: aws.String(t.Spec.StackName)})
 		if err == nil && len(stack.Stacks) > 0 {
@@ -141,11 +142,12 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 		tayp := val.AWSCloudFormationType()
 		if tayp == configservice.ResourceTypeAwsIamRole {
 			role := val.(*cfn_iam.Role)
-			iamSvc.DeleteRole(&iam.DeleteRoleInput{RoleName: aws.String(role.RoleName)})
+			_, err := iamSvc.DeleteRole(&iam.DeleteRoleInput{RoleName: aws.String(role.RoleName)})
+			Expect(err).NotTo(HaveOccurred())
 		}
 		if val.AWSCloudFormationType() == "AWS::IAM::InstanceProfile" {
 			profile := val.(*cfn_iam.InstanceProfile)
-			iamSvc.DeleteInstanceProfile(&iam.DeleteInstanceProfileInput{InstanceProfileName: aws.String(profile.InstanceProfileName)})
+			_, _ = iamSvc.DeleteInstanceProfile(&iam.DeleteInstanceProfileInput{InstanceProfileName: aws.String(profile.InstanceProfileName)})
 		}
 		if val.AWSCloudFormationType() == "AWS::IAM::ManagedPolicy" {
 			policy := val.(*cfn_iam.ManagedPolicy)
@@ -154,7 +156,7 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 			if len(policies.Policies) > 0 {
 				for _, p := range policies.Policies {
 					if aws.StringValue(p.PolicyName) == policy.ManagedPolicyName {
-						iamSvc.DeletePolicy(&iam.DeletePolicyInput{PolicyArn: p.Arn})
+						_, _ = iamSvc.DeletePolicy(&iam.DeletePolicyInput{PolicyArn: p.Arn})
 						break
 					}
 				}
@@ -162,7 +164,7 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 		}
 		if val.AWSCloudFormationType() == configservice.ResourceTypeAwsIamGroup {
 			group := val.(*cfn_iam.Group)
-			iamSvc.DeleteGroup(&iam.DeleteGroupInput{GroupName: aws.String(group.GroupName)})
+			_, _ = iamSvc.DeleteGroup(&iam.DeleteGroupInput{GroupName: aws.String(group.GroupName)})
 		}
 	}
 }
@@ -173,7 +175,7 @@ func deleteMultitenancyRoles(prov client.ConfigProvider) {
 	DeleteRole(prov, "multi-tenancy-nested-role")
 }
 
-// detachAllPoliciesForRole detaches all policies for role
+// detachAllPoliciesForRole detaches all policies for role.
 func detachAllPoliciesForRole(prov client.ConfigProvider, name string) error {
 	iamSvc := iam.New(prov)
 
@@ -198,11 +200,11 @@ func detachAllPoliciesForRole(prov client.ConfigProvider, name string) error {
 	return nil
 }
 
-// Best effort deletes roles.
+// DeleteRole deletes roles in a best effort manner.
 func DeleteRole(prov client.ConfigProvider, name string) {
 	iamSvc := iam.New(prov)
 
-	// if role does not exist, return
+	// if role does not exist, return.
 	_, err := iamSvc.GetRole(&iam.GetRoleInput{RoleName: aws.String(name)})
 	if err != nil {
 		return
@@ -212,7 +214,10 @@ func DeleteRole(prov client.ConfigProvider, name string) {
 		return
 	}
 
-	iamSvc.DeleteRole(&iam.DeleteRoleInput{RoleName: aws.String(name)})
+	_, err = iamSvc.DeleteRole(&iam.DeleteRoleInput{RoleName: aws.String(name)})
+	if err != nil {
+		return
+	}
 }
 
 func GetPolicyArn(prov client.ConfigProvider, name string) string {
@@ -230,7 +235,7 @@ func GetPolicyArn(prov client.ConfigProvider, name string) string {
 	return ""
 }
 
-// deleteCloudFormationStack removes the provisioned clusterawsadm stack
+// deleteCloudFormationStack removes the provisioned clusterawsadm stack.
 func deleteCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Template) {
 	Byf("Deleting %s CloudFormation stack", t.Spec.StackName)
 	CFN := cfn.New(prov)
@@ -248,12 +253,13 @@ func deleteCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Temp
 		err = cfnSvc.DeleteStack(t.Spec.StackName, retainResources)
 		Expect(err).NotTo(HaveOccurred())
 	}
-	CFN.WaitUntilStackDeleteComplete(&cfn.DescribeStacksInput{
+	err = CFN.WaitUntilStackDeleteComplete(&cfn.DescribeStacksInput{
 		StackName: aws.String(t.Spec.StackName),
 	})
+	Expect(err).NotTo(HaveOccurred())
 }
 
-func ensureTestImageUploaded(e2eCtx *E2EContext) (string, string, error) {
+func ensureTestImageUploaded(e2eCtx *E2EContext) error {
 	sessionForRepo := NewAWSSessionRepoWithKey(e2eCtx.Environment.BootstrapAccessKey)
 
 	ecrSvc := ecrpublic.New(sessionForRepo)
@@ -278,7 +284,7 @@ func ensureTestImageUploaded(e2eCtx *E2EContext) (string, string, error) {
 
 		return true, nil
 	}, awserrors.UnrecognizedClientException); err != nil {
-		return "", "", nil
+		return err
 	}
 
 	cmd := exec.Command("docker", "inspect", "--format='{{index .Id}}'", "gcr.io/k8s-staging-cluster-api/capa-manager:e2e")
@@ -286,21 +292,21 @@ func ensureTestImageUploaded(e2eCtx *E2EContext) (string, string, error) {
 	cmd.Stdout = &stdOut
 	err := cmd.Run()
 	if err != nil {
-		return "", "", err
+		return err
 	}
 
-	imageSha := strings.ReplaceAll(strings.TrimSuffix(string(stdOut.Bytes()), "\n"), "'", "")
+	imageSha := strings.ReplaceAll(strings.TrimSuffix(stdOut.String(), "\n"), "'", "")
 
 	ecrImageName := repoName + ":e2e"
-	cmd = exec.Command("docker", "tag", imageSha, ecrImageName)
+	cmd = exec.Command("docker", "tag", imageSha, ecrImageName) //nolint:gosec
 	err = cmd.Run()
 	if err != nil {
-		return "", "", err
+		return err
 	}
 
 	outToken, err := ecrSvc.GetAuthorizationToken(&ecrpublic.GetAuthorizationTokenInput{})
 	if err != nil {
-		return "", "", err
+		return err
 	}
 
 	// Auth token is in username:password format. To login using it, we need to decode first and separate password and username
@@ -308,27 +314,27 @@ func ensureTestImageUploaded(e2eCtx *E2EContext) (string, string, error) {
 
 	strList := strings.Split(string(decodedUsernamePassword), ":")
 	if len(strList) != 2 {
-		return "", "", errors.New("Failed to decode ECR authentication token")
+		return errors.New("failed to decode ECR authentication token")
 	}
 
-	cmd = exec.Command("docker", "login", "--username", strList[0], "--password", strList[1], "public.ecr.aws")
+	cmd = exec.Command("docker", "login", "--username", strList[0], "--password", strList[1], "public.ecr.aws") //nolint:gosec
 	err = cmd.Run()
 	if err != nil {
-		return "", "", err
+		return err
 	}
 
 	cmd = exec.Command("docker", "push", ecrImageName)
 	err = cmd.Run()
 	if err != nil {
-		return "", "", err
+		return err
 	}
 	e2eCtx.E2EConfig.Variables["CAPI_IMAGES_REGISTRY"] = repoName
 	e2eCtx.E2EConfig.Variables["E2E_IMAGE_TAG"] = "e2e"
-	return "", "", nil
+	return nil
 }
 
 // ensureNoServiceLinkedRoles removes an auto-created IAM role, and tests
-// the controller's IAM permissions to use ELB and Spot instances successfully
+// the controller's IAM permissions to use ELB and Spot instances successfully.
 func ensureNoServiceLinkedRoles(prov client.ConfigProvider) {
 	Byf("Deleting AWS IAM Service Linked Role: role-name=AWSServiceRoleForElasticLoadBalancing")
 	iamSvc := iam.New(prov)
@@ -348,7 +354,7 @@ func ensureNoServiceLinkedRoles(prov client.ConfigProvider) {
 	}
 }
 
-// ensureSSHKeyPair ensures A SSH key is present under the name
+// ensureSSHKeyPair ensures A SSH key is present under the name.
 func ensureSSHKeyPair(prov client.ConfigProvider, keyPairName string) {
 	Byf("Ensuring presence of SSH key in EC2: key-name=%s", keyPairName)
 	ec2c := ec2.New(prov)
@@ -358,7 +364,21 @@ func ensureSSHKeyPair(prov client.ConfigProvider, keyPairName string) {
 	}
 }
 
-// encodeCredentials leverages clusterawsadm to encode AWS credentials
+func ensureStackTags(prov client.ConfigProvider, stackName string, expectedTags map[string]string) {
+	Byf("Ensuring AWS CloudFormation stack is created or updated with the specified tags: stack-name=%s", stackName)
+	CFN := cfn.New(prov)
+	r, err := CFN.DescribeStacks(&cfn.DescribeStacksInput{StackName: &stackName})
+	Expect(err).NotTo(HaveOccurred())
+	stacks := r.Stacks
+	Expect(len(stacks)).To(BeNumerically("==", 1))
+	stackTags := stacks[0].Tags
+	Expect(len(stackTags)).To(BeNumerically("==", len(expectedTags)))
+	for _, tag := range stackTags {
+		Expect(*tag.Value).To(BeIdenticalTo(expectedTags[*tag.Key]))
+	}
+}
+
+// encodeCredentials leverages clusterawsadm to encode AWS credentials.
 func encodeCredentials(accessKey *iam.AccessKey, region string) string {
 	creds := credentials.AWSCredentials{
 		Region:          region,
@@ -410,10 +430,13 @@ func DumpCloudTrailEvents(e2eCtx *E2EContext) {
 		},
 	)
 	if err != nil {
-		fmt.Fprintf(GinkgoWriter, "couldn't get AWS CloudTrail events: err=%s", err)
+		fmt.Fprintf(GinkgoWriter, "couldn't get AWS CloudTrail events: err=%v", err)
 	}
 	logPath := filepath.Join(e2eCtx.Settings.ArtifactFolder, "cloudtrail-events.yaml")
 	dat, err := yaml.Marshal(events)
+	if err != nil {
+		fmt.Fprintf(GinkgoWriter, "Failed to marshal AWS CloudTrail events: err=%v", err)
+	}
 	if err := os.WriteFile(logPath, dat, 0600); err != nil {
 		fmt.Fprintf(GinkgoWriter, "couldn't write cloudtrail events to file: file=%s err=%s", logPath, err)
 		return
@@ -421,7 +444,7 @@ func DumpCloudTrailEvents(e2eCtx *E2EContext) {
 }
 
 // conformanceImageID looks up a specific image for a given
-// Kubernetes version in the e2econfig
+// Kubernetes version in the e2econfig.
 func conformanceImageID(e2eCtx *E2EContext) string {
 	ver := e2eCtx.E2EConfig.GetVariable("CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION")
 	strippedVer := strings.Replace(ver, "v", "", 1)
@@ -513,7 +536,7 @@ func (s *ServiceQuota) updateServiceQuotaRequestStatus(serviceQuotasClient *serv
 		ServiceCode: aws.String(s.ServiceCode),
 	}
 	latestRequest := &servicequotas.RequestedServiceQuotaChange{}
-	serviceQuotasClient.ListRequestedServiceQuotaChangeHistoryPages(params,
+	_ = serviceQuotasClient.ListRequestedServiceQuotaChangeHistoryPages(params,
 		func(page *servicequotas.ListRequestedServiceQuotaChangeHistoryOutput, lastPage bool) bool {
 			for _, v := range page.RequestedQuotas {
 				if int(aws.Float64Value(v.DesiredValue)) >= s.DesiredMinimumValue && aws.StringValue(v.QuotaCode) == s.QuotaCode && aws.TimeValue(v.Created).After(aws.TimeValue(latestRequest.Created)) {
@@ -554,7 +577,6 @@ func DumpEKSClusters(ctx context.Context, e2eCtx *E2EContext) {
 		}
 		dumpEKSCluster(describeOutput.Cluster, logPath)
 	}
-
 }
 
 func dumpEKSCluster(cluster *eks.Cluster, logPath string) {
@@ -566,12 +588,12 @@ func dumpEKSCluster(cluster *eks.Cluster, logPath string) {
 
 	fileName := fmt.Sprintf("%s.yaml", *cluster.Name)
 	clusterLog := path.Join(logPath, fileName)
-	f, err := os.OpenFile(clusterLog, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	f, err := os.OpenFile(clusterLog, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.ModePerm) //nolint:gosec
 	if err != nil {
 		fmt.Fprintf(GinkgoWriter, "couldn't open log file: name=%s err=%s", clusterLog, err)
 		return
 	}
-	defer f.Close()
+	defer f.Close() //nolint:gosec
 
 	if err := os.WriteFile(f.Name(), clusterYAML, 0600); err != nil {
 		fmt.Fprintf(GinkgoWriter, "couldn't write cluster yaml to file: name=%s file=%s err=%s", *cluster.Name, f.Name(), err)
@@ -579,8 +601,9 @@ func dumpEKSCluster(cluster *eks.Cluster, logPath string) {
 	}
 }
 
-// 	To calculate how much resources a test consumes, these helper functions below can be used.
-//	ListNATGateways(e2eCtx), ListRunningEC2(e2eCtx), ListVPC(e2eCtx), ListVpcInternetGateways(e2eCtx)
+// To calculate how much resources a test consumes, these helper functions below can be used.
+// ListVpcInternetGateways, ListNATGateways, ListRunningEC2, ListVPC
+
 func ListVpcInternetGateways(e2eCtx *E2EContext) ([]*ec2.InternetGateway, error) {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 

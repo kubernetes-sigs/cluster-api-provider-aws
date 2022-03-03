@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -27,15 +28,14 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	crclient "sigs.k8s.io/controller-runtime/pkg/client"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func SetupSpecNamespace(ctx context.Context, specName string, e2eCtx *E2EContext) *corev1.Namespace {
@@ -103,7 +103,7 @@ func DumpMachines(ctx context.Context, e2eCtx *E2EContext, namespace *corev1.Nam
 func MachinesForSpec(ctx context.Context, clusterProxy framework.ClusterProxy, namespace *corev1.Namespace) *infrav1.AWSMachineList {
 	lister := clusterProxy.GetClient()
 	list := new(infrav1.AWSMachineList)
-	if err := lister.List(ctx, list, client.InNamespace(namespace.GetName())); err != nil {
+	if err := lister.List(ctx, list, crclient.InNamespace(namespace.GetName())); err != nil {
 		fmt.Fprintln(GinkgoWriter, "couldn't find machines")
 		return nil
 	}
@@ -117,11 +117,11 @@ func DumpMachine(ctx context.Context, e2eCtx *E2EContext, machine infrav1.AWSMac
 	if err := os.MkdirAll(filepath.Dir(metaLog), 0750); err != nil {
 		fmt.Fprintf(GinkgoWriter, "couldn't create directory for file: path=%s, err=%s", metaLog, err)
 	}
-	f, err := os.OpenFile(metaLog, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(metaLog, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644) //nolint:gosec
 	if err != nil {
 		return
 	}
-	defer f.Close()
+	defer f.Close() //nolint:gosec
 	fmt.Fprintf(f, "instance found: instance-id=%q\n", instanceID)
 	commandsForMachine(
 		ctx,
@@ -169,7 +169,7 @@ func Byf(format string, a ...interface{}) {
 	By(fmt.Sprintf(format, a...))
 }
 
-// ConditionFn returns true if a condition exists
+// ConditionFn returns true if a condition exists.
 type ConditionFn func() bool
 
 // ConditionalIt will only perform the It block if the condition function returns true
@@ -182,15 +182,14 @@ func ConditionalIt(conditionFn ConditionFn, text string, body func()) bool {
 	return It(text, func() {
 		Skip("skipping due to unmet condition")
 	})
-
 }
 
-// LoadE2EConfig loads the e2econfig from the specified path
+// LoadE2EConfig loads the e2econfig from the specified path.
 func LoadE2EConfig(configPath string) *clusterctl.E2EConfig {
 	//TODO: This is commented out as it assumes kubeadm and errors if its not there
 	// Remove localLoadE2EConfig and use the line below when this issue is resolved:
 	// https://github.com/kubernetes-sigs/cluster-api/issues/3983
-	//config := clusterctl.LoadE2EConfig(context.TODO(), clusterctl.LoadE2EConfigInput{ConfigPath: configPath})
+	// config := clusterctl.LoadE2EConfig(context.TODO(), clusterctl.LoadE2EConfigInput{ConfigPath: configPath})
 	config := localLoadE2EConfig(configPath)
 
 	Expect(config).ToNot(BeNil(), "Failed to load E2E config from %s", configPath)
@@ -224,5 +223,5 @@ func CreateAWSClusterControllerIdentity(k8sclient crclient.Client) {
 			},
 		},
 	}
-	k8sclient.Create(context.TODO(), controllerIdentity)
+	_ = k8sclient.Create(context.TODO(), controllerIdentity)
 }

@@ -23,11 +23,13 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/validation"
+
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
 
-// Core providers.
+// core providers.
 const (
+	// ClusterAPIProviderName is the name for the core provider.
 	ClusterAPIProviderName = "cluster-api"
 )
 
@@ -39,6 +41,7 @@ const (
 	DockerProviderName    = "docker"
 	DOProviderName        = "digitalocean"
 	GCPProviderName       = "gcp"
+	IBMCloudProviderName  = "ibmcloud"
 	Metal3ProviderName    = "metal3"
 	NestedProviderName    = "nested"
 	OpenStackProviderName = "openstack"
@@ -65,6 +68,7 @@ const (
 
 // Other.
 const (
+	// ProvidersConfigKey is a constant for finding provider configurations with the ProvidersClient.
 	ProvidersConfigKey = "providers"
 )
 
@@ -173,6 +177,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         BYOHProviderName,
 			url:          "https://github.com/vmware-tanzu/cluster-api-provider-bringyourownhost/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         IBMCloudProviderName,
+			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 

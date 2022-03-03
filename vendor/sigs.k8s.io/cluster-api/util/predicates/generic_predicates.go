@@ -20,11 +20,12 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+
+	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/labels"
 )
 
 // All returns a predicate that returns true only if all given predicates return true.
@@ -132,16 +133,16 @@ func Any(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 func ResourceHasFilterLabel(logger logr.Logger, labelValue string) predicate.Funcs {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return processIfLabelMatch(logger.WithValues("predicate", "updateEvent"), e.ObjectNew, labelValue)
+			return processIfLabelMatch(logger.WithValues("predicate", "ResourceHasFilterLabel", "eventType", "update"), e.ObjectNew, labelValue)
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
-			return processIfLabelMatch(logger.WithValues("predicate", "createEvent"), e.Object, labelValue)
+			return processIfLabelMatch(logger.WithValues("predicate", "ResourceHasFilterLabel", "eventType", "create"), e.Object, labelValue)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return processIfLabelMatch(logger.WithValues("predicate", "deleteEvent"), e.Object, labelValue)
+			return processIfLabelMatch(logger.WithValues("predicate", "ResourceHasFilterLabel", "eventType", "delete"), e.Object, labelValue)
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			return processIfLabelMatch(logger.WithValues("predicate", "genericEvent"), e.Object, labelValue)
+			return processIfLabelMatch(logger.WithValues("predicate", "ResourceHasFilterLabel", "eventType", "generic"), e.Object, labelValue)
 		},
 	}
 }
@@ -162,16 +163,16 @@ func ResourceHasFilterLabel(logger logr.Logger, labelValue string) predicate.Fun
 func ResourceNotPaused(logger logr.Logger) predicate.Funcs {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return processIfNotPaused(logger.WithValues("predicate", "updateEvent"), e.ObjectNew)
+			return processIfNotPaused(logger.WithValues("predicate", "ResourceNotPaused", "eventType", "update"), e.ObjectNew)
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
-			return processIfNotPaused(logger.WithValues("predicate", "createEvent"), e.Object)
+			return processIfNotPaused(logger.WithValues("predicate", "ResourceNotPaused", "eventType", "create"), e.Object)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return processIfNotPaused(logger.WithValues("predicate", "deleteEvent"), e.Object)
+			return processIfNotPaused(logger.WithValues("predicate", "ResourceNotPaused", "eventType", "delete"), e.Object)
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			return processIfNotPaused(logger.WithValues("predicate", "genericEvent"), e.Object)
+			return processIfNotPaused(logger.WithValues("predicate", "ResourceNotPaused", "eventType", "generic"), e.Object)
 		},
 	}
 }
@@ -185,7 +186,7 @@ func ResourceNotPausedAndHasFilterLabel(logger logr.Logger, labelValue string) p
 func processIfNotPaused(logger logr.Logger, obj client.Object) bool {
 	kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
 	log := logger.WithValues("namespace", obj.GetNamespace(), kind, obj.GetName())
-	if annotations.HasPausedAnnotation(obj) {
+	if annotations.HasPaused(obj) {
 		log.V(4).Info("Resource is paused, will not attempt to map resource")
 		return false
 	}
@@ -216,16 +217,16 @@ func processIfLabelMatch(logger logr.Logger, obj client.Object, labelValue strin
 func ResourceIsNotExternallyManaged(logger logr.Logger) predicate.Funcs {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return processIfNotExternallyManaged(logger.WithValues("predicate", "updateEvent"), e.ObjectNew)
+			return processIfNotExternallyManaged(logger.WithValues("predicate", "ResourceIsNotExternallyManaged", "eventType", "update"), e.ObjectNew)
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
-			return processIfNotExternallyManaged(logger.WithValues("predicate", "createEvent"), e.Object)
+			return processIfNotExternallyManaged(logger.WithValues("predicate", "ResourceIsNotExternallyManaged", "eventType", "create"), e.Object)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return processIfNotExternallyManaged(logger.WithValues("predicate", "deleteEvent"), e.Object)
+			return processIfNotExternallyManaged(logger.WithValues("predicate", "ResourceIsNotExternallyManaged", "eventType", "delete"), e.Object)
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			return processIfNotExternallyManaged(logger.WithValues("predicate", "genericEvent"), e.Object)
+			return processIfNotExternallyManaged(logger.WithValues("predicate", "ResourceIsNotExternallyManaged", "eventType", "generic"), e.Object)
 		},
 	}
 }
@@ -246,16 +247,16 @@ func processIfNotExternallyManaged(logger logr.Logger, obj client.Object) bool {
 func ResourceIsTopologyOwned(logger logr.Logger) predicate.Funcs {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return processIfTopologyOwned(logger.WithValues("predicate", "updateEvent"), e.ObjectNew)
+			return processIfTopologyOwned(logger.WithValues("predicate", "ResourceIsTopologyOwned", "eventType", "update"), e.ObjectNew)
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
-			return processIfTopologyOwned(logger.WithValues("predicate", "createEvent"), e.Object)
+			return processIfTopologyOwned(logger.WithValues("predicate", "ResourceIsTopologyOwned", "eventType", "create"), e.Object)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return processIfTopologyOwned(logger.WithValues("predicate", "deleteEvent"), e.Object)
+			return processIfTopologyOwned(logger.WithValues("predicate", "ResourceIsTopologyOwned", "eventType", "delete"), e.Object)
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			return processIfTopologyOwned(logger.WithValues("predicate", "genericEvent"), e.Object)
+			return processIfTopologyOwned(logger.WithValues("predicate", "ResourceIsTopologyOwned", "eventType", "generic"), e.Object)
 		},
 	}
 }

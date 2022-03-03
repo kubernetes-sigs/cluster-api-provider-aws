@@ -64,6 +64,13 @@ func (in *AWSIAMConfigurationSpec) DeepCopyInto(out *AWSIAMConfigurationSpec) {
 	in.ClusterAPIControllers.DeepCopyInto(&out.ClusterAPIControllers)
 	in.Nodes.DeepCopyInto(&out.Nodes)
 	in.BootstrapUser.DeepCopyInto(&out.BootstrapUser)
+	if in.StackTags != nil {
+		in, out := &in.StackTags, &out.StackTags
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.EKS != nil {
 		in, out := &in.EKS, &out.EKS
 		*out = new(EKSConfig)

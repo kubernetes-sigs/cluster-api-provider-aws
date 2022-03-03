@@ -42,7 +42,7 @@ func Equals(slice1, slice2 []*string) bool {
 
 	if len(slice1) == len(slice2) {
 		for i, v := range slice1 {
-			if pointer.StringEqual(v, slice2[i]) {
+			if !pointer.StringEqual(v, slice2[i]) {
 				return false
 			}
 		}

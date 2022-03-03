@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -22,7 +23,6 @@ import (
 	"context"
 
 	. "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -30,9 +30,8 @@ import (
 )
 
 const (
-	credsSecretName = "e2e-account-creds"
+	credsSecretName = "e2e-account-creds" //nolint:gosec
 	capaNamespace   = "capa-system"
-	eksNamespace    = "capa-eks-control-plane-system"
 	idName          = "e2e-account"
 )
 
