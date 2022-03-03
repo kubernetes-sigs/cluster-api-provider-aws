@@ -39,11 +39,14 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
+const ReplicasManagedByAutoscalerAnnotation = "cluster.x-k8s.io/replicas-managed-by-autoscaler"
+
 // MachinePoolScope defines a scope defined around a machine and its cluster.
 type MachinePoolScope struct {
 	logr.Logger
-	client      client.Client
-	patchHelper *patch.Helper
+	client                 client.Client
+	patchHelper            *patch.Helper
+	MachinePoolPatchHelper *patch.Helper
 
 	Cluster        *clusterv1.Cluster
 	MachinePool    *expclusterv1.MachinePool
@@ -94,15 +97,20 @@ func NewMachinePoolScope(params MachinePoolScopeParams) (*MachinePoolScope, erro
 		params.Logger = &log
 	}
 
-	helper, err := patch.NewHelper(params.AWSMachinePool, params.Client)
+	ampHelper, err := patch.NewHelper(params.AWSMachinePool, params.Client)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to init patch helper")
+		return nil, errors.Wrap(err, "failed to init AWSMachinePool patch helper")
+	}
+	mpHelper, err := patch.NewHelper(params.MachinePool, params.Client)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to init MachinePool patch helper")
 	}
 
 	return &MachinePoolScope{
-		Logger:      *params.Logger,
-		client:      params.Client,
-		patchHelper: helper,
+		Logger:                 *params.Logger,
+		client:                 params.Client,
+		patchHelper:            ampHelper,
+		MachinePoolPatchHelper: mpHelper,
 
 		Cluster:        params.Cluster,
 		MachinePool:    params.MachinePool,
@@ -326,4 +334,9 @@ func nodeIsReady(node corev1.Node) bool {
 		}
 	}
 	return false
+}
+
+func ReplicasExternallyManaged(mp *expclusterv1.MachinePool) bool {
+	val, ok := mp.Annotations[ReplicasManagedByAutoscalerAnnotation]
+	return ok && val == "true"
 }
