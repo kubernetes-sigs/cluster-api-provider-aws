@@ -40,10 +40,18 @@ func (t Tags) HasOwned(cluster string) bool {
 	return ok && ResourceLifecycle(value) == ResourceLifecycleOwned
 }
 
-// HasAWSCloudProviderOwned returns true if the tags contains a tag that marks the resource as owned by the cluster from the perspective of the in-tree cloud provider.
+// HasAWSCloudProviderOwned returns true if the tags contains a tag that marks the resource as owned by the cluster
+// from the perspective of the AWS cloud provider.
 func (t Tags) HasAWSCloudProviderOwned(cluster string) bool {
 	value, ok := t[ClusterAWSCloudProviderTagKey(cluster)]
 	return ok && ResourceLifecycle(value) == ResourceLifecycleOwned
+}
+
+// HasAWSCloudProviderShared returns true if the tags contains a tag that marks the resource as shared by the cluster
+// from the perspective of the AWS cloud provider.
+func (t Tags) HasAWSCloudProviderShared(cluster string) bool {
+	value, ok := t[ClusterAWSCloudProviderTagKey(cluster)]
+	return ok && ResourceLifecycle(value) == ResourceLifecycleShared
 }
 
 // GetRole returns the Cluster API role for the tagged resource.

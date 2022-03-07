@@ -62,12 +62,12 @@ func (s *Service) reconcileSubnets() error {
 
 	if len(subnets) == 0 {
 		if unmanagedVPC {
-			// If we have a unmanaged VPC then subnets must be specified
-			errMsg := "no subnets specified, you must specify the subnets when using an umanaged vpc"
+			// If we have an unmanaged VPC then subnets must be specified
+			errMsg := "no subnets specified, you must specify the subnets when using an unmanaged vpc"
 			record.Warnf(s.scope.InfraCluster(), "FailedNoSubnets", errMsg)
 			return errors.New(errMsg)
 		}
-		// If we a managed VPC and have no subnets then create subnets. There will be 1 public and 1 private subnet
+		// If a managed VPC has no subnets then create subnets. There will be 1 public and 1 private subnet
 		// for each az in a region up to a maximum of 3 azs
 		s.scope.Info("no subnets specified, setting defaults")
 		subnets, err = s.getDefaultSubnets()
@@ -138,7 +138,7 @@ func (s *Service) reconcileSubnets() error {
 			// TODO(vincepri): check if subnet needs to be updated.
 			existingSubnet.DeepCopyInto(sub)
 		} else if unmanagedVPC {
-			// If there is no existing subnet and we have an umanaged vpc report an error
+			// If there is no existing subnet and we have an unmanaged vpc, report an error
 			record.Warnf(s.scope.InfraCluster(), "FailedMatchSubnet", "Using unmanaged VPC and failed to find existing subnet for specified subnet id %d, cidr %q", sub.ID, sub.CidrBlock)
 			return errors.New(fmt.Errorf("usign unmanaged vpc and subnet %s (cidr %s) specified but it doesn't exist in vpc %s", sub.ID, sub.CidrBlock, s.scope.VPC().ID).Error())
 		}
@@ -243,7 +243,12 @@ func (s *Service) getDefaultSubnets() (infrav1.Subnets, error) {
 
 func (s *Service) deleteSubnets() error {
 	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
-		s.scope.V(4).Info("Skipping subnets deletion in unmanaged mode")
+		err := s.deleteAWSCloudProviderTags()
+		if err != nil {
+			return err
+		}
+
+		s.scope.V(4).Info("Deleted AWSCloudProvider tags from unmanaged subnets")
 		return nil
 	}
 
@@ -260,6 +265,73 @@ func (s *Service) deleteSubnets() error {
 	}
 
 	return nil
+}
+
+func (s *Service) deleteAWSCloudProviderTags() error {
+	out, err := s.describeSubnetsByAWSCloudProviderTag()
+	if err != nil {
+		return err
+	}
+	if len(out.Subnets) == 0 {
+		return nil
+	}
+
+	s.scope.V(4).Info("Deleting AWSCloudProvider tags from unmanaged subnets")
+
+	var publicSns []string
+	var privateSns []string
+	for _, sn := range out.Subnets {
+		id := aws.StringValue(sn.SubnetId)
+		// Check if the subnet is in AWSCluster spec
+		if s.scope.Subnets().FindByID(id) == nil {
+			continue
+		}
+
+		if *sn.MapPublicIpOnLaunch {
+			publicSns = append(publicSns, id)
+		} else {
+			privateSns = append(privateSns, id)
+		}
+	}
+
+	if err := s.deleteTags(publicSns, s.getAWSProviderTags(true)); err != nil {
+		return err
+	}
+	if err := s.deleteTags(privateSns, s.getAWSProviderTags(false)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Service) deleteTags(resourceIDs []string, tags infrav1.Tags) error {
+	if len(resourceIDs) == 0 {
+		return nil
+	}
+
+	// Create the DeleteTags input
+	input := &ec2.DeleteTagsInput{
+		Resources: aws.StringSlice(resourceIDs),
+		Tags:      converters.MapToTags(tags),
+	}
+
+	if _, err := s.EC2Client.DeleteTags(input); err != nil {
+		return errors.Wrapf(err, "failed to delete AWSCloudProvider tags from unmanaged subnets %q", resourceIDs)
+	}
+
+	return nil
+}
+
+func (s *Service) getAWSProviderTags(public bool) infrav1.Tags {
+	t := infrav1.Tags{}
+
+	t[infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())] = string(infrav1.ResourceLifecycleShared)
+	if public {
+		t[externalLoadBalancerTag] = "1"
+	} else {
+		t[internalLoadBalancerTag] = "1"
+	}
+
+	return t
 }
 
 func (s *Service) describeVpcSubnets() (infrav1.Subnets, error) {
@@ -330,6 +402,25 @@ func (s *Service) describeSubnets() (*ec2.DescribeSubnetsOutput, error) {
 		input.Filters = append(input.Filters, filter.EC2.Cluster(s.scope.Name()))
 	} else {
 		input.Filters = append(input.Filters, filter.EC2.VPC(s.scope.VPC().ID))
+	}
+
+	out, err := s.EC2Client.DescribeSubnets(input)
+	if err != nil {
+		record.Eventf(s.scope.InfraCluster(), "FailedDescribeSubnet", "Failed to describe subnets in vpc %q: %v", s.scope.VPC().ID, err)
+		return nil, errors.Wrapf(err, "failed to describe subnets in vpc %q", s.scope.VPC().ID)
+	}
+	return out, nil
+}
+
+func (s *Service) describeSubnetsByAWSCloudProviderTag() (*ec2.DescribeSubnetsOutput, error) {
+	input := &ec2.DescribeSubnetsInput{
+		Filters: []*ec2.Filter{
+			filter.EC2.VPC(s.scope.VPC().ID),
+			{
+				Name:   aws.String(fmt.Sprintf("tag:%s", infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName()))),
+				Values: aws.StringSlice([]string{string(infrav1.ResourceLifecycleShared)}),
+			},
+		},
 	}
 
 	out, err := s.EC2Client.DescribeSubnets(input)

@@ -17,6 +17,8 @@ limitations under the License.
 package converters
 
 import (
+	"sort"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -49,14 +51,21 @@ func MapPtrToMap(src map[string]*string) infrav1.Tags {
 	return tags
 }
 
-// MapToTags converts a infrav1.Tags to a []*ec2.Tag.
+// MapToTags converts infrav1.Tags to []*ec2.Tag.
 func MapToTags(src infrav1.Tags) []*ec2.Tag {
 	tags := make([]*ec2.Tag, 0, len(src))
 
-	for k, v := range src {
+	// For testing, we need sorted keys
+	sortedKeys := make([]string, 0, len(tags))
+	for k := range src {
+		sortedKeys = append(sortedKeys, k)
+	}
+	sort.Strings(sortedKeys)
+
+	for _, k := range sortedKeys {
 		tag := &ec2.Tag{
 			Key:   aws.String(k),
-			Value: aws.String(v),
+			Value: aws.String(src[k]),
 		}
 
 		tags = append(tags, tag)

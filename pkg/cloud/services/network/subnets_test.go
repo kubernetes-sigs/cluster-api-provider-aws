@@ -31,6 +31,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -1999,6 +2000,28 @@ func TestDiscoverSubnets(t *testing.T) {
 }
 
 func TestDeleteSubnets(t *testing.T) {
+	AWSCloudProviderPublicSnTags := []*ec2.Tag{
+		{
+			Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+			Value: aws.String("shared"),
+		},
+		{
+			Key:   aws.String(externalLoadBalancerTag),
+			Value: aws.String("1"),
+		},
+	}
+
+	AWSCloudProviderPrivateSnTags := []*ec2.Tag{
+		{
+			Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+			Value: aws.String("shared"),
+		},
+		{
+			Key:   aws.String(internalLoadBalancerTag),
+			Value: aws.String("1"),
+		},
+	}
+
 	testCases := []struct {
 		name          string
 		input         *infrav1.NetworkSpec
@@ -2006,7 +2029,7 @@ func TestDeleteSubnets(t *testing.T) {
 		errorExpected bool
 	}{
 		{
-			name: "managed vpc - success",
+			name: "managed vpc, delete subnets - success",
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
@@ -2067,6 +2090,168 @@ func TestDeleteSubnets(t *testing.T) {
 			},
 			errorExpected: false,
 		},
+		{
+			name: "unmanaged vpc, remove tags - success",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID: subnetsVPCID,
+				},
+				Subnets: []infrav1.SubnetSpec{
+					{
+						ID: "public-sn",
+					},
+					{
+						ID: "private-sn",
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []*ec2.Filter{
+						filter.EC2.VPC(subnetsVPCID),
+						{
+							Name:   aws.String(fmt.Sprintf("tag:%s", infrav1.ClusterAWSCloudProviderTagKey("test-cluster"))),
+							Values: aws.StringSlice([]string{string(infrav1.ResourceLifecycleShared)}),
+						},
+					},
+				})).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{
+							{
+								VpcId:               aws.String(subnetsVPCID),
+								SubnetId:            aws.String("public-sn"),
+								AvailabilityZone:    aws.String("us-east-1a"),
+								CidrBlock:           aws.String("10.0.10.0/24"),
+								MapPublicIpOnLaunch: aws.Bool(true),
+								Tags:                AWSCloudProviderPublicSnTags,
+							},
+							{
+								VpcId:               aws.String(subnetsVPCID),
+								SubnetId:            aws.String("private-sn"),
+								AvailabilityZone:    aws.String("us-east-1a"),
+								CidrBlock:           aws.String("10.0.20.0/24"),
+								MapPublicIpOnLaunch: aws.Bool(false),
+								Tags:                AWSCloudProviderPrivateSnTags,
+							},
+						},
+					}, nil)
+
+				m.DeleteTags(gomock.Eq(&ec2.DeleteTagsInput{
+					Resources: aws.StringSlice([]string{"public-sn"}),
+					Tags:      AWSCloudProviderPublicSnTags,
+				})).
+					Return(&ec2.DeleteTagsOutput{}, nil)
+
+				m.DeleteTags(gomock.Eq(&ec2.DeleteTagsInput{
+					Resources: aws.StringSlice([]string{"private-sn"}),
+					Tags:      AWSCloudProviderPrivateSnTags,
+				})).
+					Return(&ec2.DeleteTagsOutput{}, nil)
+
+				// make sure unmanaged subnets are not deleted
+				m.DeleteSubnet(gomock.AssignableToTypeOf(&ec2.DeleteSubnetInput{})).Times(0)
+			},
+			errorExpected: false,
+		},
+		{
+			name: "unmanaged vpc, remove tags only from subnets in NetworkSpec",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID: subnetsVPCID,
+				},
+				Subnets: []infrav1.SubnetSpec{
+					{
+						ID: "subnet-1",
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []*ec2.Filter{
+						filter.EC2.VPC(subnetsVPCID),
+						{
+							Name:   aws.String(fmt.Sprintf("tag:%s", infrav1.ClusterAWSCloudProviderTagKey("test-cluster"))),
+							Values: aws.StringSlice([]string{string(infrav1.ResourceLifecycleShared)}),
+						},
+					},
+				})).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{
+							{
+								VpcId:               aws.String(subnetsVPCID),
+								SubnetId:            aws.String("subnet-1"),
+								AvailabilityZone:    aws.String("us-east-1a"),
+								CidrBlock:           aws.String("10.0.10.0/24"),
+								MapPublicIpOnLaunch: aws.Bool(true),
+								Tags:                AWSCloudProviderPublicSnTags,
+							},
+							{
+								VpcId:               aws.String(subnetsVPCID),
+								SubnetId:            aws.String("subnet-2"),
+								AvailabilityZone:    aws.String("us-east-1a"),
+								CidrBlock:           aws.String("10.0.10.0/24"),
+								MapPublicIpOnLaunch: aws.Bool(false),
+								Tags:                AWSCloudProviderPrivateSnTags,
+							},
+						},
+					}, nil)
+
+				m.DeleteTags(gomock.Eq(&ec2.DeleteTagsInput{
+					Resources: aws.StringSlice([]string{"subnet-1"}),
+					Tags:      AWSCloudProviderPublicSnTags,
+				})).
+					Return(&ec2.DeleteTagsOutput{}, nil)
+
+				m.DeleteTags(gomock.Eq(&ec2.DeleteTagsInput{
+					Resources: aws.StringSlice([]string{"subnet-2"}),
+					Tags:      AWSCloudProviderPrivateSnTags,
+				})).Times(0)
+			},
+			errorExpected: false,
+		},
+		{
+			name: "unmanaged vpc, remove tags - failure",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID: subnetsVPCID,
+				},
+				Subnets: []infrav1.SubnetSpec{
+					{
+						ID: "subnet-1",
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []*ec2.Filter{
+						filter.EC2.VPC(subnetsVPCID),
+						{
+							Name:   aws.String(fmt.Sprintf("tag:%s", infrav1.ClusterAWSCloudProviderTagKey("test-cluster"))),
+							Values: aws.StringSlice([]string{string(infrav1.ResourceLifecycleShared)}),
+						},
+					},
+				})).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{
+							{
+								VpcId:               aws.String(subnetsVPCID),
+								SubnetId:            aws.String("subnet-1"),
+								AvailabilityZone:    aws.String("us-east-1a"),
+								CidrBlock:           aws.String("10.0.10.0/24"),
+								MapPublicIpOnLaunch: aws.Bool(true),
+								Tags:                AWSCloudProviderPublicSnTags,
+							},
+						},
+					}, nil)
+
+				m.DeleteTags(gomock.Eq(&ec2.DeleteTagsInput{
+					Resources: aws.StringSlice([]string{"subnet-1"}),
+					Tags:      AWSCloudProviderPublicSnTags,
+				})).
+					Return(&ec2.DeleteTagsOutput{}, fmt.Errorf("error happened"))
+			},
+			errorExpected: true,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -2086,7 +2271,7 @@ func TestDeleteSubnets(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
 				},
 				AWSCluster: &infrav1.AWSCluster{
-					ObjectMeta: metav1.ObjectMeta{Name: "test"},
+					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
 					Spec: infrav1.AWSClusterSpec{
 						NetworkSpec: *tc.input,
 					},
