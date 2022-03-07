@@ -314,9 +314,11 @@ verify-gen: generate ## Verify generated files
 		echo "generated files are out of date, run make generate"; exit 1; \
 	fi
 
+APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
+
 .PHONY: apidiff
 apidiff: $(GO_APIDIFF) ## Check for API differences
-	$(GO_APIDIFF) $(shell git rev-parse origin/main) --print-compatible
+	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
 
 ##@ build:
 
