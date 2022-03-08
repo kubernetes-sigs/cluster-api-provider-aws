@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -222,12 +221,7 @@ func (m *MachinePoolScope) IsEKSManaged() bool {
 }
 
 // SubnetIDs returns the machine pool subnet IDs.
-func (m *MachinePoolScope) SubnetIDs() ([]string, error) {
-	subnetIDs := make([]string, len(m.AWSMachinePool.Spec.Subnets))
-	for i, v := range m.AWSMachinePool.Spec.Subnets {
-		subnetIDs[i] = aws.StringValue(v.ID)
-	}
-
+func (m *MachinePoolScope) SubnetIDs(subnetIDs []string) ([]string, error) {
 	strategy, err := newDefaultSubnetPlacementStrategy(&m.Logger)
 	if err != nil {
 		return subnetIDs, fmt.Errorf("getting subnet placement strategy: %w", err)
