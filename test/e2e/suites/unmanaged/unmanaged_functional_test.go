@@ -647,7 +647,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			Expect(shared.ReleaseAddress(e2eCtx, allocationID)).To(BeTrue())
 
 			ginkgo.By("Detaching Internet gateway")
-			Expect(shared.DetachInternetGateway(e2eCtx, igwID, vpcID)).To(BeTrue())
+			Eventually(shared.DetachInternetGateway(e2eCtx, igwID, vpcID), 30*time.Second).Should(BeTrue())
 
 			ginkgo.By("Deleting Internet gateway")
 			Expect(shared.DeleteInternetGateway(e2eCtx, igwID)).To(BeTrue())
