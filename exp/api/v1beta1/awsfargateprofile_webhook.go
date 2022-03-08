@@ -18,8 +18,8 @@ package v1beta1
 
 import (
 	"fmt"
-	"reflect"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -113,7 +113,7 @@ func (r *AWSFargateProfile) ValidateUpdate(oldObj runtime.Object) error {
 	old.Spec.AdditionalTags = nil
 	r.Spec.AdditionalTags = nil
 
-	if !reflect.DeepEqual(old.Spec, r.Spec) {
+	if !cmp.Equal(old.Spec, r.Spec) {
 		allErrs = append(
 			allErrs,
 			field.Invalid(field.NewPath("spec"), r.Spec, "is immutable"),

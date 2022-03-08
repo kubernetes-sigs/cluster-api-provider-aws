@@ -18,8 +18,8 @@ package v1alpha3
 
 import (
 	"fmt"
-	"reflect"
 
+	"github.com/google/go-cmp/cmp"
 	"k8s.io/apimachinery/pkg/types"
 
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -30,7 +30,7 @@ type Tags map[string]string
 
 // Equals returns true if the tags are equal.
 func (t Tags) Equals(other Tags) bool {
-	return reflect.DeepEqual(t, other)
+	return cmp.Equal(t, other)
 }
 
 // HasOwned returns true if the tags contains a tag that marks the resource as owned by the cluster from the perspective of this management tooling.

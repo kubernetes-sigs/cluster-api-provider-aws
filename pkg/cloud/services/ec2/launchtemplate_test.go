@@ -18,13 +18,13 @@ package ec2
 
 import (
 	"encoding/base64"
-	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -189,10 +189,10 @@ func TestService_SDKToLaunchTemplate(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("error mismatch: got %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(gotLT, tt.wantLT) {
+			if !cmp.Equal(gotLT, tt.wantLT) {
 				t.Fatalf("launchtemplate mismatch: got %v, want %v", gotLT, tt.wantLT)
 			}
-			if !reflect.DeepEqual(gotHash, tt.wantHash) {
+			if !cmp.Equal(gotHash, tt.wantHash) {
 				t.Fatalf("userdatahash mismatch: got %v, want %v", gotHash, tt.wantHash)
 			}
 		})

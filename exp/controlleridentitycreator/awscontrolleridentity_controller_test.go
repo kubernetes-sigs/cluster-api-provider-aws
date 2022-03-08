@@ -18,10 +18,10 @@ package controlleridentitycreator
 
 import (
 	"context"
-	"reflect"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -50,7 +50,7 @@ func TestAWSInstanceStateController(t *testing.T) {
 			if err != nil {
 				return false
 			}
-			if reflect.DeepEqual(*cp.Spec.AllowedNamespaces, infrav1.AllowedNamespaces{}) {
+			if cmp.Equal(*cp.Spec.AllowedNamespaces, infrav1.AllowedNamespaces{}) {
 				return true
 			}
 			return false

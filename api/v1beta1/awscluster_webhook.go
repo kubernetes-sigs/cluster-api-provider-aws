@@ -18,8 +18,8 @@ package v1beta1
 
 import (
 	"fmt"
-	"reflect"
 
+	"github.com/google/go-cmp/cmp"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -96,7 +96,7 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 	} else {
 		// If old scheme was not nil, the new scheme should be the same.
 		existingLoadBalancer := oldC.Spec.ControlPlaneLoadBalancer.DeepCopy()
-		if !reflect.DeepEqual(existingLoadBalancer.Scheme, newLoadBalancer.Scheme) {
+		if !cmp.Equal(existingLoadBalancer.Scheme, newLoadBalancer.Scheme) {
 			// Only allow changes from Internet-facing scheme to internet-facing.
 			if !(existingLoadBalancer.Scheme.String() == ClassicELBSchemeIncorrectInternetFacing.String() &&
 				newLoadBalancer.Scheme.String() == ClassicELBSchemeInternetFacing.String()) {
@@ -109,7 +109,7 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 		// The name must be defined when the AWSCluster is created. If it is not defined,
 		// then the controller generates a default name at runtime, but does not store it,
 		// so the name remains nil. In either case, the name cannot be changed.
-		if !reflect.DeepEqual(existingLoadBalancer.Name, newLoadBalancer.Name) {
+		if !cmp.Equal(existingLoadBalancer.Name, newLoadBalancer.Name) {
 			allErrs = append(allErrs,
 				field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "name"),
 					r.Spec.ControlPlaneLoadBalancer.Name, "field is immutable"),
@@ -117,19 +117,19 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 		}
 	}
 
-	if !reflect.DeepEqual(oldC.Spec.ControlPlaneEndpoint, clusterv1.APIEndpoint{}) &&
-		!reflect.DeepEqual(r.Spec.ControlPlaneEndpoint, oldC.Spec.ControlPlaneEndpoint) {
+	if !cmp.Equal(oldC.Spec.ControlPlaneEndpoint, clusterv1.APIEndpoint{}) &&
+		!cmp.Equal(r.Spec.ControlPlaneEndpoint, oldC.Spec.ControlPlaneEndpoint) {
 		allErrs = append(allErrs,
 			field.Invalid(field.NewPath("spec", "controlPlaneEndpoint"), r.Spec.ControlPlaneEndpoint, "field is immutable"),
 		)
 	}
 
 	// Modifying VPC id is not allowed because it will cause a new VPC creation if set to nil.
-	if !reflect.DeepEqual(oldC.Spec.NetworkSpec, NetworkSpec{}) &&
-		!reflect.DeepEqual(oldC.Spec.NetworkSpec.VPC, VPCSpec{}) &&
+	if !cmp.Equal(oldC.Spec.NetworkSpec, NetworkSpec{}) &&
+		!cmp.Equal(oldC.Spec.NetworkSpec.VPC, VPCSpec{}) &&
 		oldC.Spec.NetworkSpec.VPC.ID != "" {
-		if reflect.DeepEqual(r.Spec.NetworkSpec, NetworkSpec{}) ||
-			reflect.DeepEqual(r.Spec.NetworkSpec.VPC, VPCSpec{}) ||
+		if cmp.Equal(r.Spec.NetworkSpec, NetworkSpec{}) ||
+			cmp.Equal(r.Spec.NetworkSpec.VPC, VPCSpec{}) ||
 			oldC.Spec.NetworkSpec.VPC.ID != r.Spec.NetworkSpec.VPC.ID {
 			allErrs = append(allErrs,
 				field.Invalid(field.NewPath("spec", "network", "vpc", "id"),

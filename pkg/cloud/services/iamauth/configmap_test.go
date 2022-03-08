@@ -18,9 +18,9 @@ package iamauth
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -172,7 +172,7 @@ func TestAddRoleMappingCM(t *testing.T) {
 				g.Expect(err).To(BeNil())
 				g.Expect(len(roles)).To(Equal(len(tc.expectedRoleMaps)))
 				//TODO: we may need to do a better match
-				bothMatch := reflect.DeepEqual(roles, tc.expectedRoleMaps)
+				bothMatch := cmp.Equal(roles, tc.expectedRoleMaps)
 				g.Expect(bothMatch).To(BeTrue())
 			}
 
@@ -305,7 +305,7 @@ func TestAddUserMappingCM(t *testing.T) {
 				g.Expect(err).To(BeNil())
 				g.Expect(len(users)).To(Equal(len(tc.expectedUsersMap)))
 				//TODO: we may need to do a better match
-				bothMatch := reflect.DeepEqual(users, tc.expectedUsersMap)
+				bothMatch := cmp.Equal(users, tc.expectedUsersMap)
 				g.Expect(bothMatch).To(BeTrue())
 			}
 
