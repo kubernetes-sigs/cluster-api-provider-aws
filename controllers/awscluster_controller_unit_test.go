@@ -133,7 +133,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 	var (
 		reconciler AWSClusterReconciler
 		mockCtrl   *gomock.Controller
-		ec2Svc     *mock_services.MockEC2MachineInterface
+		ec2Svc     *mock_services.MockEC2Interface
 		elbSvc     *mock_services.MockELBInterface
 		networkSvc *mock_services.MockNetworkInterface
 		sgSvc      *mock_services.MockSecurityGroupInterface
@@ -156,7 +156,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 		csClient := fake.NewClientBuilder().WithObjects(awsCluster, secret).Build()
 
 		mockCtrl = gomock.NewController(t)
-		ec2Svc = mock_services.NewMockEC2MachineInterface(mockCtrl)
+		ec2Svc = mock_services.NewMockEC2Interface(mockCtrl)
 		elbSvc = mock_services.NewMockELBInterface(mockCtrl)
 		networkSvc = mock_services.NewMockNetworkInterface(mockCtrl)
 		sgSvc = mock_services.NewMockSecurityGroupInterface(mockCtrl)
@@ -165,7 +165,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 
 		reconciler = AWSClusterReconciler{
 			Client: csClient,
-			ec2ServiceFactory: func(scope.EC2Scope) services.EC2MachineInterface {
+			ec2ServiceFactory: func(scope.EC2Scope) services.EC2Interface {
 				return ec2Svc
 			},
 			elbServiceFactory: func(elbScope scope.ELBScope) services.ELBInterface {

@@ -117,7 +117,7 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 
 		ec2Svc := ec2Service.NewService(cs)
 		ec2Svc.EC2Client = ec2Mock
-		reconciler.ec2ServiceFactory = func(scope scope.EC2Scope) services.EC2MachineInterface {
+		reconciler.ec2ServiceFactory = func(scope scope.EC2Scope) services.EC2Interface {
 			return ec2Svc
 		}
 		testSecurityGroupRoles := []infrav1.SecurityGroupRole{
@@ -259,7 +259,7 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 
 		ec2Svc := ec2Service.NewService(cs)
 		ec2Svc.EC2Client = ec2Mock
-		reconciler.ec2ServiceFactory = func(ec2Scope scope.EC2Scope) services.EC2MachineInterface {
+		reconciler.ec2ServiceFactory = func(ec2Scope scope.EC2Scope) services.EC2Interface {
 			return ec2Svc
 		}
 

@@ -37,7 +37,7 @@ const (
 // Returns bool, error
 // Bool indicates if changes were made or not, allowing the caller to decide
 // if the machine should be updated.
-func (r *AWSMachinePoolReconciler) ensureTags(ec2svc services.EC2MachineInterface, asgsvc services.ASGInterface, machinePool *expinfrav1.AWSMachinePool, launchTemplateID, asgName *string, additionalTags map[string]string) (bool, error) {
+func (r *AWSMachinePoolReconciler) ensureTags(ec2svc services.EC2Interface, asgsvc services.ASGInterface, machinePool *expinfrav1.AWSMachinePool, launchTemplateID, asgName *string, additionalTags map[string]string) (bool, error) {
 	annotation, err := r.machinePoolAnnotationJSON(machinePool, TagsLastAppliedAnnotation)
 	if err != nil {
 		return false, err
