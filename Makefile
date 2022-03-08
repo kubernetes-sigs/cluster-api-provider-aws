@@ -43,7 +43,8 @@ KUBETEST_CONF_PATH ?= $(abspath $(E2E_DATA_DIR)/kubetest/conformance.yaml)
 EXP_DIR := exp
 
 # Binaries.
-GO_APIDIFF := $(TOOLS_BIN_DIR)/go-apidiff
+GO_APIDIFF_BIN := $(BIN_DIR)/go-apidiff
+GO_APIDIFF := $(TOOLS_DIR)/$(GO_APIDIFF_BIN)
 CLUSTERCTL := $(BIN_DIR)/clusterctl
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
 CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
@@ -123,7 +124,7 @@ USE_EXISTING_CLUSTER ?= "false"
 
 # Set E2E_SKIP_EKS_UPGRADE to false to test EKS upgrades.
 # Warning, this takes a long time
-E2E_SKIP_EKS_UPGRADE ?= "true"
+E2E_SKIP_EKS_UPGRADE ?= "false"
 
 # Set EKS_SOURCE_TEMPLATE to override the source template
 EKS_SOURCE_TEMPLATE ?= eks/cluster-template-eks-control-plane-only.yaml
@@ -312,6 +313,12 @@ verify-gen: generate ## Verify generated files
 		git diff; \
 		echo "generated files are out of date, run make generate"; exit 1; \
 	fi
+
+APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
+
+.PHONY: apidiff
+apidiff: $(GO_APIDIFF) ## Check for API differences
+	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
 
 ##@ build:
 
@@ -629,3 +636,4 @@ clean-temporary: ## Remove all temporary files and folders
 	rm -rf test/e2e/capi-kubeadm-control-plane-controller-manager
 	rm -rf test/e2e/logs
 	rm -rf test/e2e/resources
+

@@ -42,8 +42,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/mock_services"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
-
-	// "sigs.k8s.io/cluster-api/controllers/noderefutil" //nolint:godot.
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -56,7 +54,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 		cs             *scope.ClusterScope
 		ms             *scope.MachinePoolScope
 		mockCtrl       *gomock.Controller
-		ec2Svc         *mock_services.MockEC2MachineInterface
+		ec2Svc         *mock_services.MockEC2Interface
 		asgSvc         *mock_services.MockASGInterface
 		recorder       *record.FakeRecorder
 		awsMachinePool *expinfrav1.AWSMachinePool
@@ -128,14 +126,14 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 		g.Expect(err).To(BeNil())
 
 		mockCtrl = gomock.NewController(t)
-		ec2Svc = mock_services.NewMockEC2MachineInterface(mockCtrl)
+		ec2Svc = mock_services.NewMockEC2Interface(mockCtrl)
 		asgSvc = mock_services.NewMockASGInterface(mockCtrl)
 
 		// If the test hangs for 9 minutes, increase the value here to the number of events during a reconciliation loop
 		recorder = record.NewFakeRecorder(2)
 
 		reconciler = AWSMachinePoolReconciler{
-			ec2ServiceFactory: func(scope.EC2Scope) services.EC2MachineInterface {
+			ec2ServiceFactory: func(scope.EC2Scope) services.EC2Interface {
 				return ec2Svc
 			},
 			asgServiceFactory: func(cloud.ClusterScoper) services.ASGInterface {

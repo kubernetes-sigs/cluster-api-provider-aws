@@ -231,6 +231,7 @@ func (s *ManagedControlPlaneScope) PatchObject() error {
 		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 			infrav1.VpcReadyCondition,
 			infrav1.SubnetsReadyCondition,
+			infrav1.ClusterSecurityGroupsReadyCondition,
 			infrav1.InternetGatewayReadyCondition,
 			infrav1.NatGatewaysReadyCondition,
 			infrav1.RouteTablesReadyCondition,

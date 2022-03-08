@@ -17,33 +17,97 @@ limitations under the License.
 package ec2
 
 import (
-	. "github.com/onsi/gomega"
+	"sort"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
-func setupScheme() (*runtime.Scheme, error) {
-	scheme := runtime.NewScheme()
-	if err := clusterv1.AddToScheme(scheme); err != nil {
-		return nil, err
+func setupClusterScope(cl client.Client) (*scope.ClusterScope, error) {
+	return scope.NewClusterScope(scope.ClusterScopeParams{
+		Client:     cl,
+		Cluster:    newCluster(),
+		AWSCluster: newAWSCluster(),
+	})
+}
+
+func setupNewManagedControlPlaneScope(cl client.Client) (*scope.ManagedControlPlaneScope, error) {
+	return scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+		Client:       cl,
+		Cluster:      newCluster(),
+		ControlPlane: newAWSManagedControlPlane(),
+	})
+}
+
+func setupMachinePoolScope(cl client.Client, ec2Scope scope.EC2Scope) (*scope.MachinePoolScope, error) {
+	return scope.NewMachinePoolScope(scope.MachinePoolScopeParams{
+		Client:         cl,
+		InfraCluster:   ec2Scope,
+		Cluster:        newCluster(),
+		MachinePool:    newMachinePool(),
+		AWSMachinePool: newAWSMachinePool(),
+	})
+}
+
+func defaultEC2Tags(name, clusterName string) []*ec2.Tag {
+	return []*ec2.Tag{
+		{
+			Key:   aws.String("Name"),
+			Value: aws.String(name),
+		},
+		{
+			Key:   aws.String(infrav1.ClusterAWSCloudProviderTagKey(clusterName)),
+			Value: aws.String("owned"),
+		},
+		{
+			Key:   aws.String(infrav1.ClusterTagKey(clusterName)),
+			Value: aws.String("owned"),
+		},
+		{
+			Key:   aws.String(infrav1.NameAWSClusterAPIRole),
+			Value: aws.String("node"),
+		},
 	}
-	if err := corev1.AddToScheme(scheme); err != nil {
-		return nil, err
+}
+
+func newAWSMachinePool() *expinfrav1.AWSMachinePool {
+	return &expinfrav1.AWSMachinePool{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "AWSMachinePool",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "aws-mp-name",
+			Namespace: "aws-mp-ns",
+		},
+		Spec: expinfrav1.AWSMachinePoolSpec{
+			AvailabilityZones: []string{"us-east-1"},
+			AdditionalTags:    infrav1.Tags{},
+			AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+				Name:                     "aws-launch-template",
+				IamInstanceProfile:       "instance-profile",
+				AMI:                      infrav1.AMIReference{},
+				InstanceType:             "t3.large",
+				SSHKeyName:               aws.String("default"),
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{{ID: aws.String("1")}},
+			},
+		},
+		Status: expinfrav1.AWSMachinePoolStatus{
+			LaunchTemplateID: "launch-template-id",
+		},
 	}
-	if err := infrav1.AddToScheme(scheme); err != nil {
-		return nil, err
-	}
-	if err := expinfrav1.AddToScheme(scheme); err != nil {
-		return nil, err
-	}
-	return scheme, nil
 }
 
 func newCluster() *clusterv1.Cluster {
@@ -70,28 +134,77 @@ func newAWSCluster() *infrav1.AWSCluster {
 			Name:      "aws-cluster-name",
 			Namespace: "aws-cluster-ns",
 		},
-		Spec: infrav1.AWSClusterSpec{},
+		Spec: infrav1.AWSClusterSpec{
+			ImageLookupFormat: "img-lookup-format",
+			ImageLookupBaseOS: "img-lookup-os",
+			ImageLookupOrg:    "img-lookup-org",
+		},
 		Status: infrav1.AWSClusterStatus{
 			Ready: true,
 			Network: infrav1.NetworkStatus{
-				SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{},
+				SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+					infrav1.SecurityGroupNode: {ID: "nodeSG"},
+					infrav1.SecurityGroupLB:   {ID: "lbSG"},
+				},
 			},
 		},
 	}
 }
 
-func setupClusterScope(g *WithT) *scope.ClusterScope {
-	scheme, err := setupScheme()
-	g.Expect(err).NotTo(HaveOccurred())
+func newAWSManagedControlPlane() *ekscontrolplanev1.AWSManagedControlPlane {
+	return &ekscontrolplanev1.AWSManagedControlPlane{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "AWSManagedControlPlane",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "aws-cluster-name",
+			Namespace: "aws-cluster-ns",
+		},
+	}
+}
 
-	awsCluster := newAWSCluster()
-	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).Build()
+func newMachinePool() *v1beta1.MachinePool {
+	return &v1beta1.MachinePool{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "MachinePool",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "mp",
+		},
+		Spec: v1beta1.MachinePoolSpec{
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					Version: pointer.StringPtr("v1.23.3"),
+				},
+			},
+		},
+	}
+}
 
-	cs, err := scope.NewClusterScope(scope.ClusterScopeParams{
-		Client:     client,
-		Cluster:    newCluster(),
-		AWSCluster: awsCluster,
+func sortTags(a []*ec2.Tag) {
+	sort.Slice(a, func(i, j int) bool {
+		return *(a[i].Key) < *(a[j].Key)
 	})
-	g.Expect(err).NotTo(HaveOccurred())
-	return cs
+}
+
+func setupScheme() (*runtime.Scheme, error) {
+	scheme := runtime.NewScheme()
+	if err := clusterv1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+	if err := infrav1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+	if err := expinfrav1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+	if err := ekscontrolplanev1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+	return scheme, nil
 }

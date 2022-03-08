@@ -10,6 +10,12 @@
 <!-- goreportcard badge -->
 <a href="https://goreportcard.com/report/sigs.k8s.io/cluster-api-provider-aws">
 <img src="https://goreportcard.com/badge/sigs.k8s.io/cluster-api-provider-aws"></a>
+<!-- join kubernetes slack channel for cluster-api-aws-provider -->
+<a href="http://slack.k8s.io/">
+<img src="https://img.shields.io/badge/join%20slack-%23cluster--api--aws-brightgreen"></a>
+<!-- openssf badge -->
+<a href="https://bestpractices.coreinfrastructure.org/projects/5688">
+<img src="https://bestpractices.coreinfrastructure.org/projects/5688/badge"></a>
 </p>
 
 ------

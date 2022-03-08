@@ -29,8 +29,8 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 )
 
-func TestAWSInstanceStateController(t *testing.T) {
-	t.Run("should maintain list of cluster queue URLs and reconcile failing machines", func(t *testing.T) {
+func TestAWSControllerIdentityController(t *testing.T) {
+	t.Run("should create AWSClusterControllerIdentity when identityRef is not specified", func(t *testing.T) {
 		g := NewWithT(t)
 		ctx := context.Background()
 

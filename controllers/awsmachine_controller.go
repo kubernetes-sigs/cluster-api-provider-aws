@@ -66,7 +66,8 @@ type AWSMachineReconciler struct {
 	client.Client
 	Log                          logr.Logger
 	Recorder                     record.EventRecorder
-	ec2ServiceFactory            func(scope.EC2Scope) services.EC2MachineInterface
+	ec2ServiceFactory            func(scope.EC2Scope) services.EC2Interface
+	elbServiceFactory            func(scope.ELBScope) services.ELBInterface
 	secretsManagerServiceFactory func(cloud.ClusterScoper) services.SecretInterface
 	SSMServiceFactory            func(cloud.ClusterScoper) services.SecretInterface
 	Endpoints                    []scope.ServiceEndpoint
@@ -78,7 +79,7 @@ const (
 	AWSManagedControlPlaneRefKind = "AWSManagedControlPlane"
 )
 
-func (r *AWSMachineReconciler) getEC2Service(scope scope.EC2Scope) services.EC2MachineInterface {
+func (r *AWSMachineReconciler) getEC2Service(scope scope.EC2Scope) services.EC2Interface {
 	if r.ec2ServiceFactory != nil {
 		return r.ec2ServiceFactory(scope)
 	}
@@ -109,6 +110,14 @@ func (r *AWSMachineReconciler) getSecretService(machineScope *scope.MachineScope
 		return r.getSecretsManagerService(scope), nil
 	}
 	return nil, errors.New("invalid secret backend")
+}
+
+func (r *AWSMachineReconciler) getELBService(scope scope.ELBScope) services.ELBInterface {
+	if r.elbServiceFactory != nil {
+		return r.elbServiceFactory(scope)
+	}
+
+	return elb.NewService(scope)
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachines,verbs=get;list;watch;create;update;patch;delete
@@ -382,7 +391,7 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 // findInstance queries the EC2 apis and retrieves the instance if it exists.
 // If providerID is empty, finds instance by tags and if it cannot be found, returns empty instance with nil error.
 // If providerID is set, either finds the instance by ID or returns error.
-func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc services.EC2MachineInterface) (*infrav1.Instance, error) {
+func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc services.EC2Interface) (*infrav1.Instance, error) {
 	var instance *infrav1.Instance
 
 	// Parse the ProviderID.
@@ -525,7 +534,7 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	}
 
 	// reconcile the deletion of the bootstrap data secret now that we have updated instance state
-	if deleteSecretErr := r.deleteEncryptedBootstrapDataSecret(machineScope, clusterScope); err != nil {
+	if deleteSecretErr := r.deleteEncryptedBootstrapDataSecret(machineScope, clusterScope); deleteSecretErr != nil {
 		r.Log.Error(deleteSecretErr, "unable to delete secrets")
 		return ctrl.Result{}, deleteSecretErr
 	}
@@ -613,7 +622,7 @@ func (r *AWSMachineReconciler) deleteEncryptedBootstrapDataSecret(machineScope *
 	return nil
 }
 
-func (r *AWSMachineReconciler) createInstance(ec2svc services.EC2MachineInterface, machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper) (*infrav1.Instance, error) {
+func (r *AWSMachineReconciler) createInstance(ec2svc services.EC2Interface, machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper) (*infrav1.Instance, error) {
 	machineScope.Info("Creating EC2 instance")
 
 	userData, userDataErr := r.resolveUserData(machineScope, clusterScope)
@@ -678,7 +687,7 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.Machine
 		return nil
 	}
 
-	elbsvc := elb.NewService(clusterScope)
+	elbsvc := r.getELBService(clusterScope)
 
 	// In order to prevent sending request to a "not-ready" control plane machines, it is required to remove the machine
 	// from the ELB as soon as the machine gets deleted or when the machine is in a not running state.
@@ -877,7 +886,7 @@ func (r *AWSMachineReconciler) indexAWSMachineByInstanceID(o client.Object) []st
 	return nil
 }
 
-func (r *AWSMachineReconciler) ensureStorageTags(ec2svc services.EC2MachineInterface, instance *infrav1.Instance, machine *infrav1.AWSMachine) {
+func (r *AWSMachineReconciler) ensureStorageTags(ec2svc services.EC2Interface, instance *infrav1.Instance, machine *infrav1.AWSMachine) {
 	annotations, err := r.machineAnnotationJSON(machine, VolumeTagsLastAppliedAnnotation)
 	if err != nil {
 		r.Log.Error(err, "Failed to fetch the annotations for volume tags")

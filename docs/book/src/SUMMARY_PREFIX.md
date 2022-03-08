@@ -8,6 +8,7 @@
 - [Topics](./topics/index.md)
   - [Using clusterawsadm to fulfill prerequisites](./topics/using-clusterawsadm-to-fulfill-prerequisites.md)
   - [Accessing EC2 instances](./topics/accessing-ec2-instances.md)
+  - [Spot instances](./topics/spot-instances.md)
   - [Machine Pools](./topics/machinepools.md)
   - [Multi-tenancy](./topics/multitenancy.md)
   - [EKS Support](./topics/eks/index.md)

@@ -77,14 +77,17 @@ func (s *Service) ReconcileLoadbalancers() error {
 	}
 
 	apiELB, err := s.describeClassicELB(spec.Name)
-	if IsNotFound(err) {
+	switch {
+	case IsNotFound(err) && s.scope.ControlPlaneEndpoint().IsValid():
+		// if elb is not found and owner cluster ControlPlaneEndpoint is already populated, then we should not recreate the elb.
+		return errors.Wrapf(err, "no loadbalancer exists for the AWSCluster %s, the cluster has become unrecoverable and should be deleted manually", s.scope.InfraClusterName())
+	case IsNotFound(err):
 		apiELB, err = s.createClassicELB(spec)
 		if err != nil {
 			return err
 		}
-
 		s.scope.V(2).Info("Created new classic load balancer for apiserver", "api-server-elb-name", apiELB.Name)
-	} else if err != nil {
+	case err != nil:
 		// Failed to describe the classic ELB
 		return err
 	}
@@ -431,7 +434,7 @@ func (s *Service) getAPIServerClassicELBSpec(elbName string) (*infrav1.ClassicEL
 			},
 		},
 		HealthCheck: &infrav1.ClassicELBHealthCheck{
-			Target:             fmt.Sprintf("%v:%d", infrav1.ClassicELBProtocolSSL, 6443),
+			Target:             fmt.Sprintf("%v:%d", s.getHealthCheckELBProtocol(), 6443),
 			Interval:           10 * time.Second,
 			Timeout:            5 * time.Second,
 			HealthyThreshold:   5,
@@ -779,6 +782,14 @@ func (s *Service) reconcileELBTags(lb *infrav1.ClassicELB, desiredTags map[strin
 	}
 
 	return nil
+}
+
+func (s *Service) getHealthCheckELBProtocol() *infrav1.ClassicELBProtocol {
+	controlPlaneELB := s.scope.ControlPlaneLoadBalancer()
+	if controlPlaneELB != nil && controlPlaneELB.HealthCheckProtocol != nil {
+		return controlPlaneELB.HealthCheckProtocol
+	}
+	return &infrav1.ClassicELBProtocolSSL
 }
 
 func fromSDKTypeToClassicELB(v *elb.LoadBalancerDescription, attrs *elb.LoadBalancerAttributes, tags []*elb.Tag) *infrav1.ClassicELB {
