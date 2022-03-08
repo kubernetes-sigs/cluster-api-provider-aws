@@ -23,6 +23,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,6 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/autoscaling/mock_autoscalingiface"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
@@ -106,16 +108,16 @@ func TestService_GetASGByName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			client := getFakeClient()
+			fakeClient := getFakeClient()
 
-			clusterScope, err := getClusterScope(client)
+			clusterScope, err := getClusterScope(fakeClient)
 			g.Expect(err).ToNot(HaveOccurred())
 			asgMock := mock_autoscalingiface.NewMockAutoScalingAPI(mockCtrl)
 			tt.expect(asgMock.EXPECT())
 			s := NewService(clusterScope)
 			s.ASGClient = asgMock
 
-			mps, err := getMachinePoolScope(client, clusterScope)
+			mps, err := getMachinePoolScope(fakeClient, clusterScope)
 			g.Expect(err).ToNot(HaveOccurred())
 			mps.AWSMachinePool.Name = tt.machinePoolName
 
@@ -367,9 +369,9 @@ func TestService_ASGIfExists(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			client := getFakeClient()
+			fakeClient := getFakeClient()
 
-			clusterScope, err := getClusterScope(client)
+			clusterScope, err := getClusterScope(fakeClient)
 			g.Expect(err).ToNot(HaveOccurred())
 			asgMock := mock_autoscalingiface.NewMockAutoScalingAPI(mockCtrl)
 			tt.expect(asgMock.EXPECT())
@@ -514,16 +516,16 @@ func TestService_CreateASG(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			client := getFakeClient()
+			fakeClient := getFakeClient()
 
-			clusterScope, err := getClusterScope(client)
+			clusterScope, err := getClusterScope(fakeClient)
 			g.Expect(err).ToNot(HaveOccurred())
 			asgMock := mock_autoscalingiface.NewMockAutoScalingAPI(mockCtrl)
 			tt.expect(asgMock.EXPECT())
 			s := NewService(clusterScope)
 			s.ASGClient = asgMock
 
-			mps, err := getMachinePoolScope(client, clusterScope)
+			mps, err := getMachinePoolScope(fakeClient, clusterScope)
 			g.Expect(err).ToNot(HaveOccurred())
 			mps.AWSMachinePool.Name = tt.machinePoolName
 			tt.setupMachinePoolScope(mps)
@@ -543,7 +545,7 @@ func TestService_UpdateASG(t *testing.T) {
 		machinePoolName       string
 		setupMachinePoolScope func(*scope.MachinePoolScope)
 		wantErr               bool
-		expect                func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder)
+		expect                func(e *mock_ec2iface.MockEC2APIMockRecorder, m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder)
 	}{
 		{
 			name:            "should return without error if update ASG is successful",
@@ -552,7 +554,7 @@ func TestService_UpdateASG(t *testing.T) {
 			setupMachinePoolScope: func(mps *scope.MachinePoolScope) {
 				mps.AWSMachinePool.Spec.Subnets = nil
 			},
-			expect: func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {
+			expect: func(e *mock_ec2iface.MockEC2APIMockRecorder, m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {
 				m.UpdateAutoScalingGroup(gomock.AssignableToTypeOf(&autoscaling.UpdateAutoScalingGroupInput{})).Return(&autoscaling.UpdateAutoScalingGroupOutput{}, nil)
 			},
 		},
@@ -563,7 +565,7 @@ func TestService_UpdateASG(t *testing.T) {
 			setupMachinePoolScope: func(mps *scope.MachinePoolScope) {
 				mps.AWSMachinePool.Spec.MixedInstancesPolicy = nil
 			},
-			expect: func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {
+			expect: func(e *mock_ec2iface.MockEC2APIMockRecorder, m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {
 				m.UpdateAutoScalingGroup(gomock.AssignableToTypeOf(&autoscaling.UpdateAutoScalingGroupInput{})).Return(nil, awserrors.NewFailedDependency("dependency failure"))
 			},
 		},
@@ -571,18 +573,88 @@ func TestService_UpdateASG(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			client := getFakeClient()
+			fakeClient := getFakeClient()
 
-			clusterScope, err := getClusterScope(client)
+			clusterScope, err := getClusterScope(fakeClient)
 			g.Expect(err).ToNot(HaveOccurred())
+			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			asgMock := mock_autoscalingiface.NewMockAutoScalingAPI(mockCtrl)
-			tt.expect(asgMock.EXPECT())
+			tt.expect(ec2Mock.EXPECT(), asgMock.EXPECT())
 			s := NewService(clusterScope)
 			s.ASGClient = asgMock
 
-			mps, err := getMachinePoolScope(client, clusterScope)
+			mps, err := getMachinePoolScope(fakeClient, clusterScope)
 			g.Expect(err).ToNot(HaveOccurred())
 			mps.AWSMachinePool.Name = tt.machinePoolName
+
+			err = s.UpdateASG(mps)
+			checkErr(tt.wantErr, err, g)
+		})
+	}
+}
+
+func TestService_UpdateASGWithSubnetFilters(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	tests := []struct {
+		name                 string
+		machinePoolName      string
+		awsResourceReference []infrav1.AWSResourceReference
+		wantErr              bool
+		expect               func(e *mock_ec2iface.MockEC2APIMockRecorder, m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder)
+	}{
+		{
+			name:            "should return without error if update ASG is successful",
+			machinePoolName: "update-asg-success",
+			wantErr:         false,
+			awsResourceReference: []infrav1.AWSResourceReference{
+				{
+					Filters: []infrav1.Filter{{Name: "availability-zone", Values: []string{"us-east-1a"}}},
+				},
+			},
+			expect: func(e *mock_ec2iface.MockEC2APIMockRecorder, m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {
+				e.DescribeSubnets(gomock.AssignableToTypeOf(&ec2.DescribeSubnetsInput{})).Return(&ec2.DescribeSubnetsOutput{
+					Subnets: []*ec2.Subnet{{SubnetId: aws.String("subnet-02")}},
+				}, nil)
+				m.UpdateAutoScalingGroup(gomock.AssignableToTypeOf(&autoscaling.UpdateAutoScalingGroupInput{})).Return(&autoscaling.UpdateAutoScalingGroupOutput{}, nil)
+			},
+		},
+		{
+			name:            "should return error if update ASG fails",
+			machinePoolName: "update-asg-fail",
+			wantErr:         true,
+			awsResourceReference: []infrav1.AWSResourceReference{
+				{
+					ID: aws.String("subnet-01"),
+				},
+			},
+			expect: func(e *mock_ec2iface.MockEC2APIMockRecorder, m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {
+				m.UpdateAutoScalingGroup(gomock.AssignableToTypeOf(&autoscaling.UpdateAutoScalingGroupInput{})).Return(nil, awserrors.NewFailedDependency("dependency failure"))
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			fakeClient := getFakeClient()
+
+			clusterScope, err := getClusterScope(fakeClient)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			asgMock := mock_autoscalingiface.NewMockAutoScalingAPI(mockCtrl)
+			if tt.expect != nil {
+				tt.expect(ec2Mock.EXPECT(), asgMock.EXPECT())
+			}
+			s := NewService(clusterScope)
+			s.ASGClient = asgMock
+			s.EC2Client = ec2Mock
+
+			mps, err := getMachinePoolScope(fakeClient, clusterScope)
+			g.Expect(err).ToNot(HaveOccurred())
+			mps.AWSMachinePool.Name = tt.machinePoolName
+			mps.AWSMachinePool.Spec.Subnets = tt.awsResourceReference
 
 			err = s.UpdateASG(mps)
 			checkErr(tt.wantErr, err, g)
@@ -691,9 +763,9 @@ func TestService_UpdateResourceTags(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			client := getFakeClient()
+			fakeClient := getFakeClient()
 
-			clusterScope, err := getClusterScope(client)
+			clusterScope, err := getClusterScope(fakeClient)
 			g.Expect(err).ToNot(HaveOccurred())
 			asgMock := mock_autoscalingiface.NewMockAutoScalingAPI(mockCtrl)
 			tt.expect(asgMock.EXPECT())
@@ -742,9 +814,9 @@ func TestService_DeleteASG(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			client := getFakeClient()
+			fakeClient := getFakeClient()
 
-			clusterScope, err := getClusterScope(client)
+			clusterScope, err := getClusterScope(fakeClient)
 			g.Expect(err).ToNot(HaveOccurred())
 			asgMock := mock_autoscalingiface.NewMockAutoScalingAPI(mockCtrl)
 			tt.expect(asgMock.EXPECT())
@@ -812,9 +884,9 @@ func TestService_DeleteASGAndWait(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			client := getFakeClient()
+			fakeClient := getFakeClient()
 
-			clusterScope, err := getClusterScope(client)
+			clusterScope, err := getClusterScope(fakeClient)
 			g.Expect(err).ToNot(HaveOccurred())
 			asgMock := mock_autoscalingiface.NewMockAutoScalingAPI(mockCtrl)
 			tt.expect(asgMock.EXPECT())
@@ -881,16 +953,16 @@ func TestService_CanStartASGInstanceRefresh(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			client := getFakeClient()
+			fakeClient := getFakeClient()
 
-			clusterScope, err := getClusterScope(client)
+			clusterScope, err := getClusterScope(fakeClient)
 			g.Expect(err).ToNot(HaveOccurred())
 			asgMock := mock_autoscalingiface.NewMockAutoScalingAPI(mockCtrl)
 			tt.expect(asgMock.EXPECT())
 			s := NewService(clusterScope)
 			s.ASGClient = asgMock
 
-			mps, err := getMachinePoolScope(client, clusterScope)
+			mps, err := getMachinePoolScope(fakeClient, clusterScope)
 			g.Expect(err).ToNot(HaveOccurred())
 			mps.AWSMachinePool.Name = "machinePoolName"
 
@@ -949,16 +1021,16 @@ func TestService_StartASGInstanceRefresh(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			client := getFakeClient()
+			fakeClient := getFakeClient()
 
-			clusterScope, err := getClusterScope(client)
+			clusterScope, err := getClusterScope(fakeClient)
 			g.Expect(err).ToNot(HaveOccurred())
 			asgMock := mock_autoscalingiface.NewMockAutoScalingAPI(mockCtrl)
 			tt.expect(asgMock.EXPECT())
 			s := NewService(clusterScope)
 			s.ASGClient = asgMock
 
-			mps, err := getMachinePoolScope(client, clusterScope)
+			mps, err := getMachinePoolScope(fakeClient, clusterScope)
 			g.Expect(err).ToNot(HaveOccurred())
 			mps.AWSMachinePool.Name = "mpn"
 
