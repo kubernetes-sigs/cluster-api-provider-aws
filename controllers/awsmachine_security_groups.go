@@ -38,7 +38,7 @@ const (
 // Returns bool, error
 // Bool indicates if changes were made or not, allowing the caller to decide
 // if the machine should be updated.
-func (r *AWSMachineReconciler) ensureSecurityGroups(ec2svc service.EC2MachineInterface, scope *scope.MachineScope, additional []infrav1.AWSResourceReference, existing map[string][]string) (bool, error) {
+func (r *AWSMachineReconciler) ensureSecurityGroups(ec2svc service.EC2Interface, scope *scope.MachineScope, additional []infrav1.AWSResourceReference, existing map[string][]string) (bool, error) {
 	annotation, err := r.machineAnnotationJSON(scope.AWSMachine, SecurityGroupsLastAppliedAnnotation)
 	if err != nil {
 		return false, err
@@ -122,7 +122,7 @@ func (r *AWSMachineReconciler) securityGroupsChanged(annotation map[string]inter
 	return false, res
 }
 
-func (r *AWSMachineReconciler) getAdditionalSecurityGroupsIDs(ec2svc service.EC2MachineInterface, securitygroups []infrav1.AWSResourceReference) ([]string, error) {
+func (r *AWSMachineReconciler) getAdditionalSecurityGroupsIDs(ec2svc service.EC2Interface, securitygroups []infrav1.AWSResourceReference) ([]string, error) {
 	additionalSecurityGroupsIDs := []string{}
 
 	for _, sg := range securitygroups {
