@@ -1,0 +1,5 @@
+resources:
+  - ../remote-management-cluster
+patchesStrategicMerge:
+  - patches/internal-elb.yaml
+

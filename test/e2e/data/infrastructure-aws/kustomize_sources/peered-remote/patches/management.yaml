@@ -1,0 +1,12 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSCluster
+metadata:
+  name: "${CLUSTER_NAME}"
+spec:
+  network:
+    vpc:
+      id: "${MGMT_VPC_ID}"
+    subnets:
+    - id: "${MGMT_PUBLIC_SUBNET_ID}"
+    - id: "${MGMT_PRIVATE_SUBNET_ID}"
+
