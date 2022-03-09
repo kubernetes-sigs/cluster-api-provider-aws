@@ -18,7 +18,7 @@ require (
 	k8s.io/release v0.12.0
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20211111175208-4cc2fce2111a
 	sigs.k8s.io/controller-tools v0.7.1-0.20211110210727-ab52f76cc7d1
-	sigs.k8s.io/kind v0.11.1
+	sigs.k8s.io/kind v0.12.0
 	sigs.k8s.io/kustomize/kustomize/v4 v4.5.2
 	sigs.k8s.io/testing_frameworks v0.1.2
 )
@@ -74,7 +74,7 @@ require (
 	github.com/esimonov/ifshort v1.0.4 // indirect
 	github.com/ettle/strcase v0.1.1 // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
-	github.com/evanphx/json-patch/v5 v5.2.0 // indirect
+	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
