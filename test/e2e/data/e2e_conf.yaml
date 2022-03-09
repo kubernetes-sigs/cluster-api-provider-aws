@@ -207,6 +207,8 @@ providers:
         value: ../../../config/default
         contract: v1beta1
         files:
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-external-csi.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-csimigration-off.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-external-cloud-provider.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-kcp-remediation.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-kcp-scale-in.yaml"
@@ -252,6 +254,9 @@ variables:
   KUBERNETES_VERSION: "v1.23.3"
   KUBERNETES_VERSION_UPGRADE_TO: "v1.23.3"
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.22.4"
+  # Pre and post 1.23 Kubernetes versions are being used for CSI upgrade tests
+  PRE_1_23_KUBERNETES_VERSION: "v1.22.4"
+  POST_1_23_KUBERNETES_VERSION: "v1.23.3"
   CNI: "../../data/cni/calico.yaml"
   KUBETEST_CONFIGURATION: "../../data/kubetest/conformance.yaml"
   EVENT_BRIDGE_INSTANCE_STATE: "true"
@@ -287,6 +292,7 @@ intervals:
   default/wait-controllers: ["5m", "10s"]
   default/wait-delete-cluster: ["20m", "10s"]
   default/wait-machine-upgrade: ["30m", "10s"]
+  default/wait-contolplane-upgrade: ["40m", "10s"]
   default/wait-machine-status: ["20m", "10s"]
   default/wait-failed-machine-status: ["2m", "10s"]
   default/wait-infra-subnets: ["5m", "30s"]

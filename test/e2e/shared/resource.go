@@ -40,6 +40,7 @@ type TestResource struct {
 	NGW       int `json:"ngw"`
 	ClassicLB int `json:"classiclb"`
 	EC2GPU    int `json:"ec2-GPU"`
+	VolumeGP2 int `json:"volume-GP2"`
 }
 
 func WriteResourceQuotesToFile(logPath string, serviceQuotas map[string]*ServiceQuota) {
@@ -56,6 +57,7 @@ func WriteResourceQuotesToFile(logPath string, serviceQuotas map[string]*Service
 		NGW:       serviceQuotas["ngw"].Value,
 		ClassicLB: serviceQuotas["classiclb"].Value,
 		EC2GPU:    serviceQuotas["ec2-GPU"].Value,
+		VolumeGP2: serviceQuotas["volume-GP2"].Value,
 	}
 	data, err := yaml.Marshal(resources)
 	Expect(err).NotTo(HaveOccurred())
@@ -65,7 +67,7 @@ func WriteResourceQuotesToFile(logPath string, serviceQuotas map[string]*Service
 }
 
 func (r *TestResource) String() string {
-	return fmt.Sprintf("{ec2-normal:%v, vpc:%v, eip:%v, ngw:%v, igw:%v, classiclb:%v, ec2-GPU:%v}", r.EC2Normal, r.VPC, r.EIP, r.NGW, r.IGW, r.ClassicLB, r.EC2GPU)
+	return fmt.Sprintf("{ec2-normal:%v, vpc:%v, eip:%v, ngw:%v, igw:%v, classiclb:%v, ec2-GPU:%v, volume-gp2:%v}", r.EC2Normal, r.VPC, r.EIP, r.NGW, r.IGW, r.ClassicLB, r.EC2GPU, r.VolumeGP2)
 }
 
 func (r *TestResource) WriteRequestedResources(e2eCtx *E2EContext, testName string) {
@@ -129,6 +131,9 @@ func (r *TestResource) doesSatisfy(request *TestResource) bool {
 	if request.EC2GPU != 0 && r.EC2GPU < request.EC2GPU {
 		return false
 	}
+	if request.VolumeGP2 != 0 && r.VolumeGP2 < request.VolumeGP2 {
+		return false
+	}
 	return true
 }
 
@@ -140,6 +145,7 @@ func (r *TestResource) acquire(request *TestResource) {
 	r.IGW -= request.IGW
 	r.ClassicLB -= request.ClassicLB
 	r.EC2GPU -= request.EC2GPU
+	r.VolumeGP2 -= request.VolumeGP2
 }
 
 func (r *TestResource) release(request *TestResource) {
@@ -150,6 +156,7 @@ func (r *TestResource) release(request *TestResource) {
 	r.IGW += request.IGW
 	r.ClassicLB += request.ClassicLB
 	r.EC2GPU += request.EC2GPU
+	r.VolumeGP2 += request.VolumeGP2
 }
 
 func AcquireResources(request *TestResource, nodeNum int, fileLock *flock.Flock) error {
