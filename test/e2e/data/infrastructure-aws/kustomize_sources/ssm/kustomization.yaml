@@ -2,3 +2,4 @@ resources:
   - ../default
 patchesStrategicMerge:
   - patches/ssm.yaml
+  - patches/elb-health-check-protocol.yaml

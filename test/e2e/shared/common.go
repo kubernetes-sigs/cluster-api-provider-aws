@@ -38,6 +38,15 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
+func SetupNamespace(ctx context.Context, specName string, e2eCtx *E2EContext) *corev1.Namespace {
+	Byf("Creating a namespace for hosting the %q test spec", specName)
+	namespace := framework.CreateNamespace(ctx, framework.CreateNamespaceInput{
+		Creator: e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+		Name:    fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
+	})
+	return namespace
+}
+
 func SetupSpecNamespace(ctx context.Context, specName string, e2eCtx *E2EContext) *corev1.Namespace {
 	Byf("Creating a namespace for hosting the %q test spec", specName)
 	namespace, cancelWatches := framework.CreateNamespaceAndWatchEvents(ctx, framework.CreateNamespaceAndWatchEventsInput{
@@ -75,7 +84,9 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, namespace
 			Name:    namespace.Name,
 		})
 	}
-	cancelWatches()
+	if cancelWatches != nil {
+		cancelWatches()
+	}
 	delete(e2eCtx.Environment.Namespaces, namespace)
 }
 
