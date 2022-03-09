@@ -11,7 +11,7 @@
     - `chocolatey install jq` on Windows.
     - `sudo apt install jq` on Ubuntu Linux.
 3. Install [KIND][kind]
-    - `GO111MODULE="on" go get sigs.k8s.io/kind@v0.11.0`.
+    - `GO111MODULE="on" go get sigs.k8s.io/kind@v0.12.0`.
 4. Install [Kustomize][kustomize]
     - `brew install kustomize` on macOS.
     - `choco install kustomize` on Windows.
