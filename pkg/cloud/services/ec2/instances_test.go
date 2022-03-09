@@ -952,13 +952,13 @@ func TestCreateInstance(t *testing.T) {
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
 							filter.EC2.VPC("vpc-id"),
-							filter.EC2.AvailabilityZone("us-east-1b"),
 							{Name: aws.String("tag:some-tag"), Values: aws.StringSlice([]string{"some-value"})},
 						},
 					}).
 					Return(&ec2.DescribeSubnetsOutput{
 						Subnets: []*ec2.Subnet{{
-							SubnetId: aws.String("filtered-subnet-1"),
+							SubnetId:         aws.String("filtered-subnet-1"),
+							AvailabilityZone: aws.String("us-east-1b"),
 						}},
 					}, nil)
 				m.
@@ -1054,6 +1054,20 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.
+					DescribeSubnets(&ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+							filter.EC2.VPC("vpc-id"),
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"matching-subnet"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId:         aws.String("matching-subnet"),
+							AvailabilityZone: aws.String("us-east-1b"),
+						}},
+					}, nil)
+				m.
 					RunInstances(gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
@@ -1093,7 +1107,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 		},
 		{
-			name: "with subnet ID that does not belong to Cluster",
+			name: "with subnet ID that does not exist",
 			machine: clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
@@ -1145,15 +1159,131 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.
+					DescribeSubnets(&ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+							filter.EC2.VPC("vpc-id"),
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"non-matching-subnet"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{},
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
-				expectedErrMsg := "failed to run machine \"aws-test1\", subnet with id \"non-matching-subnet\" not found"
+				expectedErrMsg := "failed to run machine \"aws-test1\", no subnets available matching criteria"
 				if err == nil {
 					t.Fatalf("Expected error, but got nil")
 				}
 
 				if !strings.Contains(err.Error(), expectedErrMsg) {
 					t.Fatalf("Expected error: %s\nInstead got: %s", expectedErrMsg, err.Error())
+				}
+			},
+		},
+		{
+			name: "with subnet ID that does not belong to Cluster",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+				Subnet: &infrav1.AWSResourceReference{
+					ID: aws.String("matching-subnet"),
+				},
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-id",
+						},
+						Subnets: infrav1.Subnets{{
+							ID: "subnet-1",
+						}},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.
+					DescribeSubnets(&ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+							filter.EC2.VPC("vpc-id"),
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"matching-subnet"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId: aws.String("matching-subnet"),
+						}},
+					}, nil)
+				m.
+					RunInstances(gomock.Any()).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:     aws.String("two"),
+								InstanceType:   aws.String("m5.large"),
+								SubnetId:       aws.String("matching-subnet"),
+								ImageId:        aws.String("ami-1"),
+								RootDeviceName: aws.String("device-1"),
+								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									{
+										DeviceName: aws.String("device-1"),
+										Ebs: &ec2.EbsInstanceBlockDevice{
+											VolumeId: aws.String("volume-1"),
+										},
+									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
+								},
+							},
+						},
+					}, nil)
+				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
 				}
 			},
 		},
@@ -1212,9 +1342,23 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.
+					DescribeSubnets(&ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+							filter.EC2.VPC("vpc-id"),
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"subnet-1"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId:         aws.String("subnet-1"),
+							AvailabilityZone: aws.String("us-west-1b"),
+						}},
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
-				expectedErrMsg := "subnet's availability zone \"us-west-1b\" does not match with the failure domain \"us-east-1b\""
+				expectedErrMsg := "failed to run machine \"aws-test1\", found 1 subnets matching criteria but post-filtering failed. subnet \"subnet-1\" availability zone \"us-west-1b\" does not match failure domain \"us-east-1b\""
 				if err == nil {
 					t.Fatalf("Expected error, but got nil")
 				}
@@ -1346,6 +1490,21 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.
+					DescribeSubnets(&ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+							filter.EC2.VPC("vpc-id"),
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId:            aws.String("public-subnet-1"),
+							AvailabilityZone:    aws.String("us-east-1b"),
+							MapPublicIpOnLaunch: aws.Bool(true),
+						}},
+					}, nil)
+				m.
 					RunInstances(gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
@@ -1439,9 +1598,24 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.
+					DescribeSubnets(&ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+							filter.EC2.VPC("vpc-id"),
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"private-subnet-1"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId:            aws.String("private-subnet-1"),
+							AvailabilityZone:    aws.String("us-east-1b"),
+							MapPublicIpOnLaunch: aws.Bool(false),
+						}},
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
-				expectedErrMsg := "failed to run machine \"aws-test1\" with public IP, a specified subnet \"private-subnet-1\" is a private subnet"
+				expectedErrMsg := "failed to run machine \"aws-test1\", found 1 subnets matching criteria but post-filtering failed. subnet \"private-subnet-1\" is a private subnet."
 				if err == nil {
 					t.Fatalf("Expected error, but got nil")
 				}
@@ -1520,13 +1694,13 @@ func TestCreateInstance(t *testing.T) {
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
 							filter.EC2.VPC("vpc-id"),
-							{Name: aws.String("map-public-ip-on-launch"), Values: aws.StringSlice([]string{"true"})},
 							{Name: aws.String("tag:some-tag"), Values: aws.StringSlice([]string{"some-value"})},
 						},
 					}).
 					Return(&ec2.DescribeSubnetsOutput{
 						Subnets: []*ec2.Subnet{{
-							SubnetId: aws.String("filtered-subnet-1"),
+							SubnetId:            aws.String("filtered-subnet-1"),
+							MapPublicIpOnLaunch: aws.Bool(true),
 						}},
 					}, nil)
 				m.
