@@ -47,6 +47,7 @@ import (
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/yaml"
 
 	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
@@ -56,6 +57,207 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 )
+
+type AWSInfrastructureSpec struct {
+	ClusterName, VpcCidr, PublicSubnetCidr, PrivateSubnetCidr, AvailabilityZone string
+	ExternalSecurityGroups                                                      bool
+}
+
+type AWSInfrastructureState struct {
+	PrivateSubnetID     *string
+	PrivateSubnetState  *string
+	PublicSubnetID      *string
+	PublicSubnetState   *string
+	VpcState            *string
+	NatGatewayState     *string
+	PublicRouteTableID  *string
+	PrivateRouteTableID *string
+}
+
+type AWSInfrastructure struct {
+	Spec            AWSInfrastructureSpec
+	Context         *E2EContext
+	VPC             *ec2.Vpc
+	Subnets         []*ec2.Subnet
+	RouteTables     []*ec2.RouteTable
+	InternetGateway *ec2.InternetGateway
+	ElasticIP       *ec2.Address
+	NatGateway      *ec2.NatGateway
+	State           AWSInfrastructureState
+}
+
+func (i *AWSInfrastructure) New(ais AWSInfrastructureSpec, e2eCtx *E2EContext) AWSInfrastructure {
+	i.Spec = ais
+	i.Context = e2eCtx
+	return *i
+}
+
+func (i *AWSInfrastructure) CreateVPC() AWSInfrastructure {
+	cv, err := CreateVPC(i.Context, i.Spec.ClusterName+"-vpc", i.Spec.VpcCidr)
+	if err != nil {
+		return *i
+	}
+
+	i.VPC = cv
+	i.State.VpcState = cv.State
+	return *i
+}
+
+func (i *AWSInfrastructure) RefreshVPCState() AWSInfrastructure {
+	vpc, err := GetVPC(i.Context, *i.VPC.VpcId)
+	if err != nil {
+		return *i
+	}
+	if vpc != nil {
+		i.VPC = vpc
+		i.State.VpcState = vpc.State
+	}
+	return *i
+}
+
+func (i *AWSInfrastructure) CreatePublicSubnet() AWSInfrastructure {
+	subnet, err := CreateSubnet(i.Context, i.Spec.ClusterName, i.Spec.PublicSubnetCidr, i.Spec.AvailabilityZone, *i.VPC.VpcId, "public")
+	if err != nil {
+		i.State.PublicSubnetState = pointer.String("failed")
+		return *i
+	}
+	i.State.PublicSubnetID = subnet.SubnetId
+	i.State.PublicSubnetState = subnet.State
+	i.Subnets = append(i.Subnets, subnet)
+	return *i
+}
+
+func (i *AWSInfrastructure) CreatePrivateSubnet() AWSInfrastructure {
+	subnet, err := CreateSubnet(i.Context, i.Spec.ClusterName, i.Spec.PrivateSubnetCidr, i.Spec.AvailabilityZone, *i.VPC.VpcId, "private")
+	if err != nil {
+		i.State.PrivateSubnetState = pointer.String("failed")
+		return *i
+	}
+	i.State.PrivateSubnetID = subnet.SubnetId
+	i.State.PrivateSubnetState = subnet.State
+	i.Subnets = append(i.Subnets, subnet)
+	return *i
+}
+
+func (i *AWSInfrastructure) CreateInternetGateway() AWSInfrastructure {
+	igwC, err := CreateInternetGateway(i.Context, i.Spec.ClusterName+"-igw")
+	if err != nil {
+		return *i
+	}
+	_, aerr := AttachInternetGateway(i.Context, *igwC.InternetGatewayId, *i.VPC.VpcId)
+	if aerr != nil {
+		i.InternetGateway = igwC
+		return *i
+	}
+	i.InternetGateway = igwC
+	return *i
+}
+
+func (i *AWSInfrastructure) AllocateAddress() AWSInfrastructure {
+	aa, err := AllocateAddress(i.Context, i.Spec.ClusterName+"-eip")
+	if err != nil {
+		return *i
+	}
+
+	if addr, _ := GetAddress(i.Context, *aa.AllocationId); addr != nil {
+		i.ElasticIP = addr
+	}
+	return *i
+}
+
+func (i *AWSInfrastructure) CreateNatGateway(ct string) AWSInfrastructure {
+	s, serr := GetSubnetByName(i.Context, i.Spec.ClusterName+"-subnet-"+ct)
+	if serr != nil {
+		return *i
+	}
+	ngwC, ngwce := CreateNatGateway(i.Context, i.Spec.ClusterName+"-nat", ct, *i.ElasticIP.AllocationId, *s.SubnetId)
+	if ngwce != nil {
+		return *i
+	}
+	if WaitForNatGatewayState(i.Context, *ngwC.NatGatewayId, 180, "available") {
+		ngw, _ := GetNatGateway(i.Context, *ngwC.NatGatewayId)
+		i.NatGateway = ngw
+		i.State.NatGatewayState = ngw.State
+		return *i
+	}
+	i.NatGateway = ngwC
+	return *i
+}
+
+func (i *AWSInfrastructure) CreateRouteTable(subnetType string) AWSInfrastructure {
+	rt, err := CreateRouteTable(i.Context, i.Spec.ClusterName+"-rt-"+subnetType, *i.VPC.VpcId)
+	if err != nil {
+		return *i
+	}
+	switch subnetType {
+	case "public":
+		if a, _ := AssociateRouteTable(i.Context, *rt.RouteTableId, *i.State.PublicSubnetID); a != nil {
+			i.State.PublicRouteTableID = rt.RouteTableId
+		}
+	case "private":
+		if a, _ := AssociateRouteTable(i.Context, *rt.RouteTableId, *i.State.PrivateSubnetID); a != nil {
+			i.State.PrivateRouteTableID = rt.RouteTableId
+		}
+	}
+	return *i
+}
+
+func (i *AWSInfrastructure) GetRouteTable(rtID string) AWSInfrastructure {
+	rt, err := GetRouteTable(i.Context, rtID)
+	if err != nil {
+		return *i
+	}
+	if rt != nil {
+		i.RouteTables = append(i.RouteTables, rt)
+	}
+	return *i
+}
+
+func (i *AWSInfrastructure) CreateInfrastructure() AWSInfrastructure {
+	i.CreateVPC()
+	Expect(i.VPC).NotTo(BeNil())
+	if i.VPC != nil {
+		i.CreatePublicSubnet()
+		i.CreatePrivateSubnet()
+		for t := 0; t < 30; t++ {
+			if *i.RefreshVPCState().State.VpcState == "available" {
+				break
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}
+	i.CreateInternetGateway()
+	i.AllocateAddress()
+	i.CreateNatGateway("public")
+	WaitForNatGatewayState(i.Context, *i.NatGateway.NatGatewayId, 180, "available")
+	i.CreateRouteTable("public")
+	i.CreateRouteTable("private")
+	Expect(CreateRoute(i.Context, *i.State.PublicRouteTableID, "0.0.0.0/0", nil, i.InternetGateway.InternetGatewayId, nil)).To(BeTrue())
+	Expect(CreateRoute(i.Context, *i.State.PrivateRouteTableID, "0.0.0.0/0", i.NatGateway.NatGatewayId, nil, nil)).To(BeTrue())
+	i.GetRouteTable(*i.State.PublicRouteTableID)
+	i.GetRouteTable(*i.State.PrivateRouteTableID)
+	return *i
+}
+
+func (i *AWSInfrastructure) DeleteInfrastructure() AWSInfrastructure {
+	for _, rt := range i.RouteTables {
+		for _, a := range rt.Associations {
+			DisassociateRouteTable(i.Context, *a.RouteTableAssociationId)
+		}
+		if !DeleteRouteTable(i.Context, *rt.RouteTableId) {
+			fmt.Printf("%+v", rt)
+		}
+	}
+	DeleteNatGateway(i.Context, *i.NatGateway.NatGatewayId)
+	WaitForNatGatewayState(i.Context, *i.NatGateway.NatGatewayId, 180, "deleted")
+	ReleaseAddress(i.Context, *i.ElasticIP.AllocationId)
+	Eventually(DetachInternetGateway(i.Context, *i.InternetGateway.InternetGatewayId, *i.VPC.VpcId), 60*time.Second).Should(BeTrue())
+	DeleteInternetGateway(i.Context, *i.InternetGateway.InternetGatewayId)
+	DeleteSubnet(i.Context, *i.State.PrivateSubnetID)
+	DeleteSubnet(i.Context, *i.State.PublicSubnetID)
+	DeleteVPC(i.Context, *i.VPC.VpcId)
+	return *i
+}
 
 func NewAWSSession() client.ConfigProvider {
 	By("Getting an AWS IAM session - from environment")
@@ -757,6 +959,9 @@ func GetVPC(e2eCtx *E2EContext, vpcID string) (*ec2.Vpc, error) {
 	if err != nil {
 		return nil, err
 	}
+	if result.Vpcs == nil {
+		return nil, nil
+	}
 	return result.Vpcs[0], nil
 }
 
@@ -848,6 +1053,33 @@ func GetSubnet(e2eCtx *E2EContext, subnetID string) (*ec2.Subnet, error) {
 	if err != nil {
 		return nil, err
 	}
+	if result.Subnets == nil {
+		return nil, nil
+	}
+	return result.Subnets[0], nil
+}
+
+func GetSubnetByName(e2eCtx *E2EContext, name string) (*ec2.Subnet, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("tag:Name"),
+		Values: aws.StringSlice([]string{name}),
+	}
+
+	input := &ec2.DescribeSubnetsInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeSubnets(input)
+	if err != nil {
+		return nil, err
+	}
+	if result.Subnets == nil {
+		return nil, nil
+	}
 	return result.Subnets[0], nil
 }
 
@@ -912,6 +1144,30 @@ func DeleteSubnet(e2eCtx *E2EContext, subnetID string) bool {
 	return true
 }
 
+func GetAddress(e2eCtx *E2EContext, allocationID string) (*ec2.Address, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("allocation-id"),
+		Values: aws.StringSlice([]string{allocationID}),
+	}
+
+	input := &ec2.DescribeAddressesInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeAddresses(input)
+	if err != nil {
+		return nil, err
+	}
+	if result.Addresses == nil {
+		return nil, nil
+	}
+	return result.Addresses[0], nil
+}
+
 func AllocateAddress(e2eCtx *E2EContext, eipName string) (*ec2.AllocateAddressOutput, error) {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
@@ -950,11 +1206,11 @@ func DisassociateAddress(e2eCtx *E2EContext, assocID string) bool {
 	return true
 }
 
-func ReleaseAddress(e2eCtx *E2EContext, allocID string) bool {
+func ReleaseAddress(e2eCtx *E2EContext, allocationID string) bool {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
 	input := &ec2.ReleaseAddressInput{
-		AllocationId: aws.String(allocID),
+		AllocationId: aws.String(allocationID),
 	}
 
 	if _, err := ec2Svc.ReleaseAddress(input); err != nil {
@@ -963,7 +1219,7 @@ func ReleaseAddress(e2eCtx *E2EContext, allocID string) bool {
 	return true
 }
 
-func CreateNatGateway(e2eCtx *E2EContext, gatewayName string, connectType string, allocID string, subnetID string) (*ec2.NatGateway, error) {
+func CreateNatGateway(e2eCtx *E2EContext, gatewayName string, connectType string, allocationID string, subnetID string) (*ec2.NatGateway, error) {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
 	input := &ec2.CreateNatGatewayInput{
@@ -985,8 +1241,8 @@ func CreateNatGateway(e2eCtx *E2EContext, gatewayName string, connectType string
 		input.ConnectivityType = aws.String(connectType)
 	}
 
-	if allocID != "" {
-		input.AllocationId = aws.String(allocID)
+	if allocationID != "" {
+		input.AllocationId = aws.String(allocationID)
 	}
 
 	result, err := ec2Svc.CreateNatGateway(input)
@@ -1013,6 +1269,9 @@ func GetNatGateway(e2eCtx *E2EContext, gatewayID string) (*ec2.NatGateway, error
 	result, err := ec2Svc.DescribeNatGateways(input)
 	if err != nil {
 		return nil, err
+	}
+	if result.NatGateways == nil {
+		return nil, nil
 	}
 	return result.NatGateways[0], nil
 }
@@ -1086,6 +1345,9 @@ func GetInternetGateway(e2eCtx *E2EContext, gatewayID string) (*ec2.InternetGate
 	if err != nil {
 		return nil, err
 	}
+	if result.InternetGateways == nil {
+		return nil, nil
+	}
 	return result.InternetGateways[0], nil
 }
 
@@ -1154,6 +1416,30 @@ func CreatePeering(e2eCtx *E2EContext, peerName string, vpcID string, peerVpcID 
 		return nil, err
 	}
 	return result.VpcPeeringConnection, nil
+}
+
+func GetPeering(e2eCtx *E2EContext, peeringID string) (*ec2.VpcPeeringConnection, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("vpc-peering-connection-id"),
+		Values: aws.StringSlice([]string{peeringID}),
+	}
+
+	input := &ec2.DescribeVpcPeeringConnectionsInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeVpcPeeringConnections(input)
+	if err != nil {
+		return nil, err
+	}
+	if result.VpcPeeringConnections == nil {
+		return nil, nil
+	}
+	return result.VpcPeeringConnections[0], nil
 }
 
 func DeletePeering(e2eCtx *E2EContext, peeringID string) bool {
@@ -1268,6 +1554,9 @@ func GetRouteTable(e2eCtx *E2EContext, rtID string) (*ec2.RouteTable, error) {
 	if err != nil {
 		return nil, err
 	}
+	if result.RouteTables == nil {
+		return nil, nil
+	}
 	return result.RouteTables[0], nil
 }
 
@@ -1308,8 +1597,7 @@ func CreateRoute(e2eCtx *E2EContext, rtID string, destinationCidr string, natID 
 	if err != nil {
 		return false, err
 	}
-	created := *result.Return
-	return created, nil
+	return *result.Return, nil
 }
 
 func DeleteRoute(e2eCtx *E2EContext, rtID string, destinationCidr string) bool {
@@ -1399,6 +1687,9 @@ func GetSecurityGroup(e2eCtx *E2EContext, sgID string) (*ec2.SecurityGroup, erro
 	if err != nil {
 		return nil, err
 	}
+	if result.SecurityGroups == nil {
+		return nil, nil
+	}
 	return result.SecurityGroups[0], nil
 }
 
@@ -1453,6 +1744,9 @@ func GetSecurityGroupRule(e2eCtx *E2EContext, sgrID string) (*ec2.SecurityGroupR
 	result, err := ec2Svc.DescribeSecurityGroupRules(input)
 	if err != nil {
 		return nil, err
+	}
+	if result.SecurityGroupRules == nil {
+		return nil, nil
 	}
 	return result.SecurityGroupRules[0], nil
 }
