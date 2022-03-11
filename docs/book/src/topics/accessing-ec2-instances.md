@@ -31,6 +31,7 @@ spec:
   bastion:
     enabled: true
 ```
+If this field is set and a specific AMI ID is not provided for the bastion (by setting spec.bastion.ami) then by default the latest AMI(Ubuntu 20.04 LTS OS) is looked up from [Ubuntu cloud images](https://ubuntu.com/server/docs/cloud-images/amazon-ec2) by CAPA controller and used in bastion host creation.
 
 #### Obtain public IP address of the bastion node
 

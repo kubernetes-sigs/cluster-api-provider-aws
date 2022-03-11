@@ -76,7 +76,12 @@ func (s *Service) ReconcileBastion() error {
 				return errors.Wrap(err, "failed to patch conditions")
 			}
 		}
-		instance, err = s.runInstance("bastion", s.getDefaultBastion(s.scope.Bastion().InstanceType, s.scope.Bastion().AMI))
+		defaultBastion, err := s.getDefaultBastion(s.scope.Bastion().InstanceType, s.scope.Bastion().AMI)
+		if err != nil {
+			record.Warnf(s.scope.InfraCluster(), "FailedFetchingBastion", "Failed to fetch default bastion instance: %v", err)
+			return err
+		}
+		instance, err = s.runInstance("bastion", defaultBastion)
 		if err != nil {
 			record.Warnf(s.scope.InfraCluster(), "FailedCreateBastion", "Failed to create bastion instance: %v", err)
 			return err
@@ -161,7 +166,7 @@ func (s *Service) describeBastionInstance() (*infrav1.Instance, error) {
 	return nil, awserrors.NewNotFound("bastion host not found")
 }
 
-func (s *Service) getDefaultBastion(instanceType, ami string) *infrav1.Instance {
+func (s *Service) getDefaultBastion(instanceType, ami string) (*infrav1.Instance, error) {
 	name := fmt.Sprintf("%s-bastion", s.scope.Name())
 	userData, _ := userdata.NewBastion(&userdata.BastionInput{})
 
@@ -182,7 +187,11 @@ func (s *Service) getDefaultBastion(instanceType, ami string) *infrav1.Instance 
 	}
 
 	if ami == "" {
-		ami = s.defaultBastionAMILookup(s.scope.Region())
+		var err error
+		ami, err = s.defaultBastionAMILookup()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	i := &infrav1.Instance{
@@ -203,5 +212,5 @@ func (s *Service) getDefaultBastion(instanceType, ami string) *infrav1.Instance 
 		}),
 	}
 
-	return i
+	return i, nil
 }
