@@ -382,6 +382,15 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulTerminate", "Terminated instance %q", instance.ID)
 	}
 
+	// During a successful deletion operation conditions that summarise readiness must be cleaned up before removing the finalizer.
+	// Otherwise, scalable resources which aggregates this resource will see and permanently store ready=false for this resource right before it goes away.
+	// This would mistakenly impact in the readiness of the owner scalable resource which should disregard the particular ready condition of a resource legitimately deleted.
+	if conditions.Has(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition) || conditions.Has(machineScope.AWSMachine, infrav1.InstanceReadyCondition) {
+		conditions.Delete(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition)
+		conditions.Delete(machineScope.AWSMachine, infrav1.InstanceReadyCondition)
+		return ctrl.Result{}, machineScope.PatchObject()
+	}
+
 	// Instance is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(machineScope.AWSMachine, infrav1.MachineFinalizer)
 
