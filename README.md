@@ -46,7 +46,7 @@ cluster on AWS.
 
 - Native Kubernetes manifests and API
 - Manages the bootstrapping of VPCs, gateways, security groups and instances.
-- Choice of Linux distribution between Amazon Linux 2, CentOS 7 and Ubuntu 18.04,
+- Choice of Linux distribution among Amazon Linux 2, CentOS 7, Ubuntu(18.04, 20.04) and Flatcar
   using [pre-baked AMIs][published_amis].
 - Deploys Kubernetes control planes into private subnets with a separate
   bastion server.
@@ -62,11 +62,11 @@ cluster on AWS.
 This provider's versions are compatible with the following versions of Cluster API
 and support all Kubernetes versions that is supported by its compatible Cluster API version:
 
-|                              | v1alpha3 (v0.3) | v1alpha4 (v0.4) | v1beta1 (v1.x) |
-| ---------------------------- | --------------- | --------------- | -------------- |
-| AWS Provider v1alpha3 (v0.6) | ✓               |                 |                |
-| AWS Provider v1alpha4 (v0.7) |                 | ✓               |                |
-| AWS Provider v1beta1 (v1.x)  |                 |                 | ✓              |
+|                             | Cluster API v1alpha3 (v0.3) | Cluster API v1alpha4 (v0.4) | Cluster API v1beta1 (v1.x)  |
+| --------------------------- | :-------------------------: | :-------------------------: | :-------------------------: | 
+| CAPA v1alpha3 `(v0.6)`      |              ✓              |              ☓              |              ☓              |
+| CAPA v1alpha4 `(v0.7)`      |              ☓              |              ✓              |              ☓              |
+| CAPA v1beta1  `(v1.x, main)`|              ☓              |              ☓              |               ✓             |
 
 
 (See [Kubernetes support matrix][cluster-api-supported-v] of Cluster API versions).
