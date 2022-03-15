@@ -402,6 +402,13 @@ func Test_DeleteVPC(t *testing.T) {
 				})).Return(nil, awserr.New("InvalidVpcID.NotFound", "not found", nil))
 			},
 		},
+		{
+			name:    "Should skip reconciliation if VPC ID is not mentioned",
+			input:   &infrav1.VPCSpec{ID: ""},
+			wantErr: false,
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			},
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

@@ -202,6 +202,12 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 func (s *Service) deleteVPC() error {
 	vpc := s.scope.VPC()
 
+	// Skip deletion if .spec.vpc.id is not set.
+	if vpc.ID == "" {
+		s.scope.V(4).Info("Skipping VPC deletion as VPC ID is not set")
+		return nil
+	}
+
 	if vpc.IsUnmanaged(s.scope.Name()) {
 		s.scope.V(4).Info("Skipping VPC deletion in unmanaged mode")
 		return nil
