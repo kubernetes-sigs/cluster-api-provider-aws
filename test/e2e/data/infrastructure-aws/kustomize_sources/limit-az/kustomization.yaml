@@ -2,4 +2,3 @@ resources:
   - ../default
 patchesStrategicMerge:
   - patches/limit-az.yaml
-  - patches/elb-health-check-protocol.yaml
