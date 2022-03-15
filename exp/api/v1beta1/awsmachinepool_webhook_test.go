@@ -22,6 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
@@ -69,6 +70,41 @@ func TestAWSMachinePool_ValidateCreate(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "Should fail if both subnet ID and filters passed in AWSMachinePool spec",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AdditionalTags: infrav1.Tags{
+						"key-1": "value-1",
+						"key-2": "value-2",
+					},
+					Subnets: []infrav1.AWSResourceReference{
+						{
+							ID:      pointer.StringPtr("subnet-id"),
+							Filters: []infrav1.Filter{{Name: "filter_name", Values: []string{"filter_value"}}},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Should pass if either subnet ID or filters passed in AWSMachinePool spec",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AdditionalTags: infrav1.Tags{
+						"key-1": "value-1",
+						"key-2": "value-2",
+					},
+					Subnets: []infrav1.AWSResourceReference{
+						{
+							ID: pointer.StringPtr("subnet-id"),
+						},
+					},
+				},
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -131,6 +167,55 @@ func TestAWSMachinePool_ValidateUpdate(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "Should fail update if both subnetID and filters passed in AWSMachinePool spec",
+			old: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AdditionalTags: infrav1.Tags{
+						"key-1": "value-1",
+					},
+				},
+			},
+			new: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AdditionalTags: infrav1.Tags{
+						"key-1": "value-1",
+						"key-2": "value-2",
+					},
+					Subnets: []infrav1.AWSResourceReference{
+						{
+							ID:      pointer.StringPtr("subnet-id"),
+							Filters: []infrav1.Filter{{Name: "filter_name", Values: []string{"filter_value"}}},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Should pass update if either subnetID or filters passed in AWSMachinePool spec",
+			old: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AdditionalTags: infrav1.Tags{
+						"key-1": "value-1",
+					},
+				},
+			},
+			new: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AdditionalTags: infrav1.Tags{
+						"key-1": "value-1",
+						"key-2": "value-2",
+					},
+					Subnets: []infrav1.AWSResourceReference{
+						{
+							ID: pointer.StringPtr("subnet-id"),
+						},
+					},
+				},
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
