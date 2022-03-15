@@ -2,4 +2,5 @@ resources:
   - ../remote-management-cluster
 patchesStrategicMerge:
   - patches/internal-elb.yaml
+  - patches/az-select.yaml
 

@@ -2,4 +2,5 @@ resources:
   - ../remote-management-cluster
 patchesStrategicMerge:
   - patches/management.yaml
+  - patches/az-select.yaml
 
