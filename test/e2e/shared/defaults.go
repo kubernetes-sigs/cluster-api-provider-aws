@@ -57,6 +57,8 @@ const (
 	StorageClassOutTreeZoneLabel = "topology.ebs.csi.aws.com/zone"
 	GPUFlavor                    = "gpu"
 	InstanceVcpu                 = "AWS_MACHINE_TYPE_VCPU_USAGE"
+	PreCSIKubernetesVer          = "PRE_1_23_KUBERNETES_VERSION"
+	PostCSIKubernetesVer         = "POST_1_23_KUBERNETES_VERSION"
 )
 
 var ResourceQuotaFilePath = "/tmp/capa-e2e-resource-usage.lock"
@@ -115,6 +117,7 @@ func (m MultitenancyRole) RoleARN(prov client.ConfigProvider) (string, error) {
 	return roleARN, nil
 }
 
+// Service codes and quotas can be found under: https://us-west-1.console.aws.amazon.com/servicequotas/home/services
 func getLimitedResources() map[string]*ServiceQuota {
 	serviceQuotas := map[string]*ServiceQuota{}
 	serviceQuotas["igw"] = &ServiceQuota{
@@ -165,6 +168,14 @@ func getLimitedResources() map[string]*ServiceQuota {
 		QuotaCode:           "L-DB2E81BA",
 		DesiredMinimumValue: 8,
 	}
+
+	serviceQuotas["volume-GP2"] = &ServiceQuota{
+		ServiceCode:         "ebs",
+		QuotaName:           "Storage for General Purpose SSD (gp2) volumes, in TiB",
+		QuotaCode:           "L-D18FCD1D",
+		DesiredMinimumValue: 50,
+	}
+
 	return serviceQuotas
 }
 

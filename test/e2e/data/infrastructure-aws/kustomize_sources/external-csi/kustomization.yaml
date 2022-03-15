@@ -1,0 +1,15 @@
+resources:
+  - ../limit-az
+  - csi-resource-set.yaml
+patchesStrategicMerge:
+  - patches/csi-crs-label.yaml
+configMapGenerator:
+  - name: aws-ebs-csi-driver-addon
+    files:
+      - aws-ebs-csi-external.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    type: generated
+  annotations:
+    note: generated
