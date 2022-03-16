@@ -196,7 +196,7 @@ func (s *Service) translateAPIToAddon(addons []ekscontrolplanev1.Addon) []*eksad
 		convertedAddon := &eksaddons.EKSAddon{
 			Name:                  &addon.Name,
 			Version:               &addon.Version,
-			Tags:                  ngTags(s.scope.Cluster.ClusterName, s.scope.AdditionalTags()),
+			Tags:                  ngTags(s.scope.Cluster.Name, s.scope.AdditionalTags()),
 			ResolveConflict:       convertConflictResolution(*addon.ConflictResolution),
 			ServiceAccountRoleARN: addon.ServiceAccountRoleArn,
 		}
