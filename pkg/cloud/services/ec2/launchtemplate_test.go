@@ -730,7 +730,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 				}, nil).Do(func(arg *ec2.CreateLaunchTemplateInput) {
 					// formatting added to match arrays during reflect.DeepEqual
 					formatTagsInput(arg)
-					if !reflect.DeepEqual(expectedInput, arg) {
+					if !cmp.Equal(expectedInput, arg) {
 						t.Fatalf("mismatch in input expected: %+v, got: %+v", expectedInput, arg)
 					}
 				})
@@ -780,7 +780,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 					awserrors.NewFailedDependency("dependency failure")).Do(func(arg *ec2.CreateLaunchTemplateInput) {
 					// formatting added to match arrays during reflect.DeepEqual
 					formatTagsInput(arg)
-					if !reflect.DeepEqual(expectedInput, arg) {
+					if !cmp.Equal(expectedInput, arg) {
 						t.Fatalf("mismatch in input expected: %+v, got: %+v", expectedInput, arg)
 					}
 				})
@@ -897,7 +897,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 					func(arg *ec2.CreateLaunchTemplateVersionInput) {
 						// formatting added to match tags slice during reflect.DeepEqual()
 						formatTagsInput(arg)
-						if !reflect.DeepEqual(expectedInput, arg) {
+						if !cmp.Equal(expectedInput, arg) {
 							t.Fatalf("mismatch in input expected: %+v, but got %+v", expectedInput, arg)
 						}
 					})
@@ -938,7 +938,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 					func(arg *ec2.CreateLaunchTemplateVersionInput) {
 						// formatting added to match tags slice during reflect.DeepEqual()
 						formatTagsInput(arg)
-						if !reflect.DeepEqual(expectedInput, arg) {
+						if !cmp.Equal(expectedInput, arg) {
 							t.Fatalf("mismatch in input expected: %+v, got: %+v", expectedInput, arg)
 						}
 					})

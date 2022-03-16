@@ -119,7 +119,7 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 		// Block the update for HealthCheckProtocol :
 		// - if it was not set in old spec but added in new spec
 		// - if it was set in old spec but changed in new spec
-		if !reflect.DeepEqual(newLoadBalancer.HealthCheckProtocol, existingLoadBalancer.HealthCheckProtocol) {
+		if !cmp.Equal(newLoadBalancer.HealthCheckProtocol, existingLoadBalancer.HealthCheckProtocol) {
 			allErrs = append(allErrs,
 				field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "healthCheckProtocol"),
 					newLoadBalancer.HealthCheckProtocol, "field is immutable once set"),
