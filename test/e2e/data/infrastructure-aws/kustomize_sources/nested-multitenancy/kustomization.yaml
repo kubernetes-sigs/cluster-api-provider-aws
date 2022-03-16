@@ -3,3 +3,4 @@ resources:
   - role.yaml
 patchesStrategicMerge:
   - patches/role-identity.yaml
+  - patches/bastion-enabled.yaml

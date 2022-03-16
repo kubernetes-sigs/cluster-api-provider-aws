@@ -53,6 +53,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 type statefulSetInfo struct {
@@ -673,4 +674,23 @@ func LatestCIReleaseForVersion(searchVersion string) (string, error) {
 	}
 
 	return strings.TrimSpace(string(b)), nil
+}
+
+type conditionAssertion struct {
+	conditionType clusterv1.ConditionType
+	status        corev1.ConditionStatus
+	severity      clusterv1.ConditionSeverity
+	reason        string
+}
+
+func expectAWSClusterConditions(m *infrav1.AWSCluster, expected []conditionAssertion) {
+	Expect(len(m.Status.Conditions)).To(BeNumerically(">=", len(expected)), "number of conditions")
+	for _, c := range expected {
+		actual := conditions.Get(m, c.conditionType)
+		Expect(actual).To(Not(BeNil()))
+		Expect(actual.Type).To(Equal(c.conditionType))
+		Expect(actual.Status).To(Equal(c.status))
+		Expect(actual.Severity).To(Equal(c.severity))
+		Expect(actual.Reason).To(Equal(c.reason))
+	}
 }

@@ -136,6 +136,11 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 			}, result)
 
+			// Check if bastion host is up and running
+			awsCluster, err := GetAWSClusterByName(ctx, namespace.Name, clusterName)
+			Expect(err).To(BeNil())
+			Expect(awsCluster.Status.Bastion.State).To(Equal(infrav1.InstanceStateRunning))
+			expectAWSClusterConditions(awsCluster, []conditionAssertion{{infrav1.BastionHostReadyCondition, corev1.ConditionTrue, "", ""}})
 			ginkgo.By("PASSED!")
 		})
 	})
