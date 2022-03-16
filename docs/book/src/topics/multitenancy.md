@@ -4,7 +4,9 @@ Starting from v0.6.5, single controller multi-tenancy is supported that allows u
 For details, see the [multi-tenancy proposal](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/docs/proposal/20200506-single-controller-multitenancy.md).
 
 
-For multi-tenancy support, a reference field (`identityRef`) is added to `AWSCluster`, which describes the identity to be used when reconciling the cluster.
+For multi-tenancy support, a reference field (`identityRef`) is added to `AWSCluster`, which informs the controller of which identity to be used when reconciling the cluster.
+If the identity provided exists in a different AWS account, this is the mechanism which informs the controller to provision a cluster in a different account.
+
 
 ```yaml
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -112,9 +114,12 @@ stringData:
 The assumed role could be used by the AWSClusters that is in the `allowedNamespaces`.
 
 Example:
-Below, an `AWSClusterRoleIdentity` instance, which will be used by AWSCluster "test", is created.
+Below, an `AWSClusterRoleIdentity` instance, which will be used by `AWSCluster` "test", is created.
 This role will be assumed by the source identity at runtime. Source identity can be of any identity type.
 Role is assumed in the beginning once and after, whenever the assumed role's credentials are expired.
+
+This snippet illustrates the connection between `AWSCluster`and the `AWSClusterRoleIdentity`, however this is not a working example.
+Please view a full example below.
 
 ```yaml
 ---
@@ -135,12 +140,11 @@ metadata:
   name: "test-account-role"
 spec:
   allowedNamespaces:
-    list: # allows only "test" namespace to use this identity
-      "test"
+  - "test" # allows only "test" namespace to use this identity
   roleARN: "arn:aws:iam::123456789:role/CAPARole"
   sourceIdentityRef:
-    kind: AWSClusterStaticIdentity
-    name: test-account-creds
+    kind: AWSClusterControllerIdentity # use the singleton for root auth
+    name: default
 ```
 
 Nested role assumption is also supported.
@@ -174,6 +178,74 @@ spec:
     kind: AWSClusterRoleIdentity
     name: multi-tenancy-role
 ```
+
+### Examples
+
+This is a deployable example which uses the `AWSClusterRoleIdentity` "test-account-role" to assume into the `arn:aws:iam::123456789:role/CAPARole` role in the target account.
+This example assumes that the `CAPARole` has already been configured in the target account.
+
+Finally, we inform the `Cluster` to use our `AWSCluster`type to provision a cluster in the target account specified by the `identityRef` section.
+
+**Note**
+
+By default the `AutoControllerIdentityCreator=true` feature gate is set to `true` [here](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/412d310654c6b05f1b4bc3d319f6957a07c009c2/feature/feature.go?rgh-link-date=2022-03-23T14%3A57%3A46Z#L81).
+If this is not enabled for your cluster, you will need to enable the flag, or create your own default `AWSClusterControllerIdentity`.
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSClusterControllerIdentity
+metadata:
+  name: "default"
+spec:
+  allowedNamespaces:{}  # matches all namespaces
+```
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSClusterRoleIdentity
+metadata:
+  name: "test-account-role"
+spec:
+  allowedNamespaces: {} # matches all namespaces
+  roleARN: "arn:aws:iam::123456789:role/CAPARole"
+  sourceIdentityRef:
+    kind: AWSClusterControllerIdentity # use the singleton for root auth
+    name: default
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSCluster
+metadata:
+  name: "test-multi-tenant-workload"
+spec:
+  region: "eu-west-1"
+  identityRef:
+    kind: AWSClusterRoleIdentity
+    name: test-account-role
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: "test-multi-tenant-workload"
+spec:
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: AWSCluster
+    name: "test-multi-tenant-workload"
+```
+
+More specific examples can be referenced from the existing [templates](../../../../templates/) directory.
+
+In order to use the [EC2 template](../../../../templates/cluster-template.yaml) with identity type, you can add the `identityRef` section to `kind: AWSCluster` spec section in the template. If you do not, CAPA will automatically add the default identity provider (which is usually your local account credentials).
+
+Similarly, to use the [EKS template](../../../../templates/cluster-template-eks.yaml) with identity type, you can add the `identityRef` section to `kind: AWSManagedControlPlane` spec section in the template. If you do not, CAPA will automatically add the default identity provider (which is usually your local account credentials).
+
+#### Permissions
+
+There are multiple AWS assume role permissions that need to be configured in order for the assume role to work
+- The Primary role in the management account must be allowed to assume role into the target role account
+  - This is traditionally the controller role, but the operator can configure it to be any role
+- The target account role must be configured to allow the management role to assume into it
+- The target account role must have adequate permissions for cluster-api to build both EC2 and EKS based clusters
 
 ## Secure Access to Identities
 `allowedNamespaces` field is used to grant access to the namespaces to use Identities.
