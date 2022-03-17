@@ -39,6 +39,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
@@ -69,6 +70,7 @@ type statefulSetInfo struct {
 	containerPort             int32
 	podTerminationGracePeriod int64
 	volMountPath              string
+	isInTreeCSI               bool
 }
 
 // GetClusterByName returns a Cluster object given his name.
@@ -247,42 +249,62 @@ func createStatefulSet(statefulsetinfo statefulSetInfo, k8sclient crclient.Clien
 		Selector: statefulsetinfo.selector,
 	}
 	createService(statefulsetinfo.svcName, statefulsetinfo.namespace, statefulsetinfo.selector, svcSpec, k8sclient)
-	createStorageClass(statefulsetinfo.storageClassName, k8sclient)
+	createStorageClass(statefulsetinfo.isInTreeCSI, statefulsetinfo.storageClassName, k8sclient)
 	podTemplateSpec := createPodTemplateSpec(statefulsetinfo)
 	volClaimTemplate := createPVC(statefulsetinfo)
 	deployStatefulSet(statefulsetinfo, volClaimTemplate, podTemplateSpec, k8sclient)
 	waitForStatefulSetRunning(statefulsetinfo, k8sclient)
 }
 
-func createStorageClass(storageClassName string, k8sclient crclient.Client) {
+func createStorageClass(isIntree bool, storageClassName string, k8sclient crclient.Client) {
 	shared.Byf("Creating StorageClass object with name: %s", storageClassName)
 	volExpansion := true
 	bindingMode := storagev1.VolumeBindingWaitForFirstConsumer
 	azs := shared.GetAvailabilityZones(e2eCtx.AWSSession)
-	storageClass := storagev1.StorageClass{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "storage.k8s.io/v1",
-			Kind:       "StorageClass",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: storageClassName,
-		},
-		Parameters: map[string]string{
-			"csi.storage.k8s.io/fstype": "xfs",
-			"type":                      "io1",
-			"iopsPerGB":                 "100",
-		},
-		Provisioner:          "ebs.csi.aws.com",
-		AllowVolumeExpansion: &volExpansion,
-		VolumeBindingMode:    &bindingMode,
-		AllowedTopologies: []corev1.TopologySelectorTerm{{
-			MatchLabelExpressions: []corev1.TopologySelectorLabelRequirement{{
-				Key:    shared.StorageClassOutTreeZoneLabel,
-				Values: []string{*azs[0].ZoneName},
-			}},
-		}},
+
+	provisioner := "ebs.csi.aws.com"
+	params := map[string]string{
+		"csi.storage.k8s.io/fstype": "xfs",
+		"type":                      "io1",
+		"iopsPerGB":                 "100",
 	}
-	Expect(k8sclient.Create(context.TODO(), &storageClass)).NotTo(HaveOccurred())
+	allowedTopo := []corev1.TopologySelectorTerm{{
+		MatchLabelExpressions: []corev1.TopologySelectorLabelRequirement{{
+			Key:    shared.StorageClassOutTreeZoneLabel,
+			Values: []string{*azs[0].ZoneName},
+		}},
+	}}
+	if isIntree {
+		provisioner = "kubernetes.io/aws-ebs"
+		params = map[string]string{
+			"type": "gp2",
+		}
+
+		allowedTopo = nil
+	}
+	storageClass := &storagev1.StorageClass{}
+	if err := k8sclient.Get(context.TODO(), crclient.ObjectKey{
+		Name:      storageClassName,
+		Namespace: metav1.NamespaceDefault,
+	}, storageClass); err != nil {
+		if apierrors.IsNotFound(err) {
+			storageClass = &storagev1.StorageClass{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "storage.k8s.io/v1",
+					Kind:       "StorageClass",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: storageClassName,
+				},
+				Parameters:           params,
+				Provisioner:          provisioner,
+				AllowVolumeExpansion: &volExpansion,
+				VolumeBindingMode:    &bindingMode,
+				AllowedTopologies:    allowedTopo,
+			}
+			Expect(k8sclient.Create(context.TODO(), storageClass)).NotTo(HaveOccurred())
+		}
+	}
 }
 
 func deleteCluster(ctx context.Context, cluster *clusterv1.Cluster) {
@@ -341,7 +363,8 @@ func deployStatefulSet(statefulsetinfo statefulSetInfo, volClaimTemp corev1.Pers
 			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{volClaimTemp},
 		},
 	}
-	Expect(k8sclient.Create(context.TODO(), &statefulset)).NotTo(HaveOccurred())
+	err := k8sclient.Create(context.TODO(), &statefulset)
+	Expect(err).NotTo(HaveOccurred())
 }
 
 func getEvents(namespace string) *corev1.EventList {
@@ -398,7 +421,16 @@ func getVolumeIds(info statefulSetInfo, k8sclient crclient.Client) []*string {
 		volDescription := &corev1.PersistentVolume{}
 		err = k8sclient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: info.namespace, Name: volName}, volDescription)
 		Expect(err).NotTo(HaveOccurred())
-		url := volDescription.Spec.PersistentVolumeSource.CSI.VolumeHandle
+
+		url := ""
+		// Out-of-tree ebs CSI use .Spec.PersistentVolumeSource.CSI path
+		// In-tree ebs CSI use .Spec.PersistentVolumeSource.AWSElasticBlockStore path
+		if volDescription.Spec.PersistentVolumeSource.CSI != nil {
+			url = volDescription.Spec.PersistentVolumeSource.CSI.VolumeHandle
+		} else if volDescription.Spec.PersistentVolumeSource.AWSElasticBlockStore != nil {
+			str := strings.Split(volDescription.Spec.PersistentVolumeSource.AWSElasticBlockStore.VolumeID, "vol-")
+			url = "vol-" + str[1]
+		}
 		volIDs[i] = &url
 	}
 	return volIDs

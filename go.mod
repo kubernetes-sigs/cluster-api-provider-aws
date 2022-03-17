@@ -22,7 +22,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.12.1
 	github.com/sergi/go-diff v1.2.0
-	github.com/spf13/cobra v1.3.0
+	github.com/spf13/cobra v1.4.0
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	gopkg.in/yaml.v2 v2.4.0
@@ -32,8 +32,8 @@ require (
 	k8s.io/cli-runtime v0.23.0
 	k8s.io/client-go v0.23.0
 	k8s.io/component-base v0.23.0
-	k8s.io/klog/v2 v2.40.1
-	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
+	k8s.io/klog/v2 v2.50.0
+	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9
 	sigs.k8s.io/aws-iam-authenticator v0.5.5
 	sigs.k8s.io/cluster-api v1.1.2
 	sigs.k8s.io/cluster-api/test v1.1.2

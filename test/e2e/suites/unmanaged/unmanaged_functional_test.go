@@ -32,8 +32,10 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/exp/instancestate"
@@ -54,64 +56,6 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	ginkgo.BeforeEach(func() {
 		ctx = context.TODO()
 		result = &clusterctl.ApplyClusterTemplateAndWaitResult{}
-	})
-
-	ginkgo.Describe("Create a cluster that uses the external cloud provider", func() {
-		ginkgo.It("should create volumes dynamically with external cloud provider", func() {
-			specName := "functional-external-cloud-provider"
-			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
-			requiredResources.WriteRequestedResources(e2eCtx, "external-cloud-provider-test")
-			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
-			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
-
-			Expect(e2eCtx.E2EConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
-			Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.KubernetesVersion))
-			shared.CreateAWSClusterControllerIdentity(e2eCtx.Environment.BootstrapClusterProxy.GetClient())
-
-			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
-			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
-			configCluster := defaultConfigCluster(clusterName, namespace.Name)
-			configCluster.Flavor = shared.ExternalCloudProvider
-			configCluster.ControlPlaneMachineCount = pointer.Int64Ptr(1)
-			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
-			cluster, _, _ := createCluster(ctx, configCluster, result)
-
-			ginkgo.By("Creating the LB service")
-			clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterName).GetClient()
-			lbServiceName := "test-svc-" + util.RandomString(6)
-			elbName := createLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
-			verifyElbExists(elbName, true)
-
-			nginxStatefulsetInfo := statefulSetInfo{
-				name:                      "nginx-statefulset",
-				namespace:                 metav1.NamespaceDefault,
-				replicas:                  int32(2),
-				selector:                  map[string]string{"app": "nginx"},
-				storageClassName:          "aws-ebs-volumes",
-				volumeName:                "nginx-volumes",
-				svcName:                   "nginx-svc",
-				svcPort:                   int32(80),
-				svcPortName:               "nginx-web",
-				containerName:             "nginx",
-				containerImage:            "k8s.gcr.io/nginx-slim:0.8",
-				containerPort:             int32(80),
-				podTerminationGracePeriod: int64(30),
-				volMountPath:              "/usr/share/nginx/html",
-			}
-
-			ginkgo.By("Deploying StatefulSet on infra")
-			createStatefulSet(nginxStatefulsetInfo, clusterClient)
-			awsVolIds := getVolumeIds(nginxStatefulsetInfo, clusterClient)
-			verifyVolumesExists(awsVolIds)
-
-			ginkgo.By("Deleting LB service")
-			deleteLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
-
-			deleteCluster(ctx, cluster)
-			ginkgo.By("Deleting retained dynamically provisioned volumes")
-			deleteRetainedVolumes(awsVolIds)
-			ginkgo.By("PASSED!")
-		})
 	})
 
 	ginkgo.Describe("GPU-enabled cluster test", func() {
@@ -250,6 +194,212 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				shared.SetEnvVar("USE_CI_ARTIFACTS", "false", false)
 				deleteCluster(ctx, cluster2)
 			})
+		})
+	})
+
+	ginkgo.Describe("CSI=in-tree CCM=in-tree AWSCSIMigration=off: upgrade to v1.23", func() {
+		ginkgo.It("should create volumes dynamically with external cloud provider", func() {
+			specName := "csimigration-off-upgrade"
+			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, VolumeGP2: 4}
+			requiredResources.WriteRequestedResources(e2eCtx, specName)
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+			namespace := shared.SetupNamespace(ctx, specName, e2eCtx)
+			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
+
+			ginkgo.By("Creating first cluster with single control plane")
+			cluster1Name := fmt.Sprintf("cluster-%s", util.RandomString(6))
+			configCluster := defaultConfigCluster(cluster1Name, namespace.Name)
+			configCluster.KubernetesVersion = e2eCtx.E2EConfig.GetVariable(shared.PreCSIKubernetesVer)
+			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+			createCluster(ctx, configCluster, result)
+
+			// Create statefulSet with PVC and confirm it is working with in-tree providers
+			nginxStatefulsetInfo := createStatefulSetInfo(true, "intree")
+
+			ginkgo.By("Deploying StatefulSet on infra")
+			clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, cluster1Name).GetClient()
+
+			createStatefulSet(nginxStatefulsetInfo, clusterClient)
+			awsVolIds := getVolumeIds(nginxStatefulsetInfo, clusterClient)
+			verifyVolumesExists(awsVolIds)
+
+			kubernetesUgradeVersion := e2eCtx.E2EConfig.GetVariable(shared.PostCSIKubernetesVer)
+			configCluster.KubernetesVersion = kubernetesUgradeVersion
+			configCluster.Flavor = "csimigration-off"
+
+			cluster2, _, kcp := createCluster(ctx, configCluster, result)
+
+			ginkgo.By("Waiting for control-plane machines to have the upgraded kubernetes version")
+			framework.WaitForControlPlaneMachinesToBeUpgraded(ctx, framework.WaitForControlPlaneMachinesToBeUpgradedInput{
+				Lister:                   e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				Cluster:                  cluster2,
+				MachineCount:             int(*kcp.Spec.Replicas),
+				KubernetesUpgradeVersion: kubernetesUgradeVersion,
+			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-contolplane-upgrade")...)
+
+			ginkgo.By("Creating the LB service")
+			lbServiceName := "test-svc-" + util.RandomString(6)
+			elbName := createLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
+			verifyElbExists(elbName, true)
+
+			ginkgo.By("Checking v1.22 StatefulSet still healthy after the upgrade")
+			waitForStatefulSetRunning(nginxStatefulsetInfo, clusterClient)
+
+			nginxStatefulsetInfo2 := createStatefulSetInfo(true, "postupgrade")
+
+			ginkgo.By("Deploying StatefulSet on infra when K8s >= 1.23")
+			createStatefulSet(nginxStatefulsetInfo2, clusterClient)
+			awsVolIds = getVolumeIds(nginxStatefulsetInfo2, clusterClient)
+			verifyVolumesExists(awsVolIds)
+
+			ginkgo.By("Deleting LB service")
+			deleteLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
+
+			ginkgo.By("Deleting the Clusters")
+			deleteCluster(ctx, cluster2)
+
+			ginkgo.By("Deleting retained dynamically provisioned volumes")
+			deleteRetainedVolumes(awsVolIds)
+			ginkgo.By("PASSED!")
+		})
+	})
+
+	ginkgo.Describe("CSI=external CCM=in-tree AWSCSIMigration=on: upgrade to v1.23", func() {
+		ginkgo.It("should create volumes dynamically with external cloud provider", func() {
+			specName := "only-csi-external-upgrade"
+			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, VolumeGP2: 4}
+			requiredResources.WriteRequestedResources(e2eCtx, specName)
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+			namespace := shared.SetupNamespace(ctx, specName, e2eCtx)
+			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
+			ginkgo.By("Creating first cluster with single control plane")
+			cluster1Name := fmt.Sprintf("cluster-%s", util.RandomString(6))
+
+			configCluster := defaultConfigCluster(cluster1Name, namespace.Name)
+			configCluster.KubernetesVersion = e2eCtx.E2EConfig.GetVariable(shared.PreCSIKubernetesVer)
+			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+			createCluster(ctx, configCluster, result)
+
+			// Create statefulSet with PVC and confirm it is working with in-tree providers
+			nginxStatefulsetInfo := createStatefulSetInfo(true, "intree")
+
+			ginkgo.By("Deploying StatefulSet on infra")
+			clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, cluster1Name).GetClient()
+
+			createStatefulSet(nginxStatefulsetInfo, clusterClient)
+			awsVolIds := getVolumeIds(nginxStatefulsetInfo, clusterClient)
+			verifyVolumesExists(awsVolIds)
+
+			kubernetesUgradeVersion := e2eCtx.E2EConfig.GetVariable(shared.PostCSIKubernetesVer)
+
+			configCluster.KubernetesVersion = kubernetesUgradeVersion
+			configCluster.Flavor = "external-csi"
+
+			cluster2, _, kcp := createCluster(ctx, configCluster, result)
+
+			ginkgo.By("Waiting for control-plane machines to have the upgraded kubernetes version")
+			framework.WaitForControlPlaneMachinesToBeUpgraded(ctx, framework.WaitForControlPlaneMachinesToBeUpgradedInput{
+				Lister:                   e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				Cluster:                  cluster2,
+				MachineCount:             int(*kcp.Spec.Replicas),
+				KubernetesUpgradeVersion: kubernetesUgradeVersion,
+			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-contolplane-upgrade")...)
+
+			ginkgo.By("Creating the LB service")
+			lbServiceName := "test-svc-" + util.RandomString(6)
+			elbName := createLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
+			verifyElbExists(elbName, true)
+
+			ginkgo.By("Checking v1.22 StatefulSet still healthy after the upgrade")
+			waitForStatefulSetRunning(nginxStatefulsetInfo, clusterClient)
+
+			nginxStatefulsetInfo2 := createStatefulSetInfo(false, "postupgrade")
+
+			ginkgo.By("Deploying StatefulSet on infra when K8s >= 1.23")
+			createStatefulSet(nginxStatefulsetInfo2, clusterClient)
+			awsVolIds = getVolumeIds(nginxStatefulsetInfo2, clusterClient)
+			verifyVolumesExists(awsVolIds)
+
+			ginkgo.By("Deleting LB service")
+			deleteLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
+
+			ginkgo.By("Deleting the Clusters")
+			deleteCluster(ctx, cluster2)
+
+			ginkgo.By("Deleting retained dynamically provisioned volumes")
+			deleteRetainedVolumes(awsVolIds)
+			ginkgo.By("PASSED!")
+		})
+	})
+
+	ginkgo.Describe("CSI=external CCM=external AWSCSIMigration=on: upgrade to v1.23", func() {
+		ginkgo.It("should create volumes dynamically with external cloud provider", func() {
+			specName := "csi-ccm-external-upgrade"
+			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, VolumeGP2: 4}
+			requiredResources.WriteRequestedResources(e2eCtx, specName)
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+			namespace := shared.SetupNamespace(ctx, specName, e2eCtx)
+			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
+
+			ginkgo.By("Creating first cluster with single control plane")
+			cluster1Name := fmt.Sprintf("cluster-%s", util.RandomString(6))
+			configCluster := defaultConfigCluster(cluster1Name, namespace.Name)
+			configCluster.KubernetesVersion = e2eCtx.E2EConfig.GetVariable(shared.PreCSIKubernetesVer)
+
+			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+			createCluster(ctx, configCluster, result)
+
+			// Create statefulSet with PVC and confirm it is working with in-tree providers
+			nginxStatefulsetInfo := createStatefulSetInfo(true, "intree")
+
+			ginkgo.By("Deploying StatefulSet on infra")
+			clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, cluster1Name).GetClient()
+
+			createStatefulSet(nginxStatefulsetInfo, clusterClient)
+			awsVolIds := getVolumeIds(nginxStatefulsetInfo, clusterClient)
+			verifyVolumesExists(awsVolIds)
+
+			kubernetesUgradeVersion := e2eCtx.E2EConfig.GetVariable(shared.PostCSIKubernetesVer)
+			configCluster.KubernetesVersion = kubernetesUgradeVersion
+			configCluster.Flavor = "external-cloud-provider"
+
+			cluster2, _, kcp := createCluster(ctx, configCluster, result)
+
+			ginkgo.By("Waiting for control-plane machines to have the upgraded kubernetes version")
+			framework.WaitForControlPlaneMachinesToBeUpgraded(ctx, framework.WaitForControlPlaneMachinesToBeUpgradedInput{
+				Lister:                   e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				Cluster:                  cluster2,
+				MachineCount:             int(*kcp.Spec.Replicas),
+				KubernetesUpgradeVersion: kubernetesUgradeVersion,
+			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-contolplane-upgrade")...)
+
+			ginkgo.By("Creating the LB service")
+			lbServiceName := "test-svc-" + util.RandomString(6)
+			elbName := createLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
+			verifyElbExists(elbName, true)
+
+			ginkgo.By("Checking v1.22 StatefulSet still healthy after the upgrade")
+			waitForStatefulSetRunning(nginxStatefulsetInfo, clusterClient)
+
+			nginxStatefulsetInfo2 := createStatefulSetInfo(false, "postupgrade")
+
+			ginkgo.By("Deploying StatefulSet on infra when K8s >= 1.23")
+			createStatefulSet(nginxStatefulsetInfo2, clusterClient)
+			awsVolIds = getVolumeIds(nginxStatefulsetInfo2, clusterClient)
+			verifyVolumesExists(awsVolIds)
+
+			ginkgo.By("Deleting LB service")
+			deleteLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
+
+			ginkgo.By("Deleting the Clusters")
+			deleteCluster(ctx, cluster2)
+
+			ginkgo.By("Deleting retained dynamically provisioned volumes")
+			deleteRetainedVolumes(awsVolIds)
+			ginkgo.By("PASSED!")
 		})
 	})
 
@@ -647,7 +797,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			Expect(shared.ReleaseAddress(e2eCtx, allocationID)).To(BeTrue())
 
 			ginkgo.By("Detaching Internet gateway")
-			Expect(shared.DetachInternetGateway(e2eCtx, igwID, vpcID)).To(BeTrue())
+			Eventually(shared.DetachInternetGateway(e2eCtx, igwID, vpcID), 30*time.Second).Should(BeTrue())
 
 			ginkgo.By("Deleting Internet gateway")
 			Expect(shared.DeleteInternetGateway(e2eCtx, igwID)).To(BeTrue())
@@ -666,4 +816,244 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			Expect(shared.DeleteVPC(e2eCtx, vpcID)).To(BeTrue())
 		})
 	})
+
+	ginkgo.Describe("Peerings and internal ELB", func() {
+		ginkgo.It("should create external clusters in peered VPC and with an internal ELB", func() {
+			specName := "functional-test-peered-internal-elb"
+			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 5}
+			requiredResources.WriteRequestedResources(e2eCtx, specName)
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
+			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
+
+			ginkgo.By("Creating the management cluster infrastructure")
+			mgmtClusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
+			mgmtClusterInfra := new(shared.AWSInfrastructure)
+			mgmtClusterInfra.New(shared.AWSInfrastructureSpec{
+				ClusterName:       mgmtClusterName,
+				VpcCidr:           "10.0.0.0/23",
+				PublicSubnetCidr:  "10.0.0.0/24",
+				PrivateSubnetCidr: "10.0.1.0/24",
+				AvailabilityZone:  "us-west-2a",
+			}, e2eCtx)
+			mgmtClusterInfra.CreateInfrastructure()
+			Expect(mgmtClusterInfra.VPC).NotTo(BeNil())
+			Expect(*mgmtClusterInfra.State.VpcState).To(Equal("available"))
+			Expect(len(mgmtClusterInfra.Subnets)).To(Equal(2))
+			Expect(mgmtClusterInfra.InternetGateway).NotTo(BeNil())
+			Expect(mgmtClusterInfra.ElasticIP).NotTo(BeNil())
+			Expect(mgmtClusterInfra.NatGateway).NotTo(BeNil())
+			Expect(len(mgmtClusterInfra.RouteTables)).To(Equal(2))
+
+			ginkgo.By("Creating the workload cluster infrastructure")
+			wlClusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
+			wlClusterInfra := new(shared.AWSInfrastructure)
+			wlClusterInfra.New(shared.AWSInfrastructureSpec{
+				ClusterName:       wlClusterName,
+				VpcCidr:           "10.0.2.0/23",
+				PublicSubnetCidr:  "10.0.2.0/24",
+				PrivateSubnetCidr: "10.0.3.0/24",
+				AvailabilityZone:  "us-west-2a",
+			}, e2eCtx)
+			wlClusterInfra.CreateInfrastructure()
+			Expect(wlClusterInfra.VPC).NotTo(BeNil())
+			Expect(*wlClusterInfra.State.VpcState).To(Equal("available"))
+			Expect(len(wlClusterInfra.Subnets)).To(Equal(2))
+			Expect(wlClusterInfra.InternetGateway).NotTo(BeNil())
+			Expect(wlClusterInfra.ElasticIP).NotTo(BeNil())
+			Expect(wlClusterInfra.NatGateway).NotTo(BeNil())
+			Expect(len(wlClusterInfra.RouteTables)).To(Equal(2))
+
+			shared.SetEnvVar("MGMT_VPC_ID", *mgmtClusterInfra.VPC.VpcId, false)
+			shared.SetEnvVar("WL_VPC_ID", *wlClusterInfra.VPC.VpcId, false)
+			shared.SetEnvVar("MGMT_PUBLIC_SUBNET_ID", *mgmtClusterInfra.State.PublicSubnetID, false)
+			shared.SetEnvVar("MGMT_PRIVATE_SUBNET_ID", *mgmtClusterInfra.State.PrivateSubnetID, false)
+			shared.SetEnvVar("WL_PUBLIC_SUBNET_ID", *wlClusterInfra.State.PublicSubnetID, false)
+			shared.SetEnvVar("WL_PRIVATE_SUBNET_ID", *wlClusterInfra.State.PrivateSubnetID, false)
+
+			ginkgo.By("Creating VPC peerings")
+			cPeering, _ := shared.CreatePeering(e2eCtx, mgmtClusterName+"-"+wlClusterName, *mgmtClusterInfra.VPC.VpcId, *wlClusterInfra.VPC.VpcId)
+			Expect(cPeering).NotTo(BeNil())
+			Eventually(func() bool {
+				aPeering, err := shared.AcceptPeering(e2eCtx, *cPeering.VpcPeeringConnectionId)
+				if err != nil {
+					return false
+				}
+				return aPeering != nil
+			}, 60*time.Second).Should(BeTrue())
+
+			ginkgo.By("Creating routes for peerings")
+			shared.CreateRoute(e2eCtx, *mgmtClusterInfra.State.PublicRouteTableID, "10.0.2.0/23", nil, nil, cPeering.VpcPeeringConnectionId)
+			shared.CreateRoute(e2eCtx, *mgmtClusterInfra.State.PrivateRouteTableID, "10.0.2.0/23", nil, nil, cPeering.VpcPeeringConnectionId)
+			shared.CreateRoute(e2eCtx, *wlClusterInfra.State.PublicRouteTableID, "10.0.0.0/23", nil, nil, cPeering.VpcPeeringConnectionId)
+			shared.CreateRoute(e2eCtx, *wlClusterInfra.State.PrivateRouteTableID, "10.0.0.0/23", nil, nil, cPeering.VpcPeeringConnectionId)
+
+			ginkgo.By("Creating a management cluster in a peered VPC")
+			mgmtConfigCluster := defaultConfigCluster(mgmtClusterName, namespace.Name)
+			mgmtConfigCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+			mgmtConfigCluster.Flavor = "peered-remote"
+			mgmtCluster, mgmtMD, _ := createCluster(ctx, mgmtConfigCluster, result)
+
+			mgmtWM := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
+				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				ClusterName:       mgmtClusterName,
+				Namespace:         namespace.Name,
+				MachineDeployment: *mgmtMD[0],
+			})
+			mgmtCPM := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
+				Lister:      e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				ClusterName: mgmtClusterName,
+				Namespace:   namespace.Name,
+			})
+			Expect(len(mgmtWM)).To(Equal(1))
+			Expect(len(mgmtCPM)).To(Equal(1))
+
+			mgmtClusterProxy := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, mgmtCluster.Namespace, mgmtCluster.Name)
+
+			shared.Byf("Creating a namespace for hosting the %s test spec", specName)
+			mgmtNamespace := framework.CreateNamespace(ctx, framework.CreateNamespaceInput{
+				Creator: mgmtClusterProxy.GetClient(),
+				Name:    namespace.Name,
+			})
+
+			ginkgo.By("Initializing the management cluster")
+			clusterctl.InitManagementClusterAndWatchControllerLogs(ctx, clusterctl.InitManagementClusterAndWatchControllerLogsInput{
+				ClusterProxy:            mgmtClusterProxy,
+				ClusterctlConfigPath:    e2eCtx.Environment.ClusterctlConfigPath,
+				InfrastructureProviders: e2eCtx.E2EConfig.InfrastructureProviders(),
+				LogFolder:               filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", mgmtCluster.Name),
+			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-controllers")...)
+
+			ginkgo.By("Ensure API servers are stable before doing the move")
+			Consistently(func() error {
+				kubeSystem := &corev1.Namespace{}
+				return e2eCtx.Environment.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
+			}, "5s", "100ms").Should(BeNil(), "Failed to assert bootstrap API server stability")
+			Consistently(func() error {
+				kubeSystem := &corev1.Namespace{}
+				return mgmtClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
+			}, "5s", "100ms").Should(BeNil(), "Failed to assert management API server stability")
+
+			ginkgo.By("Moving the management cluster to be self hosted")
+			clusterctl.Move(ctx, clusterctl.MoveInput{
+				LogFolder:            filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", "bootstrap"),
+				ClusterctlConfigPath: e2eCtx.Environment.ClusterctlConfigPath,
+				FromKubeconfigPath:   e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
+				ToKubeconfigPath:     mgmtClusterProxy.GetKubeconfigPath(),
+				Namespace:            namespace.Name,
+			})
+
+			mgmtCluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
+				Getter:    mgmtClusterProxy.GetClient(),
+				Namespace: mgmtNamespace.Name,
+				Name:      mgmtCluster.Name,
+			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster")...)
+
+			mgmtControlPlane := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
+				Lister:      mgmtClusterProxy.GetClient(),
+				ClusterName: mgmtCluster.Name,
+				Namespace:   mgmtCluster.Namespace,
+			})
+			Expect(mgmtControlPlane).ToNot(BeNil())
+
+			ginkgo.By("Creating a namespace to host the internal-elb spec")
+			wlNamespace := framework.CreateNamespace(ctx, framework.CreateNamespaceInput{
+				Creator: mgmtClusterProxy.GetClient(),
+				Name:    wlClusterName,
+			})
+
+			ginkgo.By("Creating workload cluster with internal ELB")
+			wlConfigCluster := defaultConfigCluster(wlClusterName, wlNamespace.Name)
+			wlConfigCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+			wlConfigCluster.Flavor = "internal-elb"
+			wlResult := &clusterctl.ApplyClusterTemplateAndWaitResult{}
+			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+				ClusterProxy:                 mgmtClusterProxy,
+				ConfigCluster:                wlConfigCluster,
+				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals("", "wait-cluster"),
+				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals("", "wait-control-plane"),
+				WaitForMachineDeployments:    e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes"),
+			}, wlResult)
+
+			wlWM := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
+				Lister:            mgmtClusterProxy.GetClient(),
+				ClusterName:       mgmtClusterName,
+				Namespace:         wlNamespace.Name,
+				MachineDeployment: *wlResult.MachineDeployments[0],
+			})
+			wlCPM := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
+				Lister:      mgmtClusterProxy.GetClient(),
+				ClusterName: wlClusterName,
+				Namespace:   wlNamespace.Name,
+			})
+			Expect(len(wlWM)).To(Equal(1))
+			Expect(len(wlCPM)).To(Equal(1))
+
+			ginkgo.By("Deleting the workload cluster")
+			framework.DeleteCluster(ctx, framework.DeleteClusterInput{
+				Deleter: mgmtClusterProxy.GetClient(),
+				Cluster: wlResult.Cluster,
+			})
+
+			framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
+				Getter:  mgmtClusterProxy.GetClient(),
+				Cluster: wlResult.Cluster,
+			}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
+
+			ginkgo.By("Moving the management cluster back to bootstrap")
+			clusterctl.Move(ctx, clusterctl.MoveInput{
+				LogFolder:            filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", mgmtCluster.Name),
+				ClusterctlConfigPath: e2eCtx.Environment.ClusterctlConfigPath,
+				FromKubeconfigPath:   mgmtClusterProxy.GetKubeconfigPath(),
+				ToKubeconfigPath:     e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
+				Namespace:            namespace.Name,
+			})
+
+			mgmtCluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
+				Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				Namespace: mgmtNamespace.Name,
+				Name:      mgmtCluster.Name,
+			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster")...)
+
+			mgmtControlPlane = framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
+				Lister:      e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				ClusterName: mgmtCluster.Name,
+				Namespace:   mgmtCluster.Namespace,
+			})
+			Expect(mgmtControlPlane).ToNot(BeNil())
+
+			ginkgo.By("Deleting the management cluster")
+			deleteCluster(ctx, mgmtCluster)
+
+			ginkgo.By("Deleting peering connection")
+			Expect(shared.DeletePeering(e2eCtx, *cPeering.VpcPeeringConnectionId)).To(BeTrue())
+
+			ginkgo.By("Deleting the workload cluster infrastructure")
+			wlClusterInfra.DeleteInfrastructure()
+
+			ginkgo.By("Deleting the management cluster infrastructure")
+			mgmtClusterInfra.DeleteInfrastructure()
+		})
+	})
 })
+
+func createStatefulSetInfo(isIntreeCSI bool, prefix string) statefulSetInfo {
+	return statefulSetInfo{
+		name:                      fmt.Sprintf("%s%s", prefix, "-nginx-statefulset"),
+		namespace:                 metav1.NamespaceDefault,
+		replicas:                  int32(2),
+		selector:                  map[string]string{"app": fmt.Sprintf("%s%s", prefix, "-nginx")},
+		storageClassName:          fmt.Sprintf("%s%s", prefix, "-aws-ebs-volumes"),
+		volumeName:                fmt.Sprintf("%s%s", prefix, "-volumes"),
+		svcName:                   fmt.Sprintf("%s%s", prefix, "-svc"),
+		svcPort:                   int32(80),
+		svcPortName:               fmt.Sprintf("%s%s", prefix, "-web"),
+		containerName:             fmt.Sprintf("%s%s", prefix, "-nginx"),
+		containerImage:            "k8s.gcr.io/nginx-slim:0.8",
+		containerPort:             int32(80),
+		podTerminationGracePeriod: int64(30),
+		volMountPath:              "/usr/share/nginx/html",
+		isInTreeCSI:               isIntreeCSI,
+	}
+}
