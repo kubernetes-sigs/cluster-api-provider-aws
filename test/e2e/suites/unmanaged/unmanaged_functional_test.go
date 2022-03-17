@@ -835,6 +835,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				VpcCidr:           "10.0.0.0/23",
 				PublicSubnetCidr:  "10.0.0.0/24",
 				PrivateSubnetCidr: "10.0.1.0/24",
+				AvailabilityZone:  "us-west-2a",
 			}, e2eCtx)
 			mgmtClusterInfra.CreateInfrastructure()
 			Expect(mgmtClusterInfra.VPC).NotTo(BeNil())
@@ -853,6 +854,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				VpcCidr:           "10.0.2.0/23",
 				PublicSubnetCidr:  "10.0.2.0/24",
 				PrivateSubnetCidr: "10.0.3.0/24",
+				AvailabilityZone:  "us-west-2a",
 			}, e2eCtx)
 			wlClusterInfra.CreateInfrastructure()
 			Expect(wlClusterInfra.VPC).NotTo(BeNil())
