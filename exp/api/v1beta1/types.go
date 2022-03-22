@@ -251,3 +251,21 @@ func (t *Taints) Contains(taint *Taint) bool {
 
 	return false
 }
+
+// UpdateConfig is the configuration options for updating a nodegroup. Only one of MaxUnavailable
+// and MaxUnavailablePercentage should be specified.
+type UpdateConfig struct {
+	// MaxUnavailable is the maximum number of nodes unavailable at once during a version update.
+	// Nodes will be updated in parallel. The maximum number is 100.
+	// +optional
+	// +kubebuilder:validation:Maximum=100
+	// +kubebuilder:validation:Minimum=1
+	MaxUnavailable *int `json:"maxUnavailable,omitempty"`
+
+	// MaxUnavailablePercentage is the maximum percentage of nodes unavailable during a version update. This
+	// percentage of nodes will be updated in parallel, up to 100 nodes at once.
+	// +optional
+	// +kubebuilder:validation:Maximum=100
+	// +kubebuilder:validation:Minimum=1
+	MaxUnavailablePercentage *int `json:"maxUnavailablePrecentage,omitempty"`
+}

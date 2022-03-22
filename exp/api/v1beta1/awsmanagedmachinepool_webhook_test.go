@@ -20,6 +20,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -85,6 +86,41 @@ func TestAWSManagedMachinePool_ValidateCreate(t *testing.T) {
 						"":                         "value-2",
 						strings.Repeat("CAPI", 33): "value-3",
 						"key-4":                    strings.Repeat("CAPI", 65),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid update config",
+			pool: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-3",
+					UpdateConfig: &UpdateConfig{
+						MaxUnavailable: aws.Int(1),
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "update config with no values",
+			pool: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-3",
+					UpdateConfig:     &UpdateConfig{},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "update config with both values",
+			pool: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-3",
+					UpdateConfig: &UpdateConfig{
+						MaxUnavailable:           aws.Int(1),
+						MaxUnavailablePercentage: aws.Int(10),
 					},
 				},
 			},
@@ -169,6 +205,40 @@ func TestAWSManagedMachinePool_ValidateUpdate(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "adding update config is accepted",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					UpdateConfig: &UpdateConfig{
+						MaxUnavailablePercentage: aws.Int(10),
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "removing update config is accepted",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					UpdateConfig: &UpdateConfig{
+						MaxUnavailablePercentage: aws.Int(10),
+					},
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
