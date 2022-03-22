@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/version"
 
@@ -111,6 +112,12 @@ func (s *NodegroupService) scalingConfig() *eks.NodegroupScalingConfig {
 		cfg.MinSize = aws.Int64(int64(*scaling.MinSize))
 	}
 	return &cfg
+}
+
+func (s *NodegroupService) updateConfig() *eks.NodegroupUpdateConfig {
+	updateConfig := s.scope.ManagedMachinePool.Spec.UpdateConfig
+
+	return converters.NodegroupUpdateconfigToSDK(updateConfig)
 }
 
 func (s *NodegroupService) roleArn() (*string, error) {
@@ -208,6 +215,7 @@ func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
 		Labels:        aws.StringMap(managedPool.Labels),
 		Tags:          aws.StringMap(tags),
 		RemoteAccess:  remoteAccess,
+		UpdateConfig:  s.updateConfig(),
 	}
 	if managedPool.AMIType != nil {
 		input.AmiType = aws.String(string(*managedPool.AMIType))
@@ -450,6 +458,12 @@ func (s *NodegroupService) reconcileNodegroupConfig(ng *eks.Nodegroup) error {
 		(aws.Int64Value(ng.ScalingConfig.MinSize) != int64(aws.Int32Value(managedPool.Scaling.MinSize)))) {
 		s.V(2).Info("Nodegroup min/max differ from spec, updating scaling configuration", "nodegroup", ng.NodegroupName)
 		input.ScalingConfig = s.scalingConfig()
+		needsUpdate = true
+	}
+	currentUpdateConfig := converters.NodegroupUpdateconfigFromSDK(ng.UpdateConfig)
+	if !cmp.Equal(managedPool.UpdateConfig, currentUpdateConfig) {
+		s.V(2).Info("Nodegroup update configuration differs from spec, updating the nodegroup update config", "nodegroup", ng.NodegroupName)
+		input.UpdateConfig = s.updateConfig()
 		needsUpdate = true
 	}
 	if !needsUpdate {
