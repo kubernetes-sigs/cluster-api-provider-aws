@@ -17,11 +17,11 @@ limitations under the License.
 package v1beta1
 
 import (
-	"reflect"
 	"sort"
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
@@ -83,7 +83,7 @@ func TestTags_Merge(t *testing.T) {
 			}
 
 			tags.Merge(tc.other)
-			if e, a := tc.expected, tags; !reflect.DeepEqual(e, a) {
+			if e, a := tc.expected, tags; !cmp.Equal(e, a) {
 				t.Errorf("expected %#v, got %#v", e, a)
 			}
 		})
@@ -159,7 +159,7 @@ func TestTags_Difference(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			out := tc.self.Difference(tc.input)
-			if e, a := tc.expected, out; !reflect.DeepEqual(e, a) {
+			if e, a := tc.expected, out; !cmp.Equal(e, a) {
 				t.Errorf("expected %#v, got %#v", e, a)
 			}
 		})
@@ -278,7 +278,7 @@ func TestTags_Validate(t *testing.T) {
 			sort.Slice(out, getSortFieldErrorsFunc(out))
 			sort.Slice(tc.expected, getSortFieldErrorsFunc(tc.expected))
 
-			if !reflect.DeepEqual(out, tc.expected) {
+			if !cmp.Equal(out, tc.expected) {
 				t.Errorf("expected %+v, got %+v", tc.expected, out)
 			}
 		})

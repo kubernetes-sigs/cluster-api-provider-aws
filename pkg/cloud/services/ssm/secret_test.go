@@ -18,7 +18,6 @@ package ssm
 
 import (
 	"math/rand"
-	"reflect"
 	"sort"
 	"strings"
 	"testing"
@@ -26,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -112,7 +112,7 @@ func TestService_Create(t *testing.T) {
 							t.Fatalf("Prefix is not as expected: %v", putParameterInput.Name)
 						}
 						sortTagsByKey(putParameterInput.Tags)
-						if !reflect.DeepEqual(putParameterInput.Tags, expectedTags) {
+						if !cmp.Equal(putParameterInput.Tags, expectedTags) {
 							t.Fatalf("Tags are not as expected, actual: %v, expected: %v", putParameterInput.Tags, expectedTags)
 						}
 					},
@@ -132,7 +132,7 @@ func TestService_Create(t *testing.T) {
 							t.Fatalf("Prefix is not as expected: %v", putParameterInput.Name)
 						}
 						sortTagsByKey(putParameterInput.Tags)
-						if !reflect.DeepEqual(putParameterInput.Tags, expectedTags) {
+						if !cmp.Equal(putParameterInput.Tags, expectedTags) {
 							t.Fatalf("Tags are not as expected, actual: %v, expected: %v", putParameterInput.Tags, expectedTags)
 						}
 					},

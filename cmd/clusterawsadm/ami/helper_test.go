@@ -17,8 +17,9 @@ limitations under the License.
 package ami
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestAllPatchVersions(t *testing.T) {
@@ -44,7 +45,7 @@ func TestAllPatchVersions(t *testing.T) {
 			if err != nil {
 				t.Fatalf("error while fetching patch versions %+v", err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
+			if !cmp.Equal(got, tt.want) {
 				t.Errorf("allPatchesForVersion() got = %v, want %v", got, tt.want)
 			}
 		})

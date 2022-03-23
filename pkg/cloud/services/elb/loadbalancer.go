@@ -18,7 +18,6 @@ package elb
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
@@ -27,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	rgapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -93,7 +93,7 @@ func (s *Service) ReconcileLoadbalancers() error {
 	}
 
 	if apiELB.IsManaged(s.scope.Name()) {
-		if !reflect.DeepEqual(spec.Attributes, apiELB.Attributes) {
+		if !cmp.Equal(spec.Attributes, apiELB.Attributes) {
 			err := s.configureAttributes(apiELB.Name, spec.Attributes)
 			if err != nil {
 				return err

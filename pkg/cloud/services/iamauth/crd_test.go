@@ -18,10 +18,10 @@ package iamauth
 
 import (
 	"context"
-	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -148,7 +148,7 @@ func TestAddRoleMappingCRD(t *testing.T) {
 			for _, actualMapping := range mappings.Items {
 				found := false
 				for _, expectedMappingSpec := range tc.expectedRoleMapSpecs {
-					if reflect.DeepEqual(actualMapping.Spec, expectedMappingSpec) {
+					if cmp.Equal(actualMapping.Spec, expectedMappingSpec) {
 						found = true
 					}
 				}
@@ -275,7 +275,7 @@ func TestAddUserMappingCRD(t *testing.T) {
 			for _, actualMapping := range mappings.Items {
 				found := false
 				for _, expectedMappingSpec := range tc.expectedUserMapSpecs {
-					if reflect.DeepEqual(actualMapping.Spec, expectedMappingSpec) {
+					if cmp.Equal(actualMapping.Spec, expectedMappingSpec) {
 						found = true
 					}
 				}
