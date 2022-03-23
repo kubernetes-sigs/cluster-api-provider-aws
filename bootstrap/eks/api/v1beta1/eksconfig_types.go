@@ -51,6 +51,15 @@ type EKSConfigSpec struct {
 	// the ip family will be set to ipv6.
 	// +optional
 	ServiceIPV6Cidr *string `json:"serviceIPV6Cidr,omitempty"`
+	// PreBootstrapCommands specifies extra commands to run before bootstrapping nodes to the cluster
+	// +optional
+	PreBootstrapCommands []string `json:"preBootstrapCommands,omitempty"`
+	// PostBootstrapCommands specifies extra commands to run after bootstrapping nodes to the cluster
+	// +optional
+	PostBootstrapCommands []string `json:"postBootstrapCommands,omitempty"`
+	// BootstrapCommandOverride allows you to override the bootstrap command to use for EKS nodes.
+	// +optional
+	BootstrapCommandOverride *string `json:"boostrapCommandOverride,omitempty"`
 }
 
 // PauseContainer contains details of pause container.
