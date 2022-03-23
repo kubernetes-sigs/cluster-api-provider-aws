@@ -110,6 +110,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				AWSSession:            e2eCtx.BootstrapUserAWSSession,
 				Namespace:             namespace,
 				ClusterName:           clusterName,
+				IncludeLBTest:         true,
 				Replicas:              1,
 				Cleanup:               true,
 			}
@@ -124,6 +125,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				AWSSession:            e2eCtx.BootstrapUserAWSSession,
 				Namespace:             namespace,
 				ClusterName:           clusterName,
+				IncludeLBTest:         true,
 				IncludeScaling:        true,
 				Cleanup:               true,
 			}
@@ -136,7 +138,6 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 			Name:      clusterName,
 		})
 		Expect(cluster).NotTo(BeNil(), "couldn't find CAPI cluster")
-
 		framework.DeleteCluster(ctx, framework.DeleteClusterInput{
 			Deleter: e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Cluster: cluster,
