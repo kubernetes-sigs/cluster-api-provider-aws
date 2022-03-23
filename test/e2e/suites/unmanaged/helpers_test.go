@@ -30,9 +30,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/blang/semver"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -112,52 +110,6 @@ func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigCluste
 	}
 }
 
-func createLBService(svcNamespace string, svcName string, k8sclient crclient.Client) string {
-	shared.Byf("Creating service of type Load Balancer with name: %s under namespace: %s", svcName, svcNamespace)
-	svcSpec := corev1.ServiceSpec{
-		Type: corev1.ServiceTypeLoadBalancer,
-		Ports: []corev1.ServicePort{
-			{
-				Port:     80,
-				Protocol: corev1.ProtocolTCP,
-			},
-		},
-		Selector: map[string]string{
-			"app": "nginx",
-		},
-	}
-	createService(svcName, svcNamespace, nil, svcSpec, k8sclient)
-	// this sleep is required for the service to get updated with ingress details
-	time.Sleep(15 * time.Second)
-	svcCreated := &corev1.Service{}
-	err := k8sclient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: svcNamespace, Name: svcName}, svcCreated)
-	Expect(err).NotTo(HaveOccurred())
-	elbName := ""
-	if lbs := len(svcCreated.Status.LoadBalancer.Ingress); lbs > 0 {
-		ingressHostname := svcCreated.Status.LoadBalancer.Ingress[0].Hostname
-		elbName = strings.Split(ingressHostname, "-")[0]
-	}
-	shared.Byf("Created Load Balancer service and ELB name is: %s", elbName)
-
-	return elbName
-}
-
-func deleteLBService(svcNamespace string, svcName string, k8sclient crclient.Client) {
-	svcSpec := corev1.ServiceSpec{
-		Type: corev1.ServiceTypeLoadBalancer,
-		Ports: []corev1.ServicePort{
-			{
-				Port:     80,
-				Protocol: corev1.ProtocolTCP,
-			},
-		},
-		Selector: map[string]string{
-			"app": "nginx",
-		},
-	}
-	deleteService(svcName, svcNamespace, nil, svcSpec, k8sclient)
-}
-
 func createPodTemplateSpec(statefulsetinfo statefulSetInfo) corev1.PodTemplateSpec {
 	ginkgo.By("Creating PodTemplateSpec config object")
 	podTemplateSpec := corev1.PodTemplateSpec{
@@ -209,34 +161,6 @@ func createPVC(statefulsetinfo statefulSetInfo) corev1.PersistentVolumeClaim {
 	return volClaimTemplate
 }
 
-func createService(svcName string, svcNamespace string, labels map[string]string, serviceSpec corev1.ServiceSpec, k8sClient crclient.Client) {
-	svcToCreate := corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: svcNamespace,
-			Name:      svcName,
-		},
-		Spec: serviceSpec,
-	}
-	if len(labels) > 0 {
-		svcToCreate.ObjectMeta.Labels = labels
-	}
-	Expect(k8sClient.Create(context.TODO(), &svcToCreate)).NotTo(HaveOccurred())
-}
-
-func deleteService(svcName string, svcNamespace string, labels map[string]string, serviceSpec corev1.ServiceSpec, k8sClient crclient.Client) {
-	svcToDelete := corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: svcNamespace,
-			Name:      svcName,
-		},
-		Spec: serviceSpec,
-	}
-	if len(labels) > 0 {
-		svcToDelete.ObjectMeta.Labels = labels
-	}
-	Expect(k8sClient.Delete(context.TODO(), &svcToDelete)).NotTo(HaveOccurred())
-}
-
 func createStatefulSet(statefulsetinfo statefulSetInfo, k8sclient crclient.Client) {
 	ginkgo.By("Creating statefulset")
 	svcSpec := corev1.ServiceSpec{
@@ -249,7 +173,7 @@ func createStatefulSet(statefulsetinfo statefulSetInfo, k8sclient crclient.Clien
 		},
 		Selector: statefulsetinfo.selector,
 	}
-	createService(statefulsetinfo.svcName, statefulsetinfo.namespace, statefulsetinfo.selector, svcSpec, k8sclient)
+	shared.CreateService(statefulsetinfo.svcName, statefulsetinfo.namespace, statefulsetinfo.selector, svcSpec, k8sclient)
 	createStorageClass(statefulsetinfo.isInTreeCSI, statefulsetinfo.storageClassName, k8sclient)
 	podTemplateSpec := createPodTemplateSpec(statefulsetinfo)
 	volClaimTemplate := createPVC(statefulsetinfo)
@@ -608,27 +532,6 @@ func terminateInstance(instanceID string) {
 	Expect(len(result.TerminatingInstances)).To(Equal(1))
 	termCode := int64(32)
 	Expect(*result.TerminatingInstances[0].CurrentState.Code).To(Equal(termCode))
-}
-
-func verifyElbExists(elbName string, exists bool) {
-	shared.Byf("Verifying ELB with name %s present", elbName)
-	elbClient := elb.New(e2eCtx.AWSSession)
-	input := &elb.DescribeLoadBalancersInput{
-		LoadBalancerNames: []*string{
-			aws.String(elbName),
-		},
-	}
-	elbsOutput, err := elbClient.DescribeLoadBalancers(input)
-	if exists {
-		Expect(err).NotTo(HaveOccurred())
-		Expect(len(elbsOutput.LoadBalancerDescriptions)).To(Equal(1))
-		shared.Byf("ELB with name %s exists", elbName)
-	} else {
-		aerr, ok := err.(awserr.Error)
-		Expect(ok).To(BeTrue())
-		Expect(aerr.Code()).To(Equal(elb.ErrCodeAccessPointNotFoundException))
-		shared.Byf("ELB with name %s doesn't exists", elbName)
-	}
 }
 
 func verifyVolumesExists(awsVolumeIds []*string) {
