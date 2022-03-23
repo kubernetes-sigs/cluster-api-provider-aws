@@ -209,7 +209,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					},
 				)
 				g.Expect(err).To(BeNil())
-				awsCluster.Status.Network.APIServerELB.DNSName = "www.google.com"
+				awsCluster.Status.Network.APIServerELB.DNSName = DNSName
 				awsCluster.Status.Network.APIServerELB.AvailabilityZones = []string{"us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d", "us-east-1e"}
 				cs.SetSubnets(infrav1.Subnets{
 					{
