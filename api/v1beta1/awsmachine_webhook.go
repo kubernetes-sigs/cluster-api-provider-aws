@@ -17,8 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
-	"reflect"
-
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -111,7 +110,7 @@ func (r *AWSMachine) ValidateUpdate(old runtime.Object) error {
 		delete(cloudInit, "secureSecretsBackend")
 	}
 
-	if !reflect.DeepEqual(oldAWSMachineSpec, newAWSMachineSpec) {
+	if !cmp.Equal(oldAWSMachineSpec, newAWSMachineSpec) {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "cannot be modified"))
 	}
 

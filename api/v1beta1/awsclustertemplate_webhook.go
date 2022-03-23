@@ -17,8 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
-	"reflect"
-
+	"github.com/google/go-cmp/cmp"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -57,7 +56,7 @@ func (r *AWSClusterTemplate) ValidateCreate() error {
 func (r *AWSClusterTemplate) ValidateUpdate(oldRaw runtime.Object) error {
 	old := oldRaw.(*AWSClusterTemplate)
 
-	if !reflect.DeepEqual(r.Spec, old.Spec) {
+	if !cmp.Equal(r.Spec, old.Spec) {
 		return apierrors.NewBadRequest("AWSClusterTemplate.Spec is immutable")
 	}
 	return nil

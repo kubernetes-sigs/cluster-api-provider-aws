@@ -18,7 +18,6 @@ package ec2
 
 import (
 	"encoding/base64"
-	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -26,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
@@ -348,10 +348,10 @@ func TestService_SDKToLaunchTemplate(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("error mismatch: got %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(gotLT, tt.wantLT) {
+			if !cmp.Equal(gotLT, tt.wantLT) {
 				t.Fatalf("launchTemplate mismatch: got %v, want %v", gotLT, tt.wantLT)
 			}
-			if !reflect.DeepEqual(gotHash, tt.wantHash) {
+			if !cmp.Equal(gotHash, tt.wantHash) {
 				t.Fatalf("userDataHash mismatch: got %v, want %v", gotHash, tt.wantHash)
 			}
 		})
@@ -728,9 +728,9 @@ func TestCreateLaunchTemplate(t *testing.T) {
 						LaunchTemplateId: aws.String("launch-template-id"),
 					},
 				}, nil).Do(func(arg *ec2.CreateLaunchTemplateInput) {
-					// formatting added to match arrays during reflect.DeepEqual
+					// formatting added to match arrays during cmp.Equal
 					formatTagsInput(arg)
-					if !reflect.DeepEqual(expectedInput, arg) {
+					if !cmp.Equal(expectedInput, arg) {
 						t.Fatalf("mismatch in input expected: %+v, got: %+v", expectedInput, arg)
 					}
 				})
@@ -778,9 +778,9 @@ func TestCreateLaunchTemplate(t *testing.T) {
 				}
 				m.CreateLaunchTemplate(gomock.AssignableToTypeOf(expectedInput)).Return(nil,
 					awserrors.NewFailedDependency("dependency failure")).Do(func(arg *ec2.CreateLaunchTemplateInput) {
-					// formatting added to match arrays during reflect.DeepEqual
+					// formatting added to match arrays during cmp.Equal
 					formatTagsInput(arg)
-					if !reflect.DeepEqual(expectedInput, arg) {
+					if !cmp.Equal(expectedInput, arg) {
 						t.Fatalf("mismatch in input expected: %+v, got: %+v", expectedInput, arg)
 					}
 				})
@@ -895,9 +895,9 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 					},
 				}, nil).Do(
 					func(arg *ec2.CreateLaunchTemplateVersionInput) {
-						// formatting added to match tags slice during reflect.DeepEqual()
+						// formatting added to match tags slice during cmp.Equal()
 						formatTagsInput(arg)
-						if !reflect.DeepEqual(expectedInput, arg) {
+						if !cmp.Equal(expectedInput, arg) {
 							t.Fatalf("mismatch in input expected: %+v, but got %+v", expectedInput, arg)
 						}
 					})
@@ -936,9 +936,9 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 				m.CreateLaunchTemplateVersion(gomock.AssignableToTypeOf(expectedInput)).Return(nil,
 					awserrors.NewFailedDependency("dependency failure")).Do(
 					func(arg *ec2.CreateLaunchTemplateVersionInput) {
-						// formatting added to match tags slice during reflect.DeepEqual()
+						// formatting added to match tags slice during cmp.Equal()
 						formatTagsInput(arg)
-						if !reflect.DeepEqual(expectedInput, arg) {
+						if !cmp.Equal(expectedInput, arg) {
 							t.Fatalf("mismatch in input expected: %+v, got: %+v", expectedInput, arg)
 						}
 					})
@@ -997,7 +997,7 @@ func TestBuildLaunchTemplateTagSpecificationRequest(t *testing.T) {
 						Tags:         defaultEC2Tags("aws-mp-name", "cluster-name"),
 					},
 				}
-				// sorting tags for comparing each request tags during reflect.DeepEqual()
+				// sorting tags for comparing each request tags during cmp.Equal()
 				for _, each := range res {
 					sortTags(each.Tags)
 				}
