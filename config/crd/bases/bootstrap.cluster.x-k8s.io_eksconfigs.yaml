@@ -205,6 +205,10 @@ spec:
                 description: APIRetryAttempts is the number of retry attempts for
                   AWS API call.
                 type: integer
+              boostrapCommandOverride:
+                description: BootstrapCommandOverride allows you to override the bootstrap
+                  command to use for EKS nodes.
+                type: string
               containerRuntime:
                 description: ContainerRuntime specify the container runtime to use
                   when bootstrapping EKS.
@@ -243,6 +247,18 @@ spec:
                 description: ServiceIPV6Cidr is the ipv6 cidr range of the cluster.
                   If this is specified then the ip family will be set to ipv6.
                 type: string
+              postBootstrapCommands:
+                description: PostBootstrapCommands specifies extra commands to run
+                  after bootstrapping nodes to the cluster
+                items:
+                  type: string
+                type: array
+              preBootstrapCommands:
+                description: PreBootstrapCommands specifies extra commands to run
+                  before bootstrapping nodes to the cluster
+                items:
+                  type: string
+                type: array
               useMaxPods:
                 description: UseMaxPods  sets --max-pods for the kubelet when true.
                 type: boolean

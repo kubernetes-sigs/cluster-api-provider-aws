@@ -46,6 +46,7 @@ func TestNewNode(t *testing.T) {
 				},
 			},
 			expectedBytes: []byte(`#!/bin/bash
+set -o errexit; set -o pipefail; set -o nounset;
 /etc/eks/bootstrap.sh test-cluster
 `),
 			expectErr: false,
@@ -62,6 +63,7 @@ func TestNewNode(t *testing.T) {
 				},
 			},
 			expectedBytes: []byte(`#!/bin/bash
+set -o errexit; set -o pipefail; set -o nounset;
 /etc/eks/bootstrap.sh test-cluster --kubelet-extra-args '--node-labels=node-role.undistro.io/infra=true --register-with-taints=dedicated=infra:NoSchedule'
 `),
 		},
@@ -74,6 +76,7 @@ func TestNewNode(t *testing.T) {
 				},
 			},
 			expectedBytes: []byte(`#!/bin/bash
+set -o errexit; set -o pipefail; set -o nounset;
 /etc/eks/bootstrap.sh test-cluster --container-runtime containerd
 `),
 		},
@@ -90,6 +93,7 @@ func TestNewNode(t *testing.T) {
 				},
 			},
 			expectedBytes: []byte(`#!/bin/bash
+set -o errexit; set -o pipefail; set -o nounset;
 /etc/eks/bootstrap.sh test-cluster --kubelet-extra-args '--node-labels=node-role.undistro.io/infra=true --register-with-taints=dedicated=infra:NoSchedule' --container-runtime containerd
 `),
 		},
@@ -103,6 +107,7 @@ func TestNewNode(t *testing.T) {
 				},
 			},
 			expectedBytes: []byte(`#!/bin/bash
+set -o errexit; set -o pipefail; set -o nounset;
 /etc/eks/bootstrap.sh test-cluster --ip-family ipv6 --service-ipv6-cidr fe80:0000:0000:0000:0204:61ff:fe9d:f156/24
 `),
 		},
@@ -115,6 +120,7 @@ func TestNewNode(t *testing.T) {
 				},
 			},
 			expectedBytes: []byte(`#!/bin/bash
+set -o errexit; set -o pipefail; set -o nounset;
 /etc/eks/bootstrap.sh test-cluster --use-max-pods false
 `),
 		},
@@ -127,6 +133,7 @@ func TestNewNode(t *testing.T) {
 				},
 			},
 			expectedBytes: []byte(`#!/bin/bash
+set -o errexit; set -o pipefail; set -o nounset;
 /etc/eks/bootstrap.sh test-cluster --aws-api-retry-attempts 5
 `),
 		},
@@ -140,6 +147,7 @@ func TestNewNode(t *testing.T) {
 				},
 			},
 			expectedBytes: []byte(`#!/bin/bash
+set -o errexit; set -o pipefail; set -o nounset;
 /etc/eks/bootstrap.sh test-cluster --pause-container-account 12345678 --pause-container-version v1
 `),
 		},
@@ -152,6 +160,7 @@ func TestNewNode(t *testing.T) {
 				},
 			},
 			expectedBytes: []byte(`#!/bin/bash
+set -o errexit; set -o pipefail; set -o nounset;
 /etc/eks/bootstrap.sh test-cluster --dns-cluster-ip 192.168.0.1
 `),
 		},
@@ -164,7 +173,67 @@ func TestNewNode(t *testing.T) {
 				},
 			},
 			expectedBytes: []byte(`#!/bin/bash
+set -o errexit; set -o pipefail; set -o nounset;
 /etc/eks/bootstrap.sh test-cluster --docker-config-json '{"debug":true}'
+`),
+		},
+		{
+			name: "with pre-bootstrap command",
+			args: args{
+				input: &NodeInput{
+					ClusterName:          "test-cluster",
+					PreBootstrapCommands: []string{"date", "echo \"testing\""},
+				},
+			},
+			expectedBytes: []byte(`#!/bin/bash
+set -o errexit; set -o pipefail; set -o nounset;
+date
+echo "testing"
+/etc/eks/bootstrap.sh test-cluster
+`),
+		},
+		{
+			name: "with post-bootstrap command",
+			args: args{
+				input: &NodeInput{
+					ClusterName:           "test-cluster",
+					PostBootstrapCommands: []string{"date", "echo \"testing\""},
+				},
+			},
+			expectedBytes: []byte(`#!/bin/bash
+set -o errexit; set -o pipefail; set -o nounset;
+/etc/eks/bootstrap.sh test-cluster
+date
+echo "testing"
+`),
+		},
+		{
+			name: "with pre & post-bootstrap command",
+			args: args{
+				input: &NodeInput{
+					ClusterName:           "test-cluster",
+					PreBootstrapCommands:  []string{"echo \"testing pre\""},
+					PostBootstrapCommands: []string{"echo \"testing post\""},
+				},
+			},
+			expectedBytes: []byte(`#!/bin/bash
+set -o errexit; set -o pipefail; set -o nounset;
+echo "testing pre"
+/etc/eks/bootstrap.sh test-cluster
+echo "testing post"
+`),
+		},
+		{
+			name: "with bootstrap override command",
+			args: args{
+				input: &NodeInput{
+					ClusterName:              "test-cluster",
+					BootstrapCommandOverride: pointer.String("/custom/mybootstrap.sh"),
+				},
+			},
+			expectedBytes: []byte(`#!/bin/bash
+set -o errexit; set -o pipefail; set -o nounset;
+/custom/mybootstrap.sh test-cluster
 `),
 		},
 	}

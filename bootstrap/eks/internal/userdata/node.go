@@ -25,8 +25,19 @@ import (
 )
 
 const (
+	defaultBootstrapCommand = "/etc/eks/bootstrap.sh"
+
 	nodeUserData = `#!/bin/bash
-/etc/eks/bootstrap.sh {{.ClusterName}} {{- template "args" . }}
+set -o errexit; set -o pipefail; set -o nounset;
+{{- template "commands" .PreBootstrapCommands }}
+{{ .BootstrapCommand }} {{.ClusterName}} {{- template "args" . }}
+{{- template "commands" .PostBootstrapCommands }}
+`
+	commandsTemplate = `{{- define "commands" -}}
+{{ range . }}
+{{.}}
+{{- end -}}
+{{- end -}}
 `
 )
 
@@ -43,8 +54,11 @@ type NodeInput struct {
 	UseMaxPods            *bool
 	// NOTE: currently the IPFamily/ServiceIPV6Cidr isn't exposed to the user.
 	// TODO (richardcase): remove the above comment when IPV6 / dual stack is implemented.
-	IPFamily        *string
-	ServiceIPV6Cidr *string
+	IPFamily                 *string
+	ServiceIPV6Cidr          *string
+	PreBootstrapCommands     []string
+	PostBootstrapCommands    []string
+	BootstrapCommandOverride *string
 }
 
 func (ni *NodeInput) DockerConfigJSONEscaped() string {
@@ -53,6 +67,14 @@ func (ni *NodeInput) DockerConfigJSONEscaped() string {
 	}
 
 	return shellescape.Quote(*ni.DockerConfigJSON)
+}
+
+func (ni *NodeInput) BootstrapCommand() string {
+	if ni.BootstrapCommandOverride != nil && *ni.BootstrapCommandOverride != "" {
+		return *ni.BootstrapCommandOverride
+	}
+
+	return defaultBootstrapCommand
 }
 
 // NewNode returns the user data string to be used on a node instance.
@@ -65,6 +87,10 @@ func NewNode(input *NodeInput) ([]byte, error) {
 
 	if _, err := tm.Parse(kubeletArgsTemplate); err != nil {
 		return nil, fmt.Errorf("failed to parse kubeletExtraArgs template: %w", err)
+	}
+
+	if _, err := tm.Parse(commandsTemplate); err != nil {
+		return nil, fmt.Errorf("failed to parse commandsTemplate template: %w", err)
 	}
 
 	t, err := tm.Parse(nodeUserData)
