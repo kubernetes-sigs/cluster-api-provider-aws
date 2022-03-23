@@ -29,6 +29,7 @@ import (
 type Tags map[string]string
 
 // Equals returns true if the tags are equal.
+// This func is deprecated and should not be used.
 func (t Tags) Equals(other Tags) bool {
 	return cmp.Equal(t, other)
 }
