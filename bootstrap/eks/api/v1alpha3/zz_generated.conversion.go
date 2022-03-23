@@ -213,6 +213,9 @@ func autoConvert_v1beta1_EKSConfigSpec_To_v1alpha3_EKSConfigSpec(in *v1beta1.EKS
 	// WARNING: in.APIRetryAttempts requires manual conversion: does not exist in peer-type
 	// WARNING: in.PauseContainer requires manual conversion: does not exist in peer-type
 	// WARNING: in.UseMaxPods requires manual conversion: does not exist in peer-type
+	// WARNING: in.PreBootstrapCommands requires manual conversion: does not exist in peer-type
+	// WARNING: in.PostBootstrapCommands requires manual conversion: does not exist in peer-type
+	// WARNING: in.BootstrapCommandOverride requires manual conversion: does not exist in peer-type
 	return nil
 }
 

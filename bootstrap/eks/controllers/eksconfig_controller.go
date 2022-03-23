@@ -188,13 +188,16 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 
 	nodeInput := &userdata.NodeInput{
 		// AWSManagedControlPlane webhooks default and validate EKSClusterName
-		ClusterName:      controlPlane.Spec.EKSClusterName,
-		KubeletExtraArgs: config.Spec.KubeletExtraArgs,
-		ContainerRuntime: config.Spec.ContainerRuntime,
-		DNSClusterIP:     config.Spec.DNSClusterIP,
-		DockerConfigJSON: config.Spec.DockerConfigJSON,
-		APIRetryAttempts: config.Spec.APIRetryAttempts,
-		UseMaxPods:       config.Spec.UseMaxPods,
+		ClusterName:              controlPlane.Spec.EKSClusterName,
+		KubeletExtraArgs:         config.Spec.KubeletExtraArgs,
+		ContainerRuntime:         config.Spec.ContainerRuntime,
+		DNSClusterIP:             config.Spec.DNSClusterIP,
+		DockerConfigJSON:         config.Spec.DockerConfigJSON,
+		APIRetryAttempts:         config.Spec.APIRetryAttempts,
+		UseMaxPods:               config.Spec.UseMaxPods,
+		PreBootstrapCommands:     config.Spec.PreBootstrapCommands,
+		PostBootstrapCommands:    config.Spec.PostBootstrapCommands,
+		BootstrapCommandOverride: config.Spec.BootstrapCommandOverride,
 	}
 	if config.Spec.PauseContainer != nil {
 		nodeInput.PauseContainerAccount = &config.Spec.PauseContainer.AccountNumber
