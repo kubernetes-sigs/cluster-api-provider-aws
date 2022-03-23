@@ -13,9 +13,7 @@
 3. Install [KIND][kind]
     - `GO111MODULE="on" go get sigs.k8s.io/kind@v0.12.0`.
 4. Install [Kustomize][kustomize]
-    - `brew install kustomize` on macOS.
-    - `choco install kustomize` on Windows.
-    - [install instructions][kustomizelinux] on Linux
+    - [install instructions](https://kubectl.docs.kubernetes.io/installation/kustomize/)
 5. Install [envsubst][envsubst]
 6. Install make.
 7. Install direnv
