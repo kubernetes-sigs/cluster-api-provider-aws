@@ -34,3 +34,4 @@ spec:
   identityRef:
     kind: AWSClusterStaticIdentity
     name: e2e-account
+  secondaryCidrBlock: 100.64.0.0/16

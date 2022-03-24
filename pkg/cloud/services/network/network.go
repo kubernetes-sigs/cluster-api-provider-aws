@@ -91,13 +91,6 @@ func (s *Service) DeleteNetwork() (err error) {
 
 	vpc.DeepCopyInto(s.scope.VPC())
 
-	// Secondary CIDR
-	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.SecondaryCidrsReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
-	if err := s.disassociateSecondaryCidr(); err != nil {
-		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.SecondaryCidrsReadyCondition, "DisassociateFailed", clusterv1.ConditionSeverityWarning, err.Error())
-		return err
-	}
-
 	// Routing tables.
 	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.RouteTablesReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	if err := s.scope.PatchObject(); err != nil {
@@ -150,6 +143,13 @@ func (s *Service) DeleteNetwork() (err error) {
 		return err
 	}
 	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.SubnetsReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+
+	// Secondary CIDR.
+	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.SecondaryCidrsReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	if err := s.disassociateSecondaryCidr(); err != nil {
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.SecondaryCidrsReadyCondition, "DisassociateFailed", clusterv1.ConditionSeverityWarning, err.Error())
+		return err
+	}
 
 	// VPC.
 	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.VpcReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
