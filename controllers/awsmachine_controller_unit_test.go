@@ -57,7 +57,7 @@ const providerID = "aws:////myMachine"
 
 func TestAWSMachineReconciler(t *testing.T) {
 	var (
-		reconciler     AWSMachineReconciler
+		reconciler     awsMachineReconciler
 		cs             *scope.ClusterScope
 		ms             *scope.MachineScope
 		mockCtrl       *gomock.Controller
@@ -169,19 +169,17 @@ func TestAWSMachineReconciler(t *testing.T) {
 		// If your test hangs for 9 minutes, increase the value here to the number of events during a reconciliation loop
 		recorder = record.NewFakeRecorder(2)
 
-		reconciler = AWSMachineReconciler{
-			ec2ServiceFactory: func(scope.EC2Scope) services.EC2Interface {
-				return ec2Svc
-			},
-			secretsManagerServiceFactory: func(cloud.ClusterScoper) services.SecretInterface {
-				return secretSvc
-			},
-			objectStoreServiceFactory: func(cloud.ClusterScoper) services.ObjectStoreInterface {
-				return objectStoreSvc
-			},
-			Recorder: recorder,
-			Log:      klogr.New(),
-		}
+		reconciler = *NewMachineReconciler(NewMachineReconcilerInput{Manager: testEnv}, withAWSMachineEC2ServiceFactory(func(scope.EC2Scope) services.EC2Interface {
+			return ec2Svc
+		}), withAWSMachineSecretsManagerServiceFactory(func(cloud.ClusterScoper) services.SecretInterface {
+			return secretSvc
+		}), withAWSMachineELBServiceFactory(func(elbScope scope.ELBScope) services.ELBInterface {
+			return elbSvc
+		}), withAWSMachineObjectStoreServiceFactory(func(s3Scope scope.S3Scope) services.ObjectStoreInterface {
+			return objectStoreSvc
+		}))
+		reconciler.Recorder = recorder
+		reconciler.Log = klogr.New()
 	}
 	teardown := func(t *testing.T, g *WithT) {
 		t.Helper()
@@ -642,9 +640,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
 				ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateStopping
-				reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
-					return elbSvc
-				}
 
 				elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any()).Return(true, nil)
 				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
@@ -667,9 +662,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
 				ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateStopping
-				reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
-					return elbSvc
-				}
 
 				elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any()).Return(false, nil)
 				elbSvc.EXPECT().RegisterInstanceWithAPIServerELB(gomock.Any()).Return(nil)
@@ -763,9 +755,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
 				ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateStopping
-				reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
-					return elbSvc
-				}
 
 				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil)
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil)
@@ -789,9 +778,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
 				ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateStopping
-				reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
-					return elbSvc
-				}
 
 				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil)
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil)
@@ -1662,9 +1648,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 					finalizer(t, g)
 					ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
 					ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateStopping
-					reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
-						return elbSvc
-					}
 
 					ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(&infrav1.Instance{
 						State: infrav1.InstanceStateTerminated,
@@ -1687,9 +1670,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 					finalizer(t, g)
 					ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
 					ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateStopping
-					reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
-						return elbSvc
-					}
 
 					ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(&infrav1.Instance{
 						State: infrav1.InstanceStateTerminated,
@@ -1712,9 +1692,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 				finalizer(t, g)
 				ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
 				ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateStopping
-				reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
-					return elbSvc
-				}
 
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(&infrav1.Instance{
 					State: infrav1.InstanceStateTerminated,
@@ -1735,9 +1712,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 				finalizer(t, g)
 				ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
 				ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateStopping
-				reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
-					return elbSvc
-				}
 
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(&infrav1.Instance{
 					State: infrav1.InstanceStateTerminated,
@@ -2003,7 +1977,7 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			reconciler := &AWSMachineReconciler{
+			reconciler := &awsMachineReconciler{
 				Client: testEnv.Client,
 				Log:    klogr.New(),
 			}
@@ -2053,7 +2027,7 @@ func TestAWSMachineReconciler_requeueAWSMachinesForUnpausedCluster(t *testing.T)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			reconciler := &AWSMachineReconciler{
+			reconciler := &awsMachineReconciler{
 				Client: testEnv.Client,
 				Log:    klogr.New(),
 			}
@@ -2070,7 +2044,7 @@ func TestAWSMachineReconciler_requeueAWSMachinesForUnpausedCluster(t *testing.T)
 func TestAWSMachineReconciler_indexAWSMachineByInstanceID(t *testing.T) {
 	t.Run("Should not return instance id if cluster type is not AWSCluster", func(t *testing.T) {
 		g := NewWithT(t)
-		reconciler := &AWSMachineReconciler{
+		reconciler := &awsMachineReconciler{
 			Client: testEnv.Client,
 			Log:    klogr.New(),
 		}
@@ -2080,7 +2054,7 @@ func TestAWSMachineReconciler_indexAWSMachineByInstanceID(t *testing.T) {
 	})
 	t.Run("Should return instance id successfully", func(t *testing.T) {
 		g := NewWithT(t)
-		reconciler := &AWSMachineReconciler{
+		reconciler := &awsMachineReconciler{
 			Client: testEnv.Client,
 			Log:    klogr.New(),
 		}
@@ -2090,7 +2064,7 @@ func TestAWSMachineReconciler_indexAWSMachineByInstanceID(t *testing.T) {
 	})
 	t.Run("Should not return instance id if instance id is not present", func(t *testing.T) {
 		g := NewWithT(t)
-		reconciler := &AWSMachineReconciler{
+		reconciler := &awsMachineReconciler{
 			Client: testEnv.Client,
 			Log:    klogr.New(),
 		}
@@ -2269,7 +2243,7 @@ func TestAWSMachineReconciler_Reconcile(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			reconciler := &AWSMachineReconciler{
+			reconciler := &awsMachineReconciler{
 				Client: testEnv.Client,
 			}
 			ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("namespace-%s", util.RandomString(5)))

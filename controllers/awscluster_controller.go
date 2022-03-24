@@ -67,48 +67,89 @@ var (
 	}
 )
 
-// AWSClusterReconciler reconciles a AwsCluster object.
-type AWSClusterReconciler struct {
+type awsClusterReconcilerOption func(*awsClusterReconciler)
+
+// awsClusterReconciler reconciles a AWSCluster object.
+type awsClusterReconciler struct {
 	client.Client
 	Recorder              record.EventRecorder
-	ec2ServiceFactory     func(scope.EC2Scope) services.EC2Interface
-	networkServiceFactory func(scope.ClusterScope) services.NetworkInterface
-	elbServiceFactory     func(scope.ELBScope) services.ELBInterface
-	securityGroupFactory  func(scope.ClusterScope) services.SecurityGroupInterface
+	ec2ServiceFactory     awsClusterEC2ServiceFactory
+	networkServiceFactory awsClusterNetworkServiceFactory
+	elbServiceFactory     awsClusterELBServiceFactory
+	securityGroupFactory  awsClusterSecurityGroupServiceFactory
+	objectStoreFactory    awsClusterObjectStoreServiceFactory
 	Endpoints             []scope.ServiceEndpoint
 	WatchFilterValue      string
 }
 
-// getEC2Service factory func is added for testing purpose so that we can inject mocked EC2Service to the AWSClusterReconciler.
-func (r *AWSClusterReconciler) getEC2Service(scope scope.EC2Scope) services.EC2Interface {
-	if r.ec2ServiceFactory != nil {
-		return r.ec2ServiceFactory(scope)
-	}
-	return ec2.NewService(scope)
+type NewClusterReconcilerInput struct {
+	Manager          ctrl.Manager
+	WatchFilterValue string
+	Endpoints        []scope.ServiceEndpoint
 }
 
-// getELBService factory func is added for testing purpose so that we can inject mocked ELBService to the AWSClusterReconciler.
-func (r *AWSClusterReconciler) getELBService(scope scope.ELBScope) services.ELBInterface {
-	if r.elbServiceFactory != nil {
-		return r.elbServiceFactory(scope)
+type awsClusterEC2ServiceFactory func(scope.EC2Scope) services.EC2Interface
+
+func withAWSClusterEC2ServiceFactory(fn awsClusterEC2ServiceFactory) awsClusterReconcilerOption {
+	return func(r *awsClusterReconciler) {
+		r.ec2ServiceFactory = fn
 	}
-	return elb.NewService(scope)
 }
 
-// getNetworkService factory func is added for testing purpose so that we can inject mocked NetworkService to the AWSClusterReconciler.
-func (r *AWSClusterReconciler) getNetworkService(scope scope.ClusterScope) services.NetworkInterface {
-	if r.networkServiceFactory != nil {
-		return r.networkServiceFactory(scope)
+type awsClusterELBServiceFactory func(scope.ELBScope) services.ELBInterface
+
+func withAWSClusterELBServiceFactory(fn awsClusterELBServiceFactory) awsClusterReconcilerOption {
+	return func(r *awsClusterReconciler) {
+		r.elbServiceFactory = fn
 	}
-	return network.NewService(&scope)
 }
 
-// getSecurityGroupService factory func is added for testing purpose so that we can inject mocked SecurityGroupService to the AWSClusterReconciler.
-func (r *AWSClusterReconciler) getSecurityGroupService(scope scope.ClusterScope) services.SecurityGroupInterface {
-	if r.securityGroupFactory != nil {
-		return r.securityGroupFactory(scope)
+type awsClusterNetworkServiceFactory func(scope.ClusterScope) services.NetworkInterface
+
+func withAWSClusterNetworkServiceFactory(fn awsClusterNetworkServiceFactory) awsClusterReconcilerOption {
+	return func(r *awsClusterReconciler) {
+		r.networkServiceFactory = fn
 	}
-	return securitygroup.NewService(&scope, awsSecurityGroupRoles)
+}
+
+type awsClusterSecurityGroupServiceFactory func(scope.ClusterScope) services.SecurityGroupInterface
+
+func withAWSClusterSecurityGroupServiceFactory(fn awsClusterSecurityGroupServiceFactory) awsClusterReconcilerOption {
+	return func(r *awsClusterReconciler) {
+		r.securityGroupFactory = fn
+	}
+}
+
+type awsClusterObjectStoreServiceFactory func(scope.ClusterScope) services.ObjectStoreInterface
+
+func NewClusterReconciler(input NewClusterReconcilerInput, opt ...awsClusterReconcilerOption) *awsClusterReconciler {
+	clusterReconciler := &awsClusterReconciler{
+		Client:           input.Manager.GetClient(),
+		Recorder:         input.Manager.GetEventRecorderFor("awscluster-controller"),
+		Endpoints:        input.Endpoints,
+		WatchFilterValue: input.WatchFilterValue,
+		ec2ServiceFactory: func(ec2Scope scope.EC2Scope) services.EC2Interface {
+			return ec2.NewService(ec2Scope)
+		},
+		networkServiceFactory: func(clusterScope scope.ClusterScope) services.NetworkInterface {
+			return network.NewService(&clusterScope)
+		},
+		elbServiceFactory: func(elbScope scope.ELBScope) services.ELBInterface {
+			return elb.NewService(elbScope)
+		},
+		securityGroupFactory: func(clusterScope scope.ClusterScope) services.SecurityGroupInterface {
+			return securitygroup.NewService(&clusterScope, awsSecurityGroupRoles)
+		},
+		objectStoreFactory: func(clusterScope scope.ClusterScope) services.ObjectStoreInterface {
+			return s3.NewService(&clusterScope)
+		},
+	}
+
+	for _, opt := range opt {
+		opt(clusterReconciler)
+	}
+
+	return clusterReconciler
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclusters,verbs=get;list;watch;create;update;patch;delete
@@ -117,7 +158,7 @@ func (r *AWSClusterReconciler) getSecurityGroupService(scope scope.ClusterScope)
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclusterroleidentities;awsclusterstaticidentities,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclustercontrolleridentities,verbs=get;list;watch;create;
 
-func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+func (r *awsClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the AWSCluster instance
@@ -194,14 +235,14 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return r.reconcileNormal(clusterScope)
 }
 
-func (r *AWSClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+func (r *awsClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	clusterScope.Info("Reconciling AWSCluster delete")
 
-	ec2svc := r.getEC2Service(clusterScope)
-	elbsvc := r.getELBService(clusterScope)
-	networkSvc := r.getNetworkService(*clusterScope)
-	sgService := r.getSecurityGroupService(*clusterScope)
-	s3Service := s3.NewService(clusterScope)
+	ec2Service := r.ec2ServiceFactory(clusterScope)
+	elbService := r.elbServiceFactory(clusterScope)
+	networkService := r.networkServiceFactory(*clusterScope)
+	sgService := r.securityGroupFactory(*clusterScope)
+	s3Service := r.objectStoreFactory(*clusterScope)
 
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 		instancestateSvc := instancestate.NewService(clusterScope)
@@ -211,12 +252,12 @@ func (r *AWSClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope)
 		}
 	}
 
-	if err := elbsvc.DeleteLoadbalancers(); err != nil {
+	if err := elbService.DeleteLoadbalancers(); err != nil {
 		clusterScope.Error(err, "error deleting load balancer")
 		return reconcile.Result{}, err
 	}
 
-	if err := ec2svc.DeleteBastion(); err != nil {
+	if err := ec2Service.DeleteBastion(); err != nil {
 		clusterScope.Error(err, "error deleting bastion")
 		return reconcile.Result{}, err
 	}
@@ -226,7 +267,7 @@ func (r *AWSClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope)
 		return reconcile.Result{}, err
 	}
 
-	if err := networkSvc.DeleteNetwork(); err != nil {
+	if err := networkService.DeleteNetwork(); err != nil {
 		clusterScope.Error(err, "error deleting network")
 		return reconcile.Result{}, err
 	}
@@ -241,7 +282,7 @@ func (r *AWSClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope)
 	return reconcile.Result{}, nil
 }
 
-func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+func (r *awsClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	clusterScope.Info("Reconciling AWSCluster")
 
 	awsCluster := clusterScope.AWSCluster
@@ -253,13 +294,13 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 		return reconcile.Result{}, err
 	}
 
-	ec2Service := r.getEC2Service(clusterScope)
-	elbService := r.getELBService(clusterScope)
-	networkSvc := r.getNetworkService(*clusterScope)
-	sgService := r.getSecurityGroupService(*clusterScope)
-	s3Service := s3.NewService(clusterScope)
+	ec2Service := r.ec2ServiceFactory(clusterScope)
+	elbService := r.elbServiceFactory(clusterScope)
+	networkService := r.networkServiceFactory(*clusterScope)
+	sgService := r.securityGroupFactory(*clusterScope)
+	s3Service := r.objectStoreFactory(*clusterScope)
 
-	if err := networkSvc.ReconcileNetwork(); err != nil {
+	if err := networkService.ReconcileNetwork(); err != nil {
 		clusterScope.Error(err, "failed to reconcile network")
 		return reconcile.Result{}, err
 	}
@@ -336,7 +377,7 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 	return reconcile.Result{}, nil
 }
 
-func (r *AWSClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *awsClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := ctrl.LoggerFrom(ctx)
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
@@ -377,7 +418,7 @@ func (r *AWSClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	)
 }
 
-func (r *AWSClusterReconciler) requeueAWSClusterForUnpausedCluster(ctx context.Context, log logr.Logger) handler.MapFunc {
+func (r *awsClusterReconciler) requeueAWSClusterForUnpausedCluster(ctx context.Context, log logr.Logger) handler.MapFunc {
 	return func(o client.Object) []ctrl.Request {
 		c, ok := o.(*clusterv1.Cluster)
 		if !ok {

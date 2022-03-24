@@ -79,7 +79,7 @@ func TestAWSClusterReconciler_Reconcile(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			reconciler := &AWSClusterReconciler{
+			reconciler := &awsClusterReconciler{
 				Client: testEnv.Client,
 			}
 
@@ -131,7 +131,7 @@ func TestAWSClusterReconciler_Reconcile(t *testing.T) {
 
 func TestAWSClusterReconcileOperations(t *testing.T) {
 	var (
-		reconciler AWSClusterReconciler
+		reconciler awsClusterReconciler
 		mockCtrl   *gomock.Controller
 		ec2Svc     *mock_services.MockEC2Interface
 		elbSvc     *mock_services.MockELBInterface
@@ -163,22 +163,23 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 
 		recorder = record.NewFakeRecorder(2)
 
-		reconciler = AWSClusterReconciler{
-			Client: csClient,
-			ec2ServiceFactory: func(scope.EC2Scope) services.EC2Interface {
-				return ec2Svc
-			},
-			elbServiceFactory: func(elbScope scope.ELBScope) services.ELBInterface {
-				return elbSvc
-			},
-			networkServiceFactory: func(clusterScope scope.ClusterScope) services.NetworkInterface {
-				return networkSvc
-			},
-			securityGroupFactory: func(clusterScope scope.ClusterScope) services.SecurityGroupInterface {
-				return sgSvc
-			},
+		reconciler = awsClusterReconciler{
+			Client:   csClient,
 			Recorder: recorder,
 		}
+		reconciler = *NewClusterReconciler(NewClusterReconcilerInput{
+			Manager: testEnv.Manager,
+		}, withAWSClusterEC2ServiceFactory(func(scope.EC2Scope) services.EC2Interface {
+			return ec2Svc
+		}), withAWSClusterELBServiceFactory(func(elbScope scope.ELBScope) services.ELBInterface {
+			return elbSvc
+		}), withAWSClusterSecurityGroupServiceFactory(func(clusterScope scope.ClusterScope) services.SecurityGroupInterface {
+			return sgSvc
+		}), withAWSClusterNetworkServiceFactory(func(clusterScope scope.ClusterScope) services.NetworkInterface {
+			return networkSvc
+		}))
+		reconciler.Recorder = recorder
+		reconciler.Client = csClient
 		return csClient
 	}
 
@@ -569,7 +570,7 @@ func TestAWSClusterReconciler_RequeueAWSClusterForUnpausedCluster(t *testing.T) 
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 			log := ctrl.LoggerFrom(ctx)
-			reconciler := &AWSClusterReconciler{
+			reconciler := &awsClusterReconciler{
 				Client: testEnv.Client,
 			}
 

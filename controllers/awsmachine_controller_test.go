@@ -49,7 +49,7 @@ import (
 
 func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 	var (
-		reconciler AWSMachineReconciler
+		reconciler awsMachineReconciler
 		mockCtrl   *gomock.Controller
 		recorder   *record.FakeRecorder
 	)
@@ -58,7 +58,7 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		t.Helper()
 		mockCtrl = gomock.NewController(t)
 		recorder = record.NewFakeRecorder(10)
-		reconciler = AWSMachineReconciler{
+		reconciler = awsMachineReconciler{
 			Client:   testEnv.Client,
 			Recorder: recorder,
 		}
@@ -134,22 +134,7 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateRunning
 		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
 
-		ec2Svc := ec2Service.NewService(cs)
-		ec2Svc.EC2Client = ec2Mock
-		reconciler.ec2ServiceFactory = func(scope scope.EC2Scope) services.EC2Interface {
-			return ec2Svc
-		}
-
-		elbSvc := elbService.NewService(cs)
-		elbSvc.EC2Client = ec2Mock
-		elbSvc.ELBClient = elbMock
-		reconciler.elbServiceFactory = func(scope scope.ELBScope) services.ELBInterface {
-			return elbSvc
-		}
-
-		reconciler.secretsManagerServiceFactory = func(clusterScope cloud.ClusterScoper) services.SecretInterface {
-			return secretMock
-		}
+		reconciler = getMachineReconciler(cs, ec2Mock, elbMock, secretMock, recorder)
 
 		_, err = reconciler.reconcileNormal(ctx, ms, cs, cs, cs, cs)
 		g.Expect(err).To(BeNil())
@@ -194,18 +179,7 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
 		ms.AWSMachine.Spec.ProviderID = aws.String("aws:////myMachine")
 
-		ec2Svc := ec2Service.NewService(cs)
-		ec2Svc.EC2Client = ec2Mock
-		reconciler.ec2ServiceFactory = func(scope scope.EC2Scope) services.EC2Interface {
-			return ec2Svc
-		}
-
-		elbSvc := elbService.NewService(cs)
-		elbSvc.EC2Client = ec2Mock
-		elbSvc.ELBClient = elbMock
-		reconciler.elbServiceFactory = func(scope scope.ELBScope) services.ELBInterface {
-			return elbSvc
-		}
+		reconciler = getMachineReconciler(cs, ec2Mock, elbMock, nil, recorder)
 
 		_, err = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 		g.Expect(err).To(BeNil())
@@ -283,23 +257,7 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateRunning
 		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
 
-		ec2Svc := ec2Service.NewService(cs)
-		ec2Svc.EC2Client = ec2Mock
-		reconciler.ec2ServiceFactory = func(scope scope.EC2Scope) services.EC2Interface {
-			return ec2Svc
-		}
-
-		elbSvc := elbService.NewService(cs)
-		elbSvc.EC2Client = ec2Mock
-		elbSvc.ELBClient = elbMock
-		reconciler.elbServiceFactory = func(scope scope.ELBScope) services.ELBInterface {
-			return elbSvc
-		}
-
-		reconciler.secretsManagerServiceFactory = func(clusterScope cloud.ClusterScoper) services.SecretInterface {
-			return secretMock
-		}
-
+		reconciler = getMachineReconciler(cs, ec2Mock, elbMock, secretMock, recorder)
 		_, err = reconciler.reconcileNormal(ctx, ms, cs, cs, cs, cs)
 		g.Expect(err).Should(HaveOccurred())
 		expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionTrue, "", ""}})
@@ -346,18 +304,7 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
 		ms.AWSMachine.Spec.ProviderID = aws.String("aws:////myMachine")
 
-		ec2Svc := ec2Service.NewService(cs)
-		ec2Svc.EC2Client = ec2Mock
-		reconciler.ec2ServiceFactory = func(scope scope.EC2Scope) services.EC2Interface {
-			return ec2Svc
-		}
-
-		elbSvc := elbService.NewService(cs)
-		elbSvc.EC2Client = ec2Mock
-		elbSvc.ELBClient = elbMock
-		reconciler.elbServiceFactory = func(scope scope.ELBScope) services.ELBInterface {
-			return elbSvc
-		}
+		reconciler = getMachineReconciler(cs, ec2Mock, elbMock, nil, recorder)
 
 		_, err = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 		g.Expect(err).Should(HaveOccurred())
@@ -422,6 +369,28 @@ func getAWSMachine() *infrav1.AWSMachine {
 			Subnet:       &infrav1.AWSResourceReference{ID: aws.String("subnet-1")},
 		},
 	}
+}
+
+func getMachineReconciler(cs *scope.ClusterScope, ec2Mock *mock_ec2iface.MockEC2API, elbMock *mock_elbiface.MockELBAPI, secretsMock *mock_services.MockSecretInterface, recorder *record.FakeRecorder) awsMachineReconciler {
+	reconciler := *NewMachineReconciler(NewMachineReconcilerInput{
+		Manager: testEnv.Manager,
+	}, withAWSMachineEC2ServiceFactory(func(scope.EC2Scope) services.EC2Interface {
+		ec2Svc := ec2Service.NewService(cs)
+		ec2Svc.EC2Client = ec2Mock
+		return ec2Svc
+	}), withAWSMachineELBServiceFactory(func(elbScope scope.ELBScope) services.ELBInterface {
+		elbSvc := elbService.NewService(cs)
+		elbSvc.EC2Client = ec2Mock
+		elbSvc.ELBClient = elbMock
+		return elbSvc
+	}), withAWSMachineSecretsManagerServiceFactory(func(clusterScoper cloud.ClusterScoper) services.SecretInterface {
+		return secretsMock
+	}), withAWSMachineSSMServiceFactory(func(clusterScoper cloud.ClusterScoper) services.SecretInterface {
+		return secretsMock
+	}))
+	reconciler.Recorder = recorder
+	reconciler.Client = testEnv.Client
+	return reconciler
 }
 
 func getAWSMachineWithAdditionalTags() *infrav1.AWSMachine {

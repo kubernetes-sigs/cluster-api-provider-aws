@@ -45,7 +45,7 @@ import (
 
 func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 	var (
-		reconciler AWSClusterReconciler
+		reconciler *awsClusterReconciler
 		mockCtrl   *gomock.Controller
 		recorder   *record.FakeRecorder
 	)
@@ -54,7 +54,7 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 		t.Helper()
 		mockCtrl = gomock.NewController(t)
 		recorder = record.NewFakeRecorder(10)
-		reconciler = AWSClusterReconciler{
+		reconciler = &awsClusterReconciler{
 			Client:   testEnv.Client,
 			Recorder: recorder,
 		}
@@ -101,37 +101,8 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 
 		cs, err := getClusterScope(awsCluster)
 		g.Expect(err).To(BeNil())
-		networkSvc := network.NewService(cs)
-		networkSvc.EC2Client = ec2Mock
-		reconciler.networkServiceFactory = func(clusterScope scope.ClusterScope) services.NetworkInterface {
-			return networkSvc
-		}
 
-		ec2Svc := ec2Service.NewService(cs)
-		ec2Svc.EC2Client = ec2Mock
-		reconciler.ec2ServiceFactory = func(scope scope.EC2Scope) services.EC2Interface {
-			return ec2Svc
-		}
-		testSecurityGroupRoles := []infrav1.SecurityGroupRole{
-			infrav1.SecurityGroupBastion,
-			infrav1.SecurityGroupAPIServerLB,
-			infrav1.SecurityGroupLB,
-			infrav1.SecurityGroupControlPlane,
-			infrav1.SecurityGroupNode,
-		}
-		sgSvc := securitygroup.NewService(cs, testSecurityGroupRoles)
-		sgSvc.EC2Client = ec2Mock
-
-		reconciler.securityGroupFactory = func(clusterScope scope.ClusterScope) services.SecurityGroupInterface {
-			return sgSvc
-		}
-		elbSvc := elbService.NewService(cs)
-		elbSvc.EC2Client = ec2Mock
-		elbSvc.ELBClient = elbMock
-
-		reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
-			return elbSvc
-		}
+		reconciler = getClusterReconciler(cs, ec2Mock, elbMock, recorder)
 		cs.SetSubnets([]infrav1.SubnetSpec{
 			{
 				ID:               "subnet-2",
@@ -195,12 +166,17 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 		})
 		cs, err := getClusterScope(awsCluster)
 		g.Expect(err).To(BeNil())
-		s := network.NewService(cs)
-		s.EC2Client = ec2Mock
 
-		reconciler.networkServiceFactory = func(clusterScope scope.ClusterScope) services.NetworkInterface {
-			return s
-		}
+		reconciler = NewClusterReconciler(NewClusterReconcilerInput{
+			Manager: testEnv.Manager,
+		}, withAWSClusterNetworkServiceFactory(func(clusterScope scope.ClusterScope) services.NetworkInterface {
+			networkSvc := network.NewService(cs)
+			networkSvc.EC2Client = ec2Mock
+			return networkSvc
+		}))
+		reconciler.Recorder = recorder
+		reconciler.Client = testEnv.Client
+
 		_, err = reconciler.reconcileNormal(cs)
 		g.Expect(err.Error()).To(ContainSubstring("The maximum number of VPCs has been reached"))
 	})
@@ -243,38 +219,7 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 		cs, err := getClusterScope(awsCluster)
 		g.Expect(err).To(BeNil())
 
-		networkSvc := network.NewService(cs)
-		networkSvc.EC2Client = ec2Mock
-		reconciler.networkServiceFactory = func(clusterScope scope.ClusterScope) services.NetworkInterface {
-			return networkSvc
-		}
-
-		ec2Svc := ec2Service.NewService(cs)
-		ec2Svc.EC2Client = ec2Mock
-		reconciler.ec2ServiceFactory = func(ec2Scope scope.EC2Scope) services.EC2Interface {
-			return ec2Svc
-		}
-
-		elbSvc := elbService.NewService(cs)
-		elbSvc.EC2Client = ec2Mock
-		elbSvc.ELBClient = elbMock
-		reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
-			return elbSvc
-		}
-
-		testSecurityGroupRoles := []infrav1.SecurityGroupRole{
-			infrav1.SecurityGroupBastion,
-			infrav1.SecurityGroupAPIServerLB,
-			infrav1.SecurityGroupLB,
-			infrav1.SecurityGroupControlPlane,
-			infrav1.SecurityGroupNode,
-		}
-		sgSvc := securitygroup.NewService(cs, testSecurityGroupRoles)
-		sgSvc.EC2Client = ec2Mock
-		reconciler.securityGroupFactory = func(clusterScope scope.ClusterScope) services.SecurityGroupInterface {
-			return sgSvc
-		}
-
+		reconciler = getClusterReconciler(cs, ec2Mock, elbMock, recorder)
 		_, err = reconciler.reconcileDelete(cs)
 		g.Expect(err).To(BeNil())
 		expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.LoadBalancerReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
@@ -287,6 +232,39 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 			{infrav1.VpcReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
 		})
 	})
+}
+
+func getClusterReconciler(cs *scope.ClusterScope, ec2Mock *mock_ec2iface.MockEC2API, elbMock *mock_elbiface.MockELBAPI, recorder *record.FakeRecorder) *awsClusterReconciler {
+	testSecurityGroupRoles := []infrav1.SecurityGroupRole{
+		infrav1.SecurityGroupBastion,
+		infrav1.SecurityGroupAPIServerLB,
+		infrav1.SecurityGroupLB,
+		infrav1.SecurityGroupControlPlane,
+		infrav1.SecurityGroupNode,
+	}
+	reconciler := NewClusterReconciler(NewClusterReconcilerInput{
+		Manager: testEnv.Manager,
+	}, withAWSClusterEC2ServiceFactory(func(scope.EC2Scope) services.EC2Interface {
+		ec2Svc := ec2Service.NewService(cs)
+		ec2Svc.EC2Client = ec2Mock
+		return ec2Svc
+	}), withAWSClusterELBServiceFactory(func(elbScope scope.ELBScope) services.ELBInterface {
+		elbSvc := elbService.NewService(cs)
+		elbSvc.EC2Client = ec2Mock
+		elbSvc.ELBClient = elbMock
+		return elbSvc
+	}), withAWSClusterSecurityGroupServiceFactory(func(clusterScope scope.ClusterScope) services.SecurityGroupInterface {
+		sgSvc := securitygroup.NewService(cs, testSecurityGroupRoles)
+		sgSvc.EC2Client = ec2Mock
+		return sgSvc
+	}), withAWSClusterNetworkServiceFactory(func(clusterScope scope.ClusterScope) services.NetworkInterface {
+		networkSvc := network.NewService(cs)
+		networkSvc.EC2Client = ec2Mock
+		return networkSvc
+	}))
+	reconciler.Recorder = recorder
+	reconciler.Client = testEnv.Client
+	return reconciler
 }
 
 func mockedDeleteSGCalls(m *mock_ec2iface.MockEC2APIMockRecorder) {

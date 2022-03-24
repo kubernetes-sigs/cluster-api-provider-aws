@@ -64,18 +64,97 @@ import (
 // InstanceIDIndex defines the aws machine controller's instance ID index.
 const InstanceIDIndex = ".spec.instanceID"
 
-// AWSMachineReconciler reconciles a AwsMachine object.
-type AWSMachineReconciler struct {
+// awsMachineReconciler reconciles a AWSMachine object.
+type awsMachineReconciler struct {
 	client.Client
 	Log                          logr.Logger
 	Recorder                     record.EventRecorder
-	ec2ServiceFactory            func(scope.EC2Scope) services.EC2Interface
-	elbServiceFactory            func(scope.ELBScope) services.ELBInterface
-	secretsManagerServiceFactory func(cloud.ClusterScoper) services.SecretInterface
-	SSMServiceFactory            func(cloud.ClusterScoper) services.SecretInterface
-	objectStoreServiceFactory    func(cloud.ClusterScoper) services.ObjectStoreInterface
+	ec2ServiceFactory            awsMachineEC2ServiceFactory
+	elbServiceFactory            awsMachineELBServiceFactory
+	secretsManagerServiceFactory awsMachineSecretsManagerServiceFactory
+	ssmServiceFactory            awsMachineSSMServiceFactory
+	objectStoreFactory           awsMachineObjectStoreServiceFactory
 	Endpoints                    []scope.ServiceEndpoint
 	WatchFilterValue             string
+}
+
+type awsMachineReconcilerOption func(*awsMachineReconciler)
+
+type NewMachineReconcilerInput struct {
+	Manager          ctrl.Manager
+	WatchFilterValue string
+	Endpoints        []scope.ServiceEndpoint
+}
+
+type awsMachineEC2ServiceFactory func(scope.EC2Scope) services.EC2Interface
+
+func withAWSMachineEC2ServiceFactory(fn awsMachineEC2ServiceFactory) awsMachineReconcilerOption {
+	return func(r *awsMachineReconciler) {
+		r.ec2ServiceFactory = fn
+	}
+}
+
+type awsMachineELBServiceFactory func(scope.ELBScope) services.ELBInterface
+
+func withAWSMachineELBServiceFactory(fn awsMachineELBServiceFactory) awsMachineReconcilerOption {
+	return func(r *awsMachineReconciler) {
+		r.elbServiceFactory = fn
+	}
+}
+
+type awsMachineSSMServiceFactory func(cloud.ClusterScoper) services.SecretInterface
+
+func withAWSMachineSSMServiceFactory(fn awsMachineSSMServiceFactory) awsMachineReconcilerOption {
+	return func(r *awsMachineReconciler) {
+		r.ssmServiceFactory = fn
+	}
+}
+
+type awsMachineSecretsManagerServiceFactory func(cloud.ClusterScoper) services.SecretInterface
+
+func withAWSMachineSecretsManagerServiceFactory(fn awsMachineSecretsManagerServiceFactory) awsMachineReconcilerOption {
+	return func(r *awsMachineReconciler) {
+		r.secretsManagerServiceFactory = fn
+	}
+}
+
+type awsMachineObjectStoreServiceFactory func(scope.S3Scope) services.ObjectStoreInterface
+
+func withAWSMachineObjectStoreServiceFactory(fn awsMachineObjectStoreServiceFactory) awsMachineReconcilerOption {
+	return func(r *awsMachineReconciler) {
+		r.objectStoreFactory = fn
+	}
+}
+
+func NewMachineReconciler(input NewMachineReconcilerInput, opt ...awsMachineReconcilerOption) *awsMachineReconciler {
+	machineReconciler := &awsMachineReconciler{
+		Client:           input.Manager.GetClient(),
+		Log:              ctrl.Log.WithName("controllers").WithName("AWSMachine"),
+		Recorder:         input.Manager.GetEventRecorderFor("awsmachine-controller"),
+		Endpoints:        input.Endpoints,
+		WatchFilterValue: input.WatchFilterValue,
+		ec2ServiceFactory: func(ec2Scope scope.EC2Scope) services.EC2Interface {
+			return ec2.NewService(ec2Scope)
+		},
+		elbServiceFactory: func(elbScope scope.ELBScope) services.ELBInterface {
+			return elb.NewService(elbScope)
+		},
+		secretsManagerServiceFactory: func(clusterScoper cloud.ClusterScoper) services.SecretInterface {
+			return secretsmanager.NewService(clusterScoper)
+		},
+		ssmServiceFactory: func(clusterScoper cloud.ClusterScoper) services.SecretInterface {
+			return ssm.NewService(clusterScoper)
+		},
+		objectStoreFactory: func(s3Scope scope.S3Scope) services.ObjectStoreInterface {
+			return s3.NewService(s3Scope)
+		},
+	}
+
+	for _, opt := range opt {
+		opt(machineReconciler)
+	}
+
+	return machineReconciler
 }
 
 const (
@@ -83,52 +162,14 @@ const (
 	AWSManagedControlPlaneRefKind = "AWSManagedControlPlane"
 )
 
-func (r *AWSMachineReconciler) getEC2Service(scope scope.EC2Scope) services.EC2Interface {
-	if r.ec2ServiceFactory != nil {
-		return r.ec2ServiceFactory(scope)
-	}
-
-	return ec2.NewService(scope)
-}
-
-func (r *AWSMachineReconciler) getSecretsManagerService(scope cloud.ClusterScoper) services.SecretInterface {
-	if r.secretsManagerServiceFactory != nil {
-		return r.secretsManagerServiceFactory(scope)
-	}
-
-	return secretsmanager.NewService(scope)
-}
-
-func (r *AWSMachineReconciler) getSSMService(scope cloud.ClusterScoper) services.SecretInterface {
-	if r.SSMServiceFactory != nil {
-		return r.SSMServiceFactory(scope)
-	}
-	return ssm.NewService(scope)
-}
-
-func (r *AWSMachineReconciler) getSecretService(machineScope *scope.MachineScope, scope cloud.ClusterScoper) (services.SecretInterface, error) {
+func (r *awsMachineReconciler) getSecretService(machineScope *scope.MachineScope, scope cloud.ClusterScoper) (services.SecretInterface, error) {
 	switch machineScope.SecureSecretsBackend() {
 	case infrav1.SecretBackendSSMParameterStore:
-		return r.getSSMService(scope), nil
+		return r.ssmServiceFactory(scope), nil
 	case infrav1.SecretBackendSecretsManager:
-		return r.getSecretsManagerService(scope), nil
+		return r.secretsManagerServiceFactory(scope), nil
 	}
 	return nil, errors.New("invalid secret backend")
-}
-
-func (r *AWSMachineReconciler) getELBService(elbScope scope.ELBScope) services.ELBInterface {
-	if r.elbServiceFactory != nil {
-		return r.elbServiceFactory(elbScope)
-	}
-	return elb.NewService(elbScope)
-}
-
-func (r *AWSMachineReconciler) getObjectStoreService(scope scope.S3Scope) services.ObjectStoreInterface {
-	if r.objectStoreServiceFactory != nil {
-		return r.objectStoreServiceFactory(scope)
-	}
-
-	return s3.NewService(scope)
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachines,verbs=get;list;watch;create;update;patch;delete
@@ -138,7 +179,7 @@ func (r *AWSMachineReconciler) getObjectStoreService(scope scope.S3Scope) servic
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 
-func (r *AWSMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+func (r *awsMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the AWSMachine instance.
@@ -224,7 +265,7 @@ func (r *AWSMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 }
 
-func (r *AWSMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *awsMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := ctrl.LoggerFrom(ctx)
 	AWSClusterToAWSMachines := r.AWSClusterToAWSMachines(log)
 
@@ -283,10 +324,10 @@ func (r *AWSMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	)
 }
 
-func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope, elbScope scope.ELBScope, objectStoreScope scope.S3Scope) (ctrl.Result, error) {
+func (r *awsMachineReconciler) reconcileDelete(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope, elbScope scope.ELBScope, objectStoreScope scope.S3Scope) (ctrl.Result, error) {
 	machineScope.Info("Handling deleted AWSMachine")
 
-	ec2Service := r.getEC2Service(ec2Scope)
+	ec2Service := r.ec2ServiceFactory(ec2Scope)
 
 	if err := r.deleteBootstrapData(machineScope, clusterScope, objectStoreScope); err != nil {
 		machineScope.Error(err, "unable to delete machine")
@@ -400,7 +441,7 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 // findInstance queries the EC2 apis and retrieves the instance if it exists.
 // If providerID is empty, finds instance by tags and if it cannot be found, returns empty instance with nil error.
 // If providerID is set, either finds the instance by ID or returns error.
-func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc services.EC2Interface) (*infrav1.Instance, error) {
+func (r *awsMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc services.EC2Interface) (*infrav1.Instance, error) {
 	var instance *infrav1.Instance
 
 	// Parse the ProviderID.
@@ -428,7 +469,7 @@ func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc se
 	return instance, nil
 }
 
-func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope, elbScope scope.ELBScope, objectStoreScope scope.S3Scope) (ctrl.Result, error) {
+func (r *awsMachineReconciler) reconcileNormal(_ context.Context, machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope, elbScope scope.ELBScope, objectStoreScope scope.S3Scope) (ctrl.Result, error) {
 	machineScope.Info("Reconciling AWSMachine")
 
 	// If the AWSMachine is in an error state, return early.
@@ -457,7 +498,7 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		return ctrl.Result{}, nil
 	}
 
-	ec2svc := r.getEC2Service(ec2Scope)
+	ec2svc := r.ec2ServiceFactory(ec2Scope)
 
 	// Find existing instance
 	instance, err := r.findInstance(machineScope, ec2svc)
@@ -489,7 +530,7 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		var objectStoreSvc services.ObjectStoreInterface
 
 		if objectStoreScope != nil {
-			objectStoreSvc = r.getObjectStoreService(objectStoreScope)
+			objectStoreSvc = r.objectStoreFactory(objectStoreScope)
 		}
 
 		instance, err = r.createInstance(ec2svc, machineScope, clusterScope, objectStoreSvc)
@@ -599,7 +640,7 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	return ctrl.Result{}, nil
 }
 
-func (r *AWSMachineReconciler) deleteEncryptedBootstrapDataSecret(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper) error {
+func (r *awsMachineReconciler) deleteEncryptedBootstrapDataSecret(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper) error {
 	secretSvc, secretBackendErr := r.getSecretService(machineScope, clusterScope)
 	if secretBackendErr != nil {
 		machineScope.Error(secretBackendErr, "unable to get secret service backend")
@@ -632,7 +673,7 @@ func (r *AWSMachineReconciler) deleteEncryptedBootstrapDataSecret(machineScope *
 	return nil
 }
 
-func (r *AWSMachineReconciler) createInstance(ec2svc services.EC2Interface, machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, objectStoreSvc services.ObjectStoreInterface) (*infrav1.Instance, error) {
+func (r *awsMachineReconciler) createInstance(ec2svc services.EC2Interface, machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, objectStoreSvc services.ObjectStoreInterface) (*infrav1.Instance, error) {
 	machineScope.Info("Creating EC2 instance")
 
 	userData, userDataFormat, userDataErr := r.resolveUserData(machineScope, clusterScope, objectStoreSvc)
@@ -648,7 +689,7 @@ func (r *AWSMachineReconciler) createInstance(ec2svc services.EC2Interface, mach
 	return instance, nil
 }
 
-func (r *AWSMachineReconciler) resolveUserData(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, objectStoreSvc services.ObjectStoreInterface) ([]byte, string, error) {
+func (r *awsMachineReconciler) resolveUserData(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, objectStoreSvc services.ObjectStoreInterface) ([]byte, string, error) {
 	userData, userDataFormat, err := machineScope.GetRawBootstrapDataWithFormat()
 	if err != nil {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedGetBootstrapData", err.Error())
@@ -666,7 +707,7 @@ func (r *AWSMachineReconciler) resolveUserData(machineScope *scope.MachineScope,
 	return userData, userDataFormat, err
 }
 
-func (r *AWSMachineReconciler) cloudInitUserData(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, userData []byte) ([]byte, error) {
+func (r *awsMachineReconciler) cloudInitUserData(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, userData []byte) ([]byte, error) {
 	secretSvc, secretBackendErr := r.getSecretService(machineScope, clusterScope)
 	if secretBackendErr != nil {
 		machineScope.Error(secretBackendErr, "unable to reconcile machine")
@@ -700,7 +741,7 @@ func (r *AWSMachineReconciler) cloudInitUserData(machineScope *scope.MachineScop
 	return encryptedCloudInit, nil
 }
 
-func (r *AWSMachineReconciler) ignitionUserData(scope *scope.MachineScope, objectStoreSvc services.ObjectStoreInterface, userData []byte) ([]byte, error) {
+func (r *awsMachineReconciler) ignitionUserData(scope *scope.MachineScope, objectStoreSvc services.ObjectStoreInterface, userData []byte) ([]byte, error) {
 	if objectStoreSvc == nil {
 		return nil, errors.New("object store service not available")
 	}
@@ -732,7 +773,7 @@ func (r *AWSMachineReconciler) ignitionUserData(scope *scope.MachineScope, objec
 	return ignitionUserData, nil
 }
 
-func (r *AWSMachineReconciler) deleteBootstrapData(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, objectStoreScope scope.S3Scope) error {
+func (r *awsMachineReconciler) deleteBootstrapData(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, objectStoreScope scope.S3Scope) error {
 	if !machineScope.AWSMachine.Spec.CloudInit.InsecureSkipSecretsManager {
 		if err := r.deleteEncryptedBootstrapDataSecret(machineScope, clusterScope); err != nil {
 			return err
@@ -741,7 +782,7 @@ func (r *AWSMachineReconciler) deleteBootstrapData(machineScope *scope.MachineSc
 
 	if objectStoreScope != nil {
 		// Bootstrap data will be removed from S3 if it is already populated.
-		if err := r.deleteIgnitionBootstrapDataFromS3(machineScope, r.getObjectStoreService(objectStoreScope)); err != nil {
+		if err := r.deleteIgnitionBootstrapDataFromS3(machineScope, r.objectStoreFactory(objectStoreScope)); err != nil {
 			return err
 		}
 	}
@@ -749,7 +790,7 @@ func (r *AWSMachineReconciler) deleteBootstrapData(machineScope *scope.MachineSc
 	return nil
 }
 
-func (r *AWSMachineReconciler) deleteIgnitionBootstrapDataFromS3(machineScope *scope.MachineScope, objectStoreSvc services.ObjectStoreInterface) error {
+func (r *awsMachineReconciler) deleteIgnitionBootstrapDataFromS3(machineScope *scope.MachineScope, objectStoreSvc services.ObjectStoreInterface) error {
 	// Do nothing if the AWSMachine is not in a failed state, and is operational from an EC2 perspective, but does not have a node reference
 	if !machineScope.HasFailed() && machineScope.InstanceIsOperational() && machineScope.Machine.Status.NodeRef == nil && !machineScope.AWSMachineIsDeleted() {
 		return nil
@@ -779,12 +820,12 @@ func (r *AWSMachineReconciler) deleteIgnitionBootstrapDataFromS3(machineScope *s
 	return nil
 }
 
-func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.MachineScope, elbScope scope.ELBScope, i *infrav1.Instance) error {
+func (r *awsMachineReconciler) reconcileLBAttachment(machineScope *scope.MachineScope, elbScope scope.ELBScope, i *infrav1.Instance) error {
 	if !machineScope.IsControlPlane() {
 		return nil
 	}
 
-	elbsvc := r.getELBService(elbScope)
+	elbsvc := r.elbServiceFactory(elbScope)
 
 	// In order to prevent sending request to a "not-ready" control plane machines, it is required to remove the machine
 	// from the ELB as soon as the machine gets deleted or when the machine is in a not running state.
@@ -836,7 +877,7 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.Machine
 
 // AWSClusterToAWSMachines is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation
 // of AWSMachines.
-func (r *AWSMachineReconciler) AWSClusterToAWSMachines(log logr.Logger) handler.MapFunc {
+func (r *awsMachineReconciler) AWSClusterToAWSMachines(log logr.Logger) handler.MapFunc {
 	return func(o client.Object) []ctrl.Request {
 		c, ok := o.(*infrav1.AWSCluster)
 		if !ok {
@@ -865,7 +906,7 @@ func (r *AWSMachineReconciler) AWSClusterToAWSMachines(log logr.Logger) handler.
 	}
 }
 
-func (r *AWSMachineReconciler) requeueAWSMachinesForUnpausedCluster(log logr.Logger) handler.MapFunc {
+func (r *awsMachineReconciler) requeueAWSMachinesForUnpausedCluster(log logr.Logger) handler.MapFunc {
 	return func(o client.Object) []ctrl.Request {
 		c, ok := o.(*clusterv1.Cluster)
 		if !ok {
@@ -884,7 +925,7 @@ func (r *AWSMachineReconciler) requeueAWSMachinesForUnpausedCluster(log logr.Log
 	}
 }
 
-func (r *AWSMachineReconciler) requestsForCluster(log logr.Logger, namespace, name string) []ctrl.Request {
+func (r *awsMachineReconciler) requestsForCluster(log logr.Logger, namespace, name string) []ctrl.Request {
 	labels := map[string]string{clusterv1.ClusterLabelName: name}
 	machineList := &clusterv1.MachineList{}
 	if err := r.Client.List(context.TODO(), machineList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
@@ -910,7 +951,7 @@ func (r *AWSMachineReconciler) requestsForCluster(log logr.Logger, namespace, na
 	return result
 }
 
-func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log logr.Logger, cluster *clusterv1.Cluster, awsMachine *infrav1.AWSMachine) (scope.EC2Scope, error) {
+func (r *awsMachineReconciler) getInfraCluster(ctx context.Context, log logr.Logger, cluster *clusterv1.Cluster, awsMachine *infrav1.AWSMachine) (scope.EC2Scope, error) {
 	var clusterScope *scope.ClusterScope
 	var managedControlPlaneScope *scope.ManagedControlPlaneScope
 	var err error
@@ -969,7 +1010,7 @@ func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log logr.Log
 	return clusterScope, nil
 }
 
-func (r *AWSMachineReconciler) indexAWSMachineByInstanceID(o client.Object) []string {
+func (r *awsMachineReconciler) indexAWSMachineByInstanceID(o client.Object) []string {
 	awsMachine, ok := o.(*infrav1.AWSMachine)
 	if !ok {
 		r.Log.Error(errors.New("incorrect type"), "expected an AWSMachine", "type", fmt.Sprintf("%T", o))
@@ -983,7 +1024,7 @@ func (r *AWSMachineReconciler) indexAWSMachineByInstanceID(o client.Object) []st
 	return nil
 }
 
-func (r *AWSMachineReconciler) ensureStorageTags(ec2svc services.EC2Interface, instance *infrav1.Instance, machine *infrav1.AWSMachine) {
+func (r *awsMachineReconciler) ensureStorageTags(ec2svc services.EC2Interface, instance *infrav1.Instance, machine *infrav1.AWSMachine) {
 	annotations, err := r.machineAnnotationJSON(machine, VolumeTagsLastAppliedAnnotation)
 	if err != nil {
 		r.Log.Error(err, "Failed to fetch the annotations for volume tags")
