@@ -152,10 +152,6 @@ MOCKGEN := $(BIN_DIR)/mockgen
 $(MOCKGEN): $(BIN_DIR) go.mod go.sum # Build mockgen from tools folder.
 	go build -tags=tools -o $@ github.com/golang/mock/mockgen
 
-RELEASE_NOTES := $(BIN_DIR)/release-notes
-$(RELEASE_NOTES): $(BIN_DIR) go.mod go.sum
-	go build -tags tools -o $@ k8s.io/release/cmd/release-notes
-
 PLANTUML := $(BIN_DIR)/plantuml-sentinal
 $(PLANTUML): plantuml.Dockerfile ../../versions.mk
 	docker build --build-arg PLANTUML_VERSION=$(PLANTUML_VERSION)  . -f plantuml.Dockerfile -t "plantuml-builder"
