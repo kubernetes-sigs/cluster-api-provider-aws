@@ -368,6 +368,10 @@ e2e-image: docker-pull-prerequisites $(TOOLS_BIN_DIR)/start.sh $(TOOLS_BIN_DIR)/
 
 .PHONY: test
 test: ## Run tests
+	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test ./...
+
+.PHONY: test-verbose
+test-verbose: ## Run tests with verbose settings.
 	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./...
 
 .PHONY: test-e2e ## Run e2e tests using clusterctl
@@ -388,7 +392,7 @@ test-conformance: generate-test-flavors $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOM
 
 .PHONY: test-cover
 test-cover: ## Run tests with code coverage and code generate  reports
-	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v -coverprofile=coverage.out ./... $(TEST_ARGS)
+	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -coverprofile=coverage.out ./... $(TEST_ARGS)
 	go tool cover -func=coverage.out -o coverage.txt
 	go tool cover -html=coverage.out -o coverage.html
 
