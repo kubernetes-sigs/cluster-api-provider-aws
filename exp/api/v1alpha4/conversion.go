@@ -64,6 +64,7 @@ func (src *AWSManagedMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.RoleAdditionalPolicies = restored.Spec.RoleAdditionalPolicies
+	dst.Spec.UpdateConfig = restored.Spec.UpdateConfig
 
 	return nil
 }

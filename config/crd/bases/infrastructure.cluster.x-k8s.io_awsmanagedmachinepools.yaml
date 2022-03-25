@@ -659,6 +659,25 @@ spec:
                   - value
                   type: object
                 type: array
+              updateConfig:
+                description: UpdateConfig holds the optional config to control the
+                  behaviour of the update to the nodegroup.
+                properties:
+                  maxUnavailable:
+                    description: MaxUnavailable is the maximum number of nodes unavailable
+                      at once during a version update. Nodes will be updated in parallel.
+                      The maximum number is 100.
+                    maximum: 100
+                    minimum: 1
+                    type: integer
+                  maxUnavailablePrecentage:
+                    description: MaxUnavailablePercentage is the maximum percentage
+                      of nodes unavailable during a version update. This percentage
+                      of nodes will be updated in parallel, up to 100 nodes at once.
+                    maximum: 100
+                    minimum: 1
+                    type: integer
+                type: object
             type: object
           status:
             description: AWSManagedMachinePoolStatus defines the observed state of

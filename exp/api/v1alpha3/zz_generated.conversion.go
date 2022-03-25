@@ -787,6 +787,7 @@ func autoConvert_v1beta1_AWSManagedMachinePoolSpec_To_v1alpha3_AWSManagedMachine
 	out.RemoteAccess = (*ManagedRemoteAccess)(unsafe.Pointer(in.RemoteAccess))
 	out.ProviderIDList = *(*[]string)(unsafe.Pointer(&in.ProviderIDList))
 	// WARNING: in.CapacityType requires manual conversion: does not exist in peer-type
+	// WARNING: in.UpdateConfig requires manual conversion: does not exist in peer-type
 	return nil
 }
 

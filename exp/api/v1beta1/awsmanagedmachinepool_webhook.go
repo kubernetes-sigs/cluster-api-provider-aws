@@ -76,6 +76,27 @@ func (r *AWSManagedMachinePool) validateScaling() field.ErrorList {
 	return allErrs
 }
 
+func (r *AWSManagedMachinePool) validateNodegroupUpdateConfig() field.ErrorList {
+	var allErrs field.ErrorList
+
+	if r.Spec.UpdateConfig != nil {
+		nodegroupUpdateConfigField := field.NewPath("spec", "updateConfig")
+
+		if r.Spec.UpdateConfig.MaxUnavailable == nil && r.Spec.UpdateConfig.MaxUnavailablePercentage == nil {
+			allErrs = append(allErrs, field.Invalid(nodegroupUpdateConfigField, r.Spec.UpdateConfig, "must specify one of maxUnavailable or maxUnavailablePercentage when using nodegroup updateconfig"))
+		}
+
+		if r.Spec.UpdateConfig.MaxUnavailable != nil && r.Spec.UpdateConfig.MaxUnavailablePercentage != nil {
+			allErrs = append(allErrs, field.Invalid(nodegroupUpdateConfigField, r.Spec.UpdateConfig, "cannot specify both maxUnavailable and maxUnavailablePercentage"))
+		}
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return allErrs
+}
+
 func (r *AWSManagedMachinePool) validateRemoteAccess() field.ErrorList {
 	var allErrs field.ErrorList
 	if r.Spec.RemoteAccess == nil {
@@ -109,6 +130,9 @@ func (r *AWSManagedMachinePool) ValidateCreate() error {
 	if errs := r.validateRemoteAccess(); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
+	if errs := r.validateNodegroupUpdateConfig(); len(errs) > 0 {
+		allErrs = append(allErrs, errs...)
+	}
 
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
@@ -138,6 +162,9 @@ func (r *AWSManagedMachinePool) ValidateUpdate(old runtime.Object) error {
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
 	if errs := r.validateScaling(); errs != nil || len(errs) == 0 {
+		allErrs = append(allErrs, errs...)
+	}
+	if errs := r.validateNodegroupUpdateConfig(); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
 
