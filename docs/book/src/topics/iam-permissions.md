@@ -26,6 +26,11 @@ and `control-plane.cluster-api-provider-aws.sigs.k8s.io` IAM roles.
 {{#include ../../../../out/AWSIAMManagedPolicyControllersWithEKS.json}}
 ```
 
+### With S3 Support
+``` json
+{{#include ../../../../out/AWSIAMManagedPolicyControllersWithS3.json}}
+```
+
 ## Required by the Kubernetes AWS Cloud Provider
 
 These permissions are used by the Kubernetes AWS Cloud Provider. If you are
