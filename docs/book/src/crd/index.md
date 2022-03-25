@@ -1218,6 +1218,22 @@ Parameter Storage policies. By default or with the value of secrets-manager,
 will generate AWS Secrets Manager policies instead.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>s3Buckets</code><br/>
+<em>
+<a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.S3Buckets">
+S3Buckets
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>S3Buckets, when enabled, will add controller nodes permissions to
+create S3 Buckets for workload clusters.
+TODO: This field could be a pointer, but it seems it breaks setting default values?</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -1399,6 +1415,22 @@ string
 <p>SecureSecretsBackend, when set to parameter-store will create AWS Systems Manager
 Parameter Storage policies. By default or with the value of secrets-manager,
 will generate AWS Secrets Manager policies instead.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>s3Buckets</code><br/>
+<em>
+<a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.S3Buckets">
+S3Buckets
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>S3Buckets, when enabled, will add controller nodes permissions to
+create S3 Buckets for workload clusters.
+TODO: This field could be a pointer, but it seems it breaks setting default values?</p>
 </td>
 </tr>
 </tbody>
@@ -1887,6 +1919,48 @@ bool
 <td>
 <p>EC2ContainerRegistryReadOnly controls whether the node has read-only access to the
 EC2 container registry</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.S3Buckets">S3Buckets
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.AWSIAMConfigurationSpec">AWSIAMConfigurationSpec</a>)
+</p>
+<p>
+<p>S3Buckets controls the configuration of the AWS IAM role for S3 buckets
+which can be created for storing bootstrap data for nodes requiring it.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>enable</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>Enable controls whether permissions are granted to manage S3 buckets.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namePrefix</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>NamePrefix will be prepended to every AWS IAM role bucket name. Defaults to &ldquo;cluster-api-provider-aws-&rdquo;.
+AWSCluster S3 Bucket name must be prefixed with the same prefix.</p>
 </td>
 </tr>
 </tbody>
@@ -13534,6 +13608,23 @@ AWSIdentityReference
 <p>IdentityRef is a reference to a identity to be used when reconciling this cluster</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>s3Bucket</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.S3Bucket">
+S3Bucket
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>S3Bucket contains options to configure a supporting S3 bucket for this
+cluster - currently used for nodes requiring Ignition
+(<a href="https://coreos.github.io/ignition/">https://coreos.github.io/ignition/</a>) for bootstrapping (requires
+BootstrapFormatIgnition feature flag to be enabled).</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -14049,6 +14140,23 @@ AWSIdentityReference
 <p>IdentityRef is a reference to a identity to be used when reconciling this cluster</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>s3Bucket</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.S3Bucket">
+S3Bucket
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>S3Bucket contains options to configure a supporting S3 bucket for this
+cluster - currently used for nodes requiring Ignition
+(<a href="https://coreos.github.io/ignition/">https://coreos.github.io/ignition/</a>) for bootstrapping (requires
+BootstrapFormatIgnition feature flag to be enabled).</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterStaticIdentity">AWSClusterStaticIdentity
@@ -14510,6 +14618,23 @@ AWSIdentityReference
 <td>
 <em>(Optional)</em>
 <p>IdentityRef is a reference to a identity to be used when reconciling this cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>s3Bucket</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.S3Bucket">
+S3Bucket
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>S3Bucket contains options to configure a supporting S3 bucket for this
+cluster - currently used for nodes requiring Ignition
+(<a href="https://coreos.github.io/ignition/">https://coreos.github.io/ignition/</a>) for bootstrapping (requires
+BootstrapFormatIgnition feature flag to be enabled).</p>
 </td>
 </tr>
 </table>
@@ -15005,6 +15130,20 @@ CloudInit is used.</p>
 </tr>
 <tr>
 <td>
+<code>ignition</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Ignition">
+Ignition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Ignition defined options related to the bootstrapping systems where Ignition is used.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>spotMarketOptions</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta1.SpotMarketOptions">
@@ -15327,6 +15466,20 @@ CloudInit
 <em>(Optional)</em>
 <p>CloudInit defines options related to the bootstrapping systems where
 CloudInit is used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ignition</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Ignition">
+Ignition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Ignition defined options related to the bootstrapping systems where Ignition is used.</p>
 </td>
 </tr>
 <tr>
@@ -15857,6 +16010,20 @@ CloudInit
 <em>(Optional)</em>
 <p>CloudInit defines options related to the bootstrapping systems where
 CloudInit is used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ignition</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Ignition">
+Ignition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Ignition defined options related to the bootstrapping systems where Ignition is used.</p>
 </td>
 </tr>
 <tr>
@@ -16834,6 +17001,36 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta1.Ignition">Ignition
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachineSpec">AWSMachineSpec</a>)
+</p>
+<p>
+<p>Ignition defines options related to the bootstrapping systems where Ignition is used.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>version</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Version defines which version of Ignition will be used to generate bootstrap data.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.IngressRule">IngressRule
 </h3>
 <p>
@@ -17351,6 +17548,58 @@ string
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta1.S3Bucket">S3Bucket
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterSpec">AWSClusterSpec</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>controlPlaneIAMInstanceProfile</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ControlPlaneIAMInstanceProfile is a name of the IAMInstanceProfile, which will be allowed
+to read control-plane node bootstrap data from S3 Bucket.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nodesIAMInstanceProfiles</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>NodesIAMInstanceProfiles is a list of IAM instance profiles, which will be allowed to read
+worker nodes bootstrap data from S3 Bucket.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>name</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name defines name of S3 Bucket to be created.</p>
 </td>
 </tr>
 </tbody>

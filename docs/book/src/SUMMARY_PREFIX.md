@@ -31,3 +31,4 @@
   - [Userdata Privacy](./topics/userdata-privacy.md)
   - [Troubleshooting](./topics/troubleshooting.md)
   - [IAM Permissions Used](./topics/iam-permissions.md)
+  - [Ignition support](./topics/ignition-support.md)
