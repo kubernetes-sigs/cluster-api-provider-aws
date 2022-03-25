@@ -144,6 +144,11 @@ type AWSManagedMachinePoolSpec struct {
 	// +kubebuilder:default:=onDemand
 	// +optional
 	CapacityType *ManagedMachinePoolCapacityType `json:"capacityType,omitempty"`
+
+	// UpdateConfig holds the optional config to control the behaviour of the update
+	// to the nodegroup.
+	// +optional
+	UpdateConfig *UpdateConfig `json:"updateConfig,omitempty"`
 }
 
 // ManagedMachinePoolScaling specifies scaling options.

@@ -175,3 +175,37 @@ func CapacityTypeToSDK(capacityType expinfrav1.ManagedMachinePoolCapacityType) (
 		return "", ErrUnknownCapacityType
 	}
 }
+
+// NodegroupUpdateconfigToSDK is used to convert a CAPA UpdateConfig to AWS SDK NodegroupUpdateConfig.
+func NodegroupUpdateconfigToSDK(updateConfig *expinfrav1.UpdateConfig) *eks.NodegroupUpdateConfig {
+	if updateConfig == nil {
+		return nil
+	}
+
+	converted := &eks.NodegroupUpdateConfig{}
+	if updateConfig.MaxUnavailable != nil {
+		converted.MaxUnavailable = aws.Int64(int64(*updateConfig.MaxUnavailable))
+	}
+	if updateConfig.MaxUnavailablePercentage != nil {
+		converted.MaxUnavailablePercentage = aws.Int64(int64(*updateConfig.MaxUnavailablePercentage))
+	}
+
+	return converted
+}
+
+// NodegroupUpdateconfigFromSDK is used to convert a AWS SDK NodegroupUpdateConfig to a CAPA UpdateConfig.
+func NodegroupUpdateconfigFromSDK(ngUpdateConfig *eks.NodegroupUpdateConfig) *expinfrav1.UpdateConfig {
+	if ngUpdateConfig == nil {
+		return nil
+	}
+
+	converted := &expinfrav1.UpdateConfig{}
+	if ngUpdateConfig.MaxUnavailable != nil {
+		converted.MaxUnavailable = aws.Int(int(*ngUpdateConfig.MaxUnavailable))
+	}
+	if ngUpdateConfig.MaxUnavailablePercentage != nil {
+		converted.MaxUnavailablePercentage = aws.Int(int(*ngUpdateConfig.MaxUnavailablePercentage))
+	}
+
+	return converted
+}
