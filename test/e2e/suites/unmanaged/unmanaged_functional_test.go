@@ -822,8 +822,8 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("Peerings and internal ELB", func() {
-		ginkgo.It("should create external clusters in peered VPC and with an internal ELB", func() {
+	ginkgo.Describe("Peerings, internal ELB and private subnet", func() {
+		ginkgo.It("should create external clusters in peered VPC and with an internal ELB and only utilize a private subnet", func() {
 			specName := "functional-test-peered-internal-elb"
 			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 5}
 			requiredResources.WriteRequestedResources(e2eCtx, specName)
@@ -874,7 +874,6 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			shared.SetEnvVar("WL_VPC_ID", *wlClusterInfra.VPC.VpcId, false)
 			shared.SetEnvVar("MGMT_PUBLIC_SUBNET_ID", *mgmtClusterInfra.State.PublicSubnetID, false)
 			shared.SetEnvVar("MGMT_PRIVATE_SUBNET_ID", *mgmtClusterInfra.State.PrivateSubnetID, false)
-			shared.SetEnvVar("WL_PUBLIC_SUBNET_ID", *wlClusterInfra.State.PublicSubnetID, false)
 			shared.SetEnvVar("WL_PRIVATE_SUBNET_ID", *wlClusterInfra.State.PrivateSubnetID, false)
 
 			ginkgo.By("Creating VPC peerings")
@@ -996,49 +995,53 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			Expect(len(wlCPM)).To(Equal(1))
 
 			ginkgo.By("Deleting the workload cluster")
-			framework.DeleteCluster(ctx, framework.DeleteClusterInput{
-				Deleter: mgmtClusterProxy.GetClient(),
-				Cluster: wlResult.Cluster,
-			})
+			shared.DumpSpecResourcesFromProxy(ctx, e2eCtx, wlNamespace, mgmtClusterProxy)
+			shared.DumpMachinesFromProxy(ctx, e2eCtx, wlNamespace, mgmtClusterProxy)
+			if !e2eCtx.Settings.SkipCleanup {
+				framework.DeleteCluster(ctx, framework.DeleteClusterInput{
+					Deleter: mgmtClusterProxy.GetClient(),
+					Cluster: wlResult.Cluster,
+				})
 
-			framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
-				Getter:  mgmtClusterProxy.GetClient(),
-				Cluster: wlResult.Cluster,
-			}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
+				framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
+					Getter:  mgmtClusterProxy.GetClient(),
+					Cluster: wlResult.Cluster,
+				}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
 
-			ginkgo.By("Moving the management cluster back to bootstrap")
-			clusterctl.Move(ctx, clusterctl.MoveInput{
-				LogFolder:            filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", mgmtCluster.Name),
-				ClusterctlConfigPath: e2eCtx.Environment.ClusterctlConfigPath,
-				FromKubeconfigPath:   mgmtClusterProxy.GetKubeconfigPath(),
-				ToKubeconfigPath:     e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
-				Namespace:            namespace.Name,
-			})
+				ginkgo.By("Moving the management cluster back to bootstrap")
+				clusterctl.Move(ctx, clusterctl.MoveInput{
+					LogFolder:            filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", mgmtCluster.Name),
+					ClusterctlConfigPath: e2eCtx.Environment.ClusterctlConfigPath,
+					FromKubeconfigPath:   mgmtClusterProxy.GetKubeconfigPath(),
+					ToKubeconfigPath:     e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
+					Namespace:            namespace.Name,
+				})
 
-			mgmtCluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
-				Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-				Namespace: mgmtNamespace.Name,
-				Name:      mgmtCluster.Name,
-			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster")...)
+				mgmtCluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
+					Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+					Namespace: mgmtNamespace.Name,
+					Name:      mgmtCluster.Name,
+				}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster")...)
 
-			mgmtControlPlane = framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
-				Lister:      e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-				ClusterName: mgmtCluster.Name,
-				Namespace:   mgmtCluster.Namespace,
-			})
-			Expect(mgmtControlPlane).ToNot(BeNil())
+				mgmtControlPlane = framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
+					Lister:      e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+					ClusterName: mgmtCluster.Name,
+					Namespace:   mgmtCluster.Namespace,
+				})
+				Expect(mgmtControlPlane).ToNot(BeNil())
 
-			ginkgo.By("Deleting the management cluster")
-			deleteCluster(ctx, mgmtCluster)
+				ginkgo.By("Deleting the management cluster")
+				deleteCluster(ctx, mgmtCluster)
 
-			ginkgo.By("Deleting peering connection")
-			Expect(shared.DeletePeering(e2eCtx, *cPeering.VpcPeeringConnectionId)).To(BeTrue())
+				ginkgo.By("Deleting peering connection")
+				Expect(shared.DeletePeering(e2eCtx, *cPeering.VpcPeeringConnectionId)).To(BeTrue())
 
-			ginkgo.By("Deleting the workload cluster infrastructure")
-			wlClusterInfra.DeleteInfrastructure()
+				ginkgo.By("Deleting the workload cluster infrastructure")
+				wlClusterInfra.DeleteInfrastructure()
 
-			ginkgo.By("Deleting the management cluster infrastructure")
-			mgmtClusterInfra.DeleteInfrastructure()
+				ginkgo.By("Deleting the management cluster infrastructure")
+				mgmtClusterInfra.DeleteInfrastructure()
+			}
 		})
 	})
 })
