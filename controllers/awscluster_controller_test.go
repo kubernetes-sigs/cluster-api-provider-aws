@@ -64,7 +64,7 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 		mockCtrl.Finish()
 	}
 
-	t.Run("Should successfully reconcile AWCluster creation with unmanaged VPC", func(t *testing.T) {
+	t.Run("Should successfully reconcile AWSCluster creation with unmanaged VPC", func(t *testing.T) {
 		g := NewWithT(t)
 		mockCtrl = gomock.NewController(t)
 		ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
