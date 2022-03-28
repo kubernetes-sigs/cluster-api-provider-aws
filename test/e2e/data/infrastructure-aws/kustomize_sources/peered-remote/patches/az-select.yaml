@@ -6,4 +6,15 @@ spec:
   template:
     spec:
       failureDomain: "us-west-2a"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSMachineTemplate
+metadata:
+  name: "${CLUSTER_NAME}-md-0"
+spec:
+  template:
+    spec:
+      failureDomain: "us-west-2a"
+
+
 
