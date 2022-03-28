@@ -62,16 +62,16 @@ var (
 	}
 	expectedTags = []*elb.Tag{
 		{
+			Key:   aws.String("Name"),
+			Value: lbName,
+		},
+		{
 			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 			Value: aws.String("owned"),
 		},
 		{
 			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 			Value: aws.String("apiserver"),
-		},
-		{
-			Key:   aws.String("Name"),
-			Value: lbName,
 		},
 	}
 )
@@ -162,23 +162,19 @@ func mockedCreateLBCalls(t *testing.T, m *mock_elbiface.MockELBAPIMockRecorder) 
 		LoadBalancerName: aws.String(""),
 	})).MaxTimes(1)
 
-	m.AddTags(gomock.Eq(&elb.AddTagsInput{
-		LoadBalancerNames: aws.StringSlice([]string{""}),
-		Tags:              expectedTags,
-	})).Do(func(actual *elb.AddTagsInput) (*elb.AddTagsOutput, error) {
-		sortTagsByKey := func(tags []*elb.Tag) {
-			sort.Slice(tags, func(i, j int) bool {
-				return *(tags[i].Key) < *(tags[j].Key)
-			})
-		}
+	m.AddTags(gomock.AssignableToTypeOf(&elb.AddTagsInput{})).Return(&elb.AddTagsOutput{}, nil).Do(
+		func(actual *elb.AddTagsInput) {
+			sortTagsByKey := func(tags []*elb.Tag) {
+				sort.Slice(tags, func(i, j int) bool {
+					return *(tags[i].Key) < *(tags[j].Key)
+				})
+			}
 
-		sortTagsByKey(actual.Tags)
-		sortTagsByKey(expectedTags)
-		if !reflect.DeepEqual(expectedTags, actual.Tags) {
-			t.Fatalf("Actual AddTagsInput did not match expected, Actual : %v, Expected: %v", actual.Tags, expectedTags)
-		}
-		return &elb.AddTagsOutput{}, nil
-	}).AnyTimes()
+			sortTagsByKey(actual.Tags)
+			if !reflect.DeepEqual(expectedTags, actual.Tags) {
+				t.Fatalf("Actual AddTagsInput did not match expected, Actual : %v, Expected: %v", actual.Tags, expectedTags)
+			}
+		}).AnyTimes()
 	m.RemoveTags(gomock.Eq(&elb.RemoveTagsInput{
 		LoadBalancerNames: aws.StringSlice([]string{""}),
 		Tags: []*elb.TagKeyOnly{
