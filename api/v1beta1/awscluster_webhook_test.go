@@ -25,8 +25,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"sigs.k8s.io/cluster-api-provider-aws/feature"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
@@ -94,9 +96,137 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "accepts bucket name with acceptable characters",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name:                           "abcdefghijklmnoprstuwxyz-0123456789",
+						ControlPlaneIAMInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io",
+						NodesIAMInstanceProfiles:       []string{"nodes.cluster-api-provider-aws.sigs.k8s.io"},
+					},
+				},
+			},
+		},
+		{
+			name: "rejects empty bucket name",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects bucket name shorter than 3 characters",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name: "fo",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects bucket name longer than 63 characters",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name: strings.Repeat("a", 64),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects bucket name starting with not letter or number",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name: "-foo",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects bucket name ending with not letter or number",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name: "foo-",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects bucket name formatted as IP address",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name: "8.8.8.8",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "requires bucket control plane IAM instance profile to be not empty",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name:                           "foo",
+						ControlPlaneIAMInstanceProfile: "",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "requires at least one bucket node IAM instance profile",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name:                           "foo",
+						ControlPlaneIAMInstanceProfile: "foo",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "requires all bucket node IAM instance profiles to be not empty",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name:                           "foo",
+						ControlPlaneIAMInstanceProfile: "foo",
+						NodesIAMInstanceProfiles:       []string{""},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "does not return error when all IAM instance profiles are populated",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name:                           "foo",
+						ControlPlaneIAMInstanceProfile: "foo",
+						NodesIAMInstanceProfiles:       []string{"bar"},
+					},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.BootstrapFormatIgnition, true)()
+
 			cluster := tt.cluster.DeepCopy()
 			cluster.ObjectMeta = metav1.ObjectMeta{
 				GenerateName: "cluster-",
@@ -123,7 +253,9 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 				return err == nil
 			}, 10*time.Second).Should(Equal(true))
 
-			tt.expect(g, c.Spec.ControlPlaneLoadBalancer)
+			if tt.expect != nil {
+				tt.expect(g, c.Spec.ControlPlaneLoadBalancer)
+			}
 		})
 	}
 }

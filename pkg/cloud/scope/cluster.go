@@ -197,6 +197,10 @@ func (s *ClusterScope) ControlPlaneEndpoint() clusterv1.APIEndpoint {
 	return s.AWSCluster.Spec.ControlPlaneEndpoint
 }
 
+func (s *ClusterScope) Bucket() *infrav1.S3Bucket {
+	return s.AWSCluster.Spec.S3Bucket
+}
+
 // ControlPlaneConfigMapName returns the name of the ConfigMap used to
 // coordinate the bootstrapping of control plane nodes.
 func (s *ClusterScope) ControlPlaneConfigMapName() string {

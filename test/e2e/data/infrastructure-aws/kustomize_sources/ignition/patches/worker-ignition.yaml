@@ -1,0 +1,33 @@
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: "${CLUSTER_NAME}-md-0"
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            cloud-provider: aws
+          name: $${COREOS_EC2_HOSTNAME}
+      format: ignition
+      ignition:
+        containerLinuxConfig:
+          additionalConfig: |
+            systemd:
+              units:
+              - name: kubeadm.service
+                enabled: true
+                dropins:
+                - name: 10-flatcar.conf
+                  contents: |
+                    [Unit]
+                    # kubeadm must run after coreos-metadata populated /run/metadata directory.
+                    Requires=coreos-metadata.service
+                    After=coreos-metadata.service
+                    [Service]
+                    # To make metadata environment variables available for pre-kubeadm commands.
+                    EnvironmentFile=/run/metadata/*
+      preKubeadmCommands:
+      - envsubst < /etc/kubeadm.yml > /etc/kubeadm.yml.tmp
+      - mv /etc/kubeadm.yml.tmp /etc/kubeadm.yml

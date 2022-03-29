@@ -124,23 +124,33 @@ func (m *MachinePoolScope) Namespace() string {
 // GetRawBootstrapData returns the bootstrap data from the secret in the Machine's bootstrap.dataSecretName.
 // todo(rudoi): stolen from MachinePool - any way to reuse?
 func (m *MachinePoolScope) GetRawBootstrapData() ([]byte, error) {
+	data, _, err := m.getBootstrapData()
+
+	return data, err
+}
+
+func (m *MachinePoolScope) GetRawBootstrapDataWithFormat() ([]byte, string, error) {
+	return m.getBootstrapData()
+}
+
+func (m *MachinePoolScope) getBootstrapData() ([]byte, string, error) {
 	if m.MachinePool.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
-		return nil, errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
+		return nil, "", errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
 	}
 
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: m.Namespace(), Name: *m.MachinePool.Spec.Template.Spec.Bootstrap.DataSecretName}
 
 	if err := m.client.Get(context.TODO(), key, secret); err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve bootstrap data secret for AWSMachine %s/%s", m.Namespace(), m.Name())
+		return nil, "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for AWSMachine %s/%s", m.Namespace(), m.Name())
 	}
 
 	value, ok := secret.Data["value"]
 	if !ok {
-		return nil, errors.New("error retrieving bootstrap data: secret value key is missing")
+		return nil, "", errors.New("error retrieving bootstrap data: secret value key is missing")
 	}
 
-	return value, nil
+	return value, string(secret.Data["format"]), nil
 }
 
 // AdditionalTags merges AdditionalTags from the scope's AWSCluster and AWSMachinePool. If the same key is present in both,

@@ -151,7 +151,7 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 			return secretMock
 		}
 
-		_, err = reconciler.reconcileNormal(ctx, ms, cs, cs, cs)
+		_, err = reconciler.reconcileNormal(ctx, ms, cs, cs, cs, cs)
 		g.Expect(err).To(BeNil())
 		expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionTrue, "", ""},
 			{infrav1.InstanceReadyCondition, corev1.ConditionTrue, "", ""},
@@ -207,7 +207,7 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 			return elbSvc
 		}
 
-		_, err = reconciler.reconcileDelete(ms, cs, cs, cs)
+		_, err = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 		g.Expect(err).To(BeNil())
 		expectConditions(g, ms.AWSMachine, []conditionAssertion{
 			{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
@@ -300,7 +300,7 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 			return secretMock
 		}
 
-		_, err = reconciler.reconcileNormal(ctx, ms, cs, cs, cs)
+		_, err = reconciler.reconcileNormal(ctx, ms, cs, cs, cs, cs)
 		g.Expect(err).Should(HaveOccurred())
 		expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionTrue, "", ""}})
 		g.Expect(ms.AWSMachine.Finalizers).Should(ContainElement(infrav1.MachineFinalizer))
@@ -359,7 +359,7 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 			return elbSvc
 		}
 
-		_, err = reconciler.reconcileDelete(ms, cs, cs, cs)
+		_, err = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 		g.Expect(err).Should(HaveOccurred())
 		expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, "DeletingFailed"},
 			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason}})

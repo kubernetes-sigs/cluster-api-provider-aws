@@ -232,6 +232,7 @@ providers:
           - sourcePath: "./infrastructure-aws/generated/cluster-template-internal-elb.yaml"
           - sourcePath: "./infrastructure-aws/kustomize_sources/topology/clusterclass-quick-start.yaml"
           - sourcePath: "./shared/v1beta1_provider/metadata.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-ignition.yaml"
         replacements:
           # To allow bugs to be catched.
           - old: "failureThreshold: 3"
@@ -282,6 +283,8 @@ variables:
   # INIT_WITH_KUBERNETES_VERSION are only used by the clusterctl upgrade test to initialize
   # the management cluster to be upgraded.
   INIT_WITH_KUBERNETES_VERSION: "v1.21.6"
+  EXP_BOOTSTRAP_FORMAT_IGNITION: "true"
+  EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
 
 intervals:
   default/wait-cluster: ["30m", "10s"]

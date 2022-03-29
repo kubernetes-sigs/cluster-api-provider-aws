@@ -192,8 +192,12 @@ func (m *MachineScope) SetAnnotation(key, value string) {
 
 // UseSecretsManager returns the computed value of whether or not
 // userdata should be stored using AWS Secrets Manager.
-func (m *MachineScope) UseSecretsManager() bool {
-	return !m.AWSMachine.Spec.CloudInit.InsecureSkipSecretsManager
+func (m *MachineScope) UseSecretsManager(userDataFormat string) bool {
+	return !m.AWSMachine.Spec.CloudInit.InsecureSkipSecretsManager && !m.UseIgnition(userDataFormat)
+}
+
+func (m *MachineScope) UseIgnition(userDataFormat string) bool {
+	return userDataFormat == "ignition" || (m.AWSMachine.Spec.Ignition != nil)
 }
 
 // SecureSecretsBackend returns the chosen secret backend.
@@ -201,10 +205,14 @@ func (m *MachineScope) SecureSecretsBackend() infrav1.SecretBackend {
 	return m.AWSMachine.Spec.CloudInit.SecureSecretsBackend
 }
 
-// UserDataIsUncompressed returns the computed value of whether or not
+// CompressUserData returns the computed value of whether or not
 // userdata should be compressed using gzip.
-func (m *MachineScope) UserDataIsUncompressed() bool {
-	return m.AWSMachine.Spec.UncompressedUserData != nil && *m.AWSMachine.Spec.UncompressedUserData
+func (m *MachineScope) CompressUserData(userDataFormat string) bool {
+	if m.UseIgnition(userDataFormat) {
+		return false
+	}
+
+	return m.AWSMachine.Spec.UncompressedUserData != nil && !*m.AWSMachine.Spec.UncompressedUserData
 }
 
 // GetSecretPrefix returns the prefix for the secrets belonging
@@ -253,22 +261,28 @@ func (m *MachineScope) GetBootstrapData() (string, error) {
 
 // GetRawBootstrapData returns the bootstrap data from the secret in the Machine's bootstrap.dataSecretName.
 func (m *MachineScope) GetRawBootstrapData() ([]byte, error) {
+	data, _, err := m.GetRawBootstrapDataWithFormat()
+
+	return data, err
+}
+
+func (m *MachineScope) GetRawBootstrapDataWithFormat() ([]byte, string, error) {
 	if m.Machine.Spec.Bootstrap.DataSecretName == nil {
-		return nil, errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
+		return nil, "", errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
 	}
 
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: m.Namespace(), Name: *m.Machine.Spec.Bootstrap.DataSecretName}
 	if err := m.client.Get(context.TODO(), key, secret); err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve bootstrap data secret for AWSMachine %s/%s", m.Namespace(), m.Name())
+		return nil, "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for AWSMachine %s/%s", m.Namespace(), m.Name())
 	}
 
 	value, ok := secret.Data["value"]
 	if !ok {
-		return nil, errors.New("error retrieving bootstrap data: secret value key is missing")
+		return nil, "", errors.New("error retrieving bootstrap data: secret value key is missing")
 	}
 
-	return value, nil
+	return value, string(secret.Data["format"]), nil
 }
 
 // PatchObject persists the machine spec and status.

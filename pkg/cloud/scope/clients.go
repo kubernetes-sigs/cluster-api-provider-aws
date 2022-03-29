@@ -34,6 +34,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -180,6 +182,16 @@ func NewSSMClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger clou
 	ssmClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
 
 	return ssmClient
+}
+
+// NewS3Client creates a new S3 API client for a given session.
+func NewS3Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger cloud.Logger, target runtime.Object) s3iface.S3API {
+	s3Client := s3.New(session.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(logger)).WithLogger(awslogs.NewWrapLogr(logger)))
+	s3Client.Handlers.Build.PushFrontNamed(getUserAgentHandler())
+	s3Client.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
+	s3Client.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
+
+	return s3Client
 }
 
 func recordAWSPermissionsIssue(target runtime.Object) func(r *request.Request) {

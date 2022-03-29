@@ -45,6 +45,8 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 		restoreControlPlaneLoadBalancer(restored.Spec.ControlPlaneLoadBalancer, dst.Spec.ControlPlaneLoadBalancer)
 	}
 
+	dst.Spec.S3Bucket = restored.Spec.S3Bucket
+
 	return nil
 }
 
