@@ -19,7 +19,6 @@ package scope
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -31,6 +30,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/go-logr/logr"
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -419,7 +419,7 @@ func isClusterPermittedToUsePrincipal(k8sClient client.Client, allowedNs *infrav
 	}
 
 	// empty value matches with all namespaces
-	if reflect.DeepEqual(*allowedNs, infrav1.AllowedNamespaces{}) {
+	if cmp.Equal(*allowedNs, infrav1.AllowedNamespaces{}) {
 		return true, nil
 	}
 

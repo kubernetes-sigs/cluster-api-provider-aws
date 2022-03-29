@@ -17,9 +17,8 @@ limitations under the License.
 package network
 
 import (
-	"reflect"
-
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
@@ -85,7 +84,7 @@ func (s *Service) disassociateSecondaryCidr() error {
 
 	existingAssociations := vpcs.Vpcs[0].CidrBlockAssociationSet
 	for _, existing := range existingAssociations {
-		if reflect.DeepEqual(existing.CidrBlock, s.scope.SecondaryCidrBlock()) {
+		if cmp.Equal(existing.CidrBlock, s.scope.SecondaryCidrBlock()) {
 			if _, err := s.EC2Client.DisassociateVpcCidrBlock(&ec2.DisassociateVpcCidrBlockInput{
 				AssociationId: existing.AssociationId,
 			}); err != nil {

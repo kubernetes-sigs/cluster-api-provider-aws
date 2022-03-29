@@ -20,10 +20,10 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"reflect"
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -360,7 +360,7 @@ func (r *AWSClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 					oldCluster.ObjectMeta.ResourceVersion = ""
 					newCluster.ObjectMeta.ResourceVersion = ""
 
-					return !reflect.DeepEqual(oldCluster, newCluster)
+					return !cmp.Equal(oldCluster, newCluster)
 				},
 			},
 		).

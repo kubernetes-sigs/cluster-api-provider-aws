@@ -18,7 +18,6 @@ package ec2
 
 import (
 	"encoding/base64"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -26,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -3060,7 +3060,7 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			request := getInstanceMarketOptionsRequest(tc.spotMarketOptions)
-			if !reflect.DeepEqual(request, tc.expectedRequest) {
+			if !cmp.Equal(request, tc.expectedRequest) {
 				t.Errorf("Case: %s. Got: %v, expected: %v", tc.name, request, tc.expectedRequest)
 			}
 		})

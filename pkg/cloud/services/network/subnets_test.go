@@ -19,12 +19,12 @@ package network
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -1978,7 +1978,7 @@ func TestDiscoverSubnets(t *testing.T) {
 					continue
 				}
 
-				if !reflect.DeepEqual(sn, exp) {
+				if !cmp.Equal(sn, exp) {
 					expected, err := json.MarshalIndent(exp, "", "\t")
 					if err != nil {
 						t.Fatalf("got an unexpected error: %v", err)

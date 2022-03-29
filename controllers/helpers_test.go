@@ -16,13 +16,13 @@ limitations under the License.
 package controllers
 
 import (
-	"reflect"
 	"sort"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -171,7 +171,7 @@ func mockedCreateLBCalls(t *testing.T, m *mock_elbiface.MockELBAPIMockRecorder) 
 			}
 
 			sortTagsByKey(actual.Tags)
-			if !reflect.DeepEqual(expectedTags, actual.Tags) {
+			if !cmp.Equal(expectedTags, actual.Tags) {
 				t.Fatalf("Actual AddTagsInput did not match expected, Actual : %v, Expected: %v", actual.Tags, expectedTags)
 			}
 		}).AnyTimes()

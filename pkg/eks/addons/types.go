@@ -17,7 +17,7 @@ limitations under the License.
 package addons
 
 import (
-	"reflect"
+	"github.com/google/go-cmp/cmp"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 )
@@ -39,10 +39,10 @@ func (e *EKSAddon) IsEqual(other *EKSAddon, includeTags bool) bool {
 	if e == other {
 		return true
 	}
-	if !reflect.DeepEqual(e.Version, other.Version) {
+	if !cmp.Equal(e.Version, other.Version) {
 		return false
 	}
-	if !reflect.DeepEqual(e.ServiceAccountRoleARN, other.ServiceAccountRoleARN) {
+	if !cmp.Equal(e.ServiceAccountRoleARN, other.ServiceAccountRoleARN) {
 		return false
 	}
 
