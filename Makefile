@@ -24,6 +24,7 @@ ARTIFACTS ?= $(REPO_ROOT)/_artifacts
 TOOLS_DIR := hack/tools
 TOOLS_DIR_DEPS := $(TOOLS_DIR)/go.sum $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/Makefile
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
+GO_INSTALL := ./scripts/go_install.sh
 
 API_DIRS := cmd/clusterawsadm/api api exp/api controlplane/eks/api bootstrap/eks/api iam/api
 API_SRCS := $(foreach dir, $(API_DIRS), $(call rwildcard,../../$(dir),*.go))
@@ -128,6 +129,19 @@ E2E_SKIP_EKS_UPGRADE ?= "false"
 
 # Set EKS_SOURCE_TEMPLATE to override the source template
 EKS_SOURCE_TEMPLATE ?= eks/cluster-template-eks-control-plane-only.yaml
+
+# set up `setup-envtest` to install kubebuilder dependency
+export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.23.3
+SETUP_ENVTEST_VER := v0.0.0-20211110210527-619e6b92dab9
+SETUP_ENVTEST_BIN := setup-envtest
+SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
+SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
+
+ifeq ($(shell go env GOOS),darwin) # Use the darwin/amd64 binary until an arm64 version is available
+	KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path --arch amd64 $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
+else
+	KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
+endif
 
 # Enable Cluster API Framework tests for the purposes of running the PR blocking test
 ifeq ($(findstring \[PR-Blocking\],$(E2E_FOCUS)),\[PR-Blocking\])
@@ -305,7 +319,7 @@ verify-shellcheck: ## Verify shell files
 
 .PHONY: verify-book-links
 verify-book-links: ## Verify book links
-	$(MAKE) -C docs/book verify 
+	$(MAKE) -C docs/book verify
 
 .PHONY: verify-gen
 verify-gen: generate ## Verify generated files
@@ -366,13 +380,16 @@ generate-test-flavors: $(KUSTOMIZE)  ## Generate test template flavors
 e2e-image: docker-pull-prerequisites $(TOOLS_BIN_DIR)/start.sh $(TOOLS_BIN_DIR)/restart.sh ## Build an e2e test image
 	docker build -f Dockerfile --tag="gcr.io/k8s-staging-cluster-api/capa-manager:e2e" .
 
+$(SETUP_ENVTEST): # Build setup-envtest from tools folder.
+	GOBIN=$(abspath $(TOOLS_BIN_DIR)) $(GO_INSTALL) $(SETUP_ENVTEST_PKG) $(SETUP_ENVTEST_BIN) $(SETUP_ENVTEST_VER)
+
 .PHONY: test
-test: ## Run tests
-	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test ./...
+test: $(SETUP_ENVTEST) ## Run tests
+	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./...
 
 .PHONY: test-verbose
-test-verbose: ## Run tests with verbose settings.
-	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./...
+test-verbose: $(SETUP_ENVTEST) ## Run tests with verbose settings.
+	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -v ./...
 
 .PHONY: test-e2e ## Run e2e tests using clusterctl
 test-e2e: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) generate-test-flavors e2e-image ## Run e2e tests
@@ -391,8 +408,8 @@ test-conformance: generate-test-flavors $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOM
 	time $(GINKGO) -tags=e2e -focus="conformance" $(CONFORMANCE_GINKGO_ARGS) ./test/e2e/suites/conformance/... -- -config-path="$(E2E_CONF_PATH)" $(CONFORMANCE_E2E_ARGS)
 
 .PHONY: test-cover
-test-cover: ## Run tests with code coverage and code generate  reports
-	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -coverprofile=coverage.out ./... $(TEST_ARGS)
+test-cover: $(SETUP_ENVTEST) ## Run tests with code coverage and code generate  reports
+	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -coverprofile=coverage.out ./... $(TEST_ARGS)
 	go tool cover -func=coverage.out -o coverage.txt
 	go tool cover -html=coverage.out -o coverage.html
 
@@ -533,7 +550,7 @@ release-manifests: ## Release manifest files
 .PHONY: release-changelog
 release-changelog: $(GH) ## Generates release notes using Github release notes.
 	./hack/releasechangelog.sh -v $(VERSION) -pv $(PREVIOUS_VERSION) -gh $(GH) -ghorg $(GH_ORG_NAME) -ghrepo $(GH_REPO_NAME) -cimg $(CORE_CONTROLLER_IMG) > $(RELEASE_DIR)/CHANGELOG.md
-	  
+
 .PHONY: release-binaries
 release-binaries: ## Builds the binaries to publish with a release
 	RELEASE_BINARY=./cmd/clusterawsadm GOOS=linux GOARCH=amd64 $(MAKE) release-binary
