@@ -1,5 +1,0 @@
-resources:
-  - ../limit-az
-patchesStrategicMerge:
-  - patches/external-infrastructure.yaml
-  

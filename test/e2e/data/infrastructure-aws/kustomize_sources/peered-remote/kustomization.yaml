@@ -3,4 +3,5 @@ resources:
 patchesStrategicMerge:
   - patches/management.yaml
   - patches/az-select.yaml
+  - patches/external-securitygroups.yaml
 
