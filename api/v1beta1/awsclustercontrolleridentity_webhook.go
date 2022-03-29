@@ -18,8 +18,8 @@ package v1beta1
 
 import (
 	"fmt"
-	"reflect"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -78,7 +78,7 @@ func (r *AWSClusterControllerIdentity) ValidateUpdate(old runtime.Object) error 
 		return apierrors.NewBadRequest(fmt.Sprintf("expected an AWSClusterControllerIdentity but got a %T", old))
 	}
 
-	if !reflect.DeepEqual(r.Spec, oldP.Spec) {
+	if !cmp.Equal(r.Spec, oldP.Spec) {
 		return errors.New("AWSClusterControllerIdentity is immutable")
 	}
 

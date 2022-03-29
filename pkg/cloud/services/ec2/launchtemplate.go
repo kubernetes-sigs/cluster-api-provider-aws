@@ -18,13 +18,13 @@ package ec2
 
 import (
 	"encoding/base64"
-	"reflect"
 	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	"k8s.io/utils/pointer"
 
@@ -388,7 +388,7 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope *scope.MachinePoolScope, incom
 	sort.Strings(incomingIDs)
 	sort.Strings(existingIDs)
 
-	if !reflect.DeepEqual(incomingIDs, existingIDs) {
+	if !cmp.Equal(incomingIDs, existingIDs) {
 		return true, nil
 	}
 

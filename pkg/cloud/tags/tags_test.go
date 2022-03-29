@@ -17,13 +17,13 @@ limitations under the License.
 package tags
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
@@ -125,7 +125,7 @@ func TestTags_ComputeDiff(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			out := computeDiff(tc.input, bp)
-			if e, a := tc.expected, out; !reflect.DeepEqual(e, a) {
+			if e, a := tc.expected, out; !cmp.Equal(e, a) {
 				t.Errorf("expected %#v, got %#v", e, a)
 			}
 		})

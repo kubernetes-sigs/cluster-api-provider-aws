@@ -17,7 +17,6 @@ limitations under the License.
 package asg
 
 import (
-	"reflect"
 	"sort"
 	"testing"
 
@@ -25,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -287,7 +287,7 @@ func TestService_SDKToAutoScalingGroup(t *testing.T) {
 				t.Errorf("Service.SDKToAutoScalingGroup() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
+			if !cmp.Equal(got, tt.want) {
 				t.Errorf("Service.SDKToAutoScalingGroup() = %v, want %v", got, tt.want)
 			}
 		})
@@ -471,7 +471,7 @@ func TestService_CreateASG(t *testing.T) {
 						// sorting tags to avoid failure due to different ordering of tags
 						sortTagsByKey(actual.Tags)
 						sortTagsByKey(expected.Tags)
-						if !reflect.DeepEqual(expected, actual) {
+						if !cmp.Equal(expected, actual) {
 							t.Fatalf("Actual CreateAutoScalingGroupInput did not match expected, Actual : %v, Expected: %v", actual, expected)
 						}
 						return &autoscaling.CreateAutoScalingGroupOutput{}, nil

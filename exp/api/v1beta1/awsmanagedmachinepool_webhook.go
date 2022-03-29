@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -190,7 +191,7 @@ func (r *AWSManagedMachinePool) validateImmutable(old *AWSManagedMachinePool) fi
 	var allErrs field.ErrorList
 
 	appendErrorIfMutated := func(old, update interface{}, name string) {
-		if !reflect.DeepEqual(old, update) {
+		if !cmp.Equal(old, update) {
 			allErrs = append(
 				allErrs,
 				field.Invalid(field.NewPath("spec", name), update, "field is immutable"),
@@ -198,7 +199,7 @@ func (r *AWSManagedMachinePool) validateImmutable(old *AWSManagedMachinePool) fi
 		}
 	}
 	appendErrorIfSetAndMutated := func(old, update interface{}, name string) {
-		if !reflect.ValueOf(old).IsZero() && !reflect.DeepEqual(old, update) {
+		if !reflect.ValueOf(old).IsZero() && !cmp.Equal(old, update) {
 			allErrs = append(
 				allErrs,
 				field.Invalid(field.NewPath("spec", name), update, "field is immutable"),

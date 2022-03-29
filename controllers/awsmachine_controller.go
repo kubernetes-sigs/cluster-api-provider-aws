@@ -20,11 +20,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"reflect"
 
 	"github.com/aws/aws-sdk-go/aws"
 	ignTypes "github.com/flatcar-linux/ignition/config/v2_3/types"
 	"github.com/go-logr/logr"
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -258,7 +258,7 @@ func (r *AWSMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 					oldMachine.ObjectMeta.ResourceVersion = ""
 					newMachine.ObjectMeta.ResourceVersion = ""
 
-					return !reflect.DeepEqual(oldMachine, newMachine)
+					return !cmp.Equal(oldMachine, newMachine)
 				},
 			},
 		).
