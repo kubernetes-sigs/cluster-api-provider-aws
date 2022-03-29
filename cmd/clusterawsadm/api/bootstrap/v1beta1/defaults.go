@@ -33,6 +33,8 @@ const (
 	DefaultPartitionName = "aws"
 	// DefaultKMSAliasPattern is the default KMS alias.
 	DefaultKMSAliasPattern = "cluster-api-provider-aws-*"
+	// DefaultS3BucketPrefix is the default S3 bucket prefix.
+	DefaultS3BucketPrefix = "cluster-api-provider-aws-"
 )
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
@@ -90,6 +92,10 @@ func SetDefaults_AWSIAMConfigurationSpec(obj *AWSIAMConfigurationSpec) { //nolin
 	}
 	if len(obj.EKS.KMSAliasPrefix) == 0 {
 		obj.EKS.KMSAliasPrefix = DefaultKMSAliasPattern
+	}
+
+	if obj.S3Buckets.NamePrefix == "" {
+		obj.S3Buckets.NamePrefix = DefaultS3BucketPrefix
 	}
 }
 

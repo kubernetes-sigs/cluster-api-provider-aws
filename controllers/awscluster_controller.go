@@ -46,6 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/instancestate"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/network"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/s3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/securitygroup"
 	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/util/conditions"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -200,6 +201,7 @@ func (r *AWSClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope)
 	elbsvc := r.getELBService(clusterScope)
 	networkSvc := r.getNetworkService(*clusterScope)
 	sgService := r.getSecurityGroupService(*clusterScope)
+	s3Service := s3.NewService(clusterScope)
 
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 		instancestateSvc := instancestate.NewService(clusterScope)
@@ -229,6 +231,10 @@ func (r *AWSClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope)
 		return reconcile.Result{}, err
 	}
 
+	if err := s3Service.DeleteBucket(); err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "error deleting S3 Bucket")
+	}
+
 	// Cluster is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(clusterScope.AWSCluster, infrav1.ClusterFinalizer)
 
@@ -251,6 +257,7 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 	elbService := r.getELBService(clusterScope)
 	networkSvc := r.getNetworkService(*clusterScope)
 	sgService := r.getSecurityGroupService(*clusterScope)
+	s3Service := s3.NewService(clusterScope)
 
 	if err := networkSvc.ReconcileNetwork(); err != nil {
 		clusterScope.Error(err, "failed to reconcile network")
@@ -286,6 +293,11 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 		clusterScope.Error(err, "failed to reconcile load balancer")
 		conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.LoadBalancerFailedReason, infrautilconditions.ErrorConditionAfterInit(clusterScope.ClusterObj()), err.Error())
 		return reconcile.Result{}, err
+	}
+
+	if err := s3Service.ReconcileBucket(); err != nil {
+		conditions.MarkFalse(awsCluster, infrav1.S3BucketReadyCondition, infrav1.S3BucketFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile S3 Bucket for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}
 
 	if awsCluster.Status.Network.APIServerELB.DNSName == "" {

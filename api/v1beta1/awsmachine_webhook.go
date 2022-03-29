@@ -26,6 +26,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	"sigs.k8s.io/cluster-api-provider-aws/feature"
 )
 
 // log is for logging in this package.
@@ -50,6 +52,7 @@ func (r *AWSMachine) ValidateCreate() error {
 	var allErrs field.ErrorList
 
 	allErrs = append(allErrs, r.validateCloudInitSecret()...)
+	allErrs = append(allErrs, r.validateIgnitionAndCloudInit()...)
 	allErrs = append(allErrs, r.validateRootVolume()...)
 	allErrs = append(allErrs, r.validateNonRootVolumes()...)
 	allErrs = append(allErrs, r.validateSSHKeyName()...)
@@ -140,6 +143,37 @@ func (r *AWSMachine) validateCloudInitSecret() field.ErrorList {
 	return allErrs
 }
 
+func (r *AWSMachine) cloudInitConfigured() bool {
+	configured := false
+
+	configured = configured || r.Spec.CloudInit.SecretPrefix != ""
+	configured = configured || r.Spec.CloudInit.SecretCount != 0
+	configured = configured || r.Spec.CloudInit.SecureSecretsBackend != ""
+	configured = configured || r.Spec.CloudInit.InsecureSkipSecretsManager
+
+	return configured
+}
+
+func (r *AWSMachine) ignitionEnabled() bool {
+	return r.Spec.Ignition != nil
+}
+
+func (r *AWSMachine) validateIgnitionAndCloudInit() field.ErrorList {
+	var allErrs field.ErrorList
+
+	// Feature gate is not enabled but ignition is enabled then send a forbidden error.
+	if !feature.Gates.Enabled(feature.BootstrapFormatIgnition) && r.ignitionEnabled() {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "ignition"),
+			"can be set only if the BootstrapFormatIgnition feature gate is enabled"))
+	}
+
+	if r.ignitionEnabled() && r.cloudInitConfigured() {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "cloudInit"), "cannot be set if spec.ignition is set"))
+	}
+
+	return allErrs
+}
+
 func (r *AWSMachine) validateRootVolume() field.ErrorList {
 	var allErrs field.ErrorList
 
@@ -200,8 +234,16 @@ func (r *AWSMachine) ValidateDelete() error {
 // Default implements webhook.Defaulter such that an empty CloudInit will be defined with a default
 // SecureSecretsBackend as SecretBackendSecretsManager iff InsecureSkipSecretsManager is unset.
 func (r *AWSMachine) Default() {
-	if !r.Spec.CloudInit.InsecureSkipSecretsManager && r.Spec.CloudInit.SecureSecretsBackend == "" {
+	if !r.Spec.CloudInit.InsecureSkipSecretsManager && r.Spec.CloudInit.SecureSecretsBackend == "" && !r.ignitionEnabled() {
 		r.Spec.CloudInit.SecureSecretsBackend = SecretBackendSecretsManager
+	}
+
+	if r.ignitionEnabled() && r.Spec.Ignition.Version == "" {
+		if r.Spec.Ignition == nil {
+			r.Spec.Ignition = &Ignition{}
+		}
+
+		r.Spec.Ignition.Version = DefaultIgnitionVersion
 	}
 }
 

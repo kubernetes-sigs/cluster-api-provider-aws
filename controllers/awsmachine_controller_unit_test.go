@@ -57,14 +57,15 @@ const providerID = "aws:////myMachine"
 
 func TestAWSMachineReconciler(t *testing.T) {
 	var (
-		reconciler AWSMachineReconciler
-		cs         *scope.ClusterScope
-		ms         *scope.MachineScope
-		mockCtrl   *gomock.Controller
-		ec2Svc     *mock_services.MockEC2Interface
-		elbSvc     *mock_services.MockELBInterface
-		secretSvc  *mock_services.MockSecretInterface
-		recorder   *record.FakeRecorder
+		reconciler     AWSMachineReconciler
+		cs             *scope.ClusterScope
+		ms             *scope.MachineScope
+		mockCtrl       *gomock.Controller
+		ec2Svc         *mock_services.MockEC2Interface
+		elbSvc         *mock_services.MockELBInterface
+		secretSvc      *mock_services.MockSecretInterface
+		objectStoreSvc *mock_services.MockObjectStoreInterface
+		recorder       *record.FakeRecorder
 	)
 
 	setup := func(t *testing.T, g *WithT, awsMachine *infrav1.AWSMachine) {
@@ -91,7 +92,17 @@ func TestAWSMachineReconciler(t *testing.T) {
 			},
 		}
 
-		client := fake.NewClientBuilder().WithObjects(awsMachine, secret).Build()
+		secretIgnition := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "bootstrap-data-ignition",
+			},
+			Data: map[string][]byte{
+				"value":  []byte("ignitionJSON"),
+				"format": []byte("ignition"),
+			},
+		}
+
+		client := fake.NewClientBuilder().WithObjects(awsMachine, secret, secretIgnition).Build()
 		ms, err = scope.NewMachineScope(
 			scope.MachineScopeParams{
 				Client: client,
@@ -153,6 +164,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 		ec2Svc = mock_services.NewMockEC2Interface(mockCtrl)
 		secretSvc = mock_services.NewMockSecretInterface(mockCtrl)
 		elbSvc = mock_services.NewMockELBInterface(mockCtrl)
+		objectStoreSvc = mock_services.NewMockObjectStoreInterface(mockCtrl)
 
 		// If your test hangs for 9 minutes, increase the value here to the number of events during a reconciliation loop
 		recorder = record.NewFakeRecorder(2)
@@ -163,6 +175,9 @@ func TestAWSMachineReconciler(t *testing.T) {
 			},
 			secretsManagerServiceFactory: func(cloud.ClusterScoper) services.SecretInterface {
 				return secretSvc
+			},
+			objectStoreServiceFactory: func(cloud.ClusterScoper) services.ObjectStoreInterface {
+				return objectStoreSvc
 			},
 			Recorder: recorder,
 			Log:      klogr.New(),
@@ -195,7 +210,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				buf := new(bytes.Buffer)
 				klog.SetOutput(buf)
 
-				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(buf).To(ContainSubstring("Error state detected, skipping reconciliation"))
 			})
 
@@ -210,7 +225,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				buf := new(bytes.Buffer)
 				klog.SetOutput(buf)
 
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(err).To(BeNil())
 				g.Expect(buf.String()).To(ContainSubstring("Cluster infrastructure is not ready yet"))
 				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, infrav1.WaitingForClusterInfrastructureReason}})
@@ -227,7 +242,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				buf := new(bytes.Buffer)
 				klog.SetOutput(buf)
 
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 
 				g.Expect(err).To(BeNil())
 				g.Expect(buf.String()).To(ContainSubstring("Bootstrap data secret reference is not yet available"))
@@ -240,7 +255,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				setup(t, g, awsMachine)
 				defer teardown(t, g)
 				runningInstance(t, g)
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(errors.Cause(err)).To(MatchError(expectedErr))
 			})
 
@@ -250,7 +265,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				setup(t, g, awsMachine)
 				defer teardown(t, g)
 				runningInstance(t, g)
-				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 
 				g.Expect(len(ms.AWSMachine.Finalizers)).To(Equal(0))
 			})
@@ -276,7 +291,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				expectedErr := errors.New("no connection available ")
 				ec2Svc.EXPECT().InstanceIfExists(PointsTo("myMachine")).Return(nil, expectedErr)
 
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(errors.Cause(err)).To(MatchError(expectedErr))
 			})
 
@@ -290,10 +305,10 @@ func TestAWSMachineReconciler(t *testing.T) {
 				expectedErr := errors.New("Invalid instance")
 				ec2Svc.EXPECT().InstanceIfExists(gomock.Any()).Return(nil, nil)
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil).Times(1)
-				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any()).Return(nil, expectedErr)
+				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, expectedErr)
 				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
 				g.Expect(errors.Cause(err)).To(MatchError(expectedErr))
 			})
@@ -309,7 +324,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 			ms.AWSMachine.Spec.ProviderID = &id
 			expectedErr := "providerID must be of the form <cloudProvider>://<optional>/<segments>/<provider id>"
 
-			_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+			_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 			g.Expect(err.Error()).To(ContainSubstring(expectedErr))
 		})
 
@@ -326,7 +341,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				instance.State = infrav1.InstanceStatePending
 
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil)
-				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any()).Return(instance, nil)
+				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil)
 			}
 
 			t.Run("instance security group errors", func(t *testing.T) {
@@ -349,7 +364,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					getInstanceSecurityGroups(t, g)
 
 					secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(ms.AWSMachine.Spec.ProviderID).To(PointTo(Equal(providerID)))
 				})
 
@@ -363,7 +378,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 					secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 					instance.State = infrav1.InstanceStatePending
-					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStatePending)))
 					g.Expect(ms.AWSMachine.Status.Ready).To(Equal(false))
 					g.Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
@@ -382,7 +397,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 					secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 					instance.State = infrav1.InstanceStateRunning
-					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStateRunning)))
 					g.Expect(ms.AWSMachine.Status.Ready).To(Equal(true))
 					g.Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
@@ -404,7 +419,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
 				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil).Times(1)
-				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(ms.AWSMachine.Status.Ready).To(Equal(false))
 				g.Expect(buf.String()).To(ContainSubstring(("EC2 instance state is undefined")))
 				g.Eventually(recorder.Events).Should(Receive(ContainSubstring("InstanceUnhandledState")))
@@ -436,7 +451,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					}
 					ec2Svc.EXPECT().UpdateInstanceSecurityGroups(instance.ID, []string{"sg-2345"})
 
-					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					expectConditions(g, ms.AWSMachine, []conditionAssertion{{conditionType: infrav1.SecurityGroupsReadyCondition, status: corev1.ConditionTrue}})
 				})
 
@@ -449,7 +464,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					getCoreSecurityGroups(t, g)
 
 					ec2Svc.EXPECT().UpdateInstanceSecurityGroups(gomock.Any(), gomock.Any()).Times(0)
-					if _, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs); err != nil {
+					if _, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs); err != nil {
 						_ = fmt.Errorf("reconcileNormal reutrned an error during test")
 					}
 				})
@@ -482,7 +497,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 						map[string]string{},
 					).Return(nil)
 
-					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(err).To(BeNil())
 				})
 				t.Run("should tag instances volume tags", func(t *testing.T) {
@@ -504,7 +519,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 						map[string]string{},
 					).Return(nil).Times(3)
 
-					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(err).To(BeNil())
 				})
 			})
@@ -532,7 +547,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					getCoreSecurityGroups(t, g)
 
 					instance.State = infrav1.InstanceStateStopping
-					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStateStopping)))
 					g.Expect(ms.AWSMachine.Status.Ready).To(Equal(false))
 					g.Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
@@ -548,7 +563,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					getCoreSecurityGroups(t, g)
 
 					instance.State = infrav1.InstanceStateStopped
-					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStateStopped)))
 					g.Expect(ms.AWSMachine.Status.Ready).To(Equal(false))
 					g.Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
@@ -564,7 +579,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					getCoreSecurityGroups(t, g)
 
 					instance.State = infrav1.InstanceStateRunning
-					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStateRunning)))
 					g.Expect(ms.AWSMachine.Status.Ready).To(Equal(true))
 					g.Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
@@ -590,7 +605,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					instanceCreate(t, g)
 					deleteMachine(t, g)
 					instance.State = infrav1.InstanceStateShuttingDown
-					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(ms.AWSMachine.Status.Ready).To(Equal(false))
 					g.Expect(buf.String()).To(ContainSubstring(("Unexpected EC2 instance termination")))
 					g.Eventually(recorder.Events).Should(Receive(ContainSubstring("UnexpectedTermination")))
@@ -605,7 +620,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					deleteMachine(t, g)
 
 					instance.State = infrav1.InstanceStateTerminated
-					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(ms.AWSMachine.Status.Ready).To(Equal(false))
 					g.Expect(buf.String()).To(ContainSubstring(("Unexpected EC2 instance termination")))
 					g.Eventually(recorder.Events).Should(Receive(ContainSubstring("UnexpectedTermination")))
@@ -632,7 +647,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
 				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
 
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(err).To(BeNil())
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
 				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
@@ -657,7 +672,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
 				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
 
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(err).To(BeNil())
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
 				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.ELBAttachedCondition, corev1.ConditionTrue, "", ""}})
@@ -677,7 +692,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					return elbSvc
 				}
 
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(err).To(BeNil())
 				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
@@ -697,7 +712,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil).Times(1)
 				secretSvc.EXPECT().Delete(gomock.Any()).Return(errors.New("failed to delete entries from AWS Secret")).Times(1)
 
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 				g.Expect(err).To(MatchError(ContainSubstring("failed to delete entries from AWS Secret")))
 			})
@@ -725,7 +740,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil).Times(1)
 				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New(expectedError)).Times(1)
 
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(err.Error()).To(ContainSubstring(expectedError))
 
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
@@ -744,13 +759,13 @@ func TestAWSMachineReconciler(t *testing.T) {
 					return elbSvc
 				}
 
-				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any()).Return(instance, nil)
+				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil)
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil)
 				elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any()).Return(false, errors.New("error describing ELB"))
 				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil).Times(1)
 
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(err.Error()).To(ContainSubstring("error describing ELB"))
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
@@ -770,14 +785,14 @@ func TestAWSMachineReconciler(t *testing.T) {
 					return elbSvc
 				}
 
-				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any()).Return(instance, nil)
+				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil)
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil)
 				elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any()).Return(false, nil)
 				elbSvc.EXPECT().RegisterInstanceWithAPIServerELB(gomock.Any()).Return(errors.New("failed to attach ELB"))
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil).Times(1)
 				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(err.Error()).To(ContainSubstring("failed to attach ELB"))
 				g.Eventually(recorder.Events).Should(Receive(ContainSubstring("FailedAttachControlPlaneELB")))
@@ -793,7 +808,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				ms.AWSMachine.Status.FailureReason = (*capierrors.MachineStatusError)(aws.String("error in AWSMachine"))
 				ms.SetSecretCount(0)
 
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(err).To(MatchError(ContainSubstring("secretPrefix present, but secretCount is not set")))
 			})
 			t.Run("Should fail in ensureTag", func(t *testing.T) {
@@ -801,7 +816,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				ensureTag := func(t *testing.T, g *WithT) {
 					t.Helper()
 					ec2Svc.EXPECT().InstanceIfExists(gomock.Any()).Return(nil, nil)
-					ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any()).Return(instance, nil)
+					ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil)
 					secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil)
 					secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 				}
@@ -817,7 +832,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					ensureTag(t, g)
 					ms.AWSMachine.Annotations = map[string]string{TagsLastAppliedAnnotation: "12345"}
 
-					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(err.Error()).To(ContainSubstring("json: cannot unmarshal number into Go value of type map[string]interface {}"))
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
 					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
@@ -836,7 +851,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 					ec2Svc.EXPECT().UpdateResourceTags(gomock.Any(), gomock.Any(), map[string]string{"tag": "tag1"}).Return(errors.New("failed to update resource tag"))
 
-					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(err).ToNot(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
 					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
@@ -847,7 +862,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				ensureSecurityGroups := func(t *testing.T, g *WithT) {
 					t.Helper()
 					ec2Svc.EXPECT().InstanceIfExists(gomock.Any()).Return(nil, nil)
-					ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any()).Return(instance, nil)
+					ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil)
 					secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil)
 					secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 					ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil)
@@ -867,7 +882,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 					ec2Svc.EXPECT().UpdateResourceTags(gomock.Any(), map[string]string{"tag": "\"old_tag\"\"\""}, gomock.Any()).Return(nil).AnyTimes()
 
-					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(err).ToNot(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
 					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.SecurityGroupsFailedReason}})
@@ -885,7 +900,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 					ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, errors.New("failed to get core security groups")).Times(1)
 
-					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(err).ToNot(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
 					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.SecurityGroupsFailedReason}})
@@ -917,7 +932,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil)
 					ec2Svc.EXPECT().GetFilteredSecurityGroupID(gomock.Any()).Return("sg-1", errors.New("failed to get filtered SGs"))
 
-					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(err).To(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
 					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionTrue, "", ""}})
@@ -950,7 +965,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil)
 					ec2Svc.EXPECT().UpdateInstanceSecurityGroups(gomock.Any(), gomock.Any()).Return(errors.New("failed to update security groups"))
 
-					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(err).ToNot(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
 					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.SecurityGroupsFailedReason}})
@@ -977,7 +992,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil).AnyTimes()
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(secretPrefix, int32(1), nil).Times(1)
-				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
+				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
 				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
 				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
@@ -985,7 +1000,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				ms.AWSMachine.ObjectMeta.Labels = map[string]string{
 					clusterv1.MachineControlPlaneLabelName: "",
 				}
-				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 			})
 		})
 
@@ -1024,7 +1039,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					Return(map[string][]string{"eid": {}}, nil).Times(1)
 				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
 				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
-				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 			})
 
 			t.Run("should delete the secret if the instance is terminated", func(t *testing.T) {
@@ -1036,7 +1051,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				instance.State = infrav1.InstanceStateTerminated
 				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
-				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 			})
 
 			t.Run("should delete the secret if the AWSMachine is deleted", func(t *testing.T) {
@@ -1049,7 +1064,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				instance.State = infrav1.InstanceStateRunning
 				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
 				ec2Svc.EXPECT().TerminateInstanceAndWait(gomock.Any()).Return(nil).AnyTimes()
-				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs)
+				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 			})
 
 			t.Run("should delete the secret if the AWSMachine is in a failure condition", func(t *testing.T) {
@@ -1062,7 +1077,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				ms.AWSMachine.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
 				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
 				ec2Svc.EXPECT().TerminateInstanceAndWait(gomock.Any()).Return(nil).AnyTimes()
-				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs)
+				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 			})
 		})
 
@@ -1095,7 +1110,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					Return(map[string][]string{"eid": {}}, nil).Times(1)
 				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
 				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).MaxTimes(0)
-				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 			})
 
 			t.Run("should delete the secret if the instance is terminated", func(t *testing.T) {
@@ -1107,7 +1122,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				instance.State = infrav1.InstanceStateTerminated
 				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
-				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 			})
 
 			t.Run("should delete the secret if the AWSMachine is deleted", func(t *testing.T) {
@@ -1120,7 +1135,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				instance.State = infrav1.InstanceStateRunning
 				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
 				ec2Svc.EXPECT().TerminateInstanceAndWait(gomock.Any()).Return(nil).AnyTimes()
-				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs)
+				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 			})
 
 			t.Run("should delete the secret if the AWSMachine is in a failure condition", func(t *testing.T) {
@@ -1133,7 +1148,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				ms.AWSMachine.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
 				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
 				ec2Svc.EXPECT().TerminateInstanceAndWait(gomock.Any()).Return(nil).AnyTimes()
-				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs)
+				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 			})
 		})
 
@@ -1154,7 +1169,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				getInstances(t, g)
 
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(secretPrefix, int32(0), errors.New("connection error")).Times(1)
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(err.Error()).To(ContainSubstring("connection error"))
 				g.Expect(ms.GetSecretPrefix()).To(Equal("prefix"))
@@ -1172,16 +1187,252 @@ func TestAWSMachineReconciler(t *testing.T) {
 				}
 				instance.State = infrav1.InstanceStatePending
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(secretPrefix, int32(1), nil).Times(1)
-				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
+				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
 				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
 				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
 
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 
 				g.Expect(err).To(BeNil())
 				g.Expect(ms.GetSecretPrefix()).To(Equal(secretPrefix))
 				g.Expect(ms.GetSecretCount()).To(Equal(int32(1)))
+			})
+		})
+	})
+
+	t.Run("Object storage lifecycle", func(t *testing.T) {
+		t.Run("creating EC2 instances", func(t *testing.T) {
+			var instance *infrav1.Instance
+
+			getInstances := func(t *testing.T, g *WithT) {
+				t.Helper()
+
+				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil).AnyTimes()
+			}
+
+			useIgnition := func(t *testing.T, g *WithT) {
+				t.Helper()
+
+				ms.Machine.Spec.Bootstrap.DataSecretName = pointer.StringPtr("bootstrap-data-ignition")
+				ms.AWSMachine.Spec.CloudInit.SecretCount = 0
+				ms.AWSMachine.Spec.CloudInit.SecretPrefix = ""
+			}
+
+			t.Run("should leverage AWS S3", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+				getInstances(t, g)
+				useIgnition(t, g)
+
+				instance = &infrav1.Instance{
+					ID:    "myMachine",
+					State: infrav1.InstanceStatePending,
+				}
+				fakeS3URL := "s3://foo"
+
+				objectStoreSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(fakeS3URL, nil).Times(1)
+				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
+				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
+				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
+
+				ms.AWSMachine.ObjectMeta.Labels = map[string]string{
+					clusterv1.MachineControlPlaneLabelName: "",
+				}
+
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+				g.Expect(err).To(BeNil())
+			})
+		})
+
+		t.Run("there's a node ref and a secret ARN", func(t *testing.T) {
+			var instance *infrav1.Instance
+			setNodeRef := func(t *testing.T, g *WithT) {
+				t.Helper()
+
+				instance = &infrav1.Instance{
+					ID: "myMachine",
+				}
+
+				ms.Machine.Status.NodeRef = &corev1.ObjectReference{
+					Kind:       "Node",
+					Name:       "myMachine",
+					APIVersion: "v1",
+				}
+
+				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(instance, nil).AnyTimes()
+			}
+			useIgnition := func(t *testing.T, g *WithT) {
+				t.Helper()
+
+				ms.Machine.Spec.Bootstrap.DataSecretName = pointer.StringPtr("bootstrap-data-ignition")
+				ms.AWSMachine.Spec.CloudInit.SecretCount = 0
+				ms.AWSMachine.Spec.CloudInit.SecretPrefix = ""
+			}
+
+			t.Run("should delete the object if the instance is running", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+				setNodeRef(t, g)
+				useIgnition(t, g)
+
+				instance.State = infrav1.InstanceStateRunning
+				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
+				objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
+
+				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+			})
+
+			t.Run("should delete the object if the instance is terminated", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+				setNodeRef(t, g)
+				useIgnition(t, g)
+
+				instance.State = infrav1.InstanceStateTerminated
+				objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+
+				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+			})
+
+			t.Run("should delete the object if the instance is deleted", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+				setNodeRef(t, g)
+				useIgnition(t, g)
+
+				instance.State = infrav1.InstanceStateRunning
+				objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+				ec2Svc.EXPECT().TerminateInstanceAndWait(gomock.Any()).Return(nil).AnyTimes()
+
+				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
+			})
+
+			t.Run("should delete the object if the AWSMachine is in a failure condition", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+				setNodeRef(t, g)
+				useIgnition(t, g)
+
+				// TODO: This seems to have no effect on the test result.
+				ms.AWSMachine.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
+
+				objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+				ec2Svc.EXPECT().TerminateInstanceAndWait(gomock.Any()).Return(nil).AnyTimes()
+
+				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
+			})
+		})
+
+		t.Run("there's only a secret ARN and no node ref", func(t *testing.T) {
+			var instance *infrav1.Instance
+
+			getInstances := func(t *testing.T, g *WithT) {
+				t.Helper()
+
+				instance = &infrav1.Instance{
+					ID: "myMachine",
+				}
+				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(instance, nil).AnyTimes()
+			}
+
+			useIgnition := func(t *testing.T, g *WithT) {
+				t.Helper()
+
+				ms.Machine.Spec.Bootstrap.DataSecretName = pointer.StringPtr("bootstrap-data-ignition")
+				ms.AWSMachine.Spec.CloudInit.SecretCount = 0
+				ms.AWSMachine.Spec.CloudInit.SecretPrefix = ""
+			}
+
+			t.Run("should not delete the object if the instance is running", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+				getInstances(t, g)
+
+				instance.State = infrav1.InstanceStateRunning
+				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
+				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
+				objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).MaxTimes(0)
+				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+			})
+
+			t.Run("should delete the object if the instance is terminated", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+				getInstances(t, g)
+				useIgnition(t, g)
+
+				instance.State = infrav1.InstanceStateTerminated
+				objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+			})
+
+			t.Run("should delete the object if the AWSMachine is deleted", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+				getInstances(t, g)
+				useIgnition(t, g)
+
+				instance.State = infrav1.InstanceStateRunning
+				objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+				ec2Svc.EXPECT().TerminateInstanceAndWait(gomock.Any()).Return(nil).AnyTimes()
+				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
+			})
+
+			t.Run("should delete the object if the AWSMachine is in a failure condition", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+				getInstances(t, g)
+				useIgnition(t, g)
+
+				// TODO: This seems to have no effect on the test result.
+				ms.AWSMachine.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
+				objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+				ec2Svc.EXPECT().TerminateInstanceAndWait(gomock.Any()).Return(nil).AnyTimes()
+				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
+			})
+		})
+
+		t.Run("there is an intermittent connection issue and no object could be created", func(t *testing.T) {
+			useIgnition := func(t *testing.T, g *WithT) {
+				t.Helper()
+
+				ms.Machine.Spec.Bootstrap.DataSecretName = pointer.StringPtr("bootstrap-data-ignition")
+				ms.AWSMachine.Spec.CloudInit.SecretCount = 0
+				ms.AWSMachine.Spec.CloudInit.SecretPrefix = ""
+			}
+
+			t.Run("should error if object could not be created", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+				useIgnition(t, g)
+
+				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil).AnyTimes()
+				objectStoreSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("", errors.New("connection error")).Times(1)
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+				g.Expect(err).ToNot(BeNil())
+				g.Expect(err.Error()).To(ContainSubstring("connection error"))
 			})
 		})
 	})
@@ -1206,7 +1457,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 			ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, expectedErr).AnyTimes()
 			secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).AnyTimes()
 
-			_, err := reconciler.reconcileDelete(ms, cs, cs, cs)
+			_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 			g.Expect(errors.Cause(err)).To(MatchError(expectedErr))
 		})
 		t.Run("should log and remove finalizer when no machine exists", func(t *testing.T) {
@@ -1222,7 +1473,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 			buf := new(bytes.Buffer)
 			klog.SetOutput(buf)
 
-			_, err := reconciler.reconcileDelete(ms, cs, cs, cs)
+			_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 			g.Expect(err).To(BeNil())
 			g.Expect(buf.String()).To(ContainSubstring("Unable to locate EC2 instance by ID or tags"))
 			g.Expect(ms.AWSMachine.Finalizers).To(ConsistOf(metav1.FinalizerDeleteDependents))
@@ -1243,7 +1494,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 			buf := new(bytes.Buffer)
 			klog.SetOutput(buf)
 
-			_, err := reconciler.reconcileDelete(ms, cs, cs, cs)
+			_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 			g.Expect(err).To(BeNil())
 			g.Expect(buf.String()).To(ContainSubstring("EC2 instance is shutting down or already terminated"))
 			g.Expect(ms.AWSMachine.Finalizers).To(ConsistOf(metav1.FinalizerDeleteDependents))
@@ -1263,7 +1514,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 			buf := new(bytes.Buffer)
 			klog.SetOutput(buf)
 
-			_, err := reconciler.reconcileDelete(ms, cs, cs, cs)
+			_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 			g.Expect(err).To(BeNil())
 			g.Expect(buf.String()).To(ContainSubstring("EC2 instance is shutting down or already terminated"))
 			g.Expect(ms.AWSMachine.Finalizers).To(ConsistOf(metav1.FinalizerDeleteDependents))
@@ -1289,7 +1540,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				buf := new(bytes.Buffer)
 				klog.SetOutput(buf)
 
-				_, err := reconciler.reconcileDelete(ms, cs, cs, cs)
+				_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 				g.Expect(errors.Cause(err)).To(MatchError(expected))
 				g.Expect(buf.String()).To(ContainSubstring("Terminating EC2 instance"))
 				g.Eventually(recorder.Events).Should(Receive(ContainSubstring("FailedTerminate")))
@@ -1317,7 +1568,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					expected := errors.New("can't reach AWS to list security groups")
 					ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return(nil, expected)
 
-					_, err := reconciler.reconcileDelete(ms, cs, cs, cs)
+					_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 					g.Expect(errors.Cause(err)).To(MatchError(expected))
 				})
 
@@ -1338,7 +1589,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{"sg0", "sg1"}, nil)
 					ec2Svc.EXPECT().DetachSecurityGroupsFromNetworkInterface(gomock.Any(), gomock.Any()).Return(expected)
 
-					_, err := reconciler.reconcileDelete(ms, cs, cs, cs)
+					_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 					g.Expect(errors.Cause(err)).To(MatchError(expected))
 				})
 
@@ -1360,7 +1611,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					ec2Svc.EXPECT().DetachSecurityGroupsFromNetworkInterface(groups, "eth0").Return(nil)
 					ec2Svc.EXPECT().DetachSecurityGroupsFromNetworkInterface(groups, "eth1").Return(nil)
 
-					_, err := reconciler.reconcileDelete(ms, cs, cs, cs)
+					_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 					g.Expect(err).To(BeNil())
 				})
 
@@ -1373,7 +1624,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					getRunningInstance(t, g)
 					terminateInstance(t, g)
 
-					_, err := reconciler.reconcileDelete(ms, cs, cs, cs)
+					_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 					g.Expect(err).To(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ConsistOf(metav1.FinalizerDeleteDependents))
 				})
@@ -1395,7 +1646,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					}, nil)
 					elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any()).Return(false, errors.New("error describing ELB"))
 
-					_, err := reconciler.reconcileDelete(ms, cs, cs, cs)
+					_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 					g.Expect(err).ToNot(BeNil())
 					g.Expect(err.Error()).To(ContainSubstring("error describing ELB"))
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(metav1.FinalizerDeleteDependents))
@@ -1420,7 +1671,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					}, nil)
 					elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any()).Return(false, nil)
 
-					_, err := reconciler.reconcileDelete(ms, cs, cs, cs)
+					_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 					g.Expect(err).To(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(metav1.FinalizerDeleteDependents))
 					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason}})
@@ -1446,7 +1697,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any()).Return(true, nil)
 				elbSvc.EXPECT().DeregisterInstanceFromAPIServerELB(gomock.Any()).Return(nil)
 
-				_, err := reconciler.reconcileDelete(ms, cs, cs, cs)
+				_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 				g.Expect(err).To(BeNil())
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(metav1.FinalizerDeleteDependents))
 				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason}})
@@ -1469,7 +1720,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any()).Return(true, nil)
 				elbSvc.EXPECT().DeregisterInstanceFromAPIServerELB(gomock.Any()).Return(errors.New("Duplicate access point name for load balancer"))
 
-				_, err := reconciler.reconcileDelete(ms, cs, cs, cs)
+				_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(err.Error()).To(ContainSubstring("Duplicate access point name for load balancer"))
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(metav1.FinalizerDeleteDependents))
@@ -1484,7 +1735,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				ms.SetSecretPrefix("test")
 				ms.SetSecretCount(0)
 
-				_, err := reconciler.reconcileDelete(ms, cs, cs, cs)
+				_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 				g.Expect(err).To(MatchError(ContainSubstring("secretPrefix present, but secretCount is not set")))
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(metav1.FinalizerDeleteDependents))
 			})
@@ -1496,7 +1747,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				finalizer(t, g)
 				ms.AWSMachine.Spec.CloudInit.SecureSecretsBackend = "InvalidSecretBackend"
 
-				_, err := reconciler.reconcileDelete(ms, cs, cs, cs)
+				_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 				g.Expect(err).To(MatchError(ContainSubstring("invalid secret backend")))
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(metav1.FinalizerDeleteDependents))
 			})
@@ -1510,7 +1761,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				ms.SetSecretCount(1)
 				secretSvc.EXPECT().Delete(gomock.Any()).Return(errors.New("Hierarchy Type Mismatch Exception"))
 
-				_, err := reconciler.reconcileDelete(ms, cs, cs, cs)
+				_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 				g.Expect(err).To(MatchError(ContainSubstring("Hierarchy Type Mismatch Exception")))
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(metav1.FinalizerDeleteDependents))
 			})
@@ -1541,7 +1792,8 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 						Kind:       "AWSMachine",
 						Name:       "aws-machine-6",
 						APIVersion: infrav1.GroupVersion.String(),
-					}},
+					},
+				},
 			},
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1579,7 +1831,8 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 						Kind:       "AWSMachine",
 						Name:       "aws-machine-1",
 						APIVersion: infrav1.GroupVersion.String(),
-					}},
+					},
+				},
 			},
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1609,7 +1862,8 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 						Kind:       "AWSMachine",
 						Name:       "aws-machine-2",
 						APIVersion: infrav1.GroupVersion.String(),
-					}},
+					},
+				},
 			},
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1636,7 +1890,8 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 						Kind:       "AWSMachine",
 						Name:       "aws-machine-3",
 						APIVersion: infrav1.GroupVersion.String(),
-					}},
+					},
+				},
 			},
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1671,7 +1926,8 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 						Kind:       "Machine",
 						Name:       "aws-machine-4",
 						APIVersion: infrav1.GroupVersion.String(),
-					}},
+					},
+				},
 			},
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1701,7 +1957,8 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 					InfrastructureRef: corev1.ObjectReference{
 						Kind:       "AWSMachine",
 						APIVersion: infrav1.GroupVersion.String(),
-					}},
+					},
+				},
 			},
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1840,29 +2097,35 @@ func TestAWSMachineReconciler_Reconcile(t *testing.T) {
 		},
 		{
 			name: "Should fail Reconcile with GetOwnerMachine failure",
-			awsMachine: &infrav1.AWSMachine{ObjectMeta: metav1.ObjectMeta{Name: "aws-test-2",
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion: clusterv1.GroupVersion.String(),
-						Kind:       "Machine",
-						Name:       "capi-test-machine",
-						UID:        "1",
-					}}},
+			awsMachine: &infrav1.AWSMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "aws-test-2",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "Machine",
+							Name:       "capi-test-machine",
+							UID:        "1",
+						},
+					},
+				},
 				Spec: infrav1.AWSMachineSpec{InstanceType: "test"},
 			},
 			expectError: true,
 		},
 		{
 			name: "Should not Reconcile if machine does not contain cluster label",
-			awsMachine: &infrav1.AWSMachine{ObjectMeta: metav1.ObjectMeta{
-				Name: "aws-test-3", Annotations: map[string]string{clusterv1.PausedAnnotation: ""}, OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion: clusterv1.GroupVersion.String(),
-						Kind:       "Machine",
-						Name:       "capi-test-machine",
-						UID:        "1",
+			awsMachine: &infrav1.AWSMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "aws-test-3", Annotations: map[string]string{clusterv1.PausedAnnotation: ""}, OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "Machine",
+							Name:       "capi-test-machine",
+							UID:        "1",
+						},
 					},
-				}}, Spec: infrav1.AWSMachineSpec{InstanceType: "test"},
+				}, Spec: infrav1.AWSMachineSpec{InstanceType: "test"},
 			},
 			ownerMachine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-machine"}},
 			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"}},
@@ -1870,91 +2133,109 @@ func TestAWSMachineReconciler_Reconcile(t *testing.T) {
 		},
 		{
 			name: "Should not Reconcile if cluster is paused",
-			awsMachine: &infrav1.AWSMachine{ObjectMeta: metav1.ObjectMeta{
-				Name: "aws-test-4", Annotations: map[string]string{clusterv1.PausedAnnotation: ""}, OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion: clusterv1.GroupVersion.String(),
-						Kind:       "Machine",
-						Name:       "capi-test-machine",
-						UID:        "1",
+			awsMachine: &infrav1.AWSMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "aws-test-4", Annotations: map[string]string{clusterv1.PausedAnnotation: ""}, OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "Machine",
+							Name:       "capi-test-machine",
+							UID:        "1",
+						},
 					},
-				}}, Spec: infrav1.AWSMachineSpec{InstanceType: "test"},
+				}, Spec: infrav1.AWSMachineSpec{InstanceType: "test"},
 			},
 			ownerMachine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{
 				Labels: map[string]string{
 					clusterv1.ClusterLabelName: "capi-test-1",
 				},
-				Name: "capi-test-machine", Namespace: "default"}},
+				Name: "capi-test-machine", Namespace: "default",
+			}},
 			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"}},
 			expectError:  false,
 		},
 		{
 			name: "Should not Reconcile if AWSManagedControlPlane is not ready",
-			awsMachine: &infrav1.AWSMachine{ObjectMeta: metav1.ObjectMeta{
-				Name: "aws-test-5", OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion: clusterv1.GroupVersion.String(),
-						Kind:       "Machine",
-						Name:       "capi-test-machine",
-						UID:        "1",
+			awsMachine: &infrav1.AWSMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "aws-test-5", OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "Machine",
+							Name:       "capi-test-machine",
+							UID:        "1",
+						},
 					},
-				}}, Spec: infrav1.AWSMachineSpec{InstanceType: "test"},
+				}, Spec: infrav1.AWSMachineSpec{InstanceType: "test"},
 			},
 			ownerMachine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{
 				Labels: map[string]string{
 					clusterv1.ClusterLabelName: "capi-test-1",
 				},
-				Name: "capi-test-machine", Namespace: "default"}},
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"},
+				Name: "capi-test-machine", Namespace: "default",
+			}},
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"},
 				Spec: clusterv1.ClusterSpec{
 					ControlPlaneRef: &corev1.ObjectReference{Kind: AWSManagedControlPlaneRefKind},
-				}},
+				},
+			},
 			expectError: false,
 		},
 		{
 			name: "Should not Reconcile if AWSCluster is not ready",
-			awsMachine: &infrav1.AWSMachine{ObjectMeta: metav1.ObjectMeta{
-				Name: "aws-test-5", OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion: clusterv1.GroupVersion.String(),
-						Kind:       "Machine",
-						Name:       "capi-test-machine",
-						UID:        "1",
+			awsMachine: &infrav1.AWSMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "aws-test-5", OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "Machine",
+							Name:       "capi-test-machine",
+							UID:        "1",
+						},
 					},
-				}}, Spec: infrav1.AWSMachineSpec{InstanceType: "test"},
+				}, Spec: infrav1.AWSMachineSpec{InstanceType: "test"},
 			},
 			ownerMachine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{
 				Labels: map[string]string{
 					clusterv1.ClusterLabelName: "capi-test-1",
 				},
-				Name: "capi-test-machine", Namespace: "default"}},
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"},
+				Name: "capi-test-machine", Namespace: "default",
+			}},
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{Name: "aws-test-5"},
-				}},
+				},
+			},
 			expectError: false,
 		},
 		{
 			name: "Should fail to reconcile while fetching infra cluster",
-			awsMachine: &infrav1.AWSMachine{ObjectMeta: metav1.ObjectMeta{
-				Name: "aws-test-5", OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion: clusterv1.GroupVersion.String(),
-						Kind:       "Machine",
-						Name:       "capi-test-machine",
-						UID:        "1",
+			awsMachine: &infrav1.AWSMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "aws-test-5", OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "Machine",
+							Name:       "capi-test-machine",
+							UID:        "1",
+						},
 					},
-				}}, Spec: infrav1.AWSMachineSpec{InstanceType: "test"},
+				}, Spec: infrav1.AWSMachineSpec{InstanceType: "test"},
 			},
 			ownerMachine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{
 				Labels: map[string]string{
 					clusterv1.ClusterLabelName: "capi-test-1",
 				},
-				Name: "capi-test-machine", Namespace: "default"}},
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"},
+				Name: "capi-test-machine", Namespace: "default",
+			}},
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{Name: "aws-test-5"},
-				}},
+				},
+			},
 			awsCluster:  &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "aws-test-5"}},
 			expectError: true,
 		},

@@ -1044,6 +1044,34 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			}
 		})
 	})
+
+	ginkgo.Describe("Workload cluster with AWS S3 and Ignition parameter", func() {
+		ginkgo.It("It should be creatable and deletable", func() {
+			specName := "functional-test-ignition-parameter"
+			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
+			ginkgo.By("Creating a cluster")
+			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
+			configCluster := defaultConfigCluster(clusterName, namespace.Name)
+			configCluster.ControlPlaneMachineCount = pointer.Int64Ptr(1)
+			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+			configCluster.Flavor = shared.IgnitionFlavor
+			_, md, _ := createCluster(ctx, configCluster, result)
+
+			workerMachines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
+				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				ClusterName:       clusterName,
+				Namespace:         namespace.Name,
+				MachineDeployment: *md[0],
+			})
+			controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
+				Lister:      e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				ClusterName: clusterName,
+				Namespace:   namespace.Name,
+			})
+			Expect(len(workerMachines)).To(Equal(1))
+			Expect(len(controlPlaneMachines)).To(Equal(1))
+		})
+	})
 })
 
 func createStatefulSetInfo(isIntreeCSI bool, prefix string) statefulSetInfo {
