@@ -402,6 +402,8 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 			Effect: iamv1.EffectAllow,
 		}, {
 			Action: iamv1.Actions{
+				"ec2:AssociateVpcCidrBlock",
+				"ec2:DisassociateVpcCidrBlock",
 				"eks:ListAddons",
 				"eks:CreateAddon",
 				"eks:DescribeAddonVersions",
