@@ -535,7 +535,11 @@ func asgNeedsUpdates(machinePoolScope *scope.MachinePoolScope, existingASG *expi
 		return true
 	}
 
-	// todo subnet diff
+	if machinePoolScope.AWSMachinePool.Spec.Subnets != nil {
+		if existingASG.Subnets == nil || !cmp.Equal(machinePoolScope.AWSMachinePool.Spec.Subnets, existingASG.Subnets) {
+			return true
+		}
+	}
 
 	return false
 }

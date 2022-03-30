@@ -47,6 +47,10 @@ func (s *Service) SDKToAutoScalingGroup(v *autoscaling.Group) (*expinfrav1.AutoS
 		//TODO: determine what additional values go here and what else should be in the struct
 	}
 
+	if v.VPCZoneIdentifier != nil {
+		i.Subnets = strings.Split(*v.VPCZoneIdentifier, ", ")
+	}
+
 	if v.MixedInstancesPolicy != nil {
 		i.MixedInstancesPolicy = &expinfrav1.MixedInstancesPolicy{
 			InstancesDistribution: &expinfrav1.InstancesDistribution{
