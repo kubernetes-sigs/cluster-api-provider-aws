@@ -332,7 +332,9 @@ APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 
 .PHONY: apidiff
 apidiff: $(GO_APIDIFF) ## Check for API differences
-	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
+	@if (git --no-pager diff --name-only FETCH_HEAD | grep "api/"); then \
+		$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible; \
+	fi
 
 ##@ build:
 
