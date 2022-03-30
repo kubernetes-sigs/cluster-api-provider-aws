@@ -26,11 +26,13 @@ import (
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	"sigs.k8s.io/cluster-api/util"
 )
 
 // ManagedMachinePoolSpecInput is the input for ManagedMachinePoolSpec.
@@ -42,6 +44,7 @@ type ManagedMachinePoolSpecInput struct {
 	Namespace             *corev1.Namespace
 	ClusterName           string
 	IncludeScaling        bool
+	IncludeLBTest         bool
 	Cleanup               bool
 }
 
@@ -101,6 +104,21 @@ func ManagedMachinePoolSpec(ctx context.Context, inputGetter func() ManagedMachi
 			MachinePools:              mp,
 			WaitForMachinePoolToScale: input.E2EConfig.GetIntervals("", "wait-worker-nodes"),
 		})
+	}
+
+	if input.IncludeLBTest {
+		clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace.Name, input.ClusterName).GetClient()
+		ginkgo.By("Creating the Nginx deployment")
+		deploymentName := "test-deployment-" + util.RandomString(6)
+		shared.CreateDefaultNginxDeployment(metav1.NamespaceDefault, deploymentName, clusterClient)
+		ginkgo.By("Creating the LB service")
+		lbServiceName := "test-svc-" + util.RandomString(6)
+		elbName := shared.CreateLBService(e2eCtx, metav1.NamespaceDefault, lbServiceName, clusterClient)
+		shared.VerifyElbExists(e2eCtx, elbName, true)
+		ginkgo.By("Deleting the Nginx deployment")
+		shared.DeleteDefaultNginxDeployment(metav1.NamespaceDefault, deploymentName, clusterClient)
+		ginkgo.By("Deleting LB service")
+		shared.DeleteLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
 	}
 
 	if input.Cleanup {
