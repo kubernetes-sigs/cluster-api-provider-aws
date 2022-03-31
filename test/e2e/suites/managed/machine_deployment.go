@@ -98,15 +98,10 @@ func MachineDeploymentSpec(ctx context.Context, inputGetter func() MachineDeploy
 	framework.WaitForMachineStatusCheck(ctx, machineStatusInput, input.E2EConfig.GetIntervals("", "wait-machine-status")...)
 	if input.IncludeLBTest {
 		clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace.Name, input.ClusterName).GetClient()
-		ginkgo.By("Creating the Nginx deployment")
-		deploymentName := "test-deployment-" + util.RandomString(6)
-		shared.CreateDefaultNginxDeployment(metav1.NamespaceDefault, deploymentName, clusterClient)
 		ginkgo.By("Creating the LB service")
 		lbServiceName := "test-svc-" + util.RandomString(6)
 		elbName := shared.CreateLBService(e2eCtx, metav1.NamespaceDefault, lbServiceName, clusterClient)
 		shared.VerifyElbExists(e2eCtx, elbName, true)
-		ginkgo.By("Deleting the Nginx deployment")
-		shared.DeleteDefaultNginxDeployment(metav1.NamespaceDefault, deploymentName, clusterClient)
 		ginkgo.By("Deleting LB service")
 		shared.DeleteLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
 	}

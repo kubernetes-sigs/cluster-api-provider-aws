@@ -236,4 +236,4 @@ intervals:
   default/wait-control-plane-upgrade: ["35m", "30s"]
   default/wait-addon-status: ["10m", "30s"]
   default/wait-create-identity: ["1m", "10s"]
-  default/wait-create-service: ["60s", "10s"]
+  default/wait-create-service: ["5m", "10s"]

@@ -22,17 +22,14 @@ package shared
 import (
 	"context"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elb"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -97,29 +94,6 @@ func CreateService(svcName string, svcNamespace string, labels map[string]string
 	Expect(k8sClient.Create(context.TODO(), &svcToCreate)).NotTo(HaveOccurred())
 }
 
-func CreateDefaultNginxDeployment(deploymentNamespace, deploymentName string, k8sClient crclient.Client) {
-	Byf("Creating Deployment with name: %s under namespace: %s", deploymentName, deploymentNamespace)
-	deployment := defaultNginxDeployment(deploymentName, deploymentNamespace)
-	Expect(k8sClient.Create(context.TODO(), &deployment)).NotTo(HaveOccurred())
-	Eventually(func() bool {
-		getDeployment := &v1.Deployment{}
-		err := k8sClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: deploymentNamespace, Name: deploymentName}, getDeployment)
-		Expect(err).NotTo(HaveOccurred())
-		for _, c := range getDeployment.Status.Conditions {
-			if c.Type == v1.DeploymentAvailable && c.Status == corev1.ConditionTrue {
-				return getDeployment.Status.AvailableReplicas > 0
-			}
-		}
-		return false
-	}, 60*time.Second).Should(BeTrue())
-}
-
-func DeleteDefaultNginxDeployment(deploymentNamespace, deploymentName string, k8sClient crclient.Client) {
-	Byf("Deleting Deployment with name: %s under namespace: %s", deploymentName, deploymentNamespace)
-	deployment := defaultNginxDeployment(deploymentName, deploymentNamespace)
-	Expect(k8sClient.Delete(context.TODO(), &deployment)).NotTo(HaveOccurred())
-}
-
 func deleteService(svcName, svcNamespace string, labels map[string]string, serviceSpec corev1.ServiceSpec, k8sClient crclient.Client) {
 	svcToDelete := corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -153,43 +127,5 @@ func VerifyElbExists(e2eCtx *E2EContext, elbName string, exists bool) {
 		Expect(ok).To(BeTrue())
 		Expect(aerr.Code()).To(Equal(elb.ErrCodeAccessPointNotFoundException))
 		Byf("ELB with name %s doesn't exists", elbName)
-	}
-}
-
-func defaultNginxDeployment(deploymentName, deploymentNamespace string) v1.Deployment {
-	selector, err := metav1.ParseToLabelSelector("app=nginx")
-	Expect(err).To(BeNil())
-	deploymentSpec := v1.DeploymentSpec{
-		Selector: selector,
-		Replicas: pointer.Int32(1),
-		Template: corev1.PodTemplateSpec{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "nginx",
-				Labels: map[string]string{
-					"app": "nginx",
-				},
-			},
-			Spec: corev1.PodSpec{
-				Containers: []corev1.Container{
-					{
-						Name:  "nginx",
-						Image: "k8s.gcr.io/nginx-slim:0.8",
-						Ports: []corev1.ContainerPort{{
-							Name: "nginx-port", ContainerPort: int32(80),
-						}},
-					},
-				},
-			},
-		},
-	}
-	return v1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: deploymentNamespace,
-			Name:      deploymentName,
-			Labels: map[string]string{
-				"app": "nginx",
-			},
-		},
-		Spec: deploymentSpec,
 	}
 }
