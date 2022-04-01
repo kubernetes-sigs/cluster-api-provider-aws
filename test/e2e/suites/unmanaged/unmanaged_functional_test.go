@@ -245,8 +245,8 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 
 			ginkgo.By("Creating the LB service")
 			lbServiceName := "test-svc-" + util.RandomString(6)
-			elbName := createLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
-			verifyElbExists(elbName, true)
+			elbName := shared.CreateLBService(e2eCtx, metav1.NamespaceDefault, lbServiceName, clusterClient)
+			shared.VerifyElbExists(e2eCtx, elbName, true)
 
 			ginkgo.By("Checking v1.22 StatefulSet still healthy after the upgrade")
 			waitForStatefulSetRunning(nginxStatefulsetInfo, clusterClient)
@@ -259,7 +259,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			verifyVolumesExists(awsVolIds)
 
 			ginkgo.By("Deleting LB service")
-			deleteLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
+			shared.DeleteLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
 
 			ginkgo.By("Deleting the Clusters")
 			deleteCluster(ctx, cluster2)
@@ -314,8 +314,8 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 
 			ginkgo.By("Creating the LB service")
 			lbServiceName := "test-svc-" + util.RandomString(6)
-			elbName := createLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
-			verifyElbExists(elbName, true)
+			elbName := shared.CreateLBService(e2eCtx, metav1.NamespaceDefault, lbServiceName, clusterClient)
+			shared.VerifyElbExists(e2eCtx, elbName, true)
 
 			ginkgo.By("Checking v1.22 StatefulSet still healthy after the upgrade")
 			waitForStatefulSetRunning(nginxStatefulsetInfo, clusterClient)
@@ -328,7 +328,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			verifyVolumesExists(awsVolIds)
 
 			ginkgo.By("Deleting LB service")
-			deleteLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
+			shared.DeleteLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
 
 			ginkgo.By("Deleting the Clusters")
 			deleteCluster(ctx, cluster2)
@@ -383,8 +383,8 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 
 			ginkgo.By("Creating the LB service")
 			lbServiceName := "test-svc-" + util.RandomString(6)
-			elbName := createLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
-			verifyElbExists(elbName, true)
+			elbName := shared.CreateLBService(e2eCtx, metav1.NamespaceDefault, lbServiceName, clusterClient)
+			shared.VerifyElbExists(e2eCtx, elbName, true)
 
 			ginkgo.By("Checking v1.22 StatefulSet still healthy after the upgrade")
 			waitForStatefulSetRunning(nginxStatefulsetInfo, clusterClient)
@@ -397,7 +397,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			verifyVolumesExists(awsVolIds)
 
 			ginkgo.By("Deleting LB service")
-			deleteLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
+			shared.DeleteLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
 
 			ginkgo.By("Deleting the Clusters")
 			deleteCluster(ctx, cluster2)
