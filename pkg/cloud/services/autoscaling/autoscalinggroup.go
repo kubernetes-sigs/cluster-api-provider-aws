@@ -171,10 +171,10 @@ func (s *Service) CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScal
 	// Make sure to use the MachinePoolScope here to get the merger of AWSCluster and AWSMachinePool tags
 	additionalTags := scope.AdditionalTags()
 	// Set the cloud provider tag
-	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())] = string(infrav1.ResourceLifecycleOwned)
+	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())] = string(infrav1.ResourceLifecycleOwned)
 
 	input.Tags = infrav1.Build(infrav1.BuildParams{
-		ClusterName: s.scope.KubernetesClusterName(),
+		ClusterName: s.scope.Name(),
 		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(scope.Name()),
 		Role:        aws.String("node"),
