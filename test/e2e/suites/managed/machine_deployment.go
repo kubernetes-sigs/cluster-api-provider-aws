@@ -21,6 +21,7 @@ package managed
 
 import (
 	"context"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/onsi/ginkgo"
@@ -96,8 +97,20 @@ func MachineDeploymentSpec(ctx context.Context, inputGetter func() MachineDeploy
 		StatusChecks: statusChecks,
 	}
 	framework.WaitForMachineStatusCheck(ctx, machineStatusInput, input.E2EConfig.GetIntervals("", "wait-machine-status")...)
+	clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace.Name, input.ClusterName).GetClient()
+	Eventually(func() bool {
+		nodeList := &corev1.NodeList{}
+		err := clusterClient.List(context.TODO(), nodeList)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(nodeList.Items)).To(Equal(1))
+		for _, c := range nodeList.Items[0].Status.Conditions {
+			if c.Type == corev1.NodeReady {
+				return true
+			}
+		}
+		return false
+	}, time.Minute*15).Should(BeTrue())
 	if input.IncludeLBTest {
-		clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace.Name, input.ClusterName).GetClient()
 		ginkgo.By("Creating the LB service")
 		lbServiceName := "test-svc-" + util.RandomString(6)
 		elbName := shared.CreateLBService(e2eCtx, metav1.NamespaceDefault, lbServiceName, clusterClient)
