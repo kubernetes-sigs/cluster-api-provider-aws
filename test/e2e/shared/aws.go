@@ -41,6 +41,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecrpublic"
+	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -1053,6 +1054,30 @@ func GetVPC(e2eCtx *E2EContext, vpcID string) (*ec2.Vpc, error) {
 	return result.Vpcs[0], nil
 }
 
+func GetVPCByName(e2eCtx *E2EContext, vpcName string) (*ec2.Vpc, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("tag:Name"),
+		Values: aws.StringSlice([]string{vpcName}),
+	}
+
+	input := &ec2.DescribeVpcsInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeVpcs(input)
+	if err != nil {
+		return nil, err
+	}
+	if result.Vpcs == nil || len(result.Vpcs) == 0 {
+		return nil, awserrors.NewNotFound("Vpc not found")
+	}
+	return result.Vpcs[0], nil
+}
+
 func CreateVPC(e2eCtx *E2EContext, vpcName string, cidrBlock string) (*ec2.Vpc, error) {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
@@ -1754,6 +1779,18 @@ func CreateSecurityGroup(e2eCtx *E2EContext, sgName string, sgDescription string
 	return result, nil
 }
 
+func GetSecurityGroupByFilters(e2eCtx *E2EContext, filters []*ec2.Filter) ([]*ec2.SecurityGroup, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	input := &ec2.DescribeSecurityGroupsInput{
+		Filters: filters,
+	}
+	result, err := ec2Svc.DescribeSecurityGroups(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.SecurityGroups, nil
+}
+
 func GetSecurityGroup(e2eCtx *E2EContext, sgID string) (*ec2.SecurityGroup, error) {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
@@ -1929,6 +1966,33 @@ func CreateSecurityGroupRule(e2eCtx *E2EContext, sgID string, sgrDescription str
 	return false, nil
 }
 
+func CreateSecurityGroupIngressRuleWithSourceSG(e2eCtx *E2EContext, sgID string, protocol string, toPort int64, sourceSecurityGroupID string) (bool, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	ipPerm := &ec2.IpPermission{
+		FromPort:   aws.Int64(toPort),
+		ToPort:     aws.Int64(toPort),
+		IpProtocol: aws.String(protocol),
+		UserIdGroupPairs: []*ec2.UserIdGroupPair{
+			{
+				GroupId: aws.String(sourceSecurityGroupID),
+			},
+		},
+	}
+	input := &ec2.AuthorizeSecurityGroupIngressInput{
+		GroupId: aws.String(sgID),
+		IpPermissions: []*ec2.IpPermission{
+			ipPerm,
+		},
+	}
+
+	result, err := ec2Svc.AuthorizeSecurityGroupIngress(input)
+	if err != nil {
+		return false, err
+	}
+	return *result.Return, nil
+}
+
 func DeleteSecurityGroupIngressRule(e2eCtx *E2EContext, sgID, sgrID string) bool {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
@@ -1995,4 +2059,115 @@ func DeleteLoadBalancer(e2eCtx *E2EContext, loadbalancerName string) bool {
 		return false
 	}
 	return true
+}
+
+func CreateEFS(e2eCtx *E2EContext, creationToken string) (*efs.FileSystemDescription, error) {
+	efsSvc := efs.New(e2eCtx.BootstrapUserAWSSession)
+
+	input := &efs.CreateFileSystemInput{
+		CreationToken: aws.String(creationToken),
+		Encrypted:     aws.Bool(true),
+	}
+	efsOutput, err := efsSvc.CreateFileSystem(input)
+	if err != nil {
+		return nil, err
+	}
+	return efsOutput, nil
+}
+
+func DescribeEFS(e2eCtx *E2EContext, efsID string) (*efs.FileSystemDescription, error) {
+	efsSvc := efs.New(e2eCtx.BootstrapUserAWSSession)
+
+	input := &efs.DescribeFileSystemsInput{
+		FileSystemId: aws.String(efsID),
+	}
+	efsOutput, err := efsSvc.DescribeFileSystems(input)
+	if err != nil {
+		return nil, err
+	}
+	if efsOutput == nil || len(efsOutput.FileSystems) == 0 {
+		return nil, &efs.FileSystemNotFound{
+			ErrorCode: aws.String(efs.ErrCodeFileSystemNotFound),
+		}
+	}
+	return efsOutput.FileSystems[0], nil
+}
+
+func DeleteEFS(e2eCtx *E2EContext, efsID string) (*efs.DeleteFileSystemOutput, error) {
+	efsSvc := efs.New(e2eCtx.BootstrapUserAWSSession)
+
+	input := &efs.DeleteFileSystemInput{
+		FileSystemId: aws.String(efsID),
+	}
+	result, err := efsSvc.DeleteFileSystem(input)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func GetEFSState(e2eCtx *E2EContext, efsID string) (*string, error) {
+	efs, err := DescribeEFS(e2eCtx, efsID)
+	if err != nil {
+		return nil, err
+	}
+	return efs.LifeCycleState, nil
+}
+
+func CreateMountTargetOnEFS(e2eCtx *E2EContext, efsID string, vpcID string, sg string) (*efs.MountTargetDescription, error) {
+	efsSvc := efs.New(e2eCtx.BootstrapUserAWSSession)
+
+	subnets, err := ListVpcSubnets(e2eCtx, vpcID)
+	if err != nil {
+		return nil, err
+	}
+	input := &efs.CreateMountTargetInput{
+		FileSystemId:   aws.String(efsID),
+		SecurityGroups: aws.StringSlice([]string{sg}),
+		SubnetId:       subnets[0].SubnetId,
+	}
+	result, err := efsSvc.CreateMountTarget(input)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func DeleteMountTarget(e2eCtx *E2EContext, mountTargetID string) (*efs.DeleteMountTargetOutput, error) {
+	efsSvc := efs.New(e2eCtx.BootstrapUserAWSSession)
+
+	input := &efs.DeleteMountTargetInput{
+		MountTargetId: aws.String(mountTargetID),
+	}
+	result, err := efsSvc.DeleteMountTarget(input)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func GetMountTarget(e2eCtx *E2EContext, mountTargetID string) (*efs.MountTargetDescription, error) {
+	efsSvc := efs.New(e2eCtx.BootstrapUserAWSSession)
+
+	input := &efs.DescribeMountTargetsInput{
+		MountTargetId: aws.String(mountTargetID),
+	}
+	result, err := efsSvc.DescribeMountTargets(input)
+	if err != nil {
+		return nil, err
+	}
+	if result.MountTargets == nil || len(result.MountTargets) == 0 {
+		return nil, &efs.MountTargetNotFound{
+			ErrorCode: aws.String(efs.ErrCodeMountTargetNotFound),
+		}
+	}
+	return result.MountTargets[0], nil
+}
+
+func GetMountTargetState(e2eCtx *E2EContext, mountTargetID string) (*string, error) {
+	result, err := GetMountTarget(e2eCtx, mountTargetID)
+	if err != nil {
+		return nil, err
+	}
+	return result.LifeCycleState, nil
 }

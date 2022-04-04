@@ -61,6 +61,7 @@ const (
 	InstanceVcpu                         = "AWS_MACHINE_TYPE_VCPU_USAGE"
 	PreCSIKubernetesVer                  = "PRE_1_23_KUBERNETES_VERSION"
 	PostCSIKubernetesVer                 = "POST_1_23_KUBERNETES_VERSION"
+	EFSSupport                           = "efs-support"
 )
 
 var ResourceQuotaFilePath = "/tmp/capa-e2e-resource-usage.lock"

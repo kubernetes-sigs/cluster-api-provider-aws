@@ -1,0 +1,15 @@
+resources:
+  - ../limit-az
+  - csi-resource-set.yaml
+patchesStrategicMerge:
+  - patches/efs-support.yaml
+configMapGenerator:
+  - name: aws-efs-csi-driver-addon
+    files:
+      - aws-efs-csi-external.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    type: generated
+  annotations:
+    note: generated
