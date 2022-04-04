@@ -23,17 +23,14 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-	"sigs.k8s.io/cluster-api/util"
 )
 
 // MachineDeploymentSpecInput is the input for MachineDeploymentSpec.
@@ -45,7 +42,6 @@ type MachineDeploymentSpecInput struct {
 	Namespace             *corev1.Namespace
 	Replicas              int64
 	ClusterName           string
-	IncludeLBTest         bool
 	Cleanup               bool
 }
 
@@ -96,26 +92,17 @@ func MachineDeploymentSpec(ctx context.Context, inputGetter func() MachineDeploy
 		StatusChecks: statusChecks,
 	}
 	framework.WaitForMachineStatusCheck(ctx, machineStatusInput, input.E2EConfig.GetIntervals("", "wait-machine-status")...)
-	if input.IncludeLBTest {
-		clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace.Name, input.ClusterName).GetClient()
-		ginkgo.By("Creating the Nginx deployment")
-		deploymentName := "test-deployment-" + util.RandomString(6)
-		shared.CreateDefaultNginxDeployment(metav1.NamespaceDefault, deploymentName, clusterClient)
-		ginkgo.By("Creating the LB service")
-		lbServiceName := "test-svc-" + util.RandomString(6)
-		elbName := shared.CreateLBService(e2eCtx, metav1.NamespaceDefault, lbServiceName, clusterClient)
-		shared.VerifyElbExists(e2eCtx, elbName, true)
-		ginkgo.By("Deleting the Nginx deployment")
-		shared.DeleteDefaultNginxDeployment(metav1.NamespaceDefault, deploymentName, clusterClient)
-		ginkgo.By("Deleting LB service")
-		shared.DeleteLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
-	}
 
 	if input.Cleanup {
 		deleteMachineDeployment(ctx, deleteMachineDeploymentInput{
 			Deleter:           input.BootstrapClusterProxy.GetClient(),
 			MachineDeployment: md[0],
 		})
+		// deleteMachine(ctx, deleteMachineInput{
+		// 	Deleter: input.BootstrapClusterProxy.GetClient(),
+		// 	Machine: &workerMachines[0],
+		// })
+
 		waitForMachineDeploymentDeleted(ctx, waitForMachineDeploymentDeletedInput{
 			Getter:            input.BootstrapClusterProxy.GetClient(),
 			MachineDeployment: md[0],
