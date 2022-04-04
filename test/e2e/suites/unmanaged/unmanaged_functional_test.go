@@ -684,7 +684,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("Externally managed security groups", func() {
+	ginkgo.PDescribe("Externally managed security groups", func() {
 		ginkgo.It("should create a cluster using external security groups", func() {
 			specName := "functional-test-external-securitygroups"
 			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
@@ -822,7 +822,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("Peerings, internal ELB and private subnet", func() {
+	ginkgo.PDescribe("Peerings, internal ELB and private subnet", func() {
 		ginkgo.It("should create external clusters in peered VPC and with an internal ELB and only utilize a private subnet", func() {
 			specName := "functional-test-peered-internal-elb"
 			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 5}
