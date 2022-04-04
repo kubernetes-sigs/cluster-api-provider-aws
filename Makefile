@@ -99,6 +99,7 @@ ALL_ARCH ?= amd64 arm arm64 ppc64le s390x
 # main controller
 CORE_IMAGE_NAME ?= cluster-api-aws-controller
 CORE_CONTROLLER_IMG ?= $(REGISTRY)/$(CORE_IMAGE_NAME)
+CORE_CONTROLLER_PROMOTED_IMG := $(PROD_REGISTRY)/$(CORE_IMAGE_NAME)
 CORE_CONTROLLER_ORIGINAL_IMG := gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller
 CORE_CONTROLLER_NAME := capa-controller-manager
 CORE_MANIFEST_FILE := infrastructure-components
@@ -551,7 +552,7 @@ release-manifests: ## Release manifest files
 
 .PHONY: release-changelog
 release-changelog: $(GH) ## Generates release notes using Github release notes.
-	./hack/releasechangelog.sh -v $(VERSION) -pv $(PREVIOUS_VERSION) -gh $(GH) -ghorg $(GH_ORG_NAME) -ghrepo $(GH_REPO_NAME) -cimg $(CORE_CONTROLLER_IMG) > $(RELEASE_DIR)/CHANGELOG.md
+	./hack/releasechangelog.sh > $(RELEASE_DIR)/CHANGELOG.md
 
 .PHONY: release-binaries
 release-binaries: ## Builds the binaries to publish with a release
