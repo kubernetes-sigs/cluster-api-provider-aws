@@ -1,0 +1,15 @@
+kind: AWSMachineTemplate
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  template:
+    spec:
+      additionalSecurityGroups:
+        - filters:
+          - name: "vpc-id"
+            values:
+              - "${MGMT_VPC_ID}"
+          - name: "group-name"
+            values:
+              - "${MGMT_CLUSTER_NAME}-all"
