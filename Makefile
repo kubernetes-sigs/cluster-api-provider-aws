@@ -136,12 +136,6 @@ SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 
-ifeq ($(shell go env GOOS),darwin) # Use the darwin/amd64 binary until an arm64 version is available
-	KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path --arch amd64 $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
-else
-	KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
-endif
-
 # Enable Cluster API Framework tests for the purposes of running the PR blocking test
 ifeq ($(findstring \[PR-Blocking\],$(E2E_FOCUS)),\[PR-Blocking\])
   override undefine GINKGO_SKIP
@@ -381,15 +375,26 @@ generate-test-flavors: $(KUSTOMIZE)  ## Generate test template flavors
 e2e-image: docker-pull-prerequisites $(TOOLS_BIN_DIR)/start.sh $(TOOLS_BIN_DIR)/restart.sh ## Build an e2e test image
 	docker build -f Dockerfile --tag="gcr.io/k8s-staging-cluster-api/capa-manager:e2e" .
 
-$(SETUP_ENVTEST): # Build setup-envtest from tools folder.
+.PHONY: install-setup-envtest
+install-setup-envtest: # Install setup-envtest so that setup-envtest's eval is executed after the tool has been installed.
 	GOBIN=$(abspath $(TOOLS_BIN_DIR)) $(GO_INSTALL) $(SETUP_ENVTEST_PKG) $(SETUP_ENVTEST_BIN) $(SETUP_ENVTEST_VER)
 
+.PHONY: setup-envtest
+setup-envtest: install-setup-envtest # Build setup-envtest from tools folder.
+	@if [ $(shell go env GOOS) == "darwin" ]; then \
+		$(eval KUBEBUILDER_ASSETS := $(shell $(SETUP_ENVTEST) use --use-env -p path --arch amd64 $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))) \
+		echo "kube-builder assets set using darwin OS"; \
+	else \
+		$(eval KUBEBUILDER_ASSETS := $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))) \
+		echo "kube-builder assets set using other OS"; \
+	fi
+
 .PHONY: test
-test: $(SETUP_ENVTEST) ## Run tests
+test: setup-envtest ## Run tests
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./...
 
 .PHONY: test-verbose
-test-verbose: $(SETUP_ENVTEST) ## Run tests with verbose settings.
+test-verbose: setup-envtest ## Run tests with verbose settings.
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -v ./...
 
 .PHONY: test-e2e ## Run e2e tests using clusterctl
@@ -409,7 +414,7 @@ test-conformance: generate-test-flavors $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOM
 	time $(GINKGO) -tags=e2e -focus="conformance" $(CONFORMANCE_GINKGO_ARGS) ./test/e2e/suites/conformance/... -- -config-path="$(E2E_CONF_PATH)" $(CONFORMANCE_E2E_ARGS)
 
 .PHONY: test-cover
-test-cover: $(SETUP_ENVTEST) ## Run tests with code coverage and code generate  reports
+test-cover: setup-envtest ## Run tests with code coverage and code generate  reports
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -coverprofile=coverage.out ./... $(TEST_ARGS)
 	go tool cover -func=coverage.out -o coverage.txt
 	go tool cover -html=coverage.out -o coverage.html
