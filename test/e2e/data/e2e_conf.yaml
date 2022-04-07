@@ -231,6 +231,8 @@ providers:
           - sourcePath: "./infrastructure-aws/generated/cluster-template-peered-remote.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-internal-elb.yaml"
           - sourcePath: "./infrastructure-aws/kustomize_sources/topology/clusterclass-quick-start.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-multi-az-clusterclass.yaml"
+          - sourcePath: "./infrastructure-aws/kustomize_sources/multi-az-clusterclass/clusterclass-multi-az.yaml"
           - sourcePath: "./shared/v1beta1_provider/metadata.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-ignition.yaml"
         replacements:

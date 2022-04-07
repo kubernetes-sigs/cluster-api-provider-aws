@@ -1,0 +1,205 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: multi-az
+spec:
+  controlPlane:
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: multi-az-control-plane
+    machineInfrastructure:
+      ref:
+        kind: AWSMachineTemplate
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        name: multi-az-control-plane
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: AWSClusterTemplate
+      name: multi-az
+  workers:
+    machineDeployments:
+    - class: default-worker
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: multi-az-worker-bootstraptemplate
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: AWSMachineTemplate
+            name: multi-az-worker-machinetemplate
+  variables:
+  - name: region
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: us-east-1
+  - name: sshKeyName
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: default
+  - name: controlPlaneMachineType
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: t3.large
+  - name: workerMachineType
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: t3.large
+  - name: networkSubnets
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: array
+        items:
+          type: object
+          properties:
+            id:
+              type: string
+            cidrBlock:
+              type: string
+            availabilityZone:
+              type: string
+            isPublic:
+              type: boolean
+            routeTableID:
+              type: string
+            natGatewayID:
+              type: string
+            tags:
+              type: object
+  patches:
+  - name: awsClusterTemplateGeneral
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: AWSClusterTemplate
+          matchResources:
+            infrastructureCluster: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/region"
+            valueFrom:
+              variable: region
+          - op: add
+            path: /spec/template/spec/sshKeyName
+            valueFrom:
+              variable: sshKeyName
+          - op: add
+            path: /spec/template/spec/network/subnets
+            valueFrom:
+              variable: networkSubnets
+  - name: awsMachineTemplateControlPlane
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: AWSMachineTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/instanceType"
+            valueFrom:
+              variable: controlPlaneMachineType
+          - op: add
+            path: /spec/template/spec/sshKeyName
+            valueFrom:
+              variable: sshKeyName
+  - name: awsMachineTemplateWorker
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: AWSMachineTemplate
+          matchResources:
+            machineDeploymentClass:
+              names:
+                - default-worker
+        jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/instanceType"
+            valueFrom:
+              variable: workerMachineType
+          - op: add
+            path: /spec/template/spec/sshKeyName
+            valueFrom:
+              variable: sshKeyName
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSClusterTemplate
+metadata:
+  name: multi-az
+spec:
+  template:
+    spec: {}
+---
+kind: KubeadmControlPlaneTemplate
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+metadata:
+  name: multi-az-control-plane
+spec:
+  template:
+    spec:
+      kubeadmConfigSpec:
+        clusterConfiguration:
+          apiServer:
+            extraArgs:
+              cloud-provider: aws
+          controllerManager:
+            extraArgs:
+              cloud-provider: aws
+        initConfiguration:
+          nodeRegistration:
+            name: '{{ ds.meta_data.local_hostname }}'
+            kubeletExtraArgs:
+              cloud-provider: aws
+        joinConfiguration:
+          nodeRegistration:
+            name: '{{ ds.meta_data.local_hostname }}'
+            kubeletExtraArgs:
+              cloud-provider: aws
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSMachineTemplate
+metadata:
+  name: multi-az-control-plane
+spec:
+  template:
+    spec:
+      # instanceType is a required field (OpenAPI schema).
+      instanceType: REPLACEME
+      iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSMachineTemplate
+metadata:
+  name: multi-az-worker-machinetemplate
+spec:
+  template:
+    spec:
+      # instanceType is a required field (OpenAPI schema).
+      instanceType: REPLACEME
+      iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: "multi-az-worker-bootstraptemplate"
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          name: '{{ ds.meta_data.local_hostname }}'
+          kubeletExtraArgs:
+            cloud-provider: aws

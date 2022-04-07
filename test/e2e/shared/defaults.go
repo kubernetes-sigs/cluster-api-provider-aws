@@ -46,6 +46,7 @@ const (
 	AwsAvailabilityZone1         = "AWS_AVAILABILITY_ZONE_1"
 	AwsAvailabilityZone2         = "AWS_AVAILABILITY_ZONE_2"
 	MultiAzFlavor                = "multi-az"
+	MultiAzClusterClassFlavor    = "multi-az-clusterclass"
 	LimitAzFlavor                = "limit-az"
 	SpotInstancesFlavor          = "spot-instances"
 	SSMFlavor                    = "ssm"

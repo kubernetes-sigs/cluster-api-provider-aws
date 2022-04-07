@@ -1,0 +1,61 @@
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  labels:
+    cni: ${CLUSTER_NAME}-crs-0
+  name: "${CLUSTER_NAME}"
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: ["192.168.0.0/16"]
+  topology:
+    class: "multi-az"
+    version: "${KUBERNETES_VERSION}"
+    controlPlane:
+      replicas: "${CONTROL_PLANE_MACHINE_COUNT}"
+    workers:
+      machineDeployments:
+      - class: "default-worker"
+        name: "md-0"
+        replicas: "${WORKER_MACHINE_COUNT}"
+    variables:
+    - name: region
+      value: "${AWS_REGION}"
+    - name: sshKeyName
+      value: "${AWS_SSH_KEY_NAME}"
+    - name: controlPlaneMachineType
+      value: "${AWS_CONTROL_PLANE_MACHINE_TYPE}"
+    - name: workerMachineType
+      value: "${AWS_NODE_MACHINE_TYPE}"
+    - name: networkSubnets
+      value:
+      - availabilityZone: "${AWS_AVAILABILITY_ZONE_1}"
+        cidrBlock: "10.0.0.0/24"
+      - availabilityZone: "${AWS_AVAILABILITY_ZONE_1}"
+        cidrBlock: "10.0.1.0/24"
+        isPublic: true
+      - availabilityZone: "${AWS_AVAILABILITY_ZONE_2}"
+        cidrBlock: "10.0.2.0/24"
+      - availabilityZone: "${AWS_AVAILABILITY_ZONE_2}"
+        cidrBlock: "10.0.3.0/24"
+        isPublic: true
+---
+apiVersion: v1
+data: ${CNI_RESOURCES}
+kind: ConfigMap
+metadata:
+  name: cni-${CLUSTER_NAME}-crs-0
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta1
+kind: ClusterResourceSet
+metadata:
+  name: ${CLUSTER_NAME}-crs-0
+spec:
+  clusterSelector:
+    matchLabels:
+      cni: ${CLUSTER_NAME}-crs-0
+  resources:
+  - kind: ConfigMap
+    name: cni-${CLUSTER_NAME}-crs-0
+  strategy: ApplyOnce
