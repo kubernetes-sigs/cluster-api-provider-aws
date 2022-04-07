@@ -9,7 +9,7 @@ require (
 	github.com/apparentlymart/go-cidr v1.1.0
 	github.com/aws/amazon-vpc-cni-k8s v1.10.2
 	github.com/aws/aws-lambda-go v1.29.0
-	github.com/aws/aws-sdk-go v1.40.56
+	github.com/aws/aws-sdk-go v1.43.28
 	github.com/awslabs/goformation/v4 v4.19.5
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/flatcar-linux/ignition v0.36.1
@@ -37,7 +37,7 @@ require (
 	k8s.io/component-base v0.23.5
 	k8s.io/klog/v2 v2.60.1
 	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9
-	sigs.k8s.io/aws-iam-authenticator v0.5.5
+	sigs.k8s.io/aws-iam-authenticator v0.5.7
 	sigs.k8s.io/cluster-api v1.1.2
 	sigs.k8s.io/cluster-api/test v1.1.2
 	sigs.k8s.io/controller-runtime v0.11.2
