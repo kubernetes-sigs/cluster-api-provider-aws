@@ -226,8 +226,6 @@ providers:
           - sourcePath: "./infrastructure-aws/generated/cluster-template.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-gpu.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-upgrades.yaml"
-          - sourcePath: "./infrastructure-aws/generated/cluster-template-external-infrastructure.yaml"
-          - sourcePath: "./infrastructure-aws/generated/cluster-template-external-securitygroups.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-peered-remote.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-internal-elb.yaml"
           - sourcePath: "./infrastructure-aws/kustomize_sources/topology/clusterclass-quick-start.yaml"

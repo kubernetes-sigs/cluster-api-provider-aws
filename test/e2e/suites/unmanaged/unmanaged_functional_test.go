@@ -27,6 +27,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/blang/semver"
 	"github.com/gofrs/flock"
 	"github.com/onsi/ginkgo"
@@ -684,157 +685,30 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.PDescribe("Externally managed security groups", func() {
-		ginkgo.It("should create a cluster using external security groups", func() {
-			specName := "functional-test-external-securitygroups"
-			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
-			requiredResources.WriteRequestedResources(e2eCtx, specName)
-			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
-			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
-			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
-			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
+	// This test builds a management cluster using an externally managed VPC and subnets. CAPA is still handling security group
+	// creation for the management cluster. The workload cluster is created in a peered VPC with a single externally managed security group.
+	// A private and public subnet is created in this VPC to allow for egress traffic but the workload AWSCluster is configured with
+	// an internal load balancer and only the private subnet. All applicable resources are restricted to us-west-2a for simplicity.
+	ginkgo.Describe("External infrastructure, external security groups, VPC peering, internal ELB and private subnet use only", func() {
+		var specName string
+		var namespace *corev1.Namespace
+		var requiredResources *shared.TestResource
+		mgmtClusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
+		mgmtClusterInfra := new(shared.AWSInfrastructure)
 
-			ginkgo.By("Creating the VPC and subnets")
-			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
-			vpc, vpcErr := shared.CreateVPC(e2eCtx, clusterName+"-vpc", "10.0.0.0/22")
-			Expect(vpcErr).To(BeNil())
-			vpcID := *vpc.VpcId
-			shared.SetEnvVar("VPC_ID", vpcID, false)
-			pubSubnet, pubSErr := shared.CreateSubnet(e2eCtx, clusterName, "10.0.0.0/24", "", vpcID, "public")
-			Expect(pubSErr).To(BeNil())
-			pubSubnetID := *pubSubnet.SubnetId
-			shared.SetEnvVar("PUBLIC_SUBNET_ID", pubSubnetID, false)
-			priSubnet, priSErr := shared.CreateSubnet(e2eCtx, clusterName, "10.0.1.0/24", "", vpcID, "private")
-			Expect(priSErr).To(BeNil())
-			priSubnetID := *priSubnet.SubnetId
-			shared.SetEnvVar("PRIVATE_SUBNET_ID", priSubnetID, false)
+		wlClusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
+		wlClusterInfra := new(shared.AWSInfrastructure)
 
-			ginkgo.By("Creating security groups")
-			cpSG, _ := shared.CreateSecurityGroup(e2eCtx, clusterName+"-controlplane", clusterName+" controlplane", vpcID)
-			Expect(cpSG).NotTo(BeNil())
-			cpSGID := *cpSG.GroupId
-			shared.SetEnvVar("CP_SG_ID", cpSGID, false)
-			shared.CreateSecurityGroupIngressRule(e2eCtx, cpSGID, "controlplane default", "0.0.0.0/0", "-1", -1, -1)
-			apiSG, _ := shared.CreateSecurityGroup(e2eCtx, clusterName+"-apiserver-lb", clusterName+" apiserver", vpcID)
-			Expect(apiSG).NotTo(BeNil())
-			apiSGID := *apiSG.GroupId
-			shared.SetEnvVar("API_SG_ID", apiSGID, false)
-			shared.CreateSecurityGroupIngressRule(e2eCtx, apiSGID, "apiserver default", "0.0.0.0/0", "-1", -1, -1)
-			nodeSG, _ := shared.CreateSecurityGroup(e2eCtx, clusterName+"-node", clusterName+" node", vpcID)
-			Expect(nodeSG).NotTo(BeNil())
-			nodeSGID := *nodeSG.GroupId
-			shared.SetEnvVar("NODE_SG_ID", nodeSGID, false)
-			shared.CreateSecurityGroupIngressRule(e2eCtx, nodeSGID, "node default", "0.0.0.0/0", "-1", -1, -1)
-			lbSG, _ := shared.CreateSecurityGroup(e2eCtx, clusterName+"-lb", clusterName+" load balancer", vpcID)
-			Expect(lbSG).NotTo(BeNil())
-			lbSGID := *lbSG.GroupId
-			shared.SetEnvVar("LB_SG_ID", lbSGID, false)
-			shared.CreateSecurityGroupIngressRule(e2eCtx, lbSGID, "load balancer default", "0.0.0.0/0", "-1", -1, -1)
+		var cPeering *ec2.VpcPeeringConnection
 
-			ginkgo.By("Creating Internet gateway")
-			igw, _ := shared.CreateInternetGateway(e2eCtx, clusterName+"-igw")
-			Expect(igw).NotTo(BeNil())
-			igwID := *igw.InternetGatewayId
-			igwA, _ := shared.AttachInternetGateway(e2eCtx, igwID, vpcID)
-			Expect(igwA).To(BeTrue())
-
-			ginkgo.By("Allocating Elastic IP")
-			eip, _ := shared.AllocateAddress(e2eCtx, clusterName+"-eip")
-			Expect(eip).NotTo(BeNil())
-			allocationID := *eip.AllocationId
-
-			ginkgo.By("Creating NAT gateway")
-			ngw, _ := shared.CreateNatGateway(e2eCtx, clusterName+"-nat", "public", allocationID, pubSubnetID)
-			Expect(ngw).NotTo(BeNil())
-			ngwID := *ngw.NatGatewayId
-			shared.WaitForNatGatewayState(e2eCtx, ngwID, 180, "available")
-
-			ginkgo.By("Creating route tables")
-			pubRoute, _ := shared.CreateRouteTable(e2eCtx, clusterName+"-rt-public", vpcID)
-			priRoute, _ := shared.CreateRouteTable(e2eCtx, clusterName+"-rt-private", vpcID)
-
-			ginkgo.By("Creating associating routes")
-			pubRouteID := *pubRoute.RouteTableId
-			priRouteID := *priRoute.RouteTableId
-			pubAssocRT, _ := shared.AssociateRouteTable(e2eCtx, pubRouteID, pubSubnetID)
-			priAssocRT, _ := shared.AssociateRouteTable(e2eCtx, priRouteID, priSubnetID)
-
-			ginkgo.By("Creating routes")
-			shared.CreateRoute(e2eCtx, pubRouteID, "0.0.0.0/0", nil, igw.InternetGatewayId, nil)
-			shared.CreateRoute(e2eCtx, priRouteID, "0.0.0.0/0", ngw.NatGatewayId, nil, nil)
-
-			configCluster := defaultConfigCluster(clusterName, namespace.Name)
-			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
-			configCluster.Flavor = "external-securitygroups"
-			cluster, md, _ := createCluster(ctx, configCluster, result)
-
-			workerMachines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
-				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-				ClusterName:       clusterName,
-				Namespace:         namespace.Name,
-				MachineDeployment: *md[0],
-			})
-			controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
-				Lister:      e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-				ClusterName: clusterName,
-				Namespace:   namespace.Name,
-			})
-			Expect(len(workerMachines)).To(Equal(1))
-			Expect(len(controlPlaneMachines)).To(Equal(1))
-
-			deleteCluster(ctx, cluster)
-
-			ginkgo.By("Disassociating route tables")
-			pubAssocID := *pubAssocRT.AssociationId
-			priAssocID := *priAssocRT.AssociationId
-			Expect(shared.DisassociateRouteTable(e2eCtx, pubAssocID)).To(BeTrue())
-			Expect(shared.DisassociateRouteTable(e2eCtx, priAssocID)).To(BeTrue())
-
-			ginkgo.By("Deleting route tables")
-			Expect(shared.DeleteRouteTable(e2eCtx, priRouteID)).To(BeTrue())
-			Expect(shared.DeleteRouteTable(e2eCtx, pubRouteID)).To(BeTrue())
-
-			ginkgo.By("Deleting NAT gateway")
-			Expect(shared.DeleteNatGateway(e2eCtx, ngwID)).To(BeTrue())
-			shared.WaitForNatGatewayState(e2eCtx, ngwID, 180, "deleted")
-
-			ginkgo.By("Releasing Elastic IP")
-			Expect(shared.ReleaseAddress(e2eCtx, allocationID)).To(BeTrue())
-
-			ginkgo.By("Detaching Internet gateway")
-			Eventually(shared.DetachInternetGateway(e2eCtx, igwID, vpcID), 30*time.Second).Should(BeTrue())
-
-			ginkgo.By("Deleting Internet gateway")
-			Expect(shared.DeleteInternetGateway(e2eCtx, igwID)).To(BeTrue())
-
-			ginkgo.By("Deleting security groups")
-			Expect(shared.DeleteSecurityGroup(e2eCtx, cpSGID)).To(BeTrue())
-			Expect(shared.DeleteSecurityGroup(e2eCtx, apiSGID)).To(BeTrue())
-			Expect(shared.DeleteSecurityGroup(e2eCtx, nodeSGID)).To(BeTrue())
-			Expect(shared.DeleteSecurityGroup(e2eCtx, lbSGID)).To(BeTrue())
-
-			ginkgo.By("Deleting subnets")
-			Expect(shared.DeleteSubnet(e2eCtx, priSubnetID)).To(BeTrue())
-			Expect(shared.DeleteSubnet(e2eCtx, pubSubnetID)).To(BeTrue())
-
-			ginkgo.By("Deleting the VPC")
-			Expect(shared.DeleteVPC(e2eCtx, vpcID)).To(BeTrue())
-		})
-	})
-
-	ginkgo.PDescribe("Peerings, internal ELB and private subnet", func() {
-		ginkgo.It("should create external clusters in peered VPC and with an internal ELB and only utilize a private subnet", func() {
-			specName := "functional-test-peered-internal-elb"
+		// Some infrastructure creation was moved to a setup node to better organize the test.
+		ginkgo.JustBeforeEach(func() {
+			specName = "functional-test-extinfra-peered-internal-elb"
 			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 5}
 			requiredResources.WriteRequestedResources(e2eCtx, specName)
 			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
-			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
-			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
-			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
-
+			namespace = shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 			ginkgo.By("Creating the management cluster infrastructure")
-			mgmtClusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
-			mgmtClusterInfra := new(shared.AWSInfrastructure)
 			mgmtClusterInfra.New(shared.AWSInfrastructureSpec{
 				ClusterName:       mgmtClusterName,
 				VpcCidr:           "10.0.0.0/23",
@@ -843,17 +717,8 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				AvailabilityZone:  "us-west-2a",
 			}, e2eCtx)
 			mgmtClusterInfra.CreateInfrastructure()
-			Expect(mgmtClusterInfra.VPC).NotTo(BeNil())
-			Expect(*mgmtClusterInfra.State.VpcState).To(Equal("available"))
-			Expect(len(mgmtClusterInfra.Subnets)).To(Equal(2))
-			Expect(mgmtClusterInfra.InternetGateway).NotTo(BeNil())
-			Expect(mgmtClusterInfra.ElasticIP).NotTo(BeNil())
-			Expect(mgmtClusterInfra.NatGateway).NotTo(BeNil())
-			Expect(len(mgmtClusterInfra.RouteTables)).To(Equal(2))
 
 			ginkgo.By("Creating the workload cluster infrastructure")
-			wlClusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
-			wlClusterInfra := new(shared.AWSInfrastructure)
 			wlClusterInfra.New(shared.AWSInfrastructureSpec{
 				ClusterName:       wlClusterName,
 				VpcCidr:           "10.0.2.0/23",
@@ -862,6 +727,38 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				AvailabilityZone:  "us-west-2a",
 			}, e2eCtx)
 			wlClusterInfra.CreateInfrastructure()
+
+			ginkgo.By("Creating VPC peerings")
+			cPeering, _ = shared.CreatePeering(e2eCtx, mgmtClusterName+"-"+wlClusterName, *mgmtClusterInfra.VPC.VpcId, *wlClusterInfra.VPC.VpcId)
+		})
+
+		// Infrastructure cleanup is done in setup node so it is not bypassed if there is a test failure in the subject node.
+		ginkgo.JustAfterEach(func() {
+			shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+			shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
+			if !e2eCtx.Settings.SkipCleanup {
+				ginkgo.By("Deleting peering connection")
+				if cPeering != nil && cPeering.VpcPeeringConnectionId != nil {
+					shared.DeletePeering(e2eCtx, *cPeering.VpcPeeringConnectionId)
+				}
+				ginkgo.By("Deleting the workload cluster infrastructure")
+				wlClusterInfra.DeleteInfrastructure()
+				ginkgo.By("Deleting the management cluster infrastructure")
+				mgmtClusterInfra.DeleteInfrastructure()
+			}
+		})
+
+		ginkgo.It("should create external clusters in peered VPC and with an internal ELB and only utilize a private subnet", func() {
+			ginkgo.By("Validating management infrastructure")
+			Expect(mgmtClusterInfra.VPC).NotTo(BeNil())
+			Expect(*mgmtClusterInfra.State.VpcState).To(Equal("available"))
+			Expect(len(mgmtClusterInfra.Subnets)).To(Equal(2))
+			Expect(mgmtClusterInfra.InternetGateway).NotTo(BeNil())
+			Expect(mgmtClusterInfra.ElasticIP).NotTo(BeNil())
+			Expect(mgmtClusterInfra.NatGateway).NotTo(BeNil())
+			Expect(len(mgmtClusterInfra.RouteTables)).To(Equal(2))
+
+			ginkgo.By("Validating workload infrastructure")
 			Expect(wlClusterInfra.VPC).NotTo(BeNil())
 			Expect(*wlClusterInfra.State.VpcState).To(Equal("available"))
 			Expect(len(wlClusterInfra.Subnets)).To(Equal(2))
@@ -870,22 +767,28 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			Expect(wlClusterInfra.NatGateway).NotTo(BeNil())
 			Expect(len(wlClusterInfra.RouteTables)).To(Equal(2))
 
-			shared.SetEnvVar("MGMT_VPC_ID", *mgmtClusterInfra.VPC.VpcId, false)
-			shared.SetEnvVar("WL_VPC_ID", *wlClusterInfra.VPC.VpcId, false)
-			shared.SetEnvVar("MGMT_PUBLIC_SUBNET_ID", *mgmtClusterInfra.State.PublicSubnetID, false)
-			shared.SetEnvVar("MGMT_PRIVATE_SUBNET_ID", *mgmtClusterInfra.State.PrivateSubnetID, false)
-			shared.SetEnvVar("WL_PRIVATE_SUBNET_ID", *wlClusterInfra.State.PrivateSubnetID, false)
-
-			ginkgo.By("Creating VPC peerings")
-			cPeering, _ := shared.CreatePeering(e2eCtx, mgmtClusterName+"-"+wlClusterName, *mgmtClusterInfra.VPC.VpcId, *wlClusterInfra.VPC.VpcId)
+			ginkgo.By("Validate and accept peering")
 			Expect(cPeering).NotTo(BeNil())
 			Eventually(func() bool {
 				aPeering, err := shared.AcceptPeering(e2eCtx, *cPeering.VpcPeeringConnectionId)
 				if err != nil {
 					return false
 				}
+				wlClusterInfra.Peering = aPeering
 				return aPeering != nil
 			}, 60*time.Second).Should(BeTrue())
+
+			ginkgo.By("Creating security groups")
+			mgmtSG, _ := shared.CreateSecurityGroup(e2eCtx, mgmtClusterName+"-all", mgmtClusterName+"-all", *mgmtClusterInfra.VPC.VpcId)
+			Expect(mgmtSG).NotTo(BeNil())
+			shared.CreateSecurityGroupIngressRule(e2eCtx, *mgmtSG.GroupId, "all default", "0.0.0.0/0", "-1", -1, -1)
+			shared.SetEnvVar("SG_ID", *mgmtSG.GroupId, false)
+
+			shared.SetEnvVar("MGMT_VPC_ID", *mgmtClusterInfra.VPC.VpcId, false)
+			shared.SetEnvVar("WL_VPC_ID", *wlClusterInfra.VPC.VpcId, false)
+			shared.SetEnvVar("MGMT_PUBLIC_SUBNET_ID", *mgmtClusterInfra.State.PublicSubnetID, false)
+			shared.SetEnvVar("MGMT_PRIVATE_SUBNET_ID", *mgmtClusterInfra.State.PrivateSubnetID, false)
+			shared.SetEnvVar("WL_PRIVATE_SUBNET_ID", *wlClusterInfra.State.PrivateSubnetID, false)
 
 			ginkgo.By("Creating routes for peerings")
 			shared.CreateRoute(e2eCtx, *mgmtClusterInfra.State.PublicRouteTableID, "10.0.2.0/23", nil, nil, cPeering.VpcPeeringConnectionId)
@@ -1032,15 +935,6 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 
 				ginkgo.By("Deleting the management cluster")
 				deleteCluster(ctx, mgmtCluster)
-
-				ginkgo.By("Deleting peering connection")
-				Expect(shared.DeletePeering(e2eCtx, *cPeering.VpcPeeringConnectionId)).To(BeTrue())
-
-				ginkgo.By("Deleting the workload cluster infrastructure")
-				wlClusterInfra.DeleteInfrastructure()
-
-				ginkgo.By("Deleting the management cluster infrastructure")
-				mgmtClusterInfra.DeleteInfrastructure()
 			}
 		})
 	})

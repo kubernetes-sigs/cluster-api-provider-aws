@@ -1,5 +1,0 @@
-resources:
-  - ../external-infrastructure
-patchesStrategicMerge:
-  - patches/external-securitygroups.yaml
-  

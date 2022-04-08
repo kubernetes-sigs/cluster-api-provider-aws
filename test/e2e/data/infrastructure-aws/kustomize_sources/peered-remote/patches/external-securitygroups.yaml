@@ -5,8 +5,9 @@ metadata:
 spec:
   network:
     securityGroupOverrides:
-      controlplane: "${CP_SG_ID}"
-      apiserver-lb: "${API_SG_ID}"
-      node: "${NODE_SG_ID}"
-      lb: "${LB_SG_ID}"
-      
+      controlplane: "${SG_ID}"
+      apiserver-lb: "${SG_ID}"
+      node: "${SG_ID}"
+      lb: "${SG_ID}"
+      bastion: ${SG_ID}
+
