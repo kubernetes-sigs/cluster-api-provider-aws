@@ -1079,6 +1079,20 @@ func TestAWSMachineReconciler(t *testing.T) {
 				ec2Svc.EXPECT().TerminateInstanceAndWait(gomock.Any()).Return(nil).AnyTimes()
 				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 			})
+			t.Run("should not attempt to delete the secret if InsecureSkipSecretsManager is set on CloudInit", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+				setNodeRef(t, g)
+
+				ms.AWSMachine.Spec.CloudInit.InsecureSkipSecretsManager = true
+
+				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(0)
+				ec2Svc.EXPECT().TerminateInstanceAndWait(gomock.Any()).Return(nil).AnyTimes()
+
+				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
+			})
 		})
 
 		t.Run("Secrets management lifecycle when there's only a secret ARN and no node ref", func(t *testing.T) {
