@@ -42,6 +42,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecrpublic"
 	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
@@ -59,23 +60,26 @@ import (
 )
 
 type AWSInfrastructureSpec struct {
-	ClusterName, VpcCidr, PublicSubnetCidr, PrivateSubnetCidr, AvailabilityZone string
-	ExternalSecurityGroups                                                      bool
+	ClusterName            string `json:"clustername"`
+	VpcCidr                string `json:"vpcCidr"`
+	PublicSubnetCidr       string `json:"publicSubnetCidr"`
+	PrivateSubnetCidr      string `json:"privateSubnetCidr"`
+	AvailabilityZone       string `json:"availabilityZone"`
+	ExternalSecurityGroups bool   `json:"externalSecurityGroups"`
 }
 
 type AWSInfrastructureState struct {
-	PrivateSubnetID     *string
-	PrivateSubnetState  *string
-	PublicSubnetID      *string
-	PublicSubnetState   *string
-	VpcState            *string
-	NatGatewayState     *string
-	PublicRouteTableID  *string
-	PrivateRouteTableID *string
+	PrivateSubnetID     *string `json:"privateSubnetID"`
+	PrivateSubnetState  *string `json:"privateSubnetState"`
+	PublicSubnetID      *string `json:"publicSubnetID"`
+	PublicSubnetState   *string `json:"publicSubnetState"`
+	VpcState            *string `json:"vpcState"`
+	NatGatewayState     *string `json:"natGatewayState"`
+	PublicRouteTableID  *string `json:"publicRouteTableID"`
+	PrivateRouteTableID *string `json:"privateRouteTableID"`
 }
-
 type AWSInfrastructure struct {
-	Spec            AWSInfrastructureSpec
+	Spec            AWSInfrastructureSpec `json:"spec"`
 	Context         *E2EContext
 	VPC             *ec2.Vpc
 	Subnets         []*ec2.Subnet
@@ -83,7 +87,8 @@ type AWSInfrastructure struct {
 	InternetGateway *ec2.InternetGateway
 	ElasticIP       *ec2.Address
 	NatGateway      *ec2.NatGateway
-	State           AWSInfrastructureState
+	State           AWSInfrastructureState `json:"state"`
+	Peering         *ec2.VpcPeeringConnection
 }
 
 func (i *AWSInfrastructure) New(ais AWSInfrastructureSpec, e2eCtx *E2EContext) AWSInfrastructure {
@@ -213,9 +218,11 @@ func (i *AWSInfrastructure) GetRouteTable(rtID string) AWSInfrastructure {
 	return *i
 }
 
+// CreateInfrastructure creates a VPC, two subnets with appropriate tags based on type(private/public)
+// an internet gateway, an elastic IP address, a NAT gateway, a route table for each subnet and
+// routes to their respective gateway.
 func (i *AWSInfrastructure) CreateInfrastructure() AWSInfrastructure {
 	i.CreateVPC()
-	Expect(i.VPC).NotTo(BeNil())
 	if i.VPC != nil {
 		i.CreatePublicSubnet()
 		i.CreatePrivateSubnet()
@@ -230,33 +237,91 @@ func (i *AWSInfrastructure) CreateInfrastructure() AWSInfrastructure {
 	i.AllocateAddress()
 	i.CreateNatGateway("public")
 	WaitForNatGatewayState(i.Context, *i.NatGateway.NatGatewayId, 180, "available")
-	i.CreateRouteTable("public")
-	i.CreateRouteTable("private")
-	Expect(CreateRoute(i.Context, *i.State.PublicRouteTableID, "0.0.0.0/0", nil, i.InternetGateway.InternetGatewayId, nil)).To(BeTrue())
-	Expect(CreateRoute(i.Context, *i.State.PrivateRouteTableID, "0.0.0.0/0", i.NatGateway.NatGatewayId, nil, nil)).To(BeTrue())
-	i.GetRouteTable(*i.State.PublicRouteTableID)
-	i.GetRouteTable(*i.State.PrivateRouteTableID)
+	if len(i.Subnets) == 2 {
+		i.CreateRouteTable("public")
+		i.CreateRouteTable("private")
+		CreateRoute(i.Context, *i.State.PublicRouteTableID, "0.0.0.0/0", nil, i.InternetGateway.InternetGatewayId, nil)
+		CreateRoute(i.Context, *i.State.PrivateRouteTableID, "0.0.0.0/0", i.NatGateway.NatGatewayId, nil, nil)
+		i.GetRouteTable(*i.State.PublicRouteTableID)
+		i.GetRouteTable(*i.State.PrivateRouteTableID)
+	}
 	return *i
 }
 
-func (i *AWSInfrastructure) DeleteInfrastructure() AWSInfrastructure {
-	for _, rt := range i.RouteTables {
-		for _, a := range rt.Associations {
-			DisassociateRouteTable(i.Context, *a.RouteTableAssociationId)
-		}
-		if !DeleteRouteTable(i.Context, *rt.RouteTableId) {
-			fmt.Printf("%+v", rt)
+// DeleteInfrastructure has calls added to discover and delete potential orphaned resources created
+// by CAPA. In an attempt to avoid dependency violations it works in the following order
+// Instances, Load Balancers, Route Tables, NAT gateway, Elastic IP, Internet Gateway,
+// Security Group Rules, Security Groups, Subnets, VPC.
+func (i *AWSInfrastructure) DeleteInfrastructure() {
+	instances, _ := ListClusterEC2Instances(i.Context, i.Spec.ClusterName)
+	for _, instance := range instances {
+		if instance.State.Code != aws.Int64(48) {
+			Byf("Deleting orphaned instance: %s - %v", *instance.InstanceId, TerminateInstance(i.Context, *instance.InstanceId))
 		}
 	}
-	DeleteNatGateway(i.Context, *i.NatGateway.NatGatewayId)
-	WaitForNatGatewayState(i.Context, *i.NatGateway.NatGatewayId, 180, "deleted")
-	ReleaseAddress(i.Context, *i.ElasticIP.AllocationId)
-	Eventually(DetachInternetGateway(i.Context, *i.InternetGateway.InternetGatewayId, *i.VPC.VpcId), 60*time.Second).Should(BeTrue())
-	DeleteInternetGateway(i.Context, *i.InternetGateway.InternetGatewayId)
-	DeleteSubnet(i.Context, *i.State.PrivateSubnetID)
-	DeleteSubnet(i.Context, *i.State.PublicSubnetID)
-	DeleteVPC(i.Context, *i.VPC.VpcId)
-	return *i
+	WaitForInstanceState(i.Context, i.Spec.ClusterName, 300, "terminated")
+
+	loadbalancers, _ := ListLoadBalancers(i.Context, i.Spec.ClusterName)
+	for _, lb := range loadbalancers {
+		Byf("Deleting orphaned load balancer: %s - %v", *lb.LoadBalancerName, DeleteLoadBalancer(i.Context, *lb.LoadBalancerName))
+	}
+
+	for _, rt := range i.RouteTables {
+		for _, a := range rt.Associations {
+			Byf("Disassociating route table - %s - %v", *a.RouteTableAssociationId, DisassociateRouteTable(i.Context, *a.RouteTableAssociationId))
+		}
+		Byf("Deleting route table - %s - %v", *rt.RouteTableId, DeleteRouteTable(i.Context, *rt.RouteTableId))
+	}
+
+	if i.NatGateway != nil {
+		Byf("Deleting NAT Gateway - %s - %v", *i.NatGateway.NatGatewayId, DeleteNatGateway(i.Context, *i.NatGateway.NatGatewayId))
+		WaitForNatGatewayState(i.Context, *i.NatGateway.NatGatewayId, 180, "deleted")
+	}
+
+	if i.ElasticIP != nil {
+		Byf("Deleting Elastic IP - %s - %v", *i.ElasticIP.AllocationId, ReleaseAddress(i.Context, *i.ElasticIP.AllocationId))
+	}
+
+	if i.InternetGateway != nil {
+		Byf("Detaching Internet Gateway - %s - %v", *i.InternetGateway.InternetGatewayId, DetachInternetGateway(i.Context, *i.InternetGateway.InternetGatewayId, *i.VPC.VpcId))
+		Byf("Deleting Internet Gateway - %s - %v", *i.InternetGateway.InternetGatewayId, DeleteInternetGateway(i.Context, *i.InternetGateway.InternetGatewayId))
+	}
+
+	sgGroups, _ := GetSecurityGroupsByVPC(i.Context, *i.VPC.VpcId)
+	for _, sg := range sgGroups {
+		if *sg.GroupName != "default" {
+			sgRules, _ := ListSecurityGroupRules(i.Context, *sg.GroupId)
+			for _, sgr := range sgRules {
+				var d bool
+				if *sgr.IsEgress {
+					for d = DeleteSecurityGroupRule(i.Context, *sgr.GroupId, *sgr.SecurityGroupRuleId, "egress"); !d; {
+						d = DeleteSecurityGroupRule(i.Context, *sgr.GroupId, *sgr.SecurityGroupRuleId, "egress")
+					}
+					Byf("Deleting Egress Security Group Rule - %s - %v", *sgr.SecurityGroupRuleId, d)
+				} else {
+					for d = DeleteSecurityGroupRule(i.Context, *sgr.GroupId, *sgr.SecurityGroupRuleId, "ingress"); !d; {
+						d = DeleteSecurityGroupRule(i.Context, *sgr.GroupId, *sgr.SecurityGroupRuleId, "ingress")
+					}
+					Byf("Deleting Ingress Security Group Rule - %s - %v", *sgr.SecurityGroupRuleId, d)
+				}
+			}
+		}
+	}
+
+	sgGroups, _ = GetSecurityGroupsByVPC(i.Context, *i.VPC.VpcId)
+	for _, sg := range sgGroups {
+		if *sg.GroupName != "default" {
+			Byf("Deleting Security Group - %s - %v", *sg.GroupId, DeleteSecurityGroup(i.Context, *sg.GroupId))
+		}
+	}
+
+	for _, subnet := range i.Subnets {
+		Byf("Deleting Subnet - %s - %v", *subnet.SubnetId, DeleteSubnet(i.Context, *subnet.SubnetId))
+	}
+
+	if i.VPC != nil {
+		Byf("Deleting VPC - %s - %v", *i.VPC.VpcId, DeleteVPC(i.Context, *i.VPC.VpcId))
+	}
 }
 
 func NewAWSSession() client.ConfigProvider {
@@ -924,6 +989,19 @@ func WaitForInstanceState(e2eCtx *E2EContext, clusterName string, timeout int, s
 	return false
 }
 
+func TerminateInstance(e2eCtx *E2EContext, instanceID string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.TerminateInstancesInput{
+		InstanceIds: aws.StringSlice([]string{instanceID}),
+	}
+
+	if _, err := ec2Svc.TerminateInstances(input); err != nil {
+		return false
+	}
+	return true
+}
+
 func ListVPC(e2eCtx *E2EContext) int {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
@@ -1573,7 +1651,7 @@ func DeleteRouteTable(e2eCtx *E2EContext, rtID string) bool {
 	return true
 }
 
-func CreateRoute(e2eCtx *E2EContext, rtID string, destinationCidr string, natID *string, igwID *string, pcxID *string) (bool, error) {
+func CreateRoute(e2eCtx *E2EContext, rtID string, destinationCidr string, natID *string, igwID *string, pcxID *string) bool {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
 	input := &ec2.CreateRouteInput{
@@ -1593,11 +1671,8 @@ func CreateRoute(e2eCtx *E2EContext, rtID string, destinationCidr string, natID 
 		input.VpcPeeringConnectionId = pcxID
 	}
 
-	result, err := ec2Svc.CreateRoute(input)
-	if err != nil {
-		return false, err
-	}
-	return *result.Return, nil
+	_, err := ec2Svc.CreateRoute(input)
+	return err == nil
 }
 
 func DeleteRoute(e2eCtx *E2EContext, rtID string, destinationCidr string) bool {
@@ -1691,6 +1766,32 @@ func GetSecurityGroup(e2eCtx *E2EContext, sgID string) (*ec2.SecurityGroup, erro
 		return nil, nil
 	}
 	return result.SecurityGroups[0], nil
+}
+
+func GetSecurityGroupsByVPC(e2eCtx *E2EContext, vpcID string) ([]*ec2.SecurityGroup, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name: aws.String("vpc-id"),
+		Values: []*string{
+			aws.String(vpcID),
+		},
+	}
+
+	input := &ec2.DescribeSecurityGroupsInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeSecurityGroups(input)
+	if err != nil {
+		return nil, err
+	}
+	if result.SecurityGroups == nil {
+		return nil, nil
+	}
+	return result.SecurityGroups, nil
 }
 
 func DeleteSecurityGroup(e2eCtx *E2EContext, sgID string) bool {
@@ -1818,11 +1919,12 @@ func CreateSecurityGroupRule(e2eCtx *E2EContext, sgID string, sgrDescription str
 	return false, nil
 }
 
-func DeleteSecurityGroupIngressRule(e2eCtx *E2EContext, sgrID string) bool {
+func DeleteSecurityGroupIngressRule(e2eCtx *E2EContext, sgID, sgrID string) bool {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
 	input := &ec2.RevokeSecurityGroupIngressInput{
 		SecurityGroupRuleIds: aws.StringSlice([]string{sgrID}),
+		GroupId:              aws.String(sgID),
 	}
 
 	if _, err := ec2Svc.RevokeSecurityGroupIngress(input); err != nil {
@@ -1831,11 +1933,12 @@ func DeleteSecurityGroupIngressRule(e2eCtx *E2EContext, sgrID string) bool {
 	return true
 }
 
-func DeleteSecurityGroupEgressRule(e2eCtx *E2EContext, sgrID string) bool {
+func DeleteSecurityGroupEgressRule(e2eCtx *E2EContext, sgID, sgrID string) bool {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
 	input := &ec2.RevokeSecurityGroupEgressInput{
 		SecurityGroupRuleIds: aws.StringSlice([]string{sgrID}),
+		GroupId:              aws.String(sgID),
 	}
 
 	if _, err := ec2Svc.RevokeSecurityGroupEgress(input); err != nil {
@@ -1844,12 +1947,42 @@ func DeleteSecurityGroupEgressRule(e2eCtx *E2EContext, sgrID string) bool {
 	return true
 }
 
-func DeleteSecurityGroupRule(e2eCtx *E2EContext, sgrID string, rt string) bool {
+func DeleteSecurityGroupRule(e2eCtx *E2EContext, sgID, sgrID, rt string) bool {
 	switch rt {
 	case "ingress":
-		return DeleteSecurityGroupIngressRule(e2eCtx, sgrID)
+		return DeleteSecurityGroupIngressRule(e2eCtx, sgID, sgrID)
 	case "egress":
-		return DeleteSecurityGroupEgressRule(e2eCtx, sgrID)
+		return DeleteSecurityGroupEgressRule(e2eCtx, sgID, sgrID)
 	}
 	return false
+}
+
+func ListLoadBalancers(e2eCtx *E2EContext, clusterName string) ([]*elb.LoadBalancerDescription, error) {
+	elbSvc := elb.New(e2eCtx.AWSSession)
+
+	input := &elb.DescribeLoadBalancersInput{
+		LoadBalancerNames: aws.StringSlice([]string{clusterName + "-apiserver"}),
+	}
+
+	result, err := elbSvc.DescribeLoadBalancers(input)
+	if err != nil {
+		return nil, err
+	}
+	if result.LoadBalancerDescriptions == nil {
+		return nil, nil
+	}
+	return result.LoadBalancerDescriptions, nil
+}
+
+func DeleteLoadBalancer(e2eCtx *E2EContext, loadbalancerName string) bool {
+	elbSvc := elb.New(e2eCtx.AWSSession)
+
+	input := &elb.DeleteLoadBalancerInput{
+		LoadBalancerName: aws.String(loadbalancerName),
+	}
+
+	if _, err := elbSvc.DeleteLoadBalancer(input); err != nil {
+		return false
+	}
+	return true
 }
