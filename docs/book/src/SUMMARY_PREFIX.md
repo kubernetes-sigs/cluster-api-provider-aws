@@ -11,6 +11,7 @@
   - [Spot instances](./topics/spot-instances.md)
   - [Machine Pools](./topics/machinepools.md)
   - [Multi-tenancy](./topics/multitenancy.md)
+    - [Multi-tenancy in EKS-managed clusters](./topics/full-multitenancy-implementation.md)
   - [EKS Support](./topics/eks/index.md)
     - [Prerequisites](./topics/eks/prerequisites.md)
     - [Enabling EKS Support](./topics/eks/enabling.md)
