@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
@@ -530,6 +531,37 @@ func Test_asgNeedsUpdates(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "Subnets != asg.Subnets",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: pointer.Int32(1),
+						},
+					},
+					AWSMachinePool: &expinfrav1.AWSMachinePool{
+						Spec: expinfrav1.AWSMachinePoolSpec{
+							MaxSize: 2,
+							MinSize: 0,
+							Subnets: []infrav1.AWSResourceReference{
+								{
+									ID:  pointer.String("subnet1"),
+									ARN: pointer.String("arnsubnet1"),
+								},
+							},
+						},
+					},
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity: pointer.Int32(1),
+					MaxSize:         2,
+					MinSize:         0,
+					Subnets:         []string{"subnet1", "subnet2"},
+				},
+			},
+			want: true,
+		},
+		{
 			name: "all matches",
 			args: args{
 				machinePoolScope: &scope.MachinePoolScope{
@@ -543,6 +575,14 @@ func Test_asgNeedsUpdates(t *testing.T) {
 							MaxSize:           2,
 							MinSize:           0,
 							CapacityRebalance: true,
+							Subnets: []infrav1.AWSResourceReference{
+								{
+									ID: aws.String("subnet1"),
+								},
+								{
+									ID: aws.String("subnet2"),
+								},
+							},
 							MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
 								InstancesDistribution: &expinfrav1.InstancesDistribution{
 									OnDemandAllocationStrategy: expinfrav1.OnDemandAllocationStrategyPrioritized,
@@ -557,6 +597,7 @@ func Test_asgNeedsUpdates(t *testing.T) {
 					MaxSize:           2,
 					MinSize:           0,
 					CapacityRebalance: true,
+					Subnets:           []string{"subnet1", "subnet2"},
 					MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
 						InstancesDistribution: &expinfrav1.InstancesDistribution{
 							OnDemandAllocationStrategy: expinfrav1.OnDemandAllocationStrategyPrioritized,
