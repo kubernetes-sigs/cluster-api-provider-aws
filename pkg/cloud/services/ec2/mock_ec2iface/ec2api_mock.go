@@ -24880,6 +24880,56 @@ func (mr *MockEC2APIMockRecorder) ModifyInstanceEventWindowWithContext(arg0, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyInstanceEventWindowWithContext", reflect.TypeOf((*MockEC2API)(nil).ModifyInstanceEventWindowWithContext), varargs...)
 }
 
+// ModifyInstanceMaintenanceOptions mocks base method.
+func (m *MockEC2API) ModifyInstanceMaintenanceOptions(arg0 *ec2.ModifyInstanceMaintenanceOptionsInput) (*ec2.ModifyInstanceMaintenanceOptionsOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ModifyInstanceMaintenanceOptions", arg0)
+	ret0, _ := ret[0].(*ec2.ModifyInstanceMaintenanceOptionsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ModifyInstanceMaintenanceOptions indicates an expected call of ModifyInstanceMaintenanceOptions.
+func (mr *MockEC2APIMockRecorder) ModifyInstanceMaintenanceOptions(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyInstanceMaintenanceOptions", reflect.TypeOf((*MockEC2API)(nil).ModifyInstanceMaintenanceOptions), arg0)
+}
+
+// ModifyInstanceMaintenanceOptionsRequest mocks base method.
+func (m *MockEC2API) ModifyInstanceMaintenanceOptionsRequest(arg0 *ec2.ModifyInstanceMaintenanceOptionsInput) (*request.Request, *ec2.ModifyInstanceMaintenanceOptionsOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ModifyInstanceMaintenanceOptionsRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.ModifyInstanceMaintenanceOptionsOutput)
+	return ret0, ret1
+}
+
+// ModifyInstanceMaintenanceOptionsRequest indicates an expected call of ModifyInstanceMaintenanceOptionsRequest.
+func (mr *MockEC2APIMockRecorder) ModifyInstanceMaintenanceOptionsRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyInstanceMaintenanceOptionsRequest", reflect.TypeOf((*MockEC2API)(nil).ModifyInstanceMaintenanceOptionsRequest), arg0)
+}
+
+// ModifyInstanceMaintenanceOptionsWithContext mocks base method.
+func (m *MockEC2API) ModifyInstanceMaintenanceOptionsWithContext(arg0 context.Context, arg1 *ec2.ModifyInstanceMaintenanceOptionsInput, arg2 ...request.Option) (*ec2.ModifyInstanceMaintenanceOptionsOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ModifyInstanceMaintenanceOptionsWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.ModifyInstanceMaintenanceOptionsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ModifyInstanceMaintenanceOptionsWithContext indicates an expected call of ModifyInstanceMaintenanceOptionsWithContext.
+func (mr *MockEC2APIMockRecorder) ModifyInstanceMaintenanceOptionsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyInstanceMaintenanceOptionsWithContext", reflect.TypeOf((*MockEC2API)(nil).ModifyInstanceMaintenanceOptionsWithContext), varargs...)
+}
+
 // ModifyInstanceMetadataOptions mocks base method.
 func (m *MockEC2API) ModifyInstanceMetadataOptions(arg0 *ec2.ModifyInstanceMetadataOptionsInput) (*ec2.ModifyInstanceMetadataOptionsOutput, error) {
 	m.ctrl.T.Helper()
