@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
@@ -545,8 +544,7 @@ func Test_asgNeedsUpdates(t *testing.T) {
 							MinSize: 0,
 							Subnets: []infrav1.AWSResourceReference{
 								{
-									ID:  pointer.String("subnet1"),
-									ARN: pointer.String("arnsubnet1"),
+									ID: pointer.String("subnet1"),
 								},
 							},
 						},
@@ -577,10 +575,10 @@ func Test_asgNeedsUpdates(t *testing.T) {
 							CapacityRebalance: true,
 							Subnets: []infrav1.AWSResourceReference{
 								{
-									ID: aws.String("subnet1"),
+									ID: pointer.String("subnet1"),
 								},
 								{
-									ID: aws.String("subnet2"),
+									ID: pointer.String("subnet2"),
 								},
 							},
 							MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
