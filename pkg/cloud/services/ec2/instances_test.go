@@ -897,6 +897,76 @@ func TestCreateInstance(t *testing.T) {
 			},
 		},
 		{
+			name: "failureDomain defined but a matching subnet in AZ don't have ID",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
+					},
+					FailureDomain: aws.String("us-east-1b"),
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-id",
+						},
+						Subnets: infrav1.Subnets{
+							{
+								CidrBlock:        "10.0.0.0/24",
+								AvailabilityZone: "us-east-1a",
+							},
+							{
+								CidrBlock:        "10.1.0.0/24",
+								AvailabilityZone: "us-east-1b",
+							},
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				expectedErrMsg := "failed to run machine \"aws-test1\", no subnets available in availability zone \"us-east-1b\""
+				if err == nil {
+					t.Fatalf("Expected error, but got nil")
+				}
+
+				if !strings.Contains(err.Error(), expectedErrMsg) {
+					t.Fatalf("Expected error: %s\nInstead got: %s", expectedErrMsg, err.Error())
+				}
+			},
+		},
+		{
 			name: "subnet filter and failureDomain defined",
 			machine: clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{

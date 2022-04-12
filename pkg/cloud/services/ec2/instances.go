@@ -321,43 +321,43 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 	case failureDomain != nil:
 		if scope.AWSMachine.Spec.PublicIP != nil && *scope.AWSMachine.Spec.PublicIP {
 			subnets := s.scope.Subnets().FilterPublic().FilterByZone(*failureDomain)
-			if len(subnets) == 0 {
-				errMessage := fmt.Sprintf("failed to run machine %q with public IP, no public subnets available in availability zone %q",
-					scope.Name(), *failureDomain)
-				record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
-				return "", awserrors.NewFailedDependency(errMessage)
+			if subnetID := getSubnetID(subnets); subnetID != "" {
+				return subnetID, nil
 			}
-			return subnets[0].ID, nil
-		}
-
-		subnets := s.scope.Subnets().FilterPrivate().FilterByZone(*failureDomain)
-		if len(subnets) == 0 {
-			errMessage := fmt.Sprintf("failed to run machine %q, no subnets available in availability zone %q",
+			errMessage := fmt.Sprintf("failed to run machine %q with public IP, no public subnets available in availability zone %q",
 				scope.Name(), *failureDomain)
 			record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
 			return "", awserrors.NewFailedDependency(errMessage)
 		}
-		return subnets[0].ID, nil
+
+		subnets := s.scope.Subnets().FilterPrivate().FilterByZone(*failureDomain)
+		if subnetID := getSubnetID(subnets); subnetID != "" {
+			return subnetID, nil
+		}
+		errMessage := fmt.Sprintf("failed to run machine %q, no subnets available in availability zone %q",
+			scope.Name(), *failureDomain)
+		record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
+		return "", awserrors.NewFailedDependency(errMessage)
 	case scope.AWSMachine.Spec.PublicIP != nil && *scope.AWSMachine.Spec.PublicIP:
 		subnets := s.scope.Subnets().FilterPublic()
-		if len(subnets) == 0 {
-			errMessage := fmt.Sprintf("failed to run machine %q with public IP, no public subnets available", scope.Name())
-			record.Eventf(scope.AWSMachine, "FailedCreate", errMessage)
-			return "", awserrors.NewFailedDependency(errMessage)
+		if subnetID := getSubnetID(subnets); subnetID != "" {
+			return subnetID, nil
 		}
-		return subnets[0].ID, nil
+		errMessage := fmt.Sprintf("failed to run machine %q with public IP, no public subnets available", scope.Name())
+		record.Eventf(scope.AWSMachine, "FailedCreate", errMessage)
+		return "", awserrors.NewFailedDependency(errMessage)
 
 		// TODO(vincepri): Define a tag that would allow to pick a preferred subnet in an AZ when working
 		// with control plane machines.
 
 	default:
-		sns := s.scope.Subnets().FilterPrivate()
-		if len(sns) == 0 {
-			errMessage := fmt.Sprintf("failed to run machine %q, no subnets available", scope.Name())
-			record.Eventf(s.scope.InfraCluster(), "FailedCreateInstance", errMessage)
-			return "", awserrors.NewFailedDependency(errMessage)
+		subnets := s.scope.Subnets().FilterPrivate()
+		if subnetID := getSubnetID(subnets); subnetID != "" {
+			return subnetID, nil
 		}
-		return sns[0].ID, nil
+		errMessage := fmt.Sprintf("failed to run machine %q, no subnets available", scope.Name())
+		record.Eventf(s.scope.InfraCluster(), "FailedCreateInstance", errMessage)
+		return "", awserrors.NewFailedDependency(errMessage)
 	}
 }
 
@@ -989,4 +989,37 @@ func getInstanceMarketOptionsRequest(spotMarketOptions *infrav1.SpotMarketOption
 	instanceMarketOptionsRequest.SetSpotOptions(spotOptions)
 
 	return instanceMarketOptionsRequest
+}
+
+// GetFilteredSecurityGroupID get security group ID using filters.
+func (s *Service) GetFilteredSecurityGroupID(securityGroup infrav1.AWSResourceReference) (string, error) {
+	if securityGroup.Filters == nil {
+		return "", nil
+	}
+
+	filters := []*ec2.Filter{}
+	for _, f := range securityGroup.Filters {
+		filters = append(filters, &ec2.Filter{Name: aws.String(f.Name), Values: aws.StringSlice(f.Values)})
+	}
+
+	sgs, err := s.EC2Client.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{Filters: filters})
+	if err != nil {
+		return "", err
+	}
+
+	if len(sgs.SecurityGroups) == 0 {
+		return "", fmt.Errorf("failed to find security group matching filters: %q, reason: %w", filters, err)
+	}
+
+	return *sgs.SecurityGroups[0].GroupId, nil
+}
+
+// getSubnetID finds a subnet with a non-empty ID and returns the ID.
+func getSubnetID(subnets infrav1.Subnets) string {
+	for _, sn := range subnets {
+		if sn.ID != "" {
+			return sn.ID
+		}
+	}
+	return ""
 }
