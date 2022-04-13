@@ -6,6 +6,7 @@ For details, see the [multi-tenancy proposal](https://github.com/kubernetes-sigs
 
 For multi-tenancy support, a reference field (`identityRef`) is added to `AWSCluster`, which informs the controller of which identity to be used when reconciling the cluster.
 If the identity provided exists in a different AWS account, this is the mechanism which informs the controller to provision a cluster in a different account.
+Identities should have adequate permissions for CAPA to reconcile clusters.
 
 
 ```yaml
@@ -179,6 +180,41 @@ spec:
     name: multi-tenancy-role
 ```
 
+
+### Necessary permissions for assuming a role:
+
+There are multiple AWS assume role permissions that need to be configured in order for the assume role to work:
+- The source identity (user/role specified in the source identity field) should have IAM policy permissions that enable it to perform sts:AssumeRole operation.
+  ```json
+  {
+      "Version": "2012-10-17",
+      "Statement": [
+          {
+              "Effect": "Allow",
+              "Action": "sts:AssumeRole",
+              "Resource": "*"
+          }
+      ]
+  }
+  ```
+
+- The target role (can be in a different AWS account) must be configured to allow the source user/role (or all users in an AWS account) to assume into it by setting a trust policy:
+    ``` json
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": "arn:aws:iam::111111111111:root"
+            // "AWS": "arn:aws:iam::111111111111:role/role-used-during-cluster-bootstrap"
+        },
+        "Action": "sts:AssumeRole"
+      }
+    ]
+  }
+  ```
+
 ### Examples
 
 This is a deployable example which uses the `AWSClusterRoleIdentity` "test-account-role" to assume into the `arn:aws:iam::123456789:role/CAPARole` role in the target account.
@@ -238,14 +274,6 @@ More specific examples can be referenced from the existing [templates](../../../
 In order to use the [EC2 template](../../../../templates/cluster-template.yaml) with identity type, you can add the `identityRef` section to `kind: AWSCluster` spec section in the template. If you do not, CAPA will automatically add the default identity provider (which is usually your local account credentials).
 
 Similarly, to use the [EKS template](../../../../templates/cluster-template-eks.yaml) with identity type, you can add the `identityRef` section to `kind: AWSManagedControlPlane` spec section in the template. If you do not, CAPA will automatically add the default identity provider (which is usually your local account credentials).
-
-#### Permissions
-
-There are multiple AWS assume role permissions that need to be configured in order for the assume role to work
-- The Primary role in the management account must be allowed to assume role into the target role account
-  - This is traditionally the controller role, but the operator can configure it to be any role
-- The target account role must be configured to allow the management role to assume into it
-- The target account role must have adequate permissions for cluster-api to build both EC2 and EKS based clusters
 
 ## Secure Access to Identities
 `allowedNamespaces` field is used to grant access to the namespaces to use Identities.
