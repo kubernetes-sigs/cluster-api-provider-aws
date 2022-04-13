@@ -24,7 +24,6 @@
   - [Specifying the IAM Role to use for Management Components](./topics/specify-management-iam-role.md)
   - [Using external cloud provider with EBS CSI driver](./topics/external-cloud-provider-with-ebs-csi-driver.md)
   - [Restricting Cluster API to certain namespaces](./topics/restricting-cluster-api-to-certain-namespaces.md)
-  - [Using Cluster API with cross-account role assumption](./topics/using-cluster-api-with-cross-account-role-assumption.md)
   - [Failure domains](./topics/failure-domains/index.md)
     - [Control planes](./topics/failure-domains/control-planes.md)
     - [Worker nodes](./topics/failure-domains/worker-nodes.md)
