@@ -200,20 +200,12 @@ func main() {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplate")
 		os.Exit(1)
 	}
-	if err = (&infrav1.AWSMachineTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplateList")
-		os.Exit(1)
-	}
 	if err = (&infrav1.AWSCluster{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSCluster")
 		os.Exit(1)
 	}
 	if err = (&infrav1.AWSClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterTemplate")
-		os.Exit(1)
-	}
-	if err = (&infrav1.AWSClusterList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterList")
 		os.Exit(1)
 	}
 	if err = (&infrav1.AWSClusterControllerIdentity{}).SetupWebhookWithManager(mgr); err != nil {
@@ -230,18 +222,6 @@ func main() {
 	}
 	if err = (&infrav1.AWSMachine{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachine")
-		os.Exit(1)
-	}
-	if err = (&infrav1.AWSMachineList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineList")
-		os.Exit(1)
-	}
-	if err = (&infrav1.AWSClusterControllerIdentityList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterControllerIdentityList")
-		os.Exit(1)
-	}
-	if err = (&infrav1.AWSClusterRoleIdentityList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterRoleIdentityList")
 		os.Exit(1)
 	}
 	if feature.Gates.Enabled(feature.EKS) {

@@ -19172,6 +19172,21 @@ ManagedMachinePoolCapacityType
 <p>CapacityType specifies the capacity type for the ASG behind this pool</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>updateConfig</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.UpdateConfig">
+UpdateConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UpdateConfig holds the optional config to control the behaviour of the update
+to the nodegroup.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -19418,6 +19433,21 @@ ManagedMachinePoolCapacityType
 <td>
 <em>(Optional)</em>
 <p>CapacityType specifies the capacity type for the ASG behind this pool</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>updateConfig</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.UpdateConfig">
+UpdateConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UpdateConfig holds the optional config to control the behaviour of the update
+to the nodegroup.</p>
 </td>
 </tr>
 </tbody>
@@ -20428,4 +20458,49 @@ string
 <p>
 <p>Taints is an array of Taints.</p>
 </p>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta1.UpdateConfig">UpdateConfig
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>)
+</p>
+<p>
+<p>UpdateConfig is the configuration options for updating a nodegroup. Only one of MaxUnavailable
+and MaxUnavailablePercentage should be specified.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>maxUnavailable</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MaxUnavailable is the maximum number of nodes unavailable at once during a version update.
+Nodes will be updated in parallel. The maximum number is 100.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>maxUnavailablePrecentage</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MaxUnavailablePercentage is the maximum percentage of nodes unavailable during a version update. This
+percentage of nodes will be updated in parallel, up to 100 nodes at once.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <hr/>
