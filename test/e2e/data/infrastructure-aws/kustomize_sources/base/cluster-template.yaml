@@ -65,3 +65,5 @@ spec:
       instanceType: "${AWS_CONTROL_PLANE_MACHINE_TYPE}"
       iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
       sshKeyName: "${AWS_SSH_KEY_NAME}"
+      cloudInit:
+        secureSecretsBackend: secrets-manager
