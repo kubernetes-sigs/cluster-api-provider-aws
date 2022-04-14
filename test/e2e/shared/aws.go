@@ -232,18 +232,28 @@ func (i *AWSInfrastructure) CreateInfrastructure() AWSInfrastructure {
 			}
 			time.Sleep(1 * time.Second)
 		}
+		i.CreateInternetGateway()
 	}
-	i.CreateInternetGateway()
 	i.AllocateAddress()
 	i.CreateNatGateway("public")
-	WaitForNatGatewayState(i.Context, *i.NatGateway.NatGatewayId, 180, "available")
+	if i.NatGateway != nil && i.NatGateway.NatGatewayId != nil {
+		WaitForNatGatewayState(i.Context, *i.NatGateway.NatGatewayId, 180, "available")
+	}
 	if len(i.Subnets) == 2 {
 		i.CreateRouteTable("public")
 		i.CreateRouteTable("private")
-		CreateRoute(i.Context, *i.State.PublicRouteTableID, "0.0.0.0/0", nil, i.InternetGateway.InternetGatewayId, nil)
-		CreateRoute(i.Context, *i.State.PrivateRouteTableID, "0.0.0.0/0", i.NatGateway.NatGatewayId, nil, nil)
-		i.GetRouteTable(*i.State.PublicRouteTableID)
-		i.GetRouteTable(*i.State.PrivateRouteTableID)
+		if i.InternetGateway != nil && i.InternetGateway.InternetGatewayId != nil {
+			CreateRoute(i.Context, *i.State.PublicRouteTableID, "0.0.0.0/0", nil, i.InternetGateway.InternetGatewayId, nil)
+		}
+		if i.NatGateway != nil && i.NatGateway.NatGatewayId != nil {
+			CreateRoute(i.Context, *i.State.PrivateRouteTableID, "0.0.0.0/0", i.NatGateway.NatGatewayId, nil, nil)
+		}
+		if i.State.PublicRouteTableID != nil {
+			i.GetRouteTable(*i.State.PublicRouteTableID)
+		}
+		if i.State.PrivateRouteTableID != nil {
+			i.GetRouteTable(*i.State.PrivateRouteTableID)
+		}
 	}
 	return *i
 }
