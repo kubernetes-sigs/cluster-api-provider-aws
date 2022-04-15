@@ -70,7 +70,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
 
 			ginkgo.By("Creating cluster with a single worker")
-			clusterName := fmt.Sprintf("cluster-%s-%s", specName, util.RandomString(6))
+			clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 
 			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 				ClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
@@ -118,7 +118,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 			Expect(shared.SetMultitenancyEnvVars(e2eCtx.AWSSession)).To(Succeed())
 			ginkgo.By("Creating cluster")
-			clusterName := fmt.Sprintf("cluster-%s-%s", specName, util.RandomString(6))
+			clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 				ClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
 				ConfigCluster: clusterctl.ConfigClusterInput{
@@ -158,7 +158,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 				defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 				ginkgo.By("Creating first cluster with single control plane")
-				cluster1Name := fmt.Sprintf("cluster-%s-%s", specName, util.RandomString(6))
+				cluster1Name := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 				shared.SetEnvVar("USE_CI_ARTIFACTS", "true", false)
 				tagPrefix := "v"
 				searchSemVer, err := semver.Make(strings.TrimPrefix(e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion), tagPrefix))
@@ -214,7 +214,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 
 			ginkgo.By("Creating first cluster with single control plane")
-			cluster1Name := fmt.Sprintf("cluster-%s-%s", specName, util.RandomString(6))
+			cluster1Name := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 			configCluster := defaultConfigCluster(cluster1Name, namespace.Name)
 			configCluster.KubernetesVersion = e2eCtx.E2EConfig.GetVariable(shared.PreCSIKubernetesVer)
 			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
@@ -281,7 +281,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			namespace := shared.SetupNamespace(ctx, specName, e2eCtx)
 			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 			ginkgo.By("Creating first cluster with single control plane")
-			cluster1Name := fmt.Sprintf("cluster-%s-%s", specName, util.RandomString(6))
+			cluster1Name := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 
 			configCluster := defaultConfigCluster(cluster1Name, namespace.Name)
 			configCluster.KubernetesVersion = e2eCtx.E2EConfig.GetVariable(shared.PreCSIKubernetesVer)
@@ -351,7 +351,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 
 			ginkgo.By("Creating first cluster with single control plane")
-			cluster1Name := fmt.Sprintf("cluster-%s-%s", specName, util.RandomString(6))
+			cluster1Name := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 			configCluster := defaultConfigCluster(cluster1Name, namespace.Name)
 			configCluster.KubernetesVersion = e2eCtx.E2EConfig.GetVariable(shared.PreCSIKubernetesVer)
 
@@ -420,7 +420,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 
 			ginkgo.By("Creating a cluster")
-			clusterName := fmt.Sprintf("cluster-%s-%s", specName, util.RandomString(6))
+			clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
 			configCluster.ControlPlaneMachineCount = pointer.Int64Ptr(1)
 			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
@@ -453,7 +453,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 			ginkgo.By("Creating a cluster")
-			clusterName := fmt.Sprintf("cluster-%s-%s", specName, util.RandomString(6))
+			clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
 			_, _, _ = createCluster(ctx, configCluster, result)
 
@@ -504,7 +504,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 			ginkgo.By("Creating a cluster")
-			clusterName := fmt.Sprintf("cluster-%s-%s", specName, util.RandomString(6))
+			clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
 			configCluster.ControlPlaneMachineCount = pointer.Int64Ptr(3)
 			configCluster.Flavor = shared.MultiAzFlavor
@@ -566,7 +566,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				e2eCtx.Environment.Namespaces[ns2] = cf2
 
 				ginkgo.By("Creating first cluster")
-				cluster1Name := fmt.Sprintf("cluster-%s-%s", specName, util.RandomString(6))
+				cluster1Name := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 				configCluster := defaultConfigCluster(cluster1Name, ns1.Name)
 				configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
 				configCluster.Flavor = shared.LimitAzFlavor
@@ -581,7 +581,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				framework.DiscoveryAndWaitForMachineDeployments(ctx, framework.DiscoveryAndWaitForMachineDeploymentsInput{Cluster: cluster1, Lister: e2eCtx.Environment.BootstrapClusterProxy.GetClient()}, e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes")...)
 
 				ginkgo.By("Creating second cluster")
-				cluster2Name := fmt.Sprintf("cluster-%s-%s", specName, util.RandomString(6))
+				cluster2Name := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 				configCluster = defaultConfigCluster(cluster2Name, ns2.Name)
 				configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
 				configCluster.Flavor = shared.LimitAzFlavor
@@ -634,13 +634,13 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 				defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 				ginkgo.By("Creating first cluster with single control plane")
-				cluster1Name := fmt.Sprintf("cluster-%s-%s", specName, util.RandomString(6))
+				cluster1Name := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 				configCluster := defaultConfigCluster(cluster1Name, namespace.Name)
 				configCluster.Flavor = shared.LimitAzFlavor
 				cluster1, _, _ := createCluster(ctx, configCluster, result)
 
 				ginkgo.By("Creating second cluster with single control plane")
-				cluster2Name := fmt.Sprintf("cluster-%s-%s", specName, util.RandomString(6))
+				cluster2Name := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 				configCluster = defaultConfigCluster(cluster2Name, namespace.Name)
 				configCluster.Flavor = shared.LimitAzFlavor
 				cluster2, _, _ := createCluster(ctx, configCluster, result)
@@ -662,7 +662,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 			ginkgo.By("Creating a cluster")
-			clusterName := fmt.Sprintf("cluster-%s-%s", specName, util.RandomString(6))
+			clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
 			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
 			configCluster.Flavor = shared.SpotInstancesFlavor
@@ -693,10 +693,10 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		var specName string
 		var namespace *corev1.Namespace
 		var requiredResources *shared.TestResource
-		mgmtClusterName := fmt.Sprintf("cluster-%s-%s", specName, util.RandomString(6))
+		mgmtClusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		mgmtClusterInfra := new(shared.AWSInfrastructure)
 
-		wlClusterName := fmt.Sprintf("cluster-%s-%s", specName, util.RandomString(6))
+		wlClusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		wlClusterInfra := new(shared.AWSInfrastructure)
 
 		var cPeering *ec2.VpcPeeringConnection
@@ -944,7 +944,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			specName := "functional-test-ignition-parameter"
 			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 			ginkgo.By("Creating a cluster")
-			clusterName := fmt.Sprintf("cluster-%s-%s", specName, util.RandomString(6))
+			clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
 			configCluster.ControlPlaneMachineCount = pointer.Int64Ptr(1)
 			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
