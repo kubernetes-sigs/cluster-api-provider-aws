@@ -733,8 +733,10 @@ func (r *AWSMachineReconciler) ignitionUserData(scope *scope.MachineScope, objec
 }
 
 func (r *AWSMachineReconciler) deleteBootstrapData(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, objectStoreScope scope.S3Scope) error {
-	if err := r.deleteEncryptedBootstrapDataSecret(machineScope, clusterScope); err != nil {
-		return err
+	if !machineScope.AWSMachine.Spec.CloudInit.InsecureSkipSecretsManager {
+		if err := r.deleteEncryptedBootstrapDataSecret(machineScope, clusterScope); err != nil {
+			return err
+		}
 	}
 
 	if objectStoreScope != nil {
