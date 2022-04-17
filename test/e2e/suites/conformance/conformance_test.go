@@ -57,7 +57,7 @@ var _ = ginkgo.Describe("[unmanaged] [conformance] tests", func() {
 	})
 	ginkgo.Measure(specName, func(b ginkgo.Benchmarker) {
 
-		name := fmt.Sprintf("cluster-%s", util.RandomString(6))
+		name := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		shared.SetEnvVar("USE_CI_ARTIFACTS", "true", false)
 		kubernetesVersion := e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion)
 		flavor := clusterctl.DefaultFlavor
