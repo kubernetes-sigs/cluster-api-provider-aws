@@ -168,28 +168,9 @@ func Convert_v1beta1_AWSManagedMachinePoolSpec_To_v1alpha3_AWSManagedMachinePool
 	return autoConvert_v1beta1_AWSManagedMachinePoolSpec_To_v1alpha3_AWSManagedMachinePoolSpec(in, out, s)
 }
 
-// Convert_v1beta1_Instance_To_v1alpha3_Instance is a conversion function.
-func Convert_v1beta1_Instance_To_v1alpha3_Instance(in *infrav1.Instance, out *infrav1alpha3.Instance, s apiconversion.Scope) error {
-	return infrav1alpha3.Convert_v1beta1_Instance_To_v1alpha3_Instance(in, out, s)
-}
-
 // Convert_v1alpha3_Instance_To_v1beta1_Instance is a conversion function.
 func Convert_v1alpha3_Instance_To_v1beta1_Instance(in *infrav1alpha3.Instance, out *infrav1.Instance, s apiconversion.Scope) error {
 	return infrav1alpha3.Convert_v1alpha3_Instance_To_v1beta1_Instance(in, out, s)
-}
-
-// ConvertTo converts
-func Convert_v1alpha3_AWSResourceReference_To_v1beta1_AMIReference(in *infrav1alpha3.AWSResourceReference, out *infrav1.AMIReference, s apiconversion.Scope) error {
-	return infrav1alpha3.Convert_v1alpha3_AWSResourceReference_To_v1beta1_AMIReference(in, out, s)
-}
-
-func Convert_v1beta1_AMIReference_To_v1alpha3_AWSResourceReference(in *infrav1.AMIReference, out *infrav1alpha3.AWSResourceReference, s apiconversion.Scope) error {
-	return infrav1alpha3.Convert_v1beta1_AMIReference_To_v1alpha3_AWSResourceReference(in, out, s)
-}
-
-// Convert_v1beta1_Volume_To_v1alpha3_Volume is a conversion function.
-func Convert_v1beta1_Volume_To_v1alpha3_Volume(in *infrav1.Volume, out *infrav1alpha3.Volume, s apiconversion.Scope) error {
-	return infrav1alpha3.Convert_v1beta1_Volume_To_v1alpha3_Volume(in, out, s)
 }
 
 // Convert_v1alpha3_Volume_To_v1beta1_Volume is a conversion function.

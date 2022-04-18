@@ -139,7 +139,7 @@ func DefaultAMILookup(ec2Client ec2iface.EC2API, ownerID, baseOS, kubernetesVers
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to find ami: %q", amiName)
 	}
-	if len(out.Images) == 0 {
+	if out == nil || len(out.Images) == 0 {
 		return nil, errors.Errorf("found no AMIs with the name: %q", amiName)
 	}
 	latestImage, err := GetLatestImage(out.Images)
