@@ -49,7 +49,7 @@ func (r *AWSMachineReconciler) ensureSecurityGroups(ec2svc service.EC2Interface,
 		return false, err
 	}
 
-	additionalSecurityGroupsIDs, err := r.getAdditionalSecurityGroupsIDs(ec2svc, additional)
+	additionalSecurityGroupsIDs, err := ec2svc.GetAdditionalSecurityGroupsIDs(additional)
 	if err != nil {
 		return false, nil // nolint:nilerr
 	}
@@ -120,25 +120,4 @@ func (r *AWSMachineReconciler) securityGroupsChanged(annotation map[string]inter
 	}
 
 	return false, res
-}
-
-func (r *AWSMachineReconciler) getAdditionalSecurityGroupsIDs(ec2svc service.EC2Interface, securitygroups []infrav1.AWSResourceReference) ([]string, error) {
-	additionalSecurityGroupsIDs := []string{}
-
-	for _, sg := range securitygroups {
-		if sg.ID != nil {
-			additionalSecurityGroupsIDs = append(additionalSecurityGroupsIDs, *sg.ID)
-		}
-
-		if sg.Filters != nil {
-			id, err := ec2svc.GetFilteredSecurityGroupID(sg)
-			if err != nil {
-				return nil, err
-			}
-
-			additionalSecurityGroupsIDs = append(additionalSecurityGroupsIDs, id)
-		}
-	}
-
-	return additionalSecurityGroupsIDs, nil
 }
