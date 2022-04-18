@@ -2,29 +2,31 @@
 
 This roadmap is a constant work in progress, subject to frequent revision. Dates are approximations.
 
-## Ongoing
+## v1.5.x (v1beta1) - April/May 2022
+- [Network load balancer support](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/3088)
+- [Graduating EventBridge experimental feature](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/3414)
+- [EFS CSI driver support](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/3384)
+- [AWSManagedMachinePool - Launch Template support](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/2055)
 
-- Documentation improvements
+## v1.6.x (v1beta1) - June/July 2022
 
-## v0.5.x (v1alpha3+) - June/July 2020
-- [Consume Cluster API e2e testing framework](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/1435)
-- [Supporting multiple AWS accounts as Kubernetes objects](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/1552)
-- [Bootstrap failure detection](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/972)
-- [Improved status conditions](https://github.com/kubernetes-sigs/cluster-api/issues/1658)
-- [Spot instances support for Machines](https://github.com/kubernetes-sigs/cluster-api/issues/1876)
+- [Spot instance support for AWSMachinePools](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/2523)
+- [Node draining support for AWSMachinePools](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/2574)
+- [IPv6 Support](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/2420)
+- [Security group customization support](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/392)
 
-## v0.6 (v1alpha4) ~ Q4 2020
+## v2.0.x (v1beta2) - End of 2022
 
-- [Multiple topologies](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/1484)
-- [Machine load balancer implementation](https://github.com/kubernetes-sigs/cluster-api/issues/1250)
-- SNS/SQS-based updates from CloudWatch Events so we don’t have to poll AWS for updates
+- [Support for multiple topologies](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/1484)
 
 ## TBD
-
-- Implement MachinePools - Autoscaling groups and instances
-- Spot instance support for MachinePool ASG/Instance implementation
-- MachinePool implementation backed by Spot Fleet
-- Dual stack IPv4/IPv6 support
+- [AWS Fault injector integration to improve resiliency](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/2173)
+- AWSMachinePool implementation backed by Spot Fleet and EC2 Fleet
+- [Dual stack IPv4/IPv6 support](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/3381)
 - Windows nodes
-- Support for GPU instances and Elastic GPU
 - FIPS/NIST/STIG compliance
+- Workload identity support to CAPA-managed clusters
+- [Use ACK/CrossPlane as backend for AWS SDK calls](https://github.com/kubernetes-sigs/cluster-api-provider-aws/discussions/3306)
+- Karpenter support
+- [Draining resources created by CCM/CSI like LBs, SGs](https://github.com/kubernetes-sigs/cluster-api/issues/3075)
+- [OpenTelemetry integration](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/2178)
