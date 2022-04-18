@@ -19,44 +19,19 @@ package network
 import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
-
-// Scope is scope for use with the network service.
-type Scope interface {
-	cloud.ClusterScoper
-
-	// Network returns the cluster network object.
-	Network() *infrav1.NetworkStatus
-	// VPC returns the cluster VPC.
-	VPC() *infrav1.VPCSpec
-	// Subnets returns the cluster subnets.
-	Subnets() infrav1.Subnets
-	// SetSubnets updates the clusters subnets.
-	SetSubnets(subnets infrav1.Subnets)
-	// CNIIngressRules returns the CNI spec ingress rules.
-	CNIIngressRules() infrav1.CNIIngressRules
-	// SecurityGroups returns the cluster security groups as a map, it creates the map if empty.
-	SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.SecurityGroup
-	// SecondaryCidrBlock returns the optional secondary CIDR block to use for pod IPs
-	SecondaryCidrBlock() *string
-
-	// Bastion returns the bastion details for the cluster.
-	Bastion() *infrav1.Bastion
-}
 
 // Service holds a collection of interfaces.
 // The interfaces are broken down like this to group functions together.
 // One alternative is to have a large list of functions from the ec2 client.
 type Service struct {
-	scope     Scope
+	scope     scope.NetworkScope
 	EC2Client ec2iface.EC2API
 }
 
 // NewService returns a new service given the ec2 api client.
-func NewService(networkScope Scope) *Service {
+func NewService(networkScope scope.NetworkScope) *Service {
 	return &Service{
 		scope:     networkScope,
 		EC2Client: scope.NewEC2Client(networkScope, networkScope, networkScope, networkScope.InfraCluster()),

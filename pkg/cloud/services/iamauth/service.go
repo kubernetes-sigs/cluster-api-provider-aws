@@ -20,31 +20,19 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 
-// Scope is a scope for use with the iamauth reconciling service.
-type Scope interface {
-	cloud.ClusterScoper
-
-	// RemoteClient returns the Kubernetes client for connecting to the workload cluster.
-	RemoteClient() (client.Client, error)
-	// IAMAuthConfig returns the IAM authenticator config
-	IAMAuthConfig() *ekscontrolplanev1.IAMAuthenticatorConfig
-}
-
 // Service defines the specs for a service.
 type Service struct {
-	scope     Scope
+	scope     scope.IAMAuthScope
 	backend   BackendType
 	client    client.Client
 	STSClient stsiface.STSAPI
 }
 
 // NewService will create a new Service object.
-func NewService(iamScope Scope, backend BackendType, client client.Client) *Service {
+func NewService(iamScope scope.IAMAuthScope, backend BackendType, client client.Client) *Service {
 	return &Service{
 		scope:     iamScope,
 		backend:   backend,
