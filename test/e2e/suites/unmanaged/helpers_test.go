@@ -76,12 +76,21 @@ type statefulSetInfo struct {
 
 // GetClusterByName returns a Cluster object given his name.
 func GetAWSClusterByName(ctx context.Context, namespace, name string) (*infrav1.AWSCluster, error) {
-	awsCluster := &infrav1.AWSCluster{}
+	cluster := &clusterv1.Cluster{}
 	key := crclient.ObjectKey{
 		Namespace: namespace,
 		Name:      name,
 	}
-	err := e2eCtx.Environment.BootstrapClusterProxy.GetClient().Get(ctx, key, awsCluster)
+	if err := e2eCtx.Environment.BootstrapClusterProxy.GetClient().Get(ctx, key, cluster); err != nil {
+		return nil, err
+	}
+
+	awsCluster := &infrav1.AWSCluster{}
+	awsClusterKey := crclient.ObjectKey{
+		Namespace: namespace,
+		Name:      cluster.Spec.InfrastructureRef.Name,
+	}
+	err := e2eCtx.Environment.BootstrapClusterProxy.GetClient().Get(ctx, awsClusterKey, awsCluster)
 	return awsCluster, err
 }
 
