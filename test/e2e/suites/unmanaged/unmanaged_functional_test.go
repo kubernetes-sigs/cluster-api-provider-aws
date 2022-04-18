@@ -690,9 +690,9 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	// A private and public subnet is created in this VPC to allow for egress traffic but the workload AWSCluster is configured with
 	// an internal load balancer and only the private subnet. All applicable resources are restricted to us-west-2a for simplicity.
 	ginkgo.Describe("External infrastructure, external security groups, VPC peering, internal ELB and private subnet use only", func() {
-		var specName string
 		var namespace *corev1.Namespace
 		var requiredResources *shared.TestResource
+		specName := "functional-test-extinfra"
 		mgmtClusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		mgmtClusterInfra := new(shared.AWSInfrastructure)
 
@@ -703,7 +703,6 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 
 		// Some infrastructure creation was moved to a setup node to better organize the test.
 		ginkgo.JustBeforeEach(func() {
-			specName = "functional-test-extinfra-peered-internal-elb"
 			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 5}
 			requiredResources.WriteRequestedResources(e2eCtx, specName)
 			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
@@ -941,7 +940,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 
 	ginkgo.Describe("Workload cluster with AWS S3 and Ignition parameter", func() {
 		ginkgo.It("It should be creatable and deletable", func() {
-			specName := "functional-test-ignition-parameter"
+			specName := "functional-test-ignition"
 			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 			ginkgo.By("Creating a cluster")
 			clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
