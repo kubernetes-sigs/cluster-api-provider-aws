@@ -271,6 +271,68 @@ func TestTags_Validate(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "key has aws: prefix",
+			self: Tags{
+				"aws:key": "validValue",
+			},
+			expected: []*field.Error{
+				{
+					Type:     field.ErrorTypeInvalid,
+					Detail:   "user created tag's key cannot have prefix aws:",
+					Field:    "spec.additionalTags",
+					BadValue: "aws:key",
+				},
+			},
+		},
+		{
+			name: "key has wrong characters",
+			self: Tags{
+				"wrong*key": "validValue",
+			},
+			expected: []*field.Error{
+				{
+					Type:     field.ErrorTypeInvalid,
+					Detail:   "key cannot have characters other than alphabets, numbers, spaces and _ . : / = + - @ .",
+					Field:    "spec.additionalTags",
+					BadValue: "wrong*key",
+				},
+			},
+		},
+		{
+			name: "value has wrong characters",
+			self: Tags{
+				"validKey": "wrong*value",
+			},
+			expected: []*field.Error{
+				{
+					Type:     field.ErrorTypeInvalid,
+					Detail:   "value cannot have characters other than alphabets, numbers, spaces and _ . : / = + - @ .",
+					Field:    "spec.additionalTags",
+					BadValue: "wrong*value",
+				},
+			},
+		},
+		{
+			name: "value and key both has wrong characters",
+			self: Tags{
+				"wrong*key": "wrong*value",
+			},
+			expected: []*field.Error{
+				{
+					Type:     field.ErrorTypeInvalid,
+					Detail:   "key cannot have characters other than alphabets, numbers, spaces and _ . : / = + - @ .",
+					Field:    "spec.additionalTags",
+					BadValue: "wrong*key",
+				},
+				{
+					Type:     field.ErrorTypeInvalid,
+					Detail:   "value cannot have characters other than alphabets, numbers, spaces and _ . : / = + - @ .",
+					Field:    "spec.additionalTags",
+					BadValue: "wrong*value",
+				},
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
