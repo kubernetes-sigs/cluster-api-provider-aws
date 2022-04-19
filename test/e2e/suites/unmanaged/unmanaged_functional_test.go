@@ -695,6 +695,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		specName := "functional-test-extinfra"
 		mgmtClusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		mgmtClusterInfra := new(shared.AWSInfrastructure)
+		shared.SetEnvVar("MGMT_CLUSTER_NAME", mgmtClusterName, false)
 
 		wlClusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		wlClusterInfra := new(shared.AWSInfrastructure)
