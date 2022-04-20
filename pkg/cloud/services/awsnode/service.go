@@ -17,35 +17,16 @@ limitations under the License.
 package awsnode
 
 import (
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
-
-// Scope is a scope for use with the awsnode reconciling service.
-type Scope interface {
-	cloud.ClusterScoper
-
-	// RemoteClient returns the Kubernetes client for connecting to the workload cluster.
-	RemoteClient() (client.Client, error)
-	// Subnets returns the cluster subnets.
-	Subnets() infrav1.Subnets
-	// SecondaryCidrBlock returns the optional secondary CIDR block to use for pod IPs
-	SecondaryCidrBlock() *string
-	// SecurityGroups returns the control plane security groups as a map, it creates the map if empty.
-	SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.SecurityGroup
-	// DisableVPCCNI returns whether the AWS VPC CNI should be disabled
-	DisableVPCCNI() bool
-}
 
 // Service defines the spec for a service.
 type Service struct {
-	scope Scope
+	scope scope.AWSNodeScope
 }
 
 // NewService will create a new service.
-func NewService(awsnodeScope Scope) *Service {
+func NewService(awsnodeScope scope.AWSNodeScope) *Service {
 	return &Service{
 		scope: awsnodeScope,
 	}
