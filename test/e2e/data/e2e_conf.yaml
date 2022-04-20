@@ -27,11 +27,11 @@ images:
     loadBehavior: tryLoad
   - name: quay.io/jetstack/cert-manager-controller:v1.5.3
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/cluster-api-controller:v1.1.2
+  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.1.2
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/kubeadm-bootstrap-controller:v1.1.2
+  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.1.2
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/kubeadm-control-plane-controller:v1.1.2
+  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.1.2
     loadBehavior: tryLoad
 
 providers:
