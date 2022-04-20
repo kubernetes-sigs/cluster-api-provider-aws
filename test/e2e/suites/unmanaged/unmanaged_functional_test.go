@@ -980,7 +980,7 @@ func createStatefulSetInfo(isIntreeCSI bool, prefix string) statefulSetInfo {
 		svcPort:                   int32(80),
 		svcPortName:               fmt.Sprintf("%s%s", prefix, "-web"),
 		containerName:             fmt.Sprintf("%s%s", prefix, "-nginx"),
-		containerImage:            "k8s.gcr.io/nginx-slim:0.8",
+		containerImage:            "registry.k8s.io/nginx-slim:0.8",
 		containerPort:             int32(80),
 		podTerminationGracePeriod: int64(30),
 		volMountPath:              "/usr/share/nginx/html",
