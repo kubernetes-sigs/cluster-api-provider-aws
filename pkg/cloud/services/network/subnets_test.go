@@ -2115,7 +2115,7 @@ func TestDeleteSubnets(t *testing.T) {
 // Test helpers
 
 type ScopeBuilder interface {
-	Build() (Scope, error)
+	Build() (scope.NetworkScope, error)
 }
 
 func NewClusterScope() *ClusterScopeBuilder {
@@ -2136,7 +2136,7 @@ func (b *ClusterScopeBuilder) WithNetwork(n *infrav1.NetworkSpec) *ClusterScopeB
 	return b
 }
 
-func (b *ClusterScopeBuilder) Build() (Scope, error) {
+func (b *ClusterScopeBuilder) Build() (scope.NetworkScope, error) {
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
@@ -2185,7 +2185,7 @@ func (b *ManagedControlPlaneScopeBuilder) WithEKSClusterName(name string) *Manag
 	return b
 }
 
-func (b *ManagedControlPlaneScopeBuilder) Build() (Scope, error) {
+func (b *ManagedControlPlaneScopeBuilder) Build() (scope.NetworkScope, error) {
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
 	_ = ekscontrolplanev1.AddToScheme(scheme)
