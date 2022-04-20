@@ -17,11 +17,11 @@ images:
     loadBehavior: mustLoad
 
 ## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
-  - name: quay.io/jetstack/cert-manager-cainjector:v1.5.3
+  - name: quay.io/jetstack/cert-manager-cainjector:v1.7.2
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-webhook:v1.5.3
+  - name: quay.io/jetstack/cert-manager-webhook:v1.7.2
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-controller:v1.5.3
+  - name: quay.io/jetstack/cert-manager-controller:v1.7.2
     loadBehavior: tryLoad
   - name: k8s.gcr.io/cluster-api/cluster-api-controller:v1.1.2
     loadBehavior: tryLoad
