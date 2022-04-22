@@ -572,7 +572,7 @@ release-manifests: ## Release manifest files
 
 .PHONY: release-changelog
 release-changelog: $(GH) ## Generates release notes using Github release notes.
-	./hack/releasechangelog.sh > $(RELEASE_DIR)/CHANGELOG.md
+	./hack/releasechangelog.sh -v $(VERSION) -p $(PREVIOUS_VERSION) -o $(GH_ORG_NAME) -r $(GH_REPO_NAME) -c $(CORE_CONTROLLER_PROMOTED_IMG) > $(RELEASE_DIR)/CHANGELOG.md
 
 .PHONY: release-binaries
 release-binaries: ## Builds the binaries to publish with a release
