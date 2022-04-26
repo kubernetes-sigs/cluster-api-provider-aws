@@ -49,6 +49,7 @@ const (
 	LimitAzFlavor                        = "limit-az"
 	SpotInstancesFlavor                  = "spot-instances"
 	SSMFlavor                            = "ssm"
+	TopologyFlavor                       = "topology"
 	UpgradeToMain                        = "upgrade-to-main"
 	ExternalCloudProvider                = "external-cloud-provider"
 	SimpleMultitenancyFlavor             = "simple-multitenancy"
