@@ -292,7 +292,7 @@ verify: verify-boilerplate verify-modules verify-gen verify-conversions verify-s
 
 .PHONY: verify-boilerplate
 verify-boilerplate: ## Verify boilerplate
-	-rm ./hack/tools/bin/*.sh
+	-rm -f ./hack/tools/bin/*.sh
 	./hack/verify-boilerplate.sh
 
 .PHONY: verify-modules
