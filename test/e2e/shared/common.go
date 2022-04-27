@@ -25,6 +25,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -37,6 +39,25 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 )
+
+type GitRelease struct {
+	Name         string `json:"name"`
+	URL          string `json:"url"`
+	ID           int64  `json:"id"`
+	Version      string
+	MajorVersion int
+	MinorVersion int
+	PatchVersion int
+}
+
+func (r *GitRelease) GetVersion() GitRelease {
+	rS := strings.Split(strings.Trim(r.Name, "v"), ".")
+	r.MajorVersion, _ = strconv.Atoi(rS[0])
+	r.MinorVersion, _ = strconv.Atoi(rS[1])
+	r.PatchVersion, _ = strconv.Atoi(rS[2])
+	r.Version = rS[0] + "." + rS[1]
+	return *r
+}
 
 func SetupNamespace(ctx context.Context, specName string, e2eCtx *E2EContext) *corev1.Namespace {
 	Byf("Creating a namespace for hosting the %q test spec", specName)

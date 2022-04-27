@@ -34,7 +34,7 @@ import (
 )
 
 // EKS cluster upgrade tests.
-var _ = ginkgo.Describe("EKS Cluster upgrade test", func() {
+var _ = ginkgo.PDescribe("EKS Cluster upgrade test", func() {
 	const (
 		initialVersion   = "v1.20.0"
 		upgradeToversion = "v1.21.0"

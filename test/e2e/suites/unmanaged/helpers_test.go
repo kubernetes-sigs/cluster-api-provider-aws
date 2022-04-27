@@ -21,6 +21,7 @@ package unmanaged
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -119,6 +120,55 @@ func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigCluste
 		ControlPlaneMachineCount: pointer.Int64Ptr(1),
 		WorkerMachineCount:       pointer.Int64Ptr(0),
 	}
+}
+
+func newSecretObj(name, namespace, secretType, data string) corev1.Secret {
+	secret := corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Type: corev1.SecretType(secretType),
+		Data: map[string][]byte{},
+	}
+	switch secretType {
+	case "kubernetes.io/dockerconfigjson":
+		secret.Data[".dockerconfigjson"] = []byte(data)
+	case "kubernetes.io/dockercfg":
+		secret.Data[".dockercfg"] = []byte(data)
+	case "Opaque":
+		secret.Data["data"] = []byte(data)
+	default:
+		secret.Data["data"] = []byte(data)
+	}
+	return secret
+}
+
+func newServiceAccountObj(name, namespace string) corev1.ServiceAccount {
+	sa := corev1.ServiceAccount{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ServiceAccount",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		ImagePullSecrets: []corev1.LocalObjectReference{},
+	}
+	return sa
+}
+
+func newServiceAccountObjWithImagePullSecret(name, namespace, imagePullSecret string) corev1.ServiceAccount {
+	sa := newServiceAccountObj(name, namespace)
+	sa.ImagePullSecrets = append(sa.ImagePullSecrets, corev1.LocalObjectReference{
+		Name: imagePullSecret,
+	})
+	return sa
 }
 
 func createLBService(svcNamespace string, svcName string, k8sclient crclient.Client) string {
@@ -702,4 +752,117 @@ func expectAWSClusterConditions(m *infrav1.AWSCluster, expected []conditionAsser
 		Expect(actual.Severity).To(Equal(c.severity))
 		Expect(actual.Reason).To(Equal(c.reason))
 	}
+}
+
+func getCalicoManifest() (*[]byte, error) {
+	resp, err := http.Get("https://api.github.com/repos/projectcalico/calico/releases/latest")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	rData, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var releaseObj shared.GitRelease
+	json.Unmarshal(rData, &releaseObj)
+	releaseObj.GetVersion()
+
+	calicoCall, err := http.Get("https://projectcalico.docs.tigera.io/archive/v" + releaseObj.Version + "/manifests/calico.yaml")
+	if err != nil {
+		return nil, err
+	}
+	defer calicoCall.Body.Close()
+
+	calicoManifest, err := io.ReadAll(calicoCall.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return &calicoManifest, nil
+}
+
+func getCalicoImages(manifest []byte) []string {
+	var images []string
+	for _, line := range strings.Split(string(manifest), "\n") {
+		if strings.Contains(line, "image:") {
+			image := strings.Trim(line, "image: ")
+			if !sliceContains(images, image) {
+				images = append(images, image)
+			}
+		}
+	}
+	return images
+}
+
+func sliceContains(s []string, v string) bool {
+	for _, e := range s {
+		if e == v {
+			return true
+		}
+	}
+	return false
+}
+
+func createPrivateEcrRepos(images []string) bool {
+	for _, i := range images {
+		ins := strings.Split(i, "/")
+		image := strings.Split(ins[len(ins)-1], ":")[0]
+		var repoName string
+		if len(ins) == 3 {
+			repoName = ins[1] + "/" + image
+		} else {
+			repoName = image
+		}
+		_, err := shared.CreateECRPrivateRepository(e2eCtx, repoName)
+		if err != nil {
+			fmt.Printf("ECR Repo Create Error: %v\n", err) // debug
+			return false
+		}
+	}
+	return true
+}
+
+func pushToPrivateEcrRepos(images []string, username, password string) bool {
+	for _, i := range images {
+		ins := strings.Split(i, "/")
+		image := strings.Split(ins[len(ins)-1], ":")[0]
+		tag := strings.Split(ins[len(ins)-1], ":")[1]
+		var repoName string
+		if len(ins) == 3 {
+			repoName = ins[1] + "/" + image
+		} else {
+			repoName = image
+		}
+		privateRepoCreate, err := shared.GetECRPrivateRepository(e2eCtx, &repoName)
+		if err != nil {
+			return false
+		}
+
+		// Tag image
+		target := *privateRepoCreate[0].RepositoryUri + ":" + tag
+		shared.DockerPull(i)
+		shared.DockerTag(i, target)
+		shared.DockerPush(target, username, password)
+	}
+	return true
+}
+
+func deletePrivateEcrRepos(images []string) bool {
+	for _, i := range images {
+		ins := strings.Split(i, "/")
+		image := strings.Split(ins[len(ins)-1], ":")[0]
+		var repoName string
+		if len(ins) == 3 {
+			repoName = ins[1] + "/" + image
+		} else {
+			repoName = image
+		}
+		if shared.DeleteECRPrivateRepository(e2eCtx, repoName, aws.Bool(true)) != true {
+			return false
+		}
+	}
+	return true
 }

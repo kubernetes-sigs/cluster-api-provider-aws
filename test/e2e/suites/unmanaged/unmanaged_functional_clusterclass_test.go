@@ -49,7 +49,7 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 		result = &clusterctl.ApplyClusterTemplateAndWaitResult{}
 	})
 
-	ginkgo.Describe("Multitenancy test [ClusterClass]", func() {
+	ginkgo.PDescribe("Multitenancy test [ClusterClass]", func() {
 		ginkgo.It("should create cluster with nested assumed role", func() {
 			// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
 			specName := "functional-multitenancy-nested-clusterclass"

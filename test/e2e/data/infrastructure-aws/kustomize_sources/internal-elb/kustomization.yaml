@@ -1,6 +1,8 @@
 resources:
   - ../remote-management-cluster
 patchesStrategicMerge:
+  - patches/kubeadmconfig.yaml
   - patches/internal-elb.yaml
   - patches/az-select.yaml
+  - patches/external-securitygroups.yaml
 

@@ -38,7 +38,7 @@ import (
 )
 
 // TODO @randomvariable: Replace with CAPI e2e framework ClusterUpgradeConformanceSpec.
-var _ = ginkgo.Describe("[unmanaged] [conformance] tests", func() {
+var _ = ginkgo.PDescribe("[unmanaged] [conformance] tests", func() {
 	var (
 		namespace *corev1.Namespace
 		ctx       context.Context

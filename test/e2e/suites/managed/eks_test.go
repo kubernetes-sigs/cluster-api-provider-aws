@@ -34,7 +34,7 @@ import (
 )
 
 // General EKS e2e test.
-var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
+var _ = ginkgo.PDescribe("[managed] [general] EKS cluster tests", func() {
 	var (
 		namespace           *corev1.Namespace
 		ctx                 context.Context

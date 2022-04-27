@@ -43,7 +43,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 		Expect(e2eCtx.Environment.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil")
 	})
 
-	ginkgo.Describe("Machine Remediation Spec", func() {
+	ginkgo.PDescribe("Machine Remediation Spec", func() {
 		ginkgo.BeforeEach(func() {
 			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 			requiredResources = &shared.TestResource{EC2Normal: 4 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3}
@@ -65,7 +65,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 		})
 	})
 
-	ginkgo.Describe("Machine Pool Spec", func() {
+	ginkgo.PDescribe("Machine Pool Spec", func() {
 		ginkgo.BeforeEach(func() {
 			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 			requiredResources = &shared.TestResource{EC2Normal: 4 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
@@ -87,7 +87,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 		})
 	})
 
-	ginkgo.Describe("Self Hosted Spec", func() {
+	ginkgo.PDescribe("Self Hosted Spec", func() {
 		ginkgo.BeforeEach(func() {
 			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
@@ -110,7 +110,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 		})
 	})
 
-	ginkgo.Describe("Clusterctl Upgrade Spec [from latest v1beta1 release to main]", func() {
+	ginkgo.PDescribe("Clusterctl Upgrade Spec [from latest v1beta1 release to main]", func() {
 		ginkgo.BeforeEach(func() {
 			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 			requiredResources = &shared.TestResource{EC2Normal: 5 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2}
@@ -135,7 +135,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 		})
 	})
 
-	ginkgo.Describe("Clusterctl Upgrade Spec [from v1alpha3]", func() {
+	ginkgo.PDescribe("Clusterctl Upgrade Spec [from v1alpha3]", func() {
 		ginkgo.BeforeEach(func() {
 			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 			requiredResources = &shared.TestResource{EC2Normal: 5 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2}
@@ -160,7 +160,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 		})
 	})
 
-	ginkgo.Describe("Clusterctl Upgrade Spec [from v1alpha4]", func() {
+	ginkgo.PDescribe("Clusterctl Upgrade Spec [from v1alpha4]", func() {
 		ginkgo.BeforeEach(func() {
 			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 			requiredResources = &shared.TestResource{EC2Normal: 5 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2}
@@ -185,7 +185,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 		})
 	})
 
-	ginkgo.Describe("Cluster Upgrade Spec - Single control plane with workers [K8s-Upgrade]", func() {
+	ginkgo.PDescribe("Cluster Upgrade Spec - Single control plane with workers [K8s-Upgrade]", func() {
 		ginkgo.BeforeEach(func() {
 			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 			requiredResources = &shared.TestResource{EC2Normal: 5 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2}
@@ -210,7 +210,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 		})
 	})
 
-	ginkgo.Describe("Cluster Upgrade Spec - HA control plane with scale in rollout [K8s-Upgrade]", func() {
+	ginkgo.PDescribe("Cluster Upgrade Spec - HA control plane with scale in rollout [K8s-Upgrade]", func() {
 		ginkgo.BeforeEach(func() {
 			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 			requiredResources = &shared.TestResource{EC2Normal: 10 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2}
@@ -233,7 +233,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 		})
 	})
 
-	ginkgo.Describe("Cluster Upgrade Spec - HA Control Plane Cluster [K8s-Upgrade]", func() {
+	ginkgo.PDescribe("Cluster Upgrade Spec - HA Control Plane Cluster [K8s-Upgrade]", func() {
 		ginkgo.BeforeEach(func() {
 			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 			requiredResources = &shared.TestResource{EC2Normal: 10 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2}

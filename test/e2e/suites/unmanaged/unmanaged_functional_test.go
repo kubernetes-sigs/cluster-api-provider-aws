@@ -21,20 +21,26 @@ package unmanaged
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/blang/semver"
+	"github.com/docker/docker/api/types"
 	"github.com/gofrs/flock"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/cli-runtime/pkg/printers"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -59,7 +65,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		result = &clusterctl.ApplyClusterTemplateAndWaitResult{}
 	})
 
-	ginkgo.Describe("GPU-enabled cluster test", func() {
+	ginkgo.PDescribe("GPU-enabled cluster test", func() {
 		ginkgo.It("should create cluster with single worker", func() {
 			specName := "functional-gpu-cluster"
 			// Change the multiplier for EC2GPU if GPU type is changed. g4dn.xlarge uses 2 vCPU
@@ -106,7 +112,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("Multitenancy test", func() {
+	ginkgo.PDescribe("Multitenancy test", func() {
 		ginkgo.It("should create cluster with nested assumed role", func() {
 			// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
 			specName := "functional-multitenancy-nested"
@@ -203,7 +209,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("CSI=in-tree CCM=in-tree AWSCSIMigration=off: upgrade to v1.23", func() {
+	ginkgo.PDescribe("CSI=in-tree CCM=in-tree AWSCSIMigration=off: upgrade to v1.23", func() {
 		ginkgo.It("should create volumes dynamically with external cloud provider", func() {
 			specName := "csimigration-off-upgrade"
 			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, VolumeGP2: 4}
@@ -271,7 +277,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("CSI=external CCM=in-tree AWSCSIMigration=on: upgrade to v1.23", func() {
+	ginkgo.PDescribe("CSI=external CCM=in-tree AWSCSIMigration=on: upgrade to v1.23", func() {
 		ginkgo.It("should create volumes dynamically with external cloud provider", func() {
 			specName := "only-csi-external-upgrade"
 			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, VolumeGP2: 4}
@@ -340,7 +346,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("CSI=external CCM=external AWSCSIMigration=on: upgrade to v1.23", func() {
+	ginkgo.PDescribe("CSI=external CCM=external AWSCSIMigration=on: upgrade to v1.23", func() {
 		ginkgo.It("should create volumes dynamically with external cloud provider", func() {
 			specName := "csi-ccm-external-upgrade"
 			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, VolumeGP2: 4}
@@ -409,7 +415,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("Workload cluster with AWS SSM Parameter as the Secret Backend", func() {
+	ginkgo.PDescribe("Workload cluster with AWS SSM Parameter as the Secret Backend", func() {
 		ginkgo.It("should be creatable and deletable", func() {
 			specName := "functional-test-ssm-parameter-store"
 			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
@@ -443,7 +449,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("MachineDeployment misconfigurations", func() {
+	ginkgo.PDescribe("MachineDeployment misconfigurations", func() {
 		ginkgo.It("MachineDeployment misconfigurations", func() {
 			specName := "functional-test-md-misconfigurations"
 			requiredResources = &shared.TestResource{EC2Normal: 1 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
@@ -494,7 +500,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("Workload cluster in multiple AZs", func() {
+	ginkgo.PDescribe("Workload cluster in multiple AZs", func() {
 		ginkgo.It("It should be creatable and deletable", func() {
 			specName := "functional-test-multi-az"
 			requiredResources = &shared.TestResource{EC2Normal: 3 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
@@ -652,7 +658,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("Workload cluster with spot instances", func() {
+	ginkgo.PDescribe("Workload cluster with spot instances", func() {
 		ginkgo.It("should be creatable and deletable", func() {
 			specName := "functional-test-spot-instances"
 			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
@@ -689,11 +695,14 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	// creation for the management cluster. The workload cluster is created in a peered VPC with a single externally managed security group.
 	// A private and public subnet is created in this VPC to allow for egress traffic but the workload AWSCluster is configured with
 	// an internal load balancer and only the private subnet. All applicable resources are restricted to us-west-2a for simplicity.
-	ginkgo.Describe("External infrastructure, external security groups, VPC peering, internal ELB and private subnet use only", func() {
+	ginkgo.Describe("External infrastructure, external security groups, VPC peering, internal ELB, ECR and private subnet use only", func() {
+		specName := "functional-test-extinfra"
 		var namespace *corev1.Namespace
 		var requiredResources *shared.TestResource
-		specName := "functional-test-extinfra"
-		mgmtClusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
+		var images []string
+		var reposCreated bool
+		var auth []*ecr.AuthorizationData
+		mgmtClusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
 		mgmtClusterInfra := new(shared.AWSInfrastructure)
 		shared.SetEnvVar("MGMT_CLUSTER_NAME", mgmtClusterName, false)
 
@@ -722,14 +731,102 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			wlClusterInfra.New(shared.AWSInfrastructureSpec{
 				ClusterName:       wlClusterName,
 				VpcCidr:           "10.0.2.0/23",
-				PublicSubnetCidr:  "10.0.2.0/24",
 				PrivateSubnetCidr: "10.0.3.0/24",
 				AvailabilityZone:  "us-west-2a",
 			}, e2eCtx)
-			wlClusterInfra.CreateInfrastructure()
+			wlClusterInfra.CreateVPC()
+			for t := 0; t < 180; t++ {
+				if *wlClusterInfra.RefreshVPCState().State.VpcState == "available" {
+					break
+				}
+				time.Sleep(1 * time.Second)
+			}
+			shared.EnableVpcDNSHostnames(wlClusterInfra.Context, *wlClusterInfra.VPC.VpcId)
+			if wlClusterInfra.VPC != nil {
+				wlClusterInfra.CreatePrivateSubnet()
+			}
+			if len(wlClusterInfra.Subnets) == 1 && *wlClusterInfra.Subnets[0].State != "failed" {
+				wlClusterInfra.CreateNatGateway("private")
+				if wlClusterInfra.NatGateway != nil {
+					shared.WaitForNatGatewayState(e2eCtx, *wlClusterInfra.NatGateway.NatGatewayId, 180, "available")
+				}
+				wlClusterInfra.CreateRouteTable("private")
+				wlClusterInfra.GetRouteTable(*wlClusterInfra.State.PrivateRouteTableID)
+			}
 
 			ginkgo.By("Creating VPC peerings")
 			cPeering, _ = shared.CreatePeering(e2eCtx, mgmtClusterName+"-"+wlClusterName, *mgmtClusterInfra.VPC.VpcId, *wlClusterInfra.VPC.VpcId)
+
+			kubernetesImages := []string{"kube-apiserver", "kube-controller-manager", "kube-proxy", "kube-scheduler"}
+			images = append(images, "k8s.gcr.io/coredns/coredns:v1.8.6")
+			images = append(images, "k8s.gcr.io/etcd:3.5.3-0")
+			images = append(images, "k8s.gcr.io/pause:3.7")
+
+			for _, i := range kubernetesImages {
+				images = append(images, "k8s.gcr.io/"+i+":"+e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion))
+			}
+
+			// Pull Calico information
+			calicoManifest, err := getCalicoManifest()
+			Expect(err).To(BeNil())
+
+			images = append(images, getCalicoImages(*calicoManifest)...)
+			Expect(len(images)).To(Equal(11))
+
+			// Create ECR Repositories based off image list
+			reposCreated = createPrivateEcrRepos(images)
+			Expect(reposCreated).To(BeTrue())
+
+			// Get auth token for ECR registry
+			auth, err = shared.GetECRAuthToken(e2eCtx)
+			if err != nil {
+				fmt.Println(err)
+			}
+			Expect(auth).NotTo(BeNil())
+
+			token, _ := base64.StdEncoding.DecodeString(*auth[0].AuthorizationToken)
+			username := strings.Split(string(token), ":")[0]
+			password := strings.Split(string(token), ":")[1]
+
+			pe := strings.Split(*auth[0].ProxyEndpoint, "/")
+			imageRepo := pe[len(pe)-1]
+			shared.SetEnvVar("IMAGE_REPO", imageRepo, false)
+
+			authObj := shared.AuthsObj{}
+			authObj.Auths = make(map[string]types.AuthConfig)
+			authObj.Auths[imageRepo] = types.AuthConfig{
+				Username: username,
+				Password: password,
+				Auth:     *auth[0].AuthorizationToken,
+			}
+
+			authJSON, err := json.Marshal(authObj)
+			Expect(err).To(BeNil())
+
+			// Modify Calico manifest
+			newCalicoManifest := []byte(strings.ReplaceAll(string(*calicoManifest), "docker.io", imageRepo))
+			re := regexp.MustCompilePOSIX("^(kind: ServiceAccount)")
+			newCalicoManifest = re.ReplaceAll(newCalicoManifest, []byte("$1\nimagePullSecrets:\n  - name: amazon-ecr"))
+			os.WriteFile("../../data/cni/calico_ecr.yaml", newCalicoManifest, 0600)
+
+			ecrAuthSecret := newSecretObj("amazon-ecr", "kube-system", "kubernetes.io/dockerconfigjson", string(authJSON))
+			yamlPrinter := printers.YAMLPrinter{}
+			calicoECRFile, err := os.OpenFile("../../data/cni/calico_ecr.yaml", os.O_APPEND|os.O_RDWR|os.O_SYNC, 0666)
+			Expect(err).To(BeNil())
+			calicoECRFile.WriteString("---\n")
+			yamlPrinter.PrintObj(&ecrAuthSecret, calicoECRFile)
+
+			nodeSA := newServiceAccountObjWithImagePullSecret("calico-node", "kube-system", "amazon-ecr")
+			controllerSA := newServiceAccountObjWithImagePullSecret("calico-kube-controllers", "kube-system", "amazon-ecr")
+			yamlPrinter.PrintObj(&nodeSA, calicoECRFile)
+			yamlPrinter.PrintObj(&controllerSA, calicoECRFile)
+			defer func() {
+				Expect(calicoECRFile.Close()).To(BeNil())
+			}()
+
+			// Push images to ECR Repositories
+			imagesPushed := pushToPrivateEcrRepos(images, username, password)
+			Expect(imagesPushed).To(BeTrue())
 		})
 
 		// Infrastructure cleanup is done in setup node so it is not bypassed if there is a test failure in the subject node.
@@ -741,10 +838,17 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				if cPeering != nil && cPeering.VpcPeeringConnectionId != nil {
 					shared.DeletePeering(e2eCtx, *cPeering.VpcPeeringConnectionId)
 				}
+
 				ginkgo.By("Deleting the workload cluster infrastructure")
 				wlClusterInfra.DeleteInfrastructure()
+
 				ginkgo.By("Deleting the management cluster infrastructure")
 				mgmtClusterInfra.DeleteInfrastructure()
+
+				if reposCreated {
+					ginkgo.By("Deleting private ECR repositories")
+					deletePrivateEcrRepos(images)
+				}
 			}
 		})
 
@@ -761,11 +865,8 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			ginkgo.By("Validating workload infrastructure")
 			Expect(wlClusterInfra.VPC).NotTo(BeNil())
 			Expect(*wlClusterInfra.State.VpcState).To(Equal("available"))
-			Expect(len(wlClusterInfra.Subnets)).To(Equal(2))
-			Expect(wlClusterInfra.InternetGateway).NotTo(BeNil())
-			Expect(wlClusterInfra.ElasticIP).NotTo(BeNil())
-			Expect(wlClusterInfra.NatGateway).NotTo(BeNil())
-			Expect(len(wlClusterInfra.RouteTables)).To(Equal(2))
+			Expect(len(wlClusterInfra.Subnets)).To(Equal(1))
+			Expect(len(wlClusterInfra.RouteTables)).To(Equal(1))
 
 			ginkgo.By("Validate and accept peering")
 			Expect(cPeering).NotTo(BeNil())
@@ -781,8 +882,20 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			ginkgo.By("Creating security groups")
 			mgmtSG, _ := shared.CreateSecurityGroup(e2eCtx, mgmtClusterName+"-all", mgmtClusterName+"-all", *mgmtClusterInfra.VPC.VpcId)
 			Expect(mgmtSG).NotTo(BeNil())
+			sg, _ := shared.GetSecurityGroup(e2eCtx, *mgmtSG.GroupId)
+			if sg != nil {
+				mgmtClusterInfra.SecurityGroups = append(mgmtClusterInfra.SecurityGroups, sg)
+			}
 			shared.CreateSecurityGroupIngressRule(e2eCtx, *mgmtSG.GroupId, "all default", "0.0.0.0/0", "-1", -1, -1)
 			shared.SetEnvVar("SG_ID", *mgmtSG.GroupId, false)
+
+			wlSGC, _ := shared.CreateSecurityGroup(e2eCtx, wlClusterName+"-all", wlClusterName+"-all", *wlClusterInfra.VPC.VpcId)
+			Expect(wlSGC).NotTo(BeNil())
+			wlSG, _ := shared.GetSecurityGroup(e2eCtx, *wlSGC.GroupId)
+			Expect(wlSG).NotTo(BeNil())
+			wlClusterInfra.SecurityGroups = append(wlClusterInfra.SecurityGroups, wlSG)
+			shared.CreateSecurityGroupIngressRule(e2eCtx, *wlSG.GroupId, "all default", "0.0.0.0/0", "-1", -1, -1)
+			shared.SetEnvVar("WL_SG_ID", *wlSG.GroupId, false)
 
 			shared.SetEnvVar("MGMT_VPC_ID", *mgmtClusterInfra.VPC.VpcId, false)
 			shared.SetEnvVar("WL_VPC_ID", *wlClusterInfra.VPC.VpcId, false)
@@ -791,10 +904,26 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			shared.SetEnvVar("WL_PRIVATE_SUBNET_ID", *wlClusterInfra.State.PrivateSubnetID, false)
 
 			ginkgo.By("Creating routes for peerings")
-			shared.CreateRoute(e2eCtx, *mgmtClusterInfra.State.PublicRouteTableID, "10.0.2.0/23", nil, nil, cPeering.VpcPeeringConnectionId)
-			shared.CreateRoute(e2eCtx, *mgmtClusterInfra.State.PrivateRouteTableID, "10.0.2.0/23", nil, nil, cPeering.VpcPeeringConnectionId)
-			shared.CreateRoute(e2eCtx, *wlClusterInfra.State.PublicRouteTableID, "10.0.0.0/23", nil, nil, cPeering.VpcPeeringConnectionId)
-			shared.CreateRoute(e2eCtx, *wlClusterInfra.State.PrivateRouteTableID, "10.0.0.0/23", nil, nil, cPeering.VpcPeeringConnectionId)
+			Expect(shared.CreateRoute(e2eCtx, *mgmtClusterInfra.State.PublicRouteTableID, "10.0.2.0/23", nil, nil, cPeering.VpcPeeringConnectionId)).To(BeTrue())
+			Expect(shared.CreateRoute(e2eCtx, *mgmtClusterInfra.State.PrivateRouteTableID, "10.0.2.0/23", nil, nil, cPeering.VpcPeeringConnectionId)).To(BeTrue())
+			Expect(shared.CreateRoute(e2eCtx, *wlClusterInfra.State.PrivateRouteTableID, "10.0.0.0/23", nil, nil, cPeering.VpcPeeringConnectionId)).To(BeTrue())
+
+			ginkgo.By("Create VPC endpoints")
+			serviceNames := []string{"ssm", "ssmmessages", "secretsmanager", "ec2", "ec2messages", "elasticloadbalancing", "sts", "ecr.dkr"}
+			for _, service := range serviceNames {
+				ep, _ := shared.CreateVPCInterfaceEndpoint(e2eCtx, strings.ReplaceAll(service, ".", "-"), "com.amazonaws.us-west-2."+service, *wlClusterInfra.VPC.VpcId, *wlClusterInfra.State.PrivateSubnetID, *wlSG.GroupId)
+				Expect(ep).NotTo(BeNil())
+				wlClusterInfra.VPCEndpoints = append(wlClusterInfra.VPCEndpoints, ep)
+			}
+			ep, _ := shared.CreateVPCGatewayEndpoint(e2eCtx, "s3", "com.amazonaws.us-west-2.s3", *wlClusterInfra.VPC.VpcId, *wlClusterInfra.RouteTables[0].RouteTableId)
+			Expect(ep).NotTo(BeNil())
+			wlClusterInfra.VPCEndpoints = append(wlClusterInfra.VPCEndpoints, ep)
+			Expect(len(wlClusterInfra.VPCEndpoints)).To(Equal(9))
+
+			ginkgo.By("Waiting for VPC endpoints to become available")
+			for _, endpoint := range wlClusterInfra.VPCEndpoints {
+				shared.WaitUntilVPCEndpointAvailable(wlClusterInfra.Context, *endpoint.VpcEndpointId, 180)
+			}
 
 			ginkgo.By("Creating a management cluster in a peered VPC")
 			mgmtConfigCluster := defaultConfigCluster(mgmtClusterName, namespace.Name)
@@ -870,10 +999,22 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				Name:    wlClusterName,
 			})
 
+			clusterctlConfig, err := os.ReadFile(e2eCtx.Environment.ClusterctlConfigPath)
+			Expect(err).To(BeNil())
+			clusterctlConfig = []byte(strings.ReplaceAll(string(clusterctlConfig), "calico.yaml", "calico_ecr.yaml"))
+			os.WriteFile(filepath.Join(e2eCtx.Settings.ArtifactFolder, "repository", "clusterctl-config-ecr.yaml"), clusterctlConfig, 0600)
+			repoConfig := clusterctl.CreateRepositoryInput{
+				E2EConfig:        e2eCtx.E2EConfig,
+				RepositoryFolder: filepath.Join(e2eCtx.Settings.ArtifactFolder, "repository"),
+			}
+			cniPath := "../../data/cni/calico_ecr.yaml"
+			repoConfig.RegisterClusterResourceSetConfigMapTransformation(cniPath, "CNI_RESOURCES")
+
 			ginkgo.By("Creating workload cluster with internal ELB")
 			wlConfigCluster := defaultConfigCluster(wlClusterName, wlNamespace.Name)
 			wlConfigCluster.WorkerMachineCount = pointer.Int64Ptr(1)
 			wlConfigCluster.Flavor = "internal-elb"
+			wlConfigCluster.ClusterctlConfigPath = clusterctl.CreateRepository(context.TODO(), repoConfig)
 			wlResult := &clusterctl.ApplyClusterTemplateAndWaitResult{}
 			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 				ClusterProxy:                 mgmtClusterProxy,
@@ -939,7 +1080,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("Workload cluster with AWS S3 and Ignition parameter", func() {
+	ginkgo.PDescribe("Workload cluster with AWS S3 and Ignition parameter", func() {
 		ginkgo.It("It should be creatable and deletable", func() {
 			specName := "functional-test-ignition"
 			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)

@@ -1,0 +1,43 @@
+kind: KubeadmControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  kubeadmConfigSpec:
+    files:
+    - path: /tmp/images.sh
+      content: |
+        #!/bin/bash
+        for image in $(ctr -n=k8s.io i ls -q | egrep ^k8s.gcr.io)
+        do
+          new_image=$(echo $image | sed -r 's/k8s.gcr.io/${IMAGE_REPO}/')
+          ctr -n=k8s.io i tag $image $new_image
+        done
+      permissions: "0777"
+    clusterConfiguration:
+      imageRepository: "${IMAGE_REPO}"
+      dns:
+        imageRepository: "${IMAGE_REPO}/coredns"
+    preKubeadmCommands:
+    - /tmp/images.sh
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: "${CLUSTER_NAME}-md-0"
+spec:
+  template:
+    spec:
+      files:
+      - path: /tmp/images.sh
+        content: |
+          #!/bin/bash
+          for image in $(ctr -n=k8s.io i ls -q | egrep ^k8s.gcr.io)
+          do
+            new_image=$(echo $image | sed -r 's/k8s.gcr.io/${IMAGE_REPO}/')
+            ctr -n=k8s.io i tag $image $new_image
+          done
+        permissions: "0777"
+      preKubeadmCommands:
+      - /tmp/images.sh
+
