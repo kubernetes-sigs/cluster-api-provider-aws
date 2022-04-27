@@ -18,6 +18,8 @@ package eks
 
 import (
 	"fmt"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
@@ -29,6 +31,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
 const (
@@ -111,7 +114,12 @@ func getASGTagUpdates(clusterName string, currentTags map[string]string, tags ma
 
 func (s *NodegroupService) reconcileTags(ng *eks.Nodegroup) error {
 	tags := ngTags(s.scope.ClusterName(), s.scope.AdditionalTags())
-	return updateTags(s.EKSClient, ng.NodegroupArn, aws.StringValueMap(ng.Tags), tags)
+	untagKeys, newTags := getTagUpdates(aws.StringValueMap(ng.Tags), tags)
+	if len(untagKeys) > 0 || len(newTags) > 0 {
+		conditions.MarkTrue(s.scope.ManagedMachinePool, expinfrav1.EKSNodegroupUpdatingCondition)
+		record.Eventf(s.scope.ManagedMachinePool, "InitiatedUpdateEKSNodegroup", "Initiated update of EKS node group tags", s.scope.KubernetesClusterName())
+	}
+	return updateTags(s.EKSClient, ng.NodegroupArn, untagKeys, newTags)
 }
 
 func tagDescriptionsToMap(input []*autoscaling.TagDescription) map[string]string {
@@ -131,6 +139,11 @@ func (s *NodegroupService) reconcileASGTags(ng *eks.Nodegroup) error {
 
 	tagsToDelete, tagsToAdd := getASGTagUpdates(s.scope.ClusterName(), tagDescriptionsToMap(asg.Tags), s.scope.AdditionalTags())
 	s.scope.V(2).Info("Tags", "tagsToAdd", tagsToAdd, "tagsToDelete", tagsToDelete)
+
+	if len(tagsToAdd) > 0 || len(tagsToDelete) > 0 {
+		conditions.MarkTrue(s.scope.ManagedMachinePool, expinfrav1.EKSNodegroupUpdatingCondition)
+		record.Eventf(s.scope.ManagedMachinePool, "InitiatedUpdateEKSNodegroup", "Initiated update of EKS node ASG group tags", s.scope.KubernetesClusterName())
+	}
 
 	if len(tagsToAdd) > 0 {
 		input := &autoscaling.CreateOrUpdateTagsInput{}
@@ -176,12 +189,11 @@ func (s *NodegroupService) reconcileASGTags(ng *eks.Nodegroup) error {
 
 func (s *FargateService) reconcileTags(fp *eks.FargateProfile) error {
 	tags := ngTags(s.scope.ClusterName(), s.scope.AdditionalTags())
-	return updateTags(s.EKSClient, fp.FargateProfileArn, aws.StringValueMap(fp.Tags), tags)
+	untagKeys, newTags := getTagUpdates(aws.StringValueMap(fp.Tags), tags)
+	return updateTags(s.EKSClient, fp.FargateProfileArn, untagKeys, newTags)
 }
 
-func updateTags(client eksiface.EKSAPI, arn *string, existingTags, desiredTags map[string]string) error {
-	untagKeys, newTags := getTagUpdates(existingTags, desiredTags)
-
+func updateTags(client eksiface.EKSAPI, arn *string, untagKeys []string, newTags map[string]string) error {
 	if len(newTags) > 0 {
 		tagInput := &eks.TagResourceInput{
 			ResourceArn: arn,

@@ -18,6 +18,7 @@ package eks
 
 import (
 	"fmt"
+	"sigs.k8s.io/cluster-api/util/conditions"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -345,6 +346,9 @@ func (s *NodegroupService) reconcileNodegroupVersion(ng *eks.Nodegroup) error {
 			updateMsg = fmt.Sprintf("to AMI version %s", *input.ReleaseVersion)
 		}
 
+		conditions.MarkTrue(s.scope.ManagedMachinePool, expinfrav1.EKSNodegroupUpdatingCondition)
+		record.Eventf(s.scope.ManagedMachinePool, "InitiatedUpdateEKSNodegroup", "Initiated update of EKS node group version %s %s", eksClusterName, updateMsg)
+
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 			if _, err := s.EKSClient.UpdateNodegroupVersion(input); err != nil {
 				if aerr, ok := err.(awserr.Error); ok {
@@ -474,6 +478,9 @@ func (s *NodegroupService) reconcileNodegroupConfig(ng *eks.Nodegroup) error {
 		return errors.Wrap(err, "created invalid UpdateNodegroupConfigInput")
 	}
 
+	conditions.MarkTrue(s.scope.ManagedMachinePool, expinfrav1.EKSNodegroupUpdatingCondition)
+	record.Eventf(s.scope.ManagedMachinePool, "InitiatedUpdateEKSNodegroup", "Initiated update of EKS node group config", s.scope.KubernetesClusterName())
+
 	_, err = s.EKSClient.UpdateNodegroupConfig(input)
 	if err != nil {
 		return errors.Wrap(err, "failed to update nodegroup config")
@@ -489,6 +496,8 @@ func (s *NodegroupService) reconcileNodegroup() error {
 	}
 
 	if eksClusterName, eksNodegroupName := s.scope.KubernetesClusterName(), s.scope.NodegroupName(); ng == nil {
+		conditions.MarkTrue(s.scope.ManagedMachinePool, expinfrav1.EKSNodegroupCreatingCondition)
+		record.Eventf(s.scope.ManagedMachinePool, "InitiatedCreateEKSNodegroup", "Initiated creation of a new EKS node group %s", s.scope.KubernetesClusterName())
 		ng, err = s.createNodegroup()
 		if err != nil {
 			return errors.Wrap(err, "failed to create nodegroup")
@@ -550,6 +559,14 @@ func (s *NodegroupService) setStatus(ng *eks.Nodegroup) error {
 	case eks.NodegroupStatusActive:
 		managedPool.Status.Ready = true
 		managedPool.Status.FailureMessage = nil
+		if conditions.IsTrue(managedPool, expinfrav1.EKSNodegroupCreatingCondition) {
+			conditions.MarkFalse(managedPool, expinfrav1.EKSNodegroupCreatingCondition, "created", clusterv1.ConditionSeverityInfo, "")
+		record.Eventf(managedPool, "SuccessfulCreateEKSNodegroup", "Created new EKS node group %s", s.scope.KubernetesClusterName())
+		}
+		if conditions.IsTrue(managedPool, expinfrav1.EKSNodegroupUpdatingCondition) {
+			conditions.MarkFalse(managedPool, expinfrav1.EKSNodegroupUpdatingCondition, "updated", clusterv1.ConditionSeverityInfo, "")
+			record.Eventf(managedPool, "SuccessfulUpdateEKSNodegroup", "Updated EKS node group %s", s.scope.KubernetesClusterName())
+		}
 		// TODO FailureReason
 	case eks.NodegroupStatusCreating:
 		managedPool.Status.Ready = false
