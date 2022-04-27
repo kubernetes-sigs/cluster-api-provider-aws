@@ -16093,8 +16093,8 @@ AWSMachineTemplateResource
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachineSpec">AWSMachineSpec</a>)
 </p>
 <p>
-<p>AWSResourceReference is a reference to a specific AWS resource by ID or filters.
-Only one of ID or Filters may be specified. Specifying more than one will result in
+<p>AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
+Only one of ID, ARN or Filters may be specified. Specifying more than one will result in
 a validation error.</p>
 </p>
 <table>
@@ -16126,8 +16126,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>ARN of resource.
-Deprecated: This field has no function and is going to be removed in the next release.</p>
+<p>ARN of resource</p>
 </td>
 </tr>
 <tr>
