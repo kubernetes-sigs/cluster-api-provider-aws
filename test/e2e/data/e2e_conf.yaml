@@ -207,6 +207,7 @@ providers:
         value: ../../../config/default
         contract: v1beta1
         files:
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-efs-support.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-external-csi.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-csimigration-off.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-external-cloud-provider.yaml"

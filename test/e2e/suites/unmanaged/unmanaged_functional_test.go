@@ -59,6 +59,59 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		result = &clusterctl.ApplyClusterTemplateAndWaitResult{}
 	})
 
+	ginkgo.Describe("Workload cluster with EFS driver", func() {
+		ginkgo.It("should pass dynamic provisioning test", func() {
+			specName := "functional-efs-support"
+			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
+			requiredResources.WriteRequestedResources(e2eCtx, "efs-support-test")
+
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+
+			Expect(e2eCtx.E2EConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
+			Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.KubernetesVersion))
+			shared.CreateAWSClusterControllerIdentity(e2eCtx.Environment.BootstrapClusterProxy.GetClient())
+
+			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
+			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
+			configCluster := defaultConfigCluster(clusterName, namespace.Name)
+			configCluster.Flavor = shared.EFSSupport
+			configCluster.ControlPlaneMachineCount = pointer.Int64Ptr(1)
+			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+			cluster, _, _ := createCluster(ctx, configCluster, result)
+			defer deleteCluster(ctx, cluster)
+			clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterName).GetClient()
+
+			ginkgo.By("Setting up EFS in AWS")
+			efs := createEFS()
+			defer shared.DeleteEFS(e2eCtx, *efs.FileSystemId)
+			vpc, err := shared.GetVPCByName(e2eCtx, clusterName+"-vpc")
+			Expect(err).NotTo(HaveOccurred())
+			securityGroup := createSecurityGroupForEFS(clusterName, vpc)
+			defer shared.DeleteSecurityGroup(e2eCtx, *securityGroup.GroupId)
+			mountTarget := createMountTarget(efs, securityGroup, vpc)
+			defer deleteMountTarget(mountTarget)
+
+			// running efs dynamic provisioning example (https://github.com/kubernetes-sigs/aws-efs-csi-driver/tree/master/examples/kubernetes/dynamic_provisioning)
+			ginkgo.By("Deploying efs dynamic provisioning resources")
+			storageClassName := "efs-sc"
+			createEFSStorageClass(storageClassName, clusterClient, efs)
+			createPVCForEFS(storageClassName, clusterClient)
+			createPodWithEFSMount(clusterClient)
+
+			ginkgo.By("Waiting for pod to be in running state")
+			// verifying if pod is running
+			framework.WaitForPodListCondition(ctx, framework.WaitForPodListConditionInput{
+				Lister: clusterClient,
+				ListOptions: &client.ListOptions{
+					Namespace: metav1.NamespaceDefault,
+				},
+				Condition: framework.PhasePodCondition(corev1.PodRunning),
+			})
+			ginkgo.By("PASSED!")
+		})
+	})
+
 	ginkgo.Describe("GPU-enabled cluster test", func() {
 		ginkgo.It("should create cluster with single worker", func() {
 			specName := "functional-gpu-cluster"
