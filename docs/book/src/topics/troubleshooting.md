@@ -76,7 +76,7 @@ If instance profile does not look as expected, you may try recreating the CloudF
 2. Export the kubeconfig and ensure you can connect
 
     ```bash
-    export KUBECONFIG=/etc/kubernetes/admin.conf`
+    export KUBECONFIG=/etc/kubernetes/admin.conf
     kubectl get nodes
     ```
 
@@ -88,7 +88,9 @@ If instance profile does not look as expected, you may try recreating the CloudF
     ```bash
     kubectl edit awscluster <clustername>
     ```
-2. `kubectl get clusters` to verify it's gone
+2. next run `kubectl describe awscluster <clustername>` to validate that the finalizers have been removed
+
+3. `kubectl get clusters` to verify the cluster is gone
 
 
 ### **Make at least one node `Ready`**
@@ -189,6 +191,12 @@ If instance profile does not look as expected, you may try recreating the CloudF
 
 ### Roll all of the nodes to make sure everything is fresh
 
-1. `kubectl patch kcp <clusternamekcp> -n namespace --type merge -p "{\"spec\":{\"rolloutAfter\":\"`date +'%Y-%m-%dT%TZ'`\"}}"`
+
+1. 
+   ```bash
+   kubectl patch kcp <clusternamekcp> -n namespace --type merge -p "{\"spec\":{\"rolloutAfter\":\"`date +'%Y-%m-%dT%TZ'`\"}}"
+   ```
    
-2. `kubectl patch machinedeployment CLUSTER_NAME-md-0 -n namespace --type merge -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"date\":\"`date +'%s'`\"}}}}}"`
+2. ```bash
+    kubectl patch machinedeployment CLUSTER_NAME-md-0 -n namespace --type merge -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"date\":\"`date +'%s'`\"}}}}}"
+    ```
