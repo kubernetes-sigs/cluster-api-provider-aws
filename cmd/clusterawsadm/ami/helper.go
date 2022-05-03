@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -29,7 +30,6 @@ import (
 	"github.com/pkg/errors"
 
 	ec2service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
-	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
 )
 
 const (
@@ -61,6 +61,37 @@ func getimageRegionList() []string {
 	}
 }
 
+// LatestPatchRelease returns the latest patch release matching.
+func LatestPatchRelease(searchVersion string) (string, error) {
+	searchSemVer, err := semver.Make(strings.TrimPrefix(searchVersion, tagPrefix))
+	if err != nil {
+		return "", err
+	}
+	resp, err := http.Get(fmt.Sprintf(latestStableReleaseURL, "-"+strconv.Itoa(int(searchSemVer.Major))+"."+strconv.Itoa(int(searchSemVer.Minor))))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(b)), nil
+}
+
+// PreviousMinorRelease returns the latest patch release for the previous version
+// of Kubernetes, e.g. v1.19.1 returns v1.18.8 as of Sep 2020.
+func PreviousMinorRelease(searchVersion string) (string, error) {
+	semVer, err := semver.Make(strings.TrimPrefix(searchVersion, tagPrefix))
+	if err != nil {
+		return "", err
+	}
+	semVer.Minor--
+
+	return LatestPatchRelease(semVer.String())
+}
+
 // getSupportedKubernetesVersions returns all possible k8s versions till last nth kubernetes release.
 func getSupportedKubernetesVersions(lastNReleases int) ([]string, error) {
 	currentVersion, err := latestStableRelease()
@@ -76,7 +107,7 @@ func getSupportedKubernetesVersions(lastNReleases int) ([]string, error) {
 	versionPatches = append(versionPatches, currentVersion)
 
 	for lastNReleases != 0 {
-		currentVersion, err = kubernetesversions.PreviousMinorRelease(currentVersion)
+		currentVersion, err = PreviousMinorRelease(currentVersion)
 		if err != nil {
 			return nil, err
 		}
