@@ -470,8 +470,8 @@ spec:
   driver:
     repository: nvcr.io/nvidia
     image: driver
-    version: 460.32.03
-    imagePullPolicy: IfNotPresent
+    version: 510.47.03
+    imagePullPolicy: Always
     repoConfig:
       configMapName: ""
       destinationDir: ""
