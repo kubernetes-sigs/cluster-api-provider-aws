@@ -165,9 +165,14 @@ func (i *AWSInfrastructure) AllocateAddress() AWSInfrastructure {
 		return *i
 	}
 
-	if addr, _ := GetAddress(i.Context, *aa.AllocationId); addr != nil {
-		i.ElasticIP = addr
+	t := 0
+	addr, _ := GetAddress(i.Context, *aa.AllocationId)
+	for addr == nil || t < 180 {
+		time.Sleep(1 * time.Second)
+		addr, _ = GetAddress(i.Context, *aa.AllocationId)
+		t++
 	}
+	i.ElasticIP = addr
 	return *i
 }
 
@@ -236,9 +241,11 @@ func (i *AWSInfrastructure) CreateInfrastructure() AWSInfrastructure {
 		i.CreateInternetGateway()
 	}
 	i.AllocateAddress()
-	i.CreateNatGateway("public")
-	if i.NatGateway != nil && i.NatGateway.NatGatewayId != nil {
-		WaitForNatGatewayState(i.Context, *i.NatGateway.NatGatewayId, 180, "available")
+	if i.ElasticIP != nil && i.ElasticIP.AllocationId != nil {
+		i.CreateNatGateway("public")
+		if i.NatGateway != nil && i.NatGateway.NatGatewayId != nil {
+			WaitForNatGatewayState(i.Context, *i.NatGateway.NatGatewayId, 180, "available")
+		}
 	}
 	if len(i.Subnets) == 2 {
 		i.CreateRouteTable("public")
