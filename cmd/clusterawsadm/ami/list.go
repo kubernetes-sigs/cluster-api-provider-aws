@@ -33,6 +33,7 @@ type ListInput struct {
 	Region            string
 	KubernetesVersion string
 	OperatingSystem   string
+	OwnerID           string
 }
 
 const lastNReleases = 3
@@ -81,7 +82,7 @@ func List(input ListInput) (*amiv1.AWSAMIList, error) {
 		}
 
 		ec2Client := ec2.New(sess)
-		imagesForRegion, err := getAllImages(ec2Client, "")
+		imagesForRegion, err := getAllImages(ec2Client, input.OwnerID)
 		if err != nil {
 			return nil, err
 		}
