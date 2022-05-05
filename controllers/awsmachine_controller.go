@@ -429,7 +429,7 @@ func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc se
 }
 
 func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope, elbScope scope.ELBScope, objectStoreScope scope.S3Scope) (ctrl.Result, error) {
-	machineScope.Info("Reconciling AWSMachine")
+	machineScope.V(4).Info("Reconciling AWSMachine")
 
 	// If the AWSMachine is in an error state, return early.
 	if machineScope.HasFailed() {
