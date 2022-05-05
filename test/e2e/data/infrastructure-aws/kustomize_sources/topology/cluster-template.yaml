@@ -13,21 +13,25 @@ spec:
     class: "quick-start"
     version: "${KUBERNETES_VERSION}"
     controlPlane:
-      replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+      replicas: "${CONTROL_PLANE_MACHINE_COUNT}"
     workers:
       machineDeployments:
       - class: "default-worker"
         name: "md-0"
-        replicas: ${WORKER_MACHINE_COUNT}
+        replicas: "${WORKER_MACHINE_COUNT}"
     variables:
     - name: region
-      value: ${AWS_REGION}
+      value: "${AWS_REGION}"
     - name: sshKeyName
-      value: ${AWS_SSH_KEY_NAME}
+      value: "${AWS_SSH_KEY_NAME}"
     - name: controlPlaneMachineType
-      value: ${AWS_CONTROL_PLANE_MACHINE_TYPE}
+      value: "${AWS_CONTROL_PLANE_MACHINE_TYPE}"
     - name: workerMachineType
-      value: ${AWS_NODE_MACHINE_TYPE}
+      value: "${AWS_NODE_MACHINE_TYPE}"
+    - name: secureSecretsBackend
+      value: "ssm-parameter-store"
+    - name: healthCheckProtocol
+      value: "TCP"
 ---
 apiVersion: v1
 data: ${CNI_RESOURCES}

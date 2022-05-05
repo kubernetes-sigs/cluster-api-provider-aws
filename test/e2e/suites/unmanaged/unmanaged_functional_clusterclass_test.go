@@ -33,6 +33,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
+	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -88,6 +89,40 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 			expectAWSClusterConditions(awsCluster, []conditionAssertion{{infrav1.BastionHostReadyCondition, corev1.ConditionTrue, "", ""}})
 
 			ginkgo.By("PASSED!")
+		})
+	})
+
+	ginkgo.Describe("Workload cluster with AWS SSM Parameter as the Secret Backend [ClusterClass]", func() {
+		ginkgo.It("should be creatable and deletable", func() {
+			specName := "functional-test-ssm-parameter-store-clusterclass"
+			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
+			requiredResources.WriteRequestedResources(e2eCtx, specName)
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			defer shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
+			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
+
+			ginkgo.By("Creating a cluster")
+			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
+			configCluster := defaultConfigCluster(clusterName, namespace.Name)
+			configCluster.ControlPlaneMachineCount = pointer.Int64Ptr(1)
+			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+			configCluster.Flavor = shared.TopologyFlavor
+			_, md, _ := createCluster(ctx, configCluster, result)
+
+			workerMachines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
+				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				ClusterName:       clusterName,
+				Namespace:         namespace.Name,
+				MachineDeployment: *md[0],
+			})
+			controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
+				Lister:      e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				ClusterName: clusterName,
+				Namespace:   namespace.Name,
+			})
+			Expect(len(workerMachines)).To(Equal(1))
+			Expect(len(controlPlaneMachines)).To(Equal(1))
 		})
 	})
 })
