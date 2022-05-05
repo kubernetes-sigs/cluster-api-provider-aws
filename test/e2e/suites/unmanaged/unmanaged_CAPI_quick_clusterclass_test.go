@@ -61,7 +61,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework] [smoke] [PR-Blocking
 				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
 				ArtifactFolder:        e2eCtx.Settings.ArtifactFolder,
 				SkipCleanup:           e2eCtx.Settings.SkipCleanup,
-				Flavor:                pointer.String("topology"),
+				Flavor:                pointer.String(shared.TopologyFlavor),
 			}
 		})
 		ginkgo.AfterEach(func() {

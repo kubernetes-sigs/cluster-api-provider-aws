@@ -57,70 +57,107 @@ spec:
       openAPIV3Schema:
         type: string
         default: t3.large
+  - name: secureSecretsBackend
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: secrets-manager
+  - name: healthCheckProtocol
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: SSL
   patches:
-  - name: region
+  - name: awsClusterTemplateGeneral
     definitions:
-    - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        kind: AWSClusterTemplate
-        matchResources:
-          infrastructureCluster: true
-      jsonPatches:
-      - op: add
-        path: /spec/template/spec/region
-        valueFrom:
-          variable: region
-  - name: sshKeyName
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: AWSClusterTemplate
+          matchResources:
+            infrastructureCluster: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/region"
+            valueFrom:
+              variable: region
+          - op: add
+            path: "/spec/template/spec/sshKeyName"
+            valueFrom:
+              variable: sshKeyName
+  - name: awsMachineTemplateControlPlane
     definitions:
-    - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        kind: AWSClusterTemplate
-        matchResources:
-          infrastructureCluster: true
-      jsonPatches:
-      - op: add
-        path: /spec/template/spec/sshKeyName
-        valueFrom:
-          variable: sshKeyName
-    - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        kind: AWSMachineTemplate
-        matchResources:
-          controlPlane: true
-          machineDeploymentClass:
-            names:
-            - default-worker
-      jsonPatches:
-      - op: add
-        path: /spec/template/spec/sshKeyName
-        valueFrom:
-          variable: sshKeyName
-  - name: controlPlaneMachineType
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: AWSMachineTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/instanceType"
+            valueFrom:
+              variable: controlPlaneMachineType
+          - op: add
+            path: "/spec/template/spec/sshKeyName"
+            valueFrom:
+              variable: sshKeyName
+  - name: awsMachineTemplateWorker
     definitions:
-    - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        kind: AWSMachineTemplate
-        matchResources:
-          controlPlane: true
-      jsonPatches:
-      - op: replace
-        path: /spec/template/spec/instanceType
-        valueFrom:
-          variable: controlPlaneMachineType
-  - name: workerMachineType
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: AWSMachineTemplate
+          matchResources:
+            machineDeploymentClass:
+              names:
+                - default-worker
+        jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/instanceType"
+            valueFrom:
+              variable: workerMachineType
+          - op: add
+            path: "/spec/template/spec/sshKeyName"
+            valueFrom:
+              variable: sshKeyName
+  - name: secureSecretsBackend
+    enabledIf: '{{if .secureSecretsBackend }}true{{end}}'
     definitions:
-    - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        kind: AWSMachineTemplate
-        matchResources:
-          machineDeploymentClass:
-            names:
-            - default-worker
-      jsonPatches:
-      - op: replace
-        path: /spec/template/spec/instanceType
-        valueFrom:
-          variable: workerMachineType
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: AWSMachineTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/cloudInit/secureSecretsBackend"
+            valueFrom:
+              variable: secureSecretsBackend
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: AWSMachineTemplate
+          matchResources:
+            machineDeploymentClass:
+              names:
+                - default-worker
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/cloudInit/secureSecretsBackend"
+            valueFrom:
+              variable: secureSecretsBackend
+  - name: healthCheckProtocol
+    enabledIf: '{{if .healthCheckProtocol }}true{{end}}'
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: AWSClusterTemplate
+          matchResources:
+            infrastructureCluster: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/controlPlaneLoadBalancer/healthCheckProtocol"
+            valueFrom:
+              variable: healthCheckProtocol
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSClusterTemplate
@@ -128,7 +165,7 @@ metadata:
   name: quick-start
 spec:
   template:
-    spec: { }
+    spec: {}
 ---
 kind: KubeadmControlPlaneTemplate
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
@@ -166,6 +203,7 @@ spec:
       # instanceType is a required field (OpenAPI schema).
       instanceType: REPLACEME
       iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
+      cloudInit: {}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSMachineTemplate
@@ -177,11 +215,12 @@ spec:
       # instanceType is a required field (OpenAPI schema).
       instanceType: REPLACEME
       iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
+      cloudInit: {}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
 metadata:
-  name: "quick-start-worker-bootstraptemplate"
+  name: quick-start-worker-bootstraptemplate
 spec:
   template:
     spec:
