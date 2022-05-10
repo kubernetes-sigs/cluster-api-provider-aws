@@ -1,0 +1,23 @@
+{
+  "amazon-2": {
+    
+  },
+  "centos-7": {
+    
+  },
+  "flatcar": {
+    "containerd_version": "1.5.9",
+    "containerd_sha256": "f64c8e3b736b370c963b08c33ac70f030fc311bc48fcfd00461465af2fff3488" ,
+    "kubernetes_source_type": "http",
+    "kubernetes_cni_source_type": "http"
+  },
+  "ubuntu-1804": {
+    
+  },
+  "ubuntu-2004": {
+    
+  },
+  "default": {
+    
+  }
+}

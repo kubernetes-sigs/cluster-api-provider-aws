@@ -1,0 +1,43 @@
+on:
+  pull_request:
+    types:
+      - 'closed'
+    branches:
+      - 'main'
+
+jobs:
+  postsubmit:
+    if: github.event.pull_request.merged == true
+    environment: AWS
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579 # v2.4.0
+
+    - name: Set up Go 
+      uses: actions/setup-go@424fc82d43fa5a37540bae62709ddcc23d9520d4 # v2.1.5
+      with:
+        go-version: 1.17
+
+    - name: Postsubmit Job
+      run: |
+        cd ci/ami
+        git clone https://github.com/kubernetes-sigs/image-builder.git
+        cd image-builder/images/capi
+        make deps-ami
+        cd ../../..
+        git clone -b nil-ami-return https://github.com/zeborg/cluster-api-provider-aws.git capa
+        cd capa
+        make clusterawsadm
+        mv bin/clusterawsadm ../clusterawsadm
+        cd ..
+        chmod +x clusterawsadm
+        go run prow/main.go
+      env:
+          AMI_BUILD_CONFIG_FILENAME: "AMIBuildConfig.json"
+          AMI_BUILD_CONFIG_DEFAULTS: "AMIBuildConfigDefaults.json"
+          AMI_BUILD_SUPPORTED_OS: "amazon-2,centos-7,flatcar,ubuntu-1804,ubuntu-2004"
+          AMI_BUILD_REGIONS: "ap-south-1,eu-west-3,eu-west-2,eu-west-1,ap-northeast-2,ap-northeast-1,sa-east-1,ca-central-1,ap-southeast-1,ap-southeast-2,eu-central-1,us-east-1,us-east-2,us-west-1,us-west-2"
+          AWS_AMI_OWNER_ID: "570412231501"
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

@@ -17,6 +17,7 @@ require (
 	github.com/gofrs/flock v0.8.1
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.8
+	github.com/google/go-github/v42 v42.0.0
 	github.com/google/goexpect v0.0.0-20210430020637-ab937bf7fd6f
 	github.com/google/gofuzz v1.2.0
 	github.com/onsi/ginkgo v1.16.5
@@ -27,6 +28,7 @@ require (
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 	golang.org/x/text v0.3.7
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.23.5
@@ -80,7 +82,7 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/cel-go v0.9.0 // indirect
 	github.com/google/go-github/v33 v33.0.0 // indirect
-	github.com/google/go-querystring v1.0.0 // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/goterm v0.0.0-20190703233501-fc88cf888a3f // indirect
 	github.com/google/uuid v1.2.0 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
@@ -127,7 +129,6 @@ require (
 	github.com/valyala/fastjson v1.6.3 // indirect
 	github.com/vincent-petithory/dataurl v1.0.0 // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
-	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
 	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
