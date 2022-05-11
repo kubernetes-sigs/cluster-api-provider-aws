@@ -140,10 +140,10 @@ func Action(blobBytes []byte, AMIBuildConfigFilename string) bool {
 		}
 	} else {
 		if ref == nil {
-			log.Print("Info: line 143 CreateRef call STARTED")
+			log.Print("Info: line 143 CreateRef method STARTED")
 
 			CreateRef(client, ctx, baseRef, headRef)
-			log.Print("Info: line 143 CreateRef call COMPLETED")
+			log.Print("Info: line 143 CreateRef method COMPLETED")
 
 		} else {
 			log.Fatal(err)
@@ -232,6 +232,7 @@ func CreateRef(client *github.Client, ctx context.Context, fromRef, toRef string
 	log.Print("Info: line 232 CreateRef call STARTED")
 	refNew, _, err := client.Git.CreateRef(ctx, OWNER, REPO, &newRef)
 	log.Print("Info: line 232 CreateRef call COMPLETED")
+	log.Print("ERROR: createref ERROR", err)
 
 	custom.CheckError(err)
 
