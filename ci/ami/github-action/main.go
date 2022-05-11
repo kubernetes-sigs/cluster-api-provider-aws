@@ -117,12 +117,16 @@ func Action(blobBytes []byte, AMIBuildConfigFilename string) bool {
 			Head: prHeadRef,
 			Base: prBaseRef,
 		}
+		
+		log.Print("Info: line 123 PullRequests call STARTED")
+
 		prList, _, err := client.PullRequests.List(ctx, OWNER, REPO, &prListOpts)
 		if err != nil {
 			if len(prList) != 0 {
 				log.Fatal(err)
 			}
 		}
+		log.Print("Info: line 123 PullRequests call COMPLETED")
 
 		if len(prList) == 0 {
 			_, err := client.Git.DeleteRef(ctx, OWNER, REPO, headRef)
@@ -136,7 +140,11 @@ func Action(blobBytes []byte, AMIBuildConfigFilename string) bool {
 		}
 	} else {
 		if ref == nil {
+			log.Print("Info: line 143 CreateRef call STARTED")
+
 			CreateRef(client, ctx, baseRef, headRef)
+			log.Print("Info: line 143 CreateRef call COMPLETED")
+
 		} else {
 			log.Fatal(err)
 		}
@@ -209,8 +217,10 @@ func GetGithubClientCtx(token string) (*github.Client, context.Context) {
 }
 
 func CreateRef(client *github.Client, ctx context.Context, fromRef, toRef string) *github.Reference {
-	log.Print("Info: line 208 getref call ")
+	log.Print("Info: line 208 getref call STARTED")
 	ref, _, err := client.Git.GetRef(ctx, OWNER, REPO, fromRef)
+	log.Print("Info: line 208 getref call COMPLETED")
+
 	custom.CheckError(err)
 
 	newRef := github.Reference{
