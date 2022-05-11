@@ -228,7 +228,11 @@ func CreateRef(client *github.Client, ctx context.Context, fromRef, toRef string
 		URL:    ref.URL,
 		Object: ref.Object,
 	}
+	
+	log.Print("Info: line 232 CreateRef call STARTED")
 	refNew, _, err := client.Git.CreateRef(ctx, OWNER, REPO, &newRef)
+	log.Print("Info: line 232 CreateRef call COMPLETED")
+
 	custom.CheckError(err)
 
 	return refNew
