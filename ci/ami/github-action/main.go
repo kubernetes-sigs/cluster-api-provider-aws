@@ -106,8 +106,12 @@ func Action(blobBytes []byte, AMIBuildConfigFilename string) bool {
 	prHeadRef := OWNER + ":" + headRef
 	prBaseRef := baseRef
 
+	log.Print("Info: line 109 getref call STARTED")
+
 	// check if the required head branch already exists
 	ref, _, err := client.Git.GetRef(ctx, OWNER, REPO, headRef)
+	log.Print("Info: line 109 getref call COMPLETED")
+
 	if err == nil {
 		prListOpts := github.PullRequestListOptions{
 			Head: prHeadRef,
@@ -205,6 +209,7 @@ func GetGithubClientCtx(token string) (*github.Client, context.Context) {
 }
 
 func CreateRef(client *github.Client, ctx context.Context, fromRef, toRef string) *github.Reference {
+	log.Print("Info: line 208 getref call ")
 	ref, _, err := client.Git.GetRef(ctx, OWNER, REPO, fromRef)
 	custom.CheckError(err)
 
