@@ -5,6 +5,7 @@ on:
 
 jobs:
   watch_k8s_releases:
+    environment: TOKEN
     runs-on: ubuntu-latest
     steps:
     - name: Generate Token
