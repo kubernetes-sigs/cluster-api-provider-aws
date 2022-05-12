@@ -357,7 +357,7 @@ spec:
                     maximum: 100
                     minimum: 1
                     type: integer
-                  maxUnavailablePrecentage:
+                  maxUnavailablePercentage:
                     description: MaxUnavailablePercentage is the maximum percentage
                       of nodes unavailable during a version update. This percentage
                       of nodes will be updated in parallel, up to 100 nodes at once.
