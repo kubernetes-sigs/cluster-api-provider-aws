@@ -276,5 +276,5 @@ type UpdateConfig struct {
 	// +optional
 	// +kubebuilder:validation:Maximum=100
 	// +kubebuilder:validation:Minimum=1
-	MaxUnavailablePercentage *int `json:"maxUnavailablePrecentage,omitempty"`
+	MaxUnavailablePercentage *int `json:"maxUnavailablePercentage,omitempty"`
 }
