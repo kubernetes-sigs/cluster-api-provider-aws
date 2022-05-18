@@ -57,11 +57,21 @@ const (
 	deleteRequeueAfter = 20 * time.Second
 )
 
-var (
-	eksSecurityGroupRoles = []infrav1.SecurityGroupRole{
-		infrav1.SecurityGroupEKSNodeAdditional,
+var defaultEKSSecurityGroupRoles = []infrav1.SecurityGroupRole{
+	infrav1.SecurityGroupEKSNodeAdditional,
+}
+
+// securityGroupRolesForControlPlane returns the security group roles determined by the control plane configuration.
+func securityGroupRolesForControlPlane(scope *scope.ManagedControlPlaneScope) []infrav1.SecurityGroupRole {
+	// Copy to ensure we do not modify the package-level variable.
+	roles := make([]infrav1.SecurityGroupRole, len(defaultEKSSecurityGroupRoles))
+	copy(roles, defaultEKSSecurityGroupRoles)
+
+	if scope.Bastion().Enabled {
+		roles = append(roles, infrav1.SecurityGroupBastion)
 	}
-)
+	return roles
+}
 
 // AWSManagedControlPlaneReconciler reconciles a AWSManagedControlPlane object.
 type AWSManagedControlPlaneReconciler struct {
@@ -202,14 +212,10 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 		return ctrl.Result{}, err
 	}
 
-	if awsManagedControlPlane.Spec.Bastion.Enabled {
-		eksSecurityGroupRoles = append(eksSecurityGroupRoles, infrav1.SecurityGroupBastion)
-	}
-
 	ec2Service := ec2.NewService(managedScope)
 	networkSvc := network.NewService(managedScope)
 	ekssvc := eks.NewService(managedScope)
-	sgService := securitygroup.NewService(managedScope, eksSecurityGroupRoles)
+	sgService := securitygroup.NewService(managedScope, securityGroupRolesForControlPlane(managedScope))
 	authService := iamauth.NewService(managedScope, iamauth.BackendTypeConfigMap, managedScope.Client)
 	awsnodeService := awsnode.NewService(managedScope)
 	kubeproxyService := kubeproxy.NewService(managedScope)
@@ -277,7 +283,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileDelete(ctx context.Context, 
 	ekssvc := eks.NewService(managedScope)
 	ec2svc := ec2.NewService(managedScope)
 	networkSvc := network.NewService(managedScope)
-	sgService := securitygroup.NewService(managedScope, eksSecurityGroupRoles)
+	sgService := securitygroup.NewService(managedScope, securityGroupRolesForControlPlane(managedScope))
 
 	if err := ekssvc.DeleteControlPlane(); err != nil {
 		log.Error(err, "error deleting EKS cluster for EKS control plane", "namespace", controlPlane.Namespace, "name", controlPlane.Name)
