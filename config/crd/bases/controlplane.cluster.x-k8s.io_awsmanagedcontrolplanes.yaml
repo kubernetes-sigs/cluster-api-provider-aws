@@ -2415,6 +2415,21 @@ spec:
                   this will be used for all cluster machines unless a machine specifies
                   a different ImageLookupOrg.
                 type: string
+              kubeProxy:
+                description: KubeProxy defines managed attributes of the kube-proxy
+                  daemonset
+                properties:
+                  disable:
+                    default: false
+                    description: Disable set to true indicates that kube-proxy should
+                      be disabled. With EKS clusters kube-proxy is automatically installed
+                      into the cluster. For clusters where you want to use kube-proxy
+                      functionality that is provided with an alternate CNI, this option
+                      provides a way to specify that the kube-proxy daemonset should
+                      be deleted. You cannot set this to true if you are using the
+                      Amazon kube-proxy addon.
+                    type: boolean
+                type: object
               logging:
                 description: Logging specifies which EKS Cluster logs should be enabled.
                   Entries for each of the enabled logs will be sent to CloudWatch

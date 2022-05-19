@@ -362,6 +362,11 @@ func (s *ManagedControlPlaneScope) Addons() []ekscontrolplanev1.Addon {
 	return *s.ControlPlane.Spec.Addons
 }
 
+// DisableKubeProxy returns whether kube-proxy should be disabled.
+func (s *ManagedControlPlaneScope) DisableKubeProxy() bool {
+	return s.ControlPlane.Spec.KubeProxy.Disable
+}
+
 // DisableVPCCNI returns whether the AWS VPC CNI should be disabled.
 func (s *ManagedControlPlaneScope) DisableVPCCNI() bool {
 	return s.ControlPlane.Spec.DisableVPCCNI

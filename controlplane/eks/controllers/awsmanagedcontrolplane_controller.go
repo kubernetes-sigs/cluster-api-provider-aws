@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/iamauth"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/kubeproxy"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/network"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/securitygroup"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -211,6 +212,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 	sgService := securitygroup.NewService(managedScope, eksSecurityGroupRoles)
 	authService := iamauth.NewService(managedScope, iamauth.BackendTypeConfigMap, managedScope.Client)
 	awsnodeService := awsnode.NewService(managedScope)
+	kubeproxyService := kubeproxy.NewService(managedScope)
 
 	if err := networkSvc.ReconcileNetwork(); err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to reconcile network for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
@@ -232,6 +234,10 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 
 	if err := awsnodeService.ReconcileCNI(ctx); err != nil {
 		conditions.MarkFalse(managedScope.InfraCluster(), infrav1.SecondaryCidrsReadyCondition, infrav1.SecondaryCidrReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		return reconcile.Result{}, fmt.Errorf("failed to reconcile control plane for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
+	}
+
+	if err := kubeproxyService.ReconcileKubeProxy(ctx); err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to reconcile control plane for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
 	}
 
