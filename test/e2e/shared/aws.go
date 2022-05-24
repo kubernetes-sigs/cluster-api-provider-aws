@@ -167,7 +167,7 @@ func (i *AWSInfrastructure) AllocateAddress() AWSInfrastructure {
 
 	t := 0
 	addr, _ := GetAddress(i.Context, *aa.AllocationId)
-	for addr == nil || t < 180 {
+	for addr == nil && t < 180 {
 		time.Sleep(1 * time.Second)
 		addr, _ = GetAddress(i.Context, *aa.AllocationId)
 		t++
@@ -177,8 +177,17 @@ func (i *AWSInfrastructure) AllocateAddress() AWSInfrastructure {
 }
 
 func (i *AWSInfrastructure) CreateNatGateway(ct string) AWSInfrastructure {
+	t := 0
 	s, serr := GetSubnetByName(i.Context, i.Spec.ClusterName+"-subnet-"+ct)
 	if serr != nil {
+		return *i
+	}
+	for s == nil && t < 180 {
+		time.Sleep(1 * time.Second)
+		s, _ = GetSubnetByName(i.Context, i.Spec.ClusterName+"-subnet-"+ct)
+		t++
+	}
+	if s == nil {
 		return *i
 	}
 	ngwC, ngwce := CreateNatGateway(i.Context, i.Spec.ClusterName+"-nat", ct, *i.ElasticIP.AllocationId, *s.SubnetId)
@@ -229,9 +238,16 @@ func (i *AWSInfrastructure) GetRouteTable(rtID string) AWSInfrastructure {
 // routes to their respective gateway.
 func (i *AWSInfrastructure) CreateInfrastructure() AWSInfrastructure {
 	i.CreateVPC()
+	Byf("Created VPC - %s", *i.VPC.VpcId)
 	if i.VPC != nil {
 		i.CreatePublicSubnet()
+		if i.State.PublicSubnetID != nil {
+			Byf("Created Public Subnet - %s", *i.State.PublicSubnetID)
+		}
 		i.CreatePrivateSubnet()
+		if i.State.PrivateSubnetID != nil {
+			Byf("Created Private Subnet - %s", *i.State.PrivateSubnetID)
+		}
 		for t := 0; t < 30; t++ {
 			if *i.RefreshVPCState().State.VpcState == "available" {
 				break
@@ -239,17 +255,28 @@ func (i *AWSInfrastructure) CreateInfrastructure() AWSInfrastructure {
 			time.Sleep(1 * time.Second)
 		}
 		i.CreateInternetGateway()
+		if i.InternetGateway != nil {
+			Byf("Created Internet Gateway - %s", *i.InternetGateway.InternetGatewayId)
+		}
 	}
 	i.AllocateAddress()
 	if i.ElasticIP != nil && i.ElasticIP.AllocationId != nil {
+		Byf("Created Elastic IP - %s", *i.ElasticIP.AllocationId)
 		i.CreateNatGateway("public")
 		if i.NatGateway != nil && i.NatGateway.NatGatewayId != nil {
 			WaitForNatGatewayState(i.Context, *i.NatGateway.NatGatewayId, 180, "available")
+			Byf("Created NAT Gateway - %s", *i.NatGateway.NatGatewayId)
 		}
 	}
 	if len(i.Subnets) == 2 {
 		i.CreateRouteTable("public")
+		if i.State.PublicRouteTableID != nil {
+			Byf("Created public route table - %s", *i.State.PublicRouteTableID)
+		}
 		i.CreateRouteTable("private")
+		if i.State.PrivateRouteTableID != nil {
+			Byf("Created private route table - %s", *i.State.PrivateRouteTableID)
+		}
 		if i.InternetGateway != nil && i.InternetGateway.InternetGatewayId != nil {
 			CreateRoute(i.Context, *i.State.PublicRouteTableID, "0.0.0.0/0", nil, i.InternetGateway.InternetGatewayId, nil)
 		}
