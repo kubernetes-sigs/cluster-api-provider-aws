@@ -1,0 +1,297 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: multi-tenancy
+spec:
+  controlPlane:
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: multi-tenancy-control-plane
+    machineInfrastructure:
+      ref:
+        kind: AWSMachineTemplate
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        name: multi-tenancy-control-plane
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: AWSClusterTemplate
+      name: multi-tenancy
+  workers:
+    machineDeployments:
+      - class: default-worker
+        template:
+          bootstrap:
+            ref:
+              apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+              kind: KubeadmConfigTemplate
+              name: multi-tenancy-worker-bootstraptemplate
+          infrastructure:
+            ref:
+              apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+              kind: AWSMachineTemplate
+              name: multi-tenancy-worker-machinetemplate
+  variables:
+    - name: region
+      required: true
+      schema:
+        openAPIV3Schema:
+          type: string
+          default: us-east-1
+    - name: sshKeyName
+      required: true
+      schema:
+        openAPIV3Schema:
+          type: string
+          default: default
+    - name: controlPlaneMachineType
+      required: true
+      schema:
+        openAPIV3Schema:
+          type: string
+          default: t3.large
+    - name: workerMachineType
+      required: true
+      schema:
+        openAPIV3Schema:
+          type: string
+          default: t3.large
+    - name: bastionEnabled
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: boolean
+    - name: vpcAZUsageLimit
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: integer
+    - name: identityRef
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            kind:
+              type: string
+            name:
+              type: string
+          required:
+            - kind
+            - name
+  patches:
+    - name: awsClusterTemplateGeneral
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: AWSClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/region"
+              valueFrom:
+                variable: region
+            - op: add
+              path: "/spec/template/spec/sshKeyName"
+              valueFrom:
+                variable: sshKeyName
+            - op: replace
+              path: "/spec/template/spec/bastion/enabled"
+              valueFrom:
+                variable: bastionEnabled
+            - op: replace
+              path: "/spec/template/spec/network/vpc/availabilityZoneUsageLimit"
+              valueFrom:
+                variable: vpcAZUsageLimit
+            - op: replace
+              path: "/spec/template/spec/identityRef"
+              valueFrom:
+                variable: identityRef
+    - name: awsMachineTemplateControlPlane
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: AWSMachineTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: replace
+              path: "/spec/template/spec/instanceType"
+              valueFrom:
+                variable: controlPlaneMachineType
+            - op: add
+              path: "/spec/template/spec/sshKeyName"
+              valueFrom:
+                variable: sshKeyName
+    - name: awsMachineTemplateWorker
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: AWSMachineTemplate
+            matchResources:
+              machineDeploymentClass:
+                names:
+                  - default-worker
+          jsonPatches:
+            - op: replace
+              path: "/spec/template/spec/instanceType"
+              valueFrom:
+                variable: workerMachineType
+            - op: add
+              path: "/spec/template/spec/sshKeyName"
+              valueFrom:
+                variable: sshKeyName
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSClusterTemplate
+metadata:
+  name: multi-tenancy
+spec:
+  template:
+    spec: {}
+---
+kind: KubeadmControlPlaneTemplate
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+metadata:
+  name: multi-tenancy-control-plane
+spec:
+  template:
+    spec:
+      kubeadmConfigSpec:
+        clusterConfiguration:
+          apiServer:
+            extraArgs:
+              cloud-provider: aws
+          controllerManager:
+            extraArgs:
+              cloud-provider: aws
+        initConfiguration:
+          nodeRegistration:
+            name: '{{ ds.meta_data.local_hostname }}'
+            kubeletExtraArgs:
+              cloud-provider: aws
+        joinConfiguration:
+          nodeRegistration:
+            name: '{{ ds.meta_data.local_hostname }}'
+            kubeletExtraArgs:
+              cloud-provider: aws
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSMachineTemplate
+metadata:
+  name: multi-tenancy-control-plane
+spec:
+  template:
+    spec:
+      # instanceType is a required field (OpenAPI schema).
+      instanceType: REPLACEME
+      iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSMachineTemplate
+metadata:
+  name: multi-tenancy-worker-machinetemplate
+spec:
+  template:
+    spec:
+      # instanceType is a required field (OpenAPI schema).
+      instanceType: REPLACEME
+      iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: "multi-tenancy-worker-bootstraptemplate"
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          name: '{{ ds.meta_data.local_hostname }}'
+          kubeletExtraArgs:
+            cloud-provider: aws
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  labels:
+    cni: ${CLUSTER_NAME}-crs-0
+  name: ${CLUSTER_NAME}
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+      - 192.168.0.0/16
+  topology:
+    class: multi-tenancy
+    controlPlane:
+      replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+    variables:
+    - name: region
+      value: ${AWS_REGION}
+    - name: sshKeyName
+      value: ${AWS_SSH_KEY_NAME}
+    - name: controlPlaneMachineType
+      value: ${AWS_CONTROL_PLANE_MACHINE_TYPE}
+    - name: workerMachineType
+      value: ${AWS_NODE_MACHINE_TYPE}
+    - name: bastionEnabled
+      value: true
+    - name: vpcAZUsageLimit
+      value: 1
+    - name: identityRef
+      value:
+        kind: AWSClusterRoleIdentity
+        name: ${MULTI_TENANCY_NESTED_IDENTITY_NAME}
+    version: ${KUBERNETES_VERSION}
+    workers:
+      machineDeployments:
+      - class: default-worker
+        name: md-0
+        replicas: ${WORKER_MACHINE_COUNT}
+---
+apiVersion: v1
+data: ${CNI_RESOURCES}
+kind: ConfigMap
+metadata:
+  name: cni-${CLUSTER_NAME}-crs-0
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta1
+kind: ClusterResourceSet
+metadata:
+  name: ${CLUSTER_NAME}-crs-0
+spec:
+  clusterSelector:
+    matchLabels:
+      cni: ${CLUSTER_NAME}-crs-0
+  resources:
+  - kind: ConfigMap
+    name: cni-${CLUSTER_NAME}-crs-0
+  strategy: ApplyOnce
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSClusterRoleIdentity
+metadata:
+  name: ${MULTI_TENANCY_JUMP_IDENTITY_NAME}
+spec:
+  allowedNamespaces: {}
+  durationSeconds: 900
+  roleARN: ${MULTI_TENANCY_JUMP_ROLE_ARN}
+  sessionName: ${MULTI_TENANCY_JUMP_IDENTITY_NAME}-session
+  sourceIdentityRef:
+    kind: AWSClusterControllerIdentity
+    name: default
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSClusterRoleIdentity
+metadata:
+  name: ${MULTI_TENANCY_NESTED_IDENTITY_NAME}
+spec:
+  allowedNamespaces: {}
+  roleARN: ${MULTI_TENANCY_NESTED_ROLE_ARN}
+  sessionName: ${MULTI_TENANCY_NESTED_IDENTITY_NAME}-session
+  sourceIdentityRef:
+    kind: AWSClusterRoleIdentity
+    name: ${MULTI_TENANCY_JUMP_IDENTITY_NAME}
