@@ -232,6 +232,7 @@ providers:
           - sourcePath: "./infrastructure-aws/kustomize_sources/topology/clusterclass-quick-start.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-nested-multitenancy-clusterclass.yaml"
           - sourcePath: "./infrastructure-aws/kustomize_sources/nested-multitenancy-clusterclass/clusterclass-multi-tenancy.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-self-hosted-clusterclass.yaml"
           - sourcePath: "./shared/v1beta1_provider/metadata.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-ignition.yaml"
         replacements:

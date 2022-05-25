@@ -69,6 +69,19 @@ spec:
       openAPIV3Schema:
         type: string
         default: SSL
+  - name: vpcAZUsageLimit
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+        example: "1"
+  - name: selfHosted
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
   patches:
   - name: awsClusterTemplateGeneral
     definitions:
@@ -158,6 +171,49 @@ spec:
             path: "/spec/template/spec/controlPlaneLoadBalancer/healthCheckProtocol"
             valueFrom:
               variable: healthCheckProtocol
+  - name: preKubeadmCommands
+    enabledIf: '{{ eq .selfHosted "yes" }}'
+    definitions:
+      - selector:
+          apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+          kind: KubeadmControlPlaneTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/preKubeadmCommands"
+            valueFrom:
+              template: |
+                - mkdir -p /opt/cluster-api
+                - ctr -n k8s.io images pull "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}"
+                - ctr -n k8s.io images tag "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}" gcr.io/k8s-staging-cluster-api/capa-manager:e2e
+      - selector:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+          matchResources:
+            machineDeploymentClass:
+              names:
+                - default-worker
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/preKubeadmCommands"
+            valueFrom:
+              template: |
+                - ctr -n k8s.io images pull "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}"
+                - ctr -n k8s.io images tag "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}" gcr.io/k8s-staging-cluster-api/capa-manager:e2e
+  - name: limitAZ
+    enabledIf: '{{ ne .vpcAZUsageLimit "" }}'
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: AWSClusterTemplate
+          matchResources:
+            infrastructureCluster: true
+        jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/network/vpc/availabilityZoneUsageLimit"
+            valueFrom:
+              template: "{{ .vpcAZUsageLimit }}"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSClusterTemplate
