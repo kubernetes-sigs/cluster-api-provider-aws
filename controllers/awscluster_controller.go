@@ -57,15 +57,12 @@ import (
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
-var (
-	awsSecurityGroupRoles = []infrav1.SecurityGroupRole{
-		infrav1.SecurityGroupBastion,
-		infrav1.SecurityGroupAPIServerLB,
-		infrav1.SecurityGroupLB,
-		infrav1.SecurityGroupControlPlane,
-		infrav1.SecurityGroupNode,
-	}
-)
+var defaultAWSSecurityGroupRoles = []infrav1.SecurityGroupRole{
+	infrav1.SecurityGroupAPIServerLB,
+	infrav1.SecurityGroupLB,
+	infrav1.SecurityGroupControlPlane,
+	infrav1.SecurityGroupNode,
+}
 
 // AWSClusterReconciler reconciles a AwsCluster object.
 type AWSClusterReconciler struct {
@@ -103,12 +100,24 @@ func (r *AWSClusterReconciler) getNetworkService(scope scope.ClusterScope) servi
 	return network.NewService(&scope)
 }
 
+// securityGroupRolesForCluster returns the security group roles determined by the cluster configuration.
+func securityGroupRolesForCluster(scope scope.ClusterScope) []infrav1.SecurityGroupRole {
+	roles := []infrav1.SecurityGroupRole{}
+	// Copy to ensure we do not modify the package-level variable.
+	copy(roles, defaultAWSSecurityGroupRoles)
+
+	if scope.Bastion().Enabled {
+		roles = append(roles, infrav1.SecurityGroupBastion)
+	}
+	return roles
+}
+
 // getSecurityGroupService factory func is added for testing purpose so that we can inject mocked SecurityGroupService to the AWSClusterReconciler.
 func (r *AWSClusterReconciler) getSecurityGroupService(scope scope.ClusterScope) services.SecurityGroupInterface {
 	if r.securityGroupFactory != nil {
 		return r.securityGroupFactory(scope)
 	}
-	return securitygroup.NewService(&scope, awsSecurityGroupRoles)
+	return securitygroup.NewService(&scope, securityGroupRolesForCluster(scope))
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclusters,verbs=get;list;watch;create;update;patch;delete
