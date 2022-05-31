@@ -16,11 +16,6 @@ spec:
     apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     name: "${CLUSTER_NAME}-control-plane"
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-kind: AWSManagedCluster
-metadata:
-  name: "${CLUSTER_NAME}"
----
 kind: AWSManagedControlPlane
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 metadata:
