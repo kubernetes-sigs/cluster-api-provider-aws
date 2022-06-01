@@ -210,7 +210,7 @@ func getAllImages(ec2Client ec2iface.EC2API, ownerID string) (map[string][]*ec2.
 		return nil, errors.Wrap(err, "failed to fetch AMIs")
 	}
 	if len(out.Images) == 0 {
-		return nil, errors.Errorf("no AMIs in the account: %q", ownerID)
+		return nil, nil
 	}
 
 	imagesMap := make(map[string][]*ec2.Image)
