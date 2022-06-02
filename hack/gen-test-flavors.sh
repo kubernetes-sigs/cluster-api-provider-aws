@@ -25,6 +25,7 @@ test_dir_path="test/e2e/data/infrastructure-aws"
 test_dir="${root}/${test_dir_path}"
 src_dir="${test_dir}/kustomize_sources/"
 generated_dir="${test_dir}/generated"
+test_templates="${test_dir}/e2e_test_templates"
 
 echo Checking for template sources in "$test_dir"
 
@@ -36,3 +37,4 @@ find "${src_dir}"* -maxdepth 1 -type d \
 
 ## move the default template to the default file expected by clusterctl
 mv "${generated_dir}/cluster-template-default.yaml" "${generated_dir}/cluster-template.yaml"
+cp -r ${generated_dir} ${test_templates}
