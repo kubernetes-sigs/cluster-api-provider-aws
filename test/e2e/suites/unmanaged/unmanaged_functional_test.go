@@ -742,7 +742,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	// creation for the management cluster. The workload cluster is created in a peered VPC with a single externally managed security group.
 	// A private and public subnet is created in this VPC to allow for egress traffic but the workload AWSCluster is configured with
 	// an internal load balancer and only the private subnet. All applicable resources are restricted to us-west-2a for simplicity.
-	ginkgo.Describe("External infrastructure, external security groups, VPC peering, internal ELB and private subnet use only", func() {
+	ginkgo.PDescribe("External infrastructure, external security groups, VPC peering, internal ELB and private subnet use only", func() {
 		var namespace *corev1.Namespace
 		var requiredResources *shared.TestResource
 		specName := "functional-test-extinfra"
