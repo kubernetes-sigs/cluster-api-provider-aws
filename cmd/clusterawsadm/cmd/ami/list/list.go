@@ -73,6 +73,10 @@ func ListAMICmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if len(listByVersion.Items) == 0 {
+				fmt.Println("No AMIs found")
+				return nil
+			}
 
 			if outputPrinter == string(cmdout.PrinterTypeTable) {
 				table := listByVersion.ToTable()
@@ -94,7 +98,7 @@ func ListAMICmd() *cobra.Command {
 }
 
 func addOsFlag(c *cobra.Command) {
-	c.Flags().StringVar(&opSystem, "os", "", "Operating system of the AMI to be copied")
+	c.Flags().StringVar(&opSystem, "os", "", "Operating system of the AMI to be listed")
 }
 
 func addKubernetesVersionFlag(c *cobra.Command) {
