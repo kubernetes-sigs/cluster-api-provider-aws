@@ -51,7 +51,6 @@ func newMachine(clusterName, machineName string) *clusterv1.Machine {
 			Labels: map[string]string{
 				clusterv1.ClusterLabelName: clusterName,
 			},
-			ClusterName: clusterName,
 			Name:        machineName,
 			Namespace:   "default",
 		},
