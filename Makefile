@@ -137,19 +137,18 @@ SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 
+GINKGO_FOCUS ?= ""
+GINKGO_SKIP ?= ""
+
 # Enable Cluster API Framework tests for the purposes of running the PR blocking test
-ifeq ($(findstring \[PR-Blocking\],$(E2E_FOCUS)),\[PR-Blocking\])
+ifeq ($(findstring \[PR-Blocking\],$(GINKGO_FOCUS)),\[PR-Blocking\])
   override undefine GINKGO_SKIP
 endif
 
 override E2E_ARGS += -artifacts-folder="$(ARTIFACTS)" --data-folder="$(E2E_DATA_DIR)" -use-existing-cluster=$(USE_EXISTING_CLUSTER)
 override GINKGO_ARGS += -stream -progress -v -trace
 
-ifdef GINKGO_SKIP
-	override GINKGO_ARGS += -skip "$(GINKGO_SKIP)"
-endif
-
-# DEPRECATED, use E2E_FOCUS instead
+# DEPRECATED, use GINKGO_FOCUS instead
 ifdef E2E_UNMANAGED_FOCUS
 	override GINKGO_ARGS += -focus="$(E2E_UNMANAGED_FOCUS)"
 endif
@@ -161,13 +160,9 @@ endif
 # infrastructure reconciliation
 
 # Instead, you can run a quick smoke test, it should run fast (9 minutes)...
-# E2E_FOCUS := "\\[smoke\\]"
-# For running CAPI e2e tests: E2E_FOCUS := "\\[Cluster API Framework\\]"
-# For running CAPI blocking e2e test: E2E_FOCUS := "\\[PR-Blocking\\]"
-ifdef E2E_FOCUS
-	override GINKGO_ARGS += -focus="$(E2E_FOCUS)"
-endif
-
+# GINKGO_FOCUS := "\\[smoke\\]"
+# For running CAPI e2e tests: GINKGO_FOCUS := "\\[Cluster API Framework\\]"
+# For running CAPI blocking e2e test: GINKGO_FOCUS := "\\[PR-Blocking\\]"
 ifeq ($(E2E_SKIP_EKS_UPGRADE),"true")
 	override EKS_E2E_ARGS += --skip-eks-upgrade-tests
 endif
@@ -400,11 +395,11 @@ test-verbose: setup-envtest ## Run tests with verbose settings.
 
 .PHONY: test-e2e ## Run e2e tests using clusterctl
 test-e2e: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) generate-test-flavors e2e-image ## Run e2e tests
-	time $(GINKGO) -tags=e2e $(GINKGO_ARGS) -p ./test/e2e/suites/unmanaged/... -- -config-path="$(E2E_CONF_PATH)" $(E2E_ARGS)
+	time $(GINKGO) -tags=e2e -focus="$(GINKGO_FOCUS)" -skip="$(GINKGO_SKIP)" $(GINKGO_ARGS) -p ./test/e2e/suites/unmanaged/... -- -config-path="$(E2E_CONF_PATH)" $(E2E_ARGS)
 
 .PHONY: test-e2e-eks ## Run EKS e2e tests using clusterctl
 test-e2e-eks: generate-test-flavors  $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run eks e2e tests
-	time $(GINKGO) -tags=e2e $(GINKGO_ARGS) ./test/e2e/suites/managed/... -- -config-path="$(E2E_EKS_CONF_PATH)" --source-template="$(EKS_SOURCE_TEMPLATE)" $(E2E_ARGS) $(EKS_E2E_ARGS)
+	time $(GINKGO) -tags=e2e -focus="$(GINKGO_FOCUS)" -skip="$(GINKGO_SKIP)" $(GINKGO_ARGS) ./test/e2e/suites/managed/... -- -config-path="$(E2E_EKS_CONF_PATH)" --source-template="$(EKS_SOURCE_TEMPLATE)" $(E2E_ARGS) $(EKS_E2E_ARGS)
 
 
 CONFORMANCE_E2E_ARGS ?= -kubetest.config-file=$(KUBETEST_CONF_PATH)
