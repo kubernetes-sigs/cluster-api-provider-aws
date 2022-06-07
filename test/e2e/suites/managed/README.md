@@ -12,3 +12,5 @@ For example, in [eks_test.go](eks_test.go) we perform the following steps:
 4. Perform tests against the machine deployment
 5. Apply a AWSManagedMachinePool
 6. Perform tests against the machine pool
+7. Apply a AWSMachinePool
+8. Perform tests against the machine pool

@@ -25,6 +25,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
 	. "github.com/onsi/gomega"
@@ -42,7 +43,8 @@ const (
 	EKSControlPlaneOnlyFlavor          = "eks-control-plane-only"
 	EKSControlPlaneOnlyWithAddonFlavor = "eks-control-plane-only-withaddon"
 	EKSMachineDeployOnlyFlavor         = "eks-machine-deployment-only"
-	EKSManagedPoolOnlyFlavor           = "eks-managed-machinepool-only"
+	EKSManagedMachinePoolOnlyFlavor    = "eks-managed-machinepool-only"
+	EKSMachinePoolOnlyFlavor           = "eks-machinepool-only"
 )
 
 type DefaultConfigClusterFn func(clusterName, namespace string) clusterctl.ConfigClusterInput
@@ -57,6 +59,10 @@ func getEKSNodegroupName(namespace, clusterName string) string {
 
 func getControlPlaneName(clusterName string) string {
 	return fmt.Sprintf("%s-control-plane", clusterName)
+}
+
+func getASGName(clusterName string) string {
+	return fmt.Sprintf("%s-mp-0", clusterName)
 }
 
 func verifyClusterActiveAndOwned(eksClusterName, clusterName string, sess client.ConfigProvider) {
@@ -147,5 +153,32 @@ func verifyManagedNodeGroup(eksClusterName, nodeGroupName string, checkOwned boo
 		tagValue, ok := result.Nodegroup.Tags[tagName]
 		Expect(ok).To(BeTrue(), "expecting the cluster owned tag to exist")
 		Expect(*tagValue).To(BeEquivalentTo(string(infrav1.ResourceLifecycleOwned)))
+	}
+}
+
+func verifyASG(eksClusterName, asgName string, checkOwned bool, sess client.ConfigProvider) {
+	asgClient := autoscaling.New(sess)
+	input := &autoscaling.DescribeAutoScalingGroupsInput{
+		AutoScalingGroupNames: []*string{
+			aws.String(asgName),
+		},
+	}
+
+	result, err := asgClient.DescribeAutoScalingGroups(input)
+	Expect(err).NotTo(HaveOccurred())
+	for _, instance := range result.AutoScalingGroups[0].Instances {
+		Expect(*instance.LifecycleState).To(Equal("InService"), "expecting the instance in service")
+	}
+
+	if checkOwned {
+		found := false
+		for _, tag := range result.AutoScalingGroups[0].Tags {
+			if *tag.Key == infrav1.ClusterAWSCloudProviderTagKey(eksClusterName) {
+				Expect(*tag.Value).To(Equal(string(infrav1.ResourceLifecycleOwned)))
+				found = true
+				break
+			}
+		}
+		Expect(found).To(BeTrue(), "expecting the cluster owned tag to exist")
 	}
 }
