@@ -63,6 +63,11 @@ If instance profile does not look as expected, you may try recreating the CloudF
 
 ## Recover a management cluster after losing the api server load balancer
 
+These steps outline the process for recovering a management cluster after losing the load balancer for the api server. These steps are needed because AWS load balancers have dynamically generated DNS names. This means that when a load balancer is deleted CAPA will recreate the load balancer but it will have a different DNS name that does not match the original, so we need to update some resources as well as the certs to match the new name to make the cluster healthy again. There are a few different scenarios which this could happen.
+
+* The load balancer gets deleted by some external process or user.
+* If a cluster is created with the same name as the management cluster in a different namespace and then deleted it will delete the existing load balancer. This is due to ownership of AWS resources being managed by tags. See this [issue](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/969#issuecomment-519121056) for reference.
+
 ### **Access the api server locally**
 
 1. ssh to a control plane node and modify the `/etc/kubernetes/admin.conf`
@@ -82,6 +87,8 @@ If instance profile does not look as expected, you may try recreating the CloudF
 
 
 ### **Get rid of the lingering duplicate cluster**
+
+**This step is only needed in the scenario that duplicate cluster was created and deleted which caused the API server load balancer to be deleted.**
 
 1. since there is a duplicate cluster that is trying to be deleted and can't due to some resources being unable to cleanup since they are in use we need to stop the conflicting reconciliation process. Edit the duplicate aws cluster object and remove the `finalizers`
 
