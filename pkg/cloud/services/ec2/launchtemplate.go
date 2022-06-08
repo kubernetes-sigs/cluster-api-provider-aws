@@ -462,6 +462,17 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 			Name: aws.String(lt.IamInstanceProfile),
 		}
 	}
+	if s.scope.VPC().EnableIPv6 {
+		data.NetworkInterfaces = []*ec2.LaunchTemplateInstanceNetworkInterfaceSpecificationRequest{
+			{
+				Ipv6Prefixes: []*ec2.Ipv6PrefixSpecificationRequest{
+					{
+						Ipv6Prefix: aws.String("auto"),
+					},
+				},
+			},
+		}
+	}
 
 	ids, err := s.GetCoreNodeSecurityGroups(scope)
 	if err != nil {

@@ -79,6 +79,7 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 
 	if s.scope.SecondaryCidrBlock() == nil {
 		if needsUpdate {
+			s.scope.Info("adding environment properties to vpc-cni", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
 			if err = remoteClient.Update(ctx, &ds, &client.UpdateOptions{}); err != nil {
 				return err
 			}
