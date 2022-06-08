@@ -164,6 +164,238 @@ func TestReconcileVPC(t *testing.T) {
 			},
 		},
 		{
+			name: "Should create a new IPv6 VPC if managed IPv6 vpc does not exist",
+			input: &infrav1.VPCSpec{
+				AvailabilityZoneUsageLimit: &usageLimit,
+				AvailabilityZoneSelection:  &selection,
+				EnableIPv6:                 true,
+			},
+			wantErr: false,
+			want: &infrav1.VPCSpec{
+				ID:            "vpc-new",
+				CidrBlock:     "10.1.0.0/16",
+				EnableIPv6:    true,
+				IPv6CidrBlock: "2001:db8:1234:1a03::/56",
+				IPv6Pool:      "amazon",
+				Tags: map[string]string{
+					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
+					"Name": "test-cluster-vpc",
+					"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster": "owned",
+				},
+				AvailabilityZoneUsageLimit: &usageLimit,
+				AvailabilityZoneSelection:  &selection,
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{
+					VpcIds: aws.StringSlice([]string{"vpc-new"}),
+				})).Return(&ec2.DescribeVpcsOutput{
+					Vpcs: []*ec2.Vpc{
+						{
+							CidrBlock: aws.String("10.1.0.0/16"),
+							Ipv6CidrBlockAssociationSet: []*ec2.VpcIpv6CidrBlockAssociation{
+								{
+									AssociationId: aws.String("amazon"),
+									Ipv6CidrBlock: aws.String("2001:db8:1234:1a03::/56"),
+									Ipv6CidrBlockState: &ec2.VpcCidrBlockState{
+										State: aws.String(ec2.SubnetCidrBlockStateCodeAssociated),
+									},
+									Ipv6Pool: aws.String("amazon"),
+								},
+							},
+							State: aws.String("available"),
+							Tags:  tags,
+							VpcId: aws.String("vpc-new"),
+						},
+					},
+				}, nil)
+				m.CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{
+					AmazonProvidedIpv6CidrBlock: aws.Bool(true),
+				})).Return(&ec2.CreateVpcOutput{
+					Vpc: &ec2.Vpc{
+						State:     aws.String("available"),
+						VpcId:     aws.String("vpc-new"),
+						CidrBlock: aws.String("10.1.0.0/16"),
+						Tags:      tags,
+					},
+				}, nil)
+
+				m.DescribeVpcAttribute(gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
+					DoAndReturn(describeVpcAttributeFalse).MinTimes(1)
+
+				m.ModifyVpcAttribute(gomock.AssignableToTypeOf(&ec2.ModifyVpcAttributeInput{})).Return(&ec2.ModifyVpcAttributeOutput{}, nil).Times(2)
+			},
+		},
+		{
+			name: "Should create a new IPv6 VPC with BYOIP set up if managed IPv6 vpc does not exist",
+			input: &infrav1.VPCSpec{
+				AvailabilityZoneUsageLimit: &usageLimit,
+				AvailabilityZoneSelection:  &selection,
+				EnableIPv6:                 true,
+				IPv6CidrBlock:              "2001:db8:1234:1a03::/56",
+				IPv6Pool:                   "my-pool",
+			},
+			wantErr: false,
+			want: &infrav1.VPCSpec{
+				ID:            "vpc-new",
+				CidrBlock:     "10.1.0.0/16",
+				EnableIPv6:    true,
+				IPv6CidrBlock: "2001:db8:1234:1a03::/56",
+				IPv6Pool:      "my-pool",
+				Tags: map[string]string{
+					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
+					"Name": "test-cluster-vpc",
+					"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster": "owned",
+				},
+				AvailabilityZoneUsageLimit: &usageLimit,
+				AvailabilityZoneSelection:  &selection,
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{
+					AmazonProvidedIpv6CidrBlock: aws.Bool(false),
+					Ipv6Pool:                    aws.String("my-pool"),
+					Ipv6CidrBlock:               aws.String("2001:db8:1234:1a03::/56"),
+				})).Return(&ec2.CreateVpcOutput{
+					Vpc: &ec2.Vpc{
+						State:     aws.String("available"),
+						VpcId:     aws.String("vpc-new"),
+						CidrBlock: aws.String("10.1.0.0/16"),
+						Tags:      tags,
+					},
+				}, nil)
+
+				m.DescribeVpcAttribute(gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
+					DoAndReturn(describeVpcAttributeFalse).MinTimes(1)
+
+				m.ModifyVpcAttribute(gomock.AssignableToTypeOf(&ec2.ModifyVpcAttributeInput{})).Return(&ec2.ModifyVpcAttributeOutput{}, nil).Times(2)
+			},
+		},
+		{
+			name: "Describing the VPC fails with IPv6 VPC should return an error",
+			input: &infrav1.VPCSpec{
+				AvailabilityZoneUsageLimit: &usageLimit,
+				AvailabilityZoneSelection:  &selection,
+				EnableIPv6:                 true,
+			},
+			wantErr: true,
+			want:    nil,
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{
+					VpcIds: aws.StringSlice([]string{"vpc-new"}),
+				})).Return(nil, errors.New("nope"))
+				m.CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(&ec2.CreateVpcOutput{
+					Vpc: &ec2.Vpc{
+						State:     aws.String("available"),
+						VpcId:     aws.String("vpc-new"),
+						CidrBlock: aws.String("10.1.0.0/16"),
+						Tags:      tags,
+					},
+				}, nil)
+			},
+		},
+		{
+			name: "Describing an IPv6 VPC returns no results should return an error",
+			input: &infrav1.VPCSpec{
+				AvailabilityZoneUsageLimit: &usageLimit,
+				AvailabilityZoneSelection:  &selection,
+				EnableIPv6:                 true,
+			},
+			wantErr: true,
+			want:    nil,
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{
+					VpcIds: aws.StringSlice([]string{"vpc-new"}),
+				})).Return(&ec2.DescribeVpcsOutput{}, nil)
+				m.CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(&ec2.CreateVpcOutput{
+					Vpc: &ec2.Vpc{
+						State:     aws.String("available"),
+						VpcId:     aws.String("vpc-new"),
+						CidrBlock: aws.String("10.1.0.0/16"),
+						Tags:      tags,
+					},
+				}, nil)
+			},
+		},
+		{
+			name: "Describing an IPv6 VPC without ipv6 cidr associations should return an error",
+			input: &infrav1.VPCSpec{
+				AvailabilityZoneUsageLimit: &usageLimit,
+				AvailabilityZoneSelection:  &selection,
+				EnableIPv6:                 true,
+			},
+			wantErr: true,
+			want:    nil,
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{
+					VpcIds: aws.StringSlice([]string{"vpc-new"}),
+				})).Return(&ec2.DescribeVpcsOutput{
+					Vpcs: []*ec2.Vpc{
+						{
+							CidrBlock: aws.String("10.1.0.0/16"),
+							State:     aws.String("available"),
+							Tags:      tags,
+							VpcId:     aws.String("vpc-new"),
+						},
+					},
+				}, nil)
+				m.CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(&ec2.CreateVpcOutput{
+					Vpc: &ec2.Vpc{
+						State:     aws.String("available"),
+						VpcId:     aws.String("vpc-new"),
+						CidrBlock: aws.String("10.1.0.0/16"),
+						Tags:      tags,
+					},
+				}, nil)
+			},
+		},
+		{
+			name:  "should set up IPv6 associations if found VPC is IPv6 enabled",
+			input: &infrav1.VPCSpec{ID: "unmanaged-vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
+			want: &infrav1.VPCSpec{
+				ID:        "unmanaged-vpc-exists",
+				CidrBlock: "10.0.0.0/8",
+				Tags: map[string]string{
+					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
+					"Name": "test-cluster-vpc",
+				},
+				IPv6Pool:                   "my-pool",
+				IPv6CidrBlock:              "2001:db8:1234:1a03::/56",
+				EnableIPv6:                 true,
+				AvailabilityZoneUsageLimit: &usageLimit,
+				AvailabilityZoneSelection:  &selection,
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
+					Vpcs: []*ec2.Vpc{
+						{
+							State:     aws.String("available"),
+							VpcId:     aws.String("unmanaged-vpc-exists"),
+							CidrBlock: aws.String("10.0.0.0/8"),
+							Ipv6CidrBlockAssociationSet: []*ec2.VpcIpv6CidrBlockAssociation{
+								{
+									AssociationId: aws.String("amazon"),
+									Ipv6CidrBlock: aws.String("2001:db8:1234:1a03::/56"),
+									Ipv6CidrBlockState: &ec2.VpcCidrBlockState{
+										State: aws.String(ec2.SubnetCidrBlockStateCodeAssociated),
+									},
+									Ipv6Pool: aws.String("my-pool"),
+								},
+							},
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("common"),
+								},
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-vpc"),
+								},
+							},
+						},
+					},
+				}, nil)
+			},
+		},
+		{
 			name:    "managed vpc id exists, but vpc resource is missing",
 			input:   &infrav1.VPCSpec{ID: "vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
 			wantErr: true,

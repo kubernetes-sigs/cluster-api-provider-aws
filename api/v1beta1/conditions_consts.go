@@ -62,6 +62,14 @@ const (
 )
 
 const (
+	// EgressOnlyInternetGatewayReadyCondition reports on the successful reconciliation of egress only internet gateways.
+	// Only applicable to managed clusters.
+	EgressOnlyInternetGatewayReadyCondition clusterv1.ConditionType = "EgressOnlyInternetGatewayReady"
+	// EgressOnlyInternetGatewayFailedReason used when errors occur during egress only internet gateway reconciliation.
+	EgressOnlyInternetGatewayFailedReason = "EgressOnlyInternetGatewayFailed"
+)
+
+const (
 	// NatGatewaysReadyCondition reports successful reconciliation of NAT gateways.
 	// Only applicable to managed clusters.
 	NatGatewaysReadyCondition clusterv1.ConditionType = "NatGatewaysReady"

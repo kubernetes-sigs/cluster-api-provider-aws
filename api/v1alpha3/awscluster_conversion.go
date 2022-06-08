@@ -17,14 +17,16 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"fmt"
 	"unsafe"
 
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 )
 
 // ConvertTo converts the v1alpha3 AWSCluster receiver to a v1beta1 AWSCluster.
@@ -55,6 +57,25 @@ func (r *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.S3Bucket = restored.Spec.S3Bucket
+	dst.Spec.NetworkSpec.VPC.EgressOnlyInternetGatewayID = restored.Spec.NetworkSpec.VPC.EgressOnlyInternetGatewayID
+	dst.Spec.NetworkSpec.VPC.EnableIPv6 = restored.Spec.NetworkSpec.VPC.EnableIPv6
+	dst.Spec.NetworkSpec.VPC.IPv6CidrBlock = restored.Spec.NetworkSpec.VPC.IPv6CidrBlock
+	dst.Spec.NetworkSpec.VPC.IPv6Pool = restored.Spec.NetworkSpec.VPC.IPv6Pool
+
+	for i := range dst.Spec.NetworkSpec.Subnets {
+		var found bool
+		for k := range restored.Spec.NetworkSpec.Subnets {
+			if dst.Spec.NetworkSpec.Subnets[i].ID == restored.Spec.NetworkSpec.Subnets[k].ID {
+				dst.Spec.NetworkSpec.Subnets[i].IsIPv6 = restored.Spec.NetworkSpec.Subnets[i].IsIPv6
+				dst.Spec.NetworkSpec.Subnets[i].IPv6CidrBlock = restored.Spec.NetworkSpec.Subnets[i].IPv6CidrBlock
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("subnet with id %s not found amongts restored subnets", dst.Spec.NetworkSpec.Subnets[i].ID)
+		}
+	}
 
 	return nil
 }
@@ -130,4 +151,12 @@ func Convert_v1beta1_AWSLoadBalancerSpec_To_v1alpha3_AWSLoadBalancerSpec(in *inf
 
 func Convert_v1beta1_AWSClusterSpec_To_v1alpha3_AWSClusterSpec(in *infrav1.AWSClusterSpec, out *AWSClusterSpec, s apiconversion.Scope) error {
 	return autoConvert_v1beta1_AWSClusterSpec_To_v1alpha3_AWSClusterSpec(in, out, s)
+}
+
+func Convert_v1beta1_VPCSpec_To_v1alpha3_VPCSpec(in *infrav1.VPCSpec, out *VPCSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_VPCSpec_To_v1alpha3_VPCSpec(in, out, s)
+}
+
+func Convert_v1beta1_SubnetSpec_To_v1alpha3_SubnetSpec(in *infrav1.SubnetSpec, out *SubnetSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_SubnetSpec_To_v1alpha3_SubnetSpec(in, out, s)
 }

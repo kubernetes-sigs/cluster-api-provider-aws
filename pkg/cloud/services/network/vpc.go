@@ -52,6 +52,9 @@ func (s *Service) reconcileVPC() error {
 
 		s.scope.VPC().CidrBlock = vpc.CidrBlock
 		s.scope.VPC().Tags = vpc.Tags
+		s.scope.VPC().EnableIPv6 = vpc.EnableIPv6
+		s.scope.VPC().IPv6CidrBlock = vpc.IPv6CidrBlock
+		s.scope.VPC().IPv6Pool = vpc.IPv6Pool
 
 		// If VPC is unmanaged, return early.
 		if vpc.IsUnmanaged(s.scope.Name()) {
@@ -90,6 +93,9 @@ func (s *Service) reconcileVPC() error {
 	s.scope.Info("Created VPC", "vpc-id", vpc.ID)
 
 	s.scope.VPC().CidrBlock = vpc.CidrBlock
+	s.scope.VPC().IPv6CidrBlock = vpc.IPv6CidrBlock
+	s.scope.VPC().IPv6Pool = vpc.IPv6Pool
+	s.scope.VPC().EnableIPv6 = vpc.EnableIPv6
 	s.scope.VPC().Tags = vpc.Tags
 	s.scope.VPC().ID = vpc.ID
 
@@ -172,16 +178,25 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 }
 
 func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
-	if s.scope.VPC().CidrBlock == "" {
-		s.scope.VPC().CidrBlock = defaultVPCCidr
-	}
-
 	input := &ec2.CreateVpcInput{
-		CidrBlock: aws.String(s.scope.VPC().CidrBlock),
 		TagSpecifications: []*ec2.TagSpecification{
 			tags.BuildParamsToTagSpecification(ec2.ResourceTypeVpc, s.getVPCTagParams(services.TemporaryResourceID)),
 		},
 	}
+
+	// setup BYOIP
+	if s.scope.VPC().IPv6CidrBlock != "" {
+		input.Ipv6CidrBlock = aws.String(s.scope.VPC().IPv6CidrBlock)
+		input.Ipv6Pool = aws.String(s.scope.VPC().IPv6Pool)
+		input.AmazonProvidedIpv6CidrBlock = aws.Bool(false)
+	} else {
+		input.AmazonProvidedIpv6CidrBlock = aws.Bool(s.scope.VPC().EnableIPv6)
+	}
+
+	if s.scope.VPC().CidrBlock == "" {
+		s.scope.VPC().CidrBlock = defaultVPCCidr
+	}
+	input.CidrBlock = &s.scope.VPC().CidrBlock
 
 	out, err := s.EC2Client.CreateVpc(input)
 	if err != nil {
@@ -192,11 +207,52 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateVPC", "Created new managed VPC %q", *out.Vpc.VpcId)
 	s.scope.V(2).Info("Created new VPC with cidr", "vpc-id", *out.Vpc.VpcId, "cidr-block", *out.Vpc.CidrBlock)
 
-	return &infrav1.VPCSpec{
-		ID:        *out.Vpc.VpcId,
-		CidrBlock: *out.Vpc.CidrBlock,
-		Tags:      converters.TagsToMap(out.Vpc.Tags),
-	}, nil
+	if !s.scope.VPC().EnableIPv6 {
+		return &infrav1.VPCSpec{
+			ID:        *out.Vpc.VpcId,
+			CidrBlock: *out.Vpc.CidrBlock,
+			Tags:      converters.TagsToMap(out.Vpc.Tags),
+		}, nil
+	}
+
+	// BYOIP was defined, no need to look up the VPC.
+	if s.scope.VPC().EnableIPv6 && s.scope.VPC().IPv6CidrBlock != "" {
+		return &infrav1.VPCSpec{
+			ID:            *out.Vpc.VpcId,
+			CidrBlock:     *out.Vpc.CidrBlock,
+			EnableIPv6:    true,
+			IPv6CidrBlock: s.scope.VPC().IPv6CidrBlock,
+			IPv6Pool:      s.scope.VPC().IPv6Pool,
+			Tags:          converters.TagsToMap(out.Vpc.Tags),
+		}, nil
+	}
+
+	// We have to describe the VPC again because the `create` output will **NOT** contain the associated IPv6 address.
+	vpc, err := s.EC2Client.DescribeVpcs(&ec2.DescribeVpcsInput{
+		VpcIds: aws.StringSlice([]string{aws.StringValue(out.Vpc.VpcId)}),
+	})
+	if err != nil {
+		record.Warnf(s.scope.InfraCluster(), "DescribeVpcs", "Failed to describe the new ipv6 vpc: %v", err)
+		return nil, errors.Wrap(err, "failed to describe new ipv6 vpc")
+	}
+	if len(vpc.Vpcs) == 0 {
+		record.Warnf(s.scope.InfraCluster(), "DescribeVpcs", "Failed to find the new ipv6 vpc, returned list was empty.")
+		return nil, errors.New("failed to find new ipv6 vpc; returned list was empty")
+	}
+	for _, set := range vpc.Vpcs[0].Ipv6CidrBlockAssociationSet {
+		if *set.Ipv6CidrBlockState.State == ec2.SubnetCidrBlockStateCodeAssociated {
+			return &infrav1.VPCSpec{
+				EnableIPv6:    true,
+				ID:            *vpc.Vpcs[0].VpcId,
+				CidrBlock:     *out.Vpc.CidrBlock,
+				IPv6CidrBlock: aws.StringValue(set.Ipv6CidrBlock),
+				IPv6Pool:      aws.StringValue(set.Ipv6Pool),
+				Tags:          converters.TagsToMap(vpc.Vpcs[0].Tags),
+			}, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no IPv6 associated CIDR block sets found for IPv6 enabled cluster with vpc id %s", *out.Vpc.VpcId)
 }
 
 func (s *Service) deleteVPC() error {
@@ -260,11 +316,20 @@ func (s *Service) describeVPCByID() (*infrav1.VPCSpec, error) {
 		return nil, awserrors.NewNotFound("could not find available or pending vpc")
 	}
 
-	return &infrav1.VPCSpec{
+	vpc := &infrav1.VPCSpec{
 		ID:        *out.Vpcs[0].VpcId,
 		CidrBlock: *out.Vpcs[0].CidrBlock,
 		Tags:      converters.TagsToMap(out.Vpcs[0].Tags),
-	}, nil
+	}
+	for _, set := range out.Vpcs[0].Ipv6CidrBlockAssociationSet {
+		if *set.Ipv6CidrBlockState.State == ec2.SubnetCidrBlockStateCodeAssociated {
+			vpc.IPv6CidrBlock = aws.StringValue(set.Ipv6CidrBlock)
+			vpc.IPv6Pool = aws.StringValue(set.Ipv6Pool)
+			vpc.EnableIPv6 = true
+			break
+		}
+	}
+	return vpc, nil
 }
 
 func (s *Service) getVPCTagParams(id string) infrav1.BuildParams {

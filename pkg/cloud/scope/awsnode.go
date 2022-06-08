@@ -40,4 +40,6 @@ type AWSNodeScope interface {
 	DisableVPCCNI() bool
 	// VpcCni specifies configuration related to the VPC CNI.
 	VpcCni() ekscontrolplanev1.VpcCni
+	// VPC returns the given VPC configuration.
+	VPC() *infrav1.VPCSpec
 }

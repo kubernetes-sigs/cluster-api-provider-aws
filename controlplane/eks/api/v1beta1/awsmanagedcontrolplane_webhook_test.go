@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -359,6 +360,107 @@ func TestWebhookCreate(t *testing.T) {
 	}
 }
 
+func TestWebhookCreate_IPv6Details(t *testing.T) {
+	tests := []struct {
+		name        string
+		addons      []Addon
+		kubeVersion string
+		networkSpec infrav1.NetworkSpec
+		err         string
+	}{
+		{
+			name:        "ipv6 with lower cluster version",
+			kubeVersion: "v1.18",
+			err:         fmt.Sprintf("IPv6 requires Kubernetes %s or greater", minKubeVersionForIPv6),
+			networkSpec: infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					EnableIPv6: true,
+				},
+			},
+		},
+		{
+			name:        "ipv6 no addons",
+			kubeVersion: "v1.22",
+			err:         "addons are required to be set explicitly if IPv6 is enabled",
+			networkSpec: infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					EnableIPv6: true,
+				},
+			},
+		},
+		{
+			name:        "ipv6 with addons but cni version is lower than supported version",
+			kubeVersion: "v1.22",
+			addons: []Addon{
+				{
+					Name:    vpcCniAddon,
+					Version: "1.9.3",
+				},
+			},
+			err: fmt.Sprintf("vpc-cni version must be above or equal to %s for IPv6", minVpcCniVersionForIPv6),
+			networkSpec: infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					EnableIPv6: true,
+				},
+			},
+		},
+		{
+			name:        "ipv6 with addons and correct cni and cluster version",
+			kubeVersion: "v1.22",
+			addons: []Addon{
+				{
+					Name:    vpcCniAddon,
+					Version: "1.11.0",
+				},
+			},
+			networkSpec: infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					EnableIPv6: true,
+				},
+			},
+		},
+		{
+			name:        "ipv6 with BYOIP but pool is left empty",
+			kubeVersion: "v1.18",
+			networkSpec: infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					EnableIPv6:    true,
+					IPv6CidrBlock: "not-empty",
+					// IPv6Pool is empty
+				},
+			},
+			err: "ipv6Pool cannot be empty if ipv6CidrBlock is set for BYOIP",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.TODO()
+			g := NewWithT(t)
+
+			mcp := &AWSManagedControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "mcp-",
+					Namespace:    "default",
+				},
+				Spec: AWSManagedControlPlaneSpec{
+					EKSClusterName: "test-cluster",
+					Addons:         &tc.addons,
+					NetworkSpec:    tc.networkSpec,
+					Version:        &tc.kubeVersion,
+				},
+			}
+			err := testEnv.Create(ctx, mcp)
+
+			if tc.err != "" {
+				g.Expect(err).To(MatchError(ContainSubstring(tc.err)))
+			} else {
+				g.Expect(err).To(BeNil())
+			}
+		})
+	}
+}
+
 func TestWebhookUpdate(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -510,6 +612,53 @@ func TestWebhookUpdate(t *testing.T) {
 					"":                         "value-2",
 					strings.Repeat("CAPI", 33): "value-3",
 					"key-4":                    strings.Repeat("CAPI", 65),
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "changing ipv6 enabled is not allowed after it has been set - false, true",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				NetworkSpec: infrav1.NetworkSpec{
+					VPC: infrav1.VPCSpec{
+						EnableIPv6: false,
+					},
+				},
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				NetworkSpec: infrav1.NetworkSpec{
+					VPC: infrav1.VPCSpec{
+						EnableIPv6: true,
+					},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "changing ipv6 enabled is not allowed after it has been set - true, false",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				NetworkSpec: infrav1.NetworkSpec{
+					VPC: infrav1.VPCSpec{
+						EnableIPv6: true,
+					},
+				},
+				Addons: &[]Addon{
+					{
+						Name:    vpcCniAddon,
+						Version: "1.11.0",
+					},
+				},
+				Version: pointer.String("v1.22.0"),
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				NetworkSpec: infrav1.NetworkSpec{
+					VPC: infrav1.VPCSpec{
+						EnableIPv6: false,
+					},
 				},
 			},
 			expectError: true,

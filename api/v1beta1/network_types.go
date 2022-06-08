@@ -174,9 +174,27 @@ type VPCSpec struct {
 	// Defaults to 10.0.0.0/16.
 	CidrBlock string `json:"cidrBlock,omitempty"`
 
+	// EnableIPv6 requests an Amazon-provided IPv6 CIDR block with a /56 prefix length for
+	// the VPC. You cannot specify the range of IP addresses, or the size of the
+	// CIDR block.
+	// +optional
+	EnableIPv6 bool `json:"enableIPv6"`
+
+	// IPv6CidrBlock is the CIDR block provided by Amazon when VPC has enabled IPv6.
+	// +optional
+	IPv6CidrBlock string `json:"ipv6CidrBlock,omitempty"`
+
+	// IPv6Pool is the IP pool which must be defined in case of BYO IP is defined.
+	// +optional
+	IPv6Pool string `json:"ipv6Pool,omitempty"`
+
 	// InternetGatewayID is the id of the internet gateway associated with the VPC.
 	// +optional
 	InternetGatewayID *string `json:"internetGatewayId,omitempty"`
+
+	// EgressOnlyInternetGatewayID is the id of the egress only internet gateway associated with an IPv6 enabled VPC.
+	// +optional
+	EgressOnlyInternetGatewayID *string `json:"egressOnlyInternetGatewayId,omitempty"`
 
 	// Tags is a collection of tags describing the resource.
 	Tags Tags `json:"tags,omitempty"`
@@ -222,12 +240,20 @@ type SubnetSpec struct {
 	// CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
 	CidrBlock string `json:"cidrBlock,omitempty"`
 
+	// IPv6CidrBlock is the IPv6 CIDR block to be used when the provider creates a managed VPC.
+	// A subnet can have an IPv4 and an IPv6 address.
+	IPv6CidrBlock string `json:"ipv6CidrBlock,omitempty"`
+
 	// AvailabilityZone defines the availability zone to use for this subnet in the cluster's region.
 	AvailabilityZone string `json:"availabilityZone,omitempty"`
 
 	// IsPublic defines the subnet as a public subnet. A subnet is public when it is associated with a route table that has a route to an internet gateway.
 	// +optional
 	IsPublic bool `json:"isPublic"`
+
+	// IsIPv6 defines the subnet as an IPv6 subnet. A subnet is IPv6 when it is associated with a VPC that has IPv6 enabled.
+	// +optional
+	IsIPv6 bool `json:"isIpv6"`
 
 	// RouteTableID is the routing table id associated with the subnet.
 	// +optional
@@ -285,7 +311,7 @@ func (s Subnets) FindByID(id string) *SubnetSpec {
 // or if they are in the same vpc and the cidr block is the same.
 func (s Subnets) FindEqual(spec *SubnetSpec) *SubnetSpec {
 	for _, x := range s {
-		if (spec.ID != "" && x.ID == spec.ID) || (spec.CidrBlock == x.CidrBlock) {
+		if (spec.ID != "" && x.ID == spec.ID) || (spec.CidrBlock == x.CidrBlock) || (spec.IPv6CidrBlock != "" && spec.IPv6CidrBlock == x.IPv6CidrBlock) {
 			return &x
 		}
 	}
