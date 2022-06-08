@@ -43,8 +43,13 @@ func (t Template) cloudProviderNodeAwsPolicy() *iamv1.PolicyDocument {
 				Effect:   iamv1.EffectAllow,
 				Resource: iamv1.Resources{iamv1.Any},
 				Action: iamv1.Actions{
+					"ec2:AssignIpv6Addresses",
 					"ec2:DescribeInstances",
 					"ec2:DescribeRegions",
+					"ec2:CreateTags",
+					"ec2:DescribeTags",
+					"ec2:DescribeNetworkInterfaces",
+					"ec2:DescribeInstanceTypes",
 					"ecr:GetAuthorizationToken",
 					"ecr:BatchCheckLayerAvailability",
 					"ecr:GetDownloadUrlForLayer",

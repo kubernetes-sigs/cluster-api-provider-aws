@@ -37,4 +37,8 @@ type AWSNodeScope interface {
 	SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.SecurityGroup
 	// DisableVPCCNI returns whether the AWS VPC CNI should be disabled
 	DisableVPCCNI() bool
+	// VpcCni specifies configuration related to the VPC CNI.
+	VpcCni() ekscontrolplanev1.VpcCni
+	// VPC returns the given VPC configuration.
+	VPC() *infrav1.VPCSpec
 }

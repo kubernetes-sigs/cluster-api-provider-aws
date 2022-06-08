@@ -1551,6 +1551,11 @@ func (in *VPCSpec) DeepCopyInto(out *VPCSpec) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.EgressOnlyInternetGatewayID != nil {
+		in, out := &in.EgressOnlyInternetGatewayID, &out.EgressOnlyInternetGatewayID
+		*out = new(string)
+		**out = **in
+	}
 	if in.Tags != nil {
 		in, out := &in.Tags, &out.Tags
 		*out = make(Tags, len(*in))

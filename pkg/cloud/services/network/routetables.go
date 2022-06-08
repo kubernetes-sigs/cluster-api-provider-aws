@@ -61,12 +61,18 @@ func (s *Service) reconcileRouteTables() error {
 				return errors.Errorf("failed to create routing tables: internet gateway for %q is nil", s.scope.VPC().ID)
 			}
 			routes = append(routes, s.getGatewayPublicRoute())
+			if sn.IsIPv6 {
+				routes = append(routes, s.getGatewayPublicIPv6Route())
+			}
 		} else {
 			natGatewayID, err := s.getNatGatewayForSubnet(&sn)
 			if err != nil {
 				return err
 			}
 			routes = append(routes, s.getNatGatewayPrivateRoute(natGatewayID))
+			if sn.IsIPv6 {
+				routes = append(routes, s.getEgressOnlyInternetGateway())
+			}
 		}
 
 		if rt, ok := subnetRouteMap[sn.ID]; ok {
@@ -80,30 +86,13 @@ func (s *Service) reconcileRouteTables() error {
 				for i := range routes {
 					// Routes destination cidr blocks must be unique within a routing table.
 					// If there is a mistmatch, we replace the routing association.
-					specRoute := routes[i]
-					if (currentRoute.DestinationCidrBlock != nil && // Manually-created routes can have .DestinationIpv6CidrBlock or .DestinationPrefixListId set instead.
-						*currentRoute.DestinationCidrBlock == *specRoute.DestinationCidrBlock) &&
-						((currentRoute.GatewayId != nil && *currentRoute.GatewayId != *specRoute.GatewayId) ||
-							(currentRoute.NatGatewayId != nil && *currentRoute.NatGatewayId != *specRoute.NatGatewayId)) {
-						if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-							if _, err := s.EC2Client.ReplaceRoute(&ec2.ReplaceRouteInput{
-								RouteTableId:         rt.RouteTableId,
-								DestinationCidrBlock: specRoute.DestinationCidrBlock,
-								GatewayId:            specRoute.GatewayId,
-								NatGatewayId:         specRoute.NatGatewayId,
-							}); err != nil {
-								return false, err
-							}
-							return true, nil
-						}); err != nil {
-							record.Warnf(s.scope.InfraCluster(), "FailedReplaceRoute", "Failed to replace outdated route on managed RouteTable %q: %v", *rt.RouteTableId, err)
-							return errors.Wrapf(err, "failed to replace outdated route on route table %q", *rt.RouteTableId)
-						}
+					if err := s.fixMismatchedRouting(routes[i], currentRoute, rt); err != nil {
+						return err
 					}
 				}
 			}
 
-			// Make sure tags are up to date.
+			// Make sure tags are up-to-date.
 			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 				buildParams := s.getRouteTableTagParams(*rt.RouteTableId, sn.IsPublic, sn.AvailabilityZone)
 				tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
@@ -141,6 +130,50 @@ func (s *Service) reconcileRouteTables() error {
 		sn.RouteTableID = aws.String(rt.ID)
 	}
 	conditions.MarkTrue(s.scope.InfraCluster(), infrav1.RouteTablesReadyCondition)
+	return nil
+}
+
+func (s *Service) fixMismatchedRouting(specRoute *ec2.Route, currentRoute *ec2.Route, rt *ec2.RouteTable) error {
+	var input *ec2.ReplaceRouteInput
+	if specRoute.DestinationCidrBlock != nil {
+		if (currentRoute.DestinationCidrBlock != nil &&
+			*currentRoute.DestinationCidrBlock == *specRoute.DestinationCidrBlock) &&
+			((currentRoute.GatewayId != nil && *currentRoute.GatewayId != *specRoute.GatewayId) ||
+				(currentRoute.NatGatewayId != nil && *currentRoute.NatGatewayId != *specRoute.NatGatewayId)) {
+			input = &ec2.ReplaceRouteInput{
+				RouteTableId:         rt.RouteTableId,
+				DestinationCidrBlock: specRoute.DestinationCidrBlock,
+				GatewayId:            specRoute.GatewayId,
+				NatGatewayId:         specRoute.NatGatewayId,
+			}
+		}
+	}
+	if specRoute.DestinationIpv6CidrBlock != nil {
+		if (currentRoute.DestinationIpv6CidrBlock != nil &&
+			*currentRoute.DestinationIpv6CidrBlock == *specRoute.DestinationIpv6CidrBlock) &&
+			((currentRoute.GatewayId != nil && *currentRoute.GatewayId != *specRoute.GatewayId) ||
+				(currentRoute.NatGatewayId != nil && *currentRoute.NatGatewayId != *specRoute.NatGatewayId)) {
+			input = &ec2.ReplaceRouteInput{
+				RouteTableId:                rt.RouteTableId,
+				DestinationIpv6CidrBlock:    specRoute.DestinationIpv6CidrBlock,
+				DestinationPrefixListId:     specRoute.DestinationPrefixListId,
+				GatewayId:                   specRoute.GatewayId,
+				NatGatewayId:                specRoute.NatGatewayId,
+				EgressOnlyInternetGatewayId: specRoute.EgressOnlyInternetGatewayId,
+			}
+		}
+	}
+	if input != nil {
+		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+			if _, err := s.EC2Client.ReplaceRoute(input); err != nil {
+				return false, err
+			}
+			return true, nil
+		}); err != nil {
+			record.Warnf(s.scope.InfraCluster(), "FailedReplaceRoute", "Failed to replace outdated route on managed RouteTable %q: %v", *rt.RouteTableId, err)
+			return errors.Wrapf(err, "failed to replace outdated route on route table %q", *rt.RouteTableId)
+		}
+	}
 	return nil
 }
 
@@ -286,8 +319,15 @@ func (s *Service) associateRouteTable(rt *infrav1.RouteTable, subnetID string) e
 
 func (s *Service) getNatGatewayPrivateRoute(natGatewayID string) *ec2.Route {
 	return &ec2.Route{
-		DestinationCidrBlock: aws.String(services.AnyIPv4CidrBlock),
 		NatGatewayId:         aws.String(natGatewayID),
+		DestinationCidrBlock: aws.String(services.AnyIPv4CidrBlock),
+	}
+}
+
+func (s *Service) getEgressOnlyInternetGateway() *ec2.Route {
+	return &ec2.Route{
+		DestinationIpv6CidrBlock:    aws.String(services.AnyIPv6CidrBlock),
+		EgressOnlyInternetGatewayId: s.scope.VPC().EgressOnlyInternetGatewayID,
 	}
 }
 
@@ -295,6 +335,13 @@ func (s *Service) getGatewayPublicRoute() *ec2.Route {
 	return &ec2.Route{
 		DestinationCidrBlock: aws.String(services.AnyIPv4CidrBlock),
 		GatewayId:            aws.String(*s.scope.VPC().InternetGatewayID),
+	}
+}
+
+func (s *Service) getGatewayPublicIPv6Route() *ec2.Route {
+	return &ec2.Route{
+		DestinationIpv6CidrBlock: aws.String(services.AnyIPv6CidrBlock),
+		GatewayId:                aws.String(*s.scope.VPC().InternetGatewayID),
 	}
 }
 
