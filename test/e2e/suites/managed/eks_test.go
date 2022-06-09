@@ -71,7 +71,6 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				Flavour:                  EKSControlPlaneOnlyWithAddonFlavor,
 				ControlPlaneMachineCount: 1, //NOTE: this cannot be zero as clusterctl returns an error
 				WorkerMachineCount:       0,
-				CNIManifestPath:          e2eCtx.E2EConfig.GetVariable(shared.CNIPath),
 			}
 		})
 

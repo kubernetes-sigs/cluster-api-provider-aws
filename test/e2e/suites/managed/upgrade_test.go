@@ -36,8 +36,8 @@ import (
 // EKS cluster upgrade tests.
 var _ = ginkgo.Describe("EKS Cluster upgrade test", func() {
 	const (
-		initialVersion   = "v1.20.0"
-		upgradeToversion = "v1.21.0"
+		initialVersion   = "v1.21.0"
+		upgradeToVersion = "v1.22.0"
 	)
 	var (
 		namespace   *corev1.Namespace
@@ -71,7 +71,6 @@ var _ = ginkgo.Describe("EKS Cluster upgrade test", func() {
 				Flavour:                  EKSControlPlaneOnlyFlavor, // TODO (richardcase) - change in the future when upgrades to machinepools work
 				ControlPlaneMachineCount: 1,                         // NOTE: this cannot be zero as clusterctl returns an error
 				WorkerMachineCount:       1,
-				CNIManifestPath:          e2eCtx.E2EConfig.GetVariable(shared.CNIPath),
 				KubernetesVersion:        initialVersion,
 			}
 		})
@@ -94,7 +93,7 @@ var _ = ginkgo.Describe("EKS Cluster upgrade test", func() {
 		// }, e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes")...)
 		// Expect(len(mp)).To(Equal(1))
 
-		shared.Byf("should upgrade control plane to version %s", upgradeToversion)
+		shared.Byf("should upgrade control plane to version %s", upgradeToVersion)
 		UpgradeControlPlaneVersionSpec(ctx, func() UpgradeControlPlaneVersionSpecInput {
 			return UpgradeControlPlaneVersionSpecInput{
 				E2EConfig:             e2eCtx.E2EConfig,
@@ -102,7 +101,7 @@ var _ = ginkgo.Describe("EKS Cluster upgrade test", func() {
 				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
 				ClusterName:           clusterName,
 				Namespace:             namespace,
-				UpgradeVersion:        upgradeToversion,
+				UpgradeVersion:        upgradeToVersion,
 			}
 		})
 
