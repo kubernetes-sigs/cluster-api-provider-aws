@@ -34,6 +34,7 @@ type ListInput struct {
 	KubernetesVersion string
 	OperatingSystem   string
 	OwnerID           string
+	AMINameFormat     string
 }
 
 const lastNReleases = 3
@@ -51,6 +52,10 @@ func List(input ListInput) (*amiv1.AWSAMIList, error) {
 		imageRegionList = getimageRegionList()
 	} else {
 		imageRegionList = append(imageRegionList, input.Region)
+	}
+	amiNameFormat := input.AMINameFormat
+	if amiNameFormat == "" {
+		amiNameFormat = "capa-ami-{{.BaseOS}}-{{.K8sVersion}}"
 	}
 
 	supportedVersions := []string{}
@@ -96,7 +101,7 @@ func List(input ListInput) (*amiv1.AWSAMIList, error) {
 		}
 		for _, version := range supportedVersions {
 			for _, os := range supportedOsList {
-				image, err := findAMI(imageMap, os, version)
+				image, err := findAMI(imageMap, os, version, amiNameFormat)
 				if err != nil {
 					return nil, err
 				}
