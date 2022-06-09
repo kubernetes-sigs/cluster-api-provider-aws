@@ -28,6 +28,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/annotations"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -219,4 +220,14 @@ func (s *FargateProfileScope) ControllerName() string {
 // KubernetesClusterName is the name of the EKS cluster name.
 func (s *FargateProfileScope) KubernetesClusterName() string {
 	return s.ControlPlane.Spec.EKSClusterName
+}
+
+func (s *FargateProfileScope) ExternalResourceGC() bool {
+	hasGC, err := annotations.GetExternalResourceGC(s.ControlPlane)
+	if err != nil {
+		s.Error(err, "getting external resource gc status from control plane", "annotation", extResCleanedAnnotation)
+		return false
+	}
+
+	return hasGC
 }

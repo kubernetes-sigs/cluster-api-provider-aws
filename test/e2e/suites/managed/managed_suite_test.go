@@ -39,6 +39,7 @@ var (
 	e2eCtx           *shared.E2EContext
 	skipUpgradeTests bool
 	skipGeneralTests bool
+	skipGCTests      bool
 )
 
 func init() {
@@ -47,6 +48,7 @@ func init() {
 	shared.CreateDefaultFlags(e2eCtx)
 	flag.BoolVar(&skipGeneralTests, "skip-eks-general-tests", false, "if true, the general EKS tests will be skipped")
 	flag.BoolVar(&skipUpgradeTests, "skip-eks-upgrade-tests", false, "if true, the EKS upgrade tests will be skipped")
+	flag.BoolVar(&skipGCTests, "skip-eks-extresourcegc-tests", false, "if true, the EKS external resource gc tests will be skipped.")
 }
 
 func TestE2E(t *testing.T) {
@@ -75,6 +77,10 @@ func runGeneralTests() bool {
 
 func runUpgradeTests() bool {
 	return !skipUpgradeTests
+}
+
+func runGCTests() bool {
+	return !skipGCTests
 }
 
 func initScheme() *runtime.Scheme {

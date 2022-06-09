@@ -36,6 +36,7 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/feature"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/annotations"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/awsnode"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
@@ -46,7 +47,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/securitygroup"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
+	capiannotations "sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -72,6 +73,7 @@ type AWSManagedControlPlaneReconciler struct {
 	EnableIAM            bool
 	AllowAdditionalRoles bool
 	WatchFilterValue     string
+	ExternalResourceGC   bool
 }
 
 // SetupWithManager is used to setup the controller.
@@ -135,7 +137,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, nil
 	}
 
-	if annotations.IsPaused(cluster, awsControlPlane) {
+	if capiannotations.IsPaused(cluster, awsControlPlane) {
 		log.Info("Reconciliation is paused for this object")
 		return ctrl.Result{}, nil
 	}
@@ -202,6 +204,13 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 		return ctrl.Result{}, err
 	}
 
+	if r.ExternalResourceGC {
+		if !annotations.Has(awsManagedControlPlane, annotations.ExternalResourceGCAnnotation) {
+			managedScope.Info("control plane not marked for external resource gc yet, requeue")
+			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		}
+	}
+
 	if awsManagedControlPlane.Spec.Bastion.Enabled {
 		eksSecurityGroupRoles = append(eksSecurityGroupRoles, infrav1.SecurityGroupBastion)
 	}
@@ -262,6 +271,11 @@ func (r *AWSManagedControlPlaneReconciler) reconcileDelete(ctx context.Context, 
 	managedScope.Info("Reconciling AWSManagedControlPlane delete")
 
 	controlPlane := managedScope.ControlPlane
+
+	if !managedScope.ExternalResourceGC() {
+		managedScope.Info("workload resources not garbage collected, requeueing")
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	}
 
 	numDependencies, err := r.dependencyCount(ctx, managedScope)
 	if err != nil {

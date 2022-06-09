@@ -37,6 +37,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/annotations"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
@@ -61,7 +62,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 		awsMachinePool *expinfrav1.AWSMachinePool
 		secret         *corev1.Secret
 	)
-	setup := func(t *testing.T, g *WithT) {
+	setup := func(t *testing.T, g *WithT, externalGC string) {
 		t.Helper()
 
 		var err error
@@ -123,7 +124,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 		)
 		g.Expect(err).To(BeNil())
 
-		cs, err = setupCluster("test-cluster")
+		cs, err = setupCluster("test-cluster", externalGC)
 		g.Expect(err).To(BeNil())
 
 		mockCtrl = gomock.NewController(t)
@@ -168,7 +169,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			}
 			t.Run("should exit immediately on an error state", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				setup(t, g, "")
 				defer teardown(t, g)
 				getASG(t, g)
 
@@ -184,7 +185,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			})
 			t.Run("should add our finalizer to the machinepool", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				setup(t, g, "")
 				defer teardown(t, g)
 				getASG(t, g)
 
@@ -194,7 +195,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			})
 			t.Run("should exit immediately if cluster infra isn't ready", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				setup(t, g, "")
 				defer teardown(t, g)
 				getASG(t, g)
 
@@ -210,7 +211,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			})
 			t.Run("should exit immediately if bootstrap data secret reference isn't available", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				setup(t, g, "")
 				defer teardown(t, g)
 				getASG(t, g)
 
@@ -237,7 +238,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			}
 			t.Run("should look up by provider ID when one exists", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				setup(t, g, "")
 				defer teardown(t, g)
 				setProviderID(t, g)
 
@@ -249,7 +250,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			})
 			t.Run("should try to create a new machinepool if none exists", func(t *testing.T) {
 				g := NewWithT(t)
-				setup(t, g)
+				setup(t, g, "")
 				defer teardown(t, g)
 				setProviderID(t, g)
 
@@ -276,7 +277,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 		}
 		t.Run("should exit immediately on an error state", func(t *testing.T) {
 			g := NewWithT(t)
-			setup(t, g)
+			setup(t, g, "")
 			defer teardown(t, g)
 			finalizer(t, g)
 
@@ -288,7 +289,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 		})
 		t.Run("should log and remove finalizer when no machinepool exists", func(t *testing.T) {
 			g := NewWithT(t)
-			setup(t, g)
+			setup(t, g, "")
 			defer teardown(t, g)
 			finalizer(t, g)
 
@@ -306,7 +307,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 		})
 		t.Run("should cause AWSMachinePool to go into NotReady", func(t *testing.T) {
 			g := NewWithT(t)
-			setup(t, g)
+			setup(t, g, "")
 			defer teardown(t, g)
 			finalizer(t, g)
 
@@ -323,6 +324,20 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			g.Expect(err).To(BeNil())
 			g.Expect(ms.AWSMachinePool.Status.Ready).To(Equal(false))
 			g.Eventually(recorder.Events).Should(Receive(ContainSubstring("DeletionInProgress")))
+		})
+		t.Run("should requeue if external resources not garbage collected", func(t *testing.T) {
+			g := NewWithT(t)
+			setup(t, g, "false")
+			defer teardown(t, g)
+			finalizer(t, g)
+
+			buf := new(bytes.Buffer)
+			klog.SetOutput(buf)
+			result, err := reconciler.reconcileDelete(ms, cs, cs)
+			g.Expect(err).To(BeNil())
+			g.Expect(result).NotTo(BeNil())
+			g.Expect(result.RequeueAfter).NotTo(BeNil())
+			g.Expect(result.RequeueAfter).NotTo(BeZero())
 		})
 	})
 }
@@ -348,12 +363,17 @@ func expectConditions(g *WithT, m *expinfrav1.AWSMachinePool, expected []conditi
 	}
 }
 
-func setupCluster(clusterName string) (*scope.ClusterScope, error) {
+func setupCluster(clusterName string, externalGC string) (*scope.ClusterScope, error) {
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
 	awsCluster := &infrav1.AWSCluster{
 		ObjectMeta: metav1.ObjectMeta{Name: "test"},
 		Spec:       infrav1.AWSClusterSpec{},
+	}
+	if externalGC != "" {
+		awsCluster.ObjectMeta.Annotations = map[string]string{
+			annotations.ExternalResourceGCAnnotation: externalGC,
+		}
 	}
 	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).Build()
 	return scope.NewClusterScope(scope.ClusterScopeParams{

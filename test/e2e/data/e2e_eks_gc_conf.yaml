@@ -219,6 +219,8 @@ variables:
   CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "1.22.9"
   AUTO_CONTROLLER_IDENTITY_CREATOR: "false"
   IP_FAMILY: "IPv4"
+  EXP_EXTERNAL_RESOURCE_GC: "true"
+  GC_WORKLOAD: "../../data/gcworkload.yaml"
   CAPA_LOGLEVEL: "4"
 
 intervals:
@@ -236,3 +238,5 @@ intervals:
   default/wait-control-plane-upgrade: ["35m", "30s"]
   default/wait-addon-status: ["10m", "30s"]
   default/wait-create-identity: ["1m", "10s"]
+  default/wait-deployment-ready: ["3m", "10s"]
+  default/wait-loadbalancer-ready: ["5m", "10s"]

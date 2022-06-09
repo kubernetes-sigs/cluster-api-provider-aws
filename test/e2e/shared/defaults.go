@@ -44,6 +44,7 @@ const (
 	CNIResources                         = "CNI_RESOURCES"
 	CNIAddonVersion                      = "VPC_ADDON_VERSION"
 	CorednsAddonVersion                  = "COREDNS_ADDON_VERSION"
+	GcWorkloadPath                       = "GC_WORKLOAD"
 	AwsNodeMachineType                   = "AWS_NODE_MACHINE_TYPE"
 	AwsAvailabilityZone1                 = "AWS_AVAILABILITY_ZONE_1"
 	AwsAvailabilityZone2                 = "AWS_AVAILABILITY_ZONE_2"

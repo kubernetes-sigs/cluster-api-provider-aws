@@ -33,6 +33,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/annotations"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -392,4 +393,16 @@ func (s *ManagedControlPlaneScope) ServiceCidrs() *clusterv1.NetworkRanges {
 	}
 
 	return nil
+}
+
+// ExternalResourceGC is used to get the status of external resource garbage collection
+// from the AWSManagedControlPlane.
+func (s *ManagedControlPlaneScope) ExternalResourceGC() bool {
+	hasGC, err := annotations.GetExternalResourceGC(s.ControlPlane)
+	if err != nil {
+		s.Error(err, "getting external resource gc status from control plane", "annotation", extResCleanedAnnotation)
+		return false
+	}
+
+	return hasGC
 }

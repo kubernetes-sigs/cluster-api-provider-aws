@@ -65,6 +65,11 @@ const (
 
 	// BootstrapFormatIgnition will allow an user to enable alternate machine bootstrap format, viz. Ignition.
 	BootstrapFormatIgnition featuregate.Feature = "BootstrapFormatIgnition"
+
+	// ExternalResourceGC is used to enable the garbage collection of external resources like NLB/ALB on deletion
+	// owner: @richardcase
+	// alpha: v1.4
+	ExternalResourceGC featuregate.Feature = "ExternalResourceGC"
 )
 
 func init() {
@@ -83,4 +88,5 @@ var defaultCAPAFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	MachinePool:                   {Default: false, PreRelease: featuregate.Alpha},
 	AutoControllerIdentityCreator: {Default: true, PreRelease: featuregate.Alpha},
 	BootstrapFormatIgnition:       {Default: false, PreRelease: featuregate.Alpha},
+	ExternalResourceGC:            {Default: false, PreRelease: featuregate.Alpha},
 }
