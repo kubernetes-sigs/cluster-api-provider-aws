@@ -22,7 +22,6 @@ package managed
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -49,7 +48,6 @@ type ManagedClusterSpecInput struct {
 	Flavour                  string
 	ControlPlaneMachineCount int64
 	WorkerMachineCount       int64
-	CNIManifestPath          string
 	KubernetesVersion        string
 	CluserSpecificRoles      bool
 }
@@ -106,14 +104,6 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 	workloadClusterProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace.Name, input.ClusterName)
 	workloadClient := workloadClusterProxy.GetClient()
 	verifyConfigMapExists(ctx, "aws-auth", metav1.NamespaceSystem, workloadClient)
-
-	if input.CNIManifestPath != "" {
-		shared.Byf("Installing a CNI plugin to the workload cluster: %s", input.CNIManifestPath)
-		cniYaml, err := os.ReadFile(input.CNIManifestPath)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		Expect(workloadClusterProxy.Apply(ctx, cniYaml)).ShouldNot(HaveOccurred())
-	}
 }
 
 // DeleteClusterSpecInput is the input to DeleteClusterSpec.
