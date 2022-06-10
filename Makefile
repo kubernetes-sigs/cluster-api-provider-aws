@@ -93,7 +93,7 @@ BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 TOOLCHAIN_IMAGE := toolchain
 
 TAG ?= dev
-ARCH ?= amd64
+ARCH ?= $(shell go env GOARCH)
 ALL_ARCH ?= amd64 arm arm64 ppc64le s390x
 
 # main controller
@@ -356,7 +356,7 @@ managers: ## Alias for manager-aws-infrastructure
 
 .PHONY: manager-aws-infrastructure
 manager-aws-infrastructure: ## Build manager binary
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS} -extldflags '-static'" -o $(BIN_DIR)/manager .
+	CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags "${LDFLAGS} -extldflags '-static'" -o $(BIN_DIR)/manager .
 
 ##@ test:
 
