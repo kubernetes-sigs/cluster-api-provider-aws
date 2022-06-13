@@ -166,6 +166,20 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// Amazon VPC CNI addon or if you have specified a secondary CIDR block.
 	// +kubebuilder:default=false
 	DisableVPCCNI bool `json:"disableVPCCNI,omitempty"`
+
+	// KubeProxy defines managed attributes of the kube-proxy daemonset
+	KubeProxy KubeProxy `json:"kubeProxy,omitempty"`
+}
+
+// KubeProxy specifies how the kube-proxy daemonset is managed.
+type KubeProxy struct {
+	// Disable set to true indicates that kube-proxy should be disabled. With EKS clusters
+	// kube-proxy is automatically installed into the cluster. For clusters where you want
+	// to use kube-proxy functionality that is provided with an alternate CNI, this option
+	// provides a way to specify that the kube-proxy daemonset should be deleted. You cannot
+	// set this to true if you are using the Amazon kube-proxy addon.
+	// +kubebuilder:default=false
+	Disable bool `json:"disable,omitempty"`
 }
 
 // EndpointAccess specifies how control plane endpoints are accessible.

@@ -43,9 +43,10 @@ const (
 var mcpLog = logf.Log.WithName("awsmanagedcontrolplane-resource")
 
 const (
-	cidrSizeMax = 65536
-	cidrSizeMin = 16
-	vpcCniAddon = "vpc-cni"
+	cidrSizeMax    = 65536
+	cidrSizeMin    = 16
+	vpcCniAddon    = "vpc-cni"
+	kubeProxyAddon = "kube-proxy"
 )
 
 // SetupWebhookWithManager will setup the webhooks for the AWSManagedControlPlane.
@@ -94,6 +95,7 @@ func (r *AWSManagedControlPlane) ValidateCreate() error {
 	allErrs = append(allErrs, r.validateSecondaryCIDR()...)
 	allErrs = append(allErrs, r.validateEKSAddons()...)
 	allErrs = append(allErrs, r.validateDisableVPCCNI()...)
+	allErrs = append(allErrs, r.validateKubeProxy()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
 	if len(allErrs) == 0 {
@@ -126,6 +128,7 @@ func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) error {
 	allErrs = append(allErrs, r.validateSecondaryCIDR()...)
 	allErrs = append(allErrs, r.validateEKSAddons()...)
 	allErrs = append(allErrs, r.validateDisableVPCCNI()...)
+	allErrs = append(allErrs, r.validateKubeProxy()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
 	if r.Spec.Region != oldAWSManagedControlplane.Spec.Region {
@@ -297,6 +300,28 @@ func (r *AWSManagedControlPlane) validateSecondaryCIDR() field.ErrorList {
 		start, end := cidr.AddressRange(ipv4Net)
 		if (!validRange1.Contains(start) || !validRange1.Contains(end)) && (!validRange2.Contains(start) || !validRange2.Contains(end)) {
 			allErrs = append(allErrs, field.Invalid(cidrField, *r.Spec.SecondaryCidrBlock, "must be within the 100.64.0.0/10 or 198.19.0.0/16 range"))
+		}
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return allErrs
+}
+
+func (r *AWSManagedControlPlane) validateKubeProxy() field.ErrorList {
+	var allErrs field.ErrorList
+
+	if r.Spec.KubeProxy.Disable {
+		disableField := field.NewPath("spec", "kubeProxy", "disable")
+
+		if r.Spec.Addons != nil {
+			for _, addon := range *r.Spec.Addons {
+				if addon.Name == kubeProxyAddon {
+					allErrs = append(allErrs, field.Invalid(disableField, r.Spec.KubeProxy.Disable, "cannot disable kube-proxy if the kube-proxy addon is specified"))
+					break
+				}
+			}
 		}
 	}
 
