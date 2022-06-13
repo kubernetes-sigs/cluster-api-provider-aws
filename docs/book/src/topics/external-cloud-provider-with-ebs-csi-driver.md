@@ -89,7 +89,7 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: k8s.gcr.io/nginx-slim:0.8
+          image: registry.k8s.io/nginx-slim:0.8
           ports:
             - name: nginx-web
               containerPort: 80
