@@ -914,7 +914,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
 					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.SecurityGroupsFailedReason}})
 				})
-				t.Run("Should return silently if ensureSecurityGroups fails to fetch additional security groups", func(t *testing.T) {
+				t.Run("Should fail if ensureSecurityGroups fails to fetch additional security groups", func(t *testing.T) {
 					g := NewWithT(t)
 					awsMachine := getAWSMachine()
 					setup(t, g, awsMachine)
@@ -940,9 +940,9 @@ func TestAWSMachineReconciler(t *testing.T) {
 					ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return([]string{"sg-1"}, errors.New("failed to get filtered SGs"))
 
 					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
-					g.Expect(err).To(BeNil())
+					g.Expect(err).ToNot(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionTrue, "", ""}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.SecurityGroupsFailedReason}})
 				})
 				t.Run("Should fail to update security group", func(t *testing.T) {
 					g := NewWithT(t)

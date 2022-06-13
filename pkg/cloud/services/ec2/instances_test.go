@@ -3079,10 +3079,10 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 		name          string
 		securityGroup infrav1.AWSResourceReference
 		expect        func(m *mocks.MockEC2APIMockRecorder)
-		check         func(id string, err error)
+		check         func(ids []string, err error)
 	}{
 		{
-			name: "successfully return security group id",
+			name: "successfully return single security group id",
 			securityGroup: infrav1.AWSResourceReference{
 				Filters: []infrav1.Filter{
 					{
@@ -3107,13 +3107,57 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 						},
 					}, nil)
 			},
-			check: func(id string, err error) {
+			check: func(ids []string, err error) {
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
 				}
 
-				if id != securityGroupID {
-					t.Fatalf("expected security group id %v but got: %v", securityGroupID, id)
+				if ids[0] != securityGroupID {
+					t.Fatalf("expected security group id %v but got: %v", securityGroupID, ids[0])
+				}
+			},
+		},
+		{
+			name: "allow returning multiple security groups",
+			securityGroup: infrav1.AWSResourceReference{
+				Filters: []infrav1.Filter{
+					{
+						Name: securityGroupFilterName, Values: securityGroupFilterValues,
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String(securityGroupFilterName),
+							Values: aws.StringSlice(securityGroupFilterValues),
+						},
+					},
+				})).Return(
+					&ec2.DescribeSecurityGroupsOutput{
+						SecurityGroups: []*ec2.SecurityGroup{
+							{
+								GroupId: aws.String(securityGroupID),
+							},
+							{
+								GroupId: aws.String(securityGroupID),
+							},
+							{
+								GroupId: aws.String(securityGroupID),
+							},
+						},
+					}, nil)
+			},
+			check: func(ids []string, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+
+				for _, id := range ids {
+					if id != securityGroupID {
+						t.Fatalf("expected security group id %v but got: %v", securityGroupID, id)
+					}
 				}
 			},
 		},
@@ -3121,13 +3165,13 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 			name:          "return early when filters are missing",
 			securityGroup: infrav1.AWSResourceReference{},
 			expect:        func(m *mocks.MockEC2APIMockRecorder) {},
-			check: func(id string, err error) {
+			check: func(ids []string, err error) {
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
 				}
 
-				if id != "" {
-					t.Fatalf("didn't expect secutity group id %v", id)
+				if len(ids) > 0 {
+					t.Fatalf("didn't expect security group ids %v", ids)
 				}
 			},
 		},
@@ -3150,14 +3194,14 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 					},
 				})).Return(nil, errors.New("some error"))
 			},
-			check: func(id string, err error) {
+			check: func(_ []string, err error) {
 				if err == nil {
 					t.Fatalf("expected error but got none.")
 				}
 			},
 		},
 		{
-			name: "error when no security groups found",
+			name: "no error when no security groups found",
 			securityGroup: infrav1.AWSResourceReference{
 				Filters: []infrav1.Filter{
 					{
@@ -3178,9 +3222,12 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 						SecurityGroups: []*ec2.SecurityGroup{},
 					}, nil)
 			},
-			check: func(id string, err error) {
-				if err == nil {
-					t.Fatalf("expected error but got none.")
+			check: func(ids []string, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+				if len(ids) > 0 {
+					t.Fatalf("didn't expect security group ids %v", ids)
 				}
 			},
 		},
@@ -3195,8 +3242,8 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 				EC2Client: ec2Mock,
 			}
 
-			id, err := s.getFilteredSecurityGroupID(tc.securityGroup)
-			tc.check(id, err)
+			ids, err := s.getFilteredSecurityGroupIDs(tc.securityGroup)
+			tc.check(ids, err)
 		})
 	}
 }
