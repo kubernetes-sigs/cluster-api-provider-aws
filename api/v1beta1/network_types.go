@@ -153,6 +153,9 @@ type NetworkSpec struct {
 
 	// Subnets configuration.
 	// +optional
+	//// +listType=map
+	//// +listMapKey=id
+	//Subnets []SubnetSpec `json:"subnets,omitempty"`
 	Subnets Subnets `json:"subnets,omitempty"`
 
 	// CNI configuration
@@ -248,6 +251,8 @@ func (s *SubnetSpec) String() string {
 }
 
 // Subnets is a slice of Subnet.
+// +listType=map
+// +listMapKey=id
 type Subnets []SubnetSpec
 
 // ToMap returns a map from id to subnet.

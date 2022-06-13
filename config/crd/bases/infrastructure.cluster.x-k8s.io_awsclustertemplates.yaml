@@ -640,7 +640,12 @@ spec:
                                     the resource.
                                   type: object
                               type: object
+                              required:
+                                - id
                             type: array
+                            x-kubernetes-list-map-keys:
+                            - id
+                            x-kubernetes-list-type: map
                           vpc:
                             description: VPC configuration.
                             properties:
