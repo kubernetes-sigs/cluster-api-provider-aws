@@ -27,7 +27,7 @@ spec:
   disableVPCCNI: true
 ```
 
-> You cannot set **disableVPCCNI** to true if you are using the VPC CNI addon or if you have specified a secondary CIDR block.
+> You cannot set **disableVPCCNI** to true if you are using the VPC CNI addon.
 
 Some alternative CNIs provide for the replacement of kube-proxy, such as in [Calico](https://projectcalico.docs.tigera.io/maintenance/ebpf/enabling-ebpf#configure-kube-proxy) and [Cilium](https://docs.cilium.io/en/stable/gettingstarted/kubeproxy-free/). When enabling the kube-proxy alternative, the kube-proxy installed by EKS must be deleted. This can be done via the **disable** property of **kubeProxy** in **AWSManagedControlPlane**:
 
