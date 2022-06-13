@@ -148,7 +148,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	}
 
 	Byf("Creating a clusterctl local repository into %q", e2eCtx.Settings.ArtifactFolder)
-	e2eCtx.Environment.ClusterctlConfigPath = createClusterctlLocalRepository(e2eCtx.E2EConfig, filepath.Join(e2eCtx.Settings.ArtifactFolder, "repository"))
+	e2eCtx.Environment.ClusterctlConfigPath = createClusterctlLocalRepository(e2eCtx, filepath.Join(e2eCtx.Settings.ArtifactFolder, "repository"))
 
 	By("Setting up the bootstrap cluster")
 	e2eCtx.Environment.BootstrapClusterProvider, e2eCtx.Environment.BootstrapClusterProxy = setupBootstrapCluster(e2eCtx.E2EConfig, e2eCtx.Environment.Scheme, e2eCtx.Settings.UseExistingCluster)
