@@ -205,9 +205,8 @@ providers:
         targetName: "cluster-template-eks-managedmachinepool.yaml"
 
 variables:
-  KUBERNETES_VERSION: "v1.21.2"
-  KUBERNETES_VERSION_MANAGEMENT: "v1.22.2" # Kind bootstrap
-  CNI: "../../data/cni/calico_eks.yaml"
+  KUBERNETES_VERSION: "v1.22.9"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.22.9" # Kind bootstrap
   EXP_MACHINE_POOL: "true"
   EXP_CLUSTER_RESOURCE_SET: "true"
   AWS_NODE_MACHINE_TYPE: t3.large
@@ -216,8 +215,8 @@ variables:
   EXP_EKS_IAM: "false"
   EXP_EKS_ADD_ROLES: "false"
   VPC_ADDON_VERSION: "v1.11.0-eksbuild.1"
-  COREDNS_ADDON_VERSION: "v1.8.4-eksbuild.1"
-  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "1.21.2"
+  COREDNS_ADDON_VERSION: "v1.8.7-eksbuild.1"
+  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "1.22.9"
   AUTO_CONTROLLER_IDENTITY_CREATOR: "false"
   IP_FAMILY: "IPv4"
 
