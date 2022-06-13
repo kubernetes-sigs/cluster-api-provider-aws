@@ -337,10 +337,6 @@ func (r *AWSManagedControlPlane) validateDisableVPCCNI() field.ErrorList {
 	if r.Spec.DisableVPCCNI {
 		disableField := field.NewPath("spec", "disableVPCCNI")
 
-		if r.Spec.SecondaryCidrBlock != nil {
-			allErrs = append(allErrs, field.Invalid(disableField, r.Spec.DisableVPCCNI, "cannot disable vpc cni if a secondary cidr is specified"))
-		}
-
 		if r.Spec.Addons != nil {
 			for _, addon := range *r.Spec.Addons {
 				if addon.Name == vpcCniAddon {

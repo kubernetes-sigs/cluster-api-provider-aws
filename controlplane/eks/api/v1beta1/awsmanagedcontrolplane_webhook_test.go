@@ -235,7 +235,16 @@ func TestWebhookCreate(t *testing.T) {
 			disableVPCCNI:  true,
 		},
 		{
-			name:           "disable vpc cni not allowed with secondary",
+			name:           "disable vpc cni allowed with valid secondary",
+			eksClusterName: "default_cluster1",
+			eksVersion:     "v1.19",
+			expectError:    false,
+			hasAddons:      false,
+			disableVPCCNI:  true,
+			secondaryCidr:  aws.String("100.64.0.0/16"),
+		},
+		{
+			name:           "disable vpc cni allowed with invalid secondary",
 			eksClusterName: "default_cluster1",
 			eksVersion:     "v1.19",
 			expectError:    true,
