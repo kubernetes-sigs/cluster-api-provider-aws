@@ -18,3 +18,12 @@ spec:
     spec:
       ami:
         id: ${IMAGE_ID}
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: KubeadmControlPlane
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      kubernetesVersion: ci/${KUBERNETES_VERSION}
