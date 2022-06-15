@@ -20,18 +20,20 @@ set -o pipefail
 
 GOPATH_BIN="$(go env GOPATH)/bin/"
 MINIMUM_KUBECTL_VERSION=v1.19.0
+GOARCH="$(go env GOARCH)"
+GOOS="$(go env GOOS)"
 
 # Ensure the kubectl tool exists and is a viable version, or installs it
 verify_kubectl_version() {
 
   # If kubectl is not available on the path, get it
   if ! [ -x "$(command -v kubectl)" ]; then
-    if [[ "${OSTYPE}" == "linux-gnu" ]]; then
+    if [ "$GOOS" == "linux" ] || [ "$GOOS" == "darwin" ]; then
       if ! [ -d "${GOPATH_BIN}" ]; then
         mkdir -p "${GOPATH_BIN}"
       fi
       echo 'kubectl not found, installing'
-      curl -sLo "${GOPATH_BIN}/kubectl" https://storage.googleapis.com/kubernetes-release/release/${MINIMUM_KUBECTL_VERSION}/bin/linux/amd64/kubectl
+      curl -sLo "${GOPATH_BIN}/kubectl" "https://storage.googleapis.com/kubernetes-release/release/${MINIMUM_KUBECTL_VERSION}/bin/${GOOS}/${GOARCH}/kubectl"
       chmod +x "${GOPATH_BIN}/kubectl"
     else
       echo "Missing required binary in path: kubectl"
