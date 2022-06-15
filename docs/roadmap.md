@@ -23,7 +23,7 @@ This roadmap is a constant work in progress, subject to frequent revision. Dates
 - [AWS Fault injector integration to improve resiliency](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/2173)
 - AWSMachinePool implementation backed by Spot Fleet and EC2 Fleet
 - [Dual stack IPv4/IPv6 support](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/3381)
-- [Windows Worker Node Support for Windows Server 2019/2022 for both CAPA-managed and EKS-managed](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/3533)
+- [Windows Worker Node Support for Windows Server 2019/2022 for both CAPA-managed and EKS-managed Clusters](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/3533)
 - FIPS/NIST/STIG compliance
 - Workload identity support to CAPA-managed clusters
 - [Use ACK/CrossPlane as backend for AWS SDK calls](https://github.com/kubernetes-sigs/cluster-api-provider-aws/discussions/3306)
