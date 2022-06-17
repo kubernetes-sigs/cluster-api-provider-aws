@@ -24,6 +24,7 @@ kind: KubeadmControlPlane
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
 spec:
+  replicas: 3
   kubeadmConfigSpec:
     clusterConfiguration:
       kubernetesVersion: ci/${KUBERNETES_VERSION}
