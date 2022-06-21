@@ -55,16 +55,46 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 		}
 	}
 
-	if s.scope.SecondaryCidrBlock() == nil {
-		return nil
-	}
-
 	var ds appsv1.DaemonSet
 	if err := remoteClient.Get(ctx, types.NamespacedName{Namespace: awsNodeNamespace, Name: awsNodeName}, &ds); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return err
 		}
 		return ErrCNIMissing
+	}
+
+	envVars := s.scope.VpcCni().Env
+	if len(envVars) > 0 {
+		s.scope.Info("updating aws-node daemonset environment variables", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
+
+		for i := range ds.Spec.Template.Spec.Containers {
+			container := &ds.Spec.Template.Spec.Containers[i]
+			if container.Name == "aws-node" {
+				existingVars := s.filterEnv(container.Env)
+
+				for ei, e := range existingVars {
+					for ai, a := range envVars {
+						if e.Name == a.Name {
+							existingVars[ei].Value = a.Value
+
+							envVars = append(envVars[:ai], envVars[ai+1:]...)
+							break
+						}
+					}
+				}
+				container.Env = append(existingVars, envVars...)
+				break
+			}
+		}
+	}
+
+	if s.scope.SecondaryCidrBlock() == nil {
+		if len(envVars) > 0 {
+			if err = remoteClient.Update(ctx, &ds, &client.UpdateOptions{}); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 
 	sgs, err := s.getSecurityGroups()

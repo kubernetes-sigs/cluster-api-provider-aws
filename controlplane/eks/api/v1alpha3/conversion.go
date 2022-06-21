@@ -44,6 +44,7 @@ func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Status.Bastion = restored.Status.Bastion
 	dst.Spec.OIDCIdentityProviderConfig = restored.Spec.OIDCIdentityProviderConfig
 	dst.Spec.KubeProxy = restored.Spec.KubeProxy
+	dst.Spec.VpcCni = restored.Spec.VpcCni
 
 	return nil
 }
