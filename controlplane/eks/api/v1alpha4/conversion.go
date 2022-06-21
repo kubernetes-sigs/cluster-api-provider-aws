@@ -96,10 +96,6 @@ func (r *AWSManagedControlPlaneList) ConvertFrom(srcRaw conversion.Hub) error {
 	return Convert_v1beta1_AWSManagedControlPlaneList_To_v1alpha4_AWSManagedControlPlaneList(src, r, nil)
 }
 
-func Convert_v1beta1_AWSManagedControlPlaneSpec_To_v1alpha4_AWSManagedControlPlaneSpec(in *v1beta1.AWSManagedControlPlaneSpec, out *AWSManagedControlPlaneSpec, scope apiconversion.Scope) error {
-	return autoConvert_v1beta1_AWSManagedControlPlaneSpec_To_v1alpha4_AWSManagedControlPlaneSpec(in, out, scope)
-}
-
 // Convert_v1alpha4_NetworkStatus_To_v1beta1_NetworkStatus is a conversion function.
 func Convert_v1alpha4_NetworkStatus_To_v1beta1_NetworkStatus(in *infrav1alpha4.NetworkStatus, out *infrav1beta1.NetworkStatus, s apiconversion.Scope) error {
 	return infrav1alpha4.Convert_v1alpha4_NetworkStatus_To_v1beta1_NetworkStatus(in, out, s)
@@ -148,4 +144,8 @@ func Convert_v1beta1_Instance_To_v1alpha4_Instance(in *infrav1beta1.Instance, ou
 // Convert_v1alpha4_Instance_To_v1beta1_Instance is a conversion function.
 func Convert_v1alpha4_Instance_To_v1beta1_Instance(in *infrav1alpha4.Instance, out *infrav1beta1.Instance, s apiconversion.Scope) error {
 	return infrav1alpha4.Convert_v1alpha4_Instance_To_v1beta1_Instance(in, out, s)
+}
+
+func Convert_v1beta1_AWSManagedControlPlaneSpec_To_v1alpha4_AWSManagedControlPlaneSpec(in *v1beta1.AWSManagedControlPlaneSpec, out *AWSManagedControlPlaneSpec, scope apiconversion.Scope) error {
+	return autoConvert_v1beta1_AWSManagedControlPlaneSpec_To_v1alpha4_AWSManagedControlPlaneSpec(in, out, scope)
 }

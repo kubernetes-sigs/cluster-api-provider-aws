@@ -401,6 +401,7 @@ func autoConvert_v1beta1_AWSManagedControlPlaneSpec_To_v1alpha4_AWSManagedContro
 	out.Addons = (*[]Addon)(unsafe.Pointer(in.Addons))
 	out.OIDCIdentityProviderConfig = (*OIDCIdentityProviderConfig)(unsafe.Pointer(in.OIDCIdentityProviderConfig))
 	out.DisableVPCCNI = in.DisableVPCCNI
+	// WARNING: in.VpcCni requires manual conversion: does not exist in peer-type
 	// WARNING: in.KubeProxy requires manual conversion: does not exist in peer-type
 	return nil
 }

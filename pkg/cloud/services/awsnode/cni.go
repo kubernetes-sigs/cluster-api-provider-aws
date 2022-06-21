@@ -59,10 +59,6 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 		return nil
 	}
 
-	if s.scope.SecondaryCidrBlock() == nil {
-		return nil
-	}
-
 	var ds appsv1.DaemonSet
 	if err := remoteClient.Get(ctx, types.NamespacedName{Namespace: awsNodeNamespace, Name: awsNodeName}, &ds); err != nil {
 		if !apierrors.IsNotFound(err) {
@@ -79,6 +75,7 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 			container := &ds.Spec.Template.Spec.Containers[i]
 			if container.Name == "aws-node" {
 				container.Env, needsUpdate = s.applyUserProvidedEnvironmentProperties(container.Env)
+
 			}
 		}
 	}
