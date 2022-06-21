@@ -163,7 +163,7 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
 	// to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
 	// should be deleted. You cannot set this to true if you are using the
-	// Amazon VPC CNI addon or if you have specified a secondary CIDR block.
+	// Amazon VPC CNI addon.
 	// +kubebuilder:default=false
 	DisableVPCCNI bool `json:"disableVPCCNI,omitempty"`
 
