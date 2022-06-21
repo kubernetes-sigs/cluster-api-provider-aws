@@ -80,7 +80,7 @@ endif
 STAGING_REGISTRY ?= gcr.io/k8s-staging-cluster-api-aws
 STAGING_BUCKET ?= artifacts.k8s-staging-cluster-api-aws.appspot.com
 BUCKET ?= $(STAGING_BUCKET)
-PROD_REGISTRY := k8s.gcr.io/cluster-api-aws
+PROD_REGISTRY := registry.k8s.io/cluster-api-aws
 REGISTRY ?= $(STAGING_REGISTRY)
 RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
 PULL_BASE_REF ?= $(RELEASE_TAG) # PULL_BASE_REF will be provided by Prow
@@ -434,9 +434,9 @@ compile-e2e: ## Test e2e compilation
 
 .PHONY: docker-pull-e2e-preloads
 docker-pull-e2e-preloads: ## Preloads the docker images used for e2e testing and can speed it up
-	-docker pull k8s.gcr.io/cluster-api/kubeadm-control-plane-controller:$(CAPI_VERSION)
-	-docker pull k8s.gcr.io/cluster-api/kubeadm-bootstrap-controller:$(CAPI_VERSION)
-	-docker pull k8s.gcr.io/cluster-api/cluster-api-controller:$(CAPI_VERSION)
+	-docker pull registry.k8s.io/cluster-api/kubeadm-control-plane-controller:$(CAPI_VERSION)
+	-docker pull registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:$(CAPI_VERSION)
+	-docker pull registry.k8s.io/cluster-api/cluster-api-controller:$(CAPI_VERSION)
 	-docker pull quay.io/jetstack/cert-manager-controller:$(CERT_MANAGER_VERSION)
 	-docker pull quay.io/jetstack/cert-manager-cainjector:$(CERT_MANAGER_VERSION)
 	-docker pull quay.io/jetstack/cert-manager-webhook:$(CERT_MANAGER_VERSION)
