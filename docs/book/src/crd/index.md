@@ -352,9 +352,7 @@ string
 <td>
 <code>secureSecretBackends</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.SecretBackend">
-[]SecretBackend
-</a>
+[]Cluster API AWS api/v1beta1.SecretBackend
 </em>
 </td>
 <td>
@@ -525,9 +523,7 @@ string
 <td>
 <code>secureSecretBackends</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.SecretBackend">
-[]SecretBackend
-</a>
+[]Cluster API AWS api/v1beta1.SecretBackend
 </em>
 </td>
 <td>
@@ -604,9 +600,7 @@ See &ldquo;sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1beta
 <td>
 <code>tags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
-Tags
-</a>
+Cluster API AWS api/v1beta1.Tags
 </em>
 </td>
 <td>
@@ -707,9 +701,7 @@ string
 <td>
 <code>tags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
-Tags
-</a>
+Cluster API AWS api/v1beta1.Tags
 </em>
 </td>
 <td>
@@ -1217,9 +1209,7 @@ string
 <td>
 <code>secureSecretBackends</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.SecretBackend">
-[]SecretBackend
-</a>
+[]Cluster API AWS api/v1beta1.SecretBackend
 </em>
 </td>
 <td>
@@ -1418,9 +1408,7 @@ string
 <td>
 <code>secureSecretBackends</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.SecretBackend">
-[]SecretBackend
-</a>
+[]Cluster API AWS api/v1beta1.SecretBackend
 </em>
 </td>
 <td>
@@ -1513,9 +1501,7 @@ See &ldquo;sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1beta
 <td>
 <code>tags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
-Tags
-</a>
+Cluster API AWS api/v1beta1.Tags
 </em>
 </td>
 <td>
@@ -1616,9 +1602,7 @@ string
 <td>
 <code>tags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
-Tags
-</a>
+Cluster API AWS api/v1beta1.Tags
 </em>
 </td>
 <td>
@@ -2962,9 +2946,7 @@ based on the namespace and name of the managed control plane.</p>
 <td>
 <code>identityRef</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSIdentityReference">
-AWSIdentityReference
-</a>
+Cluster API AWS api/v1alpha4.AWSIdentityReference
 </em>
 </td>
 <td>
@@ -2976,9 +2958,7 @@ AWSIdentityReference
 <td>
 <code>network</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.NetworkSpec">
-NetworkSpec
-</a>
+Cluster API AWS api/v1alpha4.NetworkSpec
 </em>
 </td>
 <td>
@@ -3098,9 +3078,7 @@ EncryptionConfig
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
-Tags
-</a>
+Cluster API AWS api/v1alpha4.Tags
 </em>
 </td>
 <td>
@@ -3208,9 +3186,7 @@ different ImageLookupBaseOS.</p>
 <td>
 <code>bastion</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Bastion">
-Bastion
-</a>
+Cluster API AWS api/v1alpha4.Bastion
 </em>
 </td>
 <td>
@@ -3250,8 +3226,8 @@ provider for the controller for use with IAM roles for service accounts</p>
 <td>
 <code>addons</code><br/>
 <em>
-<a href="#controlplane.cluster.x-k8s.io/v1alpha4.[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4.Addon">
-[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4.Addon
+<a href="#controlplane.cluster.x-k8s.io/v1alpha4.[]../../controlplane/eks/api/v1alpha4.Addon">
+[]../../controlplane/eks/api/v1alpha4.Addon
 </a>
 </em>
 </td>
@@ -3341,9 +3317,7 @@ based on the namespace and name of the managed control plane.</p>
 <td>
 <code>identityRef</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSIdentityReference">
-AWSIdentityReference
-</a>
+Cluster API AWS api/v1alpha4.AWSIdentityReference
 </em>
 </td>
 <td>
@@ -3355,9 +3329,7 @@ AWSIdentityReference
 <td>
 <code>network</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.NetworkSpec">
-NetworkSpec
-</a>
+Cluster API AWS api/v1alpha4.NetworkSpec
 </em>
 </td>
 <td>
@@ -3477,9 +3449,7 @@ EncryptionConfig
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
-Tags
-</a>
+Cluster API AWS api/v1alpha4.Tags
 </em>
 </td>
 <td>
@@ -3587,9 +3557,7 @@ different ImageLookupBaseOS.</p>
 <td>
 <code>bastion</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Bastion">
-Bastion
-</a>
+Cluster API AWS api/v1alpha4.Bastion
 </em>
 </td>
 <td>
@@ -3629,8 +3597,8 @@ provider for the controller for use with IAM roles for service accounts</p>
 <td>
 <code>addons</code><br/>
 <em>
-<a href="#controlplane.cluster.x-k8s.io/v1alpha4.[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4.Addon">
-[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4.Addon
+<a href="#controlplane.cluster.x-k8s.io/v1alpha4.[]../../controlplane/eks/api/v1alpha4.Addon">
+[]../../controlplane/eks/api/v1alpha4.Addon
 </a>
 </em>
 </td>
@@ -3691,9 +3659,7 @@ Amazon VPC CNI addon or if you have specified a secondary CIDR block.</p>
 <td>
 <code>networkStatus</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.NetworkStatus">
-NetworkStatus
-</a>
+Cluster API AWS api/v1alpha4.NetworkStatus
 </em>
 </td>
 <td>
@@ -3719,9 +3685,7 @@ Cluster API api/v1alpha4.FailureDomains
 <td>
 <code>bastion</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Instance">
-Instance
-</a>
+Cluster API AWS api/v1alpha4.Instance
 </em>
 </td>
 <td>
@@ -4509,9 +4473,7 @@ all prefixing.</p>
 <td>
 <code>tags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
-Tags
-</a>
+Cluster API AWS api/v1alpha4.Tags
 </em>
 </td>
 <td>
@@ -4716,9 +4678,7 @@ based on the namespace and name of the managed control plane.</p>
 <td>
 <code>identityRef</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSIdentityReference">
-AWSIdentityReference
-</a>
+Cluster API AWS api/v1beta1.AWSIdentityReference
 </em>
 </td>
 <td>
@@ -4730,9 +4690,7 @@ AWSIdentityReference
 <td>
 <code>network</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.NetworkSpec">
-NetworkSpec
-</a>
+Cluster API AWS api/v1beta1.NetworkSpec
 </em>
 </td>
 <td>
@@ -4852,9 +4810,7 @@ EncryptionConfig
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
-Tags
-</a>
+Cluster API AWS api/v1beta1.Tags
 </em>
 </td>
 <td>
@@ -4962,9 +4918,7 @@ different ImageLookupBaseOS.</p>
 <td>
 <code>bastion</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Bastion">
-Bastion
-</a>
+Cluster API AWS api/v1beta1.Bastion
 </em>
 </td>
 <td>
@@ -5004,8 +4958,8 @@ provider for the controller for use with IAM roles for service accounts</p>
 <td>
 <code>addons</code><br/>
 <em>
-<a href="#controlplane.cluster.x-k8s.io/v1beta1.[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1.Addon">
-[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1.Addon
+<a href="#controlplane.cluster.x-k8s.io/v1beta1.[]../../controlplane/eks/api/v1beta1.Addon">
+[]../../controlplane/eks/api/v1beta1.Addon
 </a>
 </em>
 </td>
@@ -5095,9 +5049,7 @@ based on the namespace and name of the managed control plane.</p>
 <td>
 <code>identityRef</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSIdentityReference">
-AWSIdentityReference
-</a>
+Cluster API AWS api/v1beta1.AWSIdentityReference
 </em>
 </td>
 <td>
@@ -5109,9 +5061,7 @@ AWSIdentityReference
 <td>
 <code>network</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.NetworkSpec">
-NetworkSpec
-</a>
+Cluster API AWS api/v1beta1.NetworkSpec
 </em>
 </td>
 <td>
@@ -5231,9 +5181,7 @@ EncryptionConfig
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
-Tags
-</a>
+Cluster API AWS api/v1beta1.Tags
 </em>
 </td>
 <td>
@@ -5341,9 +5289,7 @@ different ImageLookupBaseOS.</p>
 <td>
 <code>bastion</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Bastion">
-Bastion
-</a>
+Cluster API AWS api/v1beta1.Bastion
 </em>
 </td>
 <td>
@@ -5383,8 +5329,8 @@ provider for the controller for use with IAM roles for service accounts</p>
 <td>
 <code>addons</code><br/>
 <em>
-<a href="#controlplane.cluster.x-k8s.io/v1beta1.[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1.Addon">
-[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1.Addon
+<a href="#controlplane.cluster.x-k8s.io/v1beta1.[]../../controlplane/eks/api/v1beta1.Addon">
+[]../../controlplane/eks/api/v1beta1.Addon
 </a>
 </em>
 </td>
@@ -5445,9 +5391,7 @@ Amazon VPC CNI addon or if you have specified a secondary CIDR block.</p>
 <td>
 <code>networkStatus</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.NetworkStatus">
-NetworkStatus
-</a>
+Cluster API AWS api/v1beta1.NetworkStatus
 </em>
 </td>
 <td>
@@ -5473,9 +5417,7 @@ Cluster API api/v1beta1.FailureDomains
 <td>
 <code>bastion</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Instance">
-Instance
-</a>
+Cluster API AWS api/v1beta1.Instance
 </em>
 </td>
 <td>
@@ -6263,9 +6205,7 @@ all prefixing.</p>
 <td>
 <code>tags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
-Tags
-</a>
+Cluster API AWS api/v1beta1.Tags
 </em>
 </td>
 <td>
@@ -6415,7 +6355,7 @@ Resource Types:
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.AMIReference">AMIReference
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSLaunchTemplate">AWSLaunchTemplate</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSMachineSpec">AWSMachineSpec</a>)
 </p>
 <p>
 <p>AMIReference is a reference to a specific AWS resource by ID, ARN, or filters.
@@ -7663,7 +7603,7 @@ AWSClusterTemplateResource
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.AWSIdentityReference">AWSIdentityReference
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterRoleIdentitySpec">AWSClusterRoleIdentitySpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterSpec">AWSClusterSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1alpha4.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterRoleIdentitySpec">AWSClusterRoleIdentitySpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterSpec">AWSClusterSpec</a>)
 </p>
 <p>
 <p>AWSIdentityReference specifies a identity.</p>
@@ -8981,7 +8921,7 @@ AWSMachineTemplateResource
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.AWSResourceReference">AWSResourceReference
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSLaunchTemplate">AWSLaunchTemplate</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSMachinePoolSpec">AWSMachinePoolSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSMachineSpec">AWSMachineSpec</a>)
 </p>
 <p>
 <p>AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
@@ -9180,7 +9120,7 @@ AWSClusterIdentity from any namespace.</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.Bastion">Bastion
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterSpec">AWSClusterSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1alpha4.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterSpec">AWSClusterSpec</a>)
 </p>
 <p>
 <p>Bastion defines a bastion host.</p>
@@ -9406,7 +9346,7 @@ int64
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.CNIIngressRules">CNIIngressRules
-(<code>[]sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4.CNIIngressRule</code> alias)</p></h3>
+(<code>[]../../api/v1alpha4.CNIIngressRule</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.CNISpec">CNISpec</a>)
 </p>
@@ -9857,7 +9797,7 @@ will use AWS Secrets Manager instead.</p>
 <p>ConditionOperator defines an AWS condition operator.</p>
 </p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.Conditions">Conditions
-(<code>map[sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4.ConditionOperator]interface{}</code> alias)</p></h3>
+(<code>map[../../api/v1alpha4.ConditionOperator]interface{}</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.StatementEntry">StatementEntry</a>)
 </p>
@@ -10002,7 +9942,7 @@ int64
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.IngressRules">IngressRules
-(<code>[]sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4.IngressRule</code> alias)</p></h3>
+(<code>[]../../api/v1alpha4.IngressRule</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.SecurityGroup">SecurityGroup</a>)
 </p>
@@ -10012,7 +9952,7 @@ int64
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.Instance">Instance
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterStatus">AWSClusterStatus</a>, <a href="#controlplane.cluster.x-k8s.io/v1alpha4.AWSManagedControlPlaneStatus">AWSManagedControlPlaneStatus</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AutoScalingGroup">AutoScalingGroup</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterStatus">AWSClusterStatus</a>)
 </p>
 <p>
 <p>Instance describes an AWS instance.</p>
@@ -10294,7 +10234,7 @@ string
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.NetworkSpec">NetworkSpec
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterSpec">AWSClusterSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1alpha4.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterSpec">AWSClusterSpec</a>)
 </p>
 <p>
 <p>NetworkSpec encapsulates all things related to AWS network.</p>
@@ -10353,7 +10293,7 @@ CNISpec
 <td>
 <code>securityGroupOverrides</code><br/>
 <em>
-map[sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4.SecurityGroupRole]string
+map[../../api/v1alpha4.SecurityGroupRole]string
 </em>
 </td>
 <td>
@@ -10367,7 +10307,7 @@ This is optional - if not provided new security groups will be created for the c
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.NetworkStatus">NetworkStatus
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterStatus">AWSClusterStatus</a>, <a href="#controlplane.cluster.x-k8s.io/v1alpha4.AWSManagedControlPlaneStatus">AWSManagedControlPlaneStatus</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterStatus">AWSClusterStatus</a>)
 </p>
 <p>
 <p>NetworkStatus encapsulates AWS networking resources.</p>
@@ -10385,7 +10325,7 @@ This is optional - if not provided new security groups will be created for the c
 <code>securityGroups</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.SecurityGroup">
-map[sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4.SecurityGroupRole]sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4.SecurityGroup
+map[../../api/v1alpha4.SecurityGroupRole]../../api/v1alpha4.SecurityGroup
 </a>
 </em>
 </td>
@@ -10467,7 +10407,7 @@ string
 <p>PrincipalType defines an AWS principle type.</p>
 </p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.Principals">Principals
-(<code>map[sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4.PrincipalType]sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4.PrincipalID</code> alias)</p></h3>
+(<code>map[../../api/v1alpha4.PrincipalType]../../api/v1alpha4.PrincipalID</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.StatementEntry">StatementEntry</a>)
 </p>
@@ -10733,7 +10673,7 @@ Conditions
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.Statements">Statements
-(<code>[]sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4.StatementEntry</code> alias)</p></h3>
+(<code>[]../../api/v1alpha4.StatementEntry</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.PolicyDocument">PolicyDocument</a>)
 </p>
@@ -10839,7 +10779,7 @@ Tags
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.Subnets">Subnets
-(<code>[]sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4.SubnetSpec</code> alias)</p></h3>
+(<code>[]../../api/v1alpha4.SubnetSpec</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.NetworkSpec">NetworkSpec</a>)
 </p>
@@ -10849,7 +10789,7 @@ Tags
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.Tags">Tags
 (<code>map[string]string</code> alias)</p></h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterSpec">AWSClusterSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.BuildParams">BuildParams</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.SecurityGroup">SecurityGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.SubnetSpec">SubnetSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.VPCSpec">VPCSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1alpha4.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1alpha4.OIDCIdentityProviderConfig">OIDCIdentityProviderConfig</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSMachinePoolSpec">AWSMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AutoScalingGroup">AutoScalingGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.FargateProfileSpec">FargateProfileSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterSpec">AWSClusterSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.BuildParams">BuildParams</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.SecurityGroup">SecurityGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.SubnetSpec">SubnetSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.VPCSpec">VPCSpec</a>)
 </p>
 <p>
 <p>Tags defines a map of tags.</p>
@@ -10954,7 +10894,7 @@ Defaults to Ordered</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.Volume">Volume
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Instance">Instance</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSLaunchTemplate">AWSLaunchTemplate</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Instance">Instance</a>)
 </p>
 <p>
 <p>Volume encapsulates the configuration options for the storage device</p>
@@ -11153,9 +11093,7 @@ auto scaling group of this nodegroup.</p>
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
-Tags
-</a>
+Cluster API AWS api/v1alpha4.Tags
 </em>
 </td>
 <td>
@@ -11253,9 +11191,7 @@ role.</p>
 <td>
 <code>ami</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AMIReference">
-AMIReference
-</a>
+Cluster API AWS api/v1alpha4.AMIReference
 </em>
 </td>
 <td>
@@ -11323,9 +11259,7 @@ string
 <td>
 <code>rootVolume</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Volume">
-Volume
-</a>
+Cluster API AWS api/v1alpha4.Volume
 </em>
 </td>
 <td>
@@ -11365,9 +11299,7 @@ Typically a new version is created when at least one of the following happens:
 <td>
 <code>additionalSecurityGroups</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSResourceReference">
-[]AWSResourceReference
-</a>
+[]Cluster API AWS api/v1alpha4.AWSResourceReference
 </em>
 </td>
 <td>
@@ -11468,9 +11400,7 @@ int32
 <td>
 <code>subnets</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSResourceReference">
-[]AWSResourceReference
-</a>
+[]Cluster API AWS api/v1alpha4.AWSResourceReference
 </em>
 </td>
 <td>
@@ -11482,9 +11412,7 @@ int32
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
-Tags
-</a>
+Cluster API AWS api/v1alpha4.Tags
 </em>
 </td>
 <td>
@@ -11697,9 +11625,7 @@ int32
 <td>
 <code>subnets</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSResourceReference">
-[]AWSResourceReference
-</a>
+[]Cluster API AWS api/v1alpha4.AWSResourceReference
 </em>
 </td>
 <td>
@@ -11711,9 +11637,7 @@ int32
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
-Tags
-</a>
+Cluster API AWS api/v1alpha4.Tags
 </em>
 </td>
 <td>
@@ -12032,9 +11956,7 @@ auto scaling group of this nodegroup</p>
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
-Tags
-</a>
+Cluster API AWS api/v1alpha4.Tags
 </em>
 </td>
 <td>
@@ -12268,9 +12190,7 @@ auto scaling group of this nodegroup</p>
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
-Tags
-</a>
+Cluster API AWS api/v1alpha4.Tags
 </em>
 </td>
 <td>
@@ -12566,9 +12486,7 @@ string
 <td>
 <code>tags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
-Tags
-</a>
+Cluster API AWS api/v1alpha4.Tags
 </em>
 </td>
 <td>
@@ -12684,9 +12602,7 @@ ASGStatus
 <td>
 <code>instances</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Instance">
-[]Instance
-</a>
+[]Cluster API AWS api/v1alpha4.Instance
 </em>
 </td>
 <td>
@@ -12848,9 +12764,7 @@ auto scaling group of this nodegroup.</p>
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
-Tags
-</a>
+Cluster API AWS api/v1alpha4.Tags
 </em>
 </td>
 <td>
@@ -13436,7 +13350,7 @@ string
 <p>TaintEffect is the effect for a Kubernetes taint.</p>
 </p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.Taints">Taints
-(<code>[]sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4.Taint</code> alias)</p></h3>
+(<code>[]../../exp/api/v1alpha4.Taint</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>)
 </p>
@@ -13453,7 +13367,7 @@ Resource Types:
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.AMIReference">AMIReference
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSLaunchTemplate">AWSLaunchTemplate</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachineSpec">AWSMachineSpec</a>)
 </p>
 <p>
 <p>AMIReference is a reference to a specific AWS resource by ID, ARN, or filters.
@@ -14769,7 +14683,7 @@ AWSClusterTemplateResource
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.AWSIdentityReference">AWSIdentityReference
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterRoleIdentitySpec">AWSClusterRoleIdentitySpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterSpec">AWSClusterSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterRoleIdentitySpec">AWSClusterRoleIdentitySpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterSpec">AWSClusterSpec</a>)
 </p>
 <p>
 <p>AWSIdentityReference specifies a identity.</p>
@@ -16176,11 +16090,11 @@ AWSMachineTemplateResource
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.AWSResourceReference">AWSResourceReference
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSLaunchTemplate">AWSLaunchTemplate</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachinePoolSpec">AWSMachinePoolSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachineSpec">AWSMachineSpec</a>)
 </p>
 <p>
-<p>AWSResourceReference is a reference to a specific AWS resource by ID or filters.
-Only one of ID or Filters may be specified. Specifying more than one will result in
+<p>AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
+Only one of ID, ARN or Filters may be specified. Specifying more than one will result in
 a validation error.</p>
 </p>
 <table>
@@ -16212,8 +16126,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>ARN of resource.
-Deprecated: This field has no function and is going to be removed in the next release.</p>
+<p>ARN of resource</p>
 </td>
 </tr>
 <tr>
@@ -16368,7 +16281,7 @@ AWSClusterIdentity from any namespace.</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.Bastion">Bastion
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterSpec">AWSClusterSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterSpec">AWSClusterSpec</a>)
 </p>
 <p>
 <p>Bastion defines a bastion host.</p>
@@ -16594,7 +16507,7 @@ int64
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.CNIIngressRules">CNIIngressRules
-(<code>[]sigs.k8s.io/cluster-api-provider-aws/api/v1beta1.CNIIngressRule</code> alias)</p></h3>
+(<code>[]../../api/v1beta1.CNIIngressRule</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.CNISpec">CNISpec</a>)
 </p>
@@ -17200,7 +17113,7 @@ int64
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.IngressRules">IngressRules
-(<code>[]sigs.k8s.io/cluster-api-provider-aws/api/v1beta1.IngressRule</code> alias)</p></h3>
+(<code>[]../../api/v1beta1.IngressRule</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.SecurityGroup">SecurityGroup</a>)
 </p>
@@ -17210,7 +17123,7 @@ int64
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.Instance">Instance
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterStatus">AWSClusterStatus</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneStatus">AWSManagedControlPlaneStatus</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AutoScalingGroup">AutoScalingGroup</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterStatus">AWSClusterStatus</a>)
 </p>
 <p>
 <p>Instance describes an AWS instance.</p>
@@ -17492,7 +17405,7 @@ string
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.NetworkSpec">NetworkSpec
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterSpec">AWSClusterSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterSpec">AWSClusterSpec</a>)
 </p>
 <p>
 <p>NetworkSpec encapsulates all things related to AWS network.</p>
@@ -17551,7 +17464,7 @@ CNISpec
 <td>
 <code>securityGroupOverrides</code><br/>
 <em>
-map[sigs.k8s.io/cluster-api-provider-aws/api/v1beta1.SecurityGroupRole]string
+map[../../api/v1beta1.SecurityGroupRole]string
 </em>
 </td>
 <td>
@@ -17565,7 +17478,7 @@ This is optional - if not provided new security groups will be created for the c
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.NetworkStatus">NetworkStatus
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterStatus">AWSClusterStatus</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneStatus">AWSManagedControlPlaneStatus</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterStatus">AWSClusterStatus</a>)
 </p>
 <p>
 <p>NetworkStatus encapsulates AWS networking resources.</p>
@@ -17583,7 +17496,7 @@ This is optional - if not provided new security groups will be created for the c
 <code>securityGroups</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta1.SecurityGroup">
-map[sigs.k8s.io/cluster-api-provider-aws/api/v1beta1.SecurityGroupRole]sigs.k8s.io/cluster-api-provider-aws/api/v1beta1.SecurityGroup
+map[../../api/v1beta1.SecurityGroupRole]../../api/v1beta1.SecurityGroup
 </a>
 </em>
 </td>
@@ -17694,7 +17607,7 @@ string
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.SecretBackend">SecretBackend
 (<code>string</code> alias)</p></h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.CloudInit">CloudInit</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1.AWSIAMConfigurationSpec">AWSIAMConfigurationSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.AWSIAMConfigurationSpec">AWSIAMConfigurationSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.CloudInit">CloudInit</a>)
 </p>
 <p>
 <p>SecretBackend defines variants for backend secret storage.</p>
@@ -17910,7 +17823,7 @@ Tags
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.Subnets">Subnets
-(<code>[]sigs.k8s.io/cluster-api-provider-aws/api/v1beta1.SubnetSpec</code> alias)</p></h3>
+(<code>[]../../api/v1beta1.SubnetSpec</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.NetworkSpec">NetworkSpec</a>)
 </p>
@@ -17920,7 +17833,7 @@ Tags
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.Tags">Tags
 (<code>map[string]string</code> alias)</p></h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterSpec">AWSClusterSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.BuildParams">BuildParams</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.SecurityGroup">SecurityGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.SubnetSpec">SubnetSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.VPCSpec">VPCSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1.AWSIAMRoleSpec">AWSIAMRoleSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1.BootstrapUser">BootstrapUser</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.AWSIAMRoleSpec">AWSIAMRoleSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.BootstrapUser">BootstrapUser</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.OIDCIdentityProviderConfig">OIDCIdentityProviderConfig</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachinePoolSpec">AWSMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AutoScalingGroup">AutoScalingGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.FargateProfileSpec">FargateProfileSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterSpec">AWSClusterSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.BuildParams">BuildParams</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.SecurityGroup">SecurityGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.SubnetSpec">SubnetSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.VPCSpec">VPCSpec</a>)
 </p>
 <p>
 <p>Tags defines a map of tags.</p>
@@ -18025,7 +17938,7 @@ Defaults to Ordered</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.Volume">Volume
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.Instance">Instance</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSLaunchTemplate">AWSLaunchTemplate</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.Instance">Instance</a>)
 </p>
 <p>
 <p>Volume encapsulates the configuration options for the storage device.</p>
@@ -18224,9 +18137,7 @@ auto scaling group of this nodegroup.</p>
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
-Tags
-</a>
+Cluster API AWS api/v1beta1.Tags
 </em>
 </td>
 <td>
@@ -18324,9 +18235,7 @@ role.</p>
 <td>
 <code>ami</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.AMIReference">
-AMIReference
-</a>
+Cluster API AWS api/v1beta1.AMIReference
 </em>
 </td>
 <td>
@@ -18394,9 +18303,7 @@ string
 <td>
 <code>rootVolume</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Volume">
-Volume
-</a>
+Cluster API AWS api/v1beta1.Volume
 </em>
 </td>
 <td>
@@ -18436,9 +18343,7 @@ Typically a new version is created when at least one of the following happens:
 <td>
 <code>additionalSecurityGroups</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSResourceReference">
-[]AWSResourceReference
-</a>
+[]Cluster API AWS api/v1beta1.AWSResourceReference
 </em>
 </td>
 <td>
@@ -18539,9 +18444,7 @@ int32
 <td>
 <code>subnets</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSResourceReference">
-[]AWSResourceReference
-</a>
+[]Cluster API AWS api/v1beta1.AWSResourceReference
 </em>
 </td>
 <td>
@@ -18553,9 +18456,7 @@ int32
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
-Tags
-</a>
+Cluster API AWS api/v1beta1.Tags
 </em>
 </td>
 <td>
@@ -18768,9 +18669,7 @@ int32
 <td>
 <code>subnets</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSResourceReference">
-[]AWSResourceReference
-</a>
+[]Cluster API AWS api/v1beta1.AWSResourceReference
 </em>
 </td>
 <td>
@@ -18782,9 +18681,7 @@ int32
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
-Tags
-</a>
+Cluster API AWS api/v1beta1.Tags
 </em>
 </td>
 <td>
@@ -19103,9 +19000,7 @@ auto scaling group of this nodegroup</p>
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
-Tags
-</a>
+Cluster API AWS api/v1beta1.Tags
 </em>
 </td>
 <td>
@@ -19368,9 +19263,7 @@ auto scaling group of this nodegroup</p>
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
-Tags
-</a>
+Cluster API AWS api/v1beta1.Tags
 </em>
 </td>
 <td>
@@ -19695,9 +19588,7 @@ string
 <td>
 <code>tags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
-Tags
-</a>
+Cluster API AWS api/v1beta1.Tags
 </em>
 </td>
 <td>
@@ -19813,9 +19704,7 @@ ASGStatus
 <td>
 <code>instances</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Instance">
-[]Instance
-</a>
+[]Cluster API AWS api/v1beta1.Instance
 </em>
 </td>
 <td>
@@ -19977,9 +19866,7 @@ auto scaling group of this nodegroup.</p>
 <td>
 <code>additionalTags</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
-Tags
-</a>
+Cluster API AWS api/v1beta1.Tags
 </em>
 </td>
 <td>
@@ -20564,7 +20451,7 @@ string
 <p>TaintEffect is the effect for a Kubernetes taint.</p>
 </p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.Taints">Taints
-(<code>[]sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1.Taint</code> alias)</p></h3>
+(<code>[]../../exp/api/v1beta1.Taint</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>)
 </p>
