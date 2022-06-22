@@ -3287,7 +3287,7 @@ bool
 Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
 to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
 should be deleted. You cannot set this to true if you are using the
-Amazon VPC CNI addon or if you have specified a secondary CIDR block.</p>
+Amazon VPC CNI addon.</p>
 </td>
 </tr>
 </table>
@@ -3666,7 +3666,7 @@ bool
 Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
 to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
 should be deleted. You cannot set this to true if you are using the
-Amazon VPC CNI addon or if you have specified a secondary CIDR block.</p>
+Amazon VPC CNI addon.</p>
 </td>
 </tr>
 </tbody>
@@ -5041,7 +5041,20 @@ bool
 Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
 to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
 should be deleted. You cannot set this to true if you are using the
-Amazon VPC CNI addon or if you have specified a secondary CIDR block.</p>
+Amazon VPC CNI addon.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubeProxy</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta1.KubeProxy">
+KubeProxy
+</a>
+</em>
+</td>
+<td>
+<p>KubeProxy defines managed attributes of the kube-proxy daemonset</p>
 </td>
 </tr>
 </table>
@@ -5420,7 +5433,20 @@ bool
 Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
 to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
 should be deleted. You cannot set this to true if you are using the
-Amazon VPC CNI addon or if you have specified a secondary CIDR block.</p>
+Amazon VPC CNI addon.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubeProxy</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta1.KubeProxy">
+KubeProxy
+</a>
+</em>
+</td>
+<td>
+<p>KubeProxy defines managed attributes of the kube-proxy daemonset</p>
 </td>
 </tr>
 </tbody>
@@ -6086,6 +6112,39 @@ string
 </td>
 <td>
 <p>Status holds current status of associated identity provider</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta1.KubeProxy">KubeProxy
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
+</p>
+<p>
+<p>KubeProxy specifies how the kube-proxy daemonset is managed.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>disable</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>Disable set to true indicates that kube-proxy should be disabled. With EKS clusters
+kube-proxy is automatically installed into the cluster. For clusters where you want
+to use kube-proxy functionality that is provided with an alternate CNI, this option
+provides a way to specify that the kube-proxy daemonset should be deleted. You cannot
+set this to true if you are using the Amazon kube-proxy addon.</p>
 </td>
 </tr>
 </tbody>
