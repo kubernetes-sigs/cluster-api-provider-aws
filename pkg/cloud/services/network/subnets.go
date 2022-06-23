@@ -415,7 +415,11 @@ func (s *Service) deleteSubnet(id string) error {
 
 func (s *Service) getSubnetTagParams(unmanagedVPC bool, id string, public bool, zone string, manualTags infrav1.Tags) infrav1.BuildParams {
 	var role string
-	additionalTags := s.scope.AdditionalTags()
+	additionalTags := make(map[string]string)
+
+	if !unmanagedVPC {
+		additionalTags = s.scope.AdditionalTags()
+	}
 
 	if public {
 		role = infrav1.PublicRoleTagValue
@@ -428,11 +432,11 @@ func (s *Service) getSubnetTagParams(unmanagedVPC bool, id string, public bool, 
 	// Add tag needed for Service type=LoadBalancer
 	additionalTags[infrav1.NameKubernetesAWSCloudProviderPrefix+s.scope.KubernetesClusterName()] = string(infrav1.ResourceLifecycleShared)
 
-	for k, v := range manualTags {
-		additionalTags[k] = v
-	}
-
 	if !unmanagedVPC {
+		for k, v := range manualTags {
+			additionalTags[k] = v
+		}
+
 		var name strings.Builder
 		name.WriteString(s.scope.Name())
 		name.WriteString("-subnet-")

@@ -168,7 +168,8 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 				Subnets: []infrav1.SubnetSpec{
 					{
-						ID: "subnet-1",
+						ID:   "subnet-1",
+						Tags: map[string]string{"foo": "bar"}, // adding additional tag here which won't be added in unmanaged subnet hence not present in expect calls
 					},
 					{
 						ID: "subnet-2",
