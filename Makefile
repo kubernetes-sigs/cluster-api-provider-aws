@@ -27,7 +27,7 @@ TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 GO_INSTALL := ./scripts/go_install.sh
 
 API_DIRS := cmd/clusterawsadm/api api exp/api controlplane/eks/api bootstrap/eks/api iam/api
-API_FILES := $(foreach dir, $(API_DIRS), $(call rwildcard,../../$(dir),*.go))
+API_FILES := $(foreach dir, $(API_DIRS), $(call rwildcard,$(dir),*.go))
 
 BIN_DIR := bin
 REPO_ROOT := $(shell git rev-parse --show-toplevel)
