@@ -38,14 +38,11 @@ export PATH
 src/crd:
 	mkdir -p src/crd
 
-src/crd/index.md: $(API_FILTERED_SRCS) src/crd
-	$(MAKE) gen_crd_docs API_DIR="$(shell go list -m)" OUT_FILE=$@
-
 .PHONY: gen_crd_docs
-gen_crd_docs: $(GENCRDAPIREFERENCEDOCS) src/crd $(GENCRDAPIREFERENCEDOCS_SRCS)
+gen_crd_docs: $(API_FILTERED_SRCS) $(GENCRDAPIREFERENCEDOCS) src/crd $(GENCRDAPIREFERENCEDOCS_SRCS)
 	$(GENCRDAPIREFERENCEDOCS) -template-dir gen-crd-api-reference-docs/template -config "gen-crd-api-reference-docs/config.json" \
-		-api-dir $(API_DIR) \
-		-out-file $(OUT_FILE)
+		-api-dir $(shell go list -m) \
+		-out-file src/crd/index.md
 
 src/clusterawsadm:
 	mkdir -p src/clusterawsadm

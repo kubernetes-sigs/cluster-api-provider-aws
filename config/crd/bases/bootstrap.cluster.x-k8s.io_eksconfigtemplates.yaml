@@ -168,6 +168,12 @@ spec:
                         - accountNumber
                         - version
                         type: object
+                      serviceIPV6Cidr:
+                        description: 'TODO(richardcase): this can be uncommented when
+                          we get to the ipv6/dual-stack implementation ServiceIPV6Cidr
+                          is the ipv6 cidr range of the cluster. If this is specified
+                          then the ip family will be set to ipv6.'
+                        type: string
                       useMaxPods:
                         description: UseMaxPods  sets --max-pods for the kubelet when
                           true.

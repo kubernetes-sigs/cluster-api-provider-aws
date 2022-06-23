@@ -51,7 +51,7 @@ type EKSConfigSpec struct {
 	// ServiceIPV6Cidr is the ipv6 cidr range of the cluster. If this is specified then
 	// the ip family will be set to ipv6.
 	// +optional
-	// ServiceIPV6Cidr *string `json:"serviceIPV6Cidr,omitempty"`
+	ServiceIPV6Cidr *string `json:"serviceIPV6Cidr,omitempty"`
 }
 
 // PauseContainer contains details of pause container.

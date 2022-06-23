@@ -27,7 +27,7 @@ TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 GO_INSTALL := ./scripts/go_install.sh
 
 API_DIRS := cmd/clusterawsadm/api api exp/api controlplane/eks/api bootstrap/eks/api iam/api
-API_FILES := $(foreach dir, $(API_DIRS), $(call rwildcard,../../$(dir),*.go))
+API_FILES := $(foreach dir, $(API_DIRS), $(call rwildcard,$(dir),*.go))
 
 BIN_DIR := bin
 REPO_ROOT := $(shell git rev-parse --show-toplevel)
@@ -185,10 +185,10 @@ defaulters: $(DEFAULTER_GEN) ## Generate all Go types
 .PHONY: generate
 generate: ## Generate code
 	$(MAKE) generate-go
-	$(MAKE) $(CRD_DOCS)
+	$(MAKE) generate-crd-docs
 
-$(CRD_DOCS_DIR)/%: $(API_FILES)
-	$(MAKE) -C docs/book src/crd/$*
+generate-crd-docs: $(API_FILES)
+	$(MAKE) -C docs/book gen_crd_docs
 
 .PHONY: generate-go ## Generate all Go api files
 generate-go: $(MOCKGEN)
