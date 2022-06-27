@@ -89,7 +89,7 @@ spec:
       Condition:
         "ForAnyValue:StringEquals":
           "oidc.eks.${AWS_REGION}.amazonaws.com/id/${OIDC_PROVIDER_ID}:sub":
-            - system:serviceaccount:capa-system:capa-controller-manager
+            - system:serviceaccount:capi-providers:capa-controller-manager
             - system:serviceaccount:capa-eks-control-plane-system:capa-eks-control-plane-controller-manager # Include if also using EKS
 EOL
 ```
@@ -144,7 +144,7 @@ Follow AWS documentation to create an OIDC provider https://docs.aws.amazon.com/
 export OIDC_PROVIDER_ID=<OIDC_ID_OF_THE_CLUSTER>
 ```
 
-run the [Prepare the manager account](./full-multitenancy-implementation.md#prepare-the-manager-aws-account-0-account) step again
+run the [Prepare the manager account](./full-multitenancy-implementation.md#prepare-the-manager-account) step again
 
 ### Get manager cluster credentials
 
