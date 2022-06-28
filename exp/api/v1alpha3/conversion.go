@@ -45,6 +45,7 @@ func (r *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 		}
 		infrav1alpha3.RestoreRootVolume(restored.Spec.AWSLaunchTemplate.RootVolume, dst.Spec.AWSLaunchTemplate.RootVolume)
 	}
+	dst.Spec.AWSLaunchTemplate.SpotMarketOptions = restored.Spec.AWSLaunchTemplate.SpotMarketOptions
 	return nil
 }
 
@@ -176,4 +177,9 @@ func Convert_v1alpha3_Instance_To_v1beta1_Instance(in *infrav1alpha3.Instance, o
 // Convert_v1alpha3_Volume_To_v1beta1_Volume is a conversion function.
 func Convert_v1alpha3_Volume_To_v1beta1_Volume(in *infrav1alpha3.Volume, out *infrav1.Volume, s apiconversion.Scope) error {
 	return infrav1alpha3.Convert_v1alpha3_Volume_To_v1beta1_Volume(in, out, s)
+}
+
+// Convert_v1beta1_AWSLaunchTemplate_To_v1alpha3_AWSLaunchTemplate converts the v1beta1 AWSLaunchTemplate receiver to a v1alpha4 AWSLaunchTemplate.
+func Convert_v1beta1_AWSLaunchTemplate_To_v1alpha3_AWSLaunchTemplate(in *infrav1exp.AWSLaunchTemplate, out *AWSLaunchTemplate, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_AWSLaunchTemplate_To_v1alpha3_AWSLaunchTemplate(in, out, s)
 }

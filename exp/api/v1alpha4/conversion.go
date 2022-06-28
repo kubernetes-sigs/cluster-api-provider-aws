@@ -28,14 +28,31 @@ import (
 // ConvertTo converts the v1alpha4 AWSMachinePool receiver to a v1beta1 AWSMachinePool.
 func (src *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1exp.AWSMachinePool)
-	return Convert_v1alpha4_AWSMachinePool_To_v1beta1_AWSMachinePool(src, dst, nil)
+	if err := Convert_v1alpha4_AWSMachinePool_To_v1beta1_AWSMachinePool(src, dst, nil); err != nil {
+		return err
+	}
+	
+	restored := &infrav1exp.AWSMachinePool{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+	
+	dst.Spec.AWSLaunchTemplate.SpotMarketOptions = restored.Spec.AWSLaunchTemplate.SpotMarketOptions
+	return nil
 }
 
 // ConvertFrom converts the v1beta1 AWSMachinePool receiver to v1alpha4 AWSMachinePool.
 func (r *AWSMachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1exp.AWSMachinePool)
 
-	return Convert_v1beta1_AWSMachinePool_To_v1alpha4_AWSMachinePool(src, r, nil)
+	if err := Convert_v1beta1_AWSMachinePool_To_v1alpha4_AWSMachinePool(src, r, nil); err != nil {
+		return err
+	}
+	
+	if err := utilconversion.MarshalData(src, r); err != nil {
+		return err
+	}
+	return nil
 }
 
 // ConvertTo converts the v1alpha4 AWSMachinePoolList receiver to a v1beta1 AWSMachinePoolList.
@@ -146,4 +163,9 @@ func Convert_v1beta1_Instance_To_v1alpha4_Instance(in *infrav1.Instance, out *in
 // Convert_v1alpha4_Instance_To_v1beta1_Instance is a conversion function.
 func Convert_v1alpha4_Instance_To_v1beta1_Instance(in *infrav1alpha4.Instance, out *infrav1.Instance, s apiconversion.Scope) error {
 	return infrav1alpha4.Convert_v1alpha4_Instance_To_v1beta1_Instance(in, out, s)
+}
+
+// Convert_v1beta1_AWSLaunchTemplate_To_v1alpha4_AWSLaunchTemplate converts the v1beta1 AWSLaunchTemplate receiver to a v1alpha4 AWSLaunchTemplate.
+func Convert_v1beta1_AWSLaunchTemplate_To_v1alpha4_AWSLaunchTemplate(in *infrav1exp.AWSLaunchTemplate, out *AWSLaunchTemplate, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_AWSLaunchTemplate_To_v1alpha4_AWSLaunchTemplate(in, out, s)
 }
