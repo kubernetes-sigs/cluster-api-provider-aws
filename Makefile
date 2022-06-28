@@ -319,7 +319,8 @@ verify-book-links: ## Verify book links
 verify-gen: generate ## Verify generated files
 	@if !(git diff --quiet HEAD); then \
 		git diff; \
-		echo "generated files are out of date, run make generate"; exit 1; \
+		echo "generated files are out of date, run make generate"; \
+		echo "if that fails checkout https://cluster-api-aws.sigs.k8s.io/topics/troubleshooting.html"; exit 1; \
 	fi
 
 .PHONY: apidiff

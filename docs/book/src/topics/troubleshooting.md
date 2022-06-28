@@ -60,6 +60,17 @@ $ aws iam get-instance-profile --instance-profile-name control-plane.cluster-api
 ```
 If instance profile does not look as expected, you may try recreating the CloudFormation stack using `clusterawsadm` as explained in the above sections.
 
+## CI suggests make generate but nothing is generated in my local machine
+
+TL;DR Try running `make -B -C docs/book src/crd/index.md` and commit the changes.
+
+The `make generate` command, between other things, generates the CRDs documentation in the book at https://cluster-api-aws.sigs.k8s.io/.
+
+While you should always run `make generate` when changing the APIs, the `make verify` target in the CI will notify you if you forget to do so.
+
+There is an edge case where the CI might tell you to run `make generate`, but nothing happens in your machine. That's when you committed all your changes, except for the `docs/book/src/crd/index.md` file taht you reverted to its original content.
+
+In this specific case, you might want to force the file generation running `make -B -C docs/book src/crd/index.md` and commit the changes.
 
 ## Recover a management cluster after losing the api server load balancer
 
