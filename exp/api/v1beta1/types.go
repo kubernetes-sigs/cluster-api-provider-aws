@@ -119,6 +119,9 @@ type AWSLaunchTemplate struct {
 	// at the cluster level or in the actuator.
 	// +optional
 	AdditionalSecurityGroups []infrav1.AWSResourceReference `json:"additionalSecurityGroups,omitempty"`
+
+	// SpotMarketOptions are options for configuring AWSMachinePool instances to be run using AWS Spot instances.
+	SpotMarketOptions *infrav1.SpotMarketOptions `json:"spotMarketOptions,omitempty"`
 }
 
 // Overrides are used to override the instance type specified by the launch template with multiple

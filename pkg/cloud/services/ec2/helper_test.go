@@ -101,6 +101,7 @@ func newAWSMachinePool() *expinfrav1.AWSMachinePool {
 				AMI:                infrav1.AMIReference{},
 				InstanceType:       "t3.large",
 				SSHKeyName:         aws.String("default"),
+				SpotMarketOptions:  &infrav1.SpotMarketOptions{MaxPrice: aws.String("0.9")},
 			},
 		},
 		Status: expinfrav1.AWSMachinePoolStatus{
