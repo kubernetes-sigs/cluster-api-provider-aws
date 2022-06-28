@@ -68,7 +68,7 @@ The `make generate` command, between other things, generates the CRDs documentat
 
 While you should always run `make generate` when changing the APIs, the `make verify` target in the CI will notify you if you forget to do so.
 
-There is an edge case where the CI might tell you to run `make generate`, but nothing happens in your machine. That's when you committed all your changes, except for the `docs/book/src/crd/index.md` file taht you reverted to its original content.
+There is an edge case where the CI might tell you to run `make generate`, but nothing happens in your machine. That's when you committed all your changes, except for the `docs/book/src/crd/index.md` file that you reverted to its original content.
 
 In this specific case, you might want to force the file generation running `make -B -C docs/book src/crd/index.md` and commit the changes.
 
