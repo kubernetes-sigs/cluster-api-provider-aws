@@ -2439,6 +2439,20 @@ bool
 <p>UseMaxPods  sets &ndash;max-pods for the kubelet when true.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>serviceIPV6Cidr</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TODO(richardcase): this can be uncommented when we get to the ipv6/dual-stack implementation
+ServiceIPV6Cidr is the ipv6 cidr range of the cluster. If this is specified then
+the ip family will be set to ipv6.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -2557,6 +2571,20 @@ bool
 <td>
 <em>(Optional)</em>
 <p>UseMaxPods  sets &ndash;max-pods for the kubelet when true.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceIPV6Cidr</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TODO(richardcase): this can be uncommented when we get to the ipv6/dual-stack implementation
+ServiceIPV6Cidr is the ipv6 cidr range of the cluster. If this is specified then
+the ip family will be set to ipv6.</p>
 </td>
 </tr>
 </tbody>
@@ -2823,6 +2851,20 @@ bool
 <td>
 <em>(Optional)</em>
 <p>UseMaxPods  sets &ndash;max-pods for the kubelet when true.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceIPV6Cidr</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TODO(richardcase): this can be uncommented when we get to the ipv6/dual-stack implementation
+ServiceIPV6Cidr is the ipv6 cidr range of the cluster. If this is specified then
+the ip family will be set to ipv6.</p>
 </td>
 </tr>
 </table>
