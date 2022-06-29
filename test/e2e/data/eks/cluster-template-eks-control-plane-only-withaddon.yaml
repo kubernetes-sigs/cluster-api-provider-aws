@@ -24,6 +24,12 @@ spec:
   region: "${AWS_REGION}"
   sshKeyName: "${AWS_SSH_KEY_NAME}"
   version: "${KUBERNETES_VERSION}"
+  VpcCni:
+    env:
+      - name: FOO
+        value: BAR
+      - name: ENABLE_PREFIX_DELEGATION
+        value: "true"
   addons:
     - name: "vpc-cni"
       version: "${VPC_ADDON_VERSION}"

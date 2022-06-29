@@ -7,6 +7,28 @@ When creating a EKS cluster the Amazon VPC CNI will be used by default for Pod N
 ## Using the VPC CNI Addon
 You can use an explicit version of the Amazon VPC CNI by using the **vpc-cni** EKS addon. See the [addons](./addons.md) documentation for further details of how to use addons.
 
+
+## Increase node pod limit
+You can increase the pod limit per-node as [per the upstream AWS documentation](https://aws.amazon.com/blogs/containers/amazon-vpc-cni-increases-pods-per-node-limits/). You'll need to enable the `vpc-cni` plugin addon on your EKS cluster as well as enable prefix assignment mode through the `ENABLE_PREFIX_DELEGATION` environment variable.
+
+```yaml
+kind: AWSManagedControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+metadata:
+  name: "capi-managed-test-control-plane"
+spec:
+  VpcCni:
+    env:
+    - name: ENABLE_PREFIX_DELEGATION
+      value: "true"
+  addons:
+  - name: vpc-cni
+    version: <replace_with_version>
+    conflictResolution: overwrite
+  associateOIDCProvider: true
+  disableVPCCNI: false
+```
+
 ## Using an alternative CNI
 
 There may be scenarios where you do not want to use the Amazon VPC CNI. EKS supports a number of alternative CNIs such as Calico, Cilium, and Weave Net (see [docs](https://docs.aws.amazon.com/eks/latest/userguide/alternate-cni-plugins.html) for full list).

@@ -372,6 +372,11 @@ func (s *ManagedControlPlaneScope) DisableVPCCNI() bool {
 	return s.ControlPlane.Spec.DisableVPCCNI
 }
 
+// VpcCni returns a list of environment variables to apply to the `aws-node` DaemonSet.
+func (s *ManagedControlPlaneScope) VpcCni() ekscontrolplanev1.VpcCni {
+	return s.ControlPlane.Spec.VpcCni
+}
+
 func (s *ManagedControlPlaneScope) OIDCIdentityProviderConfig() *ekscontrolplanev1.OIDCIdentityProviderConfig {
 	return s.ControlPlane.Spec.OIDCIdentityProviderConfig
 }
