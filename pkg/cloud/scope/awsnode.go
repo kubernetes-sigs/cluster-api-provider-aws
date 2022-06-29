@@ -20,6 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 )
 
@@ -37,4 +38,6 @@ type AWSNodeScope interface {
 	SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.SecurityGroup
 	// DisableVPCCNI returns whether the AWS VPC CNI should be disabled
 	DisableVPCCNI() bool
+	// VpcCni specifies configuration related to the VPC CNI.
+	VpcCni() ekscontrolplanev1.VpcCni
 }
