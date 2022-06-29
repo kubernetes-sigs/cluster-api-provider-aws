@@ -58,9 +58,10 @@ $ aws iam get-instance-profile --instance-profile-name control-plane.cluster-api
 }
 
 ```
+
 If instance profile does not look as expected, you may try recreating the CloudFormation stack using `clusterawsadm` as explained in the above sections.
 
-## CI suggests make generate but nothing is generated in my local machine
+## make generate fails in CI
 
 TL;DR Try running `make -B -C docs/book src/crd/index.md` and commit the changes.
 

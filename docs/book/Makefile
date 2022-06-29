@@ -76,8 +76,8 @@ src/SUMMARY.md: src/SUMMARY_PREFIX.md src/SUMMARY_SUFFIX.md src/SUMMARY_CLUSTERA
 verify: generate ## Verify that dependent artifacts are up to date
 	@if !(git diff --quiet HEAD); then \
 		git diff; \
-		echo "generated files are out of date, run make generate"; \
-		echo "if that fails checkout https://cluster-api-aws.sigs.k8s.io/topics/troubleshooting.html"; exit 1; \
+		echo "generated files are out of date, try running make generate, if that fails"; \
+		echo "check https://cluster-api-aws.sigs.k8s.io/topics/troubleshooting.html#make-generate-fails-in-ci"; exit 1; \
 	fi
 
 BOOK_DEPS := $(BOOK_SRCS) $(MDBOOK) $(MDBOOK_EMBED) $(MDBOOK_RELEASELINK) $(MDBOOK_TABULATE) release-policies src/SUMMARY.md src/crd/index.md
