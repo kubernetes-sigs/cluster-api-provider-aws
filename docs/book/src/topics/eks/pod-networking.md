@@ -17,7 +17,7 @@ apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 metadata:
   name: "capi-managed-test-control-plane"
 spec:
-  VpcCni:
+  vpcCni:
     env:
     - name: ENABLE_PREFIX_DELEGATION
       value: "true"
