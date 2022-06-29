@@ -27,11 +27,6 @@ import (
 	"sigs.k8s.io/cluster-api/errors"
 )
 
-const (
-	// FargateProfileFinalizer allows the controller to clean up resources on delete.
-	FargateProfileFinalizer = "awsfargateprofile.infrastructure.cluster.x-k8s.io"
-)
-
 var (
 	// DefaultEKSFargateRole is the name of the default IAM role to use for fargate
 	// profiles if no other role is supplied in the spec and if iam role creation

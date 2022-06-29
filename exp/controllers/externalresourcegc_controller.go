@@ -27,15 +27,15 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/annotations"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/workload"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	cannonations "sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -82,44 +82,61 @@ func (r *ExternalResourceGCReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, cluster)
-	}
-
-	return r.reconcileNormal(ctx, cluster)
-}
-
-func (r *ExternalResourceGCReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1.Cluster) (_ ctrl.Result, reterr error) {
-	log := ctrl.LoggerFrom(ctx)
-	log.Info("Reconciling external resources")
-
 	ref := cluster.Spec.InfrastructureRef
-	obj, err := external.Get(ctx, r.Client, ref, cluster.Namespace)
+	infraCluster, err := external.Get(ctx, r.Client, ref, cluster.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
-			log.Info("Could not find external object for cluster, requeuing", "refGroupVersionKind", ref.GroupVersionKind(), "refName", ref.Name)
+			log.Info("Could not find infra cluster, requeuing", "refGroupVersionKind", ref.GroupVersionKind(), "refName", ref.Name)
 			return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
 		}
 		return reconcile.Result{}, err
 	}
 
-	if annotations.Has(obj, annotations.ExternalResourceGCAnnotation) {
-		log.V(2).Info("infra cluster already has the external resources gc annotation")
+	extScope, err := scope.NewExternalResourceGCScope(scope.ExternalResourceGCScopeParams{
+		Client:       r.Client,
+		Cluster:      cluster,
+		Logger:       &log,
+		InfraCluster: infraCluster,
+	})
+	if err != nil {
+		log.Error(err, "error creating external resource gc scope")
+		return reconcile.Result{}, fmt.Errorf("creating external resource gc scope: %w", err)
+	}
+
+	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(ctx, extScope)
+	}
+
+	return r.reconcileNormal(ctx, extScope)
+}
+
+func (r *ExternalResourceGCReconciler) reconcileNormal(_ context.Context, extScope *scope.ExternalResourceGCScope) (_ ctrl.Result, reterr error) {
+	extScope.Info("Reconciling external resources")
+
+	if !extScope.InfraCluster().GetDeletionTimestamp().IsZero() {
+		extScope.V(2).Info("infra cluster has been marked for deletion, not taking action to add gc finalizer")
+
 		return reconcile.Result{}, nil
 	}
 
-	patchHelper, err := patch.NewHelper(obj, r.Client)
+	shouldGC, err := extScope.ShouldGarbageCollect()
 	if err != nil {
-		return reconcile.Result{}, err
+		return reconcile.Result{}, fmt.Errorf("determining if cluster needs garbage collecting: %w", err)
+	}
+	if !shouldGC {
+		extScope.V(2).Info("infra cluster has been marked (via annotation) as not requiring garbage collection")
+
+		return reconcile.Result{}, nil
 	}
 
-	annotations.SetExternalResourceGC(obj, false)
-
-	if err := patchHelper.Patch(ctx, obj); err != nil {
-		return reconcile.Result{}, err
+	extScope.V(2).Info("Adding garbage collection finalizer")
+	controllerutil.AddFinalizer(extScope.InfraCluster(), expinfrav1.ExternalResourceGCFinalizer)
+	if err := extScope.PatchObject(); err != nil {
+		return ctrl.Result{}, err
 	}
+
 	r.Recorder.Event(
-		obj,
+		extScope.InfraCluster(),
 		"Normal",
 		"MarkedForExtResourceGC",
 		"the infrastructure cluster has been marked for external resource garbage collection")
@@ -127,53 +144,44 @@ func (r *ExternalResourceGCReconciler) reconcileNormal(ctx context.Context, clus
 	return reconcile.Result{}, nil
 }
 
-func (r *ExternalResourceGCReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster) (_ ctrl.Result, reterr error) {
-	log := ctrl.LoggerFrom(ctx)
-	log.Info("Reconciling delete for external resources")
+func (r *ExternalResourceGCReconciler) reconcileDelete(ctx context.Context, extScope *scope.ExternalResourceGCScope) (_ ctrl.Result, reterr error) {
+	extScope.Info("Reconciling delete for external resources")
 
-	remoteScope, err := scope.NewRemoteClusterScope(scope.RemoteClusterScopeParams{
-		Client:  r.Client,
-		Cluster: cluster,
-	})
-	if err != nil {
-		log.Error(err, "error creating remote cluster scope")
-		return reconcile.Result{}, fmt.Errorf("creating remote scope: %w", err)
+	if !controllerutil.ContainsFinalizer(extScope.InfraCluster(), expinfrav1.ExternalResourceGCFinalizer) {
+		extScope.Info("infra cluster has no garbage collection finalizer, no action required")
+
+		return reconcile.Result{}, nil
 	}
 
-	log.Info("Deleting from workload service")
-	wkSvc := workload.NewService(remoteScope)
-	res, err := wkSvc.ReconcileDelete(ctx)
+	shouldGC, err := extScope.ShouldGarbageCollect()
 	if err != nil {
-		log.Error(err, "error deleting remote resources", "namespace", cluster.Namespace, "name", cluster.Name)
-		return reconcile.Result{}, fmt.Errorf("deleting remote resources: %w", err)
-	}
-	if !res.IsZero() {
-		return res, nil
+		return reconcile.Result{}, fmt.Errorf("determining if cluster needs garbage collecting: %w", err)
 	}
 
-	ref := cluster.Spec.InfrastructureRef
-	obj, err := external.Get(ctx, r.Client, ref, cluster.Namespace)
-	if err != nil {
-		if apierrors.IsNotFound(errors.Cause(err)) {
-			log.Info("Could not find external object for cluster, requeuing", "refGroupVersionKind", ref.GroupVersionKind(), "refName", ref.Name)
-			return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+	if shouldGC {
+		extScope.Info("Deleting from workload/tenant cluster")
+
+		wkSvc := workload.NewService(extScope)
+		res, err := wkSvc.ReconcileDelete(ctx)
+		if err != nil {
+			extScope.Error(err, "error deleting remote resources")
+			return reconcile.Result{}, fmt.Errorf("deleting remote resources: %w", err)
 		}
-		return reconcile.Result{}, fmt.Errorf("getting infra cluster: %w", err)
+		if !res.IsZero() {
+			return res, nil
+		}
+	} else {
+		extScope.Info("Infra cluster has GC finalizer but not deleting from workload/tenant cluster as annotation says don't garbage collect")
 	}
 
-	patchHelper, err := patch.NewHelper(obj, r.Client)
-	if err != nil {
-		return reconcile.Result{}, fmt.Errorf("creating patch helper: %w", err)
-	}
-
-	annotations.SetExternalResourceGC(obj, true)
-
-	if err := patchHelper.Patch(ctx, obj); err != nil {
+	extScope.V(2).Info("Removing garbage collection finalizer")
+	controllerutil.RemoveFinalizer(extScope.InfraCluster(), expinfrav1.ExternalResourceGCFinalizer)
+	if err := extScope.PatchObject(); err != nil {
 		return reconcile.Result{}, fmt.Errorf("patching infra cluster: %w", err)
 	}
 
 	r.Recorder.Event(
-		obj,
+		extScope.InfraCluster(),
 		"Normal",
 		"CompletedExtResourceGC",
 		"external resource garbage collection for the infrastructure cluster has completed")

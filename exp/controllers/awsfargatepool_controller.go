@@ -168,7 +168,7 @@ func (r *AWSFargateProfileReconciler) reconcileDelete(
 ) (ctrl.Result, error) {
 	fargateProfileScope.Info("Reconciling deletion of AWSFargateProfile")
 
-	if !fargateProfileScope.ExternalResourceGC() {
+	if !fargateProfileScope.HasBeenGarbageCollected() {
 		fargateProfileScope.Info("workload resources not garbage collected, requeueing")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}

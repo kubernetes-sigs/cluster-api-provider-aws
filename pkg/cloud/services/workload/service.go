@@ -22,11 +22,11 @@ import (
 
 // Service is used to perform operations against a tenant/workload/child cluster.
 type Service struct {
-	scope *scope.RemoteClusterScope
+	scope *scope.ExternalResourceGCScope
 }
 
 // NewService creates a new Service.
-func NewService(scope *scope.RemoteClusterScope) *Service {
+func NewService(scope *scope.ExternalResourceGCScope) *Service {
 	return &Service{
 		scope: scope,
 	}

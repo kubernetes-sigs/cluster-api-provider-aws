@@ -25,10 +25,6 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 )
 
-const (
-	extResCleanedAnnotation = "aws.cluster.x-k8s.io/resources-cleaned"
-)
-
 var (
 	// ErrAZSubnetsNotFound is an error when a availability zone is specified but there are
 	// no matching subnets for that availability zone (a.k.a. fault domain).

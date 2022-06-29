@@ -40,6 +40,7 @@ func TestReconcileDelete(t *testing.T) {
 	testCases := []struct {
 		name               string
 		cluster            *clusterv1.Cluster
+		infraCluster       client.Object
 		objs               []client.Object
 		expectErr          bool
 		expectRequeue      bool
@@ -47,8 +48,9 @@ func TestReconcileDelete(t *testing.T) {
 		expectDeleted      []string
 	}{
 		{
-			name:    "eks with services of type load balancer",
-			cluster: createEKSCluster(),
+			name:         "eks with services of type load balancer",
+			cluster:      createEKSCluster(),
+			infraCluster: createManagedControlPlane(),
 			objs: []client.Object{
 				createService("svc1", corev1.ServiceTypeLoadBalancer, false),
 			},
@@ -58,8 +60,9 @@ func TestReconcileDelete(t *testing.T) {
 			expectDeleted:      []string{"svc1"},
 		},
 		{
-			name:    "awscluster with services of type load balancer",
-			cluster: createUnmanagedCluster(),
+			name:         "awscluster with services of type load balancer",
+			cluster:      createUnmanagedCluster(),
+			infraCluster: createAWSCluser(),
 			objs: []client.Object{
 				createService("svc1", corev1.ServiceTypeLoadBalancer, false),
 			},
@@ -69,8 +72,9 @@ func TestReconcileDelete(t *testing.T) {
 			expectDeleted:      []string{"svc1"},
 		},
 		{
-			name:    "eks with no services of type load balancer",
-			cluster: createEKSCluster(),
+			name:         "eks with no services of type load balancer",
+			cluster:      createEKSCluster(),
+			infraCluster: createManagedControlPlane(),
 			objs: []client.Object{
 				createService("svc1", corev1.ServiceTypeClusterIP, false),
 			},
@@ -82,6 +86,7 @@ func TestReconcileDelete(t *testing.T) {
 		{
 			name:               "eks with no services",
 			cluster:            createEKSCluster(),
+			infraCluster:       createManagedControlPlane(),
 			objs:               []client.Object{},
 			expectErr:          false,
 			expectRequeue:      false,
@@ -89,8 +94,9 @@ func TestReconcileDelete(t *testing.T) {
 			expectDeleted:      []string{},
 		},
 		{
-			name:    "eks with services of type load balancer",
-			cluster: createEKSCluster(),
+			name:         "eks with services of type load balancer",
+			cluster:      createEKSCluster(),
+			infraCluster: createManagedControlPlane(),
 			objs: []client.Object{
 				createService("svc1", corev1.ServiceTypeLoadBalancer, true),
 			},
@@ -103,6 +109,8 @@ func TestReconcileDelete(t *testing.T) {
 
 	scheme := runtime.NewScheme()
 	_ = corev1.AddToScheme(scheme)
+	_ = ekscontrolplanev1.AddToScheme(scheme)
+	_ = infrav1.AddToScheme(scheme)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -111,9 +119,11 @@ func TestReconcileDelete(t *testing.T) {
 			ctx := context.TODO()
 			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tc.objs...).Build()
 
-			s, err := scope.NewRemoteClusterScope(scope.RemoteClusterScopeParams{
-				Cluster: tc.cluster,
-			}, scope.WithRemoteScopeTenantClient(client))
+			s, err := scope.NewExternalResourceGCScope(scope.ExternalResourceGCScopeParams{
+				Cluster:      tc.cluster,
+				InfraCluster: tc.infraCluster,
+				Client:       client,
+			}, scope.WithExternalResourceGCScopeTenantClient(client))
 			g.Expect(err).To(BeNil())
 			g.Expect(s).NotTo(BeNil())
 
@@ -160,6 +170,34 @@ func createEKSCluster() *clusterv1.Cluster {
 				Namespace:  "default",
 			},
 		},
+	}
+}
+
+func createManagedControlPlane() *ekscontrolplanev1.AWSManagedControlPlane {
+	return &ekscontrolplanev1.AWSManagedControlPlane{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "AWSManagedControlPlane",
+			APIVersion: ekscontrolplanev1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cp1",
+			Namespace: "default",
+		},
+		Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{},
+	}
+}
+
+func createAWSCluser() *infrav1.AWSCluster {
+	return &infrav1.AWSCluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "AWSCluster",
+			APIVersion: infrav1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster1",
+			Namespace: "default",
+		},
+		Spec: infrav1.AWSClusterSpec{},
 	}
 }
 

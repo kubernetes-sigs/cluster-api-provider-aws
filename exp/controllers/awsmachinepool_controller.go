@@ -287,7 +287,7 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 func (r *AWSMachinePoolReconciler) reconcileDelete(machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope) (ctrl.Result, error) {
 	clusterScope.Info("Handling deleted AWSMachinePool")
 
-	if !clusterScope.ExternalResourceGC() {
+	if !clusterScope.HasBeenGarbageCollected() {
 		machinePoolScope.Info("workload resources not garbage collected, requeueing")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}

@@ -92,7 +92,7 @@ type ClusterScoper interface {
 	Logger
 	Session
 	ScopeUsage
-	ExternalResourceGCGetter
+	ExternalResourceGC
 
 	// Name returns the CAPI cluster name.
 	Name() string
@@ -132,18 +132,6 @@ type ClusterScoper interface {
 
 // ExternalResourceGC represents the setting/getting of the external resource garbage collection.
 type ExternalResourceGC interface {
-	ExternalResourceGCGetter
-	ExternalResourceGCSetter
-}
-
-// ExternalResourceGCGetter represents the getting the status external resource garbage collection.
-type ExternalResourceGCGetter interface {
-	// ExternalResourceGC is used to get the status of external resource garbage collection.
-	ExternalResourceGC() bool
-}
-
-// ExternalResourceGCSetter represents the setting the status external resource garbage collection.
-type ExternalResourceGCSetter interface {
-	// SetExternalResourceGC is used to set the status of external resource garbage collection.
-	SetExternalResourceGC(gcStatus bool)
+	// HasBeenGarbageCollected indicates if the cluster has been garbage collected.
+	HasBeenGarbageCollected() bool
 }

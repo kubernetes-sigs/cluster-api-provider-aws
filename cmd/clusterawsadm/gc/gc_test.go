@@ -26,9 +26,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/annotations"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -58,21 +60,27 @@ func TestEnableGC(t *testing.T) {
 			expectError:  true,
 		},
 		{
-			name:         "with managed control plane and no annotation",
+			name:         "with managed control plane and no annotation or finalizer",
 			clusterName:  testClusterName,
-			existingObjs: newManagedCluster(testClusterName, false),
+			existingObjs: newManagedClusterWithAnnotations(testClusterName, false, nil),
 			expectError:  false,
 		},
 		{
-			name:         "with awscluster and no annotation",
+			name:         "with awscluster and no annotation or finalizer",
 			clusterName:  testClusterName,
-			existingObjs: newUnManagedCluster(testClusterName, false),
+			existingObjs: newUnManagedClusterWithAnnotations(testClusterName, false, nil),
 			expectError:  false,
 		},
 		{
 			name:         "with managed control plane and existing annotation",
 			clusterName:  testClusterName,
-			existingObjs: newManagedClusterWithAnnotations(testClusterName, map[string]string{annotations.ExternalResourceGCAnnotation: "true"}),
+			existingObjs: newManagedClusterWithAnnotations(testClusterName, false, map[string]string{annotations.ExternalResourceGCAnnotation: "false"}),
+			expectError:  false,
+		},
+		{
+			name:         "with managed control plane and existing annotation & finalizer",
+			clusterName:  testClusterName,
+			existingObjs: newManagedClusterWithAnnotations(testClusterName, true, map[string]string{annotations.ExternalResourceGCAnnotation: "true"}),
 			expectError:  false,
 		},
 	}
@@ -108,7 +116,10 @@ func TestEnableGC(t *testing.T) {
 
 			gcVal, found := annotations.Get(obj, annotations.ExternalResourceGCAnnotation)
 			g.Expect(found).To(BeTrue())
-			g.Expect(gcVal).To(Equal("false"))
+			g.Expect(gcVal).To(Equal("true"))
+
+			hasGCGinalizer := controllerutil.ContainsFinalizer(obj, expinfrav1.ExternalResourceGCFinalizer)
+			g.Expect(hasGCGinalizer).To(BeTrue())
 		})
 	}
 }
@@ -137,21 +148,21 @@ func TestDisableGC(t *testing.T) {
 			expectError:  true,
 		},
 		{
-			name:         "with managed control plane and no annotation",
+			name:         "with managed control plane and with annotation & finalizer",
 			clusterName:  testClusterName,
-			existingObjs: newManagedCluster(testClusterName, false),
+			existingObjs: newManagedClusterWithAnnotations(testClusterName, true, map[string]string{annotations.ExternalResourceGCAnnotation: "true"}),
 			expectError:  false,
 		},
 		{
-			name:         "with awscluster and no annotation",
+			name:         "with managed control plane and with annotation & finalizer",
 			clusterName:  testClusterName,
-			existingObjs: newUnManagedCluster(testClusterName, false),
+			existingObjs: newUnManagedClusterWithAnnotations(testClusterName, true, map[string]string{annotations.ExternalResourceGCAnnotation: "true"}),
 			expectError:  false,
 		},
 		{
-			name:         "with managed control plane and existing annotation",
+			name:         "with managed control plane and no annotation or finalizer",
 			clusterName:  testClusterName,
-			existingObjs: newManagedClusterWithAnnotations(testClusterName, map[string]string{annotations.ExternalResourceGCAnnotation: "false"}),
+			existingObjs: newManagedClusterWithAnnotations(testClusterName, false, nil),
 			expectError:  false,
 		},
 	}
@@ -187,7 +198,10 @@ func TestDisableGC(t *testing.T) {
 
 			gcVal, found := annotations.Get(obj, annotations.ExternalResourceGCAnnotation)
 			g.Expect(found).To(BeTrue())
-			g.Expect(gcVal).To(Equal("true"))
+			g.Expect(gcVal).To(Equal("false"))
+
+			hasGCGinalizer := controllerutil.ContainsFinalizer(obj, expinfrav1.ExternalResourceGCFinalizer)
+			g.Expect(hasGCGinalizer).To(BeFalse())
 		})
 	}
 }
@@ -234,11 +248,15 @@ func newManagedCluster(name string, excludeInfra bool) []client.Object {
 	return objs
 }
 
-func newManagedClusterWithAnnotations(name string, annotations map[string]string) []client.Object {
+func newManagedClusterWithAnnotations(name string, addFinalizer bool, annotations map[string]string) []client.Object {
 	objs := newManagedCluster(name, false)
 
 	mcp := objs[1].(*ekscontrolplanev1.AWSManagedControlPlane)
 	mcp.ObjectMeta.Annotations = annotations
+
+	if addFinalizer {
+		controllerutil.AddFinalizer(mcp, expinfrav1.ExternalResourceGCFinalizer)
+	}
 
 	return objs
 }
@@ -276,6 +294,19 @@ func newUnManagedCluster(name string, excludeInfra bool) []client.Object {
 				Namespace: "default",
 			},
 		})
+	}
+
+	return objs
+}
+
+func newUnManagedClusterWithAnnotations(name string, addFinalizer bool, annotations map[string]string) []client.Object {
+	objs := newUnManagedCluster(name, false)
+
+	awsc := objs[1].(*infrav1.AWSCluster)
+	awsc.ObjectMeta.Annotations = annotations
+
+	if addFinalizer {
+		controllerutil.AddFinalizer(awsc, expinfrav1.ExternalResourceGCFinalizer)
 	}
 
 	return objs

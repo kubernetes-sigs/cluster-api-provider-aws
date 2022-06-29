@@ -39,8 +39,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/feature"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/annotations"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
@@ -208,7 +208,7 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 func (r *AWSClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	clusterScope.Info("Reconciling AWSCluster delete")
 
-	if !clusterScope.ExternalResourceGC() {
+	if !clusterScope.HasBeenGarbageCollected() {
 		clusterScope.Info("workload resources not garbage collected, requeueing")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
@@ -262,18 +262,21 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 
 	awsCluster := clusterScope.AWSCluster
 
+	if r.ExternalResourceGC {
+		if !controllerutil.ContainsFinalizer(awsCluster, expinfrav1.ExternalResourceGCFinalizer) {
+			clusterScope.Info("aws cluster not marked for external resource gc yet, requeue")
+
+			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		}
+
+		clusterScope.Info("aws cluster has external resource gc finalizer")
+	}
+
 	// If the AWSCluster doesn't have our finalizer, add it.
 	controllerutil.AddFinalizer(awsCluster, infrav1.ClusterFinalizer)
 	// Register the finalizer immediately to avoid orphaning AWS resources on delete
 	if err := clusterScope.PatchObject(); err != nil {
 		return reconcile.Result{}, err
-	}
-
-	if r.ExternalResourceGC {
-		if !annotations.Has(awsCluster, annotations.ExternalResourceGCAnnotation) {
-			clusterScope.Info("aws cluster not marked for external resource gc yet, requeue")
-			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
-		}
 	}
 
 	ec2Service := r.getEC2Service(clusterScope)

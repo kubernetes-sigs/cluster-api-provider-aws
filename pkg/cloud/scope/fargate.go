@@ -24,11 +24,11 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/annotations"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -222,12 +222,7 @@ func (s *FargateProfileScope) KubernetesClusterName() string {
 	return s.ControlPlane.Spec.EKSClusterName
 }
 
-func (s *FargateProfileScope) ExternalResourceGC() bool {
-	hasGC, err := annotations.GetExternalResourceGC(s.ControlPlane)
-	if err != nil {
-		s.Error(err, "getting external resource gc status from control plane", "annotation", extResCleanedAnnotation)
-		return false
-	}
-
-	return hasGC
+// HasBeenGarbageCollected indicates if the cluster has been garbage collected.
+func (s *FargateProfileScope) HasBeenGarbageCollected() bool {
+	return !controllerutil.ContainsFinalizer(s.ControlPlane, expinfrav1.ExternalResourceGCFinalizer)
 }

@@ -25,9 +25,10 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/annotations"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -349,14 +350,7 @@ func (s *ClusterScope) ImageLookupBaseOS() string {
 	return s.AWSCluster.Spec.ImageLookupBaseOS
 }
 
-// ExternalResourceGC is used to get the status of external resource garbage collection
-// from the AWSCluster.
-func (s *ClusterScope) ExternalResourceGC() bool {
-	hasGC, err := annotations.GetExternalResourceGC(s.AWSCluster)
-	if err != nil {
-		s.Error(err, "getting external resource gc status from AWSCluster", "annotation", extResCleanedAnnotation)
-		return false
-	}
-
-	return hasGC
+// HasBeenGarbageCollected indicates if the cluster has been garbage collected.
+func (s *ClusterScope) HasBeenGarbageCollected() bool {
+	return !controllerutil.ContainsFinalizer(s.AWSCluster, expinfrav1.ExternalResourceGCFinalizer)
 }

@@ -49,8 +49,13 @@ func (s *Service) ReconcileDelete(ctx context.Context) (reconcile.Result, error)
 func (s *Service) deleteServices(ctx context.Context, serviceType corev1.ServiceType) (requeue bool, err error) {
 	s.scope.Info("deleting workload services", "type", serviceType)
 
+	remoteClient, err := s.scope.RemoteClient()
+	if err != nil {
+		return false, fmt.Errorf("getting remote client: %w", err)
+	}
+
 	services := &corev1.ServiceList{}
-	if listErr := s.scope.Client.List(ctx, services); listErr != nil {
+	if listErr := remoteClient.List(ctx, services); listErr != nil {
 		return false, fmt.Errorf("listing services in remote cluster: %w", err)
 	}
 
@@ -75,7 +80,7 @@ func (s *Service) deleteServices(ctx context.Context, serviceType corev1.Service
 		}
 
 		s.scope.V(2).Info("deleting service", "name", svc.Name, "namespace", svc.Namespace, "type", serviceType)
-		if deleteErr := s.scope.Client.Delete(ctx, &svc); deleteErr != nil {
+		if deleteErr := remoteClient.Delete(ctx, &svc); deleteErr != nil {
 			return false, fmt.Errorf("deleting load balancer service %s/%s: %w", svc.Namespace, svc.Name, deleteErr)
 		}
 	}

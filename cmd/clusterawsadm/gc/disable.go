@@ -20,6 +20,9 @@ import (
 	"context"
 	"fmt"
 
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -36,7 +39,8 @@ func (c *CmdProcessor) Disable(ctx context.Context) error {
 		return fmt.Errorf("creating patch helper: %w", err)
 	}
 
-	annotations.SetExternalResourceGC(infraObj, true)
+	controllerutil.RemoveFinalizer(infraObj, expinfrav1.ExternalResourceGCFinalizer)
+	annotations.Set(infraObj, annotations.ExternalResourceGCAnnotation, "false")
 
 	if err := patchHelper.Patch(ctx, infraObj); err != nil {
 		return fmt.Errorf("patching infra cluster with gc annotation: %w", err)

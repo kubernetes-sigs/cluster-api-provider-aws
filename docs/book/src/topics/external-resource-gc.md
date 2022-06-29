@@ -28,6 +28,8 @@ export EXP_EXTERNAL_RESOURCE_GC=true
 clusterctl init --infrastructure aws
 ```
 
+> Note: if you enable this feature **ALL** clusters will be marked as requiring garbage collection.
+
 ## Operations
 
 ### Manually Disabling Garbage Collection for a Cluster

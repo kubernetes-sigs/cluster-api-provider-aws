@@ -202,7 +202,7 @@ func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
 ) (ctrl.Result, error) {
 	machinePoolScope.Info("Reconciling deletion of AWSManagedMachinePool")
 
-	if !machinePoolScope.ExternalResourceGC() {
+	if !machinePoolScope.HasBeenGarbageCollected() {
 		machinePoolScope.Info("workload resources not garbage collected, requeueing")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}

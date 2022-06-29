@@ -36,7 +36,6 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/feature"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/annotations"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/awsnode"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
@@ -205,10 +204,13 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 	}
 
 	if r.ExternalResourceGC {
-		if !annotations.Has(awsManagedControlPlane, annotations.ExternalResourceGCAnnotation) {
+		if !controllerutil.ContainsFinalizer(awsManagedControlPlane, expinfrav1.ExternalResourceGCFinalizer) {
 			managedScope.Info("control plane not marked for external resource gc yet, requeue")
+
 			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 		}
+
+		managedScope.Info("control plane has external resource gc finalizer")
 	}
 
 	if awsManagedControlPlane.Spec.Bastion.Enabled {
@@ -272,7 +274,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileDelete(ctx context.Context, 
 
 	controlPlane := managedScope.ControlPlane
 
-	if !managedScope.ExternalResourceGC() {
+	if !managedScope.HasBeenGarbageCollected() {
 		managedScope.Info("workload resources not garbage collected, requeueing")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
