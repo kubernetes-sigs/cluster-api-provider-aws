@@ -170,7 +170,7 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 
 	// VpcCni is used to set configuration options for the VPC CNI plugin
 	// +optional
-	VpcCni VpcCni `json:"VpcCni,omitempty"`
+	VpcCni VpcCni `json:"vpcCni,omitempty"`
 
 	// KubeProxy defines managed attributes of the kube-proxy daemonset
 	KubeProxy KubeProxy `json:"kubeProxy,omitempty"`

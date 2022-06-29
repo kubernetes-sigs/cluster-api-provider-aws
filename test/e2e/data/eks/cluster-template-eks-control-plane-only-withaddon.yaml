@@ -24,7 +24,7 @@ spec:
   region: "${AWS_REGION}"
   sshKeyName: "${AWS_SSH_KEY_NAME}"
   version: "${KUBERNETES_VERSION}"
-  VpcCni:
+  vpcCni:
     env:
       - name: FOO
         value: BAR
