@@ -125,6 +125,12 @@ type AWSManagedMachinePoolSpec struct {
 	// +optional
 	InstanceType *string `json:"instanceType,omitempty"`
 
+	// InstanceTypeList specifies a list of AWS instance types this pool can
+	// choose from. Mutually exclusive with instanceType.
+	// +kubebuilder:validation:MaxItems:=20
+	// +optional
+	InstanceTypeList []string `json:"instanceTypeList,omitempty"`
+
 	// Scaling specifies scaling for the ASG behind this pool
 	// +optional
 	Scaling *ManagedMachinePoolScaling `json:"scaling,omitempty"`

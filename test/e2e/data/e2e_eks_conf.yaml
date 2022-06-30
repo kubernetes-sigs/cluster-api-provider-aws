@@ -203,6 +203,8 @@ providers:
         targetName: "cluster-template-eks-managed-machinepool-only.yaml"
       - sourcePath: "./eks/cluster-template-eks-managedmachinepool.yaml"
         targetName: "cluster-template-eks-managedmachinepool.yaml"
+      - sourcePath: "./eks/cluster-template-eks-managedmachinepool-instancetypes.yaml"
+        targetName: "cluster-template-eks-managedmachinepool-instancetypes.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.22.9"

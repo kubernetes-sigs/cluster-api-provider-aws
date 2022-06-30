@@ -126,6 +126,37 @@ func TestAWSManagedMachinePool_ValidateCreate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "with both instanceType and instanceTypeList",
+			pool: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-4",
+					InstanceType:     aws.String("a"),
+					InstanceTypeList: []string{"a", "b", "c"},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "with only instanceType",
+			pool: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-4",
+					InstanceType:     aws.String("a"),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "with only instanceTypeList",
+			pool: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-4",
+					InstanceTypeList: []string{"a", "b", "c"},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

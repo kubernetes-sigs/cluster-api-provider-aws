@@ -226,6 +226,9 @@ func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
 	if managedPool.InstanceType != nil {
 		input.InstanceTypes = []*string{managedPool.InstanceType}
 	}
+	if len(managedPool.InstanceTypeList) > 0 {
+		input.InstanceTypes = aws.StringSlice(managedPool.InstanceTypeList)
+	}
 	if len(managedPool.Taints) > 0 {
 		s.Info("adding taints to nodegroup", "nodegroup", nodegroupName)
 		taints, err := converters.TaintsToSDK(managedPool.Taints)

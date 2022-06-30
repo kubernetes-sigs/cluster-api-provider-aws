@@ -415,6 +415,11 @@ func (in *AWSManagedMachinePoolSpec) DeepCopyInto(out *AWSManagedMachinePoolSpec
 		*out = new(string)
 		**out = **in
 	}
+	if in.InstanceTypeList != nil {
+		in, out := &in.InstanceTypeList, &out.InstanceTypeList
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.Scaling != nil {
 		in, out := &in.Scaling, &out.Scaling
 		*out = new(ManagedMachinePoolScaling)

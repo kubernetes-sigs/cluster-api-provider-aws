@@ -116,6 +116,16 @@ func (r *AWSManagedMachinePool) validateRemoteAccess() field.ErrorList {
 	return allErrs
 }
 
+func (r *AWSManagedMachinePool) validateInstanceTypeFieldExclusive() field.ErrorList {
+	var allErrs field.ErrorList
+
+	if r.Spec.InstanceType != nil && len(r.Spec.InstanceTypeList) > 0 {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "instanceTypeList"), "instanceType & instanceTypeList are mutually exclusive"))
+	}
+
+	return allErrs
+}
+
 // ValidateCreate will do any extra validation when creating a AWSManagedMachinePool.
 func (r *AWSManagedMachinePool) ValidateCreate() error {
 	mmpLog.Info("AWSManagedMachinePool validate create", "name", r.Name)
@@ -132,6 +142,9 @@ func (r *AWSManagedMachinePool) ValidateCreate() error {
 		allErrs = append(allErrs, errs...)
 	}
 	if errs := r.validateNodegroupUpdateConfig(); len(errs) > 0 {
+		allErrs = append(allErrs, errs...)
+	}
+	if errs := r.validateInstanceTypeFieldExclusive(); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
 
@@ -166,6 +179,9 @@ func (r *AWSManagedMachinePool) ValidateUpdate(old runtime.Object) error {
 		allErrs = append(allErrs, errs...)
 	}
 	if errs := r.validateNodegroupUpdateConfig(); len(errs) > 0 {
+		allErrs = append(allErrs, errs...)
+	}
+	if errs := r.validateInstanceTypeFieldExclusive(); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
 

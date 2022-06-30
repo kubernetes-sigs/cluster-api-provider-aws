@@ -783,6 +783,7 @@ func autoConvert_v1beta1_AWSManagedMachinePoolSpec_To_v1alpha3_AWSManagedMachine
 	// WARNING: in.Taints requires manual conversion: does not exist in peer-type
 	out.DiskSize = (*int32)(unsafe.Pointer(in.DiskSize))
 	out.InstanceType = (*string)(unsafe.Pointer(in.InstanceType))
+	// WARNING: in.InstanceTypeList requires manual conversion: does not exist in peer-type
 	out.Scaling = (*ManagedMachinePoolScaling)(unsafe.Pointer(in.Scaling))
 	out.RemoteAccess = (*ManagedRemoteAccess)(unsafe.Pointer(in.RemoteAccess))
 	out.ProviderIDList = *(*[]string)(unsafe.Pointer(&in.ProviderIDList))

@@ -47,6 +47,26 @@ spec:
   ...
 ```
 
+Multiple instance types can be provided via `instanceTypeList` to increase the
+number of Spot capacity pools available for allocating capacity from:
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSManagedMachinePool
+metadata:
+  name: ${CLUSTER_NAME}-pool-0
+spec:
+  capacityType: spot
+  instanceTypeList:
+    - "t3.small"
+    - "t3a.small"
+    - "t3.medium"
+    - "t3a.medium"
+    - "t2.medium"
+    - "m1.large"
+  ...
+```
+
+
 See [AWS doc](https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html) for more details.
 
 > **IMPORTANT NOTE**: The experimental feature `AWSMachinePool` does not support using spot instances as of now.

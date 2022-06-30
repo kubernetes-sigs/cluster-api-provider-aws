@@ -574,6 +574,13 @@ spec:
               instanceType:
                 description: InstanceType specifies the AWS instance type
                 type: string
+              instanceTypeList:
+                description: InstanceTypeList specifies a list of AWS instance types
+                  this pool can choose from. Mutually exclusive with instanceType.
+                items:
+                  type: string
+                maxItems: 20
+                type: array
               labels:
                 additionalProperties:
                   type: string
