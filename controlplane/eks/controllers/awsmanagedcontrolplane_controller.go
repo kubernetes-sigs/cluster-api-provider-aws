@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/awsnode"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/gc"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/iamauth"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/kubeproxy"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/network"
@@ -203,16 +204,6 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 		return ctrl.Result{}, err
 	}
 
-	if r.ExternalResourceGC {
-		if !controllerutil.ContainsFinalizer(awsManagedControlPlane, expinfrav1.ExternalResourceGCFinalizer) {
-			managedScope.Info("control plane not marked for external resource gc yet, requeue")
-
-			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
-		}
-
-		managedScope.Info("control plane has external resource gc finalizer")
-	}
-
 	if awsManagedControlPlane.Spec.Bastion.Enabled {
 		eksSecurityGroupRoles = append(eksSecurityGroupRoles, infrav1.SecurityGroupBastion)
 	}
@@ -224,6 +215,13 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 	authService := iamauth.NewService(managedScope, iamauth.BackendTypeConfigMap, managedScope.Client)
 	awsnodeService := awsnode.NewService(managedScope)
 	kubeproxyService := kubeproxy.NewService(managedScope)
+
+	if r.ExternalResourceGC {
+		gcSvc := gc.NewService(managedScope)
+		if gcErr := gcSvc.Reconcile(ctx); gcErr != nil {
+			return reconcile.Result{}, fmt.Errorf("failed reconciling gc service: %w", gcErr)
+		}
+	}
 
 	if err := networkSvc.ReconcileNetwork(); err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to reconcile network for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
@@ -274,11 +272,6 @@ func (r *AWSManagedControlPlaneReconciler) reconcileDelete(ctx context.Context, 
 
 	controlPlane := managedScope.ControlPlane
 
-	if !managedScope.HasBeenGarbageCollected() {
-		managedScope.Info("workload resources not garbage collected, requeueing")
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
-	}
-
 	numDependencies, err := r.dependencyCount(ctx, managedScope)
 	if err != nil {
 		log.Error(err, "error getting controlplane dependencies", "namespace", controlPlane.Namespace, "name", controlPlane.Name)
@@ -308,6 +301,15 @@ func (r *AWSManagedControlPlaneReconciler) reconcileDelete(ctx context.Context, 
 	if err := sgService.DeleteSecurityGroups(); err != nil {
 		log.Error(err, "error deleting general security groups for AWSManagedControlPlane", "namespace", controlPlane.Namespace, "name", controlPlane.Name)
 		return reconcile.Result{}, err
+	}
+
+	if r.ExternalResourceGC {
+		if controllerutil.ContainsFinalizer(managedScope.ControlPlane, expinfrav1.ExternalResourceGCFinalizer) {
+			gcSvc := gc.NewService(managedScope)
+			if gcErr := gcSvc.ReconcileDelete(ctx); gcErr != nil {
+				return reconcile.Result{}, fmt.Errorf("failed delete reconcile for gc service: %w", gcErr)
+			}
+		}
 	}
 
 	if err := networkSvc.DeleteNetwork(); err != nil {

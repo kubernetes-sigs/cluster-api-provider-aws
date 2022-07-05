@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,8 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Run go generate to regenerate this mock.
-//go:generate ../../../../../hack/tools/bin/mockgen -destination elbapi_mock.go -package mock_elbiface github.com/aws/aws-sdk-go/service/elb/elbiface ELBAPI
-//go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt elbapi_mock.go > _elbapi_mock.go && mv _elbapi_mock.go elbapi_mock.go"
+//go:generate ../../hack/tools/bin/mockgen -destination capa_clusterscoper_mock.go -package mocks sigs.k8s.io/cluster-api-provider-aws/pkg/cloud ClusterScoper
+//go:generate /usr/bin/env bash -c "cat ../../hack/boilerplate/boilerplate.generatego.txt capa_clusterscoper_mock.go > _capa_clusterscoper_mock.go && mv _capa_clusterscoper_mock.go capa_clusterscoper_mock.go"
 
-package mock_elbiface //nolint:stylecheck
+package mocks

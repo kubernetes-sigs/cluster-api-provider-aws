@@ -45,6 +45,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/gc"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/instancestate"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/network"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/s3"
@@ -198,20 +199,15 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Handle deleted clusters
 	if !awsCluster.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(clusterScope)
+		return r.reconcileDelete(ctx, clusterScope)
 	}
 
 	// Handle non-deleted clusters
-	return r.reconcileNormal(clusterScope)
+	return r.reconcileNormal(ctx, clusterScope)
 }
 
-func (r *AWSClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	clusterScope.Info("Reconciling AWSCluster delete")
-
-	if !clusterScope.HasBeenGarbageCollected() {
-		clusterScope.Info("workload resources not garbage collected, requeueing")
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
-	}
 
 	ec2svc := r.getEC2Service(clusterScope)
 	elbsvc := r.getELBService(clusterScope)
@@ -242,6 +238,15 @@ func (r *AWSClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope)
 		return reconcile.Result{}, err
 	}
 
+	if r.ExternalResourceGC {
+		if controllerutil.ContainsFinalizer(clusterScope.AWSCluster, expinfrav1.ExternalResourceGCFinalizer) {
+			gcSvc := gc.NewService(clusterScope)
+			if gcErr := gcSvc.ReconcileDelete(ctx); gcErr != nil {
+				return reconcile.Result{}, fmt.Errorf("failed delete reconcile for gc service: %w", gcErr)
+			}
+		}
+	}
+
 	if err := networkSvc.DeleteNetwork(); err != nil {
 		clusterScope.Error(err, "error deleting network")
 		return reconcile.Result{}, err
@@ -257,20 +262,10 @@ func (r *AWSClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope)
 	return reconcile.Result{}, nil
 }
 
-func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	clusterScope.Info("Reconciling AWSCluster")
 
 	awsCluster := clusterScope.AWSCluster
-
-	if r.ExternalResourceGC {
-		if !controllerutil.ContainsFinalizer(awsCluster, expinfrav1.ExternalResourceGCFinalizer) {
-			clusterScope.Info("aws cluster not marked for external resource gc yet, requeue")
-
-			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
-		}
-
-		clusterScope.Info("aws cluster has external resource gc finalizer")
-	}
 
 	// If the AWSCluster doesn't have our finalizer, add it.
 	controllerutil.AddFinalizer(awsCluster, infrav1.ClusterFinalizer)
@@ -284,6 +279,13 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 	networkSvc := r.getNetworkService(*clusterScope)
 	sgService := r.getSecurityGroupService(*clusterScope)
 	s3Service := s3.NewService(clusterScope)
+
+	if r.ExternalResourceGC {
+		gcSvc := gc.NewService(clusterScope)
+		if gcErr := gcSvc.Reconcile(ctx); gcErr != nil {
+			return reconcile.Result{}, fmt.Errorf("failed reconciling gc service: %w", gcErr)
+		}
+	}
 
 	if err := networkSvc.ReconcileNetwork(); err != nil {
 		clusterScope.Error(err, "failed to reconcile network")

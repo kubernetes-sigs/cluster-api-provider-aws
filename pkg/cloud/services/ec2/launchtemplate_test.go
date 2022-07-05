@@ -35,9 +35,9 @@ import (
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ssm/mock_ssmiface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
+	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -86,7 +86,7 @@ func TestGetLaunchTemplate(t *testing.T) {
 	testCases := []struct {
 		name               string
 		launchTemplateName string
-		expect             func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect             func(m *mocks.MockEC2APIMockRecorder)
 		check              func(g *WithT, launchTemplate *expinfrav1.AWSLaunchTemplate, userDataHash string, err error)
 	}{
 		{
@@ -100,7 +100,7 @@ func TestGetLaunchTemplate(t *testing.T) {
 		{
 			name:               "Should not return error if no launch template exist with given name",
 			launchTemplateName: "foo",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeLaunchTemplateVersions(gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
 					LaunchTemplateName: aws.String("foo"),
 					Versions:           []*string{aws.String("$Latest")},
@@ -120,7 +120,7 @@ func TestGetLaunchTemplate(t *testing.T) {
 		{
 			name:               "Should return error if AWS failed during launch template fetching",
 			launchTemplateName: "foo",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeLaunchTemplateVersions(gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
 					LaunchTemplateName: aws.String("foo"),
 					Versions:           []*string{aws.String("$Latest")},
@@ -135,7 +135,7 @@ func TestGetLaunchTemplate(t *testing.T) {
 		{
 			name:               "Should not return with error if no launch template versions received from AWS",
 			launchTemplateName: "foo",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeLaunchTemplateVersions(gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
 					LaunchTemplateName: aws.String("foo"),
 					Versions:           []*string{aws.String("$Latest")},
@@ -150,7 +150,7 @@ func TestGetLaunchTemplate(t *testing.T) {
 		{
 			name:               "Should successfully return launch template if exist with given name",
 			launchTemplateName: "foo",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeLaunchTemplateVersions(gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
 					LaunchTemplateName: aws.String("foo"),
 					Versions:           []*string{aws.String("$Latest")},
@@ -209,7 +209,7 @@ func TestGetLaunchTemplate(t *testing.T) {
 		{
 			name:               "Should return computed userData if AWS returns empty userData",
 			launchTemplateName: "foo",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeLaunchTemplateVersions(gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
 					LaunchTemplateName: aws.String("foo"),
 					Versions:           []*string{aws.String("$Latest")},
@@ -275,7 +275,7 @@ func TestGetLaunchTemplate(t *testing.T) {
 
 			cs, err := setupClusterScope(client)
 			g.Expect(err).NotTo(HaveOccurred())
-			mockEC2Client := mock_ec2iface.NewMockEC2API(mockCtrl)
+			mockEC2Client := mocks.NewMockEC2API(mockCtrl)
 
 			s := NewService(cs)
 			s.EC2Client = mockEC2Client
@@ -366,7 +366,7 @@ func TestService_LaunchTemplateNeedsUpdate(t *testing.T) {
 		name     string
 		incoming *expinfrav1.AWSLaunchTemplate
 		existing *expinfrav1.AWSLaunchTemplate
-		expect   func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect   func(m *mocks.MockEC2APIMockRecorder)
 		want     bool
 		wantErr  bool
 	}{
@@ -453,7 +453,7 @@ func TestService_LaunchTemplateNeedsUpdate(t *testing.T) {
 					{Filters: []infrav1.Filter{{Name: "sg-2", Values: []string{"test-2"}}}},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{Filters: []*ec2.Filter{{Name: aws.String("sg-1"), Values: aws.StringSlice([]string{"test-1"})}}})).
 					Return(&ec2.DescribeSecurityGroupsOutput{SecurityGroups: []*ec2.SecurityGroup{{GroupId: aws.String("sg-1")}}}, nil)
 				m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{Filters: []*ec2.Filter{{Name: aws.String("sg-2"), Values: aws.StringSlice([]string{"test-2"})}}})).
@@ -491,7 +491,7 @@ func TestService_LaunchTemplateNeedsUpdate(t *testing.T) {
 					AWSCluster: ac,
 				},
 			}
-			mockEC2Client := mock_ec2iface.NewMockEC2API(mockCtrl)
+			mockEC2Client := mocks.NewMockEC2API(mockCtrl)
 			s.EC2Client = mockEC2Client
 
 			if tt.expect != nil {
@@ -516,12 +516,12 @@ func TestGetLaunchTemplateID(t *testing.T) {
 	testCases := []struct {
 		name               string
 		launchTemplateName string
-		expect             func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect             func(m *mocks.MockEC2APIMockRecorder)
 		check              func(g *WithT, launchTemplateID string, err error)
 	}{
 		{
 			name:   "Should return with no error if empty launch template name passed",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {},
 			check: func(g *WithT, launchTemplateID string, err error) {
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(launchTemplateID).Should(BeEmpty())
@@ -530,7 +530,7 @@ func TestGetLaunchTemplateID(t *testing.T) {
 		{
 			name:               "Should not return error if launch template does not exist",
 			launchTemplateName: "foo",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeLaunchTemplateVersions(gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
 					LaunchTemplateName: aws.String("foo"),
 					Versions:           []*string{aws.String("$Latest")},
@@ -548,7 +548,7 @@ func TestGetLaunchTemplateID(t *testing.T) {
 		{
 			name:               "Should return with error if AWS failed to fetch launch template",
 			launchTemplateName: "foo",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeLaunchTemplateVersions(gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
 					LaunchTemplateName: aws.String("foo"),
 					Versions:           []*string{aws.String("$Latest")},
@@ -562,7 +562,7 @@ func TestGetLaunchTemplateID(t *testing.T) {
 		{
 			name:               "Should not return error if AWS returns no launch template versions info in output",
 			launchTemplateName: "foo",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeLaunchTemplateVersions(gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
 					LaunchTemplateName: aws.String("foo"),
 					Versions:           []*string{aws.String("$Latest")},
@@ -576,7 +576,7 @@ func TestGetLaunchTemplateID(t *testing.T) {
 		{
 			name:               "Should successfully return launch template ID for given name if exists",
 			launchTemplateName: "foo",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeLaunchTemplateVersions(gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
 					LaunchTemplateName: aws.String("foo"),
 					Versions:           []*string{aws.String("$Latest")},
@@ -631,7 +631,7 @@ func TestGetLaunchTemplateID(t *testing.T) {
 
 			cs, err := setupClusterScope(client)
 			g.Expect(err).NotTo(HaveOccurred())
-			mockEC2Client := mock_ec2iface.NewMockEC2API(mockCtrl)
+			mockEC2Client := mocks.NewMockEC2API(mockCtrl)
 
 			s := NewService(cs)
 			s.EC2Client = mockEC2Client
@@ -652,13 +652,13 @@ func TestDeleteLaunchTemplate(t *testing.T) {
 	testCases := []struct {
 		name      string
 		versionID string
-		expect    func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect    func(m *mocks.MockEC2APIMockRecorder)
 		wantErr   bool
 	}{
 		{
 			name:      "Should not return error if successfully deletes given launch template ID",
 			versionID: "1",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DeleteLaunchTemplate(gomock.Eq(&ec2.DeleteLaunchTemplateInput{
 					LaunchTemplateId: aws.String("1"),
 				})).Return(&ec2.DeleteLaunchTemplateOutput{}, nil)
@@ -667,7 +667,7 @@ func TestDeleteLaunchTemplate(t *testing.T) {
 		{
 			name:      "Should return error if failed to delete given launch template ID",
 			versionID: "1",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DeleteLaunchTemplate(gomock.Eq(&ec2.DeleteLaunchTemplateInput{
 					LaunchTemplateId: aws.String("1"),
 				})).Return(nil, awserrors.NewFailedDependency("dependency failure"))
@@ -685,7 +685,7 @@ func TestDeleteLaunchTemplate(t *testing.T) {
 
 			cs, err := setupClusterScope(client)
 			g.Expect(err).NotTo(HaveOccurred())
-			mockEC2Client := mock_ec2iface.NewMockEC2API(mockCtrl)
+			mockEC2Client := mocks.NewMockEC2API(mockCtrl)
 
 			s := NewService(cs)
 			s.EC2Client = mockEC2Client
@@ -717,13 +717,13 @@ func TestCreateLaunchTemplate(t *testing.T) {
 	testCases := []struct {
 		name                 string
 		awsResourceReference []infrav1.AWSResourceReference
-		expect               func(g *WithT, m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect               func(g *WithT, m *mocks.MockEC2APIMockRecorder)
 		check                func(g *WithT, s string, e error)
 	}{
 		{
 			name:                 "Should not return error if successfully created launch template id",
 			awsResourceReference: []infrav1.AWSResourceReference{{ID: aws.String("1")}},
-			expect: func(g *WithT, m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(g *WithT, m *mocks.MockEC2APIMockRecorder) {
 				sgMap := make(map[infrav1.SecurityGroupRole]infrav1.SecurityGroup)
 				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
 				sgMap[infrav1.SecurityGroupLB] = infrav1.SecurityGroup{ID: "2"}
@@ -777,7 +777,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 		{
 			name:                 "Should successfully create launch template id with AdditionalSecurityGroups Filter",
 			awsResourceReference: []infrav1.AWSResourceReference{{Filters: []infrav1.Filter{{Name: "sg-1", Values: []string{"test"}}}}},
-			expect: func(g *WithT, m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(g *WithT, m *mocks.MockEC2APIMockRecorder) {
 				sgMap := make(map[infrav1.SecurityGroupRole]infrav1.SecurityGroup)
 				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
 				sgMap[infrav1.SecurityGroupLB] = infrav1.SecurityGroup{ID: "2"}
@@ -833,7 +833,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 		{
 			name:                 "Should return with error if failed to create launch template id",
 			awsResourceReference: []infrav1.AWSResourceReference{{ID: aws.String("1")}},
-			expect: func(g *WithT, m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(g *WithT, m *mocks.MockEC2APIMockRecorder) {
 				sgMap := make(map[infrav1.SecurityGroupRole]infrav1.SecurityGroup)
 				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
 				sgMap[infrav1.SecurityGroupLB] = infrav1.SecurityGroup{ID: "2"}
@@ -892,7 +892,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 
 			cs, err := setupClusterScope(client)
 			g.Expect(err).NotTo(HaveOccurred())
-			mockEC2Client := mock_ec2iface.NewMockEC2API(mockCtrl)
+			mockEC2Client := mocks.NewMockEC2API(mockCtrl)
 
 			ms, err := setupMachinePoolScope(client, cs)
 			g.Expect(err).NotTo(HaveOccurred())
@@ -950,13 +950,13 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 		name                 string
 		imageID              *string
 		awsResourceReference []infrav1.AWSResourceReference
-		expect               func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect               func(m *mocks.MockEC2APIMockRecorder)
 		wantErr              bool
 	}{
 		{
 			name:                 "Should successfully creates launch template version",
 			awsResourceReference: []infrav1.AWSResourceReference{{ID: aws.String("1")}},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				sgMap := make(map[infrav1.SecurityGroupRole]infrav1.SecurityGroup)
 				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
 				sgMap[infrav1.SecurityGroupLB] = infrav1.SecurityGroup{ID: "2"}
@@ -1001,7 +1001,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 		{
 			name:                 "Should return error if AWS failed during launch template version creation",
 			awsResourceReference: []infrav1.AWSResourceReference{{ID: aws.String("1")}},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				sgMap := make(map[infrav1.SecurityGroupRole]infrav1.SecurityGroup)
 				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
 				sgMap[infrav1.SecurityGroupLB] = infrav1.SecurityGroup{ID: "2"}
@@ -1058,7 +1058,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 
 			mpScope.AWSMachinePool.Spec.AWSLaunchTemplate.AdditionalSecurityGroups = tc.awsResourceReference
 
-			mockEC2Client := mock_ec2iface.NewMockEC2API(mockCtrl)
+			mockEC2Client := mocks.NewMockEC2API(mockCtrl)
 			s := NewService(cs)
 			s.EC2Client = mockEC2Client
 
@@ -1131,7 +1131,7 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 		name              string
 		awsLaunchTemplate expinfrav1.AWSLaunchTemplate
 		machineTemplate   clusterv1.MachineTemplateSpec
-		expect            func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect            func(m *mocks.MockEC2APIMockRecorder)
 		check             func(*WithT, *string, error)
 	}{
 		{
@@ -1147,7 +1147,7 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 					Version: aws.String(DefaultAmiNameFormat),
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
@@ -1181,7 +1181,7 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 					Version: aws.String(DefaultAmiNameFormat),
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
@@ -1236,7 +1236,7 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 					Version: aws.String(DefaultAmiNameFormat),
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(nil, awserrors.NewFailedDependency("dependency-failure"))
 			},
@@ -1250,7 +1250,7 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scheme, err := setupScheme()
 			g.Expect(err).NotTo(HaveOccurred())
@@ -1345,7 +1345,7 @@ func TestDeleteLaunchTemplateVersion(t *testing.T) {
 	testCases := []struct {
 		name    string
 		args    args
-		expect  func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect  func(m *mocks.MockEC2APIMockRecorder)
 		wantErr bool
 	}{
 		{
@@ -1358,7 +1358,7 @@ func TestDeleteLaunchTemplateVersion(t *testing.T) {
 				id:      "id",
 				version: aws.Int64(12),
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DeleteLaunchTemplateVersions(gomock.Eq(
 					&ec2.DeleteLaunchTemplateVersionsInput{
 						LaunchTemplateId: aws.String("id"),
@@ -1374,7 +1374,7 @@ func TestDeleteLaunchTemplateVersion(t *testing.T) {
 				id:      "id",
 				version: aws.Int64(12),
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DeleteLaunchTemplateVersions(gomock.Eq(
 					&ec2.DeleteLaunchTemplateVersionsInput{
 						LaunchTemplateId: aws.String("id"),
@@ -1396,7 +1396,7 @@ func TestDeleteLaunchTemplateVersion(t *testing.T) {
 			cs, err := setupClusterScope(client)
 			g.Expect(err).NotTo(HaveOccurred())
 
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 			s := NewService(cs)
 			s.EC2Client = ec2Mock
 

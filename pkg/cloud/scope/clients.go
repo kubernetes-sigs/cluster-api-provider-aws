@@ -28,6 +28,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/elb/elbiface"
+	"github.com/aws/aws-sdk-go/service/elbv2"
+	"github.com/aws/aws-sdk-go/service/elbv2/elbv2iface"
 	"github.com/aws/aws-sdk-go/service/eventbridge"
 	"github.com/aws/aws-sdk-go/service/eventbridge/eventbridgeiface"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -86,6 +88,18 @@ func NewELBClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger clou
 	elbClient.Handlers.Sign.PushFront(session.ServiceLimiter(elb.ServiceID).LimitRequest)
 	elbClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
 	elbClient.Handlers.CompleteAttempt.PushFront(session.ServiceLimiter(elb.ServiceID).ReviewResponse)
+	elbClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
+
+	return elbClient
+}
+
+// NewELBv2Client creates a new ELB v2 API client for a given session.
+func NewELBv2Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger cloud.Logger, target runtime.Object) elbv2iface.ELBV2API {
+	elbClient := elbv2.New(session.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(logger)).WithLogger(awslogs.NewWrapLogr(logger)))
+	elbClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
+	elbClient.Handlers.Sign.PushFront(session.ServiceLimiter(elbv2.ServiceID).LimitRequest)
+	elbClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
+	elbClient.Handlers.CompleteAttempt.PushFront(session.ServiceLimiter(elbv2.ServiceID).ReviewResponse)
 	elbClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
 
 	return elbClient

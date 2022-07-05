@@ -28,8 +28,8 @@ import (
 	"github.com/pkg/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/mock_eksiface"
+	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
 )
 
 var (
@@ -136,12 +136,12 @@ func TestTags_EnsureWithEC2(t *testing.T) {
 	tests := []struct {
 		name    string
 		builder Builder
-		expect  func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect  func(m *mocks.MockEC2APIMockRecorder)
 	}{
 		{
 			name:    "Should return error when create tag fails",
 			builder: Builder{params: &bp},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
 					Resources: aws.StringSlice([]string{""}),
 					Tags:      tags,
@@ -159,7 +159,7 @@ func TestTags_EnsureWithEC2(t *testing.T) {
 		{
 			name:    "Should ensure tags successfully",
 			builder: Builder{params: &bp},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
 					Resources: aws.StringSlice([]string{""}),
 					Tags:      tags,
@@ -170,7 +170,7 @@ func TestTags_EnsureWithEC2(t *testing.T) {
 
 	g := NewWithT(t)
 	mockCtrl := gomock.NewController(t)
-	ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+	ec2Mock := mocks.NewMockEC2API(mockCtrl)
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			var builder *Builder

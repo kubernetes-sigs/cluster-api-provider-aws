@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -201,11 +200,6 @@ func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
 	machinePoolScope *scope.ManagedMachinePoolScope,
 ) (ctrl.Result, error) {
 	machinePoolScope.Info("Reconciling deletion of AWSManagedMachinePool")
-
-	if !machinePoolScope.HasBeenGarbageCollected() {
-		machinePoolScope.Info("workload resources not garbage collected, requeueing")
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
-	}
 
 	ekssvc := eks.NewNodegroupService(machinePoolScope)
 

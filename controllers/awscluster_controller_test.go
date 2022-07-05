@@ -16,6 +16,7 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -34,11 +35,10 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	ec2Service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	elbService "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/network"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/securitygroup"
+	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -48,6 +48,7 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 		reconciler AWSClusterReconciler
 		mockCtrl   *gomock.Controller
 		recorder   *record.FakeRecorder
+		ctx        context.Context
 	)
 
 	setup := func(t *testing.T) {
@@ -58,6 +59,7 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 			Client:   testEnv.Client,
 			Recorder: recorder,
 		}
+		ctx = context.TODO()
 	}
 
 	teardown := func() {
@@ -67,9 +69,9 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 	t.Run("Should successfully reconcile AWSCluster creation with unmanaged VPC", func(t *testing.T) {
 		g := NewWithT(t)
 		mockCtrl = gomock.NewController(t)
-		ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-		elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
-		expect := func(m *mock_ec2iface.MockEC2APIMockRecorder, e *mock_elbiface.MockELBAPIMockRecorder) {
+		ec2Mock := mocks.NewMockEC2API(mockCtrl)
+		elbMock := mocks.NewMockELBAPI(mockCtrl)
+		expect := func(m *mocks.MockEC2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedCreateVPCCalls(m)
 			mockedCreateSGCalls(m)
 			mockedCreateLBCalls(t, e)
@@ -77,10 +79,11 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 		}
 		expect(ec2Mock.EXPECT(), elbMock.EXPECT())
 
+		setup(t)
 		controllerIdentity := createControllerIdentity(g)
 		ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("integ-test-%s", util.RandomString(5)))
 		g.Expect(err).To(BeNil())
-		setup(t)
+
 		awsCluster := getAWSCluster("test", ns.Name)
 
 		g.Expect(testEnv.Create(ctx, &awsCluster)).To(Succeed())
@@ -146,7 +149,7 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 				IsPublic:         false,
 			},
 		})
-		_, err = reconciler.reconcileNormal(cs)
+		_, err = reconciler.reconcileNormal(ctx, cs)
 		g.Expect(err).To(BeNil())
 		g.Expect(cs.VPC().ID).To(Equal("vpc-exists"))
 		expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{
@@ -160,12 +163,13 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 		// Assuming the max VPC limit is 2 and when two VPCs are created, the creation of 3rd VPC throws mocked error from EC2 API
 		g := NewWithT(t)
 		mockCtrl = gomock.NewController(t)
-		ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-		expect := func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+		ec2Mock := mocks.NewMockEC2API(mockCtrl)
+		expect := func(m *mocks.MockEC2APIMockRecorder) {
 			mockedCreateMaximumVPCCalls(m)
 		}
 		expect(ec2Mock.EXPECT())
 
+		setup(t)
 		controllerIdentity := createControllerIdentity(g)
 		ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("integ-test-%s", util.RandomString(5)))
 		g.Expect(err).To(BeNil())
@@ -179,7 +183,7 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 			},
 		}
 		g.Expect(testEnv.Create(ctx, &awsCluster)).To(Succeed())
-		setup(t)
+
 		defer teardown()
 		g.Eventually(func() bool {
 			cluster := &infrav1.AWSCluster{}
@@ -201,16 +205,16 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 		reconciler.networkServiceFactory = func(clusterScope scope.ClusterScope) services.NetworkInterface {
 			return s
 		}
-		_, err = reconciler.reconcileNormal(cs)
+		_, err = reconciler.reconcileNormal(ctx, cs)
 		g.Expect(err.Error()).To(ContainSubstring("The maximum number of VPCs has been reached"))
 	})
 	t.Run("Should successfully delete AWSCluster with managed VPC", func(t *testing.T) {
 		g := NewWithT(t)
 
 		mockCtrl = gomock.NewController(t)
-		ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-		elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
-		expect := func(m *mock_ec2iface.MockEC2APIMockRecorder, e *mock_elbiface.MockELBAPIMockRecorder) {
+		ec2Mock := mocks.NewMockEC2API(mockCtrl)
+		elbMock := mocks.NewMockELBAPI(mockCtrl)
+		expect := func(m *mocks.MockEC2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedDeleteVPCCalls(m)
 			mockedDescribeInstanceCall(m)
 			mockedDeleteLBCalls(e)
@@ -219,11 +223,12 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 		}
 		expect(ec2Mock.EXPECT(), elbMock.EXPECT())
 
+		setup(t)
 		controllerIdentity := createControllerIdentity(g)
 		ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("integ-test-%s", util.RandomString(5)))
 		g.Expect(err).To(BeNil())
 		awsCluster := getAWSCluster("test", ns.Name)
-		setup(t)
+
 		g.Expect(testEnv.Create(ctx, &awsCluster)).To(Succeed())
 		defer teardown()
 		g.Eventually(func() bool {
@@ -275,7 +280,7 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 			return sgSvc
 		}
 
-		_, err = reconciler.reconcileDelete(cs)
+		_, err = reconciler.reconcileDelete(ctx, cs)
 		g.Expect(err).To(BeNil())
 		expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.LoadBalancerReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
 			{infrav1.BastionHostReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
@@ -289,7 +294,7 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 	})
 }
 
-func mockedDeleteSGCalls(m *mock_ec2iface.MockEC2APIMockRecorder) {
+func mockedDeleteSGCalls(m *mocks.MockEC2APIMockRecorder) {
 	m.DescribeSecurityGroupsPages(gomock.Any(), gomock.Any()).Return(nil)
 }
 
@@ -311,7 +316,7 @@ func createControllerIdentity(g *WithT) *infrav1.AWSClusterControllerIdentity {
 	return controllerIdentity
 }
 
-func mockedDescribeInstanceCall(m *mock_ec2iface.MockEC2APIMockRecorder) {
+func mockedDescribeInstanceCall(m *mocks.MockEC2APIMockRecorder) {
 	m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			{
@@ -362,7 +367,7 @@ func mockedDescribeInstanceCall(m *mock_ec2iface.MockEC2APIMockRecorder) {
 	}, nil)
 }
 
-func mockedDeleteInstanceCalls(m *mock_ec2iface.MockEC2APIMockRecorder) {
+func mockedDeleteInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 	m.TerminateInstances(
 		gomock.Eq(&ec2.TerminateInstancesInput{
 			InstanceIds: aws.StringSlice([]string{"id-1"}),
@@ -377,7 +382,7 @@ func mockedDeleteInstanceCalls(m *mock_ec2iface.MockEC2APIMockRecorder) {
 		Return(nil)
 }
 
-func mockedCreateVPCCalls(m *mock_ec2iface.MockEC2APIMockRecorder) {
+func mockedCreateVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 	m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
 		Resources: aws.StringSlice([]string{"subnet-1"}),
 		Tags: []*ec2.Tag{
@@ -593,11 +598,11 @@ func mockedCreateVPCCalls(m *mock_ec2iface.MockEC2APIMockRecorder) {
 		}, nil)
 }
 
-func mockedCreateMaximumVPCCalls(m *mock_ec2iface.MockEC2APIMockRecorder) {
+func mockedCreateMaximumVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 	m.CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(nil, errors.New("The maximum number of VPCs has been reached"))
 }
 
-func mockedDeleteVPCCalls(m *mock_ec2iface.MockEC2APIMockRecorder) {
+func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 	m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
 			{
@@ -740,7 +745,7 @@ func mockedDeleteVPCCalls(m *mock_ec2iface.MockEC2APIMockRecorder) {
 	}))
 }
 
-func mockedCreateSGCalls(m *mock_ec2iface.MockEC2APIMockRecorder) {
+func mockedCreateSGCalls(m *mocks.MockEC2APIMockRecorder) {
 	m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{
 		Filters: []*ec2.Filter{
 			{

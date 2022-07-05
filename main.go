@@ -384,18 +384,6 @@ func enableGates(ctx context.Context, mgr ctrl.Manager, awsServiceEndpoints []sc
 	if feature.Gates.Enabled(feature.BootstrapFormatIgnition) {
 		setupLog.Info("Enabling Ignition support for machine bootstrap data")
 	}
-
-	if feature.Gates.Enabled(feature.ExternalResourceGC) {
-		setupLog.Info("Enabling external resource garbage collection controller")
-		if err := (&expcontrollers.ExternalResourceGCReconciler{
-			Client:           mgr.GetClient(),
-			Recorder:         mgr.GetEventRecorderFor("externalresourcegc-controller"),
-			WatchFilterValue: watchFilterValue,
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: instanceStateConcurrency, RecoverPanic: true}); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "ExternalResourceGC")
-			os.Exit(1)
-		}
-	}
 }
 func initFlags(fs *pflag.FlagSet) {
 	fs.StringVar(

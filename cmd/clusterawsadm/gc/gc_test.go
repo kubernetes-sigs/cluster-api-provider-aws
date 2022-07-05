@@ -114,12 +114,12 @@ func TestEnableGC(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(obj).NotTo(BeNil())
 
-			gcVal, found := annotations.Get(obj, annotations.ExternalResourceGCAnnotation)
-			g.Expect(found).To(BeTrue())
-			g.Expect(gcVal).To(Equal("true"))
-
 			hasGCGinalizer := controllerutil.ContainsFinalizer(obj, expinfrav1.ExternalResourceGCFinalizer)
 			g.Expect(hasGCGinalizer).To(BeTrue())
+
+			annotationVal, hasAnnotation := annotations.Get(obj, annotations.ExternalResourceGCAnnotation)
+			g.Expect(hasAnnotation).To(BeTrue())
+			g.Expect(annotationVal).To(Equal("true"))
 		})
 	}
 }
@@ -196,12 +196,12 @@ func TestDisableGC(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(obj).NotTo(BeNil())
 
-			gcVal, found := annotations.Get(obj, annotations.ExternalResourceGCAnnotation)
-			g.Expect(found).To(BeTrue())
-			g.Expect(gcVal).To(Equal("false"))
-
 			hasGCGinalizer := controllerutil.ContainsFinalizer(obj, expinfrav1.ExternalResourceGCFinalizer)
 			g.Expect(hasGCGinalizer).To(BeFalse())
+
+			annotationVal, hasAnnotation := annotations.Get(obj, annotations.ExternalResourceGCAnnotation)
+			g.Expect(hasAnnotation).To(BeTrue())
+			g.Expect(annotationVal).To(Equal("false"))
 		})
 	}
 }

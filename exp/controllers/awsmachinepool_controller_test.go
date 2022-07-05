@@ -324,20 +324,6 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			g.Expect(ms.AWSMachinePool.Status.Ready).To(Equal(false))
 			g.Eventually(recorder.Events).Should(Receive(ContainSubstring("DeletionInProgress")))
 		})
-		t.Run("should requeue if external resources not garbage collected", func(t *testing.T) {
-			g := NewWithT(t)
-			setup(t, g, true)
-			defer teardown(t, g)
-			finalizer(t, g)
-
-			buf := new(bytes.Buffer)
-			klog.SetOutput(buf)
-			result, err := reconciler.reconcileDelete(ms, cs, cs)
-			g.Expect(err).To(BeNil())
-			g.Expect(result).NotTo(BeNil())
-			g.Expect(result.RequeueAfter).NotTo(BeNil())
-			g.Expect(result.RequeueAfter).NotTo(BeZero())
-		})
 	})
 }
 

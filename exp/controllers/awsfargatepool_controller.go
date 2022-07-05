@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -167,11 +166,6 @@ func (r *AWSFargateProfileReconciler) reconcileDelete(
 	fargateProfileScope *scope.FargateProfileScope,
 ) (ctrl.Result, error) {
 	fargateProfileScope.Info("Reconciling deletion of AWSFargateProfile")
-
-	if !fargateProfileScope.HasBeenGarbageCollected() {
-		fargateProfileScope.Info("workload resources not garbage collected, requeueing")
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
-	}
 
 	ekssvc := eks.NewFargateService(fargateProfileScope)
 

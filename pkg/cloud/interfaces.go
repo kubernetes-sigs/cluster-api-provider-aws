@@ -92,7 +92,6 @@ type ClusterScoper interface {
 	Logger
 	Session
 	ScopeUsage
-	ExternalResourceGC
 
 	// Name returns the CAPI cluster name.
 	Name() string
@@ -128,10 +127,4 @@ type ClusterScoper interface {
 	PatchObject() error
 	// Close closes the current scope persisting the cluster configuration and status.
 	Close() error
-}
-
-// ExternalResourceGC represents the setting/getting of the external resource garbage collection.
-type ExternalResourceGC interface {
-	// HasBeenGarbageCollected indicates if the cluster has been garbage collected.
-	HasBeenGarbageCollected() bool
 }

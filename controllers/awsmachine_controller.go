@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	ignTypes "github.com/flatcar-linux/ignition/config/v2_3/types"
@@ -286,11 +285,6 @@ func (r *AWSMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 
 func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope, elbScope scope.ELBScope, objectStoreScope scope.S3Scope) (ctrl.Result, error) {
 	machineScope.Info("Handling deleted AWSMachine")
-
-	if !clusterScope.HasBeenGarbageCollected() {
-		machineScope.Info("workload resources not garbage collected, requeueing")
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
-	}
 
 	ec2Service := r.getEC2Service(ec2Scope)
 

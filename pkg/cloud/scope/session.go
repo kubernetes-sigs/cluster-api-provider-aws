@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/go-logr/logr"
@@ -189,6 +190,7 @@ func newServiceLimiters() throttle.ServiceLimiters {
 	return throttle.ServiceLimiters{
 		ec2.ServiceID:                      newEC2ServiceLimiter(),
 		elb.ServiceID:                      newGenericServiceLimiter(),
+		elbv2.ServiceID:                    newGenericServiceLimiter(),
 		resourcegroupstaggingapi.ServiceID: newGenericServiceLimiter(),
 		secretsmanager.ServiceID:           newGenericServiceLimiter(),
 	}

@@ -25,7 +25,6 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
@@ -281,9 +280,4 @@ func (s *ManagedMachinePoolScope) KubernetesClusterName() string {
 // NodegroupName is the name of the EKS nodegroup.
 func (s *ManagedMachinePoolScope) NodegroupName() string {
 	return s.ManagedMachinePool.Spec.EKSNodegroupName
-}
-
-// HasBeenGarbageCollected indicates if the cluster has been garbage collected.
-func (s *ManagedMachinePoolScope) HasBeenGarbageCollected() bool {
-	return !controllerutil.ContainsFinalizer(s.ControlPlane, expinfrav1.ExternalResourceGCFinalizer)
 }
