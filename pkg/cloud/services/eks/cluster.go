@@ -362,7 +362,7 @@ func (s *Service) createCluster(eksClusterName string) (*eks.Cluster, error) {
 	additionalTags := s.scope.AdditionalTags()
 
 	// Set the cloud provider tag
-	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())] = string(infrav1.ResourceLifecycleOwned)
+	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())] = string(infrav1.ResourceLifecycleOwned)
 	tags := make(map[string]*string)
 	for k, v := range additionalTags {
 		tagValue := v
