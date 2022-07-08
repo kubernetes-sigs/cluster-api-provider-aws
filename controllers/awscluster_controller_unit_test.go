@@ -628,3 +628,36 @@ func cleanupCluster(g *WithT, awsCluster *infrav1.AWSCluster, namespace *corev1.
 		}(awsCluster, namespace)
 	}
 }
+
+func TestSecurityGroupRolesForCluster(t *testing.T) {
+	tests := []struct {
+		name           string
+		bastionEnabled bool
+		want           []infrav1.SecurityGroupRole
+	}{
+		{
+			name:           "Should use bastion security group when bastion is enabled",
+			bastionEnabled: true,
+			want:           append(defaultAWSSecurityGroupRoles, infrav1.SecurityGroupBastion),
+		},
+		{
+			name:           "Should not use bastion security group when bastion is not enabled",
+			bastionEnabled: false,
+			want:           defaultAWSSecurityGroupRoles,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			c := getAWSCluster("test", "test")
+			c.Spec.Bastion.Enabled = tt.bastionEnabled
+			s, err := getClusterScope(c)
+			g.Expect(err).To(BeNil(), "failed to create cluster scope for test")
+
+			got := securityGroupRolesForCluster(*s)
+			g.Expect(got).To(Equal(tt.want))
+		})
+	}
+}
