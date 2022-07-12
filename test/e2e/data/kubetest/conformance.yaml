@@ -7,5 +7,6 @@ ginkgo.slowSpecThreshold: 120.0
 ginkgo.flakeAttempts: 3
 ginkgo.trace: true
 ginkgo.v: true
+ginkgo.timeout: 10800s
 # TODO @randomvariable: Wire up credentials to Docker mount after https://github.com/kubernetes-sigs/cluster-api/pull/4930
 # provider: aws
