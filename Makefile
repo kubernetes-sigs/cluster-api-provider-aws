@@ -40,7 +40,6 @@ TEST_E2E_DIR := test/e2e
 E2E_DATA_DIR ?= $(REPO_ROOT)/test/e2e/data
 E2E_CONF_PATH  ?= $(E2E_DATA_DIR)/e2e_conf.yaml
 E2E_EKS_CONF_PATH ?= $(E2E_DATA_DIR)/e2e_eks_conf.yaml
-E2E_EKS_GC_CONF_PATH ?= $(E2E_DATA_DIR)/e2e_eks_gc_conf.yaml
 KUBETEST_CONF_PATH ?= $(abspath $(E2E_DATA_DIR)/kubetest/conformance.yaml)
 EXP_DIR := exp
 
@@ -413,9 +412,13 @@ test-e2e: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) generate-test-flavors e2e
 test-e2e-eks: generate-test-flavors  $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run eks e2e tests
 	time $(GINKGO) -tags=e2e $(GINKGO_ARGS) ./test/e2e/suites/managed/... -- -config-path="$(E2E_EKS_CONF_PATH)" --source-template="$(EKS_SOURCE_TEMPLATE)" $(E2E_ARGS) $(EKS_E2E_ARGS)
 
+.PHONY: test-e2e-gc ## Run garbage collection e2e tests using clusterctl
+test-e2e-gc: generate-test-flavors  $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run eks e2e tests
+	time $(GINKGO) -tags=e2e -focus="$(GINKGO_FOCUS)" -skip="$(GINKGO_SKIP)" $(GINKGO_ARGS) -p ./test/e2e/suites/gc_unmanaged/... -- -config-path="$(E2E_CONF_PATH)" $(E2E_ARGS)
+
 .PHONY: test-e2e-eks-gc ## Run EKS garbage collection e2e tests using clusterctl
 test-e2e-eks-gc: generate-test-flavors  $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run eks e2e tests
-	time $(GINKGO) -tags=e2e -focus="$(GINKGO_FOCUS)" -skip="$(GINKGO_SKIP)" $(GINKGO_ARGS) ./test/e2e/suites/managed/... -- -config-path="$(E2E_EKS_GC_CONF_PATH)" --source-template="$(EKS_SOURCE_TEMPLATE)" --skip-eks-upgrade-tests --skip-eks-general-tests --enable-eks-extresourcegc-tests $(E2E_ARGS) $(EKS_E2E_ARGS)
+	time $(GINKGO) -tags=e2e -focus="$(GINKGO_FOCUS)" -skip="$(GINKGO_SKIP)" $(GINKGO_ARGS) ./test/e2e/suites/gc_managed/... -- -config-path="$(E2E_EKS_CONF_PATH)" --source-template="$(EKS_SOURCE_TEMPLATE)" $(E2E_ARGS) $(EKS_E2E_ARGS)
 
 
 CONFORMANCE_E2E_ARGS ?= -kubetest.config-file=$(KUBETEST_CONF_PATH)
@@ -440,6 +443,8 @@ compile-e2e: ## Test e2e compilation
 	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/unmanaged
 	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/conformance
 	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/managed
+	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/gc_managed
+	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/gc_unmanaged
 
 
 .PHONY: docker-pull-e2e-preloads

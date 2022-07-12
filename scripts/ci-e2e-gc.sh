@@ -85,7 +85,7 @@ if grep -iqF "$(echo "${AWS_ACCESS_KEY_ID-}" |
   exit 1
 fi
 
-EXP_EXTERNAL_RESOURCE_GC="true" GC_WORKLOAD="../../data/gcworkload.yaml" make test-e2e-eks-gc ARTIFACTS=$ARTIFACTS
+EXP_EXTERNAL_RESOURCE_GC="true" GC_WORKLOAD="../../data/gcworkload.yaml" make test-e2e-gc ARTIFACTS=$ARTIFACTS
 
 test_status="${?}"
 

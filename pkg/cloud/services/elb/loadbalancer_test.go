@@ -784,7 +784,7 @@ func TestDeleteAWSCloudProviderELBs(t *testing.T) {
 					funct(&rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []*rgapi.ResourceTagMapping{
 							{
-								ResourceARN: aws.String("lb-service-name"),
+								ResourceARN: aws.String("arn:aws:elasticloadbalancing:eu-west-2:1234567890:loadbalancer/lb-service-name"),
 								Tags: []*rgapi.Tag{{
 									Key:   aws.String(infrav1.ClusterAWSCloudProviderTagKey(clusterName)),
 									Value: aws.String(string(infrav1.ResourceLifecycleOwned)),

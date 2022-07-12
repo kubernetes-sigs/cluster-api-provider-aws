@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
@@ -605,9 +606,20 @@ func (s *Service) listByTag(tag string) ([]string, error) {
 	err := s.ResourceTaggingClient.GetResourcesPages(&input, func(r *rgapi.GetResourcesOutput, last bool) bool {
 		for _, tagmapping := range r.ResourceTagMappingList {
 			if tagmapping.ResourceARN != nil {
-				// We can't use arn.Parse because the "Resource" is loadbalancer/<name>
-				parts := strings.Split(*tagmapping.ResourceARN, "/")
-				name := parts[len(parts)-1]
+				parsedARN, err := arn.Parse(*tagmapping.ResourceARN)
+				if err != nil {
+					s.scope.Info("failed to parse ARN", "arn", *tagmapping.ResourceARN, "tag", tag)
+					continue
+				}
+				if strings.Contains(parsedARN.Resource, "loadbalancer/net/") {
+					s.scope.Info("ignoring nlb created by service, consider enabling garbage collection", "arn", *tagmapping.ResourceARN, "tag", tag)
+					continue
+				}
+				if strings.Contains(parsedARN.Resource, "loadbalancer/app/") {
+					s.scope.Info("ignoring alb created by service, consider enabling garbage collection", "arn", *tagmapping.ResourceARN, "tag", tag)
+					continue
+				}
+				name := strings.ReplaceAll(parsedARN.Resource, "loadbalancer/", "")
 				if name == "" {
 					s.scope.Info("failed to parse ARN", "arn", *tagmapping.ResourceARN, "tag", tag)
 					continue

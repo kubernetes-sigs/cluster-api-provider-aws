@@ -2,7 +2,7 @@
 // +build e2e
 
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,10 +17,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package managed
+package gc_managed //nolint:stylecheck
 
 import (
-	"flag"
 	"testing"
 
 	"github.com/onsi/ginkgo"
@@ -36,22 +35,18 @@ import (
 )
 
 var (
-	e2eCtx           *shared.E2EContext
-	skipUpgradeTests bool
-	skipGeneralTests bool
+	e2eCtx *shared.E2EContext
 )
 
 func init() {
 	e2eCtx = shared.NewE2EContext(shared.WithManaged(), shared.WithSchemeInit(initScheme))
 
 	shared.CreateDefaultFlags(e2eCtx)
-	flag.BoolVar(&skipGeneralTests, "skip-eks-general-tests", false, "if true, the general EKS tests will be skipped")
-	flag.BoolVar(&skipUpgradeTests, "skip-eks-upgrade-tests", false, "if true, the EKS upgrade tests will be skipped")
 }
 
 func TestE2E(t *testing.T) {
 	RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "capa-eks-e2e", []ginkgo.Reporter{framework.CreateJUnitReporterForProw(e2eCtx.Settings.ArtifactFolder)})
+	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "capa-eks-gc-e2e", []ginkgo.Reporter{framework.CreateJUnitReporterForProw(e2eCtx.Settings.ArtifactFolder)})
 }
 
 var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
@@ -68,14 +63,6 @@ var _ = ginkgo.SynchronizedAfterSuite(
 		shared.Node1AfterSuite(e2eCtx)
 	},
 )
-
-func runGeneralTests() bool {
-	return !skipGeneralTests
-}
-
-func runUpgradeTests() bool {
-	return !skipUpgradeTests
-}
 
 func initScheme() *runtime.Scheme {
 	sc := shared.DefaultScheme()
