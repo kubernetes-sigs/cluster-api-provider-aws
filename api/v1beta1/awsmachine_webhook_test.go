@@ -354,6 +354,29 @@ func TestAWSMachine_Update(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "change in root volume device name",
+			oldMachine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					ProviderID:               nil,
+					AdditionalTags:           nil,
+					AdditionalSecurityGroups: nil,
+					RootVolume: &Volume{
+						Size: 60,
+					},
+				},
+			},
+			newMachine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					ProviderID: pointer.StringPtr("ID"),
+					RootVolume: &Volume{
+						DeviceName: "alpha",
+						Size:       60,
+					},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		ctx := context.TODO()
