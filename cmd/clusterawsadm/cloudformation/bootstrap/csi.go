@@ -24,7 +24,7 @@ import (
 
 func (t Template) csiControlPlaneAwsRoles() []string {
 	roles := []string{}
-	if !t.Spec.ControlPlane.EnableCSIPolicy {
+	if !t.Spec.ControlPlane.DisableCloudProviderPolicy && t.Spec.ControlPlane.EnableCSIPolicy {
 		roles = append(roles, cloudformation.Ref(AWSIAMRoleControlPlane))
 	}
 	return roles
