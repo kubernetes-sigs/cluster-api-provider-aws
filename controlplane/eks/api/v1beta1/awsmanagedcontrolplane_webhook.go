@@ -95,6 +95,7 @@ func (r *AWSManagedControlPlane) ValidateCreate() error {
 	allErrs = append(allErrs, r.validateSecondaryCIDR()...)
 	allErrs = append(allErrs, r.validateEKSAddons()...)
 	allErrs = append(allErrs, r.validateDisableVPCCNI()...)
+	allErrs = append(allErrs, r.validateVpcCni()...)
 	allErrs = append(allErrs, r.validateKubeProxy()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
@@ -337,10 +338,40 @@ func (r *AWSManagedControlPlane) validateDisableVPCCNI() field.ErrorList {
 	if r.Spec.DisableVPCCNI {
 		disableField := field.NewPath("spec", "disableVPCCNI")
 
+		if r.Spec.VpcCni.Disable != r.Spec.DisableVPCCNI {
+			allErrs = append(allErrs, field.Invalid(disableField, r.Spec.DisableVPCCNI, "cannot have different values for disableVPCCNI and vpcCni.Disable"))
+		}
+
 		if r.Spec.Addons != nil {
 			for _, addon := range *r.Spec.Addons {
 				if addon.Name == vpcCniAddon {
 					allErrs = append(allErrs, field.Invalid(disableField, r.Spec.DisableVPCCNI, "cannot disable vpc cni if the vpc-cni addon is specified"))
+					break
+				}
+			}
+		}
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return allErrs
+}
+
+func (r *AWSManagedControlPlane) validateVpcCni() field.ErrorList {
+	var allErrs field.ErrorList
+
+	if r.Spec.VpcCni.Disable {
+		disableField := field.NewPath("spec", "vpcCni", "disable")
+
+		if r.Spec.VpcCni.Disable != r.Spec.DisableVPCCNI {
+			allErrs = append(allErrs, field.Invalid(disableField, r.Spec.VpcCni.Disable, "cannot have different values for vpcCni.Disable and disableVPCCNI"))
+		}
+
+		if r.Spec.Addons != nil {
+			for _, addon := range *r.Spec.Addons {
+				if addon.Name == vpcCniAddon {
+					allErrs = append(allErrs, field.Invalid(disableField, r.Spec.VpcCni.Disable, "cannot disable vpc cni if the vpc-cni addon is specified"))
 					break
 				}
 			}

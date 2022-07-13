@@ -49,7 +49,8 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 		return fmt.Errorf("getting client for remote cluster: %w", err)
 	}
 
-	if s.scope.DisableVPCCNI() {
+	vpcCni := s.scope.VpcCni()
+	if s.scope.DisableVPCCNI() || vpcCni.Disable {
 		if err := s.deleteCNI(ctx, remoteClient); err != nil {
 			return fmt.Errorf("disabling aws vpc cni: %w", err)
 		}
@@ -63,7 +64,7 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 		return ErrCNIMissing
 	}
 
-	envVars := s.scope.VpcCni().Env
+	envVars := vpcCni.Env
 	if len(envVars) > 0 {
 		s.scope.Info("updating aws-node daemonset environment variables", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
 

@@ -160,6 +160,7 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	OIDCIdentityProviderConfig *OIDCIdentityProviderConfig `json:"oidcIdentityProviderConfig,omitempty"`
 
+	// DEPRECATED: This property has moved to vpcCni.disable and will be removed in a future release.
 	// DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters the
 	// Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
 	// to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
@@ -189,6 +190,14 @@ type KubeProxy struct {
 
 // VpcCni specifies configuration related to the VPC CNI.
 type VpcCni struct {
+	// Disable indicates that the Amazon VPC CNI should be disabled. With EKS clusters the
+	// Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
+	// to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
+	// should be deleted. You cannot set this to true if you are using the
+	// Amazon VPC CNI addon.
+	// +kubebuilder:default=false
+	Disable bool `json:"disable,omitempty"`
+
 	// Env defines a list of environment variables to apply to the `aws-node` DaemonSet
 	// +optional
 	Env []corev1.EnvVar `json:"env,omitempty"`
