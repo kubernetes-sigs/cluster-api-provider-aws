@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"fmt"
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -114,7 +115,8 @@ func (r *AWSMachine) ValidateUpdate(old runtime.Object) error {
 	}
 
 	if !cmp.Equal(oldAWSMachineSpec, newAWSMachineSpec) {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "cannot be modified"))
+		s := fmt.Sprintf("oldAWSMachineSpec: %s, newAWSMachineSpec: %s do not match", oldAWSMachineSpec, newAWSMachineSpec)
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "cannot be modified."+s))
 	}
 
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
@@ -235,6 +237,10 @@ func (r *AWSMachine) ValidateDelete() error {
 func (r *AWSMachine) Default() {
 	if !r.Spec.CloudInit.InsecureSkipSecretsManager && r.Spec.CloudInit.SecureSecretsBackend == "" && !r.ignitionEnabled() {
 		r.Spec.CloudInit.SecureSecretsBackend = SecretBackendSecretsManager
+	}
+
+	if r.Spec.RootVolume != nil && !r.ignitionEnabled() {
+		r.Spec.RootVolume.DeviceName = ""
 	}
 
 	if r.ignitionEnabled() && r.Spec.Ignition.Version == "" {

@@ -77,11 +77,11 @@ endif
 
 # Release variables
 
-STAGING_REGISTRY ?= gcr.io/k8s-staging-cluster-api-aws
+STAGING_REGISTRY ?= gcr.io/spectro-dev-public/cluster-api-aws
 STAGING_BUCKET ?= artifacts.k8s-staging-cluster-api-aws.appspot.com
 BUCKET ?= $(STAGING_BUCKET)
 PROD_REGISTRY := registry.k8s.io/cluster-api-aws
-REGISTRY ?= $(STAGING_REGISTRY)
+REGISTRY ?= gcr.io/spectro-dev-public/amit/cluster-api-aws
 RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
 PULL_BASE_REF ?= $(RELEASE_TAG) # PULL_BASE_REF will be provided by Prow
 RELEASE_ALIAS_TAG ?= $(PULL_BASE_REF)
@@ -92,8 +92,9 @@ BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 # image name used to build the cmd/clusterawsadm
 TOOLCHAIN_IMAGE := toolchain
 
-TAG ?= dev
-ARCH ?= $(shell go env GOARCH)
+TAG ?= spectro-v1.5.0-$(shell date +%Y%m%d)
+#ARCH ?= $(shell go env GOARCH)
+ARCH ?= amd64
 ALL_ARCH ?= amd64 arm arm64 ppc64le s390x
 
 # main controller
@@ -343,7 +344,8 @@ clusterawsadm: ## Build clusterawsadm binary
 
 .PHONY: docker-build
 docker-build: docker-pull-prerequisites ## Build the docker image for controller-manager
-	docker build --build-arg ARCH=$(ARCH) --build-arg LDFLAGS="$(LDFLAGS)" . -t $(CORE_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker build --build-arg ARCH=$(ARCH) --build-arg LDFLAGS="$(LDFLAGS)" . -t $(CORE_CONTROLLER_IMG):$(TAG)
+	@echo $(CORE_CONTROLLER_IMG):$(TAG)
 
 .PHONY: docker-build-all ## Build all the architecture docker images
 docker-build-all: $(addprefix docker-build-,$(ALL_ARCH))
@@ -486,7 +488,7 @@ compiled-manifest: $(RELEASE_DIR) $(KUSTOMIZE) ## Compile the manifest files
 
 .PHONY: docker-push
 docker-push: ## Push the docker image
-	docker push $(CORE_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker push $(CORE_CONTROLLER_IMG):$(TAG)
 
 .PHONY: docker-push-all ## Push all the architecture docker images
 docker-push-all: $(addprefix docker-push-,$(ALL_ARCH))

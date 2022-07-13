@@ -44,6 +44,18 @@ func TestAWSMachine_Create(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			name: "ensure root volume with device name is overwritten on create",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					RootVolume: &Volume{
+						DeviceName: "devicename",
+						Size:       10,
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "ensure IOPS exists if type equal to io1",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
@@ -353,6 +365,29 @@ func TestAWSMachine_Update(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "change in root volume device name",
+			oldMachine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					ProviderID:               nil,
+					AdditionalTags:           nil,
+					AdditionalSecurityGroups: nil,
+					RootVolume: &Volume{
+						Size: 60,
+					},
+				},
+			},
+			newMachine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					ProviderID: pointer.StringPtr("ID"),
+					RootVolume: &Volume{
+						DeviceName: "rootdevicename",
+						Size:       60,
+					},
+				},
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

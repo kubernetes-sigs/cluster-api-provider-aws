@@ -17,6 +17,7 @@ limitations under the License.
 package eks
 
 import (
+	"context"
 	"fmt"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
