@@ -40,8 +40,7 @@ TEST_E2E_DIR := test/e2e
 E2E_DATA_DIR ?= $(REPO_ROOT)/test/e2e/data
 E2E_CONF_PATH  ?= $(E2E_DATA_DIR)/e2e_conf.yaml
 E2E_EKS_CONF_PATH ?= $(E2E_DATA_DIR)/e2e_eks_conf.yaml
-KUBETEST_CONF_FILE ?= "conformance.yaml"
-KUBETEST_CONF_PATH ?= $(E2E_DATA_DIR)/kubetest/$(KUBETEST_CONF_FILE)
+KUBETEST_CONF_PATH ?= $(abspath $(E2E_DATA_DIR)/kubetest/conformance.yaml)
 EXP_DIR := exp
 
 # Binaries.

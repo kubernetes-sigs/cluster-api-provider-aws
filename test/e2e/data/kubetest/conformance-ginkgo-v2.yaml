@@ -4,7 +4,7 @@ ginkgo.focus: \[Conformance\]|LoadBalancers ESIPP
 ginkgo.skip: \[sig-scheduling\].*\[Serial\]
 disable-log-dump: true
 ginkgo.progress: true
-ginkgo.slowSpecThreshold: 120.0
+ginkgo.slow-spec-threshold: 120s
 ginkgo.flakeAttempts: 3
 ginkgo.trace: true
 ginkgo.v: true
