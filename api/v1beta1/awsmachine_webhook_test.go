@@ -44,6 +44,18 @@ func TestAWSMachine_Create(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			name: "ensure root volume with device name is overwritten on create",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					RootVolume: &Volume{
+						DeviceName: "devicename",
+						Size:       10,
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "ensure IOPS exists if type equal to io1",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
@@ -370,7 +382,7 @@ func TestAWSMachine_Update(t *testing.T) {
 				Spec: AWSMachineSpec{
 					ProviderID: pointer.StringPtr("ID"),
 					RootVolume: &Volume{
-						DeviceName: "alpha",
+						DeviceName: "rootdevicename",
 						Size:       60,
 					},
 				},

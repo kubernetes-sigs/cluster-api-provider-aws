@@ -114,14 +114,6 @@ func (r *AWSMachine) ValidateUpdate(old runtime.Object) error {
 		delete(cloudInit, "secureSecretsBackend")
 	}
 
-	if rootVolume, ok := oldAWSMachineSpec["rootVolume"].(map[string]interface{}); ok {
-		delete(rootVolume, "deviceName")
-	}
-
-	if rootVolume, ok := newAWSMachineSpec["rootVolume"].(map[string]interface{}); ok {
-		delete(rootVolume, "deviceName")
-	}
-
 	if !cmp.Equal(oldAWSMachineSpec, newAWSMachineSpec) {
 		s := fmt.Sprintf("oldAWSMachineSpec: %s, newAWSMachineSpec: %s do not match", oldAWSMachineSpec, newAWSMachineSpec)
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "cannot be modified."+s))
@@ -245,6 +237,10 @@ func (r *AWSMachine) ValidateDelete() error {
 func (r *AWSMachine) Default() {
 	if !r.Spec.CloudInit.InsecureSkipSecretsManager && r.Spec.CloudInit.SecureSecretsBackend == "" && !r.ignitionEnabled() {
 		r.Spec.CloudInit.SecureSecretsBackend = SecretBackendSecretsManager
+	}
+
+	if r.Spec.RootVolume != nil && !r.ignitionEnabled() {
+		r.Spec.RootVolume.DeviceName = ""
 	}
 
 	if r.ignitionEnabled() && r.Spec.Ignition.Version == "" {
