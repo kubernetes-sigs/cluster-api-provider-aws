@@ -38,17 +38,6 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v0.3.25 # latest published release in the v1alpha3 series; this is used for v1alpha3 --> v1beta1 clusterctl upgrades test only.
-        contract: v1alpha3
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.25/core-components.yaml"
-        type: "url"
-        files:
-          - sourcePath: "./shared/v1alpha3/metadata.yaml"
-        replacements:
-          - old: "imagePullPolicy: Always"
-            new: "imagePullPolicy: IfNotPresent"
-          - old: --metrics-bind-addr=127.0.0.1:8080
-            new: --metrics-bind-addr=:8080
       - name: v0.4.8 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
         contract: v1alpha4
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/core-components.yaml"
@@ -87,15 +76,6 @@ providers:
     files:
       - sourcePath: "./shared/v1alpha4/metadata.yaml"
     versions:
-      - name: v0.3.25 # latest published release in the v1alpha3 series; this is used for v1alpha3 --> v1beta1 clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.25/bootstrap-components.yaml"
-        type: "url"
-        contract: v1alpha3
-        files:
-          - sourcePath: "./shared/v1alpha3/metadata.yaml"
-        replacements:
-          - old: --metrics-addr=127.0.0.1:8080
-            new: --metrics-addr=:8080
       - name: v0.4.7 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/bootstrap-components.yaml"
         type: "url"
@@ -135,15 +115,6 @@ providers:
     files:
       - sourcePath: "./shared/v1alpha4/metadata.yaml"
     versions:
-      - name: v0.3.25 # latest published release in the v1alpha3 series; this is used for v1alpha3 --> v1beta1 clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.25/control-plane-components.yaml"
-        type: "url"
-        contract: v1alpha3
-        files:
-          - sourcePath: "./shared/v1alpha3/metadata.yaml"
-        replacements:
-          - old: --metrics-addr=127.0.0.1:8080
-            new: --metrics-addr=:8080
       - name: v0.4.7 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
         # Use manifest from source files
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/control-plane-components.yaml"
@@ -181,13 +152,6 @@ providers:
   - name: aws
     type: InfrastructureProvider
     versions:
-      - name: v0.6.9 # latest published release in the v1alpha3 series; this is used for v1alpha3 --> v1beta1 clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/download/v0.6.9/infrastructure-components.yaml"
-        type: "url"
-        contract: v1alpha3
-        files:
-          - sourcePath: "./shared/v1alpha3_provider/metadata.yaml"
-          - sourcePath: "./infrastructure-aws/capi-upgrades/v1alpha3/cluster-template.yaml"
       - name: v0.7.2 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
         value: "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/download/v0.7.2/infrastructure-components.yaml"
         type: "url"
@@ -279,7 +243,6 @@ variables:
   EXP_MACHINE_POOL: "true"
   CLUSTER_TOPOLOGY: "true"
   INIT_WITH_BINARY_V1BETA1: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.5/clusterctl-{OS}-{ARCH}"
-  INIT_WITH_BINARY_V1ALPHA3: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.25/clusterctl-{OS}-{ARCH}"
   INIT_WITH_BINARY_V1ALPHA4: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/clusterctl-{OS}-{ARCH}"
   # INIT_WITH_KUBERNETES_VERSION are only used by the clusterctl upgrade test to initialize
   # the management cluster to be upgraded.
