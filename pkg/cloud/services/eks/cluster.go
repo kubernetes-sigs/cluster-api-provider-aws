@@ -59,7 +59,7 @@ func (s *Service) reconcileCluster(ctx context.Context) error {
 			return errors.Wrap(err, "failed to create cluster")
 		}
 	} else {
-		tagKey := infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())
+		tagKey := infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())
 		ownedTag := cluster.Tags[tagKey]
 		if ownedTag == nil {
 			return fmt.Errorf("checking owner of %s is %s: %w", s.scope.KubernetesClusterName(), s.scope.Name(), err)
