@@ -103,7 +103,7 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context,
 
 	if err = c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(awsManagedControlPlane.GroupVersionKind())),
+		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, awsManagedControlPlane.GroupVersionKind(), mgr.GetClient(), &ekscontrolplanev1.AWSManagedControlPlane{})),
 		predicates.ClusterUnpausedAndInfrastructureReady(log),
 	); err != nil {
 		return fmt.Errorf("failed adding a watch for ready clusters: %w", err)
