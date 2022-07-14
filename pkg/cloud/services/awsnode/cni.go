@@ -63,33 +63,21 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 		return ErrCNIMissing
 	}
 
-	envVars := s.scope.VpcCni().Env
-	if len(envVars) > 0 {
+	var needsUpdate bool
+	if len(s.scope.VpcCni().Env) > 0 {
 		s.scope.Info("updating aws-node daemonset environment variables", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
 
 		for i := range ds.Spec.Template.Spec.Containers {
 			container := &ds.Spec.Template.Spec.Containers[i]
 			if container.Name == "aws-node" {
-				existingVars := s.filterEnv(container.Env)
-
-				for ei, e := range existingVars {
-					for ai, a := range envVars {
-						if e.Name == a.Name {
-							existingVars[ei].Value = a.Value
-
-							envVars = append(envVars[:ai], envVars[ai+1:]...)
-							break
-						}
-					}
-				}
-				container.Env = append(existingVars, envVars...)
-				break
+				container.Env = s.filterEnv(container.Env)
+				container.Env, needsUpdate = s.applyUserProvidedEnvironmentProperties(container.Env)
 			}
 		}
 	}
 
 	if s.scope.SecondaryCidrBlock() == nil {
-		if len(envVars) > 0 {
+		if needsUpdate {
 			if err = remoteClient.Update(ctx, &ds, &client.UpdateOptions{}); err != nil {
 				return err
 			}
@@ -215,6 +203,36 @@ func (s *Service) filterEnv(env []corev1.EnvVar) []corev1.EnvVar {
 		i++
 	}
 	return env[:i]
+}
+
+// applyUserProvidedEnvironmentProperties takes a container environment and applies user provided values to it.
+func (s *Service) applyUserProvidedEnvironmentProperties(containerEnv []corev1.EnvVar) ([]corev1.EnvVar, bool) {
+	var (
+		envVars     = make(map[string]corev1.EnvVar)
+		needsUpdate = false
+	)
+	for _, e := range s.scope.VpcCni().Env {
+		envVars[e.Name] = e
+	}
+	// Handle the case where we overwrite an existing value if it's not already the desired value.
+	// This will prevent continuously updating the DaemonSet even though there are no changes.
+	for i, e := range containerEnv {
+		if v, ok := envVars[e.Name]; ok {
+			// Take care of comparing secret ref with Stringer.
+			if containerEnv[i].String() != v.String() {
+				needsUpdate = true
+				containerEnv[i] = v
+			}
+			delete(envVars, e.Name)
+		}
+	}
+	// Handle case when there are values that aren't in the list of environment properties
+	// of aws-node.
+	for _, v := range envVars {
+		needsUpdate = true
+		containerEnv = append(containerEnv, v)
+	}
+	return containerEnv, needsUpdate
 }
 
 func (s *Service) deleteCNI(ctx context.Context, remoteClient client.Client) error {
