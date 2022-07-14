@@ -374,7 +374,7 @@ func TestWebhookCreate_IPv6Details(t *testing.T) {
 			err:         fmt.Sprintf("IPv6 requires Kubernetes %s or greater", minKubeVersionForIPv6),
 			networkSpec: infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
-					EnableIPv6: true,
+					IPv6: &infrav1.IPv6{},
 				},
 			},
 		},
@@ -384,7 +384,7 @@ func TestWebhookCreate_IPv6Details(t *testing.T) {
 			err:         "addons are required to be set explicitly if IPv6 is enabled",
 			networkSpec: infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
-					EnableIPv6: true,
+					IPv6: &infrav1.IPv6{},
 				},
 			},
 		},
@@ -400,7 +400,7 @@ func TestWebhookCreate_IPv6Details(t *testing.T) {
 			err: fmt.Sprintf("vpc-cni version must be above or equal to %s for IPv6", minVpcCniVersionForIPv6),
 			networkSpec: infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
-					EnableIPv6: true,
+					IPv6: &infrav1.IPv6{},
 				},
 			},
 		},
@@ -415,7 +415,7 @@ func TestWebhookCreate_IPv6Details(t *testing.T) {
 			},
 			networkSpec: infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
-					EnableIPv6: true,
+					IPv6: &infrav1.IPv6{},
 				},
 			},
 		},
@@ -424,9 +424,10 @@ func TestWebhookCreate_IPv6Details(t *testing.T) {
 			kubeVersion: "v1.18",
 			networkSpec: infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
-					EnableIPv6:    true,
-					IPv6CidrBlock: "not-empty",
-					// IPv6Pool is empty
+					IPv6: &infrav1.IPv6{
+						IPv6CidrBlock: "not-empty",
+						// IPv6Pool is empty
+					},
 				},
 			},
 			err: "ipv6Pool cannot be empty if ipv6CidrBlock is set for BYOIP",
@@ -621,16 +622,15 @@ func TestWebhookUpdate(t *testing.T) {
 			oldClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				NetworkSpec: infrav1.NetworkSpec{
-					VPC: infrav1.VPCSpec{
-						EnableIPv6: false,
-					},
+					VPC: infrav1.VPCSpec{},
 				},
+				Version: pointer.String("1.22"),
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				NetworkSpec: infrav1.NetworkSpec{
 					VPC: infrav1.VPCSpec{
-						EnableIPv6: true,
+						IPv6: &infrav1.IPv6{},
 					},
 				},
 			},
@@ -642,7 +642,7 @@ func TestWebhookUpdate(t *testing.T) {
 				EKSClusterName: "default_cluster1",
 				NetworkSpec: infrav1.NetworkSpec{
 					VPC: infrav1.VPCSpec{
-						EnableIPv6: true,
+						IPv6: &infrav1.IPv6{},
 					},
 				},
 				Addons: &[]Addon{
@@ -656,10 +656,9 @@ func TestWebhookUpdate(t *testing.T) {
 			newClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				NetworkSpec: infrav1.NetworkSpec{
-					VPC: infrav1.VPCSpec{
-						EnableIPv6: false,
-					},
+					VPC: infrav1.VPCSpec{},
 				},
+				Version: pointer.String("v1.22.0"),
 			},
 			expectError: true,
 		},

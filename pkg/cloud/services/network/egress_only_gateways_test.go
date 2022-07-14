@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -46,8 +46,8 @@ func TestReconcileEgressOnlyInternetGateways(t *testing.T) {
 			name: "has eigw",
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
-					ID:         "vpc-egress-only-gateways",
-					EnableIPv6: true,
+					ID:   "vpc-egress-only-gateways",
+					IPv6: &infrav1.IPv6{},
 					Tags: infrav1.Tags{
 						infrav1.ClusterTagKey("test-cluster"): "owned",
 					},
@@ -77,8 +77,8 @@ func TestReconcileEgressOnlyInternetGateways(t *testing.T) {
 			name: "no eigw attached, creates one",
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
-					EnableIPv6: true,
-					ID:         "vpc-egress-only-gateways",
+					IPv6: &infrav1.IPv6{},
+					ID:   "vpc-egress-only-gateways",
 					Tags: infrav1.Tags{
 						infrav1.ClusterTagKey("test-cluster"): "owned",
 					},
@@ -176,8 +176,8 @@ func TestDeleteEgressOnlyInternetGateways(t *testing.T) {
 			name: "Should ignore deletion if egress only internet gateway is not found",
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
-					EnableIPv6: true,
-					ID:         "vpc-gateways",
+					IPv6: &infrav1.IPv6{},
+					ID:   "vpc-gateways",
 					Tags: infrav1.Tags{
 						infrav1.ClusterTagKey("test-cluster"): "owned",
 					},
@@ -202,7 +202,7 @@ func TestDeleteEgressOnlyInternetGateways(t *testing.T) {
 					Tags: infrav1.Tags{
 						infrav1.ClusterTagKey("test-cluster"): "owned",
 					},
-					EnableIPv6: true,
+					IPv6: &infrav1.IPv6{},
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {

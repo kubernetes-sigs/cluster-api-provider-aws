@@ -165,6 +165,21 @@ type NetworkSpec struct {
 	SecurityGroupOverrides map[SecurityGroupRole]string `json:"securityGroupOverrides,omitempty"`
 }
 
+// IPv6 contains ipv6 specific settings for the network.
+type IPv6 struct {
+	// IPv6CidrBlock is the CIDR block provided by Amazon when VPC has enabled IPv6.
+	// +optional
+	IPv6CidrBlock string `json:"ipv6CidrBlock,omitempty"`
+
+	// IPv6Pool is the IP pool which must be defined in case of BYO IP is defined.
+	// +optional
+	IPv6Pool string `json:"ipv6Pool,omitempty"`
+
+	// EgressOnlyInternetGatewayID is the id of the egress only internet gateway associated with an IPv6 enabled VPC.
+	// +optional
+	EgressOnlyInternetGatewayID *string `json:"egressOnlyInternetGatewayId,omitempty"`
+}
+
 // VPCSpec configures an AWS VPC.
 type VPCSpec struct {
 	// ID is the vpc-id of the VPC this provider should use to create resources.
@@ -174,27 +189,13 @@ type VPCSpec struct {
 	// Defaults to 10.0.0.0/16.
 	CidrBlock string `json:"cidrBlock,omitempty"`
 
-	// EnableIPv6 requests an Amazon-provided IPv6 CIDR block with a /56 prefix length for
-	// the VPC. You cannot specify the range of IP addresses, or the size of the
-	// CIDR block.
+	// IPv6 contains ipv6 specific settings for the network.
 	// +optional
-	EnableIPv6 bool `json:"enableIPv6"`
-
-	// IPv6CidrBlock is the CIDR block provided by Amazon when VPC has enabled IPv6.
-	// +optional
-	IPv6CidrBlock string `json:"ipv6CidrBlock,omitempty"`
-
-	// IPv6Pool is the IP pool which must be defined in case of BYO IP is defined.
-	// +optional
-	IPv6Pool string `json:"ipv6Pool,omitempty"`
+	IPv6 *IPv6 `json:"ipv6,omitempty"`
 
 	// InternetGatewayID is the id of the internet gateway associated with the VPC.
 	// +optional
 	InternetGatewayID *string `json:"internetGatewayId,omitempty"`
-
-	// EgressOnlyInternetGatewayID is the id of the egress only internet gateway associated with an IPv6 enabled VPC.
-	// +optional
-	EgressOnlyInternetGatewayID *string `json:"egressOnlyInternetGatewayId,omitempty"`
 
 	// Tags is a collection of tags describing the resource.
 	Tags Tags `json:"tags,omitempty"`
@@ -230,6 +231,11 @@ func (v *VPCSpec) IsUnmanaged(clusterName string) bool {
 // IsManaged returns true if VPC is managed.
 func (v *VPCSpec) IsManaged(clusterName string) bool {
 	return !v.IsUnmanaged(clusterName)
+}
+
+// IsIPv6Enabled returns true if the IPv6 block is defined on the network spec.
+func (v *VPCSpec) IsIPv6Enabled() bool {
+	return v.IPv6 != nil
 }
 
 // SubnetSpec configures an AWS Subnet.

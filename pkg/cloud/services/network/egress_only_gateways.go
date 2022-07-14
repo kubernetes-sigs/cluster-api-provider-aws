@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ import (
 )
 
 func (s *Service) reconcileEgressOnlyInternetGateways() error {
-	if !s.scope.VPC().EnableIPv6 {
+	if !s.scope.VPC().IsIPv6Enabled() {
 		s.scope.V(4).Info("Skipping egress only internet gateways reconcile in not ipv6 mode")
 		return nil
 	}
@@ -44,7 +44,7 @@ func (s *Service) reconcileEgressOnlyInternetGateways() error {
 
 	eigws, err := s.describeEgressOnlyVpcInternetGateways()
 	if awserrors.IsNotFound(err) {
-		if !s.scope.VPC().EnableIPv6 {
+		if !s.scope.VPC().IsIPv6Enabled() {
 			return errors.Errorf("failed to validate network: no egress only internet gateways found in VPC %q", s.scope.VPC().ID)
 		}
 
@@ -58,7 +58,7 @@ func (s *Service) reconcileEgressOnlyInternetGateways() error {
 	}
 
 	gateway := eigws[0]
-	s.scope.VPC().EgressOnlyInternetGatewayID = gateway.EgressOnlyInternetGatewayId
+	s.scope.VPC().IPv6.EgressOnlyInternetGatewayID = gateway.EgressOnlyInternetGatewayId
 
 	// Make sure tags are up to date.
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
@@ -77,7 +77,7 @@ func (s *Service) reconcileEgressOnlyInternetGateways() error {
 }
 
 func (s *Service) deleteEgressOnlyInternetGateways() error {
-	if !s.scope.VPC().EnableIPv6 {
+	if !s.scope.VPC().IsIPv6Enabled() {
 		s.scope.V(4).Info("Skipping egress only internet gateway deletion in none ipv6 mode")
 		return nil
 	}

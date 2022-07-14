@@ -234,7 +234,7 @@ func (s *ClusterScope) PatchObject() error {
 		if s.AWSCluster.Spec.Bastion.Enabled {
 			applicableConditions = append(applicableConditions, infrav1.BastionHostReadyCondition)
 		}
-		if s.VPC().EnableIPv6 {
+		if s.VPC().IsIPv6Enabled() {
 			applicableConditions = append(applicableConditions, infrav1.EgressOnlyInternetGatewayReadyCondition)
 		}
 	}

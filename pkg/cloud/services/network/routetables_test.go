@@ -114,12 +114,13 @@ func TestReconcileRouteTables(t *testing.T) {
 			name: "no routes existing, single private and single public IPv6 enabled subnets, same AZ",
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
-					ID:                          "vpc-routetables",
-					InternetGatewayID:           aws.String("igw-01"),
-					EgressOnlyInternetGatewayID: aws.String("eigw-01"),
-					EnableIPv6:                  true,
-					IPv6CidrBlock:               "2001:db8:1234::/56",
-					IPv6Pool:                    "my-pool",
+					ID:                "vpc-routetables",
+					InternetGatewayID: aws.String("igw-01"),
+					IPv6: &infrav1.IPv6{
+						EgressOnlyInternetGatewayID: aws.String("eigw-01"),
+						IPv6CidrBlock:               "2001:db8:1234::/56",
+						IPv6Pool:                    "my-pool",
+					},
 					Tags: infrav1.Tags{
 						infrav1.ClusterTagKey("test-cluster"): "owned",
 					},
@@ -199,12 +200,13 @@ func TestReconcileRouteTables(t *testing.T) {
 			name: "no routes existing, single private and single public IPv6 enabled subnets with existing Egress only IWG, same AZ",
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
-					ID:                          "vpc-routetables",
-					InternetGatewayID:           aws.String("igw-01"),
-					EnableIPv6:                  true,
-					IPv6CidrBlock:               "2001:db8:1234::/56",
-					IPv6Pool:                    "my-pool",
-					EgressOnlyInternetGatewayID: aws.String("eigw-01"),
+					ID:                "vpc-routetables",
+					InternetGatewayID: aws.String("igw-01"),
+					IPv6: &infrav1.IPv6{
+						IPv6CidrBlock:               "2001:db8:1234::/56",
+						IPv6Pool:                    "my-pool",
+						EgressOnlyInternetGatewayID: aws.String("eigw-01"),
+					},
 					Tags: infrav1.Tags{
 						infrav1.ClusterTagKey("test-cluster"): "owned",
 					},

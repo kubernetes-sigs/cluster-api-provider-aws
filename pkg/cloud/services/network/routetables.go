@@ -71,6 +71,12 @@ func (s *Service) reconcileRouteTables() error {
 			}
 			routes = append(routes, s.getNatGatewayPrivateRoute(natGatewayID))
 			if sn.IsIPv6 {
+				if !s.scope.VPC().IsIPv6Enabled() {
+					// Safety net because EgressOnlyInternetGateway needs the ID from the ipv6 block.
+					// if, for whatever reason by this point that is not available, we don't want to
+					// panic because of a nil pointer access. This should never occur. Famous last words though.
+					return errors.Errorf("ipv6 block missing for ipv6 enabled subnet, can't create egress only internet gateway")
+				}
 				routes = append(routes, s.getEgressOnlyInternetGateway())
 			}
 		}
@@ -327,7 +333,7 @@ func (s *Service) getNatGatewayPrivateRoute(natGatewayID string) *ec2.Route {
 func (s *Service) getEgressOnlyInternetGateway() *ec2.Route {
 	return &ec2.Route{
 		DestinationIpv6CidrBlock:    aws.String(services.AnyIPv6CidrBlock),
-		EgressOnlyInternetGatewayId: s.scope.VPC().EgressOnlyInternetGatewayID,
+		EgressOnlyInternetGatewayId: s.scope.VPC().IPv6.EgressOnlyInternetGatewayID,
 	}
 }
 

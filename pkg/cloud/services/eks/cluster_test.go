@@ -689,8 +689,9 @@ func TestCreateIPv6Cluster(t *testing.T) {
 		Resources: []*string{pointer.String("foo"), pointer.String("bar")},
 	}
 	vpcSpec := infrav1.VPCSpec{
-		IPv6CidrBlock: "2001:db8:85a3::/56",
-		EnableIPv6:    true,
+		IPv6: &infrav1.IPv6{
+			IPv6CidrBlock: "2001:db8:85a3::/56",
+		},
 	}
 	scope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
 		Client: client,

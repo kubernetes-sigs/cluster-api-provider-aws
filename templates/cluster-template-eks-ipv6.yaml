@@ -31,7 +31,7 @@ spec:
         value: "false"
   network:
     vpc:
-      enableIPv6: true
+      ipv6: {}
   region: "${AWS_REGION}"
   sshKeyName: "${AWS_SSH_KEY_NAME}"
   version: "${KUBERNETES_VERSION}"

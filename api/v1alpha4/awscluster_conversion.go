@@ -49,10 +49,14 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.S3Bucket = restored.Spec.S3Bucket
-	dst.Spec.NetworkSpec.VPC.EgressOnlyInternetGatewayID = restored.Spec.NetworkSpec.VPC.EgressOnlyInternetGatewayID
-	dst.Spec.NetworkSpec.VPC.EnableIPv6 = restored.Spec.NetworkSpec.VPC.EnableIPv6
-	dst.Spec.NetworkSpec.VPC.IPv6CidrBlock = restored.Spec.NetworkSpec.VPC.IPv6CidrBlock
-	dst.Spec.NetworkSpec.VPC.IPv6Pool = restored.Spec.NetworkSpec.VPC.IPv6Pool
+	if restored.Spec.NetworkSpec.VPC.IPv6 != nil {
+		if dst.Spec.NetworkSpec.VPC.IPv6 == nil {
+			dst.Spec.NetworkSpec.VPC.IPv6 = &infrav1.IPv6{}
+		}
+		dst.Spec.NetworkSpec.VPC.IPv6.EgressOnlyInternetGatewayID = restored.Spec.NetworkSpec.VPC.IPv6.EgressOnlyInternetGatewayID
+		dst.Spec.NetworkSpec.VPC.IPv6.IPv6CidrBlock = restored.Spec.NetworkSpec.VPC.IPv6.IPv6CidrBlock
+		dst.Spec.NetworkSpec.VPC.IPv6.IPv6Pool = restored.Spec.NetworkSpec.VPC.IPv6.IPv6Pool
+	}
 
 	for i := range dst.Spec.NetworkSpec.Subnets {
 		var found bool
