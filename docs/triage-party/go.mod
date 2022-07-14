@@ -7,3 +7,5 @@ require (
 	github.com/aws/constructs-go/constructs/v3 v3.3.87
 	github.com/aws/jsii-runtime-go v1.30.0
 )
+
+require github.com/Masterminds/semver/v3 v3.1.1 // indirect
