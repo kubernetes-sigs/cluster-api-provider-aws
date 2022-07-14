@@ -168,15 +168,16 @@ func TestReconcileVPC(t *testing.T) {
 			input: &infrav1.VPCSpec{
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
-				EnableIPv6:                 true,
+				IPv6:                       &infrav1.IPv6{},
 			},
 			wantErr: false,
 			want: &infrav1.VPCSpec{
-				ID:            "vpc-new",
-				CidrBlock:     "10.1.0.0/16",
-				EnableIPv6:    true,
-				IPv6CidrBlock: "2001:db8:1234:1a03::/56",
-				IPv6Pool:      "amazon",
+				ID:        "vpc-new",
+				CidrBlock: "10.1.0.0/16",
+				IPv6: &infrav1.IPv6{
+					IPv6CidrBlock: "2001:db8:1234:1a03::/56",
+					IPv6Pool:      "amazon",
+				},
 				Tags: map[string]string{
 					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
 					"Name": "test-cluster-vpc",
@@ -230,17 +231,19 @@ func TestReconcileVPC(t *testing.T) {
 			input: &infrav1.VPCSpec{
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
-				EnableIPv6:                 true,
-				IPv6CidrBlock:              "2001:db8:1234:1a03::/56",
-				IPv6Pool:                   "my-pool",
+				IPv6: &infrav1.IPv6{
+					IPv6CidrBlock: "2001:db8:1234:1a03::/56",
+					IPv6Pool:      "my-pool",
+				},
 			},
 			wantErr: false,
 			want: &infrav1.VPCSpec{
-				ID:            "vpc-new",
-				CidrBlock:     "10.1.0.0/16",
-				EnableIPv6:    true,
-				IPv6CidrBlock: "2001:db8:1234:1a03::/56",
-				IPv6Pool:      "my-pool",
+				ID:        "vpc-new",
+				CidrBlock: "10.1.0.0/16",
+				IPv6: &infrav1.IPv6{
+					IPv6CidrBlock: "2001:db8:1234:1a03::/56",
+					IPv6Pool:      "my-pool",
+				},
 				Tags: map[string]string{
 					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
 					"Name": "test-cluster-vpc",
@@ -274,7 +277,7 @@ func TestReconcileVPC(t *testing.T) {
 			input: &infrav1.VPCSpec{
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
-				EnableIPv6:                 true,
+				IPv6:                       &infrav1.IPv6{},
 			},
 			wantErr: true,
 			want:    nil,
@@ -297,7 +300,7 @@ func TestReconcileVPC(t *testing.T) {
 			input: &infrav1.VPCSpec{
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
-				EnableIPv6:                 true,
+				IPv6:                       &infrav1.IPv6{},
 			},
 			wantErr: true,
 			want:    nil,
@@ -320,7 +323,7 @@ func TestReconcileVPC(t *testing.T) {
 			input: &infrav1.VPCSpec{
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
-				EnableIPv6:                 true,
+				IPv6:                       &infrav1.IPv6{},
 			},
 			wantErr: true,
 			want:    nil,
@@ -357,9 +360,10 @@ func TestReconcileVPC(t *testing.T) {
 					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
 					"Name": "test-cluster-vpc",
 				},
-				IPv6Pool:                   "my-pool",
-				IPv6CidrBlock:              "2001:db8:1234:1a03::/56",
-				EnableIPv6:                 true,
+				IPv6: &infrav1.IPv6{
+					IPv6Pool:      "my-pool",
+					IPv6CidrBlock: "2001:db8:1234:1a03::/56",
+				},
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
 			},

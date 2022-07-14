@@ -48,10 +48,14 @@ func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.KubeProxy = restored.Spec.KubeProxy
 	dst.Spec.VpcCni = restored.Spec.VpcCni
 
-	dst.Spec.NetworkSpec.VPC.EgressOnlyInternetGatewayID = restored.Spec.NetworkSpec.VPC.EgressOnlyInternetGatewayID
-	dst.Spec.NetworkSpec.VPC.EnableIPv6 = restored.Spec.NetworkSpec.VPC.EnableIPv6
-	dst.Spec.NetworkSpec.VPC.IPv6CidrBlock = restored.Spec.NetworkSpec.VPC.IPv6CidrBlock
-	dst.Spec.NetworkSpec.VPC.IPv6Pool = restored.Spec.NetworkSpec.VPC.IPv6Pool
+	if restored.Spec.NetworkSpec.VPC.IPv6 != nil {
+		if dst.Spec.NetworkSpec.VPC.IPv6 == nil {
+			dst.Spec.NetworkSpec.VPC.IPv6 = &infrav1beta1.IPv6{}
+		}
+		dst.Spec.NetworkSpec.VPC.IPv6.EgressOnlyInternetGatewayID = restored.Spec.NetworkSpec.VPC.IPv6.EgressOnlyInternetGatewayID
+		dst.Spec.NetworkSpec.VPC.IPv6.IPv6CidrBlock = restored.Spec.NetworkSpec.VPC.IPv6.IPv6CidrBlock
+		dst.Spec.NetworkSpec.VPC.IPv6.IPv6Pool = restored.Spec.NetworkSpec.VPC.IPv6.IPv6Pool
+	}
 
 	for i := range dst.Spec.NetworkSpec.Subnets {
 		var found bool

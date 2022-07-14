@@ -1081,10 +1081,11 @@ func TestReconcileSubnets(t *testing.T) {
 					Tags: infrav1.Tags{
 						infrav1.ClusterTagKey("test-cluster"): "owned",
 					},
-					CidrBlock:     defaultVPCCidr,
-					EnableIPv6:    true,
-					IPv6CidrBlock: "2001:db8:1234:1a01::/56",
-					IPv6Pool:      "amazon",
+					CidrBlock: defaultVPCCidr,
+					IPv6: &infrav1.IPv6{
+						IPv6CidrBlock: "2001:db8:1234:1a01::/56",
+						IPv6Pool:      "amazon",
+					},
 				},
 				Subnets: []infrav1.SubnetSpec{},
 			}),

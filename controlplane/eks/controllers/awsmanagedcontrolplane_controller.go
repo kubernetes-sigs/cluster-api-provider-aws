@@ -186,7 +186,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 			if managedScope.Bastion().Enabled {
 				applicableConditions = append(applicableConditions, infrav1.BastionHostReadyCondition)
 			}
-			if managedScope.VPC().EnableIPv6 {
+			if managedScope.VPC().IsIPv6Enabled() {
 				applicableConditions = append(applicableConditions, infrav1.EgressOnlyInternetGatewayReadyCondition)
 			}
 		}

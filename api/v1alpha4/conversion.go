@@ -27,6 +27,5 @@ func Convert_v1beta1_AWSClusterSpec_To_v1alpha4_AWSClusterSpec(in *v1beta1.AWSCl
 }
 
 func Convert_v1beta1_VPCSpec_To_v1alpha4_VPCSpec(in *v1beta1.VPCSpec, out *VPCSpec, s conversion.Scope) error {
-	// Discard EgressOnlyInternetGatewayID
 	return autoConvert_v1beta1_VPCSpec_To_v1alpha4_VPCSpec(in, out, s)
 }

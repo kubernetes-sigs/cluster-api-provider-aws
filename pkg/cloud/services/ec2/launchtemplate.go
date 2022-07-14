@@ -462,7 +462,7 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 			Name: aws.String(lt.IamInstanceProfile),
 		}
 	}
-	if s.scope.VPC().EnableIPv6 {
+	if s.scope.VPC().IsIPv6Enabled() {
 		data.NetworkInterfaces = []*ec2.LaunchTemplateInstanceNetworkInterfaceSpecificationRequest{
 			{
 				Ipv6Prefixes: []*ec2.Ipv6PrefixSpecificationRequest{

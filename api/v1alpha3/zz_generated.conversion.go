@@ -2060,11 +2060,8 @@ func Convert_v1alpha3_VPCSpec_To_v1beta1_VPCSpec(in *VPCSpec, out *v1beta1.VPCSp
 func autoConvert_v1beta1_VPCSpec_To_v1alpha3_VPCSpec(in *v1beta1.VPCSpec, out *VPCSpec, s conversion.Scope) error {
 	out.ID = in.ID
 	out.CidrBlock = in.CidrBlock
-	// WARNING: in.EnableIPv6 requires manual conversion: does not exist in peer-type
-	// WARNING: in.IPv6CidrBlock requires manual conversion: does not exist in peer-type
-	// WARNING: in.IPv6Pool requires manual conversion: does not exist in peer-type
+	// WARNING: in.IPv6 requires manual conversion: does not exist in peer-type
 	out.InternetGatewayID = (*string)(unsafe.Pointer(in.InternetGatewayID))
-	// WARNING: in.EgressOnlyInternetGatewayID requires manual conversion: does not exist in peer-type
 	out.Tags = *(*Tags)(unsafe.Pointer(&in.Tags))
 	out.AvailabilityZoneUsageLimit = (*int)(unsafe.Pointer(in.AvailabilityZoneUsageLimit))
 	out.AvailabilityZoneSelection = (*AZSelectionScheme)(unsafe.Pointer(in.AvailabilityZoneSelection))

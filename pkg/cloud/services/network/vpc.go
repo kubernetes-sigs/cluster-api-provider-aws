@@ -52,9 +52,7 @@ func (s *Service) reconcileVPC() error {
 
 		s.scope.VPC().CidrBlock = vpc.CidrBlock
 		s.scope.VPC().Tags = vpc.Tags
-		s.scope.VPC().EnableIPv6 = vpc.EnableIPv6
-		s.scope.VPC().IPv6CidrBlock = vpc.IPv6CidrBlock
-		s.scope.VPC().IPv6Pool = vpc.IPv6Pool
+		s.scope.VPC().IPv6 = vpc.IPv6
 
 		// If VPC is unmanaged, return early.
 		if vpc.IsUnmanaged(s.scope.Name()) {
@@ -93,9 +91,7 @@ func (s *Service) reconcileVPC() error {
 	s.scope.Info("Created VPC", "vpc-id", vpc.ID)
 
 	s.scope.VPC().CidrBlock = vpc.CidrBlock
-	s.scope.VPC().IPv6CidrBlock = vpc.IPv6CidrBlock
-	s.scope.VPC().IPv6Pool = vpc.IPv6Pool
-	s.scope.VPC().EnableIPv6 = vpc.EnableIPv6
+	s.scope.VPC().IPv6 = vpc.IPv6
 	s.scope.VPC().Tags = vpc.Tags
 	s.scope.VPC().ID = vpc.ID
 
@@ -185,12 +181,12 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 	}
 
 	// setup BYOIP
-	if s.scope.VPC().IPv6CidrBlock != "" {
-		input.Ipv6CidrBlock = aws.String(s.scope.VPC().IPv6CidrBlock)
-		input.Ipv6Pool = aws.String(s.scope.VPC().IPv6Pool)
+	if s.scope.VPC().IsIPv6Enabled() && s.scope.VPC().IPv6.IPv6CidrBlock != "" {
+		input.Ipv6CidrBlock = aws.String(s.scope.VPC().IPv6.IPv6CidrBlock)
+		input.Ipv6Pool = aws.String(s.scope.VPC().IPv6.IPv6Pool)
 		input.AmazonProvidedIpv6CidrBlock = aws.Bool(false)
 	} else {
-		input.AmazonProvidedIpv6CidrBlock = aws.Bool(s.scope.VPC().EnableIPv6)
+		input.AmazonProvidedIpv6CidrBlock = aws.Bool(s.scope.VPC().IsIPv6Enabled())
 	}
 
 	if s.scope.VPC().CidrBlock == "" {
@@ -207,7 +203,7 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateVPC", "Created new managed VPC %q", *out.Vpc.VpcId)
 	s.scope.V(2).Info("Created new VPC with cidr", "vpc-id", *out.Vpc.VpcId, "cidr-block", *out.Vpc.CidrBlock)
 
-	if !s.scope.VPC().EnableIPv6 {
+	if !s.scope.VPC().IsIPv6Enabled() {
 		return &infrav1.VPCSpec{
 			ID:        *out.Vpc.VpcId,
 			CidrBlock: *out.Vpc.CidrBlock,
@@ -216,14 +212,15 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 	}
 
 	// BYOIP was defined, no need to look up the VPC.
-	if s.scope.VPC().EnableIPv6 && s.scope.VPC().IPv6CidrBlock != "" {
+	if s.scope.VPC().IsIPv6Enabled() && s.scope.VPC().IPv6.IPv6CidrBlock != "" {
 		return &infrav1.VPCSpec{
-			ID:            *out.Vpc.VpcId,
-			CidrBlock:     *out.Vpc.CidrBlock,
-			EnableIPv6:    true,
-			IPv6CidrBlock: s.scope.VPC().IPv6CidrBlock,
-			IPv6Pool:      s.scope.VPC().IPv6Pool,
-			Tags:          converters.TagsToMap(out.Vpc.Tags),
+			ID:        *out.Vpc.VpcId,
+			CidrBlock: *out.Vpc.CidrBlock,
+			IPv6: &infrav1.IPv6{
+				IPv6CidrBlock: s.scope.VPC().IPv6.IPv6CidrBlock,
+				IPv6Pool:      s.scope.VPC().IPv6.IPv6Pool,
+			},
+			Tags: converters.TagsToMap(out.Vpc.Tags),
 		}, nil
 	}
 
@@ -242,12 +239,13 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 	for _, set := range vpc.Vpcs[0].Ipv6CidrBlockAssociationSet {
 		if *set.Ipv6CidrBlockState.State == ec2.SubnetCidrBlockStateCodeAssociated {
 			return &infrav1.VPCSpec{
-				EnableIPv6:    true,
-				ID:            *vpc.Vpcs[0].VpcId,
-				CidrBlock:     *out.Vpc.CidrBlock,
-				IPv6CidrBlock: aws.StringValue(set.Ipv6CidrBlock),
-				IPv6Pool:      aws.StringValue(set.Ipv6Pool),
-				Tags:          converters.TagsToMap(vpc.Vpcs[0].Tags),
+				IPv6: &infrav1.IPv6{
+					IPv6CidrBlock: aws.StringValue(set.Ipv6CidrBlock),
+					IPv6Pool:      aws.StringValue(set.Ipv6Pool),
+				},
+				ID:        *vpc.Vpcs[0].VpcId,
+				CidrBlock: *out.Vpc.CidrBlock,
+				Tags:      converters.TagsToMap(vpc.Vpcs[0].Tags),
 			}, nil
 		}
 	}
@@ -323,9 +321,10 @@ func (s *Service) describeVPCByID() (*infrav1.VPCSpec, error) {
 	}
 	for _, set := range out.Vpcs[0].Ipv6CidrBlockAssociationSet {
 		if *set.Ipv6CidrBlockState.State == ec2.SubnetCidrBlockStateCodeAssociated {
-			vpc.IPv6CidrBlock = aws.StringValue(set.Ipv6CidrBlock)
-			vpc.IPv6Pool = aws.StringValue(set.Ipv6Pool)
-			vpc.EnableIPv6 = true
+			vpc.IPv6 = &infrav1.IPv6{
+				IPv6CidrBlock: aws.StringValue(set.Ipv6CidrBlock),
+				IPv6Pool:      aws.StringValue(set.Ipv6Pool),
+			}
 			break
 		}
 	}

@@ -233,10 +233,10 @@ func (s *Service) getDefaultSubnets() (infrav1.Subnets, error) {
 	}
 	privateSubnetCIDRs := append(subnetCIDRs[:0], subnetCIDRs[1:]...)
 
-	if s.scope.VPC().EnableIPv6 {
-		ipv6SubnetCIDRs, err = cidr.SplitIntoSubnetsIPv6(s.scope.VPC().IPv6CidrBlock, numSubnets)
+	if s.scope.VPC().IsIPv6Enabled() {
+		ipv6SubnetCIDRs, err = cidr.SplitIntoSubnetsIPv6(s.scope.VPC().IPv6.IPv6CidrBlock, numSubnets)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed splitting IPv6 VPC CIDR %q into subnets", s.scope.VPC().IPv6CidrBlock)
+			return nil, errors.Wrapf(err, "failed splitting IPv6 VPC CIDR %q into subnets", s.scope.VPC().IPv6.IPv6CidrBlock)
 		}
 
 		// We need to take the last, so it doesn't conflict with the rest. The subnetID is increment each time by 1.
@@ -261,7 +261,7 @@ func (s *Service) getDefaultSubnets() (infrav1.Subnets, error) {
 			IsPublic:         false,
 		}
 
-		if s.scope.VPC().EnableIPv6 {
+		if s.scope.VPC().IsIPv6Enabled() {
 			publicSubnet.IPv6CidrBlock = publicIPv6SubnetCIDRs[i].String()
 			publicSubnet.IsIPv6 = true
 			privateSubnet.IPv6CidrBlock = privateIPv6SubnetCIDRs[i].String()
@@ -391,7 +391,7 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 			),
 		},
 	}
-	if s.scope.VPC().EnableIPv6 {
+	if s.scope.VPC().IsIPv6Enabled() {
 		input.Ipv6CidrBlock = aws.String(sn.IPv6CidrBlock)
 		sn.IsIPv6 = true
 	}

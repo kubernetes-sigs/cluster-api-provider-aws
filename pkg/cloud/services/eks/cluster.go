@@ -355,7 +355,7 @@ func (s *Service) createCluster(eksClusterName string) (*eks.Cluster, error) {
 	}
 
 	var netConfig *eks.KubernetesNetworkConfigRequest
-	if s.scope.VPC().EnableIPv6 {
+	if s.scope.VPC().IsIPv6Enabled() {
 		netConfig = &eks.KubernetesNetworkConfigRequest{
 			IpFamily: aws.String(eks.IpFamilyIpv6),
 		}

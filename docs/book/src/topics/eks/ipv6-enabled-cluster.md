@@ -25,7 +25,7 @@ metadata:
 spec:
   network:
     vpc:
-      enableIPv6: true
+      ipv6: {}
 ```
 
 ### BYOIP ( Bring Your Own IP )
@@ -36,9 +36,9 @@ To define your own IPv6 address pool and CIDR set the following values:
 spec:
   network:
     vpc:
-      ipv6Pool: pool-id
-      ipv6CidrBlock: "2009:1234:ff00::/56"
-      enableIPv6: true
+      ipv6:
+        ipv6Pool: pool-id
+        ipv6CidrBlock: "2009:1234:ff00::/56"
 ```
 
 ## Requirements
@@ -62,7 +62,7 @@ metadata:
 spec:
   network:
     vpc:
-      enableIPv6: true
+      ipv6: {}
   region: "${AWS_REGION}"
   sshKeyName: "${AWS_SSH_KEY_NAME}"
   version: "${KUBERNETES_VERSION}"

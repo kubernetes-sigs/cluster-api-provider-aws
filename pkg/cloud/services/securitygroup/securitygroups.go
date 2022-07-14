@@ -476,7 +476,7 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 		}
 	}
 	cidrBlocks := []string{services.AnyIPv4CidrBlock}
-	if s.scope.VPC().EnableIPv6 {
+	if s.scope.VPC().IsIPv6Enabled() {
 		cidrBlocks = append(cidrBlocks, services.AnyIPv6CidrBlock)
 	}
 	switch role {
