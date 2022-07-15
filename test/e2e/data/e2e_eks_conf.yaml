@@ -35,17 +35,6 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v0.3.23 # latest published release in the v1alpha3 series; this is used for v1alpha3 --> v1beta1 clusterctl upgrades test only.
-        contract: v1alpha3
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/core-components.yaml"
-        type: "url"
-        files:
-          - sourcePath: "./shared/v1alpha3/metadata.yaml"
-        replacements:
-          - old: "imagePullPolicy: Always"
-            new: "imagePullPolicy: IfNotPresent"
-          - old: --metrics-bind-addr=127.0.0.1:8080
-            new: --metrics-bind-addr=:8080
       - name: v0.4.7 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
         contract: v1alpha4
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/core-components.yaml"
@@ -68,7 +57,7 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.99 # next;
+      - name: v1.2.99 # next;
         value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220216/core-components.yaml"
         type: "url"
         contract: v1beta1
@@ -84,15 +73,6 @@ providers:
     files:
       - sourcePath: "./shared/v1alpha4/metadata.yaml"
     versions:
-      - name: v0.3.23 # latest published release in the v1alpha3 series; this is used for v1alpha3 --> v1beta1 clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/bootstrap-components.yaml"
-        type: "url"
-        contract: v1alpha3
-        files:
-          - sourcePath: "./shared/v1alpha3/metadata.yaml"
-        replacements:
-          - old: --metrics-addr=127.0.0.1:8080
-            new: --metrics-addr=:8080
       - name: v0.4.7 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/bootstrap-components.yaml"
         type: "url"
@@ -115,7 +95,7 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.99 # next;
+      - name: v1.2.99 # next;
         value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220216/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
@@ -131,15 +111,6 @@ providers:
     files:
       - sourcePath: "./shared/v1alpha4/metadata.yaml"
     versions:
-      - name: v0.3.23 # latest published release in the v1alpha3 series; this is used for v1alpha3 --> v1beta1 clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/control-plane-components.yaml"
-        type: "url"
-        contract: v1alpha3
-        files:
-          - sourcePath: "./shared/v1alpha3/metadata.yaml"
-        replacements:
-          - old: --metrics-addr=127.0.0.1:8080
-            new: --metrics-addr=:8080
       - name: v0.4.7 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
         # Use manifest from source files
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/control-plane-components.yaml"
@@ -163,7 +134,7 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.99 # next;
+      - name: v1.2.99 # next;
         value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220216/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
@@ -177,7 +148,7 @@ providers:
   - name: aws
     type: InfrastructureProvider
     versions:
-      - name: v1.2.99
+      - name: v1.4.99
         # Use manifest from source files
         value: ../../../config/default
         contract: v1beta1
