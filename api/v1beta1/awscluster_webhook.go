@@ -17,9 +17,17 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 
+	admissionv1 "k8s.io/api/admission/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"net/http"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
 	"github.com/google/go-cmp/cmp"
+	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -35,6 +43,9 @@ import (
 var _ = logf.Log.WithName("awscluster-resource")
 
 func (r *AWSCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	mgr.GetWebhookServer().Register("/mutate-infrastructure-cluster-x-k8s-io-v1beta1-dockercluster", &webhook.Admission{
+		Handler: &AWSClusterMutator{},
+	})
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
@@ -43,10 +54,13 @@ func (r *AWSCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-awscluster,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsclusters,versions=v1beta1,name=validation.awscluster.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta1-awscluster,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsclusters,versions=v1beta1,name=default.awscluster.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1beta1
 
-var (
-	_ webhook.Validator = &AWSCluster{}
-	_ webhook.Defaulter = &AWSCluster{}
-)
+var _ webhook.Validator = &AWSCluster{}
+
+// AWSClusterMutator used for defaulting AWSCluster.
+// +kubebuilder:object:generate=false
+type AWSClusterMutator struct {
+	decoder *admission.Decoder
+}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSCluster) ValidateCreate() error {
@@ -173,6 +187,93 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 // Default satisfies the defaulting webhook interface.
 func (r *AWSCluster) Default() {
 	SetObjectDefaults_AWSCluster(r)
+}
+
+// Handle will be used for defaulting.
+func (r *AWSClusterMutator) Handle(ctx context.Context, req admission.Request) admission.Response {
+	dct := &AWSCluster{}
+
+	err := r.decoder.DecodeRaw(req.Object, dct)
+	if err != nil {
+		return admission.Errored(http.StatusBadRequest, errors.Wrapf(err, "failed to decode DockerCluster resource"))
+	}
+
+	oldDct := &AWSCluster{}
+	if req.Operation == admissionv1.Update {
+		if err := r.decoder.DecodeRaw(req.OldObject, oldDct); err != nil {
+			return admission.Errored(http.StatusBadRequest, errors.Wrapf(err, "failed to decode DockerCluster resource"))
+		}
+	}
+
+	SetObjectDefaults_AWSCluster(dct)
+
+	if req.Operation == admissionv1.Update {
+		updateOpts := &metav1.UpdateOptions{}
+		if err := r.decoder.DecodeRaw(req.Options, updateOpts); err != nil {
+			return admission.Errored(http.StatusBadRequest, errors.Wrapf(err, "failed to decode UpdateOptions resource"))
+		}
+
+		// Variant 1: custom merge logic.
+		// Assumptions about CAPA behavior:
+		// * If subnets are empty => CAPA creates default subnets and adds them to subnets spec
+		//   => Fine as in that case topology controller doesn't set subnets at all.
+		// * If SecondaryCIDR block is set => CAPA adds a corresponding subnet, if there is no subnet with that CIDR yet
+		//   => 1. We have to preserve additional subnets with the SecondaryCIDR block.
+		// * CAPA queries AWS for the subnet and syncs fields from AWS to subnet spec
+		//   => 2. We have to carry over fields from the current AWSCluster
+		// * If subnet.ID == "" => create subnet in AWS and sync fields from new subnet from AWS to subnet spec
+		//   => 2. We have to carry over fields from the current AWSCluster
+		if updateOpts.FieldManager == "capi-topology" {
+			for i := range dct.Spec.NetworkSpec.Subnets {
+				oldSubnet := oldDct.Spec.NetworkSpec.Subnets.FindEqual(&dct.Spec.NetworkSpec.Subnets[i])
+				if oldSubnet == nil {
+					// Subnet has been newly added => nothing to carry-over.
+					continue
+				}
+
+				// Subnet has been updated => 2. carry-over fields from old subnet, if they are not overwritten.
+				if oldSubnet != nil {
+					// This case should never happen when VPC is managed, because not intended to allow setting fields non BYOI case.
+					if dct.Spec.NetworkSpec.Subnets[i].ID == "" {
+						dct.Spec.NetworkSpec.Subnets[i].ID = oldSubnet.ID
+					}
+					if dct.Spec.NetworkSpec.Subnets[i].CidrBlock == "" {
+						dct.Spec.NetworkSpec.Subnets[i].CidrBlock = oldSubnet.CidrBlock
+					}
+					if dct.Spec.NetworkSpec.Subnets[i].IsPublic == false {
+						if oldSubnet.IsPublic {
+							dct.Spec.NetworkSpec.Subnets[i].IsPublic = oldSubnet.IsPublic
+						}
+					}
+					if dct.Spec.NetworkSpec.Subnets[i].AvailabilityZone == "" {
+						dct.Spec.NetworkSpec.Subnets[i].AvailabilityZone = oldSubnet.AvailabilityZone
+					}
+					if dct.Spec.NetworkSpec.Subnets[i].RouteTableID == nil {
+						dct.Spec.NetworkSpec.Subnets[i].RouteTableID = oldSubnet.RouteTableID
+					}
+					if dct.Spec.NetworkSpec.Subnets[i].NatGatewayID == nil {
+						dct.Spec.NetworkSpec.Subnets[i].NatGatewayID = oldSubnet.NatGatewayID
+					}
+				}
+			}
+			// TODO: check if SecondaryCIDR subnets need to be checked.
+		}
+	}
+
+	// Create the patch
+	marshalled, err := json.Marshal(dct)
+	if err != nil {
+		return admission.Errored(http.StatusInternalServerError, err)
+	}
+	return admission.PatchResponseFromRaw(req.Object.Raw, marshalled)
+}
+
+// InjectDecoder injects the decoder.
+// AWSClusterMutator implements admission.DecoderInjector.
+// A decoder will be automatically injected.
+func (r *AWSClusterMutator) InjectDecoder(d *admission.Decoder) error {
+	r.decoder = d
+	return nil
 }
 
 func (r *AWSCluster) validateSSHKeyName() field.ErrorList {
