@@ -259,7 +259,7 @@ type SubnetSpec struct {
 
 	// IsIPv6 defines the subnet as an IPv6 subnet. A subnet is IPv6 when it is associated with a VPC that has IPv6 enabled.
 	// +optional
-	IsIPv6 bool `json:"isIpv6"`
+	IsIPv6 bool `json:"isIpv6,omitempty"`
 
 	// RouteTableID is the routing table id associated with the subnet.
 	// +optional

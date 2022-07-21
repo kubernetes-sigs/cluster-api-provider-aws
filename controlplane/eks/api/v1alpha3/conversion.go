@@ -68,7 +68,7 @@ func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 			}
 		}
 		if !found {
-			return fmt.Errorf("subnet with id %s not found amongts restored subnets", dst.Spec.NetworkSpec.Subnets[i].ID)
+			return fmt.Errorf("subnet with id %s not found amongst restored subnets", dst.Spec.NetworkSpec.Subnets[i].ID)
 		}
 	}
 

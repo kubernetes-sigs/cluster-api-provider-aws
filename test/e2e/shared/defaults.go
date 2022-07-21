@@ -46,8 +46,6 @@ const (
 	CorednsAddonVersion                  = "COREDNS_ADDON_VERSION"
 	GcWorkloadPath                       = "GC_WORKLOAD"
 	KubeproxyAddonVersion                = "KUBE_PROXY_ADDON_VERSION"
-	EnableIPv6                           = "ENABLE_IPv6"
-	IPFamily                             = "IP_FAMILY"
 	AwsNodeMachineType                   = "AWS_NODE_MACHINE_TYPE"
 	AwsAvailabilityZone1                 = "AWS_AVAILABILITY_ZONE_1"
 	AwsAvailabilityZone2                 = "AWS_AVAILABILITY_ZONE_2"
