@@ -27,11 +27,6 @@ import (
 	"sigs.k8s.io/cluster-api/errors"
 )
 
-const (
-	// ManagedMachinePoolFinalizer allows the controller to clean up resources on delete.
-	ManagedMachinePoolFinalizer = "awsmanagedmachinepools.infrastructure.cluster.x-k8s.io"
-)
-
 // ManagedMachineAMIType specifies which AWS AMI to use for a managed MachinePool.
 type ManagedMachineAMIType string
 
