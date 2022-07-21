@@ -31,7 +31,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
+	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -46,7 +46,7 @@ func TestReconcileNatGateways(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  []infrav1.SubnetSpec
-		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect func(m *mocks.MockEC2APIMockRecorder)
 	}{
 		{
 			name: "single private subnet exists, should create no NAT gateway",
@@ -58,7 +58,7 @@ func TestReconcileNatGateways(t *testing.T) {
 					IsPublic:         false,
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.CreateNatGateway(gomock.Any()).Times(0)
 			},
 		},
@@ -72,7 +72,7 @@ func TestReconcileNatGateways(t *testing.T) {
 					IsPublic:         true,
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeNatGatewaysPages(gomock.Any(), gomock.Any()).Times(0)
 				m.CreateNatGateway(gomock.Any()).Times(0)
 			},
@@ -93,7 +93,7 @@ func TestReconcileNatGateways(t *testing.T) {
 					IsPublic:         false,
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeNatGatewaysPages(
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
@@ -194,7 +194,7 @@ func TestReconcileNatGateways(t *testing.T) {
 					IsPublic:         true,
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeNatGatewaysPages(
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
@@ -297,7 +297,7 @@ func TestReconcileNatGateways(t *testing.T) {
 					IsPublic:         false,
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeNatGatewaysPages(
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
@@ -354,7 +354,7 @@ func TestReconcileNatGateways(t *testing.T) {
 					IsPublic:         false,
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeNatGatewaysPages(gomock.Any(), gomock.Any()).
 					Return(nil).
 					Times(1)
@@ -364,7 +364,7 @@ func TestReconcileNatGateways(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 			scheme := runtime.NewScheme()
 			_ = infrav1.AddToScheme(scheme)
 			awsCluster := &infrav1.AWSCluster{
@@ -415,7 +415,7 @@ func TestDeleteNatGateways(t *testing.T) {
 		name           string
 		input          []infrav1.SubnetSpec
 		isUnmanagedVPC bool
-		expect         func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect         func(m *mocks.MockEC2APIMockRecorder)
 		wantErr        bool
 	}{
 		{
@@ -460,7 +460,7 @@ func TestDeleteNatGateways(t *testing.T) {
 					IsPublic:         false,
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeNatGatewaysPages(
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
@@ -493,7 +493,7 @@ func TestDeleteNatGateways(t *testing.T) {
 					IsPublic:         false,
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeNatGatewaysPages(
 					gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{}),
 					gomock.Any()).Do(mockDescribeNatGatewaysOutput).Return(nil)
@@ -542,7 +542,7 @@ func TestDeleteNatGateways(t *testing.T) {
 					IsPublic:         false,
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeNatGatewaysPages(
 					gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{}), gomock.Any()).Do(mockDescribeNatGatewaysOutput).Return(nil)
 
@@ -578,7 +578,7 @@ func TestDeleteNatGateways(t *testing.T) {
 					IsPublic:         false,
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeNatGatewaysPages(
 					gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{}), gomock.Any()).Do(mockDescribeNatGatewaysOutput).Return(nil)
 
@@ -608,7 +608,7 @@ func TestDeleteNatGateways(t *testing.T) {
 					IsPublic:         false,
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeNatGatewaysPages(
 					gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{}), gomock.Any()).Return(awserrors.NewFailedDependency("failed dependency"))
 			},
@@ -630,7 +630,7 @@ func TestDeleteNatGateways(t *testing.T) {
 					IsPublic:         false,
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeNatGatewaysPages(
 					gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{}), gomock.Any()).Do(mockDescribeNatGatewaysOutput).Return(nil)
 
@@ -656,7 +656,7 @@ func TestDeleteNatGateways(t *testing.T) {
 					IsPublic:         false,
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeNatGatewaysPages(
 					gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{}), gomock.Any()).Do(mockDescribeNatGatewaysOutput).Return(nil)
 
@@ -675,7 +675,7 @@ func TestDeleteNatGateways(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 			scheme := runtime.NewScheme()
 			_ = infrav1.AddToScheme(scheme)
 			awsCluster := &infrav1.AWSCluster{

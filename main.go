@@ -168,6 +168,12 @@ func main() {
 
 	setupLog.V(1).Info(fmt.Sprintf("feature gates: %+v\n", feature.Gates))
 
+	externalResourceGC := false
+	if feature.Gates.Enabled(feature.ExternalResourceGC) {
+		setupLog.Info("enabling external resource garbage collection")
+		externalResourceGC = true
+	}
+
 	// Parse service endpoints.
 	AWSServiceEndpoints, err := endpoints.ParseFlag(serviceEndpoints)
 	if err != nil {
@@ -186,15 +192,16 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.AWSClusterReconciler{
-		Client:           mgr.GetClient(),
-		Recorder:         mgr.GetEventRecorderFor("awscluster-controller"),
-		Endpoints:        AWSServiceEndpoints,
-		WatchFilterValue: watchFilterValue,
+		Client:             mgr.GetClient(),
+		Recorder:           mgr.GetEventRecorderFor("awscluster-controller"),
+		Endpoints:          AWSServiceEndpoints,
+		WatchFilterValue:   watchFilterValue,
+		ExternalResourceGC: externalResourceGC,
 	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: true}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
 		os.Exit(1)
 	}
-	enableGates(ctx, mgr, AWSServiceEndpoints)
+	enableGates(ctx, mgr, AWSServiceEndpoints, externalResourceGC)
 
 	if err = (&infrav1.AWSMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplate")
@@ -270,7 +277,7 @@ func main() {
 	}
 }
 
-func enableGates(ctx context.Context, mgr ctrl.Manager, awsServiceEndpoints []scope.ServiceEndpoint) {
+func enableGates(ctx context.Context, mgr ctrl.Manager, awsServiceEndpoints []scope.ServiceEndpoint, externalResourceGC bool) {
 	if feature.Gates.Enabled(feature.EKS) {
 		setupLog.Info("enabling EKS controllers")
 
@@ -295,6 +302,7 @@ func enableGates(ctx context.Context, mgr ctrl.Manager, awsServiceEndpoints []sc
 			AllowAdditionalRoles: allowAddRoles,
 			Endpoints:            awsServiceEndpoints,
 			WatchFilterValue:     watchFilterValue,
+			ExternalResourceGC:   externalResourceGC,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: true}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSManagedControlPlane")
 			os.Exit(1)
