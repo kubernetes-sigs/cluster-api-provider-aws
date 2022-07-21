@@ -1,0 +1,26 @@
+@startuml
+autonumber
+actor User
+database APIServer
+control InfraClusterController
+participant gc_service
+collections other_services
+participant aws
+User -> APIServer: apply capi yaml
+InfraClusterController -> APIServer: watch (create/update)
+activate InfraClusterController
+InfraClusterController -> InfraClusterController: Add infra cluster finalizer
+opt if gc feature enabled
+    InfraClusterController -> gc_service: Reconcile
+    opt if gc annotation != false
+    else
+        gc_service -> gc_service: add gc finalizer
+    end
+end
+InfraClusterController -> APIServer: patch infracluster
+InfraClusterController -> other_services: Reconcile
+other_services -> aws: create cluster infra
+other_services -> InfraClusterController: update status
+InfraClusterController -> APIServer: patch
+deactivate InfraClusterController
+@enduml
