@@ -66,7 +66,7 @@ func CheckAwsNodeEnvVarsSet(ctx context.Context, inputGetter func() UpdateAwsNod
 	shared.Byf("Checking if aws-node has been updated with the defined environment variables on the workload cluster")
 	daemonSet := &appsv1.DaemonSet{}
 
-	clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace.Name, input.ClusterName).GetClient()
+	clusterClient := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace.Name, input.ClusterName).GetClient()
 	err = clusterClient.Get(ctx, crclient.ObjectKey{Namespace: "kube-system", Name: "aws-node"}, daemonSet)
 	Expect(err).ToNot(HaveOccurred())
 
