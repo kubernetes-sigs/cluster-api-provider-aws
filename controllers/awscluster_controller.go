@@ -44,6 +44,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/gc"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/instancestate"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/network"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/s3"
@@ -51,7 +52,7 @@ import (
 	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/util/conditions"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
+	capiannotations "sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -74,6 +75,7 @@ type AWSClusterReconciler struct {
 	securityGroupFactory  func(scope.ClusterScope) services.SecurityGroupInterface
 	Endpoints             []scope.ServiceEndpoint
 	WatchFilterValue      string
+	ExternalResourceGC    bool
 }
 
 // getEC2Service factory func is added for testing purpose so that we can inject mocked EC2Service to the AWSClusterReconciler.
@@ -150,7 +152,7 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return reconcile.Result{}, nil
 	}
 
-	if annotations.IsPaused(cluster, awsCluster) {
+	if capiannotations.IsPaused(cluster, awsCluster) {
 		log.Info("AWSCluster or linked Cluster is marked as paused. Won't reconcile")
 		return reconcile.Result{}, nil
 	}
@@ -196,14 +198,14 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Handle deleted clusters
 	if !awsCluster.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(clusterScope)
+		return r.reconcileDelete(ctx, clusterScope)
 	}
 
 	// Handle non-deleted clusters
 	return r.reconcileNormal(clusterScope)
 }
 
-func (r *AWSClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	clusterScope.Info("Reconciling AWSCluster delete")
 
 	ec2svc := r.getEC2Service(clusterScope)
@@ -233,6 +235,13 @@ func (r *AWSClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope)
 	if err := sgService.DeleteSecurityGroups(); err != nil {
 		clusterScope.Error(err, "error deleting security groups")
 		return reconcile.Result{}, err
+	}
+
+	if r.ExternalResourceGC {
+		gcSvc := gc.NewService(clusterScope)
+		if gcErr := gcSvc.ReconcileDelete(ctx); gcErr != nil {
+			return reconcile.Result{}, fmt.Errorf("failed delete reconcile for gc service: %w", gcErr)
+		}
 	}
 
 	if err := networkSvc.DeleteNetwork(); err != nil {
@@ -420,7 +429,7 @@ func (r *AWSClusterReconciler) requeueAWSClusterForUnpausedCluster(ctx context.C
 			return nil
 		}
 
-		if annotations.IsExternallyManaged(awsCluster) {
+		if capiannotations.IsExternallyManaged(awsCluster) {
 			log.V(4).Info("AWSCluster is externally managed, skipping mapping.")
 			return nil
 		}

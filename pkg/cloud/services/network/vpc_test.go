@@ -33,7 +33,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
+	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -88,7 +88,7 @@ func TestReconcileVPC(t *testing.T) {
 		name    string
 		input   *infrav1.VPCSpec
 		want    *infrav1.VPCSpec
-		expect  func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect  func(m *mocks.MockEC2APIMockRecorder)
 		wantErr bool
 	}{
 		{
@@ -106,7 +106,7 @@ func TestReconcileVPC(t *testing.T) {
 				AvailabilityZoneSelection:  &selection,
 			},
 			wantErr: false,
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
 					VpcIds: []*string{
 						aws.String("vpc-exists"),
@@ -147,7 +147,7 @@ func TestReconcileVPC(t *testing.T) {
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(&ec2.CreateVpcOutput{
 					Vpc: &ec2.Vpc{
 						State:     aws.String("available"),
@@ -167,7 +167,7 @@ func TestReconcileVPC(t *testing.T) {
 			name:    "managed vpc id exists, but vpc resource is missing",
 			input:   &infrav1.VPCSpec{ID: "vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
 			wantErr: true,
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
 					VpcIds: []*string{
 						aws.String("vpc-exists"),
@@ -194,7 +194,7 @@ func TestReconcileVPC(t *testing.T) {
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
 						{
@@ -230,7 +230,7 @@ func TestReconcileVPC(t *testing.T) {
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
 						{
@@ -250,7 +250,7 @@ func TestReconcileVPC(t *testing.T) {
 			name:    "Should return error if failed to set vpc attributes for managed vpc",
 			input:   &infrav1.VPCSpec{ID: "managed-vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
 			wantErr: true,
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
 					VpcIds: []*string{
 						aws.String("managed-vpc-exists"),
@@ -278,7 +278,7 @@ func TestReconcileVPC(t *testing.T) {
 			name:    "Should return error if failed to create vpc",
 			input:   &infrav1.VPCSpec{AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
 			wantErr: true,
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(nil, awserrors.NewFailedDependency("failed dependency"))
 			},
 		},
@@ -286,7 +286,7 @@ func TestReconcileVPC(t *testing.T) {
 			name:    "Should return error if describe vpc returns empty list",
 			input:   &infrav1.VPCSpec{ID: "managed-vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
 			wantErr: true,
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{},
 				}, nil)
@@ -296,7 +296,7 @@ func TestReconcileVPC(t *testing.T) {
 			name:    "Should return error if describe vpc returns more than 1 vpcs",
 			input:   &infrav1.VPCSpec{ID: "managed-vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
 			wantErr: true,
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
 						{
@@ -313,7 +313,7 @@ func TestReconcileVPC(t *testing.T) {
 			name:    "Should return error if vpc state is not available/pending",
 			input:   &infrav1.VPCSpec{ID: "managed-vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
 			wantErr: true,
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
 						{
@@ -330,7 +330,7 @@ func TestReconcileVPC(t *testing.T) {
 			g := NewWithT(t)
 			clusterScope, err := getClusterScope(tc.input)
 			g.Expect(err).NotTo(HaveOccurred())
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock.EXPECT())
 			s := NewService(clusterScope)
 			s.EC2Client = ec2Mock
@@ -359,7 +359,7 @@ func Test_DeleteVPC(t *testing.T) {
 		name    string
 		input   *infrav1.VPCSpec
 		wantErr bool
-		expect  func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect  func(m *mocks.MockEC2APIMockRecorder)
 	}{
 		{
 			name:  "Should not delete vpc if vpc is unmanaged",
@@ -372,7 +372,7 @@ func Test_DeleteVPC(t *testing.T) {
 				Tags: tags,
 			},
 			wantErr: true,
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DeleteVpc(gomock.Eq(&ec2.DeleteVpcInput{
 					VpcId: aws.String("managed-vpc"),
 				})).Return(nil, awserrors.NewFailedDependency("failed dependency"))
@@ -384,7 +384,7 @@ func Test_DeleteVPC(t *testing.T) {
 				ID:   "managed-vpc",
 				Tags: tags,
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DeleteVpc(gomock.Eq(&ec2.DeleteVpcInput{
 					VpcId: aws.String("managed-vpc"),
 				})).Return(&ec2.DeleteVpcOutput{}, nil)
@@ -396,7 +396,7 @@ func Test_DeleteVPC(t *testing.T) {
 				ID:   "managed-vpc",
 				Tags: tags,
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DeleteVpc(gomock.Eq(&ec2.DeleteVpcInput{
 					VpcId: aws.String("managed-vpc"),
 				})).Return(nil, awserr.New("InvalidVpcID.NotFound", "not found", nil))
@@ -406,7 +406,7 @@ func Test_DeleteVPC(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 			clusterScope, err := getClusterScope(tc.input)
 			g.Expect(err).NotTo(HaveOccurred())
 			if tc.expect != nil {

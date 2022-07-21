@@ -37,8 +37,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
+	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -49,13 +49,13 @@ func TestInstanceIfExists(t *testing.T) {
 	testCases := []struct {
 		name       string
 		instanceID string
-		expect     func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect     func(m *mocks.MockEC2APIMockRecorder)
 		check      func(instance *infrav1.Instance, err error)
 	}{
 		{
 			name:       "does not exist",
 			instanceID: "hello",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
 					InstanceIds: []*string{aws.String("hello")},
 				})).
@@ -74,7 +74,7 @@ func TestInstanceIfExists(t *testing.T) {
 		{
 			name:       "does not exist with bad request error",
 			instanceID: "hello-does-not-exist",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
 					InstanceIds: []*string{aws.String("hello-does-not-exist")},
 				})).
@@ -93,7 +93,7 @@ func TestInstanceIfExists(t *testing.T) {
 		{
 			name:       "instance exists",
 			instanceID: "id-1",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				az := "test-zone-1a"
 				m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
 					InstanceIds: []*string{aws.String("id-1")},
@@ -149,7 +149,7 @@ func TestInstanceIfExists(t *testing.T) {
 		{
 			name:       "error describing instances",
 			instanceID: "one",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeInstances(&ec2.DescribeInstancesInput{
 					InstanceIds: []*string{aws.String("one")},
 				}).
@@ -165,7 +165,7 @@ func TestInstanceIfExists(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scheme := runtime.NewScheme()
 			_ = infrav1.AddToScheme(scheme)
@@ -209,13 +209,13 @@ func TestTerminateInstance(t *testing.T) {
 	testCases := []struct {
 		name       string
 		instanceID string
-		expect     func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect     func(m *mocks.MockEC2APIMockRecorder)
 		check      func(err error)
 	}{
 		{
 			name:       "instance exists",
 			instanceID: "i-exist",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.TerminateInstances(gomock.Eq(&ec2.TerminateInstancesInput{
 					InstanceIds: []*string{aws.String("i-exist")},
 				})).
@@ -230,7 +230,7 @@ func TestTerminateInstance(t *testing.T) {
 		{
 			name:       "instance does not exist",
 			instanceID: "i-donotexist",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.TerminateInstances(gomock.Eq(&ec2.TerminateInstancesInput{
 					InstanceIds: []*string{aws.String("i-donotexist")},
 				})).
@@ -246,7 +246,7 @@ func TestTerminateInstance(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scheme := runtime.NewScheme()
 			_ = infrav1.AddToScheme(scheme)
@@ -299,7 +299,7 @@ func TestCreateInstance(t *testing.T) {
 		machine       clusterv1.Machine
 		machineConfig *infrav1.AWSMachineSpec
 		awsCluster    *infrav1.AWSCluster
-		expect        func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect        func(m *mocks.MockEC2APIMockRecorder)
 		check         func(instance *infrav1.Instance, err error)
 	}{
 		{
@@ -354,7 +354,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m. // TODO: Restore these parameters, but with the tags as well
 					RunInstances(gomock.Any()).
 					Return(&ec2.Reservation{
@@ -460,7 +460,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					RunInstances(gomock.Any()).
 					Return(&ec2.Reservation{
@@ -556,7 +556,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "v1.16.1")
 				if err != nil {
 					t.Fatalf("Failed to process ami format: %v", err)
@@ -686,7 +686,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "v1.16.1")
 				if err != nil {
 					t.Fatalf("Failed to process ami format: %v", err)
@@ -817,7 +817,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "v1.16.1")
 				if err != nil {
 					t.Fatalf("Failed to process ami format: %v", err)
@@ -949,7 +949,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeSubnets(&ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
@@ -1055,7 +1055,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeSubnets(&ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
@@ -1161,7 +1161,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeSubnets(&ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
@@ -1237,7 +1237,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeSubnets(&ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
@@ -1344,7 +1344,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeSubnets(&ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
@@ -1424,7 +1424,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				expectedErrMsg := "failed to run machine \"aws-test1\" with public IP, no public subnets available in availability zone \"us-east-1b\""
@@ -1491,7 +1491,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeSubnets(&ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
@@ -1600,7 +1600,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeSubnets(&ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
@@ -1691,7 +1691,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeSubnets(&ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
@@ -1802,7 +1802,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					RunInstances(gomock.Any()).
 					Return(&ec2.Reservation{
@@ -1895,7 +1895,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				expectedErrMsg := "failed to run machine \"aws-test1\" with public IP, no public subnets available"
@@ -1964,7 +1964,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m. // TODO: Restore these parameters, but with the tags as well
 					RunInstances(gomock.Any()).
 					Return(&ec2.Reservation{
@@ -2065,7 +2065,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m. // TODO: Restore these parameters, but with the tags as well
 					RunInstances(gomock.Eq(&ec2.RunInstancesInput{
 						ImageId:      aws.String("abc"),
@@ -2202,7 +2202,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m. // TODO: Restore these parameters, but with the tags as well
 					RunInstances(gomock.Eq(&ec2.RunInstancesInput{
 						ImageId:      aws.String("abc"),
@@ -2332,7 +2332,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeImages(gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
@@ -2441,7 +2441,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeImages(gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
@@ -2551,7 +2551,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeImages(gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
@@ -2661,7 +2661,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeImages(gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
@@ -2768,7 +2768,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeImages(gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
@@ -2875,7 +2875,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeImages(gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
@@ -2935,7 +2935,7 @@ func TestCreateInstance(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scheme, err := setupScheme()
 			if err != nil {
@@ -3078,7 +3078,7 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 	testCases := []struct {
 		name          string
 		securityGroup infrav1.AWSResourceReference
-		expect        func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect        func(m *mocks.MockEC2APIMockRecorder)
 		check         func(id string, err error)
 	}{
 		{
@@ -3090,7 +3090,7 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -3120,7 +3120,7 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 		{
 			name:          "return early when filters are missing",
 			securityGroup: infrav1.AWSResourceReference{},
-			expect:        func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
+			expect:        func(m *mocks.MockEC2APIMockRecorder) {},
 			check: func(id string, err error) {
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
@@ -3140,7 +3140,7 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -3165,7 +3165,7 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -3188,7 +3188,7 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock.EXPECT())
 
 			s := Service{

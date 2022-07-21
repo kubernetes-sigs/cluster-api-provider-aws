@@ -32,7 +32,7 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
+	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
 	"sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -66,7 +66,7 @@ func TestService_associateSecondaryCidr(t *testing.T) {
 	tests := []struct {
 		name              string
 		haveSecondaryCIDR bool
-		expect            func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect            func(m *mocks.MockEC2APIMockRecorder)
 		wantErr           bool
 	}{
 		{
@@ -75,7 +75,7 @@ func TestService_associateSecondaryCidr(t *testing.T) {
 		{
 			name:              "Should return error if unable to describe VPC",
 			haveSecondaryCIDR: true,
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(nil, awserrors.NewFailedDependency("dependency-failure"))
 			},
 			wantErr: true,
@@ -83,7 +83,7 @@ func TestService_associateSecondaryCidr(t *testing.T) {
 		{
 			name:              "Should not associate secondary cidr block if already exist in VPC",
 			haveSecondaryCIDR: true,
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
 						{
@@ -97,7 +97,7 @@ func TestService_associateSecondaryCidr(t *testing.T) {
 		{
 			name:              "Should return error if no VPC found",
 			haveSecondaryCIDR: true,
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(nil, nil)
 			},
 			wantErr: true,
@@ -105,7 +105,7 @@ func TestService_associateSecondaryCidr(t *testing.T) {
 		{
 			name:              "Should return error if failed during associating secondary cidr block",
 			haveSecondaryCIDR: true,
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
 						{
@@ -127,7 +127,7 @@ func TestService_associateSecondaryCidr(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			cl := fake.NewClientBuilder().WithScheme(scheme).Build()
 
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			mcpScope, err := setupNewManagedControlPlaneScope(cl)
 			g.Expect(err).NotTo(HaveOccurred())
@@ -160,7 +160,7 @@ func TestService_diassociateSecondaryCidr(t *testing.T) {
 	tests := []struct {
 		name              string
 		haveSecondaryCIDR bool
-		expect            func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect            func(m *mocks.MockEC2APIMockRecorder)
 		wantErr           bool
 	}{
 		{
@@ -169,7 +169,7 @@ func TestService_diassociateSecondaryCidr(t *testing.T) {
 		{
 			name:              "Should return error if unable to describe VPC",
 			haveSecondaryCIDR: true,
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(nil, awserrors.NewFailedDependency("dependency-failure"))
 			},
 			wantErr: true,
@@ -177,7 +177,7 @@ func TestService_diassociateSecondaryCidr(t *testing.T) {
 		{
 			name:              "Should return error if no VPC found",
 			haveSecondaryCIDR: true,
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(nil, nil)
 			},
 			wantErr: true,
@@ -185,7 +185,7 @@ func TestService_diassociateSecondaryCidr(t *testing.T) {
 		{
 			name:              "Should diassociate secondary cidr block if already exist in VPC",
 			haveSecondaryCIDR: true,
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
 						{
@@ -200,7 +200,7 @@ func TestService_diassociateSecondaryCidr(t *testing.T) {
 		{
 			name:              "Should return error if failed to diassociate secondary cidr block",
 			haveSecondaryCIDR: true,
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
 						{
@@ -222,7 +222,7 @@ func TestService_diassociateSecondaryCidr(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			cl := fake.NewClientBuilder().WithScheme(scheme).Build()
 
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			mcpScope, err := setupNewManagedControlPlaneScope(cl)
 			g.Expect(err).NotTo(HaveOccurred())

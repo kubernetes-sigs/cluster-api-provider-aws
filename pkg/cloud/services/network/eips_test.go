@@ -31,7 +31,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
+	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -41,25 +41,25 @@ func TestService_releaseAddresses(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		expect  func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect  func(m *mocks.MockEC2APIMockRecorder)
 		wantErr bool
 	}{
 		{
 			name: "Should return error if failed to describe IP addresses",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeAddresses(gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(nil, awserrors.NewFailedDependency("dependency failure"))
 			},
 			wantErr: true,
 		},
 		{
 			name: "Should ignore releasing elastic IP addresses if not found",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeAddresses(gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(nil, nil)
 			},
 		},
 		{
 			name: "Should return error if failed to disassociate IP address",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeAddresses(gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
 					Addresses: []*ec2.Address{
 						{
@@ -75,7 +75,7 @@ func TestService_releaseAddresses(t *testing.T) {
 		},
 		{
 			name: "Should be able to release the IP address",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeAddresses(gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
 					Addresses: []*ec2.Address{
 						{
@@ -91,7 +91,7 @@ func TestService_releaseAddresses(t *testing.T) {
 		},
 		{
 			name: "Should retry if unable to release the IP address because of Auth Failure",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeAddresses(gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
 					Addresses: []*ec2.Address{
 						{
@@ -108,7 +108,7 @@ func TestService_releaseAddresses(t *testing.T) {
 		},
 		{
 			name: "Should retry if unable to release the IP address because IP is already in use",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeAddresses(gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
 					Addresses: []*ec2.Address{
 						{
@@ -125,7 +125,7 @@ func TestService_releaseAddresses(t *testing.T) {
 		},
 		{
 			name: "Should not retry if unable to release the IP address due to dependency failure",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeAddresses(gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
 					Addresses: []*ec2.Address{
 						{
@@ -150,7 +150,7 @@ func TestService_releaseAddresses(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			cs, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Client:     client,

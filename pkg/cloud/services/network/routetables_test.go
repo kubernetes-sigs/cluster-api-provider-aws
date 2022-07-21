@@ -33,7 +33,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
+	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -44,7 +44,7 @@ func TestReconcileRouteTables(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  *infrav1.NetworkSpec
-		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect func(m *mocks.MockEC2APIMockRecorder)
 		err    error
 	}{
 		{
@@ -71,7 +71,7 @@ func TestReconcileRouteTables(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{}, nil)
 
@@ -134,7 +134,7 @@ func TestReconcileRouteTables(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{}, nil)
 			},
@@ -165,7 +165,7 @@ func TestReconcileRouteTables(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{
 						RouteTables: []*ec2.RouteTable{
@@ -262,7 +262,7 @@ func TestReconcileRouteTables(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{
 						RouteTables: []*ec2.RouteTable{
@@ -334,7 +334,7 @@ func TestReconcileRouteTables(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scheme := runtime.NewScheme()
 			_ = infrav1.AddToScheme(scheme)
@@ -426,7 +426,7 @@ func TestDeleteRouteTables(t *testing.T) {
 	testCases := []struct {
 		name    string
 		input   *infrav1.NetworkSpec
-		expect  func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect  func(m *mocks.MockEC2APIMockRecorder)
 		wantErr bool
 	}{
 		{
@@ -441,7 +441,7 @@ func TestDeleteRouteTables(t *testing.T) {
 		{
 			name:  "Should delete route table successfully",
 			input: &infrav1.NetworkSpec{},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(describeRouteTableOutput, nil)
 
@@ -461,7 +461,7 @@ func TestDeleteRouteTables(t *testing.T) {
 		{
 			name:  "Should return error if describe route table fails",
 			input: &infrav1.NetworkSpec{},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(nil, awserrors.NewFailedDependency("failed dependency"))
 			},
@@ -470,7 +470,7 @@ func TestDeleteRouteTables(t *testing.T) {
 		{
 			name:  "Should return error if delete route table fails",
 			input: &infrav1.NetworkSpec{},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(describeRouteTableOutput, nil)
 
@@ -483,7 +483,7 @@ func TestDeleteRouteTables(t *testing.T) {
 		{
 			name:  "Should return error if disassociate route table fails",
 			input: &infrav1.NetworkSpec{},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(describeRouteTableOutput, nil)
 
@@ -502,7 +502,7 @@ func TestDeleteRouteTables(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scheme := runtime.NewScheme()
 			_ = infrav1.AddToScheme(scheme)
