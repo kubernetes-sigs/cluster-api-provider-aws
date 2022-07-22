@@ -20,7 +20,7 @@ Make sure to set up your AWS environment as described [here](https://cluster-api
 ```shell
 export EXP_MACHINE_POOL=true
 clusterctl init --infrastructure aws
-clusterctl generate cluster my-cluster --kubernetes-version v1.16.8 --flavor machinepool > my-cluster.yaml
+clusterctl generate cluster my-cluster --kubernetes-version v1.24.0 --flavor machinepool > my-cluster.yaml
 ```
 
 The template used for this [flavor](https://cluster-api.sigs.k8s.io/clusterctl/commands/generate-cluster.html#flavors) is located [here](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/templates/cluster-template-machinepool.yaml).
@@ -29,7 +29,7 @@ The template used for this [flavor](https://cluster-api.sigs.k8s.io/clusterctl/c
 
 Cluster API Provider AWS (CAPA) has experimental support for [EKS Managed Node Groups](https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html) using `MachinePool` through the infrastructure type `AWSManagedMachinePool`. An `AWSManagedMachinePool` corresponds to an [AWS AutoScaling Groups](https://docs.aws.amazon.com/autoscaling/ec2/userguide/AutoScalingGroup.html) that is used for an EKS managed node group. .
 
-The AWSManagedMachinePool controller creates and manages an EKS managed node group with in turn manages an AWS AutoScaling Group of managed EC2 instance types.
+The AWSManagedMachinePool controller creates and manages an EKS managed node group which in turn manages an AWS AutoScaling Group of managed EC2 instance types.
 
 To use the managed machine pools certain IAM permissions are needed. The easiest way to ensure the required IAM permissions are in place is to use `clusterawsadm` to create them. To do this, follow the EKS instructions in [using clusterawsadm to fulfill prerequisites](using-clusterawsadm-to-fulfill-prerequisites.md).
 
@@ -42,7 +42,7 @@ Make sure to set up your AWS environment as described [here](https://cluster-api
 ```shell
 export EXP_MACHINE_POOL=true
 clusterctl init --infrastructure aws
-clusterctl generate cluster my-cluster --kubernetes-version v1.16.8 --flavor eks-managedmachinepool > my-cluster.yaml
+clusterctl generate cluster my-cluster --kubernetes-version v1.22.0 --flavor eks-managedmachinepool > my-cluster.yaml
 ```
 
 The template used for this [flavor](https://cluster-api.sigs.k8s.io/clusterctl/commands/generate-cluster.html#flavors) is located [here](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/templates/cluster-template-eks-managedmachinepool.yaml).
@@ -76,7 +76,7 @@ spec:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: AWSMachinePool
         name: capa-mp-0
-      version: v1.16.8
+      version: v1.24.0
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSMachinePool
