@@ -126,8 +126,8 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 		})
 
 		ginkgo.By("should create a managed node pool and scale")
-		ManagedMachinePoolSpec(ctx, func() ManagedMachinePoolSpecInput {
-			return ManagedMachinePoolSpecInput{
+		MachinePoolSpec(ctx, func() MachinePoolSpecInput {
+			return MachinePoolSpecInput{
 				E2EConfig:             e2eCtx.E2EConfig,
 				ConfigClusterFn:       defaultConfigCluster,
 				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
@@ -136,6 +136,24 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				ClusterName:           clusterName,
 				IncludeScaling:        true,
 				Cleanup:               true,
+				ManagedMachinePool:    true,
+				Flavor:                EKSManagedMachinePoolOnlyFlavor,
+			}
+		})
+
+		ginkgo.By("should create a machine pool and scale")
+		MachinePoolSpec(ctx, func() MachinePoolSpecInput {
+			return MachinePoolSpecInput{
+				E2EConfig:             e2eCtx.E2EConfig,
+				ConfigClusterFn:       defaultConfigCluster,
+				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				AWSSession:            e2eCtx.BootstrapUserAWSSession,
+				Namespace:             namespace,
+				ClusterName:           clusterName,
+				IncludeScaling:        true,
+				Cleanup:               true,
+				ManagedMachinePool:    false,
+				Flavor:                EKSMachinePoolOnlyFlavor,
 			}
 		})
 
