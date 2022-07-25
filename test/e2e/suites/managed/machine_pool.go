@@ -21,6 +21,9 @@ package managed
 
 import (
 	"context"
+	"encoding/base64"
+	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/onsi/ginkgo"
@@ -45,6 +48,8 @@ type MachinePoolSpecInput struct {
 	Cleanup               bool
 	ManagedMachinePool    bool
 	Flavor                string
+	UsesLaunchTemplate    bool
+	EKSKubernetesVersion  string
 }
 
 // MachinePoolSpec implements a test for creating a machine pool.
@@ -56,6 +61,7 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInpu
 	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
 	Expect(input.Namespace).NotTo(BeNil(), "Invalid argument. input.Namespace can't be nil")
 	Expect(input.ClusterName).ShouldNot(HaveLen(0), "Invalid argument. input.ClusterName can't be empty")
+	Expect(input.Flavor).ShouldNot(HaveLen(0), "Invalid argument. input.Flavor can't be empty")
 
 	shared.Byf("getting cluster with name %s", input.ClusterName)
 	cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
@@ -69,7 +75,21 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInpu
 	configCluster := input.ConfigClusterFn(input.ClusterName, input.Namespace.Name)
 	configCluster.Flavor = input.Flavor
 	configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
-	err := shared.ApplyTemplate(ctx, configCluster, input.BootstrapClusterProxy)
+	workloadClusterTemplate := shared.GetTemplate(ctx, configCluster)
+	if input.UsesLaunchTemplate {
+		userDataTemplate := `#!/bin/bash
+/etc/eks/bootstrap.sh %s \
+  --container-runtime containerd
+`
+		eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName)
+		userData := fmt.Sprintf(userDataTemplate, eksClusterName)
+		userDataEncoded := base64.StdEncoding.EncodeToString([]byte(userData))
+		workloadClusterTemplate = []byte(strings.ReplaceAll(string(workloadClusterTemplate), "USER_DATA", userDataEncoded))
+		workloadClusterTemplate = []byte(strings.ReplaceAll(string(workloadClusterTemplate), "EKS_KUBERNETES_VERSION", input.EKSKubernetesVersion))
+	}
+	shared.Byf(string(workloadClusterTemplate))
+	shared.Byf("Applying the %s cluster template yaml to the cluster", configCluster.Flavor)
+	err := input.BootstrapClusterProxy.Apply(ctx, workloadClusterTemplate)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	shared.Byf("Waiting for the machine pool to be running")
@@ -81,6 +101,12 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInpu
 	Expect(len(mp)).To(Equal(1))
 
 	shared.Byf("Check the status of the node group")
+	var nodeGroupName string
+	if input.UsesLaunchTemplate {
+		nodeGroupName = getEKSNodegroupWithLaunchTemplateName(input.Namespace.Name, input.ClusterName)
+	} else {
+		nodeGroupName = getEKSNodegroupName(input.Namespace.Name, input.ClusterName)
+	}
 	eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName)
 	if input.ManagedMachinePool {
 		nodeGroupName := getEKSNodegroupName(input.Namespace.Name, input.ClusterName)
