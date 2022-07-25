@@ -10,6 +10,7 @@ linters:
     - errorlint
     - exhaustive
     - exhaustivestruct
+    - exhaustruct
     - forcetypeassert
     - forbidigo
     - funlen
@@ -31,6 +32,8 @@ linters:
     - nestif
     - nilnil
     - nlreturn
+    - nonamedreturns
+    - nosnakecase
     - paralleltest
     - promlinter
     - scopelint

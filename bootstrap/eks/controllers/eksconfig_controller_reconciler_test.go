@@ -53,17 +53,17 @@ func TestEKSConfigReconciler(t *testing.T) {
 		reconciler := EKSConfigReconciler{
 			Client: testEnv.Client,
 		}
-		t.Log(fmt.Sprintf("Calling reconcile on cluster '%s' and config '%s' should requeue", cluster.Name, config.Name))
+		t.Logf(fmt.Sprintf("Calling reconcile on cluster '%s' and config '%s' should requeue", cluster.Name, config.Name))
 		g.Eventually(func(gomega Gomega) {
 			result, err := reconciler.joinWorker(ctx, cluster, config)
 			gomega.Expect(err).NotTo(HaveOccurred())
 			gomega.Expect(result.Requeue).To(BeFalse())
 		}).Should(Succeed())
 
-		t.Log(fmt.Sprintf("Secret '%s' should exist and be correct", config.Name))
+		t.Logf(fmt.Sprintf("Secret '%s' should exist and be correct", config.Name))
 		secretList := &corev1.SecretList{}
 		testEnv.Client.List(ctx, secretList)
-		t.Log(dump("secrets", secretList))
+		t.Logf(dump("secrets", secretList))
 		secret := &corev1.Secret{}
 		g.Eventually(func(gomega Gomega) {
 			gomega.Expect(testEnv.Client.Get(ctx, client.ObjectKey{
@@ -81,10 +81,10 @@ func TestEKSConfigReconciler(t *testing.T) {
 		cluster := newCluster(amcp.Name)
 		machine := newMachine(cluster, "test-machine")
 		config := newEKSConfig(machine)
-		t.Log(dump("amcp", amcp))
-		t.Log(dump("config", config))
-		t.Log(dump("machine", machine))
-		t.Log(dump("cluster", cluster))
+		t.Logf(dump("amcp", amcp))
+		t.Logf(dump("config", config))
+		t.Logf(dump("machine", machine))
+		t.Logf(dump("cluster", cluster))
 		oldUserData, err := newUserData(cluster.Name, map[string]string{"test-arg": "test-value"})
 		g.Expect(err).To(BeNil())
 		expectedUserData, err := newUserData(cluster.Name, map[string]string{"test-arg": "updated-test-value"})
@@ -93,22 +93,22 @@ func TestEKSConfigReconciler(t *testing.T) {
 
 		amcpList := &ekscontrolplanev1.AWSManagedControlPlaneList{}
 		testEnv.Client.List(ctx, amcpList)
-		t.Log(dump("stored-amcps", amcpList))
+		t.Logf(dump("stored-amcps", amcpList))
 
 		reconciler := EKSConfigReconciler{
 			Client: testEnv.Client,
 		}
-		t.Log(fmt.Sprintf("Calling reconcile on cluster '%s' and config '%s' should requeue", cluster.Name, config.Name))
+		t.Logf(fmt.Sprintf("Calling reconcile on cluster '%s' and config '%s' should requeue", cluster.Name, config.Name))
 		g.Eventually(func(gomega Gomega) {
 			result, err := reconciler.joinWorker(ctx, cluster, config)
 			gomega.Expect(err).NotTo(HaveOccurred())
 			gomega.Expect(result.Requeue).To(BeFalse())
 		}).Should(Succeed())
 
-		t.Log(fmt.Sprintf("Secret '%s' should exist and be correct", config.Name))
+		t.Logf(fmt.Sprintf("Secret '%s' should exist and be correct", config.Name))
 		secretList := &corev1.SecretList{}
 		testEnv.Client.List(ctx, secretList)
-		t.Log(dump("secrets", secretList))
+		t.Logf(dump("secrets", secretList))
 
 		secret := &corev1.Secret{}
 		g.Eventually(func(gomega Gomega) {
@@ -123,17 +123,16 @@ func TestEKSConfigReconciler(t *testing.T) {
 		config.Spec.KubeletExtraArgs = map[string]string{
 			"test-arg": "updated-test-value",
 		}
-		t.Log(dump("config", config))
+		t.Logf(dump("config", config))
 		g.Eventually(func(gomega Gomega) {
 			result, err := reconciler.joinWorker(ctx, cluster, config)
 			gomega.Expect(err).NotTo(HaveOccurred())
 			gomega.Expect(result.Requeue).To(BeFalse())
 		}).Should(Succeed())
-
-		t.Log(fmt.Sprintf("Secret '%s' should exist and be up to date", config.Name))
+		t.Logf(fmt.Sprintf("Secret '%s' should exist and be up to date", config.Name))
 
 		testEnv.Client.List(ctx, secretList)
-		t.Log(dump("secrets", secretList))
+		t.Logf(dump("secrets", secretList))
 		g.Eventually(func(gomega Gomega) {
 			gomega.Expect(testEnv.Client.Get(ctx, client.ObjectKey{
 				Name:      config.Name,
