@@ -197,7 +197,7 @@ func Test_RenderCloudformation(t *testing.T) {
 				dmp := diffmatchpatch.New()
 				diffs := dmp.DiffMain(string(tData), string(data), false)
 				out := dmp.DiffPrettyText(diffs)
-				t.Fatal(fmt.Sprintf("Differing output (%s):\n%s", c.fixture, out))
+				t.Fatalf(fmt.Sprintf("Differing output (%s):\n%s", c.fixture, out))
 			}
 		})
 	}
