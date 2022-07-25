@@ -39,12 +39,12 @@ import (
 
 // EKS related constants.
 const (
-	EKSManagedPoolFlavor               = "eks-managedmachinepool"
-	EKSControlPlaneOnlyFlavor          = "eks-control-plane-only"
-	EKSControlPlaneOnlyWithAddonFlavor = "eks-control-plane-only-withaddon"
-	EKSMachineDeployOnlyFlavor         = "eks-machine-deployment-only"
-	EKSManagedMachinePoolOnlyFlavor    = "eks-managed-machinepool-only"
-	EKSMachinePoolOnlyFlavor           = "eks-machinepool-only"
+	EKSManagedPoolFlavor                       = "eks-managedmachinepool"
+	EKSControlPlaneOnlyFlavor                  = "eks-control-plane-only"
+	EKSControlPlaneOnlyWithAddonFlavor         = "eks-control-plane-only-withaddon"
+	EKSMachineDeployOnlyFlavor                 = "eks-machine-deployment-only"
+	EKSManagedPoolOnlyFlavor                   = "eks-managed-machinepool-only"
+	EKSManagedPoolWithLaunchTemplateOnlyFlavor = "eks-managed-machinepool-with-launch-template-only"
 )
 
 type DefaultConfigClusterFn func(clusterName, namespace string) clusterctl.ConfigClusterInput
@@ -57,6 +57,10 @@ func getEKSNodegroupName(namespace, clusterName string) string {
 	return fmt.Sprintf("%s_%s-pool-0", namespace, clusterName)
 }
 
+func getEKSNodegroupWithLaunchTemplateName(namespace, clusterName string) string {
+	return fmt.Sprintf("%s_%s-pool-lt-0", namespace, clusterName)
+}
+
 func getControlPlaneName(clusterName string) string {
 	return fmt.Sprintf("%s-control-plane", clusterName)
 }
@@ -65,11 +69,11 @@ func getASGName(clusterName string) string {
 	return fmt.Sprintf("%s-mp-0", clusterName)
 }
 
-func verifyClusterActiveAndOwned(eksClusterName, clusterName string, sess client.ConfigProvider) {
+func verifyClusterActiveAndOwned(eksClusterName string, sess client.ConfigProvider) {
 	cluster, err := getEKSCluster(eksClusterName, sess)
 	Expect(err).NotTo(HaveOccurred())
 
-	tagName := infrav1.ClusterTagKey(clusterName)
+	tagName := infrav1.ClusterTagKey(eksClusterName)
 	tagValue, ok := cluster.Tags[tagName]
 	Expect(ok).To(BeTrue(), "expecting the cluster owned tag to exist")
 	Expect(*tagValue).To(BeEquivalentTo(string(infrav1.ResourceLifecycleOwned)))
@@ -116,7 +120,7 @@ func verifyConfigMapExists(ctx context.Context, name, namespace string, k8sclien
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
-func VerifyRoleExistsAndOwned(roleName string, clusterName string, checkOwned bool, sess client.ConfigProvider) {
+func verifyRoleExistsAndOwned(roleName string, eksClusterName string, checkOwned bool, sess client.ConfigProvider) {
 	iamClient := iam.New(sess)
 	input := &iam.GetRoleInput{
 		RoleName: aws.String(roleName),
@@ -127,7 +131,7 @@ func VerifyRoleExistsAndOwned(roleName string, clusterName string, checkOwned bo
 
 	if checkOwned {
 		found := false
-		expectedTagName := infrav1.ClusterAWSCloudProviderTagKey(clusterName)
+		expectedTagName := infrav1.ClusterAWSCloudProviderTagKey(eksClusterName)
 		for _, tag := range output.Role.Tags {
 			if *tag.Key == expectedTagName && *tag.Value == string(infrav1.ResourceLifecycleOwned) {
 				found = true

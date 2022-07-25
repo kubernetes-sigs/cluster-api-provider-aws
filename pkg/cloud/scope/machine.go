@@ -363,7 +363,7 @@ func (m *MachineScope) AWSMachineIsDeleted() bool {
 
 // IsEKSManaged checks if the machine is EKS managed.
 func (m *MachineScope) IsEKSManaged() bool {
-	return m.InfraCluster.InfraCluster().GetObjectKind().GroupVersionKind().Kind == "AWSManagedControlPlane"
+	return m.InfraCluster.InfraCluster().GetObjectKind().GroupVersionKind().Kind == AWSManagedControlPlaneKind
 }
 
 // IsExternallyManaged checks if the machine is externally managed.
