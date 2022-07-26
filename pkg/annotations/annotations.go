@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,12 +18,6 @@ package annotations
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-const (
-	// ExternalResourceGCAnnotation is the name of an annotation that indicates if
-	// external resources should be garbage collected for the cluster.
-	ExternalResourceGCAnnotation = "aws.cluster.x-k8s.io/external-resource-gc"
 )
 
 // Set will set the value of an annotation on the supplied object. If there is no annotation it will be created.
@@ -59,27 +53,3 @@ func Has(obj metav1.Object, name string) bool {
 
 	return found
 }
-
-// // SetExternalResourceGC is a helper that will set the external resource garbage collection
-// // annotation on the supplied object.
-// func SetExternalResourceGC(obj metav1.Object, hasBeenGC bool) {
-// 	Set(obj, ExternalResourceGCAnnotation, strconv.FormatBool(hasBeenGC))
-// }
-
-// // GetExternalResourceGC is a helper that will get the value of the external resource garbage collection
-// // annotation from the supplied object. If the annotation is not found then its returns true (i.e. that
-// // the external resource have been garbage collected).
-// func GetExternalResourceGC(obj metav1.Object) (bool, error) {
-// 	status, found := Get(obj, ExternalResourceGCAnnotation)
-// 	if !found {
-// 		// If not found then assume GC
-// 		return true, nil
-// 	}
-
-// 	converted, err := strconv.ParseBool(status)
-// 	if err != nil {
-// 		return false, fmt.Errorf("converting annotation value to bool %s: %w", ExternalResourceGCAnnotation, err)
-// 	}
-
-// 	return converted, nil
-// }
