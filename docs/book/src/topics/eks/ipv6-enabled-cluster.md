@@ -1,3 +1,4 @@
+
 # IPv6 Enabled Cluster
 
 CAPA supports IPv6 enabled clusters. Dual stack clusters are not yet supported, but
@@ -75,3 +76,6 @@ spec:
     - name: "kube-proxy"
       version: "v1.22.6-eksbuild.1"
 ```
+
+You can't define custom POD CIDRs on EKS with IPv6. EKS automatically assigns an address range from a unique local
+address range of `fc00::/7`.
