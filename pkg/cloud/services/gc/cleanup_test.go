@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,6 +35,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
@@ -52,8 +53,17 @@ func TestReconcileDelete(t *testing.T) {
 		expectErr    bool
 	}{
 		{
-			name:         "eks with no Service load balances",
-			clusterScope: createManageScope(t),
+			name:         "eks with cluster opt-out",
+			clusterScope: createManageScope(t, "false"),
+			rgAPIMocks:   func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {},
+			elbMocks:     func(m *mocks.MockELBAPIMockRecorder) {},
+			elbv2Mocks:   func(m *mocks.MockELBV2APIMockRecorder) {},
+			ec2Mocks:     func(m *mocks.MockEC2APIMockRecorder) {},
+			expectErr:    false,
+		},
+		{
+			name:         "eks with no Service load balancers",
+			clusterScope: createManageScope(t, ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
 				m.GetResourcesWithContext(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []*rgapi.TagFilter{
@@ -74,8 +84,30 @@ func TestReconcileDelete(t *testing.T) {
 			expectErr:  false,
 		},
 		{
-			name:         "ec2 cluster with no Service load balances",
-			clusterScope: createUnManageScope(t),
+			name:         "eks with no Service load balancers and explicit opt-in",
+			clusterScope: createManageScope(t, "true"),
+			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
+				m.GetResourcesWithContext(gomock.Any(), &rgapi.GetResourcesInput{
+					TagFilters: []*rgapi.TagFilter{
+						{
+							Key:    aws.String("kubernetes.io/cluster/eks-test-cluster"),
+							Values: []*string{aws.String("owned")},
+						},
+					},
+				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...request.Option) (*rgapi.GetResourcesOutput, error) {
+					return &rgapi.GetResourcesOutput{
+						ResourceTagMappingList: []*rgapi.ResourceTagMapping{},
+					}, nil
+				})
+			},
+			elbMocks:   func(m *mocks.MockELBAPIMockRecorder) {},
+			elbv2Mocks: func(m *mocks.MockELBV2APIMockRecorder) {},
+			ec2Mocks:   func(m *mocks.MockEC2APIMockRecorder) {},
+			expectErr:  false,
+		},
+		{
+			name:         "ec2 cluster with no Service load balancers",
+			clusterScope: createUnManageScope(t, ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
 				m.GetResourcesWithContext(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []*rgapi.TagFilter{
@@ -96,8 +128,8 @@ func TestReconcileDelete(t *testing.T) {
 			expectErr:  false,
 		},
 		{
-			name:         "eks with non Service load balancer",
-			clusterScope: createManageScope(t),
+			name:         "eks with non-Service load balancer",
+			clusterScope: createManageScope(t, ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
 				m.GetResourcesWithContext(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []*rgapi.TagFilter{
@@ -128,8 +160,8 @@ func TestReconcileDelete(t *testing.T) {
 			expectErr:  false,
 		},
 		{
-			name:         "ec2 cluster with non Service load balancer",
-			clusterScope: createUnManageScope(t),
+			name:         "ec2 cluster with non-Service load balancer",
+			clusterScope: createUnManageScope(t, ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
 				m.GetResourcesWithContext(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []*rgapi.TagFilter{
@@ -161,7 +193,7 @@ func TestReconcileDelete(t *testing.T) {
 		},
 		{
 			name:         "eks with ELB Service load balancer",
-			clusterScope: createManageScope(t),
+			clusterScope: createManageScope(t, ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
 				m.GetResourcesWithContext(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []*rgapi.TagFilter{
@@ -201,7 +233,7 @@ func TestReconcileDelete(t *testing.T) {
 		},
 		{
 			name:         "ec2 cluster with ELB Service load balancer",
-			clusterScope: createUnManageScope(t),
+			clusterScope: createUnManageScope(t, ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
 				m.GetResourcesWithContext(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []*rgapi.TagFilter{
@@ -241,7 +273,7 @@ func TestReconcileDelete(t *testing.T) {
 		},
 		{
 			name:         "eks with NLB Service load balancer",
-			clusterScope: createManageScope(t),
+			clusterScope: createManageScope(t, ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
 				m.GetResourcesWithContext(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []*rgapi.TagFilter{
@@ -281,7 +313,7 @@ func TestReconcileDelete(t *testing.T) {
 		},
 		{
 			name:         "ec2 cluster with NLB Service load balancer",
-			clusterScope: createUnManageScope(t),
+			clusterScope: createUnManageScope(t, ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
 				m.GetResourcesWithContext(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []*rgapi.TagFilter{
@@ -321,7 +353,7 @@ func TestReconcileDelete(t *testing.T) {
 		},
 		{
 			name:         "eks with ALB Service load balancer",
-			clusterScope: createManageScope(t),
+			clusterScope: createManageScope(t, ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
 				m.GetResourcesWithContext(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []*rgapi.TagFilter{
@@ -361,7 +393,7 @@ func TestReconcileDelete(t *testing.T) {
 		},
 		{
 			name:         "ec2 cluster with ALB Service load balancer",
-			clusterScope: createUnManageScope(t),
+			clusterScope: createUnManageScope(t, ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
 				m.GetResourcesWithContext(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []*rgapi.TagFilter{
@@ -400,8 +432,8 @@ func TestReconcileDelete(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			name:         "eks cluster full test",
-			clusterScope: createManageScope(t),
+			name:         "eks cluster with different resource types",
+			clusterScope: createManageScope(t, ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
 				m.GetResourcesWithContext(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []*rgapi.TagFilter{
@@ -458,7 +490,7 @@ func TestReconcileDelete(t *testing.T) {
 		},
 		{
 			name:         "eks should ignore unhandled resources",
-			clusterScope: createManageScope(t),
+			clusterScope: createManageScope(t, ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
 				m.GetResourcesWithContext(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []*rgapi.TagFilter{
@@ -517,10 +549,10 @@ func TestReconcileDelete(t *testing.T) {
 			ctx := context.TODO()
 
 			opts := []ServiceOption{
-				WithELBClient(elbapiMock),
-				WithELBv2Client(elbv2Mock),
-				WithResourceTaggingClient(rgapiMock),
-				WithEC2Client(ec2Mock),
+				withELBClient(elbapiMock),
+				withELBv2Client(elbv2Mock),
+				withResourceTaggingClient(rgapiMock),
+				withEC2Client(ec2Mock),
 			}
 			wkSvc := NewService(tc.clusterScope, opts...)
 			err := wkSvc.ReconcileDelete(ctx)
@@ -535,12 +567,12 @@ func TestReconcileDelete(t *testing.T) {
 	}
 }
 
-func createManageScope(t *testing.T) *scope.ManagedControlPlaneScope {
+func createManageScope(t *testing.T, annotationValue string) *scope.ManagedControlPlaneScope {
 	t.Helper()
 	g := NewWithT(t)
 
 	cluster := createEKSCluster()
-	cp := createManagedControlPlane()
+	cp := createManagedControlPlane(annotationValue)
 	objs := []client.Object{cluster, cp}
 
 	scheme := createScheme()
@@ -557,12 +589,12 @@ func createManageScope(t *testing.T) *scope.ManagedControlPlaneScope {
 	return managedScope
 }
 
-func createUnManageScope(t *testing.T) *scope.ClusterScope {
+func createUnManageScope(t *testing.T, annotationValue string) *scope.ClusterScope {
 	t.Helper()
 	g := NewWithT(t)
 
 	cluster := createUnmanagedCluster()
-	awsCluster := createAWSCluser()
+	awsCluster := createAWSCluser(annotationValue)
 	objs := []client.Object{cluster, awsCluster}
 
 	scheme := createScheme()
@@ -606,8 +638,8 @@ func createEKSCluster() *clusterv1.Cluster {
 	}
 }
 
-func createManagedControlPlane() *ekscontrolplanev1.AWSManagedControlPlane {
-	return &ekscontrolplanev1.AWSManagedControlPlane{
+func createManagedControlPlane(annotationValue string) *ekscontrolplanev1.AWSManagedControlPlane {
+	cp := &ekscontrolplanev1.AWSManagedControlPlane{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "AWSManagedControlPlane",
 			APIVersion: ekscontrolplanev1.GroupVersion.String(),
@@ -620,10 +652,18 @@ func createManagedControlPlane() *ekscontrolplanev1.AWSManagedControlPlane {
 			EKSClusterName: "eks-test-cluster",
 		},
 	}
+
+	if annotationValue != "" {
+		cp.ObjectMeta.Annotations = map[string]string{
+			expinfrav1.ExternalResourceGCAnnotation: annotationValue,
+		}
+	}
+
+	return cp
 }
 
-func createAWSCluser() *infrav1.AWSCluster {
-	return &infrav1.AWSCluster{
+func createAWSCluser(annotationValue string) *infrav1.AWSCluster {
+	awsc := &infrav1.AWSCluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "AWSCluster",
 			APIVersion: infrav1.GroupVersion.String(),
@@ -634,6 +674,14 @@ func createAWSCluser() *infrav1.AWSCluster {
 		},
 		Spec: infrav1.AWSClusterSpec{},
 	}
+
+	if annotationValue != "" {
+		awsc.ObjectMeta.Annotations = map[string]string{
+			expinfrav1.ExternalResourceGCAnnotation: annotationValue,
+		}
+	}
+
+	return awsc
 }
 
 func createUnmanagedCluster() *clusterv1.Cluster {

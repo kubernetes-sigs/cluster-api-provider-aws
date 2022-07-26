@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,39 +26,30 @@ import (
 // ServiceOption is an option for creating the service.
 type ServiceOption func(*Service)
 
-// WithELBClient is an option for specifying a AWS ELB Client.
-func WithELBClient(client elbiface.ELBAPI) ServiceOption {
+// withELBClient is an option for specifying a AWS ELB Client.
+func withELBClient(client elbiface.ELBAPI) ServiceOption {
 	return func(s *Service) {
 		s.elbClient = client
 	}
 }
 
-// WithELBv2Client is an option for specifying a AWS ELBv2 Client.
-func WithELBv2Client(client elbv2iface.ELBV2API) ServiceOption {
+// withELBv2Client is an option for specifying a AWS ELBv2 Client.
+func withELBv2Client(client elbv2iface.ELBV2API) ServiceOption {
 	return func(s *Service) {
 		s.elbv2Client = client
 	}
 }
 
-// WithResourceTaggingClient is an option for specifying a AWS Resource Tagging Client.
-func WithResourceTaggingClient(client resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI) ServiceOption {
+// withResourceTaggingClient is an option for specifying a AWS Resource Tagging Client.
+func withResourceTaggingClient(client resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI) ServiceOption {
 	return func(s *Service) {
 		s.resourceTaggingClient = client
 	}
 }
 
-// WithEC2Client is an option for specifying a AWS EC2 Client.
-func WithEC2Client(client ec2iface.EC2API) ServiceOption {
+// withEC2Client is an option for specifying a AWS EC2 Client.
+func withEC2Client(client ec2iface.EC2API) ServiceOption {
 	return func(s *Service) {
 		s.ec2Client = client
-	}
-}
-
-// WithCleanupFuns is an option for specifying clean-up functions.
-func WithCleanupFuns(funcs map[string]ResourceCleanupFunc) ServiceOption {
-	return func(s *Service) {
-		for serviceName, fn := range funcs {
-			s.cleanupFuncs[serviceName] = fn
-		}
 	}
 }
