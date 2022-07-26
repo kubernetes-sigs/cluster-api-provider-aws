@@ -39,12 +39,13 @@ import (
 
 // EKS related constants.
 const (
-	EKSManagedPoolFlavor                       = "eks-managedmachinepool"
-	EKSControlPlaneOnlyFlavor                  = "eks-control-plane-only"
-	EKSControlPlaneOnlyWithAddonFlavor         = "eks-control-plane-only-withaddon"
-	EKSMachineDeployOnlyFlavor                 = "eks-machine-deployment-only"
-	EKSManagedPoolOnlyFlavor                   = "eks-managed-machinepool-only"
-	EKSManagedPoolWithLaunchTemplateOnlyFlavor = "eks-managed-machinepool-with-launch-template-only"
+	EKSManagedPoolFlavor                              = "eks-managedmachinepool"
+	EKSControlPlaneOnlyFlavor                         = "eks-control-plane-only"
+	EKSControlPlaneOnlyWithAddonFlavor                = "eks-control-plane-only-withaddon"
+	EKSMachineDeployOnlyFlavor                        = "eks-machine-deployment-only"
+	EKSManagedMachinePoolOnlyFlavor                   = "eks-managed-machinepool-only"
+	EKSManagedMachinePoolWithLaunchTemplateOnlyFlavor = "eks-managed-machinepool-with-launch-template-only"
+	EKSMachinePoolOnlyFlavor                          = "eks-machinepool-only"
 )
 
 type DefaultConfigClusterFn func(clusterName, namespace string) clusterctl.ConfigClusterInput

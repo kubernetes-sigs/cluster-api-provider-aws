@@ -101,15 +101,14 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInpu
 	Expect(len(mp)).To(Equal(1))
 
 	shared.Byf("Check the status of the node group")
-	var nodeGroupName string
-	if input.UsesLaunchTemplate {
-		nodeGroupName = getEKSNodegroupWithLaunchTemplateName(input.Namespace.Name, input.ClusterName)
-	} else {
-		nodeGroupName = getEKSNodegroupName(input.Namespace.Name, input.ClusterName)
-	}
 	eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName)
 	if input.ManagedMachinePool {
-		nodeGroupName := getEKSNodegroupName(input.Namespace.Name, input.ClusterName)
+		var nodeGroupName string
+		if input.UsesLaunchTemplate {
+			nodeGroupName = getEKSNodegroupWithLaunchTemplateName(input.Namespace.Name, input.ClusterName)
+		} else {
+			nodeGroupName = getEKSNodegroupName(input.Namespace.Name, input.ClusterName)
+		}
 		verifyManagedNodeGroup(eksClusterName, nodeGroupName, true, input.AWSSession)
 	} else {
 		asgName := getASGName(input.ClusterName)

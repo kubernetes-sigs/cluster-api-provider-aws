@@ -36,12 +36,12 @@ import (
 // General EKS e2e test.
 var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 	var (
-		namespace        *corev1.Namespace
-		ctx              context.Context
-		specName         = "cluster"
-		clusterName      string
-		cniAddonName     = "vpc-cni"
-		corednsAddonName = "coredns"
+		namespace            *corev1.Namespace
+		ctx                  context.Context
+		specName             = "cluster"
+		clusterName          string
+		cniAddonName         = "vpc-cni"
+		corednsAddonName     = "coredns"
 		eksKubernetesVersion = "v1.21"
 	)
 
@@ -162,8 +162,8 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 		})
 
 		ginkgo.By("should create a managed node pool with launch template and scale")
-		ManagedMachinePoolSpec(ctx, func() ManagedMachinePoolSpecInput {
-			return ManagedMachinePoolSpecInput{
+		MachinePoolSpec(ctx, func() MachinePoolSpecInput {
+			return MachinePoolSpecInput{
 				E2EConfig:             e2eCtx.E2EConfig,
 				ConfigClusterFn:       defaultConfigCluster,
 				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
@@ -172,7 +172,8 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				ClusterName:           clusterName,
 				IncludeScaling:        true,
 				Cleanup:               true,
-				Flavor:                EKSManagedPoolWithLaunchTemplateOnlyFlavor,
+				ManagedMachinePool:    true,
+				Flavor:                EKSManagedMachinePoolWithLaunchTemplateOnlyFlavor,
 				UsesLaunchTemplate:    true,
 				EKSKubernetesVersion:  eksKubernetesVersion,
 			}
