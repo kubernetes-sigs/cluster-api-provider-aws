@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -257,7 +258,7 @@ func (m *MachinePoolScope) SetLaunchTemplateLatestVersionStatus(version string) 
 
 // IsEKSManaged checks if the AWSMachinePool is EKS managed.
 func (m *MachinePoolScope) IsEKSManaged() bool {
-	return m.InfraCluster.InfraCluster().GetObjectKind().GroupVersionKind().Kind == AWSManagedControlPlaneKind
+	return m.InfraCluster.InfraCluster().GetObjectKind().GroupVersionKind().Kind == ekscontrolplanev1.AWSManagedControlPlaneKind
 }
 
 // SubnetIDs returns the machine pool subnet IDs.

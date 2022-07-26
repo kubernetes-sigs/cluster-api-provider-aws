@@ -27,11 +27,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
-const (
-	// AWSManagedControlPlaneKind is the Kind of AWSManagedControlPlane.
-	AWSManagedControlPlaneKind = "AWSManagedControlPlane"
-)
-
 // LaunchTemplateScope defines a scope defined around a launch template.
 type LaunchTemplateScope interface {
 	GetMachinePool() *expclusterv1.MachinePool

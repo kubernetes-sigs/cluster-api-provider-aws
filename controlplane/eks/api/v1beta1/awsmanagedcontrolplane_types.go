@@ -27,6 +27,9 @@ import (
 const (
 	// ManagedControlPlaneFinalizer allows the controller to clean up resources on delete.
 	ManagedControlPlaneFinalizer = "awsmanagedcontrolplane.controlplane.cluster.x-k8s.io"
+
+	// AWSManagedControlPlaneKind is the Kind of AWSManagedControlPlane.
+	AWSManagedControlPlaneKind = "AWSManagedControlPlane"
 )
 
 // AWSManagedControlPlaneSpec defines the desired state of an Amazon EKS Cluster.
