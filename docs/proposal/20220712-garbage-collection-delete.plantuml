@@ -17,11 +17,11 @@ InfraClusterController -> APIServer: watch (delete)
 activate InfraClusterController
 InfraClusterController -> other_services: Reconcile Delete 
 other_services -> aws: Delete non-network infra
-opt if InfraCluster has gc finalizer
+opt if gc feature enabled
     InfraClusterController -> gc_service: ReconcileDelete
-    gc_service -> aws: Delete tenant created resources (lb/sg)
-    gc_service -> gc_service: remove gc finalizer
-    gc_service -> APIServer: patch infracluster
+    opt if gc annotation != false OR ""
+        gc_service -> aws: Delete tenant created resources (lb/sg)
+    end
 end
 InfraClusterController -> network_service: Reconcile Delete
 network_service -> aws: delete network infra
