@@ -1,0 +1,34 @@
+@startuml
+autonumber
+actor User
+database APIServer
+control CAPIController
+control InfraClusterController
+participant gc_service
+collections other_services
+participant network_service
+participant aws
+User -> APIServer: delete cluster
+CAPIController -> APIServer: watch
+activate CAPIController
+CAPIController -> APIServer: delete infra (set timestamp)
+
+InfraClusterController -> APIServer: watch (delete)
+activate InfraClusterController
+InfraClusterController -> other_services: Reconcile Delete 
+other_services -> aws: Delete non-network infra
+opt if gc feature enabled
+    InfraClusterController -> gc_service: ReconcileDelete
+    opt if gc annotation != false OR ""
+        gc_service -> aws: Delete tenant created resources (lb/sg)
+    end
+end
+InfraClusterController -> network_service: Reconcile Delete
+network_service -> aws: delete network infra
+InfraClusterController -> InfraClusterController: Remove infra finalizer
+InfraClusterController -> APIServer: patch
+deactivate InfraClusterController
+deactivate CAPIController
+APIServer -> APIServer: Delete infra cluster
+
+@enduml
