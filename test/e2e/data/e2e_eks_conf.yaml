@@ -68,8 +68,8 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.99 # next;
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220216/core-components.yaml"
+      - name: v1.2.99 # next;
+        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220725/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -115,8 +115,8 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.99 # next;
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220216/bootstrap-components.yaml"
+      - name: v1.2.99 # next;
+        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220725/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -163,8 +163,8 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.99 # next;
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220216/control-plane-components.yaml"
+      - name: v1.2.99 # next;
+        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220725/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:
