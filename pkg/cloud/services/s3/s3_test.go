@@ -19,7 +19,7 @@ package s3_test
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/url"
 	"reflect"
 	"strings"
@@ -405,7 +405,7 @@ func Test_Create_object(t *testing.T) {
 			t.Run("puts_given_bootstrap_data_untouched", func(t *testing.T) {
 				t.Parallel()
 
-				data, err := ioutil.ReadAll(putObjectInput.Body)
+				data, err := io.ReadAll(putObjectInput.Body)
 				if err != nil {
 					t.Fatalf("Reading put object body: %v", err)
 				}
