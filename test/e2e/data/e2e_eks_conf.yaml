@@ -68,17 +68,6 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.99 # next;
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220216/core-components.yaml"
-        type: "url"
-        contract: v1beta1
-        files:
-        - sourcePath: "./shared/v1beta1/metadata.yaml"
-        replacements:
-        - old: "imagePullPolicy: Always"
-          new: "imagePullPolicy: IfNotPresent"
-        - old: --metrics-bind-addr=127.0.0.1:8080
-          new: --metrics-bind-addr=:8080
   - name: kubeadm
     type: BootstrapProvider
     files:
@@ -115,17 +104,6 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.99 # next;
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220216/bootstrap-components.yaml"
-        type: "url"
-        contract: v1beta1
-        files:
-        - sourcePath: "./shared/v1beta1/metadata.yaml"
-        replacements:
-        - old: "imagePullPolicy: Always"
-          new: "imagePullPolicy: IfNotPresent"
-        - old: --metrics-bind-addr=127.0.0.1:8080
-          new: --metrics-bind-addr=:8080
   - name: kubeadm
     type: ControlPlaneProvider
     files:
@@ -163,21 +141,10 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.99 # next;
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220216/control-plane-components.yaml"
-        type: "url"
-        contract: v1beta1
-        files:
-        - sourcePath: "./shared/v1beta1/metadata.yaml"
-        replacements:
-        - old: "imagePullPolicy: Always"
-          new: "imagePullPolicy: IfNotPresent"
-        - old: --metrics-bind-addr=127.0.0.1:8080
-          new: --metrics-bind-addr=:8080
   - name: aws
     type: InfrastructureProvider
     versions:
-      - name: v1.2.99
+      - name: v1.4.99
         # Use manifest from source files
         value: ../../../config/default
         contract: v1beta1
