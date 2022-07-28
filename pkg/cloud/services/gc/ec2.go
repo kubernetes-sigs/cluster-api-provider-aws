@@ -22,49 +22,46 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	rgapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 )
 
-func (s *Service) deleteEC2Resources(ctx context.Context, resources []*rgapi.ResourceTagMapping) error {
-	for i := range resources {
-		res := resources[i]
-
-		parsedARN, err := arn.Parse(*res.ResourceARN)
-		if err != nil {
-			return fmt.Errorf("parsing arn %s: %w", *res.ResourceARN, err)
+func (s *Service) deleteSecurityGroups(ctx context.Context, resources []*AWSResource) error {
+	for _, resource := range resources {
+		if !s.isSecurityGroupToDelete(resource) {
+			s.scope.V(5).Info("Resource not a security group for deletion", "arn", resource.ARN.String())
+			continue
 		}
 
-		if strings.HasPrefix(parsedARN.Resource, "security-group/") {
-			s.scope.V(2).Info("Deleting Security group", "arn", parsedARN.String())
-			return s.deleteSecurityGroup(ctx, &parsedARN, res)
+		groupID := strings.ReplaceAll(resource.ARN.Resource, "security-group/", "")
+		if err := s.deleteSecurityGroup(ctx, groupID); err != nil {
+			return fmt.Errorf("deleting security group %s: %w", groupID, err)
 		}
 	}
-
-	s.scope.V(2).Info("Finished deleting ec2 resources")
+	s.scope.V(2).Info("Finished processing resources for security group deletion")
 
 	return nil
 }
 
-func (s *Service) deleteSecurityGroup(ctx context.Context, lbARN *arn.ARN, mapping *rgapi.ResourceTagMapping) error {
-	eksClusterName := getTagValue(eksClusterNameTag, mapping)
-	if eksClusterName != "" {
-		s.scope.V(2).Info("Security group created by EKS directly, skipping deletion", "cluster_name", eksClusterName)
-
-		return nil
+func (s *Service) isSecurityGroupToDelete(resource *AWSResource) bool {
+	if !s.isMatchingResource(resource, ec2.ServiceName, "security-group") {
+		return false
 	}
+	if eksClusterName := resource.Tags[eksClusterNameTag]; eksClusterName != "" {
+		s.scope.V(5).Info("Security group was created by EKS directly", "arn", resource.ARN.String(), "check", "securitygroup", "cluster_name", eksClusterName)
+		return false
+	}
+	s.scope.V(5).Info("Resource is a security group to delete", "arn", resource.ARN.String(), "check", "securitygroup")
 
-	//TODO: should we check for the security group name start with k8s-elb-
+	return true
+}
 
-	groupID := strings.ReplaceAll(lbARN.Resource, "security-group/", "")
+func (s *Service) deleteSecurityGroup(ctx context.Context, securityGroupID string) error {
 	input := ec2.DeleteSecurityGroupInput{
-		GroupId: aws.String(groupID),
+		GroupId: aws.String(securityGroupID),
 	}
 
-	s.scope.V(2).Info("Deleting security group", "group_id", groupID, "arn", lbARN.String())
-	_, err := s.ec2Client.DeleteSecurityGroupWithContext(ctx, &input)
-	if err != nil {
+	s.scope.V(2).Info("Deleting security group", "group_id", securityGroupID)
+	if _, err := s.ec2Client.DeleteSecurityGroupWithContext(ctx, &input); err != nil {
 		return fmt.Errorf("deleting security group: %w", err)
 	}
 
