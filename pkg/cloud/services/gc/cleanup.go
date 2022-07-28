@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
@@ -51,13 +52,13 @@ func (s *Service) ReconcileDelete(ctx context.Context) error {
 		return fmt.Errorf("converting value %s of annotation %s to bool: %w", val, expinfrav1.ExternalResourceGCAnnotation, err)
 	}
 
-	if shouldGC {
-		if err := s.deleteResources(ctx); err != nil {
-			return fmt.Errorf("deleting workload services of type load balancer: %w", err)
-		}
+	if !shouldGC {
+		s.scope.Info("cluster opted-out of garbage collection")
+
+		return nil
 	}
 
-	return nil
+	return s.deleteResources(ctx)
 }
 
 func (s *Service) deleteResources(ctx context.Context) error {
@@ -79,7 +80,7 @@ func (s *Service) deleteResources(ctx context.Context) error {
 		return fmt.Errorf("getting tagged resources: %w", err)
 	}
 
-	resources := map[string][]*rgapi.ResourceTagMapping{}
+	resources := []*AWSResource{}
 
 	for i := range awsOutput.ResourceTagMappingList {
 		mapping := awsOutput.ResourceTagMappingList[i]
@@ -88,34 +89,33 @@ func (s *Service) deleteResources(ctx context.Context) error {
 			return fmt.Errorf("parsing resource arn %s: %w", *mapping.ResourceARN, err)
 		}
 
-		_, found := s.cleanupFuncs[parsedArn.Service]
-		if !found {
-			s.scope.V(2).Info("skipping clean-up of tagged resource for service", "service", parsedArn.Service, "arn", mapping.ResourceARN)
-
-			continue
+		tags := map[string]string{}
+		for _, rgTag := range mapping.Tags {
+			tags[*rgTag.Key] = *rgTag.Value
 		}
 
-		resources[parsedArn.Service] = append(resources[parsedArn.Service], mapping)
+		resources = append(resources, &AWSResource{
+			ARN:  &parsedArn,
+			Tags: tags,
+		})
 	}
 
-	for svcName, svcResources := range resources {
-		cleanupFunc := s.cleanupFuncs[svcName]
-
-		s.scope.V(2).Info("Calling clean-up function for service", "service_name", svcName)
-		if deleteErr := cleanupFunc(ctx, svcResources); deleteErr != nil {
-			return fmt.Errorf("deleting resources for service %s: %w", svcName, deleteErr)
-		}
+	if deleteErr := s.cleanupFuncs.Execute(ctx, resources); deleteErr != nil {
+		return fmt.Errorf("deleting resources: %w", deleteErr)
 	}
 
 	return nil
 }
 
-func getTagValue(tagName string, mapping *rgapi.ResourceTagMapping) string {
-	for _, tag := range mapping.Tags {
-		if *tag.Key == tagName {
-			return *tag.Value
-		}
+func (s *Service) isMatchingResource(resource *AWSResource, serviceName, resourceName string) bool {
+	if resource.ARN.Service != serviceName {
+		s.scope.V(5).Info("Resource not for service", "arn", resource.ARN.String(), "service_name", serviceName, "resource_name", resourceName)
+		return false
+	}
+	if !strings.HasPrefix(resource.ARN.Resource, resourceName+"/") {
+		s.scope.V(5).Info("Resource type does not match", "arn", resource.ARN.String(), "service_name", serviceName, "resource_name", resourceName)
+		return false
 	}
 
-	return ""
+	return true
 }

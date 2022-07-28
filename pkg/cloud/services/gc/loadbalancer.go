@@ -22,53 +22,36 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/elbv2"
-	rgapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 )
 
-func (s *Service) deleteElasticLoadbalancingResources(ctx context.Context, resources []*rgapi.ResourceTagMapping) error {
-	s.scope.V(2).Info("Deleting load balancers")
-	if err := s.deleteLoadBalancers(ctx, resources); err != nil {
-		return fmt.Errorf("deleting load balancers: %w", err)
-	}
-	if err := s.deleteTargetGroups(ctx, resources); err != nil {
-		return fmt.Errorf("deleting target groups: %w", err)
-	}
-
-	s.scope.V(2).Info("Finished deleting elasticloadbalancing resources")
-
-	return nil
-}
-
-func (s *Service) deleteLoadBalancers(ctx context.Context, resources []*rgapi.ResourceTagMapping) error {
-	for i := range resources {
-		res := resources[i]
-
-		lbServiceName := getTagValue(serviceNameTag, res)
-		if lbServiceName == "" {
-			s.scope.V(2).Info("Resource wasn't created for a Service via CCM, skipping load balancer deletion")
-
+func (s *Service) deleteLoadBalancers(ctx context.Context, resources []*AWSResource) error {
+	for _, resource := range resources {
+		if !s.isELBResourceToDelete(resource, "loadbalancer") {
+			s.scope.V(5).Info("Resource not a load balancer for deletion", "arn", resource.ARN.String())
 			continue
 		}
 
-		parsedARN, err := arn.Parse(*res.ResourceARN)
-		if err != nil {
-			return fmt.Errorf("parsing arn %s: %w", *res.ResourceARN, err)
-		}
-
-		if strings.HasPrefix(parsedARN.Resource, "loadbalancer/app/") {
-			s.scope.V(2).Info("Deleting ALB for Service", "service", lbServiceName, "arn", parsedARN.String())
-			return s.deleteLoadBalancerV2(ctx, &parsedARN)
-		}
-		if strings.HasPrefix(parsedARN.Resource, "loadbalancer/net/") {
-			s.scope.V(2).Info("Deleting NLB for Service", "service", lbServiceName, "arn", parsedARN.String())
-			return s.deleteLoadBalancerV2(ctx, &parsedARN)
-		}
-		if strings.HasPrefix(parsedARN.Resource, "loadbalancer/") {
-			s.scope.V(2).Info("Deleting classic ELB for Service", "service", lbServiceName, "arn", parsedARN.String())
-			return s.deleteLoadBalancer(ctx, &parsedARN)
+		switch {
+		case strings.HasPrefix(resource.ARN.Resource, "loadbalancer/app/"):
+			s.scope.V(5).Info("Deleting ALB for Service", "arn", resource.ARN.String())
+			if err := s.deleteLoadBalancerV2(ctx, resource.ARN.String()); err != nil {
+				return fmt.Errorf("deleting ALB: %w", err)
+			}
+		case strings.HasPrefix(resource.ARN.Resource, "loadbalancer/net/"):
+			s.scope.V(5).Info("Deleting NLB for Service", "arn", resource.ARN.String())
+			if err := s.deleteLoadBalancerV2(ctx, resource.ARN.String()); err != nil {
+				return fmt.Errorf("deleting NLB: %w", err)
+			}
+		case strings.HasPrefix(resource.ARN.Resource, "loadbalancer/"):
+			name := strings.ReplaceAll(resource.ARN.Resource, "loadbalancer/", "")
+			s.scope.V(5).Info("Deleting classic ELB for Service", "arn", resource.ARN.String(), "name", name)
+			if err := s.deleteLoadBalancer(ctx, name); err != nil {
+				return fmt.Errorf("deleting classic ELB: %w", err)
+			}
+		default:
+			s.scope.V(4).Info("Unexpected elasticloadbalancing resource, ignoring", "arn", resource.ARN.String())
 		}
 	}
 
@@ -77,71 +60,69 @@ func (s *Service) deleteLoadBalancers(ctx context.Context, resources []*rgapi.Re
 	return nil
 }
 
-func (s *Service) deleteTargetGroups(ctx context.Context, resources []*rgapi.ResourceTagMapping) error {
-	for i := range resources {
-		res := resources[i]
-
-		lbServiceName := getTagValue(serviceNameTag, res)
-		if lbServiceName == "" {
-			s.scope.V(2).Info("Resource wasn't created for a Service via CCM, skipping load balancer deletion")
-
+func (s *Service) deleteTargetGroups(ctx context.Context, resources []*AWSResource) error {
+	for _, resource := range resources {
+		if !s.isELBResourceToDelete(resource, "targetgroup") {
+			s.scope.V(4).Info("Resource not a target group for deletion", "arn", resource.ARN.String())
 			continue
 		}
 
-		parsedARN, err := arn.Parse(*res.ResourceARN)
-		if err != nil {
-			return fmt.Errorf("parsing arn %s: %w", *res.ResourceARN, err)
-		}
-
-		if strings.HasPrefix(parsedARN.Resource, "targetgroup/") {
-			s.scope.V(2).Info("Deleting target group for Service", "service", lbServiceName, "arn", parsedARN.String())
-			return s.deleteTargetGroup(ctx, &parsedARN)
+		name := strings.ReplaceAll(resource.ARN.Resource, "targetgroup/", "")
+		if err := s.deleteTargetGroup(ctx, resource.ARN.String()); err != nil {
+			return fmt.Errorf("deleting target group %s: %w", name, err)
 		}
 	}
-
-	s.scope.V(2).Info("Finished processing tagged resources for target groups")
+	s.scope.V(2).Info("Finished processing resources for target group deletion")
 
 	return nil
 }
 
-func (s *Service) deleteLoadBalancerV2(ctx context.Context, lbARN *arn.ARN) error {
-	input := elbv2.DeleteLoadBalancerInput{
-		LoadBalancerArn: aws.String(lbARN.String()),
+func (s *Service) isELBResourceToDelete(resource *AWSResource, resourceName string) bool {
+	if !s.isMatchingResource(resource, elb.ServiceName, resourceName) {
+		return false
 	}
 
-	s.scope.V(2).Info("Deleting v2 load balancer", "arn", lbARN.String())
-	_, err := s.elbv2Client.DeleteLoadBalancerWithContext(ctx, &input)
-	if err != nil {
+	if serviceName := resource.Tags[serviceNameTag]; serviceName == "" {
+		s.scope.V(5).Info("Resource wasn't created for a Service via CCM", "arn", resource.ARN.String(), "resource_name", resourceName)
+		return false
+	}
+
+	return true
+}
+
+func (s *Service) deleteLoadBalancerV2(ctx context.Context, lbARN string) error {
+	input := elbv2.DeleteLoadBalancerInput{
+		LoadBalancerArn: aws.String(lbARN),
+	}
+
+	s.scope.V(2).Info("Deleting v2 load balancer", "arn", lbARN)
+	if _, err := s.elbv2Client.DeleteLoadBalancerWithContext(ctx, &input); err != nil {
 		return fmt.Errorf("deleting v2 load balancer: %w", err)
 	}
 
 	return nil
 }
 
-func (s *Service) deleteLoadBalancer(ctx context.Context, lbARN *arn.ARN) error {
-	name := strings.ReplaceAll(lbARN.Resource, "loadbalancer/", "")
+func (s *Service) deleteLoadBalancer(ctx context.Context, name string) error {
 	input := elb.DeleteLoadBalancerInput{
 		LoadBalancerName: aws.String(name),
 	}
 
-	s.scope.V(2).Info("Deleting classic load balancer", "name", name, "arn", lbARN.String())
-	_, err := s.elbClient.DeleteLoadBalancerWithContext(ctx, &input)
-	if err != nil {
+	s.scope.V(2).Info("Deleting classic load balancer", "name", name)
+	if _, err := s.elbClient.DeleteLoadBalancerWithContext(ctx, &input); err != nil {
 		return fmt.Errorf("deleting classic load balancer: %w", err)
 	}
 
 	return nil
 }
 
-func (s *Service) deleteTargetGroup(ctx context.Context, lbARN *arn.ARN) error {
-	name := strings.ReplaceAll(lbARN.Resource, "targetgroup/", "")
+func (s *Service) deleteTargetGroup(ctx context.Context, targetGroupARN string) error {
 	input := elbv2.DeleteTargetGroupInput{
-		TargetGroupArn: aws.String(lbARN.String()),
+		TargetGroupArn: aws.String(targetGroupARN),
 	}
 
-	s.scope.V(2).Info("Deleting target group", "name", name, "arn", lbARN.String())
-	_, err := s.elbv2Client.DeleteTargetGroupWithContext(ctx, &input)
-	if err != nil {
+	s.scope.V(2).Info("Deleting target group", "arn", targetGroupARN)
+	if _, err := s.elbv2Client.DeleteTargetGroupWithContext(ctx, &input); err != nil {
 		return fmt.Errorf("deleting target group: %w", err)
 	}
 
