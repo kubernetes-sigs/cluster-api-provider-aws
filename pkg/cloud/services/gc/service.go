@@ -19,20 +19,15 @@ package gc
 import (
 	"context"
 
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
-	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/elb/elbiface"
 	"github.com/aws/aws-sdk-go/service/elbv2/elbv2iface"
-	rgapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
-
-// ResourceCleanupFunc is a function type to cleaning up resources for a specific AWS service type.
-type ResourceCleanupFunc func(ctx context.Context, resources []*rgapi.ResourceTagMapping) error
 
 // Service is used to perform operations against a tenant/workload/child cluster.
 type Service struct {
@@ -41,7 +36,7 @@ type Service struct {
 	elbv2Client           elbv2iface.ELBV2API
 	resourceTaggingClient resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 	ec2Client             ec2iface.EC2API
-	cleanupFuncs          map[string]ResourceCleanupFunc
+	cleanupFuncs          ResourceCleanupFuncs
 }
 
 // NewService creates a new Service.
@@ -52,7 +47,7 @@ func NewService(clusterScope cloud.ClusterScoper, opts ...ServiceOption) *Servic
 		elbv2Client:           scope.NewELBv2Client(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
 		resourceTaggingClient: scope.NewResourgeTaggingClient(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
 		ec2Client:             scope.NewEC2Client(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
-		cleanupFuncs:          map[string]ResourceCleanupFunc{},
+		cleanupFuncs:          ResourceCleanupFuncs{},
 	}
 	addDefaultCleanupFuncs(svc)
 
@@ -64,8 +59,32 @@ func NewService(clusterScope cloud.ClusterScoper, opts ...ServiceOption) *Servic
 }
 
 func addDefaultCleanupFuncs(s *Service) {
-	s.cleanupFuncs = map[string]ResourceCleanupFunc{
-		ec2.ServiceName: s.deleteEC2Resources,
-		elb.ServiceName: s.deleteElasticLoadbalancingResources,
+	s.cleanupFuncs = []ResourceCleanupFunc{
+		s.deleteSecurityGroups,
+		s.deleteLoadBalancers,
+		s.deleteTargetGroups,
 	}
+}
+
+// AWSResource represents a resource in AWS.
+type AWSResource struct {
+	ARN  *arn.ARN
+	Tags map[string]string
+}
+
+// ResourceCleanupFunc is a function type to cleaning up resources for a specific AWS service type.
+type ResourceCleanupFunc func(ctx context.Context, resources []*AWSResource) error
+
+// ResourceCleanupFuncs is a collection of ResourceCleanupFunc.
+type ResourceCleanupFuncs []ResourceCleanupFunc
+
+// Execute will execute all the defined clean up functions against the aws resources.
+func (fn *ResourceCleanupFuncs) Execute(ctx context.Context, resources []*AWSResource) error {
+	for _, f := range *fn {
+		if err := f(ctx, resources); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

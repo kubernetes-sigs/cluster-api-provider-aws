@@ -22,6 +22,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	rgapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
@@ -471,6 +472,19 @@ func TestReconcileDelete(t *testing.T) {
 									},
 								},
 							},
+							{
+								ResourceARN: aws.String("arn:aws:ec2:eu-west-2:1234567890:security-group/sg-123456"),
+								Tags: []*rgapi.Tag{
+									{
+										Key:   aws.String("kubernetes.io/cluster/cluster1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String(serviceNameTag),
+										Value: aws.String("default/svc1"),
+									},
+								},
+							},
 						},
 					}, nil
 				})
@@ -485,7 +499,11 @@ func TestReconcileDelete(t *testing.T) {
 					TargetGroupArn: aws.String("arn:aws:elasticloadbalancing:eu-west-2:1234567890:targetgroup/k8s-default-podinfo-2c868b281a/e979fe9bd6825433"),
 				})
 			},
-			ec2Mocks:  func(m *mocks.MockEC2APIMockRecorder) {},
+			ec2Mocks: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DeleteSecurityGroupWithContext(gomock.Any(), &ec2.DeleteSecurityGroupInput{
+					GroupId: aws.String("sg-123456"),
+				})
+			},
 			expectErr: false,
 		},
 		{
@@ -516,6 +534,46 @@ func TestReconcileDelete(t *testing.T) {
 									{
 										Key:   aws.String("Name"),
 										Value: aws.String("eks-cluster-sg-default_capi-managed-test-control-plane-10156951"),
+									},
+								},
+							},
+						},
+					}, nil
+				})
+			},
+			elbMocks:   func(m *mocks.MockELBAPIMockRecorder) {},
+			elbv2Mocks: func(m *mocks.MockELBV2APIMockRecorder) {},
+			ec2Mocks:   func(m *mocks.MockEC2APIMockRecorder) {},
+			expectErr:  false,
+		},
+		{
+			name:         "eks with security group created by EKS",
+			clusterScope: createManageScope(t, ""),
+			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
+				m.GetResourcesWithContext(gomock.Any(), &rgapi.GetResourcesInput{
+					TagFilters: []*rgapi.TagFilter{
+						{
+							Key:    aws.String("kubernetes.io/cluster/eks-test-cluster"),
+							Values: []*string{aws.String("owned")},
+						},
+					},
+				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...request.Option) (*rgapi.GetResourcesOutput, error) {
+					return &rgapi.GetResourcesOutput{
+						ResourceTagMappingList: []*rgapi.ResourceTagMapping{
+							{
+								ResourceARN: aws.String("arn:aws:ec2:eu-west-2:1234567890:security-group/sg-123456"),
+								Tags: []*rgapi.Tag{
+									{
+										Key:   aws.String("kubernetes.io/cluster/cluster1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String(serviceNameTag),
+										Value: aws.String("default/svc1"),
+									},
+									{
+										Key:   aws.String(eksClusterNameTag),
+										Value: aws.String("default_eks_test_cluster"),
 									},
 								},
 							},
