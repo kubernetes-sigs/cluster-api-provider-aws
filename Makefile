@@ -573,6 +573,8 @@ release-binaries: ## Builds the binaries to publish with a release
 	RELEASE_BINARY=./cmd/clusterawsadm GOOS=linux GOARCH=arm64 $(MAKE) release-binary
 	RELEASE_BINARY=./cmd/clusterawsadm GOOS=darwin GOARCH=amd64 $(MAKE) release-binary
 	RELEASE_BINARY=./cmd/clusterawsadm GOOS=darwin GOARCH=arm64 $(MAKE) release-binary
+	RELEASE_BINARY=./cmd/clusterawsadm GOOS=windows GOARCH=amd64 EXT=.exe $(MAKE) release-binary
+	RELEASE_BINARY=./cmd/clusterawsadm GOOS=windows GOARCH=arm64 EXT=.exe $(MAKE) release-binary
 
 .PHONY: release-binary
 release-binary: $(RELEASE_DIR) versions.mk build-toolchain ## Release binary
@@ -587,7 +589,7 @@ release-binary: $(RELEASE_DIR) versions.mk build-toolchain ## Release binary
 		-w /workspace \
 		$(TOOLCHAIN_IMAGE) \
 		go build -ldflags '$(LDFLAGS) -extldflags "-static"' \
-		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))-$(GOOS)-$(GOARCH) $(RELEASE_BINARY)
+		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))-$(GOOS)-$(GOARCH)$(EXT) $(RELEASE_BINARY)
 
 .PHONY: release-staging
 release-staging: ## Builds and push container images and manifests to the staging bucket.
