@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
@@ -125,6 +126,18 @@ func TestAWSManagedMachinePool_ValidateCreate(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "minSize 0 is accepted",
+			pool: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-3",
+					Scaling: &ManagedMachinePoolScaling{
+						MinSize: pointer.Int32(0),
+					},
+				},
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
