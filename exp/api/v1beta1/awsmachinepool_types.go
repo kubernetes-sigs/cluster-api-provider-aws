@@ -27,9 +27,6 @@ import (
 
 // Constants block.
 const (
-	// MachinePoolFinalizer is the finalizer for the machine pool.
-	MachinePoolFinalizer = "awsmachinepool.infrastructure.cluster.x-k8s.io"
-
 	// LaunchTemplateLatestVersion defines the launching of the latest version of the template.
 	LaunchTemplateLatestVersion = "$Latest"
 )
