@@ -115,8 +115,8 @@ github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a h1:idn718Q4
 github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a/go.mod h1:lB+ZfQJz7igIIfQNfa7Ml4HSf2uFQQRzpGGRXenZAgY=
 github.com/aws/amazon-vpc-cni-k8s v1.11.2 h1:0jVBhEywahqKDJ2rt8oX08qOPahYWaUXEDxuTx1RD9k=
 github.com/aws/amazon-vpc-cni-k8s v1.11.2/go.mod h1:7bgoYaMokxHRLDMW1snJwDUa6lU2tNFSs+1OztRYU10=
-github.com/aws/aws-lambda-go v1.34.0 h1:iQMJkX0pzhe6+sXb90niz5//TtvOgghu1U1I5Cfo8v4=
-github.com/aws/aws-lambda-go v1.34.0/go.mod h1:jwFe2KmMsHmffA1X2R09hH6lFzJQxzI8qK17ewzbQMM=
+github.com/aws/aws-lambda-go v1.34.1 h1:M3a/uFYBjii+tDcOJ0wL/WyFi2550FHoECdPf27zvOs=
+github.com/aws/aws-lambda-go v1.34.1/go.mod h1:jwFe2KmMsHmffA1X2R09hH6lFzJQxzI8qK17ewzbQMM=
 github.com/aws/aws-sdk-go v1.8.39/go.mod h1:ZRmQr0FajVIyZ4ZzBYKG5P3ZqPz9IHG41ZoMu1ADI3k=
 github.com/aws/aws-sdk-go v1.43.28/go.mod h1:y4AeaBuwd2Lk+GepC1E9v0qOiTws0MIWAX4oIKwKHZo=
 github.com/aws/aws-sdk-go v1.43.29 h1:P6tBpMLwVLS/QwPkaBxfDIF3SmPouoacIk+/7NKnDxY=
