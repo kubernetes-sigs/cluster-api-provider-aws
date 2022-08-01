@@ -179,6 +179,7 @@ Thank you to all contributors and a special thanks to our current maintainers & 
 |                                                   | [@dlipovetsky](https://github.com/dlipovetsky) |
 |                                                   | [@pydctw](https://github.com/pydctw)           |
 |                                                   | [@shivi28](https://github.com/shivi28)         |
+|                                                   | [@Skarlso](https://github.com/Skarlso)         |
 
 and the previous/emeritus maintainers & reviwers:
 
