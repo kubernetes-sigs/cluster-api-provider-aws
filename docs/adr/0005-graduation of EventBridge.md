@@ -1,7 +1,7 @@
 # 5. Graduation of EventBridge in CAPA
 
-* Status: [proposed]
-* Date: TBD 
+* Status: accepted
+* Date: 2022-07-29 
 * Authors: @Ankitasw
 * Deciders: @richardcase @sedefsavas
 
