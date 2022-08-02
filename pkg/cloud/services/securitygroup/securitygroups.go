@@ -476,9 +476,6 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 		}
 	}
 	cidrBlocks := []string{services.AnyIPv4CidrBlock}
-	if s.scope.VPC().IsIPv6Enabled() {
-		cidrBlocks = append(cidrBlocks, services.AnyIPv6CidrBlock)
-	}
 	switch role {
 	case infrav1.SecurityGroupBastion:
 		return infrav1.IngressRules{
@@ -547,6 +544,15 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 		if s.scope.Bastion().Enabled {
 			rules = append(rules, s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID))
 		}
+		if s.scope.VPC().IsIPv6Enabled() {
+			rules = append(rules, infrav1.IngressRule{
+				Description:    "Node Port Services IPv6",
+				Protocol:       infrav1.SecurityGroupProtocolTCP,
+				FromPort:       30000,
+				ToPort:         32767,
+				IPv6CidrBlocks: []string{services.AnyIPv6CidrBlock},
+			})
+		}
 		return append(cniRules, rules...), nil
 	case infrav1.SecurityGroupEKSNodeAdditional:
 		if s.scope.Bastion().Enabled {
@@ -556,7 +562,7 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 		}
 		return infrav1.IngressRules{}, nil
 	case infrav1.SecurityGroupAPIServerLB:
-		return infrav1.IngressRules{
+		rules := infrav1.IngressRules{
 			{
 				Description: "Kubernetes API",
 				Protocol:    infrav1.SecurityGroupProtocolTCP,
@@ -564,7 +570,17 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 				ToPort:      int64(s.scope.APIServerPort()),
 				CidrBlocks:  cidrBlocks,
 			},
-		}, nil
+		}
+		if s.scope.VPC().IsIPv6Enabled() {
+			rules = append(rules, infrav1.IngressRule{
+				Description:    "Kubernetes API IPv6",
+				Protocol:       infrav1.SecurityGroupProtocolTCP,
+				FromPort:       int64(s.scope.APIServerPort()),
+				ToPort:         int64(s.scope.APIServerPort()),
+				IPv6CidrBlocks: []string{services.AnyIPv6CidrBlock},
+			})
+		}
+		return rules, nil
 	case infrav1.SecurityGroupLB:
 		// We hand this group off to the in-cluster cloud provider, so these rules aren't used
 		return infrav1.IngressRules{}, nil
@@ -643,6 +659,18 @@ func ingressRuleToSDKType(i *infrav1.IngressRule) (res *ec2.IpPermission) {
 		res.IpRanges = append(res.IpRanges, ipRange)
 	}
 
+	for _, cidr := range i.IPv6CidrBlocks {
+		ipV6Range := &ec2.Ipv6Range{
+			CidrIpv6: aws.String(cidr),
+		}
+
+		if i.Description != "" {
+			ipV6Range.Description = aws.String(i.Description)
+		}
+
+		res.Ipv6Ranges = append(res.Ipv6Ranges, ipV6Range)
+	}
+
 	for _, groupID := range i.SourceSecurityGroupIDs {
 		userIDGroupPair := &ec2.UserIdGroupPair{
 			GroupId: aws.String(groupID),
@@ -688,6 +716,18 @@ func ingressRulesFromSDKType(v *ec2.IpPermission) (res infrav1.IngressRules) {
 			}
 
 			r1.CidrBlocks = append(r1.CidrBlocks, *ec2range.CidrIp)
+		}
+		res = append(res, r1)
+	}
+
+	if len(v.Ipv6Ranges) > 0 {
+		r1 := ir
+		for _, ec2range := range v.Ipv6Ranges {
+			if ec2range.Description != nil && *ec2range.Description != "" {
+				r1.Description = *ec2range.Description
+			}
+
+			r1.IPv6CidrBlocks = append(r1.IPv6CidrBlocks, *ec2range.CidrIpv6)
 		}
 		res = append(res, r1)
 	}

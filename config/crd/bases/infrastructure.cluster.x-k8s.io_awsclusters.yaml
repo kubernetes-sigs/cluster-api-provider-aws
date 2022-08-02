@@ -2320,6 +2320,12 @@ spec:
                               fromPort:
                                 format: int64
                                 type: integer
+                              ipv6CidrBlocks:
+                                description: List of IPv6 CIDR blocks to allow access
+                                  from. Cannot be specified with SourceSecurityGroupID.
+                                items:
+                                  type: string
+                                type: array
                               protocol:
                                 description: SecurityGroupProtocol defines the protocol
                                   type for a security group rule.

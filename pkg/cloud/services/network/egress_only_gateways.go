@@ -117,7 +117,7 @@ func (s *Service) createEgressOnlyInternetGateway() (*ec2.EgressOnlyInternetGate
 		record.Warnf(s.scope.InfraCluster(), "FailedCreateEgressOnlyInternetGateway", "Failed to create new managed Egress Only Internet Gateway: %v", err)
 		return nil, errors.Wrap(err, "failed to create egress only internet gateway")
 	}
-	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateEgressOnlyInternetGateway", "Created new managed Egree Only Internet Gateway %q", *ig.EgressOnlyInternetGateway.EgressOnlyInternetGatewayId)
+	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateEgressOnlyInternetGateway", "Created new managed Egress Only Internet Gateway %q", *ig.EgressOnlyInternetGateway.EgressOnlyInternetGatewayId)
 	s.scope.Info("Created Egress Only Internet gateway", "egress-only-internet-gateway-id", *ig.EgressOnlyInternetGateway.EgressOnlyInternetGatewayId, "vpc-id", s.scope.VPC().ID)
 
 	return ig.EgressOnlyInternetGateway, nil
