@@ -468,6 +468,10 @@ type IngressRule struct {
 	// +optional
 	CidrBlocks []string `json:"cidrBlocks,omitempty"`
 
+	// List of IPv6 CIDR blocks to allow access from. Cannot be specified with SourceSecurityGroupID.
+	// +optional
+	IPv6CidrBlocks []string `json:"ipv6CidrBlocks,omitempty"`
+
 	// The security group id to allow access from. Cannot be specified with CidrBlocks.
 	// +optional
 	SourceSecurityGroupIDs []string `json:"sourceSecurityGroupIds,omitempty"`
@@ -504,6 +508,7 @@ func (i IngressRules) Difference(o IngressRules) (out IngressRules) {
 
 // Equals returns true if two IngressRule are equal.
 func (i *IngressRule) Equals(o *IngressRule) bool {
+	// ipv4
 	if len(i.CidrBlocks) != len(o.CidrBlocks) {
 		return false
 	}
@@ -513,6 +518,19 @@ func (i *IngressRule) Equals(o *IngressRule) bool {
 
 	for i, v := range i.CidrBlocks {
 		if v != o.CidrBlocks[i] {
+			return false
+		}
+	}
+	// ipv6
+	if len(i.IPv6CidrBlocks) != len(o.IPv6CidrBlocks) {
+		return false
+	}
+
+	sort.Strings(i.IPv6CidrBlocks)
+	sort.Strings(o.IPv6CidrBlocks)
+
+	for i, v := range i.IPv6CidrBlocks {
+		if v != o.IPv6CidrBlocks[i] {
 			return false
 		}
 	}

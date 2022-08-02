@@ -1244,6 +1244,11 @@ func (in *IngressRule) DeepCopyInto(out *IngressRule) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.IPv6CidrBlocks != nil {
+		in, out := &in.IPv6CidrBlocks, &out.IPv6CidrBlocks
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.SourceSecurityGroupIDs != nil {
 		in, out := &in.SourceSecurityGroupIDs, &out.SourceSecurityGroupIDs
 		*out = make([]string, len(*in))

@@ -72,6 +72,14 @@ func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 		}
 	}
 
+	for k, v := range restored.Status.Network.SecurityGroups {
+		if dst.Status.Network.SecurityGroups == nil {
+			dst.Status.Network.SecurityGroups = make(map[infrav1beta1.SecurityGroupRole]infrav1beta1.SecurityGroup)
+		}
+		// This will overwrite the whole rule set... But maybe that's fine?
+		dst.Status.Network.SecurityGroups[k] = v
+	}
+
 	return nil
 }
 
