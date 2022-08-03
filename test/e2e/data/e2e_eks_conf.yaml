@@ -23,11 +23,11 @@ images:
     loadBehavior: tryLoad
   - name: quay.io/jetstack/cert-manager-controller:v1.7.2
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.1.2
+  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.1.5
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.1.2
+  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.1.5
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.1.2
+  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.1.5
     loadBehavior: tryLoad
 
 
@@ -46,9 +46,9 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v0.4.7 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+      - name: v0.4.8 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
         contract: v1alpha4
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/core-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/core-components.yaml"
         type: "url"
         files:
           - sourcePath: "./shared/v1alpha4/metadata.yaml"
@@ -57,8 +57,8 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.2
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.2/core-components.yaml"
+      - name: v1.1.5
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.5/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -68,17 +68,6 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.99 # next;
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220216/core-components.yaml"
-        type: "url"
-        contract: v1beta1
-        files:
-        - sourcePath: "./shared/v1beta1/metadata.yaml"
-        replacements:
-        - old: "imagePullPolicy: Always"
-          new: "imagePullPolicy: IfNotPresent"
-        - old: --metrics-bind-addr=127.0.0.1:8080
-          new: --metrics-bind-addr=:8080
   - name: kubeadm
     type: BootstrapProvider
     files:
@@ -93,8 +82,8 @@ providers:
         replacements:
           - old: --metrics-addr=127.0.0.1:8080
             new: --metrics-addr=:8080
-      - name: v0.4.7 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/bootstrap-components.yaml"
+      - name: v0.4.8 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/bootstrap-components.yaml"
         type: "url"
         contract: v1alpha4
         files:
@@ -104,8 +93,8 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.2
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.2/bootstrap-components.yaml"
+      - name: v1.1.5
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.5/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -115,17 +104,6 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.99 # next;
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220216/bootstrap-components.yaml"
-        type: "url"
-        contract: v1beta1
-        files:
-        - sourcePath: "./shared/v1beta1/metadata.yaml"
-        replacements:
-        - old: "imagePullPolicy: Always"
-          new: "imagePullPolicy: IfNotPresent"
-        - old: --metrics-bind-addr=127.0.0.1:8080
-          new: --metrics-bind-addr=:8080
   - name: kubeadm
     type: ControlPlaneProvider
     files:
@@ -140,9 +118,9 @@ providers:
         replacements:
           - old: --metrics-addr=127.0.0.1:8080
             new: --metrics-addr=:8080
-      - name: v0.4.7 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+      - name: v0.4.8 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/control-plane-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/control-plane-components.yaml"
         type: "url"
         contract: v1alpha4
         files:
@@ -152,8 +130,8 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.2
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.2/control-plane-components.yaml"
+      - name: v1.1.5
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.5/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -163,21 +141,10 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.99 # next;
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220216/control-plane-components.yaml"
-        type: "url"
-        contract: v1beta1
-        files:
-        - sourcePath: "./shared/v1beta1/metadata.yaml"
-        replacements:
-        - old: "imagePullPolicy: Always"
-          new: "imagePullPolicy: IfNotPresent"
-        - old: --metrics-bind-addr=127.0.0.1:8080
-          new: --metrics-bind-addr=:8080
   - name: aws
     type: InfrastructureProvider
     versions:
-      - name: v1.2.99
+      - name: v1.4.99
         # Use manifest from source files
         value: ../../../config/default
         contract: v1beta1

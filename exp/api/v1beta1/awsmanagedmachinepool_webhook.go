@@ -62,7 +62,7 @@ func (r *AWSManagedMachinePool) validateScaling() field.ErrorList {
 		max := r.Spec.Scaling.MaxSize
 		if min != nil {
 			if *min < 0 {
-				allErrs = append(allErrs, field.Invalid(minField, *min, "must be greater than zero"))
+				allErrs = append(allErrs, field.Invalid(minField, *min, "must be greater or equal zero"))
 			}
 			if max != nil && *max < *min {
 				allErrs = append(allErrs, field.Invalid(maxField, *max, fmt.Sprintf("must be greater than field %s", minField.String())))
