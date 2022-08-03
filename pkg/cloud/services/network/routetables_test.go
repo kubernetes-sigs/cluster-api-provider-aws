@@ -143,7 +143,7 @@ func TestReconcileRouteTables(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{}, nil)
 
@@ -229,7 +229,7 @@ func TestReconcileRouteTables(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{}, nil)
 

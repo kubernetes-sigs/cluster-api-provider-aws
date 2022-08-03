@@ -186,7 +186,7 @@ func TestReconcileVPC(t *testing.T) {
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{
 					VpcIds: aws.StringSlice([]string{"vpc-new"}),
 				})).Return(&ec2.DescribeVpcsOutput{
@@ -252,7 +252,7 @@ func TestReconcileVPC(t *testing.T) {
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{
 					AmazonProvidedIpv6CidrBlock: aws.Bool(false),
 					Ipv6Pool:                    aws.String("my-pool"),
@@ -281,7 +281,7 @@ func TestReconcileVPC(t *testing.T) {
 			},
 			wantErr: true,
 			want:    nil,
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{
 					VpcIds: aws.StringSlice([]string{"vpc-new"}),
 				})).Return(nil, errors.New("nope"))
@@ -304,7 +304,7 @@ func TestReconcileVPC(t *testing.T) {
 			},
 			wantErr: true,
 			want:    nil,
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{
 					VpcIds: aws.StringSlice([]string{"vpc-new"}),
 				})).Return(&ec2.DescribeVpcsOutput{}, nil)
@@ -327,7 +327,7 @@ func TestReconcileVPC(t *testing.T) {
 			},
 			wantErr: true,
 			want:    nil,
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{
 					VpcIds: aws.StringSlice([]string{"vpc-new"}),
 				})).Return(&ec2.DescribeVpcsOutput{
@@ -367,7 +367,7 @@ func TestReconcileVPC(t *testing.T) {
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
 						{
