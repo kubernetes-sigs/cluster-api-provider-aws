@@ -28,10 +28,12 @@ import (
 )
 
 func newDisableCmd() *cobra.Command {
-	clusterName := ""
-	namespace := ""
-	kubeConfig := ""
-	kubeConfigDefault := ""
+	var (
+		clusterName       string
+		namespace         string
+		kubeConfig        string
+		kubeConfigDefault string
+	)
 
 	if home := homedir.HomeDir(); home != "" {
 		kubeConfigDefault = filepath.Join(home, ".kube", "config")
@@ -39,7 +41,7 @@ func newDisableCmd() *cobra.Command {
 
 	newCmd := &cobra.Command{
 		Use:   "disable",
-		Short: "Mark a cluster as NOT requiring external resource gc",
+		Short: "Mark a cluster as NOT requiring external resource garbage collection",
 		Long: cmd.LongDesc(`
 			This command will mark the given cluster as not requiring external
 			resource garbage collection (i.e. deleting) when the cluster is
@@ -63,8 +65,7 @@ func newDisableCmd() *cobra.Command {
 				return fmt.Errorf("creating command processor: %w", err)
 			}
 
-			err = proc.Disable(cmd.Context())
-			if err != nil {
+			if err := proc.Disable(cmd.Context()); err != nil {
 				return fmt.Errorf("disabling garbage collection: %w", err)
 			}
 			fmt.Printf("Disabled garbage collection for cluster %s/%s\n", namespace, clusterName)

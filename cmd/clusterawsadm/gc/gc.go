@@ -29,8 +29,11 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/annotations"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 var (
@@ -98,6 +101,44 @@ func New(input GCInput, opts ...CmdProcessorOption) (*CmdProcessor, error) {
 	}
 
 	return cmd, nil
+}
+
+// Enable is used to enable external resource garbage collection for a cluster.
+func (c *CmdProcessor) Enable(ctx context.Context) error {
+	if err := c.setAnnotationAndPatch(ctx, "true"); err != nil {
+		return fmt.Errorf("setting gc annotation to true: %w", err)
+	}
+
+	return nil
+}
+
+// Disable is used to disable external resource garbage collection for a cluster.
+func (c *CmdProcessor) Disable(ctx context.Context) error {
+	if err := c.setAnnotationAndPatch(ctx, "false"); err != nil {
+		return fmt.Errorf("setting gc annotation to false: %w", err)
+	}
+
+	return nil
+}
+
+func (c *CmdProcessor) setAnnotationAndPatch(ctx context.Context, annotationValue string) error {
+	infraObj, err := c.getInfraCluster(ctx)
+	if err != nil {
+		return err
+	}
+
+	patchHelper, err := patch.NewHelper(infraObj, c.client)
+	if err != nil {
+		return fmt.Errorf("creating patch helper: %w", err)
+	}
+
+	annotations.Set(infraObj, expinfrav1.ExternalResourceGCAnnotation, annotationValue)
+
+	if err := patchHelper.Patch(ctx, infraObj); err != nil {
+		return fmt.Errorf("patching infra cluster with gc annotation: %w", err)
+	}
+
+	return nil
 }
 
 func (c *CmdProcessor) getInfraCluster(ctx context.Context) (*unstructured.Unstructured, error) {

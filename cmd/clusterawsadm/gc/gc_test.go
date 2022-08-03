@@ -144,7 +144,7 @@ func TestDisableGC(t *testing.T) {
 			expectError:  false,
 		},
 		{
-			name:         "with managed control plane and with annotation",
+			name:         "with awscluster and with annotation",
 			clusterName:  testClusterName,
 			existingObjs: newUnManagedClusterWithAnnotations(testClusterName, map[string]string{expinfrav1.ExternalResourceGCAnnotation: "true"}),
 			expectError:  false,
