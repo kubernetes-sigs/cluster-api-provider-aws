@@ -68,7 +68,7 @@ const (
 
 	// ExternalResourceGC is used to enable the garbage collection of external resources like NLB/ALB on deletion
 	// owner: @richardcase
-	// alpha: v1.4
+	// alpha: v1.5
 	ExternalResourceGC featuregate.Feature = "ExternalResourceGC"
 )
 
