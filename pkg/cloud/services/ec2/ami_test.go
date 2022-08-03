@@ -28,8 +28,8 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ssm/mock_ssmiface"
+	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
 )
 
 func Test_DefaultAMILookup(t *testing.T) {
@@ -46,7 +46,7 @@ func Test_DefaultAMILookup(t *testing.T) {
 	testCases := []struct {
 		name   string
 		args   args
-		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect func(m *mocks.MockEC2APIMockRecorder)
 		check  func(g *WithT, img *ec2.Image, err error)
 	}{
 		{
@@ -57,7 +57,7 @@ func Test_DefaultAMILookup(t *testing.T) {
 				kubernetesVersion: "v1.0.0",
 				amiNameFormat:     "ami-name",
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
@@ -83,7 +83,7 @@ func Test_DefaultAMILookup(t *testing.T) {
 		},
 		{
 			name: "Should return with error if AWS DescribeImages call failed with some error",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(nil, awserrors.NewFailedDependency("dependency failure"))
 			},
@@ -94,7 +94,7 @@ func Test_DefaultAMILookup(t *testing.T) {
 		},
 		{
 			name: "Should return with error if empty list of images returned from AWS ",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{}, nil)
 			},
@@ -109,7 +109,7 @@ func Test_DefaultAMILookup(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock.EXPECT())
 
 			img, err := DefaultAMILookup(ec2Mock, tc.args.ownerID, tc.args.baseOS, tc.args.kubernetesVersion, tc.args.amiNameFormat)
@@ -124,12 +124,12 @@ func TestAMIs(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect func(m *mocks.MockEC2APIMockRecorder)
 		check  func(g *WithT, id string, err error)
 	}{
 		{
 			name: "Should return latest AMI in case of valid inputs",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
@@ -155,7 +155,7 @@ func TestAMIs(t *testing.T) {
 		},
 		{
 			name: "Should return error if invalid creation date passed",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
@@ -189,7 +189,7 @@ func TestAMIs(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock.EXPECT())
 
 			clusterScope, err := setupClusterScope(client)
