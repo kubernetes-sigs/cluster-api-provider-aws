@@ -28,7 +28,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
+	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
@@ -136,7 +136,7 @@ func getClusterScope(awsCluster infrav1.AWSCluster) (*scope.ClusterScope, error)
 	)
 }
 
-func mockedCreateLBCalls(t *testing.T, m *mock_elbiface.MockELBAPIMockRecorder) {
+func mockedCreateLBCalls(t *testing.T, m *mocks.MockELBAPIMockRecorder) {
 	t.Helper()
 	m.DescribeLoadBalancers(gomock.Eq(describeLBInput)).
 		Return(describeLBOutput, nil).MinTimes(1)
@@ -190,7 +190,7 @@ func mockedCreateLBCalls(t *testing.T, m *mock_elbiface.MockELBAPIMockRecorder) 
 	m.RegisterInstancesWithLoadBalancer(gomock.Eq(&elb.RegisterInstancesWithLoadBalancerInput{Instances: []*elb.Instance{{InstanceId: aws.String("two")}}, LoadBalancerName: lbName})).MaxTimes(1)
 }
 
-func mockedDeleteLBCalls(m *mock_elbiface.MockELBAPIMockRecorder) {
+func mockedDeleteLBCalls(m *mocks.MockELBAPIMockRecorder) {
 	m.DescribeLoadBalancers(gomock.Eq(describeLBInput)).
 		Return(describeLBOutput, nil)
 	m.DescribeLoadBalancers(gomock.Eq(describeLBInput)).

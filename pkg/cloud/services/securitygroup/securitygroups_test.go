@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
+	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -56,7 +56,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  *infrav1.NetworkSpec
-		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect func(m *mocks.MockEC2APIMockRecorder)
 		err    error
 	}{
 		{
@@ -83,7 +83,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSecurityGroups(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).
 					Return(&ec2.DescribeSecurityGroupsOutput{}, nil)
 
@@ -274,7 +274,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 					infrav1.SecurityGroupNode:         "sg-node",
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSecurityGroups(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).
 					Return(&ec2.DescribeSecurityGroupsOutput{
 						SecurityGroups: []*ec2.SecurityGroup{
@@ -318,7 +318,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 					infrav1.SecurityGroupNode:         "sg-node",
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSecurityGroups(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).
 					Return(&ec2.DescribeSecurityGroupsOutput{
 						SecurityGroups: []*ec2.SecurityGroup{
@@ -336,7 +336,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scheme := runtime.NewScheme()
 			_ = infrav1.AddToScheme(scheme)
@@ -408,7 +408,7 @@ func TestDeleteSecurityGroups(t *testing.T) {
 	testCases := []struct {
 		name    string
 		input   *infrav1.NetworkSpec
-		expect  func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect  func(m *mocks.MockEC2APIMockRecorder)
 		wantErr bool
 	}{
 		{
@@ -439,7 +439,7 @@ func TestDeleteSecurityGroups(t *testing.T) {
 					infrav1.SecurityGroupNode:         "sg-node",
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSecurityGroupsPages(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{}), gomock.Any()).Return(nil)
 			},
 		},
@@ -454,7 +454,7 @@ func TestDeleteSecurityGroups(t *testing.T) {
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{ID: "vpc-id"},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSecurityGroupsPages(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{}), gomock.Any()).Return(awserrors.NewFailedDependency("dependency-failure"))
 			},
 			wantErr: true,
@@ -464,7 +464,7 @@ func TestDeleteSecurityGroups(t *testing.T) {
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{ID: "vpc-id"},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSecurityGroupsPages(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{}), gomock.Any()).
 					Do(processSecurityGroupsPage).Return(nil)
 				m.DescribeSecurityGroups(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).Return(nil, awserr.New("dependency-failure", "dependency-failure", errors.Errorf("dependency-failure")))
@@ -476,7 +476,7 @@ func TestDeleteSecurityGroups(t *testing.T) {
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{ID: "vpc-id"},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSecurityGroupsPages(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{}), gomock.Any()).
 					Do(processSecurityGroupsPage).Return(nil)
 				m.DescribeSecurityGroups(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).Return(&ec2.DescribeSecurityGroupsOutput{
@@ -495,7 +495,7 @@ func TestDeleteSecurityGroups(t *testing.T) {
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{ID: "vpc-id"},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSecurityGroupsPages(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{}), gomock.Any()).
 					Do(processSecurityGroupsPage).Return(nil)
 				m.DescribeSecurityGroups(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).Return(&ec2.DescribeSecurityGroupsOutput{
@@ -520,7 +520,7 @@ func TestDeleteSecurityGroups(t *testing.T) {
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{ID: "vpc-id"},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSecurityGroupsPages(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{}), gomock.Any()).
 					Do(processSecurityGroupsPage).Return(nil)
 				m.DescribeSecurityGroups(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).Return(&ec2.DescribeSecurityGroupsOutput{
@@ -544,7 +544,7 @@ func TestDeleteSecurityGroups(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scheme := runtime.NewScheme()
 			g.Expect(infrav1.AddToScheme(scheme)).NotTo(HaveOccurred())

@@ -32,7 +32,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
+	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -72,13 +72,13 @@ func TestService_DeleteBastion(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		expect        func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect        func(m *mocks.MockEC2APIMockRecorder)
 		expectError   bool
 		bastionStatus *infrav1.Instance
 	}{
 		{
 			name: "instance not found",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeInstances(gomock.Eq(describeInput)).
 					Return(&ec2.DescribeInstancesOutput{}, nil)
@@ -87,7 +87,7 @@ func TestService_DeleteBastion(t *testing.T) {
 		},
 		{
 			name: "describe error",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeInstances(gomock.Eq(describeInput)).
 					Return(nil, errors.New("some error"))
@@ -96,7 +96,7 @@ func TestService_DeleteBastion(t *testing.T) {
 		},
 		{
 			name: "terminate fails",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeInstances(gomock.Eq(describeInput)).
 					Return(foundOutput, nil)
@@ -112,7 +112,7 @@ func TestService_DeleteBastion(t *testing.T) {
 		},
 		{
 			name: "wait after terminate fails",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeInstances(gomock.Eq(describeInput)).
 					Return(foundOutput, nil)
@@ -135,7 +135,7 @@ func TestService_DeleteBastion(t *testing.T) {
 		},
 		{
 			name: "success",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeInstances(gomock.Eq(describeInput)).
 					Return(foundOutput, nil)
@@ -170,7 +170,7 @@ func TestService_DeleteBastion(t *testing.T) {
 				mockControl := gomock.NewController(t)
 				defer mockControl.Finish()
 
-				ec2Mock := mock_ec2iface.NewMockEC2API(mockControl)
+				ec2Mock := mocks.NewMockEC2API(mockControl)
 
 				scheme, err := setupScheme()
 				g.Expect(err).To(BeNil())
@@ -263,13 +263,13 @@ func TestService_ReconcileBastion(t *testing.T) {
 	tests := []struct {
 		name           string
 		bastionEnabled bool
-		expect         func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect         func(m *mocks.MockEC2APIMockRecorder)
 		expectError    bool
 		bastionStatus  *infrav1.Instance
 	}{
 		{
 			name: "Should ignore reconciliation if instance not found",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeInstances(gomock.Eq(describeInput)).
 					Return(&ec2.DescribeInstancesOutput{}, nil)
@@ -278,7 +278,7 @@ func TestService_ReconcileBastion(t *testing.T) {
 		},
 		{
 			name: "Should fail reconcile if describe instance fails",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeInstances(gomock.Eq(describeInput)).
 					Return(nil, errors.New("some error"))
@@ -287,7 +287,7 @@ func TestService_ReconcileBastion(t *testing.T) {
 		},
 		{
 			name: "Should fail reconcile if terminate instance fails",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeInstances(gomock.Eq(describeInput)).
 					Return(foundOutput, nil).MinTimes(1)
@@ -303,7 +303,7 @@ func TestService_ReconcileBastion(t *testing.T) {
 		},
 		{
 			name: "Should create bastion successfully",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeInstances(gomock.Eq(describeInput)).
 					Return(&ec2.DescribeInstancesOutput{}, nil).MinTimes(1)
 				m.DescribeImages(gomock.Eq(&ec2.DescribeImagesInput{Filters: []*ec2.Filter{
@@ -396,7 +396,7 @@ func TestService_ReconcileBastion(t *testing.T) {
 				mockControl := gomock.NewController(t)
 				defer mockControl.Finish()
 
-				ec2Mock := mock_ec2iface.NewMockEC2API(mockControl)
+				ec2Mock := mocks.NewMockEC2API(mockControl)
 
 				scheme, err := setupScheme()
 				g.Expect(err).To(BeNil())

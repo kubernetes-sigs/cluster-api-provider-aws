@@ -19,7 +19,7 @@ spec:
       containers:
       - args:
         - "--leader-elect"
-        - "--feature-gates=EKS=${CAPA_EKS:=true},EKSEnableIAM=${CAPA_EKS_IAM:=false},EKSAllowAddRoles=${CAPA_EKS_ADD_ROLES:=false},EKSFargate=${EXP_EKS_FARGATE:=false},MachinePool=${EXP_MACHINE_POOL:=false},EventBridgeInstanceState=${EVENT_BRIDGE_INSTANCE_STATE:=false},AutoControllerIdentityCreator=${AUTO_CONTROLLER_IDENTITY_CREATOR:=true},BootstrapFormatIgnition=${EXP_BOOTSTRAP_FORMAT_IGNITION:=false}"
+        - "--feature-gates=EKS=${CAPA_EKS:=true},EKSEnableIAM=${CAPA_EKS_IAM:=false},EKSAllowAddRoles=${CAPA_EKS_ADD_ROLES:=false},EKSFargate=${EXP_EKS_FARGATE:=false},MachinePool=${EXP_MACHINE_POOL:=false},EventBridgeInstanceState=${EVENT_BRIDGE_INSTANCE_STATE:=false},AutoControllerIdentityCreator=${AUTO_CONTROLLER_IDENTITY_CREATOR:=true},BootstrapFormatIgnition=${EXP_BOOTSTRAP_FORMAT_IGNITION:=false},ExternalResourceGC=${EXP_EXTERNAL_RESOURCE_GC:=false}"
         - "--v=${CAPA_LOGLEVEL:=0}"
         - "--metrics-bind-addr=127.0.0.1:8080"
         image: controller:latest

@@ -38,10 +38,9 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	ec2Service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	elbService "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/mock_services"
+	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -71,11 +70,11 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 	t.Run("Should successfully reconcile control plane machine creation", func(t *testing.T) {
 		g := NewWithT(t)
 		mockCtrl = gomock.NewController(t)
-		ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+		ec2Mock := mocks.NewMockEC2API(mockCtrl)
 		secretMock := mock_services.NewMockSecretInterface(mockCtrl)
-		elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
+		elbMock := mocks.NewMockELBAPI(mockCtrl)
 
-		expect := func(m *mock_ec2iface.MockEC2APIMockRecorder, s *mock_services.MockSecretInterfaceMockRecorder, e *mock_elbiface.MockELBAPIMockRecorder) {
+		expect := func(m *mocks.MockEC2APIMockRecorder, s *mock_services.MockSecretInterfaceMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedCreateInstanceCalls(m)
 			mockedCreateSecretCall(s)
 			mockedCreateLBCalls(t, e)
@@ -161,10 +160,10 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 	t.Run("Should successfully reconcile control plane machine deletion", func(t *testing.T) {
 		g := NewWithT(t)
 		mockCtrl = gomock.NewController(t)
-		ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-		elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
+		ec2Mock := mocks.NewMockEC2API(mockCtrl)
+		elbMock := mocks.NewMockELBAPI(mockCtrl)
 
-		expect := func(m *mock_ec2iface.MockEC2APIMockRecorder, e *mock_elbiface.MockELBAPIMockRecorder) {
+		expect := func(m *mocks.MockEC2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedDescribeInstanceCalls(m)
 			mockedDeleteLBCalls(e)
 			mockedDeleteInstanceCalls(m)
@@ -217,11 +216,11 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 	t.Run("Should fail reconciling control-plane machine creation while attaching load balancer", func(t *testing.T) {
 		g := NewWithT(t)
 		mockCtrl = gomock.NewController(t)
-		ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+		ec2Mock := mocks.NewMockEC2API(mockCtrl)
 		secretMock := mock_services.NewMockSecretInterface(mockCtrl)
-		elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
+		elbMock := mocks.NewMockELBAPI(mockCtrl)
 
-		expect := func(m *mock_ec2iface.MockEC2APIMockRecorder, s *mock_services.MockSecretInterfaceMockRecorder, e *mock_elbiface.MockELBAPIMockRecorder) {
+		expect := func(m *mocks.MockEC2APIMockRecorder, s *mock_services.MockSecretInterfaceMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedCreateInstanceCalls(m)
 			mockedCreateSecretCall(s)
 			e.DescribeLoadBalancers(gomock.Eq(&elb.DescribeLoadBalancersInput{
@@ -308,10 +307,10 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 	t.Run("Should fail in reconciling control-plane machine deletion while terminating instance ", func(t *testing.T) {
 		g := NewWithT(t)
 		mockCtrl = gomock.NewController(t)
-		ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-		elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
+		ec2Mock := mocks.NewMockEC2API(mockCtrl)
+		elbMock := mocks.NewMockELBAPI(mockCtrl)
 
-		expect := func(m *mock_ec2iface.MockEC2APIMockRecorder, e *mock_elbiface.MockELBAPIMockRecorder) {
+		expect := func(m *mocks.MockEC2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedDescribeInstanceCalls(m)
 			mockedDeleteLBCalls(e)
 			m.TerminateInstances(
@@ -489,7 +488,7 @@ func mockedCreateSecretCall(s *mock_services.MockSecretInterfaceMockRecorder) {
 	s.UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf([]scope.ServiceEndpoint{}))
 }
 
-func mockedCreateInstanceCalls(m *mock_ec2iface.MockEC2APIMockRecorder) {
+func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 	m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			{
@@ -609,7 +608,7 @@ func mockedCreateInstanceCalls(m *mock_ec2iface.MockEC2APIMockRecorder) {
 	}}, nil)
 }
 
-func mockedDescribeInstanceCalls(m *mock_ec2iface.MockEC2APIMockRecorder) {
+func mockedDescribeInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 	m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
 		InstanceIds: aws.StringSlice([]string{"myMachine"}),
 	})).Return(&ec2.DescribeInstancesOutput{
