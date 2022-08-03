@@ -179,7 +179,7 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 				},
 			}),
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -1089,7 +1089,7 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 				Subnets: []infrav1.SubnetSpec{},
 			}),
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeAvailabilityZones(gomock.Any()).
 					Return(&ec2.DescribeAvailabilityZonesOutput{
 						AvailabilityZones: []*ec2.AvailabilityZone{
