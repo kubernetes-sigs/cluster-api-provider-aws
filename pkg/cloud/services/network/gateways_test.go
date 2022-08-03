@@ -29,7 +29,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
+	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -40,7 +40,7 @@ func TestReconcileInternetGateways(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  *infrav1.NetworkSpec
-		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect func(m *mocks.MockEC2APIMockRecorder)
 	}{
 		{
 			name: "has igw",
@@ -52,7 +52,7 @@ func TestReconcileInternetGateways(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeInternetGateways(gomock.AssignableToTypeOf(&ec2.DescribeInternetGatewaysInput{})).
 					Return(&ec2.DescribeInternetGatewaysOutput{
 						InternetGateways: []*ec2.InternetGateway{
@@ -82,7 +82,7 @@ func TestReconcileInternetGateways(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeInternetGateways(gomock.AssignableToTypeOf(&ec2.DescribeInternetGatewaysInput{})).
 					Return(&ec2.DescribeInternetGatewaysOutput{}, nil)
 
@@ -118,7 +118,7 @@ func TestReconcileInternetGateways(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scheme := runtime.NewScheme()
 			_ = infrav1.AddToScheme(scheme)
@@ -158,7 +158,7 @@ func TestDeleteInternetGateways(t *testing.T) {
 	testCases := []struct {
 		name    string
 		input   *infrav1.NetworkSpec
-		expect  func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect  func(m *mocks.MockEC2APIMockRecorder)
 		wantErr bool
 	}{
 		{
@@ -168,7 +168,7 @@ func TestDeleteInternetGateways(t *testing.T) {
 					ID: "vpc-gateways",
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {},
 		},
 		{
 			name: "Should ignore deletion if internet gateway is not found",
@@ -180,7 +180,7 @@ func TestDeleteInternetGateways(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeInternetGateways(gomock.Eq(&ec2.DescribeInternetGatewaysInput{
 					Filters: []*ec2.Filter{
 						{
@@ -201,7 +201,7 @@ func TestDeleteInternetGateways(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeInternetGateways(gomock.AssignableToTypeOf(&ec2.DescribeInternetGatewaysInput{})).
 					Return(&ec2.DescribeInternetGatewaysOutput{
 						InternetGateways: []*ec2.InternetGateway{
@@ -229,7 +229,7 @@ func TestDeleteInternetGateways(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scheme := runtime.NewScheme()
 			err := infrav1.AddToScheme(scheme)
