@@ -20,6 +20,7 @@ limitations under the License.
 package managed
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -27,8 +28,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/util/version"
+	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	"sigs.k8s.io/cluster-api/test/framework"
 )
 
 type waitForControlPlaneToBeUpgradedInput struct {
@@ -65,4 +68,20 @@ func waitForControlPlaneToBeUpgraded(input waitForControlPlaneToBeUpgradedInput,
 			return false, nil
 		}
 	}, intervals...).Should(BeTrue())
+}
+
+type GetControlPlaneByNameInput struct {
+	Getter    framework.Getter
+	Name      string
+	Namespace string
+}
+
+func GetControlPlaneByName(ctx context.Context, input GetControlPlaneByNameInput) *ekscontrolplanev1.AWSManagedControlPlane {
+	cp := &ekscontrolplanev1.AWSManagedControlPlane{}
+	key := crclient.ObjectKey{
+		Name:      input.Name,
+		Namespace: input.Namespace,
+	}
+	Expect(input.Getter.Get(ctx, key, cp)).To(Succeed(), "Failed to get AWSManagedControlPlane object %s/%s", input.Namespace, input.Name)
+	return cp
 }
