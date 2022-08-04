@@ -412,6 +412,14 @@ test-e2e: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) generate-test-flavors e2e
 test-e2e-eks: generate-test-flavors  $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run eks e2e tests
 	time $(GINKGO) -tags=e2e $(GINKGO_ARGS) ./test/e2e/suites/managed/... -- -config-path="$(E2E_EKS_CONF_PATH)" --source-template="$(EKS_SOURCE_TEMPLATE)" $(E2E_ARGS) $(EKS_E2E_ARGS)
 
+.PHONY: test-e2e-gc ## Run garbage collection e2e tests using clusterctl
+test-e2e-gc: generate-test-flavors  $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run eks e2e tests
+	time $(GINKGO) -tags=e2e -focus="$(GINKGO_FOCUS)" -skip="$(GINKGO_SKIP)" $(GINKGO_ARGS) -p ./test/e2e/suites/gc_unmanaged/... -- -config-path="$(E2E_CONF_PATH)" $(E2E_ARGS)
+
+.PHONY: test-e2e-eks-gc ## Run EKS garbage collection e2e tests using clusterctl
+test-e2e-eks-gc: generate-test-flavors  $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run eks e2e tests
+	time $(GINKGO) -tags=e2e -focus="$(GINKGO_FOCUS)" -skip="$(GINKGO_SKIP)" $(GINKGO_ARGS) ./test/e2e/suites/gc_managed/... -- -config-path="$(E2E_EKS_CONF_PATH)" --source-template="$(EKS_SOURCE_TEMPLATE)" $(E2E_ARGS) $(EKS_E2E_ARGS)
+
 
 CONFORMANCE_E2E_ARGS ?= -kubetest.config-file=$(KUBETEST_CONF_PATH)
 CONFORMANCE_E2E_ARGS += $(E2E_ARGS)
@@ -435,6 +443,8 @@ compile-e2e: ## Test e2e compilation
 	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/unmanaged
 	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/conformance
 	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/managed
+	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/gc_managed
+	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/gc_unmanaged
 
 
 .PHONY: docker-pull-e2e-preloads
