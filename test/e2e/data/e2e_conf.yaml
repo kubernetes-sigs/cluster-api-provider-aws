@@ -197,6 +197,7 @@ variables:
   MULTI_TENANCY_ROLE_NAME: "multi-tenancy-role"
   MULTI_TENANCY_NESTED_ROLE_NAME: "multi-tenancy-nested-role"
   IP_FAMILY: "IPv4"
+  CAPA_LOGLEVEL: "4"
   # Enabling the feature flags by setting the env variables.
   EXP_CLUSTER_RESOURCE_SET: "true"
   EXP_MACHINE_POOL: "true"
@@ -226,3 +227,5 @@ intervals:
   default/wait-machine-pool-upgrade: [ "50m", "10s" ]
   default/wait-create-identity: ["1m", "10s"]
   default/wait-job: ["10m", "10s"]
+  default/wait-deployment-ready: ["5m", "10s"]
+  default/wait-loadbalancer-ready: ["5m", "30s"]
