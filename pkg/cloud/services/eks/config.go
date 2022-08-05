@@ -187,7 +187,7 @@ func (s *Service) createUserKubeconfigSecret(ctx context.Context, cluster *eks.C
 		return fmt.Errorf("creating base kubeconfig: %w", err)
 	}
 
-	execConfig := &api.ExecConfig{APIVersion: "client.authentication.k8s.io/v1alpha1"}
+	execConfig := &api.ExecConfig{APIVersion: "client.authentication.k8s.io/v1beta1"}
 	switch s.scope.TokenMethod() {
 	case ekscontrolplanev1.EKSTokenMethodIAMAuthenticator:
 		execConfig.Command = "aws-iam-authenticator"
