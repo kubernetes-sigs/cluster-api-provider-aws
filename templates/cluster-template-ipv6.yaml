@@ -41,17 +41,24 @@ spec:
         name: '{{ ds.meta_data.local_hostname }}'
         kubeletExtraArgs:
           cloud-provider: aws
+          node-ip: '::'
     clusterConfiguration:
       apiServer:
         extraArgs:
           cloud-provider: aws
+          bind-address: '::'
       controllerManager:
         extraArgs:
           cloud-provider: aws
+          bind-address: '::'
+      scheduler:
+        extraArgs:
+          bind-address: '::'
     joinConfiguration:
       nodeRegistration:
         name: '{{ ds.meta_data.local_hostname }}'
         kubeletExtraArgs:
+          node-ip: '::'
           cloud-provider: aws
   version: "${KUBERNETES_VERSION}"
 ---
