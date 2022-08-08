@@ -11,4 +11,4 @@ jobs:
       - uses: actions/checkout@v2
       - uses: artyom/mdlinks@v0
         with:
-          dir: 'docs'
+          dir: 'docs/book'
