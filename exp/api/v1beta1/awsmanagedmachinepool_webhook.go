@@ -55,7 +55,7 @@ var _ webhook.Validator = &AWSManagedMachinePool{}
 
 func (r *AWSManagedMachinePool) validateScaling() field.ErrorList {
 	var allErrs field.ErrorList
-	if r.Spec.Scaling != nil { // nolint:nestif
+	if r.Spec.Scaling != nil { //nolint:nestif
 		minField := field.NewPath("spec", "scaling", "minSize")
 		maxField := field.NewPath("spec", "scaling", "maxSize")
 		min := r.Spec.Scaling.MinSize

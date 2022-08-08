@@ -63,7 +63,8 @@ func (s *Service) ReconcileBootstrapStack(stackName string, t go_cfn.Template, t
 			Value: pointer.StringPtr(v),
 		})
 	}
-	if err := s.createStack(stackName, processedYaml, stackTags); err != nil { // nolint:nestif
+	//nolint:nestif
+	if err := s.createStack(stackName, processedYaml, stackTags); err != nil {
 		if code, _ := awserrors.Code(errors.Cause(err)); code == "AlreadyExistsException" {
 			klog.Infof("AWS Cloudformation stack %q already exists, updating", stackName)
 			updateErr := s.updateStack(stackName, processedYaml, stackTags)

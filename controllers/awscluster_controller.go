@@ -327,7 +327,7 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 	if _, err := net.LookupIP(awsCluster.Status.Network.APIServerELB.DNSName); err != nil {
 		conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.WaitForDNSNameResolveReason, clusterv1.ConditionSeverityInfo, "")
 		clusterScope.Info("Waiting on API server ELB DNS name to resolve")
-		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil // nolint:nilerr
+		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil //nolint:nilerr
 	}
 	conditions.MarkTrue(awsCluster, infrav1.LoadBalancerReadyCondition)
 

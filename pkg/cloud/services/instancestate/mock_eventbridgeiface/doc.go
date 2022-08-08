@@ -18,4 +18,4 @@ limitations under the License.
 //go:generate ../../../../../hack/tools/bin/mockgen -destination eventbridgeiface_mock.go -package mock_eventbridgeiface github.com/aws/aws-sdk-go/service/eventbridge/eventbridgeiface EventBridgeAPI
 //go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt eventbridgeiface_mock.go > _eventbridgeiface_mock.go && mv _eventbridgeiface_mock.go eventbridgeiface_mock.go"
 
-package mock_eventbridgeiface // nolint:stylecheck
+package mock_eventbridgeiface //nolint:stylecheck

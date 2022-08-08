@@ -25,7 +25,7 @@ const (
 	// PrincipalCredentialRetrievalFailedReason used when errors occur during identity credential retrieval.
 	PrincipalCredentialRetrievalFailedReason = "PrincipalCredentialRetrievalFailed"
 	// CredentialProviderBuildFailedReason used when errors occur during building providers before trying credential retrieval.
-	// nolint:gosec
+	//nolint:gosec
 	CredentialProviderBuildFailedReason = "CredentialProviderBuildFailed"
 	// PrincipalUsageAllowedCondition reports on whether Principal and all the nested source identities are allowed to be used in the AWSCluster namespace.
 	PrincipalUsageAllowedCondition clusterv1alpha3.ConditionType = "PrincipalUsageAllowed"
