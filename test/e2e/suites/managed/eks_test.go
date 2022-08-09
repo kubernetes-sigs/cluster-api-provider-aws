@@ -42,7 +42,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 		clusterName          string
 		cniAddonName         = "vpc-cni"
 		corednsAddonName     = "coredns"
-		eksKubernetesVersion = "v1.21"
+		eksKubernetesVersion = "v1.21.14"
 	)
 
 	shared.ConditionalIt(runGeneralTests, "should create a cluster and add nodes", func() {
