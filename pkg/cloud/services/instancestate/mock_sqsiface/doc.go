@@ -18,4 +18,4 @@ limitations under the License.
 //go:generate ../../../../../hack/tools/bin/mockgen -destination sqsiface_mock.go -package mock_sqsiface github.com/aws/aws-sdk-go/service/sqs/sqsiface SQSAPI
 //go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt sqsiface_mock.go > _sqsiface_mock.go && mv _sqsiface_mock.go sqsiface_mock.go"
 
-package mock_sqsiface // nolint:stylecheck
+package mock_sqsiface //nolint:stylecheck

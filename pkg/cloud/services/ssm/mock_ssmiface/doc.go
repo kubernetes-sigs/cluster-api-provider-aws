@@ -18,4 +18,4 @@ limitations under the License.
 //go:generate ../../../../../hack/tools/bin/mockgen -destination ssmapi_mock.go -package mock_ssmiface github.com/aws/aws-sdk-go/service/ssm/ssmiface SSMAPI
 //go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt ssmapi_mock.go > _ssmapi_mock.go && mv _ssmapi_mock.go ssmapi_mock.go"
 
-package mock_ssmiface // nolint:stylecheck
+package mock_ssmiface //nolint:stylecheck

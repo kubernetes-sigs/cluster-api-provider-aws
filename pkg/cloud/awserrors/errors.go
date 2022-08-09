@@ -40,7 +40,7 @@ const (
 	LaunchTemplateNameNotFound = "InvalidLaunchTemplateName.NotFoundException"
 	LoadBalancerNotFound       = "LoadBalancerNotFound"
 	NATGatewayNotFound         = "InvalidNatGatewayID.NotFound"
-	// nolint:gosec
+	//nolint:gosec
 	NoCredentialProviders                   = "NoCredentialProviders"
 	NoSuchKey                               = "NoSuchKey"
 	PermissionNotFound                      = "InvalidPermission.NotFound"
