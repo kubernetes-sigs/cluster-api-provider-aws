@@ -117,7 +117,7 @@ func (s *Service) ReconcileLaunchTemplate(
 	}
 
 	// Check if the instance tags were changed. If they were, create a new LaunchTemplate.
-	tagsChanged, _, _, _ := tagsChanged(annotation, scope.AdditionalTags()) // nolint:dogsled
+	tagsChanged, _, _, _ := tagsChanged(annotation, scope.AdditionalTags()) //nolint:dogsled
 
 	needsUpdate, err := ec2svc.LaunchTemplateNeedsUpdate(scope, scope.GetLaunchTemplate(), launchTemplate)
 	if err != nil {
