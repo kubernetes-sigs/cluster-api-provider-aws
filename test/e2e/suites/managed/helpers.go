@@ -121,7 +121,7 @@ func verifyConfigMapExists(ctx context.Context, name, namespace string, k8sclien
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
-func verifyRoleExistsAndOwned(roleName string, eksClusterName string, checkOwned bool, sess client.ConfigProvider) {
+func VerifyRoleExistsAndOwned(roleName string, eksClusterName string, checkOwned bool, sess client.ConfigProvider) {
 	iamClient := iam.New(sess)
 	input := &iam.GetRoleInput{
 		RoleName: aws.String(roleName),
