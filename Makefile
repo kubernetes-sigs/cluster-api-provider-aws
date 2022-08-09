@@ -328,8 +328,8 @@ apidiff: $(GO_APIDIFF) ## Check for API differences
 	@$(call checkdiff) > /dev/null
 	@if ($(call checkdiff) | grep "api/"); then \
 		$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible; \
-	else
-		@echo "No changes to 'api/'. Nothing to do."
+	else \
+		echo "No changes to 'api/'. Nothing to do."; \
 	fi
 
 define checkdiff
