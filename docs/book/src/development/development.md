@@ -127,7 +127,7 @@ AWS::IAM::User            |bootstrapper.cluster-api-provider-aws.sigs.k8s.io    
 
 Before the next steps, make sure [initial setup for development environment][Initial-setup-for-development-environment] steps are complete.
 
-[Initial-setup-for-development-environment]: ../development/development.html#initial-setup-for-development-environment
+[Initial-setup-for-development-environment]: development.md#initial-setup-for-development-environment
 
 There are two ways to build aws manager from local cluster-api-provider-aws source and run it in local kind cluster:
 
