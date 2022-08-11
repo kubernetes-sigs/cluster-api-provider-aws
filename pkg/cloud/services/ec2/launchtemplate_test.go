@@ -738,6 +738,12 @@ func TestCreateLaunchTemplate(t *testing.T) {
 						UserData:         pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "1"}),
 						ImageId:          aws.String("imageID"),
+						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
+							MarketType: aws.String("spot"),
+							SpotOptions: &ec2.LaunchTemplateSpotMarketOptionsRequest{
+								MaxPrice: aws.String("0.9"),
+							},
+						},
 						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
 							{
 								ResourceType: aws.String(ec2.ResourceTypeInstance),
@@ -792,6 +798,12 @@ func TestCreateLaunchTemplate(t *testing.T) {
 						UserData:         pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "sg-1"}),
 						ImageId:          aws.String("imageID"),
+						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
+							MarketType: aws.String("spot"),
+							SpotOptions: &ec2.LaunchTemplateSpotMarketOptionsRequest{
+								MaxPrice: aws.String("0.9"),
+							},
+						},
 						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
 							{
 								ResourceType: aws.String(ec2.ResourceTypeInstance),
@@ -848,6 +860,12 @@ func TestCreateLaunchTemplate(t *testing.T) {
 						UserData:         pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "1"}),
 						ImageId:          aws.String("imageID"),
+						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
+							MarketType: aws.String("spot"),
+							SpotOptions: &ec2.LaunchTemplateSpotMarketOptionsRequest{
+								MaxPrice: aws.String("0.9"),
+							},
+						},
 						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
 							{
 								ResourceType: aws.String(ec2.ResourceTypeInstance),
@@ -971,6 +989,12 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 						UserData:         pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "1"}),
 						ImageId:          aws.String("imageID"),
+						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
+							MarketType: aws.String("spot"),
+							SpotOptions: &ec2.LaunchTemplateSpotMarketOptionsRequest{
+								MaxPrice: aws.String("0.9"),
+							},
+						},
 						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
 							{
 								ResourceType: aws.String(ec2.ResourceTypeInstance),
@@ -1016,6 +1040,12 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 						UserData:         pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "1"}),
 						ImageId:          aws.String("imageID"),
+						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
+							MarketType: aws.String("spot"),
+							SpotOptions: &ec2.LaunchTemplateSpotMarketOptionsRequest{
+								MaxPrice: aws.String("0.9"),
+							},
+						},
 						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
 							{
 								ResourceType: aws.String(ec2.ResourceTypeInstance),
