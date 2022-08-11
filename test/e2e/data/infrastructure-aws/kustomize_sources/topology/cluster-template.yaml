@@ -10,7 +10,7 @@ spec:
     pods:
       cidrBlocks: ["192.168.0.0/16"]
   topology:
-    class: "quick-start"
+    class: "ci-default"
     version: "${KUBERNETES_VERSION}"
     controlPlane:
       replicas: "${CONTROL_PLANE_MACHINE_COUNT}"

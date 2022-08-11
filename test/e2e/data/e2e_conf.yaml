@@ -152,7 +152,7 @@ providers:
           - sourcePath: "./infrastructure-aws/generated/cluster-template-upgrades.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-peered-remote.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-internal-elb.yaml"
-          - sourcePath: "./infrastructure-aws/kustomize_sources/topology/clusterclass-quick-start.yaml"
+          - sourcePath: "./infrastructure-aws/kustomize_sources/topology/clusterclass-ci-default.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-nested-multitenancy-clusterclass.yaml"
           - sourcePath: "./infrastructure-aws/kustomize_sources/nested-multitenancy-clusterclass/clusterclass-multi-tenancy.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-self-hosted-clusterclass.yaml"
