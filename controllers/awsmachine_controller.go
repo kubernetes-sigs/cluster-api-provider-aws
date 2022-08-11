@@ -429,7 +429,7 @@ func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc se
 }
 
 func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope, elbScope scope.ELBScope, objectStoreScope scope.S3Scope) (ctrl.Result, error) {
-	machineScope.Info("Reconciling AWSMachine")
+	machineScope.V(4).Info("Reconciling AWSMachine")
 
 	// If the AWSMachine is in an error state, return early.
 	if machineScope.HasFailed() {
@@ -760,8 +760,6 @@ func (r *AWSMachineReconciler) deleteIgnitionBootstrapDataFromS3(machineScope *s
 		return nil
 	}
 
-	machineScope.Info("Deleting unneeded entry from AWS S3", "secretPrefix", machineScope.GetSecretPrefix())
-
 	_, userDataFormat, err := machineScope.GetRawBootstrapDataWithFormat()
 	if err != nil {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedGetBootstrapData", err.Error())
@@ -771,6 +769,8 @@ func (r *AWSMachineReconciler) deleteIgnitionBootstrapDataFromS3(machineScope *s
 	if !machineScope.UseIgnition(userDataFormat) {
 		return nil
 	}
+
+	machineScope.Info("Deleting unneeded entry from AWS S3", "secretPrefix", machineScope.GetSecretPrefix())
 
 	if err := objectStoreSvc.Delete(machineScope); err != nil {
 		return errors.Wrap(err, "deleting bootstrap data object")
