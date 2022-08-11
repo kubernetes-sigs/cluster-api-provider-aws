@@ -153,7 +153,9 @@ func (s *Service) ReconcileLaunchTemplate(
 		}
 
 		scope.SetLaunchTemplateLatestVersionStatus(version)
-		return scope.PatchObject()
+		if err := scope.PatchObject(); err != nil {
+			return err
+		}
 	}
 
 	if needsUpdate || tagsChanged || *imageID != *launchTemplate.AMI.ID {

@@ -262,7 +262,7 @@ func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
 		}
 
 		if launchTemplate == nil {
-			machinePoolScope.V(2).Info("Unable to locate launch template")
+			machinePoolScope.V(2).Info("Unable to find matching launch template")
 			r.Recorder.Eventf(machinePoolScope.ManagedMachinePool, corev1.EventTypeNormal, "NoLaunchTemplateFound", "Unable to find matching launch template")
 			controllerutil.RemoveFinalizer(machinePoolScope.ManagedMachinePool, expinfrav1.ManagedMachinePoolFinalizer)
 			return ctrl.Result{}, nil

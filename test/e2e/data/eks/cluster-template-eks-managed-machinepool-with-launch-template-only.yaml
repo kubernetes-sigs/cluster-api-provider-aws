@@ -7,7 +7,7 @@ spec:
   replicas: ${WORKER_MACHINE_COUNT}
   template:
     spec:
-      version: "EKS_KUBERNETES_VERSION"
+      version: "${KUBERNETES_VERSION}"
       clusterName: "${CLUSTER_NAME}"
       bootstrap:
         dataSecretName: "${CLUSTER_NAME}-pool-lt-0-userdata"
