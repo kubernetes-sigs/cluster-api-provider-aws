@@ -482,7 +482,7 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 	// set the AMI ID
 	data.ImageId = imageID
 
-	data.InstanceMarketOptions = getLaunchTemplateInstanceMarketOptionsRequest(scope.AWSMachinePool.Spec.AWSLaunchTemplate.SpotMarketOptions)
+	data.InstanceMarketOptions = getLaunchTemplateInstanceMarketOptionsRequest(scope.GetLaunchTemplate().SpotMarketOptions)
 
 	// Set up root volume
 	if lt.RootVolume != nil {
