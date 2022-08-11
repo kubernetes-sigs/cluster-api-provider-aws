@@ -195,6 +195,8 @@ func (s *Service) createLaunchTemplateData(scope *scope.MachinePoolScope, imageI
 	// set the AMI ID
 	data.ImageId = imageID
 
+	data.InstanceMarketOptions = getLaunchTemplateInstanceMarketOptionsRequest(scope.AWSMachinePool.Spec.AWSLaunchTemplate.SpotMarketOptions)
+
 	// Set up root volume
 	if lt.RootVolume != nil {
 		rootDeviceName, err := s.checkRootVolume(lt.RootVolume, *data.ImageId)
@@ -521,4 +523,27 @@ func (s *Service) getFilteredSecurityGroupID(securityGroup infrav1.AWSResourceRe
 	}
 
 	return *sgs.SecurityGroups[0].GroupId, nil
+}
+
+func getLaunchTemplateInstanceMarketOptionsRequest(spotMarketOptions *infrav1.SpotMarketOptions) *ec2.LaunchTemplateInstanceMarketOptionsRequest {
+	if spotMarketOptions == nil {
+		// Instance is not a Spot instance
+		return nil
+	}
+
+	// Set required values for Spot instances
+	spotOptions := &ec2.LaunchTemplateSpotMarketOptionsRequest{}
+
+	// Persistent option is not available for EC2 autoscaling, EC2 makes a one-time request by default and setting request type should not be allowed.
+	// For one-time requests, only terminate option is available as interruption behavior, and default for spotOptions.SetInstanceInterruptionBehavior() is terminate, so it is not set here explicitly.
+
+	if maxPrice := aws.StringValue(spotMarketOptions.MaxPrice); maxPrice != "" {
+		spotOptions.SetMaxPrice(maxPrice)
+	}
+
+	launchTemplateInstanceMarketOptionsRequest := &ec2.LaunchTemplateInstanceMarketOptionsRequest{}
+	launchTemplateInstanceMarketOptionsRequest.SetMarketType(ec2.MarketTypeSpot)
+	launchTemplateInstanceMarketOptionsRequest.SetSpotOptions(spotOptions)
+
+	return launchTemplateInstanceMarketOptionsRequest
 }
