@@ -1,23 +1,23 @@
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: ClusterClass
 metadata:
-  name: quick-start
+  name: ci-default
 spec:
   controlPlane:
     ref:
       apiVersion: controlplane.cluster.x-k8s.io/v1beta1
       kind: KubeadmControlPlaneTemplate
-      name: quick-start-control-plane
+      name: ci-default-control-plane
     machineInfrastructure:
       ref:
         kind: AWSMachineTemplate
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        name: quick-start-control-plane
+        name: ci-default-control-plane
   infrastructure:
     ref:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
       kind: AWSClusterTemplate
-      name: quick-start
+      name: ci-default
   workers:
     machineDeployments:
     - class: default-worker
@@ -26,12 +26,12 @@ spec:
           ref:
             apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
             kind: KubeadmConfigTemplate
-            name: quick-start-worker-bootstraptemplate
+            name: ci-default-worker-bootstraptemplate
         infrastructure:
           ref:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: AWSMachineTemplate
-            name: quick-start-worker-machinetemplate
+            name: ci-default-worker-machinetemplate
   variables:
   - name: region
     required: true
@@ -218,7 +218,7 @@ spec:
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSClusterTemplate
 metadata:
-  name: quick-start
+  name: ci-default
 spec:
   template:
     spec: {}
@@ -226,7 +226,7 @@ spec:
 kind: KubeadmControlPlaneTemplate
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 metadata:
-  name: quick-start-control-plane
+  name: ci-default-control-plane
 spec:
   template:
     spec:
@@ -252,7 +252,7 @@ spec:
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSMachineTemplate
 metadata:
-  name: quick-start-control-plane
+  name: ci-default-control-plane
 spec:
   template:
     spec:
@@ -264,7 +264,7 @@ spec:
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSMachineTemplate
 metadata:
-  name: quick-start-worker-machinetemplate
+  name: ci-default-worker-machinetemplate
 spec:
   template:
     spec:
@@ -276,7 +276,7 @@ spec:
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
 metadata:
-  name: quick-start-worker-bootstraptemplate
+  name: ci-default-worker-bootstraptemplate
 spec:
   template:
     spec:
