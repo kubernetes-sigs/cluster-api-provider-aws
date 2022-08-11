@@ -285,6 +285,15 @@ func TestGenerateAmiName(t *testing.T) {
 			},
 			want: "random-centos-7-?1.23.3-*",
 		},
+		{
+			name: "Should return valid amiName if custom AMI name format passed calling replaceAll func",
+			args: args{
+				amiNameFormat:     "random-{{.BaseOS}}-?{{replaceAll .K8sVersion \"+\" \"-\"}}-*",
+				baseOS:            "centos-7",
+				kubernetesVersion: "1.23.3+build.0",
+			},
+			want: "random-centos-7-?1.23.3-build.0-*",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

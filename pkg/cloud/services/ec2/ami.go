@@ -82,8 +82,11 @@ func GenerateAmiName(amiNameFormat, baseOS, kubernetesVersion string) (string, e
 	if amiNameFormat == "" {
 		amiNameFormat = DefaultAmiNameFormat
 	}
+	funcMap := template.FuncMap{
+		"replaceAll": strings.ReplaceAll,
+	}
 	var templateBytes bytes.Buffer
-	template, err := template.New("amiName").Parse(amiNameFormat)
+	template, err := template.New("amiName").Funcs(funcMap).Parse(amiNameFormat)
 	if err != nil {
 		return amiNameFormat, errors.Wrapf(err, "failed create template from string: %q", amiNameFormat)
 	}
