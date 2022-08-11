@@ -53,6 +53,7 @@ const (
 	SpotInstancesFlavor                  = "spot-instances"
 	SSMFlavor                            = "ssm"
 	TopologyFlavor                       = "topology"
+	SelfHostedClusterClassFlavor         = "self-hosted-clusterclass"
 	UpgradeToMain                        = "upgrade-to-main"
 	ExternalCloudProvider                = "external-cloud-provider"
 	SimpleMultitenancyFlavor             = "simple-multitenancy"
