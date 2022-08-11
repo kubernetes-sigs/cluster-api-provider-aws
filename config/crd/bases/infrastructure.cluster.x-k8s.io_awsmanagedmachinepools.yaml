@@ -693,6 +693,15 @@ spec:
                     required:
                     - size
                     type: object
+                  spotMarketOptions:
+                    description: SpotMarketOptions are options for configuring AWSMachinePool
+                      instances to be run using AWS Spot instances.
+                    properties:
+                      maxPrice:
+                        description: MaxPrice defines the maximum price the user is
+                          willing to pay for Spot VM instances
+                        type: string
+                    type: object
                   sshKeyName:
                     description: SSHKeyName is the name of the ssh key to attach to
                       the instance. Valid values are empty string (do not use SSH
