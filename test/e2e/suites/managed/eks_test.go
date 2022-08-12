@@ -36,12 +36,12 @@ import (
 // General EKS e2e test.
 var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 	var (
-		namespace            *corev1.Namespace
-		ctx                  context.Context
-		specName             = "cluster"
-		clusterName          string
-		cniAddonName         = "vpc-cni"
-		corednsAddonName     = "coredns"
+		namespace        *corev1.Namespace
+		ctx              context.Context
+		specName         = "cluster"
+		clusterName      string
+		cniAddonName     = "vpc-cni"
+		corednsAddonName = "coredns"
 	)
 
 	shared.ConditionalIt(runGeneralTests, "should create a cluster and add nodes", func() {
