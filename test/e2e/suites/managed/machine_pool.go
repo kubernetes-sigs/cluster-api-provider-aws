@@ -49,7 +49,6 @@ type MachinePoolSpecInput struct {
 	ManagedMachinePool    bool
 	Flavor                string
 	UsesLaunchTemplate    bool
-	EKSKubernetesVersion  string
 }
 
 // MachinePoolSpec implements a test for creating a machine pool.
@@ -85,7 +84,6 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInpu
 		userData := fmt.Sprintf(userDataTemplate, eksClusterName)
 		userDataEncoded := base64.StdEncoding.EncodeToString([]byte(userData))
 		workloadClusterTemplate = []byte(strings.ReplaceAll(string(workloadClusterTemplate), "USER_DATA", userDataEncoded))
-		workloadClusterTemplate = []byte(strings.ReplaceAll(string(workloadClusterTemplate), "EKS_KUBERNETES_VERSION", input.EKSKubernetesVersion))
 	}
 	shared.Byf(string(workloadClusterTemplate))
 	shared.Byf("Applying the %s cluster template yaml to the cluster", configCluster.Flavor)

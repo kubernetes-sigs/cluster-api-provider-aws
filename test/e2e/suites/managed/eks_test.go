@@ -42,7 +42,6 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 		clusterName          string
 		cniAddonName         = "vpc-cni"
 		corednsAddonName     = "coredns"
-		eksKubernetesVersion = "v1.21.14"
 	)
 
 	shared.ConditionalIt(runGeneralTests, "should create a cluster and add nodes", func() {
@@ -157,7 +156,6 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				ManagedMachinePool:    false,
 				Flavor:                EKSMachinePoolOnlyFlavor,
 				UsesLaunchTemplate:    false,
-				EKSKubernetesVersion:  eksKubernetesVersion,
 			}
 		})
 
@@ -175,7 +173,6 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				ManagedMachinePool:    true,
 				Flavor:                EKSManagedMachinePoolWithLaunchTemplateOnlyFlavor,
 				UsesLaunchTemplate:    true,
-				EKSKubernetesVersion:  eksKubernetesVersion,
 			}
 		})
 
