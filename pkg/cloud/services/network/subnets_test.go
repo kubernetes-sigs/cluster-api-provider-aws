@@ -40,7 +40,7 @@ const (
 	subnetsVPCID = "vpc-subnets"
 )
 
-func TestReconcileSubnets(t *testing.T) {
+func TestService_ReconcileSubnets(t *testing.T) {
 	testCases := []struct {
 		name          string
 		input         ScopeBuilder
@@ -1783,7 +1783,7 @@ func TestReconcileSubnets(t *testing.T) {
 	}
 }
 
-func TestDiscoverSubnets(t *testing.T) {
+func TestService_DiscoverSubnets(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  *infrav1.NetworkSpec
@@ -1999,7 +1999,7 @@ func TestDiscoverSubnets(t *testing.T) {
 	}
 }
 
-func TestDeleteSubnets(t *testing.T) {
+func TestService_DeleteSubnets(t *testing.T) {
 	testCases := []struct {
 		name          string
 		input         *infrav1.NetworkSpec

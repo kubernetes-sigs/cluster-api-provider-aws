@@ -39,7 +39,7 @@ const (
 	ElasticIPAllocationID = "elastic-ip-allocation-id"
 )
 
-func TestReconcileNatGateways(t *testing.T) {
+func TestService_ReconcileNatGateways(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 

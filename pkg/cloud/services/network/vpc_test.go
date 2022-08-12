@@ -63,7 +63,7 @@ func describeVpcAttributeFalse(input *ec2.DescribeVpcAttributeInput) (*ec2.Descr
 	return result, nil
 }
 
-func TestReconcileVPC(t *testing.T) {
+func TestService_ReconcileVPC(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
