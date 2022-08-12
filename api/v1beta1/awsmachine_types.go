@@ -51,29 +51,45 @@ type AWSMachineSpec struct {
 	// InstanceID is the EC2 instance ID for this machine.
 	InstanceID *string `json:"instanceID,omitempty"`
 
-	// AMI is the reference to the AMI from which to create the machine instance.
+	// AMI ID is the first method for finding an AMI ID, if this field is set all other methods will be ignored.
+	// example: ami-1234567890abcdef0
 	AMI AMIReference `json:"ami,omitempty"`
 
-	// ImageLookupFormat is the AMI naming format to look up the image for this
-	// machine It will be ignored if an explicit AMI is set. Supports
-	// substitutions for {{.BaseOS}} and {{.K8sVersion}} with the base OS and
-	// kubernetes version, respectively. The BaseOS will be the value in
-	// ImageLookupBaseOS or ubuntu (the default), and the kubernetes version as
-	// defined by the packages produced by kubernetes/release without v as a
-	// prefix: 1.13.0, 1.12.5-mybuild.1, or 1.17.3. For example, the default
+	// ImageLookupSSMParameterName is the second method for finding an AMI ID, if this field is set the following AMI Name
+	// format will be ignored. This field is for the name of the parameter to check in SSM and this method for lookup
+	// will work for self-managed instances if you maintain your own SSM Keys. AWS maintains public SSM keys for EKS
+	// optimized images see the docs to find keys https://docs.aws.amazon.com/eks/latest/userguide/retrieve-ami-id.html
+	// When using this lookup method make sure you use the whole path to the key.
+	// example: /aws/service/eks/optimized-ami/1.22/amazon-linux-2/recommended/image_id
+	ImageLookupSSMParameterName string `json:"imageLookupSSMParameterName"`
+
+	// ImageLookupFormat this is the third method for finding an AMI ID and takes creates describe images query filters
+	// and gets the results and returns the most recent image based on creation date.
+	// The go template supports the following substitutions
+	// - {{.BaseOS}} the value of ImageLookupBaseOS, default ubuntu-18.04
+	// - {{.Arch}} the value of ImageLookupArch, defaults to amd64 (x86_64)
+	// - {{.K8sVersion}} the kubernetes semver pulled from MachinePool Spec with the v prefix trimmed
+	// For example, the default
 	// image format of capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-* will end up
-	// searching for AMIs that match the pattern capa-ami-ubuntu-?1.18.0-* for a
+	// searching for AMIs that match the pattern capa-ami-ubuntu-18.04-?1.18.0-* for a
 	// Machine that is targeting kubernetes v1.18.0 and the ubuntu base OS. See
 	// also: https://golang.org/pkg/text/template/
 	// +optional
 	ImageLookupFormat string `json:"imageLookupFormat,omitempty"`
 
-	// ImageLookupOrg is the AWS Organization ID to use for image lookup if AMI is not set.
+	// ImageLookupOrg the Organization ID to query for AMIs, default is the AWS Organization ID 258751437250
+	// +optional
 	ImageLookupOrg string `json:"imageLookupOrg,omitempty"`
 
-	// ImageLookupBaseOS is the name of the base operating system to use for
-	// image lookup the AMI is not set.
+	// ImageLookupBaseOS is the name of the base operating system to query for AMIs, the default is ubuntu-18.04
+	// +optional
+	// +kubebuilder:validation:Enum:=amazon-2,amazon-2-gpu,ubuntu-18.04,ubuntu-20.04,centos-7,flatcar-stable,bottlerocket,windows-2019-core,windows-2019-full,windows-2022-core,windows-2022-full
 	ImageLookupBaseOS string `json:"imageLookupBaseOS,omitempty"`
+
+	// ImageLookupArch is the name of the base operating system to query for AMIs, the default is amd64
+	// +optional
+	// +kubebuilder:validation:Enum:=amd64,arm64
+	ImageLookupArch string `json:"imageLookupArch,omitempty"`
 
 	// InstanceType is the type of instance to create. Example: m4.xlarge
 	// +kubebuilder:validation:Required

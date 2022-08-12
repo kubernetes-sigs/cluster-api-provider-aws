@@ -46,6 +46,9 @@ type EC2Scope interface {
 	// SSHKeyName returns the SSH key name to use for instances.
 	SSHKeyName() *string
 
+	// ImageLookupSSMParameterName returns the parameter name to use to look up a key in SSM that contains an AMI ID
+	ImageLookupSSMParameterName() string
+
 	// ImageLookupFormat returns the format string to use when looking up AMIs
 	ImageLookupFormat() string
 
@@ -54,4 +57,7 @@ type EC2Scope interface {
 
 	// ImageLookupBaseOS returns the base operating system name to use when looking up AMIs
 	ImageLookupBaseOS() string
+
+	// ImageLookupArch returns the base operating system architecture to use when looking up AMIs
+	ImageLookupArch() string
 }

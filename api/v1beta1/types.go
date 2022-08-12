@@ -53,6 +53,7 @@ type AMIReference struct {
 	// EKSOptimizedLookupType If specified, will look up an EKS Optimized image in SSM Parameter store
 	// +kubebuilder:validation:Enum:=AmazonLinux;AmazonLinuxGPU
 	// +optional
+	// Deprecated: This field has no function and is going to be removed in the next release.
 	EKSOptimizedLookupType *EKSAMILookupType `json:"eksLookupType,omitempty"`
 }
 

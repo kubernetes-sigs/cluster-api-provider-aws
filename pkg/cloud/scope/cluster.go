@@ -347,3 +347,13 @@ func (s *ClusterScope) ImageLookupOrg() string {
 func (s *ClusterScope) ImageLookupBaseOS() string {
 	return s.AWSCluster.Spec.ImageLookupBaseOS
 }
+
+// ImageLookupArch returns the base operating system architecture name to use when looking up AMIs.
+func (s *ClusterScope) ImageLookupArch() string {
+	return s.AWSCluster.Spec.ImageLookupArch
+}
+
+// ImageLookupSSMParameterName returns the SSM parameter name to use when looking up AMIs.
+func (s *ClusterScope) ImageLookupSSMParameterName() string {
+	return s.AWSCluster.Spec.ImageLookupSSMParameterName
+}

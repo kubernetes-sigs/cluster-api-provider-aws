@@ -41,6 +41,7 @@ func Test_DefaultAMILookup(t *testing.T) {
 		baseOS            string
 		kubernetesVersion string
 		amiNameFormat     string
+		arch              string
 	}
 
 	testCases := []struct {
@@ -56,6 +57,7 @@ func Test_DefaultAMILookup(t *testing.T) {
 				baseOS:            "baseOS",
 				kubernetesVersion: "v1.0.0",
 				amiNameFormat:     "ami-name",
+				arch:              "amd64",
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
@@ -112,7 +114,7 @@ func Test_DefaultAMILookup(t *testing.T) {
 			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock.EXPECT())
 
-			img, err := DefaultAMILookup(ec2Mock, tc.args.ownerID, tc.args.baseOS, tc.args.kubernetesVersion, tc.args.amiNameFormat)
+			img, err := DefaultAMILookup(ec2Mock, tc.args.ownerID, tc.args.baseOS, tc.args.arch, tc.args.kubernetesVersion, tc.args.amiNameFormat)
 			tc.check(g, img, err)
 		})
 	}
@@ -198,7 +200,7 @@ func TestAMIs(t *testing.T) {
 			s := NewService(clusterScope)
 			s.EC2Client = ec2Mock
 
-			id, err := s.defaultAMIIDLookup("", "", "base os-baseos version", "v1.11.1")
+			id, err := s.defaultAMIIDLookup("", "", "", "base os-baseos version", "v1.11.1")
 			tc.check(g, id, err)
 		})
 	}
@@ -254,6 +256,7 @@ func TestGenerateAmiName(t *testing.T) {
 		amiNameFormat     string
 		baseOS            string
 		kubernetesVersion string
+		arch              string
 	}
 	tests := []struct {
 		name string
@@ -264,6 +267,7 @@ func TestGenerateAmiName(t *testing.T) {
 			name: "Should return image name even if OS and amiNameFormat is empty",
 			args: args{
 				kubernetesVersion: "v1.23.3",
+				arch:              "amd64",
 			},
 			want: "capa-ami--?1.23.3-*",
 		},
@@ -273,6 +277,7 @@ func TestGenerateAmiName(t *testing.T) {
 				amiNameFormat:     DefaultAmiNameFormat,
 				baseOS:            "centos-7",
 				kubernetesVersion: "1.23.3",
+				arch:              "amd64",
 			},
 			want: "capa-ami-centos-7-?1.23.3-*",
 		},
@@ -282,6 +287,7 @@ func TestGenerateAmiName(t *testing.T) {
 				amiNameFormat:     "random-{{.BaseOS}}-?{{.K8sVersion}}-*",
 				baseOS:            "centos-7",
 				kubernetesVersion: "1.23.3",
+				arch:              "amd64",
 			},
 			want: "random-centos-7-?1.23.3-*",
 		},
@@ -289,7 +295,7 @@ func TestGenerateAmiName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			got, err := GenerateAmiName(tt.args.amiNameFormat, tt.args.baseOS, tt.args.kubernetesVersion)
+			got, err := GenerateAmiName(tt.args.amiNameFormat, tt.args.baseOS, tt.args.arch, tt.args.kubernetesVersion)
 			g.Expect(err).To(BeNil())
 			g.Expect(got).Should(Equal(tt.want))
 		})

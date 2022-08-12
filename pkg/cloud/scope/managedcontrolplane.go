@@ -346,6 +346,16 @@ func (s *ManagedControlPlaneScope) ImageLookupBaseOS() string {
 	return s.ControlPlane.Spec.ImageLookupBaseOS
 }
 
+// ImageLookupArch returns the base operating system architecture to use when looking up AMIs.
+func (s *ManagedControlPlaneScope) ImageLookupArch() string {
+	return s.ControlPlane.Spec.ImageLookupArch
+}
+
+// ImageLookupSSMParameterName returns the SSM Parameter Name to use when looking up AMIs.
+func (s *ManagedControlPlaneScope) ImageLookupSSMParameterName() string {
+	return s.ControlPlane.Spec.ImageLookupSSMParameterName
+}
+
 // IAMAuthConfig returns the IAM authenticator config. The returned value will never be nil.
 func (s *ManagedControlPlaneScope) IAMAuthConfig() *ekscontrolplanev1.IAMAuthenticatorConfig {
 	if s.ControlPlane.Spec.IAMAuthenticatorConfig == nil {

@@ -398,46 +398,9 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope *scope.MachinePoolScope, incom
 
 // DiscoverLaunchTemplateAMI will discover the AMI launch template.
 func (s *Service) DiscoverLaunchTemplateAMI(scope *scope.MachinePoolScope) (*string, error) {
-	lt := scope.AWSMachinePool.Spec.AWSLaunchTemplate
-
-	if lt.AMI.ID != nil {
-		return lt.AMI.ID, nil
-	}
-
-	if scope.MachinePool.Spec.Template.Spec.Version == nil {
-		err := errors.New("Either AWSMachinePool's spec.awslaunchtemplate.ami.id or MachinePool's spec.template.spec.version must be defined")
-		s.scope.Error(err, "")
+	lookupAMI, err := s.GetMachinePoolAMIID(scope)
+	if err != nil {
 		return nil, err
-	}
-
-	var lookupAMI string
-	var err error
-
-	imageLookupFormat := lt.ImageLookupFormat
-	if imageLookupFormat == "" {
-		imageLookupFormat = scope.InfraCluster.ImageLookupFormat()
-	}
-
-	imageLookupOrg := lt.ImageLookupOrg
-	if imageLookupOrg == "" {
-		imageLookupOrg = scope.InfraCluster.ImageLookupOrg()
-	}
-
-	imageLookupBaseOS := lt.ImageLookupBaseOS
-	if imageLookupBaseOS == "" {
-		imageLookupBaseOS = scope.InfraCluster.ImageLookupBaseOS()
-	}
-
-	if scope.IsEKSManaged() && imageLookupFormat == "" && imageLookupOrg == "" && imageLookupBaseOS == "" {
-		lookupAMI, err = s.eksAMILookup(*scope.MachinePool.Spec.Template.Spec.Version, scope.AWSMachinePool.Spec.AWSLaunchTemplate.AMI.EKSOptimizedLookupType)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		lookupAMI, err = s.defaultAMIIDLookup(imageLookupFormat, imageLookupOrg, imageLookupBaseOS, *scope.MachinePool.Spec.Template.Spec.Version)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	return aws.String(lookupAMI), nil

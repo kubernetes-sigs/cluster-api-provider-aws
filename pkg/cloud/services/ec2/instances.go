@@ -39,7 +39,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
 // GetRunningInstanceByTags returns the existing instance or nothing if it doesn't exist.
@@ -132,43 +131,10 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 	}.WithCloudProvider(s.scope.KubernetesClusterName()).WithMachineName(scope.Machine))
 
 	var err error
-	// Pick image from the machine configuration, or use a default one.
-	if scope.AWSMachine.Spec.AMI.ID != nil { //nolint:nestif
-		input.ImageID = *scope.AWSMachine.Spec.AMI.ID
-	} else {
-		if scope.Machine.Spec.Version == nil {
-			err := errors.New("Either AWSMachine's spec.ami.id or Machine's spec.version must be defined")
-			scope.SetFailureReason(capierrors.CreateMachineError)
-			scope.SetFailureMessage(err)
-			return nil, err
-		}
 
-		imageLookupFormat := scope.AWSMachine.Spec.ImageLookupFormat
-		if imageLookupFormat == "" {
-			imageLookupFormat = scope.InfraCluster.ImageLookupFormat()
-		}
-
-		imageLookupOrg := scope.AWSMachine.Spec.ImageLookupOrg
-		if imageLookupOrg == "" {
-			imageLookupOrg = scope.InfraCluster.ImageLookupOrg()
-		}
-
-		imageLookupBaseOS := scope.AWSMachine.Spec.ImageLookupBaseOS
-		if imageLookupBaseOS == "" {
-			imageLookupBaseOS = scope.InfraCluster.ImageLookupBaseOS()
-		}
-
-		if scope.IsEKSManaged() && imageLookupFormat == "" && imageLookupOrg == "" && imageLookupBaseOS == "" {
-			input.ImageID, err = s.eksAMILookup(*scope.Machine.Spec.Version, scope.AWSMachine.Spec.AMI.EKSOptimizedLookupType)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			input.ImageID, err = s.defaultAMIIDLookup(imageLookupFormat, imageLookupOrg, imageLookupBaseOS, *scope.Machine.Spec.Version)
-			if err != nil {
-				return nil, err
-			}
-		}
+	input.ID, err = s.GetMachineAMIID(scope)
+	if err != nil {
+		return nil, err
 	}
 
 	subnetID, err := s.findSubnet(scope)
