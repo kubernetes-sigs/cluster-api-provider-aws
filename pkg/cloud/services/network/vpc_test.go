@@ -347,7 +347,7 @@ func TestReconcileVPC(t *testing.T) {
 	}
 }
 
-func Test_DeleteVPC(t *testing.T) {
+func TestDeleteVPC(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
