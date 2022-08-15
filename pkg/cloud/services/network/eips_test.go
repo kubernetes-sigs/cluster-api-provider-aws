@@ -35,7 +35,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-func TestService_releaseAddresses(t *testing.T) {
+func TestServiceReleaseAddresses(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
