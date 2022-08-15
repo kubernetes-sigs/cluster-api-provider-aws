@@ -37,7 +37,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-func TestService_ReconcileRouteTables(t *testing.T) {
+func TestReconcileRouteTables(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -371,7 +371,7 @@ func TestService_ReconcileRouteTables(t *testing.T) {
 	}
 }
 
-func TestService_DeleteRouteTables(t *testing.T) {
+func TestDeleteRouteTables(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 

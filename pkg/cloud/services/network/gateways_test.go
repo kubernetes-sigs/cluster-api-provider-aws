@@ -33,7 +33,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-func TestService_ReconcileInternetGateways(t *testing.T) {
+func TestReconcileInternetGateways(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -151,7 +151,7 @@ func TestService_ReconcileInternetGateways(t *testing.T) {
 	}
 }
 
-func TestService_DeleteInternetGateways(t *testing.T) {
+func TestDeleteInternetGateways(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
