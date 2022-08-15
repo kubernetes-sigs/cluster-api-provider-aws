@@ -37,7 +37,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-func TestService_Create(t *testing.T) {
+func TestServiceCreate(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -181,7 +181,7 @@ func TestService_Create(t *testing.T) {
 	}
 }
 
-func TestService_Delete(t *testing.T) {
+func TestServiceDelete(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 

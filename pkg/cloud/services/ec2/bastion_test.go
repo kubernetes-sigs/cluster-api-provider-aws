@@ -36,7 +36,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-func TestService_DeleteBastion(t *testing.T) {
+func TestServiceDeleteBastion(t *testing.T) {
 	clusterName := "cluster"
 
 	describeInput := &ec2.DescribeInstancesInput{
@@ -226,7 +226,7 @@ func TestService_DeleteBastion(t *testing.T) {
 	}
 }
 
-func TestService_ReconcileBastion(t *testing.T) {
+func TestServiceReconcileBastion(t *testing.T) {
 	clusterName := "cluster"
 
 	describeInput := &ec2.DescribeInstancesInput{
