@@ -59,7 +59,7 @@ func setupScheme() (*runtime.Scheme, error) {
 	return scheme, nil
 }
 
-func TestService_associateSecondaryCidr(t *testing.T) {
+func TestServiceAssociateSecondaryCidr(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -153,7 +153,7 @@ func TestService_associateSecondaryCidr(t *testing.T) {
 	}
 }
 
-func TestService_diassociateSecondaryCidr(t *testing.T) {
+func TestServiceDiassociateSecondaryCidr(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
