@@ -290,7 +290,7 @@ func TestGetLaunchTemplate(t *testing.T) {
 	}
 }
 
-func TestService_SDKToLaunchTemplate(t *testing.T) {
+func TestServiceSDKToLaunchTemplate(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    *ec2.LaunchTemplateVersion
@@ -358,7 +358,7 @@ func TestService_SDKToLaunchTemplate(t *testing.T) {
 	}
 }
 
-func TestService_LaunchTemplateNeedsUpdate(t *testing.T) {
+func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -930,7 +930,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 	}
 }
 
-func Test_LaunchTemplateDataCreation(t *testing.T) {
+func TestLaunchTemplateDataCreation(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	t.Run("Should return error if failed to create launch template data", func(t *testing.T) {

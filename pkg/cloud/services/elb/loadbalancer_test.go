@@ -148,7 +148,7 @@ func TestGenerateELBName(t *testing.T) {
 	}
 }
 
-func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
+func TestGetAPIServerClassicELBSpecControlPlaneLoadBalancer(t *testing.T) {
 	tests := []struct {
 		name   string
 		lb     *infrav1.AWSLoadBalancerSpec

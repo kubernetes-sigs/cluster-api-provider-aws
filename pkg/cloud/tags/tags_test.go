@@ -60,7 +60,7 @@ var (
 	}
 )
 
-func TestTags_ComputeDiff(t *testing.T) {
+func TestTagsComputeDiff(t *testing.T) {
 	pName := "test"
 	pRole := "testrole"
 	bp := infrav1.BuildParams{
@@ -132,7 +132,7 @@ func TestTags_ComputeDiff(t *testing.T) {
 	}
 }
 
-func TestTags_EnsureWithEC2(t *testing.T) {
+func TestTagsEnsureWithEC2(t *testing.T) {
 	tests := []struct {
 		name    string
 		builder Builder
@@ -190,7 +190,7 @@ func TestTags_EnsureWithEC2(t *testing.T) {
 	}
 }
 
-func TestTags_EnsureWithEKS(t *testing.T) {
+func TestTagsEnsureWithEKS(t *testing.T) {
 	tests := []struct {
 		name    string
 		builder Builder
@@ -240,7 +240,7 @@ func TestTags_EnsureWithEKS(t *testing.T) {
 	}
 }
 
-func TestTags_BuildParamsToTagSpecification(t *testing.T) {
+func TestTagsBuildParamsToTagSpecification(t *testing.T) {
 	g := NewWithT(t)
 	tagSpec := BuildParamsToTagSpecification("test-resource", bp)
 	expectedTagSpec := &ec2.TagSpecification{
