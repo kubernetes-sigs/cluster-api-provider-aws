@@ -23,6 +23,8 @@ See [Upgrading workload clusters][upgrading-workload-clusters] for more details.
 
 ## Creating a cluster from a custom image
 
+### Using the AMI ID
+
 To use a custom image, it needs to be referenced in an `ami:` section of your `AWSMachineTemplate`.
 
 ```yaml
@@ -37,6 +39,46 @@ spec:
       ami:
         id: ami-09709369c53539c11
       iamInstanceProfile: control-plane.cluster-api-provider-aws.sigs.k8s.io
+      instanceType: m5.xlarge
+      sshKeyName: default
+```
+
+### Using the AMI name
+
+Instead of the setting the AMI ID in `ami.id:`, it is also possible for CAPA to lookup the AMI by its name based on the OS and Kubernetes version, by setting `imageLookupBaseOS` , `imageLookupFormat` and `imageLookupOrg` (substitute `258751437250` with your AWS Organization ID).
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSMachineTemplate
+metadata:
+  name: capa-image-name-example
+  namespace: default
+spec:
+  template:
+    spec:
+      iamInstanceProfile: control-plane.cluster-api-provider-aws.sigs.k8s.io
+      imageLookupBaseOS: ubuntu-18.04
+      imageLookupFormat: capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*
+      imageLookupOrg: "258751437250"
+      instanceType: m5.xlarge
+      sshKeyName: default
+```
+
+In rare circumstances you may be using a Kubernetes `version:` with a build metadata, e.g `1.x.x+build.0` The above example will not work since CAPA will be searching for an AMI with a name `capa-ami-ubuntu-18.04-1.x.x+build.0-*`, but `+` cannot be used in an AMI name. Assuming when you've built your AMI, the resulting name was `capa-ami-ubuntu-18.04-1.x.x-build.0-...` You can modify `imageLookupFormat` as following and CAPA will replace all `+` with `-` when doing the substitution for `{{.K8sVersion}}`.
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSMachineTemplate
+metadata:
+  name: capa-image-name-example
+  namespace: default
+spec:
+  template:
+    spec:
+      iamInstanceProfile: control-plane.cluster-api-provider-aws.sigs.k8s.io
+      imageLookupBaseOS: ubuntu-18.04
+      imageLookupFormat: capa-ami-{{.BaseOS}}-?{{replaceAll .K8sVersion "+" "-"}}-*
+      imageLookupOrg: "258751437250"
       instanceType: m5.xlarge
       sshKeyName: default
 ```
