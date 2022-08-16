@@ -387,9 +387,9 @@ func (r *AWSManagedControlPlane) validateDisableVPCCNI() field.ErrorList {
 func (r *AWSManagedControlPlane) validateNetwork() field.ErrorList {
 	var allErrs field.ErrorList
 
-	if r.Spec.NetworkSpec.VPC.IsIPv6Enabled() && r.Spec.NetworkSpec.VPC.IPv6.IPv6CidrBlock != "" && r.Spec.NetworkSpec.VPC.IPv6.IPv6Pool == "" {
-		poolField := field.NewPath("spec", "networkSpec", "vpc", "ipv6Pool")
-		allErrs = append(allErrs, field.Invalid(poolField, r.Spec.NetworkSpec.VPC.IPv6.IPv6Pool, "ipv6Pool cannot be empty if ipv6CidrBlock is set for BYOIP"))
+	if r.Spec.NetworkSpec.VPC.IsIPv6Enabled() && r.Spec.NetworkSpec.VPC.IPv6.CidrBlock != "" && r.Spec.NetworkSpec.VPC.IPv6.PoolID == "" {
+		poolField := field.NewPath("spec", "networkSpec", "vpc", "poolId")
+		allErrs = append(allErrs, field.Invalid(poolField, r.Spec.NetworkSpec.VPC.IPv6.PoolID, "poolId cannot be empty if cidrBlock is set"))
 	}
 
 	return allErrs

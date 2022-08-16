@@ -181,9 +181,9 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 	}
 
 	// setup BYOIP
-	if s.scope.VPC().IsIPv6Enabled() && s.scope.VPC().IPv6.IPv6CidrBlock != "" {
-		input.Ipv6CidrBlock = aws.String(s.scope.VPC().IPv6.IPv6CidrBlock)
-		input.Ipv6Pool = aws.String(s.scope.VPC().IPv6.IPv6Pool)
+	if s.scope.VPC().IsIPv6Enabled() && s.scope.VPC().IPv6.CidrBlock != "" {
+		input.Ipv6CidrBlock = aws.String(s.scope.VPC().IPv6.CidrBlock)
+		input.Ipv6Pool = aws.String(s.scope.VPC().IPv6.PoolID)
 		input.AmazonProvidedIpv6CidrBlock = aws.Bool(false)
 	} else {
 		input.AmazonProvidedIpv6CidrBlock = aws.Bool(s.scope.VPC().IsIPv6Enabled())
@@ -212,13 +212,13 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 	}
 
 	// BYOIP was defined, no need to look up the VPC.
-	if s.scope.VPC().IsIPv6Enabled() && s.scope.VPC().IPv6.IPv6CidrBlock != "" {
+	if s.scope.VPC().IsIPv6Enabled() && s.scope.VPC().IPv6.CidrBlock != "" {
 		return &infrav1.VPCSpec{
 			ID:        *out.Vpc.VpcId,
 			CidrBlock: *out.Vpc.CidrBlock,
 			IPv6: &infrav1.IPv6{
-				IPv6CidrBlock: s.scope.VPC().IPv6.IPv6CidrBlock,
-				IPv6Pool:      s.scope.VPC().IPv6.IPv6Pool,
+				CidrBlock: s.scope.VPC().IPv6.CidrBlock,
+				PoolID:    s.scope.VPC().IPv6.PoolID,
 			},
 			Tags: converters.TagsToMap(out.Vpc.Tags),
 		}, nil
@@ -240,8 +240,8 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 		if *set.Ipv6CidrBlockState.State == ec2.SubnetCidrBlockStateCodeAssociated {
 			return &infrav1.VPCSpec{
 				IPv6: &infrav1.IPv6{
-					IPv6CidrBlock: aws.StringValue(set.Ipv6CidrBlock),
-					IPv6Pool:      aws.StringValue(set.Ipv6Pool),
+					CidrBlock: aws.StringValue(set.Ipv6CidrBlock),
+					PoolID:    aws.StringValue(set.Ipv6Pool),
 				},
 				ID:        *vpc.Vpcs[0].VpcId,
 				CidrBlock: *out.Vpc.CidrBlock,
@@ -322,8 +322,8 @@ func (s *Service) describeVPCByID() (*infrav1.VPCSpec, error) {
 	for _, set := range out.Vpcs[0].Ipv6CidrBlockAssociationSet {
 		if *set.Ipv6CidrBlockState.State == ec2.SubnetCidrBlockStateCodeAssociated {
 			vpc.IPv6 = &infrav1.IPv6{
-				IPv6CidrBlock: aws.StringValue(set.Ipv6CidrBlock),
-				IPv6Pool:      aws.StringValue(set.Ipv6Pool),
+				CidrBlock: aws.StringValue(set.Ipv6CidrBlock),
+				PoolID:    aws.StringValue(set.Ipv6Pool),
 			}
 			break
 		}

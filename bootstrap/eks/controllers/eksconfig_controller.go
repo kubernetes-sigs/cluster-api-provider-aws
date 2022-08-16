@@ -211,7 +211,7 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 	// we don't want to override any manually set configuration options.
 	if config.Spec.ServiceIPV6Cidr == nil && controlPlane.Spec.NetworkSpec.VPC.IsIPv6Enabled() {
 		log.Info("Adding ipv6 data to userdata....")
-		nodeInput.ServiceIPV6Cidr = pointer.String(controlPlane.Spec.NetworkSpec.VPC.IPv6.IPv6CidrBlock)
+		nodeInput.ServiceIPV6Cidr = pointer.String(controlPlane.Spec.NetworkSpec.VPC.IPv6.CidrBlock)
 		nodeInput.IPFamily = pointer.String("ipv6")
 	}
 

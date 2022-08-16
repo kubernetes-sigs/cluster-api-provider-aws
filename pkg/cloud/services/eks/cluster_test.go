@@ -690,7 +690,7 @@ func TestCreateIPv6Cluster(t *testing.T) {
 	}
 	vpcSpec := infrav1.VPCSpec{
 		IPv6: &infrav1.IPv6{
-			IPv6CidrBlock: "2001:db8:85a3::/56",
+			CidrBlock: "2001:db8:85a3::/56",
 		},
 	}
 	scope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{

@@ -175,8 +175,8 @@ func TestReconcileVPC(t *testing.T) {
 				ID:        "vpc-new",
 				CidrBlock: "10.1.0.0/16",
 				IPv6: &infrav1.IPv6{
-					IPv6CidrBlock: "2001:db8:1234:1a03::/56",
-					IPv6Pool:      "amazon",
+					CidrBlock: "2001:db8:1234:1a03::/56",
+					PoolID:    "amazon",
 				},
 				Tags: map[string]string{
 					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
@@ -232,8 +232,8 @@ func TestReconcileVPC(t *testing.T) {
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
 				IPv6: &infrav1.IPv6{
-					IPv6CidrBlock: "2001:db8:1234:1a03::/56",
-					IPv6Pool:      "my-pool",
+					CidrBlock: "2001:db8:1234:1a03::/56",
+					PoolID:    "my-pool",
 				},
 			},
 			wantErr: false,
@@ -241,8 +241,8 @@ func TestReconcileVPC(t *testing.T) {
 				ID:        "vpc-new",
 				CidrBlock: "10.1.0.0/16",
 				IPv6: &infrav1.IPv6{
-					IPv6CidrBlock: "2001:db8:1234:1a03::/56",
-					IPv6Pool:      "my-pool",
+					CidrBlock: "2001:db8:1234:1a03::/56",
+					PoolID:    "my-pool",
 				},
 				Tags: map[string]string{
 					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
@@ -361,8 +361,8 @@ func TestReconcileVPC(t *testing.T) {
 					"Name": "test-cluster-vpc",
 				},
 				IPv6: &infrav1.IPv6{
-					IPv6Pool:      "my-pool",
-					IPv6CidrBlock: "2001:db8:1234:1a03::/56",
+					PoolID:    "my-pool",
+					CidrBlock: "2001:db8:1234:1a03::/56",
 				},
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,

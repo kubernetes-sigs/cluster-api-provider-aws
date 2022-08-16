@@ -1859,17 +1859,17 @@ spec:
                         description: IPv6 contains ipv6 specific settings for the
                           network.
                         properties:
+                          cidrBlock:
+                            description: CidrBlock is the CIDR block provided by Amazon
+                              when VPC has enabled IPv6.
+                            type: string
                           egressOnlyInternetGatewayId:
                             description: EgressOnlyInternetGatewayID is the id of
                               the egress only internet gateway associated with an
                               IPv6 enabled VPC.
                             type: string
-                          ipv6CidrBlock:
-                            description: IPv6CidrBlock is the CIDR block provided
-                              by Amazon when VPC has enabled IPv6.
-                            type: string
-                          ipv6Pool:
-                            description: IPv6Pool is the IP pool which must be defined
+                          poolId:
+                            description: PoolID is the IP pool which must be defined
                               in case of BYO IP is defined.
                             type: string
                         type: object
