@@ -378,6 +378,10 @@ $(ARTIFACTS):
 generate-test-flavors: $(KUSTOMIZE)  ## Generate test template flavors
 	./hack/gen-test-flavors.sh
 
+.PHONY: generate-clusterclass-test-flavors
+generate-clusterclass-test-flavors: $(KUSTOMIZE)  ## Generate ClusterClass test template flavors
+	./hack/gen-clusterclass-test-flavors.sh
+
 .PHONY: e2e-image
 e2e-image: docker-pull-prerequisites $(TOOLS_BIN_DIR)/start.sh $(TOOLS_BIN_DIR)/restart.sh ## Build an e2e test image
 	docker build -f Dockerfile --tag="gcr.io/k8s-staging-cluster-api/capa-manager:e2e" .
@@ -405,7 +409,7 @@ test-verbose: setup-envtest ## Run tests with verbose settings.
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -v ./...
 
 .PHONY: test-e2e ## Run e2e tests using clusterctl
-test-e2e: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) generate-test-flavors e2e-image ## Run e2e tests
+test-e2e: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) generate-test-flavors generate-clusterclass-test-flavors e2e-image ## Run e2e tests
 	time $(GINKGO) -tags=e2e $(GINKGO_ARGS) -p ./test/e2e/suites/unmanaged/... -- -config-path="$(E2E_CONF_PATH)" $(E2E_ARGS)
 
 .PHONY: test-e2e-eks ## Run EKS e2e tests using clusterctl

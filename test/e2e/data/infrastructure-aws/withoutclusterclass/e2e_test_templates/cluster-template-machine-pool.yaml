@@ -24,12 +24,8 @@ metadata:
   name: ${CLUSTER_NAME}
 spec:
   network:
-    subnets:
-    - id: ${PUBLIC_SUBNET_ID}
-    - id: ${PRIVATE_SUBNET_ID}
     vpc:
       availabilityZoneUsageLimit: 1
-      id: ${VPC_ID}
   region: ${AWS_REGION}
   sshKeyName: ${AWS_SSH_KEY_NAME}
 ---
@@ -76,51 +72,94 @@ spec:
       sshKeyName: ${AWS_SSH_KEY_NAME}
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
-kind: MachineDeployment
+kind: MachinePool
 metadata:
-  name: ${CLUSTER_NAME}-md-0
+  name: ${CLUSTER_NAME}-mp-0
 spec:
   clusterName: ${CLUSTER_NAME}
   replicas: ${WORKER_MACHINE_COUNT}
-  selector:
-    matchLabels: null
   template:
     spec:
       bootstrap:
         configRef:
           apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-          kind: KubeadmConfigTemplate
-          name: ${CLUSTER_NAME}-md-0
+          kind: KubeadmConfig
+          name: ${CLUSTER_NAME}-mp-0
       clusterName: ${CLUSTER_NAME}
       infrastructureRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        kind: AWSMachineTemplate
-        name: ${CLUSTER_NAME}-md-0
+        kind: AWSMachinePool
+        name: ${CLUSTER_NAME}-mp-0
       version: ${KUBERNETES_VERSION}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-kind: AWSMachineTemplate
+kind: AWSMachinePool
 metadata:
-  name: ${CLUSTER_NAME}-md-0
+  name: ${CLUSTER_NAME}-mp-0
 spec:
-  template:
-    spec:
-      iamInstanceProfile: nodes.cluster-api-provider-aws.sigs.k8s.io
-      instanceType: ${AWS_NODE_MACHINE_TYPE}
-      sshKeyName: ${AWS_SSH_KEY_NAME}
+  awsLaunchTemplate:
+    iamInstanceProfile: nodes.cluster-api-provider-aws.sigs.k8s.io
+    instanceType: ${AWS_CONTROL_PLANE_MACHINE_TYPE}
+    sshKeyName: ${AWS_SSH_KEY_NAME}
+  maxSize: 4
+  minSize: 0
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-kind: KubeadmConfigTemplate
+kind: KubeadmConfig
 metadata:
-  name: ${CLUSTER_NAME}-md-0
+  name: ${CLUSTER_NAME}-mp-0
 spec:
+  joinConfiguration:
+    nodeRegistration:
+      kubeletExtraArgs:
+        cloud-provider: aws
+      name: '{{ ds.meta_data.local_hostname }}'
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachinePool
+metadata:
+  name: ${CLUSTER_NAME}-mp-1
+spec:
+  clusterName: ${CLUSTER_NAME}
+  replicas: ${WORKER_MACHINE_COUNT}
   template:
     spec:
-      joinConfiguration:
-        nodeRegistration:
-          kubeletExtraArgs:
-            cloud-provider: aws
-          name: '{{ ds.meta_data.local_hostname }}'
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfig
+          name: ${CLUSTER_NAME}-mp-1
+      clusterName: ${CLUSTER_NAME}
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: AWSMachinePool
+        name: ${CLUSTER_NAME}-mp-1
+      version: ${KUBERNETES_VERSION}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSMachinePool
+metadata:
+  name: ${CLUSTER_NAME}-mp-1
+spec:
+  awsLaunchTemplate:
+    iamInstanceProfile: nodes.cluster-api-provider-aws.sigs.k8s.io
+    instanceType: ${AWS_CONTROL_PLANE_MACHINE_TYPE}
+    spotMarketOptions:
+      maxPrice: ""
+    sshKeyName: ${AWS_SSH_KEY_NAME}
+  maxSize: 4
+  minSize: 1
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfig
+metadata:
+  name: ${CLUSTER_NAME}-mp-1
+spec:
+  joinConfiguration:
+    nodeRegistration:
+      kubeletExtraArgs:
+        cloud-provider: aws
+      name: '{{ ds.meta_data.local_hostname }}'
 ---
 apiVersion: v1
 data: ${CNI_RESOURCES}
