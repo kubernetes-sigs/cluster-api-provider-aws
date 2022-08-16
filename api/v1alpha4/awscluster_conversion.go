@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -45,6 +45,8 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 		restoreControlPlaneLoadBalancer(restored.Spec.ControlPlaneLoadBalancer, dst.Spec.ControlPlaneLoadBalancer)
 	}
 
+	dst.Spec.S3Bucket = restored.Spec.S3Bucket
+
 	return nil
 }
 
@@ -52,6 +54,7 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 // Assumes restored and dst are non-nil.
 func restoreControlPlaneLoadBalancer(restored, dst *infrav1.AWSLoadBalancerSpec) {
 	dst.Name = restored.Name
+	dst.HealthCheckProtocol = restored.HealthCheckProtocol
 }
 
 // ConvertFrom converts the v1beta1 AWSCluster receiver to a v1alpha4 AWSCluster.
@@ -68,45 +71,6 @@ func (r *AWSCluster) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	return nil
-}
-
-// ConvertTo converts the v1alpha3 AWSCluster receiver to a v1beta1 AWSCluster.
-func (r *AWSClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*infrav1.AWSClusterTemplate)
-
-	if err := Convert_v1alpha4_AWSClusterTemplate_To_v1beta1_AWSClusterTemplate(r, dst, nil); err != nil {
-		return err
-	}
-
-	// Manually restore data.
-	restored := &infrav1.AWSClusterTemplate{}
-	if ok, err := utilconversion.UnmarshalData(r, restored); err != nil || !ok {
-		return err
-	}
-
-	dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
-
-	return nil
-}
-
-// ConvertFrom converts the v1beta1 AWSCluster receiver to a v1alpha3 AWSCluster.
-func (r *AWSClusterTemplate) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*infrav1.AWSClusterTemplate)
-
-	if err := Convert_v1beta1_AWSClusterTemplate_To_v1alpha4_AWSClusterTemplate(src, r, nil); err != nil {
-		return err
-	}
-
-	// Preserve Hub data on down-conversion.
-	if err := utilconversion.MarshalData(src, r); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func Convert_v1beta1_AWSClusterTemplateResource_To_v1alpha4_AWSClusterTemplateResource(in *infrav1.AWSClusterTemplateResource, out *AWSClusterTemplateResource, s apiconversion.Scope) error {
-	return autoConvert_v1beta1_AWSClusterTemplateResource_To_v1alpha4_AWSClusterTemplateResource(in, out, s)
 }
 
 // Convert_v1alpha4_APIEndpoint_To_v1beta1_APIEndpoint .

@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,8 +18,8 @@ package v1beta1
 
 import (
 	"fmt"
-	"reflect"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -108,11 +108,12 @@ func (r *AWSFargateProfile) ValidateUpdate(oldObj runtime.Object) error {
 		}
 	}
 
-	// ignore checking additionalTags since they are mutable
+	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
+	// remove additionalTags from equal check since they are mutable
 	old.Spec.AdditionalTags = nil
 	r.Spec.AdditionalTags = nil
 
-	if !reflect.DeepEqual(old.Spec, r.Spec) {
+	if !cmp.Equal(old.Spec, r.Spec) {
 		allErrs = append(
 			allErrs,
 			field.Invalid(field.NewPath("spec"), r.Spec, "is immutable"),
@@ -132,7 +133,18 @@ func (r *AWSFargateProfile) ValidateUpdate(oldObj runtime.Object) error {
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSFargateProfile) ValidateCreate() error {
-	return nil
+	var allErrs field.ErrorList
+
+	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return apierrors.NewInvalid(
+		r.GroupVersionKind().GroupKind(),
+		r.Name,
+		allErrs,
+	)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.

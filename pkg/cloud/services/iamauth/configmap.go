@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,8 +19,8 @@ package iamauth
 import (
 	"context"
 	"fmt"
-	"reflect"
 
+	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,7 +55,7 @@ func (b *configMapBackend) MapRole(mapping ekscontrolplanev1.RoleMapping) error 
 	}
 
 	for _, existingMapping := range authConfig.RoleMappings {
-		if reflect.DeepEqual(existingMapping, mapping) {
+		if cmp.Equal(existingMapping, mapping) {
 			// A mapping already exists that matches, so ignore
 			return nil
 		}
@@ -77,7 +77,7 @@ func (b *configMapBackend) MapUser(mapping ekscontrolplanev1.UserMapping) error 
 	}
 
 	for _, existingMapping := range authConfig.UserMappings {
-		if reflect.DeepEqual(existingMapping, mapping) {
+		if cmp.Equal(existingMapping, mapping) {
 			// A mapping already exists that matches, so ignore
 			return nil
 		}

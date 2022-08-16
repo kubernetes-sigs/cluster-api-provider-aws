@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/bootstrap"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/controller"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/eks"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/gc"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/resource"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/version"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
@@ -71,6 +72,7 @@ func RootCmd() *cobra.Command {
 	newCmd.AddCommand(eks.RootCmd())
 	newCmd.AddCommand(controller.RootCmd())
 	newCmd.AddCommand(resource.RootCmd())
+	newCmd.AddCommand(gc.RootCmd())
 
 	return newCmd
 }

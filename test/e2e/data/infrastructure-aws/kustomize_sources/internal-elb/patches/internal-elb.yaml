@@ -1,0 +1,13 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSCluster
+metadata:
+  name: "${CLUSTER_NAME}"
+spec:
+  controlPlaneLoadBalancer:
+    scheme: internal
+  network:
+    vpc:
+      id: "${WL_VPC_ID}"
+    subnets:
+    - id: "${WL_PRIVATE_SUBNET_ID}"
+

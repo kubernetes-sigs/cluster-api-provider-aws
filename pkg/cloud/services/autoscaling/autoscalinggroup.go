@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,6 +22,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	"k8s.io/utils/pointer"
 
@@ -144,7 +145,7 @@ func (s *Service) GetASGByName(scope *scope.MachinePoolScope) (*expinfrav1.AutoS
 
 // CreateASG runs an autoscaling group.
 func (s *Service) CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
-	subnets, err := scope.SubnetIDs()
+	subnets, err := s.SubnetIDs(scope)
 	if err != nil {
 		return nil, fmt.Errorf("getting subnets for ASG: %w", err)
 	}
@@ -170,10 +171,10 @@ func (s *Service) CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScal
 	// Make sure to use the MachinePoolScope here to get the merger of AWSCluster and AWSMachinePool tags
 	additionalTags := scope.AdditionalTags()
 	// Set the cloud provider tag
-	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())] = string(infrav1.ResourceLifecycleOwned)
+	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())] = string(infrav1.ResourceLifecycleOwned)
 
 	input.Tags = infrav1.Build(infrav1.BuildParams{
-		ClusterName: s.scope.Name(),
+		ClusterName: s.scope.KubernetesClusterName(),
 		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(scope.Name()),
 		Role:        aws.String("node"),
@@ -267,15 +268,9 @@ func (s *Service) DeleteASG(name string) error {
 
 // UpdateASG will update the ASG of a service.
 func (s *Service) UpdateASG(scope *scope.MachinePoolScope) error {
-	subnetIDs := make([]string, len(scope.AWSMachinePool.Spec.Subnets))
-	for i, v := range scope.AWSMachinePool.Spec.Subnets {
-		subnetIDs[i] = aws.StringValue(v.ID)
-	}
-
-	if len(subnetIDs) == 0 {
-		for _, subnet := range scope.InfraCluster.Subnets() {
-			subnetIDs = append(subnetIDs, subnet.ID)
-		}
+	subnetIDs, err := s.SubnetIDs(scope)
+	if err != nil {
+		return fmt.Errorf("getting subnets for ASG: %w", err)
 	}
 
 	input := &autoscaling.UpdateAutoScalingGroupInput{
@@ -389,58 +384,6 @@ func createSDKMixedInstancesPolicy(name string, i *expinfrav1.MixedInstancesPoli
 	return mixedInstancesPolicy
 }
 
-// BuildTags takes the tag configuration from the resources and returns a slice of autoscaling Tags
-// usable in autoscaling API calls.
-func BuildTags(name string, params infrav1.BuildParams) []*autoscaling.Tag {
-	tags := make([]*autoscaling.Tag, 0)
-	resourceName := aws.String(name)
-	propagateAtLaunch := aws.Bool(false)
-	resourceType := aws.String("auto-scaling-group")
-	if params.Additional != nil {
-		for k, v := range params.Additional {
-			tags = append(tags, &autoscaling.Tag{
-				Key:   aws.String(k),
-				Value: aws.String(v),
-				// We set the instance tags in the LaunchTemplate, disabling propagation to prevent the two
-				// resources from clobbering each other's tags
-				PropagateAtLaunch: propagateAtLaunch,
-				ResourceId:        resourceName,
-				ResourceType:      resourceType,
-			})
-		}
-	}
-
-	tags = append(tags, &autoscaling.Tag{
-		Key:               aws.String(infrav1.ClusterTagKey(params.ClusterName)),
-		Value:             aws.String(string(params.Lifecycle)),
-		PropagateAtLaunch: propagateAtLaunch,
-		ResourceId:        resourceName,
-		ResourceType:      resourceType,
-	})
-
-	if params.Role != nil {
-		tags = append(tags, &autoscaling.Tag{
-			Key:               aws.String(infrav1.NameAWSClusterAPIRole),
-			Value:             params.Role,
-			PropagateAtLaunch: propagateAtLaunch,
-			ResourceId:        resourceName,
-			ResourceType:      resourceType,
-		})
-	}
-
-	if params.Name != nil {
-		tags = append(tags, &autoscaling.Tag{
-			Key:               aws.String("Name"),
-			Value:             params.Name,
-			PropagateAtLaunch: propagateAtLaunch,
-			ResourceId:        resourceName,
-			ResourceType:      resourceType,
-		})
-	}
-
-	return tags
-}
-
 // BuildTagsFromMap takes a map of keys and values and returns them as autoscaling group tags.
 func BuildTagsFromMap(asgName string, inTags map[string]string) []*autoscaling.Tag {
 	if inTags == nil {
@@ -516,4 +459,39 @@ func mapToTags(input map[string]string, resourceID *string) []*autoscaling.Tag {
 		})
 	}
 	return tags
+}
+
+// SubnetIDs return subnet IDs of a AWSMachinePool based on given subnetIDs and filters.
+func (s *Service) SubnetIDs(scope *scope.MachinePoolScope) ([]string, error) {
+	subnetIDs := make([]string, 0)
+	var inputFilters = make([]*ec2.Filter, 0)
+
+	for _, subnet := range scope.AWSMachinePool.Spec.Subnets {
+		switch {
+		case subnet.ID != nil:
+			subnetIDs = append(subnetIDs, aws.StringValue(subnet.ID))
+		case subnet.Filters != nil:
+			for _, eachFilter := range subnet.Filters {
+				inputFilters = append(inputFilters, &ec2.Filter{
+					Name:   aws.String(eachFilter.Name),
+					Values: aws.StringSlice(eachFilter.Values),
+				})
+			}
+		}
+	}
+
+	if len(inputFilters) > 0 {
+		out, err := s.EC2Client.DescribeSubnets(&ec2.DescribeSubnetsInput{
+			Filters: inputFilters,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, subnet := range out.Subnets {
+			subnetIDs = append(subnetIDs, *subnet.SubnetId)
+		}
+	}
+
+	return scope.SubnetIDs(subnetIDs)
 }

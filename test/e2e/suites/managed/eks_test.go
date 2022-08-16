@@ -8,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -36,14 +36,12 @@ import (
 // General EKS e2e test.
 var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 	var (
-		namespace           *corev1.Namespace
-		ctx                 context.Context
-		specName            = "eks-nodes"
-		clusterName         string
-		cniAddonName        = "vpc-cni"
-		cniAddonVersion     = "v1.8.0-eksbuild.1"
-		corednsAddonName    = "coredns"
-		corednsAddonVersion = "v1.8.3-eksbuild.1"
+		namespace        *corev1.Namespace
+		ctx              context.Context
+		specName         = "eks-nodes"
+		clusterName      string
+		cniAddonName     = "vpc-cni"
+		corednsAddonName = "coredns"
 	)
 
 	shared.ConditionalIt(runGeneralTests, "should create a cluster and add nodes", func() {
@@ -51,16 +49,15 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 		Expect(e2eCtx.Environment.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil")
 		Expect(e2eCtx.E2EConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
 		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.KubernetesVersion))
+		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.CNIAddonVersion))
+		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.CorednsAddonVersion))
 
 		ctx = context.TODO()
 		namespace = shared.SetupSpecNamespace(ctx, specName, e2eCtx)
-		clusterName = fmt.Sprintf("cluster-%s", util.RandomString(6))
-
-		ginkgo.By("setting up AWS static credentials")
-		shared.SetupStaticCredentials(ctx, namespace, e2eCtx)
+		clusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 
 		ginkgo.By("default iam role should exist")
-		verifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, clusterName, false, e2eCtx.BootstrapUserAWSSession)
+		VerifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, clusterName, false, e2eCtx.BootstrapUserAWSSession)
 
 		ginkgo.By("should create an EKS control plane")
 		ManagedClusterSpec(ctx, func() ManagedClusterSpecInput {
@@ -74,7 +71,6 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				Flavour:                  EKSControlPlaneOnlyWithAddonFlavor,
 				ControlPlaneMachineCount: 1, //NOTE: this cannot be zero as clusterctl returns an error
 				WorkerMachineCount:       0,
-				CNIManifestPath:          e2eCtx.E2EConfig.GetVariable(shared.CNIPath),
 			}
 		})
 
@@ -87,7 +83,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				Namespace:             namespace,
 				ClusterName:           clusterName,
 				AddonName:             cniAddonName,
-				AddonVersion:          cniAddonVersion,
+				AddonVersion:          e2eCtx.E2EConfig.GetVariable(shared.CNIAddonVersion),
 			}
 		})
 
@@ -100,7 +96,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				Namespace:             namespace,
 				ClusterName:           clusterName,
 				AddonName:             corednsAddonName,
-				AddonVersion:          corednsAddonVersion,
+				AddonVersion:          e2eCtx.E2EConfig.GetVariable(shared.CorednsAddonVersion),
 			}
 		})
 
@@ -148,8 +144,5 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 			Getter:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Cluster: cluster,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
-
-		ginkgo.By("Deleting AWS static credentials")
-		shared.CleanupStaticCredentials(ctx, namespace, e2eCtx)
 	})
 })

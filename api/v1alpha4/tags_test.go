@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,8 +17,9 @@ limitations under the License.
 package v1alpha4
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestTags_Merge(t *testing.T) {
@@ -79,7 +80,7 @@ func TestTags_Merge(t *testing.T) {
 			}
 
 			tags.Merge(tc.other)
-			if e, a := tc.expected, tags; !reflect.DeepEqual(e, a) {
+			if e, a := tc.expected, tags; !cmp.Equal(e, a) {
 				t.Errorf("expected %#v, got %#v", e, a)
 			}
 		})
@@ -155,7 +156,7 @@ func TestTags_Difference(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			out := tc.self.Difference(tc.input)
-			if e, a := tc.expected, out; !reflect.DeepEqual(e, a) {
+			if e, a := tc.expected, out; !cmp.Equal(e, a) {
 				t.Errorf("expected %#v, got %#v", e, a)
 			}
 		})

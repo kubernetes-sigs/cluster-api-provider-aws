@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -43,9 +43,10 @@ const (
 var mcpLog = logf.Log.WithName("awsmanagedcontrolplane-resource")
 
 const (
-	cidrSizeMax = 65536
-	cidrSizeMin = 16
-	vpcCniAddon = "vpc-cni"
+	cidrSizeMax    = 65536
+	cidrSizeMin    = 16
+	vpcCniAddon    = "vpc-cni"
+	kubeProxyAddon = "kube-proxy"
 )
 
 // SetupWebhookWithManager will setup the webhooks for the AWSManagedControlPlane.
@@ -94,6 +95,8 @@ func (r *AWSManagedControlPlane) ValidateCreate() error {
 	allErrs = append(allErrs, r.validateSecondaryCIDR()...)
 	allErrs = append(allErrs, r.validateEKSAddons()...)
 	allErrs = append(allErrs, r.validateDisableVPCCNI()...)
+	allErrs = append(allErrs, r.validateKubeProxy()...)
+	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -125,6 +128,8 @@ func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) error {
 	allErrs = append(allErrs, r.validateSecondaryCIDR()...)
 	allErrs = append(allErrs, r.validateEKSAddons()...)
 	allErrs = append(allErrs, r.validateDisableVPCCNI()...)
+	allErrs = append(allErrs, r.validateKubeProxy()...)
+	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
 	if r.Spec.Region != oldAWSManagedControlplane.Spec.Region {
 		allErrs = append(allErrs,
@@ -304,15 +309,33 @@ func (r *AWSManagedControlPlane) validateSecondaryCIDR() field.ErrorList {
 	return allErrs
 }
 
+func (r *AWSManagedControlPlane) validateKubeProxy() field.ErrorList {
+	var allErrs field.ErrorList
+
+	if r.Spec.KubeProxy.Disable {
+		disableField := field.NewPath("spec", "kubeProxy", "disable")
+
+		if r.Spec.Addons != nil {
+			for _, addon := range *r.Spec.Addons {
+				if addon.Name == kubeProxyAddon {
+					allErrs = append(allErrs, field.Invalid(disableField, r.Spec.KubeProxy.Disable, "cannot disable kube-proxy if the kube-proxy addon is specified"))
+					break
+				}
+			}
+		}
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return allErrs
+}
+
 func (r *AWSManagedControlPlane) validateDisableVPCCNI() field.ErrorList {
 	var allErrs field.ErrorList
 
 	if r.Spec.DisableVPCCNI {
 		disableField := field.NewPath("spec", "disableVPCCNI")
-
-		if r.Spec.SecondaryCidrBlock != nil {
-			allErrs = append(allErrs, field.Invalid(disableField, r.Spec.DisableVPCCNI, "cannot disable vpc cni if a secondary cidr is specified"))
-		}
 
 		if r.Spec.Addons != nil {
 			for _, addon := range *r.Spec.Addons {

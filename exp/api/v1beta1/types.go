@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,6 +20,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+)
+
+const (
+	// ExternalResourceGCAnnotation is the name of an annotation that indicates if
+	// external resources should be garbage collected for the cluster.
+	ExternalResourceGCAnnotation = "aws.cluster.x-k8s.io/external-resource-gc"
 )
 
 // EBS can be used to automatically set up EBS volumes when an instance is launched.
@@ -250,4 +256,22 @@ func (t *Taints) Contains(taint *Taint) bool {
 	}
 
 	return false
+}
+
+// UpdateConfig is the configuration options for updating a nodegroup. Only one of MaxUnavailable
+// and MaxUnavailablePercentage should be specified.
+type UpdateConfig struct {
+	// MaxUnavailable is the maximum number of nodes unavailable at once during a version update.
+	// Nodes will be updated in parallel. The maximum number is 100.
+	// +optional
+	// +kubebuilder:validation:Maximum=100
+	// +kubebuilder:validation:Minimum=1
+	MaxUnavailable *int `json:"maxUnavailable,omitempty"`
+
+	// MaxUnavailablePercentage is the maximum percentage of nodes unavailable during a version update. This
+	// percentage of nodes will be updated in parallel, up to 100 nodes at once.
+	// +optional
+	// +kubebuilder:validation:Maximum=100
+	// +kubebuilder:validation:Minimum=1
+	MaxUnavailablePercentage *int `json:"maxUnavailablePrecentage,omitempty"`
 }

@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -191,6 +191,14 @@ func (s *ClusterScope) ControlPlaneLoadBalancerName() *string {
 		return s.AWSCluster.Spec.ControlPlaneLoadBalancer.Name
 	}
 	return nil
+}
+
+func (s *ClusterScope) ControlPlaneEndpoint() clusterv1.APIEndpoint {
+	return s.AWSCluster.Spec.ControlPlaneEndpoint
+}
+
+func (s *ClusterScope) Bucket() *infrav1.S3Bucket {
+	return s.AWSCluster.Spec.S3Bucket
 }
 
 // ControlPlaneConfigMapName returns the name of the ConfigMap used to

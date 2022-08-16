@@ -8,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -148,7 +148,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	}
 
 	Byf("Creating a clusterctl local repository into %q", e2eCtx.Settings.ArtifactFolder)
-	e2eCtx.Environment.ClusterctlConfigPath = createClusterctlLocalRepository(e2eCtx.E2EConfig, filepath.Join(e2eCtx.Settings.ArtifactFolder, "repository"))
+	e2eCtx.Environment.ClusterctlConfigPath = createClusterctlLocalRepository(e2eCtx, filepath.Join(e2eCtx.Settings.ArtifactFolder, "repository"))
 
 	By("Setting up the bootstrap cluster")
 	e2eCtx.Environment.BootstrapClusterProvider, e2eCtx.Environment.BootstrapClusterProxy = setupBootstrapCluster(e2eCtx.E2EConfig, e2eCtx.Environment.Scheme, e2eCtx.Settings.UseExistingCluster)
@@ -168,6 +168,11 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	initBootstrapCluster(e2eCtx)
 
 	CreateAWSClusterControllerIdentity(e2eCtx.Environment.BootstrapClusterProxy.GetClient())
+
+	if e2eCtx.IsManaged {
+		By("Setting up AWS static credentials")
+		SetupStaticCredentials(e2eCtx)
+	}
 
 	conf := synchronizedBeforeTestSuiteConfig{
 		ArtifactFolder:           e2eCtx.Settings.ArtifactFolder,
@@ -257,6 +262,12 @@ func Node1AfterSuite(e2eCtx *E2EContext) {
 	ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Minute)
 	DumpEKSClusters(ctx, e2eCtx)
 	DumpCloudTrailEvents(e2eCtx)
+
+	if e2eCtx.IsManaged {
+		By("Deleting AWS static credentials")
+		CleanupStaticCredentials(ctx, e2eCtx)
+	}
+
 	defer cancel()
 	By("Tearing down the management cluster")
 	if !e2eCtx.Settings.SkipCleanup {

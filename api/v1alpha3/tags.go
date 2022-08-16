@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,8 +18,8 @@ package v1alpha3
 
 import (
 	"fmt"
-	"reflect"
 
+	"github.com/google/go-cmp/cmp"
 	"k8s.io/apimachinery/pkg/types"
 
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -29,8 +29,9 @@ import (
 type Tags map[string]string
 
 // Equals returns true if the tags are equal.
+// This func is deprecated and should not be used.
 func (t Tags) Equals(other Tags) bool {
-	return reflect.DeepEqual(t, other)
+	return cmp.Equal(t, other)
 }
 
 // HasOwned returns true if the tags contains a tag that marks the resource as owned by the cluster from the perspective of this management tooling.

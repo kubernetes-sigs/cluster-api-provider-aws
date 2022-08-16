@@ -8,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -37,6 +37,15 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 )
+
+func SetupNamespace(ctx context.Context, specName string, e2eCtx *E2EContext) *corev1.Namespace {
+	Byf("Creating a namespace for hosting the %q test spec", specName)
+	namespace := framework.CreateNamespace(ctx, framework.CreateNamespaceInput{
+		Creator: e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+		Name:    fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
+	})
+	return namespace
+}
 
 func SetupSpecNamespace(ctx context.Context, specName string, e2eCtx *E2EContext) *corev1.Namespace {
 	Byf("Creating a namespace for hosting the %q test spec", specName)
@@ -75,7 +84,9 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, namespace
 			Name:    namespace.Name,
 		})
 	}
-	cancelWatches()
+	if cancelWatches != nil {
+		cancelWatches()
+	}
 	delete(e2eCtx.Environment.Namespaces, namespace)
 }
 
@@ -96,7 +107,29 @@ func DumpMachines(ctx context.Context, e2eCtx *E2EContext, namespace *corev1.Nam
 		if instanceID == "" {
 			return
 		}
-		DumpMachine(ctx, e2eCtx, m, instanceID)
+		DumpMachine(ctx, e2eCtx, m, instanceID, nil)
+	}
+}
+
+func DumpMachinesFromProxy(ctx context.Context, e2eCtx *E2EContext, namespace *corev1.Namespace, proxy framework.ClusterProxy) {
+	machines := MachinesForSpec(ctx, proxy, namespace)
+	instances, err := allMachines(ctx, e2eCtx)
+	if err != nil {
+		return
+	}
+	instanceID := ""
+	for _, m := range machines.Items {
+		for _, i := range instances {
+			if i.name == m.Name {
+				instanceID = i.instanceID
+				break
+			}
+		}
+		if instanceID == "" {
+			return
+		}
+		clusterName := proxy.GetName()
+		DumpMachine(ctx, e2eCtx, m, instanceID, &clusterName)
 	}
 }
 
@@ -110,8 +143,11 @@ func MachinesForSpec(ctx context.Context, clusterProxy framework.ClusterProxy, n
 	return list
 }
 
-func DumpMachine(ctx context.Context, e2eCtx *E2EContext, machine infrav1.AWSMachine, instanceID string) {
+func DumpMachine(ctx context.Context, e2eCtx *E2EContext, machine infrav1.AWSMachine, instanceID string, cluster *string) {
 	logPath := filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName())
+	if cluster != nil {
+		logPath = filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", *cluster)
+	}
 	machineLogBase := path.Join(logPath, "instances", machine.Namespace, machine.Name)
 	metaLog := path.Join(machineLogBase, "instance.log")
 	if err := os.MkdirAll(filepath.Dir(metaLog), 0750); err != nil {
@@ -162,6 +198,14 @@ func DumpSpecResources(ctx context.Context, e2eCtx *E2EContext, namespace *corev
 		Lister:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 		Namespace: namespace.Name,
 		LogPath:   filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName(), "resources"),
+	})
+}
+
+func DumpSpecResourcesFromProxy(ctx context.Context, e2eCtx *E2EContext, namespace *corev1.Namespace, proxy framework.ClusterProxy) {
+	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
+		Lister:    proxy.GetClient(),
+		Namespace: namespace.Name,
+		LogPath:   filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", proxy.GetName(), "resources"),
 	})
 }
 

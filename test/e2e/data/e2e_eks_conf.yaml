@@ -2,8 +2,6 @@
 # E2E test scenario using local dev images and manifests built from the source tree for following providers:
 # - cluster-api
 # - infrastructure aws
-# - boostrap aws-eks
-# - control-plane aws-eks
 
 # To run tests, run the following from the root of this repository.
 # `AWS_REGION=eu-west-1 make e2e GINKGO_ARGS=-stream E2E_ARGS=-skip-cloudformation-deletion`
@@ -19,17 +17,17 @@ images:
     loadBehavior: mustLoad
 
 ## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
-  - name: quay.io/jetstack/cert-manager-cainjector:v1.5.3
+  - name: quay.io/jetstack/cert-manager-cainjector:v1.7.2
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-webhook:v1.5.3
+  - name: quay.io/jetstack/cert-manager-webhook:v1.7.2
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-controller:v1.5.3
+  - name: quay.io/jetstack/cert-manager-controller:v1.7.2
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/cluster-api-controller:v1.1.0
+  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.1.5
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/kubeadm-bootstrap-controller:v1.1.0
+  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.1.5
     loadBehavior: tryLoad
-  - name: k8s.gcr.io/cluster-api/kubeadm-control-plane-controller:v1.1.0
+  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.1.5
     loadBehavior: tryLoad
 
 
@@ -48,9 +46,9 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v0.4.7 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+      - name: v0.4.8 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
         contract: v1alpha4
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/core-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/core-components.yaml"
         type: "url"
         files:
           - sourcePath: "./shared/v1alpha4/metadata.yaml"
@@ -59,8 +57,8 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.0
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0/core-components.yaml"
+      - name: v1.1.5
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.5/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -70,17 +68,6 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.99 # next;
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220201/core-components.yaml"
-        type: "url"
-        contract: v1beta1
-        files:
-        - sourcePath: "./shared/v1beta1/metadata.yaml"
-        replacements:
-        - old: "imagePullPolicy: Always"
-          new: "imagePullPolicy: IfNotPresent"
-        - old: --metrics-bind-addr=127.0.0.1:8080
-          new: --metrics-bind-addr=:8080
   - name: kubeadm
     type: BootstrapProvider
     files:
@@ -95,8 +82,8 @@ providers:
         replacements:
           - old: --metrics-addr=127.0.0.1:8080
             new: --metrics-addr=:8080
-      - name: v0.4.7 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/bootstrap-components.yaml"
+      - name: v0.4.8 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/bootstrap-components.yaml"
         type: "url"
         contract: v1alpha4
         files:
@@ -106,8 +93,8 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.0
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0/bootstrap-components.yaml"
+      - name: v1.1.5
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.5/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -117,17 +104,6 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.99 # next;
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220201/bootstrap-components.yaml"
-        type: "url"
-        contract: v1beta1
-        files:
-        - sourcePath: "./shared/v1beta1/metadata.yaml"
-        replacements:
-        - old: "imagePullPolicy: Always"
-          new: "imagePullPolicy: IfNotPresent"
-        - old: --metrics-bind-addr=127.0.0.1:8080
-          new: --metrics-bind-addr=:8080
   - name: kubeadm
     type: ControlPlaneProvider
     files:
@@ -142,9 +118,9 @@ providers:
         replacements:
           - old: --metrics-addr=127.0.0.1:8080
             new: --metrics-addr=:8080
-      - name: v0.4.7 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+      - name: v0.4.8 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/control-plane-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/control-plane-components.yaml"
         type: "url"
         contract: v1alpha4
         files:
@@ -154,8 +130,8 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.0
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0/control-plane-components.yaml"
+      - name: v1.1.5
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.5/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -165,21 +141,10 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.1.99 # next;
-        value: "https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20220201/control-plane-components.yaml"
-        type: "url"
-        contract: v1beta1
-        files:
-        - sourcePath: "./shared/v1beta1/metadata.yaml"
-        replacements:
-        - old: "imagePullPolicy: Always"
-          new: "imagePullPolicy: IfNotPresent"
-        - old: --metrics-bind-addr=127.0.0.1:8080
-          new: --metrics-bind-addr=:8080
   - name: aws
     type: InfrastructureProvider
     versions:
-      - name: v1.2.99
+      - name: v1.4.99
         # Use manifest from source files
         value: ../../../config/default
         contract: v1beta1
@@ -207,9 +172,8 @@ providers:
         targetName: "cluster-template-eks-managedmachinepool.yaml"
 
 variables:
-  KUBERNETES_VERSION: "v1.21.2"
-  KUBERNETES_VERSION_MANAGEMENT: "v1.22.2" # Kind bootstrap
-  CNI: "../../data/cni/calico_eks.yaml"
+  KUBERNETES_VERSION: "v1.22.9"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.22.9" # Kind bootstrap
   EXP_MACHINE_POOL: "true"
   EXP_CLUSTER_RESOURCE_SET: "true"
   AWS_NODE_MACHINE_TYPE: t3.large
@@ -217,11 +181,12 @@ variables:
   AWS_SSH_KEY_NAME: "cluster-api-provider-aws-sigs-k8s-io"
   EXP_EKS_IAM: "false"
   EXP_EKS_ADD_ROLES: "false"
-  VPC_ADDON_VERSION: "v1.8.0-eksbuild.1"
-  COREDNS_ADDON_VERSION: "v1.8.3-eksbuild.1"
-  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "1.21.2"
+  VPC_ADDON_VERSION: "v1.11.0-eksbuild.1"
+  COREDNS_ADDON_VERSION: "v1.8.7-eksbuild.1"
+  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "1.22.9"
   AUTO_CONTROLLER_IDENTITY_CREATOR: "false"
   IP_FAMILY: "IPv4"
+  CAPA_LOGLEVEL: "4"
 
 intervals:
   default/wait-cluster: ["30m", "10s"]
@@ -238,3 +203,5 @@ intervals:
   default/wait-control-plane-upgrade: ["35m", "30s"]
   default/wait-addon-status: ["10m", "30s"]
   default/wait-create-identity: ["1m", "10s"]
+  default/wait-deployment-ready: ["5m", "10s"]
+  default/wait-loadbalancer-ready: ["5m", "30s"]

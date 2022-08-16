@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,6 +19,7 @@ package scope
 import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // ELBScope is a scope for use with the ELB reconciling service.
@@ -45,4 +46,7 @@ type ELBScope interface {
 
 	// ControlPlaneLoadBalancerName returns the Classic ELB name
 	ControlPlaneLoadBalancerName() *string
+
+	// ControlPlaneEndpoint returns AWSCluster control plane endpoint
+	ControlPlaneEndpoint() clusterv1.APIEndpoint
 }

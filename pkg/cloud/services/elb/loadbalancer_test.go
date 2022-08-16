@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb"
 	rgapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/golang/mock/gomock"
+	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -36,9 +37,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_resourcegroupstaggingapiiface"
+	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -153,14 +152,14 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 	tests := []struct {
 		name   string
 		lb     *infrav1.AWSLoadBalancerSpec
-		mocks  func(m *mock_ec2iface.MockEC2APIMockRecorder)
-		expect func(t *testing.T, res *infrav1.ClassicELB)
+		mocks  func(m *mocks.MockEC2APIMockRecorder)
+		expect func(t *testing.T, g *WithT, res *infrav1.ClassicELB)
 	}{
 		{
 			name:  "nil load balancer config",
 			lb:    nil,
-			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
-			expect: func(t *testing.T, res *infrav1.ClassicELB) {
+			mocks: func(m *mocks.MockEC2APIMockRecorder) {},
+			expect: func(t *testing.T, g *WithT, res *infrav1.ClassicELB) {
 				t.Helper()
 				if res.Attributes.CrossZoneLoadBalancing {
 					t.Error("Expected load balancer not to have cross-zone load balancing enabled")
@@ -172,8 +171,8 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 			lb: &infrav1.AWSLoadBalancerSpec{
 				CrossZoneLoadBalancing: true,
 			},
-			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
-			expect: func(t *testing.T, res *infrav1.ClassicELB) {
+			mocks: func(m *mocks.MockEC2APIMockRecorder) {},
+			expect: func(t *testing.T, g *WithT, res *infrav1.ClassicELB) {
 				t.Helper()
 				if !res.Attributes.CrossZoneLoadBalancing {
 					t.Error("Expected load balancer to have cross-zone load balancing enabled")
@@ -185,7 +184,7 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 			lb: &infrav1.AWSLoadBalancerSpec{
 				Subnets: []string{"subnet-1", "subnet-2"},
 			},
-			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			mocks: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					SubnetIds: []*string{
 						aws.String("subnet-1"),
@@ -205,7 +204,7 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 						},
 					}, nil)
 			},
-			expect: func(t *testing.T, res *infrav1.ClassicELB) {
+			expect: func(t *testing.T, g *WithT, res *infrav1.ClassicELB) {
 				t.Helper()
 				if len(res.SubnetIDs) != 2 {
 					t.Errorf("Expected load balancer to be configured for 2 subnets, got %v", len(res.SubnetIDs))
@@ -220,21 +219,44 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 			lb: &infrav1.AWSLoadBalancerSpec{
 				AdditionalSecurityGroups: []string{"sg-00001", "sg-00002"},
 			},
-			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
-			expect: func(t *testing.T, res *infrav1.ClassicELB) {
+			mocks: func(m *mocks.MockEC2APIMockRecorder) {},
+			expect: func(t *testing.T, g *WithT, res *infrav1.ClassicELB) {
 				t.Helper()
 				if len(res.SecurityGroupIDs) != 3 {
 					t.Errorf("Expected load balancer to be configured for 3 security groups, got %v", len(res.SecurityGroupIDs))
 				}
 			},
 		},
+		{
+			name: "Should create load balancer spec if elb health check protocol specified in config",
+			lb: &infrav1.AWSLoadBalancerSpec{
+				HealthCheckProtocol: &infrav1.ClassicELBProtocolTCP,
+			},
+			mocks: func(m *mocks.MockEC2APIMockRecorder) {},
+			expect: func(t *testing.T, g *WithT, res *infrav1.ClassicELB) {
+				t.Helper()
+				expectedTarget := fmt.Sprintf("%v:%d", infrav1.ClassicELBProtocolTCP, 6443)
+				g.Expect(expectedTarget, res.HealthCheck.Target)
+			},
+		},
+		{
+			name:  "Should create load balancer spec with default elb health check protocol",
+			lb:    &infrav1.AWSLoadBalancerSpec{},
+			mocks: func(m *mocks.MockEC2APIMockRecorder) {},
+			expect: func(t *testing.T, g *WithT, res *infrav1.ClassicELB) {
+				t.Helper()
+				expectedTarget := fmt.Sprintf("%v:%d", infrav1.ClassicELBProtocolTCP, 6443)
+				g.Expect(expectedTarget, res.HealthCheck.Target)
+			},
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scheme := runtime.NewScheme()
 			_ = infrav1.AddToScheme(scheme)
@@ -270,7 +292,7 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			tc.expect(t, spec)
+			tc.expect(t, g, spec)
 		})
 	}
 }
@@ -290,8 +312,8 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 	tests := []struct {
 		name        string
 		awsCluster  *infrav1.AWSCluster
-		elbAPIMocks func(m *mock_elbiface.MockELBAPIMockRecorder)
-		ec2Mocks    func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		elbAPIMocks func(m *mocks.MockELBAPIMockRecorder)
+		ec2Mocks    func(m *mocks.MockEC2APIMockRecorder)
 		check       func(t *testing.T, err error)
 	}{
 		{
@@ -310,7 +332,7 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 					},
 				},
 			},
-			elbAPIMocks: func(m *mock_elbiface.MockELBAPIMockRecorder) {
+			elbAPIMocks: func(m *mocks.MockELBAPIMockRecorder) {
 				m.DescribeLoadBalancers(gomock.Eq(&elb.DescribeLoadBalancersInput{
 					LoadBalancerNames: aws.StringSlice([]string{elbName}),
 				})).
@@ -354,7 +376,7 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 						Instances: []*elb.Instance{{InstanceId: aws.String(instanceID)}},
 					}, nil)
 			},
-			ec2Mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
+			ec2Mocks: func(m *mocks.MockEC2APIMockRecorder) {},
 			check: func(t *testing.T, err error) {
 				t.Helper()
 				if err != nil {
@@ -379,7 +401,7 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 					},
 				},
 			},
-			elbAPIMocks: func(m *mock_elbiface.MockELBAPIMockRecorder) {
+			elbAPIMocks: func(m *mocks.MockELBAPIMockRecorder) {
 				m.DescribeLoadBalancers(gomock.Eq(&elb.DescribeLoadBalancersInput{
 					LoadBalancerNames: aws.StringSlice([]string{elbName}),
 				})).
@@ -423,7 +445,7 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 						Instances: []*elb.Instance{{InstanceId: aws.String(instanceID)}},
 					}, nil)
 			},
-			ec2Mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			ec2Mocks: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					SubnetIds: []*string{
 						aws.String(elbSubnetID),
@@ -462,7 +484,7 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 					},
 				},
 			},
-			elbAPIMocks: func(m *mock_elbiface.MockELBAPIMockRecorder) {
+			elbAPIMocks: func(m *mocks.MockELBAPIMockRecorder) {
 				m.DescribeLoadBalancers(gomock.Eq(&elb.DescribeLoadBalancersInput{
 					LoadBalancerNames: aws.StringSlice([]string{elbName}),
 				})).
@@ -498,7 +520,7 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 						},
 					}, nil)
 			},
-			ec2Mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			ec2Mocks: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					SubnetIds: []*string{
 						aws.String(elbSubnetID),
@@ -531,8 +553,8 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
-			elbAPIMocks := mock_elbiface.NewMockELBAPI(mockCtrl)
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			elbAPIMocks := mocks.NewMockELBAPI(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scheme, err := setupScheme()
 			if err != nil {
@@ -579,11 +601,11 @@ func TestDeleteAPIServerELB(t *testing.T) {
 	elbName := "bar-apiserver"
 	tests := []struct {
 		name        string
-		elbAPIMocks func(m *mock_elbiface.MockELBAPIMockRecorder)
+		elbAPIMocks func(m *mocks.MockELBAPIMockRecorder)
 	}{
 		{
 			name: "if control plane ELB is not found, do nothing",
-			elbAPIMocks: func(m *mock_elbiface.MockELBAPIMockRecorder) {
+			elbAPIMocks: func(m *mocks.MockELBAPIMockRecorder) {
 				m.DescribeLoadBalancers(gomock.Eq(&elb.DescribeLoadBalancersInput{
 					LoadBalancerNames: aws.StringSlice([]string{elbName}),
 				})).Return(nil, awserr.New(elb.ErrCodeAccessPointNotFoundException, "", nil))
@@ -591,7 +613,7 @@ func TestDeleteAPIServerELB(t *testing.T) {
 		},
 		{
 			name: "if control plane ELB is found, and it is not managed, do nothing",
-			elbAPIMocks: func(m *mock_elbiface.MockELBAPIMockRecorder) {
+			elbAPIMocks: func(m *mocks.MockELBAPIMockRecorder) {
 				m.DescribeLoadBalancers(&elb.DescribeLoadBalancersInput{LoadBalancerNames: []*string{aws.String(elbName)}}).Return(
 					&elb.DescribeLoadBalancersOutput{
 						LoadBalancerDescriptions: []*elb.LoadBalancerDescription{
@@ -630,7 +652,7 @@ func TestDeleteAPIServerELB(t *testing.T) {
 		},
 		{
 			name: "if control plane ELB is found, and it is managed, delete the ELB",
-			elbAPIMocks: func(m *mock_elbiface.MockELBAPIMockRecorder) {
+			elbAPIMocks: func(m *mocks.MockELBAPIMockRecorder) {
 				m.DescribeLoadBalancers(&elb.DescribeLoadBalancersInput{LoadBalancerNames: []*string{aws.String(elbName)}}).Return(
 					&elb.DescribeLoadBalancersOutput{
 						LoadBalancerDescriptions: []*elb.LoadBalancerDescription{
@@ -686,8 +708,8 @@ func TestDeleteAPIServerELB(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
-			rgapiMock := mock_resourcegroupstaggingapiiface.NewMockResourceGroupsTaggingAPIAPI(mockCtrl)
-			elbapiMock := mock_elbiface.NewMockELBAPI(mockCtrl)
+			rgapiMock := mocks.NewMockResourceGroupsTaggingAPIAPI(mockCtrl)
+			elbapiMock := mocks.NewMockELBAPI(mockCtrl)
 
 			scheme, err := setupScheme()
 			if err != nil {
@@ -741,14 +763,14 @@ func TestDeleteAWSCloudProviderELBs(t *testing.T) {
 	clusterName := "bar"
 	tests := []struct {
 		name                  string
-		rgAPIMocks            func(m *mock_resourcegroupstaggingapiiface.MockResourceGroupsTaggingAPIAPIMockRecorder)
-		elbAPIMocks           func(m *mock_elbiface.MockELBAPIMockRecorder)
-		postDeleteRGAPIMocks  func(m *mock_resourcegroupstaggingapiiface.MockResourceGroupsTaggingAPIAPIMockRecorder)
-		postDeleteElbAPIMocks func(m *mock_elbiface.MockELBAPIMockRecorder)
+		rgAPIMocks            func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder)
+		elbAPIMocks           func(m *mocks.MockELBAPIMockRecorder)
+		postDeleteRGAPIMocks  func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder)
+		postDeleteElbAPIMocks func(m *mocks.MockELBAPIMockRecorder)
 	}{
 		{
 			name: "discover ELBs with Resource Groups Tagging API and then delete successfully",
-			rgAPIMocks: func(m *mock_resourcegroupstaggingapiiface.MockResourceGroupsTaggingAPIAPIMockRecorder) {
+			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
 				m.GetResourcesPages(&rgapi.GetResourcesInput{
 					ResourceTypeFilters: aws.StringSlice([]string{elbResourceType}),
 					TagFilters: []*rgapi.TagFilter{
@@ -762,7 +784,7 @@ func TestDeleteAWSCloudProviderELBs(t *testing.T) {
 					funct(&rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []*rgapi.ResourceTagMapping{
 							{
-								ResourceARN: aws.String("lb-service-name"),
+								ResourceARN: aws.String("arn:aws:elasticloadbalancing:eu-west-2:1234567890:loadbalancer/lb-service-name"),
 								Tags: []*rgapi.Tag{{
 									Key:   aws.String(infrav1.ClusterAWSCloudProviderTagKey(clusterName)),
 									Value: aws.String(string(infrav1.ResourceLifecycleOwned)),
@@ -772,10 +794,10 @@ func TestDeleteAWSCloudProviderELBs(t *testing.T) {
 					}, true)
 				}).Return(nil)
 			},
-			elbAPIMocks: func(m *mock_elbiface.MockELBAPIMockRecorder) {
+			elbAPIMocks: func(m *mocks.MockELBAPIMockRecorder) {
 				m.DeleteLoadBalancer(gomock.Eq(&elb.DeleteLoadBalancerInput{LoadBalancerName: aws.String("lb-service-name")})).Return(nil, nil)
 			},
-			postDeleteRGAPIMocks: func(m *mock_resourcegroupstaggingapiiface.MockResourceGroupsTaggingAPIAPIMockRecorder) {
+			postDeleteRGAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
 				m.GetResourcesPages(&rgapi.GetResourcesInput{
 					ResourceTypeFilters: aws.StringSlice([]string{elbResourceType}),
 					TagFilters: []*rgapi.TagFilter{
@@ -794,10 +816,10 @@ func TestDeleteAWSCloudProviderELBs(t *testing.T) {
 		},
 		{
 			name: "fall back to ELB API when Resource Groups Tagging API fails and then delete successfully",
-			rgAPIMocks: func(m *mock_resourcegroupstaggingapiiface.MockResourceGroupsTaggingAPIAPIMockRecorder) {
+			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
 				m.GetResourcesPages(gomock.Any(), gomock.Any()).Return(errors.Errorf("connection failure")).AnyTimes()
 			},
-			elbAPIMocks: func(m *mock_elbiface.MockELBAPIMockRecorder) {
+			elbAPIMocks: func(m *mocks.MockELBAPIMockRecorder) {
 				m.DescribeLoadBalancersPages(gomock.Any(), gomock.Any()).Do(func(_, y interface{}) {
 					funct := y.(func(output *elb.DescribeLoadBalancersOutput, lastPage bool) bool)
 					funct(&elb.DescribeLoadBalancersOutput{
@@ -838,7 +860,7 @@ func TestDeleteAWSCloudProviderELBs(t *testing.T) {
 				}, nil)
 				m.DeleteLoadBalancer(gomock.Eq(&elb.DeleteLoadBalancerInput{LoadBalancerName: aws.String("lb-service-name")})).Return(nil, nil)
 			},
-			postDeleteElbAPIMocks: func(m *mock_elbiface.MockELBAPIMockRecorder) {
+			postDeleteElbAPIMocks: func(m *mocks.MockELBAPIMockRecorder) {
 				m.DescribeLoadBalancersPages(gomock.Any(), gomock.Any()).Return(nil)
 			},
 		},
@@ -848,8 +870,8 @@ func TestDeleteAWSCloudProviderELBs(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
-			rgapiMock := mock_resourcegroupstaggingapiiface.NewMockResourceGroupsTaggingAPIAPI(mockCtrl)
-			elbapiMock := mock_elbiface.NewMockELBAPI(mockCtrl)
+			rgapiMock := mocks.NewMockResourceGroupsTaggingAPIAPI(mockCtrl)
+			elbapiMock := mocks.NewMockELBAPI(mockCtrl)
 
 			scheme, err := setupScheme()
 			if err != nil {
@@ -907,16 +929,16 @@ func TestDescribeLoadbalancers(t *testing.T) {
 	tests := []struct {
 		name                string
 		lbName              string
-		rgAPIMocks          func(m *mock_resourcegroupstaggingapiiface.MockResourceGroupsTaggingAPIAPIMockRecorder)
-		DescribeElbAPIMocks func(m *mock_elbiface.MockELBAPIMockRecorder)
+		rgAPIMocks          func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder)
+		DescribeElbAPIMocks func(m *mocks.MockELBAPIMockRecorder)
 	}{
 		{
 			name:   "Error if existing loadbalancer with same name doesn't have same scheme",
 			lbName: "bar-apiserver",
-			rgAPIMocks: func(m *mock_resourcegroupstaggingapiiface.MockResourceGroupsTaggingAPIAPIMockRecorder) {
+			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
 				m.GetResourcesPages(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 			},
-			DescribeElbAPIMocks: func(m *mock_elbiface.MockELBAPIMockRecorder) {
+			DescribeElbAPIMocks: func(m *mocks.MockELBAPIMockRecorder) {
 				m.DescribeLoadBalancers(gomock.Eq(&elb.DescribeLoadBalancersInput{
 					LoadBalancerNames: aws.StringSlice([]string{"bar-apiserver"}),
 				})).Return(&elb.DescribeLoadBalancersOutput{LoadBalancerDescriptions: []*elb.LoadBalancerDescription{{Scheme: pointer.StringPtr(string(infrav1.ClassicELBSchemeInternal))}}}, nil)
@@ -928,8 +950,8 @@ func TestDescribeLoadbalancers(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
-			rgapiMock := mock_resourcegroupstaggingapiiface.NewMockResourceGroupsTaggingAPIAPI(mockCtrl)
-			elbapiMock := mock_elbiface.NewMockELBAPI(mockCtrl)
+			rgapiMock := mocks.NewMockResourceGroupsTaggingAPIAPI(mockCtrl)
+			elbapiMock := mocks.NewMockELBAPI(mockCtrl)
 
 			scheme, err := setupScheme()
 			if err != nil {

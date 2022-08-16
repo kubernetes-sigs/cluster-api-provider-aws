@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -33,6 +33,8 @@ const (
 	DefaultPartitionName = "aws"
 	// DefaultKMSAliasPattern is the default KMS alias.
 	DefaultKMSAliasPattern = "cluster-api-provider-aws-*"
+	// DefaultS3BucketPrefix is the default S3 bucket prefix.
+	DefaultS3BucketPrefix = "cluster-api-provider-aws-"
 )
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
@@ -90,6 +92,10 @@ func SetDefaults_AWSIAMConfigurationSpec(obj *AWSIAMConfigurationSpec) { //nolin
 	}
 	if len(obj.EKS.KMSAliasPrefix) == 0 {
 		obj.EKS.KMSAliasPrefix = DefaultKMSAliasPattern
+	}
+
+	if obj.S3Buckets.NamePrefix == "" {
+		obj.S3Buckets.NamePrefix = DefaultS3BucketPrefix
 	}
 }
 

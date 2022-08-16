@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -97,6 +97,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"ec2:DeleteInternetGateway",
 				"ec2:DeleteNatGateway",
 				"ec2:DeleteRouteTable",
+				"ec2:ReplaceRoute",
 				"ec2:DeleteSecurityGroup",
 				"ec2:DeleteSubnet",
 				"ec2:DeleteTags",
@@ -131,6 +132,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"elasticloadbalancing:CreateLoadBalancer",
 				"elasticloadbalancing:ConfigureHealthCheck",
 				"elasticloadbalancing:DeleteLoadBalancer",
+				"elasticloadbalancing:DeleteTargetGroup",
 				"elasticloadbalancing:DescribeLoadBalancers",
 				"elasticloadbalancing:DescribeLoadBalancerAttributes",
 				"elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
@@ -235,6 +237,21 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				},
 			})
 		}
+	}
+	if t.Spec.S3Buckets.Enable {
+		statement = append(statement, iamv1.StatementEntry{
+			Effect: iamv1.EffectAllow,
+			Resource: iamv1.Resources{
+				fmt.Sprintf("arn:*:s3:::%s*", t.Spec.S3Buckets.NamePrefix),
+			},
+			Action: iamv1.Actions{
+				"s3:CreateBucket",
+				"s3:DeleteBucket",
+				"s3:PutObject",
+				"s3:DeleteObject",
+				"s3:PutBucketPolicy",
+			},
+		})
 	}
 	if t.Spec.EventBridge.Enable {
 		statement = append(statement, iamv1.StatementEntry{
@@ -387,6 +404,8 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 			Effect: iamv1.EffectAllow,
 		}, {
 			Action: iamv1.Actions{
+				"ec2:AssociateVpcCidrBlock",
+				"ec2:DisassociateVpcCidrBlock",
 				"eks:ListAddons",
 				"eks:CreateAddon",
 				"eks:DescribeAddonVersions",

@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -42,8 +43,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/mock_services"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
-
-	// "sigs.k8s.io/cluster-api/controllers/noderefutil" //nolint:godot.
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -56,7 +55,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 		cs             *scope.ClusterScope
 		ms             *scope.MachinePoolScope
 		mockCtrl       *gomock.Controller
-		ec2Svc         *mock_services.MockEC2MachineInterface
+		ec2Svc         *mock_services.MockEC2Interface
 		asgSvc         *mock_services.MockASGInterface
 		recorder       *record.FakeRecorder
 		awsMachinePool *expinfrav1.AWSMachinePool
@@ -81,7 +80,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				Namespace: "default",
 			},
 			Spec: expinfrav1.AWSMachinePoolSpec{
-				MinSize: int32(1),
+				MinSize: int32(0),
 				MaxSize: int32(1),
 			},
 		}
@@ -128,14 +127,14 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 		g.Expect(err).To(BeNil())
 
 		mockCtrl = gomock.NewController(t)
-		ec2Svc = mock_services.NewMockEC2MachineInterface(mockCtrl)
+		ec2Svc = mock_services.NewMockEC2Interface(mockCtrl)
 		asgSvc = mock_services.NewMockASGInterface(mockCtrl)
 
 		// If the test hangs for 9 minutes, increase the value here to the number of events during a reconciliation loop
 		recorder = record.NewFakeRecorder(2)
 
 		reconciler = AWSMachinePoolReconciler{
-			ec2ServiceFactory: func(scope.EC2Scope) services.EC2MachineInterface {
+			ec2ServiceFactory: func(scope.EC2Scope) services.EC2Interface {
 				return ec2Svc
 			},
 			asgServiceFactory: func(cloud.ClusterScoper) services.ASGInterface {
@@ -364,4 +363,215 @@ func setupCluster(clusterName string) (*scope.ClusterScope, error) {
 		AWSCluster: awsCluster,
 		Client:     client,
 	})
+}
+
+func Test_asgNeedsUpdates(t *testing.T) {
+	type args struct {
+		machinePoolScope *scope.MachinePoolScope
+		existingASG      *expinfrav1.AutoScalingGroup
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "replicas != asg.desiredCapacity",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: pointer.Int32(0),
+						},
+					},
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity: pointer.Int32(1),
+				},
+			},
+			want: true,
+		},
+		{
+			name: "replicas (nil) != asg.desiredCapacity",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: nil,
+						},
+					},
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity: pointer.Int32(1),
+				},
+			},
+			want: true,
+		},
+		{
+			name: "replicas != asg.desiredCapacity (nil)",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: pointer.Int32(0),
+						},
+					},
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity: nil,
+				},
+			},
+			want: true,
+		},
+		{
+			name: "maxSize != asg.maxSize",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: pointer.Int32(1),
+						},
+					},
+					AWSMachinePool: &expinfrav1.AWSMachinePool{
+						Spec: expinfrav1.AWSMachinePoolSpec{
+							MaxSize: 1,
+						},
+					},
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity: pointer.Int32(1),
+					MaxSize:         2,
+				},
+			},
+			want: true,
+		},
+		{
+			name: "minSize != asg.minSize",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: pointer.Int32(1),
+						},
+					},
+					AWSMachinePool: &expinfrav1.AWSMachinePool{
+						Spec: expinfrav1.AWSMachinePoolSpec{
+							MaxSize: 2,
+							MinSize: 0,
+						},
+					},
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity: pointer.Int32(1),
+					MaxSize:         2,
+					MinSize:         1,
+				},
+			},
+			want: true,
+		},
+		{
+			name: "capacityRebalance != asg.capacityRebalance",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: pointer.Int32(1),
+						},
+					},
+					AWSMachinePool: &expinfrav1.AWSMachinePool{
+						Spec: expinfrav1.AWSMachinePoolSpec{
+							MaxSize:           2,
+							MinSize:           0,
+							CapacityRebalance: true,
+						},
+					},
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity:   pointer.Int32(1),
+					MaxSize:           2,
+					MinSize:           0,
+					CapacityRebalance: false,
+				},
+			},
+			want: true,
+		},
+		{
+			name: "MixedInstancesPolicy != asg.MixedInstancesPolicy",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: pointer.Int32(1),
+						},
+					},
+					AWSMachinePool: &expinfrav1.AWSMachinePool{
+						Spec: expinfrav1.AWSMachinePoolSpec{
+							MaxSize:           2,
+							MinSize:           0,
+							CapacityRebalance: true,
+							MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
+								InstancesDistribution: &expinfrav1.InstancesDistribution{
+									OnDemandAllocationStrategy: expinfrav1.OnDemandAllocationStrategyPrioritized,
+								},
+								Overrides: nil,
+							},
+						},
+					},
+					Logger: logr.Discard(),
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity:      pointer.Int32(1),
+					MaxSize:              2,
+					MinSize:              0,
+					CapacityRebalance:    true,
+					MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "all matches",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: pointer.Int32(1),
+						},
+					},
+					AWSMachinePool: &expinfrav1.AWSMachinePool{
+						Spec: expinfrav1.AWSMachinePoolSpec{
+							MaxSize:           2,
+							MinSize:           0,
+							CapacityRebalance: true,
+							MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
+								InstancesDistribution: &expinfrav1.InstancesDistribution{
+									OnDemandAllocationStrategy: expinfrav1.OnDemandAllocationStrategyPrioritized,
+								},
+								Overrides: nil,
+							},
+						},
+					},
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity:   pointer.Int32(1),
+					MaxSize:           2,
+					MinSize:           0,
+					CapacityRebalance: true,
+					MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
+						InstancesDistribution: &expinfrav1.InstancesDistribution{
+							OnDemandAllocationStrategy: expinfrav1.OnDemandAllocationStrategyPrioritized,
+						},
+						Overrides: nil,
+					},
+				},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(asgNeedsUpdates(tt.args.machinePoolScope, tt.args.existingASG)).To(Equal(tt.want))
+		})
+	}
 }

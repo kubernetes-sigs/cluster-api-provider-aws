@@ -1,0 +1,11 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSCluster
+metadata:
+  name: "${CLUSTER_NAME}"
+spec:
+  s3Bucket:
+    controlPlaneIAMInstanceProfile: control-plane.cluster-api-provider-aws.sigs.k8s.io
+    # Letter at the end ensures bucket name ends with a letter which is a requirement.
+    name: "cluster-api-provider-aws-${CLUSTER_NAME}a"
+    nodesIAMInstanceProfiles:
+    - nodes.cluster-api-provider-aws.sigs.k8s.io

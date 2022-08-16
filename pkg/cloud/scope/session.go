@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,7 +19,6 @@ package scope
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -28,9 +27,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/go-logr/logr"
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -189,6 +190,7 @@ func newServiceLimiters() throttle.ServiceLimiters {
 	return throttle.ServiceLimiters{
 		ec2.ServiceID:                      newEC2ServiceLimiter(),
 		elb.ServiceID:                      newGenericServiceLimiter(),
+		elbv2.ServiceID:                    newGenericServiceLimiter(),
 		resourcegroupstaggingapi.ServiceID: newGenericServiceLimiter(),
 		secretsmanager.ServiceID:           newGenericServiceLimiter(),
 	}
@@ -419,7 +421,7 @@ func isClusterPermittedToUsePrincipal(k8sClient client.Client, allowedNs *infrav
 	}
 
 	// empty value matches with all namespaces
-	if reflect.DeepEqual(*allowedNs, infrav1.AllowedNamespaces{}) {
+	if cmp.Equal(*allowedNs, infrav1.AllowedNamespaces{}) {
 		return true, nil
 	}
 

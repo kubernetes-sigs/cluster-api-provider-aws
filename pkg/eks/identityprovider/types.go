@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,7 +17,7 @@ limitations under the License.
 package identityprovider
 
 import (
-	"reflect"
+	"github.com/google/go-cmp/cmp"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 )
@@ -43,35 +43,35 @@ func (o *OidcIdentityProviderConfig) IsEqual(other *OidcIdentityProviderConfig) 
 		return true
 	}
 
-	if !reflect.DeepEqual(o.ClientID, other.ClientID) {
+	if !cmp.Equal(o.ClientID, other.ClientID) {
 		return false
 	}
 
-	if !reflect.DeepEqual(o.GroupsClaim, other.GroupsClaim) {
+	if !cmp.Equal(o.GroupsClaim, other.GroupsClaim) {
 		return false
 	}
 
-	if !reflect.DeepEqual(o.GroupsPrefix, other.GroupsPrefix) {
+	if !cmp.Equal(o.GroupsPrefix, other.GroupsPrefix) {
 		return false
 	}
 
-	if !reflect.DeepEqual(o.IdentityProviderConfigName, other.IdentityProviderConfigName) {
+	if !cmp.Equal(o.IdentityProviderConfigName, other.IdentityProviderConfigName) {
 		return false
 	}
 
-	if !reflect.DeepEqual(o.IssuerURL, other.IssuerURL) {
+	if !cmp.Equal(o.IssuerURL, other.IssuerURL) {
 		return false
 	}
 
-	if !reflect.DeepEqual(o.RequiredClaims, other.RequiredClaims) {
+	if !cmp.Equal(o.RequiredClaims, other.RequiredClaims) {
 		return false
 	}
 
-	if !reflect.DeepEqual(o.UsernameClaim, other.UsernameClaim) {
+	if !cmp.Equal(o.UsernameClaim, other.UsernameClaim) {
 		return false
 	}
 
-	if !reflect.DeepEqual(o.UsernamePrefix, other.UsernamePrefix) {
+	if !cmp.Equal(o.UsernamePrefix, other.UsernamePrefix) {
 		return false
 	}
 

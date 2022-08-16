@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -174,4 +174,38 @@ func CapacityTypeToSDK(capacityType expinfrav1.ManagedMachinePoolCapacityType) (
 	default:
 		return "", ErrUnknownCapacityType
 	}
+}
+
+// NodegroupUpdateconfigToSDK is used to convert a CAPA UpdateConfig to AWS SDK NodegroupUpdateConfig.
+func NodegroupUpdateconfigToSDK(updateConfig *expinfrav1.UpdateConfig) *eks.NodegroupUpdateConfig {
+	if updateConfig == nil {
+		return nil
+	}
+
+	converted := &eks.NodegroupUpdateConfig{}
+	if updateConfig.MaxUnavailable != nil {
+		converted.MaxUnavailable = aws.Int64(int64(*updateConfig.MaxUnavailable))
+	}
+	if updateConfig.MaxUnavailablePercentage != nil {
+		converted.MaxUnavailablePercentage = aws.Int64(int64(*updateConfig.MaxUnavailablePercentage))
+	}
+
+	return converted
+}
+
+// NodegroupUpdateconfigFromSDK is used to convert a AWS SDK NodegroupUpdateConfig to a CAPA UpdateConfig.
+func NodegroupUpdateconfigFromSDK(ngUpdateConfig *eks.NodegroupUpdateConfig) *expinfrav1.UpdateConfig {
+	if ngUpdateConfig == nil {
+		return nil
+	}
+
+	converted := &expinfrav1.UpdateConfig{}
+	if ngUpdateConfig.MaxUnavailable != nil {
+		converted.MaxUnavailable = aws.Int(int(*ngUpdateConfig.MaxUnavailable))
+	}
+	if ngUpdateConfig.MaxUnavailablePercentage != nil {
+		converted.MaxUnavailablePercentage = aws.Int(int(*ngUpdateConfig.MaxUnavailablePercentage))
+	}
+
+	return converted
 }

@@ -149,6 +149,7 @@ Resources:
           - ec2:DeleteInternetGateway
           - ec2:DeleteNatGateway
           - ec2:DeleteRouteTable
+          - ec2:ReplaceRoute
           - ec2:DeleteSecurityGroup
           - ec2:DeleteSubnet
           - ec2:DeleteTags
@@ -183,6 +184,7 @@ Resources:
           - elasticloadbalancing:CreateLoadBalancer
           - elasticloadbalancing:ConfigureHealthCheck
           - elasticloadbalancing:DeleteLoadBalancer
+          - elasticloadbalancing:DeleteTargetGroup
           - elasticloadbalancing:DescribeLoadBalancers
           - elasticloadbalancing:DescribeLoadBalancerAttributes
           - elasticloadbalancing:ApplySecurityGroupsToLoadBalancer
@@ -324,6 +326,8 @@ Resources:
           - arn:*:eks:*:*:cluster/*
           - arn:*:eks:*:*:nodegroup/*/*/*
         - Action:
+          - ec2:AssociateVpcCidrBlock
+          - ec2:DisassociateVpcCidrBlock
           - eks:ListAddons
           - eks:CreateAddon
           - eks:DescribeAddonVersions

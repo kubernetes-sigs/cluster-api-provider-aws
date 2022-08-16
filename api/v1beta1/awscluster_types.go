@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -90,6 +90,13 @@ type AWSClusterSpec struct {
 	// IdentityRef is a reference to a identity to be used when reconciling this cluster
 	// +optional
 	IdentityRef *AWSIdentityReference `json:"identityRef,omitempty"`
+
+	// S3Bucket contains options to configure a supporting S3 bucket for this
+	// cluster - currently used for nodes requiring Ignition
+	// (https://coreos.github.io/ignition/) for bootstrapping (requires
+	// BootstrapFormatIgnition feature flag to be enabled).
+	// +optional
+	S3Bucket *S3Bucket `json:"s3Bucket,omitempty"`
 }
 
 // AWSIdentityKind defines allowed AWS identity types.
@@ -177,6 +184,11 @@ type AWSLoadBalancerSpec struct {
 	// +optional
 	Subnets []string `json:"subnets,omitempty"`
 
+	// HealthCheckProtocol sets the protocol type for classic ELB health check target
+	// default value is ClassicELBProtocolSSL
+	// +optional
+	HealthCheckProtocol *ClassicELBProtocol `json:"healthCheckProtocol,omitempty"`
+
 	// AdditionalSecurityGroups sets the security groups used by the load balancer. Expected to be security group IDs
 	// This is optional - if not provided new security groups will be created for the load balancer
 	// +optional
@@ -191,6 +203,22 @@ type AWSClusterStatus struct {
 	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
 	Bastion        *Instance                `json:"bastion,omitempty"`
 	Conditions     clusterv1.Conditions     `json:"conditions,omitempty"`
+}
+
+type S3Bucket struct {
+	// ControlPlaneIAMInstanceProfile is a name of the IAMInstanceProfile, which will be allowed
+	// to read control-plane node bootstrap data from S3 Bucket.
+	ControlPlaneIAMInstanceProfile string `json:"controlPlaneIAMInstanceProfile"`
+
+	// NodesIAMInstanceProfiles is a list of IAM instance profiles, which will be allowed to read
+	// worker nodes bootstrap data from S3 Bucket.
+	NodesIAMInstanceProfiles []string `json:"nodesIAMInstanceProfiles"`
+
+	// Name defines name of S3 Bucket to be created.
+	// +kubebuilder:validation:MinLength:=3
+	// +kubebuilder:validation:MaxLength:=63
+	// +kubebuilder:validation:Pattern=`^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$`
+	Name string `json:"name"`
 }
 
 // +kubebuilder:object:root=true

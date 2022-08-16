@@ -8,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -787,6 +787,7 @@ func autoConvert_v1beta1_AWSManagedMachinePoolSpec_To_v1alpha3_AWSManagedMachine
 	out.RemoteAccess = (*ManagedRemoteAccess)(unsafe.Pointer(in.RemoteAccess))
 	out.ProviderIDList = *(*[]string)(unsafe.Pointer(&in.ProviderIDList))
 	// WARNING: in.CapacityType requires manual conversion: does not exist in peer-type
+	// WARNING: in.UpdateConfig requires manual conversion: does not exist in peer-type
 	return nil
 }
 

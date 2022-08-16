@@ -6,7 +6,16 @@
 <p align="center">
 <!-- go doc / reference card -->
 <a href="https://godoc.org/sigs.k8s.io/cluster-api-provider-aws">
- <img src="https://godoc.org/sigs.k8s.io/cluster-api-provider-aws?status.svg"></a>
+<img src="https://godoc.org/sigs.k8s.io/cluster-api-provider-aws?status.svg"></a>
+<!-- goreportcard badge -->
+<a href="https://goreportcard.com/report/sigs.k8s.io/cluster-api-provider-aws">
+<img src="https://goreportcard.com/badge/sigs.k8s.io/cluster-api-provider-aws"></a>
+<!-- join kubernetes slack channel for cluster-api-aws-provider -->
+<a href="http://slack.k8s.io/">
+<img src="https://img.shields.io/badge/join%20slack-%23cluster--api--aws-brightgreen"></a>
+<!-- openssf badge -->
+<a href="https://bestpractices.coreinfrastructure.org/projects/5688">
+<img src="https://bestpractices.coreinfrastructure.org/projects/5688/badge"></a>
 </p>
 
 ------
@@ -37,7 +46,7 @@ cluster on AWS.
 
 - Native Kubernetes manifests and API
 - Manages the bootstrapping of VPCs, gateways, security groups and instances.
-- Choice of Linux distribution between Amazon Linux 2, CentOS 7 and Ubuntu 18.04,
+- Choice of Linux distribution among Amazon Linux 2, CentOS 7, Ubuntu(18.04, 20.04) and Flatcar
   using [pre-baked AMIs][published_amis].
 - Deploys Kubernetes control planes into private subnets with a separate
   bastion server.
@@ -50,32 +59,17 @@ cluster on AWS.
 
 ## Compatibility with Cluster API and Kubernetes Versions
 
-This provider's versions are compatible with the following versions of Cluster API:
+This provider's versions are compatible with the following versions of Cluster API
+and support all Kubernetes versions that is supported by its compatible Cluster API version:
+
+|                             | Cluster API v1alpha3 (v0.3) | Cluster API v1alpha4 (v0.4) | Cluster API v1beta1 (v1.x)  |
+| --------------------------- | :-------------------------: | :-------------------------: | :-------------------------: | 
+| CAPA v1alpha3 `(v0.6)`      |              ✓              |              ☓              |              ☓              |
+| CAPA v1alpha4 `(v0.7)`      |              ☓              |              ✓              |              ☓              |
+| CAPA v1beta1  `(v1.x, main)`|              ☓              |              ☓              |               ✓             |
 
 
-|                              | v1alpha3 (v0.3) | v1alpha4 (v0.4) | v1beta1 (v1.0) |
-| ---------------------------- | --------------- | --------------- | -------------- |
-| AWS Provider v1alpha3 (v0.5) | ✓               |                 |                |
-| AWS Provider v1alpha3 (v0.6) | ✓               |                 |                |
-| AWS Provider v1alpha4 (v0.7) |                 | ✓               |                |
-| AWS Provider v1beta1 (v1.0)  |                 |                 | ✓              |
-
-
-This provider's versions are able to install and manage the following versions of Kubernetes:
-
-|                              | v1.16 | v 1.17 | v1.18 | v1.19 | v1.20 | v1.21 | v1.22 |
-| ---------------------------- | ----- | ------ | ----- | ----- | ----- | ----- | ----- |
-| AWS Provider v1alpha3 (v0.5) | ✓     | ✓      | ✓     | ✓     | ✓     |       |       |
-| AWS Provider v1alpha3 (v0.6) | ✓     | ✓      | ✓     | ✓     | ✓     | ✓     | ✓*    |
-| AWS Provider v1alpha4 (v0.7) |       |        | ✓*    | ✓     | ✓     | ✓     | ✓     |
-| AWS Provider v1beta1 (v1.0)  |       |        |       | ✓     | ✓     | ✓     | ✓     |
-
-\* Not management clusters
-
-Each version of Cluster API for AWS will attempt to support two Kubernetes versions; e.g., Cluster API for AWS `v0.3` supports Kubernetes 1.16, 1.17, 1.18 etc.
-
-**NOTE:** As the versioning for this project is tied to the versioning of Cluster API, future modifications to this
-policy may be made to more closely align with other providers in the Cluster API ecosystem.
+(See [Kubernetes support matrix][cluster-api-supported-v] of Cluster API versions).
 
 ------
 
@@ -220,3 +214,4 @@ All the CAPA contributors:
 [amis]: https://cluster-api-aws.sigs.k8s.io/topics/images/amis.html
 [published_amis]: https://cluster-api-aws.sigs.k8s.io/topics/images/built-amis.html
 [eks_support]: https://cluster-api-aws.sigs.k8s.io/topics/eks/index.html
+[cluster-api-supported-v]: https://cluster-api.sigs.k8s.io/reference/versions.html

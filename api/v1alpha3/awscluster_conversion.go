@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -54,6 +54,8 @@ func (r *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 		restoreControlPlaneLoadBalancer(restored.Spec.ControlPlaneLoadBalancer, dst.Spec.ControlPlaneLoadBalancer)
 	}
 
+	dst.Spec.S3Bucket = restored.Spec.S3Bucket
+
 	return nil
 }
 
@@ -61,6 +63,7 @@ func (r *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 // Assumes restored and dst are non-nil.
 func restoreControlPlaneLoadBalancer(restored, dst *infrav1.AWSLoadBalancerSpec) {
 	dst.Name = restored.Name
+	dst.HealthCheckProtocol = restored.HealthCheckProtocol
 }
 
 // ConvertFrom converts the v1beta1 AWSCluster receiver to a v1alpha3 AWSCluster.
@@ -123,4 +126,8 @@ func Convert_v1beta1_NetworkStatus_To_v1alpha3_Network(in *infrav1.NetworkStatus
 
 func Convert_v1beta1_AWSLoadBalancerSpec_To_v1alpha3_AWSLoadBalancerSpec(in *infrav1.AWSLoadBalancerSpec, out *AWSLoadBalancerSpec, s apiconversion.Scope) error {
 	return autoConvert_v1beta1_AWSLoadBalancerSpec_To_v1alpha3_AWSLoadBalancerSpec(in, out, s)
+}
+
+func Convert_v1beta1_AWSClusterSpec_To_v1alpha3_AWSClusterSpec(in *infrav1.AWSClusterSpec, out *AWSClusterSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_AWSClusterSpec_To_v1alpha3_AWSClusterSpec(in, out, s)
 }

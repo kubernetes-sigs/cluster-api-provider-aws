@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -39,6 +39,8 @@ func (r *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	restoreSpec(&restored.Spec, &dst.Spec)
+
+	dst.Spec.Ignition = restored.Spec.Ignition
 
 	return nil
 }
@@ -100,6 +102,7 @@ func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
+	dst.Spec.Template.Spec.Ignition = restored.Spec.Template.Spec.Ignition
 
 	restoreSpec(&restored.Spec.Template.Spec, &dst.Spec.Template.Spec)
 
