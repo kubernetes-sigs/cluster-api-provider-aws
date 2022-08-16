@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	"fmt"
+
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -60,8 +61,8 @@ func (r *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 			dst.Spec.NetworkSpec.VPC.IPv6 = &infrav1.IPv6{}
 		}
 		dst.Spec.NetworkSpec.VPC.IPv6.EgressOnlyInternetGatewayID = restored.Spec.NetworkSpec.VPC.IPv6.EgressOnlyInternetGatewayID
-		dst.Spec.NetworkSpec.VPC.IPv6.IPv6CidrBlock = restored.Spec.NetworkSpec.VPC.IPv6.IPv6CidrBlock
-		dst.Spec.NetworkSpec.VPC.IPv6.IPv6Pool = restored.Spec.NetworkSpec.VPC.IPv6.IPv6Pool
+		dst.Spec.NetworkSpec.VPC.IPv6.CidrBlock = restored.Spec.NetworkSpec.VPC.IPv6.CidrBlock
+		dst.Spec.NetworkSpec.VPC.IPv6.PoolID = restored.Spec.NetworkSpec.VPC.IPv6.PoolID
 	}
 
 	for i := range dst.Spec.NetworkSpec.Subnets {

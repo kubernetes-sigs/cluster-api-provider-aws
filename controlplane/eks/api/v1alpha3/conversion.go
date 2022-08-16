@@ -53,8 +53,8 @@ func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 			dst.Spec.NetworkSpec.VPC.IPv6 = &infrav1beta1.IPv6{}
 		}
 		dst.Spec.NetworkSpec.VPC.IPv6.EgressOnlyInternetGatewayID = restored.Spec.NetworkSpec.VPC.IPv6.EgressOnlyInternetGatewayID
-		dst.Spec.NetworkSpec.VPC.IPv6.IPv6CidrBlock = restored.Spec.NetworkSpec.VPC.IPv6.IPv6CidrBlock
-		dst.Spec.NetworkSpec.VPC.IPv6.IPv6Pool = restored.Spec.NetworkSpec.VPC.IPv6.IPv6Pool
+		dst.Spec.NetworkSpec.VPC.IPv6.CidrBlock = restored.Spec.NetworkSpec.VPC.IPv6.CidrBlock
+		dst.Spec.NetworkSpec.VPC.IPv6.PoolID = restored.Spec.NetworkSpec.VPC.IPv6.PoolID
 	}
 
 	for i := range dst.Spec.NetworkSpec.Subnets {

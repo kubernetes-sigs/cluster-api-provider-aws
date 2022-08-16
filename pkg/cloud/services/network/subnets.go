@@ -234,9 +234,9 @@ func (s *Service) getDefaultSubnets() (infrav1.Subnets, error) {
 	privateSubnetCIDRs := append(subnetCIDRs[:0], subnetCIDRs[1:]...)
 
 	if s.scope.VPC().IsIPv6Enabled() {
-		ipv6SubnetCIDRs, err = cidr.SplitIntoSubnetsIPv6(s.scope.VPC().IPv6.IPv6CidrBlock, numSubnets)
+		ipv6SubnetCIDRs, err = cidr.SplitIntoSubnetsIPv6(s.scope.VPC().IPv6.CidrBlock, numSubnets)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed splitting IPv6 VPC CIDR %q into subnets", s.scope.VPC().IPv6.IPv6CidrBlock)
+			return nil, errors.Wrapf(err, "failed splitting IPv6 VPC CIDR %q into subnets", s.scope.VPC().IPv6.CidrBlock)
 		}
 
 		// We need to take the last, so it doesn't conflict with the rest. The subnetID is increment each time by 1.

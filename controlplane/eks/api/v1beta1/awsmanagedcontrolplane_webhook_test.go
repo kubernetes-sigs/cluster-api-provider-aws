@@ -420,17 +420,17 @@ func TestWebhookCreate_IPv6Details(t *testing.T) {
 			},
 		},
 		{
-			name:        "ipv6 with BYOIP but pool is left empty",
+			name:        "ipv6 cidr block is set but pool is left empty",
 			kubeVersion: "v1.18",
 			networkSpec: infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					IPv6: &infrav1.IPv6{
-						IPv6CidrBlock: "not-empty",
-						// IPv6Pool is empty
+						CidrBlock: "not-empty",
+						// PoolID is empty
 					},
 				},
 			},
-			err: "ipv6Pool cannot be empty if ipv6CidrBlock is set for BYOIP",
+			err: "poolId cannot be empty if cidrBlock is set",
 		},
 	}
 

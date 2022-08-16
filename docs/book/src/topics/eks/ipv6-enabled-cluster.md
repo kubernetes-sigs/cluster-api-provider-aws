@@ -39,8 +39,8 @@ spec:
   network:
     vpc:
       ipv6:
-        ipv6Pool: pool-id
-        ipv6CidrBlock: "2009:1234:ff00::/56"
+        poolId: pool-id
+        cidrBlock: "2009:1234:ff00::/56"
 ```
 
 ### Requirements
@@ -125,7 +125,7 @@ The extra configs are on the kubeadm side. These are `node-ip` and `bind-address
 This will tell kubeadm to bind to a specific address type which should be IPv6.
 
 Next, it's pod CIDRs and service CIDRs. This is a bit more tricky. You need to know your IPv6 CIDR beforehand.
-Having your own IPv6 pool is most of the times, impractical. But there is a way to get you started up quickly
+Having your own IPv6 pool is most of the time, impractical. But there is a way to get you started up quickly
 and with low effort. You can ask CAPA to create the network topology for you with a simple cluster config such
 as this one:
 
@@ -159,7 +159,7 @@ spec:
 This will create a VPC with proper load-balancing and elastic ips and everything. This can be fine-tuned as
 desired. This is the bare minimum where CAPA creates the whole topology.
 
-Once this is done, we can acquire the IPv6 CIDR and we can continue by using the vpc id and subnets in the
+Once this is done, we can acquire the IPv6 CIDR, and we can continue by using the vpc id and subnets in the
 unmanaged setting like this:
 
 ```yaml
@@ -171,7 +171,7 @@ metadata:
 spec:
   clusterNetwork:
     services:
-      cidrBlocks: ["192.168.0.0/16", "2a05:d014:852:f::/56"]
+      cidrBlocks: ["192.168.0.0/16", "2a05:d014:852:f::/112"]
     pods:
       cidrBlocks: ["192.168.0.0/16", "2a05:d014:852:f::/56"]
   infrastructureRef:
@@ -221,6 +221,41 @@ to `112`.
 Once this is done, we can install Cilium into the workload cluster and restart all Pods so they can acquire IPv6
 addresses.
 
-### Putting it all together
+### Calico
 
-All new pods will acquire an IPv6 address, however, existing pods, such as kube-proxy, will remain with IPv4 addresses.
+Another approach is to use Calico. Calico has detailed guides on how to set up IPv6 located [here](https://projectcalico.docs.tigera.io/networking/ipv6) and [here](https://projectcalico.docs.tigera.io/networking/ipv6-control-plane).
+
+You can use CAPA to bootstrap Calico in the following way:
+
+- Create a ClusterResourceSet like this:
+```yaml
+apiVersion: addons.cluster.x-k8s.io/v1alpha3
+kind: ClusterResourceSet
+metadata:
+ name: crs1
+ namespace: default
+spec:
+ mode: "ApplyOnce"
+ clusterSelector:
+   matchLabels:
+     cni: calico
+ resources:
+   - name: db-secret
+     kind: Secret
+   - name: calico-addon
+     kind: ConfigMap
+```
+- Download the latest Calico manifest and set up the required properties for IPv6 as the guides suggest ( you will already 
+  need to have an IPv6 CIDR )
+- Create a config map in the control plane with the following command: `kubectl create configmap calico-addon --from-file=calico.yaml`
+- Tag your cluster with the label `cni: calico` so cluster-api can find it and install the cni addon
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: "test-ipv6-unmanaged-2"
+  labels:
+    cni: calico
+```
+- Apply and monitor
+- Note that only new pods will get an ipv6 address; existing pods will remain using ipv4

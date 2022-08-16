@@ -167,13 +167,13 @@ type NetworkSpec struct {
 
 // IPv6 contains ipv6 specific settings for the network.
 type IPv6 struct {
-	// IPv6CidrBlock is the CIDR block provided by Amazon when VPC has enabled IPv6.
+	// CidrBlock is the CIDR block provided by Amazon when VPC has enabled IPv6.
 	// +optional
-	IPv6CidrBlock string `json:"ipv6CidrBlock,omitempty"`
+	CidrBlock string `json:"cidrBlock,omitempty"`
 
-	// IPv6Pool is the IP pool which must be defined in case of BYO IP is defined.
+	// PoolID is the IP pool which must be defined in case of BYO IP is defined.
 	// +optional
-	IPv6Pool string `json:"ipv6Pool,omitempty"`
+	PoolID string `json:"poolId,omitempty"`
 
 	// EgressOnlyInternetGatewayID is the id of the egress only internet gateway associated with an IPv6 enabled VPC.
 	// +optional

@@ -1083,8 +1083,8 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 					CidrBlock: defaultVPCCidr,
 					IPv6: &infrav1.IPv6{
-						IPv6CidrBlock: "2001:db8:1234:1a01::/56",
-						IPv6Pool:      "amazon",
+						CidrBlock: "2001:db8:1234:1a01::/56",
+						PoolID:    "amazon",
 					},
 				},
 				Subnets: []infrav1.SubnetSpec{},

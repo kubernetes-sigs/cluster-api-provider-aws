@@ -118,8 +118,8 @@ func TestReconcileRouteTables(t *testing.T) {
 					InternetGatewayID: aws.String("igw-01"),
 					IPv6: &infrav1.IPv6{
 						EgressOnlyInternetGatewayID: aws.String("eigw-01"),
-						IPv6CidrBlock:               "2001:db8:1234::/56",
-						IPv6Pool:                    "my-pool",
+						CidrBlock:                   "2001:db8:1234::/56",
+						PoolID:                      "my-pool",
 					},
 					Tags: infrav1.Tags{
 						infrav1.ClusterTagKey("test-cluster"): "owned",
@@ -203,8 +203,8 @@ func TestReconcileRouteTables(t *testing.T) {
 					ID:                "vpc-routetables",
 					InternetGatewayID: aws.String("igw-01"),
 					IPv6: &infrav1.IPv6{
-						IPv6CidrBlock:               "2001:db8:1234::/56",
-						IPv6Pool:                    "my-pool",
+						CidrBlock:                   "2001:db8:1234::/56",
+						PoolID:                      "my-pool",
 						EgressOnlyInternetGatewayID: aws.String("eigw-01"),
 					},
 					Tags: infrav1.Tags{
