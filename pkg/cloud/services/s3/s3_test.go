@@ -48,7 +48,7 @@ const (
 	testClusterNamespace = "test-namespace"
 )
 
-func Test_Reconcile_bucket(t *testing.T) {
+func TestReconcile_bucket(t *testing.T) {
 	t.Parallel()
 
 	t.Run("does_nothing_when_bucket_management_is_disabled", func(t *testing.T) {
@@ -270,7 +270,7 @@ func Test_Reconcile_bucket(t *testing.T) {
 	})
 }
 
-func Test_Delete_bucket(t *testing.T) {
+func TestDelete_bucket(t *testing.T) {
 	t.Parallel()
 
 	const bucketName = "foo"
@@ -355,7 +355,7 @@ func Test_Delete_bucket(t *testing.T) {
 	})
 }
 
-func Test_Create_object(t *testing.T) {
+func TestCreate_object(t *testing.T) {
 	t.Parallel()
 
 	const (
@@ -565,7 +565,7 @@ func Test_Create_object(t *testing.T) {
 	})
 }
 
-func Test_Delete_object(t *testing.T) {
+func TestDelete_object(t *testing.T) {
 	t.Parallel()
 
 	const nodeName = "aws-test1"
