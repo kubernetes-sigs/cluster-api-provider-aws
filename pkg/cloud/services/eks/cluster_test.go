@@ -102,6 +102,7 @@ func TestParseEKSVersion(t *testing.T) {
 		})
 	}
 }
+
 func TestVersionToEKS(t *testing.T) {
 	testCases := []struct {
 		name   string

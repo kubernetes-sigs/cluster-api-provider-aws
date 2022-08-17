@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
 )
 
-func Test_DefaultAMILookup(t *testing.T) {
+func TestDefaultAMILookup(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 

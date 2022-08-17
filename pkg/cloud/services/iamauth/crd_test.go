@@ -159,6 +159,7 @@ func TestAddRoleMappingCRD(t *testing.T) {
 		})
 	}
 }
+
 func TestAddUserMappingCRD(t *testing.T) {
 	testCases := []struct {
 		name                 string

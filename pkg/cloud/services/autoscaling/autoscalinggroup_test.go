@@ -41,7 +41,7 @@ import (
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
-func TestService_GetASGByName(t *testing.T) {
+func TestServiceGetASGByName(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	tests := []struct {
@@ -128,7 +128,7 @@ func TestService_GetASGByName(t *testing.T) {
 	}
 }
 
-func TestService_SDKToAutoScalingGroup(t *testing.T) {
+func TestServiceSDKToAutoScalingGroup(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   *autoscaling.Group
@@ -294,7 +294,7 @@ func TestService_SDKToAutoScalingGroup(t *testing.T) {
 	}
 }
 
-func TestService_ASGIfExists(t *testing.T) {
+func TestServiceASGIfExists(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -385,7 +385,7 @@ func TestService_ASGIfExists(t *testing.T) {
 	}
 }
 
-func TestService_CreateASG(t *testing.T) {
+func TestServiceCreateASG(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	tests := []struct {
@@ -536,7 +536,7 @@ func TestService_CreateASG(t *testing.T) {
 	}
 }
 
-func TestService_UpdateASG(t *testing.T) {
+func TestServiceUpdateASG(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -593,7 +593,7 @@ func TestService_UpdateASG(t *testing.T) {
 	}
 }
 
-func TestService_UpdateASGWithSubnetFilters(t *testing.T) {
+func TestServiceUpdateASGWithSubnetFilters(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -662,7 +662,7 @@ func TestService_UpdateASGWithSubnetFilters(t *testing.T) {
 	}
 }
 
-func TestService_UpdateResourceTags(t *testing.T) {
+func TestServiceUpdateResourceTags(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -778,7 +778,7 @@ func TestService_UpdateResourceTags(t *testing.T) {
 	}
 }
 
-func TestService_DeleteASG(t *testing.T) {
+func TestServiceDeleteASG(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -829,7 +829,7 @@ func TestService_DeleteASG(t *testing.T) {
 	}
 }
 
-func TestService_DeleteASGAndWait(t *testing.T) {
+func TestServiceDeleteASGAndWait(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -899,7 +899,7 @@ func TestService_DeleteASGAndWait(t *testing.T) {
 	}
 }
 
-func TestService_CanStartASGInstanceRefresh(t *testing.T) {
+func TestServiceCanStartASGInstanceRefresh(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -977,7 +977,7 @@ func TestService_CanStartASGInstanceRefresh(t *testing.T) {
 	}
 }
 
-func TestService_StartASGInstanceRefresh(t *testing.T) {
+func TestServiceStartASGInstanceRefresh(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
