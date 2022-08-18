@@ -168,7 +168,7 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 				},
 				corev1.EnvVar{
 					Name:  "ENI_CONFIG_LABEL_DEF",
-					Value: "failure-domain.beta.kubernetes.io/zone",
+					Value: "topology.kubernetes.io/zone",
 				},
 			)
 		}
