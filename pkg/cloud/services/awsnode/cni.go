@@ -159,9 +159,9 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 	}
 
 	s.scope.Info("updating containers", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
-	for _, container := range ds.Spec.Template.Spec.Containers {
-		if container.Name == "aws-node" {
-			container.Env = append(s.filterEnv(container.Env),
+	for i := range ds.Spec.Template.Spec.Containers {
+		if ds.Spec.Template.Spec.Containers[i].Name == "aws-node" {
+			ds.Spec.Template.Spec.Containers[i].Env = append(s.filterEnv(ds.Spec.Template.Spec.Containers[i].Env),
 				corev1.EnvVar{
 					Name:  "AWS_VPC_K8S_CNI_CUSTOM_NETWORK_CFG",
 					Value: "true",
