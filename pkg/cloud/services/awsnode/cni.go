@@ -67,6 +67,27 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 		return ErrCNIMissing
 	}
 
+	var needsUpdate bool
+	if len(s.scope.VpcCni().Env) > 0 {
+		s.scope.Info("updating aws-node daemonset environment variables", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
+
+		for i := range ds.Spec.Template.Spec.Containers {
+			container := &ds.Spec.Template.Spec.Containers[i]
+			if container.Name == "aws-node" {
+				container.Env, needsUpdate = s.applyUserProvidedEnvironmentProperties(container.Env)
+			}
+		}
+	}
+
+	if s.scope.SecondaryCidrBlock() == nil {
+		if needsUpdate {
+			if err = remoteClient.Update(ctx, &ds, &client.UpdateOptions{}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
 	sgs, err := s.getSecurityGroups()
 	if err != nil {
 		return err
@@ -141,20 +162,6 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 	}
 
 	s.scope.Info("updating containers", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
-	for _, container := range ds.Spec.Template.Spec.Containers {
-		if container.Name == "aws-node" {
-			container.Env = append(s.filterEnv(container.Env),
-				corev1.EnvVar{
-					Name:  "AWS_VPC_K8S_CNI_CUSTOM_NETWORK_CFG",
-					Value: "true",
-				},
-				corev1.EnvVar{
-					Name:  "ENI_CONFIG_LABEL_DEF",
-					Value: "failure-domain.beta.kubernetes.io/zone",
-				},
-			)
-		}
-	}
 
 	return remoteClient.Update(ctx, &ds, &client.UpdateOptions{})
 }
@@ -175,16 +182,34 @@ func (s *Service) getSecurityGroups() ([]string, error) {
 	return sgs, nil
 }
 
-func (s *Service) filterEnv(env []corev1.EnvVar) []corev1.EnvVar {
-	var i int
-	for _, e := range env {
-		if e.Name == "ENI_CONFIG_LABEL_DEF" || e.Name == "AWS_VPC_K8S_CNI_CUSTOM_NETWORK_CFG" {
-			continue
-		}
-		env[i] = e
-		i++
+// applyUserProvidedEnvironmentProperties takes a container environment and applies user provided values to it.
+func (s *Service) applyUserProvidedEnvironmentProperties(containerEnv []corev1.EnvVar) ([]corev1.EnvVar, bool) {
+	var (
+		envVars     = make(map[string]corev1.EnvVar)
+		needsUpdate = false
+	)
+	for _, e := range s.scope.VpcCni().Env {
+		envVars[e.Name] = e
 	}
-	return env[:i]
+	// Handle the case where we overwrite an existing value if it's not already the desired value.
+	// This will prevent continuously updating the DaemonSet even though there are no changes.
+	for i, e := range containerEnv {
+		if v, ok := envVars[e.Name]; ok {
+			// Take care of comparing secret ref with Stringer.
+			if containerEnv[i].String() != v.String() {
+				needsUpdate = true
+				containerEnv[i] = v
+			}
+			delete(envVars, e.Name)
+		}
+	}
+	// Handle case when there are values that aren't in the list of environment properties
+	// of aws-node.
+	for _, v := range envVars {
+		needsUpdate = true
+		containerEnv = append(containerEnv, v)
+	}
+	return containerEnv, needsUpdate
 }
 
 func (s *Service) deleteCNI(ctx context.Context, remoteClient client.Client) error {
