@@ -60,7 +60,7 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// is supplied then the latest version of Kubernetes that EKS supports
 	// will be used.
 	// +kubebuilder:validation:MinLength:=2
-	// +kubebuilder:validation:Pattern:=^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.?$
+	// +kubebuilder:validation:Pattern:=^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.?(\.0|[1-9][0-9]*)?$
 	// +optional
 	Version *string `json:"version,omitempty"`
 
