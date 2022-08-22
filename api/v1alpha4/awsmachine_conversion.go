@@ -83,6 +83,7 @@ func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
 	dst.Spec.Template.Spec.Ignition = restored.Spec.Template.Spec.Ignition
+	dst.Status = restored.Status
 
 	return nil
 }
@@ -101,6 +102,10 @@ func (r *AWSMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	return nil
+}
+
+func Convert_v1beta1_AWSMachineTemplate_To_v1alpha4_AWSMachineTemplate(in *v1beta1.AWSMachineTemplate, out *AWSMachineTemplate, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_AWSMachineTemplate_To_v1alpha4_AWSMachineTemplate(in, out, s)
 }
 
 // ConvertTo converts the v1alpha4 AWSMachineTemplateList receiver to a v1beta1 AWSMachineTemplateList.
