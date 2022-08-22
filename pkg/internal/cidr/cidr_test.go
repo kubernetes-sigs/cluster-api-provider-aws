@@ -14,15 +14,84 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cidr_test
+package cidr
 
 import (
+	"net"
 	"testing"
 
 	. "github.com/onsi/gomega"
-
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/internal/cidr"
 )
+
+func TestSplitIntoSubnetsIPv4(t *testing.T) {
+	RegisterTestingT(t)
+	tests := []struct {
+		name        string
+		cidrblock   string
+		subnetcount int
+		expected    []*net.IPNet
+	}{
+		{
+			// https://aws.amazon.com/about-aws/whats-new/2018/10/amazon-eks-now-supports-additional-vpc-cidr-blocks/
+			name:        "default secondary cidr block configuration with primary cidr",
+			cidrblock:   "100.64.0.0/16",
+			subnetcount: 3,
+			expected: []*net.IPNet{
+				{
+					IP:   net.IPv4(100, 64, 0, 0).To4(),
+					Mask: net.IPv4Mask(255, 255, 192, 0),
+				},
+				{
+					IP:   net.IPv4(100, 64, 64, 0).To4(),
+					Mask: net.IPv4Mask(255, 255, 192, 0),
+				},
+				{
+					IP:   net.IPv4(100, 64, 128, 0).To4(),
+					Mask: net.IPv4Mask(255, 255, 192, 0),
+				},
+			},
+		},
+		{
+			// https://aws.amazon.com/about-aws/whats-new/2018/10/amazon-eks-now-supports-additional-vpc-cidr-blocks/
+			name:        "default secondary cidr block configuration with alternative cidr",
+			cidrblock:   "198.19.0.0/16",
+			subnetcount: 3,
+			expected: []*net.IPNet{
+				{
+					IP:   net.IPv4(198, 19, 0, 0).To4(),
+					Mask: net.IPv4Mask(255, 255, 192, 0),
+				},
+				{
+					IP:   net.IPv4(198, 19, 64, 0).To4(),
+					Mask: net.IPv4Mask(255, 255, 192, 0),
+				},
+				{
+					IP:   net.IPv4(198, 19, 128, 0).To4(),
+					Mask: net.IPv4Mask(255, 255, 192, 0),
+				},
+			},
+		},
+		{
+			name:        "slash 16 cidr with one subnet",
+			cidrblock:   "1.1.0.0/16",
+			subnetcount: 1,
+			expected: []*net.IPNet{
+				{
+					IP:   net.IPv4(1, 1, 0, 0).To4(),
+					Mask: net.IPv4Mask(255, 255, 0, 0),
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			output, err := SplitIntoSubnetsIPv4(tc.cidrblock, tc.subnetcount)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(output).To(ConsistOf(tc.expected))
+		})
+	}
+}
 
 func TestParseIPv4CIDR(t *testing.T) {
 	RegisterTestingT(t)
@@ -33,7 +102,7 @@ func TestParseIPv4CIDR(t *testing.T) {
 		"193.168.3.20/7",
 	}
 
-	output, err := cidr.GetIPv4Cidrs(input)
+	output, err := GetIPv4Cidrs(input)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(output).To(HaveLen(1))
 }
@@ -47,7 +116,7 @@ func TestParseIPv6CIDR(t *testing.T) {
 		"193.168.3.20/7",
 	}
 
-	output, err := cidr.GetIPv6Cidrs(input)
+	output, err := GetIPv6Cidrs(input)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(output).To(HaveLen(2))
 }
