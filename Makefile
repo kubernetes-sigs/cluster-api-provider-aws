@@ -214,11 +214,20 @@ generate-go-apis: ## Alias for .build/generate-go-apis
 		paths=./bootstrap/eks/api/... \
 		paths=./controlplane/eks/api/... \
 		paths=./iam/api/... \
-		output:crd:dir=config/crd/bases \
-		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		crd:crdVersions=v1 \
-		rbac:roleName=manager-role \
+		output:crd:dir=config/crd/bases \
+		output:webhook:dir=$(WEBHOOK_ROOT) \
+		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		webhook
+
+	$(CONTROLLER_GEN) \
+		paths=./controllers/... \
+		paths=./$(EXP_DIR)/controllers/... \
+		paths=./bootstrap/eks/controllers/... \
+		paths=./controlplane/eks/controllers/... \
+		output:rbac:dir=$(RBAC_ROOT) \
+		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
+		rbac:roleName=manager-role
 
 	$(CONTROLLER_GEN) \
 		paths=./cmd/... \
