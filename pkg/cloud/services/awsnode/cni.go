@@ -53,6 +53,7 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 		if err := s.deleteCNI(ctx, remoteClient); err != nil {
 			return fmt.Errorf("disabling aws vpc cni: %w", err)
 		}
+		return nil
 	}
 
 	var ds appsv1.DaemonSet
