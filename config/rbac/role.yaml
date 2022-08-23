@@ -296,22 +296,22 @@ rules:
   - patch
   - update
 - apiGroups:
-    - infrastructure.cluster.x-k8s.io
+  - infrastructure.cluster.x-k8s.io
   resources:
-    - kubemarkmachinetemplates
+  - kubemarkmachinetemplates
   verbs:
-    - create
-    - delete
-    - get
-    - list
-    - patch
-    - update
-    - watch
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
-    - infrastructure.cluster.x-k8s.io
+  - infrastructure.cluster.x-k8s.io
   resources:
-    - kubemarkmachinetemplates/status
+  - kubemarkmachinetemplates/status
   verbs:
-    - get
-    - patch
-    - update
+  - get
+  - patch
+  - update
