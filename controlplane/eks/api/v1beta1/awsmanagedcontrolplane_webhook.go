@@ -388,7 +388,7 @@ func (r *AWSManagedControlPlane) validateNetwork() field.ErrorList {
 	var allErrs field.ErrorList
 
 	if r.Spec.NetworkSpec.VPC.IsIPv6Enabled() && r.Spec.NetworkSpec.VPC.IPv6.CidrBlock != "" && r.Spec.NetworkSpec.VPC.IPv6.PoolID == "" {
-		poolField := field.NewPath("spec", "networkSpec", "vpc", "poolId")
+		poolField := field.NewPath("spec", "networkSpec", "vpc", "ipv6", "poolId")
 		allErrs = append(allErrs, field.Invalid(poolField, r.Spec.NetworkSpec.VPC.IPv6.PoolID, "poolId cannot be empty if cidrBlock is set"))
 	}
 

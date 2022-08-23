@@ -56,6 +56,7 @@ func (r *AWSCluster) ValidateCreate() error {
 	allErrs = append(allErrs, r.validateSSHKeyName()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 	allErrs = append(allErrs, r.Spec.S3Bucket.Validate()...)
+	allErrs = append(allErrs, r.validateNetwork()...)
 
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
@@ -177,4 +178,12 @@ func (r *AWSCluster) Default() {
 
 func (r *AWSCluster) validateSSHKeyName() field.ErrorList {
 	return validateSSHKeyName(r.Spec.SSHKeyName)
+}
+
+func (r *AWSCluster) validateNetwork() field.ErrorList {
+	var allErrs field.ErrorList
+	if r.Spec.NetworkSpec.VPC.IsIPv6Enabled() {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("ipv6"), r.Spec.NetworkSpec.VPC.IPv6, "IPv6 cannot be used with unmanaged clusters at this time."))
+	}
+	return allErrs
 }

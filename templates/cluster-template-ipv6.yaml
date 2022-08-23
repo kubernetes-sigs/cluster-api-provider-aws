@@ -5,8 +5,10 @@ metadata:
   name: "${CLUSTER_NAME}"
 spec:
   clusterNetwork:
+    services:
+      cidrBlocks: ["2a05:d014:2d3:4200::/112"]
     pods:
-      cidrBlocks: ["192.168.0.0/16"]
+      cidrBlocks: ["2a05:d014:2d3:4200::/56"]
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     kind: AWSCluster
@@ -42,6 +44,7 @@ spec:
         kubeletExtraArgs:
           cloud-provider: aws
           node-ip: '::'
+          cluster-dns: '2a05:d014:2d3:4200::/56'
     clusterConfiguration:
       apiServer:
         extraArgs:
@@ -51,6 +54,7 @@ spec:
         extraArgs:
           cloud-provider: aws
           bind-address: '::'
+          cluster-cidr: "2a05:d014:2d3:4200::/56"
       scheduler:
         extraArgs:
           bind-address: '::'
@@ -59,6 +63,7 @@ spec:
         name: '{{ ds.meta_data.local_hostname }}'
         kubeletExtraArgs:
           node-ip: '::'
+          cluster-dns: "2a05:d014:2d3:4200::/56"
           cloud-provider: aws
   version: "${KUBERNETES_VERSION}"
 ---
