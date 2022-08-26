@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -322,7 +322,10 @@ func TestRemoveInstanceStateFromEventPattern(t *testing.T) {
 			InstanceIDs: []string{"instance-a", "instance-b", "instance-c"},
 		},
 	}
-	patternData, _ := json.Marshal(pattern) //nolint
+	patternData, err := json.Marshal(pattern)
+	if err != nil {
+		t.Fatalf("got an unexpected error: %v", err)
+	}
 
 	testCases := []struct {
 		name              string
@@ -345,7 +348,10 @@ func TestRemoveInstanceStateFromEventPattern(t *testing.T) {
 				}, nil)
 				expectedPattern := pattern
 				expectedPattern.EventDetail.InstanceIDs = []string{}
-				expectedData, _ := json.Marshal(expectedPattern) //nolint
+				expectedData, err := json.Marshal(expectedPattern)
+				if err != nil {
+					t.Fatalf("got an unexpected error: %v", err)
+				}
 
 				m.PutRule(&eventbridge.PutRuleInput{
 					Name:         aws.String("test-cluster-ec2-rule"),

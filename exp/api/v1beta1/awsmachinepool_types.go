@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,9 +27,6 @@ import (
 
 // Constants block.
 const (
-	// MachinePoolFinalizer is the finalizer for the machine pool.
-	MachinePoolFinalizer = "awsmachinepool.infrastructure.cluster.x-k8s.io"
-
 	// LaunchTemplateLatestVersion defines the launching of the latest version of the template.
 	LaunchTemplateLatestVersion = "$Latest"
 )
@@ -42,7 +39,7 @@ type AWSMachinePoolSpec struct {
 
 	// MinSize defines the minimum size of the group.
 	// +kubebuilder:default=1
-	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Minimum=0
 	MinSize int32 `json:"minSize"`
 
 	// MaxSize defines the maximum size of the group.

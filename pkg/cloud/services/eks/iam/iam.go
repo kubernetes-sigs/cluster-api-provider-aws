@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,13 +22,13 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
-	"reflect"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/go-logr/logr"
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
@@ -224,7 +224,7 @@ func (s *IAMService) EnsureTagsAndPolicy(
 	}
 
 	var updated bool
-	if !reflect.DeepEqual(*trustRelationship, rolePolicyDocument) {
+	if !cmp.Equal(*trustRelationship, rolePolicyDocument) {
 		trustRelationshipJSON, err := converters.IAMPolicyDocumentToJSON(*trustRelationship)
 		if err != nil {
 			return false, errors.Wrap(err, "error converting trust relationship to json")

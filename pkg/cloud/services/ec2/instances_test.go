@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,7 +18,6 @@ package ec2
 
 import (
 	"encoding/base64"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -26,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,8 +37,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
+	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -49,13 +49,13 @@ func TestInstanceIfExists(t *testing.T) {
 	testCases := []struct {
 		name       string
 		instanceID string
-		expect     func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect     func(m *mocks.MockEC2APIMockRecorder)
 		check      func(instance *infrav1.Instance, err error)
 	}{
 		{
 			name:       "does not exist",
 			instanceID: "hello",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
 					InstanceIds: []*string{aws.String("hello")},
 				})).
@@ -74,7 +74,7 @@ func TestInstanceIfExists(t *testing.T) {
 		{
 			name:       "does not exist with bad request error",
 			instanceID: "hello-does-not-exist",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
 					InstanceIds: []*string{aws.String("hello-does-not-exist")},
 				})).
@@ -93,7 +93,7 @@ func TestInstanceIfExists(t *testing.T) {
 		{
 			name:       "instance exists",
 			instanceID: "id-1",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				az := "test-zone-1a"
 				m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
 					InstanceIds: []*string{aws.String("id-1")},
@@ -149,7 +149,7 @@ func TestInstanceIfExists(t *testing.T) {
 		{
 			name:       "error describing instances",
 			instanceID: "one",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeInstances(&ec2.DescribeInstancesInput{
 					InstanceIds: []*string{aws.String("one")},
 				}).
@@ -165,7 +165,7 @@ func TestInstanceIfExists(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scheme := runtime.NewScheme()
 			_ = infrav1.AddToScheme(scheme)
@@ -209,13 +209,13 @@ func TestTerminateInstance(t *testing.T) {
 	testCases := []struct {
 		name       string
 		instanceID string
-		expect     func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect     func(m *mocks.MockEC2APIMockRecorder)
 		check      func(err error)
 	}{
 		{
 			name:       "instance exists",
 			instanceID: "i-exist",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.TerminateInstances(gomock.Eq(&ec2.TerminateInstancesInput{
 					InstanceIds: []*string{aws.String("i-exist")},
 				})).
@@ -230,7 +230,7 @@ func TestTerminateInstance(t *testing.T) {
 		{
 			name:       "instance does not exist",
 			instanceID: "i-donotexist",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.TerminateInstances(gomock.Eq(&ec2.TerminateInstancesInput{
 					InstanceIds: []*string{aws.String("i-donotexist")},
 				})).
@@ -246,7 +246,7 @@ func TestTerminateInstance(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scheme := runtime.NewScheme()
 			_ = infrav1.AddToScheme(scheme)
@@ -286,17 +286,20 @@ func TestCreateInstance(t *testing.T) {
 
 	data := []byte("userData")
 
-	userData, err := userdata.GzipBytes(data)
+	userDataCompressed, err := userdata.GzipBytes(data)
 	if err != nil {
 		t.Fatal("Failed to gzip test user data")
 	}
+
+	isUncompressedFalse := false
+	isUncompressedTrue := true
 
 	testcases := []struct {
 		name          string
 		machine       clusterv1.Machine
 		machineConfig *infrav1.AWSMachineSpec
 		awsCluster    *infrav1.AWSCluster
-		expect        func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect        func(m *mocks.MockEC2APIMockRecorder)
 		check         func(instance *infrav1.Instance, err error)
 	}{
 		{
@@ -351,7 +354,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m. // TODO: Restore these parameters, but with the tags as well
 					RunInstances(gomock.Any()).
 					Return(&ec2.Reservation{
@@ -457,7 +460,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					RunInstances(gomock.Any()).
 					Return(&ec2.Reservation{
@@ -553,7 +556,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "v1.16.1")
 				if err != nil {
 					t.Fatalf("Failed to process ami format: %v", err)
@@ -683,7 +686,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "v1.16.1")
 				if err != nil {
 					t.Fatalf("Failed to process ami format: %v", err)
@@ -814,7 +817,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "v1.16.1")
 				if err != nil {
 					t.Fatalf("Failed to process ami format: %v", err)
@@ -946,19 +949,19 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeSubnets(&ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
 							filter.EC2.VPC("vpc-id"),
-							filter.EC2.AvailabilityZone("us-east-1b"),
 							{Name: aws.String("tag:some-tag"), Values: aws.StringSlice([]string{"some-value"})},
 						},
 					}).
 					Return(&ec2.DescribeSubnetsOutput{
 						Subnets: []*ec2.Subnet{{
-							SubnetId: aws.String("filtered-subnet-1"),
+							SubnetId:         aws.String("filtered-subnet-1"),
+							AvailabilityZone: aws.String("us-east-1b"),
 						}},
 					}, nil)
 				m.
@@ -1052,7 +1055,21 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeSubnets(&ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+							filter.EC2.VPC("vpc-id"),
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"matching-subnet"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId:         aws.String("matching-subnet"),
+							AvailabilityZone: aws.String("us-east-1b"),
+						}},
+					}, nil)
 				m.
 					RunInstances(gomock.Any()).
 					Return(&ec2.Reservation{
@@ -1093,7 +1110,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 		},
 		{
-			name: "with subnet ID that does not belong to Cluster",
+			name: "with subnet ID that does not exist",
 			machine: clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
@@ -1144,16 +1161,132 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeSubnets(&ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+							filter.EC2.VPC("vpc-id"),
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"non-matching-subnet"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{},
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
-				expectedErrMsg := "failed to run machine \"aws-test1\", subnet with id \"non-matching-subnet\" not found"
+				expectedErrMsg := "failed to run machine \"aws-test1\", no subnets available matching criteria"
 				if err == nil {
 					t.Fatalf("Expected error, but got nil")
 				}
 
 				if !strings.Contains(err.Error(), expectedErrMsg) {
 					t.Fatalf("Expected error: %s\nInstead got: %s", expectedErrMsg, err.Error())
+				}
+			},
+		},
+		{
+			name: "with subnet ID that does not belong to Cluster",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+				Subnet: &infrav1.AWSResourceReference{
+					ID: aws.String("matching-subnet"),
+				},
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-id",
+						},
+						Subnets: infrav1.Subnets{{
+							ID: "subnet-1",
+						}},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeSubnets(&ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+							filter.EC2.VPC("vpc-id"),
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"matching-subnet"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId: aws.String("matching-subnet"),
+						}},
+					}, nil)
+				m.
+					RunInstances(gomock.Any()).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:     aws.String("two"),
+								InstanceType:   aws.String("m5.large"),
+								SubnetId:       aws.String("matching-subnet"),
+								ImageId:        aws.String("ami-1"),
+								RootDeviceName: aws.String("device-1"),
+								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									{
+										DeviceName: aws.String("device-1"),
+										Ebs: &ec2.EbsInstanceBlockDevice{
+											VolumeId: aws.String("volume-1"),
+										},
+									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
+								},
+							},
+						},
+					}, nil)
+				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
 				}
 			},
 		},
@@ -1211,10 +1344,24 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeSubnets(&ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+							filter.EC2.VPC("vpc-id"),
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"subnet-1"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId:         aws.String("subnet-1"),
+							AvailabilityZone: aws.String("us-west-1b"),
+						}},
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
-				expectedErrMsg := "subnet's availability zone \"us-west-1b\" does not match with the failure domain \"us-east-1b\""
+				expectedErrMsg := "failed to run machine \"aws-test1\", found 1 subnets matching criteria but post-filtering failed. subnet \"subnet-1\" availability zone \"us-west-1b\" does not match failure domain \"us-east-1b\""
 				if err == nil {
 					t.Fatalf("Expected error, but got nil")
 				}
@@ -1277,7 +1424,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				expectedErrMsg := "failed to run machine \"aws-test1\" with public IP, no public subnets available in availability zone \"us-east-1b\""
@@ -1344,7 +1491,22 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeSubnets(&ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+							filter.EC2.VPC("vpc-id"),
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId:            aws.String("public-subnet-1"),
+							AvailabilityZone:    aws.String("us-east-1b"),
+							MapPublicIpOnLaunch: aws.Bool(true),
+						}},
+					}, nil)
 				m.
 					RunInstances(gomock.Any()).
 					Return(&ec2.Reservation{
@@ -1438,10 +1600,25 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeSubnets(&ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+							filter.EC2.VPC("vpc-id"),
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"private-subnet-1"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId:            aws.String("private-subnet-1"),
+							AvailabilityZone:    aws.String("us-east-1b"),
+							MapPublicIpOnLaunch: aws.Bool(false),
+						}},
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
-				expectedErrMsg := "failed to run machine \"aws-test1\" with public IP, a specified subnet \"private-subnet-1\" is a private subnet"
+				expectedErrMsg := "failed to run machine \"aws-test1\", found 1 subnets matching criteria but post-filtering failed. subnet \"private-subnet-1\" is a private subnet."
 				if err == nil {
 					t.Fatalf("Expected error, but got nil")
 				}
@@ -1514,19 +1691,19 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeSubnets(&ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
 							filter.EC2.VPC("vpc-id"),
-							{Name: aws.String("map-public-ip-on-launch"), Values: aws.StringSlice([]string{"true"})},
 							{Name: aws.String("tag:some-tag"), Values: aws.StringSlice([]string{"some-value"})},
 						},
 					}).
 					Return(&ec2.DescribeSubnetsOutput{
 						Subnets: []*ec2.Subnet{{
-							SubnetId: aws.String("filtered-subnet-1"),
+							SubnetId:            aws.String("filtered-subnet-1"),
+							MapPublicIpOnLaunch: aws.Bool(true),
 						}},
 					}, nil)
 				m.
@@ -1625,7 +1802,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					RunInstances(gomock.Any()).
 					Return(&ec2.Reservation{
@@ -1718,7 +1895,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				expectedErrMsg := "failed to run machine \"aws-test1\" with public IP, no public subnets available"
@@ -1787,7 +1964,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m. // TODO: Restore these parameters, but with the tags as well
 					RunInstances(gomock.Any()).
 					Return(&ec2.Reservation{
@@ -1834,7 +2011,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 		},
 		{
-			name: "with dedicated tenancy",
+			name: "with dedicated tenancy cloud-config",
 			machine: clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:    map[string]string{"set": "node"},
@@ -1851,11 +2028,11 @@ func TestCreateInstance(t *testing.T) {
 				AMI: infrav1.AMIReference{
 					ID: aws.String("abc"),
 				},
-				InstanceType: "m5.large",
-				Tenancy:      "dedicated",
+				InstanceType:         "m5.large",
+				Tenancy:              "dedicated",
+				UncompressedUserData: &isUncompressedFalse,
 			},
 			awsCluster: &infrav1.AWSCluster{
-				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
@@ -1888,7 +2065,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m. // TODO: Restore these parameters, but with the tags as well
 					RunInstances(gomock.Eq(&ec2.RunInstancesInput{
 						ImageId:      aws.String("abc"),
@@ -1928,7 +2105,144 @@ func TestCreateInstance(t *testing.T) {
 								},
 							},
 						},
-						UserData: aws.String(base64.StdEncoding.EncodeToString(userData)),
+						UserData: aws.String(base64.StdEncoding.EncodeToString(userDataCompressed)),
+					})).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:     aws.String("two"),
+								InstanceType:   aws.String("m5.large"),
+								SubnetId:       aws.String("subnet-1"),
+								ImageId:        aws.String("ami-1"),
+								RootDeviceName: aws.String("device-1"),
+								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									{
+										DeviceName: aws.String("device-1"),
+										Ebs: &ec2.EbsInstanceBlockDevice{
+											VolumeId: aws.String("volume-1"),
+										},
+									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
+									Tenancy:          &tenancy,
+								},
+							},
+						},
+					}, nil)
+				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "with dedicated tenancy ignition",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels:    map[string]string{"set": "node"},
+					Namespace: "default",
+					Name:      "machine-aws-test1",
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType:         "m5.large",
+				Tenancy:              "dedicated",
+				UncompressedUserData: &isUncompressedTrue,
+				Ignition:             &infrav1.Ignition{},
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							infrav1.SubnetSpec{
+								IsPublic: false,
+							},
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m. // TODO: Restore these parameters, but with the tags as well
+					RunInstances(gomock.Eq(&ec2.RunInstancesInput{
+						ImageId:      aws.String("abc"),
+						InstanceType: aws.String("m5.large"),
+						KeyName:      aws.String("default"),
+						MaxCount:     aws.Int64(1),
+						MinCount:     aws.Int64(1),
+						Placement: &ec2.Placement{
+							Tenancy: &tenancy,
+						},
+						SecurityGroupIds: []*string{aws.String("2"), aws.String("3")},
+						SubnetId:         aws.String("subnet-1"),
+						TagSpecifications: []*ec2.TagSpecification{
+							{
+								ResourceType: aws.String("instance"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("MachineName"),
+										Value: aws.String("default/machine-aws-test1"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("aws-test1"),
+									},
+									{
+										Key:   aws.String("kubernetes.io/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("node"),
+									},
+								},
+							},
+						},
+						UserData: aws.String(base64.StdEncoding.EncodeToString(data)),
 					})).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
@@ -2018,7 +2332,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeImages(gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
@@ -2127,7 +2441,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeImages(gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
@@ -2237,7 +2551,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeImages(gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
@@ -2347,7 +2661,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeImages(gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
@@ -2454,7 +2768,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeImages(gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
@@ -2561,7 +2875,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
 					DescribeImages(gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
@@ -2621,7 +2935,7 @@ func TestCreateInstance(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scheme, err := setupScheme()
 			if err != nil {
@@ -2686,7 +3000,7 @@ func TestCreateInstance(t *testing.T) {
 			s := NewService(clusterScope)
 			s.EC2Client = ec2Mock
 
-			instance, err := s.CreateInstance(machineScope, data)
+			instance, err := s.CreateInstance(machineScope, data, "")
 			tc.check(instance, err)
 		})
 	}
@@ -2746,7 +3060,7 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			request := getInstanceMarketOptionsRequest(tc.spotMarketOptions)
-			if !reflect.DeepEqual(request, tc.expectedRequest) {
+			if !cmp.Equal(request, tc.expectedRequest) {
 				t.Errorf("Case: %s. Got: %v, expected: %v", tc.name, request, tc.expectedRequest)
 			}
 		})
@@ -2764,7 +3078,7 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 	testCases := []struct {
 		name          string
 		securityGroup infrav1.AWSResourceReference
-		expect        func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect        func(m *mocks.MockEC2APIMockRecorder)
 		check         func(id string, err error)
 	}{
 		{
@@ -2776,7 +3090,7 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -2806,7 +3120,7 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 		{
 			name:          "return early when filters are missing",
 			securityGroup: infrav1.AWSResourceReference{},
-			expect:        func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
+			expect:        func(m *mocks.MockEC2APIMockRecorder) {},
 			check: func(id string, err error) {
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
@@ -2826,7 +3140,7 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -2851,7 +3165,7 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -2874,14 +3188,14 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock.EXPECT())
 
 			s := Service{
 				EC2Client: ec2Mock,
 			}
 
-			id, err := s.GetFilteredSecurityGroupID(tc.securityGroup)
+			id, err := s.getFilteredSecurityGroupID(tc.securityGroup)
 			tc.check(id, err)
 		})
 	}

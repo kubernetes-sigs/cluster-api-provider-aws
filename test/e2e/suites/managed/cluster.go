@@ -8,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,7 +22,6 @@ package managed
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -49,7 +48,6 @@ type ManagedClusterSpecInput struct {
 	Flavour                  string
 	ControlPlaneMachineCount int64
 	WorkerMachineCount       int64
-	CNIManifestPath          string
 	KubernetesVersion        string
 	CluserSpecificRoles      bool
 }
@@ -89,10 +87,10 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 
 	if input.CluserSpecificRoles {
 		ginkgo.By("Checking that the cluster specific IAM role exists")
-		verifyRoleExistsAndOwned(fmt.Sprintf("%s-iam-service-role", input.ClusterName), input.ClusterName, true, input.AWSSession)
+		VerifyRoleExistsAndOwned(fmt.Sprintf("%s-iam-service-role", input.ClusterName), input.ClusterName, true, input.AWSSession)
 	} else {
 		ginkgo.By("Checking that the cluster default IAM role exists")
-		verifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, input.ClusterName, false, input.AWSSession)
+		VerifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, input.ClusterName, false, input.AWSSession)
 	}
 
 	shared.Byf("Checking kubeconfig secrets exist")
@@ -106,14 +104,6 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 	workloadClusterProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace.Name, input.ClusterName)
 	workloadClient := workloadClusterProxy.GetClient()
 	verifyConfigMapExists(ctx, "aws-auth", metav1.NamespaceSystem, workloadClient)
-
-	if input.CNIManifestPath != "" {
-		shared.Byf("Installing a CNI plugin to the workload cluster: %s", input.CNIManifestPath)
-		cniYaml, err := os.ReadFile(input.CNIManifestPath)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		Expect(workloadClusterProxy.Apply(ctx, cniYaml)).ShouldNot(HaveOccurred())
-	}
 }
 
 // DeleteClusterSpecInput is the input to DeleteClusterSpec.
@@ -122,28 +112,4 @@ type DeleteClusterSpecInput struct {
 	BootstrapClusterProxy framework.ClusterProxy
 	Namespace             *corev1.Namespace
 	ClusterName           string
-}
-
-// DeleteClusterSpec implements a test for deleting a Cluster.
-func DeleteClusterSpec(ctx context.Context, inputGetter func() DeleteClusterSpecInput) {
-	input := inputGetter()
-	Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil")
-	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")
-	Expect(input.Namespace).NotTo(BeNil(), "Invalid argument. input.Namespace can't be nil")
-	Expect(input.ClusterName).ShouldNot(HaveLen(0), "Invalid argument. input.ClusterName can't be empty")
-
-	shared.Byf("getting cluster with name %s", input.ClusterName)
-	cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
-		Getter:    input.BootstrapClusterProxy.GetClient(),
-		Namespace: input.Namespace.Name,
-		Name:      input.ClusterName,
-	})
-	Expect(cluster).NotTo(BeNil(), "couldn't find cluster")
-
-	shared.Byf("Deleting cluster %s/%s", input.Namespace, input.ClusterName)
-
-	framework.DeleteCluster(ctx, framework.DeleteClusterInput{
-		Deleter: input.BootstrapClusterProxy.GetClient(),
-		Cluster: cluster,
-	})
 }

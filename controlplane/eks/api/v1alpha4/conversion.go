@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
@@ -30,14 +31,33 @@ import (
 func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1beta1.AWSManagedControlPlane)
 
-	return Convert_v1alpha4_AWSManagedControlPlane_To_v1beta1_AWSManagedControlPlane(r, dst, nil)
+	if err := Convert_v1alpha4_AWSManagedControlPlane_To_v1beta1_AWSManagedControlPlane(r, dst, nil); err != nil {
+		return err
+	}
+
+	restored := &v1beta1.AWSManagedControlPlane{}
+	if ok, err := utilconversion.UnmarshalData(r, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Spec.KubeProxy = restored.Spec.KubeProxy
+
+	return nil
 }
 
 // ConvertFrom converts the v1beta1 AWSManagedControlPlane receiver to a v1alpha4 AWSManagedControlPlane.
 func (r *AWSManagedControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1beta1.AWSManagedControlPlane)
 
-	return Convert_v1beta1_AWSManagedControlPlane_To_v1alpha4_AWSManagedControlPlane(src, r, nil)
+	if err := Convert_v1beta1_AWSManagedControlPlane_To_v1alpha4_AWSManagedControlPlane(src, r, nil); err != nil {
+		return err
+	}
+
+	if err := utilconversion.MarshalData(src, r); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ConvertTo converts the v1alpha4 AWSManagedControlPlaneList receiver to a v1beta1 AWSManagedControlPlaneList.
@@ -52,6 +72,10 @@ func (r *AWSManagedControlPlaneList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1beta1.AWSManagedControlPlaneList)
 
 	return Convert_v1beta1_AWSManagedControlPlaneList_To_v1alpha4_AWSManagedControlPlaneList(src, r, nil)
+}
+
+func Convert_v1beta1_AWSManagedControlPlaneSpec_To_v1alpha4_AWSManagedControlPlaneSpec(in *v1beta1.AWSManagedControlPlaneSpec, out *AWSManagedControlPlaneSpec, scope apiconversion.Scope) error {
+	return autoConvert_v1beta1_AWSManagedControlPlaneSpec_To_v1alpha4_AWSManagedControlPlaneSpec(in, out, scope)
 }
 
 // Convert_v1alpha4_NetworkStatus_To_v1beta1_NetworkStatus is a conversion function.

@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -252,19 +252,24 @@ func (s *Service) ec2SecurityGroupToSecurityGroup(ec2SecurityGroup *ec2.Security
 
 // DeleteSecurityGroups will delete a service's security groups.
 func (s *Service) DeleteSecurityGroups() error {
-	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	if s.scope.VPC().ID == "" {
 		s.scope.V(2).Info("Skipping security group deletion, vpc-id is nil", "vpc-id", s.scope.VPC().ID)
 		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 		return nil
 	}
 
-	if err := s.scope.PatchObject(); err != nil {
+	clusterGroups, err := s.describeClusterOwnedSecurityGroups()
+	if err != nil {
 		return err
 	}
 
-	clusterGroups, err := s.describeClusterOwnedSecurityGroups()
-	if err != nil {
+	// Security groups already deleted, exit early
+	if len(clusterGroups) == 0 {
+		return nil
+	}
+
+	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	if err := s.scope.PatchObject(); err != nil {
 		return err
 	}
 
@@ -423,7 +428,7 @@ func (s *Service) revokeAllSecurityGroupIngressRules(id string) error {
 
 	securityGroups, err := s.EC2Client.DescribeSecurityGroups(describeInput)
 	if err != nil {
-		return errors.Wrapf(err, "failed to query security group %q", id)
+		return err
 	}
 
 	for _, sg := range securityGroups.SecurityGroups {
@@ -434,7 +439,7 @@ func (s *Service) revokeAllSecurityGroupIngressRules(id string) error {
 			}
 			if _, err := s.EC2Client.RevokeSecurityGroupIngress(revokeInput); err != nil {
 				record.Warnf(s.scope.InfraCluster(), "FailedRevokeSecurityGroupIngressRules", "Failed to revoke all security group ingress rules for SecurityGroup %q: %v", *sg.GroupId, err)
-				return errors.Wrapf(err, "failed to revoke security group %q ingress rules", id)
+				return err
 			}
 			record.Eventf(s.scope.InfraCluster(), "SuccessfulRevokeSecurityGroupIngressRules", "Revoked all security group ingress rules for SecurityGroup %q", *sg.GroupId)
 		}

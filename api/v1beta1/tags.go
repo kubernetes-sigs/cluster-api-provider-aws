@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,9 +18,11 @@ package v1beta1
 
 import (
 	"fmt"
-	"reflect"
+	"regexp"
 
+	"github.com/google/go-cmp/cmp"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -29,8 +31,9 @@ import (
 type Tags map[string]string
 
 // Equals returns true if the tags are equal.
+// This func is deprecated and should not be used.
 func (t Tags) Equals(other Tags) bool {
-	return reflect.DeepEqual(t, other)
+	return cmp.Equal(t, other)
 }
 
 // HasOwned returns true if the tags contains a tag that marks the resource as owned by the cluster from the perspective of this management tooling.
@@ -70,6 +73,68 @@ func (t Tags) Merge(other Tags) {
 	for k, v := range other {
 		t[k] = v
 	}
+}
+
+// Validate checks if tags are valid for the AWS API/Resources.
+// Keys must have at least 1 and max 128 characters.
+// Values must be max 256 characters long.
+// Keys and Values can only have alphabets, numbers, spaces and _ . : / = + - @ as characters.
+// Tag's key cannot have prefix "aws:".
+// Max count of User tags for a specific resource can be 50.
+func (t Tags) Validate() []*field.Error {
+	// Defines the maximum number of user tags which can be created for a specific resource
+	const maxUserTagsAllowed = 50
+	var errs field.ErrorList
+	var userTagCount = len(t)
+	re := regexp.MustCompile(`^[a-zA-Z0-9\\s\_\.\:\=\+\-\@\/]*$`)
+
+	for k, v := range t {
+		if len(k) < 1 {
+			errs = append(errs,
+				field.Invalid(field.NewPath("spec", "additionalTags"), k, "key cannot be empty"),
+			)
+		}
+		if len(k) > 128 {
+			errs = append(errs,
+				field.Invalid(field.NewPath("spec", "additionalTags"), k, "key cannot be longer than 128 characters"),
+			)
+		}
+		if len(v) > 256 {
+			errs = append(errs,
+				field.Invalid(field.NewPath("spec", "additionalTags"), v, "value cannot be longer than 256 characters"),
+			)
+		}
+		if wrongUserTagNomenclature(k) {
+			errs = append(errs,
+				field.Invalid(field.NewPath("spec", "additionalTags"), k, "user created tag's key cannot have prefix aws:"),
+			)
+		}
+		val := re.MatchString(k)
+		if !val {
+			errs = append(errs,
+				field.Invalid(field.NewPath("spec", "additionalTags"), k, "key cannot have characters other than alphabets, numbers, spaces and _ . : / = + - @ ."),
+			)
+		}
+		val = re.MatchString(v)
+		if !val {
+			errs = append(errs,
+				field.Invalid(field.NewPath("spec", "additionalTags"), v, "value cannot have characters other than alphabets, numbers, spaces and _ . : / = + - @ ."),
+			)
+		}
+	}
+
+	if userTagCount > maxUserTagsAllowed {
+		errs = append(errs,
+			field.Invalid(field.NewPath("spec", "additionalTags"), t, "user created tags cannot be more than 50"),
+		)
+	}
+
+	return errs
+}
+
+// Checks whether the tag created is user tag or not.
+func wrongUserTagNomenclature(k string) bool {
+	return len(k) > 3 && k[0:4] == "aws:"
 }
 
 // ResourceLifecycle configures the lifecycle of a resource.

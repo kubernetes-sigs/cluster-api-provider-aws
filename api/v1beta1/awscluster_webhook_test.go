@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,14 +18,17 @@ package v1beta1
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"sigs.k8s.io/cluster-api-provider-aws/feature"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
@@ -45,7 +48,7 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 		name    string
 		cluster *AWSCluster
 		wantErr bool
-		expect  func(t *testing.T, res *AWSLoadBalancerSpec)
+		expect  func(g *WithT, res *AWSLoadBalancerSpec)
 	}{
 		// The SSHKeyName tests were moved to sshkeyname_test.go
 		{
@@ -53,12 +56,8 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{},
 			},
-			expect: func(t *testing.T, res *AWSLoadBalancerSpec) {
-				t.Helper()
-
-				if res.Scheme.String() != ClassicELBSchemeInternetFacing.String() {
-					t.Error("Expected internet-facing defaulting for nil loadbalancer schemes")
-				}
+			expect: func(g *WithT, res *AWSLoadBalancerSpec) {
+				g.Expect(res.Scheme.String(), ClassicELBSchemeInternetFacing.String())
 			},
 			wantErr: false,
 		},
@@ -69,12 +68,8 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{Scheme: &ClassicELBSchemeIncorrectInternetFacing},
 				},
 			},
-			expect: func(t *testing.T, res *AWSLoadBalancerSpec) {
-				t.Helper()
-
-				if res.Scheme.String() != ClassicELBSchemeInternetFacing.String() {
-					t.Error("Expected internet-facing defaulting for supported incorrect scheme: Internet-facing")
-				}
+			expect: func(g *WithT, res *AWSLoadBalancerSpec) {
+				g.Expect(res.Scheme.String(), ClassicELBSchemeInternetFacing.String())
 			},
 			wantErr: false,
 		},
@@ -87,9 +82,151 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "Invalid tags are rejected",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					AdditionalTags: Tags{
+						"key-1":                    "value-1",
+						"":                         "value-2",
+						strings.Repeat("CAPI", 33): "value-3",
+						"key-4":                    strings.Repeat("CAPI", 65),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "accepts bucket name with acceptable characters",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name:                           "abcdefghijklmnoprstuwxyz-0123456789",
+						ControlPlaneIAMInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io",
+						NodesIAMInstanceProfiles:       []string{"nodes.cluster-api-provider-aws.sigs.k8s.io"},
+					},
+				},
+			},
+		},
+		{
+			name: "rejects empty bucket name",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects bucket name shorter than 3 characters",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name: "fo",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects bucket name longer than 63 characters",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name: strings.Repeat("a", 64),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects bucket name starting with not letter or number",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name: "-foo",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects bucket name ending with not letter or number",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name: "foo-",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects bucket name formatted as IP address",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name: "8.8.8.8",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "requires bucket control plane IAM instance profile to be not empty",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name:                           "foo",
+						ControlPlaneIAMInstanceProfile: "",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "requires at least one bucket node IAM instance profile",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name:                           "foo",
+						ControlPlaneIAMInstanceProfile: "foo",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "requires all bucket node IAM instance profiles to be not empty",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name:                           "foo",
+						ControlPlaneIAMInstanceProfile: "foo",
+						NodesIAMInstanceProfiles:       []string{""},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "does not return error when all IAM instance profiles are populated",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name:                           "foo",
+						ControlPlaneIAMInstanceProfile: "foo",
+						NodesIAMInstanceProfiles:       []string{"bar"},
+					},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.BootstrapFormatIgnition, true)()
+
 			cluster := tt.cluster.DeepCopy()
 			cluster.ObjectMeta = metav1.ObjectMeta{
 				GenerateName: "cluster-",
@@ -116,7 +253,9 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 				return err == nil
 			}, 10*time.Second).Should(Equal(true))
 
-			tt.expect(t, c.Spec.ControlPlaneLoadBalancer)
+			if tt.expect != nil {
+				tt.expect(g, c.Spec.ControlPlaneLoadBalancer)
+			}
 		})
 	}
 }
@@ -326,6 +465,78 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 				Spec: AWSClusterSpec{
 					NetworkSpec: NetworkSpec{
 						VPC: VPCSpec{ID: "a-new-vpc"},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid keys are not accepted during update",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					AdditionalTags: Tags{
+						"key-1": "value-1",
+						"key-2": "value-2",
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					AdditionalTags: Tags{
+						"key-1":                    "value-1",
+						"":                         "value-2",
+						strings.Repeat("CAPI", 33): "value-3",
+						"key-4":                    strings.Repeat("CAPI", 65),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Should fail if controlPlaneLoadBalancer healthcheckprotocol is updated",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						HealthCheckProtocol: &ClassicELBProtocolTCP,
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						HealthCheckProtocol: &ClassicELBProtocolSSL,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Should pass if controlPlaneLoadBalancer healthcheckprotocol is same after update",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						HealthCheckProtocol: &ClassicELBProtocolTCP,
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						HealthCheckProtocol: &ClassicELBProtocolTCP,
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Should fail if controlPlaneLoadBalancer healthcheckprotocol is changed to non-default if it was not set before update",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						HealthCheckProtocol: &ClassicELBProtocolTCP,
 					},
 				},
 			},

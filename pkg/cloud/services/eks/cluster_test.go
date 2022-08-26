@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,6 +21,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -34,6 +35,7 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/mock_eksiface"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/iamauth/mock_iamauth"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -422,6 +424,103 @@ func TestReconcileClusterVersion(t *testing.T) {
 			g.Expect(err).To(BeNil())
 
 			err = s.reconcileClusterVersion(cluster)
+			if tc.expectError {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).To(BeNil())
+		})
+	}
+}
+
+func TestCreateCluster(t *testing.T) {
+	clusterName := "cluster.default"
+	version := aws.String("1.24")
+	tests := []struct {
+		name        string
+		expectEKS   func(m *mock_eksiface.MockEKSAPIMockRecorder)
+		expectError bool
+		role        *string
+		tags        map[string]*string
+		subnets     []infrav1.SubnetSpec
+	}{
+		{
+			name:        "cluster create with 2 subnets",
+			expectEKS:   func(m *mock_eksiface.MockEKSAPIMockRecorder) {},
+			expectError: false,
+			role:        aws.String("arn:role"),
+			tags: map[string]*string{
+				"kubernetes.io/cluster/" + clusterName: aws.String("owned"),
+			},
+			subnets: []infrav1.SubnetSpec{
+				{ID: "1", AvailabilityZone: "us-west-2a"}, {ID: "2", AvailabilityZone: "us-west-2b"},
+			},
+		},
+		{
+			name:        "cluster create without subnets",
+			expectEKS:   func(m *mock_eksiface.MockEKSAPIMockRecorder) {},
+			expectError: true,
+			role:        aws.String("arn:role"),
+			subnets:     []infrav1.SubnetSpec{},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			mockControl := gomock.NewController(t)
+			defer mockControl.Finish()
+
+			iamMock := mock_iamauth.NewMockIAMAPI(mockControl)
+			eksMock := mock_eksiface.NewMockEKSAPI(mockControl)
+
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			_ = ekscontrolplanev1.AddToScheme(scheme)
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+			scope, _ := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+				Client: client,
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns",
+						Name:      "capi-name",
+					},
+				},
+				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
+					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+						EKSClusterName: clusterName,
+						Version:        version,
+						RoleName:       tc.role,
+						NetworkSpec:    infrav1.NetworkSpec{Subnets: tc.subnets},
+					},
+				},
+			})
+			subnetIds := make([]*string, 0)
+			for i := range tc.subnets {
+				subnet := tc.subnets[i]
+				subnetIds = append(subnetIds, &subnet.ID)
+			}
+
+			if !tc.expectError {
+				roleOutput := iam.GetRoleOutput{Role: &iam.Role{Arn: tc.role}}
+				iamMock.EXPECT().GetRole(gomock.Any()).Return(&roleOutput, nil)
+				eksMock.EXPECT().CreateCluster(&eks.CreateClusterInput{
+					Name:             aws.String(clusterName),
+					EncryptionConfig: []*eks.EncryptionConfig{},
+					ResourcesVpcConfig: &eks.VpcConfigRequest{
+						SubnetIds: subnetIds,
+					},
+					RoleArn: tc.role,
+					Tags:    tc.tags,
+					Version: version,
+				}).Return(&eks.CreateClusterOutput{}, nil)
+			}
+			s := NewService(scope)
+			s.IAMClient = iamMock
+			s.EKSClient = eksMock
+
+			_, err := s.createCluster(clusterName)
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
 				return

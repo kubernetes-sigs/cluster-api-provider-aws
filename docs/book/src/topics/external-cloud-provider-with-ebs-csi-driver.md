@@ -1,11 +1,32 @@
-# External AWS cloud provider with AWS EBS CSI driver
+# External AWS Cloud Provider and AWS CSI Driver
 
 ## Overview
-From Kubernetes 1.21 onwards, the support for its in-tree AWS cloud provider and the EBS CSI driver is removed, hence there is a need to use [out-of-tree cloud provider (Cloud Controller Manager - CCM) ](https://github.com/kubernetes/cloud-provider-aws) and a CSI driver in CAPA.
-For details, see [Status of project and documentation of Cloud provider AWS](https://github.com/kubernetes/cloud-provider-aws/issues/42)
+The support for in-tree cloud providers and the CSI drivers is coming to an end and CAPA supports various upgrade paths
+to use [external cloud provider (Cloud Controller Manager - CCM) ](https://github.com/kubernetes/cloud-provider-aws) and external CSI drivers.
+This document explains how to create a CAPA cluster with external CSI/CCM plugins and how to upgrade existing clusters that rely on in-tree providers.
 
-## Using external cloud provider and EBS CSI driver in AWS workloads
-Once Management cluster is ready, install external CCM and EBS CSI driver onto the CAPA workload cluster either manually or using ClusterResourceSets (CRS).
+
+## Creating clusters with external CSI/CCM and validating
+For clusters that will use external CCM, `cloud-provider: external` flag needs to be set in KubeadmConfig resources in both `KubeadmControlPlane` and `MachineDeployment` resources.
+
+    clusterConfiguration:
+      apiServer:
+        extraArgs:
+          cloud-provider: external
+      controllerManager:
+        extraArgs:
+          cloud-provider: external
+    initConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          cloud-provider: external
+    joinConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          cloud-provider: external
+
+
+External CCM and EBS CSI driver can be installed manually or using ClusterResourceSets (CRS) onto the CAPA workload cluster.
 To install them with CRS, create a CRS resource on the management cluster with labels, for example `csi: external` and `ccm: external` labels. 
 Then, when creating `Cluster` objects for workload clusters that should have this CSR applied, create them with matching labels `csi: external` and `ccm: external` for CSI and CCM, respectively.
 
@@ -68,7 +89,7 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: k8s.gcr.io/nginx-slim:0.8
+          image: registry.k8s.io/nginx-slim:0.8
           ports:
             - name: nginx-web
               containerPort: 80
@@ -91,7 +112,7 @@ spec:
  ```
 3. Once you apply the above manifest, the EBS volumes will be created and attached to the worker nodes.
 
->**IMPORTANT WARNING:** The CRDs from the AWS EBS CSI driver and AWS out-of-tree cloud provider gives issue while installing the respective controllers on the AWS Cluster, it doesn't allow statefulsets to create the volume on existing EC2 instance.
+>**IMPORTANT WARNING:** The CRDs from the AWS EBS CSI driver and AWS external cloud provider gives issue while installing the respective controllers on the AWS Cluster, it doesn't allow statefulsets to create the volume on existing EC2 instance.
 > We need the CSI controller deployment and CCM pinned to the control plane which has right permissions to create, attach 
 > and mount the volumes to EC2 instances. To achieve this, you should add the node affinity rules to the CSI driver controller deployment and CCM DaemonSet manifests.
 > ```yaml
@@ -111,4 +132,99 @@ spec:
 >           - key: node-role.kubernetes.io/master
 >             operator: Exists
 >```
+ 
 
+## Validated upgrade paths for existing clusters
+
+From Kubernetes 1.23 onwards, `CSIMigrationAWS` flag is enabled by default, which requires the installation of [external CSI driver](https://github.com/kubernetes-sigs/aws-ebs-csi-driver), unless `CSIMigrationAWS` is disabled by the user.
+For installing external CSI/CCM in the upgraded cluster, CRS can be used, see the section above for details.
+
+CCM and CSI do not need to be migrated to use external plugins at the same time, 
+external CSI drivers works with in-tree CCM (Warning: using in-tree CSI with external CCM does not work).
+
+**Following 3 upgrade paths are validated:**
+- Scenario 1: During upgrade to v1.23.x, disabling `CSIMigrationAWS` flag and keep using in-tree CCM and CSI.
+- Scenario 2: During upgrade to v1.23.x, enabling `CSIMigrationAWS` flag and using in-tree CCM with external CSI.
+- Scenario 3: During upgrade to v1.23.x, enabling `CSIMigrationAWS` flag and using external CCM and CSI.
+
+
+|                             | CSI      | CCM      | feature-gate CSIMigrationAWS | external-cloud-volume-plugin |
+|-----------------------------|----------|----------|------------------------------|------------------------------|
+| **Scenario 1**              |          |          |                              |                              |
+| From Kubernetes  < v1.23    | in-tree  | in-tree  | off                          | NA                           |
+| To Kubernetes    >= v1.23   | in-tree  | in-tree  | off                          | NA                           |
+| **Scenario 2**              |          |          |                              |                              |
+| From Kubernetes  < v1.23    | in-tree  | in-tree  | off                          | NA                           |
+| To Kubernetes    >= v1.23   | external | in-tree  | on                           | NA                           |
+| **Scenario 3**              |          |          |                              |                              |
+| From Kubernetes  < v1.23    | in-tree  | in-tree  | off                          | NA                           |
+| To Kubernetes    >= v1.23   | external | external | on                           | aws                          |
+
+
+**KubeadmConfig in the upgraded cluster for scenario 1:**
+
+    clusterConfiguration:
+      apiServer:
+        extraArgs:
+          cloud-provider: aws
+      controllerManager:
+        extraArgs:
+          cloud-provider: aws
+          feature-gates: CSIMigrationAWS=false
+    initConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          cloud-provider: aws
+          feature-gates: CSIMigrationAWS=false
+        name: '{{ ds.meta_data.local_hostname }}'
+    joinConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          cloud-provider: aws
+          feature-gates: CSIMigrationAWS=false
+
+**KubeadmConfig in the upgraded cluster for scenario 2:**
+
+When `CSIMigrationAWS=true`, installed external CSI driver will be used while relying on in-tree CCM.
+
+    clusterConfiguration:
+      apiServer:
+        extraArgs:
+          cloud-provider: aws
+          feature-gates: CSIMigrationAWS=true   // Set only if Kubernetes version < 1.23.x, otherwise this flag is enabled by default.
+      controllerManager:
+        extraArgs:
+          cloud-provider: aws
+          feature-gates: CSIMigrationAWS=true   // Set only if Kubernetes version < 1.23.x, otherwise this flag is enabled by default.
+    initConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          cloud-provider: aws
+          feature-gates: CSIMigrationAWS=true   // Set only if Kubernetes version < 1.23.x, otherwise this flag is enabled by default.
+    joinConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          cloud-provider: aws
+          feature-gates: CSIMigrationAWS=true   // Set only if Kubernetes version < 1.23.x, otherwise this flag is enabled by default.
+
+**KubeadmConfig in the upgraded cluster for scenario 3:**
+
+`external-cloud-volume-plugin` flag needs to be set for old Kubelets to keep talking to in-tree CCM and upgrade fails without this is set.
+
+
+    clusterConfiguration:
+      apiServer:
+        extraArgs:
+          cloud-provider: external
+      controllerManager:
+        extraArgs:
+          cloud-provider: external
+          external-cloud-volume-plugin: aws
+    initConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          cloud-provider: external
+    joinConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          cloud-provider: external

@@ -55,7 +55,9 @@ func GetMachinesByMachineDeployments(ctx context.Context, input GetMachinesByMac
 	opts = append(opts, machineDeploymentOptions(input.MachineDeployment)...)
 
 	machineList := &clusterv1.MachineList{}
-	Expect(input.Lister.List(ctx, machineList, opts...)).To(Succeed(), "Failed to list MachineList object for Cluster %s/%s", input.Namespace, input.ClusterName)
+	Eventually(func() error {
+		return input.Lister.List(ctx, machineList, opts...)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachineList object for Cluster %s/%s", input.Namespace, input.ClusterName)
 
 	return machineList.Items
 }
@@ -78,7 +80,9 @@ func GetMachinesByMachineHealthCheck(ctx context.Context, input GetMachinesByMac
 	opts = append(opts, machineHealthCheckOptions(*input.MachineHealthCheck)...)
 
 	machineList := &clusterv1.MachineList{}
-	Expect(input.Lister.List(ctx, machineList, opts...)).To(Succeed(), "Failed to list MachineList object for Cluster %s/%s", input.MachineHealthCheck.Namespace, input.ClusterName)
+	Eventually(func() error {
+		return input.Lister.List(ctx, machineList, opts...)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachineList object for Cluster %s/%s", input.MachineHealthCheck.Namespace, input.ClusterName)
 
 	return machineList.Items
 }
@@ -102,7 +106,9 @@ func GetControlPlaneMachinesByCluster(ctx context.Context, input GetControlPlane
 	options := append(byClusterOptions(input.ClusterName, input.Namespace), controlPlaneMachineOptions()...)
 
 	machineList := &clusterv1.MachineList{}
-	Expect(input.Lister.List(ctx, machineList, options...)).To(Succeed(), "Failed to list MachineList object for Cluster %s/%s", input.Namespace, input.ClusterName)
+	Eventually(func() error {
+		return input.Lister.List(ctx, machineList, options...)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachineList object for Cluster %s/%s", input.Namespace, input.ClusterName)
 
 	return machineList.Items
 }
@@ -204,11 +210,15 @@ func PatchNodeCondition(ctx context.Context, input PatchNodeConditionInput) {
 	log.Logf("Patching the node condition to the node")
 	Expect(input.Machine.Status.NodeRef).ToNot(BeNil())
 	node := &corev1.Node{}
-	Expect(input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient().Get(ctx, types.NamespacedName{Name: input.Machine.Status.NodeRef.Name, Namespace: input.Machine.Status.NodeRef.Namespace}, node)).To(Succeed())
+	Eventually(func() error {
+		return input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient().Get(ctx, types.NamespacedName{Name: input.Machine.Status.NodeRef.Name, Namespace: input.Machine.Status.NodeRef.Namespace}, node)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 	patchHelper, err := patch.NewHelper(node, input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient())
 	Expect(err).ToNot(HaveOccurred())
 	node.Status.Conditions = append(node.Status.Conditions, input.NodeCondition)
-	Expect(patchHelper.Patch(ctx, node)).To(Succeed())
+	Eventually(func() error {
+		return patchHelper.Patch(ctx, node)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 }
 
 // MachineStatusCheck is a type that operates a status check on a Machine.

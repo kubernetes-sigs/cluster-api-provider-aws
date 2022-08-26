@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/version"
 
@@ -111,6 +112,12 @@ func (s *NodegroupService) scalingConfig() *eks.NodegroupScalingConfig {
 		cfg.MinSize = aws.Int64(int64(*scaling.MinSize))
 	}
 	return &cfg
+}
+
+func (s *NodegroupService) updateConfig() *eks.NodegroupUpdateConfig {
+	updateConfig := s.scope.ManagedMachinePool.Spec.UpdateConfig
+
+	return converters.NodegroupUpdateconfigToSDK(updateConfig)
 }
 
 func (s *NodegroupService) roleArn() (*string, error) {
@@ -208,6 +215,7 @@ func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
 		Labels:        aws.StringMap(managedPool.Labels),
 		Tags:          aws.StringMap(tags),
 		RemoteAccess:  remoteAccess,
+		UpdateConfig:  s.updateConfig(),
 	}
 	if managedPool.AMIType != nil {
 		input.AmiType = aws.String(string(*managedPool.AMIType))
@@ -452,6 +460,12 @@ func (s *NodegroupService) reconcileNodegroupConfig(ng *eks.Nodegroup) error {
 		input.ScalingConfig = s.scalingConfig()
 		needsUpdate = true
 	}
+	currentUpdateConfig := converters.NodegroupUpdateconfigFromSDK(ng.UpdateConfig)
+	if !cmp.Equal(managedPool.UpdateConfig, currentUpdateConfig) {
+		s.V(2).Info("Nodegroup update configuration differs from spec, updating the nodegroup update config", "nodegroup", ng.NodegroupName)
+		input.UpdateConfig = s.updateConfig()
+		needsUpdate = true
+	}
 	if !needsUpdate {
 		s.V(2).Info("node group config update not needed", "cluster", eksClusterName, "name", *ng.NodegroupName)
 		return nil
@@ -484,7 +498,7 @@ func (s *NodegroupService) reconcileNodegroup() error {
 		tagKey := infrav1.ClusterAWSCloudProviderTagKey(s.scope.ClusterName())
 		ownedTag := ng.Tags[tagKey]
 		if ownedTag == nil {
-			return errors.Wrapf(err, "owner of %s mismatch: %s", eksNodegroupName, s.scope.ClusterName())
+			return errors.Errorf("owner of %s mismatch: %s", eksNodegroupName, s.scope.ClusterName())
 		}
 		s.scope.V(2).Info("Found owned EKS nodegroup in AWS", "cluster-name", eksClusterName, "nodegroup-name", eksNodegroupName)
 	}

@@ -8,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -57,7 +57,7 @@ var _ = ginkgo.Describe("[unmanaged] [conformance] tests", func() {
 	})
 	ginkgo.Measure(specName, func(b ginkgo.Benchmarker) {
 
-		name := fmt.Sprintf("cluster-%s", util.RandomString(6))
+		name := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		shared.SetEnvVar("USE_CI_ARTIFACTS", "true", false)
 		kubernetesVersion := e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion)
 		flavor := clusterctl.DefaultFlavor

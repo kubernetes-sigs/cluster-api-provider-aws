@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -163,9 +163,23 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
 	// to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
 	// should be deleted. You cannot set this to true if you are using the
-	// Amazon VPC CNI addon or if you have specified a secondary CIDR block.
+	// Amazon VPC CNI addon.
 	// +kubebuilder:default=false
 	DisableVPCCNI bool `json:"disableVPCCNI,omitempty"`
+
+	// KubeProxy defines managed attributes of the kube-proxy daemonset
+	KubeProxy KubeProxy `json:"kubeProxy,omitempty"`
+}
+
+// KubeProxy specifies how the kube-proxy daemonset is managed.
+type KubeProxy struct {
+	// Disable set to true indicates that kube-proxy should be disabled. With EKS clusters
+	// kube-proxy is automatically installed into the cluster. For clusters where you want
+	// to use kube-proxy functionality that is provided with an alternate CNI, this option
+	// provides a way to specify that the kube-proxy daemonset should be deleted. You cannot
+	// set this to true if you are using the Amazon kube-proxy addon.
+	// +kubebuilder:default=false
+	Disable bool `json:"disable,omitempty"`
 }
 
 // EndpointAccess specifies how control plane endpoints are accessible.
@@ -247,8 +261,7 @@ type AWSManagedControlPlaneStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:object:root=true
-// +kubebuilder:resource:path=awsmanagedcontrolplanes,shortName=awsmcp,scope=Namespaced,categories=cluster-api,shortName=awsmcp
+// +kubebuilder:resource:path=awsmanagedcontrolplanes,shortName=awsmcp,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this AWSManagedControl belongs"

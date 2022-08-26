@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,6 +32,7 @@ var (
 	kubernetesVersion string
 	opSystem          string
 	outputPrinter     string
+	ownerID           string
 )
 
 // ListAMICmd is a CLI command that will list AMIs from the default AWS account where AMIs are stored.
@@ -49,7 +50,7 @@ func ListAMICmd() *cobra.Command {
 		`),
 		Example: cmd.Examples(`
 		# List AMIs from the default AWS account where AMIs are stored.
-		# Available os options: centos-7, ubuntu-18.04, ubuntu-20.04, amazon-2
+		# Available os options: centos-7, ubuntu-18.04, ubuntu-20.04, amazon-2, flatcar-stable
 		clusterawsadm ami list --kubernetes-version=v1.18.12 --os=ubuntu-20.04  --region=us-west-2
 		# To list all supported AMIs in all supported Kubernetes versions, regions, and linux distributions:
 		clusterawsadm ami list
@@ -67,9 +68,14 @@ func ListAMICmd() *cobra.Command {
 				Region:            region,
 				KubernetesVersion: kubernetesVersion,
 				OperatingSystem:   opSystem,
+				OwnerID:           ownerID,
 			})
 			if err != nil {
 				return err
+			}
+			if len(listByVersion.Items) == 0 {
+				fmt.Println("No AMIs found")
+				return nil
 			}
 
 			if outputPrinter == string(cmdout.PrinterTypeTable) {
@@ -87,11 +93,12 @@ func ListAMICmd() *cobra.Command {
 	addOsFlag(newCmd)
 	addKubernetesVersionFlag(newCmd)
 	addOutputFlag(newCmd)
+	addOwnerIDFlag(newCmd)
 	return newCmd
 }
 
 func addOsFlag(c *cobra.Command) {
-	c.Flags().StringVar(&opSystem, "os", "", "Operating system of the AMI to be copied")
+	c.Flags().StringVar(&opSystem, "os", "", "Operating system of the AMI to be listed")
 }
 
 func addKubernetesVersionFlag(c *cobra.Command) {
@@ -100,4 +107,8 @@ func addKubernetesVersionFlag(c *cobra.Command) {
 
 func addOutputFlag(c *cobra.Command) {
 	c.Flags().StringVarP(&outputPrinter, "output", "o", "table", "The output format of the results. Possible values: table,json,yaml")
+}
+
+func addOwnerIDFlag(c *cobra.Command) {
+	c.Flags().StringVarP(&ownerID, "owner-id", "", "", "The owner ID of the AWS account to be used for listing AMIs")
 }

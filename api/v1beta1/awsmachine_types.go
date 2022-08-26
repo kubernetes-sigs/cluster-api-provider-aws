@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,6 +27,9 @@ const (
 	// MachineFinalizer allows ReconcileAWSMachine to clean up AWS resources associated with AWSMachine before
 	// removing it from the apiserver.
 	MachineFinalizer = "awsmachine.infrastructure.cluster.x-k8s.io"
+
+	// DefaultIgnitionVersion represents default Ignition version generated for machine userdata.
+	DefaultIgnitionVersion = "2.3"
 )
 
 // SecretBackend defines variants for backend secret storage.
@@ -142,6 +145,10 @@ type AWSMachineSpec struct {
 	// +optional
 	CloudInit CloudInit `json:"cloudInit,omitempty"`
 
+	// Ignition defined options related to the bootstrapping systems where Ignition is used.
+	// +optional
+	Ignition *Ignition `json:"ignition,omitempty"`
+
 	// SpotMarketOptions allows users to configure instances to be run using AWS Spot instances.
 	// +optional
 	SpotMarketOptions *SpotMarketOptions `json:"spotMarketOptions,omitempty"`
@@ -177,6 +184,16 @@ type CloudInit struct {
 	// +optional
 	// +kubebuilder:validation:Enum=secrets-manager;ssm-parameter-store
 	SecureSecretsBackend SecretBackend `json:"secureSecretsBackend,omitempty"`
+}
+
+// Ignition defines options related to the bootstrapping systems where Ignition is used.
+type Ignition struct {
+	// Version defines which version of Ignition will be used to generate bootstrap data.
+	//
+	// +optional
+	// +kubebuilder:default="2.3"
+	// +kubebuilder:validation:Enum="2.3"
+	Version string `json:"version,omitempty"`
 }
 
 // AWSMachineStatus defines the observed state of AWSMachine.

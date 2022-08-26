@@ -352,7 +352,9 @@ string
 <td>
 <code>secureSecretBackends</code><br/>
 <em>
-[]Cluster API AWS api/v1beta1.SecretBackend
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.SecretBackend">
+[]SecretBackend
+</a>
 </em>
 </td>
 <td>
@@ -523,7 +525,9 @@ string
 <td>
 <code>secureSecretBackends</code><br/>
 <em>
-[]Cluster API AWS api/v1beta1.SecretBackend
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.SecretBackend">
+[]SecretBackend
+</a>
 </em>
 </td>
 <td>
@@ -600,7 +604,9 @@ See &ldquo;sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1beta
 <td>
 <code>tags</code><br/>
 <em>
-Cluster API AWS api/v1beta1.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -701,7 +707,9 @@ string
 <td>
 <code>tags</code><br/>
 <em>
-Cluster API AWS api/v1beta1.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -1145,6 +1153,18 @@ string
 </tr>
 <tr>
 <td>
+<code>stackTags</code><br/>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>StackTags defines the tags of the AWS CloudFormation stack.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>region</code><br/>
 <em>
 string
@@ -1197,13 +1217,31 @@ string
 <td>
 <code>secureSecretBackends</code><br/>
 <em>
-[]Cluster API AWS api/v1beta1.SecretBackend
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.SecretBackend">
+[]SecretBackend
+</a>
 </em>
 </td>
 <td>
 <p>SecureSecretsBackend, when set to parameter-store will create AWS Systems Manager
 Parameter Storage policies. By default or with the value of secrets-manager,
 will generate AWS Secrets Manager policies instead.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>s3Buckets</code><br/>
+<em>
+<a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.S3Buckets">
+S3Buckets
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>S3Buckets, when enabled, will add controller nodes permissions to
+create S3 Buckets for workload clusters.
+TODO: This field could be a pointer, but it seems it breaks setting default values?</p>
 </td>
 </tr>
 </table>
@@ -1316,6 +1354,18 @@ string
 </tr>
 <tr>
 <td>
+<code>stackTags</code><br/>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>StackTags defines the tags of the AWS CloudFormation stack.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>region</code><br/>
 <em>
 string
@@ -1368,13 +1418,31 @@ string
 <td>
 <code>secureSecretBackends</code><br/>
 <em>
-[]Cluster API AWS api/v1beta1.SecretBackend
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.SecretBackend">
+[]SecretBackend
+</a>
 </em>
 </td>
 <td>
 <p>SecureSecretsBackend, when set to parameter-store will create AWS Systems Manager
 Parameter Storage policies. By default or with the value of secrets-manager,
 will generate AWS Secrets Manager policies instead.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>s3Buckets</code><br/>
+<em>
+<a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.S3Buckets">
+S3Buckets
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>S3Buckets, when enabled, will add controller nodes permissions to
+create S3 Buckets for workload clusters.
+TODO: This field could be a pointer, but it seems it breaks setting default values?</p>
 </td>
 </tr>
 </tbody>
@@ -1445,7 +1513,9 @@ See &ldquo;sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1beta
 <td>
 <code>tags</code><br/>
 <em>
-Cluster API AWS api/v1beta1.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -1546,7 +1616,9 @@ string
 <td>
 <code>tags</code><br/>
 <em>
-Cluster API AWS api/v1beta1.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -1863,6 +1935,48 @@ bool
 <td>
 <p>EC2ContainerRegistryReadOnly controls whether the node has read-only access to the
 EC2 container registry</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.S3Buckets">S3Buckets
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.AWSIAMConfigurationSpec">AWSIAMConfigurationSpec</a>)
+</p>
+<p>
+<p>S3Buckets controls the configuration of the AWS IAM role for S3 buckets
+which can be created for storing bootstrap data for nodes requiring it.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>enable</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>Enable controls whether permissions are granted to manage S3 buckets.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namePrefix</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>NamePrefix will be prepended to every AWS IAM role bucket name. Defaults to &ldquo;cluster-api-provider-aws-&rdquo;.
+AWSCluster S3 Bucket name must be prefixed with the same prefix.</p>
 </td>
 </tr>
 </tbody>
@@ -2250,6 +2364,81 @@ map[string]string
 <p>KubeletExtraArgs passes the specified kubelet args into the Amazon EKS machine bootstrap script</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>containerRuntime</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ContainerRuntime specify the container runtime to use when bootstrapping EKS.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dnsClusterIP</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DNSClusterIP overrides the IP address to use for DNS queries within the cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dockerConfigJson</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DockerConfigJson is used for the contents of the /etc/docker/daemon.json file. Useful if you want a custom config differing from the default one in the AMI.
+This is expected to be a json string.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>apiRetryAttempts</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>APIRetryAttempts is the number of retry attempts for AWS API call.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pauseContainer</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta1.PauseContainer">
+PauseContainer
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PauseContainer allows customization of the pause container to use.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>useMaxPods</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UseMaxPods  sets &ndash;max-pods for the kubelet when true.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -2293,6 +2482,81 @@ map[string]string
 <td>
 <em>(Optional)</em>
 <p>KubeletExtraArgs passes the specified kubelet args into the Amazon EKS machine bootstrap script</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>containerRuntime</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ContainerRuntime specify the container runtime to use when bootstrapping EKS.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dnsClusterIP</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DNSClusterIP overrides the IP address to use for DNS queries within the cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dockerConfigJson</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DockerConfigJson is used for the contents of the /etc/docker/daemon.json file. Useful if you want a custom config differing from the default one in the AMI.
+This is expected to be a json string.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>apiRetryAttempts</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>APIRetryAttempts is the number of retry attempts for AWS API call.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pauseContainer</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta1.PauseContainer">
+PauseContainer
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PauseContainer allows customization of the pause container to use.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>useMaxPods</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UseMaxPods  sets &ndash;max-pods for the kubelet when true.</p>
 </td>
 </tr>
 </tbody>
@@ -2486,6 +2750,81 @@ map[string]string
 <p>KubeletExtraArgs passes the specified kubelet args into the Amazon EKS machine bootstrap script</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>containerRuntime</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ContainerRuntime specify the container runtime to use when bootstrapping EKS.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dnsClusterIP</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DNSClusterIP overrides the IP address to use for DNS queries within the cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dockerConfigJson</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DockerConfigJson is used for the contents of the /etc/docker/daemon.json file. Useful if you want a custom config differing from the default one in the AMI.
+This is expected to be a json string.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>apiRetryAttempts</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>APIRetryAttempts is the number of retry attempts for AWS API call.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pauseContainer</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta1.PauseContainer">
+PauseContainer
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PauseContainer allows customization of the pause container to use.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>useMaxPods</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UseMaxPods  sets &ndash;max-pods for the kubelet when true.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -2517,6 +2856,46 @@ EKSConfigTemplateResource
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta1.PauseContainer">PauseContainer
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta1.EKSConfigSpec">EKSConfigSpec</a>)
+</p>
+<p>
+<p>PauseContainer contains details of pause container.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accountNumber</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AccountNumber is the AWS account number to pull the pause container from.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Version is the tag of the pause container to use.</p>
 </td>
 </tr>
 </tbody>
@@ -2583,7 +2962,9 @@ based on the namespace and name of the managed control plane.</p>
 <td>
 <code>identityRef</code><br/>
 <em>
-Cluster API AWS api/v1alpha4.AWSIdentityReference
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSIdentityReference">
+AWSIdentityReference
+</a>
 </em>
 </td>
 <td>
@@ -2595,7 +2976,9 @@ Cluster API AWS api/v1alpha4.AWSIdentityReference
 <td>
 <code>network</code><br/>
 <em>
-Cluster API AWS api/v1alpha4.NetworkSpec
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.NetworkSpec">
+NetworkSpec
+</a>
 </em>
 </td>
 <td>
@@ -2715,7 +3098,9 @@ EncryptionConfig
 <td>
 <code>additionalTags</code><br/>
 <em>
-Cluster API AWS api/v1alpha4.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -2823,7 +3208,9 @@ different ImageLookupBaseOS.</p>
 <td>
 <code>bastion</code><br/>
 <em>
-Cluster API AWS api/v1alpha4.Bastion
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Bastion">
+Bastion
+</a>
 </em>
 </td>
 <td>
@@ -2863,8 +3250,8 @@ provider for the controller for use with IAM roles for service accounts</p>
 <td>
 <code>addons</code><br/>
 <em>
-<a href="#controlplane.cluster.x-k8s.io/v1alpha4.[]../../controlplane/eks/api/v1alpha4.Addon">
-[]../../controlplane/eks/api/v1alpha4.Addon
+<a href="#controlplane.cluster.x-k8s.io/v1alpha4.[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4.Addon">
+[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4.Addon
 </a>
 </em>
 </td>
@@ -2896,8 +3283,8 @@ bool
 </em>
 </td>
 <td>
-<p>DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters
-the Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
+<p>DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters the
+Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
 to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
 should be deleted. You cannot set this to true if you are using the
 Amazon VPC CNI addon or if you have specified a secondary CIDR block.</p>
@@ -2954,7 +3341,9 @@ based on the namespace and name of the managed control plane.</p>
 <td>
 <code>identityRef</code><br/>
 <em>
-Cluster API AWS api/v1alpha4.AWSIdentityReference
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSIdentityReference">
+AWSIdentityReference
+</a>
 </em>
 </td>
 <td>
@@ -2966,7 +3355,9 @@ Cluster API AWS api/v1alpha4.AWSIdentityReference
 <td>
 <code>network</code><br/>
 <em>
-Cluster API AWS api/v1alpha4.NetworkSpec
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.NetworkSpec">
+NetworkSpec
+</a>
 </em>
 </td>
 <td>
@@ -3086,7 +3477,9 @@ EncryptionConfig
 <td>
 <code>additionalTags</code><br/>
 <em>
-Cluster API AWS api/v1alpha4.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -3194,7 +3587,9 @@ different ImageLookupBaseOS.</p>
 <td>
 <code>bastion</code><br/>
 <em>
-Cluster API AWS api/v1alpha4.Bastion
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Bastion">
+Bastion
+</a>
 </em>
 </td>
 <td>
@@ -3234,8 +3629,8 @@ provider for the controller for use with IAM roles for service accounts</p>
 <td>
 <code>addons</code><br/>
 <em>
-<a href="#controlplane.cluster.x-k8s.io/v1alpha4.[]../../controlplane/eks/api/v1alpha4.Addon">
-[]../../controlplane/eks/api/v1alpha4.Addon
+<a href="#controlplane.cluster.x-k8s.io/v1alpha4.[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4.Addon">
+[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4.Addon
 </a>
 </em>
 </td>
@@ -3267,8 +3662,8 @@ bool
 </em>
 </td>
 <td>
-<p>DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters
-the Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
+<p>DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters the
+Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
 to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
 should be deleted. You cannot set this to true if you are using the
 Amazon VPC CNI addon or if you have specified a secondary CIDR block.</p>
@@ -3296,7 +3691,9 @@ Amazon VPC CNI addon or if you have specified a secondary CIDR block.</p>
 <td>
 <code>networkStatus</code><br/>
 <em>
-Cluster API AWS api/v1alpha4.NetworkStatus
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.NetworkStatus">
+NetworkStatus
+</a>
 </em>
 </td>
 <td>
@@ -3322,7 +3719,9 @@ Cluster API api/v1alpha4.FailureDomains
 <td>
 <code>bastion</code><br/>
 <em>
-Cluster API AWS api/v1alpha4.Instance
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Instance">
+Instance
+</a>
 </em>
 </td>
 <td>
@@ -4110,7 +4509,9 @@ all prefixing.</p>
 <td>
 <code>tags</code><br/>
 <em>
-Cluster API AWS api/v1alpha4.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -4315,7 +4716,9 @@ based on the namespace and name of the managed control plane.</p>
 <td>
 <code>identityRef</code><br/>
 <em>
-Cluster API AWS api/v1beta1.AWSIdentityReference
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSIdentityReference">
+AWSIdentityReference
+</a>
 </em>
 </td>
 <td>
@@ -4327,7 +4730,9 @@ Cluster API AWS api/v1beta1.AWSIdentityReference
 <td>
 <code>network</code><br/>
 <em>
-Cluster API AWS api/v1beta1.NetworkSpec
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.NetworkSpec">
+NetworkSpec
+</a>
 </em>
 </td>
 <td>
@@ -4447,7 +4852,9 @@ EncryptionConfig
 <td>
 <code>additionalTags</code><br/>
 <em>
-Cluster API AWS api/v1beta1.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -4555,7 +4962,9 @@ different ImageLookupBaseOS.</p>
 <td>
 <code>bastion</code><br/>
 <em>
-Cluster API AWS api/v1beta1.Bastion
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Bastion">
+Bastion
+</a>
 </em>
 </td>
 <td>
@@ -4595,8 +5004,8 @@ provider for the controller for use with IAM roles for service accounts</p>
 <td>
 <code>addons</code><br/>
 <em>
-<a href="#controlplane.cluster.x-k8s.io/v1beta1.[]../../controlplane/eks/api/v1beta1.Addon">
-[]../../controlplane/eks/api/v1beta1.Addon
+<a href="#controlplane.cluster.x-k8s.io/v1beta1.[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1.Addon">
+[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1.Addon
 </a>
 </em>
 </td>
@@ -4628,8 +5037,8 @@ bool
 </em>
 </td>
 <td>
-<p>DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters
-the Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
+<p>DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters the
+Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
 to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
 should be deleted. You cannot set this to true if you are using the
 Amazon VPC CNI addon or if you have specified a secondary CIDR block.</p>
@@ -4686,7 +5095,9 @@ based on the namespace and name of the managed control plane.</p>
 <td>
 <code>identityRef</code><br/>
 <em>
-Cluster API AWS api/v1beta1.AWSIdentityReference
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSIdentityReference">
+AWSIdentityReference
+</a>
 </em>
 </td>
 <td>
@@ -4698,7 +5109,9 @@ Cluster API AWS api/v1beta1.AWSIdentityReference
 <td>
 <code>network</code><br/>
 <em>
-Cluster API AWS api/v1beta1.NetworkSpec
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.NetworkSpec">
+NetworkSpec
+</a>
 </em>
 </td>
 <td>
@@ -4818,7 +5231,9 @@ EncryptionConfig
 <td>
 <code>additionalTags</code><br/>
 <em>
-Cluster API AWS api/v1beta1.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -4926,7 +5341,9 @@ different ImageLookupBaseOS.</p>
 <td>
 <code>bastion</code><br/>
 <em>
-Cluster API AWS api/v1beta1.Bastion
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Bastion">
+Bastion
+</a>
 </em>
 </td>
 <td>
@@ -4966,8 +5383,8 @@ provider for the controller for use with IAM roles for service accounts</p>
 <td>
 <code>addons</code><br/>
 <em>
-<a href="#controlplane.cluster.x-k8s.io/v1beta1.[]../../controlplane/eks/api/v1beta1.Addon">
-[]../../controlplane/eks/api/v1beta1.Addon
+<a href="#controlplane.cluster.x-k8s.io/v1beta1.[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1.Addon">
+[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1.Addon
 </a>
 </em>
 </td>
@@ -4999,8 +5416,8 @@ bool
 </em>
 </td>
 <td>
-<p>DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters
-the Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
+<p>DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters the
+Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
 to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
 should be deleted. You cannot set this to true if you are using the
 Amazon VPC CNI addon or if you have specified a secondary CIDR block.</p>
@@ -5028,7 +5445,9 @@ Amazon VPC CNI addon or if you have specified a secondary CIDR block.</p>
 <td>
 <code>networkStatus</code><br/>
 <em>
-Cluster API AWS api/v1beta1.NetworkStatus
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.NetworkStatus">
+NetworkStatus
+</a>
 </em>
 </td>
 <td>
@@ -5054,7 +5473,9 @@ Cluster API api/v1beta1.FailureDomains
 <td>
 <code>bastion</code><br/>
 <em>
-Cluster API AWS api/v1beta1.Instance
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Instance">
+Instance
+</a>
 </em>
 </td>
 <td>
@@ -5842,7 +6263,9 @@ all prefixing.</p>
 <td>
 <code>tags</code><br/>
 <em>
-Cluster API AWS api/v1beta1.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -5992,7 +6415,7 @@ Resource Types:
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.AMIReference">AMIReference
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSMachineSpec">AWSMachineSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSLaunchTemplate">AWSLaunchTemplate</a>)
 </p>
 <p>
 <p>AMIReference is a reference to a specific AWS resource by ID, ARN, or filters.
@@ -7240,7 +7663,7 @@ AWSClusterTemplateResource
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.AWSIdentityReference">AWSIdentityReference
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterRoleIdentitySpec">AWSClusterRoleIdentitySpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterSpec">AWSClusterSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterRoleIdentitySpec">AWSClusterRoleIdentitySpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterSpec">AWSClusterSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1alpha4.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
 </p>
 <p>
 <p>AWSIdentityReference specifies a identity.</p>
@@ -8558,7 +8981,7 @@ AWSMachineTemplateResource
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.AWSResourceReference">AWSResourceReference
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSMachineSpec">AWSMachineSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSLaunchTemplate">AWSLaunchTemplate</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSMachinePoolSpec">AWSMachinePoolSpec</a>)
 </p>
 <p>
 <p>AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
@@ -8757,7 +9180,7 @@ AWSClusterIdentity from any namespace.</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.Bastion">Bastion
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterSpec">AWSClusterSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterSpec">AWSClusterSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1alpha4.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
 </p>
 <p>
 <p>Bastion defines a bastion host.</p>
@@ -8983,7 +9406,7 @@ int64
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.CNIIngressRules">CNIIngressRules
-(<code>[]../../api/v1alpha4.CNIIngressRule</code> alias)</p></h3>
+(<code>[]sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4.CNIIngressRule</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.CNISpec">CNISpec</a>)
 </p>
@@ -9434,7 +9857,7 @@ will use AWS Secrets Manager instead.</p>
 <p>ConditionOperator defines an AWS condition operator.</p>
 </p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.Conditions">Conditions
-(<code>map[../../api/v1alpha4.ConditionOperator]interface{}</code> alias)</p></h3>
+(<code>map[sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4.ConditionOperator]interface{}</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.StatementEntry">StatementEntry</a>)
 </p>
@@ -9579,7 +10002,7 @@ int64
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.IngressRules">IngressRules
-(<code>[]../../api/v1alpha4.IngressRule</code> alias)</p></h3>
+(<code>[]sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4.IngressRule</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.SecurityGroup">SecurityGroup</a>)
 </p>
@@ -9589,7 +10012,7 @@ int64
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.Instance">Instance
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterStatus">AWSClusterStatus</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterStatus">AWSClusterStatus</a>, <a href="#controlplane.cluster.x-k8s.io/v1alpha4.AWSManagedControlPlaneStatus">AWSManagedControlPlaneStatus</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AutoScalingGroup">AutoScalingGroup</a>)
 </p>
 <p>
 <p>Instance describes an AWS instance.</p>
@@ -9871,7 +10294,7 @@ string
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.NetworkSpec">NetworkSpec
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterSpec">AWSClusterSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterSpec">AWSClusterSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1alpha4.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
 </p>
 <p>
 <p>NetworkSpec encapsulates all things related to AWS network.</p>
@@ -9930,7 +10353,7 @@ CNISpec
 <td>
 <code>securityGroupOverrides</code><br/>
 <em>
-map[../../api/v1alpha4.SecurityGroupRole]string
+map[sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4.SecurityGroupRole]string
 </em>
 </td>
 <td>
@@ -9944,7 +10367,7 @@ This is optional - if not provided new security groups will be created for the c
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.NetworkStatus">NetworkStatus
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterStatus">AWSClusterStatus</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterStatus">AWSClusterStatus</a>, <a href="#controlplane.cluster.x-k8s.io/v1alpha4.AWSManagedControlPlaneStatus">AWSManagedControlPlaneStatus</a>)
 </p>
 <p>
 <p>NetworkStatus encapsulates AWS networking resources.</p>
@@ -9962,7 +10385,7 @@ This is optional - if not provided new security groups will be created for the c
 <code>securityGroups</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.SecurityGroup">
-map[../../api/v1alpha4.SecurityGroupRole]../../api/v1alpha4.SecurityGroup
+map[sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4.SecurityGroupRole]sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4.SecurityGroup
 </a>
 </em>
 </td>
@@ -10044,7 +10467,7 @@ string
 <p>PrincipalType defines an AWS principle type.</p>
 </p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.Principals">Principals
-(<code>map[../../api/v1alpha4.PrincipalType]../../api/v1alpha4.PrincipalID</code> alias)</p></h3>
+(<code>map[sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4.PrincipalType]sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4.PrincipalID</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.StatementEntry">StatementEntry</a>)
 </p>
@@ -10310,7 +10733,7 @@ Conditions
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.Statements">Statements
-(<code>[]../../api/v1alpha4.StatementEntry</code> alias)</p></h3>
+(<code>[]sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4.StatementEntry</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.PolicyDocument">PolicyDocument</a>)
 </p>
@@ -10416,7 +10839,7 @@ Tags
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.Subnets">Subnets
-(<code>[]../../api/v1alpha4.SubnetSpec</code> alias)</p></h3>
+(<code>[]sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4.SubnetSpec</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.NetworkSpec">NetworkSpec</a>)
 </p>
@@ -10426,7 +10849,7 @@ Tags
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.Tags">Tags
 (<code>map[string]string</code> alias)</p></h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterSpec">AWSClusterSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.BuildParams">BuildParams</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.SecurityGroup">SecurityGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.SubnetSpec">SubnetSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.VPCSpec">VPCSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSClusterSpec">AWSClusterSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.BuildParams">BuildParams</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.SecurityGroup">SecurityGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.SubnetSpec">SubnetSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.VPCSpec">VPCSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1alpha4.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1alpha4.OIDCIdentityProviderConfig">OIDCIdentityProviderConfig</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSMachinePoolSpec">AWSMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AutoScalingGroup">AutoScalingGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.FargateProfileSpec">FargateProfileSpec</a>)
 </p>
 <p>
 <p>Tags defines a map of tags.</p>
@@ -10531,7 +10954,7 @@ Defaults to Ordered</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.Volume">Volume
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Instance">Instance</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Instance">Instance</a>, <a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSLaunchTemplate">AWSLaunchTemplate</a>)
 </p>
 <p>
 <p>Volume encapsulates the configuration options for the storage device</p>
@@ -10730,7 +11153,9 @@ auto scaling group of this nodegroup.</p>
 <td>
 <code>additionalTags</code><br/>
 <em>
-Cluster API AWS api/v1alpha4.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -10828,7 +11253,9 @@ role.</p>
 <td>
 <code>ami</code><br/>
 <em>
-Cluster API AWS api/v1alpha4.AMIReference
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AMIReference">
+AMIReference
+</a>
 </em>
 </td>
 <td>
@@ -10896,7 +11323,9 @@ string
 <td>
 <code>rootVolume</code><br/>
 <em>
-Cluster API AWS api/v1alpha4.Volume
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Volume">
+Volume
+</a>
 </em>
 </td>
 <td>
@@ -10936,7 +11365,9 @@ Typically a new version is created when at least one of the following happens:
 <td>
 <code>additionalSecurityGroups</code><br/>
 <em>
-[]Cluster API AWS api/v1alpha4.AWSResourceReference
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSResourceReference">
+[]AWSResourceReference
+</a>
 </em>
 </td>
 <td>
@@ -11037,7 +11468,9 @@ int32
 <td>
 <code>subnets</code><br/>
 <em>
-[]Cluster API AWS api/v1alpha4.AWSResourceReference
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSResourceReference">
+[]AWSResourceReference
+</a>
 </em>
 </td>
 <td>
@@ -11049,7 +11482,9 @@ int32
 <td>
 <code>additionalTags</code><br/>
 <em>
-Cluster API AWS api/v1alpha4.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -11262,7 +11697,9 @@ int32
 <td>
 <code>subnets</code><br/>
 <em>
-[]Cluster API AWS api/v1alpha4.AWSResourceReference
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSResourceReference">
+[]AWSResourceReference
+</a>
 </em>
 </td>
 <td>
@@ -11274,7 +11711,9 @@ int32
 <td>
 <code>additionalTags</code><br/>
 <em>
-Cluster API AWS api/v1alpha4.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -11593,7 +12032,9 @@ auto scaling group of this nodegroup</p>
 <td>
 <code>additionalTags</code><br/>
 <em>
-Cluster API AWS api/v1alpha4.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -11827,7 +12268,9 @@ auto scaling group of this nodegroup</p>
 <td>
 <code>additionalTags</code><br/>
 <em>
-Cluster API AWS api/v1alpha4.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -12123,7 +12566,9 @@ string
 <td>
 <code>tags</code><br/>
 <em>
-Cluster API AWS api/v1alpha4.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -12239,7 +12684,9 @@ ASGStatus
 <td>
 <code>instances</code><br/>
 <em>
-[]Cluster API AWS api/v1alpha4.Instance
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Instance">
+[]Instance
+</a>
 </em>
 </td>
 <td>
@@ -12401,7 +12848,9 @@ auto scaling group of this nodegroup.</p>
 <td>
 <code>additionalTags</code><br/>
 <em>
-Cluster API AWS api/v1alpha4.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1alpha4.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -12987,7 +13436,7 @@ string
 <p>TaintEffect is the effect for a Kubernetes taint.</p>
 </p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1alpha4.Taints">Taints
-(<code>[]../../exp/api/v1alpha4.Taint</code> alias)</p></h3>
+(<code>[]sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4.Taint</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1alpha4.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>)
 </p>
@@ -13004,7 +13453,7 @@ Resource Types:
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.AMIReference">AMIReference
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachineSpec">AWSMachineSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSLaunchTemplate">AWSLaunchTemplate</a>)
 </p>
 <p>
 <p>AMIReference is a reference to a specific AWS resource by ID, ARN, or filters.
@@ -13243,6 +13692,23 @@ AWSIdentityReference
 <td>
 <em>(Optional)</em>
 <p>IdentityRef is a reference to a identity to be used when reconciling this cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>s3Bucket</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.S3Bucket">
+S3Bucket
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>S3Bucket contains options to configure a supporting S3 bucket for this
+cluster - currently used for nodes requiring Ignition
+(<a href="https://coreos.github.io/ignition/">https://coreos.github.io/ignition/</a>) for bootstrapping (requires
+BootstrapFormatIgnition feature flag to be enabled).</p>
 </td>
 </tr>
 </table>
@@ -13760,6 +14226,23 @@ AWSIdentityReference
 <p>IdentityRef is a reference to a identity to be used when reconciling this cluster</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>s3Bucket</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.S3Bucket">
+S3Bucket
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>S3Bucket contains options to configure a supporting S3 bucket for this
+cluster - currently used for nodes requiring Ignition
+(<a href="https://coreos.github.io/ignition/">https://coreos.github.io/ignition/</a>) for bootstrapping (requires
+BootstrapFormatIgnition feature flag to be enabled).</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterStaticIdentity">AWSClusterStaticIdentity
@@ -14223,6 +14706,23 @@ AWSIdentityReference
 <p>IdentityRef is a reference to a identity to be used when reconciling this cluster</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>s3Bucket</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.S3Bucket">
+S3Bucket
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>S3Bucket contains options to configure a supporting S3 bucket for this
+cluster - currently used for nodes requiring Ignition
+(<a href="https://coreos.github.io/ignition/">https://coreos.github.io/ignition/</a>) for bootstrapping (requires
+BootstrapFormatIgnition feature flag to be enabled).</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -14269,7 +14769,7 @@ AWSClusterTemplateResource
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.AWSIdentityReference">AWSIdentityReference
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterRoleIdentitySpec">AWSClusterRoleIdentitySpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterSpec">AWSClusterSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterRoleIdentitySpec">AWSClusterRoleIdentitySpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterSpec">AWSClusterSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
 </p>
 <p>
 <p>AWSIdentityReference specifies a identity.</p>
@@ -14380,6 +14880,21 @@ the registered instances in its Availability Zone only.</p>
 <td>
 <em>(Optional)</em>
 <p>Subnets sets the subnets that should be applied to the control plane load balancer (defaults to discovered subnets for managed VPCs or an empty set for unmanaged VPCs)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>healthCheckProtocol</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.ClassicELBProtocol">
+ClassicELBProtocol
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>HealthCheckProtocol sets the protocol type for classic ELB health check target
+default value is ClassicELBProtocolSSL</p>
 </td>
 </tr>
 <tr>
@@ -14697,6 +15212,20 @@ CloudInit
 <em>(Optional)</em>
 <p>CloudInit defines options related to the bootstrapping systems where
 CloudInit is used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ignition</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Ignition">
+Ignition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Ignition defined options related to the bootstrapping systems where Ignition is used.</p>
 </td>
 </tr>
 <tr>
@@ -15023,6 +15552,20 @@ CloudInit
 <em>(Optional)</em>
 <p>CloudInit defines options related to the bootstrapping systems where
 CloudInit is used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ignition</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Ignition">
+Ignition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Ignition defined options related to the bootstrapping systems where Ignition is used.</p>
 </td>
 </tr>
 <tr>
@@ -15557,6 +16100,20 @@ CloudInit is used.</p>
 </tr>
 <tr>
 <td>
+<code>ignition</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Ignition">
+Ignition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Ignition defined options related to the bootstrapping systems where Ignition is used.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>spotMarketOptions</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta1.SpotMarketOptions">
@@ -15619,11 +16176,11 @@ AWSMachineTemplateResource
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.AWSResourceReference">AWSResourceReference
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachineSpec">AWSMachineSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSLaunchTemplate">AWSLaunchTemplate</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachinePoolSpec">AWSMachinePoolSpec</a>)
 </p>
 <p>
-<p>AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
-Only one of ID, ARN or Filters may be specified. Specifying more than one will result in
+<p>AWSResourceReference is a reference to a specific AWS resource by ID or filters.
+Only one of ID or Filters may be specified. Specifying more than one will result in
 a validation error.</p>
 </p>
 <table>
@@ -15655,7 +16212,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>ARN of resource</p>
+<p>ARN of resource.
+Deprecated: This field has no function and is going to be removed in the next release.</p>
 </td>
 </tr>
 <tr>
@@ -15810,7 +16368,7 @@ AWSClusterIdentity from any namespace.</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.Bastion">Bastion
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterSpec">AWSClusterSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterSpec">AWSClusterSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
 </p>
 <p>
 <p>Bastion defines a bastion host.</p>
@@ -16036,7 +16594,7 @@ int64
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.CNIIngressRules">CNIIngressRules
-(<code>[]../../api/v1beta1.CNIIngressRule</code> alias)</p></h3>
+(<code>[]sigs.k8s.io/cluster-api-provider-aws/api/v1beta1.CNIIngressRule</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.CNISpec">CNISpec</a>)
 </p>
@@ -16099,6 +16657,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>The name of the load balancer. It must be unique within the set of load balancers
 defined in the region. It also serves as identifier.</p>
 </td>
@@ -16393,7 +16952,7 @@ int64
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.ClassicELBProtocol">ClassicELBProtocol
 (<code>string</code> alias)</p></h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.ClassicELBListener">ClassicELBListener</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSLoadBalancerSpec">AWSLoadBalancerSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.ClassicELBListener">ClassicELBListener</a>)
 </p>
 <p>
 <p>ClassicELBProtocol defines listener protocols for a classic load balancer.</p>
@@ -16529,6 +17088,36 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta1.Ignition">Ignition
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachineSpec">AWSMachineSpec</a>)
+</p>
+<p>
+<p>Ignition defines options related to the bootstrapping systems where Ignition is used.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>version</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Version defines which version of Ignition will be used to generate bootstrap data.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.IngressRule">IngressRule
 </h3>
 <p>
@@ -16611,7 +17200,7 @@ int64
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.IngressRules">IngressRules
-(<code>[]../../api/v1beta1.IngressRule</code> alias)</p></h3>
+(<code>[]sigs.k8s.io/cluster-api-provider-aws/api/v1beta1.IngressRule</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.SecurityGroup">SecurityGroup</a>)
 </p>
@@ -16621,7 +17210,7 @@ int64
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.Instance">Instance
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterStatus">AWSClusterStatus</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterStatus">AWSClusterStatus</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneStatus">AWSManagedControlPlaneStatus</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AutoScalingGroup">AutoScalingGroup</a>)
 </p>
 <p>
 <p>Instance describes an AWS instance.</p>
@@ -16903,7 +17492,7 @@ string
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.NetworkSpec">NetworkSpec
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterSpec">AWSClusterSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterSpec">AWSClusterSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
 </p>
 <p>
 <p>NetworkSpec encapsulates all things related to AWS network.</p>
@@ -16962,7 +17551,7 @@ CNISpec
 <td>
 <code>securityGroupOverrides</code><br/>
 <em>
-map[../../api/v1beta1.SecurityGroupRole]string
+map[sigs.k8s.io/cluster-api-provider-aws/api/v1beta1.SecurityGroupRole]string
 </em>
 </td>
 <td>
@@ -16976,7 +17565,7 @@ This is optional - if not provided new security groups will be created for the c
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.NetworkStatus">NetworkStatus
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterStatus">AWSClusterStatus</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterStatus">AWSClusterStatus</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneStatus">AWSManagedControlPlaneStatus</a>)
 </p>
 <p>
 <p>NetworkStatus encapsulates AWS networking resources.</p>
@@ -16994,7 +17583,7 @@ This is optional - if not provided new security groups will be created for the c
 <code>securityGroups</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta1.SecurityGroup">
-map[../../api/v1beta1.SecurityGroupRole]../../api/v1beta1.SecurityGroup
+map[sigs.k8s.io/cluster-api-provider-aws/api/v1beta1.SecurityGroupRole]sigs.k8s.io/cluster-api-provider-aws/api/v1beta1.SecurityGroup
 </a>
 </em>
 </td>
@@ -17050,10 +17639,62 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta1.S3Bucket">S3Bucket
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterSpec">AWSClusterSpec</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>controlPlaneIAMInstanceProfile</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ControlPlaneIAMInstanceProfile is a name of the IAMInstanceProfile, which will be allowed
+to read control-plane node bootstrap data from S3 Bucket.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nodesIAMInstanceProfiles</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>NodesIAMInstanceProfiles is a list of IAM instance profiles, which will be allowed to read
+worker nodes bootstrap data from S3 Bucket.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>name</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name defines name of S3 Bucket to be created.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.SecretBackend">SecretBackend
 (<code>string</code> alias)</p></h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.CloudInit">CloudInit</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.CloudInit">CloudInit</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1.AWSIAMConfigurationSpec">AWSIAMConfigurationSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.AWSIAMConfigurationSpec">AWSIAMConfigurationSpec</a>)
 </p>
 <p>
 <p>SecretBackend defines variants for backend secret storage.</p>
@@ -17269,7 +17910,7 @@ Tags
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.Subnets">Subnets
-(<code>[]../../api/v1beta1.SubnetSpec</code> alias)</p></h3>
+(<code>[]sigs.k8s.io/cluster-api-provider-aws/api/v1beta1.SubnetSpec</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.NetworkSpec">NetworkSpec</a>)
 </p>
@@ -17279,7 +17920,7 @@ Tags
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.Tags">Tags
 (<code>map[string]string</code> alias)</p></h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterSpec">AWSClusterSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.BuildParams">BuildParams</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.SecurityGroup">SecurityGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.SubnetSpec">SubnetSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.VPCSpec">VPCSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterSpec">AWSClusterSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.BuildParams">BuildParams</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.SecurityGroup">SecurityGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.SubnetSpec">SubnetSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.VPCSpec">VPCSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1.AWSIAMRoleSpec">AWSIAMRoleSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1.BootstrapUser">BootstrapUser</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.AWSIAMRoleSpec">AWSIAMRoleSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.BootstrapUser">BootstrapUser</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.OIDCIdentityProviderConfig">OIDCIdentityProviderConfig</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachinePoolSpec">AWSMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AutoScalingGroup">AutoScalingGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.FargateProfileSpec">FargateProfileSpec</a>)
 </p>
 <p>
 <p>Tags defines a map of tags.</p>
@@ -17384,7 +18025,7 @@ Defaults to Ordered</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.Volume">Volume
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.Instance">Instance</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.Instance">Instance</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSLaunchTemplate">AWSLaunchTemplate</a>)
 </p>
 <p>
 <p>Volume encapsulates the configuration options for the storage device.</p>
@@ -17583,7 +18224,9 @@ auto scaling group of this nodegroup.</p>
 <td>
 <code>additionalTags</code><br/>
 <em>
-Cluster API AWS api/v1beta1.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -17681,7 +18324,9 @@ role.</p>
 <td>
 <code>ami</code><br/>
 <em>
-Cluster API AWS api/v1beta1.AMIReference
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.AMIReference">
+AMIReference
+</a>
 </em>
 </td>
 <td>
@@ -17749,7 +18394,9 @@ string
 <td>
 <code>rootVolume</code><br/>
 <em>
-Cluster API AWS api/v1beta1.Volume
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Volume">
+Volume
+</a>
 </em>
 </td>
 <td>
@@ -17789,7 +18436,9 @@ Typically a new version is created when at least one of the following happens:
 <td>
 <code>additionalSecurityGroups</code><br/>
 <em>
-[]Cluster API AWS api/v1beta1.AWSResourceReference
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSResourceReference">
+[]AWSResourceReference
+</a>
 </em>
 </td>
 <td>
@@ -17890,7 +18539,9 @@ int32
 <td>
 <code>subnets</code><br/>
 <em>
-[]Cluster API AWS api/v1beta1.AWSResourceReference
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSResourceReference">
+[]AWSResourceReference
+</a>
 </em>
 </td>
 <td>
@@ -17902,7 +18553,9 @@ int32
 <td>
 <code>additionalTags</code><br/>
 <em>
-Cluster API AWS api/v1beta1.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -18115,7 +18768,9 @@ int32
 <td>
 <code>subnets</code><br/>
 <em>
-[]Cluster API AWS api/v1beta1.AWSResourceReference
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSResourceReference">
+[]AWSResourceReference
+</a>
 </em>
 </td>
 <td>
@@ -18127,7 +18782,9 @@ int32
 <td>
 <code>additionalTags</code><br/>
 <em>
-Cluster API AWS api/v1beta1.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -18446,7 +19103,9 @@ auto scaling group of this nodegroup</p>
 <td>
 <code>additionalTags</code><br/>
 <em>
-Cluster API AWS api/v1beta1.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -18616,6 +19275,21 @@ ManagedMachinePoolCapacityType
 <td>
 <em>(Optional)</em>
 <p>CapacityType specifies the capacity type for the ASG behind this pool</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>updateConfig</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.UpdateConfig">
+UpdateConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UpdateConfig holds the optional config to control the behaviour of the update
+to the nodegroup.</p>
 </td>
 </tr>
 </table>
@@ -18694,7 +19368,9 @@ auto scaling group of this nodegroup</p>
 <td>
 <code>additionalTags</code><br/>
 <em>
-Cluster API AWS api/v1beta1.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -18864,6 +19540,21 @@ ManagedMachinePoolCapacityType
 <td>
 <em>(Optional)</em>
 <p>CapacityType specifies the capacity type for the ASG behind this pool</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>updateConfig</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.UpdateConfig">
+UpdateConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UpdateConfig holds the optional config to control the behaviour of the update
+to the nodegroup.</p>
 </td>
 </tr>
 </tbody>
@@ -19004,7 +19695,9 @@ string
 <td>
 <code>tags</code><br/>
 <em>
-Cluster API AWS api/v1beta1.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -19120,7 +19813,9 @@ ASGStatus
 <td>
 <code>instances</code><br/>
 <em>
-[]Cluster API AWS api/v1beta1.Instance
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Instance">
+[]Instance
+</a>
 </em>
 </td>
 <td>
@@ -19282,7 +19977,9 @@ auto scaling group of this nodegroup.</p>
 <td>
 <code>additionalTags</code><br/>
 <em>
-Cluster API AWS api/v1beta1.Tags
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.Tags">
+Tags
+</a>
 </em>
 </td>
 <td>
@@ -19867,11 +20564,56 @@ string
 <p>TaintEffect is the effect for a Kubernetes taint.</p>
 </p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.Taints">Taints
-(<code>[]../../exp/api/v1beta1.Taint</code> alias)</p></h3>
+(<code>[]sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1.Taint</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>)
 </p>
 <p>
 <p>Taints is an array of Taints.</p>
 </p>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta1.UpdateConfig">UpdateConfig
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>)
+</p>
+<p>
+<p>UpdateConfig is the configuration options for updating a nodegroup. Only one of MaxUnavailable
+and MaxUnavailablePercentage should be specified.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>maxUnavailable</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MaxUnavailable is the maximum number of nodes unavailable at once during a version update.
+Nodes will be updated in parallel. The maximum number is 100.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>maxUnavailablePrecentage</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MaxUnavailablePercentage is the maximum percentage of nodes unavailable during a version update. This
+percentage of nodes will be updated in parallel, up to 100 nodes at once.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <hr/>

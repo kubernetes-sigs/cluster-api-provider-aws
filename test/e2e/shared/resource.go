@@ -8,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"time"
 
 	"github.com/gofrs/flock"
@@ -39,6 +40,7 @@ type TestResource struct {
 	NGW       int `json:"ngw"`
 	ClassicLB int `json:"classiclb"`
 	EC2GPU    int `json:"ec2-GPU"`
+	VolumeGP2 int `json:"volume-GP2"`
 }
 
 func WriteResourceQuotesToFile(logPath string, serviceQuotas map[string]*ServiceQuota) {
@@ -55,6 +57,7 @@ func WriteResourceQuotesToFile(logPath string, serviceQuotas map[string]*Service
 		NGW:       serviceQuotas["ngw"].Value,
 		ClassicLB: serviceQuotas["classiclb"].Value,
 		EC2GPU:    serviceQuotas["ec2-GPU"].Value,
+		VolumeGP2: serviceQuotas["volume-GP2"].Value,
 	}
 	data, err := yaml.Marshal(resources)
 	Expect(err).NotTo(HaveOccurred())
@@ -64,14 +67,14 @@ func WriteResourceQuotesToFile(logPath string, serviceQuotas map[string]*Service
 }
 
 func (r *TestResource) String() string {
-	return fmt.Sprintf("{ec2-normal:%v, vpc:%v, eip:%v, ngw:%v, igw:%v, classiclb:%v, ec2-GPU:%v}", r.EC2Normal, r.VPC, r.EIP, r.NGW, r.IGW, r.ClassicLB, r.EC2GPU)
+	return fmt.Sprintf("{ec2-normal:%v, vpc:%v, eip:%v, ngw:%v, igw:%v, classiclb:%v, ec2-GPU:%v, volume-gp2:%v}", r.EC2Normal, r.VPC, r.EIP, r.NGW, r.IGW, r.ClassicLB, r.EC2GPU, r.VolumeGP2)
 }
 
 func (r *TestResource) WriteRequestedResources(e2eCtx *E2EContext, testName string) {
 	requestedResourceFilePath := path.Join(e2eCtx.Settings.ArtifactFolder, "requested-resources.yaml")
 	if _, err := os.Stat(ResourceQuotaFilePath); err != nil {
 		// If requested-resources file does not exist, create it
-		f, err := os.Create(requestedResourceFilePath) //nolint:gosec
+		f, err := os.Create(filepath.Clean(requestedResourceFilePath))
 		Expect(err).NotTo(HaveOccurred())
 		Expect(f.Close()).NotTo(HaveOccurred())
 	}
@@ -128,6 +131,9 @@ func (r *TestResource) doesSatisfy(request *TestResource) bool {
 	if request.EC2GPU != 0 && r.EC2GPU < request.EC2GPU {
 		return false
 	}
+	if request.VolumeGP2 != 0 && r.VolumeGP2 < request.VolumeGP2 {
+		return false
+	}
 	return true
 }
 
@@ -139,6 +145,7 @@ func (r *TestResource) acquire(request *TestResource) {
 	r.IGW -= request.IGW
 	r.ClassicLB -= request.ClassicLB
 	r.EC2GPU -= request.EC2GPU
+	r.VolumeGP2 -= request.VolumeGP2
 }
 
 func (r *TestResource) release(request *TestResource) {
@@ -149,6 +156,7 @@ func (r *TestResource) release(request *TestResource) {
 	r.IGW += request.IGW
 	r.ClassicLB += request.ClassicLB
 	r.EC2GPU += request.EC2GPU
+	r.VolumeGP2 += request.VolumeGP2
 }
 
 func AcquireResources(request *TestResource, nodeNum int, fileLock *flock.Flock) error {

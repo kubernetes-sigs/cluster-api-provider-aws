@@ -10,6 +10,7 @@ linters:
     - errorlint
     - exhaustive
     - exhaustivestruct
+    - exhaustruct
     - forcetypeassert
     - forbidigo
     - funlen
@@ -31,6 +32,8 @@ linters:
     - nestif
     - nilnil
     - nlreturn
+    - nonamedreturns
+    - nosnakecase
     - paralleltest
     - promlinter
     - scopelint
@@ -57,7 +60,10 @@ linters-settings:
     # Maximum length of variable declaration measured in number of characters, after which linter won't suggest using short syntax.
     max-decl-chars: 50
   gci:
-    local-prefixes: "sigs.k8s.io/cluster-api"
+    sections:
+      - standard
+      - default
+      - prefix(sigs.k8s.io/cluster-api)
   importas:
     no-unaliased: false
     alias:

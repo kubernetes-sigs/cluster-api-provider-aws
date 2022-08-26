@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -170,22 +170,28 @@ func TestWebhookCreate(t *testing.T) {
 		eksClusterName string
 		expectError    bool
 		eksVersion     string
-		hasAddon       bool
+		hasAddons      bool
 		disableVPCCNI  bool
+		additionalTags infrav1.Tags
 		secondaryCidr  *string
+		kubeProxy      KubeProxy
 	}{
 		{
 			name:           "ekscluster specified",
 			eksClusterName: "default_cluster1",
 			expectError:    false,
-			hasAddon:       false,
+			hasAddons:      false,
 			disableVPCCNI:  false,
+			additionalTags: infrav1.Tags{
+				"a":     "b",
+				"key-2": "value-2",
+			},
 		},
 		{
 			name:           "ekscluster NOT specified",
 			eksClusterName: "",
 			expectError:    false,
-			hasAddon:       false,
+			hasAddons:      false,
 			disableVPCCNI:  false,
 		},
 		{
@@ -193,31 +199,31 @@ func TestWebhookCreate(t *testing.T) {
 			eksClusterName: "default_cluster1",
 			eksVersion:     "v1.x17",
 			expectError:    true,
-			hasAddon:       false,
+			hasAddons:      false,
 			disableVPCCNI:  false,
 		},
 		{
-			name:           "addon with allowed k8s version",
+			name:           "addons with allowed k8s version",
 			eksClusterName: "default_cluster1",
 			eksVersion:     "v1.18",
 			expectError:    false,
-			hasAddon:       true,
+			hasAddons:      true,
 			disableVPCCNI:  false,
 		},
 		{
-			name:           "addon with not allowed k8s version",
+			name:           "addons with not allowed k8s version",
 			eksClusterName: "default_cluster1",
 			eksVersion:     "v1.17",
 			expectError:    true,
-			hasAddon:       true,
+			hasAddons:      true,
 			disableVPCCNI:  false,
 		},
 		{
-			name:           "disable vpc cni allowed with no addon or secondary cidr",
+			name:           "disable vpc cni allowed with no addons or secondary cidr",
 			eksClusterName: "default_cluster1",
 			eksVersion:     "v1.19",
 			expectError:    false,
-			hasAddon:       false,
+			hasAddons:      false,
 			disableVPCCNI:  true,
 		},
 		{
@@ -225,17 +231,83 @@ func TestWebhookCreate(t *testing.T) {
 			eksClusterName: "default_cluster1",
 			eksVersion:     "v1.19",
 			expectError:    true,
-			hasAddon:       true,
+			hasAddons:      true,
 			disableVPCCNI:  true,
 		},
 		{
-			name:           "disable vpc cni not allowed with secondary",
+			name:           "disable vpc cni allowed with valid secondary",
+			eksClusterName: "default_cluster1",
+			eksVersion:     "v1.19",
+			expectError:    false,
+			hasAddons:      false,
+			disableVPCCNI:  true,
+			secondaryCidr:  aws.String("100.64.0.0/16"),
+		},
+		{
+			name:           "disable vpc cni allowed with invalid secondary",
 			eksClusterName: "default_cluster1",
 			eksVersion:     "v1.19",
 			expectError:    true,
-			hasAddon:       false,
+			hasAddons:      false,
 			disableVPCCNI:  true,
 			secondaryCidr:  aws.String("100.64.0.0/10"),
+		},
+		{
+			name:           "invalid tags not allowed",
+			eksClusterName: "default_cluster1",
+			expectError:    true,
+			hasAddons:      false,
+			disableVPCCNI:  false,
+			additionalTags: infrav1.Tags{
+				"key-1":                    "value-1",
+				"":                         "value-2",
+				strings.Repeat("CAPI", 33): "value-3",
+				"key-4":                    strings.Repeat("CAPI", 65),
+			},
+		},
+		{
+			name:           "disable kube-proxy allowed with no addons",
+			eksClusterName: "default_cluster1",
+			eksVersion:     "v1.19",
+			expectError:    false,
+			hasAddons:      false,
+			disableVPCCNI:  false,
+			kubeProxy: KubeProxy{
+				Disable: true,
+			},
+		},
+		{
+			name:           "disable kube-proxy not allowed with kube-proxy addon",
+			eksClusterName: "default_cluster1",
+			eksVersion:     "v1.19",
+			expectError:    true,
+			hasAddons:      true,
+			disableVPCCNI:  false,
+			kubeProxy: KubeProxy{
+				Disable: true,
+			},
+		},
+		{
+			name:           "disable vpc cni and disable kube-proxy allowed with no addons",
+			eksClusterName: "default_cluster1",
+			eksVersion:     "v1.19",
+			expectError:    false,
+			hasAddons:      false,
+			disableVPCCNI:  true,
+			kubeProxy: KubeProxy{
+				Disable: true,
+			},
+		},
+		{
+			name:           "disable vpc cni and disable kube-proxy not allowed with vpc cni and kube-proxy addons",
+			eksClusterName: "default_cluster1",
+			eksVersion:     "v1.19",
+			expectError:    true,
+			hasAddons:      true,
+			disableVPCCNI:  true,
+			kubeProxy: KubeProxy{
+				Disable: true,
+			},
 		},
 	}
 
@@ -252,15 +324,21 @@ func TestWebhookCreate(t *testing.T) {
 				Spec: AWSManagedControlPlaneSpec{
 					EKSClusterName: tc.eksClusterName,
 					DisableVPCCNI:  tc.disableVPCCNI,
+					KubeProxy:      tc.kubeProxy,
+					AdditionalTags: tc.additionalTags,
 				},
 			}
 			if tc.eksVersion != "" {
 				mcp.Spec.Version = &tc.eksVersion
 			}
-			if tc.hasAddon {
+			if tc.hasAddons {
 				testAddons := []Addon{
 					{
 						Name:    vpcCniAddon,
+						Version: "v1.0.0",
+					},
+					{
+						Name:    kubeProxyAddon,
 						Version: "v1.0.0",
 					},
 				}
@@ -419,6 +497,22 @@ func TestWebhookUpdate(t *testing.T) {
 				},
 			},
 			expectError: false,
+		},
+		{
+			name: "ekscluster specified, same name, invalid tags",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AdditionalTags: infrav1.Tags{
+					"key-1":                    "value-1",
+					"":                         "value-2",
+					strings.Repeat("CAPI", 33): "value-3",
+					"key-4":                    strings.Repeat("CAPI", 65),
+				},
+			},
+			expectError: true,
 		},
 	}
 

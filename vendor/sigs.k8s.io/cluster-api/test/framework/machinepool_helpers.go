@@ -18,11 +18,15 @@ package framework
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
+	"github.com/blang/semver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -48,7 +52,9 @@ func GetMachinePoolsByCluster(ctx context.Context, input GetMachinePoolsByCluste
 	Expect(input.ClusterName).ToNot(BeEmpty(), "Invalid argument. input.ClusterName can't be empty when calling GetMachinePoolsByCluster")
 
 	mpList := &expv1.MachinePoolList{}
-	Expect(input.Lister.List(ctx, mpList, byClusterOptions(input.ClusterName, input.Namespace)...)).To(Succeed(), "Failed to list MachinePools object for Cluster %s/%s", input.Namespace, input.ClusterName)
+	Eventually(func() error {
+		return input.Lister.List(ctx, mpList, byClusterOptions(input.ClusterName, input.Namespace)...)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachinePools object for Cluster %s/%s", input.Namespace, input.ClusterName)
 
 	mps := make([]*expv1.MachinePool, len(mpList.Items))
 	for i := range mpList.Items {
@@ -69,7 +75,7 @@ func WaitForMachinePoolNodesToExist(ctx context.Context, input WaitForMachinePoo
 	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling WaitForMachinePoolNodesToExist")
 	Expect(input.MachinePool).ToNot(BeNil(), "Invalid argument. input.MachinePool can't be nil when calling WaitForMachinePoolNodesToExist")
 
-	By("Waiting for the machine pool workload nodes to exist")
+	By("Waiting for the machine pool workload nodes")
 	Eventually(func() (int, error) {
 		nn := client.ObjectKey{
 			Namespace: input.MachinePool.Namespace,
@@ -134,9 +140,32 @@ func UpgradeMachinePoolAndWait(ctx context.Context, input UpgradeMachinePoolAndW
 		patchHelper, err := patch.NewHelper(mp, mgmtClient)
 		Expect(err).ToNot(HaveOccurred())
 
+		// Store old version.
 		oldVersion := mp.Spec.Template.Spec.Version
+
+		// Upgrade to new Version.
 		mp.Spec.Template.Spec.Version = &input.UpgradeVersion
-		Expect(patchHelper.Patch(ctx, mp)).To(Succeed())
+
+		// Drop "-cgroupfs" suffix from BootstrapConfig ref name, i.e. we switch from a
+		// BootstrapConfig with pinned cgroupfs cgroupDriver to the regular BootstrapConfig.
+		// This is a workaround for CAPD, because kind and CAPD only support:
+		// * cgroupDriver cgroupfs for Kubernetes < v1.24
+		// * cgroupDriver systemd for Kubernetes >= v1.24.
+		// We can remove this as soon as we don't test upgrades from Kubernetes < v1.24 anymore with CAPD
+		// or MachinePools are supported in ClusterClass.
+		if mp.Spec.Template.Spec.InfrastructureRef.Kind == "DockerMachinePool" {
+			version, err := semver.ParseTolerant(input.UpgradeVersion)
+			Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to parse UpgradeVersion %q", input.UpgradeVersion))
+			if version.GTE(semver.MustParse("1.24.0")) && strings.HasSuffix(mp.Spec.Template.Spec.Bootstrap.ConfigRef.Name, "-cgroupfs") {
+				mp.Spec.Template.Spec.Bootstrap.ConfigRef.Name = strings.TrimSuffix(mp.Spec.Template.Spec.Bootstrap.ConfigRef.Name, "-cgroupfs")
+				// We have to set DataSecretName to nil, so the secret of the new bootstrap ConfigRef gets picked up.
+				mp.Spec.Template.Spec.Bootstrap.DataSecretName = nil
+			}
+		}
+
+		Eventually(func() error {
+			return patchHelper.Patch(ctx, mp)
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
 		log.Logf("Waiting for Kubernetes versions of machines in MachinePool %s/%s to be upgraded from %s to %s",
 			mp.Namespace, mp.Name, *oldVersion, input.UpgradeVersion)
@@ -173,7 +202,9 @@ func ScaleMachinePoolAndWait(ctx context.Context, input ScaleMachinePoolAndWaitI
 		Expect(err).ToNot(HaveOccurred())
 
 		mp.Spec.Replicas = &input.Replicas
-		Expect(patchHelper.Patch(ctx, mp)).To(Succeed())
+		Eventually(func() error {
+			return patchHelper.Patch(ctx, mp)
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 	}
 
 	for _, mp := range input.MachinePools {
@@ -251,7 +282,13 @@ func getMachinePoolInstanceVersions(ctx context.Context, input GetMachinesPoolIn
 	versions := make([]string, len(instances))
 	for i, instance := range instances {
 		node := &corev1.Node{}
-		err := input.WorkloadClusterGetter.Get(ctx, client.ObjectKey{Name: instance.Name}, node)
+		err := wait.PollImmediate(retryableOperationInterval, retryableOperationTimeout, func() (bool, error) {
+			err := input.WorkloadClusterGetter.Get(ctx, client.ObjectKey{Name: instance.Name}, node)
+			if err != nil {
+				return false, nil //nolint:nilerr
+			}
+			return true, nil
+		})
 		if err != nil {
 			versions[i] = "unknown"
 		} else {

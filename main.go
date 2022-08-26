@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -168,6 +168,12 @@ func main() {
 
 	setupLog.V(1).Info(fmt.Sprintf("feature gates: %+v\n", feature.Gates))
 
+	externalResourceGC := false
+	if feature.Gates.Enabled(feature.ExternalResourceGC) {
+		setupLog.Info("enabling external resource garbage collection")
+		externalResourceGC = true
+	}
+
 	// Parse service endpoints.
 	AWSServiceEndpoints, err := endpoints.ParseFlag(serviceEndpoints)
 	if err != nil {
@@ -186,22 +192,19 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.AWSClusterReconciler{
-		Client:           mgr.GetClient(),
-		Recorder:         mgr.GetEventRecorderFor("awscluster-controller"),
-		Endpoints:        AWSServiceEndpoints,
-		WatchFilterValue: watchFilterValue,
+		Client:             mgr.GetClient(),
+		Recorder:           mgr.GetEventRecorderFor("awscluster-controller"),
+		Endpoints:          AWSServiceEndpoints,
+		WatchFilterValue:   watchFilterValue,
+		ExternalResourceGC: externalResourceGC,
 	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: true}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
 		os.Exit(1)
 	}
-	enableGates(ctx, mgr, AWSServiceEndpoints)
+	enableGates(ctx, mgr, AWSServiceEndpoints, externalResourceGC)
 
 	if err = (&infrav1.AWSMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplate")
-		os.Exit(1)
-	}
-	if err = (&infrav1.AWSMachineTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplateList")
 		os.Exit(1)
 	}
 	if err = (&infrav1.AWSCluster{}).SetupWebhookWithManager(mgr); err != nil {
@@ -210,10 +213,6 @@ func main() {
 	}
 	if err = (&infrav1.AWSClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterTemplate")
-		os.Exit(1)
-	}
-	if err = (&infrav1.AWSClusterList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterList")
 		os.Exit(1)
 	}
 	if err = (&infrav1.AWSClusterControllerIdentity{}).SetupWebhookWithManager(mgr); err != nil {
@@ -230,18 +229,6 @@ func main() {
 	}
 	if err = (&infrav1.AWSMachine{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachine")
-		os.Exit(1)
-	}
-	if err = (&infrav1.AWSMachineList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineList")
-		os.Exit(1)
-	}
-	if err = (&infrav1.AWSClusterControllerIdentityList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterControllerIdentityList")
-		os.Exit(1)
-	}
-	if err = (&infrav1.AWSClusterRoleIdentityList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterRoleIdentityList")
 		os.Exit(1)
 	}
 	if feature.Gates.Enabled(feature.EKS) {
@@ -290,7 +277,7 @@ func main() {
 	}
 }
 
-func enableGates(ctx context.Context, mgr ctrl.Manager, awsServiceEndpoints []scope.ServiceEndpoint) {
+func enableGates(ctx context.Context, mgr ctrl.Manager, awsServiceEndpoints []scope.ServiceEndpoint, externalResourceGC bool) {
 	if feature.Gates.Enabled(feature.EKS) {
 		setupLog.Info("enabling EKS controllers")
 
@@ -315,6 +302,7 @@ func enableGates(ctx context.Context, mgr ctrl.Manager, awsServiceEndpoints []sc
 			AllowAdditionalRoles: allowAddRoles,
 			Endpoints:            awsServiceEndpoints,
 			WatchFilterValue:     watchFilterValue,
+			ExternalResourceGC:   externalResourceGC,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: true}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSManagedControlPlane")
 			os.Exit(1)
@@ -391,6 +379,10 @@ func enableGates(ctx context.Context, mgr ctrl.Manager, awsServiceEndpoints []sc
 			setupLog.Error(err, "unable to create controller", "controller", "AWSControllerIdentity")
 			os.Exit(1)
 		}
+	}
+
+	if feature.Gates.Enabled(feature.BootstrapFormatIgnition) {
+		setupLog.Info("Enabling Ignition support for machine bootstrap data")
 	}
 }
 func initFlags(fs *pflag.FlagSet) {

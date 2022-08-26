@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,10 +20,10 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"reflect"
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -41,36 +41,85 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/gc"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/instancestate"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/network"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/s3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/securitygroup"
 	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/util/conditions"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
+	capiannotations "sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
-var (
-	awsSecurityGroupRoles = []infrav1.SecurityGroupRole{
-		infrav1.SecurityGroupBastion,
-		infrav1.SecurityGroupAPIServerLB,
-		infrav1.SecurityGroupLB,
-		infrav1.SecurityGroupControlPlane,
-		infrav1.SecurityGroupNode,
-	}
-)
+var defaultAWSSecurityGroupRoles = []infrav1.SecurityGroupRole{
+	infrav1.SecurityGroupAPIServerLB,
+	infrav1.SecurityGroupLB,
+	infrav1.SecurityGroupControlPlane,
+	infrav1.SecurityGroupNode,
+}
 
 // AWSClusterReconciler reconciles a AwsCluster object.
 type AWSClusterReconciler struct {
 	client.Client
-	Recorder         record.EventRecorder
-	Endpoints        []scope.ServiceEndpoint
-	WatchFilterValue string
+	Recorder              record.EventRecorder
+	ec2ServiceFactory     func(scope.EC2Scope) services.EC2Interface
+	networkServiceFactory func(scope.ClusterScope) services.NetworkInterface
+	elbServiceFactory     func(scope.ELBScope) services.ELBInterface
+	securityGroupFactory  func(scope.ClusterScope) services.SecurityGroupInterface
+	Endpoints             []scope.ServiceEndpoint
+	WatchFilterValue      string
+	ExternalResourceGC    bool
+}
+
+// getEC2Service factory func is added for testing purpose so that we can inject mocked EC2Service to the AWSClusterReconciler.
+func (r *AWSClusterReconciler) getEC2Service(scope scope.EC2Scope) services.EC2Interface {
+	if r.ec2ServiceFactory != nil {
+		return r.ec2ServiceFactory(scope)
+	}
+	return ec2.NewService(scope)
+}
+
+// getELBService factory func is added for testing purpose so that we can inject mocked ELBService to the AWSClusterReconciler.
+func (r *AWSClusterReconciler) getELBService(scope scope.ELBScope) services.ELBInterface {
+	if r.elbServiceFactory != nil {
+		return r.elbServiceFactory(scope)
+	}
+	return elb.NewService(scope)
+}
+
+// getNetworkService factory func is added for testing purpose so that we can inject mocked NetworkService to the AWSClusterReconciler.
+func (r *AWSClusterReconciler) getNetworkService(scope scope.ClusterScope) services.NetworkInterface {
+	if r.networkServiceFactory != nil {
+		return r.networkServiceFactory(scope)
+	}
+	return network.NewService(&scope)
+}
+
+// securityGroupRolesForCluster returns the security group roles determined by the cluster configuration.
+func securityGroupRolesForCluster(scope scope.ClusterScope) []infrav1.SecurityGroupRole {
+	// Copy to ensure we do not modify the package-level variable.
+	roles := make([]infrav1.SecurityGroupRole, len(defaultAWSSecurityGroupRoles))
+	copy(roles, defaultAWSSecurityGroupRoles)
+
+	if scope.Bastion().Enabled {
+		roles = append(roles, infrav1.SecurityGroupBastion)
+	}
+	return roles
+}
+
+// getSecurityGroupService factory func is added for testing purpose so that we can inject mocked SecurityGroupService to the AWSClusterReconciler.
+func (r *AWSClusterReconciler) getSecurityGroupService(scope scope.ClusterScope) services.SecurityGroupInterface {
+	if r.securityGroupFactory != nil {
+		return r.securityGroupFactory(scope)
+	}
+	return securitygroup.NewService(&scope, securityGroupRolesForCluster(scope))
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclusters,verbs=get;list;watch;create;update;patch;delete
@@ -103,7 +152,7 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return reconcile.Result{}, nil
 	}
 
-	if annotations.IsPaused(cluster, awsCluster) {
+	if capiannotations.IsPaused(cluster, awsCluster) {
 		log.Info("AWSCluster or linked Cluster is marked as paused. Won't reconcile")
 		return reconcile.Result{}, nil
 	}
@@ -149,20 +198,21 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Handle deleted clusters
 	if !awsCluster.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(clusterScope)
+		return r.reconcileDelete(ctx, clusterScope)
 	}
 
 	// Handle non-deleted clusters
 	return r.reconcileNormal(clusterScope)
 }
 
-func (r *AWSClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	clusterScope.Info("Reconciling AWSCluster delete")
 
-	ec2svc := ec2.NewService(clusterScope)
-	elbsvc := elb.NewService(clusterScope)
-	networkSvc := network.NewService(clusterScope)
-	sgService := securitygroup.NewService(clusterScope, awsSecurityGroupRoles)
+	ec2svc := r.getEC2Service(clusterScope)
+	elbsvc := r.getELBService(clusterScope)
+	networkSvc := r.getNetworkService(*clusterScope)
+	sgService := r.getSecurityGroupService(*clusterScope)
+	s3Service := s3.NewService(clusterScope)
 
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 		instancestateSvc := instancestate.NewService(clusterScope)
@@ -187,9 +237,20 @@ func (r *AWSClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope)
 		return reconcile.Result{}, err
 	}
 
+	if r.ExternalResourceGC {
+		gcSvc := gc.NewService(clusterScope)
+		if gcErr := gcSvc.ReconcileDelete(ctx); gcErr != nil {
+			return reconcile.Result{}, fmt.Errorf("failed delete reconcile for gc service: %w", gcErr)
+		}
+	}
+
 	if err := networkSvc.DeleteNetwork(); err != nil {
 		clusterScope.Error(err, "error deleting network")
 		return reconcile.Result{}, err
+	}
+
+	if err := s3Service.DeleteBucket(); err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "error deleting S3 Bucket")
 	}
 
 	// Cluster is deleted so remove the finalizer.
@@ -210,10 +271,11 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 		return reconcile.Result{}, err
 	}
 
-	ec2Service := ec2.NewService(clusterScope)
-	elbService := elb.NewService(clusterScope)
-	networkSvc := network.NewService(clusterScope)
-	sgService := securitygroup.NewService(clusterScope, awsSecurityGroupRoles)
+	ec2Service := r.getEC2Service(clusterScope)
+	elbService := r.getELBService(clusterScope)
+	networkSvc := r.getNetworkService(*clusterScope)
+	sgService := r.getSecurityGroupService(*clusterScope)
+	s3Service := s3.NewService(clusterScope)
 
 	if err := networkSvc.ReconcileNetwork(); err != nil {
 		clusterScope.Error(err, "failed to reconcile network")
@@ -249,6 +311,11 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 		clusterScope.Error(err, "failed to reconcile load balancer")
 		conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.LoadBalancerFailedReason, infrautilconditions.ErrorConditionAfterInit(clusterScope.ClusterObj()), err.Error())
 		return reconcile.Result{}, err
+	}
+
+	if err := s3Service.ReconcileBucket(); err != nil {
+		conditions.MarkFalse(awsCluster, infrav1.S3BucketReadyCondition, infrav1.S3BucketFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile S3 Bucket for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}
 
 	if awsCluster.Status.Network.APIServerELB.DNSName == "" {
@@ -311,7 +378,7 @@ func (r *AWSClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 					oldCluster.ObjectMeta.ResourceVersion = ""
 					newCluster.ObjectMeta.ResourceVersion = ""
 
-					return !reflect.DeepEqual(oldCluster, newCluster)
+					return !cmp.Equal(oldCluster, newCluster)
 				},
 			},
 		).
@@ -362,7 +429,7 @@ func (r *AWSClusterReconciler) requeueAWSClusterForUnpausedCluster(ctx context.C
 			return nil
 		}
 
-		if annotations.IsExternallyManaged(awsCluster) {
+		if capiannotations.IsExternallyManaged(awsCluster) {
 			log.V(4).Info("AWSCluster is externally managed, skipping mapping.")
 			return nil
 		}

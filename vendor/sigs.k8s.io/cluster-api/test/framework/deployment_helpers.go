@@ -32,14 +32,22 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/policy/v1beta1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	utilversion "k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
+)
+
+const (
+	nodeRoleOldControlPlane = "node-role.kubernetes.io/master" // Deprecated: https://github.com/kubernetes/kubeadm/issues/2200
+	nodeRoleControlPlane    = "node-role.kubernetes.io/control-plane"
 )
 
 // WaitForDeploymentsAvailableInput is the input for WaitForDeploymentsAvailable.
@@ -103,7 +111,9 @@ func WatchDeploymentLogs(ctx context.Context, input WatchDeploymentLogsInput) {
 
 	deployment := &appsv1.Deployment{}
 	key := client.ObjectKeyFromObject(input.Deployment)
-	Expect(input.GetLister.Get(ctx, key, deployment)).To(Succeed(), "Failed to get deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+	Eventually(func() error {
+		return input.GetLister.Get(ctx, key, deployment)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
 
 	selector, err := metav1.LabelSelectorAsMap(deployment.Spec.Selector)
 	Expect(err).NotTo(HaveOccurred(), "Failed to Pods selector for deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
@@ -168,13 +178,17 @@ func WatchPodMetrics(ctx context.Context, input WatchPodMetricsInput) {
 
 	deployment := &appsv1.Deployment{}
 	key := client.ObjectKeyFromObject(input.Deployment)
-	Expect(input.GetLister.Get(ctx, key, deployment)).To(Succeed(), "Failed to get deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+	Eventually(func() error {
+		return input.GetLister.Get(ctx, key, deployment)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
 
 	selector, err := metav1.LabelSelectorAsMap(deployment.Spec.Selector)
 	Expect(err).NotTo(HaveOccurred(), "Failed to Pods selector for deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
 
 	pods := &corev1.PodList{}
-	Expect(input.GetLister.List(ctx, pods, client.InNamespace(input.Deployment.Namespace), client.MatchingLabels(selector))).To(Succeed(), "Failed to list Pods for deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+	Eventually(func() error {
+		return input.GetLister.List(ctx, pods, client.InNamespace(input.Deployment.Namespace), client.MatchingLabels(selector))
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list Pods for deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
 
 	go func() {
 		defer GinkgoRecover()
@@ -260,14 +274,21 @@ func DeployUnevictablePod(ctx context.Context, input DeployUnevictablePodInput) 
 	workloadClient := input.WorkloadClusterProxy.GetClientSet()
 
 	log.Logf("Check if namespace %s exists", input.Namespace)
-	if _, err := workloadClient.CoreV1().Namespaces().Get(ctx, input.Namespace, metav1.GetOptions{}); err != nil {
-		_, errCreateNamespace := workloadClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: input.Namespace,
-			},
-		}, metav1.CreateOptions{})
-		Expect(errCreateNamespace).To(BeNil())
-	}
+	Eventually(func() error {
+		_, err := workloadClient.CoreV1().Namespaces().Get(ctx, input.Namespace, metav1.GetOptions{})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				_, errCreateNamespace := workloadClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: input.Namespace,
+					},
+				}, metav1.CreateOptions{})
+				return errCreateNamespace
+			}
+			return err
+		}
+		return nil
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
 	workloadDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -306,10 +327,27 @@ func DeployUnevictablePod(ctx context.Context, input DeployUnevictablePodInput) 
 		},
 	}
 	if input.ControlPlane != nil {
-		workloadDeployment.Spec.Template.Spec.NodeSelector = map[string]string{"node-role.kubernetes.io/master": ""}
+		var serverVersion *version.Info
+		Eventually(func() error {
+			var err error
+			serverVersion, err = workloadClient.ServerVersion()
+			return err
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+
+		// Use the control-plane label for Kubernetes version >= v1.20.0.
+		if utilversion.MustParseGeneric(serverVersion.String()).AtLeast(utilversion.MustParseGeneric("v1.20.0")) {
+			workloadDeployment.Spec.Template.Spec.NodeSelector = map[string]string{nodeRoleControlPlane: ""}
+		} else {
+			workloadDeployment.Spec.Template.Spec.NodeSelector = map[string]string{nodeRoleOldControlPlane: ""}
+		}
+
 		workloadDeployment.Spec.Template.Spec.Tolerations = []corev1.Toleration{
 			{
-				Key:    "node-role.kubernetes.io/master",
+				Key:    nodeRoleOldControlPlane,
+				Effect: "NoSchedule",
+			},
+			{
+				Key:    nodeRoleControlPlane,
 				Effect: "NoSchedule",
 			},
 		}
@@ -361,9 +399,13 @@ type AddDeploymentToWorkloadClusterInput struct {
 }
 
 func AddDeploymentToWorkloadCluster(ctx context.Context, input AddDeploymentToWorkloadClusterInput) {
-	result, err := input.ClientSet.AppsV1().Deployments(input.Namespace).Create(ctx, input.Deployment, metav1.CreateOptions{})
-	Expect(result).NotTo(BeNil())
-	Expect(err).To(BeNil(), "nonstop pods need to be successfully deployed")
+	Eventually(func() error {
+		result, err := input.ClientSet.AppsV1().Deployments(input.Namespace).Create(ctx, input.Deployment, metav1.CreateOptions{})
+		if result != nil && err == nil {
+			return nil
+		}
+		return fmt.Errorf("deployment %s in namespace %s not successfully created in workload cluster: %v", input.Deployment.Name, input.Namespace, err)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 }
 
 type AddPodDisruptionBudgetInput struct {
@@ -373,7 +415,11 @@ type AddPodDisruptionBudgetInput struct {
 }
 
 func AddPodDisruptionBudget(ctx context.Context, input AddPodDisruptionBudgetInput) {
-	budget, err := input.ClientSet.PolicyV1beta1().PodDisruptionBudgets(input.Namespace).Create(ctx, input.Budget, metav1.CreateOptions{})
-	Expect(budget).NotTo(BeNil())
-	Expect(err).To(BeNil(), "podDisruptionBudget needs to be successfully deployed")
+	Eventually(func() error {
+		budget, err := input.ClientSet.PolicyV1beta1().PodDisruptionBudgets(input.Namespace).Create(ctx, input.Budget, metav1.CreateOptions{})
+		if budget != nil && err == nil {
+			return nil
+		}
+		return fmt.Errorf("podDisruptionBudget needs to be successfully deployed: %v", err)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "podDisruptionBudget needs to be successfully deployed")
 }

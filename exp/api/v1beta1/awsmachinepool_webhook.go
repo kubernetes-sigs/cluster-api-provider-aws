@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -81,6 +81,39 @@ func (r *AWSMachinePool) validateRootVolume() field.ErrorList {
 	return allErrs
 }
 
+func (r *AWSMachinePool) validateSubnets() field.ErrorList {
+	var allErrs field.ErrorList
+
+	if r.Spec.Subnets == nil {
+		return allErrs
+	}
+
+	for _, subnet := range r.Spec.Subnets {
+		if subnet.ARN != nil {
+			log.Info("ARN field is deprecated and is no operation function.")
+		}
+		if subnet.ID != nil && subnet.Filters != nil {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.subnets.filters"), "providing either subnet ID or filter is supported, should not provide both"))
+			break
+		}
+	}
+
+	return allErrs
+}
+
+func (r *AWSMachinePool) validateAdditionalSecurityGroups() field.ErrorList {
+	var allErrs field.ErrorList
+	for _, sg := range r.Spec.AWSLaunchTemplate.AdditionalSecurityGroups {
+		if sg.ID != nil && sg.Filters != nil {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.AdditionalSecurityGroups"), "either ID or filters should be used"))
+		}
+		if sg.ARN != nil {
+			log.Info("ARN field is deprecated and is no operation function.")
+		}
+	}
+	return allErrs
+}
+
 // ValidateCreate will do any extra validation when creating a AWSMachinePool.
 func (r *AWSMachinePool) ValidateCreate() error {
 	log.Info("AWSMachinePool validate create", "name", r.Name)
@@ -89,6 +122,9 @@ func (r *AWSMachinePool) ValidateCreate() error {
 
 	allErrs = append(allErrs, r.validateDefaultCoolDown()...)
 	allErrs = append(allErrs, r.validateRootVolume()...)
+	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
+	allErrs = append(allErrs, r.validateSubnets()...)
+	allErrs = append(allErrs, r.validateAdditionalSecurityGroups()...)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -106,6 +142,9 @@ func (r *AWSMachinePool) ValidateUpdate(old runtime.Object) error {
 	var allErrs field.ErrorList
 
 	allErrs = append(allErrs, r.validateDefaultCoolDown()...)
+	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
+	allErrs = append(allErrs, r.validateSubnets()...)
+	allErrs = append(allErrs, r.validateAdditionalSecurityGroups()...)
 
 	if len(allErrs) == 0 {
 		return nil

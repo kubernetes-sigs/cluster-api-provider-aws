@@ -789,12 +789,14 @@ spec:
                           the attached security groups might change too.
                         items:
                           description: AWSResourceReference is a reference to a specific
-                            AWS resource by ID, ARN, or filters. Only one of ID, ARN
-                            or Filters may be specified. Specifying more than one
-                            will result in a validation error.
+                            AWS resource by ID or filters. Only one of ID or Filters
+                            may be specified. Specifying more than one will result
+                            in a validation error.
                           properties:
                             arn:
-                              description: ARN of resource
+                              description: 'ARN of resource. Deprecated: This field
+                                has no function and is going to be removed in the
+                                next release.'
                               type: string
                             filters:
                               description: 'Filters is a set of key/value pairs used
@@ -891,6 +893,18 @@ spec:
                         description: IAMInstanceProfile is a name of an IAM instance
                           profile to assign to the instance
                         type: string
+                      ignition:
+                        description: Ignition defined options related to the bootstrapping
+                          systems where Ignition is used.
+                        properties:
+                          version:
+                            default: "2.3"
+                            description: Version defines which version of Ignition
+                              will be used to generate bootstrap data.
+                            enum:
+                            - "2.3"
+                            type: string
+                        type: object
                       imageLookupBaseOS:
                         description: ImageLookupBaseOS is the name of the base operating
                           system to use for image lookup the AMI is not set.
@@ -1047,7 +1061,9 @@ spec:
                           be used.
                         properties:
                           arn:
-                            description: ARN of resource
+                            description: 'ARN of resource. Deprecated: This field
+                              has no function and is going to be removed in the next
+                              release.'
                             type: string
                           filters:
                             description: 'Filters is a set of key/value pairs used

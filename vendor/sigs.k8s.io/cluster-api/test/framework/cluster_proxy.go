@@ -24,10 +24,12 @@ import (
 	"os"
 	"path"
 	goruntime "runtime"
+	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -39,6 +41,11 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
+)
+
+const (
+	retryableOperationInterval = 3 * time.Second
+	retryableOperationTimeout  = 1 * time.Minute
 )
 
 // ClusterProxy defines the behavior of a type that acts as an intermediary with an existing Kubernetes cluster.
@@ -168,8 +175,18 @@ func (p *clusterProxy) GetScheme() *runtime.Scheme {
 func (p *clusterProxy) GetClient() client.Client {
 	config := p.GetRESTConfig()
 
-	c, err := client.New(config, client.Options{Scheme: p.scheme})
-	Expect(err).ToNot(HaveOccurred(), "Failed to get controller-runtime client")
+	var c client.Client
+	var newClientErr error
+	err := wait.PollImmediate(retryableOperationInterval, retryableOperationTimeout, func() (bool, error) {
+		c, newClientErr = client.New(config, client.Options{Scheme: p.scheme})
+		if newClientErr != nil {
+			return false, nil //nolint:nilerr
+		}
+		return true, nil
+	})
+	errorString := "Failed to get controller-runtime client"
+	Expect(newClientErr).ToNot(HaveOccurred(), errorString)
+	Expect(err).ToNot(HaveOccurred(), errorString)
 
 	return c
 }
@@ -231,8 +248,12 @@ func (p *clusterProxy) CollectWorkloadClusterLogs(ctx context.Context, namespace
 		return
 	}
 
-	machines, err := getMachinesInCluster(ctx, p.GetClient(), namespace, name)
-	Expect(err).ToNot(HaveOccurred(), "Failed to get machines for the %s/%s cluster", namespace, name)
+	var machines *clusterv1.MachineList
+	Eventually(func() error {
+		var err error
+		machines, err = getMachinesInCluster(ctx, p.GetClient(), namespace, name)
+		return err
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get machines for the %s/%s cluster", namespace, name)
 
 	for i := range machines.Items {
 		m := &machines.Items[i]
@@ -243,8 +264,12 @@ func (p *clusterProxy) CollectWorkloadClusterLogs(ctx context.Context, namespace
 		}
 	}
 
-	machinePools, err := getMachinePoolsInCluster(ctx, p.GetClient(), namespace, name)
-	Expect(err).ToNot(HaveOccurred(), "Failed to get machine pools for the %s/%s cluster", namespace, name)
+	var machinePools *expv1.MachinePoolList
+	Eventually(func() error {
+		var err error
+		machinePools, err = getMachinePoolsInCluster(ctx, p.GetClient(), namespace, name)
+		return err
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get machine pools for the %s/%s cluster", namespace, name)
 
 	for i := range machinePools.Items {
 		mp := &machinePools.Items[i]
@@ -292,7 +317,9 @@ func (p *clusterProxy) getKubeconfig(ctx context.Context, namespace string, name
 		Name:      fmt.Sprintf("%s-kubeconfig", name),
 		Namespace: namespace,
 	}
-	Expect(cl.Get(ctx, key, secret)).To(Succeed(), "Failed to get %s", key)
+	Eventually(func() error {
+		return cl.Get(ctx, key, secret)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get %s", key)
 	Expect(secret.Data).To(HaveKey("value"), "Invalid secret %s", key)
 
 	config, err := clientcmd.Load(secret.Data["value"])
@@ -309,7 +336,9 @@ func (p *clusterProxy) isDockerCluster(ctx context.Context, namespace string, na
 		Name:      name,
 		Namespace: namespace,
 	}
-	Expect(cl.Get(ctx, key, cluster)).To(Succeed(), "Failed to get %s", key)
+	Eventually(func() error {
+		return cl.Get(ctx, key, cluster)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get %s", key)
 
 	return cluster.Spec.InfrastructureRef.Kind == "DockerCluster"
 }

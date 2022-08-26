@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,10 +20,12 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -60,7 +62,7 @@ func (r *AWSManagedMachinePool) validateScaling() field.ErrorList {
 		max := r.Spec.Scaling.MaxSize
 		if min != nil {
 			if *min < 0 {
-				allErrs = append(allErrs, field.Invalid(minField, *min, "must be greater than zero"))
+				allErrs = append(allErrs, field.Invalid(minField, *min, "must be greater or equal zero"))
 			}
 			if max != nil && *max < *min {
 				allErrs = append(allErrs, field.Invalid(maxField, *max, fmt.Sprintf("must be greater than field %s", minField.String())))
@@ -70,6 +72,27 @@ func (r *AWSManagedMachinePool) validateScaling() field.ErrorList {
 			allErrs = append(allErrs, field.Invalid(maxField, *max, "must be greater than zero"))
 		}
 	}
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return allErrs
+}
+
+func (r *AWSManagedMachinePool) validateNodegroupUpdateConfig() field.ErrorList {
+	var allErrs field.ErrorList
+
+	if r.Spec.UpdateConfig != nil {
+		nodegroupUpdateConfigField := field.NewPath("spec", "updateConfig")
+
+		if r.Spec.UpdateConfig.MaxUnavailable == nil && r.Spec.UpdateConfig.MaxUnavailablePercentage == nil {
+			allErrs = append(allErrs, field.Invalid(nodegroupUpdateConfigField, r.Spec.UpdateConfig, "must specify one of maxUnavailable or maxUnavailablePercentage when using nodegroup updateconfig"))
+		}
+
+		if r.Spec.UpdateConfig.MaxUnavailable != nil && r.Spec.UpdateConfig.MaxUnavailablePercentage != nil {
+			allErrs = append(allErrs, field.Invalid(nodegroupUpdateConfigField, r.Spec.UpdateConfig, "cannot specify both maxUnavailable and maxUnavailablePercentage"))
+		}
+	}
+
 	if len(allErrs) == 0 {
 		return nil
 	}
@@ -109,6 +132,11 @@ func (r *AWSManagedMachinePool) ValidateCreate() error {
 	if errs := r.validateRemoteAccess(); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
+	if errs := r.validateNodegroupUpdateConfig(); len(errs) > 0 {
+		allErrs = append(allErrs, errs...)
+	}
+
+	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -133,8 +161,12 @@ func (r *AWSManagedMachinePool) ValidateUpdate(old runtime.Object) error {
 
 	var allErrs field.ErrorList
 	allErrs = append(allErrs, r.validateImmutable(oldPool)...)
+	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
 	if errs := r.validateScaling(); errs != nil || len(errs) == 0 {
+		allErrs = append(allErrs, errs...)
+	}
+	if errs := r.validateNodegroupUpdateConfig(); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
 
@@ -160,7 +192,7 @@ func (r *AWSManagedMachinePool) validateImmutable(old *AWSManagedMachinePool) fi
 	var allErrs field.ErrorList
 
 	appendErrorIfMutated := func(old, update interface{}, name string) {
-		if !reflect.DeepEqual(old, update) {
+		if !cmp.Equal(old, update) {
 			allErrs = append(
 				allErrs,
 				field.Invalid(field.NewPath("spec", name), update, "field is immutable"),
@@ -168,7 +200,7 @@ func (r *AWSManagedMachinePool) validateImmutable(old *AWSManagedMachinePool) fi
 		}
 	}
 	appendErrorIfSetAndMutated := func(old, update interface{}, name string) {
-		if !reflect.ValueOf(old).IsZero() && !reflect.DeepEqual(old, update) {
+		if !reflect.ValueOf(old).IsZero() && !cmp.Equal(old, update) {
 			allErrs = append(
 				allErrs,
 				field.Invalid(field.NewPath("spec", name), update, "field is immutable"),
@@ -203,5 +235,11 @@ func (r *AWSManagedMachinePool) Default() {
 
 		mmpLog.Info("Generated EKSNodegroupName", "nodegroup-name", name)
 		r.Spec.EKSNodegroupName = name
+	}
+
+	if r.Spec.UpdateConfig == nil {
+		r.Spec.UpdateConfig = &UpdateConfig{
+			MaxUnavailable: pointer.Int(1),
+		}
 	}
 }

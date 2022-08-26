@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -110,7 +110,7 @@ func (s *Service) InstanceIfExists(id *string) (*infrav1.Instance, error) {
 }
 
 // CreateInstance runs an ec2 instance.
-func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*infrav1.Instance, error) {
+func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, userDataFormat string) (*infrav1.Instance, error) {
 	s.scope.V(2).Info("Creating an instance for a machine")
 
 	input := &infrav1.Instance{
@@ -123,14 +123,13 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 
 	// Make sure to use the MachineScope here to get the merger of AWSCluster and AWSMachine tags
 	additionalTags := scope.AdditionalTags()
-
 	input.Tags = infrav1.Build(infrav1.BuildParams{
-		ClusterName: s.scope.Name(),
+		ClusterName: s.scope.KubernetesClusterName(),
 		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(scope.Name()),
 		Role:        aws.String(scope.Role()),
 		Additional:  additionalTags,
-	}.WithCloudProvider(s.scope.Name()).WithMachineName(scope.Machine))
+	}.WithCloudProvider(s.scope.KubernetesClusterName()).WithMachineName(scope.Machine))
 
 	var err error
 	// Pick image from the machine configuration, or use a default one.
@@ -183,7 +182,8 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 
 		return nil, awserrors.NewFailedDependency("failed to run controlplane, APIServer ELB not available")
 	}
-	if !scope.UserDataIsUncompressed() {
+
+	if scope.CompressUserData(userDataFormat) {
 		userData, err = userdata.GzipBytes(userData)
 		if err != nil {
 			return nil, errors.New("failed to gzip userdata")
@@ -265,57 +265,59 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 		failureDomain = scope.AWSMachine.Spec.FailureDomain
 	}
 
+	// We basically have 2 sources for subnets:
+	//   1. If subnet.id or subnet.filters are specified, we directly query AWS
+	//   2. All other cases use the subnets provided in the cluster network spec without ever calling AWS
+
 	switch {
-	case scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.ID != nil:
-		subnet := s.scope.Subnets().FindByID(*scope.AWSMachine.Spec.Subnet.ID)
-		if subnet == nil {
-			errMessage := fmt.Sprintf("failed to run machine %q, subnet with id %q not found",
-				scope.Name(), aws.StringValue(scope.AWSMachine.Spec.Subnet.ID))
-			record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
-			return "", awserrors.NewFailedDependency(errMessage)
-		}
-		if scope.AWSMachine.Spec.PublicIP != nil && *scope.AWSMachine.Spec.PublicIP {
-			if !subnet.IsPublic {
-				errMessage := fmt.Sprintf("failed to run machine %q with public IP, a specified subnet %q is a private subnet",
-					scope.Name(), aws.StringValue(scope.AWSMachine.Spec.Subnet.ID))
-				record.Eventf(scope.AWSMachine, "FailedCreate", errMessage)
-				return "", awserrors.NewFailedDependency(errMessage)
-			}
-		}
-		if failureDomain != nil && subnet.AvailabilityZone != *failureDomain {
-			errMessage := fmt.Sprintf("failed to run machine %q, subnet's availability zone %q does not match with the failure domain %q",
-				scope.Name(), subnet.AvailabilityZone, *failureDomain)
-			record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
-			return "", awserrors.NewFailedDependency(errMessage)
-		}
-		return subnet.ID, nil
-	case scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.Filters != nil:
+	case scope.AWSMachine.Spec.Subnet != nil && (scope.AWSMachine.Spec.Subnet.ID != nil || scope.AWSMachine.Spec.Subnet.Filters != nil):
 		criteria := []*ec2.Filter{
 			filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
 		}
 		if !scope.IsExternallyManaged() {
 			criteria = append(criteria, filter.EC2.VPC(s.scope.VPC().ID))
 		}
-		if failureDomain != nil {
-			criteria = append(criteria, filter.EC2.AvailabilityZone(*failureDomain))
-		}
-		if scope.AWSMachine.Spec.PublicIP != nil && *scope.AWSMachine.Spec.PublicIP {
-			criteria = append(criteria, &ec2.Filter{Name: aws.String("map-public-ip-on-launch"), Values: aws.StringSlice([]string{"true"})})
+		if scope.AWSMachine.Spec.Subnet.ID != nil {
+			criteria = append(criteria, &ec2.Filter{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{*scope.AWSMachine.Spec.Subnet.ID})})
 		}
 		for _, f := range scope.AWSMachine.Spec.Subnet.Filters {
 			criteria = append(criteria, &ec2.Filter{Name: aws.String(f.Name), Values: aws.StringSlice(f.Values)})
 		}
+
 		subnets, err := s.getFilteredSubnets(criteria...)
 		if err != nil {
 			return "", errors.Wrapf(err, "failed to filter subnets for criteria %q", criteria)
 		}
 		if len(subnets) == 0 {
-			errMessage := fmt.Sprintf("failed to run machine %q, no subnets available matching filters %q",
-				scope.Name(), scope.AWSMachine.Spec.Subnet.Filters)
+			errMessage := fmt.Sprintf("failed to run machine %q, no subnets available matching criteria %q",
+				scope.Name(), criteria)
 			record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
 			return "", awserrors.NewFailedDependency(errMessage)
 		}
-		return *subnets[0].SubnetId, nil
+
+		var filtered []*ec2.Subnet
+		var errMessage string
+		for _, subnet := range subnets {
+			if failureDomain != nil && *subnet.AvailabilityZone != *failureDomain {
+				// we could have included the failure domain in the query criteria, but then we end up with EC2 error
+				// messages that don't give a good hint about what is really wrong
+				errMessage += fmt.Sprintf(" subnet %q availability zone %q does not match failure domain %q.",
+					*subnet.SubnetId, *subnet.AvailabilityZone, *failureDomain)
+				continue
+			}
+			if scope.AWSMachine.Spec.PublicIP != nil && *scope.AWSMachine.Spec.PublicIP && !*subnet.MapPublicIpOnLaunch {
+				errMessage += fmt.Sprintf(" subnet %q is a private subnet.", *subnet.SubnetId)
+				continue
+			}
+			filtered = append(filtered, subnet)
+		}
+		if len(filtered) == 0 {
+			errMessage = fmt.Sprintf("failed to run machine %q, found %d subnets matching criteria but post-filtering failed.",
+				scope.Name(), len(subnets)) + errMessage
+			record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
+			return "", awserrors.NewFailedDependency(errMessage)
+		}
+		return *filtered[0].SubnetId, nil
 	case failureDomain != nil:
 		if scope.AWSMachine.Spec.PublicIP != nil && *scope.AWSMachine.Spec.PublicIP {
 			subnets := s.scope.Subnets().FilterPublic().FilterByZone(*failureDomain)
@@ -987,27 +989,4 @@ func getInstanceMarketOptionsRequest(spotMarketOptions *infrav1.SpotMarketOption
 	instanceMarketOptionsRequest.SetSpotOptions(spotOptions)
 
 	return instanceMarketOptionsRequest
-}
-
-// GetFilteredSecurityGroupID get security group ID using filters.
-func (s *Service) GetFilteredSecurityGroupID(securityGroup infrav1.AWSResourceReference) (string, error) {
-	if securityGroup.Filters == nil {
-		return "", nil
-	}
-
-	filters := []*ec2.Filter{}
-	for _, f := range securityGroup.Filters {
-		filters = append(filters, &ec2.Filter{Name: aws.String(f.Name), Values: aws.StringSlice(f.Values)})
-	}
-
-	sgs, err := s.EC2Client.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{Filters: filters})
-	if err != nil {
-		return "", err
-	}
-
-	if len(sgs.SecurityGroups) == 0 {
-		return "", fmt.Errorf("failed to find security group matching filters: %q, reason: %w", filters, err)
-	}
-
-	return *sgs.SecurityGroups[0].GroupId, nil
 }

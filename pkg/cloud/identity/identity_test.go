@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,7 +17,6 @@ limitations under the License.
 package identity
 
 import (
-	"reflect"
 	"testing"
 	"time"
 
@@ -25,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -193,7 +193,7 @@ func TestAWSStaticPrincipalTypeProvider(t *testing.T) {
 
 			g.Expect(err).To(BeNil())
 
-			if !reflect.DeepEqual(tc.value, value) {
+			if !cmp.Equal(tc.value, value) {
 				t.Fatal("Did not get expected result")
 			}
 		})

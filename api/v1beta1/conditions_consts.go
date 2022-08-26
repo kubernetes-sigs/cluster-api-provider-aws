@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -156,4 +156,12 @@ const (
 	ELBAttachFailedReason = "ELBAttachFailed"
 	// ELBDetachFailedReason used when a control plane node fails to detach from an ELB.
 	ELBDetachFailedReason = "ELBDetachFailed"
+)
+
+const (
+	// S3BucketReadyCondition indicates an S3 bucket has been created successfully.
+	S3BucketReadyCondition clusterv1.ConditionType = "S3BucketCreated"
+
+	// S3BucketFailedReason is used when any errors occur during reconciliation of an S3 bucket.
+	S3BucketFailedReason = "S3BucketCreationFailed"
 )

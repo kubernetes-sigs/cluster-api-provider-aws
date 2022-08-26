@@ -342,7 +342,12 @@ spec:
         type: object
     served: true
     storage: false
-  - name: v1beta1
+  - additionalPrinterColumns:
+    - description: Time duration since creation of AWSClusterTemplate
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
     schema:
       openAPIV3Schema:
         description: AWSClusterTemplate is the schema for Amazon EC2 based Kubernetes
@@ -469,6 +474,11 @@ spec:
                               registered instances in its Availability Zone only.
                               \n Defaults to false."
                             type: boolean
+                          healthCheckProtocol:
+                            description: HealthCheckProtocol sets the protocol type
+                              for classic ELB health check target default value is
+                              ClassicELBProtocolSSL
+                            type: string
                           name:
                             description: Name sets the name of the classic ELB load
                               balancer. As per AWS, the name must be unique within
@@ -680,6 +690,35 @@ spec:
                       region:
                         description: The AWS Region the cluster lives in.
                         type: string
+                      s3Bucket:
+                        description: S3Bucket contains options to configure a supporting
+                          S3 bucket for this cluster - currently used for nodes requiring
+                          Ignition (https://coreos.github.io/ignition/) for bootstrapping
+                          (requires BootstrapFormatIgnition feature flag to be enabled).
+                        properties:
+                          controlPlaneIAMInstanceProfile:
+                            description: ControlPlaneIAMInstanceProfile is a name
+                              of the IAMInstanceProfile, which will be allowed to
+                              read control-plane node bootstrap data from S3 Bucket.
+                            type: string
+                          name:
+                            description: Name defines name of S3 Bucket to be created.
+                            maxLength: 63
+                            minLength: 3
+                            pattern: ^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$
+                            type: string
+                          nodesIAMInstanceProfiles:
+                            description: NodesIAMInstanceProfiles is a list of IAM
+                              instance profiles, which will be allowed to read worker
+                              nodes bootstrap data from S3 Bucket.
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - controlPlaneIAMInstanceProfile
+                        - name
+                        - nodesIAMInstanceProfiles
+                        type: object
                       sshKeyName:
                         description: SSHKeyName is the name of the ssh key to attach
                           to the bastion host. Valid values are empty string (do not
@@ -696,6 +735,7 @@ spec:
         type: object
     served: true
     storage: true
+    subresources: {}
 status:
   acceptedNames:
     kind: ""

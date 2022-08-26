@@ -35,20 +35,26 @@ const (
 
 // Infra providers.
 const (
-	AWSProviderName       = "aws"
-	AzureProviderName     = "azure"
-	BYOHProviderName      = "byoh"
-	DockerProviderName    = "docker"
-	DOProviderName        = "digitalocean"
-	GCPProviderName       = "gcp"
-	IBMCloudProviderName  = "ibmcloud"
-	Metal3ProviderName    = "metal3"
-	NestedProviderName    = "nested"
-	OpenStackProviderName = "openstack"
-	PacketProviderName    = "packet"
-	SideroProviderName    = "sidero"
-	VSphereProviderName   = "vsphere"
-	MAASProviderName      = "maas"
+	AWSProviderName        = "aws"
+	AzureProviderName      = "azure"
+	BYOHProviderName       = "byoh"
+	CloudStackProviderName = "cloudstack"
+	DockerProviderName     = "docker"
+	DOProviderName         = "digitalocean"
+	GCPProviderName        = "gcp"
+	HetznerProviderName    = "hetzner"
+	IBMCloudProviderName   = "ibmcloud"
+	Metal3ProviderName     = "metal3"
+	NestedProviderName     = "nested"
+	NutanixProviderName    = "nutanix"
+	OCIProviderName        = "oci"
+	OpenStackProviderName  = "openstack"
+	PacketProviderName     = "packet"
+	SideroProviderName     = "sidero"
+	VSphereProviderName    = "vsphere"
+	MAASProviderName       = "maas"
+	KubevirtProviderName   = "kubevirt"
+	VclusterProviderName   = "vcluster"
 )
 
 // Bootstrap providers.
@@ -130,6 +136,11 @@ func (p *providersClient) defaults() []Provider {
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
+			name:         CloudStackProviderName,
+			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-cloudstack/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
 			name:         DOProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
@@ -155,13 +166,18 @@ func (p *providersClient) defaults() []Provider {
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
+			name:         OCIProviderName,
+			url:          "https://github.com/oracle/cluster-api-provider-oci/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
 			name:         OpenStackProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-openstack/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
 			name:         SideroProviderName,
-			url:          "https://github.com/talos-systems/sidero/releases/latest/infrastructure-components.yaml",
+			url:          "https://github.com/siderolabs/sidero/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
@@ -180,8 +196,28 @@ func (p *providersClient) defaults() []Provider {
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
+			name:         HetznerProviderName,
+			url:          "https://github.com/syself/cluster-api-provider-hetzner/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
 			name:         IBMCloudProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         NutanixProviderName,
+			url:          "https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         KubevirtProviderName,
+			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         VclusterProviderName,
+			url:          "https://github.com/loft-sh/cluster-api-provider-vcluster/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 
@@ -193,7 +229,7 @@ func (p *providersClient) defaults() []Provider {
 		},
 		&provider{
 			name:         TalosBootstrapProviderName,
-			url:          "https://github.com/talos-systems/cluster-api-bootstrap-provider-talos/releases/latest/bootstrap-components.yaml",
+			url:          "https://github.com/siderolabs/cluster-api-bootstrap-provider-talos/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
 		&provider{
@@ -209,7 +245,7 @@ func (p *providersClient) defaults() []Provider {
 		},
 		&provider{
 			name:         TalosControlPlaneProviderName,
-			url:          "https://github.com/talos-systems/cluster-api-control-plane-provider-talos/releases/latest/control-plane-components.yaml",
+			url:          "https://github.com/siderolabs/cluster-api-control-plane-provider-talos/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 		&provider{

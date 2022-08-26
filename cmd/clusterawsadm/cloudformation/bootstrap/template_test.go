@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -58,6 +58,14 @@ func Test_RenderCloudformation(t *testing.T) {
 					infrav1.SecretBackendSecretsManager,
 					infrav1.SecretBackendSSMParameterStore,
 				}
+				return t
+			},
+		},
+		{
+			fixture: "with_s3_bucket",
+			template: func() Template {
+				t := NewTemplate()
+				t.Spec.S3Buckets.Enable = true
 				return t
 			},
 		},
@@ -189,7 +197,7 @@ func Test_RenderCloudformation(t *testing.T) {
 				dmp := diffmatchpatch.New()
 				diffs := dmp.DiffMain(string(tData), string(data), false)
 				out := dmp.DiffPrettyText(diffs)
-				t.Fatal(fmt.Sprintf("Differing output (%s):\n%s", c.fixture, out))
+				t.Fatalf(fmt.Sprintf("Differing output (%s):\n%s", c.fixture, out))
 			}
 		})
 	}

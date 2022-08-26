@@ -1,0 +1,8 @@
+resources:
+- ../default
+patchesStrategicMerge:
+- patches/control-plane-ami.yaml
+- patches/control-plane-ignition.yaml
+- patches/s3bucket.yaml
+- patches/worker-ami.yaml
+- patches/worker-ignition.yaml

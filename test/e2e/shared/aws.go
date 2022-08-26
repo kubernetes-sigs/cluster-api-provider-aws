@@ -8,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -41,12 +41,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecrpublic"
+	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/yaml"
 
 	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
@@ -56,6 +59,315 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 )
+
+type AWSInfrastructureSpec struct {
+	ClusterName            string `json:"clustername"`
+	VpcCidr                string `json:"vpcCidr"`
+	PublicSubnetCidr       string `json:"publicSubnetCidr"`
+	PrivateSubnetCidr      string `json:"privateSubnetCidr"`
+	AvailabilityZone       string `json:"availabilityZone"`
+	ExternalSecurityGroups bool   `json:"externalSecurityGroups"`
+}
+
+type AWSInfrastructureState struct {
+	PrivateSubnetID     *string `json:"privateSubnetID"`
+	PrivateSubnetState  *string `json:"privateSubnetState"`
+	PublicSubnetID      *string `json:"publicSubnetID"`
+	PublicSubnetState   *string `json:"publicSubnetState"`
+	VpcState            *string `json:"vpcState"`
+	NatGatewayState     *string `json:"natGatewayState"`
+	PublicRouteTableID  *string `json:"publicRouteTableID"`
+	PrivateRouteTableID *string `json:"privateRouteTableID"`
+}
+type AWSInfrastructure struct {
+	Spec            AWSInfrastructureSpec `json:"spec"`
+	Context         *E2EContext
+	VPC             *ec2.Vpc
+	Subnets         []*ec2.Subnet
+	RouteTables     []*ec2.RouteTable
+	InternetGateway *ec2.InternetGateway
+	ElasticIP       *ec2.Address
+	NatGateway      *ec2.NatGateway
+	State           AWSInfrastructureState `json:"state"`
+	Peering         *ec2.VpcPeeringConnection
+}
+
+func (i *AWSInfrastructure) New(ais AWSInfrastructureSpec, e2eCtx *E2EContext) AWSInfrastructure {
+	i.Spec = ais
+	i.Context = e2eCtx
+	return *i
+}
+
+func (i *AWSInfrastructure) CreateVPC() AWSInfrastructure {
+	cv, err := CreateVPC(i.Context, i.Spec.ClusterName+"-vpc", i.Spec.VpcCidr)
+	if err != nil {
+		return *i
+	}
+
+	i.VPC = cv
+	i.State.VpcState = cv.State
+	return *i
+}
+
+func (i *AWSInfrastructure) RefreshVPCState() AWSInfrastructure {
+	vpc, err := GetVPC(i.Context, *i.VPC.VpcId)
+	if err != nil {
+		return *i
+	}
+	if vpc != nil {
+		i.VPC = vpc
+		i.State.VpcState = vpc.State
+	}
+	return *i
+}
+
+func (i *AWSInfrastructure) CreatePublicSubnet() AWSInfrastructure {
+	subnet, err := CreateSubnet(i.Context, i.Spec.ClusterName, i.Spec.PublicSubnetCidr, i.Spec.AvailabilityZone, *i.VPC.VpcId, "public")
+	if err != nil {
+		i.State.PublicSubnetState = pointer.String("failed")
+		return *i
+	}
+	i.State.PublicSubnetID = subnet.SubnetId
+	i.State.PublicSubnetState = subnet.State
+	i.Subnets = append(i.Subnets, subnet)
+	return *i
+}
+
+func (i *AWSInfrastructure) CreatePrivateSubnet() AWSInfrastructure {
+	subnet, err := CreateSubnet(i.Context, i.Spec.ClusterName, i.Spec.PrivateSubnetCidr, i.Spec.AvailabilityZone, *i.VPC.VpcId, "private")
+	if err != nil {
+		i.State.PrivateSubnetState = pointer.String("failed")
+		return *i
+	}
+	i.State.PrivateSubnetID = subnet.SubnetId
+	i.State.PrivateSubnetState = subnet.State
+	i.Subnets = append(i.Subnets, subnet)
+	return *i
+}
+
+func (i *AWSInfrastructure) CreateInternetGateway() AWSInfrastructure {
+	igwC, err := CreateInternetGateway(i.Context, i.Spec.ClusterName+"-igw")
+	if err != nil {
+		return *i
+	}
+	_, aerr := AttachInternetGateway(i.Context, *igwC.InternetGatewayId, *i.VPC.VpcId)
+	if aerr != nil {
+		i.InternetGateway = igwC
+		return *i
+	}
+	i.InternetGateway = igwC
+	return *i
+}
+
+func (i *AWSInfrastructure) AllocateAddress() AWSInfrastructure {
+	aa, err := AllocateAddress(i.Context, i.Spec.ClusterName+"-eip")
+	if err != nil {
+		return *i
+	}
+
+	t := 0
+	addr, _ := GetAddress(i.Context, *aa.AllocationId)
+	for addr == nil && t < 180 {
+		time.Sleep(1 * time.Second)
+		addr, _ = GetAddress(i.Context, *aa.AllocationId)
+		t++
+	}
+	i.ElasticIP = addr
+	return *i
+}
+
+func (i *AWSInfrastructure) CreateNatGateway(ct string) AWSInfrastructure {
+	t := 0
+	s, serr := GetSubnetByName(i.Context, i.Spec.ClusterName+"-subnet-"+ct)
+	if serr != nil {
+		return *i
+	}
+	for s == nil && t < 180 {
+		time.Sleep(1 * time.Second)
+		s, _ = GetSubnetByName(i.Context, i.Spec.ClusterName+"-subnet-"+ct)
+		t++
+	}
+	if s == nil {
+		return *i
+	}
+	ngwC, ngwce := CreateNatGateway(i.Context, i.Spec.ClusterName+"-nat", ct, *i.ElasticIP.AllocationId, *s.SubnetId)
+	if ngwce != nil {
+		return *i
+	}
+	if WaitForNatGatewayState(i.Context, *ngwC.NatGatewayId, 180, "available") {
+		ngw, _ := GetNatGateway(i.Context, *ngwC.NatGatewayId)
+		i.NatGateway = ngw
+		i.State.NatGatewayState = ngw.State
+		return *i
+	}
+	i.NatGateway = ngwC
+	return *i
+}
+
+func (i *AWSInfrastructure) CreateRouteTable(subnetType string) AWSInfrastructure {
+	rt, err := CreateRouteTable(i.Context, i.Spec.ClusterName+"-rt-"+subnetType, *i.VPC.VpcId)
+	if err != nil {
+		return *i
+	}
+	switch subnetType {
+	case "public":
+		if a, _ := AssociateRouteTable(i.Context, *rt.RouteTableId, *i.State.PublicSubnetID); a != nil {
+			i.State.PublicRouteTableID = rt.RouteTableId
+		}
+	case "private":
+		if a, _ := AssociateRouteTable(i.Context, *rt.RouteTableId, *i.State.PrivateSubnetID); a != nil {
+			i.State.PrivateRouteTableID = rt.RouteTableId
+		}
+	}
+	return *i
+}
+
+func (i *AWSInfrastructure) GetRouteTable(rtID string) AWSInfrastructure {
+	rt, err := GetRouteTable(i.Context, rtID)
+	if err != nil {
+		return *i
+	}
+	if rt != nil {
+		i.RouteTables = append(i.RouteTables, rt)
+	}
+	return *i
+}
+
+// CreateInfrastructure creates a VPC, two subnets with appropriate tags based on type(private/public)
+// an internet gateway, an elastic IP address, a NAT gateway, a route table for each subnet and
+// routes to their respective gateway.
+func (i *AWSInfrastructure) CreateInfrastructure() AWSInfrastructure {
+	i.CreateVPC()
+	Byf("Created VPC - %s", *i.VPC.VpcId)
+	if i.VPC != nil {
+		i.CreatePublicSubnet()
+		if i.State.PublicSubnetID != nil {
+			Byf("Created Public Subnet - %s", *i.State.PublicSubnetID)
+		}
+		i.CreatePrivateSubnet()
+		if i.State.PrivateSubnetID != nil {
+			Byf("Created Private Subnet - %s", *i.State.PrivateSubnetID)
+		}
+		for t := 0; t < 30; t++ {
+			if *i.RefreshVPCState().State.VpcState == "available" {
+				break
+			}
+			time.Sleep(1 * time.Second)
+		}
+		i.CreateInternetGateway()
+		if i.InternetGateway != nil {
+			Byf("Created Internet Gateway - %s", *i.InternetGateway.InternetGatewayId)
+		}
+	}
+	i.AllocateAddress()
+	if i.ElasticIP != nil && i.ElasticIP.AllocationId != nil {
+		Byf("Created Elastic IP - %s", *i.ElasticIP.AllocationId)
+		i.CreateNatGateway("public")
+		if i.NatGateway != nil && i.NatGateway.NatGatewayId != nil {
+			WaitForNatGatewayState(i.Context, *i.NatGateway.NatGatewayId, 180, "available")
+			Byf("Created NAT Gateway - %s", *i.NatGateway.NatGatewayId)
+		}
+	}
+	if len(i.Subnets) == 2 {
+		i.CreateRouteTable("public")
+		if i.State.PublicRouteTableID != nil {
+			Byf("Created public route table - %s", *i.State.PublicRouteTableID)
+		}
+		i.CreateRouteTable("private")
+		if i.State.PrivateRouteTableID != nil {
+			Byf("Created private route table - %s", *i.State.PrivateRouteTableID)
+		}
+		if i.InternetGateway != nil && i.InternetGateway.InternetGatewayId != nil {
+			CreateRoute(i.Context, *i.State.PublicRouteTableID, "0.0.0.0/0", nil, i.InternetGateway.InternetGatewayId, nil)
+		}
+		if i.NatGateway != nil && i.NatGateway.NatGatewayId != nil {
+			CreateRoute(i.Context, *i.State.PrivateRouteTableID, "0.0.0.0/0", i.NatGateway.NatGatewayId, nil, nil)
+		}
+		if i.State.PublicRouteTableID != nil {
+			i.GetRouteTable(*i.State.PublicRouteTableID)
+		}
+		if i.State.PrivateRouteTableID != nil {
+			i.GetRouteTable(*i.State.PrivateRouteTableID)
+		}
+	}
+	return *i
+}
+
+// DeleteInfrastructure has calls added to discover and delete potential orphaned resources created
+// by CAPA. In an attempt to avoid dependency violations it works in the following order
+// Instances, Load Balancers, Route Tables, NAT gateway, Elastic IP, Internet Gateway,
+// Security Group Rules, Security Groups, Subnets, VPC.
+func (i *AWSInfrastructure) DeleteInfrastructure() {
+	instances, _ := ListClusterEC2Instances(i.Context, i.Spec.ClusterName)
+	for _, instance := range instances {
+		if instance.State.Code != aws.Int64(48) {
+			Byf("Deleting orphaned instance: %s - %v", *instance.InstanceId, TerminateInstance(i.Context, *instance.InstanceId))
+		}
+	}
+	WaitForInstanceState(i.Context, i.Spec.ClusterName, 300, "terminated")
+
+	loadbalancers, _ := ListLoadBalancers(i.Context, i.Spec.ClusterName)
+	for _, lb := range loadbalancers {
+		Byf("Deleting orphaned load balancer: %s - %v", *lb.LoadBalancerName, DeleteLoadBalancer(i.Context, *lb.LoadBalancerName))
+	}
+
+	for _, rt := range i.RouteTables {
+		for _, a := range rt.Associations {
+			Byf("Disassociating route table - %s - %v", *a.RouteTableAssociationId, DisassociateRouteTable(i.Context, *a.RouteTableAssociationId))
+		}
+		Byf("Deleting route table - %s - %v", *rt.RouteTableId, DeleteRouteTable(i.Context, *rt.RouteTableId))
+	}
+
+	if i.NatGateway != nil {
+		Byf("Deleting NAT Gateway - %s - %v", *i.NatGateway.NatGatewayId, DeleteNatGateway(i.Context, *i.NatGateway.NatGatewayId))
+		WaitForNatGatewayState(i.Context, *i.NatGateway.NatGatewayId, 180, "deleted")
+	}
+
+	if i.ElasticIP != nil {
+		Byf("Deleting Elastic IP - %s - %v", *i.ElasticIP.AllocationId, ReleaseAddress(i.Context, *i.ElasticIP.AllocationId))
+	}
+
+	if i.InternetGateway != nil {
+		Byf("Detaching Internet Gateway - %s - %v", *i.InternetGateway.InternetGatewayId, DetachInternetGateway(i.Context, *i.InternetGateway.InternetGatewayId, *i.VPC.VpcId))
+		Byf("Deleting Internet Gateway - %s - %v", *i.InternetGateway.InternetGatewayId, DeleteInternetGateway(i.Context, *i.InternetGateway.InternetGatewayId))
+	}
+
+	sgGroups, _ := GetSecurityGroupsByVPC(i.Context, *i.VPC.VpcId)
+	for _, sg := range sgGroups {
+		if *sg.GroupName != "default" {
+			sgRules, _ := ListSecurityGroupRules(i.Context, *sg.GroupId)
+			for _, sgr := range sgRules {
+				var d bool
+				if *sgr.IsEgress {
+					for d = DeleteSecurityGroupRule(i.Context, *sgr.GroupId, *sgr.SecurityGroupRuleId, "egress"); !d; {
+						d = DeleteSecurityGroupRule(i.Context, *sgr.GroupId, *sgr.SecurityGroupRuleId, "egress")
+					}
+					Byf("Deleting Egress Security Group Rule - %s - %v", *sgr.SecurityGroupRuleId, d)
+				} else {
+					for d = DeleteSecurityGroupRule(i.Context, *sgr.GroupId, *sgr.SecurityGroupRuleId, "ingress"); !d; {
+						d = DeleteSecurityGroupRule(i.Context, *sgr.GroupId, *sgr.SecurityGroupRuleId, "ingress")
+					}
+					Byf("Deleting Ingress Security Group Rule - %s - %v", *sgr.SecurityGroupRuleId, d)
+				}
+			}
+		}
+	}
+
+	sgGroups, _ = GetSecurityGroupsByVPC(i.Context, *i.VPC.VpcId)
+	for _, sg := range sgGroups {
+		if *sg.GroupName != "default" {
+			Byf("Deleting Security Group - %s - %v", *sg.GroupId, DeleteSecurityGroup(i.Context, *sg.GroupId))
+		}
+	}
+
+	for _, subnet := range i.Subnets {
+		Byf("Deleting Subnet - %s - %v", *subnet.SubnetId, DeleteSubnet(i.Context, *subnet.SubnetId))
+	}
+
+	if i.VPC != nil {
+		Byf("Deleting VPC - %s - %v", *i.VPC.VpcId, DeleteVPC(i.Context, *i.VPC.VpcId))
+	}
+}
 
 func NewAWSSession() client.ConfigProvider {
 	By("Getting an AWS IAM session - from environment")
@@ -676,6 +988,65 @@ func ListRunningEC2(e2eCtx *E2EContext) ([]instance, error) {
 	return instances, nil
 }
 
+func ListClusterEC2Instances(e2eCtx *E2EContext, clusterName string) ([]*ec2.Instance, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	filter := &ec2.Filter{
+		Name:   aws.String("tag-key"),
+		Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/" + clusterName}),
+	}
+	input := &ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeInstances(input)
+	if err != nil {
+		return nil, err
+	}
+	instances := []*ec2.Instance{}
+	for _, r := range result.Reservations {
+		instances = append(instances, r.Instances...)
+	}
+	return instances, nil
+}
+
+func WaitForInstanceState(e2eCtx *E2EContext, clusterName string, timeout int, state string) bool {
+	t := 0
+	for t < timeout {
+		st := map[string]int{
+			"pending":       0,
+			"running":       0,
+			"shutting-down": 0,
+			"terminated":    0,
+		}
+		instances, _ := ListClusterEC2Instances(e2eCtx, clusterName)
+		for _, i := range instances {
+			iState := *i.State.Name
+			st[iState]++
+		}
+		if st[state] == len(instances) || len(instances) == 0 {
+			return true
+		}
+		time.Sleep(1 * time.Second)
+		t++
+	}
+	return false
+}
+
+func TerminateInstance(e2eCtx *E2EContext, instanceID string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.TerminateInstancesInput{
+		InstanceIds: aws.StringSlice([]string{instanceID}),
+	}
+
+	if _, err := ec2Svc.TerminateInstances(input); err != nil {
+		return false
+	}
+	return true
+}
+
 func ListVPC(e2eCtx *E2EContext) int {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
@@ -691,4 +1062,1146 @@ func ListVPC(e2eCtx *E2EContext) int {
 	}
 
 	return len(out.Vpcs)
+}
+
+func GetVPC(e2eCtx *E2EContext, vpcID string) (*ec2.Vpc, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("vpc-id"),
+		Values: aws.StringSlice([]string{vpcID}),
+	}
+
+	input := &ec2.DescribeVpcsInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeVpcs(input)
+	if err != nil {
+		return nil, err
+	}
+	if result.Vpcs == nil {
+		return nil, nil
+	}
+	return result.Vpcs[0], nil
+}
+
+func GetVPCByName(e2eCtx *E2EContext, vpcName string) (*ec2.Vpc, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("tag:Name"),
+		Values: aws.StringSlice([]string{vpcName}),
+	}
+
+	input := &ec2.DescribeVpcsInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeVpcs(input)
+	if err != nil {
+		return nil, err
+	}
+	if result.Vpcs == nil || len(result.Vpcs) == 0 {
+		return nil, awserrors.NewNotFound("Vpc not found")
+	}
+	return result.Vpcs[0], nil
+}
+
+func CreateVPC(e2eCtx *E2EContext, vpcName string, cidrBlock string) (*ec2.Vpc, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.CreateVpcInput{
+		CidrBlock: aws.String(cidrBlock),
+		TagSpecifications: []*ec2.TagSpecification{
+			{
+				ResourceType: aws.String("vpc"),
+				Tags: []*ec2.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String(vpcName),
+					},
+				},
+			},
+		},
+	}
+	result, err := ec2Svc.CreateVpc(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.Vpc, nil
+}
+
+func DisassociateVpcCidrBlock(e2eCtx *E2EContext, assocID string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DisassociateVpcCidrBlockInput{
+		AssociationId: aws.String(assocID),
+	}
+
+	if _, err := ec2Svc.DisassociateVpcCidrBlock(input); err != nil {
+		return false
+	}
+	return true
+}
+
+func DeleteVPC(e2eCtx *E2EContext, vpcID string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DeleteVpcInput{
+		VpcId: aws.String(vpcID),
+	}
+	if _, err := ec2Svc.DeleteVpc(input); err != nil {
+		return false
+	}
+	return true
+}
+
+func ListVpcSubnets(e2eCtx *E2EContext, vpcID string) ([]*ec2.Subnet, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("vpc-id"),
+		Values: aws.StringSlice([]string{vpcID}),
+	}
+
+	input := &ec2.DescribeSubnetsInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeSubnets(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.Subnets, nil
+}
+
+func GetSubnet(e2eCtx *E2EContext, subnetID string) (*ec2.Subnet, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("subnet-id"),
+		Values: aws.StringSlice([]string{subnetID}),
+	}
+
+	input := &ec2.DescribeSubnetsInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeSubnets(input)
+	if err != nil {
+		return nil, err
+	}
+	if result.Subnets == nil {
+		return nil, nil
+	}
+	return result.Subnets[0], nil
+}
+
+func GetSubnetByName(e2eCtx *E2EContext, name string) (*ec2.Subnet, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("tag:Name"),
+		Values: aws.StringSlice([]string{name}),
+	}
+
+	input := &ec2.DescribeSubnetsInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeSubnets(input)
+	if err != nil {
+		return nil, err
+	}
+	if result.Subnets == nil {
+		return nil, nil
+	}
+	return result.Subnets[0], nil
+}
+
+func CreateSubnet(e2eCtx *E2EContext, clusterName string, cidrBlock string, az string, vpcID string, st string) (*ec2.Subnet, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.CreateSubnetInput{
+		CidrBlock: aws.String(cidrBlock),
+		VpcId:     aws.String(vpcID),
+		TagSpecifications: []*ec2.TagSpecification{
+			{
+				ResourceType: aws.String("subnet"),
+				Tags: []*ec2.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String(clusterName + "-subnet-" + st),
+					},
+					{
+						Key:   aws.String("kubernetes.io/cluster/" + clusterName),
+						Value: aws.String("shared"),
+					},
+				},
+			},
+		},
+	}
+
+	// Tag subnet based on type(st)
+	switch st {
+	case "private":
+		input.TagSpecifications[0].Tags = append(input.TagSpecifications[0].Tags, &ec2.Tag{
+			Key:   aws.String("kubernetes.io/role/internal-elb"),
+			Value: aws.String("1"),
+		})
+	case "public":
+		input.TagSpecifications[0].Tags = append(input.TagSpecifications[0].Tags, &ec2.Tag{
+			Key:   aws.String("kubernetes.io/role/elb"),
+			Value: aws.String("1"),
+		})
+	}
+
+	if az != "" {
+		input.AvailabilityZone = aws.String(az)
+	}
+
+	result, err := ec2Svc.CreateSubnet(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.Subnet, nil
+}
+
+func DeleteSubnet(e2eCtx *E2EContext, subnetID string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DeleteSubnetInput{
+		SubnetId: aws.String(subnetID),
+	}
+
+	if _, err := ec2Svc.DeleteSubnet(input); err != nil {
+		return false
+	}
+	return true
+}
+
+func GetAddress(e2eCtx *E2EContext, allocationID string) (*ec2.Address, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("allocation-id"),
+		Values: aws.StringSlice([]string{allocationID}),
+	}
+
+	input := &ec2.DescribeAddressesInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeAddresses(input)
+	if err != nil {
+		return nil, err
+	}
+	if result.Addresses == nil {
+		return nil, nil
+	}
+	return result.Addresses[0], nil
+}
+
+func AllocateAddress(e2eCtx *E2EContext, eipName string) (*ec2.AllocateAddressOutput, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.AllocateAddressInput{
+		Domain: aws.String("vpc"),
+		TagSpecifications: []*ec2.TagSpecification{
+			{
+				ResourceType: aws.String("elastic-ip"),
+				Tags: []*ec2.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String(eipName),
+					},
+				},
+			},
+		},
+	}
+
+	result, err := ec2Svc.AllocateAddress(input)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func DisassociateAddress(e2eCtx *E2EContext, assocID string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DisassociateAddressInput{
+		AssociationId: aws.String(assocID),
+	}
+
+	if _, err := ec2Svc.DisassociateAddress(input); err != nil {
+		return false
+	}
+	return true
+}
+
+func ReleaseAddress(e2eCtx *E2EContext, allocationID string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.ReleaseAddressInput{
+		AllocationId: aws.String(allocationID),
+	}
+
+	if _, err := ec2Svc.ReleaseAddress(input); err != nil {
+		return false
+	}
+	return true
+}
+
+func CreateNatGateway(e2eCtx *E2EContext, gatewayName string, connectType string, allocationID string, subnetID string) (*ec2.NatGateway, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.CreateNatGatewayInput{
+		SubnetId: aws.String(subnetID),
+		TagSpecifications: []*ec2.TagSpecification{
+			{
+				ResourceType: aws.String("natgateway"),
+				Tags: []*ec2.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String(gatewayName),
+					},
+				},
+			},
+		},
+	}
+
+	if connectType != "" {
+		input.ConnectivityType = aws.String(connectType)
+	}
+
+	if allocationID != "" {
+		input.AllocationId = aws.String(allocationID)
+	}
+
+	result, err := ec2Svc.CreateNatGateway(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.NatGateway, nil
+}
+
+func GetNatGateway(e2eCtx *E2EContext, gatewayID string) (*ec2.NatGateway, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("nat-gateway-id"),
+		Values: aws.StringSlice([]string{gatewayID}),
+	}
+
+	input := &ec2.DescribeNatGatewaysInput{
+		Filter: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeNatGateways(input)
+	if err != nil {
+		return nil, err
+	}
+	if result.NatGateways == nil {
+		return nil, nil
+	}
+	return result.NatGateways[0], nil
+}
+
+func DeleteNatGateway(e2eCtx *E2EContext, gatewayID string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DeleteNatGatewayInput{
+		NatGatewayId: aws.String(gatewayID),
+	}
+
+	if _, err := ec2Svc.DeleteNatGateway(input); err != nil {
+		return false
+	}
+	return true
+}
+
+func WaitForNatGatewayState(e2eCtx *E2EContext, gatewayID string, timeout int, state string) bool {
+	t := 0
+	for t < timeout {
+		gw, _ := GetNatGateway(e2eCtx, gatewayID)
+		gwState := *gw.State
+		if gwState == state {
+			return true
+		}
+		time.Sleep(1 * time.Second)
+		t++
+	}
+	return false
+}
+
+func CreateInternetGateway(e2eCtx *E2EContext, gatewayName string) (*ec2.InternetGateway, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.CreateInternetGatewayInput{
+		TagSpecifications: []*ec2.TagSpecification{
+			{
+				ResourceType: aws.String("internet-gateway"),
+				Tags: []*ec2.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String(gatewayName),
+					},
+				},
+			},
+		},
+	}
+
+	result, err := ec2Svc.CreateInternetGateway(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.InternetGateway, nil
+}
+
+func GetInternetGateway(e2eCtx *E2EContext, gatewayID string) (*ec2.InternetGateway, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("internet-gateway-id"),
+		Values: aws.StringSlice([]string{gatewayID}),
+	}
+
+	input := &ec2.DescribeInternetGatewaysInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeInternetGateways(input)
+	if err != nil {
+		return nil, err
+	}
+	if result.InternetGateways == nil {
+		return nil, nil
+	}
+	return result.InternetGateways[0], nil
+}
+
+func DeleteInternetGateway(e2eCtx *E2EContext, gatewayID string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DeleteInternetGatewayInput{
+		InternetGatewayId: aws.String(gatewayID),
+	}
+
+	if _, err := ec2Svc.DeleteInternetGateway(input); err != nil {
+		return false
+	}
+	return true
+}
+
+func AttachInternetGateway(e2eCtx *E2EContext, gatewayID string, vpcID string) (bool, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.AttachInternetGatewayInput{
+		InternetGatewayId: aws.String(gatewayID),
+		VpcId:             aws.String(vpcID),
+	}
+
+	if _, err := ec2Svc.AttachInternetGateway(input); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func DetachInternetGateway(e2eCtx *E2EContext, gatewayID string, vpcID string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DetachInternetGatewayInput{
+		InternetGatewayId: aws.String(gatewayID),
+		VpcId:             aws.String(vpcID),
+	}
+
+	if _, err := ec2Svc.DetachInternetGateway(input); err != nil {
+		return false
+	}
+	return true
+}
+
+func CreatePeering(e2eCtx *E2EContext, peerName string, vpcID string, peerVpcID string) (*ec2.VpcPeeringConnection, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.CreateVpcPeeringConnectionInput{
+		VpcId:     aws.String(vpcID),
+		PeerVpcId: aws.String(peerVpcID),
+		TagSpecifications: []*ec2.TagSpecification{
+			{
+				ResourceType: aws.String("vpc-peering-connection"),
+				Tags: []*ec2.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String(peerName),
+					},
+				},
+			},
+		},
+	}
+
+	result, err := ec2Svc.CreateVpcPeeringConnection(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.VpcPeeringConnection, nil
+}
+
+func GetPeering(e2eCtx *E2EContext, peeringID string) (*ec2.VpcPeeringConnection, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("vpc-peering-connection-id"),
+		Values: aws.StringSlice([]string{peeringID}),
+	}
+
+	input := &ec2.DescribeVpcPeeringConnectionsInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeVpcPeeringConnections(input)
+	if err != nil {
+		return nil, err
+	}
+	if result.VpcPeeringConnections == nil {
+		return nil, nil
+	}
+	return result.VpcPeeringConnections[0], nil
+}
+
+func DeletePeering(e2eCtx *E2EContext, peeringID string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DeleteVpcPeeringConnectionInput{
+		VpcPeeringConnectionId: aws.String(peeringID),
+	}
+
+	if _, err := ec2Svc.DeleteVpcPeeringConnection(input); err != nil {
+		return false
+	}
+	return true
+}
+
+func AcceptPeering(e2eCtx *E2EContext, peeringID string) (*ec2.VpcPeeringConnection, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.AcceptVpcPeeringConnectionInput{
+		VpcPeeringConnectionId: aws.String(peeringID),
+	}
+
+	result, err := ec2Svc.AcceptVpcPeeringConnection(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.VpcPeeringConnection, nil
+}
+
+func CreateRouteTable(e2eCtx *E2EContext, rtName string, vpcID string) (*ec2.RouteTable, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.CreateRouteTableInput{
+		VpcId: aws.String(vpcID),
+		TagSpecifications: []*ec2.TagSpecification{
+			{
+				ResourceType: aws.String("route-table"),
+				Tags: []*ec2.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String(rtName),
+					},
+				},
+			},
+		},
+	}
+
+	result, err := ec2Svc.CreateRouteTable(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.RouteTable, nil
+}
+
+func ListVpcRouteTables(e2eCtx *E2EContext, vpcID string) ([]*ec2.RouteTable, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("vpc-id"),
+		Values: aws.StringSlice([]string{vpcID}),
+	}
+
+	input := &ec2.DescribeRouteTablesInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeRouteTables(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.RouteTables, nil
+}
+
+func ListSubnetRouteTables(e2eCtx *E2EContext, subnetID string) ([]*ec2.RouteTable, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("association.subnet-id"),
+		Values: aws.StringSlice([]string{subnetID}),
+	}
+
+	input := &ec2.DescribeRouteTablesInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeRouteTables(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.RouteTables, nil
+}
+
+func GetRouteTable(e2eCtx *E2EContext, rtID string) (*ec2.RouteTable, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("route-table-id"),
+		Values: aws.StringSlice([]string{rtID}),
+	}
+
+	input := &ec2.DescribeRouteTablesInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeRouteTables(input)
+	if err != nil {
+		return nil, err
+	}
+	if result.RouteTables == nil {
+		return nil, nil
+	}
+	return result.RouteTables[0], nil
+}
+
+func DeleteRouteTable(e2eCtx *E2EContext, rtID string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DeleteRouteTableInput{
+		RouteTableId: aws.String(rtID),
+	}
+
+	if _, err := ec2Svc.DeleteRouteTable(input); err != nil {
+		return false
+	}
+	return true
+}
+
+func CreateRoute(e2eCtx *E2EContext, rtID string, destinationCidr string, natID *string, igwID *string, pcxID *string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.CreateRouteInput{
+		RouteTableId:         &rtID,
+		DestinationCidrBlock: aws.String(destinationCidr),
+	}
+
+	if natID != nil {
+		input.NatGatewayId = natID
+	}
+
+	if igwID != nil {
+		input.GatewayId = igwID
+	}
+
+	if pcxID != nil {
+		input.VpcPeeringConnectionId = pcxID
+	}
+
+	_, err := ec2Svc.CreateRoute(input)
+	return err == nil
+}
+
+func DeleteRoute(e2eCtx *E2EContext, rtID string, destinationCidr string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DeleteRouteInput{
+		RouteTableId:         aws.String(rtID),
+		DestinationCidrBlock: aws.String(destinationCidr),
+	}
+
+	if _, err := ec2Svc.DeleteRoute(input); err != nil {
+		return false
+	}
+	return true
+}
+
+func AssociateRouteTable(e2eCtx *E2EContext, rtID string, subnetID string) (*ec2.AssociateRouteTableOutput, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.AssociateRouteTableInput{
+		RouteTableId: aws.String(rtID),
+		SubnetId:     aws.String(subnetID),
+	}
+
+	result, err := ec2Svc.AssociateRouteTable(input)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func DisassociateRouteTable(e2eCtx *E2EContext, assocID string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DisassociateRouteTableInput{
+		AssociationId: aws.String(assocID),
+	}
+
+	if _, err := ec2Svc.DisassociateRouteTable(input); err != nil {
+		return false
+	}
+	return true
+}
+
+func CreateSecurityGroup(e2eCtx *E2EContext, sgName string, sgDescription string, vpcID string) (*ec2.CreateSecurityGroupOutput, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.CreateSecurityGroupInput{
+		VpcId:       aws.String(vpcID),
+		GroupName:   aws.String(sgName),
+		Description: aws.String(sgDescription),
+		TagSpecifications: []*ec2.TagSpecification{
+			{
+				ResourceType: aws.String("security-group"),
+				Tags: []*ec2.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String(sgName),
+					},
+				},
+			},
+		},
+	}
+
+	result, err := ec2Svc.CreateSecurityGroup(input)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func GetSecurityGroupByFilters(e2eCtx *E2EContext, filters []*ec2.Filter) ([]*ec2.SecurityGroup, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	input := &ec2.DescribeSecurityGroupsInput{
+		Filters: filters,
+	}
+	result, err := ec2Svc.DescribeSecurityGroups(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.SecurityGroups, nil
+}
+
+func GetSecurityGroup(e2eCtx *E2EContext, sgID string) (*ec2.SecurityGroup, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("group-id"),
+		Values: aws.StringSlice([]string{sgID}),
+	}
+
+	input := &ec2.DescribeSecurityGroupsInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeSecurityGroups(input)
+	if err != nil {
+		return nil, err
+	}
+	if result.SecurityGroups == nil {
+		return nil, nil
+	}
+	return result.SecurityGroups[0], nil
+}
+
+func GetSecurityGroupsByVPC(e2eCtx *E2EContext, vpcID string) ([]*ec2.SecurityGroup, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name: aws.String("vpc-id"),
+		Values: []*string{
+			aws.String(vpcID),
+		},
+	}
+
+	input := &ec2.DescribeSecurityGroupsInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeSecurityGroups(input)
+	if err != nil {
+		return nil, err
+	}
+	if result.SecurityGroups == nil {
+		return nil, nil
+	}
+	return result.SecurityGroups, nil
+}
+
+func DeleteSecurityGroup(e2eCtx *E2EContext, sgID string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DeleteSecurityGroupInput{
+		GroupId: aws.String(sgID),
+	}
+
+	if _, err := ec2Svc.DeleteSecurityGroup(input); err != nil {
+		return false
+	}
+	return true
+}
+
+func ListSecurityGroupRules(e2eCtx *E2EContext, sgID string) ([]*ec2.SecurityGroupRule, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("group-id"),
+		Values: aws.StringSlice([]string{sgID}),
+	}
+
+	input := &ec2.DescribeSecurityGroupRulesInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeSecurityGroupRules(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.SecurityGroupRules, nil
+}
+
+func GetSecurityGroupRule(e2eCtx *E2EContext, sgrID string) (*ec2.SecurityGroupRule, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	filter := &ec2.Filter{
+		Name:   aws.String("security-group-rule-id"),
+		Values: aws.StringSlice([]string{sgrID}),
+	}
+
+	input := &ec2.DescribeSecurityGroupRulesInput{
+		Filters: []*ec2.Filter{
+			filter,
+		},
+	}
+
+	result, err := ec2Svc.DescribeSecurityGroupRules(input)
+	if err != nil {
+		return nil, err
+	}
+	if result.SecurityGroupRules == nil {
+		return nil, nil
+	}
+	return result.SecurityGroupRules[0], nil
+}
+
+func CreateSecurityGroupIngressRule(e2eCtx *E2EContext, sgID string, sgrDescription string, cidr string, protocol string, fromPort int64, toPort int64) (bool, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	ipPerm := &ec2.IpPermission{
+		FromPort:   aws.Int64(fromPort),
+		ToPort:     aws.Int64(toPort),
+		IpProtocol: aws.String(protocol),
+		IpRanges: []*ec2.IpRange{
+			{
+				CidrIp:      aws.String(cidr),
+				Description: aws.String(sgrDescription),
+			},
+		},
+	}
+
+	input := &ec2.AuthorizeSecurityGroupIngressInput{
+		GroupId: aws.String(sgID),
+		IpPermissions: []*ec2.IpPermission{
+			ipPerm,
+		},
+	}
+
+	result, err := ec2Svc.AuthorizeSecurityGroupIngress(input)
+	if err != nil {
+		return false, err
+	}
+	return *result.Return, nil
+}
+
+func CreateSecurityGroupEgressRule(e2eCtx *E2EContext, sgID string, sgrDescription string, cidr string, protocol string, fromPort int64, toPort int64) (bool, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	ipPerm := &ec2.IpPermission{
+		FromPort:   aws.Int64(fromPort),
+		ToPort:     aws.Int64(toPort),
+		IpProtocol: aws.String(protocol),
+		IpRanges: []*ec2.IpRange{
+			{
+				CidrIp:      aws.String(cidr),
+				Description: aws.String(sgrDescription),
+			},
+		},
+	}
+
+	input := &ec2.AuthorizeSecurityGroupEgressInput{
+		GroupId: aws.String(sgID),
+		IpPermissions: []*ec2.IpPermission{
+			ipPerm,
+		},
+	}
+	result, err := ec2Svc.AuthorizeSecurityGroupEgress(input)
+	if err != nil {
+		return false, err
+	}
+	return *result.Return, nil
+}
+
+func CreateSecurityGroupRule(e2eCtx *E2EContext, sgID string, sgrDescription string, cidr string, protocol string, fromPort int64, toPort int64, rt string) (bool, error) {
+	switch rt {
+	case "ingress":
+		return CreateSecurityGroupIngressRule(e2eCtx, sgID, sgrDescription, cidr, protocol, fromPort, toPort)
+	case "egress":
+		return CreateSecurityGroupEgressRule(e2eCtx, sgID, sgrDescription, cidr, protocol, fromPort, toPort)
+	}
+	return false, nil
+}
+
+func CreateSecurityGroupIngressRuleWithSourceSG(e2eCtx *E2EContext, sgID string, protocol string, toPort int64, sourceSecurityGroupID string) (bool, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	ipPerm := &ec2.IpPermission{
+		FromPort:   aws.Int64(toPort),
+		ToPort:     aws.Int64(toPort),
+		IpProtocol: aws.String(protocol),
+		UserIdGroupPairs: []*ec2.UserIdGroupPair{
+			{
+				GroupId: aws.String(sourceSecurityGroupID),
+			},
+		},
+	}
+	input := &ec2.AuthorizeSecurityGroupIngressInput{
+		GroupId: aws.String(sgID),
+		IpPermissions: []*ec2.IpPermission{
+			ipPerm,
+		},
+	}
+
+	result, err := ec2Svc.AuthorizeSecurityGroupIngress(input)
+	if err != nil {
+		return false, err
+	}
+	return *result.Return, nil
+}
+
+func DeleteSecurityGroupIngressRule(e2eCtx *E2EContext, sgID, sgrID string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.RevokeSecurityGroupIngressInput{
+		SecurityGroupRuleIds: aws.StringSlice([]string{sgrID}),
+		GroupId:              aws.String(sgID),
+	}
+
+	if _, err := ec2Svc.RevokeSecurityGroupIngress(input); err != nil {
+		return false
+	}
+	return true
+}
+
+func DeleteSecurityGroupEgressRule(e2eCtx *E2EContext, sgID, sgrID string) bool {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.RevokeSecurityGroupEgressInput{
+		SecurityGroupRuleIds: aws.StringSlice([]string{sgrID}),
+		GroupId:              aws.String(sgID),
+	}
+
+	if _, err := ec2Svc.RevokeSecurityGroupEgress(input); err != nil {
+		return false
+	}
+	return true
+}
+
+func DeleteSecurityGroupRule(e2eCtx *E2EContext, sgID, sgrID, rt string) bool {
+	switch rt {
+	case "ingress":
+		return DeleteSecurityGroupIngressRule(e2eCtx, sgID, sgrID)
+	case "egress":
+		return DeleteSecurityGroupEgressRule(e2eCtx, sgID, sgrID)
+	}
+	return false
+}
+
+func ListLoadBalancers(e2eCtx *E2EContext, clusterName string) ([]*elb.LoadBalancerDescription, error) {
+	elbSvc := elb.New(e2eCtx.AWSSession)
+
+	input := &elb.DescribeLoadBalancersInput{
+		LoadBalancerNames: aws.StringSlice([]string{clusterName + "-apiserver"}),
+	}
+
+	result, err := elbSvc.DescribeLoadBalancers(input)
+	if err != nil {
+		return nil, err
+	}
+	if result.LoadBalancerDescriptions == nil {
+		return nil, nil
+	}
+	return result.LoadBalancerDescriptions, nil
+}
+
+func DeleteLoadBalancer(e2eCtx *E2EContext, loadbalancerName string) bool {
+	elbSvc := elb.New(e2eCtx.AWSSession)
+
+	input := &elb.DeleteLoadBalancerInput{
+		LoadBalancerName: aws.String(loadbalancerName),
+	}
+
+	if _, err := elbSvc.DeleteLoadBalancer(input); err != nil {
+		return false
+	}
+	return true
+}
+
+func CreateEFS(e2eCtx *E2EContext, creationToken string) (*efs.FileSystemDescription, error) {
+	efsSvc := efs.New(e2eCtx.BootstrapUserAWSSession)
+
+	input := &efs.CreateFileSystemInput{
+		CreationToken: aws.String(creationToken),
+		Encrypted:     aws.Bool(true),
+	}
+	efsOutput, err := efsSvc.CreateFileSystem(input)
+	if err != nil {
+		return nil, err
+	}
+	return efsOutput, nil
+}
+
+func DescribeEFS(e2eCtx *E2EContext, efsID string) (*efs.FileSystemDescription, error) {
+	efsSvc := efs.New(e2eCtx.BootstrapUserAWSSession)
+
+	input := &efs.DescribeFileSystemsInput{
+		FileSystemId: aws.String(efsID),
+	}
+	efsOutput, err := efsSvc.DescribeFileSystems(input)
+	if err != nil {
+		return nil, err
+	}
+	if efsOutput == nil || len(efsOutput.FileSystems) == 0 {
+		return nil, &efs.FileSystemNotFound{
+			ErrorCode: aws.String(efs.ErrCodeFileSystemNotFound),
+		}
+	}
+	return efsOutput.FileSystems[0], nil
+}
+
+func DeleteEFS(e2eCtx *E2EContext, efsID string) (*efs.DeleteFileSystemOutput, error) {
+	efsSvc := efs.New(e2eCtx.BootstrapUserAWSSession)
+
+	input := &efs.DeleteFileSystemInput{
+		FileSystemId: aws.String(efsID),
+	}
+	result, err := efsSvc.DeleteFileSystem(input)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func GetEFSState(e2eCtx *E2EContext, efsID string) (*string, error) {
+	efs, err := DescribeEFS(e2eCtx, efsID)
+	if err != nil {
+		return nil, err
+	}
+	return efs.LifeCycleState, nil
+}
+
+func CreateMountTargetOnEFS(e2eCtx *E2EContext, efsID string, vpcID string, sg string) (*efs.MountTargetDescription, error) {
+	efsSvc := efs.New(e2eCtx.BootstrapUserAWSSession)
+
+	subnets, err := ListVpcSubnets(e2eCtx, vpcID)
+	if err != nil {
+		return nil, err
+	}
+	input := &efs.CreateMountTargetInput{
+		FileSystemId:   aws.String(efsID),
+		SecurityGroups: aws.StringSlice([]string{sg}),
+		SubnetId:       subnets[0].SubnetId,
+	}
+	result, err := efsSvc.CreateMountTarget(input)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func DeleteMountTarget(e2eCtx *E2EContext, mountTargetID string) (*efs.DeleteMountTargetOutput, error) {
+	efsSvc := efs.New(e2eCtx.BootstrapUserAWSSession)
+
+	input := &efs.DeleteMountTargetInput{
+		MountTargetId: aws.String(mountTargetID),
+	}
+	result, err := efsSvc.DeleteMountTarget(input)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func GetMountTarget(e2eCtx *E2EContext, mountTargetID string) (*efs.MountTargetDescription, error) {
+	efsSvc := efs.New(e2eCtx.BootstrapUserAWSSession)
+
+	input := &efs.DescribeMountTargetsInput{
+		MountTargetId: aws.String(mountTargetID),
+	}
+	result, err := efsSvc.DescribeMountTargets(input)
+	if err != nil {
+		return nil, err
+	}
+	if result.MountTargets == nil || len(result.MountTargets) == 0 {
+		return nil, &efs.MountTargetNotFound{
+			ErrorCode: aws.String(efs.ErrCodeMountTargetNotFound),
+		}
+	}
+	return result.MountTargets[0], nil
+}
+
+func GetMountTargetState(e2eCtx *E2EContext, mountTargetID string) (*string, error) {
+	result, err := GetMountTarget(e2eCtx, mountTargetID)
+	if err != nil {
+		return nil, err
+	}
+	return result.LifeCycleState, nil
 }

@@ -45,7 +45,9 @@ type CreateKubeadmControlPlaneInput struct {
 // CreateKubeadmControlPlane creates the control plane object and necessary dependencies.
 func CreateKubeadmControlPlane(ctx context.Context, input CreateKubeadmControlPlaneInput, intervals ...interface{}) {
 	By("creating the machine template")
-	Expect(input.Creator.Create(ctx, input.MachineTemplate)).To(Succeed())
+	Eventually(func() error {
+		return input.Creator.Create(ctx, input.MachineTemplate)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
 	By("creating a KubeadmControlPlane")
 	Eventually(func() error {
@@ -69,7 +71,9 @@ type GetKubeadmControlPlaneByClusterInput struct {
 // it is necessary to ensure this is already happened before calling it.
 func GetKubeadmControlPlaneByCluster(ctx context.Context, input GetKubeadmControlPlaneByClusterInput) *controlplanev1.KubeadmControlPlane {
 	controlPlaneList := &controlplanev1.KubeadmControlPlaneList{}
-	Expect(input.Lister.List(ctx, controlPlaneList, byClusterOptions(input.ClusterName, input.Namespace)...)).To(Succeed(), "Failed to list KubeadmControlPlane object for Cluster %s/%s", input.Namespace, input.ClusterName)
+	Eventually(func() error {
+		return input.Lister.List(ctx, controlPlaneList, byClusterOptions(input.ClusterName, input.Namespace)...)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list KubeadmControlPlane object for Cluster %s/%s", input.Namespace, input.ClusterName)
 	Expect(len(controlPlaneList.Items)).ToNot(BeNumerically(">", 1), "Cluster %s/%s should not have more than 1 KubeadmControlPlane object", input.Namespace, input.ClusterName)
 	if len(controlPlaneList.Items) == 1 {
 		return &controlPlaneList.Items[0]
@@ -203,8 +207,9 @@ func AssertControlPlaneFailureDomains(ctx context.Context, input AssertControlPl
 	}
 
 	machineList := &clusterv1.MachineList{}
-	Expect(input.GetLister.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption)).
-		To(Succeed(), "Couldn't list machines for the cluster %q", input.ClusterKey.Name)
+	Eventually(func() error {
+		return input.GetLister.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Couldn't list machines for the cluster %q", input.ClusterKey.Name)
 
 	// Count all control plane machine failure domains.
 	for _, machine := range machineList.Items {
@@ -285,6 +290,7 @@ type UpgradeControlPlaneAndWaitForUpgradeInput struct {
 	Cluster                     *clusterv1.Cluster
 	ControlPlane                *controlplanev1.KubeadmControlPlane
 	KubernetesUpgradeVersion    string
+	UpgradeMachineTemplate      *string
 	EtcdImageTag                string
 	DNSImageTag                 string
 	WaitForMachinesToBeUpgraded []interface{}
@@ -310,7 +316,9 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 	Expect(err).ToNot(HaveOccurred())
 
 	input.ControlPlane.Spec.Version = input.KubernetesUpgradeVersion
-
+	if input.UpgradeMachineTemplate != nil {
+		input.ControlPlane.Spec.MachineTemplate.InfrastructureRef.Name = *input.UpgradeMachineTemplate
+	}
 	// If the ClusterConfiguration is not specified, create an empty one.
 	if input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration == nil {
 		input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration = new(bootstrapv1.ClusterConfiguration)
@@ -323,7 +331,9 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 	input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageMeta.ImageTag = input.EtcdImageTag
 	input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageMeta.ImageTag = input.DNSImageTag
 
-	Expect(patchHelper.Patch(ctx, input.ControlPlane)).To(Succeed())
+	Eventually(func() error {
+		return patchHelper.Patch(ctx, input.ControlPlane)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
 	log.Logf("Waiting for control-plane machines to have the upgraded kubernetes version")
 	WaitForControlPlaneMachinesToBeUpgraded(ctx, WaitForControlPlaneMachinesToBeUpgradedInput{
@@ -380,9 +390,12 @@ func ScaleAndWaitControlPlane(ctx context.Context, input ScaleAndWaitControlPlan
 
 	patchHelper, err := patch.NewHelper(input.ControlPlane, input.ClusterProxy.GetClient())
 	Expect(err).ToNot(HaveOccurred())
+	scaleBefore := pointer.Int32Deref(input.ControlPlane.Spec.Replicas, 0)
 	input.ControlPlane.Spec.Replicas = pointer.Int32Ptr(input.Replicas)
-	log.Logf("Scaling controlplane %s/%s from %v to %v replicas", input.ControlPlane.Namespace, input.ControlPlane.Name, input.ControlPlane.Spec.Replicas, input.Replicas)
-	Expect(patchHelper.Patch(ctx, input.ControlPlane)).To(Succeed())
+	log.Logf("Scaling controlplane %s/%s from %v to %v replicas", input.ControlPlane.Namespace, input.ControlPlane.Name, scaleBefore, input.Replicas)
+	Eventually(func() error {
+		return patchHelper.Patch(ctx, input.ControlPlane)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
 	log.Logf("Waiting for correct number of replicas to exist")
 	Eventually(func() (int, error) {

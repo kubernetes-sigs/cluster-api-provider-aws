@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -125,23 +124,33 @@ func (m *MachinePoolScope) Namespace() string {
 // GetRawBootstrapData returns the bootstrap data from the secret in the Machine's bootstrap.dataSecretName.
 // todo(rudoi): stolen from MachinePool - any way to reuse?
 func (m *MachinePoolScope) GetRawBootstrapData() ([]byte, error) {
+	data, _, err := m.getBootstrapData()
+
+	return data, err
+}
+
+func (m *MachinePoolScope) GetRawBootstrapDataWithFormat() ([]byte, string, error) {
+	return m.getBootstrapData()
+}
+
+func (m *MachinePoolScope) getBootstrapData() ([]byte, string, error) {
 	if m.MachinePool.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
-		return nil, errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
+		return nil, "", errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
 	}
 
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: m.Namespace(), Name: *m.MachinePool.Spec.Template.Spec.Bootstrap.DataSecretName}
 
 	if err := m.client.Get(context.TODO(), key, secret); err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve bootstrap data secret for AWSMachine %s/%s", m.Namespace(), m.Name())
+		return nil, "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for AWSMachine %s/%s", m.Namespace(), m.Name())
 	}
 
 	value, ok := secret.Data["value"]
 	if !ok {
-		return nil, errors.New("error retrieving bootstrap data: secret value key is missing")
+		return nil, "", errors.New("error retrieving bootstrap data: secret value key is missing")
 	}
 
-	return value, nil
+	return value, string(secret.Data["format"]), nil
 }
 
 // AdditionalTags merges AdditionalTags from the scope's AWSCluster and AWSMachinePool. If the same key is present in both,
@@ -222,12 +231,7 @@ func (m *MachinePoolScope) IsEKSManaged() bool {
 }
 
 // SubnetIDs returns the machine pool subnet IDs.
-func (m *MachinePoolScope) SubnetIDs() ([]string, error) {
-	subnetIDs := make([]string, len(m.AWSMachinePool.Spec.Subnets))
-	for i, v := range m.AWSMachinePool.Spec.Subnets {
-		subnetIDs[i] = aws.StringValue(v.ID)
-	}
-
+func (m *MachinePoolScope) SubnetIDs(subnetIDs []string) ([]string, error) {
 	strategy, err := newDefaultSubnetPlacementStrategy(&m.Logger)
 	if err != nil {
 		return subnetIDs, fmt.Errorf("getting subnet placement strategy: %w", err)

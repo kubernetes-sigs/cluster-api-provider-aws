@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,13 +17,14 @@ limitations under the License.
 package v1beta1
 
 import (
-	"reflect"
-
+	"github.com/google/go-cmp/cmp"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	"sigs.k8s.io/cluster-api-provider-aws/feature"
 )
 
 func (r *AWSMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -113,6 +114,18 @@ func (r *AWSMachineTemplate) ValidateCreate() error {
 	allErrs = append(allErrs, r.validateRootVolume()...)
 	allErrs = append(allErrs, r.validateNonRootVolumes()...)
 
+	// Feature gate is not enabled but ignition is enabled then send a forbidden error.
+	if !feature.Gates.Enabled(feature.BootstrapFormatIgnition) && spec.Ignition != nil {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "ignition"),
+			"can be set only if the BootstrapFormatIgnition feature gate is enabled"))
+	}
+
+	cloudInitConfigured := spec.CloudInit.SecureSecretsBackend != "" || spec.CloudInit.InsecureSkipSecretsManager
+	if cloudInitConfigured && spec.Ignition != nil {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "cloudInit"),
+			"cannot be set if spec.template.spec.ignition is set"))
+	}
+
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 
@@ -125,7 +138,7 @@ func (r *AWSMachineTemplate) ValidateUpdate(old runtime.Object) error {
 		r.Spec.Template.Spec.CloudInit.SecureSecretsBackend = ""
 	}
 
-	if !reflect.DeepEqual(r.Spec, oldAWSMachineTemplate.Spec) {
+	if !cmp.Equal(r.Spec, oldAWSMachineTemplate.Spec) {
 		return apierrors.NewBadRequest("AWSMachineTemplate.Spec is immutable")
 	}
 

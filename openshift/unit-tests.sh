@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 set -o errexit
@@ -14,7 +13,7 @@ fi
 
 export GOFLAGS='-mod=readonly'
 
-source ./scripts/fetch_ext_bins.sh; 
+source ./openshift/fetch_ext_bins.sh
 fetch_tools
 setup_envs
 
