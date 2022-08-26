@@ -20,8 +20,10 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
@@ -429,9 +431,36 @@ func (s *IAMService) CreateOIDCProvider(cluster *eks.Cluster) (string, error) {
 	}
 	provider, err := s.IAMClient.CreateOpenIDConnectProvider(&input)
 	if err != nil {
+		if err.(awserr.Error).Code() == iam.ErrCodeEntityAlreadyExistsException {
+			if cluster.Identity.Oidc.Issuer != nil {
+				arn, err := s.getOIDCProviderARN(*cluster.Identity.Oidc.Issuer)
+				if err != nil {
+					return "", errors.Wrap(err, "error getting provider arn")
+				}
+				return arn, nil
+			}
+		}
 		return "", errors.Wrap(err, "error creating provider")
 	}
 	return *provider.OpenIDConnectProviderArn, nil
+}
+
+func (s *IAMService) getOIDCProviderARN(issuer string) (string, error) {
+	if strings.HasPrefix(issuer, "https://") {
+		issuer = strings.TrimPrefix(issuer, "https://")
+	}
+
+	listInput := &iam.ListOpenIDConnectProvidersInput{}
+	out, err := s.IAMClient.ListOpenIDConnectProviders(listInput)
+	if err != nil {
+		return "", err
+	}
+	for _, provider := range out.OpenIDConnectProviderList {
+		if strings.Contains(*provider.Arn, issuer) {
+			return *provider.Arn, nil
+		}
+	}
+	return "", err
 }
 
 func fetchRootCAThumbprint(issuerURL string) (string, error) {
