@@ -35,21 +35,24 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/test/helpers/external"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-
-	"sigs.k8s.io/cluster-api-provider-aws/test/helpers/external"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
-	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 )
 
 const (
@@ -60,7 +63,8 @@ const (
 )
 
 var (
-	root string
+	root   string
+	scheme = runtime.NewScheme()
 )
 
 func init() {
@@ -75,9 +79,13 @@ func init() {
 	klog.SetOutput(ginkgo.GinkgoWriter)
 
 	// Calculate the scheme.
-	utilruntime.Must(apiextensionsv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(admissionv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
+	utilruntime.Must(admissionv1.AddToScheme(scheme))
+	utilruntime.Must(clusterv1.AddToScheme(scheme))
+	utilruntime.Must(expclusterv1.AddToScheme(scheme))
+	utilruntime.Must(expinfrav1.AddToScheme(scheme))
+	utilruntime.Must(infrav1.AddToScheme(scheme))
 
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint
@@ -149,6 +157,7 @@ func NewTestEnvironmentConfiguration(crdDirectoryPaths []string) *TestEnvironmen
 			CRDs: []*apiextensionsv1.CustomResourceDefinition{
 				external.TestClusterCRD.DeepCopy(),
 				external.TestMachineCRD.DeepCopy(),
+				external.TestMachinePoolCRD.DeepCopy(),
 			},
 		},
 	}
@@ -193,7 +202,7 @@ func (t *TestEnvironmentConfiguration) Build() (*TestEnvironment, error) {
 	}
 
 	options := manager.Options{
-		Scheme:             scheme.Scheme,
+		Scheme:             scheme,
 		MetricsBindAddress: "0",
 		CertDir:            t.env.WebhookInstallOptions.LocalServingCertDir,
 		Port:               t.env.WebhookInstallOptions.LocalServingPort,
@@ -230,7 +239,7 @@ func buildModifiedWebhook(tag string, relativeFilePath string) (admissionv1.Muta
 			// update the name in metadata
 			if o.GetName() == defaultMutatingWebhookName {
 				o.SetName(strings.Join([]string{defaultMutatingWebhookName, "-", tag}, ""))
-				if err := scheme.Scheme.Convert(&o, &mutatingWebhook, nil); err != nil {
+				if err := scheme.Convert(&o, &mutatingWebhook, nil); err != nil {
 					klog.Fatalf("failed to convert MutatingWebhookConfiguration %s", o.GetName())
 				}
 			}
@@ -239,7 +248,7 @@ func buildModifiedWebhook(tag string, relativeFilePath string) (admissionv1.Muta
 			// update the name in metadata
 			if o.GetName() == defaultValidatingWebhookName {
 				o.SetName(strings.Join([]string{defaultValidatingWebhookName, "-", tag}, ""))
-				if err := scheme.Scheme.Convert(&o, &validatingWebhook, nil); err != nil {
+				if err := scheme.Convert(&o, &validatingWebhook, nil); err != nil {
 					klog.Fatalf("failed to convert ValidatingWebhookConfiguration %s", o.GetName())
 				}
 			}

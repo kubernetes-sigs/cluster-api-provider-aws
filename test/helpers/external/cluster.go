@@ -35,6 +35,9 @@ var (
 
 	// TestMachineCRD will generate a test machine CustomResourceDefinition.
 	TestMachineCRD = generateTestClusterAPICRD("machine", "machines")
+
+	// TestMachinePoolCRD will generate a test machine CustomResourceDefinition.
+	TestMachinePoolCRD = generateTestClusterAPICRD("machinepool", "machinepools")
 )
 
 func generateTestClusterAPICRD(kind, pluralKind string) *apiextensionsv1.CustomResourceDefinition {

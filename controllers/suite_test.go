@@ -23,6 +23,8 @@ import (
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
+	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	// +kubebuilder:scaffold:imports
@@ -45,6 +47,8 @@ func TestMain(m *testing.M) {
 func setup() {
 	utilruntime.Must(infrav1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(expclusterv1.AddToScheme(scheme))
+	utilruntime.Must(expinfrav1.AddToScheme(scheme.Scheme))
 	testEnvConfig := helpers.NewTestEnvironmentConfiguration([]string{
 		path.Join("config", "crd", "bases"),
 	},

@@ -278,7 +278,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any()).Return(nil, nil)
 			ec2Svc.EXPECT().CreateLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 
-			mpPh, err := patch.NewHelper(awsMachinePool, testEnv)
+			mpPh, err := patch.NewHelper(ms.MachinePool, testEnv)
 			g.Expect(err).To(BeNil())
 
 			ms.MachinePoolPatchHelper = mpPh
@@ -286,8 +286,6 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				scope.ReplicasManagedByAutoscalerAnnotation: "true",
 			}
 			ms.MachinePool.Spec.Replicas = pointer.Int32(0)
-
-			g.Expect(testEnv.Create(ctx, ms.MachinePool)).To(Succeed())
 
 			_, err = reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 			g.Expect(err).To(BeNil())
@@ -381,6 +379,7 @@ func expectConditions(g *WithT, m *expinfrav1.AWSMachinePool, expected []conditi
 func setupCluster(clusterName string) (*scope.ClusterScope, error) {
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
+	_ = expclusterv1.AddToScheme(scheme)
 	awsCluster := &infrav1.AWSCluster{
 		ObjectMeta: metav1.ObjectMeta{Name: "test"},
 		Spec:       infrav1.AWSClusterSpec{},

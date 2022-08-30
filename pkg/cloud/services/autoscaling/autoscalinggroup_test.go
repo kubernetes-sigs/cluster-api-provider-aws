@@ -1043,8 +1043,8 @@ func TestServiceStartASGInstanceRefresh(t *testing.T) {
 func getFakeClient() client.Client {
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
-	_ = expinfrav1.AddToScheme(scheme)
 	_ = expclusterv1.AddToScheme(scheme)
+	_ = expinfrav1.AddToScheme(scheme)
 	return fake.NewClientBuilder().WithScheme(scheme).Build()
 }
 

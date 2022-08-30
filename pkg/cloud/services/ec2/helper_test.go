@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
 func setupClusterScope(cl client.Client) (*scope.ClusterScope, error) {
@@ -198,6 +199,9 @@ func setupScheme() (*runtime.Scheme, error) {
 		return nil, err
 	}
 	if err := infrav1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+	if err := expclusterv1.AddToScheme(scheme); err != nil {
 		return nil, err
 	}
 	if err := expinfrav1.AddToScheme(scheme); err != nil {

@@ -21,8 +21,12 @@ import (
 	"path"
 	"testing"
 
+	admissionv1 "k8s.io/api/admissionregistration/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	// +kubebuilder:scaffold:imports
@@ -30,7 +34,6 @@ import (
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -38,6 +41,7 @@ import (
 
 var (
 	testEnv *helpers.TestEnvironment
+	scheme  = runtime.NewScheme()
 	ctx     = ctrl.SetupSignalHandler()
 )
 
@@ -48,10 +52,14 @@ func TestMain(m *testing.M) {
 }
 
 func setup() {
-	utilruntime.Must(infrav1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(expinfrav1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(expclusterv1.AddToScheme(scheme.Scheme))
+	// Calculate the scheme.
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
+	utilruntime.Must(admissionv1.AddToScheme(scheme))
+	utilruntime.Must(clusterv1.AddToScheme(scheme))
+	utilruntime.Must(expclusterv1.AddToScheme(scheme))
+	utilruntime.Must(expinfrav1.AddToScheme(scheme))
+	utilruntime.Must(infrav1.AddToScheme(scheme))
 	testEnvConfig := helpers.NewTestEnvironmentConfiguration([]string{
 		path.Join("config", "crd", "bases"),
 	},
@@ -75,6 +83,9 @@ func setup() {
 	}
 	if err := (&expinfrav1.AWSManagedMachinePool{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSManagedMachinePool webhook: %v", err))
+	}
+	if err := (&expclusterv1.MachinePool{}).SetupWebhookWithManager(testEnv); err != nil {
+		panic(fmt.Sprintf("Unable to setup MachinePool webhook: %v", err))
 	}
 	go func() {
 		fmt.Println("Starting the manager")
