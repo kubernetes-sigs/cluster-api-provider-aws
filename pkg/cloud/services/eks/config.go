@@ -85,7 +85,7 @@ func (s *Service) reconcileAdditionalKubeconfigs(ctx context.Context, cluster *e
 	}
 
 	// Create the additional kubeconfig for users. This doesn't need updating on every sync
-	_, err := secret.GetFromNamespacedName(ctx, s.scope.Client, clusterRef, secret.Kubeconfig)
+	configSecret, err := secret.GetFromNamespacedName(ctx, s.scope.Client, clusterRef, secret.Kubeconfig)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return errors.Wrap(err, "failed to get kubeconfig (user) secret")
@@ -99,6 +99,8 @@ func (s *Service) reconcileAdditionalKubeconfigs(ctx context.Context, cluster *e
 		if createErr != nil {
 			return err
 		}
+	} else if updateErr := s.updateUserKubeconfigSecret(ctx, configSecret, cluster); updateErr != nil {
+		return fmt.Errorf("updating kubeconfig secret: %w", err)
 	}
 
 	return nil
@@ -224,6 +226,43 @@ func (s *Service) createUserKubeconfigSecret(ctx context.Context, cluster *eks.C
 	}
 
 	record.Eventf(s.scope.ControlPlane, "SucessfulCreateUserKubeconfig", "Created user kubeconfig for cluster %q", s.scope.Name())
+	return nil
+}
+
+func (s *Service) updateUserKubeconfigSecret(ctx context.Context, configSecret *corev1.Secret, cluster *eks.Cluster) error {
+	s.scope.V(2).Info("Updating EKS kubeconfigs for cluster", "cluster-name", s.scope.KubernetesClusterName())
+
+	data, ok := configSecret.Data[secret.KubeconfigDataName]
+	if !ok {
+		return errors.Errorf("missing key %q in secret data", secret.KubeconfigDataName)
+	}
+
+	config, err := clientcmd.Load(data)
+	if err != nil {
+		return errors.Wrap(err, "failed to convert kubeconfig Secret into a clientcmdapi.Config")
+	}
+
+	userName := s.getKubeConfigUserName(*cluster.Name, false)
+	if config.AuthInfos[userName] != nil && config.AuthInfos[userName].Exec != nil {
+		if config.AuthInfos[userName].Exec.APIVersion == "client.authentication.k8s.io/v1beta1" {
+			return nil
+		} else {
+			config.AuthInfos[userName].Exec.APIVersion = "client.authentication.k8s.io/v1beta1"
+		}
+	}
+
+	out, err := clientcmd.Write(*config)
+	if err != nil {
+		return errors.Wrap(err, "failed to serialize config to yaml")
+	}
+
+	configSecret.Data[secret.KubeconfigDataName] = out
+
+	err = s.scope.Client.Update(ctx, configSecret)
+	if err != nil {
+		return fmt.Errorf("updating kubeconfig secret: %w", err)
+	}
+
 	return nil
 }
 
