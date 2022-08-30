@@ -243,37 +243,12 @@ func (s *Service) updateUserKubeconfigSecret(ctx context.Context, configSecret *
 	}
 
 	userName := s.getKubeConfigUserName(*cluster.Name, false)
-	clusterName := s.scope.KubernetesClusterName()
-
-	if config.AuthInfos[userName].Exec != nil && config.AuthInfos[userName].Exec.APIVersion == "client.authentication.k8s.io/v1beta1" {
-		return nil
-	}
-
-	execConfig := &api.ExecConfig{APIVersion: "client.authentication.k8s.io/v1beta1"}
-	switch s.scope.TokenMethod() {
-	case ekscontrolplanev1.EKSTokenMethodIAMAuthenticator:
-		execConfig.Command = "aws-iam-authenticator"
-		execConfig.Args = []string{
-			"token",
-			"-i",
-			clusterName,
+	if config.AuthInfos[userName] != nil && config.AuthInfos[userName].Exec != nil {
+		if config.AuthInfos[userName].Exec.APIVersion == "client.authentication.k8s.io/v1beta1" {
+			return nil
+		} else {
+			config.AuthInfos[userName].Exec.APIVersion = "client.authentication.k8s.io/v1beta1"
 		}
-	case ekscontrolplanev1.EKSTokenMethodAWSCli:
-		execConfig.Command = "aws"
-		execConfig.Args = []string{
-			"eks",
-			"get-token",
-			"--cluster-name",
-			clusterName,
-		}
-	default:
-		return fmt.Errorf("using token method %s: %w", s.scope.TokenMethod(), ErrUnknownTokenMethod)
-	}
-
-	config.AuthInfos = map[string]*api.AuthInfo{
-		userName: {
-			Exec: execConfig,
-		},
 	}
 
 	out, err := clientcmd.Write(*config)
