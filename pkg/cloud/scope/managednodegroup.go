@@ -23,6 +23,10 @@ import (
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -51,6 +55,8 @@ type ManagedMachinePoolScopeParams struct {
 
 	EnableIAM            bool
 	AllowAdditionalRoles bool
+
+	InfraCluster EC2Scope
 }
 
 // NewManagedMachinePoolScope creates a new Scope from the supplied parameters.
@@ -94,6 +100,7 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 		ControlPlane:         params.ControlPlane,
 		ManagedMachinePool:   params.ManagedMachinePool,
 		MachinePool:          params.MachinePool,
+		EC2Scope:             params.InfraCluster,
 		patchHelper:          helper,
 		session:              session,
 		serviceLimiters:      serviceLimiters,
@@ -106,13 +113,14 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 // ManagedMachinePoolScope defines the basic context for an actuator to operate upon.
 type ManagedMachinePoolScope struct {
 	logr.Logger
-	Client      client.Client
+	client.Client
 	patchHelper *patch.Helper
 
 	Cluster            *clusterv1.Cluster
 	ControlPlane       *ekscontrolplanev1.AWSManagedControlPlane
 	ManagedMachinePool *expinfrav1.AWSManagedMachinePool
 	MachinePool        *expclusterv1.MachinePool
+	EC2Scope           EC2Scope
 
 	session         awsclient.ConfigProvider
 	serviceLimiters throttle.ServiceLimiters
@@ -158,11 +166,14 @@ func (s *ManagedMachinePoolScope) IdentityRef() *infrav1.AWSIdentityReference {
 // AdditionalTags returns AdditionalTags from the scope's ManagedMachinePool
 // The returned value will never be nil.
 func (s *ManagedMachinePoolScope) AdditionalTags() infrav1.Tags {
-	if s.ManagedMachinePool.Spec.AdditionalTags == nil {
-		s.ManagedMachinePool.Spec.AdditionalTags = infrav1.Tags{}
-	}
+	tags := make(infrav1.Tags)
 
-	return s.ManagedMachinePool.Spec.AdditionalTags.DeepCopy()
+	// Start with the cluster-wide tags...
+	tags.Merge(s.EC2Scope.AdditionalTags())
+	// ... and merge in the Machine's
+	tags.Merge(s.ManagedMachinePool.Spec.AdditionalTags)
+
+	return tags
 }
 
 // RoleName returns the node group role name.
@@ -280,4 +291,88 @@ func (s *ManagedMachinePoolScope) KubernetesClusterName() string {
 // NodegroupName is the name of the EKS nodegroup.
 func (s *ManagedMachinePoolScope) NodegroupName() string {
 	return s.ManagedMachinePool.Spec.EKSNodegroupName
+}
+
+func (s *ManagedMachinePoolScope) Name() string {
+	return s.ManagedMachinePool.Name
+}
+
+func (s *ManagedMachinePoolScope) Namespace() string {
+	return s.ManagedMachinePool.Namespace
+}
+
+func (s *ManagedMachinePoolScope) GetRawBootstrapData() ([]byte, error) {
+	if s.MachinePool.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
+		return nil, errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
+	}
+
+	secret := &corev1.Secret{}
+	key := types.NamespacedName{Namespace: s.Namespace(), Name: *s.MachinePool.Spec.Template.Spec.Bootstrap.DataSecretName}
+
+	if err := s.Client.Get(context.TODO(), key, secret); err != nil {
+		return nil, errors.Wrapf(err, "failed to retrieve bootstrap data secret for AWSManagedMachinePool %s/%s", s.Namespace(), s.Name())
+	}
+
+	value, ok := secret.Data["value"]
+	if !ok {
+		return nil, errors.New("error retrieving bootstrap data: secret value key is missing")
+	}
+
+	return value, nil
+}
+
+func (s *ManagedMachinePoolScope) GetObjectMeta() *metav1.ObjectMeta {
+	return &s.ManagedMachinePool.ObjectMeta
+}
+
+func (s *ManagedMachinePoolScope) GetSetter() conditions.Setter {
+	return s.ManagedMachinePool
+}
+
+func (s *ManagedMachinePoolScope) GetEC2Scope() EC2Scope {
+	return s.EC2Scope
+}
+
+func (s *ManagedMachinePoolScope) IsEKSManaged() bool {
+	return true
+}
+
+func (s *ManagedMachinePoolScope) GetLaunchTemplateIDStatus() string {
+	if s.ManagedMachinePool.Status.LaunchTemplateID != nil {
+		return *s.ManagedMachinePool.Status.LaunchTemplateID
+	} else {
+		return ""
+	}
+}
+
+func (s *ManagedMachinePoolScope) SetLaunchTemplateIDStatus(id string) {
+	s.ManagedMachinePool.Status.LaunchTemplateID = &id
+}
+
+func (s *ManagedMachinePoolScope) GetLaunchTemplateLatestVersionStatus() string {
+	if s.ManagedMachinePool.Status.LaunchTemplateVersion != nil {
+		return *s.ManagedMachinePool.Status.LaunchTemplateVersion
+	} else {
+		return ""
+	}
+}
+
+func (s *ManagedMachinePoolScope) SetLaunchTemplateLatestVersionStatus(version string) {
+	s.ManagedMachinePool.Status.LaunchTemplateVersion = &version
+}
+
+func (s *ManagedMachinePoolScope) GetLaunchTemplate() *expinfrav1.AWSLaunchTemplate {
+	return s.ManagedMachinePool.Spec.AWSLaunchTemplate
+}
+
+func (s *ManagedMachinePoolScope) GetMachinePool() *expclusterv1.MachinePool {
+	return s.MachinePool
+}
+
+func (s *ManagedMachinePoolScope) LaunchTemplateName() string {
+	return fmt.Sprintf("%s-%s", s.ControlPlane.Name, s.ManagedMachinePool.Name)
+}
+
+func (s *ManagedMachinePoolScope) GetRuntimeObject() runtime.Object {
+	return s.ManagedMachinePool
 }

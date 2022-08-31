@@ -217,7 +217,7 @@ func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
 		RemoteAccess:  remoteAccess,
 		UpdateConfig:  s.updateConfig(),
 	}
-	if managedPool.AMIType != nil {
+	if managedPool.AMIType != nil && (managedPool.AWSLaunchTemplate == nil || managedPool.AWSLaunchTemplate.AMI.ID == nil) {
 		input.AmiType = aws.String(string(*managedPool.AMIType))
 	}
 	if managedPool.DiskSize != nil {
@@ -240,6 +240,12 @@ func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
 			return nil, fmt.Errorf("converting capacity type: %w", err)
 		}
 		input.CapacityType = aws.String(capacityType)
+	}
+	if managedPool.AWSLaunchTemplate != nil {
+		input.LaunchTemplate = &eks.LaunchTemplateSpecification{
+			Id:      s.scope.ManagedMachinePool.Status.LaunchTemplateID,
+			Version: s.scope.ManagedMachinePool.Status.LaunchTemplateVersion,
+		}
 	}
 
 	if err := input.Validate(); err != nil {
@@ -325,9 +331,14 @@ func (s *NodegroupService) reconcileNodegroupVersion(ng *eks.Nodegroup) error {
 	ngVersion := version.MustParseGeneric(*ng.Version)
 	specAMI := s.scope.ManagedMachinePool.Spec.AMIVersion
 	ngAMI := *ng.ReleaseVersion
+	statusLaunchTemplateVersion := s.scope.ManagedMachinePool.Status.LaunchTemplateVersion
+	var ngLaunchTemplateVersion *string
+	if ng.LaunchTemplate != nil {
+		ngLaunchTemplateVersion = ng.LaunchTemplate.Version
+	}
 
 	eksClusterName := s.scope.KubernetesClusterName()
-	if (specVersion != nil && ngVersion.LessThan(specVersion)) || (specAMI != nil && *specAMI != ngAMI) {
+	if (specVersion != nil && ngVersion.LessThan(specVersion)) || (specAMI != nil && *specAMI != ngAMI) || (statusLaunchTemplateVersion != nil && *statusLaunchTemplateVersion != *ngLaunchTemplateVersion) {
 		input := &eks.UpdateNodegroupVersionInput{
 			ClusterName:   aws.String(eksClusterName),
 			NodegroupName: aws.String(s.scope.NodegroupName()),
@@ -335,14 +346,21 @@ func (s *NodegroupService) reconcileNodegroupVersion(ng *eks.Nodegroup) error {
 
 		var updateMsg string
 		// Either update k8s version or AMI version
-		if specVersion != nil && ngVersion.LessThan(specVersion) {
+		switch {
+		case specVersion != nil && ngVersion.LessThan(specVersion):
 			// NOTE: you can only upgrade increments of minor versions. If you want to upgrade 1.14 to 1.16 we
 			// need to go 1.14-> 1.15 and then 1.15 -> 1.16.
 			input.Version = aws.String(versionToEKS(ngVersion.WithMinor(ngVersion.Minor() + 1)))
 			updateMsg = fmt.Sprintf("to version %s", *input.Version)
-		} else if specAMI != nil && *specAMI != ngAMI {
+		case specAMI != nil && *specAMI != ngAMI:
 			input.ReleaseVersion = specAMI
 			updateMsg = fmt.Sprintf("to AMI version %s", *input.ReleaseVersion)
+		case statusLaunchTemplateVersion != nil && *statusLaunchTemplateVersion != *ngLaunchTemplateVersion:
+			input.LaunchTemplate = &eks.LaunchTemplateSpecification{
+				Id:      s.scope.ManagedMachinePool.Status.LaunchTemplateID,
+				Version: statusLaunchTemplateVersion,
+			}
+			updateMsg = fmt.Sprintf("to launch template version %s", *statusLaunchTemplateVersion)
 		}
 
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {

@@ -52,7 +52,7 @@ func (s *Service) getEKSTagParams(id string) *infrav1.BuildParams {
 	name := s.scope.KubernetesClusterName()
 
 	return &infrav1.BuildParams{
-		ClusterName: s.scope.Name(),
+		ClusterName: name,
 		ResourceID:  id,
 		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(name),

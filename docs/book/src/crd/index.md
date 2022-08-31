@@ -18283,7 +18283,7 @@ FargateProfileStatus
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.AWSLaunchTemplate">AWSLaunchTemplate
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachinePoolSpec">AWSMachinePoolSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachinePoolSpec">AWSMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>)
 </p>
 <p>
 <p>AWSLaunchTemplate defines the desired state of AWSLaunchTemplate.</p>
@@ -18956,6 +18956,18 @@ string
 </tr>
 <tr>
 <td>
+<code>launchTemplateVersion</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The version of the launch template</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>failureReason</code><br/>
 <em>
 <a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v1.0.0/errors#MachineStatusError">
@@ -19292,6 +19304,22 @@ UpdateConfig
 to the nodegroup.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>awsLaunchTemplate</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSLaunchTemplate">
+AWSLaunchTemplate
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWSLaunchTemplate specifies the launch template to use to create the managed node group.
+If AWSLaunchTemplate is specified, certain node group configuraions outside of launch template
+are prohibited (<a href="https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html">https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html</a>).</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -19557,6 +19585,22 @@ UpdateConfig
 to the nodegroup.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>awsLaunchTemplate</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSLaunchTemplate">
+AWSLaunchTemplate
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWSLaunchTemplate specifies the launch template to use to create the managed node group.
+If AWSLaunchTemplate is specified, certain node group configuraions outside of launch template
+are prohibited (<a href="https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html">https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html</a>).</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.AWSManagedMachinePoolStatus">AWSManagedMachinePoolStatus
@@ -19597,6 +19641,30 @@ int32
 <td>
 <em>(Optional)</em>
 <p>Replicas is the most recently observed number of replicas.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>launchTemplateID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The ID of the launch template</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>launchTemplateVersion</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The version of the launch template</p>
 </td>
 </tr>
 <tr>
