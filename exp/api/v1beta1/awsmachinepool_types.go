@@ -126,6 +126,10 @@ type AWSMachinePoolStatus struct {
 	// The ID of the launch template
 	LaunchTemplateID string `json:"launchTemplateID,omitempty"`
 
+	// The version of the launch template
+	// +optional
+	LaunchTemplateVersion *string `json:"launchTemplateVersion,omitempty"`
+
 	// FailureReason will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a succinct value suitable
 	// for machine interpretation.

@@ -34,6 +34,18 @@ const (
 	LaunchTemplateNotFoundReason = "LaunchTemplateNotFound"
 	// LaunchTemplateCreateFailedReason used for failures during Launch Template creation.
 	LaunchTemplateCreateFailedReason = "LaunchTemplateCreateFailed"
+	// LaunchTemplateReconcileFailedReason used for failures during Launch Template reconciliation.
+	LaunchTemplateReconcileFailedReason = "LaunchTemplateReconcileFailed"
+
+	// PreLaunchTemplateUpdateCheckCondition reports if all prerequisite are met for launch template update.
+	PreLaunchTemplateUpdateCheckCondition clusterv1.ConditionType = "PreLaunchTemplateUpdateCheckSuccess"
+	// PostLaunchTemplateUpdateOperationCondition reports on successfully completes post launch template update operation.
+	PostLaunchTemplateUpdateOperationCondition clusterv1.ConditionType = "PostLaunchTemplateUpdateOperationSuccess"
+
+	// PreLaunchTemplateUpdateCheckFailedReason used to report when not all prerequisite are met for launch template update.
+	PreLaunchTemplateUpdateCheckFailedReason = "PreLaunchTemplateUpdateCheckFailed"
+	// PostLaunchTemplateUpdateOperationFailedReason used to report when post launch template update operation failed.
+	PostLaunchTemplateUpdateOperationFailedReason = "PostLaunchTemplateUpdateOperationFailed"
 
 	// InstanceRefreshStartedCondition reports on successfully starting instance refresh.
 	InstanceRefreshStartedCondition clusterv1.ConditionType = "InstanceRefreshStarted"
