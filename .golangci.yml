@@ -46,6 +46,11 @@ linters:
     - wastedassign
     - wrapcheck
     - wsl
+    - deadcode
+    - ifshort
+    - structcheck
+    - varcheck
+    - interfacebloat
 
 linters-settings:
   # Restrict revive to exported.
@@ -56,9 +61,6 @@ linters-settings:
     rules:
       - name: exported
         severity: warning
-  ifshort:
-    # Maximum length of variable declaration measured in number of characters, after which linter won't suggest using short syntax.
-    max-decl-chars: 50
   gci:
     sections:
       - standard
