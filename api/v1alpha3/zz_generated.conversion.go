@@ -486,13 +486,13 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-<<<<<<< HEAD
 	if err := s.AddConversionFunc((*v1beta1.AWSMachineTemplate)(nil), (*AWSMachineTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_AWSMachineTemplate_To_v1alpha3_AWSMachineTemplate(a.(*v1beta1.AWSMachineTemplate), b.(*AWSMachineTemplate), scope)
-=======
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta1.IngressRule)(nil), (*IngressRule)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_IngressRule_To_v1alpha3_IngressRule(a.(*v1beta1.IngressRule), b.(*IngressRule), scope)
->>>>>>> 2db3ba36 (Adding unmanaged cluster security group reconcile)
 	}); err != nil {
 		return err
 	}

@@ -540,18 +540,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-<<<<<<< HEAD
-<<<<<<< HEAD
 	if err := s.AddConversionFunc((*v1beta1.AWSMachineTemplate)(nil), (*AWSMachineTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_AWSMachineTemplate_To_v1alpha4_AWSMachineTemplate(a.(*v1beta1.AWSMachineTemplate), b.(*AWSMachineTemplate), scope)
-=======
-=======
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta1.IngressRule)(nil), (*IngressRule)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_IngressRule_To_v1alpha4_IngressRule(a.(*v1beta1.IngressRule), b.(*IngressRule), scope)
 	}); err != nil {
 		return err
 	}
->>>>>>> 2db3ba36 (Adding unmanaged cluster security group reconcile)
 	if err := s.AddConversionFunc((*v1beta1.SubnetSpec)(nil), (*SubnetSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_SubnetSpec_To_v1alpha4_SubnetSpec(a.(*v1beta1.SubnetSpec), b.(*SubnetSpec), scope)
 	}); err != nil {
@@ -559,7 +557,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta1.VPCSpec)(nil), (*VPCSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_VPCSpec_To_v1alpha4_VPCSpec(a.(*v1beta1.VPCSpec), b.(*VPCSpec), scope)
->>>>>>> fed3f598 (Part 1 of adding ipv6 support for newly created clusters)
 	}); err != nil {
 		return err
 	}

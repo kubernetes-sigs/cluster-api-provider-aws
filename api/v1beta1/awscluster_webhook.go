@@ -185,5 +185,10 @@ func (r *AWSCluster) validateNetwork() field.ErrorList {
 	if r.Spec.NetworkSpec.VPC.IsIPv6Enabled() {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("ipv6"), r.Spec.NetworkSpec.VPC.IPv6, "IPv6 cannot be used with unmanaged clusters at this time."))
 	}
+	for _, subnet := range r.Spec.NetworkSpec.Subnets {
+		if subnet.IsIPv6 || subnet.IPv6CidrBlock != "" {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("subnets"), r.Spec.NetworkSpec.Subnets, "IPv6 cannot be used with unmanaged clusters at this time."))
+		}
+	}
 	return allErrs
 }
