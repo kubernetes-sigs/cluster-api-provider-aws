@@ -1784,6 +1784,19 @@ spec:
                           description: ID defines a unique identifier to reference
                             this resource.
                           type: string
+                        ipv6CidrBlock:
+                          description: IPv6CidrBlock is the IPv6 CIDR block to be
+                            used when the provider creates a managed VPC. A subnet
+                            can have an IPv4 and an IPv6 address. IPv6 is only supported
+                            in managed clusters, this field cannot be set on AWSCluster
+                            object.
+                          type: string
+                        isIpv6:
+                          description: IsIPv6 defines the subnet as an IPv6 subnet.
+                            A subnet is IPv6 when it is associated with a VPC that
+                            has IPv6 enabled. IPv6 is only supported in managed clusters,
+                            this field cannot be set on AWSCluster object.
+                          type: boolean
                         isPublic:
                           description: IsPublic defines the subnet as a public subnet.
                             A subnet is public when it is associated with a route
@@ -1845,6 +1858,25 @@ spec:
                         description: InternetGatewayID is the id of the internet gateway
                           associated with the VPC.
                         type: string
+                      ipv6:
+                        description: IPv6 contains ipv6 specific settings for the
+                          network. Supported only in managed clusters. This field
+                          cannot be set on AWSCluster object.
+                        properties:
+                          cidrBlock:
+                            description: CidrBlock is the CIDR block provided by Amazon
+                              when VPC has enabled IPv6.
+                            type: string
+                          egressOnlyInternetGatewayId:
+                            description: EgressOnlyInternetGatewayID is the id of
+                              the egress only internet gateway associated with an
+                              IPv6 enabled VPC.
+                            type: string
+                          poolId:
+                            description: PoolID is the IP pool which must be defined
+                              in case of BYO IP is defined.
+                            type: string
+                        type: object
                       tags:
                         additionalProperties:
                           type: string
@@ -2292,6 +2324,12 @@ spec:
                               fromPort:
                                 format: int64
                                 type: integer
+                              ipv6CidrBlocks:
+                                description: List of IPv6 CIDR blocks to allow access
+                                  from. Cannot be specified with SourceSecurityGroupID.
+                                items:
+                                  type: string
+                                type: array
                               protocol:
                                 description: SecurityGroupProtocol defines the protocol
                                   type for a security group rule.

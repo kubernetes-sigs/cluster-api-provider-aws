@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha4
 
 import (
+	"fmt"
+
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
@@ -42,6 +44,37 @@ func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.KubeProxy = restored.Spec.KubeProxy
 	dst.Spec.VpcCni = restored.Spec.VpcCni
+	if restored.Spec.NetworkSpec.VPC.IPv6 != nil {
+		if dst.Spec.NetworkSpec.VPC.IPv6 == nil {
+			dst.Spec.NetworkSpec.VPC.IPv6 = &infrav1beta1.IPv6{}
+		}
+		dst.Spec.NetworkSpec.VPC.IPv6.EgressOnlyInternetGatewayID = restored.Spec.NetworkSpec.VPC.IPv6.EgressOnlyInternetGatewayID
+		dst.Spec.NetworkSpec.VPC.IPv6.CidrBlock = restored.Spec.NetworkSpec.VPC.IPv6.CidrBlock
+		dst.Spec.NetworkSpec.VPC.IPv6.PoolID = restored.Spec.NetworkSpec.VPC.IPv6.PoolID
+	}
+
+	for i := range dst.Spec.NetworkSpec.Subnets {
+		var found bool
+		for k := range restored.Spec.NetworkSpec.Subnets {
+			if dst.Spec.NetworkSpec.Subnets[i].ID == restored.Spec.NetworkSpec.Subnets[k].ID {
+				dst.Spec.NetworkSpec.Subnets[i].IsIPv6 = restored.Spec.NetworkSpec.Subnets[i].IsIPv6
+				dst.Spec.NetworkSpec.Subnets[i].IPv6CidrBlock = restored.Spec.NetworkSpec.Subnets[i].IPv6CidrBlock
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("subnet with id %s not found amongst restored subnets", dst.Spec.NetworkSpec.Subnets[i].ID)
+		}
+	}
+
+	for k, v := range restored.Status.Network.SecurityGroups {
+		if dst.Status.Network.SecurityGroups == nil {
+			dst.Status.Network.SecurityGroups = make(map[infrav1beta1.SecurityGroupRole]infrav1beta1.SecurityGroup)
+		}
+		// This will overwrite the whole rule set... But maybe that's fine?
+		dst.Status.Network.SecurityGroups[k] = v
+	}
 
 	return nil
 }

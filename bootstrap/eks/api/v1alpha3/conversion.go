@@ -54,6 +54,7 @@ func restoreSpec(rSpec, dSpec *v1beta1.EKSConfigSpec) {
 		}
 	}
 	dSpec.UseMaxPods = rSpec.UseMaxPods
+	dSpec.ServiceIPV6Cidr = rSpec.ServiceIPV6Cidr
 }
 
 // ConvertFrom converts the v1beta1 EKSConfig receiver to a v1alpha3 EKSConfig.

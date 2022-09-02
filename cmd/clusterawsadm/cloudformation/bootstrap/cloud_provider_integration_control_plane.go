@@ -42,6 +42,7 @@ func (t Template) cloudProviderControlPlaneAwsPolicy() *iamv1.PolicyDocument {
 					"autoscaling:DescribeAutoScalingGroups",
 					"autoscaling:DescribeLaunchConfigurations",
 					"autoscaling:DescribeTags",
+					"ec2:AssignIpv6Addresses",
 					"ec2:DescribeInstances",
 					"ec2:DescribeImages",
 					"ec2:DescribeRegions",

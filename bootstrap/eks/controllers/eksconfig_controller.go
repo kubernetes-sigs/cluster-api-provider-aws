@@ -200,11 +200,20 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		nodeInput.PauseContainerAccount = &config.Spec.PauseContainer.AccountNumber
 		nodeInput.PauseContainerVersion = &config.Spec.PauseContainer.Version
 	}
-	// TODO(richardcase): uncomment when we support ipv6 / dual stack
-	/*if config.Spec.ServiceIPV6Cidr != nil && *config.Spec.ServiceIPV6Cidr != "" {
+
+	// Check if IPv6 was provided to the user configuration first
+	// If not, we also check if the cluster is ipv6 based.
+	if config.Spec.ServiceIPV6Cidr != nil && *config.Spec.ServiceIPV6Cidr != "" {
 		nodeInput.ServiceIPV6Cidr = config.Spec.ServiceIPV6Cidr
 		nodeInput.IPFamily = pointer.String("ipv6")
-	}*/
+	}
+
+	// we don't want to override any manually set configuration options.
+	if config.Spec.ServiceIPV6Cidr == nil && controlPlane.Spec.NetworkSpec.VPC.IsIPv6Enabled() {
+		log.Info("Adding ipv6 data to userdata....")
+		nodeInput.ServiceIPV6Cidr = pointer.String(controlPlane.Spec.NetworkSpec.VPC.IPv6.CidrBlock)
+		nodeInput.IPFamily = pointer.String("ipv6")
+	}
 
 	// generate userdata
 	userDataScript, err := userdata.NewNode(nodeInput)

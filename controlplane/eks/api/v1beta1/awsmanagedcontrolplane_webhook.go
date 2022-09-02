@@ -35,8 +35,10 @@ import (
 )
 
 const (
-	minAddonVersion      = "v1.18.0"
-	maxClusterNameLength = 100
+	minAddonVersion         = "v1.18.0"
+	minKubeVersionForIPv6   = "v1.21.0"
+	minVpcCniVersionForIPv6 = "1.10.2"
+	maxClusterNameLength    = 100
 )
 
 // log is for logging in this package.
@@ -80,6 +82,7 @@ func (r *AWSManagedControlPlane) ValidateCreate() error {
 		allErrs = append(allErrs, field.Required(field.NewPath("spec.eksClusterName"), "eksClusterName is required"))
 	}
 
+	// TODO: Add ipv6 validation things in these validations.
 	allErrs = append(allErrs, r.validateEKSVersion(nil)...)
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
 	allErrs = append(allErrs, r.validateIAMAuthConfig()...)
@@ -88,6 +91,7 @@ func (r *AWSManagedControlPlane) ValidateCreate() error {
 	allErrs = append(allErrs, r.validateDisableVPCCNI()...)
 	allErrs = append(allErrs, r.validateKubeProxy()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
+	allErrs = append(allErrs, r.validateNetwork()...)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -154,6 +158,11 @@ func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) error {
 		)
 	}
 
+	if oldAWSManagedControlplane.Spec.NetworkSpec.VPC.IsIPv6Enabled() != r.Spec.NetworkSpec.VPC.IsIPv6Enabled() {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec", "networkSpec", "vpc", "enableIPv6"), r.Spec.NetworkSpec.VPC.IsIPv6Enabled(), "changing IP family is not allowed after it has been set"))
+	}
+
 	if len(allErrs) == 0 {
 		return nil
 	}
@@ -211,13 +220,19 @@ func (r *AWSManagedControlPlane) validateEKSVersion(old *AWSManagedControlPlane)
 		}
 	}
 
+	if r.Spec.NetworkSpec.VPC.IsIPv6Enabled() {
+		minIPv6, _ := version.ParseSemantic(minKubeVersionForIPv6)
+		if v.LessThan(minIPv6) {
+			allErrs = append(allErrs, field.Invalid(path, *r.Spec.Version, fmt.Sprintf("IPv6 requires Kubernetes %s or greater", minKubeVersionForIPv6)))
+		}
+	}
 	return allErrs
 }
 
 func (r *AWSManagedControlPlane) validateEKSAddons() field.ErrorList {
 	var allErrs field.ErrorList
 
-	if r.Spec.Addons == nil || len(*r.Spec.Addons) == 0 {
+	if !r.Spec.NetworkSpec.VPC.IsIPv6Enabled() && (r.Spec.Addons == nil || len(*r.Spec.Addons) == 0) {
 		return allErrs
 	}
 
@@ -234,6 +249,31 @@ func (r *AWSManagedControlPlane) validateEKSAddons() field.ErrorList {
 	if v.LessThan(minVersion) {
 		message := fmt.Sprintf("addons requires Kubernetes %s or greater", minAddonVersion)
 		allErrs = append(allErrs, field.Invalid(addonsPath, *r.Spec.Version, message))
+	}
+
+	// validations for IPv6:
+	// - addons have to be defined in case IPv6 is enabled
+	// - minimum version requirement for VPC-CNI using IPv6 ipFamily is 1.10.2
+	if r.Spec.NetworkSpec.VPC.IsIPv6Enabled() {
+		if r.Spec.Addons == nil || len(*r.Spec.Addons) == 0 {
+			allErrs = append(allErrs, field.Invalid(addonsPath, "", "addons are required to be set explicitly if IPv6 is enabled"))
+			return allErrs
+		}
+
+		for _, addon := range *r.Spec.Addons {
+			if addon.Name == vpcCniAddon {
+				v, err := version.ParseGeneric(addon.Version)
+				if err != nil {
+					allErrs = append(allErrs, field.Invalid(addonsPath, addon.Version, err.Error()))
+					break
+				}
+				minCniVersion, _ := version.ParseSemantic(minVpcCniVersionForIPv6)
+				if v.LessThan(minCniVersion) {
+					allErrs = append(allErrs, field.Invalid(addonsPath, addon.Version, fmt.Sprintf("vpc-cni version must be above or equal to %s for IPv6", minVpcCniVersionForIPv6)))
+					break
+				}
+			}
+		}
 	}
 
 	return allErrs
@@ -341,6 +381,17 @@ func (r *AWSManagedControlPlane) validateDisableVPCCNI() field.ErrorList {
 	if len(allErrs) == 0 {
 		return nil
 	}
+	return allErrs
+}
+
+func (r *AWSManagedControlPlane) validateNetwork() field.ErrorList {
+	var allErrs field.ErrorList
+
+	if r.Spec.NetworkSpec.VPC.IsIPv6Enabled() && r.Spec.NetworkSpec.VPC.IPv6.CidrBlock != "" && r.Spec.NetworkSpec.VPC.IPv6.PoolID == "" {
+		poolField := field.NewPath("spec", "networkSpec", "vpc", "ipv6", "poolId")
+		allErrs = append(allErrs, field.Invalid(poolField, r.Spec.NetworkSpec.VPC.IPv6.PoolID, "poolId cannot be empty if cidrBlock is set"))
+	}
+
 	return allErrs
 }
 

@@ -222,6 +222,57 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "rejects ipv6",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{
+							IPv6: &IPv6{
+								CidrBlock: "2001:2345:5678::/64",
+								PoolID:    "pool-id",
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects ipv6 enabled subnet",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						Subnets: []SubnetSpec{
+							{
+								ID:     "sub-1",
+								IsIPv6: true,
+							},
+							{
+								ID: "sub-2",
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects ipv6 cidr block for subnets",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						Subnets: []SubnetSpec{
+							{
+								ID:            "sub-1",
+								IPv6CidrBlock: "2022:1234:5678:9101::/64",
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -144,6 +144,8 @@ providers:
         targetName: "cluster-template-eks-managed-machinepool-with-launch-template-only.yaml"
       - sourcePath: "./eks/cluster-template-eks-managedmachinepool.yaml"
         targetName: "cluster-template-eks-managedmachinepool.yaml"
+      - sourcePath: "./eks/cluster-template-eks-ipv6-cluster.yaml"
+        targetName: "cluster-template-eks-ipv6-cluster.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.22.9"
@@ -157,6 +159,7 @@ variables:
   EXP_EKS_ADD_ROLES: "false"
   VPC_ADDON_VERSION: "v1.11.0-eksbuild.1"
   COREDNS_ADDON_VERSION: "v1.8.7-eksbuild.1"
+  KUBE_PROXY_ADDON_VERSION: "v1.22.6-eksbuild.1"
   CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "1.22.9"
   AUTO_CONTROLLER_IDENTITY_CREATOR: "false"
   IP_FAMILY: "IPv4"

@@ -165,6 +165,21 @@ type NetworkSpec struct {
 	SecurityGroupOverrides map[SecurityGroupRole]string `json:"securityGroupOverrides,omitempty"`
 }
 
+// IPv6 contains ipv6 specific settings for the network.
+type IPv6 struct {
+	// CidrBlock is the CIDR block provided by Amazon when VPC has enabled IPv6.
+	// +optional
+	CidrBlock string `json:"cidrBlock,omitempty"`
+
+	// PoolID is the IP pool which must be defined in case of BYO IP is defined.
+	// +optional
+	PoolID string `json:"poolId,omitempty"`
+
+	// EgressOnlyInternetGatewayID is the id of the egress only internet gateway associated with an IPv6 enabled VPC.
+	// +optional
+	EgressOnlyInternetGatewayID *string `json:"egressOnlyInternetGatewayId,omitempty"`
+}
+
 // VPCSpec configures an AWS VPC.
 type VPCSpec struct {
 	// ID is the vpc-id of the VPC this provider should use to create resources.
@@ -173,6 +188,11 @@ type VPCSpec struct {
 	// CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
 	// Defaults to 10.0.0.0/16.
 	CidrBlock string `json:"cidrBlock,omitempty"`
+
+	// IPv6 contains ipv6 specific settings for the network. Supported only in managed clusters.
+	// This field cannot be set on AWSCluster object.
+	// +optional
+	IPv6 *IPv6 `json:"ipv6,omitempty"`
 
 	// InternetGatewayID is the id of the internet gateway associated with the VPC.
 	// +optional
@@ -214,6 +234,11 @@ func (v *VPCSpec) IsManaged(clusterName string) bool {
 	return !v.IsUnmanaged(clusterName)
 }
 
+// IsIPv6Enabled returns true if the IPv6 block is defined on the network spec.
+func (v *VPCSpec) IsIPv6Enabled() bool {
+	return v.IPv6 != nil
+}
+
 // SubnetSpec configures an AWS Subnet.
 type SubnetSpec struct {
 	// ID defines a unique identifier to reference this resource.
@@ -222,12 +247,23 @@ type SubnetSpec struct {
 	// CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
 	CidrBlock string `json:"cidrBlock,omitempty"`
 
+	// IPv6CidrBlock is the IPv6 CIDR block to be used when the provider creates a managed VPC.
+	// A subnet can have an IPv4 and an IPv6 address.
+	// IPv6 is only supported in managed clusters, this field cannot be set on AWSCluster object.
+	// +optional
+	IPv6CidrBlock string `json:"ipv6CidrBlock,omitempty"`
+
 	// AvailabilityZone defines the availability zone to use for this subnet in the cluster's region.
 	AvailabilityZone string `json:"availabilityZone,omitempty"`
 
 	// IsPublic defines the subnet as a public subnet. A subnet is public when it is associated with a route table that has a route to an internet gateway.
 	// +optional
 	IsPublic bool `json:"isPublic"`
+
+	// IsIPv6 defines the subnet as an IPv6 subnet. A subnet is IPv6 when it is associated with a VPC that has IPv6 enabled.
+	// IPv6 is only supported in managed clusters, this field cannot be set on AWSCluster object.
+	// +optional
+	IsIPv6 bool `json:"isIpv6,omitempty"`
 
 	// RouteTableID is the routing table id associated with the subnet.
 	// +optional
@@ -285,7 +321,7 @@ func (s Subnets) FindByID(id string) *SubnetSpec {
 // or if they are in the same vpc and the cidr block is the same.
 func (s Subnets) FindEqual(spec *SubnetSpec) *SubnetSpec {
 	for _, x := range s {
-		if (spec.ID != "" && x.ID == spec.ID) || (spec.CidrBlock == x.CidrBlock) {
+		if (spec.ID != "" && x.ID == spec.ID) || (spec.CidrBlock == x.CidrBlock) || (spec.IPv6CidrBlock != "" && spec.IPv6CidrBlock == x.IPv6CidrBlock) {
 			return &x
 		}
 	}
@@ -436,6 +472,10 @@ type IngressRule struct {
 	// +optional
 	CidrBlocks []string `json:"cidrBlocks,omitempty"`
 
+	// List of IPv6 CIDR blocks to allow access from. Cannot be specified with SourceSecurityGroupID.
+	// +optional
+	IPv6CidrBlocks []string `json:"ipv6CidrBlocks,omitempty"`
+
 	// The security group id to allow access from. Cannot be specified with CidrBlocks.
 	// +optional
 	SourceSecurityGroupIDs []string `json:"sourceSecurityGroupIds,omitempty"`
@@ -472,6 +512,7 @@ func (i IngressRules) Difference(o IngressRules) (out IngressRules) {
 
 // Equals returns true if two IngressRule are equal.
 func (i *IngressRule) Equals(o *IngressRule) bool {
+	// ipv4
 	if len(i.CidrBlocks) != len(o.CidrBlocks) {
 		return false
 	}
@@ -481,6 +522,19 @@ func (i *IngressRule) Equals(o *IngressRule) bool {
 
 	for i, v := range i.CidrBlocks {
 		if v != o.CidrBlocks[i] {
+			return false
+		}
+	}
+	// ipv6
+	if len(i.IPv6CidrBlocks) != len(o.IPv6CidrBlocks) {
+		return false
+	}
+
+	sort.Strings(i.IPv6CidrBlocks)
+	sort.Strings(o.IPv6CidrBlocks)
+
+	for i, v := range i.IPv6CidrBlocks {
+		if v != o.IPv6CidrBlocks[i] {
 			return false
 		}
 	}

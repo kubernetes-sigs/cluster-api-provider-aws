@@ -353,9 +353,17 @@ func (s *Service) createCluster(eksClusterName string) (*eks.Cluster, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't create vpc config for cluster")
 	}
-	netConfig, err := makeKubernetesNetworkConfig(s.scope.ServiceCidrs())
-	if err != nil {
-		return nil, errors.Wrap(err, "couldn't create Kubernetes network config for cluster")
+
+	var netConfig *eks.KubernetesNetworkConfigRequest
+	if s.scope.VPC().IsIPv6Enabled() {
+		netConfig = &eks.KubernetesNetworkConfigRequest{
+			IpFamily: aws.String(eks.IpFamilyIpv6),
+		}
+	} else {
+		netConfig, err = makeKubernetesNetworkConfig(s.scope.ServiceCidrs())
+		if err != nil {
+			return nil, errors.Wrap(err, "couldn't create Kubernetes network config for cluster")
+		}
 	}
 
 	// Make sure to use the MachineScope here to get the merger of AWSCluster and AWSMachine tags
