@@ -2529,12 +2529,15 @@ spec:
                         ipv6CidrBlock:
                           description: IPv6CidrBlock is the IPv6 CIDR block to be
                             used when the provider creates a managed VPC. A subnet
-                            can have an IPv4 and an IPv6 address.
+                            can have an IPv4 and an IPv6 address. IPv6 is only supported
+                            in managed clusters, this field cannot be set on AWSCluster
+                            object.
                           type: string
                         isIpv6:
                           description: IsIPv6 defines the subnet as an IPv6 subnet.
                             A subnet is IPv6 when it is associated with a VPC that
-                            has IPv6 enabled.
+                            has IPv6 enabled. IPv6 is only supported in managed clusters,
+                            this field cannot be set on AWSCluster object.
                           type: boolean
                         isPublic:
                           description: IsPublic defines the subnet as a public subnet.
@@ -2599,7 +2602,8 @@ spec:
                         type: string
                       ipv6:
                         description: IPv6 contains ipv6 specific settings for the
-                          network.
+                          network. Supported only in managed clusters. This field
+                          cannot be set on AWSCluster object.
                         properties:
                           cidrBlock:
                             description: CidrBlock is the CIDR block provided by Amazon
