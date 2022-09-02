@@ -17,12 +17,15 @@ limitations under the License.
 package v1alpha4
 
 import (
+	"fmt"
+
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 )
 
 // ConvertTo converts the v1alpha4 AWSCluster receiver to a v1beta1 AWSCluster.
@@ -46,6 +49,37 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.S3Bucket = restored.Spec.S3Bucket
+	if restored.Spec.NetworkSpec.VPC.IPv6 != nil {
+		if dst.Spec.NetworkSpec.VPC.IPv6 == nil {
+			dst.Spec.NetworkSpec.VPC.IPv6 = &infrav1.IPv6{}
+		}
+		dst.Spec.NetworkSpec.VPC.IPv6.EgressOnlyInternetGatewayID = restored.Spec.NetworkSpec.VPC.IPv6.EgressOnlyInternetGatewayID
+		dst.Spec.NetworkSpec.VPC.IPv6.CidrBlock = restored.Spec.NetworkSpec.VPC.IPv6.CidrBlock
+		dst.Spec.NetworkSpec.VPC.IPv6.PoolID = restored.Spec.NetworkSpec.VPC.IPv6.PoolID
+	}
+
+	for i := range dst.Spec.NetworkSpec.Subnets {
+		var found bool
+		for k := range restored.Spec.NetworkSpec.Subnets {
+			if dst.Spec.NetworkSpec.Subnets[i].ID == restored.Spec.NetworkSpec.Subnets[k].ID {
+				dst.Spec.NetworkSpec.Subnets[i].IsIPv6 = restored.Spec.NetworkSpec.Subnets[i].IsIPv6
+				dst.Spec.NetworkSpec.Subnets[i].IPv6CidrBlock = restored.Spec.NetworkSpec.Subnets[i].IPv6CidrBlock
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("subnet with id %s not found amongst restored subnets", dst.Spec.NetworkSpec.Subnets[i].ID)
+		}
+	}
+
+	for k, v := range restored.Status.Network.SecurityGroups {
+		if dst.Status.Network.SecurityGroups == nil {
+			dst.Status.Network.SecurityGroups = make(map[infrav1.SecurityGroupRole]infrav1.SecurityGroup)
+		}
+		// This will overwrite the whole rule set... But maybe that's fine?
+		dst.Status.Network.SecurityGroups[k] = v
+	}
 
 	return nil
 }
@@ -99,4 +133,8 @@ func (r *AWSClusterList) ConvertFrom(srcRaw conversion.Hub) error {
 
 func Convert_v1beta1_AWSLoadBalancerSpec_To_v1alpha4_AWSLoadBalancerSpec(in *infrav1.AWSLoadBalancerSpec, out *AWSLoadBalancerSpec, s apiconversion.Scope) error {
 	return autoConvert_v1beta1_AWSLoadBalancerSpec_To_v1alpha4_AWSLoadBalancerSpec(in, out, s)
+}
+
+func Convert_v1beta1_SubnetSpec_To_v1alpha4_SubnetSpec(in *infrav1.SubnetSpec, out *SubnetSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_SubnetSpec_To_v1alpha4_SubnetSpec(in, out, s)
 }

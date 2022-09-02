@@ -27,6 +27,8 @@ const (
 	TemporaryResourceID = "temporary-resource-id"
 	// AnyIPv4CidrBlock is the CIDR block to match all IPv4 addresses.
 	AnyIPv4CidrBlock = "0.0.0.0/0"
+	// AnyIPv6CidrBlock is the CIDR block to match all IPv6 addresses.
+	AnyIPv6CidrBlock = "::/0"
 )
 
 // ASGInterface encapsulates the methods exposed to the machinepool

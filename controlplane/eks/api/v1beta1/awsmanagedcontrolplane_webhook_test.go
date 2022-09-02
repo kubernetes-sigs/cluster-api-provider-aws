@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -359,6 +360,108 @@ func TestWebhookCreate(t *testing.T) {
 	}
 }
 
+func TestWebhookCreate_IPv6Details(t *testing.T) {
+	tests := []struct {
+		name        string
+		addons      []Addon
+		kubeVersion string
+		networkSpec infrav1.NetworkSpec
+		err         string
+	}{
+		{
+			name:        "ipv6 with lower cluster version",
+			kubeVersion: "v1.18",
+			err:         fmt.Sprintf("IPv6 requires Kubernetes %s or greater", minKubeVersionForIPv6),
+			networkSpec: infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					IPv6: &infrav1.IPv6{},
+				},
+			},
+		},
+		{
+			name:        "ipv6 no addons",
+			kubeVersion: "v1.22",
+			err:         "addons are required to be set explicitly if IPv6 is enabled",
+			networkSpec: infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					IPv6: &infrav1.IPv6{},
+				},
+			},
+		},
+		{
+			name:        "ipv6 with addons but cni version is lower than supported version",
+			kubeVersion: "v1.22",
+			addons: []Addon{
+				{
+					Name:    vpcCniAddon,
+					Version: "1.9.3",
+				},
+			},
+			err: fmt.Sprintf("vpc-cni version must be above or equal to %s for IPv6", minVpcCniVersionForIPv6),
+			networkSpec: infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					IPv6: &infrav1.IPv6{},
+				},
+			},
+		},
+		{
+			name:        "ipv6 with addons and correct cni and cluster version",
+			kubeVersion: "v1.22",
+			addons: []Addon{
+				{
+					Name:    vpcCniAddon,
+					Version: "1.11.0",
+				},
+			},
+			networkSpec: infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					IPv6: &infrav1.IPv6{},
+				},
+			},
+		},
+		{
+			name:        "ipv6 cidr block is set but pool is left empty",
+			kubeVersion: "v1.18",
+			networkSpec: infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					IPv6: &infrav1.IPv6{
+						CidrBlock: "not-empty",
+						// PoolID is empty
+					},
+				},
+			},
+			err: "poolId cannot be empty if cidrBlock is set",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.TODO()
+			g := NewWithT(t)
+
+			mcp := &AWSManagedControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "mcp-",
+					Namespace:    "default",
+				},
+				Spec: AWSManagedControlPlaneSpec{
+					EKSClusterName: "test-cluster",
+					Addons:         &tc.addons,
+					NetworkSpec:    tc.networkSpec,
+					Version:        &tc.kubeVersion,
+				},
+			}
+			err := testEnv.Create(ctx, mcp)
+
+			if tc.err != "" {
+				g.Expect(err).To(MatchError(ContainSubstring(tc.err)))
+			} else {
+				g.Expect(err).To(BeNil())
+			}
+		})
+	}
+}
+
 func TestWebhookUpdate(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -511,6 +614,51 @@ func TestWebhookUpdate(t *testing.T) {
 					strings.Repeat("CAPI", 33): "value-3",
 					"key-4":                    strings.Repeat("CAPI", 65),
 				},
+			},
+			expectError: true,
+		},
+		{
+			name: "changing ipv6 enabled is not allowed after it has been set - false, true",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				NetworkSpec: infrav1.NetworkSpec{
+					VPC: infrav1.VPCSpec{},
+				},
+				Version: pointer.String("1.22"),
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				NetworkSpec: infrav1.NetworkSpec{
+					VPC: infrav1.VPCSpec{
+						IPv6: &infrav1.IPv6{},
+					},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "changing ipv6 enabled is not allowed after it has been set - true, false",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				NetworkSpec: infrav1.NetworkSpec{
+					VPC: infrav1.VPCSpec{
+						IPv6: &infrav1.IPv6{},
+					},
+				},
+				Addons: &[]Addon{
+					{
+						Name:    vpcCniAddon,
+						Version: "1.11.0",
+					},
+				},
+				Version: pointer.String("v1.22.0"),
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				NetworkSpec: infrav1.NetworkSpec{
+					VPC: infrav1.VPCSpec{},
+				},
+				Version: pointer.String("v1.22.0"),
 			},
 			expectError: true,
 		},
