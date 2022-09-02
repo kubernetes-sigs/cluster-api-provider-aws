@@ -2700,7 +2700,7 @@ spec:
                   version number is supplied then the latest version of Kubernetes
                   that EKS supports will be used.
                 minLength: 2
-                pattern: ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.?$
+                pattern: ^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.?(\.0|[1-9][0-9]*)?$
                 type: string
               vpcCni:
                 description: VpcCni is used to set configuration options for the VPC

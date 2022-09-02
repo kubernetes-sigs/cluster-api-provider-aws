@@ -70,15 +70,6 @@ func parseEKSVersion(raw string) (*version.Version, error) {
 	return version.MustParseGeneric(fmt.Sprintf("%d.%d", v.Major(), v.Minor())), nil
 }
 
-func normalizeVersion(raw string) (string, error) {
-	// Normalize version (i.e. remove patch, add "v" prefix) if necessary
-	eksV, err := parseEKSVersion(raw)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("v%d.%d", eksV.Major(), eksV.Minor()), nil
-}
-
 // ValidateCreate will do any extra validation when creating a AWSManagedControlPlane.
 func (r *AWSManagedControlPlane) ValidateCreate() error {
 	mcpLog.Info("AWSManagedControlPlane validate create", "name", r.Name)
@@ -374,16 +365,6 @@ func (r *AWSManagedControlPlane) Default() {
 			Kind: infrav1.ControllerIdentityKind,
 			Name: infrav1.AWSClusterControllerIdentityName,
 		}
-	}
-
-	// Normalize version (i.e. remove patch, add "v" prefix) if necessary
-	if r.Spec.Version != nil {
-		normalizedV, err := normalizeVersion(*r.Spec.Version)
-		if err != nil {
-			mcpLog.Error(err, "couldn't parse version")
-			return
-		}
-		r.Spec.Version = &normalizedV
 	}
 
 	infrav1.SetDefaults_Bastion(&r.Spec.Bastion)
