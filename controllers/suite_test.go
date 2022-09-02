@@ -47,7 +47,7 @@ func TestMain(m *testing.M) {
 func setup() {
 	utilruntime.Must(infrav1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(expclusterv1.AddToScheme(scheme))
+	utilruntime.Must(expclusterv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(expinfrav1.AddToScheme(scheme.Scheme))
 	testEnvConfig := helpers.NewTestEnvironmentConfiguration([]string{
 		path.Join("config", "crd", "bases"),
