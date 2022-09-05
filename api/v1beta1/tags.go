@@ -86,7 +86,7 @@ func (t Tags) Validate() []*field.Error {
 	const maxUserTagsAllowed = 50
 	var errs field.ErrorList
 	var userTagCount = len(t)
-	re := regexp.MustCompile(`^[a-zA-Z0-9\\s\_\.\:\=\+\-\@\/]*$`)
+	re := regexp.MustCompile(`^[a-zA-Z0-9\s\_\.\:\=\+\-\@\/]*$`)
 
 	for k, v := range t {
 		if len(k) < 1 {
