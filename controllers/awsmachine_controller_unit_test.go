@@ -119,6 +119,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 						Name: "test",
 					},
 					Spec: clusterv1.MachineSpec{
+						ClusterName: "capi-test",
 						Bootstrap: clusterv1.Bootstrap{
 							DataSecretName: pointer.StringPtr("bootstrap-data"),
 						},
@@ -149,6 +150,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				},
 				Machine: &clusterv1.Machine{
 					Spec: clusterv1.MachineSpec{
+						ClusterName: "capi-test",
 						Bootstrap: clusterv1.Bootstrap{
 							DataSecretName: pointer.StringPtr("bootstrap-data"),
 						},
@@ -1813,6 +1815,7 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 					},
 				},
 				Spec: clusterv1.MachineSpec{
+					ClusterName: "capi-test",
 					InfrastructureRef: corev1.ObjectReference{
 						Kind:       "AWSMachine",
 						Name:       "aws-machine-6",
@@ -1852,6 +1855,7 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 					Name: "aws-test-1",
 				},
 				Spec: clusterv1.MachineSpec{
+					ClusterName: "capi-test",
 					InfrastructureRef: corev1.ObjectReference{
 						Kind:       "AWSMachine",
 						Name:       "aws-machine-1",
@@ -1883,6 +1887,7 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 					Name: "aws-test-2",
 				},
 				Spec: clusterv1.MachineSpec{
+					ClusterName: "capi-test",
 					InfrastructureRef: corev1.ObjectReference{
 						Kind:       "AWSMachine",
 						Name:       "aws-machine-2",
@@ -1911,6 +1916,7 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 					Name: "aws-test-3",
 				},
 				Spec: clusterv1.MachineSpec{
+					ClusterName: "capi-test",
 					InfrastructureRef: corev1.ObjectReference{
 						Kind:       "AWSMachine",
 						Name:       "aws-machine-3",
@@ -1947,6 +1953,7 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 					Kind: "Machine",
 				},
 				Spec: clusterv1.MachineSpec{
+					ClusterName: "capi-test",
 					InfrastructureRef: corev1.ObjectReference{
 						Kind:       "Machine",
 						Name:       "aws-machine-4",
@@ -1979,6 +1986,7 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 					},
 				},
 				Spec: clusterv1.MachineSpec{
+					ClusterName: "capi-test",
 					InfrastructureRef: corev1.ObjectReference{
 						Kind:       "AWSMachine",
 						APIVersion: infrav1.GroupVersion.String(),
@@ -2152,7 +2160,14 @@ func TestAWSMachineReconciler_Reconcile(t *testing.T) {
 					},
 				}, Spec: infrav1.AWSMachineSpec{InstanceType: "test"},
 			},
-			ownerMachine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-machine"}},
+			ownerMachine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "capi-test-machine",
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName: "capi-test",
+				},
+			},
 			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"}},
 			expectError:  false,
 		},
@@ -2170,12 +2185,17 @@ func TestAWSMachineReconciler_Reconcile(t *testing.T) {
 					},
 				}, Spec: infrav1.AWSMachineSpec{InstanceType: "test"},
 			},
-			ownerMachine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{
-				Labels: map[string]string{
-					clusterv1.ClusterLabelName: "capi-test-1",
+			ownerMachine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						clusterv1.ClusterLabelName: "capi-test-1",
+					},
+					Name: "capi-test-machine", Namespace: "default",
 				},
-				Name: "capi-test-machine", Namespace: "default",
-			}},
+				Spec: clusterv1.MachineSpec{
+					ClusterName: "capi-test",
+				},
+			},
 			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"}},
 			expectError:  false,
 		},
@@ -2193,12 +2213,16 @@ func TestAWSMachineReconciler_Reconcile(t *testing.T) {
 					},
 				}, Spec: infrav1.AWSMachineSpec{InstanceType: "test"},
 			},
-			ownerMachine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{
-				Labels: map[string]string{
-					clusterv1.ClusterLabelName: "capi-test-1",
+			ownerMachine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						clusterv1.ClusterLabelName: "capi-test-1",
+					},
+					Name: "capi-test-machine", Namespace: "default",
+				}, Spec: clusterv1.MachineSpec{
+					ClusterName: "capi-test",
 				},
-				Name: "capi-test-machine", Namespace: "default",
-			}},
+			},
 			ownerCluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"},
 				Spec: clusterv1.ClusterSpec{
@@ -2221,12 +2245,17 @@ func TestAWSMachineReconciler_Reconcile(t *testing.T) {
 					},
 				}, Spec: infrav1.AWSMachineSpec{InstanceType: "test"},
 			},
-			ownerMachine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{
-				Labels: map[string]string{
-					clusterv1.ClusterLabelName: "capi-test-1",
+			ownerMachine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						clusterv1.ClusterLabelName: "capi-test-1",
+					},
+					Name: "capi-test-machine", Namespace: "default",
 				},
-				Name: "capi-test-machine", Namespace: "default",
-			}},
+				Spec: clusterv1.MachineSpec{
+					ClusterName: "capi-test",
+				},
+			},
 			ownerCluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"},
 				Spec: clusterv1.ClusterSpec{
@@ -2249,12 +2278,17 @@ func TestAWSMachineReconciler_Reconcile(t *testing.T) {
 					},
 				}, Spec: infrav1.AWSMachineSpec{InstanceType: "test"},
 			},
-			ownerMachine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{
-				Labels: map[string]string{
-					clusterv1.ClusterLabelName: "capi-test-1",
+			ownerMachine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						clusterv1.ClusterLabelName: "capi-test-1",
+					},
+					Name: "capi-test-machine", Namespace: "default",
 				},
-				Name: "capi-test-machine", Namespace: "default",
-			}},
+				Spec: clusterv1.MachineSpec{
+					ClusterName: "capi-test",
+				},
+			},
 			ownerCluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"},
 				Spec: clusterv1.ClusterSpec{

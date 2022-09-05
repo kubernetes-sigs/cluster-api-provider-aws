@@ -19,10 +19,12 @@ package helpers
 import (
 	"context"
 	"fmt"
+	"go/build"
 	"net"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	goruntime "runtime"
 	"strconv"
 	"strings"
@@ -46,7 +48,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"sigs.k8s.io/cluster-api-provider-aws/test/helpers/external"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
@@ -60,7 +61,8 @@ const (
 )
 
 var (
-	root string
+	root                   string
+	clusterAPIVersionRegex = regexp.MustCompile(`^(\W)sigs.k8s.io/cluster-api v(.+)`)
 )
 
 func init() {
@@ -142,14 +144,14 @@ func NewTestEnvironmentConfiguration(crdDirectoryPaths []string) *TestEnvironmen
 		resolvedCrdDirectoryPaths[i] = path.Join(root, p)
 	}
 
+	if capiPath := getFilePathToCAPICRDs(root); capiPath != "" {
+		resolvedCrdDirectoryPaths = append(resolvedCrdDirectoryPaths, capiPath)
+	}
+
 	return &TestEnvironmentConfiguration{
 		env: &envtest.Environment{
 			ErrorIfCRDPathMissing: true,
 			CRDDirectoryPaths:     resolvedCrdDirectoryPaths,
-			CRDs: []*apiextensionsv1.CustomResourceDefinition{
-				external.TestClusterCRD.DeepCopy(),
-				external.TestMachineCRD.DeepCopy(),
-			},
 		},
 	}
 }
@@ -277,4 +279,33 @@ func (t *TestEnvironment) WaitForWebhooks() {
 func (t *TestEnvironment) Stop() error {
 	t.cancel()
 	return t.env.Stop()
+}
+
+func getFilePathToCAPICRDs(root string) string {
+	modBits, err := os.ReadFile(filepath.Join(root, "go.mod")) //nolint:gosec
+	if err != nil {
+		return ""
+	}
+
+	var clusterAPIVersion string
+	for _, line := range strings.Split(string(modBits), "\n") {
+		matches := clusterAPIVersionRegex.FindStringSubmatch(line)
+		if len(matches) == 3 {
+			clusterAPIVersion = matches[2]
+		}
+	}
+
+	if clusterAPIVersion == "" {
+		return ""
+	}
+
+	gopath := envOr("GOPATH", build.Default.GOPATH)
+	return filepath.Join(gopath, "pkg", "mod", "sigs.k8s.io", fmt.Sprintf("cluster-api@v%s", clusterAPIVersion), "config", "crd", "bases")
+}
+
+func envOr(envKey, defaultValue string) string {
+	if value, ok := os.LookupEnv(envKey); ok {
+		return value
+	}
+	return defaultValue
 }
