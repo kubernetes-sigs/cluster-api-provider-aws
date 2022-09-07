@@ -16,14 +16,80 @@ limitations under the License.
 
 package v1beta1
 
-// Hub marks EKSConfig as a conversion hub.
-func (*EKSConfig) Hub() {}
+import (
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
-// Hub marks EKSConfigList as a conversion hub.
-func (*EKSConfigList) Hub() {}
+	"sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta2"
+)
 
-// Hub marks EKSConfigTemplate as a conversion hub.
-func (*EKSConfigTemplate) Hub() {}
+// ConvertTo converts the v1beta1 EKSConfig receiver to a v1beta2 EKSConfig.
+func (r *EKSConfig) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1beta2.EKSConfig)
 
-// Hub marks EKSConfigTemplateList as a conversion hub.
-func (*EKSConfigTemplateList) Hub() {}
+	if err := Convert_v1beta1_EKSConfig_To_v1beta2_EKSConfig(r, dst, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ConvertFrom converts the v1beta2 EKSConfig receiver to a v1beta1 EKSConfig.
+func (r *EKSConfig) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1beta2.EKSConfig)
+
+	if err := Convert_v1beta2_EKSConfig_To_v1beta1_EKSConfig(src, r, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ConvertTo converts the v1beta1 EKSConfigList receiver to a v1beta2 EKSConfigList.
+func (r *EKSConfigList) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1beta2.EKSConfigList)
+
+	return Convert_v1beta1_EKSConfigList_To_v1beta2_EKSConfigList(r, dst, nil)
+}
+
+// ConvertFrom converts the v1beta2 EKSConfigList receiver to a v1beta1 EKSConfigList.
+func (r *EKSConfigList) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1beta2.EKSConfigList)
+
+	return Convert_v1beta2_EKSConfigList_To_v1beta1_EKSConfigList(src, r, nil)
+}
+
+// ConvertTo converts the v1beta1 EKSConfigTemplate receiver to a v1beta2 EKSConfigTemplate.
+func (r *EKSConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1beta2.EKSConfigTemplate)
+
+	if err := Convert_v1beta1_EKSConfigTemplate_To_v1beta2_EKSConfigTemplate(r, dst, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ConvertFrom converts the v1beta2 EKSConfigTemplate receiver to a v1beta1 EKSConfigTemplate.
+func (r *EKSConfigTemplate) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1beta2.EKSConfigTemplate)
+
+	if err := Convert_v1beta2_EKSConfigTemplate_To_v1beta1_EKSConfigTemplate(src, r, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ConvertTo converts the v1beta1 EKSConfigTemplateList receiver to a v1beta2 EKSConfigTemplateList.
+func (r *EKSConfigTemplateList) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1beta2.EKSConfigTemplateList)
+
+	return Convert_v1beta1_EKSConfigTemplateList_To_v1beta2_EKSConfigTemplateList(r, dst, nil)
+}
+
+// ConvertFrom converts the v1beta2 EKSConfigTemplateList receiver to a v1beta1 EKSConfigTemplateList.
+func (r *EKSConfigTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1beta2.EKSConfigTemplateList)
+
+	return Convert_v1beta2_EKSConfigTemplateList_To_v1beta1_EKSConfigTemplateList(src, r, nil)
+}

@@ -235,7 +235,6 @@ type AWSManagedMachinePoolStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=awsmanagedmachinepools,scope=Namespaced,categories=cluster-api,shortName=awsmmp
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="MachinePool ready status"
 // +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".status.replicas",description="Number of replicas"
