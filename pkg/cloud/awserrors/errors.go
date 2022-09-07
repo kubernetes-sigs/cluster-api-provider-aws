@@ -50,6 +50,7 @@ const (
 	SubnetNotFound                          = "InvalidSubnetID.NotFound"
 	UnrecognizedClientException             = "UnrecognizedClientException"
 	VPCNotFound                             = "InvalidVpcID.NotFound"
+	VPCMissingParameter                     = "MissingParameter"
 	ErrCodeRepositoryAlreadyExistsException = "RepositoryAlreadyExistsException"
 )
 
