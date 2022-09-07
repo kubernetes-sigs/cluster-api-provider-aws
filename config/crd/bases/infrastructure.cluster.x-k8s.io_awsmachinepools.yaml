@@ -61,11 +61,8 @@ spec:
             description: AWSMachinePoolSpec defines the desired state of AWSMachinePool
             properties:
               additionalTags:
-                additionalProperties:
-                  type: string
                 description: AdditionalTags is an optional set of tags to add to an
                   instance, in addition to the ones added by default by the AWS provider.
-                type: object
               availabilityZones:
                 description: AvailabilityZones is an array of availability zones instances
                   can run in
@@ -81,76 +78,11 @@ spec:
                       to security groups that should be applied to the instances.
                       These security groups would be set in addition to any security
                       groups defined at the cluster level or in the actuator.
-                    items:
-                      description: AWSResourceReference is a reference to a specific
-                        AWS resource by ID, ARN, or filters. Only one of ID, ARN or
-                        Filters may be specified. Specifying more than one will result
-                        in a validation error.
-                      properties:
-                        arn:
-                          description: ARN of resource
-                          type: string
-                        filters:
-                          description: 'Filters is a set of key/value pairs used to
-                            identify a resource They are applied according to the
-                            rules defined by the AWS API: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html'
-                          items:
-                            description: Filter is a filter used to identify an AWS
-                              resource
-                            properties:
-                              name:
-                                description: Name of the filter. Filter names are
-                                  case-sensitive.
-                                type: string
-                              values:
-                                description: Values includes one or more filter values.
-                                  Filter values are case-sensitive.
-                                items:
-                                  type: string
-                                type: array
-                            required:
-                            - name
-                            - values
-                            type: object
-                          type: array
-                        id:
-                          description: ID of resource
-                          type: string
-                      type: object
+                    items: {}
                     type: array
                   ami:
                     description: AMI is the reference to the AMI from which to create
                       the machine instance.
-                    properties:
-                      arn:
-                        description: ARN of resource
-                        type: string
-                      filters:
-                        description: 'Filters is a set of key/value pairs used to
-                          identify a resource They are applied according to the rules
-                          defined by the AWS API: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html'
-                        items:
-                          description: Filter is a filter used to identify an AWS
-                            resource
-                          properties:
-                            name:
-                              description: Name of the filter. Filter names are case-sensitive.
-                              type: string
-                            values:
-                              description: Values includes one or more filter values.
-                                Filter values are case-sensitive.
-                              items:
-                                type: string
-                              type: array
-                          required:
-                          - name
-                          - values
-                          type: object
-                        type: array
-                      id:
-                        description: ID of resource
-                        type: string
-                    type: object
                   iamInstanceProfile:
                     description: The name or the Amazon Resource Name (ARN) of the
                       instance profile associated with the IAM role for the instance.
@@ -187,40 +119,6 @@ spec:
                   rootVolume:
                     description: RootVolume encapsulates the configuration options
                       for the root volume
-                    properties:
-                      deviceName:
-                        description: Device name
-                        type: string
-                      encrypted:
-                        description: Encrypted is whether the volume should be encrypted
-                          or not.
-                        type: boolean
-                      encryptionKey:
-                        description: EncryptionKey is the KMS key to use to encrypt
-                          the volume. Can be either a KMS key ID or ARN. If Encrypted
-                          is set and this is omitted, the default AWS key will be
-                          used. The key must already exist and be accessible by the
-                          controller.
-                        type: string
-                      iops:
-                        description: IOPS is the number of IOPS requested for the
-                          disk. Not applicable to all types.
-                        format: int64
-                        type: integer
-                      size:
-                        description: Size specifies size (in Gi) of the storage device.
-                          Must be greater than the image snapshot size or 8 (whichever
-                          is greater).
-                        format: int64
-                        minimum: 8
-                        type: integer
-                      type:
-                        description: Type is the type of the volume (e.g. gp2, io1,
-                          etc...).
-                        type: string
-                    required:
-                    - size
-                    type: object
                   sshKeyName:
                     description: SSHKeyName is the name of the ssh key to attach to
                       the instance. Valid values are empty string (do not use SSH
@@ -339,40 +237,7 @@ spec:
                 type: object
               subnets:
                 description: Subnets is an array of subnet configurations
-                items:
-                  description: AWSResourceReference is a reference to a specific AWS
-                    resource by ID, ARN, or filters. Only one of ID, ARN or Filters
-                    may be specified. Specifying more than one will result in a validation
-                    error.
-                  properties:
-                    arn:
-                      description: ARN of resource
-                      type: string
-                    filters:
-                      description: 'Filters is a set of key/value pairs used to identify
-                        a resource They are applied according to the rules defined
-                        by the AWS API: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html'
-                      items:
-                        description: Filter is a filter used to identify an AWS resource
-                        properties:
-                          name:
-                            description: Name of the filter. Filter names are case-sensitive.
-                            type: string
-                          values:
-                            description: Values includes one or more filter values.
-                              Filter values are case-sensitive.
-                            items:
-                              type: string
-                            type: array
-                        required:
-                        - name
-                        - values
-                        type: object
-                      type: array
-                    id:
-                      description: ID of resource
-                      type: string
-                  type: object
+                items: {}
                 type: array
             required:
             - awsLaunchTemplate
@@ -535,11 +400,8 @@ spec:
             description: AWSMachinePoolSpec defines the desired state of AWSMachinePool
             properties:
               additionalTags:
-                additionalProperties:
-                  type: string
                 description: AdditionalTags is an optional set of tags to add to an
                   instance, in addition to the ones added by default by the AWS provider.
-                type: object
               availabilityZones:
                 description: AvailabilityZones is an array of availability zones instances
                   can run in
@@ -555,58 +417,11 @@ spec:
                       to security groups that should be applied to the instances.
                       These security groups would be set in addition to any security
                       groups defined at the cluster level or in the actuator.
-                    items:
-                      description: AWSResourceReference is a reference to a specific
-                        AWS resource by ID, ARN, or filters. Only one of ID, ARN or
-                        Filters may be specified. Specifying more than one will result
-                        in a validation error.
-                      properties:
-                        arn:
-                          description: ARN of resource
-                          type: string
-                        filters:
-                          description: 'Filters is a set of key/value pairs used to
-                            identify a resource They are applied according to the
-                            rules defined by the AWS API: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html'
-                          items:
-                            description: Filter is a filter used to identify an AWS
-                              resource
-                            properties:
-                              name:
-                                description: Name of the filter. Filter names are
-                                  case-sensitive.
-                                type: string
-                              values:
-                                description: Values includes one or more filter values.
-                                  Filter values are case-sensitive.
-                                items:
-                                  type: string
-                                type: array
-                            required:
-                            - name
-                            - values
-                            type: object
-                          type: array
-                        id:
-                          description: ID of resource
-                          type: string
-                      type: object
+                    items: {}
                     type: array
                   ami:
                     description: AMI is the reference to the AMI from which to create
                       the machine instance.
-                    properties:
-                      eksLookupType:
-                        description: EKSOptimizedLookupType If specified, will look
-                          up an EKS Optimized image in SSM Parameter store
-                        enum:
-                        - AmazonLinux
-                        - AmazonLinuxGPU
-                        type: string
-                      id:
-                        description: ID of resource
-                        type: string
-                    type: object
                   iamInstanceProfile:
                     description: The name or the Amazon Resource Name (ARN) of the
                       instance profile associated with the IAM role for the instance.
@@ -643,45 +458,6 @@ spec:
                   rootVolume:
                     description: RootVolume encapsulates the configuration options
                       for the root volume
-                    properties:
-                      deviceName:
-                        description: Device name
-                        type: string
-                      encrypted:
-                        description: Encrypted is whether the volume should be encrypted
-                          or not.
-                        type: boolean
-                      encryptionKey:
-                        description: EncryptionKey is the KMS key to use to encrypt
-                          the volume. Can be either a KMS key ID or ARN. If Encrypted
-                          is set and this is omitted, the default AWS key will be
-                          used. The key must already exist and be accessible by the
-                          controller.
-                        type: string
-                      iops:
-                        description: IOPS is the number of IOPS requested for the
-                          disk. Not applicable to all types.
-                        format: int64
-                        type: integer
-                      size:
-                        description: Size specifies size (in Gi) of the storage device.
-                          Must be greater than the image snapshot size or 8 (whichever
-                          is greater).
-                        format: int64
-                        minimum: 8
-                        type: integer
-                      throughput:
-                        description: Throughput to provision in MiB/s supported for
-                          the volume type. Not applicable to all types.
-                        format: int64
-                        type: integer
-                      type:
-                        description: Type is the type of the volume (e.g. gp2, io1,
-                          etc...).
-                        type: string
-                    required:
-                    - size
-                    type: object
                   sshKeyName:
                     description: SSHKeyName is the name of the ssh key to attach to
                       the instance. Valid values are empty string (do not use SSH
@@ -800,40 +576,7 @@ spec:
                 type: object
               subnets:
                 description: Subnets is an array of subnet configurations
-                items:
-                  description: AWSResourceReference is a reference to a specific AWS
-                    resource by ID, ARN, or filters. Only one of ID, ARN or Filters
-                    may be specified. Specifying more than one will result in a validation
-                    error.
-                  properties:
-                    arn:
-                      description: ARN of resource
-                      type: string
-                    filters:
-                      description: 'Filters is a set of key/value pairs used to identify
-                        a resource They are applied according to the rules defined
-                        by the AWS API: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html'
-                      items:
-                        description: Filter is a filter used to identify an AWS resource
-                        properties:
-                          name:
-                            description: Name of the filter. Filter names are case-sensitive.
-                            type: string
-                          values:
-                            description: Values includes one or more filter values.
-                              Filter values are case-sensitive.
-                            items:
-                              type: string
-                            type: array
-                        required:
-                        - name
-                        - values
-                        type: object
-                      type: array
-                    id:
-                      description: ID of resource
-                      type: string
-                  type: object
+                items: {}
                 type: array
             required:
             - awsLaunchTemplate
