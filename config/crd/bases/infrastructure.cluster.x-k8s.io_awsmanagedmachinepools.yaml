@@ -50,12 +50,9 @@ spec:
             description: AWSManagedMachinePoolSpec defines the desired state of AWSManagedMachinePool
             properties:
               additionalTags:
-                additionalProperties:
-                  type: string
                 description: AdditionalTags is an optional set of tags to add to AWS
                   resources managed by the AWS provider, in addition to the ones added
                   by default.
-                type: object
               amiType:
                 default: AL2_x86_64
                 description: AMIType defines the AMI type
@@ -272,12 +269,9 @@ spec:
             description: AWSManagedMachinePoolSpec defines the desired state of AWSManagedMachinePool
             properties:
               additionalTags:
-                additionalProperties:
-                  type: string
                 description: AdditionalTags is an optional set of tags to add to AWS
                   resources managed by the AWS provider, in addition to the ones added
                   by default.
-                type: object
               amiType:
                 default: AL2_x86_64
                 description: AMIType defines the AMI type

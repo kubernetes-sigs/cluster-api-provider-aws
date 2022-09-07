@@ -92,8 +92,6 @@ spec:
                       description: ControlPlane determines if this failure domain
                         is suitable for use by control plane machines.
                       type: boolean
-                  required:
-                  - controlPlane
                   type: object
                 description: FailureDomains specifies a list fo available availability
                   zones that can be used

@@ -53,12 +53,9 @@ spec:
             description: FargateProfileSpec defines the desired state of FargateProfile
             properties:
               additionalTags:
-                additionalProperties:
-                  type: string
                 description: AdditionalTags is an optional set of tags to add to AWS
                   resources managed by the AWS provider, in addition to the ones added
                   by default.
-                type: object
               clusterName:
                 description: ClusterName is the name of the Cluster this object belongs
                   to.
@@ -225,12 +222,9 @@ spec:
             description: FargateProfileSpec defines the desired state of FargateProfile
             properties:
               additionalTags:
-                additionalProperties:
-                  type: string
                 description: AdditionalTags is an optional set of tags to add to AWS
                   resources managed by the AWS provider, in addition to the ones added
                   by default.
-                type: object
               clusterName:
                 description: ClusterName is the name of the Cluster this object belongs
                   to.
