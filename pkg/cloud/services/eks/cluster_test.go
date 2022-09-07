@@ -750,7 +750,7 @@ func TestCreateIPv6Cluster(t *testing.T) {
 			IpFamily: pointer.StringPtr("ipv6"),
 		},
 		Tags: map[string]*string{
-			"kubernetes.io/cluster/": pointer.StringPtr("owned"),
+			"kubernetes.io/cluster/cluster-name": pointer.StringPtr("owned"),
 		},
 	}).Return(&eks.CreateClusterOutput{}, nil)
 	iamMock.EXPECT().GetRole(&iam.GetRoleInput{
