@@ -16,7 +16,7 @@ require (
 	github.com/go-logr/logr v1.2.3
 	github.com/gofrs/flock v0.8.1
 	github.com/golang/mock v1.6.0
-	github.com/google/go-cmp v0.5.8
+	github.com/google/go-cmp v0.5.9
 	github.com/google/goexpect v0.0.0-20210430020637-ab937bf7fd6f
 	github.com/google/gofuzz v1.2.0
 	github.com/onsi/ginkgo v1.16.5
