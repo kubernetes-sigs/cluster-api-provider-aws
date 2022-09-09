@@ -125,6 +125,6 @@ information is used by the machine controller to determine which user data forma
 
 [bucket-naming-rules]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html
 [cloud-init]: https://cloudinit.readthedocs.io/
-[flatcar]: https://www.flatcar-linux.org/docs/latest/provisioning/ignition/
+[flatcar]: https://www.flatcar.org/docs/latest/provisioning/ignition/
 [fedora-coreos]: https://docs.fedoraproject.org/en-US/fedora-coreos/producing-ign/
 [cabpk]: https://cluster-api.sigs.k8s.io/tasks/experimental-features/ignition.html
