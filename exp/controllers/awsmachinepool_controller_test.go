@@ -249,6 +249,54 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				g.Expect(errors.Cause(err)).To(MatchError(expectedErr))
 			})
 		})
+		t.Run("there's suspended processes provided during ASG creation", func(t *testing.T) {
+			setSuspendedProcesses := func(t *testing.T, g *WithT) {
+				t.Helper()
+				ms.AWSMachinePool.Spec.SuspendProcesses = []string{"process1", "process2"}
+			}
+			t.Run("it should suspend these processes", func(t *testing.T) {
+				g := NewWithT(t)
+				setup(t, g)
+				defer teardown(t, g)
+				setSuspendedProcesses(t, g)
+
+				ec2Svc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(nil, nil)
+				asgSvc.EXPECT().CreateASG(gomock.Any()).Return(&expinfrav1.AutoScalingGroup{
+					Name: "name",
+				}, nil)
+				asgSvc.EXPECT().SuspendProcesses("name", []string{"process1", "process2"}).Return(nil).AnyTimes()
+
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+				g.Expect(err).To(Succeed())
+			})
+		})
+		t.Run("there are existing processes already suspended", func(t *testing.T) {
+			setSuspendedProcesses := func(t *testing.T, g *WithT) {
+				t.Helper()
+
+				ms.AWSMachinePool.Spec.SuspendProcesses = []string{"process1", "process2"}
+			}
+			t.Run("it should suspend and resume processes that are desired to be suspended and desired to be resumed", func(t *testing.T) {
+				g := NewWithT(t)
+				setup(t, g)
+				defer teardown(t, g)
+				setSuspendedProcesses(t, g)
+
+				ec2Svc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				ec2Svc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil)
+				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(&expinfrav1.AutoScalingGroup{
+					Name:                      "name",
+					CurrentlySuspendProcesses: []string{"process1", "process3"},
+				}, nil)
+				asgSvc.EXPECT().UpdateASG(gomock.Any()).Return(nil).AnyTimes()
+				asgSvc.EXPECT().SuspendProcesses("name", []string{"process2"}).Return(nil).AnyTimes()
+				asgSvc.EXPECT().ResumeProcesses("name", []string{"process3"}).Return(nil).AnyTimes()
+
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+				g.Expect(err).To(Succeed())
+			})
+		})
 	})
 
 	t.Run("Deleting an AWSMachinePool", func(t *testing.T) {
@@ -351,7 +399,7 @@ func setupCluster(clusterName string) (*scope.ClusterScope, error) {
 	})
 }
 
-func Test_asgNeedsUpdates(t *testing.T) {
+func TestASGNeedsUpdates(t *testing.T) {
 	type args struct {
 		machinePoolScope *scope.MachinePoolScope
 		existingASG      *expinfrav1.AutoScalingGroup
@@ -511,6 +559,42 @@ func Test_asgNeedsUpdates(t *testing.T) {
 					MinSize:              0,
 					CapacityRebalance:    true,
 					MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "SuspendProcesses != asg.SuspendProcesses",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: pointer.Int32(1),
+						},
+					},
+					AWSMachinePool: &expinfrav1.AWSMachinePool{
+						Spec: expinfrav1.AWSMachinePoolSpec{
+							MaxSize:           2,
+							MinSize:           0,
+							CapacityRebalance: true,
+							MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
+								InstancesDistribution: &expinfrav1.InstancesDistribution{
+									OnDemandAllocationStrategy: expinfrav1.OnDemandAllocationStrategyPrioritized,
+								},
+								Overrides: nil,
+							},
+							SuspendProcesses: []string{"process1", "process2"},
+						},
+					},
+					Logger: logr.Discard(),
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity:           pointer.Int32(1),
+					MaxSize:                   2,
+					MinSize:                   0,
+					CapacityRebalance:         true,
+					MixedInstancesPolicy:      &expinfrav1.MixedInstancesPolicy{},
+					CurrentlySuspendProcesses: []string{"process1", "process3"},
 				},
 			},
 			want: true,

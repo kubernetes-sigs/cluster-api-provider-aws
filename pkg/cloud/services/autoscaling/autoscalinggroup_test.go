@@ -185,6 +185,27 @@ func TestServiceSDKToAutoScalingGroup(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "valid input - suspended processes",
+			input: &autoscaling.Group{
+				DesiredCapacity: aws.Int64(1234),
+				MaxSize:         aws.Int64(1234),
+				MinSize:         aws.Int64(1234),
+				SuspendedProcesses: []*autoscaling.SuspendedProcess{
+					{
+						ProcessName:      aws.String("process1"),
+						SuspensionReason: aws.String("not relevant"),
+					},
+				},
+			},
+			want: &expinfrav1.AutoScalingGroup{
+				DesiredCapacity:           aws.Int32(1234),
+				MaxSize:                   int32(1234),
+				MinSize:                   int32(1234),
+				CurrentlySuspendProcesses: []string{"process1"},
+			},
+			wantErr: false,
+		},
+		{
 			name: "valid input - all fields filled",
 			input: &autoscaling.Group{
 				AutoScalingGroupARN:  aws.String("test-id"),
