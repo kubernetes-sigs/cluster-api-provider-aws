@@ -83,6 +83,10 @@ type AWSMachinePoolSpec struct {
 	// Enable or disable the capacity rebalance autoscaling group feature
 	// +optional
 	CapacityRebalance bool `json:"capacityRebalance,omitempty"`
+
+	// SuspendProcesses defines a list of processes to suspend for the given ASG. This is constantly reconciled.
+	// If a process is removed from this list it will automatically be resumed.
+	SuspendProcesses []string `json:"suspendProcesses,omitempty"`
 }
 
 // RefreshPreferences defines the specs for instance refreshing.

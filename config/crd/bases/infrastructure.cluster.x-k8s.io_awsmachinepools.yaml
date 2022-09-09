@@ -846,6 +846,13 @@ spec:
                       type: string
                   type: object
                 type: array
+              suspendProcesses:
+                description: SuspendProcesses defines a list of processes to suspend
+                  for the given ASG. This is constantly reconciled. If a process is
+                  removed from this list it will automatically be resumed.
+                items:
+                  type: string
+                type: array
             required:
             - awsLaunchTemplate
             - maxSize

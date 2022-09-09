@@ -91,6 +91,14 @@ func (s *Service) SDKToAutoScalingGroup(v *autoscaling.Group) (*expinfrav1.AutoS
 		}
 	}
 
+	if len(v.SuspendedProcesses) > 0 {
+		currentlySuspendedProcesses := make([]string, len(v.SuspendedProcesses))
+		for i, service := range v.SuspendedProcesses {
+			currentlySuspendedProcesses[i] = aws.StringValue(service.ProcessName)
+		}
+		i.CurrentlySuspendProcesses = currentlySuspendedProcesses
+	}
+
 	return i, nil
 }
 
@@ -445,6 +453,28 @@ func (s *Service) UpdateResourceTags(resourceID *string, create, remove map[stri
 		}
 	}
 
+	return nil
+}
+
+func (s *Service) SuspendProcesses(name string, processes []string) error {
+	input := autoscaling.ScalingProcessQuery{
+		AutoScalingGroupName: aws.String(name),
+		ScalingProcesses:     aws.StringSlice(processes),
+	}
+	if _, err := s.ASGClient.SuspendProcesses(&input); err != nil {
+		return errors.Wrapf(err, "failed to suspend processes for AutoScalingGroup: %q", name)
+	}
+	return nil
+}
+
+func (s *Service) ResumeProcesses(name string, processes []string) error {
+	input := autoscaling.ScalingProcessQuery{
+		AutoScalingGroupName: aws.String(name),
+		ScalingProcesses:     aws.StringSlice(processes),
+	}
+	if _, err := s.ASGClient.ResumeProcesses(&input); err != nil {
+		return errors.Wrapf(err, "failed to resume processes for AutoScalingGroup: %q", name)
+	}
 	return nil
 }
 
