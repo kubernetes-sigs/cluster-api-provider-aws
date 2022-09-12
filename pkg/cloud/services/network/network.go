@@ -17,7 +17,7 @@ limitations under the License.
 package network
 
 import (
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/util/conditions"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"

@@ -380,9 +380,7 @@ func Convert_v1beta2_AWSFargateProfileList_To_v1beta1_AWSFargateProfileList(in *
 func autoConvert_v1beta1_AWSLaunchTemplate_To_v1beta2_AWSLaunchTemplate(in *AWSLaunchTemplate, out *v1beta2.AWSLaunchTemplate, s conversion.Scope) error {
 	out.Name = in.Name
 	out.IamInstanceProfile = in.IamInstanceProfile
-	if err := Convert_v1beta1_AMIReference_To_v1beta2_AMIReference(&in.AMI, &out.AMI, s); err != nil {
-		return err
-	}
+	out.AMI = in.AMI
 	out.ImageLookupFormat = in.ImageLookupFormat
 	out.ImageLookupOrg = in.ImageLookupOrg
 	out.ImageLookupBaseOS = in.ImageLookupBaseOS
@@ -403,18 +401,16 @@ func Convert_v1beta1_AWSLaunchTemplate_To_v1beta2_AWSLaunchTemplate(in *AWSLaunc
 func autoConvert_v1beta2_AWSLaunchTemplate_To_v1beta1_AWSLaunchTemplate(in *v1beta2.AWSLaunchTemplate, out *AWSLaunchTemplate, s conversion.Scope) error {
 	out.Name = in.Name
 	out.IamInstanceProfile = in.IamInstanceProfile
-	if err := Convert_v1beta2_AMIReference_To_v1beta1_AMIReference(&in.AMI, &out.AMI, s); err != nil {
-		return err
-	}
+	out.AMI = in.AMI
 	out.ImageLookupFormat = in.ImageLookupFormat
 	out.ImageLookupOrg = in.ImageLookupOrg
 	out.ImageLookupBaseOS = in.ImageLookupBaseOS
 	out.InstanceType = in.InstanceType
-	out.RootVolume = (*apiv1beta1.Volume)(unsafe.Pointer(in.RootVolume))
+	out.RootVolume = (*apiv1beta2.Volume)(unsafe.Pointer(in.RootVolume))
 	out.SSHKeyName = (*string)(unsafe.Pointer(in.SSHKeyName))
 	out.VersionNumber = (*int64)(unsafe.Pointer(in.VersionNumber))
-	out.AdditionalSecurityGroups = *(*[]apiv1beta1.AWSResourceReference)(unsafe.Pointer(&in.AdditionalSecurityGroups))
-	out.SpotMarketOptions = (*apiv1beta1.SpotMarketOptions)(unsafe.Pointer(in.SpotMarketOptions))
+	out.AdditionalSecurityGroups = *(*[]apiv1beta2.AWSResourceReference)(unsafe.Pointer(&in.AdditionalSecurityGroups))
+	out.SpotMarketOptions = (*apiv1beta2.SpotMarketOptions)(unsafe.Pointer(in.SpotMarketOptions))
 	return nil
 }
 
@@ -542,8 +538,8 @@ func autoConvert_v1beta2_AWSMachinePoolSpec_To_v1beta1_AWSMachinePoolSpec(in *v1
 	out.MinSize = in.MinSize
 	out.MaxSize = in.MaxSize
 	out.AvailabilityZones = *(*[]string)(unsafe.Pointer(&in.AvailabilityZones))
-	out.Subnets = *(*[]apiv1beta1.AWSResourceReference)(unsafe.Pointer(&in.Subnets))
-	out.AdditionalTags = *(*apiv1beta1.Tags)(unsafe.Pointer(&in.AdditionalTags))
+	out.Subnets = *(*[]apiv1beta2.AWSResourceReference)(unsafe.Pointer(&in.Subnets))
+	out.AdditionalTags = *(*apiv1beta2.Tags)(unsafe.Pointer(&in.AdditionalTags))
 	if err := Convert_v1beta2_AWSLaunchTemplate_To_v1beta1_AWSLaunchTemplate(&in.AWSLaunchTemplate, &out.AWSLaunchTemplate, s); err != nil {
 		return err
 	}
@@ -709,7 +705,7 @@ func autoConvert_v1beta2_AWSManagedMachinePoolSpec_To_v1beta1_AWSManagedMachineP
 	out.EKSNodegroupName = in.EKSNodegroupName
 	out.AvailabilityZones = *(*[]string)(unsafe.Pointer(&in.AvailabilityZones))
 	out.SubnetIDs = *(*[]string)(unsafe.Pointer(&in.SubnetIDs))
-	out.AdditionalTags = *(*apiv1beta1.Tags)(unsafe.Pointer(&in.AdditionalTags))
+	out.AdditionalTags = *(*apiv1beta2.Tags)(unsafe.Pointer(&in.AdditionalTags))
 	out.RoleAdditionalPolicies = *(*[]string)(unsafe.Pointer(&in.RoleAdditionalPolicies))
 	out.RoleName = in.RoleName
 	out.AMIVersion = (*string)(unsafe.Pointer(in.AMIVersion))
@@ -780,17 +776,7 @@ func autoConvert_v1beta1_AutoScalingGroup_To_v1beta2_AutoScalingGroup(in *AutoSc
 	out.CapacityRebalance = in.CapacityRebalance
 	out.MixedInstancesPolicy = (*v1beta2.MixedInstancesPolicy)(unsafe.Pointer(in.MixedInstancesPolicy))
 	out.Status = v1beta2.ASGStatus(in.Status)
-	if in.Instances != nil {
-		in, out := &in.Instances, &out.Instances
-		*out = make([]apiv1beta2.Instance, len(*in))
-		for i := range *in {
-			if err := Convert_v1beta1_Instance_To_v1beta2_Instance(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Instances = nil
-	}
+	out.Instances = *(*[]apiv1beta2.Instance)(unsafe.Pointer(&in.Instances))
 	return nil
 }
 
@@ -801,7 +787,7 @@ func Convert_v1beta1_AutoScalingGroup_To_v1beta2_AutoScalingGroup(in *AutoScalin
 
 func autoConvert_v1beta2_AutoScalingGroup_To_v1beta1_AutoScalingGroup(in *v1beta2.AutoScalingGroup, out *AutoScalingGroup, s conversion.Scope) error {
 	out.ID = in.ID
-	out.Tags = *(*apiv1beta1.Tags)(unsafe.Pointer(&in.Tags))
+	out.Tags = *(*apiv1beta2.Tags)(unsafe.Pointer(&in.Tags))
 	out.Name = in.Name
 	out.DesiredCapacity = (*int32)(unsafe.Pointer(in.DesiredCapacity))
 	out.MaxSize = in.MaxSize
@@ -812,17 +798,7 @@ func autoConvert_v1beta2_AutoScalingGroup_To_v1beta1_AutoScalingGroup(in *v1beta
 	out.CapacityRebalance = in.CapacityRebalance
 	out.MixedInstancesPolicy = (*MixedInstancesPolicy)(unsafe.Pointer(in.MixedInstancesPolicy))
 	out.Status = ASGStatus(in.Status)
-	if in.Instances != nil {
-		in, out := &in.Instances, &out.Instances
-		*out = make([]apiv1beta1.Instance, len(*in))
-		for i := range *in {
-			if err := Convert_v1beta2_Instance_To_v1beta1_Instance(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Instances = nil
-	}
+	out.Instances = *(*[]apiv1beta2.Instance)(unsafe.Pointer(&in.Instances))
 	return nil
 }
 
@@ -900,7 +876,7 @@ func autoConvert_v1beta2_FargateProfileSpec_To_v1beta1_FargateProfileSpec(in *v1
 	out.ClusterName = in.ClusterName
 	out.ProfileName = in.ProfileName
 	out.SubnetIDs = *(*[]string)(unsafe.Pointer(&in.SubnetIDs))
-	out.AdditionalTags = *(*apiv1beta1.Tags)(unsafe.Pointer(&in.AdditionalTags))
+	out.AdditionalTags = *(*apiv1beta2.Tags)(unsafe.Pointer(&in.AdditionalTags))
 	out.RoleName = in.RoleName
 	out.Selectors = *(*[]FargateSelector)(unsafe.Pointer(&in.Selectors))
 	return nil

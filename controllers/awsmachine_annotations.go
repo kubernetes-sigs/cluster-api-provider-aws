@@ -19,7 +19,7 @@ package controllers
 import (
 	"encoding/json"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
 )
 
 // updateMachineAnnotationJSON updates the `annotation` on `machine` with

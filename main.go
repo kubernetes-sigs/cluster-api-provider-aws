@@ -44,7 +44,7 @@ import (
 	ekscontrolplanev1beta1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2"
 	ekscontrolplanecontrollers "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/controllers"
-	expinfrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
+	expinfrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/exp/controlleridentitycreator"
 	expcontrollers "sigs.k8s.io/cluster-api-provider-aws/exp/controllers"
