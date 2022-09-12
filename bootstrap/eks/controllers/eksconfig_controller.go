@@ -26,6 +26,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -104,7 +105,7 @@ func (r *EKSConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		log.Error(err, "Could not get cluster with metadata")
 		return ctrl.Result{}, err
 	}
-	log = log.WithValues("cluster", cluster.Name)
+	log = log.WithValues("cluster", klog.KObj(cluster))
 
 	if annotations.IsPaused(cluster, config) {
 		log.Info("Reconciliation is paused for this object")
@@ -283,7 +284,7 @@ func (r *EKSConfigReconciler) storeBootstrapData(ctx context.Context, cluster *c
 			if err := r.createBootstrapSecret(ctx, cluster, config, data); err != nil {
 				return errors.Wrap(err, "failed to create bootstrap data secret for EKSConfig")
 			}
-			log.Info("created bootstrap data secret for EKSConfig", "secret", secret.Name)
+			log.Info("created bootstrap data secret for EKSConfig", "secret", klog.KObj(secret))
 		} else {
 			return errors.Wrap(err, "failed to get data secret for EKSConfig")
 		}
@@ -293,9 +294,9 @@ func (r *EKSConfigReconciler) storeBootstrapData(ctx context.Context, cluster *c
 			return errors.Wrap(err, "failed to update data secret for EKSConfig")
 		}
 		if updated {
-			log.Info("updated bootstrap data secret for EKSConfig", "secret", secret.Name)
+			log.Info("updated bootstrap data secret for EKSConfig", "secret", klog.KObj(secret))
 		} else {
-			log.V(4).Info("no change in bootstrap data secret for EKSConfig", "secret", secret.Name)
+			log.V(4).Info("no change in bootstrap data secret for EKSConfig", "secret", klog.KObj(secret))
 		}
 	}
 

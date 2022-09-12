@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/klog/v2/klogr"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -488,7 +488,7 @@ func TestPrincipalParsing(t *testing.T) {
 			k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 			tc.setup(t, k8sClient)
 			clusterScope.AWSCluster = &tc.awsCluster
-			providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScope, klogr.New())
+			providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScope, klog.Background())
 			if tc.expectError {
 				if err == nil {
 					t.Fatal("Expected an error but didn't get one")
