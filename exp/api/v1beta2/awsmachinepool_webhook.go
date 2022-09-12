@@ -22,14 +22,14 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
 )
 
-var log = logf.Log.WithName("awsmachinepool-resource")
+var log = ctrl.Log.WithName("awsmachinepool-resource")
 
 // SetupWebhookWithManager will setup the webhooks for the AWSMachinePool.
 func (r *AWSMachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -116,7 +116,7 @@ func (r *AWSMachinePool) validateAdditionalSecurityGroups() field.ErrorList {
 
 // ValidateCreate will do any extra validation when creating a AWSMachinePool.
 func (r *AWSMachinePool) ValidateCreate() error {
-	log.Info("AWSMachinePool validate create", "name", r.Name)
+	log.Info("AWSMachinePool validate create", "machine-pool", klog.KObj(r))
 
 	var allErrs field.ErrorList
 

@@ -24,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -32,7 +31,7 @@ import (
 )
 
 // log is for logging in this package.
-var _ = logf.Log.WithName("awscluster-resource")
+var _ = ctrl.Log.WithName("awscluster-resource")
 
 func (r *AWSCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).

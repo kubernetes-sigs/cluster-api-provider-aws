@@ -24,6 +24,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -82,7 +83,7 @@ func (r *AWSControllerIdentityReconciler) Reconcile(ctx context.Context, req ctr
 		identityRef = awsControlPlane.Spec.IdentityRef
 	}
 
-	log = log.WithValues("cluster", req.Name)
+	log = log.WithValues("cluster", klog.KObj(awsCluster))
 	if identityRef == nil {
 		log.Info("IdentityRef is nil, skipping reconciliation")
 		return ctrl.Result{Requeue: true}, nil
@@ -119,8 +120,7 @@ func (r *AWSControllerIdentityReconciler) Reconcile(ctx context.Context, req ctr
 				},
 			},
 		}
-		err := r.Create(ctx, controllerIdentity)
-		if err != nil {
+		if err := r.Create(ctx, controllerIdentity); err != nil {
 			if apierrors.IsAlreadyExists(err) {
 				return reconcile.Result{}, nil
 			}

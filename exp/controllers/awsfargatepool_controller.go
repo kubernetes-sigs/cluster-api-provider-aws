@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -89,7 +90,7 @@ func (r *AWSFargateProfileReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return reconcile.Result{}, nil
 	}
 
-	log = log.WithValues("Cluster", cluster.Name)
+	log = log.WithValues("cluster", klog.KObj(cluster))
 
 	controlPlaneKey := client.ObjectKey{
 		Namespace: fargateProfile.Namespace,

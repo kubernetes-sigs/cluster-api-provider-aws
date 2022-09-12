@@ -17,6 +17,8 @@ limitations under the License.
 package network
 
 import (
+	"k8s.io/klog/v2"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/util/conditions"
@@ -26,7 +28,7 @@ import (
 
 // ReconcileNetwork reconciles the network of the given cluster.
 func (s *Service) ReconcileNetwork() (err error) {
-	s.scope.V(2).Info("Reconciling network for cluster", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
+	s.scope.V(2).Info("Reconciling network for cluster", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
 
 	// VPC.
 	if err := s.reconcileVPC(); err != nil {

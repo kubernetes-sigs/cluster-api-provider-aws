@@ -23,6 +23,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
@@ -35,7 +36,7 @@ const (
 
 // ReconcileKubeProxy will reconcile kube-proxy.
 func (s *Service) ReconcileKubeProxy(ctx context.Context) error {
-	s.scope.Info("Reconciling kube-proxy DaemonSet in cluster", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
+	s.scope.Info("Reconciling kube-proxy DaemonSet in cluster", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
 
 	remoteClient, err := s.scope.RemoteClient()
 	if err != nil {
@@ -53,7 +54,7 @@ func (s *Service) ReconcileKubeProxy(ctx context.Context) error {
 }
 
 func (s *Service) deleteKubeProxy(ctx context.Context, remoteClient client.Client) error {
-	s.scope.Info("Ensuring the kube-proxy DaemonSet in cluster is deleted", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
+	s.scope.Info("Ensuring the kube-proxy DaemonSet in cluster is deleted", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
 
 	ds := &appsv1.DaemonSet{}
 	if err := remoteClient.Get(ctx, types.NamespacedName{Namespace: kubeProxyNamespace, Name: kubeProxyName}, ds); err != nil {

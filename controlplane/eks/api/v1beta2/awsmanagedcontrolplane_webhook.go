@@ -26,8 +26,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
@@ -42,7 +42,7 @@ const (
 )
 
 // log is for logging in this package.
-var mcpLog = logf.Log.WithName("awsmanagedcontrolplane-resource")
+var mcpLog = ctrl.Log.WithName("awsmanagedcontrolplane-resource")
 
 const (
 	cidrSizeMax    = 65536
@@ -74,7 +74,7 @@ func parseEKSVersion(raw string) (*version.Version, error) {
 
 // ValidateCreate will do any extra validation when creating a AWSManagedControlPlane.
 func (r *AWSManagedControlPlane) ValidateCreate() error {
-	mcpLog.Info("AWSManagedControlPlane validate create", "name", r.Name)
+	mcpLog.Info("AWSManagedControlPlane validate create", "control-plane", klog.KObj(r))
 
 	var allErrs field.ErrorList
 
@@ -106,7 +106,7 @@ func (r *AWSManagedControlPlane) ValidateCreate() error {
 
 // ValidateUpdate will do any extra validation when updating a AWSManagedControlPlane.
 func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) error {
-	mcpLog.Info("AWSManagedControlPlane validate update", "name", r.Name)
+	mcpLog.Info("AWSManagedControlPlane validate update", "control-plane", klog.KObj(r))
 	oldAWSManagedControlplane, ok := old.(*AWSManagedControlPlane)
 	if !ok {
 		return apierrors.NewInvalid(GroupVersion.WithKind("AWSManagedControlPlane").GroupKind(), r.Name, field.ErrorList{
@@ -176,7 +176,7 @@ func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) error {
 
 // ValidateDelete allows you to add any extra validation when deleting.
 func (r *AWSManagedControlPlane) ValidateDelete() error {
-	mcpLog.Info("AWSManagedControlPlane validate delete", "name", r.Name)
+	mcpLog.Info("AWSManagedControlPlane validate delete", "control-plane", klog.KObj(r))
 
 	return nil
 }
@@ -397,7 +397,7 @@ func (r *AWSManagedControlPlane) validateNetwork() field.ErrorList {
 
 // Default will set default values for the AWSManagedControlPlane.
 func (r *AWSManagedControlPlane) Default() {
-	mcpLog.Info("AWSManagedControlPlane setting defaults", "name", r.Name)
+	mcpLog.Info("AWSManagedControlPlane setting defaults", "control-plane", klog.KObj(r))
 
 	if r.Spec.EKSClusterName == "" {
 		mcpLog.Info("EKSClusterName is empty, generating name")
@@ -407,7 +407,7 @@ func (r *AWSManagedControlPlane) Default() {
 			return
 		}
 
-		mcpLog.Info("defaulting EKS cluster name", "cluster-name", name)
+		mcpLog.Info("defaulting EKS cluster name", "cluster", klog.KRef(r.Namespace, name))
 		r.Spec.EKSClusterName = name
 	}
 

@@ -32,8 +32,9 @@ import (
 	cgscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	cgrecord "k8s.io/client-go/tools/record"
+	"k8s.io/component-base/logs"
+	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
-	"k8s.io/klog/v2/klogr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
@@ -103,17 +104,21 @@ var (
 	maxEKSSyncPeriod         = time.Minute * 10
 	errMaxSyncPeriodExceeded = errors.New("sync period greater than maximum allowed")
 	errEKSInvalidFlags       = errors.New("invalid EKS flag combination")
+
+	logOptions = logs.NewOptions()
 )
 
 func main() {
-	klog.InitFlags(nil)
-
 	rand.Seed(time.Now().UnixNano())
 	initFlags(pflag.CommandLine)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 
-	ctrl.SetLogger(klogr.New())
+	if err := logOptions.ValidateAndApply(nil); err != nil {
+		setupLog.Error(err, "unable to validate and apply log options")
+		os.Exit(1)
+	}
+	ctrl.SetLogger(klog.Background())
 
 	if watchNamespace != "" {
 		setupLog.Info("Watching cluster-api objects only in namespace for reconciliation", "namespace", watchNamespace)
@@ -478,6 +483,9 @@ func initFlags(fs *pflag.FlagSet) {
 		"",
 		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1.WatchLabel),
 	)
+
+	logs.AddFlags(fs, logs.SkipLoggingConfigurationFlags())
+	logOptions.AddFlags(fs)
 
 	feature.MutableGates.AddFlag(fs)
 }

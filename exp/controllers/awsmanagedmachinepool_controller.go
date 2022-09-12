@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -112,7 +113,7 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, nil
 	}
 
-	log = log.WithValues("MachinePool", machinePool.Name)
+	log = log.WithValues("MachinePool", klog.KObj(machinePool))
 
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machinePool.ObjectMeta)
 	if err != nil {
@@ -125,7 +126,7 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, nil
 	}
 
-	log = log.WithValues("Cluster", cluster.Name)
+	log = log.WithValues("cluster", klog.KObj(cluster))
 
 	controlPlaneKey := client.ObjectKey{
 		Namespace: awsPool.Namespace,

@@ -25,7 +25,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	// +kubebuilder:scaffold:imports
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
@@ -77,7 +76,7 @@ func setup() {
 
 	err = (&AWSControllerIdentityReconciler{
 		Client: testEnv,
-		Log:    log.Log,
+		Log:    ctrl.Log,
 	}).SetupWithManager(ctx, testEnv.Manager, controller.Options{})
 	if err != nil {
 		panic(fmt.Sprintf("Failed to add AWSControllerIdentityReconciler to the envtest manager: %v", err))
