@@ -297,17 +297,7 @@ func Convert_v1beta2_AWSManagedControlPlane_To_v1beta1_AWSManagedControlPlane(in
 
 func autoConvert_v1beta1_AWSManagedControlPlaneList_To_v1beta2_AWSManagedControlPlaneList(in *AWSManagedControlPlaneList, out *v1beta2.AWSManagedControlPlaneList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]v1beta2.AWSManagedControlPlane, len(*in))
-		for i := range *in {
-			if err := Convert_v1beta1_AWSManagedControlPlane_To_v1beta2_AWSManagedControlPlane(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
+	out.Items = *(*[]v1beta2.AWSManagedControlPlane)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -318,17 +308,7 @@ func Convert_v1beta1_AWSManagedControlPlaneList_To_v1beta2_AWSManagedControlPlan
 
 func autoConvert_v1beta2_AWSManagedControlPlaneList_To_v1beta1_AWSManagedControlPlaneList(in *v1beta2.AWSManagedControlPlaneList, out *AWSManagedControlPlaneList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]AWSManagedControlPlane, len(*in))
-		for i := range *in {
-			if err := Convert_v1beta2_AWSManagedControlPlane_To_v1beta1_AWSManagedControlPlane(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
+	out.Items = *(*[]AWSManagedControlPlane)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -340,9 +320,7 @@ func Convert_v1beta2_AWSManagedControlPlaneList_To_v1beta1_AWSManagedControlPlan
 func autoConvert_v1beta1_AWSManagedControlPlaneSpec_To_v1beta2_AWSManagedControlPlaneSpec(in *AWSManagedControlPlaneSpec, out *v1beta2.AWSManagedControlPlaneSpec, s conversion.Scope) error {
 	out.EKSClusterName = in.EKSClusterName
 	out.IdentityRef = (*apiv1beta2.AWSIdentityReference)(unsafe.Pointer(in.IdentityRef))
-	if err := Convert_v1beta1_NetworkSpec_To_v1beta2_NetworkSpec(&in.NetworkSpec, &out.NetworkSpec, s); err != nil {
-		return err
-	}
+	out.NetworkSpec = in.NetworkSpec
 	out.SecondaryCidrBlock = (*string)(unsafe.Pointer(in.SecondaryCidrBlock))
 	out.Region = in.Region
 	out.SSHKeyName = (*string)(unsafe.Pointer(in.SSHKeyName))
@@ -360,9 +338,7 @@ func autoConvert_v1beta1_AWSManagedControlPlaneSpec_To_v1beta2_AWSManagedControl
 	out.ImageLookupFormat = in.ImageLookupFormat
 	out.ImageLookupOrg = in.ImageLookupOrg
 	out.ImageLookupBaseOS = in.ImageLookupBaseOS
-	if err := Convert_v1beta1_Bastion_To_v1beta2_Bastion(&in.Bastion, &out.Bastion, s); err != nil {
-		return err
-	}
+	out.Bastion = in.Bastion
 	out.TokenMethod = (*v1beta2.EKSTokenMethod)(unsafe.Pointer(in.TokenMethod))
 	out.AssociateOIDCProvider = in.AssociateOIDCProvider
 	out.Addons = (*[]v1beta2.Addon)(unsafe.Pointer(in.Addons))
@@ -384,10 +360,8 @@ func Convert_v1beta1_AWSManagedControlPlaneSpec_To_v1beta2_AWSManagedControlPlan
 
 func autoConvert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControlPlaneSpec(in *v1beta2.AWSManagedControlPlaneSpec, out *AWSManagedControlPlaneSpec, s conversion.Scope) error {
 	out.EKSClusterName = in.EKSClusterName
-	out.IdentityRef = (*apiv1beta1.AWSIdentityReference)(unsafe.Pointer(in.IdentityRef))
-	if err := Convert_v1beta2_NetworkSpec_To_v1beta1_NetworkSpec(&in.NetworkSpec, &out.NetworkSpec, s); err != nil {
-		return err
-	}
+	out.IdentityRef = (*apiv1beta2.AWSIdentityReference)(unsafe.Pointer(in.IdentityRef))
+	out.NetworkSpec = in.NetworkSpec
 	out.SecondaryCidrBlock = (*string)(unsafe.Pointer(in.SecondaryCidrBlock))
 	out.Region = in.Region
 	out.SSHKeyName = (*string)(unsafe.Pointer(in.SSHKeyName))
@@ -396,7 +370,7 @@ func autoConvert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControl
 	out.RoleAdditionalPolicies = (*[]string)(unsafe.Pointer(in.RoleAdditionalPolicies))
 	out.Logging = (*ControlPlaneLoggingSpec)(unsafe.Pointer(in.Logging))
 	out.EncryptionConfig = (*EncryptionConfig)(unsafe.Pointer(in.EncryptionConfig))
-	out.AdditionalTags = *(*apiv1beta1.Tags)(unsafe.Pointer(&in.AdditionalTags))
+	out.AdditionalTags = *(*apiv1beta2.Tags)(unsafe.Pointer(&in.AdditionalTags))
 	out.IAMAuthenticatorConfig = (*IAMAuthenticatorConfig)(unsafe.Pointer(in.IAMAuthenticatorConfig))
 	if err := Convert_v1beta2_EndpointAccess_To_v1beta1_EndpointAccess(&in.EndpointAccess, &out.EndpointAccess, s); err != nil {
 		return err
@@ -405,9 +379,7 @@ func autoConvert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControl
 	out.ImageLookupFormat = in.ImageLookupFormat
 	out.ImageLookupOrg = in.ImageLookupOrg
 	out.ImageLookupBaseOS = in.ImageLookupBaseOS
-	if err := Convert_v1beta2_Bastion_To_v1beta1_Bastion(&in.Bastion, &out.Bastion, s); err != nil {
-		return err
-	}
+	out.Bastion = in.Bastion
 	out.TokenMethod = (*EKSTokenMethod)(unsafe.Pointer(in.TokenMethod))
 	out.AssociateOIDCProvider = in.AssociateOIDCProvider
 	out.Addons = (*[]Addon)(unsafe.Pointer(in.Addons))
@@ -428,9 +400,7 @@ func Convert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControlPlan
 }
 
 func autoConvert_v1beta1_AWSManagedControlPlaneStatus_To_v1beta2_AWSManagedControlPlaneStatus(in *AWSManagedControlPlaneStatus, out *v1beta2.AWSManagedControlPlaneStatus, s conversion.Scope) error {
-	if err := Convert_v1beta1_NetworkStatus_To_v1beta2_NetworkStatus(&in.Network, &out.Network, s); err != nil {
-		return err
-	}
+	out.Network = in.Network
 	out.FailureDomains = *(*clusterapiapiv1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	out.Bastion = (*apiv1beta2.Instance)(unsafe.Pointer(in.Bastion))
 	if err := Convert_v1beta1_OIDCProviderStatus_To_v1beta2_OIDCProviderStatus(&in.OIDCProvider, &out.OIDCProvider, s); err != nil {
@@ -454,11 +424,9 @@ func Convert_v1beta1_AWSManagedControlPlaneStatus_To_v1beta2_AWSManagedControlPl
 }
 
 func autoConvert_v1beta2_AWSManagedControlPlaneStatus_To_v1beta1_AWSManagedControlPlaneStatus(in *v1beta2.AWSManagedControlPlaneStatus, out *AWSManagedControlPlaneStatus, s conversion.Scope) error {
-	if err := Convert_v1beta2_NetworkStatus_To_v1beta1_NetworkStatus(&in.Network, &out.Network, s); err != nil {
-		return err
-	}
+	out.Network = in.Network
 	out.FailureDomains = *(*clusterapiapiv1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
-	out.Bastion = (*apiv1beta1.Instance)(unsafe.Pointer(in.Bastion))
+	out.Bastion = (*apiv1beta2.Instance)(unsafe.Pointer(in.Bastion))
 	if err := Convert_v1beta2_OIDCProviderStatus_To_v1beta1_OIDCProviderStatus(&in.OIDCProvider, &out.OIDCProvider, s); err != nil {
 		return err
 	}
@@ -750,7 +718,7 @@ func autoConvert_v1beta2_OIDCIdentityProviderConfig_To_v1beta1_OIDCIdentityProvi
 	out.RequiredClaims = *(*map[string]string)(unsafe.Pointer(&in.RequiredClaims))
 	out.UsernameClaim = (*string)(unsafe.Pointer(in.UsernameClaim))
 	out.UsernamePrefix = (*string)(unsafe.Pointer(in.UsernamePrefix))
-	out.Tags = *(*apiv1beta1.Tags)(unsafe.Pointer(&in.Tags))
+	out.Tags = *(*apiv1beta2.Tags)(unsafe.Pointer(&in.Tags))
 	return nil
 }
 

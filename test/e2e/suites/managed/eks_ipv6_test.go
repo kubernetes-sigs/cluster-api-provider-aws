@@ -29,7 +29,7 @@ import (
 	"k8s.io/utils/net"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/util"

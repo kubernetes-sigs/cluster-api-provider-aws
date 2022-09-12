@@ -26,10 +26,10 @@ import (
 	client "github.com/aws/aws-sdk-go/aws/client"
 	logr "github.com/go-logr/logr"
 	gomock "github.com/golang/mock/gomock"
-	v1beta1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
 	cloud "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	throttle "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
-	v1beta10 "sigs.k8s.io/cluster-api/api/v1beta1"
+	v1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	client0 "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -71,10 +71,10 @@ func (mr *MockClusterScoperMockRecorder) APIServerPort() *gomock.Call {
 }
 
 // AdditionalTags mocks base method.
-func (m *MockClusterScoper) AdditionalTags() v1beta1.Tags {
+func (m *MockClusterScoper) AdditionalTags() v1beta2.Tags {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AdditionalTags")
-	ret0, _ := ret[0].(v1beta1.Tags)
+	ret0, _ := ret[0].(v1beta2.Tags)
 	return ret0
 }
 
@@ -158,10 +158,10 @@ func (mr *MockClusterScoperMockRecorder) Error(arg0, arg1 interface{}, arg2 ...i
 }
 
 // IdentityRef mocks base method.
-func (m *MockClusterScoper) IdentityRef() *v1beta1.AWSIdentityReference {
+func (m *MockClusterScoper) IdentityRef() *v1beta2.AWSIdentityReference {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IdentityRef")
-	ret0, _ := ret[0].(*v1beta1.AWSIdentityReference)
+	ret0, _ := ret[0].(*v1beta2.AWSIdentityReference)
 	return ret0
 }
 
@@ -329,7 +329,7 @@ func (mr *MockClusterScoperMockRecorder) Session() *gomock.Call {
 }
 
 // SetFailureDomain mocks base method.
-func (m *MockClusterScoper) SetFailureDomain(arg0 string, arg1 v1beta10.FailureDomainSpec) {
+func (m *MockClusterScoper) SetFailureDomain(arg0 string, arg1 v1beta1.FailureDomainSpec) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetFailureDomain", arg0, arg1)
 }

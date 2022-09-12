@@ -24,7 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pkg/errors"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
 )
 

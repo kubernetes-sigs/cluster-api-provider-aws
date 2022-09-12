@@ -22,9 +22,9 @@ limitations under the License.
 package v1beta1
 
 import (
-	runtime "k8s.io/apimachinery/pkg/runtime"
-	apiv1beta1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	cluster_apiapiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
+	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/errors"
 )
 
@@ -93,7 +93,7 @@ func (in *AWSLaunchTemplate) DeepCopyInto(out *AWSLaunchTemplate) {
 	in.AMI.DeepCopyInto(&out.AMI)
 	if in.RootVolume != nil {
 		in, out := &in.RootVolume, &out.RootVolume
-		*out = new(apiv1beta1.Volume)
+		*out = new(v1beta2.Volume)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.SSHKeyName != nil {
@@ -108,14 +108,14 @@ func (in *AWSLaunchTemplate) DeepCopyInto(out *AWSLaunchTemplate) {
 	}
 	if in.AdditionalSecurityGroups != nil {
 		in, out := &in.AdditionalSecurityGroups, &out.AdditionalSecurityGroups
-		*out = make([]apiv1beta1.AWSResourceReference, len(*in))
+		*out = make([]v1beta2.AWSResourceReference, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	if in.SpotMarketOptions != nil {
 		in, out := &in.SpotMarketOptions, &out.SpotMarketOptions
-		*out = new(apiv1beta1.SpotMarketOptions)
+		*out = new(v1beta2.SpotMarketOptions)
 		(*in).DeepCopyInto(*out)
 	}
 }
@@ -219,14 +219,14 @@ func (in *AWSMachinePoolSpec) DeepCopyInto(out *AWSMachinePoolSpec) {
 	}
 	if in.Subnets != nil {
 		in, out := &in.Subnets, &out.Subnets
-		*out = make([]apiv1beta1.AWSResourceReference, len(*in))
+		*out = make([]v1beta2.AWSResourceReference, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	if in.AdditionalTags != nil {
 		in, out := &in.AdditionalTags, &out.AdditionalTags
-		*out = make(apiv1beta1.Tags, len(*in))
+		*out = make(v1beta2.Tags, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -265,7 +265,7 @@ func (in *AWSMachinePoolStatus) DeepCopyInto(out *AWSMachinePoolStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(cluster_apiapiv1beta1.Conditions, len(*in))
+		*out = make(apiv1beta1.Conditions, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -383,7 +383,7 @@ func (in *AWSManagedMachinePoolSpec) DeepCopyInto(out *AWSManagedMachinePoolSpec
 	}
 	if in.AdditionalTags != nil {
 		in, out := &in.AdditionalTags, &out.AdditionalTags
-		*out = make(apiv1beta1.Tags, len(*in))
+		*out = make(v1beta2.Tags, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -492,7 +492,7 @@ func (in *AWSManagedMachinePoolStatus) DeepCopyInto(out *AWSManagedMachinePoolSt
 	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(cluster_apiapiv1beta1.Conditions, len(*in))
+		*out = make(apiv1beta1.Conditions, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -514,7 +514,7 @@ func (in *AutoScalingGroup) DeepCopyInto(out *AutoScalingGroup) {
 	*out = *in
 	if in.Tags != nil {
 		in, out := &in.Tags, &out.Tags
-		*out = make(apiv1beta1.Tags, len(*in))
+		*out = make(v1beta2.Tags, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -537,7 +537,7 @@ func (in *AutoScalingGroup) DeepCopyInto(out *AutoScalingGroup) {
 	}
 	if in.Instances != nil {
 		in, out := &in.Instances, &out.Instances
-		*out = make([]apiv1beta1.Instance, len(*in))
+		*out = make([]v1beta2.Instance, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -595,7 +595,7 @@ func (in *FargateProfileSpec) DeepCopyInto(out *FargateProfileSpec) {
 	}
 	if in.AdditionalTags != nil {
 		in, out := &in.AdditionalTags, &out.AdditionalTags
-		*out = make(apiv1beta1.Tags, len(*in))
+		*out = make(v1beta2.Tags, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -634,7 +634,7 @@ func (in *FargateProfileStatus) DeepCopyInto(out *FargateProfileStatus) {
 	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(cluster_apiapiv1beta1.Conditions, len(*in))
+		*out = make(apiv1beta1.Conditions, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

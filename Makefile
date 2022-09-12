@@ -195,7 +195,7 @@ $(CRD_DOCS_DIR)/%: $(API_FILES)
 
 .PHONY: generate-go ## Generate all Go api files
 generate-go: $(MOCKGEN)
-#	$(MAKE) generate-go-apis
+	$(MAKE) generate-go-apis
 	go generate ./...
 
 .PHONY: generate-go-apis
@@ -386,7 +386,7 @@ setup-envtest: install-setup-envtest # Build setup-envtest from tools folder.
 
 .PHONY: test
 test: setup-envtest ## Run tests
-	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./controlplane/eks/api/...
+	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./...
 
 .PHONY: test-verbose
 test-verbose: setup-envtest ## Run tests with verbose settings.
