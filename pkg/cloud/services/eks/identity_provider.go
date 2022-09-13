@@ -31,7 +31,7 @@ import (
 
 func (s *Service) reconcileIdentityProvider(ctx context.Context) error {
 	s.scope.Info("reconciling oidc identity provider")
-	if s.scope.ControlPlane.Spec.OIDCIdentityProviderConfig == nil {
+	if s.scope.OIDCIdentityProviderConfig() == nil {
 		return nil
 	}
 
