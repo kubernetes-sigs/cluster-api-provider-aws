@@ -17,27 +17,34 @@ limitations under the License.
 package v1beta2
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/google/go-cmp/cmp"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"sigs.k8s.io/cluster-api-provider-aws/feature"
+	"sigs.k8s.io/cluster-api/util/topology"
 )
 
-func (r *AWSMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (r *AWSMachineTemplateWebhook) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
+		For(&AWSMachineTemplate{}).
+		WithValidator(r).
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-awsmachinetemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,versions=v1beta2,name=validation.awsmachinetemplate.infrastructure.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
+// AWSMachineTemplateWebhook implements a custom validation webhook for AWSMachineTemplate.
+// +kubebuilder:object:generate=false
+type AWSMachineTemplateWebhook struct{}
 
-var (
-	_ webhook.Validator = &AWSMachineTemplate{}
-)
+// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-awsmachinetemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,versions=v1beta2,name=validation.awsmachinetemplate.infrastructure.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
+var _ webhook.CustomValidator = &AWSMachineTemplateWebhook{}
 
 func (r *AWSMachineTemplate) validateRootVolume() field.ErrorList {
 	var allErrs field.ErrorList
@@ -95,9 +102,14 @@ func (r *AWSMachineTemplate) validateNonRootVolumes() field.ErrorList {
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (r *AWSMachineTemplate) ValidateCreate() error {
+func (r *AWSMachineTemplateWebhook) ValidateCreate(_ context.Context, raw runtime.Object) error {
 	var allErrs field.ErrorList
-	spec := r.Spec.Template.Spec
+	obj, ok := raw.(*AWSMachineTemplate)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereMachineTemplate but got a %T", raw))
+	}
+
+	spec := obj.Spec.Template.Spec
 
 	if spec.CloudInit.SecretPrefix != "" {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "cloudInit", "secretPrefix"), "cannot be set in templates"))
@@ -111,8 +123,8 @@ func (r *AWSMachineTemplate) ValidateCreate() error {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "providerID"), "cannot be set in templates"))
 	}
 
-	allErrs = append(allErrs, r.validateRootVolume()...)
-	allErrs = append(allErrs, r.validateNonRootVolumes()...)
+	allErrs = append(allErrs, obj.validateRootVolume()...)
+	allErrs = append(allErrs, obj.validateNonRootVolumes()...)
 
 	// Feature gate is not enabled but ignition is enabled then send a forbidden error.
 	if !feature.Gates.Enabled(feature.BootstrapFormatIgnition) && spec.Ignition != nil {
@@ -126,26 +138,40 @@ func (r *AWSMachineTemplate) ValidateCreate() error {
 			"cannot be set if spec.template.spec.ignition is set"))
 	}
 
-	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
+	return aggregateObjErrors(obj.GroupVersionKind().GroupKind(), obj.Name, allErrs)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (r *AWSMachineTemplate) ValidateUpdate(old runtime.Object) error {
-	oldAWSMachineTemplate := old.(*AWSMachineTemplate)
+func (r *AWSMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw runtime.Object, newRaw runtime.Object) error {
+	newAWSMachineTemplate, ok := newRaw.(*AWSMachineTemplate)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a AWSMachineTemplate but got a %T", newRaw))
+	}
+	oldAWSMachineTemplate, ok := oldRaw.(*AWSMachineTemplate)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a AWSMachineTemplate but got a %T", oldRaw))
+	}
+
+	req, err := admission.RequestFromContext(ctx)
+	if err != nil {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a admission.Request inside context: %v", err))
+	}
+
+	var allErrs field.ErrorList
 
 	// Allow setting of cloudInit.secureSecretsBackend to "secrets-manager" only to handle v1beta2 upgrade
-	if oldAWSMachineTemplate.Spec.Template.Spec.CloudInit.SecureSecretsBackend == "" && r.Spec.Template.Spec.CloudInit.SecureSecretsBackend == SecretBackendSecretsManager {
-		r.Spec.Template.Spec.CloudInit.SecureSecretsBackend = ""
+	if oldAWSMachineTemplate.Spec.Template.Spec.CloudInit.SecureSecretsBackend == "" && newAWSMachineTemplate.Spec.Template.Spec.CloudInit.SecureSecretsBackend == SecretBackendSSMParameterStore {
+		newAWSMachineTemplate.Spec.Template.Spec.CloudInit.SecureSecretsBackend = ""
 	}
 
-	if !cmp.Equal(r.Spec, oldAWSMachineTemplate.Spec) {
-		return apierrors.NewBadRequest("AWSMachineTemplate.Spec is immutable")
+	if !topology.ShouldSkipImmutabilityChecks(req, newAWSMachineTemplate) && !cmp.Equal(newAWSMachineTemplate.Spec, oldAWSMachineTemplate.Spec) {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec"), newAWSMachineTemplate, "AWSMachineTemplate.Spec is immutable"))
 	}
 
-	return nil
+	return aggregateObjErrors(newAWSMachineTemplate.GroupVersionKind().GroupKind(), newAWSMachineTemplate.Name, allErrs)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (r *AWSMachineTemplate) ValidateDelete() error {
+func (r *AWSMachineTemplateWebhook) ValidateDelete(_ context.Context, _ runtime.Object) error {
 	return nil
 }
