@@ -97,7 +97,7 @@ func TestAWSMachineTemplateValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantError: true,
+			wantError: false,
 		},
 		{
 			name: "allow secrets manager",

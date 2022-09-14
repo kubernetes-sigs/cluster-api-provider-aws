@@ -67,7 +67,7 @@ func setup() {
 	if err := (&AWSMachine{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSMachine webhook: %v", err))
 	}
-	if err := (&AWSMachineTemplate{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&AWSMachineTemplateWebhook{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSMachineTemplate webhook: %v", err))
 	}
 	if err := (&AWSClusterControllerIdentity{}).SetupWebhookWithManager(testEnv); err != nil {

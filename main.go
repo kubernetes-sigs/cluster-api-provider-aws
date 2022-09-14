@@ -276,7 +276,7 @@ func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsServi
 		}
 	}
 
-	if err := (&infrav1.AWSMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1.AWSMachineTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplate")
 		os.Exit(1)
 	}

@@ -80,12 +80,12 @@ providers:
   - name: aws
     type: InfrastructureProvider
     versions:
-      - name: v1.4.99
+      - name: v1.6.99
         # Use manifest from source files
         value: ../../../config/default
         contract: v1beta1
         files:
-          - sourcePath: "./shared/v1beta1_provider/metadata.yaml"
+          - sourcePath: "./shared/v1beta2_provider/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
