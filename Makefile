@@ -213,6 +213,10 @@ generate-go-apis: ## Alias for .build/generate-go-apis
 		paths=./bootstrap/eks/api/... \
 		paths=./controlplane/eks/api/... \
 		paths=./iam/api/... \
+		paths=./controllers/... \
+		paths=./$(EXP_DIR)/controllers/... \
+		paths=./bootstrap/eks/controllers/... \
+		paths=./controlplane/eks/controllers/... \
 		output:crd:dir=config/crd/bases \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		crd:crdVersions=v1 \

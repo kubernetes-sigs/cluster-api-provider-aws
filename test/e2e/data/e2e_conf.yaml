@@ -84,7 +84,7 @@ providers:
   - name: aws
     type: InfrastructureProvider
     versions:
-      - name: v1.5.0 # latest published release in the v1alpha4 series; this is used for v1beta1 --> v1beta2 clusterctl upgrades test only.
+      - name: v1.5.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> v1beta2 clusterctl upgrades test only.
         value: "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/download/v1.5.0/infrastructure-components.yaml"
         type: "url"
         contract: v1beta1
@@ -94,7 +94,7 @@ providers:
       - name: v1.6.99
         # Use manifest from source files
         value: ../../../config/default
-        contract: v1beta1
+        # Do not add contract field for v1beta1 --> v1beta2 clusterctl upgrades test to work.
         files:
           - sourcePath: "./infrastructure-aws/generated/cluster-template-efs-support.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-external-csi.yaml"
