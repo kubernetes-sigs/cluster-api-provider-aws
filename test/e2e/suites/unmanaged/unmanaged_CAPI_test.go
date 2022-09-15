@@ -110,8 +110,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 		})
 	})
 
-	// TODO: clusterctl init uses v1beta2, this needs to be fixed.
-	ginkgo.PDescribe("Clusterctl Upgrade Spec [from latest v1beta1 release to v1beta2]", func() {
+	ginkgo.Describe("Clusterctl Upgrade Spec [from latest v1beta1 release to v1beta2]", func() {
 		ginkgo.BeforeEach(func() {
 			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
 			requiredResources = &shared.TestResource{EC2Normal: 5 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2}
