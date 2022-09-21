@@ -31,7 +31,7 @@ import (
 
 func (s *Service) reconcileIdentityProvider(ctx context.Context) error {
 	s.scope.Info("reconciling oidc identity provider")
-	if s.scope.ControlPlane.Spec.OIDCIdentityProviderConfig == nil {
+	if s.scope.OIDCIdentityProviderConfig() == nil {
 		return nil
 	}
 
@@ -75,8 +75,8 @@ func (s *Service) reconcileIdentityProvider(ctx context.Context) error {
 
 	if latest != nil {
 		s.scope.ControlPlane.Status.IdentityProviderStatus = ekscontrolplanev1.IdentityProviderStatus{
-			ARN:    aws.StringValue(latest.IdentityProviderConfigArn),
-			Status: aws.StringValue(latest.Status),
+			ARN:    latest.IdentityProviderConfigArn,
+			Status: latest.Status,
 		}
 
 		err := s.scope.PatchObject()
@@ -114,16 +114,16 @@ func (s *Service) getAssociatedIdentityProvider(ctx context.Context, clusterName
 	config := providerconfig.IdentityProviderConfig.Oidc
 
 	return &identityprovider.OidcIdentityProviderConfig{
-		ClientID:                   *config.ClientId,
-		GroupsClaim:                config.GroupsClaim,
-		GroupsPrefix:               config.GroupsPrefix,
-		IdentityProviderConfigArn:  config.IdentityProviderConfigArn,
-		IdentityProviderConfigName: *config.IdentityProviderConfigName,
-		IssuerURL:                  *config.IssuerUrl,
-		RequiredClaims:             config.RequiredClaims,
-		Status:                     config.Status,
+		ClientID:                   aws.StringValue(config.ClientId),
+		GroupsClaim:                aws.StringValue(config.GroupsClaim),
+		GroupsPrefix:               aws.StringValue(config.GroupsPrefix),
+		IdentityProviderConfigArn:  aws.StringValue(config.IdentityProviderConfigArn),
+		IdentityProviderConfigName: aws.StringValue(config.IdentityProviderConfigName),
+		IssuerURL:                  aws.StringValue(config.IssuerUrl),
+		RequiredClaims:             aws.StringValueMap(config.RequiredClaims),
+		Status:                     aws.StringValue(config.Status),
 		Tags:                       converters.MapPtrToMap(config.Tags),
-		UsernameClaim:              config.UsernameClaim,
-		UsernamePrefix:             config.UsernamePrefix,
+		UsernameClaim:              aws.StringValue(config.UsernameClaim),
+		UsernamePrefix:             aws.StringValue(config.UsernamePrefix),
 	}, nil
 }
