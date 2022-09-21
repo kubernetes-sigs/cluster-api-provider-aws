@@ -238,6 +238,7 @@ func (s *ManagedControlPlaneScope) PatchObject() error {
 			infrav1.NatGatewaysReadyCondition,
 			infrav1.RouteTablesReadyCondition,
 			infrav1.BastionHostReadyCondition,
+			infrav1.EgressOnlyInternetGatewayReadyCondition,
 			ekscontrolplanev1.EKSControlPlaneCreatingCondition,
 			ekscontrolplanev1.EKSControlPlaneReadyCondition,
 			ekscontrolplanev1.EKSControlPlaneUpdatingCondition,
@@ -372,6 +373,11 @@ func (s *ManagedControlPlaneScope) DisableKubeProxy() bool {
 // DisableVPCCNI returns whether the AWS VPC CNI should be disabled.
 func (s *ManagedControlPlaneScope) DisableVPCCNI() bool {
 	return s.ControlPlane.Spec.DisableVPCCNI
+}
+
+// VpcCni returns a list of environment variables to apply to the `aws-node` DaemonSet.
+func (s *ManagedControlPlaneScope) VpcCni() ekscontrolplanev1.VpcCni {
+	return s.ControlPlane.Spec.VpcCni
 }
 
 func (s *ManagedControlPlaneScope) OIDCIdentityProviderConfig() *ekscontrolplanev1.OIDCIdentityProviderConfig {

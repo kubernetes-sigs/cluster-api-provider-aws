@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha4
 
 import (
+	"fmt"
+
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
@@ -41,6 +43,26 @@ func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.KubeProxy = restored.Spec.KubeProxy
+	dst.Spec.VpcCni = restored.Spec.VpcCni
+	dst.Spec.NetworkSpec.VPC.EgressOnlyInternetGatewayID = restored.Spec.NetworkSpec.VPC.EgressOnlyInternetGatewayID
+	dst.Spec.NetworkSpec.VPC.EnableIPv6 = restored.Spec.NetworkSpec.VPC.EnableIPv6
+	dst.Spec.NetworkSpec.VPC.IPv6CidrBlock = restored.Spec.NetworkSpec.VPC.IPv6CidrBlock
+	dst.Spec.NetworkSpec.VPC.IPv6Pool = restored.Spec.NetworkSpec.VPC.IPv6Pool
+
+	for i := range dst.Spec.NetworkSpec.Subnets {
+		var found bool
+		for k := range restored.Spec.NetworkSpec.Subnets {
+			if dst.Spec.NetworkSpec.Subnets[i].ID == restored.Spec.NetworkSpec.Subnets[k].ID {
+				dst.Spec.NetworkSpec.Subnets[i].IsIPv6 = restored.Spec.NetworkSpec.Subnets[i].IsIPv6
+				dst.Spec.NetworkSpec.Subnets[i].IPv6CidrBlock = restored.Spec.NetworkSpec.Subnets[i].IPv6CidrBlock
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("subnet with id %s not found amongts restored subnets", dst.Spec.NetworkSpec.Subnets[i].ID)
+		}
+	}
 
 	return nil
 }
@@ -72,10 +94,6 @@ func (r *AWSManagedControlPlaneList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1beta1.AWSManagedControlPlaneList)
 
 	return Convert_v1beta1_AWSManagedControlPlaneList_To_v1alpha4_AWSManagedControlPlaneList(src, r, nil)
-}
-
-func Convert_v1beta1_AWSManagedControlPlaneSpec_To_v1alpha4_AWSManagedControlPlaneSpec(in *v1beta1.AWSManagedControlPlaneSpec, out *AWSManagedControlPlaneSpec, scope apiconversion.Scope) error {
-	return autoConvert_v1beta1_AWSManagedControlPlaneSpec_To_v1alpha4_AWSManagedControlPlaneSpec(in, out, scope)
 }
 
 // Convert_v1alpha4_NetworkStatus_To_v1beta1_NetworkStatus is a conversion function.
@@ -126,4 +144,8 @@ func Convert_v1beta1_Instance_To_v1alpha4_Instance(in *infrav1beta1.Instance, ou
 // Convert_v1alpha4_Instance_To_v1beta1_Instance is a conversion function.
 func Convert_v1alpha4_Instance_To_v1beta1_Instance(in *infrav1alpha4.Instance, out *infrav1beta1.Instance, s apiconversion.Scope) error {
 	return infrav1alpha4.Convert_v1alpha4_Instance_To_v1beta1_Instance(in, out, s)
+}
+
+func Convert_v1beta1_AWSManagedControlPlaneSpec_To_v1alpha4_AWSManagedControlPlaneSpec(in *v1beta1.AWSManagedControlPlaneSpec, out *AWSManagedControlPlaneSpec, scope apiconversion.Scope) error {
+	return autoConvert_v1beta1_AWSManagedControlPlaneSpec_To_v1alpha4_AWSManagedControlPlaneSpec(in, out, scope)
 }

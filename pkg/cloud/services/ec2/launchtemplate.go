@@ -175,6 +175,17 @@ func (s *Service) createLaunchTemplateData(scope *scope.MachinePoolScope, imageI
 		KeyName:  sshKeyNamePtr,
 		UserData: pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
 	}
+	if s.scope.VPC().EnableIPv6 {
+		data.NetworkInterfaces = []*ec2.LaunchTemplateInstanceNetworkInterfaceSpecificationRequest{
+			{
+				Ipv6Prefixes: []*ec2.Ipv6PrefixSpecificationRequest{
+					{
+						Ipv6Prefix: aws.String("auto"),
+					},
+				},
+			},
+		}
+	}
 
 	ids, err := s.GetCoreNodeSecurityGroups(scope)
 	if err != nil {
