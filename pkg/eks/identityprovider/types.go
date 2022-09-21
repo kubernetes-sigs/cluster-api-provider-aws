@@ -19,7 +19,7 @@ package identityprovider
 import (
 	"github.com/google/go-cmp/cmp"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
 )
 
 // OidcIdentityProviderConfig represents the configuration for an OpenID Connect (OIDC)

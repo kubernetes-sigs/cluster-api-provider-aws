@@ -85,33 +85,25 @@ linters-settings:
         alias: utilconversion
       - pkg: k8s.io/apimachinery/pkg/conversion
         alias: apiconversion
-      - pkg: sigs.k8s.io/cluster-api-provider-aws/api/v1beta1
+      - pkg: sigs.k8s.io/cluster-api-provider-aws/api/v1beta2
         alias: infrav1
-      - pkg: sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3
-        alias: expinfrav1alpha3
-      - pkg: sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4
-        alias: expinfrav1alpha4
+      - pkg: sigs.k8s.io/cluster-api-provider-aws/api/v1beta1
+        alias: infrav1beta1
       - pkg: sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1
+        alias: expinfrav1beta1
+      - pkg: sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta2
         alias: expinfrav1
-      - pkg: sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4
-        alias: infrav1alpha4
-      - pkg: sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3
-        alias: infrav1alpha3
       - pkg: k8s.io/client-go/kubernetes/scheme
         alias: cgscheme
       - pkg: k8s.io/client-go/tools/record
         alias: cgrecord
-      - pkg: sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha3
-        alias: eksbootstrapv1alpha3
-      - pkg: sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha4
-        alias: eksbootstrapv1alpha4
       - pkg: sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta1
+        alias: eksbootstrapv1beta1
+      - pkg: sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta2
         alias: eksbootstrapv1
-      - pkg: sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3
-        alias: ekscontrolplanev1alpha3
-      - pkg: sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4
-        alias: ekscontrolplanev1alpha4
       - pkg: sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1
+        alias: ekscontrolplanev1beta1
+      - pkg: sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2
         alias: ekscontrolplanev1
       - pkg: "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/controllers"
         alias: eksbootstrapcontrollers
@@ -125,10 +117,6 @@ linters-settings:
         alias: runtimeserializer
       - pkg: "k8s.io/apimachinery/pkg/runtime/serializer/yaml"
         alias: yamlserializer
-      - pkg:  "sigs.k8s.io/cluster-api/api/v1alpha3"
-        alias: clusterv1alpha3
-      - pkg:  "sigs.k8s.io/cluster-api/api/v1alpha4"
-        alias: clusterv1alpha4
       - pkg: "sigs.k8s.io/cluster-api/api/v1beta1"
         alias: clusterv1
       - pkg: "sigs.k8s.io/cluster-api/util/defaulting"
@@ -210,7 +198,7 @@ issues:
     - linters:
       - godot
       text: "Comment should end in a period"
-      path: "(.*)/(v1alpha3|v1alpha4|v1alpha1)/(.*)types.go"
+      path: "(.*)/(v1beta1|v1beta2)/(.*)types.go"
     - linters:
       - errcheck
       text: Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*print(f|ln)?|os\.(Un)?Setenv). is not checked

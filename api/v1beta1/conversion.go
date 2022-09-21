@@ -16,44 +16,11 @@ limitations under the License.
 
 package v1beta1
 
-// Hub marks AWSCluster as a conversion hub.
-func (*AWSCluster) Hub() {}
+import (
+	"k8s.io/apimachinery/pkg/conversion"
+	"sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
+)
 
-// Hub marks AWSClusterList as a conversion hub.
-func (*AWSClusterList) Hub() {}
-
-// Hub marks AWSMachine as a conversion hub.
-func (*AWSMachine) Hub() {}
-
-// Hub marks AWSMachineList as a conversion hub.
-func (*AWSMachineList) Hub() {}
-
-// Hub marks AWSMachineTemplate as a conversion hub.
-func (*AWSMachineTemplate) Hub() {}
-
-// Hub marks AWSMachineTemplateList as a conversion hub.
-func (*AWSMachineTemplateList) Hub() {}
-
-// Hub marks AWSClusterStaticIdentity as a conversion hub.
-func (*AWSClusterStaticIdentity) Hub() {}
-
-// Hub marks AWSClusterStaticIdentityList as a conversion hub.
-func (*AWSClusterStaticIdentityList) Hub() {}
-
-// Hub marks AWSClusterRoleIdentity as a conversion hub.
-func (*AWSClusterRoleIdentity) Hub() {}
-
-// Hub marks AWSClusterRoleIdentityList as a conversion hub.
-func (*AWSClusterRoleIdentityList) Hub() {}
-
-// Hub marks AWSClusterControllerIdentity as a conversion hub.
-func (*AWSClusterControllerIdentity) Hub() {}
-
-// Hub marks AWSClusterControllerIdentityList as a conversion hub.
-func (*AWSClusterControllerIdentityList) Hub() {}
-
-// Hub marks AWSClusterTemplate as a conversion hub.
-func (*AWSClusterTemplate) Hub() {}
-
-// Hub marks AWSClusterTemplateList as a conversion hub.
-func (*AWSClusterTemplateList) Hub() {}
+func Convert_v1beta2_AWSClusterSpec_To_v1beta1_AWSClusterSpec(in *v1beta2.AWSClusterSpec, out *AWSClusterSpec, s conversion.Scope) error {
+	return autoConvert_v1beta2_AWSClusterSpec_To_v1beta1_AWSClusterSpec(in, out, s)
+}

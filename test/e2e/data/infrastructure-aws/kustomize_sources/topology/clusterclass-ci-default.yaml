@@ -11,11 +11,11 @@ spec:
     machineInfrastructure:
       ref:
         kind: AWSMachineTemplate
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         name: ci-default-control-plane
   infrastructure:
     ref:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: AWSClusterTemplate
       name: ci-default
   workers:
@@ -29,7 +29,7 @@ spec:
             name: ci-default-worker-bootstraptemplate
         infrastructure:
           ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
             kind: AWSMachineTemplate
             name: ci-default-worker-machinetemplate
   variables:
@@ -86,7 +86,7 @@ spec:
   - name: awsClusterTemplateGeneral
     definitions:
       - selector:
-          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
           kind: AWSClusterTemplate
           matchResources:
             infrastructureCluster: true
@@ -102,7 +102,7 @@ spec:
   - name: awsMachineTemplateControlPlane
     definitions:
       - selector:
-          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
           kind: AWSMachineTemplate
           matchResources:
             controlPlane: true
@@ -118,7 +118,7 @@ spec:
   - name: awsMachineTemplateWorker
     definitions:
       - selector:
-          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
           kind: AWSMachineTemplate
           matchResources:
             machineDeploymentClass:
@@ -137,7 +137,7 @@ spec:
     enabledIf: '{{if .secureSecretsBackend }}true{{end}}'
     definitions:
       - selector:
-          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
           kind: AWSMachineTemplate
           matchResources:
             controlPlane: true
@@ -147,7 +147,7 @@ spec:
             valueFrom:
               variable: secureSecretsBackend
       - selector:
-          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
           kind: AWSMachineTemplate
           matchResources:
             machineDeploymentClass:
@@ -162,7 +162,7 @@ spec:
     enabledIf: '{{if .healthCheckProtocol }}true{{end}}'
     definitions:
       - selector:
-          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
           kind: AWSClusterTemplate
           matchResources:
             infrastructureCluster: true
@@ -205,7 +205,7 @@ spec:
     enabledIf: '{{ ne .vpcAZUsageLimit "" }}'
     definitions:
       - selector:
-          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
           kind: AWSClusterTemplate
           matchResources:
             infrastructureCluster: true
@@ -215,7 +215,7 @@ spec:
             valueFrom:
               template: "{{ .vpcAZUsageLimit }}"
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSClusterTemplate
 metadata:
   name: ci-default
@@ -249,7 +249,7 @@ spec:
             kubeletExtraArgs:
               cloud-provider: aws
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
 metadata:
   name: ci-default-control-plane
@@ -261,7 +261,7 @@ spec:
       iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
       cloudInit: {}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
 metadata:
   name: ci-default-worker-machinetemplate

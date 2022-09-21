@@ -9,17 +9,17 @@ spec:
     spec:
       bootstrap:
         configRef:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
           kind: EKSConfig
           name: "${CLUSTER_NAME}-mp-0"
       clusterName: "${CLUSTER_NAME}"
       infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: AWSMachinePool
         name: "${CLUSTER_NAME}-mp-0"
       version: "${KUBERNETES_VERSION}"
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachinePool
 metadata:
   name: "${CLUSTER_NAME}-mp-0"
@@ -31,7 +31,7 @@ spec:
     instanceType: "${AWS_NODE_MACHINE_TYPE}"
     sshKeyName: "${AWS_SSH_KEY_NAME}"
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: EKSConfig
 metadata:
   name: "${CLUSTER_NAME}-mp-0"

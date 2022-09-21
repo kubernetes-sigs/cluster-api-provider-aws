@@ -38,21 +38,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	// +kubebuilder:scaffold:imports
-	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	eksbootstrapv1alpha3 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha3"
-	eksbootstrapv1alpha4 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha4"
-	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta1"
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
+	eksbootstrapv1beta1 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta1"
+	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta2"
 	eksbootstrapcontrollers "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/controllers"
 	"sigs.k8s.io/cluster-api-provider-aws/controllers"
-	ekscontrolplanev1alpha3 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
-	ekscontrolplanev1alpha4 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha4"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	ekscontrolplanev1beta1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2"
 	ekscontrolplanecontrollers "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/controllers"
-	expinfrav1alpha3 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
-	expinfrav1alpha4 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha4"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
+	expinfrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/exp/controlleridentitycreator"
 	expcontrollers "sigs.k8s.io/cluster-api-provider-aws/exp/controllers"
 	"sigs.k8s.io/cluster-api-provider-aws/exp/instancestate"
@@ -72,19 +68,15 @@ var (
 
 func init() {
 	_ = eksbootstrapv1.AddToScheme(scheme)
-	_ = eksbootstrapv1alpha3.AddToScheme(scheme)
-	_ = eksbootstrapv1alpha4.AddToScheme(scheme)
+	_ = eksbootstrapv1beta1.AddToScheme(scheme)
 	_ = cgscheme.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
 	_ = expclusterv1.AddToScheme(scheme)
 	_ = ekscontrolplanev1.AddToScheme(scheme)
-	_ = ekscontrolplanev1alpha3.AddToScheme(scheme)
-	_ = ekscontrolplanev1alpha4.AddToScheme(scheme)
+	_ = ekscontrolplanev1beta1.AddToScheme(scheme)
 	_ = infrav1.AddToScheme(scheme)
-	_ = infrav1alpha3.AddToScheme(scheme)
-	_ = expinfrav1alpha3.AddToScheme(scheme)
-	_ = infrav1alpha4.AddToScheme(scheme)
-	_ = expinfrav1alpha4.AddToScheme(scheme)
+	_ = infrav1beta1.AddToScheme(scheme)
+	_ = expinfrav1beta1.AddToScheme(scheme)
 	_ = expinfrav1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
@@ -284,7 +276,7 @@ func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsServi
 		}
 	}
 
-	if err := (&infrav1.AWSMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1.AWSMachineTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplate")
 		os.Exit(1)
 	}

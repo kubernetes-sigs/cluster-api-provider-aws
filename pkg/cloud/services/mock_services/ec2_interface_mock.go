@@ -24,8 +24,8 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	v1beta1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	v1beta10 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
+	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
+	v1beta20 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta2"
 	scope "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 
@@ -53,10 +53,10 @@ func (m *MockEC2Interface) EXPECT() *MockEC2InterfaceMockRecorder {
 }
 
 // CreateInstance mocks base method.
-func (m *MockEC2Interface) CreateInstance(arg0 *scope.MachineScope, arg1 []byte, arg2 string) (*v1beta1.Instance, error) {
+func (m *MockEC2Interface) CreateInstance(arg0 *scope.MachineScope, arg1 []byte, arg2 string) (*v1beta2.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateInstance", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*v1beta1.Instance)
+	ret0, _ := ret[0].(*v1beta2.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -154,7 +154,7 @@ func (mr *MockEC2InterfaceMockRecorder) DiscoverLaunchTemplateAMI(arg0 interface
 }
 
 // GetAdditionalSecurityGroupsIDs mocks base method.
-func (m *MockEC2Interface) GetAdditionalSecurityGroupsIDs(arg0 []v1beta1.AWSResourceReference) ([]string, error) {
+func (m *MockEC2Interface) GetAdditionalSecurityGroupsIDs(arg0 []v1beta2.AWSResourceReference) ([]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAdditionalSecurityGroupsIDs", arg0)
 	ret0, _ := ret[0].([]string)
@@ -199,10 +199,10 @@ func (mr *MockEC2InterfaceMockRecorder) GetInstanceSecurityGroups(arg0 interface
 }
 
 // GetLaunchTemplate mocks base method.
-func (m *MockEC2Interface) GetLaunchTemplate(arg0 string) (*v1beta10.AWSLaunchTemplate, string, error) {
+func (m *MockEC2Interface) GetLaunchTemplate(arg0 string) (*v1beta20.AWSLaunchTemplate, string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetLaunchTemplate", arg0)
-	ret0, _ := ret[0].(*v1beta10.AWSLaunchTemplate)
+	ret0, _ := ret[0].(*v1beta20.AWSLaunchTemplate)
 	ret1, _ := ret[1].(string)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
@@ -245,10 +245,10 @@ func (mr *MockEC2InterfaceMockRecorder) GetLaunchTemplateLatestVersion(arg0 inte
 }
 
 // GetRunningInstanceByTags mocks base method.
-func (m *MockEC2Interface) GetRunningInstanceByTags(arg0 *scope.MachineScope) (*v1beta1.Instance, error) {
+func (m *MockEC2Interface) GetRunningInstanceByTags(arg0 *scope.MachineScope) (*v1beta2.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRunningInstanceByTags", arg0)
-	ret0, _ := ret[0].(*v1beta1.Instance)
+	ret0, _ := ret[0].(*v1beta2.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -260,10 +260,10 @@ func (mr *MockEC2InterfaceMockRecorder) GetRunningInstanceByTags(arg0 interface{
 }
 
 // InstanceIfExists mocks base method.
-func (m *MockEC2Interface) InstanceIfExists(arg0 *string) (*v1beta1.Instance, error) {
+func (m *MockEC2Interface) InstanceIfExists(arg0 *string) (*v1beta2.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "InstanceIfExists", arg0)
-	ret0, _ := ret[0].(*v1beta1.Instance)
+	ret0, _ := ret[0].(*v1beta2.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -275,7 +275,7 @@ func (mr *MockEC2InterfaceMockRecorder) InstanceIfExists(arg0 interface{}) *gomo
 }
 
 // LaunchTemplateNeedsUpdate mocks base method.
-func (m *MockEC2Interface) LaunchTemplateNeedsUpdate(arg0 scope.LaunchTemplateScope, arg1, arg2 *v1beta10.AWSLaunchTemplate) (bool, error) {
+func (m *MockEC2Interface) LaunchTemplateNeedsUpdate(arg0 scope.LaunchTemplateScope, arg1, arg2 *v1beta20.AWSLaunchTemplate) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LaunchTemplateNeedsUpdate", arg0, arg1, arg2)
 	ret0, _ := ret[0].(bool)
