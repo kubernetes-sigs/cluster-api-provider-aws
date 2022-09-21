@@ -162,7 +162,7 @@ spec:
   durationSeconds: 900 # default and min value is 900 seconds
   roleARN: arn:aws:iam::11122233344:role/multi-tenancy-role
   sessionName: multi-tenancy-role-session
-  sourceidentityRef:
+  sourceIdentityRef:
     kind: AWSClusterControllerIdentity
     name: default
 ---
@@ -175,7 +175,7 @@ spec:
     list: []
   roleARN: arn:aws:iam::11122233355:role/multi-tenancy-nested-role
   sessionName: multi-tenancy-nested-role-session
-  sourceidentityRef:
+  sourceIdentityRef:
     kind: AWSClusterRoleIdentity
     name: multi-tenancy-role
 ```
