@@ -8,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,7 +22,6 @@ package managed
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -49,7 +48,6 @@ type ManagedClusterSpecInput struct {
 	Flavour                  string
 	ControlPlaneMachineCount int64
 	WorkerMachineCount       int64
-	CNIManifestPath          string
 	KubernetesVersion        string
 	CluserSpecificRoles      bool
 }
@@ -89,10 +87,10 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 
 	if input.CluserSpecificRoles {
 		ginkgo.By("Checking that the cluster specific IAM role exists")
-		verifyRoleExistsAndOwned(fmt.Sprintf("%s-iam-service-role", input.ClusterName), input.ClusterName, true, input.AWSSession)
+		VerifyRoleExistsAndOwned(fmt.Sprintf("%s-iam-service-role", input.ClusterName), input.ClusterName, true, input.AWSSession)
 	} else {
 		ginkgo.By("Checking that the cluster default IAM role exists")
-		verifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, input.ClusterName, false, input.AWSSession)
+		VerifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, input.ClusterName, false, input.AWSSession)
 	}
 
 	shared.Byf("Checking kubeconfig secrets exist")
@@ -106,14 +104,6 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 	workloadClusterProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace.Name, input.ClusterName)
 	workloadClient := workloadClusterProxy.GetClient()
 	verifyConfigMapExists(ctx, "aws-auth", metav1.NamespaceSystem, workloadClient)
-
-	if input.CNIManifestPath != "" {
-		shared.Byf("Installing a CNI plugin to the workload cluster: %s", input.CNIManifestPath)
-		cniYaml, err := os.ReadFile(input.CNIManifestPath)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		Expect(workloadClusterProxy.Apply(ctx, cniYaml)).ShouldNot(HaveOccurred())
-	}
 }
 
 // DeleteClusterSpecInput is the input to DeleteClusterSpec.

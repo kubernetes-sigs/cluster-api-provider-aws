@@ -1018,12 +1018,13 @@ spec:
                       groups defined at the cluster level or in the actuator.
                     items:
                       description: AWSResourceReference is a reference to a specific
-                        AWS resource by ID, ARN, or filters. Only one of ID, ARN or
-                        Filters may be specified. Specifying more than one will result
-                        in a validation error.
+                        AWS resource by ID or filters. Only one of ID or Filters may
+                        be specified. Specifying more than one will result in a validation
+                        error.
                       properties:
                         arn:
-                          description: ARN of resource
+                          description: 'ARN of resource. Deprecated: This field has
+                            no function and is going to be removed in the next release.'
                           type: string
                         filters:
                           description: 'Filters is a set of key/value pairs used to
@@ -1177,7 +1178,7 @@ spec:
                 default: 1
                 description: MinSize defines the minimum size of the group.
                 format: int32
-                minimum: 1
+                minimum: 0
                 type: integer
               mixedInstancesPolicy:
                 description: MixedInstancesPolicy describes how multiple instance
@@ -1263,12 +1264,12 @@ spec:
                 description: Subnets is an array of subnet configurations
                 items:
                   description: AWSResourceReference is a reference to a specific AWS
-                    resource by ID, ARN, or filters. Only one of ID, ARN or Filters
-                    may be specified. Specifying more than one will result in a validation
-                    error.
+                    resource by ID or filters. Only one of ID or Filters may be specified.
+                    Specifying more than one will result in a validation error.
                   properties:
                     arn:
-                      description: ARN of resource
+                      description: 'ARN of resource. Deprecated: This field has no
+                        function and is going to be removed in the next release.'
                       type: string
                     filters:
                       description: 'Filters is a set of key/value pairs used to identify

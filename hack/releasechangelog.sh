@@ -17,22 +17,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-while getopts v:pv:gh:ghorg:ghrepo:cimg: flag
-do
-    case "${flag}" in
-        v) VERSION=${OPTARG};;
-        pv) PREVIOUS_VERSION=${OPTARG};;
-        gh) GH=${OPTARG};;
-        ghorg) GH_ORG_NAME=${OPTARG};;
-        ghrepo) GH_REPO_NAME=${OPTARG};;
-        cimg) CORE_CONTROLLER_IMG=${OPTARG};;
-    esac
-done
-
 echo "# Release notes for Cluster API Provider AWS (CAPA) $VERSION"
 echo "[Documentation](https://cluster-api-aws.sigs.k8s.io/)"
 echo "# Changelog since $PREVIOUS_VERSION"
-$GH api repos/$GH_ORG_NAME/$GH_REPO_NAME/releases/generate-notes -F tag_name=$VERSION --jq '.body'
-echo "**The image for this release is**: $CORE_CONTROLLER_IMG:$VERSION"
+$GH api repos/$GH_ORG_NAME/$GH_REPO_NAME/releases/generate-notes -F tag_name=$VERSION -F previous_tag_name=$PREVIOUS_VERSION --jq '.body'
+echo "**The image for this release is**: $CORE_CONTROLLER_PROMOTED_IMG:$VERSION"
 echo "Thanks to all our contributors!"
 

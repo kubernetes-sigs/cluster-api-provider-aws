@@ -96,6 +96,7 @@ spec:
   availabilityZones:
     - "${AWS_AVAILABILITY_ZONE}"
   awsLaunchTemplate:
+    iamInstanceProfile: nodes.cluster-api-provider-aws.sigs.k8s.io
     instanceType: "${AWS_NODE_MACHINE_TYPE}"
     sshKeyName: "${AWS_SSH_KEY_NAME}"
 ---

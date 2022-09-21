@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -989,27 +989,4 @@ func getInstanceMarketOptionsRequest(spotMarketOptions *infrav1.SpotMarketOption
 	instanceMarketOptionsRequest.SetSpotOptions(spotOptions)
 
 	return instanceMarketOptionsRequest
-}
-
-// GetFilteredSecurityGroupID get security group ID using filters.
-func (s *Service) GetFilteredSecurityGroupID(securityGroup infrav1.AWSResourceReference) (string, error) {
-	if securityGroup.Filters == nil {
-		return "", nil
-	}
-
-	filters := []*ec2.Filter{}
-	for _, f := range securityGroup.Filters {
-		filters = append(filters, &ec2.Filter{Name: aws.String(f.Name), Values: aws.StringSlice(f.Values)})
-	}
-
-	sgs, err := s.EC2Client.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{Filters: filters})
-	if err != nil {
-		return "", err
-	}
-
-	if len(sgs.SecurityGroups) == 0 {
-		return "", fmt.Errorf("failed to find security group matching filters: %q, reason: %w", filters, err)
-	}
-
-	return *sgs.SecurityGroups[0].GroupId, nil
 }

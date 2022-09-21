@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -50,9 +50,9 @@ type EC2Interface interface {
 	CreateInstance(scope *scope.MachineScope, userData []byte, userDataFormat string) (*infrav1.Instance, error)
 	GetRunningInstanceByTags(scope *scope.MachineScope) (*infrav1.Instance, error)
 
+	GetAdditionalSecurityGroupsIDs(securityGroup []infrav1.AWSResourceReference) ([]string, error)
 	GetCoreSecurityGroups(machine *scope.MachineScope) ([]string, error)
 	GetInstanceSecurityGroups(instanceID string) (map[string][]string, error)
-	GetFilteredSecurityGroupID(securityGroup infrav1.AWSResourceReference) (string, error)
 	UpdateInstanceSecurityGroups(id string, securityGroups []string) error
 	UpdateResourceTags(resourceID *string, create, remove map[string]string) error
 

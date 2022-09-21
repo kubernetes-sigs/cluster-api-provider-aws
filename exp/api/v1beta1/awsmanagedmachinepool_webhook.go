@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,6 +25,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -61,7 +62,7 @@ func (r *AWSManagedMachinePool) validateScaling() field.ErrorList {
 		max := r.Spec.Scaling.MaxSize
 		if min != nil {
 			if *min < 0 {
-				allErrs = append(allErrs, field.Invalid(minField, *min, "must be greater than zero"))
+				allErrs = append(allErrs, field.Invalid(minField, *min, "must be greater or equal zero"))
 			}
 			if max != nil && *max < *min {
 				allErrs = append(allErrs, field.Invalid(maxField, *max, fmt.Sprintf("must be greater than field %s", minField.String())))
@@ -234,5 +235,11 @@ func (r *AWSManagedMachinePool) Default() {
 
 		mmpLog.Info("Generated EKSNodegroupName", "nodegroup-name", name)
 		r.Spec.EKSNodegroupName = name
+	}
+
+	if r.Spec.UpdateConfig == nil {
+		r.Spec.UpdateConfig = &UpdateConfig{
+			MaxUnavailable: pointer.Int(1),
+		}
 	}
 }

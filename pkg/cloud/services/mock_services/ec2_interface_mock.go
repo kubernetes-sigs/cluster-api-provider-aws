@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -153,6 +153,21 @@ func (mr *MockEC2InterfaceMockRecorder) DiscoverLaunchTemplateAMI(arg0 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiscoverLaunchTemplateAMI", reflect.TypeOf((*MockEC2Interface)(nil).DiscoverLaunchTemplateAMI), arg0)
 }
 
+// GetAdditionalSecurityGroupsIDs mocks base method.
+func (m *MockEC2Interface) GetAdditionalSecurityGroupsIDs(arg0 []v1beta1.AWSResourceReference) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAdditionalSecurityGroupsIDs", arg0)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAdditionalSecurityGroupsIDs indicates an expected call of GetAdditionalSecurityGroupsIDs.
+func (mr *MockEC2InterfaceMockRecorder) GetAdditionalSecurityGroupsIDs(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAdditionalSecurityGroupsIDs", reflect.TypeOf((*MockEC2Interface)(nil).GetAdditionalSecurityGroupsIDs), arg0)
+}
+
 // GetCoreSecurityGroups mocks base method.
 func (m *MockEC2Interface) GetCoreSecurityGroups(arg0 *scope.MachineScope) ([]string, error) {
 	m.ctrl.T.Helper()
@@ -166,21 +181,6 @@ func (m *MockEC2Interface) GetCoreSecurityGroups(arg0 *scope.MachineScope) ([]st
 func (mr *MockEC2InterfaceMockRecorder) GetCoreSecurityGroups(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCoreSecurityGroups", reflect.TypeOf((*MockEC2Interface)(nil).GetCoreSecurityGroups), arg0)
-}
-
-// GetFilteredSecurityGroupID mocks base method.
-func (m *MockEC2Interface) GetFilteredSecurityGroupID(arg0 v1beta1.AWSResourceReference) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetFilteredSecurityGroupID", arg0)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetFilteredSecurityGroupID indicates an expected call of GetFilteredSecurityGroupID.
-func (mr *MockEC2InterfaceMockRecorder) GetFilteredSecurityGroupID(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFilteredSecurityGroupID", reflect.TypeOf((*MockEC2Interface)(nil).GetFilteredSecurityGroupID), arg0)
 }
 
 // GetInstanceSecurityGroups mocks base method.

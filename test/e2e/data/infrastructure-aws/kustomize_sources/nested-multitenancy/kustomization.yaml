@@ -3,4 +3,7 @@ resources:
   - role.yaml
 patchesStrategicMerge:
   - patches/role-identity.yaml
+  # This manifest is added to test bastion host creation.
   - patches/bastion-enabled.yaml
+  # This manifest is added to test subnet with filters in AWSMachineTemplate.
+  - patches/subnet-with-filters.yaml

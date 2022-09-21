@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -138,10 +139,12 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 		networkSvc *mock_services.MockNetworkInterface
 		sgSvc      *mock_services.MockSecurityGroupInterface
 		recorder   *record.FakeRecorder
+		ctx        context.Context
 	)
 
 	setup := func(t *testing.T, awsCluster *infrav1.AWSCluster) client.WithWatch {
 		t.Helper()
+		ctx = context.TODO()
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-secret",
@@ -408,7 +411,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					},
 				)
 				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileDelete(cs)
+				_, err = reconciler.reconcileDelete(ctx, cs)
 				g.Expect(err).To(BeNil())
 				g.Expect(awsCluster.GetFinalizers()).ToNot(ContainElement(infrav1.ClusterFinalizer))
 			})
@@ -434,7 +437,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					},
 				)
 				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileDelete(cs)
+				_, err = reconciler.reconcileDelete(ctx, cs)
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(awsCluster.GetFinalizers()).To(ContainElement(infrav1.ClusterFinalizer))
 			})
@@ -457,7 +460,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					},
 				)
 				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileDelete(cs)
+				_, err = reconciler.reconcileDelete(ctx, cs)
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(awsCluster.GetFinalizers()).To(ContainElement(infrav1.ClusterFinalizer))
 			})
@@ -481,7 +484,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					},
 				)
 				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileDelete(cs)
+				_, err = reconciler.reconcileDelete(ctx, cs)
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(awsCluster.GetFinalizers()).To(ContainElement(infrav1.ClusterFinalizer))
 			})
@@ -506,7 +509,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					},
 				)
 				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileDelete(cs)
+				_, err = reconciler.reconcileDelete(ctx, cs)
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(awsCluster.GetFinalizers()).To(ContainElement(infrav1.ClusterFinalizer))
 			})
@@ -626,5 +629,38 @@ func cleanupCluster(g *WithT, awsCluster *infrav1.AWSCluster, namespace *corev1.
 		func(do ...client.Object) {
 			g.Expect(testEnv.Cleanup(ctx, do...)).To(Succeed())
 		}(awsCluster, namespace)
+	}
+}
+
+func TestSecurityGroupRolesForCluster(t *testing.T) {
+	tests := []struct {
+		name           string
+		bastionEnabled bool
+		want           []infrav1.SecurityGroupRole
+	}{
+		{
+			name:           "Should use bastion security group when bastion is enabled",
+			bastionEnabled: true,
+			want:           append(defaultAWSSecurityGroupRoles, infrav1.SecurityGroupBastion),
+		},
+		{
+			name:           "Should not use bastion security group when bastion is not enabled",
+			bastionEnabled: false,
+			want:           defaultAWSSecurityGroupRoles,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			c := getAWSCluster("test", "test")
+			c.Spec.Bastion.Enabled = tt.bastionEnabled
+			s, err := getClusterScope(c)
+			g.Expect(err).To(BeNil(), "failed to create cluster scope for test")
+
+			got := securityGroupRolesForCluster(*s)
+			g.Expect(got).To(Equal(tt.want))
+		})
 	}
 }

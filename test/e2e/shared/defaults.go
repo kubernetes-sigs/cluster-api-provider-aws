@@ -8,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,31 +35,37 @@ import (
 
 // Constants.
 const (
-	DefaultSSHKeyPairName        = "cluster-api-provider-aws-sigs-k8s-io"
-	AMIPrefix                    = "capa-ami-ubuntu-18.04-"
-	DefaultImageLookupOrg        = "258751437250"
-	KubernetesVersion            = "KUBERNETES_VERSION"
-	KubernetesVersionManagement  = "KUBERNETES_VERSION_MANAGEMENT"
-	CNIPath                      = "CNI"
-	CNIResources                 = "CNI_RESOURCES"
-	AwsNodeMachineType           = "AWS_NODE_MACHINE_TYPE"
-	AwsAvailabilityZone1         = "AWS_AVAILABILITY_ZONE_1"
-	AwsAvailabilityZone2         = "AWS_AVAILABILITY_ZONE_2"
-	MultiAzFlavor                = "multi-az"
-	LimitAzFlavor                = "limit-az"
-	SpotInstancesFlavor          = "spot-instances"
-	SSMFlavor                    = "ssm"
-	UpgradeToMain                = "upgrade-to-main"
-	ExternalCloudProvider        = "external-cloud-provider"
-	SimpleMultitenancyFlavor     = "simple-multitenancy"
-	NestedMultitenancyFlavor     = "nested-multitenancy"
-	KCPScaleInFlavor             = "kcp-scale-in"
-	IgnitionFlavor               = "ignition"
-	StorageClassOutTreeZoneLabel = "topology.ebs.csi.aws.com/zone"
-	GPUFlavor                    = "gpu"
-	InstanceVcpu                 = "AWS_MACHINE_TYPE_VCPU_USAGE"
-	PreCSIKubernetesVer          = "PRE_1_23_KUBERNETES_VERSION"
-	PostCSIKubernetesVer         = "POST_1_23_KUBERNETES_VERSION"
+	DefaultSSHKeyPairName                = "cluster-api-provider-aws-sigs-k8s-io"
+	AMIPrefix                            = "capa-ami-ubuntu-18.04-"
+	DefaultImageLookupOrg                = "258751437250"
+	KubernetesVersion                    = "KUBERNETES_VERSION"
+	KubernetesVersionManagement          = "KUBERNETES_VERSION_MANAGEMENT"
+	CNIPath                              = "CNI"
+	CNIResources                         = "CNI_RESOURCES"
+	CNIAddonVersion                      = "VPC_ADDON_VERSION"
+	CorednsAddonVersion                  = "COREDNS_ADDON_VERSION"
+	GcWorkloadPath                       = "GC_WORKLOAD"
+	AwsNodeMachineType                   = "AWS_NODE_MACHINE_TYPE"
+	AwsAvailabilityZone1                 = "AWS_AVAILABILITY_ZONE_1"
+	AwsAvailabilityZone2                 = "AWS_AVAILABILITY_ZONE_2"
+	MultiAzFlavor                        = "multi-az"
+	LimitAzFlavor                        = "limit-az"
+	SpotInstancesFlavor                  = "spot-instances"
+	SSMFlavor                            = "ssm"
+	TopologyFlavor                       = "topology"
+	UpgradeToMain                        = "upgrade-to-main"
+	ExternalCloudProvider                = "external-cloud-provider"
+	SimpleMultitenancyFlavor             = "simple-multitenancy"
+	NestedMultitenancyFlavor             = "nested-multitenancy"
+	NestedMultitenancyClusterClassFlavor = "nested-multitenancy-clusterclass"
+	KCPScaleInFlavor                     = "kcp-scale-in"
+	IgnitionFlavor                       = "ignition"
+	StorageClassOutTreeZoneLabel         = "topology.ebs.csi.aws.com/zone"
+	GPUFlavor                            = "gpu"
+	InstanceVcpu                         = "AWS_MACHINE_TYPE_VCPU_USAGE"
+	PreCSIKubernetesVer                  = "PRE_1_23_KUBERNETES_VERSION"
+	PostCSIKubernetesVer                 = "POST_1_23_KUBERNETES_VERSION"
+	EFSSupport                           = "efs-support"
 )
 
 var ResourceQuotaFilePath = "/tmp/capa-e2e-resource-usage.lock"

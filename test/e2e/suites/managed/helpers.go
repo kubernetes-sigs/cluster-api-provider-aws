@@ -8,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -110,7 +110,7 @@ func verifyConfigMapExists(ctx context.Context, name, namespace string, k8sclien
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
-func verifyRoleExistsAndOwned(roleName string, clusterName string, checkOwned bool, sess client.ConfigProvider) {
+func VerifyRoleExistsAndOwned(roleName string, clusterName string, checkOwned bool, sess client.ConfigProvider) {
 	iamClient := iam.New(sess)
 	input := &iam.GetRoleInput{
 		RoleName: aws.String(roleName),

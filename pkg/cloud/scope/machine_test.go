@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -51,9 +51,8 @@ func newMachine(clusterName, machineName string) *clusterv1.Machine {
 			Labels: map[string]string{
 				clusterv1.ClusterLabelName: clusterName,
 			},
-			ClusterName: clusterName,
-			Name:        machineName,
-			Namespace:   "default",
+			Name:      machineName,
+			Namespace: "default",
 		},
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{

@@ -9,7 +9,7 @@ You can use an explicit version of the Amazon VPC CNI by using the **vpc-cni** E
 
 ## Using an alternative CNI
 
-There may be scenarios where you do not want to use the Amazon VPC CNI. EKS supports a number of alternative CNIs such as Calico and Weave Net (see [docs](https://docs.aws.amazon.com/eks/latest/userguide/alternate-cni-plugins.html) for full list).
+There may be scenarios where you do not want to use the Amazon VPC CNI. EKS supports a number of alternative CNIs such as Calico, Cilium, and Weave Net (see [docs](https://docs.aws.amazon.com/eks/latest/userguide/alternate-cni-plugins.html) for full list).
 
 There are a number of ways to install an alternative CNI into the cluster. One option is to use a [ClusterResourceSet](https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-resource-set.html) to apply the required artifacts to a newly provisioned cluster.
 
@@ -27,7 +27,25 @@ spec:
   disableVPCCNI: true
 ```
 
-> You cannot set **disableVPCCNI** to true if you are using the VPC CNI addon or if you have specified a secondary CIDR block.
+> You cannot set **disableVPCCNI** to true if you are using the VPC CNI addon.
+
+Some alternative CNIs provide for the replacement of kube-proxy, such as in [Calico](https://projectcalico.docs.tigera.io/maintenance/ebpf/enabling-ebpf#configure-kube-proxy) and [Cilium](https://docs.cilium.io/en/stable/gettingstarted/kubeproxy-free/). When enabling the kube-proxy alternative, the kube-proxy installed by EKS must be deleted. This can be done via the **disable** property of **kubeProxy** in **AWSManagedControlPlane**:
+
+```yaml
+kind: AWSManagedControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+metadata:
+  name: "capi-managed-test-control-plane"
+spec:
+  region: "eu-west-2"
+  sshKeyName: "capi-management"
+  version: "v1.18.0"
+  disableVPCCNI: true
+  kubeProxy:
+    disable: true
+```
+
+> You cannot set **disable** to true in **kubeProxy** if you are using the kube-proxy addon.
 
 ## Additional Information
 

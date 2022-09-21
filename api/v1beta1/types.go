@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,16 +22,17 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-// AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
-// Only one of ID, ARN or Filters may be specified. Specifying more than one will result in
+// AWSResourceReference is a reference to a specific AWS resource by ID or filters.
+// Only one of ID or Filters may be specified. Specifying more than one will result in
 // a validation error.
 type AWSResourceReference struct {
 	// ID of resource
 	// +optional
 	ID *string `json:"id,omitempty"`
 
-	// ARN of resource
+	// ARN of resource.
 	// +optional
+	// Deprecated: This field has no function and is going to be removed in the next release.
 	ARN *string `json:"arn,omitempty"`
 
 	// Filters is a set of key/value pairs used to identify a resource

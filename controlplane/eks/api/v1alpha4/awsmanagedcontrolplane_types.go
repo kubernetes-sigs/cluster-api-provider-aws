@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -163,7 +163,7 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
 	// to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
 	// should be deleted. You cannot set this to true if you are using the
-	// Amazon VPC CNI addon or if you have specified a secondary CIDR block.
+	// Amazon VPC CNI addon.
 	// +kubebuilder:default=false
 	DisableVPCCNI bool `json:"disableVPCCNI,omitempty"`
 }
