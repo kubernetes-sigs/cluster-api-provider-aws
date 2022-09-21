@@ -31,8 +31,8 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/mock_eksiface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/iamauth/mock_iamauth"

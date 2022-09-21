@@ -19,11 +19,16 @@ spec:
     singular: awsclustertemplate
   scope: Namespaced
   versions:
-  - name: v1alpha4
+  - additionalPrinterColumns:
+    - description: Time duration since creation of AWSClusterTemplate
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
     schema:
       openAPIV3Schema:
-        description: AWSClusterTemplate is the Schema for the awsclustertemplates
-          API.
+        description: AWSClusterTemplate is the schema for Amazon EC2 based Kubernetes
+          Cluster Templates.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -42,8 +47,30 @@ spec:
             properties:
               template:
                 properties:
+                  metadata:
+                    description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: 'Annotations is an unstructured key value map
+                          stored with a resource that may be set by external tools
+                          to store and retrieve arbitrary metadata. They are not queryable
+                          and should be preserved when modifying objects. More info:
+                          http://kubernetes.io/docs/user-guide/annotations'
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: 'Map of string keys and values that can be used
+                          to organize and categorize (scope and select) objects. May
+                          match selectors of replication controllers and services.
+                          More info: http://kubernetes.io/docs/user-guide/labels'
+                        type: object
+                    type: object
                   spec:
-                    description: AWSClusterSpec defines the desired state of AWSCluster
+                    description: AWSClusterSpec defines the desired state of an EC2-based
+                      Kubernetes cluster.
                     properties:
                       additionalTags:
                         additionalProperties:
@@ -124,13 +151,27 @@ spec:
                               registered instances in its Availability Zone only.
                               \n Defaults to false."
                             type: boolean
+                          healthCheckProtocol:
+                            description: HealthCheckProtocol sets the protocol type
+                              for classic ELB health check target default value is
+                              ClassicELBProtocolSSL
+                            type: string
+                          name:
+                            description: Name sets the name of the classic ELB load
+                              balancer. As per AWS, the name must be unique within
+                              your set of load balancers for the region, must have
+                              a maximum of 32 characters, must contain only alphanumeric
+                              characters or hyphens, and cannot begin or end with
+                              a hyphen. Once set, the value cannot be changed.
+                            maxLength: 32
+                            pattern: ^[A-Za-z0-9]([A-Za-z0-9]{0,31}|[-A-Za-z0-9]{0,30}[A-Za-z0-9])$
+                            type: string
                           scheme:
                             default: internet-facing
                             description: Scheme sets the scheme of the load balancer
                               (defaults to internet-facing)
                             enum:
                             - internet-facing
-                            - Internet-facing
                             - internal
                             type: string
                           subnets:
@@ -250,6 +291,20 @@ spec:
                                   description: ID defines a unique identifier to reference
                                     this resource.
                                   type: string
+                                ipv6CidrBlock:
+                                  description: IPv6CidrBlock is the IPv6 CIDR block
+                                    to be used when the provider creates a managed
+                                    VPC. A subnet can have an IPv4 and an IPv6 address.
+                                    IPv6 is only supported in managed clusters, this
+                                    field cannot be set on AWSCluster object.
+                                  type: string
+                                isIpv6:
+                                  description: IsIPv6 defines the subnet as an IPv6
+                                    subnet. A subnet is IPv6 when it is associated
+                                    with a VPC that has IPv6 enabled. IPv6 is only
+                                    supported in managed clusters, this field cannot
+                                    be set on AWSCluster object.
+                                  type: boolean
                                 isPublic:
                                   description: IsPublic defines the subnet as a public
                                     subnet. A subnet is public when it is associated
@@ -315,6 +370,25 @@ spec:
                                 description: InternetGatewayID is the id of the internet
                                   gateway associated with the VPC.
                                 type: string
+                              ipv6:
+                                description: IPv6 contains ipv6 specific settings
+                                  for the network. Supported only in managed clusters.
+                                  This field cannot be set on AWSCluster object.
+                                properties:
+                                  cidrBlock:
+                                    description: CidrBlock is the CIDR block provided
+                                      by Amazon when VPC has enabled IPv6.
+                                    type: string
+                                  egressOnlyInternetGatewayId:
+                                    description: EgressOnlyInternetGatewayID is the
+                                      id of the egress only internet gateway associated
+                                      with an IPv6 enabled VPC.
+                                    type: string
+                                  poolId:
+                                    description: PoolID is the IP pool which must
+                                      be defined in case of BYO IP is defined.
+                                    type: string
+                                type: object
                               tags:
                                 additionalProperties:
                                   type: string
@@ -326,6 +400,35 @@ spec:
                       region:
                         description: The AWS Region the cluster lives in.
                         type: string
+                      s3Bucket:
+                        description: S3Bucket contains options to configure a supporting
+                          S3 bucket for this cluster - currently used for nodes requiring
+                          Ignition (https://coreos.github.io/ignition/) for bootstrapping
+                          (requires BootstrapFormatIgnition feature flag to be enabled).
+                        properties:
+                          controlPlaneIAMInstanceProfile:
+                            description: ControlPlaneIAMInstanceProfile is a name
+                              of the IAMInstanceProfile, which will be allowed to
+                              read control-plane node bootstrap data from S3 Bucket.
+                            type: string
+                          name:
+                            description: Name defines name of S3 Bucket to be created.
+                            maxLength: 63
+                            minLength: 3
+                            pattern: ^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$
+                            type: string
+                          nodesIAMInstanceProfiles:
+                            description: NodesIAMInstanceProfiles is a list of IAM
+                              instance profiles, which will be allowed to read worker
+                              nodes bootstrap data from S3 Bucket.
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - controlPlaneIAMInstanceProfile
+                        - name
+                        - nodesIAMInstanceProfiles
+                        type: object
                       sshKeyName:
                         description: SSHKeyName is the name of the ssh key to attach
                           to the bastion host. Valid values are empty string (do not
@@ -342,12 +445,13 @@ spec:
         type: object
     served: true
     storage: false
+    subresources: {}
   - additionalPrinterColumns:
     - description: Time duration since creation of AWSClusterTemplate
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
-    name: v1beta1
+    name: v1beta2
     schema:
       openAPIV3Schema:
         description: AWSClusterTemplate is the schema for Amazon EC2 based Kubernetes

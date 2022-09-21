@@ -30,7 +30,7 @@ import (
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
 )
 
 // AWSPrincipalTypeProvider defines the interface for AWS Principal Type Provider.

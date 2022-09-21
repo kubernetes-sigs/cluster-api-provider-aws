@@ -14,11 +14,11 @@ spec:
     kind: KubeadmControlPlane
     name: ${CLUSTER_NAME}-control-plane
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
     kind: AWSCluster
     name: ${CLUSTER_NAME}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSCluster
 metadata:
   name: ${CLUSTER_NAME}
@@ -58,13 +58,13 @@ spec:
     - ctr -n k8s.io images tag "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}" gcr.io/k8s-staging-cluster-api/capa-manager:e2e
   machineTemplate:
     infrastructureRef:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: AWSMachineTemplate
       name: ${CLUSTER_NAME}-control-plane
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}
   version: ${KUBERNETES_VERSION}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-control-plane
@@ -93,12 +93,12 @@ spec:
           name: ${CLUSTER_NAME}-md-0
       clusterName: ${CLUSTER_NAME}
       infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: AWSMachineTemplate
         name: ${CLUSTER_NAME}-md-0
       version: ${KUBERNETES_VERSION}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0

@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/errors"
 )
@@ -184,7 +184,6 @@ type AWSMachinePoolInstanceStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:storageversion
 // +kubebuilder:resource:path=awsmachinepools,scope=Namespaced,categories=cluster-api,shortName=awsmp
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Machine ready status"
 // +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".status.replicas",description="Machine ready status"

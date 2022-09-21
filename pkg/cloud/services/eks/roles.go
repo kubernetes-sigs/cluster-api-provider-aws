@@ -24,8 +24,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/pkg/errors"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta2"
 	eksiam "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/iam"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"

@@ -38,7 +38,7 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/exp/instancestate"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"

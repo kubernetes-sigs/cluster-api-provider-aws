@@ -8,7 +8,7 @@ spec:
     pods:
       cidrBlocks: ["192.168.0.0/16"]
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
     kind: AWSCluster
     name: "${CLUSTER_NAME}"
   controlPlaneRef:
@@ -16,7 +16,7 @@ spec:
     apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     name: "${CLUSTER_NAME}-control-plane"
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSCluster
 metadata:
   name: "${CLUSTER_NAME}"
@@ -33,7 +33,7 @@ spec:
   machineTemplate:
     infrastructureRef:
       kind: AWSMachineTemplate
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       name: "${CLUSTER_NAME}-control-plane"
   kubeadmConfigSpec:
     initConfiguration:
@@ -56,7 +56,7 @@ spec:
   version: "${KUBERNETES_VERSION}"
 ---
 kind: AWSMachineTemplate
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
 spec:
@@ -86,10 +86,10 @@ spec:
           kind: KubeadmConfigTemplate
       infrastructureRef:
         name: "${CLUSTER_NAME}-md-0"
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: AWSMachineTemplate
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
 metadata:
   name: "${CLUSTER_NAME}-md-0"

@@ -23,7 +23,7 @@ package v1beta1
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
-	cluster_api_provider_awsapiv1beta1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
 	apiv1beta1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
 )
 
@@ -83,7 +83,7 @@ func (in *AWSIAMConfigurationSpec) DeepCopyInto(out *AWSIAMConfigurationSpec) {
 	}
 	if in.SecureSecretsBackends != nil {
 		in, out := &in.SecureSecretsBackends, &out.SecureSecretsBackends
-		*out = make([]cluster_api_provider_awsapiv1beta1.SecretBackend, len(*in))
+		*out = make([]v1beta2.SecretBackend, len(*in))
 		copy(*out, *in)
 	}
 	out.S3Buckets = in.S3Buckets
@@ -123,7 +123,7 @@ func (in *AWSIAMRoleSpec) DeepCopyInto(out *AWSIAMRoleSpec) {
 	}
 	if in.Tags != nil {
 		in, out := &in.Tags, &out.Tags
-		*out = make(cluster_api_provider_awsapiv1beta1.Tags, len(*in))
+		*out = make(v1beta2.Tags, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -162,7 +162,7 @@ func (in *BootstrapUser) DeepCopyInto(out *BootstrapUser) {
 	}
 	if in.Tags != nil {
 		in, out := &in.Tags, &out.Tags
-		*out = make(cluster_api_provider_awsapiv1beta1.Tags, len(*in))
+		*out = make(v1beta2.Tags, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}

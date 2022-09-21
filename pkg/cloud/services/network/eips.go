@@ -23,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"

@@ -24,7 +24,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	v1beta1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
 )
 
 // MockELBInterface is a mock of ELBInterface interface.
@@ -65,7 +65,7 @@ func (mr *MockELBInterfaceMockRecorder) DeleteLoadbalancers() *gomock.Call {
 }
 
 // DeregisterInstanceFromAPIServerELB mocks base method.
-func (m *MockELBInterface) DeregisterInstanceFromAPIServerELB(arg0 *v1beta1.Instance) error {
+func (m *MockELBInterface) DeregisterInstanceFromAPIServerELB(arg0 *v1beta2.Instance) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeregisterInstanceFromAPIServerELB", arg0)
 	ret0, _ := ret[0].(error)
@@ -79,7 +79,7 @@ func (mr *MockELBInterfaceMockRecorder) DeregisterInstanceFromAPIServerELB(arg0 
 }
 
 // IsInstanceRegisteredWithAPIServerELB mocks base method.
-func (m *MockELBInterface) IsInstanceRegisteredWithAPIServerELB(arg0 *v1beta1.Instance) (bool, error) {
+func (m *MockELBInterface) IsInstanceRegisteredWithAPIServerELB(arg0 *v1beta2.Instance) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsInstanceRegisteredWithAPIServerELB", arg0)
 	ret0, _ := ret[0].(bool)
@@ -108,7 +108,7 @@ func (mr *MockELBInterfaceMockRecorder) ReconcileLoadbalancers() *gomock.Call {
 }
 
 // RegisterInstanceWithAPIServerELB mocks base method.
-func (m *MockELBInterface) RegisterInstanceWithAPIServerELB(arg0 *v1beta1.Instance) error {
+func (m *MockELBInterface) RegisterInstanceWithAPIServerELB(arg0 *v1beta2.Instance) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterInstanceWithAPIServerELB", arg0)
 	ret0, _ := ret[0].(error)
