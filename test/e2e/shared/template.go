@@ -8,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -76,6 +76,20 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 				"ssm:GetDocument",
 				"ssm:TerminateSession",
 				"ssm:ResumeSession",
+				"ec2:DescribeSubnets",
+				"ec2:DescribeNetworkInterfaces",
+				"ec2:CreateNetworkInterface",
+				"ec2:DescribeAvailabilityZones",
+				"ec2:DeleteNetworkInterface",
+				"elasticfilesystem:DescribeMountTargets",
+				"elasticfilesystem:CreateMountTarget",
+				"elasticfilesystem:DeleteMountTarget",
+				"elasticfilesystem:DescribeFileSystems",
+				"elasticfilesystem:CreateFileSystem",
+				"elasticfilesystem:DeleteFileSystem",
+				"elasticfilesystem:DescribeAccessPoints",
+				"elasticfilesystem:CreateAccessPoint",
+				"elasticfilesystem:DeleteAccessPoint",
 			},
 		},
 		{
@@ -106,6 +120,22 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 	t.Spec.EKS.DefaultControlPlaneRole.Disable = false
 	t.Spec.EKS.ManagedMachinePool.Disable = false
 	t.Spec.S3Buckets.Enable = true
+	t.Spec.Nodes.ExtraStatements = []iamv1.StatementEntry{
+		{
+			Effect: iamv1.EffectAllow,
+			Resource: iamv1.Resources{
+				iamv1.Any,
+			},
+			Action: iamv1.Actions{
+				"elasticfilesystem:DescribeMountTargets",
+				"elasticfilesystem:DeleteAccessPoint",
+				"elasticfilesystem:DescribeAccessPoints",
+				"elasticfilesystem:DescribeFileSystems",
+				"elasticfilesystem:CreateAccessPoint",
+				"ec2:DescribeAvailabilityZones",
+			},
+		},
+	}
 	str, err := yaml.Marshal(t.Spec)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(os.WriteFile(path.Join(e2eCtx.Settings.ArtifactFolder, "awsiamconfiguration.yaml"), str, 0644)).To(Succeed()) //nolint:gosec

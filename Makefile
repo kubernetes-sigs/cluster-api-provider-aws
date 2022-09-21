@@ -27,7 +27,7 @@ TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 GO_INSTALL := ./scripts/go_install.sh
 
 API_DIRS := cmd/clusterawsadm/api api exp/api controlplane/eks/api bootstrap/eks/api iam/api
-API_SRCS := $(foreach dir, $(API_DIRS), $(call rwildcard,../../$(dir),*.go))
+API_FILES := $(foreach dir, $(API_DIRS), $(call rwildcard,../../$(dir),*.go))
 
 BIN_DIR := bin
 REPO_ROOT := $(shell git rev-parse --show-toplevel)
@@ -80,7 +80,7 @@ endif
 STAGING_REGISTRY ?= gcr.io/spectro-dev-public/cluster-api-aws
 STAGING_BUCKET ?= artifacts.k8s-staging-cluster-api-aws.appspot.com
 BUCKET ?= $(STAGING_BUCKET)
-PROD_REGISTRY := k8s.gcr.io/cluster-api-aws
+PROD_REGISTRY := registry.k8s.io/cluster-api-aws
 REGISTRY ?= $(STAGING_REGISTRY)
 RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
 PULL_BASE_REF ?= $(RELEASE_TAG) # PULL_BASE_REF will be provided by Prow
@@ -92,13 +92,14 @@ BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 # image name used to build the cmd/clusterawsadm
 TOOLCHAIN_IMAGE := toolchain
 
-TAG ?= $(shell date +%Y%m%d)
-ARCH ?= amd64
+TAG ?= dev
+ARCH ?= $(shell go env GOARCH)
 ALL_ARCH ?= amd64 arm arm64 ppc64le s390x
 
 # main controller
 CORE_IMAGE_NAME ?= cluster-api-aws-controller
 CORE_CONTROLLER_IMG ?= $(REGISTRY)/$(CORE_IMAGE_NAME)
+CORE_CONTROLLER_PROMOTED_IMG := $(PROD_REGISTRY)/$(CORE_IMAGE_NAME)
 CORE_CONTROLLER_ORIGINAL_IMG := gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller
 CORE_CONTROLLER_NAME := capa-controller-manager
 CORE_MANIFEST_FILE := infrastructure-components
@@ -136,25 +137,18 @@ SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 
-ifeq ($(shell go env GOOS),darwin) # Use the darwin/amd64 binary until an arm64 version is available
-	KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path --arch amd64 $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
-else
-	KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
-endif
+GINKGO_FOCUS ?= ""
+GINKGO_SKIP ?= ""
 
 # Enable Cluster API Framework tests for the purposes of running the PR blocking test
-ifeq ($(findstring \[PR-Blocking\],$(E2E_FOCUS)),\[PR-Blocking\])
+ifeq ($(findstring \[PR-Blocking\],$(GINKGO_FOCUS)),\[PR-Blocking\])
   override undefine GINKGO_SKIP
 endif
 
 override E2E_ARGS += -artifacts-folder="$(ARTIFACTS)" --data-folder="$(E2E_DATA_DIR)" -use-existing-cluster=$(USE_EXISTING_CLUSTER)
 override GINKGO_ARGS += -stream -progress -v -trace
 
-ifdef GINKGO_SKIP
-	override GINKGO_ARGS += -skip "$(GINKGO_SKIP)"
-endif
-
-# DEPRECATED, use E2E_FOCUS instead
+# DEPRECATED, use GINKGO_FOCUS instead
 ifdef E2E_UNMANAGED_FOCUS
 	override GINKGO_ARGS += -focus="$(E2E_UNMANAGED_FOCUS)"
 endif
@@ -166,13 +160,9 @@ endif
 # infrastructure reconciliation
 
 # Instead, you can run a quick smoke test, it should run fast (9 minutes)...
-# E2E_FOCUS := "\\[smoke\\]"
-# For running CAPI e2e tests: E2E_FOCUS := "\\[Cluster API Framework\\]"
-# For running CAPI blocking e2e test: E2E_FOCUS := "\\[PR-Blocking\\]"
-ifdef E2E_FOCUS
-	override GINKGO_ARGS += -focus="$(E2E_FOCUS)"
-endif
-
+# GINKGO_FOCUS := "\\[smoke\\]"
+# For running CAPI e2e tests: GINKGO_FOCUS := "\\[Cluster API Framework\\]"
+# For running CAPI blocking e2e test: GINKGO_FOCUS := "\\[PR-Blocking\\]"
 ifeq ($(E2E_SKIP_EKS_UPGRADE),"true")
 	override EKS_E2E_ARGS += --skip-eks-upgrade-tests
 endif
@@ -197,7 +187,7 @@ generate: ## Generate code
 	$(MAKE) generate-go
 	$(MAKE) $(CRD_DOCS)
 
-$(CRD_DOCS_DIR)/%: $(API_SRCS)
+$(CRD_DOCS_DIR)/%: $(API_FILES)
 	$(MAKE) -C docs/book src/crd/$*
 
 .PHONY: generate-go ## Generate all Go api files
@@ -212,7 +202,7 @@ generate-go-apis: ## Alias for .build/generate-go-apis
 .build: ## Create the .build folder
 	mkdir -p .build
 
-.build/generate-go-apis: .build $(API_SRCS) $(CONTROLLER_GEN) $(DEFAULTER_GEN) $(CONVERSION_GEN) ## Generate all Go api files
+.build/generate-go-apis: .build $(API_FILES) $(CONTROLLER_GEN) $(DEFAULTER_GEN) $(CONVERSION_GEN) ## Generate all Go api files
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
 		paths=./$(EXP_DIR)/api/... \
@@ -297,7 +287,7 @@ verify: verify-boilerplate verify-modules verify-gen verify-conversions verify-s
 
 .PHONY: verify-boilerplate
 verify-boilerplate: ## Verify boilerplate
-	-rm ./hack/tools/bin/*.sh
+	-rm -f ./hack/tools/bin/*.sh
 	./hack/verify-boilerplate.sh
 
 .PHONY: verify-modules
@@ -327,11 +317,19 @@ verify-gen: generate ## Verify generated files
 		echo "generated files are out of date, run make generate"; exit 1; \
 	fi
 
-APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
-
 .PHONY: apidiff
+apidiff: APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 apidiff: $(GO_APIDIFF) ## Check for API differences
-	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
+	@$(call checkdiff) > /dev/null
+	@if ($(call checkdiff) | grep "api/"); then \
+		$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible; \
+	else
+		@echo "No changes to 'api/'. Nothing to do."
+	fi
+
+define checkdiff
+	git --no-pager diff --name-only FETCH_HEAD
+endef
 
 ##@ build:
 
@@ -365,7 +363,7 @@ managers: ## Alias for manager-aws-infrastructure
 
 .PHONY: manager-aws-infrastructure
 manager-aws-infrastructure: ## Build manager binary
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS} -extldflags '-static'" -o $(BIN_DIR)/manager .
+	CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags "${LDFLAGS} -extldflags '-static'" -o $(BIN_DIR)/manager .
 
 ##@ test:
 
@@ -380,24 +378,43 @@ generate-test-flavors: $(KUSTOMIZE)  ## Generate test template flavors
 e2e-image: docker-pull-prerequisites $(TOOLS_BIN_DIR)/start.sh $(TOOLS_BIN_DIR)/restart.sh ## Build an e2e test image
 	docker build -f Dockerfile --tag="gcr.io/k8s-staging-cluster-api/capa-manager:e2e" .
 
-$(SETUP_ENVTEST): # Build setup-envtest from tools folder.
+.PHONY: install-setup-envtest
+install-setup-envtest: # Install setup-envtest so that setup-envtest's eval is executed after the tool has been installed.
 	GOBIN=$(abspath $(TOOLS_BIN_DIR)) $(GO_INSTALL) $(SETUP_ENVTEST_PKG) $(SETUP_ENVTEST_BIN) $(SETUP_ENVTEST_VER)
 
+.PHONY: setup-envtest
+setup-envtest: install-setup-envtest # Build setup-envtest from tools folder.
+	@if [ $(shell go env GOOS) == "darwin" ]; then \
+		$(eval KUBEBUILDER_ASSETS := $(shell $(SETUP_ENVTEST) use --use-env -p path --arch amd64 $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))) \
+		echo "kube-builder assets set using darwin OS"; \
+	else \
+		$(eval KUBEBUILDER_ASSETS := $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))) \
+		echo "kube-builder assets set using other OS"; \
+	fi
+
 .PHONY: test
-test: $(SETUP_ENVTEST) ## Run tests
+test: setup-envtest ## Run tests
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./...
 
 .PHONY: test-verbose
-test-verbose: $(SETUP_ENVTEST) ## Run tests with verbose settings.
+test-verbose: setup-envtest ## Run tests with verbose settings.
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -v ./...
 
 .PHONY: test-e2e ## Run e2e tests using clusterctl
 test-e2e: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) generate-test-flavors e2e-image ## Run e2e tests
-	time $(GINKGO) -tags=e2e $(GINKGO_ARGS) -p ./test/e2e/suites/unmanaged/... -- -config-path="$(E2E_CONF_PATH)" $(E2E_ARGS)
+	time $(GINKGO) -tags=e2e -focus="$(GINKGO_FOCUS)" -skip="$(GINKGO_SKIP)" $(GINKGO_ARGS) -p ./test/e2e/suites/unmanaged/... -- -config-path="$(E2E_CONF_PATH)" $(E2E_ARGS)
 
 .PHONY: test-e2e-eks ## Run EKS e2e tests using clusterctl
 test-e2e-eks: generate-test-flavors  $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run eks e2e tests
-	time $(GINKGO) -tags=e2e $(GINKGO_ARGS) ./test/e2e/suites/managed/... -- -config-path="$(E2E_EKS_CONF_PATH)" --source-template="$(EKS_SOURCE_TEMPLATE)" $(E2E_ARGS) $(EKS_E2E_ARGS)
+	time $(GINKGO) -tags=e2e -focus="$(GINKGO_FOCUS)" -skip="$(GINKGO_SKIP)" $(GINKGO_ARGS) ./test/e2e/suites/managed/... -- -config-path="$(E2E_EKS_CONF_PATH)" --source-template="$(EKS_SOURCE_TEMPLATE)" $(E2E_ARGS) $(EKS_E2E_ARGS)
+
+.PHONY: test-e2e-gc ## Run garbage collection e2e tests using clusterctl
+test-e2e-gc: generate-test-flavors  $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run eks e2e tests
+	time $(GINKGO) -tags=e2e -focus="$(GINKGO_FOCUS)" -skip="$(GINKGO_SKIP)" $(GINKGO_ARGS) -p ./test/e2e/suites/gc_unmanaged/... -- -config-path="$(E2E_CONF_PATH)" $(E2E_ARGS)
+
+.PHONY: test-e2e-eks-gc ## Run EKS garbage collection e2e tests using clusterctl
+test-e2e-eks-gc: generate-test-flavors  $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run eks e2e tests
+	time $(GINKGO) -tags=e2e -focus="$(GINKGO_FOCUS)" -skip="$(GINKGO_SKIP)" $(GINKGO_ARGS) ./test/e2e/suites/gc_managed/... -- -config-path="$(E2E_EKS_CONF_PATH)" --source-template="$(EKS_SOURCE_TEMPLATE)" $(E2E_ARGS) $(EKS_E2E_ARGS)
 
 
 CONFORMANCE_E2E_ARGS ?= -kubetest.config-file=$(KUBETEST_CONF_PATH)
@@ -408,7 +425,7 @@ test-conformance: generate-test-flavors $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOM
 	time $(GINKGO) -tags=e2e -focus="conformance" $(CONFORMANCE_GINKGO_ARGS) ./test/e2e/suites/conformance/... -- -config-path="$(E2E_CONF_PATH)" $(CONFORMANCE_E2E_ARGS)
 
 .PHONY: test-cover
-test-cover: $(SETUP_ENVTEST) ## Run tests with code coverage and code generate  reports
+test-cover: setup-envtest ## Run tests with code coverage and code generate  reports
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -coverprofile=coverage.out ./... $(TEST_ARGS)
 	go tool cover -func=coverage.out -o coverage.txt
 	go tool cover -html=coverage.out -o coverage.html
@@ -422,13 +439,15 @@ compile-e2e: ## Test e2e compilation
 	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/unmanaged
 	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/conformance
 	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/managed
+	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/gc_managed
+	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/gc_unmanaged
 
 
 .PHONY: docker-pull-e2e-preloads
 docker-pull-e2e-preloads: ## Preloads the docker images used for e2e testing and can speed it up
-	-docker pull k8s.gcr.io/cluster-api/kubeadm-control-plane-controller:$(CAPI_VERSION)
-	-docker pull k8s.gcr.io/cluster-api/kubeadm-bootstrap-controller:$(CAPI_VERSION)
-	-docker pull k8s.gcr.io/cluster-api/cluster-api-controller:$(CAPI_VERSION)
+	-docker pull registry.k8s.io/cluster-api/kubeadm-control-plane-controller:$(CAPI_VERSION)
+	-docker pull registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:$(CAPI_VERSION)
+	-docker pull registry.k8s.io/cluster-api/cluster-api-controller:$(CAPI_VERSION)
 	-docker pull quay.io/jetstack/cert-manager-controller:$(CERT_MANAGER_VERSION)
 	-docker pull quay.io/jetstack/cert-manager-cainjector:$(CERT_MANAGER_VERSION)
 	-docker pull quay.io/jetstack/cert-manager-webhook:$(CERT_MANAGER_VERSION)
@@ -552,7 +571,7 @@ release-manifests: ## Release manifest files
 
 .PHONY: release-changelog
 release-changelog: $(GH) ## Generates release notes using Github release notes.
-	./hack/releasechangelog.sh -v $(VERSION) -pv $(PREVIOUS_VERSION) -gh $(GH) -ghorg $(GH_ORG_NAME) -ghrepo $(GH_REPO_NAME) -cimg $(CORE_CONTROLLER_IMG) > $(RELEASE_DIR)/CHANGELOG.md
+	./hack/releasechangelog.sh > $(RELEASE_DIR)/CHANGELOG.md
 
 .PHONY: release-binaries
 release-binaries: ## Builds the binaries to publish with a release

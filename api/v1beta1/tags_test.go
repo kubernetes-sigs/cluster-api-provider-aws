@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -268,6 +268,68 @@ func TestTags_Validate(t *testing.T) {
 					Detail:   "key cannot be empty",
 					Field:    "spec.additionalTags",
 					BadValue: "",
+				},
+			},
+		},
+		{
+			name: "key has aws: prefix",
+			self: Tags{
+				"aws:key": "validValue",
+			},
+			expected: []*field.Error{
+				{
+					Type:     field.ErrorTypeInvalid,
+					Detail:   "user created tag's key cannot have prefix aws:",
+					Field:    "spec.additionalTags",
+					BadValue: "aws:key",
+				},
+			},
+		},
+		{
+			name: "key has wrong characters",
+			self: Tags{
+				"wrong*key": "validValue",
+			},
+			expected: []*field.Error{
+				{
+					Type:     field.ErrorTypeInvalid,
+					Detail:   "key cannot have characters other than alphabets, numbers, spaces and _ . : / = + - @ .",
+					Field:    "spec.additionalTags",
+					BadValue: "wrong*key",
+				},
+			},
+		},
+		{
+			name: "value has wrong characters",
+			self: Tags{
+				"validKey": "wrong*value",
+			},
+			expected: []*field.Error{
+				{
+					Type:     field.ErrorTypeInvalid,
+					Detail:   "value cannot have characters other than alphabets, numbers, spaces and _ . : / = + - @ .",
+					Field:    "spec.additionalTags",
+					BadValue: "wrong*value",
+				},
+			},
+		},
+		{
+			name: "value and key both has wrong characters",
+			self: Tags{
+				"wrong*key": "wrong*value",
+			},
+			expected: []*field.Error{
+				{
+					Type:     field.ErrorTypeInvalid,
+					Detail:   "key cannot have characters other than alphabets, numbers, spaces and _ . : / = + - @ .",
+					Field:    "spec.additionalTags",
+					BadValue: "wrong*key",
+				},
+				{
+					Type:     field.ErrorTypeInvalid,
+					Detail:   "value cannot have characters other than alphabets, numbers, spaces and _ . : / = + - @ .",
+					Field:    "spec.additionalTags",
+					BadValue: "wrong*value",
 				},
 			},
 		},

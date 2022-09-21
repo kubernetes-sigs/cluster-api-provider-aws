@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -40,12 +40,14 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/awsnode"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/gc"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/iamauth"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/kubeproxy"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/network"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/securitygroup"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
+	capiannotations "sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -56,11 +58,21 @@ const (
 	deleteRequeueAfter = 20 * time.Second
 )
 
-var (
-	eksSecurityGroupRoles = []infrav1.SecurityGroupRole{
-		infrav1.SecurityGroupEKSNodeAdditional,
+var defaultEKSSecurityGroupRoles = []infrav1.SecurityGroupRole{
+	infrav1.SecurityGroupEKSNodeAdditional,
+}
+
+// securityGroupRolesForControlPlane returns the security group roles determined by the control plane configuration.
+func securityGroupRolesForControlPlane(scope *scope.ManagedControlPlaneScope) []infrav1.SecurityGroupRole {
+	// Copy to ensure we do not modify the package-level variable.
+	roles := make([]infrav1.SecurityGroupRole, len(defaultEKSSecurityGroupRoles))
+	copy(roles, defaultEKSSecurityGroupRoles)
+
+	if scope.Bastion().Enabled {
+		roles = append(roles, infrav1.SecurityGroupBastion)
 	}
-)
+	return roles
+}
 
 // AWSManagedControlPlaneReconciler reconciles a AWSManagedControlPlane object.
 type AWSManagedControlPlaneReconciler struct {
@@ -71,6 +83,7 @@ type AWSManagedControlPlaneReconciler struct {
 	EnableIAM            bool
 	AllowAdditionalRoles bool
 	WatchFilterValue     string
+	ExternalResourceGC   bool
 }
 
 // SetupWithManager is used to setup the controller.
@@ -90,7 +103,7 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context,
 
 	if err = c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(awsManagedControlPlane.GroupVersionKind())),
+		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, awsManagedControlPlane.GroupVersionKind(), mgr.GetClient(), &ekscontrolplanev1.AWSManagedControlPlane{})),
 		predicates.ClusterUnpausedAndInfrastructureReady(log),
 	); err != nil {
 		return fmt.Errorf("failed adding a watch for ready clusters: %w", err)
@@ -134,7 +147,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, nil
 	}
 
-	if annotations.IsPaused(cluster, awsControlPlane) {
+	if capiannotations.IsPaused(cluster, awsControlPlane) {
 		log.Info("Reconciliation is paused for this object")
 		return ctrl.Result{}, nil
 	}
@@ -201,16 +214,13 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 		return ctrl.Result{}, err
 	}
 
-	if awsManagedControlPlane.Spec.Bastion.Enabled {
-		eksSecurityGroupRoles = append(eksSecurityGroupRoles, infrav1.SecurityGroupBastion)
-	}
-
 	ec2Service := ec2.NewService(managedScope)
 	networkSvc := network.NewService(managedScope)
 	ekssvc := eks.NewService(managedScope)
-	sgService := securitygroup.NewService(managedScope, eksSecurityGroupRoles)
+	sgService := securitygroup.NewService(managedScope, securityGroupRolesForControlPlane(managedScope))
 	authService := iamauth.NewService(managedScope, iamauth.BackendTypeConfigMap, managedScope.Client)
 	awsnodeService := awsnode.NewService(managedScope)
+	kubeproxyService := kubeproxy.NewService(managedScope)
 
 	if err := networkSvc.ReconcileNetwork(); err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to reconcile network for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
@@ -232,6 +242,10 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 
 	if err := awsnodeService.ReconcileCNI(ctx); err != nil {
 		conditions.MarkFalse(managedScope.InfraCluster(), infrav1.SecondaryCidrsReadyCondition, infrav1.SecondaryCidrReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		return reconcile.Result{}, fmt.Errorf("failed to reconcile control plane for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
+	}
+
+	if err := kubeproxyService.ReconcileKubeProxy(ctx); err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to reconcile control plane for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
 	}
 
@@ -271,7 +285,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileDelete(ctx context.Context, 
 	ekssvc := eks.NewService(managedScope)
 	ec2svc := ec2.NewService(managedScope)
 	networkSvc := network.NewService(managedScope)
-	sgService := securitygroup.NewService(managedScope, eksSecurityGroupRoles)
+	sgService := securitygroup.NewService(managedScope, securityGroupRolesForControlPlane(managedScope))
 
 	if err := ekssvc.DeleteControlPlane(); err != nil {
 		log.Error(err, "error deleting EKS cluster for EKS control plane", "namespace", controlPlane.Namespace, "name", controlPlane.Name)
@@ -286,6 +300,13 @@ func (r *AWSManagedControlPlaneReconciler) reconcileDelete(ctx context.Context, 
 	if err := sgService.DeleteSecurityGroups(); err != nil {
 		log.Error(err, "error deleting general security groups for AWSManagedControlPlane", "namespace", controlPlane.Namespace, "name", controlPlane.Name)
 		return reconcile.Result{}, err
+	}
+
+	if r.ExternalResourceGC {
+		gcSvc := gc.NewService(managedScope)
+		if gcErr := gcSvc.ReconcileDelete(ctx); gcErr != nil {
+			return reconcile.Result{}, fmt.Errorf("failed delete reconcile for gc service: %w", gcErr)
+		}
 	}
 
 	if err := networkSvc.DeleteNetwork(); err != nil {

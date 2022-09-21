@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/go-logr/logr"
@@ -189,6 +190,7 @@ func newServiceLimiters() throttle.ServiceLimiters {
 	return throttle.ServiceLimiters{
 		ec2.ServiceID:                      newEC2ServiceLimiter(),
 		elb.ServiceID:                      newGenericServiceLimiter(),
+		elbv2.ServiceID:                    newGenericServiceLimiter(),
 		resourcegroupstaggingapi.ServiceID: newGenericServiceLimiter(),
 		secretsmanager.ServiceID:           newGenericServiceLimiter(),
 	}

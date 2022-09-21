@@ -10,7 +10,7 @@ Although, with this lower cost, comes the risk of preemption. When capacity with
 
 Spot instances are ideal for workloads that can be interrupted. For example, short jobs or stateless services that can be rescheduled quickly, without data loss, and resume operation with limited degradation to a service.
 
-## How to use spot instances?
+## Using Spot Instances with AWSMachine
 
 To enable AWS Machine to be backed by a Spot Instance, users need to add `spotMarketOptions` to AWSMachineTemplate:
 ```yaml
@@ -34,4 +34,19 @@ spec:
     spotMarketOptions:
       maxPrice: 0.02 # Price in USD per hour (up to 5 decimal places)
 ```
-> **IMPORTANT NOTE**: The experimental feature `MachinePool` does not support using spot instances as of now.
+
+## Using Spot Instances with AWSManagedMachinePool
+To use spot instance in EKS managed node groups for a EKS cluster, set `capacityType` to `spot` in `AWSManagedMachinePool`.
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSManagedMachinePool
+metadata:
+  name: ${CLUSTER_NAME}-pool-0
+spec:
+  capacityType: spot
+  ...
+```
+
+See [AWS doc](https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html) for more details.
+
+> **IMPORTANT NOTE**: The experimental feature `AWSMachinePool` does not support using spot instances as of now.

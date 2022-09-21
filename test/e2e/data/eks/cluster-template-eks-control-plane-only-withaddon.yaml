@@ -34,4 +34,5 @@ spec:
   identityRef:
     kind: AWSClusterStaticIdentity
     name: e2e-account
+  # secondaryCidrBlock added to test it's creation and deletion functionality within the cluster.
   secondaryCidrBlock: 100.64.0.0/16

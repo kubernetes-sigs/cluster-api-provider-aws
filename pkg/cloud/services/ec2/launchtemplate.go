@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,6 +18,7 @@ package ec2
 
 import (
 	"encoding/base64"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -185,9 +186,11 @@ func (s *Service) createLaunchTemplateData(scope *scope.MachinePoolScope, imageI
 	}
 
 	// add additional security groups as well
-	for _, additionalGroup := range scope.AWSMachinePool.Spec.AWSLaunchTemplate.AdditionalSecurityGroups {
-		data.SecurityGroupIds = append(data.SecurityGroupIds, additionalGroup.ID)
+	securityGroupIDs, err := s.GetAdditionalSecurityGroupsIDs(scope.AWSMachinePool.Spec.AWSLaunchTemplate.AdditionalSecurityGroups)
+	if err != nil {
+		return nil, err
 	}
+	data.SecurityGroupIds = append(data.SecurityGroupIds, aws.StringSlice(securityGroupIDs)...)
 
 	// set the AMI ID
 	data.ImageId = imageID
@@ -368,9 +371,9 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope *scope.MachinePoolScope, incom
 		return true, nil
 	}
 
-	incomingIDs := make([]string, len(incoming.AdditionalSecurityGroups))
-	for i, ref := range incoming.AdditionalSecurityGroups {
-		incomingIDs[i] = aws.StringValue(ref.ID)
+	incomingIDs, err := s.GetAdditionalSecurityGroupsIDs(incoming.AdditionalSecurityGroups)
+	if err != nil {
+		return false, err
 	}
 
 	coreIDs, err := s.GetCoreNodeSecurityGroups(scope)
@@ -379,12 +382,10 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope *scope.MachinePoolScope, incom
 	}
 
 	incomingIDs = append(incomingIDs, coreIDs...)
-
-	existingIDs := make([]string, len(existing.AdditionalSecurityGroups))
-	for i, ref := range existing.AdditionalSecurityGroups {
-		existingIDs[i] = aws.StringValue(ref.ID)
+	existingIDs, err := s.GetAdditionalSecurityGroupsIDs(existing.AdditionalSecurityGroups)
+	if err != nil {
+		return false, err
 	}
-
 	sort.Strings(incomingIDs)
 	sort.Strings(existingIDs)
 
@@ -442,6 +443,25 @@ func (s *Service) DiscoverLaunchTemplateAMI(scope *scope.MachinePoolScope) (*str
 	return aws.String(lookupAMI), nil
 }
 
+func (s *Service) GetAdditionalSecurityGroupsIDs(securityGroups []infrav1.AWSResourceReference) ([]string, error) {
+	var additionalSecurityGroupsIDs []string
+
+	for _, sg := range securityGroups {
+		if sg.ID != nil {
+			additionalSecurityGroupsIDs = append(additionalSecurityGroupsIDs, *sg.ID)
+		} else if sg.Filters != nil {
+			id, err := s.getFilteredSecurityGroupID(sg)
+			if err != nil {
+				return nil, err
+			}
+
+			additionalSecurityGroupsIDs = append(additionalSecurityGroupsIDs, id)
+		}
+	}
+
+	return additionalSecurityGroupsIDs, nil
+}
+
 func (s *Service) buildLaunchTemplateTagSpecificationRequest(scope *scope.MachinePoolScope) []*ec2.LaunchTemplateTagSpecificationRequest {
 	tagSpecifications := make([]*ec2.LaunchTemplateTagSpecificationRequest, 0)
 	additionalTags := scope.AdditionalTags()
@@ -478,4 +498,27 @@ func (s *Service) buildLaunchTemplateTagSpecificationRequest(scope *scope.Machin
 		tagSpecifications = append(tagSpecifications, spec)
 	}
 	return tagSpecifications
+}
+
+// getFilteredSecurityGroupID get security group ID using filters.
+func (s *Service) getFilteredSecurityGroupID(securityGroup infrav1.AWSResourceReference) (string, error) {
+	if securityGroup.Filters == nil {
+		return "", nil
+	}
+
+	filters := []*ec2.Filter{}
+	for _, f := range securityGroup.Filters {
+		filters = append(filters, &ec2.Filter{Name: aws.String(f.Name), Values: aws.StringSlice(f.Values)})
+	}
+
+	sgs, err := s.EC2Client.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{Filters: filters})
+	if err != nil {
+		return "", err
+	}
+
+	if len(sgs.SecurityGroups) == 0 {
+		return "", fmt.Errorf("failed to find security group matching filters: %q, reason: %w", filters, err)
+	}
+
+	return *sgs.SecurityGroups[0].GroupId, nil
 }

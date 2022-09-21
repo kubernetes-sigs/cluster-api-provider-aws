@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,7 +32,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
+	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -44,7 +44,7 @@ func TestReconcileSubnets(t *testing.T) {
 	testCases := []struct {
 		name          string
 		input         ScopeBuilder
-		expect        func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect        func(m *mocks.MockEC2APIMockRecorder)
 		errorExpected bool
 	}{
 		{
@@ -62,7 +62,7 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 				},
 			}),
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -175,7 +175,7 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 				},
 			}),
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -272,7 +272,7 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 				},
 			}),
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -363,7 +363,7 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 				Subnets: []infrav1.SubnetSpec{},
 			}),
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -434,7 +434,7 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 				},
 			}),
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -488,7 +488,7 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 				},
 			}),
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -592,7 +592,7 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 				},
 			}),
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				describeCall := m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -744,7 +744,7 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 				},
 			}),
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -791,7 +791,7 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 				Subnets: []infrav1.SubnetSpec{},
 			}),
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeAvailabilityZones(gomock.Any()).
 					Return(&ec2.DescribeAvailabilityZonesOutput{
 						AvailabilityZones: []*ec2.AvailabilityZone{
@@ -947,7 +947,7 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 				Subnets: []infrav1.SubnetSpec{},
 			}),
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeAvailabilityZones(gomock.Any()).
 					Return(&ec2.DescribeAvailabilityZonesOutput{
 						AvailabilityZones: []*ec2.AvailabilityZone{
@@ -1211,7 +1211,7 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 				Subnets: []infrav1.SubnetSpec{},
 			}),
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeAvailabilityZones(gomock.Any()).
 					Return(&ec2.DescribeAvailabilityZonesOutput{
 						AvailabilityZones: []*ec2.AvailabilityZone{
@@ -1381,7 +1381,7 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 				},
 			}),
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -1503,7 +1503,7 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 					Subnets: []infrav1.SubnetSpec{},
 				}),
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeAvailabilityZones(gomock.Any()).
 					Return(&ec2.DescribeAvailabilityZonesOutput{
 						AvailabilityZones: []*ec2.AvailabilityZone{
@@ -1759,7 +1759,7 @@ func TestReconcileSubnets(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scope, err := tc.input.Build()
 			if err != nil {
@@ -1786,7 +1786,7 @@ func TestDiscoverSubnets(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  *infrav1.NetworkSpec
-		mocks  func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		mocks  func(m *mocks.MockEC2APIMockRecorder)
 		expect []infrav1.SubnetSpec
 	}{
 		{
@@ -1810,7 +1810,7 @@ func TestDiscoverSubnets(t *testing.T) {
 					},
 				},
 			},
-			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			mocks: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -1936,7 +1936,7 @@ func TestDiscoverSubnets(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scheme := runtime.NewScheme()
 			_ = infrav1.AddToScheme(scheme)
@@ -2002,7 +2002,7 @@ func TestDeleteSubnets(t *testing.T) {
 	testCases := []struct {
 		name          string
 		input         *infrav1.NetworkSpec
-		expect        func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect        func(m *mocks.MockEC2APIMockRecorder)
 		errorExpected bool
 	}{
 		{
@@ -2023,7 +2023,7 @@ func TestDeleteSubnets(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -2074,7 +2074,7 @@ func TestDeleteSubnets(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scheme := runtime.NewScheme()
 			_ = infrav1.AddToScheme(scheme)
@@ -2115,7 +2115,7 @@ func TestDeleteSubnets(t *testing.T) {
 // Test helpers
 
 type ScopeBuilder interface {
-	Build() (Scope, error)
+	Build() (scope.NetworkScope, error)
 }
 
 func NewClusterScope() *ClusterScopeBuilder {
@@ -2136,7 +2136,7 @@ func (b *ClusterScopeBuilder) WithNetwork(n *infrav1.NetworkSpec) *ClusterScopeB
 	return b
 }
 
-func (b *ClusterScopeBuilder) Build() (Scope, error) {
+func (b *ClusterScopeBuilder) Build() (scope.NetworkScope, error) {
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
@@ -2185,7 +2185,7 @@ func (b *ManagedControlPlaneScopeBuilder) WithEKSClusterName(name string) *Manag
 	return b
 }
 
-func (b *ManagedControlPlaneScopeBuilder) Build() (Scope, error) {
+func (b *ManagedControlPlaneScopeBuilder) Build() (scope.NetworkScope, error) {
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
 	_ = ekscontrolplanev1.AddToScheme(scheme)

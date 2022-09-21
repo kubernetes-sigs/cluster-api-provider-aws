@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,6 +20,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
@@ -67,6 +68,23 @@ func TestAWSMachinePool_ValidateCreate(t *testing.T) {
 						strings.Repeat("CAPI", 33): "value-3",
 						"key-4":                    strings.Repeat("CAPI", 65),
 					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Should fail if additional security groups are provided with both ID and Filters",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{AdditionalSecurityGroups: []infrav1.AWSResourceReference{{
+						ID: aws.String("sg-1"),
+						Filters: []infrav1.Filter{
+							{
+								Name:   "sg-1",
+								Values: []string{"test"},
+							},
+						},
+					}}},
 				},
 			},
 			wantErr: true,

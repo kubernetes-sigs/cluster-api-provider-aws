@@ -8,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,6 +32,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/blang/semver"
 	"github.com/onsi/ginkgo"
@@ -43,6 +44,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/utils/pointer"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -76,12 +78,21 @@ type statefulSetInfo struct {
 
 // GetClusterByName returns a Cluster object given his name.
 func GetAWSClusterByName(ctx context.Context, namespace, name string) (*infrav1.AWSCluster, error) {
-	awsCluster := &infrav1.AWSCluster{}
+	cluster := &clusterv1.Cluster{}
 	key := crclient.ObjectKey{
 		Namespace: namespace,
 		Name:      name,
 	}
-	err := e2eCtx.Environment.BootstrapClusterProxy.GetClient().Get(ctx, key, awsCluster)
+	if err := e2eCtx.Environment.BootstrapClusterProxy.GetClient().Get(ctx, key, cluster); err != nil {
+		return nil, err
+	}
+
+	awsCluster := &infrav1.AWSCluster{}
+	awsClusterKey := crclient.ObjectKey{
+		Namespace: namespace,
+		Name:      cluster.Spec.InfrastructureRef.Name,
+	}
+	err := e2eCtx.Environment.BootstrapClusterProxy.GetClient().Get(ctx, awsClusterKey, awsCluster)
 	return awsCluster, err
 }
 
@@ -693,4 +704,143 @@ func expectAWSClusterConditions(m *infrav1.AWSCluster, expected []conditionAsser
 		Expect(actual.Severity).To(Equal(c.severity))
 		Expect(actual.Reason).To(Equal(c.reason))
 	}
+}
+
+func createEFS() *efs.FileSystemDescription {
+	efs, err := shared.CreateEFS(e2eCtx, string(uuid.NewUUID()))
+	Expect(err).NotTo(HaveOccurred())
+	Eventually(func() (string, error) {
+		state, err := shared.GetEFSState(e2eCtx, aws.StringValue(efs.FileSystemId))
+		return aws.StringValue(state), err
+	}, 2*time.Minute, 5*time.Second).Should(Equal("available"))
+	return efs
+}
+
+func createSecurityGroupForEFS(clusterName string, vpc *ec2.Vpc) *ec2.CreateSecurityGroupOutput {
+	securityGroup, err := shared.CreateSecurityGroup(e2eCtx, clusterName+"-efs-sg", "security group for EFS Access", *(vpc.VpcId))
+	Expect(err).NotTo(HaveOccurred())
+	nameFilter := &ec2.Filter{
+		Name:   aws.String("tag:Name"),
+		Values: aws.StringSlice([]string{clusterName + "-node"}),
+	}
+	nodeSecurityGroups, err := shared.GetSecurityGroupByFilters(e2eCtx, []*ec2.Filter{
+		nameFilter,
+	})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(len(nodeSecurityGroups)).To(Equal(1))
+	_, err = shared.CreateSecurityGroupIngressRuleWithSourceSG(e2eCtx, aws.StringValue(securityGroup.GroupId), "tcp", 2049, aws.StringValue(nodeSecurityGroups[0].GroupId))
+	Expect(err).NotTo(HaveOccurred())
+	return securityGroup
+}
+
+func createMountTarget(efs *efs.FileSystemDescription, securityGroup *ec2.CreateSecurityGroupOutput, vpc *ec2.Vpc) *efs.MountTargetDescription {
+	mt, err := shared.CreateMountTargetOnEFS(e2eCtx, aws.StringValue(efs.FileSystemId), aws.StringValue(vpc.VpcId), aws.StringValue(securityGroup.GroupId))
+	Expect(err).NotTo(HaveOccurred())
+	Eventually(func() (string, error) {
+		state, err := shared.GetMountTargetState(e2eCtx, *mt.MountTargetId)
+		return aws.StringValue(state), err
+	}, 5*time.Minute, 10*time.Second).Should(Equal("available"))
+	return mt
+}
+
+func deleteMountTarget(mountTarget *efs.MountTargetDescription) {
+	_, err := shared.DeleteMountTarget(e2eCtx, *mountTarget.MountTargetId)
+	Expect(err).NotTo(HaveOccurred())
+	Eventually(func(g Gomega) {
+		_, err = shared.GetMountTarget(e2eCtx, *mountTarget.MountTargetId)
+		g.Expect(err).ShouldNot(Equal(nil))
+		aerr, ok := err.(awserr.Error)
+		g.Expect(ok).To(BeTrue())
+		g.Expect(aerr.Code()).To(Equal(efs.ErrCodeMountTargetNotFound))
+	}, 5*time.Minute, 10*time.Second).Should(Succeed())
+}
+
+// example taken from aws-efs-csi-driver (https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/examples/kubernetes/dynamic_provisioning/specs/storageclass.yaml)
+func createEFSStorageClass(storageClassName string, clusterClient crclient.Client, efs *efs.FileSystemDescription) {
+	storageClass := &storagev1.StorageClass{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "storage.k8s.io/v1",
+			Kind:       "StorageClass",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: storageClassName,
+		},
+		MountOptions: []string{"tls"},
+		Parameters: map[string]string{
+			"provisioningMode": "efs-ap",
+			"fileSystemId":     aws.StringValue(efs.FileSystemId),
+			"directoryPerms":   "700",
+			"gidRangeStart":    "1000",
+			"gidRangeEnd":      "2000",
+		},
+		Provisioner: "efs.csi.aws.com",
+	}
+	Expect(clusterClient.Create(context.TODO(), storageClass)).NotTo(HaveOccurred())
+}
+
+// example taken from aws-efs-csi-driver (https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/examples/kubernetes/dynamic_provisioning/specs/pod.yaml)
+func createPVCForEFS(storageClassName string, clusterClient crclient.Client) {
+	pvc := &corev1.PersistentVolumeClaim{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "PersistentVolumeClaim",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "efs-claim",
+			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteMany,
+			},
+			StorageClassName: &storageClassName,
+			Resources: corev1.ResourceRequirements{
+				Requests: map[corev1.ResourceName]resource.Quantity{
+					corev1.ResourceStorage: *resource.NewQuantity(5*1024*1024*1024, resource.BinarySI),
+				},
+			},
+		},
+	}
+	Expect(clusterClient.Create(context.TODO(), pvc)).NotTo(HaveOccurred())
+}
+
+// example taken from aws-efs-csi-driver (https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/examples/kubernetes/dynamic_provisioning/specs/pod.yaml)
+func createPodWithEFSMount(clusterClient crclient.Client) {
+	pod := &corev1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "Pod",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "efs-app",
+			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:    "app",
+					Image:   "centos",
+					Command: []string{"/bin/sh"},
+					Args:    []string{"-c", "while true; do echo $(date -u) >> /data/out; sleep 5; done"},
+					VolumeMounts: []corev1.VolumeMount{
+						{
+							Name:      "persistent-storage",
+							MountPath: "/data",
+						},
+					},
+				},
+			},
+			Volumes: []corev1.Volume{
+				{
+					Name: "persistent-storage",
+					VolumeSource: corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+							ClaimName: "efs-claim",
+						},
+					},
+				},
+			},
+		},
+	}
+	Expect(clusterClient.Create(context.TODO(), pod)).NotTo(HaveOccurred())
 }

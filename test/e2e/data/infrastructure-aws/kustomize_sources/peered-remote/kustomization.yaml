@@ -3,4 +3,6 @@ resources:
 patchesStrategicMerge:
   - patches/management.yaml
   - patches/az-select.yaml
-
+  - patches/external-securitygroups.yaml
+  # This manifest is added to test additionalSecurityGroups with filters in AWSMachineTemplate.
+  - patches/additional-security-group.yaml
