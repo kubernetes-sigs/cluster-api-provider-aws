@@ -85,9 +85,7 @@ kind: AWSClusterStaticIdentity
 metadata:
   name: "test-account"
 spec:
-  secretRef:
-    name: test-account-creds
-    namespace: capa-system
+  secretRef: test-account-creds
   allowedNamespaces:
     selector:
       matchLabels:
