@@ -84,6 +84,7 @@ func (t Template) cloudProviderControlPlaneAwsPolicy() *iamv1.PolicyDocument {
 					"elasticloadbalancing:CreateTargetGroup",
 					"elasticloadbalancing:DeleteListener",
 					"elasticloadbalancing:DeleteTargetGroup",
+					"elasticloadbalancing:DeregisterTargets",
 					"elasticloadbalancing:DescribeListeners",
 					"elasticloadbalancing:DescribeLoadBalancerPolicies",
 					"elasticloadbalancing:DescribeTargetGroups",
