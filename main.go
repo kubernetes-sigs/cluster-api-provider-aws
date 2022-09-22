@@ -203,7 +203,6 @@ func main() {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
 			os.Exit(1)
 		}
-		enableGates(ctx, mgr, AWSServiceEndpoints, externalResourceGC)
 	} else {
 		if err = (&infrav1.AWSMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplate")
