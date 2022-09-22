@@ -22,7 +22,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
-	ignTypes "github.com/flatcar-linux/ignition/config/v2_3/types"
+	ignTypes "github.com/flatcar/ignition/config/v2_3/types"
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
