@@ -55,8 +55,8 @@ func TestReconcileCniVpcCniValues(t *testing.T) {
 					Kind: "DaemonSet",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "aws-node",
-					Namespace: "kube-system",
+					Name:      awsNodeName,
+					Namespace: awsNodeNamespace,
 				},
 				Spec: v1.DaemonSetSpec{
 					Template: corev1.PodTemplateSpec{
@@ -64,7 +64,7 @@ func TestReconcileCniVpcCniValues(t *testing.T) {
 						Spec: corev1.PodSpec{
 							Containers: []corev1.Container{
 								{
-									Name: "aws-node",
+									Name: awsNodeName,
 									Env:  []corev1.EnvVar{},
 								},
 							},
@@ -98,8 +98,8 @@ func TestReconcileCniVpcCniValues(t *testing.T) {
 					Kind: "DaemonSet",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "aws-node",
-					Namespace: "kube-system",
+					Name:      awsNodeName,
+					Namespace: awsNodeNamespace,
 				},
 				Spec: v1.DaemonSetSpec{
 					Template: corev1.PodTemplateSpec{
@@ -107,7 +107,7 @@ func TestReconcileCniVpcCniValues(t *testing.T) {
 						Spec: corev1.PodSpec{
 							Containers: []corev1.Container{
 								{
-									Name: "aws-node",
+									Name: awsNodeName,
 									Env:  []corev1.EnvVar{},
 								},
 							},
@@ -141,8 +141,8 @@ func TestReconcileCniVpcCniValues(t *testing.T) {
 					Kind: "DaemonSet",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "aws-node",
-					Namespace: "kube-system",
+					Name:      awsNodeName,
+					Namespace: awsNodeNamespace,
 				},
 				Spec: v1.DaemonSetSpec{
 					Template: corev1.PodTemplateSpec{
@@ -150,7 +150,7 @@ func TestReconcileCniVpcCniValues(t *testing.T) {
 						Spec: corev1.PodSpec{
 							Containers: []corev1.Container{
 								{
-									Name: "aws-node",
+									Name: awsNodeName,
 									Env: []corev1.EnvVar{
 										{
 											Name:  "NAME1",
@@ -184,7 +184,7 @@ func TestReconcileCniVpcCniValues(t *testing.T) {
 		},
 	}
 	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name+" without secondary cidr", func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 			g := NewWithT(t)
@@ -206,92 +206,37 @@ func TestReconcileCniVpcCniValues(t *testing.T) {
 			g.Expect(ds.Spec.Template.Spec.Containers[0].Env).To(ConsistOf(tc.consistsOf))
 		})
 	}
-}
 
-func TestReconcileCniVpcCniValuesWithSecondaryCidrBlock(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	g := NewWithT(t)
-	daemonSet := &v1.DaemonSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "DaemonSet",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "aws-node",
-			Namespace: "kube-system",
-		},
-		Spec: v1.DaemonSetSpec{
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name: "aws-node",
-							Env: []corev1.EnvVar{
-								{
-									Name:  "NAME1",
-									Value: "OVERWRITE",
-								},
-								{
-									Name:  "NAME3",
-									Value: "VALUE3",
-								},
-							},
-						},
+	for _, tc := range tests {
+		t.Run(tc.name+" with secondary cidr", func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			g := NewWithT(t)
+			mockClient := &cachingClient{
+				getValue: tc.daemonSet,
+			}
+			m := &mockScope{
+				client:             mockClient,
+				cni:                tc.cniValues,
+				secondaryCidrBlock: aws.String("100.0.0.1/20"),
+				securityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+					"node": {
+						ID:   "sg-1234",
+						Name: "node",
 					},
 				},
-			},
-		},
-	}
-	values := ekscontrolplanev1.VpcCni{
-		Env: []corev1.EnvVar{
-			{
-				Name:  "NAME1",
-				Value: "VALUE1",
-			},
-		},
-	}
-	mockClient := &cachingClient{
-		getValue: daemonSet,
-	}
-	m := &mockScope{
-		client:             mockClient,
-		cni:                values,
-		secondaryCidrBlock: aws.String("100.0.0.1/20"),
-		securityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
-			"node": {
-				ID:   "sg-1234",
-				Name: "node",
-			},
-		},
-		subnets: []infrav1.SubnetSpec{},
-	}
-	s := NewService(m)
+			}
+			s := NewService(m)
 
-	err := s.ReconcileCNI(context.Background())
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(mockClient.updateChain).NotTo(BeEmpty())
-	ds, ok := mockClient.updateChain[0].(*v1.DaemonSet)
-	g.Expect(ok).To(BeTrue())
-	g.Expect(ds.Spec.Template.Spec.Containers).NotTo(BeEmpty())
-	g.Expect(ds.Spec.Template.Spec.Containers[0].Env).To(ConsistOf([]corev1.EnvVar{
-		{
-			Name:  "NAME1",
-			Value: "VALUE1",
-		},
-		{
-			Name:  "NAME3",
-			Value: "VALUE3",
-		},
-		{
-			Name:  "AWS_VPC_K8S_CNI_CUSTOM_NETWORK_CFG",
-			Value: "true",
-		},
-		{
-			Name:  "ENI_CONFIG_LABEL_DEF",
-			Value: "failure-domain.beta.kubernetes.io/zone",
-		},
-	}))
+			err := s.ReconcileCNI(context.Background())
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(mockClient.updateChain).NotTo(BeEmpty())
+			ds, ok := mockClient.updateChain[0].(*v1.DaemonSet)
+			g.Expect(ok).To(BeTrue())
+			g.Expect(ds.Spec.Template.Spec.Containers).NotTo(BeEmpty())
+			g.Expect(ds.Spec.Template.Spec.Containers[0].Env).To(ConsistOf(tc.consistsOf))
+		})
+	}
 }
 
 type cachingClient struct {
