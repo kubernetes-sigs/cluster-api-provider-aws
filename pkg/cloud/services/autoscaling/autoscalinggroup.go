@@ -83,8 +83,9 @@ func (s *Service) SDKToAutoScalingGroup(v *autoscaling.Group) (*expinfrav1.AutoS
 	if len(v.Instances) > 0 {
 		for _, autoscalingInstance := range v.Instances {
 			tmp := &infrav1.Instance{
-				ID:    aws.StringValue(autoscalingInstance.InstanceId),
-				State: infrav1.InstanceState(*autoscalingInstance.LifecycleState),
+				ID:               aws.StringValue(autoscalingInstance.InstanceId),
+				State:            infrav1.InstanceState(*autoscalingInstance.LifecycleState),
+				AvailabilityZone: *autoscalingInstance.AvailabilityZone,
 			}
 			i.Instances = append(i.Instances, *tmp)
 		}
