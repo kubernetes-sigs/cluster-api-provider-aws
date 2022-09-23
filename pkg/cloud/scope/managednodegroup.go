@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/v2/klogr"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
@@ -72,7 +72,7 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 		return nil, errors.New("failed to generate new scope from nil ManagedMachinePool")
 	}
 	if params.Logger == nil {
-		log := klogr.New()
+		log := klog.Background()
 		params.Logger = &log
 	}
 

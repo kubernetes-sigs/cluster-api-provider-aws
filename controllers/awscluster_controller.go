@@ -28,6 +28,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -157,7 +158,7 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return reconcile.Result{}, nil
 	}
 
-	log = log.WithValues("cluster", cluster.Name)
+	log = log.WithValues("cluster", klog.KObj(cluster))
 	helper, err := patch.NewHelper(awsCluster, r.Client)
 	if err != nil {
 		return reconcile.Result{}, errors.Wrap(err, "failed to init patch helper")
@@ -402,7 +403,7 @@ func (r *AWSClusterReconciler) requeueAWSClusterForUnpausedCluster(ctx context.C
 			panic(fmt.Sprintf("Expected a Cluster but got a %T", o))
 		}
 
-		log := log.WithValues("objectMapper", "clusterToAWSCluster", "namespace", c.Namespace, "cluster", c.Name)
+		log := log.WithValues("objectMapper", "clusterToAWSCluster", "cluster", klog.KRef(c.Namespace, c.Name))
 
 		// Don't handle deleted clusters
 		if !c.ObjectMeta.DeletionTimestamp.IsZero() {

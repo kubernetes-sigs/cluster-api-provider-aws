@@ -28,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -80,7 +81,7 @@ func (r *AwsInstanceStateReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	err := r.Get(ctx, req.NamespacedName, awsCluster)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			r.Log.Info("cluster not found, removing queue URL", "cluster", req.Name)
+			r.Log.Info("cluster not found, removing queue URL", "cluster", klog.KRef(req.Namespace, req.Name))
 			r.queueURLs.Delete(req.Name)
 			return reconcile.Result{}, nil
 		}

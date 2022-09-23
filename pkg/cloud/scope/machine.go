@@ -25,7 +25,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/v2/klogr"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -70,7 +70,7 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 	}
 
 	if params.Logger == nil {
-		log := klogr.New()
+		log := klog.Background()
 		params.Logger = &log
 	}
 

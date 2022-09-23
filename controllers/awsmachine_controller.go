@@ -29,6 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -161,7 +162,7 @@ func (r *AWSMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
-	log = log.WithValues("machine", machine.Name)
+	log = log.WithValues("machine", klog.KObj(machine))
 
 	// Fetch the Cluster.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machine.ObjectMeta)
@@ -175,7 +176,7 @@ func (r *AWSMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
-	log = log.WithValues("cluster", cluster.Name)
+	log = log.WithValues("cluster", klog.KObj(cluster))
 
 	infraCluster, err := r.getInfraCluster(ctx, log, cluster, awsMachine)
 	if err != nil {
@@ -843,7 +844,7 @@ func (r *AWSMachineReconciler) AWSClusterToAWSMachines(log logr.Logger) handler.
 			panic(fmt.Sprintf("Expected a AWSCluster but got a %T", o))
 		}
 
-		log := log.WithValues("objectMapper", "awsClusterToAWSMachine", "namespace", c.Namespace, "awsCluster", c.Name)
+		log := log.WithValues("objectMapper", "awsClusterToAWSMachine", "cluster", klog.KRef(c.Namespace, c.Name))
 
 		// Don't handle deleted AWSClusters
 		if !c.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -872,7 +873,7 @@ func (r *AWSMachineReconciler) requeueAWSMachinesForUnpausedCluster(log logr.Log
 			panic(fmt.Sprintf("Expected a Cluster but got a %T", o))
 		}
 
-		log := log.WithValues("objectMapper", "clusterToAWSMachine", "namespace", c.Namespace, "cluster", c.Name)
+		log := log.WithValues("objectMapper", "clusterToAWSMachine", "cluster", klog.KRef(c.Namespace, c.Name))
 
 		// Don't handle deleted clusters
 		if !c.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -894,7 +895,8 @@ func (r *AWSMachineReconciler) requestsForCluster(log logr.Logger, namespace, na
 
 	result := make([]ctrl.Request, 0, len(machineList.Items))
 	for _, m := range machineList.Items {
-		log.WithValues("machine", m.Name)
+		m := m
+		log.WithValues("machine", klog.KObj(&m))
 		if m.Spec.InfrastructureRef.GroupVersionKind().Kind != "AWSMachine" {
 			log.V(4).Info("Machine has an InfrastructureRef for a different type, will not add to reconciliation request.")
 			continue
@@ -903,7 +905,7 @@ func (r *AWSMachineReconciler) requestsForCluster(log logr.Logger, namespace, na
 			log.V(4).Info("Machine has an InfrastructureRef with an empty name, will not add to reconciliation request.")
 			continue
 		}
-		log.WithValues("awsMachine", m.Spec.InfrastructureRef.Name)
+		log.WithValues("awsMachine", klog.KRef(m.Spec.InfrastructureRef.Namespace, m.Spec.InfrastructureRef.Name))
 		log.V(4).Info("Adding AWSMachine to reconciliation request.")
 		result = append(result, ctrl.Request{NamespacedName: client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}})
 	}

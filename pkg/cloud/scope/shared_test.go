@@ -21,7 +21,7 @@ import (
 
 	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
-	"k8s.io/klog/v2/klogr"
+	"k8s.io/klog/v2"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
 )
@@ -56,7 +56,7 @@ func TestSubnetPlacement(t *testing.T) {
 					AvailabilityZone: "eu-west-1c",
 				},
 			},
-			logger:            klogr.New(),
+			logger:            klog.Background(),
 			expectedSubnetIDs: []string{"az1"},
 			expectError:       false,
 		},
@@ -79,7 +79,7 @@ func TestSubnetPlacement(t *testing.T) {
 					AvailabilityZone: "eu-west-1c",
 				},
 			},
-			logger:            klogr.New(),
+			logger:            klog.Background(),
 			expectedSubnetIDs: []string{"az2"},
 			expectError:       false,
 		},
@@ -102,7 +102,7 @@ func TestSubnetPlacement(t *testing.T) {
 					AvailabilityZone: "eu-west-1c",
 				},
 			},
-			logger:            klogr.New(),
+			logger:            klog.Background(),
 			expectedSubnetIDs: []string{"az3"},
 			expectError:       false,
 		},
@@ -128,7 +128,7 @@ func TestSubnetPlacement(t *testing.T) {
 					IsPublic:         true,
 				},
 			},
-			logger:            klogr.New(),
+			logger:            klog.Background(),
 			expectedSubnetIDs: []string{"az1", "az2"},
 			expectError:       false,
 		},
@@ -138,7 +138,7 @@ func TestSubnetPlacement(t *testing.T) {
 			specAZs:             []string{},
 			parentAZs:           []string{},
 			controlPlaneSubnets: infrav1.Subnets{},
-			logger:              klogr.New(),
+			logger:              klog.Background(),
 			expectedSubnetIDs:   []string{},
 			expectError:         true,
 		},

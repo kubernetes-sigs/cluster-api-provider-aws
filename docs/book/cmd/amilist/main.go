@@ -24,7 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/ami"
 )
@@ -56,13 +56,13 @@ func LambdaHandler() error {
 	)
 
 	if err != nil {
-		log.Log.Error(err, "error fetching AMIs")
+		ctrl.Log.Error(err, "error fetching AMIs")
 		return err
 	}
 
 	data, err := json.MarshalIndent(amis, "", "  ")
 	if err != nil {
-		log.Log.Error(err, "error marshalling marshalling")
+		ctrl.Log.Error(err, "error marshalling marshalling")
 		return err
 	}
 
@@ -73,7 +73,7 @@ func LambdaHandler() error {
 		ACL:    aws.String("public-read"),
 	})
 	if err != nil {
-		log.Log.Error(err, "error uploading data")
+		ctrl.Log.Error(err, "error uploading data")
 	}
 
 	return err

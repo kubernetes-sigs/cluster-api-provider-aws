@@ -29,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/klog/v2"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2"
@@ -65,7 +66,7 @@ func (s *Service) reconcileCluster(ctx context.Context) error {
 			return fmt.Errorf("checking owner of %s is %s: %w", s.scope.KubernetesClusterName(), eksClusterName, err)
 		}
 
-		s.scope.V(2).Info("Found owned EKS cluster in AWS", "cluster-name", eksClusterName)
+		s.scope.V(2).Info("Found owned EKS cluster in AWS", "cluster", klog.KRef("", eksClusterName))
 	}
 
 	if err := s.setStatus(cluster); err != nil {
@@ -195,7 +196,7 @@ func (s *Service) deleteCluster() error {
 }
 
 func (s *Service) deleteClusterAndWait(cluster *eks.Cluster) error {
-	s.scope.Info("Deleting EKS cluster", "cluster-name", s.scope.KubernetesClusterName())
+	s.scope.Info("Deleting EKS cluster", "cluster", klog.KRef("", s.scope.KubernetesClusterName()))
 
 	input := &eks.DeleteClusterInput{
 		Name: cluster.Name,
@@ -410,7 +411,7 @@ func (s *Service) createCluster(eksClusterName string) (*eks.Cluster, error) {
 		return nil, errors.Wrapf(err, "failed to create EKS cluster")
 	}
 
-	s.scope.Info("Created EKS cluster in AWS", "cluster-name", eksClusterName)
+	s.scope.Info("Created EKS cluster in AWS", "cluster", klog.KRef("", eksClusterName))
 	return out.Cluster, nil
 }
 
@@ -423,7 +424,7 @@ func (s *Service) waitForClusterActive() (*eks.Cluster, error) {
 		return nil, errors.Wrapf(err, "failed to wait for eks control plane %q", *req.Name)
 	}
 
-	s.scope.Info("EKS control plane is now active", "cluster-name", eksClusterName)
+	s.scope.Info("EKS control plane is now active", "cluster", klog.KRef("", eksClusterName))
 
 	cluster, err := s.describeEKSCluster(eksClusterName)
 	if err != nil {

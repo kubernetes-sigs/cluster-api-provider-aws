@@ -35,7 +35,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -182,7 +181,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				return objectStoreSvc
 			},
 			Recorder: recorder,
-			Log:      klogr.New(),
+			Log:      klog.Background(),
 		}
 	}
 	teardown := func(t *testing.T, g *WithT) {
@@ -2013,7 +2012,7 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 			g := NewWithT(t)
 			reconciler := &AWSMachineReconciler{
 				Client: testEnv.Client,
-				Log:    klogr.New(),
+				Log:    klog.Background(),
 			}
 			ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("namespace-%s", util.RandomString(5)))
 			g.Expect(err).To(BeNil())
@@ -2029,7 +2028,7 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 				g.Expect(testEnv.Cleanup(ctx, tc.awsCluster, ns)).To(Succeed())
 			})
 
-			requests := reconciler.AWSClusterToAWSMachines(klogr.New())(tc.awsCluster)
+			requests := reconciler.AWSClusterToAWSMachines(klog.Background())(tc.awsCluster)
 			if tc.requests != nil {
 				if len(tc.requests) > 0 {
 					tc.requests[0].Namespace = ns.Name
@@ -2063,9 +2062,9 @@ func TestAWSMachineReconciler_requeueAWSMachinesForUnpausedCluster(t *testing.T)
 			g := NewWithT(t)
 			reconciler := &AWSMachineReconciler{
 				Client: testEnv.Client,
-				Log:    klogr.New(),
+				Log:    klog.Background(),
 			}
-			requests := reconciler.requeueAWSMachinesForUnpausedCluster(klogr.New())(tc.ownerCluster)
+			requests := reconciler.requeueAWSMachinesForUnpausedCluster(klog.Background())(tc.ownerCluster)
 			if tc.requests != nil {
 				g.Expect(requests).To(ConsistOf(tc.requests))
 			} else {
@@ -2080,7 +2079,7 @@ func TestAWSMachineReconciler_indexAWSMachineByInstanceID(t *testing.T) {
 		g := NewWithT(t)
 		reconciler := &AWSMachineReconciler{
 			Client: testEnv.Client,
-			Log:    klogr.New(),
+			Log:    klog.Background(),
 		}
 		machine := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1", Namespace: "default"}}
 		requests := reconciler.indexAWSMachineByInstanceID(machine)
@@ -2090,7 +2089,7 @@ func TestAWSMachineReconciler_indexAWSMachineByInstanceID(t *testing.T) {
 		g := NewWithT(t)
 		reconciler := &AWSMachineReconciler{
 			Client: testEnv.Client,
-			Log:    klogr.New(),
+			Log:    klog.Background(),
 		}
 		awsMachine := &infrav1.AWSMachine{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1", Namespace: "default"}, Spec: infrav1.AWSMachineSpec{InstanceID: aws.String("12345")}}
 		requests := reconciler.indexAWSMachineByInstanceID(awsMachine)
@@ -2100,7 +2099,7 @@ func TestAWSMachineReconciler_indexAWSMachineByInstanceID(t *testing.T) {
 		g := NewWithT(t)
 		reconciler := &AWSMachineReconciler{
 			Client: testEnv.Client,
-			Log:    klogr.New(),
+			Log:    klog.Background(),
 		}
 		awsMachine := &infrav1.AWSMachine{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1", Namespace: "default"}}
 		requests := reconciler.indexAWSMachineByInstanceID(awsMachine)

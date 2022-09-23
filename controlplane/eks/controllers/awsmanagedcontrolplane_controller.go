@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -347,7 +348,7 @@ func (r *AWSManagedControlPlaneReconciler) dependencyCount(ctx context.Context, 
 
 	clusterName := managedScope.Name()
 	namespace := managedScope.Namespace()
-	log.Info("looking for EKS cluster dependencies", "cluster", clusterName, "namespace", namespace)
+	log.Info("looking for EKS cluster dependencies", "cluster", klog.KRef(namespace, clusterName))
 
 	listOptions := []client.ListOption{
 		client.InNamespace(namespace),

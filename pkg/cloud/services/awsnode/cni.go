@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
@@ -41,7 +42,7 @@ const (
 
 // ReconcileCNI will reconcile the CNI of a service.
 func (s *Service) ReconcileCNI(ctx context.Context) error {
-	s.scope.Info("Reconciling aws-node DaemonSet in cluster", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
+	s.scope.Info("Reconciling aws-node DaemonSet in cluster", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
 
 	remoteClient, err := s.scope.RemoteClient()
 	if err != nil {
@@ -66,7 +67,7 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 
 	var needsUpdate bool
 	if len(s.scope.VpcCni().Env) > 0 {
-		s.scope.Info("updating aws-node daemonset environment variables", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
+		s.scope.Info("updating aws-node daemonset environment variables", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
 
 		for i := range ds.Spec.Template.Spec.Containers {
 			container := &ds.Spec.Template.Spec.Containers[i]
@@ -79,7 +80,7 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 
 	if s.scope.SecondaryCidrBlock() == nil {
 		if needsUpdate {
-			s.scope.Info("adding environment properties to vpc-cni", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
+			s.scope.Info("adding environment properties to vpc-cni", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
 			if err = remoteClient.Update(ctx, &ds, &client.UpdateOptions{}); err != nil {
 				return err
 			}
@@ -97,14 +98,14 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 		"app.kubernetes.io/part-of":    s.scope.Name(),
 	}
 
-	s.scope.Info("for each subnet", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
+	s.scope.Info("for each subnet", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
 	for _, subnet := range s.secondarySubnets() {
 		var eniConfig amazoncni.ENIConfig
 		if err := remoteClient.Get(ctx, types.NamespacedName{Namespace: metav1.NamespaceSystem, Name: subnet.AvailabilityZone}, &eniConfig); err != nil {
 			if !apierrors.IsNotFound(err) {
 				return err
 			}
-			s.scope.Info("Creating ENIConfig", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace(), "subnet", subnet.ID, "availability-zone", subnet.AvailabilityZone)
+			s.scope.Info("Creating ENIConfig", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()), "subnet", subnet.ID, "availability-zone", subnet.AvailabilityZone)
 			eniConfig = amazoncni.ENIConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: metav1.NamespaceSystem,
@@ -122,7 +123,7 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 			}
 		}
 
-		s.scope.Info("Updating ENIConfig", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace(), "subnet", subnet.ID, "availability-zone", subnet.AvailabilityZone)
+		s.scope.Info("Updating ENIConfig", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()), "subnet", subnet.ID, "availability-zone", subnet.AvailabilityZone)
 		eniConfig.Spec = amazoncni.ENIConfigSpec{
 			Subnet:         subnet.ID,
 			SecurityGroups: sgs,
@@ -153,14 +154,14 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 
 		if !matchFound {
 			oldEniConfig := eniConfig
-			s.scope.Info("Removing old ENIConfig", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace(), "eniConfig", oldEniConfig.Name)
+			s.scope.Info("Removing old ENIConfig", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()), "eniConfig", oldEniConfig.Name)
 			if err := remoteClient.Delete(ctx, &oldEniConfig, &client.DeleteOptions{}); err != nil {
 				return err
 			}
 		}
 	}
 
-	s.scope.Info("updating containers", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
+	s.scope.Info("updating containers", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
 	for i := range ds.Spec.Template.Spec.Containers {
 		if ds.Spec.Template.Spec.Containers[i].Name == "aws-node" {
 			ds.Spec.Template.Spec.Containers[i].Env = append(s.filterEnv(ds.Spec.Template.Spec.Containers[i].Env),
@@ -238,7 +239,7 @@ func (s *Service) applyUserProvidedEnvironmentProperties(containerEnv []corev1.E
 }
 
 func (s *Service) deleteCNI(ctx context.Context, remoteClient client.Client) error {
-	s.scope.Info("Ensuring aws-node DaemonSet in cluster is deleted", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
+	s.scope.Info("Ensuring aws-node DaemonSet in cluster is deleted", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
 
 	ds := &appsv1.DaemonSet{}
 	if err := remoteClient.Get(ctx, types.NamespacedName{Namespace: awsNodeNamespace, Name: awsNodeName}, ds); err != nil {

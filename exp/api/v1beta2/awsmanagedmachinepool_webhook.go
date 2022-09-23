@@ -25,9 +25,9 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
@@ -38,7 +38,7 @@ const (
 )
 
 // log is for logging in this package.
-var mmpLog = logf.Log.WithName("awsmanagedmachinepool-resource")
+var mmpLog = ctrl.Log.WithName("awsmanagedmachinepool-resource")
 
 // SetupWebhookWithManager will setup the webhooks for the AWSManagedMachinePool.
 func (r *AWSManagedMachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -139,7 +139,7 @@ func (r *AWSManagedMachinePool) validateLaunchTemplate() field.ErrorList {
 
 // ValidateCreate will do any extra validation when creating a AWSManagedMachinePool.
 func (r *AWSManagedMachinePool) ValidateCreate() error {
-	mmpLog.Info("AWSManagedMachinePool validate create", "name", r.Name)
+	mmpLog.Info("AWSManagedMachinePool validate create", "managed-machine-pool", klog.KObj(r))
 
 	var allErrs field.ErrorList
 
@@ -174,7 +174,7 @@ func (r *AWSManagedMachinePool) ValidateCreate() error {
 
 // ValidateUpdate will do any extra validation when updating a AWSManagedMachinePool.
 func (r *AWSManagedMachinePool) ValidateUpdate(old runtime.Object) error {
-	mmpLog.Info("AWSManagedMachinePool validate update", "name", r.Name)
+	mmpLog.Info("AWSManagedMachinePool validate update", "managed-machine-pool", klog.KObj(r))
 	oldPool, ok := old.(*AWSManagedMachinePool)
 	if !ok {
 		return apierrors.NewInvalid(GroupVersion.WithKind("AWSManagedMachinePool").GroupKind(), r.Name, field.ErrorList{
@@ -209,7 +209,7 @@ func (r *AWSManagedMachinePool) ValidateUpdate(old runtime.Object) error {
 
 // ValidateDelete allows you to add any extra validation when deleting.
 func (r *AWSManagedMachinePool) ValidateDelete() error {
-	mmpLog.Info("AWSManagedMachinePool validate delete", "name", r.Name)
+	mmpLog.Info("AWSManagedMachinePool validate delete", "managed-machine-pool", klog.KObj(r))
 
 	return nil
 }
@@ -259,7 +259,7 @@ func (r *AWSManagedMachinePool) validateImmutable(old *AWSManagedMachinePool) fi
 
 // Default will set default values for the AWSManagedMachinePool.
 func (r *AWSManagedMachinePool) Default() {
-	mmpLog.Info("AWSManagedMachinePool setting defaults", "name", r.Name)
+	mmpLog.Info("AWSManagedMachinePool setting defaults", "managed-machine-pool", klog.KObj(r))
 
 	if r.Spec.EKSNodegroupName == "" {
 		mmpLog.Info("EKSNodegroupName is empty, generating name")
@@ -269,7 +269,7 @@ func (r *AWSManagedMachinePool) Default() {
 			return
 		}
 
-		mmpLog.Info("Generated EKSNodegroupName", "nodegroup-name", name)
+		mmpLog.Info("Generated EKSNodegroupName", "nodegroup", klog.KRef(r.Namespace, name))
 		r.Spec.EKSNodegroupName = name
 	}
 
