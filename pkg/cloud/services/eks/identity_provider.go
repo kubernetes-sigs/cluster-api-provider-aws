@@ -49,14 +49,20 @@ func (s *Service) reconcileIdentityProvider(ctx context.Context) error {
 	}
 
 	s.scope.V(2).Info("creating oidc provider plan", "desired", desired, "current", current)
+	procedures, err := identityprovider.
+		NewPlan(clusterName, current, desired, s.EKSClient, s.scope.Logger).
+		Create(ctx)
 
-	identityProviderPlan := identityprovider.NewPlan(clusterName, current, desired, s.EKSClient, s.scope.Logger)
-
-	procedures, err := identityProviderPlan.Create(ctx)
 	if err != nil {
 		s.scope.Error(err, "failed creating eks identity provider plan")
 		return fmt.Errorf("creating eks identity provider plan: %w", err)
 	}
+
+	// nothing will be done, we can leave
+	if len(procedures) == 0 {
+		return nil
+	}
+
 	s.scope.V(2).Info("computed EKS identity provider plan", "numprocs", len(procedures))
 
 	// Perform required operations
@@ -73,16 +79,24 @@ func (s *Service) reconcileIdentityProvider(ctx context.Context) error {
 		return errors.Wrap(err, "getting associated identity provider")
 	}
 
-	if latest != nil {
-		s.scope.ControlPlane.Status.IdentityProviderStatus = ekscontrolplanev1.IdentityProviderStatus{
-			ARN:    latest.IdentityProviderConfigArn,
-			Status: latest.Status,
-		}
+	if latest == nil {
+		return nil
+	}
 
-		err := s.scope.PatchObject()
-		if err != nil {
-			return errors.Wrap(err, "updating identity provider status")
-		}
+	// don't patch if arn/status is the same
+	if latest.IdentityProviderConfigArn == s.scope.ControlPlane.Status.IdentityProviderStatus.ARN &&
+		latest.Status == s.scope.ControlPlane.Status.IdentityProviderStatus.Status {
+		return nil
+	}
+
+	// idp status has changed, patch the control plane
+	s.scope.ControlPlane.Status.IdentityProviderStatus = ekscontrolplanev1.IdentityProviderStatus{
+		ARN:    latest.IdentityProviderConfigArn,
+		Status: latest.Status,
+	}
+
+	if err := s.scope.PatchObject(); err != nil {
+		return errors.Wrap(err, "updating identity provider status")
 	}
 
 	return nil
