@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pkg/errors"
+	"k8s.io/klog/v2"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
@@ -30,7 +31,7 @@ import (
 
 // ReconcileIAMAuthenticator is used to create the aws-iam-authenticator in a cluster.
 func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
-	s.scope.Info("Reconciling aws-iam-authenticator configuration", "cluster-name", s.scope.Name())
+	s.scope.Info("Reconciling aws-iam-authenticator configuration", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
 
 	accountID, err := s.getAccountID()
 	if err != nil {
@@ -77,7 +78,7 @@ func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
 		}
 	}
 
-	s.scope.Info("Reconciled aws-iam-authenticator configuration", "cluster-name", s.scope.KubernetesClusterName())
+	s.scope.Info("Reconciled aws-iam-authenticator configuration", "cluster", klog.KRef("", s.scope.KubernetesClusterName()))
 
 	return nil
 }

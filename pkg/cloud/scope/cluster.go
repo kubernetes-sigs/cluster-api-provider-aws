@@ -23,7 +23,7 @@ import (
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	"k8s.io/klog/v2/klogr"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
@@ -56,7 +56,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	}
 
 	if params.Logger == nil {
-		log := klogr.New()
+		log := klog.Background()
 		params.Logger = &log
 	}
 

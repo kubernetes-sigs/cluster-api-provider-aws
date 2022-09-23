@@ -20,6 +20,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"k8s.io/klog/v2"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta2"
@@ -31,7 +32,7 @@ import (
 
 // ReconcileControlPlane reconciles a EKS control plane.
 func (s *Service) ReconcileControlPlane(ctx context.Context) error {
-	s.scope.V(2).Info("Reconciling EKS control plane", "cluster-name", s.scope.Cluster.Name, "cluster-namespace", s.scope.Cluster.Namespace)
+	s.scope.V(2).Info("Reconciling EKS control plane", "cluster", klog.KRef(s.scope.Cluster.Namespace, s.scope.Cluster.Name))
 
 	// Control Plane IAM Role
 	if err := s.reconcileControlPlaneIAMRole(); err != nil {

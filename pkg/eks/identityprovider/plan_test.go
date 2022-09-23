@@ -24,7 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
-	"k8s.io/klog/v2/klogr"
+	"k8s.io/klog/v2"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/mock_eksiface"
@@ -34,7 +34,7 @@ func TestEKSAddonPlan(t *testing.T) {
 	clusterName := "default.cluster"
 	identityProviderARN := "aws:mock:provider:arn"
 	idnetityProviderName := "IdentityProviderConfigName"
-	log := klogr.New()
+	log := klog.Background()
 
 	testCases := []struct {
 		name                    string
