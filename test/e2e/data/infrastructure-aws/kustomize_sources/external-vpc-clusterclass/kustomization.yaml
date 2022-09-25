@@ -1,0 +1,16 @@
+bases:
+  - ../topology/cluster-template.yaml
+
+patches:
+  - path: ./byo-infra-variables.yaml
+    target:
+      group: cluster.x-k8s.io
+      version: v1beta1
+      kind: Cluster
+  - path: ./limited-az-variable.yaml
+    target:
+      group: cluster.x-k8s.io
+      version: v1beta1
+      kind: Cluster
+
+
