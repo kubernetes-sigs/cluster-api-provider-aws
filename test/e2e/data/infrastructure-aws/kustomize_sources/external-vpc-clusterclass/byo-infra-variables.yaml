@@ -23,3 +23,6 @@
   value:
     name: fdForBYOSubnets
     value: "us-west-2a"
+- op: replace
+  path: /spec/topology/workers/machineDeployments/0/failureDomain
+  value: "us-west-2a"
