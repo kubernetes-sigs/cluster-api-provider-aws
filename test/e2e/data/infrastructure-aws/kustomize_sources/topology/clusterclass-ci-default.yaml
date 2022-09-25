@@ -258,13 +258,11 @@ spec:
             valueFrom:
               variable: vpcID
           - op: add
-            path: "/spec/template/spec/network/subnets/0/id"
+            path: /spec/template/spec/network/subnets
             valueFrom:
-              variable: publicSubnetID
-          - op: add
-            path: "/spec/template/spec/network/subnets/1/id"
-            valueFrom:
-              variable: privateSubnetID
+              template: |
+                - id: "{{ .publicSubnetID }}"
+                - id: "{{ .privateSubnetID }}"
   - name: awsMachineTemplateControlPlaneForBYO
     enabledIf: '{{ eq .byoInfra "true" }}'
     definitions:
@@ -274,7 +272,7 @@ spec:
           matchResources:
             controlPlane: true
         jsonPatches:
-          - op: replace
+          - op: add
             path: "/spec/template/spec/failureDomain"
             valueFrom:
               variable: fdForBYOSubnets
@@ -289,7 +287,7 @@ spec:
               names:
                 - default-worker
         jsonPatches:
-          - op: replace
+          - op: add
             path: "/spec/template/spec/failureDomain"
             valueFrom:
               variable: fdForBYOSubnets

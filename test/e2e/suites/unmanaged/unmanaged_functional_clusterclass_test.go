@@ -128,7 +128,7 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 
 	// This test creates a workload cluster using an externally managed VPC and subnets. CAPA is still handling security group
 	// creation for the cluster. All applicable resources are restricted to us-west-2a for simplicity.
-	ginkgo.Describe("Workload cluster with external infrastructure", func() {
+	ginkgo.Describe("Workload cluster with external infrastructure [ClusterClass]", func() {
 		var namespace *corev1.Namespace
 		var requiredResources *shared.TestResource
 		specName := "functional-test-extinfra-clusterclass"
