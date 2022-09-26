@@ -80,13 +80,16 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 		}
 	}
 
-	if s.scope.SecondaryCidrBlock() == nil {
+	secondarySubnets := s.secondarySubnets()
+	if len(secondarySubnets) == 0 {
 		if needsUpdate {
 			s.scope.Info("adding environment properties to vpc-cni", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
 			if err = remoteClient.Update(ctx, &ds, &client.UpdateOptions{}); err != nil {
 				return err
 			}
 		}
+
+		// with no secondary subnets there is no need for eni configs
 		return nil
 	}
 
@@ -101,7 +104,7 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 	}
 
 	s.scope.Info("for each subnet", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
-	for _, subnet := range s.secondarySubnets() {
+	for _, subnet := range secondarySubnets {
 		var eniConfig amazoncni.ENIConfig
 		if err := remoteClient.Get(ctx, types.NamespacedName{Namespace: metav1.NamespaceSystem, Name: subnet.AvailabilityZone}, &eniConfig); err != nil {
 			if !apierrors.IsNotFound(err) {
