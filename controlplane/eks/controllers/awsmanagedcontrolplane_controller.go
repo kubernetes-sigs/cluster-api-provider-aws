@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/gc"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/iamauth"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/instancestate"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/kubeproxy"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/network"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/securitygroup"
@@ -251,6 +252,14 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 
 	if err := kubeproxyService.ReconcileKubeProxy(ctx); err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to reconcile control plane for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
+	}
+
+	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
+		instancestateSvc := instancestate.NewService(managedScope)
+		if err := instancestateSvc.ReconcileEC2Events(); err != nil {
+			// non fatal error, so we continue
+			managedScope.Error(err, "non-fatal: failed to set up EventBridge")
+		}
 	}
 
 	if err := authService.ReconcileIAMAuthenticator(ctx); err != nil {
