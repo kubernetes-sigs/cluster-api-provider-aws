@@ -34,20 +34,20 @@ func TestSplitIntoSubnetsIPv4(t *testing.T) {
 		{
 			// https://aws.amazon.com/about-aws/whats-new/2018/10/amazon-eks-now-supports-additional-vpc-cidr-blocks/
 			name:        "default secondary cidr block configuration with primary cidr",
-			cidrblock:   "100.64.0.0/16",
+			cidrblock:   "100.64.0.0/10",
 			subnetcount: 3,
 			expected: []*net.IPNet{
 				{
 					IP:   net.IPv4(100, 64, 0, 0).To4(),
-					Mask: net.IPv4Mask(255, 255, 192, 0),
+					Mask: net.IPv4Mask(255, 240, 0, 0),
 				},
 				{
-					IP:   net.IPv4(100, 64, 64, 0).To4(),
-					Mask: net.IPv4Mask(255, 255, 192, 0),
+					IP:   net.IPv4(100, 80, 0, 0).To4(),
+					Mask: net.IPv4Mask(255, 240, 0, 0),
 				},
 				{
-					IP:   net.IPv4(100, 64, 128, 0).To4(),
-					Mask: net.IPv4Mask(255, 255, 192, 0),
+					IP:   net.IPv4(100, 96, 0, 0).To4(),
+					Mask: net.IPv4Mask(255, 240, 0, 0),
 				},
 			},
 		},
