@@ -181,66 +181,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.AWSMachineReconciler{
-		Client:           mgr.GetClient(),
-		Log:              ctrl.Log.WithName("controllers").WithName("AWSMachine"),
-		Recorder:         mgr.GetEventRecorderFor("awsmachine-controller"),
-		Endpoints:        AWSServiceEndpoints,
-		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsMachineConcurrency, RecoverPanic: true}); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "AWSMachine")
-		os.Exit(1)
-	}
-	if err = (&controllers.AWSClusterReconciler{
-		Client:             mgr.GetClient(),
-		Recorder:           mgr.GetEventRecorderFor("awscluster-controller"),
-		Endpoints:          AWSServiceEndpoints,
-		WatchFilterValue:   watchFilterValue,
-		ExternalResourceGC: externalResourceGC,
-	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: true}); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
-		os.Exit(1)
-	}
-
-	if err = (&infrav1.AWSMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplate")
-		os.Exit(1)
-	}
-	if err = (&infrav1.AWSCluster{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSCluster")
-		os.Exit(1)
-	}
-	if err = (&infrav1.AWSClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterTemplate")
-		os.Exit(1)
-	}
-	if err = (&infrav1.AWSClusterControllerIdentity{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterControllerIdentity")
-		os.Exit(1)
-	}
-	if err = (&infrav1.AWSClusterRoleIdentity{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterRoleIdentity")
-		os.Exit(1)
-	}
-	if err = (&infrav1.AWSClusterStaticIdentity{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterStaticIdentity")
-		os.Exit(1)
-	}
-	if err = (&infrav1.AWSMachine{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachine")
-		os.Exit(1)
-	}
-	if feature.Gates.Enabled(feature.EKS) {
-		setupLog.Info("enabling EKS webhooks")
-		if err := (&ekscontrolplanev1.AWSManagedControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "AWSManagedControlPlane")
+	setupLog.Info("webhook port", "webhook-port", webhookPort)
+	if webhookPort == 0 {
+		if err = (&controllers.AWSMachineReconciler{
+			Client:           mgr.GetClient(),
+			Log:              ctrl.Log.WithName("controllers").WithName("AWSMachine"),
+			Recorder:         mgr.GetEventRecorderFor("awsmachine-controller"),
+			Endpoints:        AWSServiceEndpoints,
+			WatchFilterValue: watchFilterValue,
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsMachineConcurrency, RecoverPanic: true}); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "AWSMachine")
 			os.Exit(1)
 		}
 		if err = (&controllers.AWSClusterReconciler{
-			Client:           mgr.GetClient(),
-			Recorder:         mgr.GetEventRecorderFor("awscluster-controller"),
-			Endpoints:        AWSServiceEndpoints,
-			WatchFilterValue: watchFilterValue,
+			Client:             mgr.GetClient(),
+			Recorder:           mgr.GetEventRecorderFor("awscluster-controller"),
+			Endpoints:          AWSServiceEndpoints,
+			WatchFilterValue:   watchFilterValue,
+			ExternalResourceGC: externalResourceGC,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: true}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
 			os.Exit(1)
@@ -294,6 +252,7 @@ func main() {
 				}
 			}
 		}
+
 		if feature.Gates.Enabled(feature.MachinePool) {
 			setupLog.Info("enabling webhook for AWSMachinePool")
 			if err = (&expinfrav1.AWSMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
@@ -313,7 +272,6 @@ func main() {
 			setupLog.Error(err, "unable to create health check")
 			os.Exit(1)
 		}
-
 	}
 
 	setupLog.Info("starting manager", "version", version.Get().String())
