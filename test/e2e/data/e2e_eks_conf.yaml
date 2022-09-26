@@ -118,6 +118,7 @@ variables:
   KUBERNETES_VERSION_MANAGEMENT: "v1.22.9" # Kind bootstrap
   EXP_MACHINE_POOL: "true"
   EXP_CLUSTER_RESOURCE_SET: "true"
+  EVENT_BRIDGE_INSTANCE_STATE: "true"
   AWS_NODE_MACHINE_TYPE: t3.large
   AWS_MACHINE_TYPE_VCPU_USAGE: 2
   AWS_SSH_KEY_NAME: "cluster-api-provider-aws-sigs-k8s-io"
