@@ -22,22 +22,24 @@ import (
 	"text/template"
 
 	"github.com/alessio/shellescape"
+
+	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
 )
 
 const (
 	defaultBootstrapCommand = "/etc/eks/bootstrap.sh"
 
-	nodeUserData = `#!/bin/bash
-set -o errexit; set -o pipefail; set -o nounset;
+	nodeUserData = `#cloud-config
+{{template "files" .Files}}
+runcmd:
 {{- template "commands" .PreBootstrapCommands }}
-{{ .BootstrapCommand }} {{.ClusterName}} {{- template "args" . }}
+  - {{ .BootstrapCommand }} {{.ClusterName}} {{- template "args" . }}
 {{- template "commands" .PostBootstrapCommands }}
-`
-	commandsTemplate = `{{- define "commands" -}}
-{{ range . }}
-{{.}}
-{{- end -}}
-{{- end -}}
+{{- template "ntp" .NTP }}
+{{- template "users" .Users }}
+{{- template "disk_setup" .DiskSetup}}
+{{- template "fs_setup" .DiskSetup}}
+{{- template "mounts" .Mounts}}
 `
 )
 
@@ -59,6 +61,11 @@ type NodeInput struct {
 	PreBootstrapCommands     []string
 	PostBootstrapCommands    []string
 	BootstrapCommandOverride *string
+	Files                    []eksbootstrapv1.File
+	DiskSetup                *eksbootstrapv1.DiskSetup
+	Mounts                   []eksbootstrapv1.MountPoints
+	Users                    []eksbootstrapv1.User
+	NTP                      *eksbootstrapv1.NTP
 }
 
 func (ni *NodeInput) DockerConfigJSONEscaped() string {
@@ -79,7 +86,11 @@ func (ni *NodeInput) BootstrapCommand() string {
 
 // NewNode returns the user data string to be used on a node instance.
 func NewNode(input *NodeInput) ([]byte, error) {
-	tm := template.New("Node")
+	tm := template.New("Node").Funcs(defaultTemplateFuncMap)
+
+	if _, err := tm.Parse(filesTemplate); err != nil {
+		return nil, fmt.Errorf("failed to parse args template: %w", err)
+	}
 
 	if _, err := tm.Parse(argsTemplate); err != nil {
 		return nil, fmt.Errorf("failed to parse args template: %w", err)
@@ -91,6 +102,26 @@ func NewNode(input *NodeInput) ([]byte, error) {
 
 	if _, err := tm.Parse(commandsTemplate); err != nil {
 		return nil, fmt.Errorf("failed to parse commandsTemplate template: %w", err)
+	}
+
+	if _, err := tm.Parse(ntpTemplate); err != nil {
+		return nil, fmt.Errorf("failed to parse ntp template: %w", err)
+	}
+
+	if _, err := tm.Parse(usersTemplate); err != nil {
+		return nil, fmt.Errorf("failed to parse users template: %w", err)
+	}
+
+	if _, err := tm.Parse(diskSetupTemplate); err != nil {
+		return nil, fmt.Errorf("failed to parse disk setup template: %w", err)
+	}
+
+	if _, err := tm.Parse(fsSetupTemplate); err != nil {
+		return nil, fmt.Errorf("failed to parse fs setup template: %w", err)
+	}
+
+	if _, err := tm.Parse(mountsTemplate); err != nil {
+		return nil, fmt.Errorf("failed to parse mounts template: %w", err)
 	}
 
 	t, err := tm.Parse(nodeUserData)

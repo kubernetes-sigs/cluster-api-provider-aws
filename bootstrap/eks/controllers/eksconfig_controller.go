@@ -199,6 +199,11 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		PreBootstrapCommands:     config.Spec.PreBootstrapCommands,
 		PostBootstrapCommands:    config.Spec.PostBootstrapCommands,
 		BootstrapCommandOverride: config.Spec.BootstrapCommandOverride,
+		NTP:                      config.Spec.NTP,
+		Users:                    config.Spec.Users,
+		DiskSetup:                config.Spec.DiskSetup,
+		Mounts:                   config.Spec.Mounts,
+		Files:                    config.Spec.Files,
 	}
 	if config.Spec.PauseContainer != nil {
 		nodeInput.PauseContainerAccount = &config.Spec.PauseContainer.AccountNumber
