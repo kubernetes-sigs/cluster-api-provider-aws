@@ -71,7 +71,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 		// Create CI manifest for upgrading to Kubernetes main test
 		platformKustomization, err := os.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, "ci-artifacts-platform-kustomization-for-upgrade.yaml"))
 		Expect(err).NotTo(HaveOccurred())
-		sourceTemplateForUpgrade, err := os.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, "infrastructure-aws/generated/cluster-template-upgrade-to-main.yaml"))
+		sourceTemplateForUpgrade, err := os.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, "infrastructure-aws/withoutclusterclass/generated/cluster-template-upgrade-to-main.yaml"))
 		Expect(err).NotTo(HaveOccurred())
 
 		ciTemplateForUpgradePath, err := kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebian(
