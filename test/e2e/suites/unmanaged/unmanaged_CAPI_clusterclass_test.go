@@ -91,4 +91,50 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework] [ClusterClass]", fun
 			shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
 		})
 	})
+
+	ginkgo.Describe("ClusterClass Changes Spec - SSA immutability checks [ClusterClass]", func() {
+		ginkgo.BeforeEach(func() {
+			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
+			requiredResources = &shared.TestResource{EC2Normal: 5 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2}
+			requiredResources.WriteRequestedResources(e2eCtx, "capi-cluster-ssa-clusterclass-test")
+			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+		})
+
+		capi_e2e.ClusterClassChangesSpec(ctx, func() capi_e2e.ClusterClassChangesSpecInput {
+			return capi_e2e.ClusterClassChangesSpecInput{
+				E2EConfig:             e2eCtx.E2EConfig,
+				ClusterctlConfigPath:  e2eCtx.Environment.ClusterctlConfigPath,
+				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				ArtifactFolder:        e2eCtx.Settings.ArtifactFolder,
+				SkipCleanup:           e2eCtx.Settings.SkipCleanup,
+				Flavor:                shared.TopologyFlavor,
+				// ModifyControlPlaneFields are the ControlPlane fields which will be set on the
+				// ControlPlaneTemplate of the ClusterClass after the initial Cluster creation.
+				// The test verifies that these fields are rolled out to the ControlPlane.
+				ModifyControlPlaneFields: map[string]interface{}{
+					"spec.machineTemplate.nodeDrainTimeout": "10s",
+				},
+				// ModifyMachineDeploymentBootstrapConfigTemplateFields are the fields which will be set on the
+				// BootstrapConfigTemplate of all MachineDeploymentClasses of the ClusterClass after the initial Cluster creation.
+				// The test verifies that these fields are rolled out to the MachineDeployments.
+				ModifyMachineDeploymentBootstrapConfigTemplateFields: map[string]interface{}{
+					"spec.template.spec.verbosity": int64(4),
+				},
+
+				// ModifyMachineDeploymentInfrastructureMachineTemplateFields are the fields which will be set on the
+				// InfrastructureMachineTemplate of all MachineDeploymentClasses of the ClusterClass after the initial Cluster creation.
+				// The test verifies that these fields are rolled out to the MachineDeployments.
+				ModifyMachineDeploymentInfrastructureMachineTemplateFields: map[string]interface{}{
+					"spec.template.spec.additionalTags": map[string]interface{}{
+						"key-1": "value-1",
+						"key-2": "value-2",
+					},
+				},
+			}
+		})
+
+		ginkgo.AfterEach(func() {
+			shared.ReleaseResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))
+		})
+	})
 })
