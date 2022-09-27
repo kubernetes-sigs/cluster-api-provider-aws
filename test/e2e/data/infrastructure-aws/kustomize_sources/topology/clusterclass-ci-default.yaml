@@ -76,6 +76,36 @@ spec:
         type: string
         default: ""
         example: "1"
+  - name: vpcID
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+  - name: publicSubnetID
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+  - name: privateSubnetID
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+  - name: fdForBYOSubnets
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+  - name: byoInfra
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: "false"
   - name: selfHosted
     required: false
     schema:
@@ -214,6 +244,53 @@ spec:
             path: "/spec/template/spec/network/vpc/availabilityZoneUsageLimit"
             valueFrom:
               template: "{{ .vpcAZUsageLimit }}"
+  - name: byoInfra
+    enabledIf: '{{ eq .byoInfra "true" }}'
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          kind: AWSClusterTemplate
+          matchResources:
+            infrastructureCluster: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/network/vpc/id"
+            valueFrom:
+              variable: vpcID
+          - op: add
+            path: /spec/template/spec/network/subnets
+            valueFrom:
+              template: |
+                - id: "{{ .publicSubnetID }}"
+                - id: "{{ .privateSubnetID }}"
+  - name: awsMachineTemplateControlPlaneForBYO
+    enabledIf: '{{ eq .byoInfra "true" }}'
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          kind: AWSMachineTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/failureDomain"
+            valueFrom:
+              variable: fdForBYOSubnets
+  - name: awsMachineTemplateWorkerForBYO
+    enabledIf: '{{ eq .byoInfra "true" }}'
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          kind: AWSMachineTemplate
+          matchResources:
+            machineDeploymentClass:
+              names:
+                - default-worker
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/failureDomain"
+            valueFrom:
+              variable: fdForBYOSubnets
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSClusterTemplate
