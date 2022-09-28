@@ -33,7 +33,6 @@ import (
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	cgrecord "k8s.io/client-go/tools/record"
 	"k8s.io/component-base/logs"
-	logsv1 "k8s.io/component-base/logs/api/v1"
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -115,7 +114,7 @@ func main() {
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 
-	if err := logsv1.ValidateAndApply(logOptions, nil); err != nil {
+	if err := logOptions.ValidateAndApply(nil); err != nil {
 		setupLog.Error(err, "unable to validate and apply log options")
 		os.Exit(1)
 	}
@@ -486,7 +485,7 @@ func initFlags(fs *pflag.FlagSet) {
 	)
 
 	logs.AddFlags(fs, logs.SkipLoggingConfigurationFlags())
-	logsv1.AddFlags(logOptions, fs)
+	logOptions.AddFlags(fs)
 
 	feature.MutableGates.AddFlag(fs)
 }
