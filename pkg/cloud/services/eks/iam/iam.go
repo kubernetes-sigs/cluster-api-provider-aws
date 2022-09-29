@@ -20,7 +20,6 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -459,7 +458,8 @@ func (s *IAMService) FindAndVerifyOIDCProvider(cluster *eks.Cluster) (string, er
 		if err != nil {
 			return "", errors.Wrap(err, "error getting provider")
 		}
-		if fmt.Sprintf("https://%s", *provider.Url) != issuerURL.String() {
+		// URL should always contain `https`.
+		if *provider.Url != issuerURL.String() {
 			continue
 		}
 		if len(provider.ThumbprintList) != 1 || *provider.ThumbprintList[0] != thumbprint {
