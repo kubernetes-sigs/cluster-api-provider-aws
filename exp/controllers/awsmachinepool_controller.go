@@ -384,7 +384,8 @@ func (r *AWSMachinePoolReconciler) updatePool(machinePoolScope *scope.MachinePoo
 		}
 	}
 
-	if !cmp.Equal(existingASG.CurrentlySuspendProcesses, machinePoolScope.AWSMachinePool.Spec.SuspendProcesses) {
+	suspendedProcessesSlice := machinePoolScope.AWSMachinePool.Spec.SuspendProcesses.ConvertSetValuesToStringSlice()
+	if !cmp.Equal(existingASG.CurrentlySuspendProcesses, suspendedProcessesSlice) {
 		var (
 			toBeSuspended []string
 			toBeResumed   []string
@@ -398,7 +399,7 @@ func (r *AWSMachinePoolReconciler) updatePool(machinePoolScope *scope.MachinePoo
 			currentlySuspended[p] = struct{}{}
 		}
 
-		for _, p := range machinePoolScope.AWSMachinePool.Spec.SuspendProcesses {
+		for _, p := range suspendedProcessesSlice {
 			desiredSuspended[p] = struct{}{}
 		}
 
@@ -445,7 +446,8 @@ func (r *AWSMachinePoolReconciler) createPool(machinePoolScope *scope.MachinePoo
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create AWSMachinePool")
 	}
-	if err := asgsvc.SuspendProcesses(asg.Name, machinePoolScope.AWSMachinePool.Spec.SuspendProcesses); err != nil {
+	suspendedProcessesSlice := machinePoolScope.AWSMachinePool.Spec.SuspendProcesses.ConvertSetValuesToStringSlice()
+	if err := asgsvc.SuspendProcesses(asg.Name, suspendedProcessesSlice); err != nil {
 		return nil, errors.Wrapf(err, "failed to suspend processes while trying to create Pool")
 	}
 	return asg, nil

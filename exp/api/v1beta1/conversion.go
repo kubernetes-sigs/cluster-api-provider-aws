@@ -39,9 +39,7 @@ func (src *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	if restored.Spec.SuspendProcesses != nil {
-		restoredProcesses := make([]string, len(restored.Spec.SuspendProcesses))
-		copy(restoredProcesses, restored.Spec.SuspendProcesses)
-		dst.Spec.SuspendProcesses = restoredProcesses
+		dst.Spec.SuspendProcesses = restored.Spec.SuspendProcesses
 	}
 
 	return nil

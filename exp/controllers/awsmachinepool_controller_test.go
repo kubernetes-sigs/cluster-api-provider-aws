@@ -252,7 +252,10 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 		t.Run("there's suspended processes provided during ASG creation", func(t *testing.T) {
 			setSuspendedProcesses := func(t *testing.T, g *WithT) {
 				t.Helper()
-				ms.AWSMachinePool.Spec.SuspendProcesses = []string{"process1", "process2"}
+				ms.AWSMachinePool.Spec.SuspendProcesses = &expinfrav1.SuspendProcessesTypes{
+					Launch:    true,
+					Terminate: true,
+				}
 			}
 			t.Run("it should suspend these processes", func(t *testing.T) {
 				g := NewWithT(t)
@@ -265,7 +268,41 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				asgSvc.EXPECT().CreateASG(gomock.Any()).Return(&expinfrav1.AutoScalingGroup{
 					Name: "name",
 				}, nil)
-				asgSvc.EXPECT().SuspendProcesses("name", []string{"process1", "process2"}).Return(nil).AnyTimes()
+				asgSvc.EXPECT().SuspendProcesses("name", []string{"Launch", "Terminate"}).Return(nil).AnyTimes()
+
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+				g.Expect(err).To(Succeed())
+			})
+		})
+		t.Run("all processes are suspended", func(t *testing.T) {
+			setSuspendedProcesses := func(t *testing.T, g *WithT) {
+				t.Helper()
+				ms.AWSMachinePool.Spec.SuspendProcesses = &expinfrav1.SuspendProcessesTypes{
+					All: true,
+				}
+			}
+			t.Run("it should result in all processes being included except the value all", func(t *testing.T) {
+				g := NewWithT(t)
+				setup(t, g)
+				defer teardown(t, g)
+				setSuspendedProcesses(t, g)
+
+				ec2Svc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(nil, nil)
+				asgSvc.EXPECT().CreateASG(gomock.Any()).Return(&expinfrav1.AutoScalingGroup{
+					Name: "name",
+				}, nil)
+				asgSvc.EXPECT().SuspendProcesses("name", []string{
+					"Launch",
+					"Terminate",
+					"AddToLoadBalancer",
+					"AlarmNotification",
+					"AZRebalance",
+					"HealthCheck",
+					"InstanceRefresh",
+					"ReplaceUnhealthy",
+					"ScheduledActions",
+				}).Return(nil).AnyTimes()
 
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 				g.Expect(err).To(Succeed())
@@ -275,7 +312,10 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			setSuspendedProcesses := func(t *testing.T, g *WithT) {
 				t.Helper()
 
-				ms.AWSMachinePool.Spec.SuspendProcesses = []string{"process1", "process2"}
+				ms.AWSMachinePool.Spec.SuspendProcesses = &expinfrav1.SuspendProcessesTypes{
+					Launch:    true,
+					Terminate: true,
+				}
 			}
 			t.Run("it should suspend and resume processes that are desired to be suspended and desired to be resumed", func(t *testing.T) {
 				g := NewWithT(t)
@@ -287,10 +327,10 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				ec2Svc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil)
 				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(&expinfrav1.AutoScalingGroup{
 					Name:                      "name",
-					CurrentlySuspendProcesses: []string{"process1", "process3"},
+					CurrentlySuspendProcesses: []string{"Launch", "process3"},
 				}, nil)
 				asgSvc.EXPECT().UpdateASG(gomock.Any()).Return(nil).AnyTimes()
-				asgSvc.EXPECT().SuspendProcesses("name", []string{"process2"}).Return(nil).AnyTimes()
+				asgSvc.EXPECT().SuspendProcesses("name", []string{"Terminate"}).Return(nil).AnyTimes()
 				asgSvc.EXPECT().ResumeProcesses("name", []string{"process3"}).Return(nil).AnyTimes()
 
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
@@ -583,7 +623,10 @@ func TestASGNeedsUpdates(t *testing.T) {
 								},
 								Overrides: nil,
 							},
-							SuspendProcesses: []string{"process1", "process2"},
+							SuspendProcesses: &expinfrav1.SuspendProcessesTypes{
+								Launch:    true,
+								Terminate: true,
+							},
 						},
 					},
 					Logger: logr.Discard(),
@@ -594,7 +637,7 @@ func TestASGNeedsUpdates(t *testing.T) {
 					MinSize:                   0,
 					CapacityRebalance:         true,
 					MixedInstancesPolicy:      &expinfrav1.MixedInstancesPolicy{},
-					CurrentlySuspendProcesses: []string{"process1", "process3"},
+					CurrentlySuspendProcesses: []string{"Launch", "Terminate"},
 				},
 			},
 			want: true,
