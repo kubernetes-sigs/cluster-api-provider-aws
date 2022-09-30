@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta2
 
 import (
+	"reflect"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -86,7 +88,43 @@ type AWSMachinePoolSpec struct {
 
 	// SuspendProcesses defines a list of processes to suspend for the given ASG. This is constantly reconciled.
 	// If a process is removed from this list it will automatically be resumed.
-	SuspendProcesses []string `json:"suspendProcesses,omitempty"`
+	SuspendProcesses *SuspendProcessesTypes `json:"suspendProcesses,omitempty"`
+}
+
+// SuspendProcessesTypes contains user friendly auto-completable values for suspended process names.
+type SuspendProcessesTypes struct {
+	All               bool `json:"all,omitempty"`
+	Launch            bool `json:"launch,omitempty"`
+	Terminate         bool `json:"terminate,omitempty"`
+	AddToLoadBalancer bool `json:"addToLoadBalancer,omitempty"`
+	AlarmNotification bool `json:"alarmNotification,omitempty"`
+	AZRebalance       bool `json:"azRebalance,omitempty"`
+	HealthCheck       bool `json:"healthCheck,omitempty"`
+	InstanceRefresh   bool `json:"instanceRefresh,omitempty"`
+	ReplaceUnhealthy  bool `json:"replaceUnhealthy,omitempty"`
+	ScheduledActions  bool `json:"scheduledActions,omitempty"`
+}
+
+// ConvertSetValuesToStringSlice converts all the values that are set into a string slice for further processing.
+func (s *SuspendProcessesTypes) ConvertSetValuesToStringSlice() []string {
+	if s == nil {
+		return nil
+	}
+	e := reflect.ValueOf(s).Elem()
+
+	var result []string
+	for i := 0; i < e.NumField(); i++ {
+		if s.All {
+			if e.Type().Field(i).Name == "All" {
+				continue
+			}
+			result = append(result, e.Type().Field(i).Name)
+		} else if e.Field(i).Bool() {
+			result = append(result, e.Type().Field(i).Name)
+		}
+	}
+
+	return result
 }
 
 // RefreshPreferences defines the specs for instance refreshing.

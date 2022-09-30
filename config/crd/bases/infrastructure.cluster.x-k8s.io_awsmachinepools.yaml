@@ -850,9 +850,28 @@ spec:
                 description: SuspendProcesses defines a list of processes to suspend
                   for the given ASG. This is constantly reconciled. If a process is
                   removed from this list it will automatically be resumed.
-                items:
-                  type: string
-                type: array
+                properties:
+                  addToLoadBalancer:
+                    type: boolean
+                  alarmNotification:
+                    type: boolean
+                  all:
+                    type: boolean
+                  azRebalance:
+                    type: boolean
+                  healthCheck:
+                    type: boolean
+                  instanceRefresh:
+                    type: boolean
+                  launch:
+                    type: boolean
+                  replaceUnhealthy:
+                    type: boolean
+                  scheduledActions:
+                    type: boolean
+                  terminate:
+                    type: boolean
+                type: object
             required:
             - awsLaunchTemplate
             - maxSize
