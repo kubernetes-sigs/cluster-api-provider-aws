@@ -1,13 +1,8 @@
 package eks
 
 import (
-	"crypto/tls"
-	"crypto/x509"
-	"fmt"
-	"net"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -53,7 +48,7 @@ func TestOIDCReconcile(t *testing.T) {
 				}, nil)
 				m.CreateOpenIDConnectProvider(&iam.CreateOpenIDConnectProviderInput{
 					ClientIDList:   aws.StringSlice([]string{"sts.amazonaws.com"}),
-					ThumbprintList: aws.StringSlice([]string{"c7a33e1de97f8bf5413ef9a833da98507c95416c"}),
+					ThumbprintList: aws.StringSlice([]string{"15dbd260c7465ecca6de2c0b2181187f66ee0d1a"}),
 					Url:            &url,
 				}).Return(&iam.CreateOpenIDConnectProviderOutput{
 					OpenIDConnectProviderArn: aws.String("arn::oidc"),
@@ -87,7 +82,7 @@ func TestOIDCReconcile(t *testing.T) {
 					OpenIDConnectProviderArn: aws.String("arn::oidc"),
 				}).Return(&iam.GetOpenIDConnectProviderOutput{
 					ClientIDList:   aws.StringSlice([]string{"sts.amazonaws.com"}),
-					ThumbprintList: aws.StringSlice([]string{"c7a33e1de97f8bf5413ef9a833da98507c95416c"}),
+					ThumbprintList: aws.StringSlice([]string{"15dbd260c7465ecca6de2c0b2181187f66ee0d1a"}),
 					Url:            &url,
 				}, nil)
 			},
@@ -106,8 +101,11 @@ func TestOIDCReconcile(t *testing.T) {
 			_ = ekscontrolplanev1.AddToScheme(scheme)
 			_ = corev1.AddToScheme(scheme)
 
-			ts, url, err := testServer()
-			g.Expect(err).To(Succeed())
+			ts := httptest.NewTLSServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+				// Send response to be tested
+				rw.WriteHeader(http.StatusOK)
+				rw.Write([]byte(`OK`))
+			}))
 			defer ts.Close()
 
 			controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{
@@ -143,97 +141,18 @@ func TestOIDCReconcile(t *testing.T) {
 			})
 
 			iamMock := mock_iamauth.NewMockIAMAPI(mockControl)
-			tc.expect(iamMock.EXPECT(), url.String())
-			s := NewService(scope)
+			tc.expect(iamMock.EXPECT(), ts.URL)
+			s := NewService(scope, WithIAMClient(ts.Client()))
 			s.IAMClient = iamMock
 
-			cluster := tc.cluster(url.String())
-			err = s.reconcileOIDCProvider(&cluster)
+			cluster := tc.cluster(ts.URL)
+			err := s.reconcileOIDCProvider(&cluster)
 			// We reached the trusted policy reconcile which will fail because it tries to connect to the server.
 			// But at this point, we already know that the critical area has been covered.
-			g.Expect(err).To(MatchError(ContainSubstring("dial tcp: lookup test-cluster-api.nodomain.example.com: no such host")))
+			g.Expect(err).To(MatchError(ContainSubstring("dial tcp: lookup test-cluster-api.nodomain.example.com")))
 		})
 	}
 }
-
-func testServer() (*httptest.Server, *url.URL, error) {
-	rootCAs := x509.NewCertPool()
-
-	cert, err := tls.X509KeyPair(serverCert, serverKey)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to init x509 cert/key pair: %w", err)
-	}
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      rootCAs,
-		MinVersion:   tls.VersionTLS12,
-	}
-
-	tlsServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
-	}))
-
-	tlsServer.TLS = tlsConfig
-	tlsServer.StartTLS()
-
-	serverURL, err := url.Parse(tlsServer.URL)
-	if err != nil {
-		tlsServer.Close()
-		return nil, nil, fmt.Errorf("failed to parse the testserver URL: %w", err)
-	}
-	serverURL.Host = net.JoinHostPort("localhost", serverURL.Port())
-
-	return tlsServer, serverURL, nil
-}
-
-// generated with `mkcert example.com "*.example.com" example.test localhost 127.0.0.1 ::1`.
-var serverCert = []byte(`-----BEGIN CERTIFICATE-----
-MIIC3DCCAcQCCQDKSKIAwGGsezANBgkqhkiG9w0BAQUFADAwMQswCQYDVQQGEwJV
-UzENMAsGA1UECAwEVXRhaDESMBAGA1UEAwwJbG9jYWxob3N0MB4XDTIyMDkzMDA1
-MDk0NVoXDTMyMDkyNzA1MDk0NVowMDELMAkGA1UEBhMCVVMxDTALBgNVBAgMBFV0
-YWgxEjAQBgNVBAMMCWxvY2FsaG9zdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCC
-AQoCggEBAJet5JFSOFRh4McYs/V7ZWE4NfGwOYrjwExocwuxf+3rZp2LsAHefN01
-rps8fDBk57PbolC5WAutGZBS06asT6/j7XGi1SSIr+C1Sr5X5lnrQWlqimYyVK+k
-cPqRkgEVVmYdgESIi0UV1ulEIqfeqgo49S/2u46lt1S/Cvb3dV9oX+aP/CBihPal
-z00QtqPdgM3ebG0K/V+JKF5VGkduHfCwIR710pbSvrscPhuQBW+FtGkVGgGsT53w
-+m+bpUo8w6FIqp6oQ1gqXIZTDWNtqF7RmuzgohSuo0xfuqkazWMKOsucKJirS0Z2
-6wbFG1O/e/GrQ/T1Yp3u8dvSG0KPZy8CAwEAATANBgkqhkiG9w0BAQUFAAOCAQEA
-JJFduoko6CTlcgJo4bUJUb/nBDvGZ4e52YJlbsKnqT9bWCgEtaiekw08PBFwjIWK
-GXNVUHVhCyFk+hFwCx9TkFfpDNTeiv/xoRBi24Nl60x0kv9SfOyaPaeC3g9cN4HU
-JEg72P4A47Owj94RVkqZmwmRcZQ/fh8qTuvSmgoJaMfqXLRGFJbWyPUa3wYzHyjY
-CGzMRQTnwJ8Ky4xHoVClbcBTXXTm2tdmojzJP1hwt1zBraq/3tBRBYrKvV4Eqsg4
-j3OcbtBxfcVpm/tHlS1JkPznTryVNZhoxf/a4LXSwBGsAHTb14FfNbguuoyl0vZZ
-qE56RZINYB2h11pH/1sC0g==
------END CERTIFICATE-----`)
-var serverKey = []byte(`-----BEGIN PRIVATE KEY-----
-MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCXreSRUjhUYeDH
-GLP1e2VhODXxsDmK48BMaHMLsX/t62adi7AB3nzdNa6bPHwwZOez26JQuVgLrRmQ
-UtOmrE+v4+1xotUkiK/gtUq+V+ZZ60FpaopmMlSvpHD6kZIBFVZmHYBEiItFFdbp
-RCKn3qoKOPUv9ruOpbdUvwr293VfaF/mj/wgYoT2pc9NELaj3YDN3mxtCv1fiShe
-VRpHbh3wsCEe9dKW0r67HD4bkAVvhbRpFRoBrE+d8Ppvm6VKPMOhSKqeqENYKlyG
-Uw1jbahe0Zrs4KIUrqNMX7qpGs1jCjrLnCiYq0tGdusGxRtTv3vxq0P09WKd7vHb
-0htCj2cvAgMBAAECggEADv66/P7i4Ly4axZvHBKx6BWVh6pDVg7EAQnGbd6DZjMC
-dwrLQLQNJhVbiK9HG8Wt/mL1PgPEx4q6X0FA+VZJnnrrC3PsnGsC8DUcCYtJE5Sl
-Z9WHjyjkpGSeYrcndwH0A65g8uWI1zCciX0Z6/ygVNhirPY4fpa1dCRa4iV+rgrN
-jyZ7+drI3yiiQYds1mF9qBlvDEvomoWlPQ74BMzjQs7BlgRTATwdIztRCiKNUK4G
-4PvnNGjDVZsGUeSAaR/+FOE/mCElDE8QR+5eD9iLYUyO0aTXKoMKFZCJMjzqaUlW
-XjOE3d6jNzP4qM1vZVc0ozloXsRVuakJduyh/tmL6QKBgQDJ2gmOgTMfj1jKlIOo
-T2fa4iAW9PMMErn/x4wTgF+BItuwf8rCVAZYtzMt022CajwHODDpIAiQQZsOOCyE
-nd0poYH+IU0PVNvUJRcH7SYSvVlzD9nkM64BLnaX1Fnf4We83GmUhweVqUXTszDn
-U0bJcRAxM9kovABkkrHeDQr4mwKBgQDAXlBUtzfSslqsXXLEDfTqaW2u+Z3QaKfQ
-VI3z3D1GKmgKzr6Z+oaa6JboKLL9if757GK9xRLTnay775F9x2xlNzz+iq6lZSyb
-n1yUaLP1LXa6hmOunP5lo6KduSFP4kqreIHWWuoyKbrB3tEBMqr1Lp2ydL6kP/Dg
-0Oz+rnuC/QKBgA55BrRkCSFbKtejnGkGAIFOM1TSDVcxRIrVaPLBApgEwtG95/DV
-C3ty70V64mA2c8VkvwUIGfUV7yMu3epIU2I3xVVOV/Mgd36XhjY4R8GSOAaq/UmC
-dxh4l2I9hJAr3j9JYnyWzfFqKKqML5Z2fx3UcH/Gouxrxm9voTc1ojK/AoGATPWu
-d6XxLFb0VZ7xKiRXRmy1V9o/W8By2rLpM5V54hdXFnPN5zZGIbVJokmeCjbqDjyW
-6ErulECxeWKHt2VQJVIrEb6TzlGivgPMewdEb6Mnq8nWGWZvlGQZy7Xj8NyceOs2
-Lnai2Ty+nY8x2KPXp01mA54XIwj9qkOLfPx7J1UCgYA7zJ3auVehaKIphx/gLpzL
-mWdrQHrrvlS04jy6IfQfKcRo9lGFXgWiPSQomWKbvA2WJik0EP9CQO28oAYKZWP/
-jhckhSOsc4+cMSi5b3OqlNiFiL164COTy8I5OLLG1nhIqWAUVYOjQDLlWRCG69xS
-VSuwY/kUqjW6vpvWP5j1kg==
------END PRIVATE KEY-----`)
 
 var kubeConfig = []byte(`apiVersion: v1
 clusters:
