@@ -253,8 +253,10 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			setSuspendedProcesses := func(t *testing.T, g *WithT) {
 				t.Helper()
 				ms.AWSMachinePool.Spec.SuspendProcesses = &expinfrav1.SuspendProcessesTypes{
-					Launch:    true,
-					Terminate: true,
+					Processes: &expinfrav1.Processes{
+						Launch:    pointer.Bool(true),
+						Terminate: pointer.Bool(true),
+					},
 				}
 			}
 			t.Run("it should suspend these processes", func(t *testing.T) {
@@ -307,14 +309,44 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 				g.Expect(err).To(Succeed())
 			})
+			t.Run("and one or more processes are disabled, it should not list those", func(t *testing.T) {
+				g := NewWithT(t)
+				setup(t, g)
+				defer teardown(t, g)
+				setSuspendedProcesses(t, g)
+				ms.AWSMachinePool.Spec.SuspendProcesses.Processes = &expinfrav1.Processes{
+					Launch:      pointer.Bool(false),
+					AZRebalance: pointer.Bool(true), // this should still be included but not twice...
+				}
+				ec2Svc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(nil, nil)
+				asgSvc.EXPECT().CreateASG(gomock.Any()).Return(&expinfrav1.AutoScalingGroup{
+					Name: "name",
+				}, nil)
+				asgSvc.EXPECT().SuspendProcesses("name", []string{
+					"Terminate",
+					"AddToLoadBalancer",
+					"AlarmNotification",
+					"AZRebalance",
+					"HealthCheck",
+					"InstanceRefresh",
+					"ReplaceUnhealthy",
+					"ScheduledActions",
+				}).Return(nil).AnyTimes()
+
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+				g.Expect(err).To(Succeed())
+			})
 		})
 		t.Run("there are existing processes already suspended", func(t *testing.T) {
 			setSuspendedProcesses := func(t *testing.T, g *WithT) {
 				t.Helper()
 
 				ms.AWSMachinePool.Spec.SuspendProcesses = &expinfrav1.SuspendProcessesTypes{
-					Launch:    true,
-					Terminate: true,
+					Processes: &expinfrav1.Processes{
+						Launch:    pointer.Bool(true),
+						Terminate: pointer.Bool(true),
+					},
 				}
 			}
 			t.Run("it should suspend and resume processes that are desired to be suspended and desired to be resumed", func(t *testing.T) {
@@ -624,8 +656,10 @@ func TestASGNeedsUpdates(t *testing.T) {
 								Overrides: nil,
 							},
 							SuspendProcesses: &expinfrav1.SuspendProcessesTypes{
-								Launch:    true,
-								Terminate: true,
+								Processes: &expinfrav1.Processes{
+									Launch:    pointer.Bool(true),
+									Terminate: pointer.Bool(true),
+								},
 							},
 						},
 					},

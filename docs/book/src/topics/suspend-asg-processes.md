@@ -26,9 +26,10 @@ spec:
     instanceType: "${AWS_CONTROL_PLANE_MACHINE_TYPE}"
     sshKeyName: "${AWS_SSH_KEY_NAME}"  
   suspendProcesses:
-    launch: true
-    alarmNotification: true
-    azRebalance: true
+    processes:
+        launch: true
+        alarmNotification: true
+        azRebalance: true
 ---
 ```
 
@@ -52,7 +53,8 @@ spec:
     instanceType: "${AWS_CONTROL_PLANE_MACHINE_TYPE}"
     sshKeyName: "${AWS_SSH_KEY_NAME}"  
   suspendProcesses:
-    launch: true
+    processes:
+      launch: true
 ---
 ```
 
@@ -79,4 +81,25 @@ spec:
     sshKeyName: "${AWS_SSH_KEY_NAME}"  
   suspendProcesses:
     all: true
+```
+
+To exclude individual processes from `all` simply add them with value `false`:
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSMachinePool
+metadata:
+  name: capa-mp-0
+spec:
+  minSize: 1
+  maxSize: 10
+  availabilityZones:
+    - "${AWS_AVAILABILITY_ZONE}"
+  awsLaunchTemplate:
+    instanceType: "${AWS_CONTROL_PLANE_MACHINE_TYPE}"
+    sshKeyName: "${AWS_SSH_KEY_NAME}"  
+  suspendProcesses:
+    all: true
+    processes:
+      launch: false
 ```
