@@ -93,16 +93,21 @@ type AWSMachinePoolSpec struct {
 
 // SuspendProcessesTypes contains user friendly auto-completable values for suspended process names.
 type SuspendProcessesTypes struct {
-	All               bool `json:"all,omitempty"`
-	Launch            bool `json:"launch,omitempty"`
-	Terminate         bool `json:"terminate,omitempty"`
-	AddToLoadBalancer bool `json:"addToLoadBalancer,omitempty"`
-	AlarmNotification bool `json:"alarmNotification,omitempty"`
-	AZRebalance       bool `json:"azRebalance,omitempty"`
-	HealthCheck       bool `json:"healthCheck,omitempty"`
-	InstanceRefresh   bool `json:"instanceRefresh,omitempty"`
-	ReplaceUnhealthy  bool `json:"replaceUnhealthy,omitempty"`
-	ScheduledActions  bool `json:"scheduledActions,omitempty"`
+	All       bool       `json:"all,omitempty"`
+	Processes *Processes `json:"processes,omitempty"`
+}
+
+// Processes defines the processes which can be enabled or disabled individually.
+type Processes struct {
+	Launch            *bool `json:"launch,omitempty"`
+	Terminate         *bool `json:"terminate,omitempty"`
+	AddToLoadBalancer *bool `json:"addToLoadBalancer,omitempty"`
+	AlarmNotification *bool `json:"alarmNotification,omitempty"`
+	AZRebalance       *bool `json:"azRebalance,omitempty"`
+	HealthCheck       *bool `json:"healthCheck,omitempty"`
+	InstanceRefresh   *bool `json:"instanceRefresh,omitempty"`
+	ReplaceUnhealthy  *bool `json:"replaceUnhealthy,omitempty"`
+	ScheduledActions  *bool `json:"scheduledActions,omitempty"`
 }
 
 // ConvertSetValuesToStringSlice converts all the values that are set into a string slice for further processing.
@@ -110,16 +115,21 @@ func (s *SuspendProcessesTypes) ConvertSetValuesToStringSlice() []string {
 	if s == nil {
 		return nil
 	}
-	e := reflect.ValueOf(s).Elem()
 
+	if s.Processes == nil {
+		s.Processes = &Processes{}
+	}
+
+	e := reflect.ValueOf(s.Processes).Elem()
 	var result []string
 	for i := 0; i < e.NumField(); i++ {
 		if s.All {
-			if e.Type().Field(i).Name == "All" {
+			if !e.Field(i).IsNil() && !*e.Field(i).Interface().(*bool) {
+				// don't enable if explicitly set to false.
 				continue
 			}
 			result = append(result, e.Type().Field(i).Name)
-		} else if e.Field(i).Bool() {
+		} else if !e.Field(i).IsNil() && *e.Field(i).Interface().(*bool) {
 			result = append(result, e.Type().Field(i).Name)
 		}
 	}
