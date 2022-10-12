@@ -78,7 +78,7 @@ func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
 		}
 	}
 
-	s.scope.Info("Reconciled aws-iam-authenticator configuration", "cluster", klog.KRef("", s.scope.KubernetesClusterName()))
+	s.scope.Info("Reconciled aws-iam-authenticator configuration", "cluster", klog.KRef("", s.scope.Name()))
 
 	return nil
 }
