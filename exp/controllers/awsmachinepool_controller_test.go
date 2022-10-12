@@ -249,6 +249,126 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				g.Expect(errors.Cause(err)).To(MatchError(expectedErr))
 			})
 		})
+		t.Run("there's suspended processes provided during ASG creation", func(t *testing.T) {
+			setSuspendedProcesses := func(t *testing.T, g *WithT) {
+				t.Helper()
+				ms.AWSMachinePool.Spec.SuspendProcesses = &expinfrav1.SuspendProcessesTypes{
+					Processes: &expinfrav1.Processes{
+						Launch:    pointer.Bool(true),
+						Terminate: pointer.Bool(true),
+					},
+				}
+			}
+			t.Run("it should suspend these processes", func(t *testing.T) {
+				g := NewWithT(t)
+				setup(t, g)
+				defer teardown(t, g)
+				setSuspendedProcesses(t, g)
+
+				ec2Svc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(nil, nil)
+				asgSvc.EXPECT().CreateASG(gomock.Any()).Return(&expinfrav1.AutoScalingGroup{
+					Name: "name",
+				}, nil)
+				asgSvc.EXPECT().SuspendProcesses("name", []string{"Launch", "Terminate"}).Return(nil).AnyTimes()
+
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+				g.Expect(err).To(Succeed())
+			})
+		})
+		t.Run("all processes are suspended", func(t *testing.T) {
+			setSuspendedProcesses := func(t *testing.T, g *WithT) {
+				t.Helper()
+				ms.AWSMachinePool.Spec.SuspendProcesses = &expinfrav1.SuspendProcessesTypes{
+					All: true,
+				}
+			}
+			t.Run("it should result in all processes being included except the value all", func(t *testing.T) {
+				g := NewWithT(t)
+				setup(t, g)
+				defer teardown(t, g)
+				setSuspendedProcesses(t, g)
+
+				ec2Svc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(nil, nil)
+				asgSvc.EXPECT().CreateASG(gomock.Any()).Return(&expinfrav1.AutoScalingGroup{
+					Name: "name",
+				}, nil)
+				asgSvc.EXPECT().SuspendProcesses("name", []string{
+					"Launch",
+					"Terminate",
+					"AddToLoadBalancer",
+					"AlarmNotification",
+					"AZRebalance",
+					"HealthCheck",
+					"InstanceRefresh",
+					"ReplaceUnhealthy",
+					"ScheduledActions",
+				}).Return(nil).AnyTimes()
+
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+				g.Expect(err).To(Succeed())
+			})
+			t.Run("and one or more processes are disabled, it should not list those", func(t *testing.T) {
+				g := NewWithT(t)
+				setup(t, g)
+				defer teardown(t, g)
+				setSuspendedProcesses(t, g)
+				ms.AWSMachinePool.Spec.SuspendProcesses.Processes = &expinfrav1.Processes{
+					Launch:      pointer.Bool(false),
+					AZRebalance: pointer.Bool(true), // this should still be included but not twice...
+				}
+				ec2Svc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(nil, nil)
+				asgSvc.EXPECT().CreateASG(gomock.Any()).Return(&expinfrav1.AutoScalingGroup{
+					Name: "name",
+				}, nil)
+				asgSvc.EXPECT().SuspendProcesses("name", []string{
+					"Terminate",
+					"AddToLoadBalancer",
+					"AlarmNotification",
+					"AZRebalance",
+					"HealthCheck",
+					"InstanceRefresh",
+					"ReplaceUnhealthy",
+					"ScheduledActions",
+				}).Return(nil).AnyTimes()
+
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+				g.Expect(err).To(Succeed())
+			})
+		})
+		t.Run("there are existing processes already suspended", func(t *testing.T) {
+			setSuspendedProcesses := func(t *testing.T, g *WithT) {
+				t.Helper()
+
+				ms.AWSMachinePool.Spec.SuspendProcesses = &expinfrav1.SuspendProcessesTypes{
+					Processes: &expinfrav1.Processes{
+						Launch:    pointer.Bool(true),
+						Terminate: pointer.Bool(true),
+					},
+				}
+			}
+			t.Run("it should suspend and resume processes that are desired to be suspended and desired to be resumed", func(t *testing.T) {
+				g := NewWithT(t)
+				setup(t, g)
+				defer teardown(t, g)
+				setSuspendedProcesses(t, g)
+
+				ec2Svc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				ec2Svc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil)
+				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(&expinfrav1.AutoScalingGroup{
+					Name:                      "name",
+					CurrentlySuspendProcesses: []string{"Launch", "process3"},
+				}, nil)
+				asgSvc.EXPECT().UpdateASG(gomock.Any()).Return(nil).AnyTimes()
+				asgSvc.EXPECT().SuspendProcesses("name", []string{"Terminate"}).Return(nil).AnyTimes()
+				asgSvc.EXPECT().ResumeProcesses("name", []string{"process3"}).Return(nil).AnyTimes()
+
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+				g.Expect(err).To(Succeed())
+			})
+		})
 	})
 
 	t.Run("Deleting an AWSMachinePool", func(t *testing.T) {
@@ -351,7 +471,7 @@ func setupCluster(clusterName string) (*scope.ClusterScope, error) {
 	})
 }
 
-func Test_asgNeedsUpdates(t *testing.T) {
+func TestASGNeedsUpdates(t *testing.T) {
 	type args struct {
 		machinePoolScope *scope.MachinePoolScope
 		existingASG      *expinfrav1.AutoScalingGroup
@@ -511,6 +631,47 @@ func Test_asgNeedsUpdates(t *testing.T) {
 					MinSize:              0,
 					CapacityRebalance:    true,
 					MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "SuspendProcesses != asg.SuspendProcesses",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: pointer.Int32(1),
+						},
+					},
+					AWSMachinePool: &expinfrav1.AWSMachinePool{
+						Spec: expinfrav1.AWSMachinePoolSpec{
+							MaxSize:           2,
+							MinSize:           0,
+							CapacityRebalance: true,
+							MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
+								InstancesDistribution: &expinfrav1.InstancesDistribution{
+									OnDemandAllocationStrategy: expinfrav1.OnDemandAllocationStrategyPrioritized,
+								},
+								Overrides: nil,
+							},
+							SuspendProcesses: &expinfrav1.SuspendProcessesTypes{
+								Processes: &expinfrav1.Processes{
+									Launch:    pointer.Bool(true),
+									Terminate: pointer.Bool(true),
+								},
+							},
+						},
+					},
+					Logger: logr.Discard(),
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity:           pointer.Int32(1),
+					MaxSize:                   2,
+					MinSize:                   0,
+					CapacityRebalance:         true,
+					MixedInstancesPolicy:      &expinfrav1.MixedInstancesPolicy{},
+					CurrentlySuspendProcesses: []string{"Launch", "Terminate"},
 				},
 			},
 			want: true,
