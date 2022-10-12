@@ -107,7 +107,7 @@ type Settings struct {
 
 // RuntimeEnvironment represents the runtime environment of the test.
 type RuntimeEnvironment struct {
-	// BootstrapClusterProvider manages provisioning of the the bootstrap cluster to be used for the e2e tests.
+	// BootstrapClusterProvider manages provisioning of the bootstrap cluster to be used for the e2e tests.
 	// Please note that provisioning will be skipped if use-existing-cluster is provided.
 	BootstrapClusterProvider bootstrap.ClusterProvider
 	// BootstrapClusterProxy allows to interact with the bootstrap cluster to be used for the e2e tests.

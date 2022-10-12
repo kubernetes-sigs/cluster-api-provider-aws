@@ -71,7 +71,7 @@ func (s *Service) reconcileVPC() error {
 			}
 			return true, nil
 		}, awserrors.VPCNotFound); err != nil {
-			return errors.Wrapf(err, "failed to to set vpc attributes for %q", vpc.ID)
+			return errors.Wrapf(err, "failed to set vpc attributes for %q", vpc.ID)
 		}
 
 		return nil
@@ -102,7 +102,7 @@ func (s *Service) reconcileVPC() error {
 		}
 		return true, nil
 	}, awserrors.VPCNotFound); err != nil {
-		return errors.Wrapf(err, "failed to to set vpc attributes for %q", vpc.ID)
+		return errors.Wrapf(err, "failed to set vpc attributes for %q", vpc.ID)
 	}
 
 	return nil
