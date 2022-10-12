@@ -13,33 +13,64 @@ Kubernetes projects require that you sign a Contributor License Agreement (CLA) 
 > See the [developer guide](https://cluster-api-aws.sigs.k8s.io/development/development.html) on how to setup your development environment.
 5. Submit a pull request.
 
-### Becoming a reviewer
+### Contributer Ladder
 
-If you would like to become a reviewer, then please ask one of the maintainers.
-There's no hard and defined limit as to who can become a reviewer, but a good
-heuristic is 5 or more contributions. A reviewer can get PRs automatically assigned
-for review, and can `/lgtm` PRs.
+We broadly follow the requirements from the [Kubernetes Community Membership](https://github.com/kubernetes/community/blob/master/community-membership.md).
 
-To become a reviewer, ensure you are a member of the kubernetes-sigs Github organisation
-following https://github.com/kubernetes/org/issues/new/choose .
+> When making changes to **OWNER_ALIASES** please check that the **sig-cluster-lifecycle-leads**, **cluster-api-admins** and **cluster-api-maintainers** are correct.
 
-### Steps needed to become a maintainer
-If you have made significant contributions to Cluster API
-Provider AWS, a maintainer may nominate you to become a
-maintainer, first by opening a PR to add you to the OWNERS_ALIASES file of the repository.
+#### Becoming a reviewer
 
-Maintainers are able to approve PRs, as well as participate
-in release processes.
+If you would like to become a reviewer, then please ask one of the current maintainers.
 
-Maintainers require membership of the Kubernetes Github organisation via
+We generally try to follow the [requirements for a reviewer](https://github.com/kubernetes/community/blob/master/community-membership.md#reviewer) from upstream Kubernetes. But if you feel that you don't full meet the requirements then reach out to us, they are not set in stone.
+
+A reviewer can get PRs automatically assigned for review, and can `/lgtm` PRs.
+
+To become a reviewer, ensure you are a member of the **kubernetes-sigs** Github organisation
+following https://github.com/kubernetes/org/issues/new/choose.
+
+The steps to add someone as a reviewer are:
+
+- Add the GitHub alias to the **cluster-api-aws-reviewers** section of [OWNERS_ALIASES](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/OWNERS_ALIASES)
+- Create a PR with the change that is held (i.e. by using `/hold`)
+- Announce the change within the CAPA slack channel and as a PSA in the next CAPA office hours
+- After 7 days of lazy consensus or after the next CAPA office hours (whichever is longer) the PR can be merged
+
+#### Becoming a maintainer
+
+If you have made significant contributions to Cluster API Provider AWS, a maintainer may nominate you to become a maintainer for the project.
+
+We generally follow the [requirements for a approver](https://github.com/kubernetes/community/blob/master/community-membership.md#approver) from upstream Kubernetes. However, if you don't fully meet the requirements then a quorum of maintainers may still propose you if they feel you will make significant contributions.
+
+Maintainers are able to approve PRs, as well as participate in release processes and have write access to the repo. **As a maintainer you will be expected to run the office hours, especially if no else wants to**.
+
+Maintainers require membership of the **Kubernetes** Github organisation via
 https://github.com/kubernetes/org/issues/new/choose
 
-The complete list of tasks required to set up maintainer status
-follow:
+The steps to add someone as a reviewer are:
 
-* Open PR to add Github username to the OWNERS_ALIASES file under cluster-api-aws-maintainers
-* Open PR to add Github username to cluster-api-provider-aws-admins and cluster-api-provider-aws-maintainers
+- Add the GitHub alias to the **cluster-api-aws-maintainers** and remove them from **cluster-api-aws-reviewers** sections of [OWNERS_ALIASES](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/OWNERS_ALIASES)
+- Create a PR with the change that is held (i.e. by using `/hold`)
+- Announce the change within the CAPA slack channel and as a PSA in the next CAPA office hours
+- After 7 days of lazy consensus or after the next CAPA office hours (whichever is longer) the PR can be merged
+- Open PR to add Github username to **cluster-api-provider-aws-maintainers**
 to https://github.com/kubernetes/org/blob/main/config/kubernetes-sigs/sig-cluster-lifecycle/teams.yaml
-* Open PR to add Github username to https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api-provider-aws/OWNERS
-* Open PR to add Github username to https://github.com/kubernetes/k8s.io/blob/main/k8s.gcr.io/images/k8s-staging-cluster-api-aws/OWNERS
-* Open PR to add Google ID to the k8s-infra-staging-cluster-api-aws@kubernetes.io Google group in https://github.com/kubernetes/k8s.io/blob/main/groups/groups.yaml
+- Open PR to add Github username to https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api-provider-aws/OWNERS
+- Open PR to add Github username to https://github.com/kubernetes/k8s.io/blob/main/k8s.gcr.io/images/k8s-staging-cluster-api-aws/OWNERS
+- Open PR to add Google ID to the k8s-infra-staging-cluster-api-aws@kubernetes.io Google group in https://github.com/kubernetes/k8s.io/blob/main/groups/groups.yaml
+
+#### Becoming a admin
+
+After a period of time one of the existing CAPA or CAPI admins may propose you to become an admin of the CAPA project.
+
+Admins have GitHub **admin** access to perform tasks on the repo.
+
+The steps to add someone as an admin are:
+
+- Add the GitHub alias to the **cluster-api-aws-admins** section of [OWNERS_ALIASES](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/OWNERS_ALIASES)
+- Create a PR with the change that is held (i.e. by using `/hold`)
+- Announce the change within the CAPA slack channel and as a PSA in the next CAPA office hours
+- After 7 days of lazy consensus or after the next CAPA office hours (whichever is longer) the PR can be merged
+- Open PR to add Github username to **cluster-api-provider-aws-admins**
+to https://github.com/kubernetes/org/blob/main/config/kubernetes-sigs/sig-cluster-lifecycle/teams.yaml
