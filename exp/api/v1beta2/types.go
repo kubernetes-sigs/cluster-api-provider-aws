@@ -193,9 +193,10 @@ type AutoScalingGroup struct {
 	DefaultCoolDown   metav1.Duration `json:"defaultCoolDown,omitempty"`
 	CapacityRebalance bool            `json:"capacityRebalance,omitempty"`
 
-	MixedInstancesPolicy *MixedInstancesPolicy `json:"mixedInstancesPolicy,omitempty"`
-	Status               ASGStatus
-	Instances            []infrav1.Instance `json:"instances,omitempty"`
+	MixedInstancesPolicy      *MixedInstancesPolicy `json:"mixedInstancesPolicy,omitempty"`
+	Status                    ASGStatus
+	Instances                 []infrav1.Instance `json:"instances,omitempty"`
+	CurrentlySuspendProcesses []string           `json:"currentlySuspendProcesses,omitempty"`
 }
 
 // ASGStatus is a status string returned by the autoscaling API.

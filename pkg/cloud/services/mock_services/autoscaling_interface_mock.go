@@ -125,6 +125,20 @@ func (mr *MockASGInterfaceMockRecorder) GetASGByName(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetASGByName", reflect.TypeOf((*MockASGInterface)(nil).GetASGByName), arg0)
 }
 
+// ResumeProcesses mocks base method.
+func (m *MockASGInterface) ResumeProcesses(arg0 string, arg1 []string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResumeProcesses", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ResumeProcesses indicates an expected call of ResumeProcesses.
+func (mr *MockASGInterfaceMockRecorder) ResumeProcesses(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResumeProcesses", reflect.TypeOf((*MockASGInterface)(nil).ResumeProcesses), arg0, arg1)
+}
+
 // StartASGInstanceRefresh mocks base method.
 func (m *MockASGInterface) StartASGInstanceRefresh(arg0 *scope.MachinePoolScope) error {
 	m.ctrl.T.Helper()
@@ -137,6 +151,20 @@ func (m *MockASGInterface) StartASGInstanceRefresh(arg0 *scope.MachinePoolScope)
 func (mr *MockASGInterfaceMockRecorder) StartASGInstanceRefresh(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartASGInstanceRefresh", reflect.TypeOf((*MockASGInterface)(nil).StartASGInstanceRefresh), arg0)
+}
+
+// SuspendProcesses mocks base method.
+func (m *MockASGInterface) SuspendProcesses(arg0 string, arg1 []string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SuspendProcesses", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SuspendProcesses indicates an expected call of SuspendProcesses.
+func (mr *MockASGInterfaceMockRecorder) SuspendProcesses(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SuspendProcesses", reflect.TypeOf((*MockASGInterface)(nil).SuspendProcesses), arg0, arg1)
 }
 
 // UpdateASG mocks base method.

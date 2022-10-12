@@ -21,6 +21,7 @@ import (
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta2"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
@@ -30,7 +31,17 @@ func (src *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	if err := Convert_v1beta1_AWSMachinePool_To_v1beta2_AWSMachinePool(src, dst, nil); err != nil {
 		return err
 	}
-	
+
+	// Manually restore data.
+	restored := &infrav1exp.AWSMachinePool{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	if restored.Spec.SuspendProcesses != nil {
+		dst.Spec.SuspendProcesses = restored.Spec.SuspendProcesses
+	}
+
 	return nil
 }
 
@@ -41,8 +52,8 @@ func (r *AWSMachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 	if err := Convert_v1beta2_AWSMachinePool_To_v1beta1_AWSMachinePool(src, r, nil); err != nil {
 		return err
 	}
-	
-	return nil
+
+	return utilconversion.MarshalData(src, r)
 }
 
 // ConvertTo converts the v1beta1 AWSMachinePoolList receiver to a v1beta2 AWSMachinePoolList.
@@ -75,7 +86,7 @@ func (r *AWSManagedMachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 	if err := Convert_v1beta2_AWSManagedMachinePool_To_v1beta1_AWSManagedMachinePool(src, r, nil); err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -146,4 +157,21 @@ func Convert_v1beta1_Instance_To_v1beta2_Instance(in *infrav1beta1.Instance, out
 // Convert_v1beta2_AWSLaunchTemplate_To_v1beta1_AWSLaunchTemplate converts the v1beta2 AWSLaunchTemplate receiver to a v1beta1 AWSLaunchTemplate.
 func Convert_v1beta2_AWSLaunchTemplate_To_v1beta1_AWSLaunchTemplate(in *infrav1exp.AWSLaunchTemplate, out *AWSLaunchTemplate, s apiconversion.Scope) error {
 	return autoConvert_v1beta2_AWSLaunchTemplate_To_v1beta1_AWSLaunchTemplate(in, out, s)
+}
+
+func Convert_v1beta1_AWSMachinePoolSpec_To_v1beta2_AWSMachinePoolSpec(in *AWSMachinePoolSpec, out *infrav1exp.AWSMachinePoolSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_AWSMachinePoolSpec_To_v1beta2_AWSMachinePoolSpec(in, out, s)
+}
+
+func Convert_v1beta2_AWSMachinePoolSpec_To_v1beta1_AWSMachinePoolSpec(in *infrav1exp.AWSMachinePoolSpec, out *AWSMachinePoolSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta2_AWSMachinePoolSpec_To_v1beta1_AWSMachinePoolSpec(in, out, s)
+}
+
+func Convert_v1beta1_AutoScalingGroup_To_v1beta2_AutoScalingGroup(in *AutoScalingGroup, out *infrav1exp.AutoScalingGroup, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_AutoScalingGroup_To_v1beta2_AutoScalingGroup(in, out, s)
+}
+
+func Convert_v1beta2_AutoScalingGroup_To_v1beta1_AutoScalingGroup(in *infrav1exp.AutoScalingGroup, out *AutoScalingGroup, s apiconversion.Scope) error {
+	// explicitly ignore CurrentlySuspended.
+	return autoConvert_v1beta2_AutoScalingGroup_To_v1beta1_AutoScalingGroup(in, out, s)
 }

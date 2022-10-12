@@ -374,9 +374,9 @@ func (r *AWSMachinePoolReconciler) reconcileDelete(machinePoolScope *scope.Machi
 }
 
 func (r *AWSMachinePoolReconciler) updatePool(machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper, existingASG *expinfrav1.AutoScalingGroup) error {
+	asgSvc := r.getASGService(clusterScope)
 	if asgNeedsUpdates(machinePoolScope, existingASG) {
 		machinePoolScope.Info("updating AutoScalingGroup")
-		asgSvc := r.getASGService(clusterScope)
 
 		if err := asgSvc.UpdateASG(machinePoolScope); err != nil {
 			r.Recorder.Eventf(machinePoolScope.AWSMachinePool, corev1.EventTypeWarning, "FailedUpdate", "Failed to update ASG: %v", err)
@@ -384,6 +384,55 @@ func (r *AWSMachinePoolReconciler) updatePool(machinePoolScope *scope.MachinePoo
 		}
 	}
 
+	suspendedProcessesSlice := machinePoolScope.AWSMachinePool.Spec.SuspendProcesses.ConvertSetValuesToStringSlice()
+	if !cmp.Equal(existingASG.CurrentlySuspendProcesses, suspendedProcessesSlice) {
+		var (
+			toBeSuspended []string
+			toBeResumed   []string
+
+			currentlySuspended = make(map[string]struct{})
+			desiredSuspended   = make(map[string]struct{})
+		)
+
+		// Convert the items to a map, so it's easy to create an effective diff from these two slices.
+		for _, p := range existingASG.CurrentlySuspendProcesses {
+			currentlySuspended[p] = struct{}{}
+		}
+
+		for _, p := range suspendedProcessesSlice {
+			desiredSuspended[p] = struct{}{}
+		}
+
+		// Anything that remains in the desired items is not currently suspended so must be suspended.
+		// Anything that remains in the currentlySuspended list must be resumed since they were not part of
+		// desiredSuspended.
+		for k := range desiredSuspended {
+			if _, ok := currentlySuspended[k]; ok {
+				delete(desiredSuspended, k)
+			}
+			delete(currentlySuspended, k)
+		}
+
+		// Convert them back into lists so
+		for k := range desiredSuspended {
+			toBeSuspended = append(toBeSuspended, k)
+		}
+
+		for k := range currentlySuspended {
+			toBeResumed = append(toBeResumed, k)
+		}
+
+		if len(toBeSuspended) > 0 {
+			if err := asgSvc.SuspendProcesses(existingASG.Name, toBeSuspended); err != nil {
+				return errors.Wrapf(err, "failed to suspend processes while trying update pool")
+			}
+		}
+		if len(toBeResumed) > 0 {
+			if err := asgSvc.ResumeProcesses(existingASG.Name, toBeResumed); err != nil {
+				return errors.Wrapf(err, "failed to resume processes while trying update pool")
+			}
+		}
+	}
 	return nil
 }
 
@@ -397,7 +446,10 @@ func (r *AWSMachinePoolReconciler) createPool(machinePoolScope *scope.MachinePoo
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create AWSMachinePool")
 	}
-
+	suspendedProcessesSlice := machinePoolScope.AWSMachinePool.Spec.SuspendProcesses.ConvertSetValuesToStringSlice()
+	if err := asgsvc.SuspendProcesses(asg.Name, suspendedProcessesSlice); err != nil {
+		return nil, errors.Wrapf(err, "failed to suspend processes while trying to create Pool")
+	}
 	return asg, nil
 }
 

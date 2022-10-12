@@ -42,6 +42,8 @@ type ASGInterface interface {
 	CanStartASGInstanceRefresh(scope *scope.MachinePoolScope) (bool, error)
 	UpdateResourceTags(resourceID *string, create, remove map[string]string) error
 	DeleteASGAndWait(id string) error
+	SuspendProcesses(name string, processes []string) error
+	ResumeProcesses(name string, processes []string) error
 }
 
 // EC2Interface encapsulates the methods exposed to the machine
