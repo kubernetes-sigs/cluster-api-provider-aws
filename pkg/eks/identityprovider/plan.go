@@ -56,7 +56,7 @@ func (p *plan) Create(ctx context.Context) ([]planner.Procedure, error) {
 
 	// no config is mentioned deleted provider if we have one
 	if p.desiredIdentityProvider == nil {
-		// disassociation will also also trigger deletion hence
+		// disassociation will also trigger deletion hence
 		// we do nothing in case of ConfigStatusDeleting as it will happen eventually
 		if aws.StringValue(p.currentIdentityProvider.Status) == eks.ConfigStatusActive {
 			procedures = append(procedures, &DisassociateIdentityProviderConfig{plan: p})

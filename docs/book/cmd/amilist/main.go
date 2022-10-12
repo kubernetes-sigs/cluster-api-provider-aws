@@ -62,7 +62,7 @@ func LambdaHandler() error {
 
 	data, err := json.MarshalIndent(amis, "", "  ")
 	if err != nil {
-		ctrl.Log.Error(err, "error marshalling marshalling")
+		ctrl.Log.Error(err, "error marshalling")
 		return err
 	}
 
