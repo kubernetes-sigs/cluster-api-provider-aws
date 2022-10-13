@@ -227,8 +227,8 @@ func createDesiredIdentityProvider(name string, tags infrav1.Tags) *OidcIdentity
 
 func createCurrentIdentityProvider(name string, arn, status string, tags infrav1.Tags) *OidcIdentityProviderConfig {
 	config := createDesiredIdentityProvider(name, tags)
-	config.IdentityProviderConfigArn = aws.String(arn)
-	config.Status = aws.String(status)
+	config.IdentityProviderConfigArn = arn
+	config.Status = status
 
 	return config
 }
@@ -243,6 +243,11 @@ func createDesiredIdentityProviderRequest(name *string) *eks.OidcIdentityProvide
 		ClientId:                   aws.String("clientId"),
 		IdentityProviderConfigName: name,
 		IssuerUrl:                  aws.String("http://IssuerURL.com"),
+		RequiredClaims:             make(map[string]*string),
+		GroupsClaim:                aws.String(""),
+		GroupsPrefix:               aws.String(""),
+		UsernameClaim:              aws.String(""),
+		UsernamePrefix:             aws.String(""),
 	}
 }
 
