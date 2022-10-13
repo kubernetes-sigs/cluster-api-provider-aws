@@ -40,11 +40,11 @@ const (
 
 func (s *Service) reconcileRouteTables() error {
 	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
-		s.scope.V(4).Info("Skipping routing tables reconcile in unmanaged mode")
+		s.scope.Trace("Skipping routing tables reconcile in unmanaged mode")
 		return nil
 	}
 
-	s.scope.V(2).Info("Reconciling routing tables")
+	s.scope.Debug("Reconciling routing tables")
 
 	subnetRouteMap, err := s.describeVpcRouteTablesBySubnet()
 	if err != nil {
@@ -82,7 +82,7 @@ func (s *Service) reconcileRouteTables() error {
 		}
 
 		if rt, ok := subnetRouteMap[sn.ID]; ok {
-			s.scope.V(2).Info("Subnet is already associated with route table", "subnet-id", sn.ID, "route-table-id", *rt.RouteTableId)
+			s.scope.Debug("Subnet is already associated with route table", "subnet-id", sn.ID, "route-table-id", *rt.RouteTableId)
 			// TODO(vincepri): check that everything is in order, e.g. routes match the subnet type.
 
 			// For managed environments we need to reconcile the routes of our tables if there is a mistmatch.
@@ -132,7 +132,7 @@ func (s *Service) reconcileRouteTables() error {
 			return err
 		}
 
-		s.scope.V(2).Info("Subnet has been associated with route table", "subnet-id", sn.ID, "route-table-id", rt.ID)
+		s.scope.Debug("Subnet has been associated with route table", "subnet-id", sn.ID, "route-table-id", rt.ID)
 		sn.RouteTableID = aws.String(rt.ID)
 	}
 	conditions.MarkTrue(s.scope.InfraCluster(), infrav1.RouteTablesReadyCondition)
@@ -210,7 +210,7 @@ func (s *Service) describeVpcRouteTablesBySubnet() (map[string]*ec2.RouteTable, 
 
 func (s *Service) deleteRouteTables() error {
 	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
-		s.scope.V(4).Info("Skipping routing tables deletion in unmanaged mode")
+		s.scope.Trace("Skipping routing tables deletion in unmanaged mode")
 		return nil
 	}
 
@@ -231,7 +231,7 @@ func (s *Service) deleteRouteTables() error {
 			}
 
 			record.Eventf(s.scope.InfraCluster(), "SuccessfulDisassociateRouteTable", "Disassociated managed RouteTable %q from subnet %q", *rt.RouteTableId, *as.SubnetId)
-			s.scope.V(2).Info("Deleted association between route table and subnet", "route-table-id", *rt.RouteTableId, "subnet-id", *as.SubnetId)
+			s.scope.Debug("Deleted association between route table and subnet", "route-table-id", *rt.RouteTableId, "subnet-id", *as.SubnetId)
 		}
 
 		if _, err := s.EC2Client.DeleteRouteTable(&ec2.DeleteRouteTableInput{RouteTableId: rt.RouteTableId}); err != nil {

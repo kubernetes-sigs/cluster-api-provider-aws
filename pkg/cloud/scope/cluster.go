@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,6 +28,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -37,7 +37,7 @@ import (
 // ClusterScopeParams defines the input parameters used to create a new Scope.
 type ClusterScopeParams struct {
 	Client         client.Client
-	Logger         *logr.Logger
+	Logger         *logger.Logger
 	Cluster        *clusterv1.Cluster
 	AWSCluster     *infrav1.AWSCluster
 	ControllerName string
@@ -57,7 +57,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 
 	if params.Logger == nil {
 		log := klog.Background()
-		params.Logger = &log
+		params.Logger = logger.NewLogger(log)
 	}
 
 	clusterScope := &ClusterScope{
@@ -68,7 +68,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		controllerName: params.ControllerName,
 	}
 
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, clusterScope, params.AWSCluster.Spec.Region, params.Endpoints, *params.Logger)
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, clusterScope, params.AWSCluster.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
@@ -87,7 +87,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 
 // ClusterScope defines the basic context for an actuator to operate upon.
 type ClusterScope struct {
-	logr.Logger
+	logger.Logger
 	client      client.Client
 	patchHelper *patch.Helper
 

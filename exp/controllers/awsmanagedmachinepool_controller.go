@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -43,6 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
@@ -63,7 +63,7 @@ type AWSManagedMachinePoolReconciler struct {
 
 // SetupWithManager is used to setup the controller.
 func (r *AWSManagedMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	log := ctrl.LoggerFrom(ctx)
+	log := logger.FromContext(ctx)
 
 	gvk, err := apiutil.GVKForObject(new(expinfrav1.AWSManagedMachinePool), mgr.GetScheme())
 	if err != nil {
@@ -73,7 +73,7 @@ func (r *AWSManagedMachinePoolReconciler) SetupWithManager(ctx context.Context, 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&expinfrav1.AWSManagedMachinePool{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log.GetLogger(), r.WatchFilterValue)).
 		Watches(
 			&source.Kind{Type: &expclusterv1.MachinePool{}},
 			handler.EnqueueRequestsFromMapFunc(machinePoolToInfrastructureMapFunc(gvk)),
@@ -93,7 +93,7 @@ func (r *AWSManagedMachinePoolReconciler) SetupWithManager(ctx context.Context, 
 
 // Reconcile reconciles AWSManagedMachinePools.
 func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
-	log := ctrl.LoggerFrom(ctx)
+	log := logger.FromContext(ctx)
 
 	awsPool := &expinfrav1.AWSManagedMachinePool{}
 	if err := r.Get(ctx, req.NamespacedName, awsPool); err != nil {
@@ -140,7 +140,7 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 
 	managedControlPlaneScope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
 		Client:         r.Client,
-		Logger:         &log,
+		Logger:         log,
 		Cluster:        cluster,
 		ControlPlane:   controlPlane,
 		ControllerName: "awsManagedControlPlane",
@@ -263,7 +263,7 @@ func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
 		}
 
 		if launchTemplate == nil {
-			machinePoolScope.V(2).Info("Unable to find matching launch template")
+			machinePoolScope.Debug("Unable to find matching launch template")
 			r.Recorder.Eventf(machinePoolScope.ManagedMachinePool, corev1.EventTypeNormal, "NoLaunchTemplateFound", "Unable to find matching launch template")
 			controllerutil.RemoveFinalizer(machinePoolScope.ManagedMachinePool, expinfrav1.ManagedMachinePoolFinalizer)
 			return ctrl.Result{}, nil
@@ -303,7 +303,7 @@ func GetOwnerClusterKey(obj metav1.ObjectMeta) (*client.ObjectKey, error) {
 	return nil, nil
 }
 
-func managedControlPlaneToManagedMachinePoolMapFunc(c client.Client, gvk schema.GroupVersionKind, log logr.Logger) handler.MapFunc {
+func managedControlPlaneToManagedMachinePoolMapFunc(c client.Client, gvk schema.GroupVersionKind, log logger.Wrapper) handler.MapFunc {
 	return func(o client.Object) []reconcile.Request {
 		ctx := context.Background()
 		awsControlPlane, ok := o.(*ekscontrolplanev1.AWSManagedControlPlane)

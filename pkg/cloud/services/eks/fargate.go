@@ -45,7 +45,7 @@ func requeueRoleUpdating() reconcile.Result {
 
 // Reconcile is the entrypoint for FargateProfile reconciliation.
 func (s *FargateService) Reconcile() (reconcile.Result, error) {
-	s.scope.V(2).Info("Reconciling EKS fargate profile")
+	s.scope.Debug("Reconciling EKS fargate profile")
 
 	requeue, err := s.reconcileFargateIAMRole()
 	if err != nil {
@@ -106,7 +106,7 @@ func (s *FargateService) reconcileFargateProfile() (requeue bool, err error) {
 		if ownedTag == nil {
 			return false, errors.New("owned tag not found for this cluster")
 		}
-		s.scope.V(2).Info("Found owned EKS fargate profile", "cluster-name", eksClusterName, "profile-name", profileName)
+		s.scope.Debug("Found owned EKS fargate profile", "cluster-name", eksClusterName, "profile-name", profileName)
 	}
 
 	if err := s.reconcileTags(profile); err != nil {
@@ -117,7 +117,7 @@ func (s *FargateService) reconcileFargateProfile() (requeue bool, err error) {
 }
 
 func (s *FargateService) handleStatus(profile *eks.FargateProfile) (requeue bool) {
-	s.V(2).Info("fargate profile", "status", *profile.Status)
+	s.Debug("fargate profile", "status", *profile.Status)
 	switch *profile.Status {
 	case eks.FargateProfileStatusCreating:
 		s.scope.FargateProfile.Status.Ready = false
@@ -160,7 +160,7 @@ func (s *FargateService) handleStatus(profile *eks.FargateProfile) (requeue bool
 
 // ReconcileDelete is the entrypoint for FargateProfile reconciliation.
 func (s *FargateService) ReconcileDelete() (reconcile.Result, error) {
-	s.scope.V(2).Info("Reconciling EKS fargate profile deletion")
+	s.scope.Debug("Reconciling EKS fargate profile deletion")
 
 	requeue, err := s.deleteFargateProfile()
 	if err != nil {

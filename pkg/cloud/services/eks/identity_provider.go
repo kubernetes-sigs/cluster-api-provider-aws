@@ -49,11 +49,10 @@ func (s *Service) reconcileIdentityProvider(ctx context.Context) error {
 		return nil
 	}
 
-	s.scope.V(2).Info("creating oidc provider plan", "desired", desired, "current", current)
+	s.scope.Debug("creating oidc provider plan", "desired", desired, "current", current)
 	procedures, err := identityprovider.
-		NewPlan(clusterName, current, desired, s.EKSClient, s.scope.Logger).
+		NewPlan(clusterName, current, desired, s.EKSClient, s.scope).
 		Create(ctx)
-
 	if err != nil {
 		s.scope.Error(err, "failed creating eks identity provider plan")
 		return fmt.Errorf("creating eks identity provider plan: %w", err)
@@ -64,7 +63,7 @@ func (s *Service) reconcileIdentityProvider(ctx context.Context) error {
 		return nil
 	}
 
-	s.scope.V(2).Info("computed EKS identity provider plan", "numprocs", len(procedures))
+	s.scope.Debug("computed EKS identity provider plan", "numprocs", len(procedures))
 
 	// Perform required operations
 	for _, procedure := range procedures {

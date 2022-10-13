@@ -129,7 +129,7 @@ func (s *Service) ASGIfExists(name *string) (*expinfrav1.AutoScalingGroup, error
 
 // GetASGByName returns the existing ASG or nothing if it doesn't exist.
 func (s *Service) GetASGByName(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
-	s.scope.V(2).Info("Looking for existing AutoScalingGroup by name")
+	s.scope.Debug("Looking for existing AutoScalingGroup by name")
 
 	input := &autoscaling.DescribeAutoScalingGroupsInput{
 		AutoScalingGroupNames: []*string{
@@ -245,7 +245,7 @@ func (s *Service) DeleteASGAndWait(name string) error {
 		return err
 	}
 
-	s.scope.V(2).Info("Waiting for ASG to be deleted", "name", name)
+	s.scope.Debug("Waiting for ASG to be deleted", "name", name)
 
 	input := &autoscaling.DescribeAutoScalingGroupsInput{
 		AutoScalingGroupNames: aws.StringSlice([]string{name}),
@@ -260,7 +260,7 @@ func (s *Service) DeleteASGAndWait(name string) error {
 
 // DeleteASG will delete the ASG of a service.
 func (s *Service) DeleteASG(name string) error {
-	s.scope.V(2).Info("Attempting to delete ASG", "name", name)
+	s.scope.Debug("Attempting to delete ASG", "name", name)
 
 	input := &autoscaling.DeleteAutoScalingGroupInput{
 		AutoScalingGroupName: aws.String(name),
@@ -271,7 +271,7 @@ func (s *Service) DeleteASG(name string) error {
 		return errors.Wrapf(err, "failed to delete ASG %q", name)
 	}
 
-	s.scope.V(2).Info("Deleted ASG", "name", name)
+	s.scope.Debug("Deleted ASG", "name", name)
 	return nil
 }
 
@@ -419,12 +419,12 @@ func BuildTagsFromMap(asgName string, inTags map[string]string) []*autoscaling.T
 // We may not always have to perform each action, so we check what we're
 // receiving to avoid calling AWS if we don't need to.
 func (s *Service) UpdateResourceTags(resourceID *string, create, remove map[string]string) error {
-	s.scope.V(2).Info("Attempting to update tags on resource", "resource-id", *resourceID)
+	s.scope.Debug("Attempting to update tags on resource", "resource-id", *resourceID)
 	s.scope.Info("updating tags on resource", "resource-id", *resourceID, "create", create, "remove", remove)
 
 	// If we have anything to create or update
 	if len(create) > 0 {
-		s.scope.V(2).Info("Attempting to create tags on resource", "resource-id", *resourceID)
+		s.scope.Debug("Attempting to create tags on resource", "resource-id", *resourceID)
 
 		createOrUpdateTagsInput := &autoscaling.CreateOrUpdateTagsInput{}
 
@@ -437,7 +437,7 @@ func (s *Service) UpdateResourceTags(resourceID *string, create, remove map[stri
 
 	// If we have anything to remove
 	if len(remove) > 0 {
-		s.scope.V(2).Info("Attempting to delete tags on resource", "resource-id", *resourceID)
+		s.scope.Debug("Attempting to delete tags on resource", "resource-id", *resourceID)
 
 		// Convert our remove map into an array of *ec2.Tag
 		removeTagsInput := mapToTags(remove, resourceID)

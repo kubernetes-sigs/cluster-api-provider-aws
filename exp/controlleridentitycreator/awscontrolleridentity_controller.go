@@ -36,6 +36,7 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -50,7 +51,7 @@ type AWSControllerIdentityReconciler struct {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclustercontrolleridentities,verbs=get;list;watch;create
 
 func (r *AWSControllerIdentityReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx)
+	log := logger.FromContext(ctx)
 
 	var identityRef *infrav1.AWSIdentityReference
 
@@ -62,10 +63,10 @@ func (r *AWSControllerIdentityReconciler) Reconcile(ctx context.Context, req ctr
 		if !apierrors.IsNotFound(err) {
 			return reconcile.Result{}, err
 		}
-		log.V(4).Info("AWSCluster not found, trying AWSManagedControlPlane")
+		log.Trace("AWSCluster not found, trying AWSManagedControlPlane")
 		clusterFound = false
 	} else {
-		log.V(4).Info("Found identityRef on AWSCluster")
+		log.Trace("Found identityRef on AWSCluster")
 		identityRef = awsCluster.Spec.IdentityRef
 	}
 
@@ -74,12 +75,12 @@ func (r *AWSControllerIdentityReconciler) Reconcile(ctx context.Context, req ctr
 		awsControlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 		if err := r.Client.Get(ctx, req.NamespacedName, awsControlPlane); err != nil {
 			if apierrors.IsNotFound(err) {
-				log.V(4).Info("AWSManagedMachinePool not found, no identityRef so no action taken")
+				log.Trace("AWSManagedMachinePool not found, no identityRef so no action taken")
 				return ctrl.Result{}, nil
 			}
 			return reconcile.Result{}, err
 		}
-		log.V(4).Info("Found identityRef on AWSManagedControlPlane")
+		log.Trace("Found identityRef on AWSManagedControlPlane")
 		identityRef = awsControlPlane.Spec.IdentityRef
 	}
 
@@ -92,7 +93,7 @@ func (r *AWSControllerIdentityReconciler) Reconcile(ctx context.Context, req ctr
 	// If identity type is not AWSClusterControllerIdentity, then no need to create AWSClusterControllerIdentity singleton.
 	if identityRef.Kind == infrav1.ClusterRoleIdentityKind ||
 		identityRef.Kind == infrav1.ClusterStaticIdentityKind {
-		log.V(4).Info("Cluster does not use AWSClusterControllerIdentity as identityRef, skipping new instance creation")
+		log.Trace("Cluster does not use AWSClusterControllerIdentity as identityRef, skipping new instance creation")
 		return ctrl.Result{}, nil
 	}
 
@@ -135,7 +136,7 @@ func (r *AWSControllerIdentityReconciler) SetupWithManager(ctx context.Context, 
 	controller := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.AWSCluster{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue))
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(logger.FromContext(ctx).GetLogger(), r.WatchFilterValue))
 
 	if feature.Gates.Enabled(feature.EKS) {
 		controller.Watches(

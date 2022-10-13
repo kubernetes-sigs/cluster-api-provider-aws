@@ -124,11 +124,11 @@ func (s *Service) reconcileTrustPolicy() error {
 	if trustPolicyConfigMap.UID == "" {
 		trustPolicyConfigMap.Name = trustPolicyConfigMapName
 		trustPolicyConfigMap.Namespace = trustPolicyConfigMapNamespace
-		s.V(2).Info("Creating new Trust Policy ConfigMap", "cluster", s.scope.Name(), "configmap", trustPolicyConfigMapName)
+		s.Debug("Creating new Trust Policy ConfigMap", "cluster", s.scope.Name(), "configmap", trustPolicyConfigMapName)
 		return remoteClient.Create(ctx, trustPolicyConfigMap)
 	}
 
-	s.V(2).Info("Updating existing Trust Policy ConfigMap", "cluster", s.scope.Name(), "configmap", trustPolicyConfigMapName)
+	s.Debug("Updating existing Trust Policy ConfigMap", "cluster", s.scope.Name(), "configmap", trustPolicyConfigMapName)
 	return remoteClient.Update(ctx, trustPolicyConfigMap)
 }
 
