@@ -28,7 +28,7 @@ import (
 func (s *Service) deleteSecurityGroups(ctx context.Context, resources []*AWSResource) error {
 	for _, resource := range resources {
 		if !s.isSecurityGroupToDelete(resource) {
-			s.scope.V(5).Info("Resource not a security group for deletion", "arn", resource.ARN.String())
+			s.scope.Debug("Resource not a security group for deletion", "arn", resource.ARN.String())
 			continue
 		}
 
@@ -37,7 +37,7 @@ func (s *Service) deleteSecurityGroups(ctx context.Context, resources []*AWSReso
 			return fmt.Errorf("deleting security group %s: %w", groupID, err)
 		}
 	}
-	s.scope.V(2).Info("Finished processing resources for security group deletion")
+	s.scope.Debug("Finished processing resources for security group deletion")
 
 	return nil
 }
@@ -47,10 +47,10 @@ func (s *Service) isSecurityGroupToDelete(resource *AWSResource) bool {
 		return false
 	}
 	if eksClusterName := resource.Tags[eksClusterNameTag]; eksClusterName != "" {
-		s.scope.V(5).Info("Security group was created by EKS directly", "arn", resource.ARN.String(), "check", "securitygroup", "cluster_name", eksClusterName)
+		s.scope.Debug("Security group was created by EKS directly", "arn", resource.ARN.String(), "check", "securitygroup", "cluster_name", eksClusterName)
 		return false
 	}
-	s.scope.V(5).Info("Resource is a security group to delete", "arn", resource.ARN.String(), "check", "securitygroup")
+	s.scope.Debug("Resource is a security group to delete", "arn", resource.ARN.String(), "check", "securitygroup")
 
 	return true
 }
@@ -60,7 +60,7 @@ func (s *Service) deleteSecurityGroup(ctx context.Context, securityGroupID strin
 		GroupId: aws.String(securityGroupID),
 	}
 
-	s.scope.V(2).Info("Deleting security group", "group_id", securityGroupID)
+	s.scope.Debug("Deleting security group", "group_id", securityGroupID)
 	if _, err := s.ec2Client.DeleteSecurityGroupWithContext(ctx, &input); err != nil {
 		return fmt.Errorf("deleting security group: %w", err)
 	}

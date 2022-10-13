@@ -21,13 +21,13 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
-	"github.com/go-logr/logr"
 
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/planner"
 )
 
 // NewPlan creates plan to manage EKS OIDC identity provider association.
-func NewPlan(clusterName string, currentIdentityProvider, desiredIdentityProvider *OidcIdentityProviderConfig, client eksiface.EKSAPI, log logr.Logger) planner.Plan {
+func NewPlan(clusterName string, currentIdentityProvider, desiredIdentityProvider *OidcIdentityProviderConfig, client eksiface.EKSAPI, log logger.Wrapper) planner.Plan {
 	return &plan{
 		currentIdentityProvider: currentIdentityProvider,
 		desiredIdentityProvider: desiredIdentityProvider,
@@ -42,7 +42,7 @@ type plan struct {
 	currentIdentityProvider *OidcIdentityProviderConfig
 	desiredIdentityProvider *OidcIdentityProviderConfig
 	eksClient               eksiface.EKSAPI
-	log                     logr.Logger
+	log                     logger.Wrapper
 	clusterName             string
 }
 

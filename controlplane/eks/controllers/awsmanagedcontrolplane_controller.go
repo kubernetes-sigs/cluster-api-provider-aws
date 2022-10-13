@@ -46,6 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/kubeproxy"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/network"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/securitygroup"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	capiannotations "sigs.k8s.io/cluster-api/util/annotations"
@@ -89,13 +90,13 @@ type AWSManagedControlPlaneReconciler struct {
 
 // SetupWithManager is used to setup the controller.
 func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	log := ctrl.LoggerFrom(ctx)
+	log := logger.FromContext(ctx)
 
 	awsManagedControlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(awsManagedControlPlane).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log.GetLogger(), r.WatchFilterValue)).
 		Build(r)
 
 	if err != nil {
@@ -105,7 +106,7 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context,
 	if err = c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, awsManagedControlPlane.GroupVersionKind(), mgr.GetClient(), &ekscontrolplanev1.AWSManagedControlPlane{})),
-		predicates.ClusterUnpausedAndInfrastructureReady(log),
+		predicates.ClusterUnpausedAndInfrastructureReady(log.GetLogger()),
 	); err != nil {
 		return fmt.Errorf("failed adding a watch for ready clusters: %w", err)
 	}
@@ -126,7 +127,7 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context,
 
 // Reconcile will reconcile AWSManagedControlPlane Resources.
 func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
-	log := ctrl.LoggerFrom(ctx)
+	log := logger.FromContext(ctx)
 
 	// Get the control plane instance
 	awsControlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
@@ -269,7 +270,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 }
 
 func (r *AWSManagedControlPlaneReconciler) reconcileDelete(ctx context.Context, managedScope *scope.ManagedControlPlaneScope) (_ ctrl.Result, reterr error) {
-	log := ctrl.LoggerFrom(ctx)
+	log := logger.FromContext(ctx)
 
 	managedScope.Info("Reconciling AWSManagedControlPlane delete")
 
@@ -344,7 +345,7 @@ func (r *AWSManagedControlPlaneReconciler) ClusterToAWSManagedControlPlane(o cli
 }
 
 func (r *AWSManagedControlPlaneReconciler) dependencyCount(ctx context.Context, managedScope *scope.ManagedControlPlaneScope) (int, error) {
-	log := ctrl.LoggerFrom(ctx)
+	log := logger.FromContext(ctx)
 
 	clusterName := managedScope.Name()
 	namespace := managedScope.Namespace()
@@ -361,7 +362,7 @@ func (r *AWSManagedControlPlaneReconciler) dependencyCount(ctx context.Context, 
 	if err := r.Client.List(ctx, machines, listOptions...); err != nil {
 		return dependencies, fmt.Errorf("failed to list machines for cluster %s/%s: %w", namespace, clusterName, err)
 	}
-	log.V(2).Info("tested for AWSMachine dependencies", "count", len(machines.Items))
+	log.Debug("tested for AWSMachine dependencies", "count", len(machines.Items))
 	dependencies += len(machines.Items)
 
 	if feature.Gates.Enabled(feature.MachinePool) {
@@ -369,14 +370,14 @@ func (r *AWSManagedControlPlaneReconciler) dependencyCount(ctx context.Context, 
 		if err := r.Client.List(ctx, managedMachinePools, listOptions...); err != nil {
 			return dependencies, fmt.Errorf("failed to list managed machine pools for cluster %s/%s: %w", namespace, clusterName, err)
 		}
-		log.V(2).Info("tested for AWSManagedMachinePool dependencies", "count", len(managedMachinePools.Items))
+		log.Debug("tested for AWSManagedMachinePool dependencies", "count", len(managedMachinePools.Items))
 		dependencies += len(managedMachinePools.Items)
 
 		machinePools := &expinfrav1.AWSMachinePoolList{}
 		if err := r.Client.List(ctx, machinePools, listOptions...); err != nil {
 			return dependencies, fmt.Errorf("failed to list machine pools for cluster %s/%s: %w", namespace, clusterName, err)
 		}
-		log.V(2).Info("tested for AWSMachinePool dependencies", "count", len(machinePools.Items))
+		log.Debug("tested for AWSMachinePool dependencies", "count", len(machinePools.Items))
 		dependencies += len(machinePools.Items)
 	}
 

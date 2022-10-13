@@ -22,7 +22,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -50,6 +49,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/network"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/securitygroup"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/v2/util/conditions"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
@@ -130,7 +130,7 @@ func (r *AWSClusterReconciler) getSecurityGroupService(scope scope.ClusterScope)
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclustercontrolleridentities,verbs=get;list;watch;create;
 
 func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
-	log := ctrl.LoggerFrom(ctx)
+	log := logger.FromContext(ctx)
 
 	// Fetch the AWSCluster instance
 	awsCluster := &infrav1.AWSCluster{}
@@ -180,7 +180,7 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Create the scope.
 	clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 		Client:         r.Client,
-		Logger:         &log,
+		Logger:         log,
 		Cluster:        cluster,
 		AWSCluster:     awsCluster,
 		ControllerName: "awscluster",
@@ -356,11 +356,11 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 }
 
 func (r *AWSClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	log := ctrl.LoggerFrom(ctx)
+	log := logger.FromContext(ctx)
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&infrav1.AWSCluster{}).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log.GetLogger(), r.WatchFilterValue)).
 		WithEventFilter(
 			predicate.Funcs{
 				// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates
@@ -383,7 +383,7 @@ func (r *AWSClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 				},
 			},
 		).
-		WithEventFilter(predicates.ResourceIsNotExternallyManaged(log)).
+		WithEventFilter(predicates.ResourceIsNotExternallyManaged(log.GetLogger())).
 		Build(r)
 	if err != nil {
 		return errors.Wrap(err, "error creating controller")
@@ -392,11 +392,11 @@ func (r *AWSClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	return controller.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(r.requeueAWSClusterForUnpausedCluster(ctx, log)),
-		predicates.ClusterUnpaused(log),
+		predicates.ClusterUnpaused(log.GetLogger()),
 	)
 }
 
-func (r *AWSClusterReconciler) requeueAWSClusterForUnpausedCluster(ctx context.Context, log logr.Logger) handler.MapFunc {
+func (r *AWSClusterReconciler) requeueAWSClusterForUnpausedCluster(ctx context.Context, log logger.Wrapper) handler.MapFunc {
 	return func(o client.Object) []ctrl.Request {
 		c, ok := o.(*clusterv1.Cluster)
 		if !ok {
@@ -407,18 +407,18 @@ func (r *AWSClusterReconciler) requeueAWSClusterForUnpausedCluster(ctx context.C
 
 		// Don't handle deleted clusters
 		if !c.ObjectMeta.DeletionTimestamp.IsZero() {
-			log.V(4).Info("Cluster has a deletion timestamp, skipping mapping.")
+			log.Trace("Cluster has a deletion timestamp, skipping mapping.")
 			return nil
 		}
 
 		// Make sure the ref is set
 		if c.Spec.InfrastructureRef == nil {
-			log.V(4).Info("Cluster does not have an InfrastructureRef, skipping mapping.")
+			log.Trace("Cluster does not have an InfrastructureRef, skipping mapping.")
 			return nil
 		}
 
 		if c.Spec.InfrastructureRef.GroupVersionKind().Kind != "AWSCluster" {
-			log.V(4).Info("Cluster has an InfrastructureRef for a different type, skipping mapping.")
+			log.Trace("Cluster has an InfrastructureRef for a different type, skipping mapping.")
 			return nil
 		}
 
@@ -426,16 +426,16 @@ func (r *AWSClusterReconciler) requeueAWSClusterForUnpausedCluster(ctx context.C
 		key := types.NamespacedName{Namespace: c.Spec.InfrastructureRef.Namespace, Name: c.Spec.InfrastructureRef.Name}
 
 		if err := r.Get(ctx, key, awsCluster); err != nil {
-			log.V(4).Error(err, "Failed to get AWS cluster")
+			log.Error(err, "Failed to get AWS cluster")
 			return nil
 		}
 
 		if capiannotations.IsExternallyManaged(awsCluster) {
-			log.V(4).Info("AWSCluster is externally managed, skipping mapping.")
+			log.Trace("AWSCluster is externally managed, skipping mapping.")
 			return nil
 		}
 
-		log.V(4).Info("Adding request.", "awsCluster", c.Spec.InfrastructureRef.Name)
+		log.Trace("Adding request.", "awsCluster", c.Spec.InfrastructureRef.Name)
 		return []ctrl.Request{
 			{
 				NamespacedName: client.ObjectKey{Namespace: c.Namespace, Name: c.Spec.InfrastructureRef.Name},

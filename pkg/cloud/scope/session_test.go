@@ -32,6 +32,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/identity"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -488,7 +489,7 @@ func TestPrincipalParsing(t *testing.T) {
 			k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 			tc.setup(t, k8sClient)
 			clusterScope.AWSCluster = &tc.awsCluster
-			providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScope, klog.Background())
+			providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScope, logger.NewLogger(klog.Background()))
 			if tc.expectError {
 				if err == nil {
 					t.Fatal("Expected an error but didn't get one")

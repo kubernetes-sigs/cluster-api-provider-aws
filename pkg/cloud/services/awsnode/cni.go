@@ -296,7 +296,7 @@ func (s *Service) deleteResource(ctx context.Context, remoteClient client.Client
 		if !apierrors.IsNotFound(err) {
 			return fmt.Errorf("deleting resource %s: %w", key, err)
 		}
-		s.scope.V(2).Info(fmt.Sprintf("resource %s was not found, no action", key))
+		s.scope.Debug(fmt.Sprintf("resource %s was not found, no action", key))
 	} else {
 		// resource found, delete if no label or not managed by helm
 		if val, ok := obj.GetLabels()[konfig.ManagedbyLabelKey]; !ok || val != "Helm" {
@@ -304,13 +304,13 @@ func (s *Service) deleteResource(ctx context.Context, remoteClient client.Client
 				if !apierrors.IsNotFound(err) {
 					return fmt.Errorf("deleting %s: %w", key, err)
 				}
-				s.scope.V(2).Info(fmt.Sprintf(
+				s.scope.Debug(fmt.Sprintf(
 					"resource %s was not found, not deleted", key))
 			} else {
-				s.scope.V(2).Info(fmt.Sprintf("resource %s was deleted", key))
+				s.scope.Debug(fmt.Sprintf("resource %s was deleted", key))
 			}
 		} else {
-			s.scope.V(2).Info(fmt.Sprintf("resource %s is managed by helm, not deleted", key))
+			s.scope.Debug(fmt.Sprintf("resource %s is managed by helm, not deleted", key))
 		}
 	}
 

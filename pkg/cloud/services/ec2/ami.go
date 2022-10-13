@@ -158,7 +158,7 @@ func (s *Service) defaultAMIIDLookup(amiNameFormat, ownerID, baseOS, kubernetesV
 		return "", errors.Wrapf(err, "failed to find ami")
 	}
 
-	s.scope.V(2).Info("Found and using an existing AMI", "ami-id", aws.StringValue(latestImage.ImageId))
+	s.scope.Debug("Found and using an existing AMI", "ami-id", aws.StringValue(latestImage.ImageId))
 	return aws.StringValue(latestImage.ImageId), nil
 }
 
