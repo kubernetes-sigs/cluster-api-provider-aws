@@ -19,7 +19,6 @@ package identityprovider
 import (
 	"context"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
 	"github.com/go-logr/logr"
@@ -58,7 +57,7 @@ func (p *plan) Create(ctx context.Context) ([]planner.Procedure, error) {
 	if p.desiredIdentityProvider == nil {
 		// disassociation will also also trigger deletion hence
 		// we do nothing in case of ConfigStatusDeleting as it will happen eventually
-		if aws.StringValue(p.currentIdentityProvider.Status) == eks.ConfigStatusActive {
+		if p.currentIdentityProvider.Status == eks.ConfigStatusActive {
 			procedures = append(procedures, &DisassociateIdentityProviderConfig{plan: p})
 		}
 
@@ -80,7 +79,7 @@ func (p *plan) Create(ctx context.Context) ([]planner.Procedure, error) {
 		if len(p.desiredIdentityProvider.Tags) == 0 && len(p.currentIdentityProvider.Tags) != 0 {
 			procedures = append(procedures, &RemoveIdentityProviderTagsProcedure{plan: p})
 		}
-		switch aws.StringValue(p.currentIdentityProvider.Status) {
+		switch p.currentIdentityProvider.Status {
 		case eks.ConfigStatusActive:
 			// config active no work to be done
 			return procedures, nil

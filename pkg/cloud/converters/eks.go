@@ -148,16 +148,19 @@ func TaintEffectFromSDK(effect string) (expinfrav1.TaintEffect, error) {
 
 func ConvertSDKToIdentityProvider(in *ekscontrolplanev1.OIDCIdentityProviderConfig) *identityprovider.OidcIdentityProviderConfig {
 	if in != nil {
+		if in.RequiredClaims == nil {
+			in.RequiredClaims = make(map[string]string)
+		}
 		return &identityprovider.OidcIdentityProviderConfig{
 			ClientID:                   in.ClientID,
-			GroupsClaim:                in.GroupsClaim,
-			GroupsPrefix:               in.GroupsPrefix,
+			GroupsClaim:                aws.StringValue(in.GroupsClaim),
+			GroupsPrefix:               aws.StringValue(in.GroupsPrefix),
 			IdentityProviderConfigName: in.IdentityProviderConfigName,
 			IssuerURL:                  in.IssuerURL,
-			RequiredClaims:             aws.StringMap(in.RequiredClaims),
+			RequiredClaims:             in.RequiredClaims,
 			Tags:                       in.Tags,
-			UsernameClaim:              in.UsernameClaim,
-			UsernamePrefix:             in.UsernamePrefix,
+			UsernameClaim:              aws.StringValue(in.UsernameClaim),
+			UsernamePrefix:             aws.StringValue(in.UsernamePrefix),
 		}
 	}
 
