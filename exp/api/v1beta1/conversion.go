@@ -41,19 +41,22 @@ func (src *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	if restored.Spec.SuspendProcesses != nil {
 		dst.Spec.SuspendProcesses = restored.Spec.SuspendProcesses
 	}
+	if dst.Spec.RefreshPreferences != nil && restored.Spec.RefreshPreferences != nil {
+		dst.Spec.RefreshPreferences.Disable = restored.Spec.RefreshPreferences.Disable
+	}
 
 	return nil
 }
 
 // ConvertFrom converts the v1beta2 AWSMachinePool receiver to v1beta1 AWSMachinePool.
-func (r *AWSMachinePool) ConvertFrom(srcRaw conversion.Hub) error {
+func (dst *AWSMachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1exp.AWSMachinePool)
 
-	if err := Convert_v1beta2_AWSMachinePool_To_v1beta1_AWSMachinePool(src, r, nil); err != nil {
+	if err := Convert_v1beta2_AWSMachinePool_To_v1beta1_AWSMachinePool(src, dst, nil); err != nil {
 		return err
 	}
 
-	return utilconversion.MarshalData(src, r)
+	return utilconversion.MarshalData(src, dst)
 }
 
 // ConvertTo converts the v1beta1 AWSMachinePoolList receiver to a v1beta2 AWSMachinePoolList.
@@ -174,4 +177,10 @@ func Convert_v1beta1_AutoScalingGroup_To_v1beta2_AutoScalingGroup(in *AutoScalin
 func Convert_v1beta2_AutoScalingGroup_To_v1beta1_AutoScalingGroup(in *infrav1exp.AutoScalingGroup, out *AutoScalingGroup, s apiconversion.Scope) error {
 	// explicitly ignore CurrentlySuspended.
 	return autoConvert_v1beta2_AutoScalingGroup_To_v1beta1_AutoScalingGroup(in, out, s)
+}
+
+// Convert_v1beta2_RefreshPreferences_To_v1beta1_RefreshPreferences converts the v1beta2 RefreshPreferences receiver to a v1beta1 RefreshPreferences.
+func Convert_v1beta2_RefreshPreferences_To_v1beta1_RefreshPreferences(in *infrav1exp.RefreshPreferences, out *RefreshPreferences, s apiconversion.Scope) error {
+	// spec.refreshPreferences.disable has been added to v1beta2.
+	return autoConvert_v1beta2_RefreshPreferences_To_v1beta1_RefreshPreferences(in, out, s)
 }

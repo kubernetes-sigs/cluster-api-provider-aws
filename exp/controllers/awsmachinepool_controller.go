@@ -232,6 +232,11 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 		return asgsvc.CanStartASGInstanceRefresh(machinePoolScope)
 	}
 	runPostLaunchTemplateUpdateOperation := func() error {
+		// skip instance refresh if explicitly disabled
+		if machinePoolScope.AWSMachinePool.Spec.RefreshPreferences != nil && machinePoolScope.AWSMachinePool.Spec.RefreshPreferences.Disable {
+			machinePoolScope.V(4).Info("instance refresh disabled, skipping instance refresh")
+			return nil
+		}
 		// After creating a new version of launch template, instance refresh is required
 		// to trigger a rolling replacement of all previously launched instances.
 		// If ONLY the userdata changed, previously launched instances continue to use the old launch
