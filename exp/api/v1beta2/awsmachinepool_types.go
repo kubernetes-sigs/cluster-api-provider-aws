@@ -139,6 +139,11 @@ func (s *SuspendProcessesTypes) ConvertSetValuesToStringSlice() []string {
 
 // RefreshPreferences defines the specs for instance refreshing.
 type RefreshPreferences struct {
+	// Disable, if true, disables instance refresh from triggering when new launch templates are detected.
+	// This is useful in scenarios where ASG nodes are externally managed.
+	// +optional
+	Disable bool `json:"disable,omitempty"`
+
 	// The strategy to use for the instance refresh. The only valid value is Rolling.
 	// A rolling update is an update that is applied to all instances in an Auto
 	// Scaling group until all instances have been updated.
