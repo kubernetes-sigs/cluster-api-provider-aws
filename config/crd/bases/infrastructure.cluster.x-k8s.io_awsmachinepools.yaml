@@ -789,6 +789,11 @@ spec:
                 description: RefreshPreferences describes set of preferences associated
                   with the instance refresh request.
                 properties:
+                  disable:
+                    description: Disable, if true, disables instance refresh from
+                      triggering when new launch templates are detected. This is useful
+                      in scenarios where ASG nodes are externally managed.
+                    type: boolean
                   instanceWarmup:
                     description: The number of seconds until a newly launched instance
                       is configured and ready to use. During this time, the next replacement
