@@ -62,8 +62,14 @@ func (s *Service) reconcileCluster(ctx context.Context) error {
 	} else {
 		tagKey := infrav1.ClusterAWSCloudProviderTagKey(eksClusterName)
 		ownedTag := cluster.Tags[tagKey]
-		if ownedTag == nil {
-			return fmt.Errorf("checking owner of %s is %s: %w", s.scope.KubernetesClusterName(), eksClusterName, err)
+		// Prior to https://github.com/kubernetes-sigs/cluster-api-provider-aws/pull/3573,
+		// Clusters were tagged using s.scope.Name()
+		// To support upgrading older clusters, check for both tags
+		oldTagKey := infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())
+		oldOwnedTag := cluster.Tags[oldTagKey]
+
+		if ownedTag == nil && oldOwnedTag == nil {
+			return fmt.Errorf("cluster is not tagged with neither %s nor %s", tagKey, oldTagKey)
 		}
 
 		s.scope.V(2).Info("Found owned EKS cluster in AWS", "cluster", klog.KRef("", eksClusterName))
