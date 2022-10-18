@@ -69,7 +69,7 @@ func (s *Service) reconcileCluster(ctx context.Context) error {
 		oldOwnedTag := cluster.Tags[oldTagKey]
 
 		if ownedTag == nil && oldOwnedTag == nil {
-			return fmt.Errorf("cluster is not tagged with neither %s nor %s", tagKey, oldTagKey)
+			return fmt.Errorf("EKS cluster resource %q must have a tag with key %q or %q", eksClusterName, oldTagKey, tagKey)
 		}
 
 		s.scope.V(2).Info("Found owned EKS cluster in AWS", "cluster", klog.KRef("", eksClusterName))
