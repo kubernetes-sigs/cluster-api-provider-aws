@@ -61,8 +61,14 @@ func (s *Service) reconcileCluster(ctx context.Context) error {
 	} else {
 		tagKey := infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())
 		ownedTag := cluster.Tags[tagKey]
-		if ownedTag == nil {
-			return fmt.Errorf("checking owner of %s is %s: %w", s.scope.KubernetesClusterName(), s.scope.Name(), err)
+		// Prior to https://github.com/kubernetes-sigs/cluster-api-provider-aws/pull/3573,
+		// Clusters were tagged using s.scope.Name()
+		// To support upgrading older clusters, check for both tags
+		oldTagKey := infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())
+		oldOwnedTag := cluster.Tags[oldTagKey]
+
+		if ownedTag == nil && oldOwnedTag == nil {
+			return fmt.Errorf("cluster is not tagged with neither %s nor %s", tagKey, oldTagKey)
 		}
 
 		s.scope.V(2).Info("Found owned EKS cluster in AWS", "cluster-name", eksClusterName)
@@ -223,7 +229,7 @@ func makeEksEncryptionConfigs(encryptionConfig *ekscontrolplanev1.EncryptionConf
 	if encryptionConfig == nil {
 		return cfg
 	}
-	//TODO: change EncryptionConfig so that provider and resources are required  if encruptionConfig is specified
+	// TODO: change EncryptionConfig so that provider and resources are required  if encruptionConfig is specified
 	if encryptionConfig.Provider == nil || len(*encryptionConfig.Provider) == 0 {
 		return cfg
 	}
@@ -304,8 +310,8 @@ func makeEksLogging(loggingSpec *ekscontrolplanev1.ControlPlaneLoggingSpec) *eks
 	if loggingSpec == nil {
 		return nil
 	}
-	var on = true
-	var off = false
+	on := true
+	off := false
 	var enabledTypes []string
 	var disabledTypes []string
 
@@ -397,7 +403,7 @@ func (s *Service) createCluster(eksClusterName string) (*eks.Cluster, error) {
 		conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneCreatingCondition)
 		record.Eventf(s.scope.ControlPlane, "InitiatedCreateEKSControlPlane", "Initiated creation of a new EKS control plane %s", s.scope.KubernetesClusterName())
 		return true, nil
-	}, awserrors.ResourceNotFound); err != nil { //TODO: change the error that can be retried
+	}, awserrors.ResourceNotFound); err != nil { // TODO: change the error that can be retried
 		record.Warnf(s.scope.ControlPlane, "FailedCreateEKSControlPlane", "Failed to initiate creation of a new EKS control plane: %v", err)
 		return nil, errors.Wrapf(err, "failed to create EKS cluster")
 	}
