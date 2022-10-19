@@ -17,6 +17,8 @@ limitations under the License.
 package eks
 
 import (
+	"net/http"
+
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
@@ -50,9 +52,18 @@ type Service struct {
 	STSClient stsiface.STSAPI
 }
 
+type ServiceOpts func(s *Service)
+
+// WithIAMClient creates an access spec with a custom http client.
+func WithIAMClient(client *http.Client) ServiceOpts {
+	return func(s *Service) {
+		s.IAMService.Client = client
+	}
+}
+
 // NewService returns a new service given the api clients.
-func NewService(controlPlaneScope *scope.ManagedControlPlaneScope) *Service {
-	return &Service{
+func NewService(controlPlaneScope *scope.ManagedControlPlaneScope, opts ...ServiceOpts) *Service {
+	s := &Service{
 		scope:     controlPlaneScope,
 		EC2Client: scope.NewEC2Client(controlPlaneScope, controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
 		EKSClient: EKSClient{
@@ -61,9 +72,16 @@ func NewService(controlPlaneScope *scope.ManagedControlPlaneScope) *Service {
 		IAMService: iam.IAMService{
 			Logger:    controlPlaneScope.Logger,
 			IAMClient: scope.NewIAMClient(controlPlaneScope, controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
+			Client:    http.DefaultClient,
 		},
 		STSClient: scope.NewSTSClient(controlPlaneScope, controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
 	}
+
+	for _, opt := range opts {
+		opt(s)
+	}
+
+	return s
 }
 
 // NodegroupService holds a collection of interfaces.

@@ -17,6 +17,7 @@ limitations under the License.
 package iam
 
 import (
+	"context"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
@@ -45,6 +46,7 @@ const (
 type IAMService struct {
 	logr.Logger
 	IAMClient iamiface.IAMAPI
+	Client    *http.Client
 }
 
 // GetIAMRole will return the IAM role for the IAMService.
@@ -418,7 +420,7 @@ func (s *IAMService) CreateOIDCProvider(cluster *eks.Cluster) (string, error) {
 		return "", errors.Errorf("invalid scheme for issuer URL %s", issuerURL.String())
 	}
 
-	thumbprint, err := fetchRootCAThumbprint(issuerURL.String())
+	thumbprint, err := fetchRootCAThumbprint(issuerURL.String(), s.Client)
 	if err != nil {
 		return "", err
 	}
@@ -434,8 +436,53 @@ func (s *IAMService) CreateOIDCProvider(cluster *eks.Cluster) (string, error) {
 	return *provider.OpenIDConnectProviderArn, nil
 }
 
-func fetchRootCAThumbprint(issuerURL string) (string, error) {
-	response, err := http.Get(issuerURL)
+// FindAndVerifyOIDCProvider will try to find an OIDC provider. It will return an error if the found provider does not
+// match the cluster spec.
+func (s *IAMService) FindAndVerifyOIDCProvider(cluster *eks.Cluster) (string, error) {
+	issuerURL, err := url.Parse(*cluster.Identity.Oidc.Issuer)
+	if err != nil {
+		return "", err
+	}
+	if issuerURL.Scheme != "https" {
+		return "", errors.Errorf("invalid scheme for issuer URL %s", issuerURL.String())
+	}
+
+	thumbprint, err := fetchRootCAThumbprint(issuerURL.String(), s.Client)
+	if err != nil {
+		return "", err
+	}
+	output, err := s.IAMClient.ListOpenIDConnectProviders(&iam.ListOpenIDConnectProvidersInput{})
+	if err != nil {
+		return "", errors.Wrap(err, "error listing providers")
+	}
+	for _, r := range output.OpenIDConnectProviderList {
+		provider, err := s.IAMClient.GetOpenIDConnectProvider(&iam.GetOpenIDConnectProviderInput{OpenIDConnectProviderArn: r.Arn})
+		if err != nil {
+			return "", errors.Wrap(err, "error getting provider")
+		}
+		// URL should always contain `https`.
+		if *provider.Url != issuerURL.String() {
+			continue
+		}
+		if len(provider.ThumbprintList) != 1 || *provider.ThumbprintList[0] != thumbprint {
+			return "", errors.Wrap(err, "found provider with matching issuerURL but with non-matching thumbprint")
+		}
+		if len(provider.ClientIDList) != 1 || *provider.ClientIDList[0] != stsAWSAudience {
+			return "", errors.Wrap(err, "found provider with matching issuerURL but with non-matching clientID")
+		}
+		return *r.Arn, nil
+	}
+	return "", nil
+}
+
+func fetchRootCAThumbprint(issuerURL string, client *http.Client) (string, error) {
+	// needed to appease noctx.
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, issuerURL, nil)
+	if err != nil {
+		return "", err
+	}
+
+	response, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
