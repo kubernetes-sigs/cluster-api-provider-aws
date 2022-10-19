@@ -16,7 +16,7 @@ limitations under the License.
 
 package main
 
-import "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd"
+import "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd"
 
 func main() {
 	cmd.Execute()

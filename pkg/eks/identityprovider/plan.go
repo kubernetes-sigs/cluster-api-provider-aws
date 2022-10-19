@@ -23,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
 	"github.com/go-logr/logr"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/planner"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/planner"
 )
 
 // NewPlan creates plan to manage EKS OIDC identity provider association.

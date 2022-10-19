@@ -48,11 +48,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
-	awslogs "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/logs"
-	awsmetrics "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/metrics"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
-	"sigs.k8s.io/cluster-api-provider-aws/version"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	awslogs "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/logs"
+	awsmetrics "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/metrics"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/version"
 )
 
 // NewASGClient creates a new ASG API client for a given session.

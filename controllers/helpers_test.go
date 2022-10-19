@@ -26,9 +26,9 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
@@ -66,11 +66,11 @@ var (
 			Value: lbName,
 		},
 		{
-			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 			Value: aws.String("owned"),
 		},
 		{
-			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 			Value: aws.String("apiserver"),
 		},
 	}
@@ -179,7 +179,7 @@ func mockedCreateLBCalls(t *testing.T, m *mocks.MockELBAPIMockRecorder) {
 		LoadBalancerNames: aws.StringSlice([]string{""}),
 		Tags: []*elb.TagKeyOnly{
 			{
-				Key: aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster-apiserver"),
+				Key: aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster-apiserver"),
 			},
 		},
 	})).MaxTimes(1)

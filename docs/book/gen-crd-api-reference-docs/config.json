@@ -48,7 +48,7 @@
     "k8s.io/api/": "Kubernetes ",
     "k8s.io/apimachinery/pkg/apis/": "Kubernetes ",
     "sigs.k8s.io/cluster-api/": "Cluster API ",
-    "sigs.k8s.io/cluster-api-provider-aws/": "Cluster API AWS ",
+    "sigs.k8s.io/cluster-api-provider-aws/v2/": "Cluster API AWS ",
     "../../cmd/clusterawsadm/api/iam/": "IAM ",
     "map[../../cmd/clusterawsadm/api/iam/": "map[IAM ",
     "*map[../../cmd/clusterawsadm/api/iam/": "*map[IAM ",

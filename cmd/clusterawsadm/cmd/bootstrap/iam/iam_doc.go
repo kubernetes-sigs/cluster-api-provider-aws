@@ -21,8 +21,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/bootstrap"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/converters"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 

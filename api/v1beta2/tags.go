@@ -162,7 +162,7 @@ const (
 	// NameAWSProviderPrefix is the tag prefix we use to differentiate
 	// cluster-api-provider-aws owned components from other tooling that
 	// uses NameKubernetesClusterPrefix.
-	NameAWSProviderPrefix = "sigs.k8s.io/cluster-api-provider-aws/"
+	NameAWSProviderPrefix = "sigs.k8s.io/cluster-api-provider-aws/v2/"
 
 	// NameAWSProviderOwned is the tag name we use to differentiate
 	// cluster-api-provider-aws owned components from other tooling that

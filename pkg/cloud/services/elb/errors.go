@@ -23,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/pkg/errors"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 )
 
 var _ error = &ELBError{}

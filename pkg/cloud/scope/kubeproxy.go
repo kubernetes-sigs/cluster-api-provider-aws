@@ -19,7 +19,7 @@ package scope
 import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 )
 
 // KubeProxyScope is the interface for the scope to be used with the kubeproxy reconciling service.

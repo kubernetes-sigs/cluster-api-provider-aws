@@ -19,7 +19,7 @@ package eks
 import (
 	"github.com/spf13/cobra"
 
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/eks/addons"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/eks/addons"
 )
 
 // RootCmd is an EKS root CLI command.

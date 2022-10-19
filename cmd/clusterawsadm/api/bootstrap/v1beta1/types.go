@@ -20,8 +20,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 )
 
 // BootstrapUser contains a list of elements that is specific
@@ -84,7 +84,7 @@ type AWSIAMRoleSpec struct {
 	ExtraStatements []iamv1.StatementEntry `json:"extraStatements,omitempty"`
 
 	// TrustStatements is an IAM PolicyDocument defining what identities are allowed to assume this role.
-	// See "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1beta1" for more documentation.
+	// See "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/iam/v1beta1" for more documentation.
 	TrustStatements []iamv1.StatementEntry `json:"trustStatements,omitempty"`
 
 	// Tags is a map of tags to be applied to the AWS IAM role.

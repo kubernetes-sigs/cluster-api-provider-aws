@@ -19,7 +19,7 @@ package identityprovider
 import (
 	"reflect"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
 
 // OidcIdentityProviderConfig represents a normalized version of the configuration for an OpenID Connect (OIDC)

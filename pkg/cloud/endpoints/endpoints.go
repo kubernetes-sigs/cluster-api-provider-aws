@@ -23,7 +23,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 )
 
 var (

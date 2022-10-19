@@ -19,8 +19,8 @@ package ssm
 import (
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 )
 
 // Service holds a collection of interfaces.

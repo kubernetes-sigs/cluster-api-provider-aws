@@ -19,7 +19,7 @@ package credentials
 import (
 	"github.com/spf13/cobra"
 
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/controller/credentials"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/controller/credentials"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 

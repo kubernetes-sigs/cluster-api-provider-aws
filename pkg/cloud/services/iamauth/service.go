@@ -20,7 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 )
 
 // Service defines the specs for a service.

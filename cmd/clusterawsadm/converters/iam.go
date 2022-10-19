@@ -19,7 +19,7 @@ package converters
 import (
 	"encoding/json"
 
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 )
 
 // IAMPolicyDocumentToJSON is the JSON output of the policy document.

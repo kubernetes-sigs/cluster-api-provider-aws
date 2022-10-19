@@ -28,7 +28,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 
-	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/helpers"
 )
 
 var (

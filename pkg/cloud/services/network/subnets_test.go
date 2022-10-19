@@ -29,10 +29,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -784,11 +784,11 @@ func TestReconcileSubnets(t *testing.T) {
 									Value: aws.String("1"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 									Value: aws.String("private"),
 								},
 							},
@@ -830,11 +830,11 @@ func TestReconcileSubnets(t *testing.T) {
 									Value: aws.String("1"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 									Value: aws.String("public"),
 								},
 							},
@@ -992,11 +992,11 @@ func TestReconcileSubnets(t *testing.T) {
 									Value: aws.String("1"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 									Value: aws.String("public"),
 								},
 							},
@@ -1047,11 +1047,11 @@ func TestReconcileSubnets(t *testing.T) {
 									Value: aws.String("1"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 									Value: aws.String("private"),
 								},
 							},
@@ -1153,11 +1153,11 @@ func TestReconcileSubnets(t *testing.T) {
 									Value: aws.String("1"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 									Value: aws.String("public"),
 								},
 							},
@@ -1237,11 +1237,11 @@ func TestReconcileSubnets(t *testing.T) {
 									Value: aws.String("1"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 									Value: aws.String("private"),
 								},
 							},
@@ -1351,11 +1351,11 @@ func TestReconcileSubnets(t *testing.T) {
 									Value: aws.String("1"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 									Value: aws.String("public"),
 								},
 							},
@@ -1406,11 +1406,11 @@ func TestReconcileSubnets(t *testing.T) {
 									Value: aws.String("1"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 									Value: aws.String("private"),
 								},
 							},
@@ -1454,11 +1454,11 @@ func TestReconcileSubnets(t *testing.T) {
 									Value: aws.String("1"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 									Value: aws.String("public"),
 								},
 							},
@@ -1509,11 +1509,11 @@ func TestReconcileSubnets(t *testing.T) {
 									Value: aws.String("1"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 									Value: aws.String("private"),
 								},
 							},
@@ -1615,11 +1615,11 @@ func TestReconcileSubnets(t *testing.T) {
 									Value: aws.String("1"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 									Value: aws.String("public"),
 								},
 							},
@@ -1670,11 +1670,11 @@ func TestReconcileSubnets(t *testing.T) {
 									Value: aws.String("1"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 									Value: aws.String("private"),
 								},
 							},
@@ -1741,11 +1741,11 @@ func TestReconcileSubnets(t *testing.T) {
 								CidrBlock:        aws.String("10.0.0.0/17"),
 								Tags: []*ec2.Tag{
 									{
-										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 										Value: aws.String("owned"),
 									},
 									{
-										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 										Value: aws.String("public"),
 									},
 									{
@@ -1800,11 +1800,11 @@ func TestReconcileSubnets(t *testing.T) {
 									Value: aws.String("1"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 									Value: aws.String("private"),
 								},
 							},
@@ -1907,11 +1907,11 @@ func TestReconcileSubnets(t *testing.T) {
 									Value: aws.String("1"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 									Value: aws.String("public"),
 								},
 							},
@@ -1962,11 +1962,11 @@ func TestReconcileSubnets(t *testing.T) {
 									Value: aws.String("1"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 									Value: aws.String("private"),
 								},
 							},
@@ -2010,11 +2010,11 @@ func TestReconcileSubnets(t *testing.T) {
 									Value: aws.String("1"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 									Value: aws.String("public"),
 								},
 							},
@@ -2065,11 +2065,11 @@ func TestReconcileSubnets(t *testing.T) {
 									Value: aws.String("1"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 									Value: aws.String("private"),
 								},
 							},

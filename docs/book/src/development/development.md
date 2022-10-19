@@ -38,7 +38,7 @@ git fetch upstream
 Build `clusterawsadm` in `cluster-api-provider-aws`:
 
 ```bash
-cd "$(go env GOPATH)"/src/sigs.k8s.io/cluster-api-provider-aws
+cd "$(go env GOPATH)"/src/sigs.k8s.io/cluster-api-provider-aws/v2
 make clusterawsadm
 mv ./bin/clusterawsadm /usr/local/bin/clusterawsadm
 ```
