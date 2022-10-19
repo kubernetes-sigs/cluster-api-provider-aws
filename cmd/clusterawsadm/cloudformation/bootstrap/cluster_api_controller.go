@@ -361,6 +361,7 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 		statement = append(statement, iamv1.StatementEntry{
 			Action: iamv1.Actions{
 				"iam:ListOpenIDConnectProviders",
+				"iam:GetOpenIDConnectProvider",
 				"iam:CreateOpenIDConnectProvider",
 				"iam:AddClientIDToOpenIDConnectProvider",
 				"iam:UpdateOpenIDConnectProviderThumbprint",

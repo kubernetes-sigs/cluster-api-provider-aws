@@ -52,10 +52,18 @@ func (s *Service) reconcileOIDCProvider(cluster *eks.Cluster) error {
 	}
 
 	s.scope.Info("Reconciling EKS OIDC Provider", "cluster-name", cluster.Name)
-	oidcProvider, err := s.CreateOIDCProvider(cluster)
+
+	oidcProvider, err := s.FindAndVerifyOIDCProvider(cluster)
 	if err != nil {
-		return errors.Wrap(err, "failed to create OIDC provider")
+		return errors.Wrap(err, "failed to reconcile OIDC provider")
 	}
+	if oidcProvider == "" {
+		oidcProvider, err = s.CreateOIDCProvider(cluster)
+		if err != nil {
+			return errors.Wrap(err, "failed to create OIDC provider")
+		}
+	}
+
 	s.scope.ControlPlane.Status.OIDCProvider.ARN = oidcProvider
 
 	policy, err := converters.IAMPolicyDocumentToJSON(s.buildOIDCTrustPolicy())
