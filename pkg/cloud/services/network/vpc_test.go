@@ -30,10 +30,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -71,7 +71,7 @@ func TestReconcileVPC(t *testing.T) {
 	selection := infrav1.AZSelectionSchemeOrdered
 	tags := []*ec2.Tag{
 		{
-			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 			Value: aws.String("common"),
 		},
 		{
@@ -79,7 +79,7 @@ func TestReconcileVPC(t *testing.T) {
 			Value: aws.String("test-cluster-vpc"),
 		},
 		{
-			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 			Value: aws.String("owned"),
 		},
 	}
@@ -98,9 +98,9 @@ func TestReconcileVPC(t *testing.T) {
 				ID:        "vpc-exists",
 				CidrBlock: "10.0.0.0/8",
 				Tags: map[string]string{
-					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
+					"sigs.k8s.io/cluster-api-provider-aws/v2/role": "common",
 					"Name": "test-cluster-vpc",
-					"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster": "owned",
+					"sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster": "owned",
 				},
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
@@ -140,9 +140,9 @@ func TestReconcileVPC(t *testing.T) {
 				ID:        "vpc-new",
 				CidrBlock: "10.1.0.0/16",
 				Tags: map[string]string{
-					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
+					"sigs.k8s.io/cluster-api-provider-aws/v2/role": "common",
 					"Name": "test-cluster-vpc",
-					"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster": "owned",
+					"sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster": "owned",
 				},
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
@@ -179,9 +179,9 @@ func TestReconcileVPC(t *testing.T) {
 					PoolID:    "amazon",
 				},
 				Tags: map[string]string{
-					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
+					"sigs.k8s.io/cluster-api-provider-aws/v2/role": "common",
 					"Name": "test-cluster-vpc",
-					"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster": "owned",
+					"sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster": "owned",
 				},
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
@@ -245,9 +245,9 @@ func TestReconcileVPC(t *testing.T) {
 					PoolID:    "my-pool",
 				},
 				Tags: map[string]string{
-					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
+					"sigs.k8s.io/cluster-api-provider-aws/v2/role": "common",
 					"Name": "test-cluster-vpc",
-					"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster": "owned",
+					"sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster": "owned",
 				},
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
@@ -357,7 +357,7 @@ func TestReconcileVPC(t *testing.T) {
 				ID:        "unmanaged-vpc-exists",
 				CidrBlock: "10.0.0.0/8",
 				Tags: map[string]string{
-					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
+					"sigs.k8s.io/cluster-api-provider-aws/v2/role": "common",
 					"Name": "test-cluster-vpc",
 				},
 				IPv6: &infrav1.IPv6{
@@ -386,7 +386,7 @@ func TestReconcileVPC(t *testing.T) {
 							},
 							Tags: []*ec2.Tag{
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 									Value: aws.String("common"),
 								},
 								{
@@ -424,7 +424,7 @@ func TestReconcileVPC(t *testing.T) {
 				ID:        "unmanaged-vpc-exists",
 				CidrBlock: "10.0.0.0/8",
 				Tags: map[string]string{
-					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
+					"sigs.k8s.io/cluster-api-provider-aws/v2/role": "common",
 					"Name": "test-cluster-vpc",
 				},
 				AvailabilityZoneUsageLimit: &usageLimit,
@@ -439,7 +439,7 @@ func TestReconcileVPC(t *testing.T) {
 							CidrBlock: aws.String("10.0.0.0/8"),
 							Tags: []*ec2.Tag{
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 									Value: aws.String("common"),
 								},
 								{
@@ -459,9 +459,9 @@ func TestReconcileVPC(t *testing.T) {
 				ID:        "managed-vpc-exists",
 				CidrBlock: "10.0.0.0/8",
 				Tags: map[string]string{
-					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
+					"sigs.k8s.io/cluster-api-provider-aws/v2/role": "common",
 					"Name": "test-cluster-vpc",
-					"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster": "owned",
+					"sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster": "owned",
 				},
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
@@ -588,7 +588,7 @@ func TestDeleteVPC(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	tags := map[string]string{
-		"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster": "owned",
+		"sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster": "owned",
 	}
 
 	testCases := []struct {

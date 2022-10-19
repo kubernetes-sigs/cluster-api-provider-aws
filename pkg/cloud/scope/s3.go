@@ -17,8 +17,8 @@ limitations under the License.
 package scope
 
 import (
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 )
 
 // S3Scope is the interface for the scope to be used with the S3 service.

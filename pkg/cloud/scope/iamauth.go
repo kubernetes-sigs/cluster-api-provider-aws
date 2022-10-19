@@ -19,8 +19,8 @@ package scope
 import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 )
 
 // IAMAuthScope is the interface for the scope to be used with iamauth reconciling service.

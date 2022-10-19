@@ -22,7 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/hash"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/hash"
 )
 
 const (

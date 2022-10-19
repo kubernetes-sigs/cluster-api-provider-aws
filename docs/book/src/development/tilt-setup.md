@@ -47,7 +47,7 @@ Next, create a `tilt-settings.json` file and place it in your local copy of `clu
   ],
   "default_registry": "gcr.io/your-project-name-here",
   "provider_repos": [
-    "/Users/username/go/src/sigs.k8s.io/cluster-api-provider-aws"
+    "/Users/username/go/src/sigs.k8s.io/cluster-api-provider-aws/v2"
   ],
   "kustomize_substitutions": {
     "EXP_CLUSTER_RESOURCE_SET": "true",
@@ -103,7 +103,7 @@ An example **tilt-settings.json**:
   ],
   "default_registry": "gcr.io/your-project-name-here",
   "provider_repos": [
-    "/Users/username/go/src/sigs.k8s.io/cluster-api-provider-aws"
+    "/Users/username/go/src/sigs.k8s.io/cluster-api-provider-aws/v2"
   ],
   "kustomize_substitutions": {
     "EXP_CLUSTER_RESOURCE_SET": "true",

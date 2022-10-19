@@ -23,8 +23,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/flags"
-	creds "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/credentials"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/flags"
+	creds "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/credentials"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 

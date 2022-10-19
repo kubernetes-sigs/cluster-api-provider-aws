@@ -25,7 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/spf13/cobra"
 
-	cmdout "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/printers"
+	cmdout "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/printers"
 )
 
 func listInstalledCmd() *cobra.Command {

@@ -23,11 +23,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
-	eksaddons "sigs.k8s.io/cluster-api-provider-aws/pkg/eks/addons"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
+	eksaddons "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/eks/addons"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 )
 
 func (s *Service) reconcileAddons(ctx context.Context) error {

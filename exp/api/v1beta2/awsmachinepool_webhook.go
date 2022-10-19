@@ -26,7 +26,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
 
 var log = ctrl.Log.WithName("awsmachinepool-resource")
