@@ -21,7 +21,7 @@ import (
 	"net/mail"
 	"testing"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 )
 
 func TestUserData(t *testing.T) {

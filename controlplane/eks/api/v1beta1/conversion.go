@@ -18,9 +18,9 @@ package v1beta1
 
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
-	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	infrav1beta2 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2"
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
+	infrav1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 

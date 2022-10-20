@@ -26,8 +26,8 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/klog/v2"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/mock_eksiface"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks/mock_eksiface"
 )
 
 func TestEKSAddonPlan(t *testing.T) {

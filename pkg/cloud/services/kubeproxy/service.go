@@ -17,7 +17,7 @@ limitations under the License.
 package kubeproxy
 
 import (
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 )
 
 // Service defines the spec for a service.

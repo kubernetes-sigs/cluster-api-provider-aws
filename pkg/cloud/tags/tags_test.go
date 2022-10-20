@@ -27,9 +27,9 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/mock_eksiface"
-	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks/mock_eksiface"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 )
 
 var (
@@ -50,11 +50,11 @@ var (
 			Value: aws.String("v1"),
 		},
 		{
-			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/testcluster"),
+			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/testcluster"),
 			Value: aws.String("owned"),
 		},
 		{
-			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 			Value: aws.String("testrole"),
 		},
 	}
@@ -202,7 +202,7 @@ func TestTagsEnsureWithEKS(t *testing.T) {
 			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
 				m.TagResource(gomock.Eq(&eks.TagResourceInput{
 					ResourceArn: aws.String(""),
-					Tags:        map[string]*string{"Name": aws.String("test"), "k1": aws.String("v1"), "sigs.k8s.io/cluster-api-provider-aws/cluster/testcluster": aws.String("owned"), "sigs.k8s.io/cluster-api-provider-aws/role": aws.String("testrole")},
+					Tags:        map[string]*string{"Name": aws.String("test"), "k1": aws.String("v1"), "sigs.k8s.io/cluster-api-provider-aws/v2/cluster/testcluster": aws.String("owned"), "sigs.k8s.io/cluster-api-provider-aws/v2/role": aws.String("testrole")},
 				})).Return(nil, errors.New("failed to tag resource"))
 			},
 		},
@@ -212,7 +212,7 @@ func TestTagsEnsureWithEKS(t *testing.T) {
 			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
 				m.TagResource(gomock.Eq(&eks.TagResourceInput{
 					ResourceArn: aws.String(""),
-					Tags:        map[string]*string{"Name": aws.String("test"), "k1": aws.String("v1"), "sigs.k8s.io/cluster-api-provider-aws/cluster/testcluster": aws.String("owned"), "sigs.k8s.io/cluster-api-provider-aws/role": aws.String("testrole")},
+					Tags:        map[string]*string{"Name": aws.String("test"), "k1": aws.String("v1"), "sigs.k8s.io/cluster-api-provider-aws/v2/cluster/testcluster": aws.String("owned"), "sigs.k8s.io/cluster-api-provider-aws/v2/role": aws.String("testrole")},
 				})).Return(nil, nil)
 			},
 		},

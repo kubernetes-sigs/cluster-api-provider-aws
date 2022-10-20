@@ -16,7 +16,7 @@ limitations under the License.
 
 // +gencrdrefdocs:force
 // +groupName=infrastructure.cluster.x-k8s.io
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-aws/api/v1beta2
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2
 
 // Package v1beta1 contains the v1beta1 API implementation.
 package v1beta1

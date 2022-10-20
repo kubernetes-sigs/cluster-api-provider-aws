@@ -30,10 +30,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -356,7 +356,7 @@ func TestReconcileRouteTables(t *testing.T) {
 								},
 								Tags: []*ec2.Tag{
 									{
-										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 										Value: aws.String("common"),
 									},
 									{
@@ -364,7 +364,7 @@ func TestReconcileRouteTables(t *testing.T) {
 										Value: aws.String("test-cluster-rt-private-us-east-1a"),
 									},
 									{
-										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 										Value: aws.String("owned"),
 									},
 								},
@@ -384,7 +384,7 @@ func TestReconcileRouteTables(t *testing.T) {
 								},
 								Tags: []*ec2.Tag{
 									{
-										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 										Value: aws.String("common"),
 									},
 									{
@@ -392,7 +392,7 @@ func TestReconcileRouteTables(t *testing.T) {
 										Value: aws.String("test-cluster-rt-public-us-east-1a"),
 									},
 									{
-										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 										Value: aws.String("owned"),
 									},
 								},
@@ -457,7 +457,7 @@ func TestReconcileRouteTables(t *testing.T) {
 								},
 								Tags: []*ec2.Tag{
 									{
-										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 										Value: aws.String("common"),
 									},
 									{
@@ -465,7 +465,7 @@ func TestReconcileRouteTables(t *testing.T) {
 										Value: aws.String("test-cluster-rt-private-us-east-1a"),
 									},
 									{
-										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 										Value: aws.String("owned"),
 									},
 								},
@@ -485,7 +485,7 @@ func TestReconcileRouteTables(t *testing.T) {
 								},
 								Tags: []*ec2.Tag{
 									{
-										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 										Value: aws.String("common"),
 									},
 									{
@@ -493,7 +493,7 @@ func TestReconcileRouteTables(t *testing.T) {
 										Value: aws.String("test-cluster-rt-public-us-east-1a"),
 									},
 									{
-										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 										Value: aws.String("owned"),
 									},
 								},
@@ -579,7 +579,7 @@ func TestDeleteRouteTables(t *testing.T) {
 				},
 				Tags: []*ec2.Tag{
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 						Value: aws.String("common"),
 					},
 					{
@@ -587,7 +587,7 @@ func TestDeleteRouteTables(t *testing.T) {
 						Value: aws.String("test-cluster-rt-public-us-east-1a"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
 						Value: aws.String("owned"),
 					},
 				},

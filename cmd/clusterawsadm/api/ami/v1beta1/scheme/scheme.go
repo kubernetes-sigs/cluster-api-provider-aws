@@ -20,7 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 
-	amiv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/ami/v1beta1"
+	amiv1 "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/ami/v1beta1"
 )
 
 // Utility functions for the bootstrap.aws.infrastructure.cluster.x-k8s.io API group.

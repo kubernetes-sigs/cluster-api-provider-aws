@@ -147,7 +147,7 @@ Similarly, to obtain the list of private IP addresses of the cluster nodes, use 
 for type in control-plane node
 do
 	aws ec2 describe-instances \
-    --filter="Name=tag:sigs.k8s.io/cluster-api-provider-aws/role,\
+    --filter="Name=tag:sigs.k8s.io/cluster-api-provider-aws/v2/role,\
     Values=${type}" \
 		| jq '.Reservations[].Instances[].PrivateIpAddress' -r
 done
@@ -161,7 +161,7 @@ Finally, to obtain AWS instance IDs for cluster nodes, you can use this AWS CLI 
 for type in control-plane node
 do
 	aws ec2 describe-instances \
-    --filter="Name=tag:sigs.k8s.io/cluster-api-provider-aws/role,\
+    --filter="Name=tag:sigs.k8s.io/cluster-api-provider-aws/v2/role,\
     Values=${type}" \
 		| jq '.Reservations[].Instances[].InstanceId' -r
 done

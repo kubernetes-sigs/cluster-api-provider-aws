@@ -29,7 +29,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 
-	ec2service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
+	ec2service "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ec2"
 )
 
 const (

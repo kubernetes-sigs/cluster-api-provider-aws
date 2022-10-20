@@ -21,8 +21,8 @@ import (
 	"os"
 	"path"
 
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/converters"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 )
 
 // PolicyName defines the name of a managed IAM policy.

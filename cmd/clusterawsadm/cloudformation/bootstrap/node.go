@@ -19,7 +19,7 @@ package bootstrap
 import (
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 )
 
 func (t Template) nodePolicies() []cfn_iam.Role_Policy {

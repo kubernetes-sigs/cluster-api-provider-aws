@@ -31,8 +31,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"github.com/pkg/errors"
 
-	iam "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	iam "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 )
 
 // Service holds a collection of interfaces.
