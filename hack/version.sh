@@ -81,7 +81,7 @@ version::ldflags() {
         local key=${1}
         local val=${2}
         ldflags+=(
-            "-X 'sigs.k8s.io/cluster-api-provider-aws/version.${key}=${val}'"
+            "-X 'sigs.k8s.io/cluster-api-provider-aws/v2/version.${key}=${val}'"
         )
     }
 

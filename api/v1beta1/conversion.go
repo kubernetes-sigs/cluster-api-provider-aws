@@ -18,7 +18,7 @@ package v1beta1
 
 import (
 	"k8s.io/apimachinery/pkg/conversion"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
 
 func Convert_v1beta2_AWSClusterSpec_To_v1beta1_AWSClusterSpec(in *v1beta2.AWSClusterSpec, out *AWSClusterSpec, s conversion.Scope) error {

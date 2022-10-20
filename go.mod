@@ -1,4 +1,4 @@
-module sigs.k8s.io/cluster-api-provider-aws
+module sigs.k8s.io/cluster-api-provider-aws/v2
 
 go 1.18
 

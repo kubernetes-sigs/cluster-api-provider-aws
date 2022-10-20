@@ -28,7 +28,7 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/pointer"
 
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 )
 

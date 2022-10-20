@@ -49,7 +49,7 @@ The following run configuration can be used:
       <env name="AWS_SECRET_ACCESS_KEY" value="2W2RlZmFZSZnRg==" />
     </envs>
     <kind value="PACKAGE" />
-    <package value="sigs.k8s.io/cluster-api-provider-aws/test/e2e/suites/unmanaged" />
+    <package value="sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/suites/unmanaged" />
     <directory value="$PROJECT_DIR$" />
     <filePath value="$PROJECT_DIR$" />
     <framework value="gotest" />
