@@ -97,9 +97,8 @@ github.com/aws/amazon-vpc-cni-k8s v1.11.4/go.mod h1:w8f1LLPue3xzRw7F9NPNWZt1B/yj
 github.com/aws/aws-lambda-go v1.34.1 h1:M3a/uFYBjii+tDcOJ0wL/WyFi2550FHoECdPf27zvOs=
 github.com/aws/aws-lambda-go v1.34.1/go.mod h1:jwFe2KmMsHmffA1X2R09hH6lFzJQxzI8qK17ewzbQMM=
 github.com/aws/aws-sdk-go v1.8.39/go.mod h1:ZRmQr0FajVIyZ4ZzBYKG5P3ZqPz9IHG41ZoMu1ADI3k=
-github.com/aws/aws-sdk-go v1.43.28/go.mod h1:y4AeaBuwd2Lk+GepC1E9v0qOiTws0MIWAX4oIKwKHZo=
-github.com/aws/aws-sdk-go v1.43.29 h1:P6tBpMLwVLS/QwPkaBxfDIF3SmPouoacIk+/7NKnDxY=
-github.com/aws/aws-sdk-go v1.43.29/go.mod h1:y4AeaBuwd2Lk+GepC1E9v0qOiTws0MIWAX4oIKwKHZo=
+github.com/aws/aws-sdk-go v1.44.107 h1:VP7Rq3wzsOV7wrfHqjAAKRksD4We58PaoVSDPKhm8nw=
+github.com/aws/aws-sdk-go v1.44.107/go.mod h1:y4AeaBuwd2Lk+GepC1E9v0qOiTws0MIWAX4oIKwKHZo=
 github.com/awslabs/goformation/v4 v4.19.5 h1:Y+Tzh01tWg8gf//AgGKUamaja7Wx9NPiJf1FpZu4/iU=
 github.com/awslabs/goformation/v4 v4.19.5/go.mod h1:JoNpnVCBOUtEz9bFxc9sjy8uBUCLF5c4D1L7RhRTVM8=
 github.com/benbjohnson/clock v1.0.3/go.mod h1:bGMdMPoPVvcYyt1gHDf4J2KE153Yf9BuiUKYMaxlTDM=
@@ -1262,8 +1261,8 @@ rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.30/go.mod h1:fEO7lRTdivWO2qYVCVG7dEADOMo/MLDCVr8So2g88Uw=
-sigs.k8s.io/aws-iam-authenticator v0.5.9 h1:r0xXKCAZVBKRZkJRdy/nm8bEQbBjjw+3xi0rzi31RJE=
-sigs.k8s.io/aws-iam-authenticator v0.5.9/go.mod h1:6dId2LCc8oHqeBzP6E8ndp4DflhKTxYLb5ZXwI4YmFA=
+sigs.k8s.io/aws-iam-authenticator v0.5.10 h1:YGPh/SpRxNkWXfGkURKGsgWvz70x41SB4QazrU7R3Wk=
+sigs.k8s.io/aws-iam-authenticator v0.5.10/go.mod h1:3oJI6vy91KxVSb9g+v9gtJsFnFDJoq+ySJhGDBKpKFk=
 sigs.k8s.io/cluster-api v1.2.2 h1:acx31Eyv5s4xeublsbxWpRFjcQ5h4BmDPI0glm3sEoE=
 sigs.k8s.io/cluster-api v1.2.2/go.mod h1:oiuV+mlCV1QxDnuI+PfElFlAfuXHo9ZGVBojoihVtHY=
 sigs.k8s.io/cluster-api/test v1.2.2 h1:DUVmlCVQ0H7zY1doxzS1JuooUjXxTN80i9swc16tZd0=

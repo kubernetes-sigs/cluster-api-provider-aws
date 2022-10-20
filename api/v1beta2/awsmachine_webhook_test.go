@@ -104,7 +104,7 @@ func TestAWSMachine_Create(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "ensure ensure IOPS exists if type equal to io1 for non root volumes",
+			name: "ensure IOPS exists if type equal to io1 for non root volumes",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
 					NonRootVolumes: []Volume{
@@ -119,7 +119,7 @@ func TestAWSMachine_Create(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "ensure ensure IOPS exists if type equal to io2 for non root volumes",
+			name: "ensure IOPS exists if type equal to io2 for non root volumes",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
 					NonRootVolumes: []Volume{
