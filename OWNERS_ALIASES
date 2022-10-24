@@ -27,9 +27,9 @@ aliases:
     - sedefsavas
     - Skarlso
     - Ankitasw
+    - dlipovetsky
   cluster-api-aws-reviewers:
     - dthorsen
-    - dlipovetsky
     - pydctw
     - shivi28
     - AverageMarcus
