@@ -173,9 +173,9 @@ Thank you to all contributors and a special thanks to our current maintainers & 
 | -------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | [@richardcase](https://github.com/richardcase) (from 2020-12-04)     | [@shivi28](https://github.com/shivi28) (from 2021-08-27)             |
 | [@sedefsavas](https://github.com/sedefsavas) (from 2021-03-21)       | [@dthorsen](https://github.com/dthorsen) (from 2020-12-04)           |
-| [@Skarlso](https://github.com/Skarlso) (from 2022-10-19)             | [@dlipovetsky](https://github.com/dlipovetsky) (from 2021-08-27)     |
-| [@Ankitasw](https://github.com/Ankitasw) (from 2022-10-19)           | [@pydctw](https://github.com/pydctw) (from 2021-12-09)               |
-|                                                                      | [@AverageMarcus](https://github.com/AverageMarcus) (from 2022-10-19) |
+| [@Skarlso](https://github.com/Skarlso) (from 2022-10-19)             | [@pydctw](https://github.com/pydctw) (from 2021-12-09)               |
+| [@Ankitasw](https://github.com/Ankitasw) (from 2022-10-19)           | [@AverageMarcus](https://github.com/AverageMarcus) (from 2022-10-19) |
+| [@dlipovetsky](https://github.com/dlipovetsky) (from 2021-10-31)     |                                                                      |
 
 and the previous/emeritus maintainers & reviewers:
 
