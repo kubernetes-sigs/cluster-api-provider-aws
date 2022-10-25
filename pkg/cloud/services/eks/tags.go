@@ -130,7 +130,7 @@ func (s *NodegroupService) reconcileASGTags(ng *eks.Nodegroup) error {
 	}
 
 	tagsToDelete, tagsToAdd := getASGTagUpdates(s.scope.ClusterName(), tagDescriptionsToMap(asg.Tags), s.scope.AdditionalTags())
-	s.scope.V(2).Info("Tags", "tagsToAdd", tagsToAdd, "tagsToDelete", tagsToDelete)
+	s.scope.Debug("Tags", "tagsToAdd", tagsToAdd, "tagsToDelete", tagsToDelete)
 
 	if len(tagsToAdd) > 0 {
 		input := &autoscaling.CreateOrUpdateTagsInput{}

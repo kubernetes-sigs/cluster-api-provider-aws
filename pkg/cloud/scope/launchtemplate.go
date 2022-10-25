@@ -22,7 +22,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
@@ -47,7 +47,7 @@ type LaunchTemplateScope interface {
 	GetEC2Scope() EC2Scope
 
 	client.Client
-	cloud.Logger
+	logger.Wrapper
 }
 
 type ResourceServiceToUpdate struct {

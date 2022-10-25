@@ -36,11 +36,11 @@ import (
 
 func (s *Service) reconcileEgressOnlyInternetGateways() error {
 	if !s.scope.VPC().IsIPv6Enabled() {
-		s.scope.V(4).Info("Skipping egress only internet gateways reconcile in not ipv6 mode")
+		s.scope.Trace("Skipping egress only internet gateways reconcile in not ipv6 mode")
 		return nil
 	}
 
-	s.scope.V(2).Info("Reconciling egress only internet gateways")
+	s.scope.Debug("Reconciling egress only internet gateways")
 
 	eigws, err := s.describeEgressOnlyVpcInternetGateways()
 	if awserrors.IsNotFound(err) {
@@ -78,7 +78,7 @@ func (s *Service) reconcileEgressOnlyInternetGateways() error {
 
 func (s *Service) deleteEgressOnlyInternetGateways() error {
 	if !s.scope.VPC().IsIPv6Enabled() {
-		s.scope.V(4).Info("Skipping egress only internet gateway deletion in none ipv6 mode")
+		s.scope.Trace("Skipping egress only internet gateway deletion in none ipv6 mode")
 		return nil
 	}
 

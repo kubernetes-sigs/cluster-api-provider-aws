@@ -56,6 +56,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/version"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -64,7 +65,7 @@ import (
 
 var (
 	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	setupLog = logger.NewLogger(ctrl.Log.WithName("setup"))
 )
 
 func init() {
@@ -170,7 +171,7 @@ func main() {
 	// Initialize event recorder.
 	record.InitFromRecorder(mgr.GetEventRecorderFor("aws-controller"))
 
-	setupLog.V(1).Info(fmt.Sprintf("feature gates: %+v\n", feature.Gates))
+	setupLog.Info(fmt.Sprintf("feature gates: %+v\n", feature.Gates))
 
 	externalResourceGC := false
 	if feature.Gates.Enabled(feature.ExternalResourceGC) {
@@ -239,7 +240,7 @@ func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsServi
 	}
 
 	if feature.Gates.Enabled(feature.MachinePool) {
-		setupLog.V(2).Info("enabling machine pool controller and webhook")
+		setupLog.Debug("enabling machine pool controller and webhook")
 		if err := (&expcontrollers.AWSMachinePoolReconciler{
 			Client:           mgr.GetClient(),
 			Recorder:         mgr.GetEventRecorderFor("awsmachinepool-controller"),
@@ -323,14 +324,14 @@ func setupEKSReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsSe
 
 	enableIAM := feature.Gates.Enabled(feature.EKSEnableIAM)
 	allowAddRoles := feature.Gates.Enabled(feature.EKSAllowAddRoles)
-	setupLog.V(2).Info("EKS IAM role creation", "enabled", enableIAM)
-	setupLog.V(2).Info("EKS IAM additional roles", "enabled", allowAddRoles)
+	setupLog.Debug("EKS IAM role creation", "enabled", enableIAM)
+	setupLog.Debug("EKS IAM additional roles", "enabled", allowAddRoles)
 	if allowAddRoles && !enableIAM {
 		setupLog.Error(errEKSInvalidFlags, "cannot use EKSAllowAddRoles flag without EKSEnableIAM")
 		os.Exit(1)
 	}
 
-	setupLog.V(2).Info("enabling EKS control plane controller")
+	setupLog.Debug("enabling EKS control plane controller")
 	if err := (&ekscontrolplanecontrollers.AWSManagedControlPlaneReconciler{
 		Client:               mgr.GetClient(),
 		EnableIAM:            enableIAM,
@@ -343,7 +344,7 @@ func setupEKSReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsSe
 		os.Exit(1)
 	}
 
-	setupLog.V(2).Info("enabling EKS bootstrap controller")
+	setupLog.Debug("enabling EKS bootstrap controller")
 	if err := (&eksbootstrapcontrollers.EKSConfigReconciler{
 		Client:           mgr.GetClient(),
 		WatchFilterValue: watchFilterValue,
@@ -353,7 +354,7 @@ func setupEKSReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsSe
 	}
 
 	if feature.Gates.Enabled(feature.EKSFargate) {
-		setupLog.V(2).Info("enabling EKS fargate profile controller")
+		setupLog.Debug("enabling EKS fargate profile controller")
 		if err := (&expcontrollers.AWSFargateProfileReconciler{
 			Client:           mgr.GetClient(),
 			Recorder:         mgr.GetEventRecorderFor("awsfargateprofile-reconciler"),
@@ -371,7 +372,7 @@ func setupEKSReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsSe
 	}
 
 	if feature.Gates.Enabled(feature.MachinePool) {
-		setupLog.V(2).Info("enabling EKS managed machine pool controller")
+		setupLog.Debug("enabling EKS managed machine pool controller")
 		if err := (&expcontrollers.AWSManagedMachinePoolReconciler{
 			AllowAdditionalRoles: allowAddRoles,
 			Client:               mgr.GetClient(),

@@ -28,13 +28,14 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks/mock_eksiface"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 )
 
 func TestEKSAddonPlan(t *testing.T) {
 	clusterName := "default.cluster"
 	identityProviderARN := "aws:mock:provider:arn"
 	idnetityProviderName := "IdentityProviderConfigName"
-	log := klog.Background()
+	log := logger.NewLogger(klog.Background())
 
 	testCases := []struct {
 		name                    string

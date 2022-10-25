@@ -28,13 +28,13 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
-	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/converters"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 )
 
 const (
@@ -44,7 +44,7 @@ const (
 
 // IAMService defines the specs for an IAM service.
 type IAMService struct {
-	logr.Logger
+	logger.Wrapper
 	IAMClient iamiface.IAMAPI
 	Client    *http.Client
 }
@@ -122,7 +122,7 @@ func (s *IAMService) attachIAMRolePolicy(roleName string, policyARN string) erro
 
 // EnsurePoliciesAttached will ensure the IAMService has policies attached.
 func (s *IAMService) EnsurePoliciesAttached(role *iam.Role, policies []*string) (bool, error) {
-	s.V(2).Info("Ensuring Polices are attached to role")
+	s.Debug("Ensuring Polices are attached to role")
 	existingPolices, err := s.getIAMRolePolicies(*role.RoleName)
 	if err != nil {
 		return false, err
@@ -138,7 +138,7 @@ func (s *IAMService) EnsurePoliciesAttached(role *iam.Role, policies []*string) 
 			if err != nil {
 				return false, err
 			}
-			s.V(2).Info("Detached policy from role", "role", role.RoleName, "policy", existingPolicy)
+			s.Debug("Detached policy from role", "role", role.RoleName, "policy", existingPolicy)
 		}
 	}
 
@@ -157,7 +157,7 @@ func (s *IAMService) EnsurePoliciesAttached(role *iam.Role, policies []*string) 
 			if err != nil {
 				return false, err
 			}
-			s.V(2).Info("Attached policy to role", "role", role.RoleName, "policy", *policy)
+			s.Debug("Attached policy to role", "role", role.RoleName, "policy", *policy)
 		}
 	}
 
@@ -212,7 +212,7 @@ func (s *IAMService) EnsureTagsAndPolicy(
 	trustRelationship *iamv1.PolicyDocument,
 	additionalTags infrav1.Tags,
 ) (bool, error) {
-	s.V(2).Info("Ensuring tags and AssumeRolePolicyDocument are set on role")
+	s.Debug("Ensuring tags and AssumeRolePolicyDocument are set on role")
 
 	rolePolicyDocumentRaw, err := url.PathUnescape(*role.AssumeRolePolicyDocument)
 	if err != nil {
@@ -286,7 +286,7 @@ func (s *IAMService) EnsureTagsAndPolicy(
 }
 
 func (s *IAMService) detachAllPoliciesForRole(name string) error {
-	s.V(3).Info("Detaching all policies for role", "role", name)
+	s.Debug("Detaching all policies for role", "role", name)
 	input := &iam.ListAttachedRolePoliciesInput{
 		RoleName: &name,
 	}
@@ -295,7 +295,7 @@ func (s *IAMService) detachAllPoliciesForRole(name string) error {
 		return errors.Wrapf(err, "error fetching policies for role %s", name)
 	}
 	for _, p := range policies.AttachedPolicies {
-		s.V(2).Info("Detaching policy", "policy", *p)
+		s.Debug("Detaching policy", "policy", *p)
 		if err := s.detachIAMRolePolicy(name, *p.PolicyArn); err != nil {
 			return err
 		}

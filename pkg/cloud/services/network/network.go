@@ -28,7 +28,7 @@ import (
 
 // ReconcileNetwork reconciles the network of the given cluster.
 func (s *Service) ReconcileNetwork() (err error) {
-	s.scope.V(2).Info("Reconciling network for cluster", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
+	s.scope.Debug("Reconciling network for cluster", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
 
 	// VPC.
 	if err := s.reconcileVPC(); err != nil {
@@ -73,13 +73,13 @@ func (s *Service) ReconcileNetwork() (err error) {
 		return err
 	}
 
-	s.scope.V(2).Info("Reconcile network completed successfully")
+	s.scope.Debug("Reconcile network completed successfully")
 	return nil
 }
 
 // DeleteNetwork deletes the network of the given cluster.
 func (s *Service) DeleteNetwork() (err error) {
-	s.scope.V(2).Info("Deleting network")
+	s.scope.Debug("Deleting network")
 
 	vpc := &infrav1.VPCSpec{}
 	// Get VPC used for the cluster
@@ -183,6 +183,6 @@ func (s *Service) DeleteNetwork() (err error) {
 	}
 	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.VpcReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 
-	s.scope.V(2).Info("Delete network completed successfully")
+	s.scope.Debug("Delete network completed successfully")
 	return nil
 }
