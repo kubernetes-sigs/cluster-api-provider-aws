@@ -224,7 +224,7 @@ func (s *Service) ensureBucketPolicy(bucketName string) error {
 		return errors.Wrap(err, "creating S3 bucket policy")
 	}
 
-	s.scope.V(4).Info("Updated bucket policy", "bucket_name", bucketName)
+	s.scope.Trace("Updated bucket policy", "bucket_name", bucketName)
 
 	return nil
 }

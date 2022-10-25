@@ -41,7 +41,7 @@ import (
 func (s *NodegroupService) describeNodegroup() (*eks.Nodegroup, error) {
 	eksClusterName := s.scope.KubernetesClusterName()
 	nodegroupName := s.scope.NodegroupName()
-	s.scope.V(2).Info("describing eks node group", "cluster", eksClusterName, "nodegroup", nodegroupName)
+	s.scope.Debug("describing eks node group", "cluster", eksClusterName, "nodegroup", nodegroupName)
 	input := &eks.DescribeNodegroupInput{
 		ClusterName:   aws.String(eksClusterName),
 		NodegroupName: aws.String(nodegroupName),
@@ -67,7 +67,7 @@ func (s *NodegroupService) describeNodegroup() (*eks.Nodegroup, error) {
 func (s *NodegroupService) describeASGs(ng *eks.Nodegroup) (*autoscaling.Group, error) {
 	eksClusterName := s.scope.KubernetesClusterName()
 	nodegroupName := s.scope.NodegroupName()
-	s.scope.V(2).Info("describing node group ASG", "cluster", eksClusterName, "nodegroup", nodegroupName)
+	s.scope.Debug("describing node group ASG", "cluster", eksClusterName, "nodegroup", nodegroupName)
 
 	if len(ng.Resources.AutoScalingGroups) == 0 {
 		return nil, nil
@@ -401,7 +401,7 @@ func createLabelUpdate(specLabels map[string]string, ng *eks.Nodegroup) *eks.Upd
 }
 
 func (s *NodegroupService) createTaintsUpdate(specTaints expinfrav1.Taints, ng *eks.Nodegroup) (*eks.UpdateTaintsPayload, error) {
-	s.V(2).Info("Creating taints update for node group", "name", *ng.NodegroupName, "num_current", len(ng.Taints), "num_required", len(specTaints))
+	s.Debug("Creating taints update for node group", "name", *ng.NodegroupName, "num_current", len(ng.Taints), "num_required", len(specTaints))
 	current, err := converters.TaintsFromSDK(ng.Taints)
 	if err != nil {
 		return nil, fmt.Errorf("converting taints: %w", err)
@@ -428,17 +428,17 @@ func (s *NodegroupService) createTaintsUpdate(specTaints expinfrav1.Taints, ng *
 		}
 	}
 	if len(payload.AddOrUpdateTaints) > 0 || len(payload.RemoveTaints) > 0 {
-		s.V(2).Info("Node group taints update required", "name", *ng.NodegroupName, "addupdate", len(payload.AddOrUpdateTaints), "remove", len(payload.RemoveTaints))
+		s.Debug("Node group taints update required", "name", *ng.NodegroupName, "addupdate", len(payload.AddOrUpdateTaints), "remove", len(payload.RemoveTaints))
 		return &payload, nil
 	}
 
-	s.V(2).Info("No updates required for node group taints", "name", *ng.NodegroupName)
+	s.Debug("No updates required for node group taints", "name", *ng.NodegroupName)
 	return nil, nil
 }
 
 func (s *NodegroupService) reconcileNodegroupConfig(ng *eks.Nodegroup) error {
 	eksClusterName := s.scope.KubernetesClusterName()
-	s.V(2).Info("reconciling node group config", "cluster", eksClusterName, "name", *ng.NodegroupName)
+	s.Debug("reconciling node group config", "cluster", eksClusterName, "name", *ng.NodegroupName)
 
 	managedPool := s.scope.ManagedMachinePool.Spec
 	input := &eks.UpdateNodegroupConfigInput{
@@ -447,7 +447,7 @@ func (s *NodegroupService) reconcileNodegroupConfig(ng *eks.Nodegroup) error {
 	}
 	var needsUpdate bool
 	if labelPayload := createLabelUpdate(managedPool.Labels, ng); labelPayload != nil {
-		s.V(2).Info("Nodegroup labels need an update", "nodegroup", ng.NodegroupName)
+		s.Debug("Nodegroup labels need an update", "nodegroup", ng.NodegroupName)
 		input.Labels = labelPayload
 		needsUpdate = true
 	}
@@ -456,35 +456,35 @@ func (s *NodegroupService) reconcileNodegroupConfig(ng *eks.Nodegroup) error {
 		return fmt.Errorf("creating taints update payload: %w", err)
 	}
 	if taintsPayload != nil {
-		s.V(2).Info("nodegroup taints need updating")
+		s.Debug("nodegroup taints need updating")
 		input.Taints = taintsPayload
 		needsUpdate = true
 	}
 	if machinePool := s.scope.MachinePool.Spec; machinePool.Replicas == nil {
 		if ng.ScalingConfig.DesiredSize != nil && *ng.ScalingConfig.DesiredSize != 1 {
-			s.V(2).Info("Nodegroup desired size differs from spec, updating scaling configuration", "nodegroup", ng.NodegroupName)
+			s.Debug("Nodegroup desired size differs from spec, updating scaling configuration", "nodegroup", ng.NodegroupName)
 			input.ScalingConfig = s.scalingConfig()
 			needsUpdate = true
 		}
 	} else if ng.ScalingConfig.DesiredSize == nil || int64(*machinePool.Replicas) != *ng.ScalingConfig.DesiredSize {
-		s.V(2).Info("Nodegroup has no desired size or differs from replicas, updating scaling configuration", "nodegroup", ng.NodegroupName)
+		s.Debug("Nodegroup has no desired size or differs from replicas, updating scaling configuration", "nodegroup", ng.NodegroupName)
 		input.ScalingConfig = s.scalingConfig()
 		needsUpdate = true
 	}
 	if managedPool.Scaling != nil && ((aws.Int64Value(ng.ScalingConfig.MaxSize) != int64(aws.Int32Value(managedPool.Scaling.MaxSize))) ||
 		(aws.Int64Value(ng.ScalingConfig.MinSize) != int64(aws.Int32Value(managedPool.Scaling.MinSize)))) {
-		s.V(2).Info("Nodegroup min/max differ from spec, updating scaling configuration", "nodegroup", ng.NodegroupName)
+		s.Debug("Nodegroup min/max differ from spec, updating scaling configuration", "nodegroup", ng.NodegroupName)
 		input.ScalingConfig = s.scalingConfig()
 		needsUpdate = true
 	}
 	currentUpdateConfig := converters.NodegroupUpdateconfigFromSDK(ng.UpdateConfig)
 	if !cmp.Equal(managedPool.UpdateConfig, currentUpdateConfig) {
-		s.V(2).Info("Nodegroup update configuration differs from spec, updating the nodegroup update config", "nodegroup", ng.NodegroupName)
+		s.Debug("Nodegroup update configuration differs from spec, updating the nodegroup update config", "nodegroup", ng.NodegroupName)
 		input.UpdateConfig = s.updateConfig()
 		needsUpdate = true
 	}
 	if !needsUpdate {
-		s.V(2).Info("node group config update not needed", "cluster", eksClusterName, "name", *ng.NodegroupName)
+		s.Debug("node group config update not needed", "cluster", eksClusterName, "name", *ng.NodegroupName)
 		return nil
 	}
 	if err := input.Validate(); err != nil {
@@ -517,7 +517,7 @@ func (s *NodegroupService) reconcileNodegroup() error {
 		if ownedTag == nil {
 			return errors.Errorf("owner of %s mismatch: %s", eksNodegroupName, s.scope.ClusterName())
 		}
-		s.scope.V(2).Info("Found owned EKS nodegroup in AWS", "cluster-name", eksClusterName, "nodegroup-name", eksNodegroupName)
+		s.scope.Debug("Found owned EKS nodegroup in AWS", "cluster-name", eksClusterName, "nodegroup-name", eksNodegroupName)
 	}
 
 	if err := s.setStatus(ng); err != nil {

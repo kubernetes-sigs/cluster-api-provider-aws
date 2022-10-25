@@ -43,7 +43,7 @@ func (s *Service) reconcileAddons(ctx context.Context) error {
 	}
 
 	// Get installed addons for the cluster
-	s.scope.V(2).Info("getting installed eks addons", "cluster", eksClusterName)
+	s.scope.Debug("getting installed eks addons", "cluster", eksClusterName)
 	installed, err := s.getClusterAddonsInstalled(eksClusterName, addonNames)
 	if err != nil {
 		return fmt.Errorf("getting installed eks addons: %w", err)
@@ -59,18 +59,18 @@ func (s *Service) reconcileAddons(ctx context.Context) error {
 	}
 
 	//  Compute operations to move installed to desired
-	s.scope.V(2).Info("creating eks addons plan", "cluster", eksClusterName, "numdesired", len(desiredAddons), "numinstalled", len(installed))
+	s.scope.Debug("creating eks addons plan", "cluster", eksClusterName, "numdesired", len(desiredAddons), "numinstalled", len(installed))
 	addonsPlan := eksaddons.NewPlan(eksClusterName, desiredAddons, installed, s.EKSClient)
 	procedures, err := addonsPlan.Create(ctx)
 	if err != nil {
 		s.scope.Error(err, "failed creating eks addons plane")
 		return fmt.Errorf("creating eks addons plan: %w", err)
 	}
-	s.scope.V(2).Info("computed EKS addons plan", "numprocs", len(procedures))
+	s.scope.Debug("computed EKS addons plan", "numprocs", len(procedures))
 
 	// Perform required operations
 	for _, procedure := range procedures {
-		s.scope.V(2).Info("Executing addon procedure", "name", procedure.Name())
+		s.scope.Debug("Executing addon procedure", "name", procedure.Name())
 		if err := procedure.Do(ctx); err != nil {
 			s.scope.Error(err, "failed executing addon procedure", "name", procedure.Name())
 			return fmt.Errorf("%s: %w", procedure.Name(), err)
@@ -80,7 +80,7 @@ func (s *Service) reconcileAddons(ctx context.Context) error {
 	// Update status with addons installed details
 	// Note: we are not relying on the computed state from the operations as we still want
 	// to update the state even if there are no operations to capture things like status changes
-	s.scope.V(2).Info("getting installed eks addons to update status", "cluster", eksClusterName)
+	s.scope.Debug("getting installed eks addons to update status", "cluster", eksClusterName)
 	addonState, err := s.getInstalledState(eksClusterName, addonNames)
 	if err != nil {
 		return fmt.Errorf("getting installed state of eks addons: %w", err)
@@ -92,13 +92,13 @@ func (s *Service) reconcileAddons(ctx context.Context) error {
 		return fmt.Errorf("failed to update control plane: %w", err)
 	}
 	record.Eventf(s.scope.ControlPlane, "SuccessfulReconcileEKSClusterAddons", "Reconciled addons for EKS Cluster %s", s.scope.KubernetesClusterName())
-	s.scope.V(2).Info("Reconcile EKS addons completed successfully")
+	s.scope.Debug("Reconcile EKS addons completed successfully")
 
 	return nil
 }
 
 func (s *Service) getClusterAddonsInstalled(eksClusterName string, addonNames []*string) ([]*eksaddons.EKSAddon, error) {
-	s.V(2).Info("getting eks addons installed")
+	s.Debug("getting eks addons installed")
 
 	addonsInstalled := []*eksaddons.EKSAddon{}
 	if len(addonNames) == 0 {
@@ -119,7 +119,7 @@ func (s *Service) getClusterAddonsInstalled(eksClusterName string, addonNames []
 		if describeOutput.Addon == nil {
 			continue
 		}
-		s.scope.V(2).Info("describe output", "output", describeOutput.Addon)
+		s.scope.Debug("describe output", "output", describeOutput.Addon)
 
 		installedAddon := &eksaddons.EKSAddon{
 			Name:                  describeOutput.Addon.AddonName,
@@ -140,7 +140,7 @@ func (s *Service) getClusterAddonsInstalled(eksClusterName string, addonNames []
 }
 
 func (s *Service) getInstalledState(eksClusterName string, addonNames []*string) ([]ekscontrolplanev1.AddonState, error) {
-	s.V(2).Info("getting eks addons installed to create state")
+	s.Debug("getting eks addons installed to create state")
 
 	addonState := []ekscontrolplanev1.AddonState{}
 	if len(addonNames) == 0 {
@@ -161,7 +161,7 @@ func (s *Service) getInstalledState(eksClusterName string, addonNames []*string)
 		if describeOutput.Addon == nil {
 			continue
 		}
-		s.scope.V(2).Info("describe output", "output", describeOutput.Addon)
+		s.scope.Debug("describe output", "output", describeOutput.Addon)
 
 		installedAddonState := converters.AddonSDKToAddonState(describeOutput.Addon)
 		addonState = append(addonState, *installedAddonState)
@@ -171,7 +171,7 @@ func (s *Service) getInstalledState(eksClusterName string, addonNames []*string)
 }
 
 func (s *Service) listAddons(eksClusterName string) ([]*string, error) {
-	s.V(2).Info("getting list of eks addons")
+	s.Debug("getting list of eks addons")
 
 	input := &eks.ListAddonsInput{
 		ClusterName: &eksClusterName,

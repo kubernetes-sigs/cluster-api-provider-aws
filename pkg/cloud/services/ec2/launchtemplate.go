@@ -327,7 +327,7 @@ func (s *Service) GetLaunchTemplate(launchTemplateName string) (*expinfrav1.AWSL
 		return nil, "", nil
 	}
 
-	s.scope.V(2).Info("Looking for existing LaunchTemplates")
+	s.scope.Debug("Looking for existing LaunchTemplates")
 
 	input := &ec2.DescribeLaunchTemplateVersionsInput{
 		LaunchTemplateName: aws.String(launchTemplateName),
@@ -422,7 +422,7 @@ func (s *Service) CreateLaunchTemplate(scope scope.LaunchTemplateScope, imageID 
 
 // CreateLaunchTemplateVersion will create a launch template.
 func (s *Service) CreateLaunchTemplateVersion(id string, scope scope.LaunchTemplateScope, imageID *string, userData []byte) error {
-	s.scope.V(2).Info("creating new launch template version", "machine-pool", scope.LaunchTemplateName())
+	s.scope.Debug("creating new launch template version", "machine-pool", scope.LaunchTemplateName())
 
 	launchTemplateData, err := s.createLaunchTemplateData(scope, imageID, userData)
 	if err != nil {
@@ -547,7 +547,7 @@ func volumeToLaunchTemplateBlockDeviceMappingRequest(v *infrav1.Volume) *ec2.Lau
 
 // DeleteLaunchTemplate delete a launch template.
 func (s *Service) DeleteLaunchTemplate(id string) error {
-	s.scope.V(2).Info("Deleting launch template", "id", id)
+	s.scope.Debug("Deleting launch template", "id", id)
 
 	input := &ec2.DeleteLaunchTemplateInput{
 		LaunchTemplateId: aws.String(id),
@@ -557,7 +557,7 @@ func (s *Service) DeleteLaunchTemplate(id string) error {
 		return errors.Wrapf(err, "failed to delete launch template %q", id)
 	}
 
-	s.scope.V(2).Info("Deleted launch template", "id", id)
+	s.scope.Debug("Deleted launch template", "id", id)
 	return nil
 }
 
@@ -616,7 +616,7 @@ func (s *Service) GetLaunchTemplateLatestVersion(id string) (string, error) {
 }
 
 func (s *Service) deleteLaunchTemplateVersion(id string, version *int64) error {
-	s.scope.V(2).Info("Deleting launch template version", "id", id)
+	s.scope.Debug("Deleting launch template version", "id", id)
 
 	if version == nil {
 		return errors.New("version is a nil pointer")
@@ -633,7 +633,7 @@ func (s *Service) deleteLaunchTemplateVersion(id string, version *int64) error {
 		return err
 	}
 
-	s.scope.V(2).Info("Deleted launch template", "id", id, "version", *version)
+	s.scope.Debug("Deleted launch template", "id", id, "version", *version)
 	return nil
 }
 

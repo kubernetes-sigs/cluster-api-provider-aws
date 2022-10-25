@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/mock_services"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -623,7 +624,7 @@ func TestASGNeedsUpdates(t *testing.T) {
 							},
 						},
 					},
-					Logger: logr.Discard(),
+					Logger: *logger.NewLogger(logr.Discard()),
 				},
 				existingASG: &expinfrav1.AutoScalingGroup{
 					DesiredCapacity:      pointer.Int32(1),
@@ -663,7 +664,7 @@ func TestASGNeedsUpdates(t *testing.T) {
 							},
 						},
 					},
-					Logger: logr.Discard(),
+					Logger: *logger.NewLogger(logr.Discard()),
 				},
 				existingASG: &expinfrav1.AutoScalingGroup{
 					DesiredCapacity:           pointer.Int32(1),

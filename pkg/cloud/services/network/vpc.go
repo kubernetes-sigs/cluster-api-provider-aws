@@ -41,7 +41,7 @@ const (
 )
 
 func (s *Service) reconcileVPC() error {
-	s.scope.V(2).Info("Reconciling VPC")
+	s.scope.Debug("Reconciling VPC")
 
 	// If the ID is not nil, VPC is either managed or unmanaged but should exist in the AWS.
 	if s.scope.VPC().ID != "" {
@@ -56,7 +56,7 @@ func (s *Service) reconcileVPC() error {
 
 		// If VPC is unmanaged, return early.
 		if vpc.IsUnmanaged(s.scope.Name()) {
-			s.scope.V(2).Info("Working on unmanaged VPC", "vpc-id", vpc.ID)
+			s.scope.Debug("Working on unmanaged VPC", "vpc-id", vpc.ID)
 			if err := s.scope.PatchObject(); err != nil {
 				return errors.Wrap(err, "failed to patch unmanaged VPC fields")
 			}
@@ -201,7 +201,7 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 	}
 
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateVPC", "Created new managed VPC %q", *out.Vpc.VpcId)
-	s.scope.V(2).Info("Created new VPC with cidr", "vpc-id", *out.Vpc.VpcId, "cidr-block", *out.Vpc.CidrBlock)
+	s.scope.Debug("Created new VPC with cidr", "vpc-id", *out.Vpc.VpcId, "cidr-block", *out.Vpc.CidrBlock)
 
 	if !s.scope.VPC().IsIPv6Enabled() {
 		return &infrav1.VPCSpec{
@@ -257,7 +257,7 @@ func (s *Service) deleteVPC() error {
 	vpc := s.scope.VPC()
 
 	if vpc.IsUnmanaged(s.scope.Name()) {
-		s.scope.V(4).Info("Skipping VPC deletion in unmanaged mode")
+		s.scope.Trace("Skipping VPC deletion in unmanaged mode")
 		return nil
 	}
 
@@ -268,7 +268,7 @@ func (s *Service) deleteVPC() error {
 	if _, err := s.EC2Client.DeleteVpc(input); err != nil {
 		// Ignore if it's already deleted
 		if code, ok := awserrors.Code(err); ok && code == awserrors.VPCNotFound {
-			s.scope.V(4).Info("Skipping VPC deletion, VPC not found")
+			s.scope.Trace("Skipping VPC deletion, VPC not found")
 			return nil
 		}
 		record.Warnf(s.scope.InfraCluster(), "FailedDeleteVPC", "Failed to delete managed VPC %q: %v", vpc.ID, err)

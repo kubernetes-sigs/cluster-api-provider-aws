@@ -19,10 +19,10 @@ package scope
 import (
 	"fmt"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 )
 
 var (
@@ -46,19 +46,19 @@ type subnetsPlacementStratgey interface {
 	Place(input *placementInput) ([]string, error)
 }
 
-func newDefaultSubnetPlacementStrategy(logger *logr.Logger) (subnetsPlacementStratgey, error) {
+func newDefaultSubnetPlacementStrategy(logger logger.Wrapper) (subnetsPlacementStratgey, error) {
 	if logger == nil {
 		return nil, ErrLoggerRequired
 	}
 
 	return &defaultSubnetPlacementStrategy{
-		logger: *logger,
+		logger: logger,
 	}, nil
 }
 
 // defaultSubnetPlacementStrategy is the default strategy for subnet placement.
 type defaultSubnetPlacementStrategy struct {
-	logger logr.Logger
+	logger logger.Wrapper
 }
 
 // Place works out the subnet placement based on the following precedence:
@@ -69,12 +69,12 @@ type defaultSubnetPlacementStrategy struct {
 // In Cluster API Availability Zone can also be referred to by the name `Failure Domain`.
 func (p *defaultSubnetPlacementStrategy) Place(input *placementInput) ([]string, error) {
 	if len(input.SpecSubnetIDs) > 0 {
-		p.logger.V(2).Info("using subnets from the spec")
+		p.logger.Debug("using subnets from the spec")
 		return input.SpecSubnetIDs, nil
 	}
 
 	if len(input.SpecAvailabilityZones) > 0 {
-		p.logger.V(2).Info("determining subnets to use from the spec availability zones")
+		p.logger.Debug("determining subnets to use from the spec availability zones")
 		subnetIDs, err := p.getSubnetsForAZs(input.SpecAvailabilityZones, input.ControlplaneSubnets)
 		if err != nil {
 			return nil, fmt.Errorf("getting subnets for spec azs: %w", err)
@@ -84,7 +84,7 @@ func (p *defaultSubnetPlacementStrategy) Place(input *placementInput) ([]string,
 	}
 
 	if len(input.ParentAvailabilityZones) > 0 {
-		p.logger.V(2).Info("determining subnets to use from the parents availability zones")
+		p.logger.Debug("determining subnets to use from the parents availability zones")
 		subnetIDs, err := p.getSubnetsForAZs(input.ParentAvailabilityZones, input.ControlplaneSubnets)
 		if err != nil {
 			return nil, fmt.Errorf("getting subnets for parent azs: %w", err)
@@ -95,7 +95,7 @@ func (p *defaultSubnetPlacementStrategy) Place(input *placementInput) ([]string,
 
 	controlPlaneSubnetIDs := input.ControlplaneSubnets.FilterPrivate().IDs()
 	if len(controlPlaneSubnetIDs) > 0 {
-		p.logger.V(2).Info("using all the private subnets from the control plane")
+		p.logger.Debug("using all the private subnets from the control plane")
 		return controlPlaneSubnetIDs, nil
 	}
 

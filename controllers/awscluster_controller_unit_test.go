@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/mock_services"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -571,7 +572,7 @@ func TestAWSClusterReconciler_RequeueAWSClusterForUnpausedCluster(t *testing.T) 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			log := ctrl.LoggerFrom(ctx)
+			log := logger.FromContext(ctx)
 			reconciler := &AWSClusterReconciler{
 				Client: testEnv.Client,
 			}

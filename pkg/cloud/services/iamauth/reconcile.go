@@ -57,22 +57,22 @@ func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
 			Groups:   NodeGroups,
 		},
 	}
-	s.scope.V(2).Info("Mapping node IAM role", "iam-role", nodesRoleMapping.RoleARN, "user", nodesRoleMapping.UserName)
+	s.scope.Debug("Mapping node IAM role", "iam-role", nodesRoleMapping.RoleARN, "user", nodesRoleMapping.UserName)
 	if err := authBackend.MapRole(nodesRoleMapping); err != nil {
 		return fmt.Errorf("mapping iam node role: %w", err)
 	}
 
-	s.scope.V(2).Info("Mapping additional IAM roles and users")
+	s.scope.Debug("Mapping additional IAM roles and users")
 	iamCfg := s.scope.IAMAuthConfig()
 	for _, roleMapping := range iamCfg.RoleMappings {
-		s.scope.V(2).Info("Mapping IAM role", "iam-role", roleMapping.RoleARN, "user", roleMapping.UserName)
+		s.scope.Debug("Mapping IAM role", "iam-role", roleMapping.RoleARN, "user", roleMapping.UserName)
 		if err := authBackend.MapRole(roleMapping); err != nil {
 			return fmt.Errorf("mapping iam role: %w", err)
 		}
 	}
 
 	for _, userMapping := range iamCfg.UserMappings {
-		s.scope.V(2).Info("Mapping IAM user", "iam-user", userMapping.UserARN, "user", userMapping.UserName)
+		s.scope.Debug("Mapping IAM user", "iam-user", userMapping.UserARN, "user", userMapping.UserName)
 		if err := authBackend.MapUser(userMapping); err != nil {
 			return fmt.Errorf("mapping iam user: %w", err)
 		}

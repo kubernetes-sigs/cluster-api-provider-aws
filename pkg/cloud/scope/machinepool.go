@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,6 +33,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -45,7 +45,7 @@ import (
 
 // MachinePoolScope defines a scope defined around a machine and its cluster.
 type MachinePoolScope struct {
-	logr.Logger
+	logger.Logger
 	client.Client
 	patchHelper *patch.Helper
 
@@ -58,7 +58,7 @@ type MachinePoolScope struct {
 // MachinePoolScopeParams defines a scope defined around a machine and its cluster.
 type MachinePoolScopeParams struct {
 	client.Client
-	Logger *logr.Logger
+	Logger *logger.Logger
 
 	Cluster        *clusterv1.Cluster
 	MachinePool    *expclusterv1.MachinePool
@@ -95,7 +95,7 @@ func NewMachinePoolScope(params MachinePoolScopeParams) (*MachinePoolScope, erro
 
 	if params.Logger == nil {
 		log := klog.Background()
-		params.Logger = &log
+		params.Logger = logger.NewLogger(log)
 	}
 
 	helper, err := patch.NewHelper(params.AWSMachinePool, params.Client)

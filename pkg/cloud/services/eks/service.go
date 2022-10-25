@@ -70,7 +70,7 @@ func NewService(controlPlaneScope *scope.ManagedControlPlaneScope, opts ...Servi
 			EKSAPI: scope.NewEKSClient(controlPlaneScope, controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
 		},
 		IAMService: iam.IAMService{
-			Logger:    controlPlaneScope.Logger,
+			Wrapper:   &controlPlaneScope.Logger,
 			IAMClient: scope.NewIAMClient(controlPlaneScope, controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
 			Client:    http.DefaultClient,
 		},
@@ -102,7 +102,7 @@ func NewNodegroupService(machinePoolScope *scope.ManagedMachinePoolScope) *Nodeg
 		AutoscalingClient: scope.NewASGClient(machinePoolScope, machinePoolScope, machinePoolScope, machinePoolScope.ManagedMachinePool),
 		EKSClient:         scope.NewEKSClient(machinePoolScope, machinePoolScope, machinePoolScope, machinePoolScope.ManagedMachinePool),
 		IAMService: iam.IAMService{
-			Logger:    machinePoolScope.Logger,
+			Wrapper:   &machinePoolScope.Logger,
 			IAMClient: scope.NewIAMClient(machinePoolScope, machinePoolScope, machinePoolScope, machinePoolScope.ManagedMachinePool),
 		},
 		STSClient: scope.NewSTSClient(machinePoolScope, machinePoolScope, machinePoolScope, machinePoolScope.ManagedMachinePool),
@@ -124,7 +124,7 @@ func NewFargateService(fargatePoolScope *scope.FargateProfileScope) *FargateServ
 		scope:     fargatePoolScope,
 		EKSClient: scope.NewEKSClient(fargatePoolScope, fargatePoolScope, fargatePoolScope, fargatePoolScope.FargateProfile),
 		IAMService: iam.IAMService{
-			Logger:    fargatePoolScope.Logger,
+			Wrapper:   &fargatePoolScope.Logger,
 			IAMClient: scope.NewIAMClient(fargatePoolScope, fargatePoolScope, fargatePoolScope, fargatePoolScope.FargateProfile),
 		},
 		STSClient: scope.NewSTSClient(fargatePoolScope, fargatePoolScope, fargatePoolScope, fargatePoolScope.FargateProfile),

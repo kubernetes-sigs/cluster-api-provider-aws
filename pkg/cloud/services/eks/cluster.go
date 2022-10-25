@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
@@ -33,7 +34,6 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/internal/cidr"
@@ -45,7 +45,7 @@ import (
 )
 
 func (s *Service) reconcileCluster(ctx context.Context) error {
-	s.scope.V(2).Info("Reconciling EKS cluster")
+	s.scope.Debug("Reconciling EKS cluster")
 
 	eksClusterName := s.scope.KubernetesClusterName()
 
@@ -72,7 +72,7 @@ func (s *Service) reconcileCluster(ctx context.Context) error {
 			return fmt.Errorf("EKS cluster resource %q must have a tag with key %q or %q", eksClusterName, oldTagKey, tagKey)
 		}
 
-		s.scope.V(2).Info("Found owned EKS cluster in AWS", "cluster", klog.KRef("", eksClusterName))
+		s.scope.Debug("Found owned EKS cluster in AWS", "cluster", klog.KRef("", eksClusterName))
 	}
 
 	if err := s.setStatus(cluster); err != nil {
@@ -94,7 +94,7 @@ func (s *Service) reconcileCluster(ctx context.Context) error {
 		return nil
 	}
 
-	s.scope.V(2).Info("EKS Control Plane active", "endpoint", *cluster.Endpoint)
+	s.scope.Debug("EKS Control Plane active", "endpoint", *cluster.Endpoint)
 
 	s.scope.ControlPlane.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
 		Host: *cluster.Endpoint,
@@ -175,14 +175,14 @@ func (s *Service) deleteCluster() error {
 	eksClusterName := s.scope.KubernetesClusterName()
 
 	if eksClusterName == "" {
-		s.scope.V(2).Info("no EKS cluster name, skipping EKS cluster deletion")
+		s.scope.Debug("no EKS cluster name, skipping EKS cluster deletion")
 		return nil
 	}
 
 	cluster, err := s.describeEKSCluster(eksClusterName)
 	if err != nil {
 		if awserrors.IsNotFound(err) {
-			s.scope.V(4).Info("eks cluster does not exist")
+			s.scope.Trace("eks cluster does not exist")
 			return nil
 		}
 		return errors.Wrap(err, "unable to describe eks cluster")
@@ -538,12 +538,12 @@ func (s *Service) reconcileEKSEncryptionConfig(currentClusterConfig []*eks.Encry
 	updatedEncryptionConfigs := makeEksEncryptionConfigs(encryptionConfigs)
 
 	if compareEncryptionConfig(currentClusterConfig, updatedEncryptionConfigs) {
-		s.V(2).Info("encryption configuration unchanged, no action")
+		s.Debug("encryption configuration unchanged, no action")
 		return nil
 	}
 
 	if len(currentClusterConfig) == 0 && len(updatedEncryptionConfigs) > 0 {
-		s.V(2).Info("enabling encryption for eks cluster", "cluster", s.scope.KubernetesClusterName())
+		s.Debug("enabling encryption for eks cluster", "cluster", s.scope.KubernetesClusterName())
 		if err := s.updateEncryptionConfig(updatedEncryptionConfigs); err != nil {
 			record.Warnf(s.scope.ControlPlane, "FailedUpdateEKSControlPlane", "failed to update the EKS control plane encryption configuration: %v", err)
 			return errors.Wrapf(err, "failed to update EKS cluster")
@@ -592,7 +592,7 @@ func (s *Service) reconcileClusterVersion(cluster *eks.Cluster) error {
 			// status is ACTIVE and the update would be tried again
 			if err := s.EKSClient.WaitUntilClusterUpdating(
 				&eks.DescribeClusterInput{Name: aws.String(s.scope.KubernetesClusterName())},
-				request.WithWaiterLogger(&awslog{s}),
+				request.WithWaiterLogger(&awslog{s.GetLogger()}),
 			); err != nil {
 				return false, err
 			}
@@ -649,7 +649,7 @@ func (s *Service) updateEncryptionConfig(updatedEncryptionConfigs []*eks.Encrypt
 		// status is ACTIVE and the update would be tried again
 		if err := s.EKSClient.WaitUntilClusterUpdating(
 			&eks.DescribeClusterInput{Name: aws.String(s.scope.KubernetesClusterName())},
-			request.WithWaiterLogger(&awslog{s}),
+			request.WithWaiterLogger(&awslog{s.GetLogger()}),
 		); err != nil {
 			return false, err
 		}
@@ -666,7 +666,7 @@ func (s *Service) updateEncryptionConfig(updatedEncryptionConfigs []*eks.Encrypt
 
 // An internal type to satisfy aws' log interface.
 type awslog struct {
-	cloud.Logger
+	logr.Logger
 }
 
 func (a *awslog) Log(args ...interface{}) {
