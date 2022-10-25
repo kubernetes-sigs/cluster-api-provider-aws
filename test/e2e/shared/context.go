@@ -89,6 +89,8 @@ type Settings struct {
 	SkipCloudFormationCreation bool
 	// SkipCloudFormationDeletion prevents the deletion of the AWS CloudFormation stack.
 	SkipCloudFormationDeletion bool
+	// SkipQuotas will skip requesting quotas for aws services.
+	SkipQuotas bool
 	// number of ginkgo nodes to use for kubetest.
 	GinkgoNodes int
 	// time in s before kubetest spec is marked as slow.
