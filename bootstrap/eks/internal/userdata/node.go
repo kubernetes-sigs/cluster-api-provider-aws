@@ -22,11 +22,24 @@ import (
 	"text/template"
 
 	"github.com/alessio/shellescape"
+
+	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
 )
 
 const (
-	nodeUserData = `#!/bin/bash
-/etc/eks/bootstrap.sh {{.ClusterName}} {{- template "args" . }}
+	defaultBootstrapCommand = "/etc/eks/bootstrap.sh"
+
+	nodeUserData = `#cloud-config
+{{template "files" .Files}}
+runcmd:
+{{- template "commands" .PreBootstrapCommands }}
+  - {{ .BootstrapCommand }} {{.ClusterName}} {{- template "args" . }}
+{{- template "commands" .PostBootstrapCommands }}
+{{- template "ntp" .NTP }}
+{{- template "users" .Users }}
+{{- template "disk_setup" .DiskSetup}}
+{{- template "fs_setup" .DiskSetup}}
+{{- template "mounts" .Mounts}}
 `
 )
 
@@ -43,8 +56,16 @@ type NodeInput struct {
 	UseMaxPods            *bool
 	// NOTE: currently the IPFamily/ServiceIPV6Cidr isn't exposed to the user.
 	// TODO (richardcase): remove the above comment when IPV6 / dual stack is implemented.
-	IPFamily        *string
-	ServiceIPV6Cidr *string
+	IPFamily                 *string
+	ServiceIPV6Cidr          *string
+	PreBootstrapCommands     []string
+	PostBootstrapCommands    []string
+	BootstrapCommandOverride *string
+	Files                    []eksbootstrapv1.File
+	DiskSetup                *eksbootstrapv1.DiskSetup
+	Mounts                   []eksbootstrapv1.MountPoints
+	Users                    []eksbootstrapv1.User
+	NTP                      *eksbootstrapv1.NTP
 }
 
 func (ni *NodeInput) DockerConfigJSONEscaped() string {
@@ -55,9 +76,21 @@ func (ni *NodeInput) DockerConfigJSONEscaped() string {
 	return shellescape.Quote(*ni.DockerConfigJSON)
 }
 
+func (ni *NodeInput) BootstrapCommand() string {
+	if ni.BootstrapCommandOverride != nil && *ni.BootstrapCommandOverride != "" {
+		return *ni.BootstrapCommandOverride
+	}
+
+	return defaultBootstrapCommand
+}
+
 // NewNode returns the user data string to be used on a node instance.
 func NewNode(input *NodeInput) ([]byte, error) {
-	tm := template.New("Node")
+	tm := template.New("Node").Funcs(defaultTemplateFuncMap)
+
+	if _, err := tm.Parse(filesTemplate); err != nil {
+		return nil, fmt.Errorf("failed to parse args template: %w", err)
+	}
 
 	if _, err := tm.Parse(argsTemplate); err != nil {
 		return nil, fmt.Errorf("failed to parse args template: %w", err)
@@ -65,6 +98,30 @@ func NewNode(input *NodeInput) ([]byte, error) {
 
 	if _, err := tm.Parse(kubeletArgsTemplate); err != nil {
 		return nil, fmt.Errorf("failed to parse kubeletExtraArgs template: %w", err)
+	}
+
+	if _, err := tm.Parse(commandsTemplate); err != nil {
+		return nil, fmt.Errorf("failed to parse commandsTemplate template: %w", err)
+	}
+
+	if _, err := tm.Parse(ntpTemplate); err != nil {
+		return nil, fmt.Errorf("failed to parse ntp template: %w", err)
+	}
+
+	if _, err := tm.Parse(usersTemplate); err != nil {
+		return nil, fmt.Errorf("failed to parse users template: %w", err)
+	}
+
+	if _, err := tm.Parse(diskSetupTemplate); err != nil {
+		return nil, fmt.Errorf("failed to parse disk setup template: %w", err)
+	}
+
+	if _, err := tm.Parse(fsSetupTemplate); err != nil {
+		return nil, fmt.Errorf("failed to parse fs setup template: %w", err)
+	}
+
+	if _, err := tm.Parse(mountsTemplate); err != nil {
+		return nil, fmt.Errorf("failed to parse mounts template: %w", err)
 	}
 
 	t, err := tm.Parse(nodeUserData)
