@@ -20,6 +20,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 )
@@ -59,6 +60,25 @@ func TestAWSMachineTemplateValidateCreate(t *testing.T) {
 				},
 			},
 			wantError: true,
+		},
+		{
+			name: "ensure RootVolume DeviceName can be set for use with clusterctl move",
+			inputTemplate: &AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: AWSMachineTemplateSpec{
+					Template: AWSMachineTemplateResource{
+						Spec: AWSMachineSpec{
+							RootVolume: &Volume{
+								DeviceName: "name",
+								Type:       "gp2",
+								Size:       *aws.Int64(8),
+							},
+							InstanceType: "test",
+						},
+					},
+				},
+			},
+			wantError: false,
 		},
 	}
 	for _, tt := range tests {

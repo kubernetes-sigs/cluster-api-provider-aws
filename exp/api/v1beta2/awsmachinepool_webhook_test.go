@@ -124,6 +124,21 @@ func TestAWSMachinePool_ValidateCreate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "Ensure root volume with device name works (for clusterctl move)",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						RootVolume: &infrav1.Volume{
+							DeviceName: "name",
+							Type:       "gp2",
+							Size:       *aws.Int64(8),
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
