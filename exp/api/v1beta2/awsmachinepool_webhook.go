@@ -75,7 +75,7 @@ func (r *AWSMachinePool) validateRootVolume() field.ErrorList {
 	}
 
 	if r.Spec.AWSLaunchTemplate.RootVolume.DeviceName != "" {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.rootVolume.deviceName"), "root volume shouldn't have device name"))
+		log.Info("root volume shouldn't have a device name (this can be ignored if performing a `clusterctl move`)")
 	}
 
 	return allErrs
