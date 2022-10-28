@@ -51,7 +51,7 @@ func (r *AWSMachineReconciler) ensureSecurityGroups(ec2svc service.EC2Interface,
 
 	additionalSecurityGroupsIDs, err := ec2svc.GetAdditionalSecurityGroupsIDs(additional)
 	if err != nil {
-		return false, nil //nolint:nilerr
+		return false, err
 	}
 
 	changed, ids := r.securityGroupsChanged(annotation, core, additionalSecurityGroupsIDs, existing)
