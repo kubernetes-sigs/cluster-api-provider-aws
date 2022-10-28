@@ -19,7 +19,6 @@ package ec2
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -772,12 +771,12 @@ func (s *Service) GetAdditionalSecurityGroupsIDs(securityGroups []infrav1.AWSRes
 		if sg.ID != nil {
 			additionalSecurityGroupsIDs = append(additionalSecurityGroupsIDs, *sg.ID)
 		} else if sg.Filters != nil {
-			id, err := s.getFilteredSecurityGroupID(sg)
+			ids, err := s.getFilteredSecurityGroupIDs(sg)
 			if err != nil {
 				return nil, err
 			}
 
-			additionalSecurityGroupsIDs = append(additionalSecurityGroupsIDs, id)
+			additionalSecurityGroupsIDs = append(additionalSecurityGroupsIDs, ids...)
 		}
 	}
 
@@ -822,10 +821,10 @@ func (s *Service) buildLaunchTemplateTagSpecificationRequest(scope scope.LaunchT
 	return tagSpecifications
 }
 
-// getFilteredSecurityGroupID get security group ID using filters.
-func (s *Service) getFilteredSecurityGroupID(securityGroup infrav1.AWSResourceReference) (string, error) {
+// getFilteredSecurityGroupIDs get security group IDs using filters.
+func (s *Service) getFilteredSecurityGroupIDs(securityGroup infrav1.AWSResourceReference) ([]string, error) {
 	if securityGroup.Filters == nil {
-		return "", nil
+		return nil, nil
 	}
 
 	filters := []*ec2.Filter{}
@@ -835,14 +834,14 @@ func (s *Service) getFilteredSecurityGroupID(securityGroup infrav1.AWSResourceRe
 
 	sgs, err := s.EC2Client.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{Filters: filters})
 	if err != nil {
-		return "", err
+		return nil, err
+	}
+	ids := make([]string, 0, len(sgs.SecurityGroups))
+	for _, sg := range sgs.SecurityGroups {
+		ids = append(ids, *sg.GroupId)
 	}
 
-	if len(sgs.SecurityGroups) == 0 {
-		return "", fmt.Errorf("failed to find security group matching filters: %q, reason: %w", filters, err)
-	}
-
-	return *sgs.SecurityGroups[0].GroupId, nil
+	return ids, nil
 }
 
 func getLaunchTemplateInstanceMarketOptionsRequest(spotMarketOptions *infrav1.SpotMarketOptions) *ec2.LaunchTemplateInstanceMarketOptionsRequest {
