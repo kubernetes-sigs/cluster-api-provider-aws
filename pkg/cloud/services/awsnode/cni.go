@@ -75,7 +75,6 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 		for i := range ds.Spec.Template.Spec.Containers {
 			container := &ds.Spec.Template.Spec.Containers[i]
 			if container.Name == "aws-node" {
-				container.Env = s.filterEnv(container.Env)
 				container.Env, needsUpdate = s.applyUserProvidedEnvironmentProperties(container.Env)
 			}
 		}
@@ -164,22 +163,7 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 		}
 	}
 
-	s.scope.Info("updating containers", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
-	for i := range ds.Spec.Template.Spec.Containers {
-		if ds.Spec.Template.Spec.Containers[i].Name == "aws-node" {
-			ds.Spec.Template.Spec.Containers[i].Env = append(s.filterEnv(ds.Spec.Template.Spec.Containers[i].Env),
-				corev1.EnvVar{
-					Name:  "AWS_VPC_K8S_CNI_CUSTOM_NETWORK_CFG",
-					Value: "true",
-				},
-				corev1.EnvVar{
-					Name:  "ENI_CONFIG_LABEL_DEF",
-					Value: "failure-domain.beta.kubernetes.io/zone",
-				},
-			)
-		}
-	}
-
+	s.scope.Info("updating containers", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
 	return remoteClient.Update(ctx, &ds, &client.UpdateOptions{})
 }
 
@@ -197,18 +181,6 @@ func (s *Service) getSecurityGroups() ([]string, error) {
 	}
 
 	return sgs, nil
-}
-
-func (s *Service) filterEnv(env []corev1.EnvVar) []corev1.EnvVar {
-	var i int
-	for _, e := range env {
-		if e.Name == "ENI_CONFIG_LABEL_DEF" || e.Name == "AWS_VPC_K8S_CNI_CUSTOM_NETWORK_CFG" {
-			continue
-		}
-		env[i] = e
-		i++
-	}
-	return env[:i]
 }
 
 // applyUserProvidedEnvironmentProperties takes a container environment and applies user provided values to it.
