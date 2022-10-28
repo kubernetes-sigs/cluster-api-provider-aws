@@ -7,7 +7,7 @@ replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.2.2
 require (
 	github.com/alessio/shellescape v1.4.1
 	github.com/apparentlymart/go-cidr v1.1.0
-	github.com/aws/amazon-vpc-cni-k8s v1.11.4
+	github.com/aws/amazon-vpc-cni-k8s v1.12.0
 	github.com/aws/aws-lambda-go v1.34.1
 	github.com/aws/aws-sdk-go v1.44.107
 	github.com/awslabs/goformation/v4 v4.19.5
