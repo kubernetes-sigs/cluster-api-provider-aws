@@ -8,7 +8,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/golangci/golangci-lint v1.50.1
 	github.com/itchyny/gojq v0.12.9
-	github.com/joelanford/go-apidiff v0.4.0
+	github.com/joelanford/go-apidiff v0.5.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/spf13/pflag v1.0.5
 	k8s.io/apimachinery v0.25.0
@@ -221,7 +221,7 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.19.1 // indirect
 	golang.org/x/crypto v0.1.0 // indirect
-	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
+	golang.org/x/exp v0.0.0-20220921164117-439092de6870 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20220827204233-334a2380cb91 // indirect
 	golang.org/x/mod v0.6.0 // indirect
 	golang.org/x/net v0.1.0 // indirect
