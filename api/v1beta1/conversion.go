@@ -32,3 +32,15 @@ func Convert_v1beta1_AWSResourceReference_To_v1beta2_AWSResourceReference(in *AW
 func Convert_v1beta1_AWSMachineSpec_To_v1beta2_AWSMachineSpec(in *AWSMachineSpec, out *v1beta2.AWSMachineSpec, s conversion.Scope) error {
 	return autoConvert_v1beta1_AWSMachineSpec_To_v1beta2_AWSMachineSpec(in, out, s)
 }
+
+func Convert_v1beta2_AWSLoadBalancerSpec_To_v1beta1_AWSLoadBalancerSpec(in *v1beta2.AWSLoadBalancerSpec, out *AWSLoadBalancerSpec, s conversion.Scope) error {
+	return autoConvert_v1beta2_AWSLoadBalancerSpec_To_v1beta1_AWSLoadBalancerSpec(in, out, s)
+}
+
+func Convert_v1beta1_ClassicELB_To_v1beta2_ClassicELB(in *ClassicELB, out *v1beta2.ClassicELB, s conversion.Scope) error {
+	return autoConvert_v1beta1_ClassicELB_To_v1beta2_ClassicELB(in, out, s)
+}
+
+func Convert_v1beta2_NetworkStatus_To_v1beta1_NetworkStatus(in *v1beta2.NetworkStatus, out *NetworkStatus, s conversion.Scope) error {
+	return autoConvert_v1beta2_NetworkStatus_To_v1beta1_NetworkStatus(in, out, s)
+}
