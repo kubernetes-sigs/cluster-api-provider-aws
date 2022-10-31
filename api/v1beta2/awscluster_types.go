@@ -152,6 +152,15 @@ type Bastion struct {
 	AMI string `json:"ami,omitempty"`
 }
 
+type LoadBalancerType string
+
+var (
+	LoadBalancerTypeClassic = LoadBalancerType("classic")
+	LoadBalancerTypeELB     = LoadBalancerType("elb")
+	LoadBalancerTypeALB     = LoadBalancerType("alb")
+	LoadBalancerTypeNLB     = LoadBalancerType("nlb")
+)
+
 // AWSLoadBalancerSpec defines the desired state of an AWS load balancer.
 type AWSLoadBalancerSpec struct {
 	// Name sets the name of the classic ELB load balancer. As per AWS, the name must be unique
@@ -193,6 +202,14 @@ type AWSLoadBalancerSpec struct {
 	// This is optional - if not provided new security groups will be created for the load balancer
 	// +optional
 	AdditionalSecurityGroups []string `json:"additionalSecurityGroups,omitempty"`
+
+	// LoadBalancerType sets the type for a load balancer. The default type is classic.
+	// +kubebuilder:validation:Enum:=classic;elb;alb;nlb
+	LoadBalancerType LoadBalancerType `json:"loadBalancerType,omitempty"`
+
+	// DisableHostsRewrite disabled the hair pinning issue solution that adds the NLB's address as 127.0.0.1 to the hosts
+	// file of each instance. This is by default, false.
+	DisableHostsRewrite bool `json:"disableHostsRewrite,omitempty"`
 }
 
 // AWSClusterStatus defines the observed state of AWSCluster.

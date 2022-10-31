@@ -21,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/ssm"
 
@@ -76,12 +77,39 @@ func ELBTagsToMap(src []*elb.Tag) infrav1.Tags {
 	return tags
 }
 
+// V2TagsToMap converts a []*elbv2.Tag into a infrav1.Tags.
+func V2TagsToMap(src []*elbv2.Tag) infrav1.Tags {
+	tags := make(infrav1.Tags, len(src))
+
+	for _, t := range src {
+		tags[*t.Key] = *t.Value
+	}
+
+	return tags
+}
+
 // MapToELBTags converts a infrav1.Tags to a []*elb.Tag.
 func MapToELBTags(src infrav1.Tags) []*elb.Tag {
 	tags := make([]*elb.Tag, 0, len(src))
 
 	for k, v := range src {
 		tag := &elb.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v),
+		}
+
+		tags = append(tags, tag)
+	}
+
+	return tags
+}
+
+// MapToV2Tags converts a infrav1.Tags to a []*elbv2.Tag.
+func MapToV2Tags(src infrav1.Tags) []*elbv2.Tag {
+	tags := make([]*elbv2.Tag, 0, len(src))
+
+	for k, v := range src {
+		tag := &elbv2.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v),
 		}

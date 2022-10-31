@@ -114,6 +114,9 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
 		cs.AWSCluster.Status.Network.APIServerELB.DNSName = DNSName
+		cs.AWSCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
+			LoadBalancerType: infrav1.LoadBalancerTypeClassic,
+		}
 		cs.AWSCluster.Status.Network.SecurityGroups = map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 			infrav1.SecurityGroupNode: {
 				ID: "1",
@@ -186,6 +189,9 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}})
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
+		cs.AWSCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
+			LoadBalancerType: infrav1.LoadBalancerTypeClassic,
+		}
 		ms, err := getMachineScope(cs, awsMachine)
 		g.Expect(err).To(BeNil())
 
@@ -263,6 +269,9 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
 		cs.AWSCluster.Status.Network.APIServerELB.DNSName = DNSName
+		cs.AWSCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
+			LoadBalancerType: infrav1.LoadBalancerTypeClassic,
+		}
 		cs.AWSCluster.Status.Network.SecurityGroups = map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 			infrav1.SecurityGroupNode: {
 				ID: "1",
@@ -338,6 +347,9 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}})
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
+		cs.AWSCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
+			LoadBalancerType: infrav1.LoadBalancerTypeClassic,
+		}
 		ms, err := getMachineScope(cs, awsMachine)
 		g.Expect(err).To(BeNil())
 

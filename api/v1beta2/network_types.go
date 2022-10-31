@@ -29,6 +29,9 @@ type NetworkStatus struct {
 
 	// APIServerELB is the Kubernetes api server classic load balancer.
 	APIServerELB ClassicELB `json:"apiServerElb,omitempty"`
+
+	// APIServerLB is the Kubernetes api server load balancer.
+	APIServerLB LBSpec `json:"apiServerLb,omitempty"`
 }
 
 // ClassicELBScheme defines the scheme of a classic load balancer.
@@ -42,6 +45,18 @@ var (
 	// ClassicELBSchemeInternal defines an internal-only facing
 	// load balancer internal to an ELB.
 	ClassicELBSchemeInternal = ClassicELBScheme("internal")
+)
+
+// LBScheme defines the scheme of a network load balancer.
+type LBScheme string
+
+var (
+	// LBSchemeInternal defines an internal-only facing
+	// load balancer internal to an ELB.
+	LBSchemeInternal = ClassicELBScheme("internal")
+
+	// LBSchemeIncorrectInternetFacing was inaccurately used to define an internet-facing LB in v0.6 releases > v0.6.6 and v0.7.0 release.
+	LBSchemeIncorrectInternetFacing = ClassicELBScheme("Internet-facing")
 )
 
 func (e ClassicELBScheme) String() string {
@@ -68,6 +83,51 @@ var (
 	// ClassicELBProtocolHTTPS defines the ELB API string representing the HTTP protocol at L7.
 	ClassicELBProtocolHTTPS = ClassicELBProtocol("HTTPS")
 )
+
+// LBProtocol defines listener protocols for a classic load balancer.
+type LBProtocol string
+
+func (e LBProtocol) String() string {
+	return string(e)
+}
+
+var (
+	// LBProtocolTCP defines the NLB API string representing the TCP protocol.
+	LBProtocolTCP = LBProtocol("TCP")
+	// LBProtocolTLS defines the NLB API string representing the TLS protocol.
+	LBProtocolTLS = LBProtocol("TLS")
+	// LBProtocolUDP defines the NLB API string representing the UPD protocol.
+	LBProtocolUDP = LBProtocol("UDP")
+)
+
+// TargetGroupHealthCheck defines health check settings for the target group.
+// TODO: Create default values for these.
+type TargetGroupHealthCheck struct {
+	HealthCheckProtocol        *string `json:"healthCheckProtocol"`
+	HealthCheckPath            *string `json:"healthCheckPath"`
+	HealthCheckIntervalSeconds *int64  `json:"healthCheckIntervalSeconds"`
+	HealthCheckTimeoutSeconds  *int64  `json:"healthCheckTimeoutSeconds"`
+	HealthyThresholdCount      *int64  `json:"healthyThresholdCount"`
+}
+
+// LBTargetGroupSpec specifies target group settings for a given listener.
+// This is created first, and the ARN is then passed to the listener.
+type LBTargetGroupSpec struct {
+	Name *string `json:"name"`
+	Port *int64  `json:"port"`
+	// +kubebuilder:validation:Enum=tcp;tls;upd
+	Protocol LBProtocol `json:"protocol"`
+	VpcID    *string    `json:"vpcId"`
+	// HealthCheck is the classic elb health check associated with the load balancer.
+	HealthCheck *TargetGroupHealthCheck `json:"targetGroupHealthCheck,omitempty"`
+}
+
+// LBListener defines an AWS network load balancer listener.
+type LBListener struct {
+	Protocol    LBProtocol        `json:"protocol"`
+	Port        int64             `json:"port"`
+	TargetGroup LBTargetGroupSpec `json:"targetGroup"`
+}
 
 // ClassicELB defines an AWS classic load balancer.
 type ClassicELB struct {
@@ -104,6 +164,41 @@ type ClassicELB struct {
 	Tags map[string]string `json:"tags,omitempty"`
 }
 
+// LBSpec defines an AWS network load balancer.
+type LBSpec struct {
+	// ARN of the load balancer. Unlike the ClassicLB, ARN is used mostly
+	// to define and get it.
+	ARN string `json:"arn,omitempty"`
+	// The name of the load balancer. It must be unique within the set of load balancers
+	// defined in the region. It also serves as identifier.
+	// +optional
+	Name string `json:"name,omitempty"`
+
+	// Scheme is the load balancer scheme, either internet-facing or private.
+	Scheme LBScheme `json:"scheme,omitempty"`
+
+	// DNSName is the dns name of the load balancer.
+	DNSName string `json:"dnsName,omitempty"`
+
+	// AvailabilityZones is an array of availability zones in the VPC attached to the load balancer.
+	AvailabilityZones []string `json:"availabilityZones,omitempty"`
+
+	// SubnetIDs is an array of subnets in the VPC attached to the load balancer.
+	SubnetIDs []string `json:"subnetIds,omitempty"`
+
+	// SecurityGroupIDs is an array of security groups assigned to the load balancer.
+	SecurityGroupIDs []string `json:"securityGroupIds,omitempty"`
+
+	// Listeners is an array of classic elb listeners associated with the load balancer. There must be at least one.
+	Listeners []LBListener `json:"listeners,omitempty"`
+
+	// Attributes defines extra attributes associated with the load balancer.
+	Attributes map[string]*string `json:"attributes,omitempty"`
+
+	// Tags is a map of tags associated with the load balancer.
+	Tags map[string]string `json:"tags,omitempty"`
+}
+
 // IsUnmanaged returns true if the Classic ELB is unmanaged.
 func (b *ClassicELB) IsUnmanaged(clusterName string) bool {
 	return b.Name != "" && !Tags(b.Tags).HasOwned(clusterName)
@@ -112,6 +207,16 @@ func (b *ClassicELB) IsUnmanaged(clusterName string) bool {
 // IsManaged returns true if Classic ELB is managed.
 func (b *ClassicELB) IsManaged(clusterName string) bool {
 	return !b.IsUnmanaged(clusterName)
+}
+
+// IsManaged returns true if LB is managed.
+func (lb *LBSpec) IsManaged(clusterName string) bool {
+	return !lb.IsUnmanaged(clusterName)
+}
+
+// IsUnmanaged returns true if the LB is unmanaged.
+func (lb *LBSpec) IsUnmanaged(clusterName string) bool {
+	return lb.Name != "" && !Tags(lb.Tags).HasOwned(clusterName)
 }
 
 // ClassicELBAttributes defines extra attributes associated with a classic load balancer.

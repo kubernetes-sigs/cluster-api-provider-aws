@@ -578,10 +578,25 @@ spec:
                               registered instances in its Availability Zone only.
                               \n Defaults to false."
                             type: boolean
+                          disableHostsRewrite:
+                            description: DisableHostsRewrite disabled the hair pinning
+                              issue solution that adds the NLB's address as 127.0.0.1
+                              to the hosts file of each instance. This is by default,
+                              false.
+                            type: boolean
                           healthCheckProtocol:
                             description: HealthCheckProtocol sets the protocol type
                               for classic ELB health check target default value is
                               ClassicELBProtocolSSL
+                            type: string
+                          loadBalancerType:
+                            description: LoadBalancerType sets the type for a load
+                              balancer. The default type is classic.
+                            enum:
+                            - classic
+                            - elb
+                            - alb
+                            - nlb
                             type: string
                           name:
                             description: Name sets the name of the classic ELB load

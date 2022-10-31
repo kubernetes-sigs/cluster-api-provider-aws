@@ -250,6 +250,7 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+<<<<<<< HEAD
 	if err := s.AddConversionFunc((*apiv1beta2.NetworkStatus)(nil), (*apiv1beta1.NetworkStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_NetworkStatus_To_v1beta1_NetworkStatus(a.(*apiv1beta2.NetworkStatus), b.(*apiv1beta1.NetworkStatus), scope)
 	}); err != nil {
@@ -260,6 +261,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+=======
+>>>>>>> 99e8b0a3 (Add ability to use NLBs as control plane load-balancers)
 	return nil
 }
 

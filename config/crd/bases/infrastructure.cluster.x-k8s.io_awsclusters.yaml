@@ -984,9 +984,23 @@ spec:
                       registered instances in its Availability Zone only. \n Defaults
                       to false."
                     type: boolean
+                  disableHostsRewrite:
+                    description: DisableHostsRewrite disabled the hair pinning issue
+                      solution that adds the NLB's address as 127.0.0.1 to the hosts
+                      file of each instance. This is by default, false.
+                    type: boolean
                   healthCheckProtocol:
                     description: HealthCheckProtocol sets the protocol type for classic
                       ELB health check target default value is ClassicELBProtocolSSL
+                    type: string
+                  loadBalancerType:
+                    description: LoadBalancerType sets the type for a load balancer.
+                      The default type is classic.
+                    enum:
+                    - classic
+                    - elb
+                    - alb
+                    - nlb
                     type: string
                   name:
                     description: Name sets the name of the classic ELB load balancer.
@@ -1607,6 +1621,127 @@ spec:
                           - instanceProtocol
                           - port
                           - protocol
+                          type: object
+                        type: array
+                      name:
+                        description: The name of the load balancer. It must be unique
+                          within the set of load balancers defined in the region.
+                          It also serves as identifier.
+                        type: string
+                      scheme:
+                        description: Scheme is the load balancer scheme, either internet-facing
+                          or private.
+                        type: string
+                      securityGroupIds:
+                        description: SecurityGroupIDs is an array of security groups
+                          assigned to the load balancer.
+                        items:
+                          type: string
+                        type: array
+                      subnetIds:
+                        description: SubnetIDs is an array of subnets in the VPC attached
+                          to the load balancer.
+                        items:
+                          type: string
+                        type: array
+                      tags:
+                        additionalProperties:
+                          type: string
+                        description: Tags is a map of tags associated with the load
+                          balancer.
+                        type: object
+                    type: object
+                  apiServerLb:
+                    description: APIServerLB is the Kubernetes api server load balancer.
+                    properties:
+                      arn:
+                        description: ARN of the load balancer. Unlike the ClassicLB,
+                          ARN is used mostly to define and get it.
+                        type: string
+                      attributes:
+                        additionalProperties:
+                          type: string
+                        description: Attributes defines extra attributes associated
+                          with the load balancer.
+                        type: object
+                      availabilityZones:
+                        description: AvailabilityZones is an array of availability
+                          zones in the VPC attached to the load balancer.
+                        items:
+                          type: string
+                        type: array
+                      dnsName:
+                        description: DNSName is the dns name of the load balancer.
+                        type: string
+                      listeners:
+                        description: Listeners is an array of classic elb listeners
+                          associated with the load balancer. There must be at least
+                          one.
+                        items:
+                          description: LBListener defines an AWS network load balancer
+                            listener.
+                          properties:
+                            port:
+                              format: int64
+                              type: integer
+                            protocol:
+                              description: LBProtocol defines listener protocols for
+                                a classic load balancer.
+                              type: string
+                            targetGroup:
+                              description: LBTargetGroupSpec specifies target group
+                                settings for a given listener. This is created first,
+                                and the ARN is then passed to the listener.
+                              properties:
+                                name:
+                                  type: string
+                                port:
+                                  format: int64
+                                  type: integer
+                                protocol:
+                                  description: LBProtocol defines listener protocols
+                                    for a classic load balancer.
+                                  enum:
+                                  - tcp
+                                  - tls
+                                  - upd
+                                  type: string
+                                targetGroupHealthCheck:
+                                  description: HealthCheck is the classic elb health
+                                    check associated with the load balancer.
+                                  properties:
+                                    healthCheckIntervalSeconds:
+                                      format: int64
+                                      type: integer
+                                    healthCheckPath:
+                                      type: string
+                                    healthCheckProtocol:
+                                      type: string
+                                    healthCheckTimeoutSeconds:
+                                      format: int64
+                                      type: integer
+                                    healthyThresholdCount:
+                                      format: int64
+                                      type: integer
+                                  required:
+                                  - healthCheckIntervalSeconds
+                                  - healthCheckPath
+                                  - healthCheckProtocol
+                                  - healthCheckTimeoutSeconds
+                                  - healthyThresholdCount
+                                  type: object
+                                vpcId:
+                                  type: string
+                              required:
+                              - name
+                              - port
+                              - protocol
+                              - vpcId
+                              type: object
+                          required:
+                          - port
+                          - protocol
+                          - targetGroup
                           type: object
                         type: array
                       name:
