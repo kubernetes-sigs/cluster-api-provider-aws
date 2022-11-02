@@ -176,7 +176,7 @@ type AWSLoadBalancerSpec struct {
 	// +kubebuilder:default=internet-facing
 	// +kubebuilder:validation:Enum=internet-facing;internal
 	// +optional
-	Scheme *ClassicELBScheme `json:"scheme,omitempty"`
+	Scheme *ElbScheme `json:"scheme,omitempty"`
 
 	// CrossZoneLoadBalancing enables the classic ELB cross availability zone balancing.
 	//
@@ -194,9 +194,9 @@ type AWSLoadBalancerSpec struct {
 	Subnets []string `json:"subnets,omitempty"`
 
 	// HealthCheckProtocol sets the protocol type for classic ELB health check target
-	// default value is ClassicELBProtocolSSL
+	// default value is ElbProtocolSSL
 	// +optional
-	HealthCheckProtocol *ClassicELBProtocol `json:"healthCheckProtocol,omitempty"`
+	HealthCheckProtocol *ElbProtocol `json:"healthCheckProtocol,omitempty"`
 
 	// AdditionalSecurityGroups sets the security groups used by the load balancer. Expected to be security group IDs
 	// This is optional - if not provided new security groups will be created for the load balancer

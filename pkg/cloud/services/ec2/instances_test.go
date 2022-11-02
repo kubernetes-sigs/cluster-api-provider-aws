@@ -348,7 +348,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -454,7 +454,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -550,7 +550,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -680,7 +680,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -811,7 +811,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -943,7 +943,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1049,7 +1049,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1155,7 +1155,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1231,7 +1231,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1338,7 +1338,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1418,7 +1418,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1485,7 +1485,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1594,7 +1594,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1685,7 +1685,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1796,7 +1796,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1889,7 +1889,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1958,7 +1958,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -2059,7 +2059,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -2196,7 +2196,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -2326,7 +2326,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -2435,7 +2435,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -2545,7 +2545,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -2655,7 +2655,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -2762,7 +2762,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -2869,7 +2869,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},

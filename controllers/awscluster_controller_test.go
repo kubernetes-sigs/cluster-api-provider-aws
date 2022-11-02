@@ -85,6 +85,9 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 
 		awsCluster := getAWSCluster("test", ns.Name)
+		awsCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
+			LoadBalancerType: infrav1.LoadBalancerTypeClassic,
+		}
 
 		g.Expect(testEnv.Create(ctx, &awsCluster)).To(Succeed())
 		g.Eventually(func() bool {
@@ -180,6 +183,9 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 			},
 			Spec: infrav1.AWSClusterSpec{
 				Region: "us-east-1",
+				ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+					LoadBalancerType: infrav1.LoadBalancerTypeClassic,
+				},
 			},
 		}
 		g.Expect(testEnv.Create(ctx, &awsCluster)).To(Succeed())
@@ -214,14 +220,15 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 		mockCtrl = gomock.NewController(t)
 		ec2Mock := mocks.NewMockEC2API(mockCtrl)
 		elbMock := mocks.NewMockELBAPI(mockCtrl)
-		expect := func(m *mocks.MockEC2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
+		elbv2Mock := mocks.NewMockELBV2API(mockCtrl)
+		expect := func(m *mocks.MockEC2APIMockRecorder, ev2 *mocks.MockELBV2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedDeleteVPCCalls(m)
 			mockedDescribeInstanceCall(m)
-			mockedDeleteLBCalls(e)
+			mockedDeleteLBCalls(true, ev2, e)
 			mockedDeleteInstanceCalls(m)
 			mockedDeleteSGCalls(m)
 		}
-		expect(ec2Mock.EXPECT(), elbMock.EXPECT())
+		expect(ec2Mock.EXPECT(), elbv2Mock.EXPECT(), elbMock.EXPECT())
 
 		setup(t)
 		controllerIdentity := createControllerIdentity(g)
@@ -263,6 +270,7 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 		elbSvc := elbService.NewService(cs)
 		elbSvc.EC2Client = ec2Mock
 		elbSvc.ELBClient = elbMock
+		elbSvc.ELBV2Client = elbv2Mock
 		reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
 			return elbSvc
 		}

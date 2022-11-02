@@ -96,9 +96,12 @@ func (s *Service) reconcileV2LB(loadBalancerType infrav1.LoadBalancerType) error
 		// Failed to describe the classic ELB
 		return err
 	}
+
+	// set up the type for later processing
+	lb.LoadBalancerType = loadBalancerType
 	if lb.IsManaged(s.scope.Name()) {
-		if !cmp.Equal(spec.Attributes, lb.Attributes) {
-			if err := s.configureLBAttributes(lb.ARN, spec.Attributes); err != nil {
+		if !cmp.Equal(spec.V2Attributes, lb.V2Attributes) {
+			if err := s.configureLBAttributes(lb.ARN, spec.V2Attributes); err != nil {
 				return err
 			}
 		}
@@ -123,60 +126,55 @@ func (s *Service) reconcileV2LB(loadBalancerType infrav1.LoadBalancerType) error
 		}
 
 		// Reconcile the security groups from the spec and the ones currently attached to the load balancer
-		//if !sets.NewString(lb.SecurityGroupIDs...).Equal(sets.NewString(spec.SecurityGroupIDs...)) {
-		//	_, err := s.ELBV2Client.SetSecurityGroups(&elbv2.SetSecurityGroupsInput{
-		//		LoadBalancerArn: &lb.ARN,
-		//		SecurityGroups:  aws.StringSlice(spec.SecurityGroupIDs),
-		//	})
-		//	if err != nil {
-		//		return errors.Wrapf(err, "failed to apply security groups to load balancer %q", lb.Name)
-		//	}
-		//}
+		if loadBalancerType != infrav1.LoadBalancerTypeNLB && !sets.NewString(lb.SecurityGroupIDs...).Equal(sets.NewString(spec.SecurityGroupIDs...)) {
+			_, err := s.ELBV2Client.SetSecurityGroups(&elbv2.SetSecurityGroupsInput{
+				LoadBalancerArn: &lb.ARN,
+				SecurityGroups:  aws.StringSlice(spec.SecurityGroupIDs),
+			})
+			if err != nil {
+				return errors.Wrapf(err, "failed to apply security groups to load balancer %q", lb.Name)
+			}
+		}
 	} else {
 		s.scope.Trace("Unmanaged control plane load balancer, skipping load balancer configuration", "api-server-elb", lb)
 	}
-	lb.DeepCopyInto(&s.scope.Network().APIServerLB)
+	lb.DeepCopyInto(&s.scope.Network().APIServerELB)
 	return nil
 }
 
-func (s *Service) getAPIServerLBSpec(elbName string) (*infrav1.LBSpec, error) {
-	//securityGroupIDs := []string{}
-	//controlPlaneLoadBalancer := s.scope.ControlPlaneLoadBalancer()
-	//if controlPlaneLoadBalancer != nil && len(controlPlaneLoadBalancer.AdditionalSecurityGroups) != 0 {
-	//	securityGroupIDs = append(securityGroupIDs, controlPlaneLoadBalancer.AdditionalSecurityGroups...)
-	//}
-	//securityGroupIDs = append(securityGroupIDs, s.scope.SecurityGroups()[infrav1.SecurityGroupAPIServerLB].ID)
+func (s *Service) getAPIServerLBSpec(elbName string) (*infrav1.LoadBalancer, error) {
+	var securityGroupIDs []string
+	controlPlaneLoadBalancer := s.scope.ControlPlaneLoadBalancer()
+	if controlPlaneLoadBalancer != nil && controlPlaneLoadBalancer.LoadBalancerType != infrav1.LoadBalancerTypeNLB {
+		securityGroupIDs = append(securityGroupIDs, controlPlaneLoadBalancer.AdditionalSecurityGroups...)
+		securityGroupIDs = append(securityGroupIDs, s.scope.SecurityGroups()[infrav1.SecurityGroupAPIServerLB].ID)
+	}
 
-	res := &infrav1.LBSpec{
-		Name:       elbName,
-		Scheme:     infrav1.LBScheme(s.scope.ControlPlaneLoadBalancerScheme().String()),
-		Attributes: make(map[string]*string),
-		Listeners: []infrav1.LBListener{
+	res := &infrav1.LoadBalancer{
+		Name:         elbName,
+		Scheme:       s.scope.ControlPlaneLoadBalancerScheme(),
+		V2Attributes: make(map[string]*string),
+		V2Listeners: []infrav1.Listener{
 			{
-				Protocol: infrav1.LBProtocolTCP,
+				Protocol: infrav1.ElbProtocolTCP,
 				Port:     6443,
-				TargetGroup: infrav1.LBTargetGroupSpec{
+				TargetGroup: infrav1.TargetGroupSpec{
 					Name:     aws.String(fmt.Sprintf("apiserver-target-%d", time.Now().Unix())),
 					Port:     aws.Int64(6443),
-					Protocol: infrav1.LBProtocolTCP,
+					Protocol: infrav1.ElbProtocolTCP,
 					VpcID:    aws.String(s.scope.VPC().ID),
-					HealthCheck: &infrav1.TargetGroupHealthCheck{
-						HealthCheckProtocol:        aws.String(string(infrav1.LBProtocolTCP)),
-						HealthCheckIntervalSeconds: aws.Int64(10),
-						HealthCheckTimeoutSeconds:  aws.Int64(5),
-						HealthyThresholdCount:      aws.Int64(5),
-					},
 				},
 			},
 		},
+		SecurityGroupIDs: securityGroupIDs,
 	}
 
 	if s.scope.ControlPlaneLoadBalancer().LoadBalancerType != infrav1.LoadBalancerTypeNLB {
-		res.Attributes["idle_timeout.timeout_seconds"] = aws.String("600")
+		res.V2Attributes["idle_timeout.timeout_seconds"] = aws.String("600")
 	}
 
 	if s.scope.ControlPlaneLoadBalancer() != nil {
-		res.Attributes["load_balancing.cross_zone.enabled"] = aws.String(fmt.Sprintf("%t", s.scope.ControlPlaneLoadBalancer().CrossZoneLoadBalancing))
+		res.V2Attributes["load_balancing.cross_zone.enabled"] = aws.String(fmt.Sprintf("%t", s.scope.ControlPlaneLoadBalancer().CrossZoneLoadBalancing))
 	}
 
 	res.Tags = infrav1.Build(infrav1.BuildParams{
@@ -206,7 +204,7 @@ func (s *Service) getAPIServerLBSpec(elbName string) (*infrav1.LBSpec, error) {
 		// The load balancer APIs require us to only attach one subnet for each AZ.
 		subnets := s.scope.Subnets().FilterPrivate()
 
-		if s.scope.ControlPlaneLoadBalancerScheme() == infrav1.ClassicELBSchemeInternetFacing {
+		if s.scope.ControlPlaneLoadBalancerScheme() == infrav1.ElbSchemeInternetFacing {
 			subnets = s.scope.Subnets().FilterPublic()
 		}
 
@@ -227,7 +225,7 @@ func (s *Service) getAPIServerLBSpec(elbName string) (*infrav1.LBSpec, error) {
 	return res, nil
 }
 
-func (s *Service) createLB(lbType infrav1.LoadBalancerType, spec *infrav1.LBSpec) (*infrav1.LBSpec, error) {
+func (s *Service) createLB(lbType infrav1.LoadBalancerType, spec *infrav1.LoadBalancer) (*infrav1.LoadBalancer, error) {
 	var t *string
 	switch lbType {
 	case infrav1.LoadBalancerTypeNLB:
@@ -240,12 +238,12 @@ func (s *Service) createLB(lbType infrav1.LoadBalancerType, spec *infrav1.LBSpec
 	input := &elbv2.CreateLoadBalancerInput{
 		Name:    aws.String(spec.Name),
 		Subnets: aws.StringSlice(spec.SubnetIDs),
-		// TODO: Network load balancer is the only one I think that doesn't like security groups.
-		// I guess an ALB still likes them?
-		//SecurityGroups: aws.StringSlice(spec.SecurityGroupIDs),
-		Tags:   converters.MapToV2Tags(spec.Tags),
-		Scheme: aws.String(string(spec.Scheme)),
-		Type:   t,
+		Tags:    converters.MapToV2Tags(spec.Tags),
+		Scheme:  aws.String(string(spec.Scheme)),
+		Type:    t,
+	}
+	if lbType != infrav1.LoadBalancerTypeNLB {
+		input.SecurityGroups = aws.StringSlice(spec.SecurityGroupIDs)
 	}
 
 	out, err := s.ELBV2Client.CreateLoadBalancer(input)
@@ -258,7 +256,7 @@ func (s *Service) createLB(lbType infrav1.LoadBalancerType, spec *infrav1.LBSpec
 	}
 
 	// TODO: Add options to set up SSL.
-	for _, ln := range spec.Listeners {
+	for _, ln := range spec.V2Listeners {
 		// create the target group first
 		targetGroupInput := &elbv2.CreateTargetGroupInput{
 			Name:     ln.TargetGroup.Name,
@@ -269,7 +267,7 @@ func (s *Service) createLB(lbType infrav1.LoadBalancerType, spec *infrav1.LBSpec
 		// TODO Check for IPv6 and set IpAddressType
 		if ln.TargetGroup.HealthCheck != nil {
 			targetGroupInput.HealthCheckEnabled = aws.Bool(true)
-			targetGroupInput.HealthCheckProtocol = ln.TargetGroup.HealthCheck.HealthCheckProtocol
+			targetGroupInput.HealthCheckProtocol = aws.String("TCP")
 			targetGroupInput.HealthCheckPort = aws.String("6443")
 		}
 		s.scope.Debug("creating target group", "group", targetGroupInput, "listener", ln)
@@ -294,7 +292,7 @@ func (s *Service) createLB(lbType infrav1.LoadBalancerType, spec *infrav1.LBSpec
 			// TODO: Add tags
 			Tags: nil,
 		}
-		// Create Listeners
+		// Create ClassicELBListeners
 		listener, err := s.ELBV2Client.CreateListener(listenerInput)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to create listener")
@@ -312,7 +310,7 @@ func (s *Service) createLB(lbType infrav1.LoadBalancerType, spec *infrav1.LBSpec
 	return res, nil
 }
 
-func (s *Service) describeLB(name string) (*infrav1.LBSpec, error) {
+func (s *Service) describeLB(name string) (*infrav1.LoadBalancer, error) {
 	input := &elbv2.DescribeLoadBalancersInput{
 		Names: aws.StringSlice([]string{name}),
 	}
@@ -398,8 +396,8 @@ func (s *Service) reconcileClassicLoadBalancer() error {
 	}
 
 	if apiELB.IsManaged(s.scope.Name()) {
-		if !cmp.Equal(spec.Attributes, apiELB.Attributes) {
-			err := s.configureAttributes(apiELB.Name, spec.Attributes)
+		if !cmp.Equal(spec.ClassicElbAttributes, apiELB.ClassicElbAttributes) {
+			err := s.configureAttributes(apiELB.Name, spec.ClassicElbAttributes)
 			if err != nil {
 				return err
 			}
@@ -889,7 +887,7 @@ func generateHashedELBName(clusterName string) (string, error) {
 	return fmt.Sprintf("%s-%s", shortName, "k8s"), nil
 }
 
-func (s *Service) getAPIServerClassicELBSpec(elbName string) (*infrav1.ClassicELB, error) {
+func (s *Service) getAPIServerClassicELBSpec(elbName string) (*infrav1.LoadBalancer, error) {
 	securityGroupIDs := []string{}
 	controlPlaneLoadBalancer := s.scope.ControlPlaneLoadBalancer()
 	if controlPlaneLoadBalancer != nil && len(controlPlaneLoadBalancer.AdditionalSecurityGroups) != 0 {
@@ -897,14 +895,14 @@ func (s *Service) getAPIServerClassicELBSpec(elbName string) (*infrav1.ClassicEL
 	}
 	securityGroupIDs = append(securityGroupIDs, s.scope.SecurityGroups()[infrav1.SecurityGroupAPIServerLB].ID)
 
-	res := &infrav1.ClassicELB{
+	res := &infrav1.LoadBalancer{
 		Name:   elbName,
 		Scheme: s.scope.ControlPlaneLoadBalancerScheme(),
-		Listeners: []infrav1.ClassicELBListener{
+		ClassicELBListeners: []infrav1.ClassicELBListener{
 			{
-				Protocol:         infrav1.ClassicELBProtocolTCP,
+				Protocol:         infrav1.ElbProtocolTCP,
 				Port:             int64(s.scope.APIServerPort()),
-				InstanceProtocol: infrav1.ClassicELBProtocolTCP,
+				InstanceProtocol: infrav1.ElbProtocolTCP,
 				InstancePort:     6443,
 			},
 		},
@@ -916,13 +914,13 @@ func (s *Service) getAPIServerClassicELBSpec(elbName string) (*infrav1.ClassicEL
 			UnhealthyThreshold: 3,
 		},
 		SecurityGroupIDs: securityGroupIDs,
-		Attributes: infrav1.ClassicELBAttributes{
+		ClassicElbAttributes: infrav1.ClassicELBAttributes{
 			IdleTimeout: 10 * time.Minute,
 		},
 	}
 
 	if s.scope.ControlPlaneLoadBalancer() != nil {
-		res.Attributes.CrossZoneLoadBalancing = s.scope.ControlPlaneLoadBalancer().CrossZoneLoadBalancing
+		res.ClassicElbAttributes.CrossZoneLoadBalancing = s.scope.ControlPlaneLoadBalancer().CrossZoneLoadBalancing
 	}
 
 	res.Tags = infrav1.Build(infrav1.BuildParams{
@@ -952,7 +950,7 @@ func (s *Service) getAPIServerClassicELBSpec(elbName string) (*infrav1.ClassicEL
 		// The load balancer APIs require us to only attach one subnet for each AZ.
 		subnets := s.scope.Subnets().FilterPrivate()
 
-		if s.scope.ControlPlaneLoadBalancerScheme() == infrav1.ClassicELBSchemeInternetFacing {
+		if s.scope.ControlPlaneLoadBalancerScheme() == infrav1.ElbSchemeInternetFacing {
 			subnets = s.scope.Subnets().FilterPublic()
 		}
 
@@ -973,7 +971,7 @@ func (s *Service) getAPIServerClassicELBSpec(elbName string) (*infrav1.ClassicEL
 	return res, nil
 }
 
-func (s *Service) createClassicELB(spec *infrav1.ClassicELB) (*infrav1.ClassicELB, error) {
+func (s *Service) createClassicELB(spec *infrav1.LoadBalancer) (*infrav1.LoadBalancer, error) {
 	input := &elb.CreateLoadBalancerInput{
 		LoadBalancerName: aws.String(spec.Name),
 		Subnets:          aws.StringSlice(spec.SubnetIDs),
@@ -982,7 +980,7 @@ func (s *Service) createClassicELB(spec *infrav1.ClassicELB) (*infrav1.ClassicEL
 		Tags:             converters.MapToELBTags(spec.Tags),
 	}
 
-	for _, ln := range spec.Listeners {
+	for _, ln := range spec.ClassicELBListeners {
 		input.Listeners = append(input.Listeners, &elb.Listener{
 			Protocol:         aws.String(string(ln.Protocol)),
 			LoadBalancerPort: aws.Int64(ln.Port),
@@ -1091,7 +1089,7 @@ func (s *Service) deleteClassicELB(name string) error {
 
 func (s *Service) deleteLB(arn string) error {
 	// remove listeners and target groups
-	// Order is important. Listeners have to be deleted first.
+	// Order is important. ClassicELBListeners have to be deleted first.
 	// However, we must first gather the groups because after the listeners are deleted the groups
 	// are no longer associated with the LB, so we can't describe them afterwards.
 	groups, err := s.ELBV2Client.DescribeTargetGroups(&elbv2.DescribeTargetGroupsInput{
@@ -1115,7 +1113,7 @@ func (s *Service) deleteLB(arn string) error {
 			return fmt.Errorf("failed to delete listener '%s': %w", aws.StringValue(listener.ListenerArn), err)
 		}
 	}
-	s.scope.Info("Successfully deleted all associated Listeners")
+	s.scope.Info("Successfully deleted all associated ClassicELBListeners")
 
 	for _, group := range groups.TargetGroups {
 		s.scope.Debug("deleting target group", "name", aws.StringValue(group.TargetGroupName))
@@ -1238,7 +1236,7 @@ func (s *Service) listAWSCloudProviderOwnedELBs() ([]string, error) {
 	return arns, nil
 }
 
-func (s *Service) describeClassicELB(name string) (*infrav1.ClassicELB, error) {
+func (s *Service) describeClassicELB(name string) (*infrav1.LoadBalancer, error) {
 	input := &elb.DescribeLoadBalancersInput{
 		LoadBalancerNames: aws.StringSlice([]string{name}),
 	}
@@ -1322,7 +1320,7 @@ func (s *Service) describeLBTags(arn string) ([]*elbv2.Tag, error) {
 	return output.TagDescriptions[0].Tags, nil
 }
 
-func (s *Service) reconcileELBTags(lb *infrav1.ClassicELB, desiredTags map[string]string) error {
+func (s *Service) reconcileELBTags(lb *infrav1.LoadBalancer, desiredTags map[string]string) error {
 	addTagsInput := &elb.AddTagsInput{
 		LoadBalancerNames: []*string{aws.String(lb.Name)},
 	}
@@ -1362,7 +1360,7 @@ func (s *Service) reconcileELBTags(lb *infrav1.ClassicELB, desiredTags map[strin
 	return nil
 }
 
-func (s *Service) reconcileV2LBTags(lb *infrav1.LBSpec, desiredTags map[string]string) error {
+func (s *Service) reconcileV2LBTags(lb *infrav1.LoadBalancer, desiredTags map[string]string) error {
 	addTagsInput := &elbv2.AddTagsInput{
 		ResourceArns: []*string{aws.String(lb.ARN)},
 	}
@@ -1402,44 +1400,45 @@ func (s *Service) reconcileV2LBTags(lb *infrav1.LBSpec, desiredTags map[string]s
 	return nil
 }
 
-func (s *Service) getHealthCheckELBProtocol() *infrav1.ClassicELBProtocol {
+func (s *Service) getHealthCheckELBProtocol() *infrav1.ElbProtocol {
 	controlPlaneELB := s.scope.ControlPlaneLoadBalancer()
 	if controlPlaneELB != nil && controlPlaneELB.HealthCheckProtocol != nil {
 		return controlPlaneELB.HealthCheckProtocol
 	}
-	return &infrav1.ClassicELBProtocolSSL
+	return &infrav1.ElbProtocolSSL
 }
 
-func fromSDKTypeToClassicELB(v *elb.LoadBalancerDescription, attrs *elb.LoadBalancerAttributes, tags []*elb.Tag) *infrav1.ClassicELB {
-	res := &infrav1.ClassicELB{
+func fromSDKTypeToClassicELB(v *elb.LoadBalancerDescription, attrs *elb.LoadBalancerAttributes, tags []*elb.Tag) *infrav1.LoadBalancer {
+	res := &infrav1.LoadBalancer{
 		Name:             aws.StringValue(v.LoadBalancerName),
-		Scheme:           infrav1.ClassicELBScheme(*v.Scheme),
+		Scheme:           infrav1.ElbScheme(*v.Scheme),
 		SubnetIDs:        aws.StringValueSlice(v.Subnets),
 		SecurityGroupIDs: aws.StringValueSlice(v.SecurityGroups),
 		DNSName:          aws.StringValue(v.DNSName),
 		Tags:             converters.ELBTagsToMap(tags),
+		LoadBalancerType: infrav1.LoadBalancerTypeClassic,
 	}
 
 	if attrs.ConnectionSettings != nil && attrs.ConnectionSettings.IdleTimeout != nil {
-		res.Attributes.IdleTimeout = time.Duration(*attrs.ConnectionSettings.IdleTimeout) * time.Second
+		res.ClassicElbAttributes.IdleTimeout = time.Duration(*attrs.ConnectionSettings.IdleTimeout) * time.Second
 	}
 
-	res.Attributes.CrossZoneLoadBalancing = aws.BoolValue(attrs.CrossZoneLoadBalancing.Enabled)
+	res.ClassicElbAttributes.CrossZoneLoadBalancing = aws.BoolValue(attrs.CrossZoneLoadBalancing.Enabled)
 
 	return res
 }
 
-func fromSDKTypeToLB(v *elbv2.LoadBalancer, attrs []*elbv2.LoadBalancerAttribute, tags []*elbv2.Tag) *infrav1.LBSpec {
+func fromSDKTypeToLB(v *elbv2.LoadBalancer, attrs []*elbv2.LoadBalancerAttribute, tags []*elbv2.Tag) *infrav1.LoadBalancer {
 	subnetIds := make([]*string, len(v.AvailabilityZones))
 	for i, az := range v.AvailabilityZones {
 		subnetIds[i] = az.SubnetId
 	}
-	res := &infrav1.LBSpec{
+	res := &infrav1.LoadBalancer{
 		ARN:       aws.StringValue(v.LoadBalancerArn),
 		Name:      aws.StringValue(v.LoadBalancerName),
-		Scheme:    infrav1.LBScheme(*v.Scheme),
+		Scheme:    infrav1.ElbScheme(aws.StringValue(v.Scheme)),
 		SubnetIDs: aws.StringValueSlice(subnetIds),
-		//SecurityGroupIDs: aws.StringValueSlice(v.SecurityGroups),
+		// SecurityGroupIDs: aws.StringValueSlice(v.SecurityGroups),
 		DNSName: aws.StringValue(v.DNSName),
 		Tags:    converters.V2TagsToMap(tags),
 	}
@@ -1448,7 +1447,7 @@ func fromSDKTypeToLB(v *elbv2.LoadBalancer, attrs []*elbv2.LoadBalancerAttribute
 	for _, a := range attrs {
 		infraAttrs[*a.Key] = a.Value
 	}
-	res.Attributes = infraAttrs
+	res.V2Attributes = infraAttrs
 
 	return res
 }

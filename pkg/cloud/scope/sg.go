@@ -42,4 +42,7 @@ type SGScope interface {
 
 	// Bastion returns the bastion details for the cluster.
 	Bastion() *infrav1.Bastion
+
+	// ControlPlaneLoadBalancer returns the load balancer settings that are requested.
+	ControlPlaneLoadBalancer() *infrav1.AWSLoadBalancerSpec
 }
