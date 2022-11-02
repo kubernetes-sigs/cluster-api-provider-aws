@@ -165,13 +165,14 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		mockCtrl = gomock.NewController(t)
 		ec2Mock := mocks.NewMockEC2API(mockCtrl)
 		elbMock := mocks.NewMockELBAPI(mockCtrl)
+		elbv2Mock := mocks.NewMockELBV2API(mockCtrl)
 
-		expect := func(m *mocks.MockEC2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
+		expect := func(m *mocks.MockEC2APIMockRecorder, ev2 *mocks.MockELBV2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedDescribeInstanceCalls(m)
-			mockedDeleteLBCalls(e)
+			mockedDeleteLBCalls(false, ev2, e)
 			mockedDeleteInstanceCalls(m)
 		}
-		expect(ec2Mock.EXPECT(), elbMock.EXPECT())
+		expect(ec2Mock.EXPECT(), elbv2Mock.EXPECT(), elbMock.EXPECT())
 
 		ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("integ-test-%s", util.RandomString(5)))
 		g.Expect(err).To(BeNil())
@@ -208,6 +209,7 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		elbSvc := elbService.NewService(cs)
 		elbSvc.EC2Client = ec2Mock
 		elbSvc.ELBClient = elbMock
+		elbSvc.ELBV2Client = elbv2Mock
 		reconciler.elbServiceFactory = func(scope scope.ELBScope) services.ELBInterface {
 			return elbSvc
 		}
@@ -318,10 +320,11 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		mockCtrl = gomock.NewController(t)
 		ec2Mock := mocks.NewMockEC2API(mockCtrl)
 		elbMock := mocks.NewMockELBAPI(mockCtrl)
+		elbv2Mock := mocks.NewMockELBV2API(mockCtrl)
 
-		expect := func(m *mocks.MockEC2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
+		expect := func(m *mocks.MockEC2APIMockRecorder, ev2 *mocks.MockELBV2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedDescribeInstanceCalls(m)
-			mockedDeleteLBCalls(e)
+			mockedDeleteLBCalls(false, ev2, e)
 			m.TerminateInstances(
 				gomock.Eq(&ec2.TerminateInstancesInput{
 					InstanceIds: aws.StringSlice([]string{"id-1"}),
@@ -329,7 +332,7 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 			).
 				Return(nil, errors.New("Failed to delete instance"))
 		}
-		expect(ec2Mock.EXPECT(), elbMock.EXPECT())
+		expect(ec2Mock.EXPECT(), elbv2Mock.EXPECT(), elbMock.EXPECT())
 
 		ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("integ-test-%s", util.RandomString(5)))
 		g.Expect(err).To(BeNil())
@@ -366,6 +369,7 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		elbSvc := elbService.NewService(cs)
 		elbSvc.EC2Client = ec2Mock
 		elbSvc.ELBClient = elbMock
+		elbSvc.ELBV2Client = elbv2Mock
 		reconciler.elbServiceFactory = func(scope scope.ELBScope) services.ELBInterface {
 			return elbSvc
 		}

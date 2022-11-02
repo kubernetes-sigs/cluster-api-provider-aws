@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	"unsafe"
+
 	"k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
@@ -37,10 +39,34 @@ func Convert_v1beta2_AWSLoadBalancerSpec_To_v1beta1_AWSLoadBalancerSpec(in *v1be
 	return autoConvert_v1beta2_AWSLoadBalancerSpec_To_v1beta1_AWSLoadBalancerSpec(in, out, s)
 }
 
-func Convert_v1beta1_ClassicELB_To_v1beta2_ClassicELB(in *ClassicELB, out *v1beta2.ClassicELB, s conversion.Scope) error {
-	return autoConvert_v1beta1_ClassicELB_To_v1beta2_ClassicELB(in, out, s)
-}
-
 func Convert_v1beta2_NetworkStatus_To_v1beta1_NetworkStatus(in *v1beta2.NetworkStatus, out *NetworkStatus, s conversion.Scope) error {
 	return autoConvert_v1beta2_NetworkStatus_To_v1beta1_NetworkStatus(in, out, s)
+}
+
+func Convert_v1beta1_ClassicELB_To_v1beta2_LoadBalancer(in *ClassicELB, out *v1beta2.LoadBalancer, s conversion.Scope) error {
+	out.Name = in.Name
+	out.DNSName = in.DNSName
+	out.Scheme = v1beta2.ElbScheme(in.Scheme)
+	out.HealthCheck = (*v1beta2.ClassicELBHealthCheck)(in.HealthCheck)
+	out.AvailabilityZones = in.AvailabilityZones
+	out.ClassicElbAttributes = (v1beta2.ClassicELBAttributes)(in.Attributes)
+	out.ClassicELBListeners = *(*[]v1beta2.ClassicELBListener)(unsafe.Pointer(&in.Listeners))
+	out.SecurityGroupIDs = in.SecurityGroupIDs
+	out.Tags = in.Tags
+	out.SubnetIDs = in.SubnetIDs
+	return nil
+}
+
+func Convert_v1beta2_LoadBalancer_To_v1beta1_ClassicELB(in *v1beta2.LoadBalancer, out *ClassicELB, s conversion.Scope) error {
+	out.Name = in.Name
+	out.DNSName = in.DNSName
+	out.Scheme = ClassicELBScheme(in.Scheme)
+	out.HealthCheck = (*ClassicELBHealthCheck)(in.HealthCheck)
+	out.AvailabilityZones = in.AvailabilityZones
+	out.Attributes = (ClassicELBAttributes)(in.ClassicElbAttributes)
+	out.Listeners = *(*[]ClassicELBListener)(unsafe.Pointer(&in.ClassicELBListeners))
+	out.SecurityGroupIDs = in.SecurityGroupIDs
+	out.Tags = in.Tags
+	out.SubnetIDs = in.SubnetIDs
+	return nil
 }

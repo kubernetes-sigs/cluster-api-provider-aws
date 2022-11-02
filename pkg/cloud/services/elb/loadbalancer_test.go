@@ -153,15 +153,15 @@ func TestGetAPIServerClassicELBSpecControlPlaneLoadBalancer(t *testing.T) {
 		name   string
 		lb     *infrav1.AWSLoadBalancerSpec
 		mocks  func(m *mocks.MockEC2APIMockRecorder)
-		expect func(t *testing.T, g *WithT, res *infrav1.ClassicELB)
+		expect func(t *testing.T, g *WithT, res *infrav1.LoadBalancer)
 	}{
 		{
 			name:  "nil load balancer config",
 			lb:    nil,
 			mocks: func(m *mocks.MockEC2APIMockRecorder) {},
-			expect: func(t *testing.T, g *WithT, res *infrav1.ClassicELB) {
+			expect: func(t *testing.T, g *WithT, res *infrav1.LoadBalancer) {
 				t.Helper()
-				if res.Attributes.CrossZoneLoadBalancing {
+				if res.ClassicElbAttributes.CrossZoneLoadBalancing {
 					t.Error("Expected load balancer not to have cross-zone load balancing enabled")
 				}
 			},
@@ -172,9 +172,9 @@ func TestGetAPIServerClassicELBSpecControlPlaneLoadBalancer(t *testing.T) {
 				CrossZoneLoadBalancing: true,
 			},
 			mocks: func(m *mocks.MockEC2APIMockRecorder) {},
-			expect: func(t *testing.T, g *WithT, res *infrav1.ClassicELB) {
+			expect: func(t *testing.T, g *WithT, res *infrav1.LoadBalancer) {
 				t.Helper()
-				if !res.Attributes.CrossZoneLoadBalancing {
+				if !res.ClassicElbAttributes.CrossZoneLoadBalancing {
 					t.Error("Expected load balancer to have cross-zone load balancing enabled")
 				}
 			},
@@ -204,7 +204,7 @@ func TestGetAPIServerClassicELBSpecControlPlaneLoadBalancer(t *testing.T) {
 						},
 					}, nil)
 			},
-			expect: func(t *testing.T, g *WithT, res *infrav1.ClassicELB) {
+			expect: func(t *testing.T, g *WithT, res *infrav1.LoadBalancer) {
 				t.Helper()
 				if len(res.SubnetIDs) != 2 {
 					t.Errorf("Expected load balancer to be configured for 2 subnets, got %v", len(res.SubnetIDs))
@@ -220,7 +220,7 @@ func TestGetAPIServerClassicELBSpecControlPlaneLoadBalancer(t *testing.T) {
 				AdditionalSecurityGroups: []string{"sg-00001", "sg-00002"},
 			},
 			mocks: func(m *mocks.MockEC2APIMockRecorder) {},
-			expect: func(t *testing.T, g *WithT, res *infrav1.ClassicELB) {
+			expect: func(t *testing.T, g *WithT, res *infrav1.LoadBalancer) {
 				t.Helper()
 				if len(res.SecurityGroupIDs) != 3 {
 					t.Errorf("Expected load balancer to be configured for 3 security groups, got %v", len(res.SecurityGroupIDs))
@@ -230,12 +230,12 @@ func TestGetAPIServerClassicELBSpecControlPlaneLoadBalancer(t *testing.T) {
 		{
 			name: "Should create load balancer spec if elb health check protocol specified in config",
 			lb: &infrav1.AWSLoadBalancerSpec{
-				HealthCheckProtocol: &infrav1.ClassicELBProtocolTCP,
+				HealthCheckProtocol: &infrav1.ElbProtocolTCP,
 			},
 			mocks: func(m *mocks.MockEC2APIMockRecorder) {},
-			expect: func(t *testing.T, g *WithT, res *infrav1.ClassicELB) {
+			expect: func(t *testing.T, g *WithT, res *infrav1.LoadBalancer) {
 				t.Helper()
-				expectedTarget := fmt.Sprintf("%v:%d", infrav1.ClassicELBProtocolTCP, 6443)
+				expectedTarget := fmt.Sprintf("%v:%d", infrav1.ElbProtocolTCP, 6443)
 				g.Expect(expectedTarget, res.HealthCheck.Target)
 			},
 		},
@@ -243,9 +243,9 @@ func TestGetAPIServerClassicELBSpecControlPlaneLoadBalancer(t *testing.T) {
 			name:  "Should create load balancer spec with default elb health check protocol",
 			lb:    &infrav1.AWSLoadBalancerSpec{},
 			mocks: func(m *mocks.MockEC2APIMockRecorder) {},
-			expect: func(t *testing.T, g *WithT, res *infrav1.ClassicELB) {
+			expect: func(t *testing.T, g *WithT, res *infrav1.LoadBalancer) {
 				t.Helper()
-				expectedTarget := fmt.Sprintf("%v:%d", infrav1.ClassicELBProtocolTCP, 6443)
+				expectedTarget := fmt.Sprintf("%v:%d", infrav1.ElbProtocolTCP, 6443)
 				g.Expect(expectedTarget, res.HealthCheck.Target)
 			},
 		},
@@ -340,7 +340,7 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 						LoadBalancerDescriptions: []*elb.LoadBalancerDescription{
 							{
 								LoadBalancerName: aws.String(elbName),
-								Scheme:           aws.String(string(infrav1.ClassicELBSchemeInternetFacing)),
+								Scheme:           aws.String(string(infrav1.ElbSchemeInternetFacing)),
 								Subnets:          []*string{aws.String(clusterSubnetID)},
 							},
 						},
@@ -408,7 +408,7 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 					Return(&elb.DescribeLoadBalancersOutput{
 						LoadBalancerDescriptions: []*elb.LoadBalancerDescription{
 							{
-								Scheme:            aws.String(string(infrav1.ClassicELBSchemeInternetFacing)),
+								Scheme:            aws.String(string(infrav1.ElbSchemeInternetFacing)),
 								Subnets:           []*string{aws.String(elbSubnetID)},
 								AvailabilityZones: []*string{aws.String(az)},
 							},
@@ -491,7 +491,7 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 					Return(&elb.DescribeLoadBalancersOutput{
 						LoadBalancerDescriptions: []*elb.LoadBalancerDescription{
 							{
-								Scheme:            aws.String(string(infrav1.ClassicELBSchemeInternetFacing)),
+								Scheme:            aws.String(string(infrav1.ElbSchemeInternetFacing)),
 								Subnets:           []*string{aws.String(elbSubnetID)},
 								AvailabilityZones: []*string{aws.String(differentAZ)},
 							},
@@ -619,7 +619,7 @@ func TestDeleteAPIServerELB(t *testing.T) {
 						LoadBalancerDescriptions: []*elb.LoadBalancerDescription{
 							{
 								LoadBalancerName: aws.String(elbName),
-								Scheme:           aws.String(string(infrav1.ClassicELBSchemeInternetFacing)),
+								Scheme:           aws.String(string(infrav1.ElbSchemeInternetFacing)),
 							},
 						},
 					},
@@ -658,7 +658,7 @@ func TestDeleteAPIServerELB(t *testing.T) {
 						LoadBalancerDescriptions: []*elb.LoadBalancerDescription{
 							{
 								LoadBalancerName: aws.String(elbName),
-								Scheme:           aws.String(string(infrav1.ClassicELBSchemeInternetFacing)),
+								Scheme:           aws.String(string(infrav1.ElbSchemeInternetFacing)),
 							},
 						},
 					},
@@ -941,7 +941,7 @@ func TestDescribeLoadbalancers(t *testing.T) {
 			DescribeElbAPIMocks: func(m *mocks.MockELBAPIMockRecorder) {
 				m.DescribeLoadBalancers(gomock.Eq(&elb.DescribeLoadBalancersInput{
 					LoadBalancerNames: aws.StringSlice([]string{"bar-apiserver"}),
-				})).Return(&elb.DescribeLoadBalancersOutput{LoadBalancerDescriptions: []*elb.LoadBalancerDescription{{Scheme: pointer.StringPtr(string(infrav1.ClassicELBSchemeInternal))}}}, nil)
+				})).Return(&elb.DescribeLoadBalancersOutput{LoadBalancerDescriptions: []*elb.LoadBalancerDescription{{Scheme: pointer.StringPtr(string(infrav1.ElbSchemeInternal))}}}, nil)
 			},
 		},
 	}
@@ -960,7 +960,7 @@ func TestDescribeLoadbalancers(t *testing.T) {
 			awsCluster := &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
-					Scheme: &infrav1.ClassicELBSchemeInternetFacing,
+					Scheme: &infrav1.ElbSchemeInternetFacing,
 				}},
 			}
 

@@ -1087,12 +1087,15 @@ spec:
                   used by the control plane
                 properties:
                   apiServerElb:
-                    description: APIServerELB is the Kubernetes api server classic
-                      load balancer.
+                    description: APIServerELB is the Kubernetes api server load balancer.
                     properties:
+                      arn:
+                        description: ARN of the load balancer. Unlike the ClassicLB,
+                          ARN is used mostly to define and get it.
+                        type: string
                       attributes:
-                        description: Attributes defines extra attributes associated
-                          with the load balancer.
+                        description: ClassicElbAttributes defines extra attributes
+                          associated with the load balancer.
                         properties:
                           crossZoneLoadBalancing:
                             description: CrossZoneLoadBalancing enables the classic
@@ -1148,9 +1151,9 @@ spec:
                         - unhealthyThreshold
                         type: object
                       listeners:
-                        description: Listeners is an array of classic elb listeners
-                          associated with the load balancer. There must be at least
-                          one.
+                        description: ClassicELBListeners is an array of classic elb
+                          listeners associated with the load balancer. There must
+                          be at least one.
                         items:
                           description: ClassicELBListener defines an AWS classic load
                             balancer listener.
@@ -1159,15 +1162,15 @@ spec:
                               format: int64
                               type: integer
                             instanceProtocol:
-                              description: ClassicELBProtocol defines listener protocols
-                                for a classic load balancer.
+                              description: ElbProtocol defines listener protocols
+                                for a load balancer.
                               type: string
                             port:
                               format: int64
                               type: integer
                             protocol:
-                              description: ClassicELBProtocol defines listener protocols
-                                for a classic load balancer.
+                              description: ElbProtocol defines listener protocols
+                                for a load balancer.
                               type: string
                           required:
                           - instancePort
@@ -1176,6 +1179,15 @@ spec:
                           - protocol
                           type: object
                         type: array
+                      loadBalancerType:
+                        description: LoadBalancerType defines the type of the Load
+                          Balancer.
+                        enum:
+                        - classic
+                        - nlb
+                        - alb
+                        - elb
+                        type: string
                       name:
                         description: The name of the load balancer. It must be unique
                           within the set of load balancers defined in the region.
@@ -1203,46 +1215,28 @@ spec:
                         description: Tags is a map of tags associated with the load
                           balancer.
                         type: object
-                    type: object
-                  apiServerLb:
-                    description: APIServerLB is the Kubernetes api server load balancer.
-                    properties:
-                      arn:
-                        description: ARN of the load balancer. Unlike the ClassicLB,
-                          ARN is used mostly to define and get it.
-                        type: string
-                      attributes:
+                      v2Attributes:
                         additionalProperties:
                           type: string
-                        description: Attributes defines extra attributes associated
-                          with the load balancer.
+                        description: V2Attributes defines extra attributes associated
+                          with v2 load balancers.
                         type: object
-                      availabilityZones:
-                        description: AvailabilityZones is an array of availability
-                          zones in the VPC attached to the load balancer.
+                      v2Listeners:
+                        description: V2Listeners is an array of listeners associated
+                          with the load balancer. There must be at least one.
                         items:
-                          type: string
-                        type: array
-                      dnsName:
-                        description: DNSName is the dns name of the load balancer.
-                        type: string
-                      listeners:
-                        description: Listeners is an array of classic elb listeners
-                          associated with the load balancer. There must be at least
-                          one.
-                        items:
-                          description: LBListener defines an AWS network load balancer
+                          description: Listener defines an AWS network load balancer
                             listener.
                           properties:
                             port:
                               format: int64
                               type: integer
                             protocol:
-                              description: LBProtocol defines listener protocols for
-                                a classic load balancer.
+                              description: ElbProtocol defines listener protocols
+                                for a load balancer.
                               type: string
                             targetGroup:
-                              description: LBTargetGroupSpec specifies target group
+                              description: TargetGroupSpec specifies target group
                                 settings for a given listener. This is created first,
                                 and the ARN is then passed to the listener.
                               properties:
@@ -1252,16 +1246,16 @@ spec:
                                   format: int64
                                   type: integer
                                 protocol:
-                                  description: LBProtocol defines listener protocols
-                                    for a classic load balancer.
+                                  description: ElbProtocol defines listener protocols
+                                    for a load balancer.
                                   enum:
                                   - tcp
                                   - tls
                                   - upd
                                   type: string
                                 targetGroupHealthCheck:
-                                  description: HealthCheck is the classic elb health
-                                    check associated with the load balancer.
+                                  description: HealthCheck is the elb health check
+                                    associated with the load balancer.
                                   properties:
                                     healthCheckIntervalSeconds:
                                       format: int64
@@ -1297,33 +1291,8 @@ spec:
                           - targetGroup
                           type: object
                         type: array
-                      name:
-                        description: The name of the load balancer. It must be unique
-                          within the set of load balancers defined in the region.
-                          It also serves as identifier.
-                        type: string
-                      scheme:
-                        description: Scheme is the load balancer scheme, either internet-facing
-                          or private.
-                        type: string
-                      securityGroupIds:
-                        description: SecurityGroupIDs is an array of security groups
-                          assigned to the load balancer.
-                        items:
-                          type: string
-                        type: array
-                      subnetIds:
-                        description: SubnetIDs is an array of subnets in the VPC attached
-                          to the load balancer.
-                        items:
-                          type: string
-                        type: array
-                      tags:
-                        additionalProperties:
-                          type: string
-                        description: Tags is a map of tags associated with the load
-                          balancer.
-                        type: object
+                    required:
+                    - loadBalancerType
                     type: object
                   securityGroups:
                     additionalProperties:
@@ -2486,12 +2455,15 @@ spec:
                   used by the control plane
                 properties:
                   apiServerElb:
-                    description: APIServerELB is the Kubernetes api server classic
-                      load balancer.
+                    description: APIServerELB is the Kubernetes api server load balancer.
                     properties:
+                      arn:
+                        description: ARN of the load balancer. Unlike the ClassicLB,
+                          ARN is used mostly to define and get it.
+                        type: string
                       attributes:
-                        description: Attributes defines extra attributes associated
-                          with the load balancer.
+                        description: ClassicElbAttributes defines extra attributes
+                          associated with the load balancer.
                         properties:
                           crossZoneLoadBalancing:
                             description: CrossZoneLoadBalancing enables the classic
@@ -2547,9 +2519,9 @@ spec:
                         - unhealthyThreshold
                         type: object
                       listeners:
-                        description: Listeners is an array of classic elb listeners
-                          associated with the load balancer. There must be at least
-                          one.
+                        description: ClassicELBListeners is an array of classic elb
+                          listeners associated with the load balancer. There must
+                          be at least one.
                         items:
                           description: ClassicELBListener defines an AWS classic load
                             balancer listener.
@@ -2558,15 +2530,15 @@ spec:
                               format: int64
                               type: integer
                             instanceProtocol:
-                              description: ClassicELBProtocol defines listener protocols
-                                for a classic load balancer.
+                              description: ElbProtocol defines listener protocols
+                                for a load balancer.
                               type: string
                             port:
                               format: int64
                               type: integer
                             protocol:
-                              description: ClassicELBProtocol defines listener protocols
-                                for a classic load balancer.
+                              description: ElbProtocol defines listener protocols
+                                for a load balancer.
                               type: string
                           required:
                           - instancePort
@@ -2575,6 +2547,15 @@ spec:
                           - protocol
                           type: object
                         type: array
+                      loadBalancerType:
+                        description: LoadBalancerType defines the type of the Load
+                          Balancer.
+                        enum:
+                        - classic
+                        - nlb
+                        - alb
+                        - elb
+                        type: string
                       name:
                         description: The name of the load balancer. It must be unique
                           within the set of load balancers defined in the region.
@@ -2602,46 +2583,28 @@ spec:
                         description: Tags is a map of tags associated with the load
                           balancer.
                         type: object
-                    type: object
-                  apiServerLb:
-                    description: APIServerLB is the Kubernetes api server load balancer.
-                    properties:
-                      arn:
-                        description: ARN of the load balancer. Unlike the ClassicLB,
-                          ARN is used mostly to define and get it.
-                        type: string
-                      attributes:
+                      v2Attributes:
                         additionalProperties:
                           type: string
-                        description: Attributes defines extra attributes associated
-                          with the load balancer.
+                        description: V2Attributes defines extra attributes associated
+                          with v2 load balancers.
                         type: object
-                      availabilityZones:
-                        description: AvailabilityZones is an array of availability
-                          zones in the VPC attached to the load balancer.
+                      v2Listeners:
+                        description: V2Listeners is an array of listeners associated
+                          with the load balancer. There must be at least one.
                         items:
-                          type: string
-                        type: array
-                      dnsName:
-                        description: DNSName is the dns name of the load balancer.
-                        type: string
-                      listeners:
-                        description: Listeners is an array of classic elb listeners
-                          associated with the load balancer. There must be at least
-                          one.
-                        items:
-                          description: LBListener defines an AWS network load balancer
+                          description: Listener defines an AWS network load balancer
                             listener.
                           properties:
                             port:
                               format: int64
                               type: integer
                             protocol:
-                              description: LBProtocol defines listener protocols for
-                                a classic load balancer.
+                              description: ElbProtocol defines listener protocols
+                                for a load balancer.
                               type: string
                             targetGroup:
-                              description: LBTargetGroupSpec specifies target group
+                              description: TargetGroupSpec specifies target group
                                 settings for a given listener. This is created first,
                                 and the ARN is then passed to the listener.
                               properties:
@@ -2651,16 +2614,16 @@ spec:
                                   format: int64
                                   type: integer
                                 protocol:
-                                  description: LBProtocol defines listener protocols
-                                    for a classic load balancer.
+                                  description: ElbProtocol defines listener protocols
+                                    for a load balancer.
                                   enum:
                                   - tcp
                                   - tls
                                   - upd
                                   type: string
                                 targetGroupHealthCheck:
-                                  description: HealthCheck is the classic elb health
-                                    check associated with the load balancer.
+                                  description: HealthCheck is the elb health check
+                                    associated with the load balancer.
                                   properties:
                                     healthCheckIntervalSeconds:
                                       format: int64
@@ -2696,33 +2659,8 @@ spec:
                           - targetGroup
                           type: object
                         type: array
-                      name:
-                        description: The name of the load balancer. It must be unique
-                          within the set of load balancers defined in the region.
-                          It also serves as identifier.
-                        type: string
-                      scheme:
-                        description: Scheme is the load balancer scheme, either internet-facing
-                          or private.
-                        type: string
-                      securityGroupIds:
-                        description: SecurityGroupIDs is an array of security groups
-                          assigned to the load balancer.
-                        items:
-                          type: string
-                        type: array
-                      subnetIds:
-                        description: SubnetIDs is an array of subnets in the VPC attached
-                          to the load balancer.
-                        items:
-                          type: string
-                        type: array
-                      tags:
-                        additionalProperties:
-                          type: string
-                        description: Tags is a map of tags associated with the load
-                          balancer.
-                        type: object
+                    required:
+                    - loadBalancerType
                     type: object
                   securityGroups:
                     additionalProperties:
