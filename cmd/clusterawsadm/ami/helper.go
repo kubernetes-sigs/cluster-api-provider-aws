@@ -229,7 +229,7 @@ func getAllImages(ec2Client ec2iface.EC2API, ownerID string) (map[string][]*ec2.
 }
 
 func findAMI(imagesMap map[string][]*ec2.Image, baseOS, kubernetesVersion string) (*ec2.Image, error) {
-	amiNameFormat := "capa-ami-{{.BaseOS}}-{{.K8sVersion}}-*"
+	amiNameFormat := "capa-ami-{{.BaseOS}}-{{.K8sVersion}}"
 	amiName, err := ec2service.GenerateAmiName(amiNameFormat, baseOS, kubernetesVersion)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to process ami format: %q", amiNameFormat)
