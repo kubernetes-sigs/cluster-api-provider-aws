@@ -19,10 +19,7 @@ package ami
 import (
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/google/go-cmp/cmp"
-	. "github.com/onsi/gomega"
 )
 
 func TestAllPatchVersions(t *testing.T) {
@@ -51,53 +48,6 @@ func TestAllPatchVersions(t *testing.T) {
 			if !cmp.Equal(got, tt.want) {
 				t.Errorf("allPatchesForVersion() got = %v, want %v", got, tt.want)
 			}
-		})
-	}
-}
-
-func TestFindAMI(t *testing.T) {
-	tests := []struct {
-		name      string
-		imagesMap map[string][]*ec2.Image
-		want      *ec2.Image
-	}{
-		{
-			name: "find AMI based on the latest ami format",
-			imagesMap: map[string][]*ec2.Image{
-				"capa-ami-amazon-2-v1.23.5-*": {
-					{
-						ImageId:      aws.String("capa-ami-amazon-2-v1.25.3-1664536077"),
-						CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
-					},
-				},
-			},
-			want: &ec2.Image{
-				ImageId:      aws.String("capa-ami-amazon-2-v1.25.3-1664536077"),
-				CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
-			},
-		},
-		{
-			name: "find AMI based on the old ami format",
-			imagesMap: map[string][]*ec2.Image{
-				"capa-ami-amazon-2-1.23.5": {
-					{
-						ImageId:      aws.String("capa-ami-amazon-2-1.25.3-00-1664536077"),
-						CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
-					},
-				},
-			},
-			want: nil,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-			got, err := findAMI(tt.imagesMap, "amazon-2", "v1.23.5")
-			if err != nil {
-				t.Fatalf("error while finding AMI %+v", err)
-			}
-			g.Expect(got).Should(Equal(tt.want))
 		})
 	}
 }
