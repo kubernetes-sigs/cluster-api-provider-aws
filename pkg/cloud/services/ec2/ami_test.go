@@ -265,7 +265,7 @@ func TestGenerateAmiName(t *testing.T) {
 			args: args{
 				kubernetesVersion: "v1.23.3",
 			},
-			want: "capa-ami--?v1.23.3-*",
+			want: "capa-ami--?1.23.3-*",
 		},
 		{
 			name: "Should return valid amiName if default AMI name format passed",
