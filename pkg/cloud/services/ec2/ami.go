@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"strings"
 	"text/template"
 	"time"
 
@@ -76,7 +77,7 @@ type AMILookup struct {
 
 // GenerateAmiName will generate an AMI name.
 func GenerateAmiName(amiNameFormat, baseOS, kubernetesVersion string) (string, error) {
-	amiNameParameters := AMILookup{baseOS, kubernetesVersion}
+	amiNameParameters := AMILookup{baseOS, strings.TrimPrefix(kubernetesVersion, "v")}
 	// revert to default if not specified
 	if amiNameFormat == "" {
 		amiNameFormat = DefaultAmiNameFormat
