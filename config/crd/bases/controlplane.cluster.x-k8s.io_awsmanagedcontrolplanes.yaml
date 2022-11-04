@@ -1262,6 +1262,8 @@ spec:
                                       type: integer
                                     healthCheckPath:
                                       type: string
+                                    healthCheckPort:
+                                      type: string
                                     healthCheckProtocol:
                                       type: string
                                     healthCheckTimeoutSeconds:
@@ -1270,12 +1272,6 @@ spec:
                                     healthyThresholdCount:
                                       format: int64
                                       type: integer
-                                  required:
-                                  - healthCheckIntervalSeconds
-                                  - healthCheckPath
-                                  - healthCheckProtocol
-                                  - healthCheckTimeoutSeconds
-                                  - healthyThresholdCount
                                   type: object
                                 vpcId:
                                   type: string
@@ -2630,6 +2626,8 @@ spec:
                                       type: integer
                                     healthCheckPath:
                                       type: string
+                                    healthCheckPort:
+                                      type: string
                                     healthCheckProtocol:
                                       type: string
                                     healthCheckTimeoutSeconds:
@@ -2638,12 +2636,6 @@ spec:
                                     healthyThresholdCount:
                                       format: int64
                                       type: integer
-                                  required:
-                                  - healthCheckIntervalSeconds
-                                  - healthCheckPath
-                                  - healthCheckProtocol
-                                  - healthCheckTimeoutSeconds
-                                  - healthyThresholdCount
                                   type: object
                                 vpcId:
                                   type: string

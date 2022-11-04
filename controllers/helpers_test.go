@@ -38,6 +38,7 @@ const DNSName = "www.google.com"
 
 var (
 	lbName          = aws.String("test-cluster-apiserver")
+	lbArn           = aws.String("loadbalancer::arn")
 	describeLBInput = &elb.DescribeLoadBalancersInput{
 		LoadBalancerNames: aws.StringSlice([]string{"test-cluster-apiserver"}),
 	}
@@ -64,8 +65,9 @@ var (
 						ZoneName: aws.String("us-east-1a"),
 					},
 				},
-				LoadBalancerArn: aws.String("arn"),
+				LoadBalancerArn: aws.String(*lbArn),
 				VpcId:           aws.String("vpc-exists"),
+				DNSName:         aws.String("dns"),
 			},
 		},
 	}
@@ -95,6 +97,20 @@ var (
 		},
 		{
 			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+			Value: aws.String("apiserver"),
+		},
+	}
+	expectedV2Tags = []*elbv2.Tag{
+		{
+			Key:   aws.String("Name"),
+			Value: lbName,
+		},
+		{
+			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+			Value: aws.String("owned"),
+		},
+		{
+			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 			Value: aws.String("apiserver"),
 		},
 	}
@@ -217,6 +233,55 @@ func mockedCreateLBCalls(t *testing.T, m *mocks.MockELBAPIMockRecorder) {
 	m.RegisterInstancesWithLoadBalancer(gomock.Eq(&elb.RegisterInstancesWithLoadBalancerInput{Instances: []*elb.Instance{{InstanceId: aws.String("two")}}, LoadBalancerName: lbName})).MaxTimes(1)
 }
 
+func mockedCreateLBV2Calls(t *testing.T, m *mocks.MockELBV2APIMockRecorder) {
+	t.Helper()
+	m.DescribeLoadBalancers(gomock.Eq(&elbv2.DescribeLoadBalancersInput{
+		Names: []*string{lbName},
+	})).
+		Return(describeLBOutputV2, nil).MinTimes(1)
+	m.DescribeLoadBalancerAttributes(gomock.Eq(&elbv2.DescribeLoadBalancerAttributesInput{
+		LoadBalancerArn: lbArn,
+	})).Return(describeLBAttributesOutputV2, nil)
+	m.DescribeTags(&elbv2.DescribeTagsInput{ResourceArns: []*string{lbArn}}).Return(
+		&elbv2.DescribeTagsOutput{
+			TagDescriptions: []*elbv2.TagDescription{
+				{
+					ResourceArn: lbArn,
+					Tags: []*elbv2.Tag{{
+						Key:   aws.String(infrav1.ClusterTagKey("test-cluster-apiserver")),
+						Value: aws.String(string(infrav1.ResourceLifecycleOwned)),
+					}},
+				},
+			},
+		}, nil)
+	m.ModifyLoadBalancerAttributes(gomock.Eq(&elbv2.ModifyLoadBalancerAttributesInput{
+		Attributes: []*elbv2.LoadBalancerAttribute{
+			{
+				Key:   aws.String(infrav1.LoadBalancerAttributeEnableLoadBalancingCrossZone),
+				Value: aws.String("false"),
+			},
+		},
+		LoadBalancerArn: lbArn,
+	})).MaxTimes(1)
+	m.AddTags(gomock.AssignableToTypeOf(&elbv2.AddTagsInput{})).Return(&elbv2.AddTagsOutput{}, nil).Do(
+		func(actual *elbv2.AddTagsInput) {
+			sortTagsByKey := func(tags []*elbv2.Tag) {
+				sort.Slice(tags, func(i, j int) bool {
+					return *(tags[i].Key) < *(tags[j].Key)
+				})
+			}
+
+			sortTagsByKey(actual.Tags)
+			if !cmp.Equal(expectedV2Tags, actual.Tags) {
+				t.Fatalf("Actual AddTagsInput did not match expected, Actual : %v, Expected: %v", actual.Tags, expectedV2Tags)
+			}
+		}).AnyTimes()
+	m.RemoveTags(gomock.Eq(&elbv2.RemoveTagsInput{
+		ResourceArns: []*string{lbArn},
+		TagKeys:      []*string{aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster-apiserver")},
+	})).MaxTimes(1)
+}
+
 func mockedDeleteLBCalls(expectV2Call bool, mv2 *mocks.MockELBV2APIMockRecorder, m *mocks.MockELBAPIMockRecorder) {
 	if expectV2Call {
 		mv2.DescribeLoadBalancers(gomock.Any()).Return(describeLBOutputV2, nil)
@@ -237,7 +302,7 @@ func mockedDeleteLBCalls(expectV2Call bool, mv2 *mocks.MockELBV2APIMockRecorder,
 			}, nil).MaxTimes(1)
 		mv2.DescribeTargetGroups(gomock.Any()).Return(&elbv2.DescribeTargetGroupsOutput{}, nil)
 		mv2.DescribeListeners(gomock.Any()).Return(&elbv2.DescribeListenersOutput{}, nil)
-		mv2.DeleteLoadBalancer(gomock.Eq(&elbv2.DeleteLoadBalancerInput{LoadBalancerArn: aws.String("arn")})).
+		mv2.DeleteLoadBalancer(gomock.Eq(&elbv2.DeleteLoadBalancerInput{LoadBalancerArn: lbArn})).
 			Return(&elbv2.DeleteLoadBalancerOutput{}, nil).MaxTimes(1)
 		mv2.DescribeLoadBalancers(gomock.Any()).Return(&elbv2.DescribeLoadBalancersOutput{}, nil)
 	}

@@ -60,7 +60,7 @@ func (s *Service) ReconcileLoadbalancers() error {
 	case infrav1.LoadBalancerTypeClassic:
 		return s.reconcileClassicLoadBalancer()
 	case infrav1.LoadBalancerTypeNLB, infrav1.LoadBalancerTypeALB, infrav1.LoadBalancerTypeELB:
-		return s.reconcileV2LB(s.scope.ControlPlaneLoadBalancer().LoadBalancerType)
+		return s.reconcileV2LB()
 	default:
 		return fmt.Errorf("unknown or unsuported load balancer type: %s", s.scope.ControlPlaneLoadBalancer().LoadBalancerType)
 	}
@@ -68,7 +68,7 @@ func (s *Service) ReconcileLoadbalancers() error {
 
 // reconcileV2LB creates a load balancer. It also takes care of generating unique names across
 // namespaces by appending the namespace to the name.
-func (s *Service) reconcileV2LB(loadBalancerType infrav1.LoadBalancerType) error {
+func (s *Service) reconcileV2LB() error {
 	name, err := LBName(s.scope)
 	if err != nil {
 		return errors.Wrap(err, "failed to get control plane load balancer name")
@@ -85,7 +85,7 @@ func (s *Service) reconcileV2LB(loadBalancerType infrav1.LoadBalancerType) error
 		// if elb is not found and owner cluster ControlPlaneEndpoint is already populated, then we should not recreate the elb.
 		return errors.Wrapf(err, "no loadbalancer exists for the AWSCluster %s, the cluster has become unrecoverable and should be deleted manually", s.scope.InfraClusterName())
 	case IsNotFound(err):
-		lb, err = s.createLB(loadBalancerType, spec)
+		lb, err = s.createLB(spec)
 		if err != nil {
 			s.scope.Error(err, "failed to create LB")
 			return err
@@ -98,7 +98,7 @@ func (s *Service) reconcileV2LB(loadBalancerType infrav1.LoadBalancerType) error
 	}
 
 	// set up the type for later processing
-	lb.LoadBalancerType = loadBalancerType
+	lb.LoadBalancerType = s.scope.ControlPlaneLoadBalancer().LoadBalancerType
 	if lb.IsManaged(s.scope.Name()) {
 		if !cmp.Equal(spec.V2Attributes, lb.V2Attributes) {
 			if err := s.configureLBAttributes(lb.ARN, spec.V2Attributes); err != nil {
@@ -126,7 +126,7 @@ func (s *Service) reconcileV2LB(loadBalancerType infrav1.LoadBalancerType) error
 		}
 
 		// Reconcile the security groups from the spec and the ones currently attached to the load balancer
-		if loadBalancerType != infrav1.LoadBalancerTypeNLB && !sets.NewString(lb.SecurityGroupIDs...).Equal(sets.NewString(spec.SecurityGroupIDs...)) {
+		if s.scope.ControlPlaneLoadBalancer().LoadBalancerType != infrav1.LoadBalancerTypeNLB && !sets.NewString(lb.SecurityGroupIDs...).Equal(sets.NewString(spec.SecurityGroupIDs...)) {
 			_, err := s.ELBV2Client.SetSecurityGroups(&elbv2.SetSecurityGroupsInput{
 				LoadBalancerArn: &lb.ARN,
 				SecurityGroups:  aws.StringSlice(spec.SecurityGroupIDs),
@@ -163,18 +163,22 @@ func (s *Service) getAPIServerLBSpec(elbName string) (*infrav1.LoadBalancer, err
 					Port:     aws.Int64(6443),
 					Protocol: infrav1.ElbProtocolTCP,
 					VpcID:    aws.String(s.scope.VPC().ID),
+					HealthCheck: &infrav1.TargetGroupHealthCheck{
+						HealthCheckProtocol: aws.String(string(infrav1.ElbProtocolTCP)),
+						HealthCheckPort:     aws.String("6443"),
+					},
 				},
 			},
 		},
 		SecurityGroupIDs: securityGroupIDs,
 	}
 
-	if s.scope.ControlPlaneLoadBalancer().LoadBalancerType != infrav1.LoadBalancerTypeNLB {
-		res.V2Attributes["idle_timeout.timeout_seconds"] = aws.String("600")
+	if s.scope.ControlPlaneLoadBalancer() != nil && s.scope.ControlPlaneLoadBalancer().LoadBalancerType != infrav1.LoadBalancerTypeNLB {
+		res.V2Attributes[infrav1.LoadBalancerAttributeIdleTimeTimeoutSeconds] = aws.String("600")
 	}
 
 	if s.scope.ControlPlaneLoadBalancer() != nil {
-		res.V2Attributes["load_balancing.cross_zone.enabled"] = aws.String(fmt.Sprintf("%t", s.scope.ControlPlaneLoadBalancer().CrossZoneLoadBalancing))
+		res.V2Attributes[infrav1.LoadBalancerAttributeEnableLoadBalancingCrossZone] = aws.String(fmt.Sprintf("%t", s.scope.ControlPlaneLoadBalancer().CrossZoneLoadBalancing))
 	}
 
 	res.Tags = infrav1.Build(infrav1.BuildParams{
@@ -225,9 +229,9 @@ func (s *Service) getAPIServerLBSpec(elbName string) (*infrav1.LoadBalancer, err
 	return res, nil
 }
 
-func (s *Service) createLB(lbType infrav1.LoadBalancerType, spec *infrav1.LoadBalancer) (*infrav1.LoadBalancer, error) {
+func (s *Service) createLB(spec *infrav1.LoadBalancer) (*infrav1.LoadBalancer, error) {
 	var t *string
-	switch lbType {
+	switch s.scope.ControlPlaneLoadBalancer().LoadBalancerType {
 	case infrav1.LoadBalancerTypeNLB:
 		t = aws.String(elbv2.LoadBalancerTypeEnumNetwork)
 	case infrav1.LoadBalancerTypeALB:
@@ -242,8 +246,12 @@ func (s *Service) createLB(lbType infrav1.LoadBalancerType, spec *infrav1.LoadBa
 		Scheme:  aws.String(string(spec.Scheme)),
 		Type:    t,
 	}
-	if lbType != infrav1.LoadBalancerTypeNLB {
+	if s.scope.ControlPlaneLoadBalancer().LoadBalancerType != infrav1.LoadBalancerTypeNLB {
 		input.SecurityGroups = aws.StringSlice(spec.SecurityGroupIDs)
+	}
+
+	if s.scope.VPC().IsIPv6Enabled() {
+		input.IpAddressType = aws.String("dualstack")
 	}
 
 	out, err := s.ELBV2Client.CreateLoadBalancer(input)
@@ -264,11 +272,13 @@ func (s *Service) createLB(lbType infrav1.LoadBalancerType, spec *infrav1.LoadBa
 			Protocol: aws.String(ln.TargetGroup.Protocol.String()),
 			VpcId:    ln.TargetGroup.VpcID,
 		}
-		// TODO Check for IPv6 and set IpAddressType
+		if s.scope.VPC().IsIPv6Enabled() {
+			targetGroupInput.IpAddressType = aws.String("ipv6")
+		}
 		if ln.TargetGroup.HealthCheck != nil {
 			targetGroupInput.HealthCheckEnabled = aws.Bool(true)
-			targetGroupInput.HealthCheckProtocol = aws.String("TCP")
-			targetGroupInput.HealthCheckPort = aws.String("6443")
+			targetGroupInput.HealthCheckProtocol = ln.TargetGroup.HealthCheck.HealthCheckProtocol
+			targetGroupInput.HealthCheckPort = ln.TargetGroup.HealthCheck.HealthCheckPort
 		}
 		s.scope.Debug("creating target group", "group", targetGroupInput, "listener", ln)
 		group, err := s.ELBV2Client.CreateTargetGroup(targetGroupInput)
@@ -277,6 +287,21 @@ func (s *Service) createLB(lbType infrav1.LoadBalancerType, spec *infrav1.LoadBa
 		}
 		if len(group.TargetGroups) == 0 {
 			return nil, errors.New("no target group was created; the returned list is empty")
+		}
+
+		if !s.scope.ControlPlaneLoadBalancer().PreserveClientIP {
+			targetGroupAttributeInput := &elbv2.ModifyTargetGroupAttributesInput{
+				TargetGroupArn: group.TargetGroups[0].TargetGroupArn,
+				Attributes: []*elbv2.TargetGroupAttribute{
+					{
+						Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
+						Value: aws.String("false"),
+					},
+				},
+			}
+			if _, err := s.ELBV2Client.ModifyTargetGroupAttributes(targetGroupAttributeInput); err != nil {
+				return nil, errors.Wrapf(err, "failed to modify target group attribute")
+			}
 		}
 
 		listenerInput := &elbv2.CreateListenerInput{
@@ -289,8 +314,7 @@ func (s *Service) createLB(lbType infrav1.LoadBalancerType, spec *infrav1.LoadBa
 			LoadBalancerArn: out.LoadBalancers[0].LoadBalancerArn,
 			Port:            aws.Int64(ln.Port),
 			Protocol:        aws.String(string(ln.Protocol)),
-			// TODO: Add tags
-			Tags: nil,
+			Tags:            converters.MapToV2Tags(spec.Tags),
 		}
 		// Create ClassicELBListeners
 		listener, err := s.ELBV2Client.CreateListener(listenerInput)
@@ -724,6 +748,11 @@ func (s *Service) RegisterInstanceWithAPIServerLB(i *infrav1.Instance) error {
 	if err != nil {
 		return errors.Wrapf(err, "error describing ELB's target groups %q", name)
 	}
+	if len(targetGroups.TargetGroups) == 0 {
+		return errors.New(fmt.Sprintf("no target groups found for load balancer with arn '%s'", out.ARN))
+	}
+	// Since TargetGroups and Listeners don't care, or are not aware, of subnets before registration, we ignore that check.
+	// Also, registering with AZ is not supported using the an InstanceID.
 	s.scope.Debug("found number of target groups", "target-groups", len(targetGroups.TargetGroups))
 	for _, tg := range targetGroups.TargetGroups {
 		input := &elbv2.RegisterTargetsInput{
