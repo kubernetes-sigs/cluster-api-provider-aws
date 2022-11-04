@@ -105,3 +105,46 @@ spec:
       kubeletExtraArgs:
         cloud-provider: aws
 ```
+
+## Autoscaling
+
+[`cluster-autoscaler`](https://github.com/kubernetes/autoscaler/tree/master/cluster-autoscaler) can be used to scale MachinePools up and down.
+Two providers are possible to use with CAPA MachinePools: `clusterapi`, or `aws`.
+
+If the `AWS` autoscaler provider is used, each MachinePool needs to have an annotation set to prevent scale up/down races between
+cluster-autoscaler and cluster-api. Example:
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachinePool
+metadata:
+  name: capa-mp-0
+  annotations:
+    cluster.x-k8s.io/replicas-managed-by: "external-autoscaler"
+spec:
+  clusterName: capa
+  replicas: 2
+  template:
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfig
+          name: capa-mp-0
+      clusterName: capa
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: AWSMachinePool
+        name: capa-mp-0
+      version: v1.24.0
+```
+
+When using GitOps, make sure to ignore differences in `spec.replicas` on MachinePools. Example when using ArgoCD:
+
+```yaml
+  ignoreDifferences:
+    - group: cluster.x-k8s.io
+      kind: MachinePool
+      jsonPointers:
+        - /spec/replicas
+```
