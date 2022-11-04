@@ -193,7 +193,7 @@ type AWSLoadBalancerSpec struct {
 	// +optional
 	Subnets []string `json:"subnets,omitempty"`
 
-	// HealthCheckProtocol sets the protocol type for classic ELB health check target
+	// HealthCheckProtocol sets the protocol type for ELB health check target
 	// default value is ElbProtocolSSL
 	// +optional
 	HealthCheckProtocol *ElbProtocol `json:"healthCheckProtocol,omitempty"`
@@ -210,6 +210,10 @@ type AWSLoadBalancerSpec struct {
 	// DisableHostsRewrite disabled the hair pinning issue solution that adds the NLB's address as 127.0.0.1 to the hosts
 	// file of each instance. This is by default, false.
 	DisableHostsRewrite bool `json:"disableHostsRewrite,omitempty"`
+
+	// PreserveClientIP lets the user control if preservation of client ips must be retained or not.
+	// If this is enabled 6443 will be opened to 0.0.0.0/0.
+	PreserveClientIP bool `json:"preserveClientIP,omitempty"`
 }
 
 // AWSClusterStatus defines the observed state of AWSCluster.

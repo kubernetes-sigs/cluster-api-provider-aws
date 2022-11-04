@@ -1730,6 +1730,11 @@ func (in *TargetGroupHealthCheck) DeepCopyInto(out *TargetGroupHealthCheck) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.HealthCheckPort != nil {
+		in, out := &in.HealthCheckPort, &out.HealthCheckPort
+		*out = new(string)
+		**out = **in
+	}
 	if in.HealthCheckIntervalSeconds != nil {
 		in, out := &in.HealthCheckIntervalSeconds, &out.HealthCheckIntervalSeconds
 		*out = new(int64)

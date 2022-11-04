@@ -587,14 +587,31 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 		// Except if the load balancer type is NLB, and we have an AWS Cluster in which case we
 		// need to open port 6443 to the NLB traffic and health check inside the VPC.
 		if s.scope.ControlPlaneLoadBalancer() != nil && s.scope.ControlPlaneLoadBalancer().LoadBalancerType == infrav1.LoadBalancerTypeNLB {
+			// check for preserve ip
+			var (
+				ipv4CidrBlocks []string
+				ipv6CidrBlocks []string
+			)
+
+			ipv4CidrBlocks = []string{s.scope.VPC().CidrBlock}
+			if s.scope.VPC().IsIPv6Enabled() {
+				ipv6CidrBlocks = []string{s.scope.VPC().IPv6.CidrBlock}
+			}
+			if s.scope.ControlPlaneLoadBalancer().PreserveClientIP {
+				ipv4CidrBlocks = []string{services.AnyIPv4CidrBlock}
+				if s.scope.VPC().IsIPv6Enabled() {
+					ipv6CidrBlocks = []string{services.AnyIPv6CidrBlock}
+				}
+			}
+
 			rules := infrav1.IngressRules{
 				{
-					Description: "Allow NLB traffic to the control plane instances.",
-					Protocol:    infrav1.SecurityGroupProtocolTCP,
-					FromPort:    int64(s.scope.APIServerPort()),
-					ToPort:      int64(s.scope.APIServerPort()),
-					// TODO: Update this to work with IPv6.
-					CidrBlocks: []string{s.scope.VPC().CidrBlock},
+					Description:    "Allow NLB traffic to the control plane instances.",
+					Protocol:       infrav1.SecurityGroupProtocolTCP,
+					FromPort:       int64(s.scope.APIServerPort()),
+					ToPort:         int64(s.scope.APIServerPort()),
+					CidrBlocks:     ipv4CidrBlocks,
+					IPv6CidrBlocks: ipv6CidrBlocks,
 				},
 			}
 			return rules, nil

@@ -476,7 +476,6 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		machineScope.Error(err, "unable to patch object")
 		return ctrl.Result{}, err
 	}
-
 	// Create new instance since providerId is nil and instance could not be found by tags.
 	if instance == nil {
 		// Avoid a flickering condition between InstanceProvisionStarted and InstanceProvisionFailed if there's a persistent failure with createInstance
@@ -511,7 +510,6 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	// Make sure Spec.ProviderID and Spec.InstanceID are always set.
 	machineScope.SetProviderID(instance.ID, instance.AvailabilityZone)
 	machineScope.SetInstanceID(instance.ID)
-
 	// See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html
 
 	// Sets the AWSMachine status Interruptible, when the SpotMarketOptions is enabled for AWSMachine, Interruptible is set as true.
@@ -598,6 +596,7 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		conditions.MarkTrue(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition)
 	}
 
+	machineScope.Debug("done reconciling instance", "instance", instance)
 	return ctrl.Result{}, nil
 }
 
@@ -792,16 +791,20 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.Machine
 	// from the ELB as soon as the machine gets deleted or when the machine is in a not running state.
 	if !machineScope.AWSMachine.DeletionTimestamp.IsZero() || !machineScope.InstanceIsRunning() {
 		if elbScope.ControlPlaneLoadBalancer().LoadBalancerType == infrav1.LoadBalancerTypeClassic {
+			machineScope.Debug("deregistering from classic load balancer")
 			return r.deregisterInstanceFromClassicLB(machineScope, elbsvc, i)
 		}
+		machineScope.Debug("deregistering from v2 load balancer")
 		return r.deregisterInstanceFromV2LB(machineScope, elbsvc, i)
 	}
 
 	// This changes the flow because previously it didn't care about this part.
 	if elbScope.ControlPlaneLoadBalancer().LoadBalancerType == infrav1.LoadBalancerTypeClassic {
+		machineScope.Debug("registering to classic load balancer")
 		return r.registerInstanceToClassicLB(machineScope, elbsvc, i)
 	}
 
+	machineScope.Debug("registering to v2 load balancer")
 	return r.registerInstanceToV2LB(machineScope, elbsvc, i)
 }
 

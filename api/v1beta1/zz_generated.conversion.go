@@ -565,8 +565,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-<<<<<<< HEAD
-<<<<<<< HEAD
 	if err := s.AddConversionFunc((*AWSMachineSpec)(nil), (*v1beta2.AWSMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_AWSMachineSpec_To_v1beta2_AWSMachineSpec(a.(*AWSMachineSpec), b.(*v1beta2.AWSMachineSpec), scope)
 	}); err != nil {
@@ -574,14 +572,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*AWSResourceReference)(nil), (*v1beta2.AWSResourceReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_AWSResourceReference_To_v1beta2_AWSResourceReference(a.(*AWSResourceReference), b.(*v1beta2.AWSResourceReference), scope)
-=======
-	if err := s.AddConversionFunc((*ClassicELB)(nil), (*v1beta2.ClassicELB)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_ClassicELB_To_v1beta2_ClassicELB(a.(*ClassicELB), b.(*v1beta2.ClassicELB), scope)
->>>>>>> 99e8b0a3 (Add ability to use NLBs as control plane load-balancers)
-=======
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*ClassicELB)(nil), (*v1beta2.LoadBalancer)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_ClassicELB_To_v1beta2_LoadBalancer(a.(*ClassicELB), b.(*v1beta2.LoadBalancer), scope)
->>>>>>> e1a80fcc (Complete restructure of the old LoadBalancer keeping the old json tags)
 	}); err != nil {
 		return err
 	}
@@ -1209,6 +1204,7 @@ func autoConvert_v1beta2_AWSLoadBalancerSpec_To_v1beta1_AWSLoadBalancerSpec(in *
 	out.AdditionalSecurityGroups = *(*[]string)(unsafe.Pointer(&in.AdditionalSecurityGroups))
 	// WARNING: in.LoadBalancerType requires manual conversion: does not exist in peer-type
 	// WARNING: in.DisableHostsRewrite requires manual conversion: does not exist in peer-type
+	// WARNING: in.PreserveClientIP requires manual conversion: does not exist in peer-type
 	return nil
 }
 

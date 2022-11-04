@@ -75,14 +75,29 @@ var (
 )
 
 // TargetGroupHealthCheck defines health check settings for the target group.
-// TODO: Create default values for these.
 type TargetGroupHealthCheck struct {
-	HealthCheckProtocol        *string `json:"healthCheckProtocol"`
-	HealthCheckPath            *string `json:"healthCheckPath"`
-	HealthCheckIntervalSeconds *int64  `json:"healthCheckIntervalSeconds"`
-	HealthCheckTimeoutSeconds  *int64  `json:"healthCheckTimeoutSeconds"`
-	HealthyThresholdCount      *int64  `json:"healthyThresholdCount"`
+	HealthCheckProtocol        *string `json:"healthCheckProtocol,omitempty"`
+	HealthCheckPath            *string `json:"healthCheckPath,omitempty"`
+	HealthCheckPort            *string `json:"healthCheckPort,omitempty"`
+	HealthCheckIntervalSeconds *int64  `json:"healthCheckIntervalSeconds,omitempty"`
+	HealthCheckTimeoutSeconds  *int64  `json:"healthCheckTimeoutSeconds,omitempty"`
+	HealthyThresholdCount      *int64  `json:"healthyThresholdCount,omitempty"`
 }
+
+// TargetGroupAttribute defines attribute key values for V2 Load Balancer Attributes.
+type TargetGroupAttribute string
+
+var (
+	TargetGroupAttributeEnablePreserveClientIP = "preserve_client_ip.enabled"
+)
+
+// LoadBalancerAttribute defines a set of attributes for a V2 load balancer
+type LoadBalancerAttribute string
+
+var (
+	LoadBalancerAttributeEnableLoadBalancingCrossZone = "load_balancing.cross_zone.enabled"
+	LoadBalancerAttributeIdleTimeTimeoutSeconds       = "idle_timeout.timeout_seconds"
+)
 
 // TargetGroupSpec specifies target group settings for a given listener.
 // This is created first, and the ARN is then passed to the listener.

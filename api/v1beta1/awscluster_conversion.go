@@ -64,6 +64,7 @@ func restoreControlPlaneLoadBalancer(restored, dst *infrav1.AWSLoadBalancerSpec)
 	dst.HealthCheckProtocol = restored.HealthCheckProtocol
 	dst.LoadBalancerType = restored.LoadBalancerType
 	dst.DisableHostsRewrite = restored.DisableHostsRewrite
+	dst.PreserveClientIP = restored.PreserveClientIP
 }
 
 // ConvertFrom converts the v1beta1 AWSCluster receiver to a v1beta1 AWSCluster.
