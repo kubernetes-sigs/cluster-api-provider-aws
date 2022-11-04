@@ -578,7 +578,7 @@ func (s *NodegroupService) setStatus(ng *eks.Nodegroup) error {
 					s.Error(err, "couldn't create provider ID for instance", "id", *instance.InstanceId)
 					continue
 				}
-				providerIDList = append(providerIDList, id.String())
+				providerIDList = append(providerIDList, fmt.Sprintf("aws:///%s/%s", *instance.AvailabilityZone, *instance.InstanceId))
 			}
 		}
 		managedPool.Spec.ProviderIDList = providerIDList
