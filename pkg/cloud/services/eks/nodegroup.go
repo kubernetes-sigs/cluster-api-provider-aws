@@ -36,7 +36,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 )
 
 func (s *NodegroupService) describeNodegroup() (*eks.Nodegroup, error) {
@@ -573,12 +572,7 @@ func (s *NodegroupService) setStatus(ng *eks.Nodegroup) error {
 		for _, group := range groups.AutoScalingGroups {
 			replicas += int32(len(group.Instances))
 			for _, instance := range group.Instances {
-				id, err := noderefutil.NewProviderID(fmt.Sprintf("aws://%s/%s", *instance.AvailabilityZone, *instance.InstanceId))
-				if err != nil {
-					s.Error(err, "couldn't create provider ID for instance", "id", *instance.InstanceId)
-					continue
-				}
-				providerIDList = append(providerIDList, id.String())
+				providerIDList = append(providerIDList, fmt.Sprintf("aws:///%s/%s", *instance.AvailabilityZone, *instance.InstanceId))
 			}
 		}
 		managedPool.Spec.ProviderIDList = providerIDList
