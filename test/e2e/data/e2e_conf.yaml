@@ -156,7 +156,7 @@ variables:
   AWS_NODE_MACHINE_TYPE: t3.large
   AWS_MACHINE_TYPE_VCPU_USAGE: 2
   AWS_SSH_KEY_NAME: "cluster-api-provider-aws-sigs-k8s-io"
-  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.24.0"
+  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.24.4"
   CONFORMANCE_WORKER_MACHINE_COUNT: "5"
   CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT: "1"
   ETCD_VERSION_UPGRADE_TO: "3.5.3-0"
@@ -180,7 +180,7 @@ intervals:
   default/wait-cluster: ["30m", "10s"]
   default/wait-control-plane: ["25m", "10s"]
   default/wait-worker-nodes: ["20m", "10s"]
-  conformance/wait-control-plane: ["30m", "10s"]
+  conformance/wait-control-plane: ["35m", "10s"]
   conformance/wait-worker-nodes: ["35m", "10s"]
   default/wait-controllers: ["5m", "10s"]
   default/wait-delete-cluster: ["20m", "10s"]
