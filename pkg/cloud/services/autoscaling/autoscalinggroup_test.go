@@ -218,8 +218,9 @@ func TestService_SDKToAutoScalingGroup(t *testing.T) {
 				},
 				Instances: []*autoscaling.Instance{
 					{
-						InstanceId:     aws.String("instanceId"),
-						LifecycleState: aws.String("lifecycleState"),
+						InstanceId:       aws.String("instanceId"),
+						LifecycleState:   aws.String("lifecycleState"),
+						AvailabilityZone: aws.String("us-east-1a"),
 					},
 				},
 			},
@@ -249,8 +250,9 @@ func TestService_SDKToAutoScalingGroup(t *testing.T) {
 				},
 				Instances: []infrav1.Instance{
 					{
-						ID:    "instanceId",
-						State: "lifecycleState",
+						ID:               "instanceId",
+						State:            "lifecycleState",
+						AvailabilityZone: "us-east-1a",
 					},
 				},
 			},
