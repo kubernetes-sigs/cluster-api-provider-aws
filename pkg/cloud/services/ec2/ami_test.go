@@ -263,7 +263,7 @@ func TestGenerateAmiName(t *testing.T) {
 		{
 			name: "Should return image name even if OS and amiNameFormat is empty",
 			args: args{
-				kubernetesVersion: "v1.23.3",
+				kubernetesVersion: "1.23.3",
 			},
 			want: "capa-ami--?1.23.3-*",
 		},
@@ -284,6 +284,15 @@ func TestGenerateAmiName(t *testing.T) {
 				kubernetesVersion: "1.23.3",
 			},
 			want: "random-centos-7-?1.23.3-*",
+		},
+		{
+			name: "Should return valid amiName if new AMI name format passed",
+			args: args{
+				amiNameFormat:     "random-{{.BaseOS}}-{{.K8sVersion}}",
+				baseOS:            "centos-7",
+				kubernetesVersion: "v1.23.3",
+			},
+			want: "random-centos-7-v1.23.3",
 		},
 	}
 	for _, tt := range tests {
