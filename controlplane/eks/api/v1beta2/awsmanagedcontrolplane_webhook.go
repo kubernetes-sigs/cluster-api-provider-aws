@@ -213,7 +213,7 @@ func (r *AWSManagedControlPlane) validateEKSVersion(old *AWSManagedControlPlane)
 		allErrs = append(allErrs, field.Invalid(path, *r.Spec.Version, err.Error()))
 	}
 
-	if old != nil {
+	if old != nil && old.Spec.Version != nil {
 		oldV, err := parseEKSVersion(*old.Spec.Version)
 		if err == nil && (v.Major() < oldV.Major() || v.Minor() < oldV.Minor()) {
 			allErrs = append(allErrs, field.Invalid(path, *r.Spec.Version, "new version less than old version"))
@@ -233,6 +233,10 @@ func (r *AWSManagedControlPlane) validateEKSAddons() field.ErrorList {
 	var allErrs field.ErrorList
 
 	if !r.Spec.NetworkSpec.VPC.IsIPv6Enabled() && (r.Spec.Addons == nil || len(*r.Spec.Addons) == 0) {
+		return allErrs
+	}
+
+	if r.Spec.Version == nil {
 		return allErrs
 	}
 
