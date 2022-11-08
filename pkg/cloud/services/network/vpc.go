@@ -271,6 +271,13 @@ func (s *Service) deleteVPC() error {
 			s.scope.Trace("Skipping VPC deletion, VPC not found")
 			return nil
 		}
+
+		// Ignore if VPC ID is not present,
+		if code, ok := awserrors.Code(err); ok && code == awserrors.VPCMissingParameter {
+			s.scope.Trace("Skipping VPC deletion, VPC ID not present")
+			return nil
+		}
+
 		record.Warnf(s.scope.InfraCluster(), "FailedDeleteVPC", "Failed to delete managed VPC %q: %v", vpc.ID, err)
 		return errors.Wrapf(err, "failed to delete vpc %q", vpc.ID)
 	}
