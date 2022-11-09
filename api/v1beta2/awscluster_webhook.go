@@ -81,11 +81,15 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 	}
 
 	newLoadBalancer := &AWSLoadBalancerSpec{}
+	existingLoadBalancer := &AWSLoadBalancerSpec{}
 
 	if r.Spec.ControlPlaneLoadBalancer != nil {
 		newLoadBalancer = r.Spec.ControlPlaneLoadBalancer.DeepCopy()
 	}
 
+	if oldC.Spec.ControlPlaneLoadBalancer != nil {
+		existingLoadBalancer = oldC.Spec.ControlPlaneLoadBalancer.DeepCopy()
+	}
 	if oldC.Spec.ControlPlaneLoadBalancer == nil {
 		// If old scheme was nil, the only value accepted here is the default value: internet-facing
 		if newLoadBalancer.Scheme != nil && newLoadBalancer.Scheme.String() != ClassicELBSchemeInternetFacing.String() {
@@ -96,16 +100,11 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 		}
 	} else {
 		// If old scheme was not nil, the new scheme should be the same.
-		existingLoadBalancer := oldC.Spec.ControlPlaneLoadBalancer.DeepCopy()
 		if !cmp.Equal(existingLoadBalancer.Scheme, newLoadBalancer.Scheme) {
-			// Only allow changes from Internet-facing scheme to internet-facing.
-			if !(existingLoadBalancer.Scheme.String() == ClassicELBSchemeIncorrectInternetFacing.String() &&
-				newLoadBalancer.Scheme.String() == ClassicELBSchemeInternetFacing.String()) {
-				allErrs = append(allErrs,
-					field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "scheme"),
-						r.Spec.ControlPlaneLoadBalancer.Scheme, "field is immutable"),
-				)
-			}
+			allErrs = append(allErrs,
+				field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "scheme"),
+					r.Spec.ControlPlaneLoadBalancer.Scheme, "field is immutable"),
+			)
 		}
 		// The name must be defined when the AWSCluster is created. If it is not defined,
 		// then the controller generates a default name at runtime, but does not store it,
@@ -116,16 +115,16 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 					r.Spec.ControlPlaneLoadBalancer.Name, "field is immutable"),
 			)
 		}
+	}
 
-		// Block the update for HealthCheckProtocol :
-		// - if it was not set in old spec but added in new spec
-		// - if it was set in old spec but changed in new spec
-		if !cmp.Equal(newLoadBalancer.HealthCheckProtocol, existingLoadBalancer.HealthCheckProtocol) {
-			allErrs = append(allErrs,
-				field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "healthCheckProtocol"),
-					newLoadBalancer.HealthCheckProtocol, "field is immutable once set"),
-			)
-		}
+	// Block the update for HealthCheckProtocol :
+	// - if it was not set in old spec but added in new spec
+	// - if it was set in old spec but changed in new spec
+	if !cmp.Equal(newLoadBalancer.HealthCheckProtocol, existingLoadBalancer.HealthCheckProtocol) {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "healthCheckProtocol"),
+				newLoadBalancer.HealthCheckProtocol, "field is immutable once set"),
+		)
 	}
 
 	if !cmp.Equal(oldC.Spec.ControlPlaneEndpoint, clusterv1.APIEndpoint{}) &&
