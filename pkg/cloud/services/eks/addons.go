@@ -208,12 +208,8 @@ func (s *Service) translateAPIToAddon(addons []ekscontrolplanev1.Addon) []*eksad
 }
 
 func convertConflictResolution(conflict ekscontrolplanev1.AddonResolution) *string {
-	switch conflict {
-	case ekscontrolplanev1.AddonResolutionNone:
+	if conflict == ekscontrolplanev1.AddonResolutionNone {
 		return aws.String(eks.ResolveConflictsNone)
-	case ekscontrolplanev1.AddonResolutionOverwrite:
-		return aws.String(eks.ResolveConflictsOverwrite)
-	default:
-		return nil
 	}
+	return aws.String(eks.ResolveConflictsOverwrite)
 }
