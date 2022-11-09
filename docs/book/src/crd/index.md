@@ -597,7 +597,7 @@ bool
 </td>
 <td>
 <p>TrustStatements is an IAM PolicyDocument defining what identities are allowed to assume this role.
-See &ldquo;sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1beta1&rdquo; for more documentation.</p>
+See &ldquo;sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/iam/v1beta1&rdquo; for more documentation.</p>
 </td>
 </tr>
 <tr>
@@ -1506,7 +1506,7 @@ bool
 </td>
 <td>
 <p>TrustStatements is an IAM PolicyDocument defining what identities are allowed to assume this role.
-See &ldquo;sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1beta1&rdquo; for more documentation.</p>
+See &ldquo;sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/iam/v1beta1&rdquo; for more documentation.</p>
 </td>
 </tr>
 <tr>
@@ -2616,6 +2616,52 @@ string
 <h2 id="bootstrap.cluster.x-k8s.io/v1beta2">bootstrap.cluster.x-k8s.io/v1beta2</h2>
 Resource Types:
 <ul></ul>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.DiskSetup">DiskSetup
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.EKSConfigSpec">EKSConfigSpec</a>)
+</p>
+<p>
+<p>DiskSetup defines input for generated disk_setup and fs_setup in cloud-init.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>partitions</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.Partition">
+[]Partition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Partitions specifies the list of the partitions to setup.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>filesystems</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.Filesystem">
+[]Filesystem
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Filesystems specifies the list of file systems to setup.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="bootstrap.cluster.x-k8s.io/v1beta2.EKSConfig">EKSConfig
 </h3>
 <p>
@@ -2756,6 +2802,112 @@ string
 the ip family will be set to ipv6.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>preBootstrapCommands</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PreBootstrapCommands specifies extra commands to run before bootstrapping nodes to the cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>postBootstrapCommands</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PostBootstrapCommands specifies extra commands to run after bootstrapping nodes to the cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>boostrapCommandOverride</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>BootstrapCommandOverride allows you to override the bootstrap command to use for EKS nodes.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>files</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.File">
+[]File
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Files specifies extra files to be passed to user_data upon creation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>diskSetup</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.DiskSetup">
+DiskSetup
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DiskSetup specifies options for the creation of partition tables and file systems on devices.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>mounts</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.MountPoints">
+[]MountPoints
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Mounts specifies a list of mount points to be setup.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>users</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.User">
+[]User
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Users specifies extra users to add</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ntp</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.NTP">
+NTP
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NTP specifies NTP configuration</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -2887,6 +3039,112 @@ string
 <em>(Optional)</em>
 <p>ServiceIPV6Cidr is the ipv6 cidr range of the cluster. If this is specified then
 the ip family will be set to ipv6.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>preBootstrapCommands</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PreBootstrapCommands specifies extra commands to run before bootstrapping nodes to the cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>postBootstrapCommands</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PostBootstrapCommands specifies extra commands to run after bootstrapping nodes to the cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>boostrapCommandOverride</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>BootstrapCommandOverride allows you to override the bootstrap command to use for EKS nodes.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>files</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.File">
+[]File
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Files specifies extra files to be passed to user_data upon creation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>diskSetup</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.DiskSetup">
+DiskSetup
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DiskSetup specifies options for the creation of partition tables and file systems on devices.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>mounts</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.MountPoints">
+[]MountPoints
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Mounts specifies a list of mount points to be setup.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>users</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.User">
+[]User
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Users specifies extra users to add</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ntp</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.NTP">
+NTP
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NTP specifies NTP configuration</p>
 </td>
 </tr>
 </tbody>
@@ -3168,6 +3426,112 @@ string
 the ip family will be set to ipv6.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>preBootstrapCommands</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PreBootstrapCommands specifies extra commands to run before bootstrapping nodes to the cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>postBootstrapCommands</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PostBootstrapCommands specifies extra commands to run after bootstrapping nodes to the cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>boostrapCommandOverride</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>BootstrapCommandOverride allows you to override the bootstrap command to use for EKS nodes.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>files</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.File">
+[]File
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Files specifies extra files to be passed to user_data upon creation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>diskSetup</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.DiskSetup">
+DiskSetup
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DiskSetup specifies options for the creation of partition tables and file systems on devices.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>mounts</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.MountPoints">
+[]MountPoints
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Mounts specifies a list of mount points to be setup.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>users</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.User">
+[]User
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Users specifies extra users to add</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ntp</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.NTP">
+NTP
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NTP specifies NTP configuration</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -3199,6 +3563,410 @@ EKSConfigTemplateResource
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.Encoding">Encoding
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.File">File</a>)
+</p>
+<p>
+<p>Encoding specifies the cloud-init file encoding.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;base64&#34;</p></td>
+<td><p>Base64 implies the contents of the file are encoded as base64.</p>
+</td>
+</tr><tr><td><p>&#34;gzip&#34;</p></td>
+<td><p>Gzip implies the contents of the file are encoded with gzip.</p>
+</td>
+</tr><tr><td><p>&#34;gzip&#43;base64&#34;</p></td>
+<td><p>GzipBase64 implies the contents of the file are first base64 encoded and then gzip encoded.</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.File">File
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.EKSConfigSpec">EKSConfigSpec</a>)
+</p>
+<p>
+<p>File defines the input for generating write_files in cloud-init.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>path</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path specifies the full path on disk where to store the file.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>owner</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Owner specifies the ownership of the file, e.g. &ldquo;root:root&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>permissions</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Permissions specifies the permissions to assign to the file, e.g. &ldquo;0640&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>encoding</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.Encoding">
+Encoding
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Encoding specifies the encoding of the file contents.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>append</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Append specifies whether to append Content to existing file if Path exists.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>content</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Content is the actual content of the file.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>contentFrom</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.FileSource">
+FileSource
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ContentFrom is a referenced source of content to populate the file.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.FileSource">FileSource
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.File">File</a>)
+</p>
+<p>
+<p>FileSource is a union of all possible external source types for file data.
+Only one field may be populated in any given instance. Developers adding new
+sources of data for target systems should add them here.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secret</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.SecretFileSource">
+SecretFileSource
+</a>
+</em>
+</td>
+<td>
+<p>Secret represents a secret that should populate this file.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.Filesystem">Filesystem
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.DiskSetup">DiskSetup</a>)
+</p>
+<p>
+<p>Filesystem defines the file systems to be created.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>device</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Device specifies the device name</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>filesystem</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Filesystem specifies the file system type.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>label</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Label specifies the file system label to be used. If set to None, no label is used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>partition</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Partition specifies the partition to use. The valid options are: &ldquo;auto|any&rdquo;, &ldquo;auto&rdquo;, &ldquo;any&rdquo;, &ldquo;none&rdquo;, and <NUM>, where NUM is the actual partition number.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>overwrite</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Overwrite defines whether or not to overwrite any existing filesystem.
+If true, any pre-existing file system will be destroyed. Use with Caution.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>extraOpts</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ExtraOpts defined extra options to add to the command for creating the file system.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.MountPoints">MountPoints
+(<code>[]string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.EKSConfigSpec">EKSConfigSpec</a>)
+</p>
+<p>
+<p>MountPoints defines input for generated mounts in cloud-init.</p>
+</p>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.NTP">NTP
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.EKSConfigSpec">EKSConfigSpec</a>)
+</p>
+<p>
+<p>NTP defines input for generated ntp in cloud-init.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>servers</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Servers specifies which NTP servers to use</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>enabled</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Enabled specifies whether NTP should be enabled</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.Partition">Partition
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.DiskSetup">DiskSetup</a>)
+</p>
+<p>
+<p>Partition defines how to create and layout a partition.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>device</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Device is the name of the device.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>layout</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>Layout specifies the device layout.
+If it is true, a single partition will be created for the entire device.
+When layout is false, it means don&rsquo;t partition or ignore existing partitioning.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>overwrite</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Overwrite describes whether to skip checks and create the partition if a partition or filesystem is found on the device.
+Use with caution. Default is &lsquo;false&rsquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tableType</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TableType specifies the tupe of partition table. The following are supported:
+&lsquo;mbr&rsquo;: default and setups a MS-DOS partition table
+&lsquo;gpt&rsquo;: setups a GPT partition table</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.PasswdSource">PasswdSource
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.User">User</a>)
+</p>
+<p>
+<p>PasswdSource is a union of all possible external source types for passwd data.
+Only one field may be populated in any given instance. Developers adding new
+sources of data for target systems should add them here.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secret</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.SecretPasswdSource">
+SecretPasswdSource
+</a>
+</em>
+</td>
+<td>
+<p>Secret represents a secret that should populate this password.</p>
 </td>
 </tr>
 </tbody>
@@ -3239,6 +4007,253 @@ string
 </td>
 <td>
 <p>Version is the tag of the pause container to use.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.SecretFileSource">SecretFileSource
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.FileSource">FileSource</a>)
+</p>
+<p>
+<p>SecretFileSource adapts a Secret into a FileSource.</p>
+<p>The contents of the target Secret&rsquo;s Data field will be presented
+as files using the keys in the Data field as the file names.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name of the secret in the KubeadmBootstrapConfig&rsquo;s namespace to use.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>key</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Key is the key in the secret&rsquo;s data map for this value.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.SecretPasswdSource">SecretPasswdSource
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.PasswdSource">PasswdSource</a>)
+</p>
+<p>
+<p>SecretPasswdSource adapts a Secret into a PasswdSource.</p>
+<p>The contents of the target Secret&rsquo;s Data field will be presented
+as passwd using the keys in the Data field as the file names.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name of the secret in the KubeadmBootstrapConfig&rsquo;s namespace to use.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>key</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Key is the key in the secret&rsquo;s data map for this value.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.User">User
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.EKSConfigSpec">EKSConfigSpec</a>)
+</p>
+<p>
+<p>User defines the input for a generated user in cloud-init.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name specifies the username</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>gecos</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Gecos specifies the gecos to use for the user</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>groups</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Groups specifies the additional groups for the user</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>homeDir</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>HomeDir specifies the home directory to use for the user</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>inactive</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Inactive specifies whether to mark the user as inactive</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>shell</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Shell specifies the user&rsquo;s shell</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>passwd</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Passwd specifies a hashed password for the user</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>passwdFrom</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.PasswdSource">
+PasswdSource
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PasswdFrom is a referenced source of passwd to populate the passwd.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>primaryGroup</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PrimaryGroup specifies the primary group for the user</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>lockPassword</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>LockPassword specifies if password login should be disabled</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sudo</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Sudo specifies a sudo role for the user</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sshAuthorizedKeys</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SSHAuthorizedKeys specifies a list of ssh authorized keys for the user</p>
 </td>
 </tr>
 </tbody>
@@ -3596,8 +4611,8 @@ provider for the controller for use with IAM roles for service accounts</p>
 <td>
 <code>addons</code><br/>
 <em>
-<a href="#controlplane.cluster.x-k8s.io/v1beta1.[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1.Addon">
-[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1.Addon
+<a href="#controlplane.cluster.x-k8s.io/v1beta1.[]sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta1.Addon">
+[]sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta1.Addon
 </a>
 </em>
 </td>
@@ -4002,8 +5017,8 @@ provider for the controller for use with IAM roles for service accounts</p>
 <td>
 <code>addons</code><br/>
 <em>
-<a href="#controlplane.cluster.x-k8s.io/v1beta1.[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1.Addon">
-[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1.Addon
+<a href="#controlplane.cluster.x-k8s.io/v1beta1.[]sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta1.Addon">
+[]sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta1.Addon
 </a>
 </em>
 </td>
@@ -5469,8 +6484,8 @@ provider for the controller for use with IAM roles for service accounts</p>
 <td>
 <code>addons</code><br/>
 <em>
-<a href="#controlplane.cluster.x-k8s.io/v1beta2.[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2.Addon">
-[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2.Addon
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.[]sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2.Addon">
+[]sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2.Addon
 </a>
 </em>
 </td>
@@ -5875,8 +6890,8 @@ provider for the controller for use with IAM roles for service accounts</p>
 <td>
 <code>addons</code><br/>
 <em>
-<a href="#controlplane.cluster.x-k8s.io/v1beta2.[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2.Addon">
-[]sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2.Addon
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.[]sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2.Addon">
+[]sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2.Addon
 </a>
 </em>
 </td>
@@ -10186,7 +11201,7 @@ int64
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.CNIIngressRules">CNIIngressRules
-(<code>[]sigs.k8s.io/cluster-api-provider-aws/api/v1beta1.CNIIngressRule</code> alias)</p></h3>
+(<code>[]sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1.CNIIngressRule</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.CNISpec">CNISpec</a>)
 </p>
@@ -10858,7 +11873,7 @@ int64
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.IngressRules">IngressRules
-(<code>[]sigs.k8s.io/cluster-api-provider-aws/api/v1beta1.IngressRule</code> alias)</p></h3>
+(<code>[]sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1.IngressRule</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.SecurityGroup">SecurityGroup</a>)
 </p>
@@ -11209,7 +12224,7 @@ CNISpec
 <td>
 <code>securityGroupOverrides</code><br/>
 <em>
-map[sigs.k8s.io/cluster-api-provider-aws/api/v1beta1.SecurityGroupRole]string
+map[sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1.SecurityGroupRole]string
 </em>
 </td>
 <td>
@@ -11241,7 +12256,7 @@ This is optional - if not provided new security groups will be created for the c
 <code>securityGroups</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta1.SecurityGroup">
-map[sigs.k8s.io/cluster-api-provider-aws/api/v1beta1.SecurityGroupRole]sigs.k8s.io/cluster-api-provider-aws/api/v1beta1.SecurityGroup
+map[sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1.SecurityGroupRole]sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1.SecurityGroup
 </a>
 </em>
 </td>
@@ -11595,7 +12610,7 @@ Tags
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.Subnets">Subnets
-(<code>[]sigs.k8s.io/cluster-api-provider-aws/api/v1beta1.SubnetSpec</code> alias)</p></h3>
+(<code>[]sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1.SubnetSpec</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.NetworkSpec">NetworkSpec</a>)
 </p>
@@ -14345,7 +15360,7 @@ string
 <p>TaintEffect is the effect for a Kubernetes taint.</p>
 </p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.Taints">Taints
-(<code>[]sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1.Taint</code> alias)</p></h3>
+(<code>[]sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta1.Taint</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>)
 </p>
@@ -17599,7 +18614,7 @@ int64
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.CNIIngressRules">CNIIngressRules
-(<code>[]sigs.k8s.io/cluster-api-provider-aws/api/v1beta2.CNIIngressRule</code> alias)</p></h3>
+(<code>[]sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2.CNIIngressRule</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.CNISpec">CNISpec</a>)
 </p>
@@ -18271,7 +19286,7 @@ int64
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.IngressRules">IngressRules
-(<code>[]sigs.k8s.io/cluster-api-provider-aws/api/v1beta2.IngressRule</code> alias)</p></h3>
+(<code>[]sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2.IngressRule</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.SecurityGroup">SecurityGroup</a>)
 </p>
@@ -18622,7 +19637,7 @@ CNISpec
 <td>
 <code>securityGroupOverrides</code><br/>
 <em>
-map[sigs.k8s.io/cluster-api-provider-aws/api/v1beta2.SecurityGroupRole]string
+map[sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2.SecurityGroupRole]string
 </em>
 </td>
 <td>
@@ -18654,7 +19669,7 @@ This is optional - if not provided new security groups will be created for the c
 <code>securityGroups</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta2.SecurityGroup">
-map[sigs.k8s.io/cluster-api-provider-aws/api/v1beta2.SecurityGroupRole]sigs.k8s.io/cluster-api-provider-aws/api/v1beta2.SecurityGroup
+map[sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2.SecurityGroupRole]sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2.SecurityGroup
 </a>
 </em>
 </td>
@@ -19008,7 +20023,7 @@ Tags
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.Subnets">Subnets
-(<code>[]sigs.k8s.io/cluster-api-provider-aws/api/v1beta2.SubnetSpec</code> alias)</p></h3>
+(<code>[]sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2.SubnetSpec</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.NetworkSpec">NetworkSpec</a>)
 </p>
@@ -21791,6 +22806,19 @@ bool
 <tbody>
 <tr>
 <td>
+<code>disable</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Disable, if true, disables instance refresh from triggering when new launch templates are detected.
+This is useful in scenarios where ASG nodes are externally managed.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>strategy</code><br/>
 <em>
 string
@@ -21944,7 +22972,7 @@ string
 <p>TaintEffect is the effect for a Kubernetes taint.</p>
 </p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.Taints">Taints
-(<code>[]sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta2.Taint</code> alias)</p></h3>
+(<code>[]sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2.Taint</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>)
 </p>
@@ -21983,7 +23011,7 @@ Nodes will be updated in parallel. The maximum number is 100.</p>
 </tr>
 <tr>
 <td>
-<code>maxUnavailablePrecentage</code><br/>
+<code>maxUnavailablePercentage</code><br/>
 <em>
 int
 </em>
