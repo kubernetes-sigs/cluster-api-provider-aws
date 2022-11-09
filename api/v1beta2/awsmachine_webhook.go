@@ -252,9 +252,6 @@ func (r *AWSMachine) validateAdditionalSecurityGroups() field.ErrorList {
 		if len(additionalSecurityGroup.Filters) > 0 && additionalSecurityGroup.ID != nil {
 			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.additionalSecurityGroups"), "only one of ID or Filters may be specified, specifying both is forbidden"))
 		}
-		if additionalSecurityGroup.ARN != nil {
-			log.Info("ARN field is deprecated and is no operation function.")
-		}
 	}
 	return allErrs
 }

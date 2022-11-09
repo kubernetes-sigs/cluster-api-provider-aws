@@ -24,3 +24,7 @@ import (
 func Convert_v1beta2_AWSClusterSpec_To_v1beta1_AWSClusterSpec(in *v1beta2.AWSClusterSpec, out *AWSClusterSpec, s conversion.Scope) error {
 	return autoConvert_v1beta2_AWSClusterSpec_To_v1beta1_AWSClusterSpec(in, out, s)
 }
+
+func Convert_v1beta1_AWSResourceReference_To_v1beta2_AWSResourceReference(in *AWSResourceReference, out *v1beta2.AWSResourceReference, s conversion.Scope) error {
+	return autoConvert_v1beta1_AWSResourceReference_To_v1beta2_AWSResourceReference(in, out, s)
+}

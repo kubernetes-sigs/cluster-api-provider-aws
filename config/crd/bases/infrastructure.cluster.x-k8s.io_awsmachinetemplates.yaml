@@ -487,11 +487,6 @@ spec:
                             may be specified. Specifying more than one will result
                             in a validation error.
                           properties:
-                            arn:
-                              description: 'ARN of resource. Deprecated: This field
-                                has no function and is going to be removed in the
-                                next release.'
-                              type: string
                             filters:
                               description: 'Filters is a set of key/value pairs used
                                 to identify a resource They are applied according
@@ -754,11 +749,6 @@ spec:
                           this instance. If not specified, the cluster subnet will
                           be used.
                         properties:
-                          arn:
-                            description: 'ARN of resource. Deprecated: This field
-                              has no function and is going to be removed in the next
-                              release.'
-                            type: string
                           filters:
                             description: 'Filters is a set of key/value pairs used
                               to identify a resource They are applied according to
