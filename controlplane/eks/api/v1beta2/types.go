@@ -132,7 +132,7 @@ type Addon struct {
 	Version string `json:"version"`
 	// ConflictResolution is used to declare what should happen if there
 	// are parameter conflicts. Defaults to none
-	// +kubebuilder:default=none
+	// +kubebuilder:default=overwrite
 	// +kubebuilder:validation:Enum=overwrite;none
 	ConflictResolution *AddonResolution `json:"conflictResolution,omitempty"`
 	// ServiceAccountRoleArn is the ARN of an IAM role to bind to the addons service account
