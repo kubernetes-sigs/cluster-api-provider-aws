@@ -902,11 +902,6 @@ func (in *AWSResourceReference) DeepCopyInto(out *AWSResourceReference) {
 		*out = new(string)
 		**out = **in
 	}
-	if in.ARN != nil {
-		in, out := &in.ARN, &out.ARN
-		*out = new(string)
-		**out = **in
-	}
 	if in.Filters != nil {
 		in, out := &in.Filters, &out.Filters
 		*out = make([]Filter, len(*in))

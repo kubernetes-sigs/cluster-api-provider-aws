@@ -89,9 +89,6 @@ func (r *AWSMachinePool) validateSubnets() field.ErrorList {
 	}
 
 	for _, subnet := range r.Spec.Subnets {
-		if subnet.ARN != nil {
-			log.Info("ARN field is deprecated and is no operation function.")
-		}
 		if subnet.ID != nil && subnet.Filters != nil {
 			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.subnets.filters"), "providing either subnet ID or filter is supported, should not provide both"))
 			break
@@ -106,9 +103,6 @@ func (r *AWSMachinePool) validateAdditionalSecurityGroups() field.ErrorList {
 	for _, sg := range r.Spec.AWSLaunchTemplate.AdditionalSecurityGroups {
 		if sg.ID != nil && sg.Filters != nil {
 			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.AdditionalSecurityGroups"), "either ID or filters should be used"))
-		}
-		if sg.ARN != nil {
-			log.Info("ARN field is deprecated and is no operation function.")
 		}
 	}
 	return allErrs

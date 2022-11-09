@@ -65,7 +65,7 @@ func (dst *AWSMachineList) ConvertFrom(srcRaw conversion.Hub) error {
 	return Convert_v1beta2_AWSMachineList_To_v1beta1_AWSMachineList(src, dst, nil)
 }
 
-// ConvertTo converts the v1beta1 AWSCluster receiver to a v1beta2 AWSCluster.
+// ConvertTo converts the v1beta1 AWSMachineTemplate receiver to a v1beta2 AWSMachineTemplate.
 func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.AWSMachineTemplate)
 
@@ -113,4 +113,3 @@ func (dst *AWSMachineTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
 
 	return Convert_v1beta2_AWSMachineTemplateList_To_v1beta1_AWSMachineTemplateList(src, dst, nil)
 }
-
