@@ -1355,7 +1355,7 @@ spec:
                   description: Addon represents a EKS addon.
                   properties:
                     conflictResolution:
-                      default: none
+                      default: overwrite
                       description: ConflictResolution is used to declare what should
                         happen if there are parameter conflicts. Defaults to none
                       enum:
