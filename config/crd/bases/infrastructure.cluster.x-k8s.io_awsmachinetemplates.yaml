@@ -571,13 +571,6 @@ spec:
                             - ssm-parameter-store
                             type: string
                         type: object
-                      failureDomain:
-                        description: FailureDomain is the failure domain unique identifier
-                          this Machine should be attached to, as defined in Cluster
-                          API. For this infrastructure provider, the ID is equivalent
-                          to an AWS Availability Zone. If multiple subnets are matched
-                          for the availability zone, the first one returned is picked.
-                        type: string
                       iamInstanceProfile:
                         description: IAMInstanceProfile is a name of an IAM instance
                           profile to assign to the instance

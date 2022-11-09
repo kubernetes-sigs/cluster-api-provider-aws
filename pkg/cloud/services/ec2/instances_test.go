@@ -404,14 +404,14 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("bootstrap-data"),
 					},
+					FailureDomain: aws.String("us-east-1c"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
 				AMI: infrav1.AMIReference{
 					ID: aws.String("abc"),
 				},
-				InstanceType:  "m5.2xlarge",
-				FailureDomain: aws.String("us-east-1c"),
+				InstanceType: "m5.2xlarge",
 			},
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
@@ -906,6 +906,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("bootstrap-data"),
 					},
+					FailureDomain: aws.String("us-east-1b"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -919,7 +920,6 @@ func TestCreateInstance(t *testing.T) {
 						Values: []string{"some-value"},
 					}},
 				},
-				FailureDomain: aws.String("us-east-1b"),
 			},
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
@@ -1300,6 +1300,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("bootstrap-data"),
 					},
+					FailureDomain: aws.String("us-east-1b"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -1310,7 +1311,6 @@ func TestCreateInstance(t *testing.T) {
 				Subnet: &infrav1.AWSResourceReference{
 					ID: aws.String("subnet-1"),
 				},
-				FailureDomain: aws.String("us-east-1b"),
 			},
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
@@ -1381,15 +1381,15 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("bootstrap-data"),
 					},
+					FailureDomain: aws.String("us-east-1b"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
 				AMI: infrav1.AMIReference{
 					ID: aws.String("abc"),
 				},
-				InstanceType:  "m5.large",
-				FailureDomain: aws.String("us-east-1b"),
-				PublicIP:      aws.Bool(true),
+				InstanceType: "m5.large",
+				PublicIP:     aws.Bool(true),
 			},
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},

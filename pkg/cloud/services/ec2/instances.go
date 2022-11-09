@@ -261,9 +261,6 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 	// Check Machine.Spec.FailureDomain first as it's used by KubeadmControlPlane to spread machines across failure domains.
 	failureDomain := scope.Machine.Spec.FailureDomain
-	if failureDomain == nil {
-		failureDomain = scope.AWSMachine.Spec.FailureDomain
-	}
 
 	// We basically have 2 sources for subnets:
 	//   1. If subnet.id or subnet.filters are specified, we directly query AWS
