@@ -52,29 +52,7 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 	}{
 		// The SSHKeyName tests were moved to sshkeyname_test.go
 		{
-			name: "Default nil scheme to `internet-facing`",
-			cluster: &AWSCluster{
-				Spec: AWSClusterSpec{},
-			},
-			expect: func(g *WithT, res *AWSLoadBalancerSpec) {
-				g.Expect(res.Scheme.String(), ClassicELBSchemeInternetFacing.String())
-			},
-			wantErr: false,
-		},
-		{
-			name: "Internet-facing ELB scheme is defaulted to internet-facing during creation",
-			cluster: &AWSCluster{
-				Spec: AWSClusterSpec{
-					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{Scheme: &ClassicELBSchemeIncorrectInternetFacing},
-				},
-			},
-			expect: func(g *WithT, res *AWSLoadBalancerSpec) {
-				g.Expect(res.Scheme.String(), ClassicELBSchemeInternetFacing.String())
-			},
-			wantErr: false,
-		},
-		{
-			name: "Supported schemes are 'internet-facing, Internet-facing, internal, or nil', rest will be rejected",
+			name: "Supported schemes are 'internet-facing, internal, or nil', rest will be rejected",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{Scheme: &unsupportedIncorrectScheme},
