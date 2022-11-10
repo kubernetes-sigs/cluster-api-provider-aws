@@ -247,7 +247,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 			},
 		},
 		{
-			name: "all overridden, do not tag",
+			name: "all overrides defined, do not tag",
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					ID:                "vpc-securitygroups",
@@ -412,7 +412,7 @@ func TestDeleteSecurityGroups(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "do not delete overridden security groups",
+			name: "do not delete security groups provided as overrides",
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					ID:                "vpc-securitygroups",
