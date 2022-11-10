@@ -364,12 +364,15 @@ func (s *Service) getRouteTableTagParams(id string, public bool, zone string) in
 	name.WriteString("-")
 	name.WriteString(zone)
 
+	additionalTags := s.scope.AdditionalTags()
+	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())] = string(infrav1.ResourceLifecycleOwned)
+
 	return infrav1.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
 		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(name.String()),
 		Role:        aws.String(infrav1.CommonRoleTagValue),
-		Additional:  s.scope.AdditionalTags(),
+		Additional:  additionalTags,
 	}
 }
