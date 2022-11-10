@@ -356,6 +356,10 @@ func TestReconcileRouteTables(t *testing.T) {
 								},
 								Tags: []*ec2.Tag{
 									{
+										Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+										Value: aws.String("owned"),
+									},
+									{
 										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 										Value: aws.String("common"),
 									},
@@ -383,6 +387,10 @@ func TestReconcileRouteTables(t *testing.T) {
 									},
 								},
 								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+										Value: aws.String("owned"),
+									},
 									{
 										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 										Value: aws.String("common"),
@@ -457,6 +465,10 @@ func TestReconcileRouteTables(t *testing.T) {
 								},
 								Tags: []*ec2.Tag{
 									{
+										Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+										Value: aws.String("owned"),
+									},
+									{
 										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 										Value: aws.String("common"),
 									},
@@ -484,6 +496,10 @@ func TestReconcileRouteTables(t *testing.T) {
 									},
 								},
 								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+										Value: aws.String("owned"),
+									},
 									{
 										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 										Value: aws.String("common"),
@@ -578,6 +594,10 @@ func TestDeleteRouteTables(t *testing.T) {
 					},
 				},
 				Tags: []*ec2.Tag{
+					{
+						Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+						Value: aws.String("owned"),
+					},
 					{
 						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
 						Value: aws.String("common"),
