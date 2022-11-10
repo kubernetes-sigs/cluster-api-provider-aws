@@ -247,7 +247,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 			},
 		},
 		{
-			name: "all overrides defined, do not tag",
+			name: "unmanaged with overrides, tag only sg-lb for Service=LoadBalancer",
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					ID:                "vpc-securitygroups",
@@ -285,6 +285,17 @@ func TestReconcileSecurityGroups(t *testing.T) {
 							{GroupId: aws.String("sg-node"), GroupName: aws.String("Node Security Group")},
 						},
 					}, nil).AnyTimes()
+
+				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+					Resources: aws.StringSlice([]string{"sg-lb"}),
+					Tags: []*ec2.Tag{
+						{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("shared"),
+						},
+					},
+				})).
+					Return(&ec2.CreateTagsOutput{}, nil)
 			},
 		},
 		{
