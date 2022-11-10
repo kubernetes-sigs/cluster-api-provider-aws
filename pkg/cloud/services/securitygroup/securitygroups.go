@@ -119,18 +119,16 @@ func (s *Service) ReconcileSecurityGroups() error {
 			continue
 		}
 
-		if !s.securityGroupIsAnOverride(existing.ID) {
-			// Make sure tags are up to date.
-			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-				buildParams := s.getSecurityGroupTagParams(existing.Name, existing.ID, role)
-				tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
-				if err := tagsBuilder.Ensure(existing.Tags); err != nil {
-					return false, err
-				}
-				return true, nil
-			}, awserrors.GroupNotFound); err != nil {
-				return errors.Wrapf(err, "failed to ensure tags on security group %q", existing.ID)
+		// Make sure tags are up to date.
+		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+			buildParams := s.getSecurityGroupTagParams(existing.Name, existing.ID, role)
+			tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
+			if err := tagsBuilder.Ensure(existing.Tags); err != nil {
+				return false, err
 			}
+			return true, nil
+		}, awserrors.GroupNotFound); err != nil {
+			return errors.Wrapf(err, "failed to ensure tags on security group %q", existing.ID)
 		}
 	}
 
@@ -608,17 +606,35 @@ func (s *Service) getDefaultSecurityGroup(role infrav1.SecurityGroupRole) *ec2.S
 }
 
 func (s *Service) getSecurityGroupTagParams(name, id string, role infrav1.SecurityGroupRole) infrav1.BuildParams {
-	additional := s.scope.AdditionalTags()
-	if role == infrav1.SecurityGroupLB {
-		additional[infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())] = string(infrav1.ResourceLifecycleOwned)
+	if s.securityGroupIsAnOverride(id) {
+		additionalTags := make(map[string]string)
+
+		// Add tag needed for Service type=LoadBalancer
+		if role == infrav1.SecurityGroupLB {
+			additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())] = string(infrav1.ResourceLifecycleShared)
+		}
+
+		// We apply no other tags, because we do not manage the lifecycle of this security group.
+		return infrav1.BuildParams{
+			ResourceID: id,
+			Additional: additionalTags,
+		}
 	}
+
+	additionalTags := s.scope.AdditionalTags()
+
+	// Add tag needed for Service type=LoadBalancer
+	if role == infrav1.SecurityGroupLB {
+		additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())] = string(infrav1.ResourceLifecycleOwned)
+	}
+
 	return infrav1.BuildParams{
 		ClusterName: s.scope.Name(),
 		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(name),
 		ResourceID:  id,
 		Role:        aws.String(string(role)),
-		Additional:  additional,
+		Additional:  additionalTags,
 	}
 }
 
