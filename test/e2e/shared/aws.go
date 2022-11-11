@@ -1243,27 +1243,9 @@ func CreateSubnet(e2eCtx *E2EContext, clusterName string, cidrBlock string, az s
 						Key:   aws.String("Name"),
 						Value: aws.String(clusterName + "-subnet-" + st),
 					},
-					{
-						Key:   aws.String("kubernetes.io/cluster/" + clusterName),
-						Value: aws.String("shared"),
-					},
 				},
 			},
 		},
-	}
-
-	// Tag subnet based on type(st)
-	switch st {
-	case "private":
-		input.TagSpecifications[0].Tags = append(input.TagSpecifications[0].Tags, &ec2.Tag{
-			Key:   aws.String("kubernetes.io/role/internal-elb"),
-			Value: aws.String("1"),
-		})
-	case "public":
-		input.TagSpecifications[0].Tags = append(input.TagSpecifications[0].Tags, &ec2.Tag{
-			Key:   aws.String("kubernetes.io/role/elb"),
-			Value: aws.String("1"),
-		})
 	}
 
 	if az != "" {
