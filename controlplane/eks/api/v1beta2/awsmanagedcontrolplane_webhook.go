@@ -369,13 +369,13 @@ func (r *AWSManagedControlPlane) validateKubeProxy() field.ErrorList {
 func (r *AWSManagedControlPlane) validateDisableVPCCNI() field.ErrorList {
 	var allErrs field.ErrorList
 
-	if r.Spec.DisableVPCCNI {
-		disableField := field.NewPath("spec", "disableVPCCNI")
+	if r.Spec.VpcCni.Disable {
+		disableField := field.NewPath("spec", "vpcCni", "disable")
 
 		if r.Spec.Addons != nil {
 			for _, addon := range *r.Spec.Addons {
 				if addon.Name == vpcCniAddon {
-					allErrs = append(allErrs, field.Invalid(disableField, r.Spec.DisableVPCCNI, "cannot disable vpc cni if the vpc-cni addon is specified"))
+					allErrs = append(allErrs, field.Invalid(disableField, r.Spec.VpcCni.Disable, "cannot disable vpc cni if the vpc-cni addon is specified"))
 					break
 				}
 			}
