@@ -193,7 +193,7 @@ func (s *ManagedControlPlaneScope) SecondaryCidrBlock() *string {
 	return s.ControlPlane.Spec.SecondaryCidrBlock
 }
 
-// SecurityGroupOverrides returns the security groups that are overridden in the ControlPlane spec.
+// SecurityGroupOverrides returns the security groups that are overrides in the ControlPlane spec.
 func (s *ManagedControlPlaneScope) SecurityGroupOverrides() map[infrav1.SecurityGroupRole]string {
 	return s.ControlPlane.Spec.NetworkSpec.SecurityGroupOverrides
 }

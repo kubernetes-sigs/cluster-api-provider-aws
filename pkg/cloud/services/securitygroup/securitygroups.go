@@ -119,7 +119,7 @@ func (s *Service) ReconcileSecurityGroups() error {
 			continue
 		}
 
-		if !s.securityGroupIsOverridden(existing.ID) {
+		if !s.securityGroupIsAnOverride(existing.ID) {
 			// Make sure tags are up to date.
 			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 				buildParams := s.getSecurityGroupTagParams(existing.Name, existing.ID, role)
@@ -140,8 +140,8 @@ func (s *Service) ReconcileSecurityGroups() error {
 		sg := s.scope.SecurityGroups()[i]
 		s.scope.Debug("second pass security group reconciliation", "group-id", sg.ID, "name", sg.Name, "role", i)
 
-		if s.securityGroupIsOverridden(sg.ID) {
-			// skip rule/tag reconciliation on security groups that are overridden, assuming they're managed by another process
+		if s.securityGroupIsAnOverride(sg.ID) {
+			// skip rule/tag reconciliation on security groups that are overrides, assuming they're managed by another process
 			continue
 		}
 
@@ -188,7 +188,7 @@ func (s *Service) ReconcileSecurityGroups() error {
 	return nil
 }
 
-func (s *Service) securityGroupIsOverridden(securityGroupID string) bool {
+func (s *Service) securityGroupIsAnOverride(securityGroupID string) bool {
 	for _, overrideID := range s.scope.SecurityGroupOverrides() {
 		if overrideID == securityGroupID {
 			return true
