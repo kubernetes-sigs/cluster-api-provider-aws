@@ -125,7 +125,7 @@ spec:
     name: "managed-cluster-control-plane"
 ---
 kind: AWSManagedCluster
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 metadata:
   name: "managed-cluster"
 spec: {}

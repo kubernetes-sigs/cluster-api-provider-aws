@@ -38,9 +38,6 @@ type AWSManagedClusterStatus struct {
 	// FailureDomains specifies a list fo available availability zones that can be used
 	// +optional
 	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
-
-	// Conditions provide observations of the operational state of AWSManagedCluster.
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -67,16 +64,6 @@ type AWSManagedClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []AWSManagedCluster `json:"items"`
-}
-
-// GetConditions returns the observations of the operational state of the AWSManagedCluster resource.
-func (r *AWSManagedCluster) GetConditions() clusterv1.Conditions {
-	return r.Status.Conditions
-}
-
-// SetConditions sets the underlying service state of the AWSManagedCluster to the predescribed clusterv1.Conditions.
-func (r *AWSManagedCluster) SetConditions(conditions clusterv1.Conditions) {
-	r.Status.Conditions = conditions
 }
 
 func init() {
