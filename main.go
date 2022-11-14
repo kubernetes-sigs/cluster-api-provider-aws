@@ -359,7 +359,7 @@ func setupEKSReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsSe
 		Recorder:         mgr.GetEventRecorderFor("awsmanagedcluster-controller"),
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: true}); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
+		setupLog.Error(err, "unable to create controller", "controller", "AWSManagedCluster")
 		os.Exit(1)
 	}
 
