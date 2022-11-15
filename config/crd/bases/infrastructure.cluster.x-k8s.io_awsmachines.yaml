@@ -545,10 +545,6 @@ spec:
                     resource by ID or filters. Only one of ID or Filters may be specified.
                     Specifying more than one will result in a validation error.
                   properties:
-                    arn:
-                      description: 'ARN of resource. Deprecated: This field has no
-                        function and is going to be removed in the next release.'
-                      type: string
                     filters:
                       description: 'Filters is a set of key/value pairs used to identify
                         a resource They are applied according to the rules defined
@@ -799,10 +795,6 @@ spec:
                 description: Subnet is a reference to the subnet to use for this instance.
                   If not specified, the cluster subnet will be used.
                 properties:
-                  arn:
-                    description: 'ARN of resource. Deprecated: This field has no function
-                      and is going to be removed in the next release.'
-                    type: string
                   filters:
                     description: 'Filters is a set of key/value pairs used to identify
                       a resource They are applied according to the rules defined by

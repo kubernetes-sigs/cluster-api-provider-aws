@@ -30,11 +30,6 @@ type AWSResourceReference struct {
 	// +optional
 	ID *string `json:"id,omitempty"`
 
-	// ARN of resource.
-	// +optional
-	// Deprecated: This field has no function and is going to be removed in the next release.
-	ARN *string `json:"arn,omitempty"`
-
 	// Filters is a set of key/value pairs used to identify a resource
 	// They are applied according to the rules defined by the AWS API:
 	// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html
