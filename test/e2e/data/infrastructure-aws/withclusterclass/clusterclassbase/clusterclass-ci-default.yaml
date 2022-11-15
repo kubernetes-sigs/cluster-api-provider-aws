@@ -262,35 +262,9 @@ spec:
             valueFrom:
               template: |
                 - id: "{{ .publicSubnetID }}"
+                  availabilityZone: "{{ .fdForBYOSubnets }}"
                 - id: "{{ .privateSubnetID }}"
-  - name: awsMachineTemplateControlPlaneForBYO
-    enabledIf: '{{ eq .byoInfra "true" }}'
-    definitions:
-      - selector:
-          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-          kind: AWSMachineTemplate
-          matchResources:
-            controlPlane: true
-        jsonPatches:
-          - op: add
-            path: "/spec/template/spec/failureDomain"
-            valueFrom:
-              variable: fdForBYOSubnets
-  - name: awsMachineTemplateWorkerForBYO
-    enabledIf: '{{ eq .byoInfra "true" }}'
-    definitions:
-      - selector:
-          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-          kind: AWSMachineTemplate
-          matchResources:
-            machineDeploymentClass:
-              names:
-                - default-worker
-        jsonPatches:
-          - op: add
-            path: "/spec/template/spec/failureDomain"
-            valueFrom:
-              variable: fdForBYOSubnets
+                  availabilityZone: "{{ .fdForBYOSubnets }}"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSClusterTemplate

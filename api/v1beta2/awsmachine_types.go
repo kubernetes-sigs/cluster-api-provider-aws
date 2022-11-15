@@ -105,11 +105,6 @@ type AWSMachineSpec struct {
 	// +optional
 	AdditionalSecurityGroups []AWSResourceReference `json:"additionalSecurityGroups,omitempty"`
 
-	// FailureDomain is the failure domain unique identifier this Machine should be attached to, as defined in Cluster API.
-	// For this infrastructure provider, the ID is equivalent to an AWS Availability Zone.
-	// If multiple subnets are matched for the availability zone, the first one returned is picked.
-	FailureDomain *string `json:"failureDomain,omitempty"`
-
 	// Subnet is a reference to the subnet to use for this instance. If not specified,
 	// the cluster subnet will be used.
 	// +optional

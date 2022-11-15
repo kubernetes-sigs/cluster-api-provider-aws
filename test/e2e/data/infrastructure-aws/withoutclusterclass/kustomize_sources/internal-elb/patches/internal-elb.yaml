@@ -10,4 +10,3 @@ spec:
       id: "${WL_VPC_ID}"
     subnets:
     - id: "${WL_PRIVATE_SUBNET_ID}"
-
