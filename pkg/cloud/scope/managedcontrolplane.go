@@ -372,7 +372,7 @@ func (s *ManagedControlPlaneScope) DisableKubeProxy() bool {
 
 // DisableVPCCNI returns whether the AWS VPC CNI should be disabled.
 func (s *ManagedControlPlaneScope) DisableVPCCNI() bool {
-	return s.ControlPlane.Spec.DisableVPCCNI
+	return s.ControlPlane.Spec.VpcCni.Disable
 }
 
 // VpcCni returns a list of environment variables to apply to the `aws-node` DaemonSet.
