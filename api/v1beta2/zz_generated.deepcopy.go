@@ -678,11 +678,6 @@ func (in *AWSMachineSpec) DeepCopyInto(out *AWSMachineSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.FailureDomain != nil {
-		in, out := &in.FailureDomain, &out.FailureDomain
-		*out = new(string)
-		**out = **in
-	}
 	if in.Subnet != nil {
 		in, out := &in.Subnet, &out.Subnet
 		*out = new(AWSResourceReference)

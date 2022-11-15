@@ -513,9 +513,9 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			md1Name := clusterName + "-md-1"
 			framework.CreateMachineDeployment(ctx, framework.CreateMachineDeploymentInput{
 				Creator:                 e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-				MachineDeployment:       makeMachineDeployment(namespace.Name, md1Name, clusterName, 1),
+				MachineDeployment:       makeMachineDeployment(namespace.Name, md1Name, clusterName, nil, 1),
 				BootstrapConfigTemplate: makeJoinBootstrapConfigTemplate(namespace.Name, md1Name),
-				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, md1Name, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), nil, pointer.StringPtr("invalid-subnet")),
+				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, md1Name, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), pointer.StringPtr("invalid-subnet")),
 			})
 
 			ginkgo.By("Looking for failure event to be reported")
@@ -532,9 +532,9 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			invalidAz := shared.GetAvailabilityZones(e2eCtx.AWSSession)[1].ZoneName
 			framework.CreateMachineDeployment(ctx, framework.CreateMachineDeploymentInput{
 				Creator:                 e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-				MachineDeployment:       makeMachineDeployment(namespace.Name, md2Name, clusterName, 1),
+				MachineDeployment:       makeMachineDeployment(namespace.Name, md2Name, clusterName, invalidAz, 1),
 				BootstrapConfigTemplate: makeJoinBootstrapConfigTemplate(namespace.Name, md2Name),
-				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, md2Name, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), invalidAz, nil),
+				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, md2Name, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), nil),
 			})
 
 			ginkgo.By("Looking for failure event to be reported")

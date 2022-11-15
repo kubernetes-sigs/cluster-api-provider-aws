@@ -39,7 +39,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 func AWSMachineFuzzer(obj *AWSMachine, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 	
-	// AWSMachine.Spec.Subnet.ARN and AWSMachine.Spec.AdditionalSecurityGroups.ARN has been removed in v1beta2, so setting it to nil in order to avoid v1beta1 --> v1beta2 --> v1beta1 round trip errors.
+	// AWSMachine.Spec.FailureDomain, AWSMachine.Spec.Subnet.ARN and AWSMachine.Spec.AdditionalSecurityGroups.ARN has been removed in v1beta2, so setting it to nil in order to avoid v1beta1 --> v1beta2 --> v1beta1 round trip errors.
 	if obj.Spec.Subnet != nil {
 		obj.Spec.Subnet.ARN = nil
 	}
@@ -49,6 +49,7 @@ func AWSMachineFuzzer(obj *AWSMachine, c fuzz.Continue) {
 		restored = append(restored, sg)
 	}
 	obj.Spec.AdditionalSecurityGroups = restored
+	obj.Spec.FailureDomain = nil
 }
 
 func AWSMachineTemplateFuzzer(obj *AWSMachineTemplate, c fuzz.Continue) {
@@ -64,6 +65,7 @@ func AWSMachineTemplateFuzzer(obj *AWSMachineTemplate, c fuzz.Continue) {
 		restored = append(restored, sg)
 	}
 	obj.Spec.Template.Spec.AdditionalSecurityGroups = restored
+	obj.Spec.Template.Spec.FailureDomain = nil
 }
 
 func TestFuzzyConversion(t *testing.T) {

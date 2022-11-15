@@ -15,4 +15,3 @@ spec:
   template:
     spec:
       failureDomain: "us-west-2a"
-
