@@ -85,8 +85,18 @@ func (s *Service) reconcileOIDCProvider(cluster *eks.Cluster) error {
 		return errors.Wrap(err, "failed to tag OIDC provider")
 	}
 
-	if err := s.reconcileTrustPolicy(); err != nil {
-		return errors.Wrap(err, "failed to reconcile trust policy in workload cluster")
+	if s.scope.ControlPlane.Status.OIDCProvider.TrustPolicy == "" {
+		policy, err := converters.IAMPolicyDocumentToJSON(s.buildOIDCTrustPolicy())
+		if err != nil {
+			return errors.Wrap(err, "failed to parse IAM policy")
+		}
+		if err := s.reconcileTrustPolicy(); err != nil {
+			return errors.Wrap(err, "failed to reconcile trust policy in workload cluster")
+		}
+		s.scope.ControlPlane.Status.OIDCProvider.TrustPolicy = whitespaceRe.ReplaceAllString(policy, "")
+		if err := s.scope.PatchObject(); err != nil {
+			return errors.Wrap(err, "failed to update control plane with OIDC provider trustPolicy")
+		}
 	}
 
 	return nil
