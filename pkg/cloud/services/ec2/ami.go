@@ -77,7 +77,7 @@ type AMILookup struct {
 
 // GenerateAmiName will generate an AMI name.
 func GenerateAmiName(amiNameFormat, baseOS, kubernetesVersion string) (string, error) {
-	amiNameParameters := AMILookup{baseOS, strings.TrimPrefix(kubernetesVersion, "v")}
+	amiNameParameters := AMILookup{baseOS, kubernetesVersion}
 	// revert to default if not specified
 	if amiNameFormat == "" {
 		amiNameFormat = DefaultAmiNameFormat
@@ -106,7 +106,7 @@ func DefaultAMILookup(ec2Client ec2iface.EC2API, ownerID, baseOS, kubernetesVers
 		baseOS = defaultMachineAMILookupBaseOS
 	}
 
-	amiName, err := GenerateAmiName(amiNameFormat, baseOS, kubernetesVersion)
+	amiName, err := GenerateAmiName(amiNameFormat, baseOS, strings.TrimPrefix(kubernetesVersion, "v"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to process ami format: %q", amiNameFormat)
 	}

@@ -557,7 +557,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "v1.16.1")
+				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "1.16.1")
 				if err != nil {
 					t.Fatalf("Failed to process ami format: %v", err)
 				}
@@ -687,7 +687,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "v1.16.1")
+				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "1.16.1")
 				if err != nil {
 					t.Fatalf("Failed to process ami format: %v", err)
 				}
@@ -818,7 +818,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "v1.16.1")
+				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "1.16.1")
 				if err != nil {
 					t.Fatalf("Failed to process ami format: %v", err)
 				}
