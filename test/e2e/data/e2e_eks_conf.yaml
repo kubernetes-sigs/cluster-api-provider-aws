@@ -112,6 +112,8 @@ providers:
         targetName: "cluster-template-eks-managedmachinepool.yaml"
       - sourcePath: "./eks/cluster-template-eks-ipv6-cluster.yaml"
         targetName: "cluster-template-eks-ipv6-cluster.yaml"
+      - sourcePath: "./eks/cluster-template-eks-control-plane-only-legacy.yaml"
+        targetName: "cluster-template-eks-control-plane-only-legacy.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.22.9"

@@ -353,6 +353,16 @@ func setupEKSReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsSe
 		os.Exit(1)
 	}
 
+	setupLog.Debug("enabling EKS managed cluster controller")
+	if err := (&controllers.AWSManagedClusterReconciler{
+		Client:           mgr.GetClient(),
+		Recorder:         mgr.GetEventRecorderFor("awsmanagedcluster-controller"),
+		WatchFilterValue: watchFilterValue,
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: true}); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "AWSManagedCluster")
+		os.Exit(1)
+	}
+
 	if feature.Gates.Enabled(feature.EKSFargate) {
 		setupLog.Debug("enabling EKS fargate profile controller")
 		if err := (&expcontrollers.AWSFargateProfileReconciler{

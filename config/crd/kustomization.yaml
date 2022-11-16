@@ -18,6 +18,7 @@ resources:
 - bases/infrastructure.cluster.x-k8s.io_awsclustercontrolleridentities.yaml
 - bases/infrastructure.cluster.x-k8s.io_awsclustertemplates.yaml
 - bases/controlplane.cluster.x-k8s.io_awsmanagedcontrolplanes.yaml
+- bases/infrastructure.cluster.x-k8s.io_awsmanagedclusters.yaml
 - bases/bootstrap.cluster.x-k8s.io_eksconfigs.yaml
 - bases/bootstrap.cluster.x-k8s.io_eksconfigtemplates.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
@@ -45,6 +46,7 @@ patchesStrategicMerge:
 - patches/cainjection_in_awsclusterroleidentities.yaml
 - patches/cainjection_in_awsclustertemplates.yaml
 - patches/cainjection_in_awsmanagedcontrolplanes.yaml
+- patches/cainjection_in_awsmanagedclusters.yaml
 - patches/cainjection_in_eksconfigs.yaml
 - patches/cainjection_in_eksconfigtemplates.yaml
 # +kubebuilder:scaffold:crdkustomizecainjectionpatch
