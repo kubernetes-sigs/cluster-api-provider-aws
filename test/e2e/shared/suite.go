@@ -156,10 +156,12 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	base64EncodedCredentials := encodeCredentials(e2eCtx.Environment.BootstrapAccessKey, boostrapTemplate.Spec.Region)
 	SetEnvVar("AWS_B64ENCODED_CREDENTIALS", base64EncodedCredentials, true)
 
-	By("Writing AWS service quotas to a file for parallel tests")
-	quotas := EnsureServiceQuotas(e2eCtx.BootstrapUserAWSSession)
-	WriteResourceQuotesToFile(ResourceQuotaFilePath, quotas)
-	WriteResourceQuotesToFile(path.Join(e2eCtx.Settings.ArtifactFolder, "initial-resource-quotas.yaml"), quotas)
+	if !e2eCtx.Settings.SkipQuotas {
+		By("Writing AWS service quotas to a file for parallel tests")
+		quotas := EnsureServiceQuotas(e2eCtx.BootstrapUserAWSSession)
+		WriteResourceQuotesToFile(ResourceQuotaFilePath, quotas)
+		WriteResourceQuotesToFile(path.Join(e2eCtx.Settings.ArtifactFolder, "initial-resource-quotas.yaml"), quotas)
+	}
 
 	e2eCtx.Settings.InstanceVCPU, err = strconv.Atoi(e2eCtx.E2EConfig.GetVariable(InstanceVcpu))
 	Expect(err).NotTo(HaveOccurred())

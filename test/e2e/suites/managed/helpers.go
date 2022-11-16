@@ -47,6 +47,7 @@ const (
 	EKSManagedMachinePoolWithLaunchTemplateOnlyFlavor = "eks-managed-machinepool-with-launch-template-only"
 	EKSMachinePoolOnlyFlavor                          = "eks-machinepool-only"
 	EKSIPv6ClusterFlavor                              = "eks-ipv6-cluster"
+	EKSControlPlaneOnlyLegacyFlavor                   = "eks-control-plane-only-legacy"
 )
 
 type DefaultConfigClusterFn func(clusterName, namespace string) clusterctl.ConfigClusterInput
