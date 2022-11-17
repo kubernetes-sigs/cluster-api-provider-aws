@@ -81,7 +81,7 @@ STAGING_REGISTRY ?= gcr.io/spectro-dev-public/cluster-api-aws
 STAGING_BUCKET ?= artifacts.k8s-staging-cluster-api-aws.appspot.com
 BUCKET ?= $(STAGING_BUCKET)
 PROD_REGISTRY := registry.k8s.io/cluster-api-aws
-REGISTRY ?= $(STAGING_REGISTRY)
+REGISTRY ?= gcr.io/spectro-dev-public/snehal/cluster-api-aws
 RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
 PULL_BASE_REF ?= $(RELEASE_TAG) # PULL_BASE_REF will be provided by Prow
 RELEASE_ALIAS_TAG ?= $(PULL_BASE_REF)
@@ -92,8 +92,9 @@ BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 # image name used to build the cmd/clusterawsadm
 TOOLCHAIN_IMAGE := toolchain
 
-TAG ?= dev
-ARCH ?= $(shell go env GOARCH)
+TAG ?= spectro-v1.5.0-$(shell date +%Y%m%d)
+#ARCH ?= $(shell go env GOARCH)
+ARCH ?= amd64
 ALL_ARCH ?= amd64 arm arm64 ppc64le s390x
 
 # main controller
