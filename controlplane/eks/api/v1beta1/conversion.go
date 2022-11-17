@@ -18,9 +18,10 @@ package v1beta1
 
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
-	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	infrav1beta2 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2"
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
+	infrav1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
@@ -31,6 +32,13 @@ func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	if err := Convert_v1beta1_AWSManagedControlPlane_To_v1beta2_AWSManagedControlPlane(r, dst, nil); err != nil {
 		return err
 	}
+	
+	// Manually restore data.
+	restored := &ekscontrolplanev1.AWSManagedControlPlane{}
+	if ok, err := utilconversion.UnmarshalData(r, restored); err != nil || !ok {
+		return err
+	}
+	dst.Spec.VpcCni.Disable = r.Spec.DisableVPCCNI
 
 	return nil
 }
@@ -40,6 +48,11 @@ func (r *AWSManagedControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*ekscontrolplanev1.AWSManagedControlPlane)
 
 	if err := Convert_v1beta2_AWSManagedControlPlane_To_v1beta1_AWSManagedControlPlane(src, r, nil); err != nil {
+		return err
+	}
+	
+	r.Spec.DisableVPCCNI = src.Spec.VpcCni.Disable
+	if err := utilconversion.MarshalData(src, r); err != nil {
 		return err
 	}
 
@@ -88,4 +101,12 @@ func Convert_v1beta1_Bastion_To_v1beta2_Bastion(in *infrav1beta1.Bastion, out *i
 // Convert_v1beta2_Bastion_To_v1beta1_Bastion is a generated conversion function.
 func Convert_v1beta2_Bastion_To_v1beta1_Bastion(in *infrav1beta2.Bastion, out *infrav1beta1.Bastion, s apiconversion.Scope) error {
 	return infrav1beta1.Convert_v1beta2_Bastion_To_v1beta1_Bastion(in, out, s)
+}
+
+func Convert_v1beta1_AWSManagedControlPlaneSpec_To_v1beta2_AWSManagedControlPlaneSpec(in *AWSManagedControlPlaneSpec, out *ekscontrolplanev1.AWSManagedControlPlaneSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_AWSManagedControlPlaneSpec_To_v1beta2_AWSManagedControlPlaneSpec(in, out, s)
+}
+
+func Convert_v1beta2_VpcCni_To_v1beta1_VpcCni(in *ekscontrolplanev1.VpcCni, out *VpcCni, s apiconversion.Scope) error {
+	return autoConvert_v1beta2_VpcCni_To_v1beta1_VpcCni(in, out, s)
 }

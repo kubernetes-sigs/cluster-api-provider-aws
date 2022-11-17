@@ -69,7 +69,7 @@ If you are using a service account to access it, you also have an option to defi
 autoscaler's repository. The second one is the workload cluster. It needs both because the MachineDeployment is in the
 control-plane while the actual node and pods are in the workload cluster.
 
-Therefor, you have to install cluster-autoscaler into the _control-plane_ cluster.
+Therefore, you have to install cluster-autoscaler into the _control-plane_ cluster.
 
 I have a handy script to launch autoscaler which looks like this:
 
@@ -116,13 +116,19 @@ metadata:
   name: "managed-cluster"
 spec:
   infrastructureRef:
-    kind: AWSManagedControlPlane
-    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
-    name: "managed-cluster-control-plane"
+    kind: AWSManagedCluster
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    name: "managed-cluster"
   controlPlaneRef:
     kind: AWSManagedControlPlane
     apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     name: "managed-cluster-control-plane"
+---
+kind: AWSManagedCluster
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+metadata:
+  name: "managed-cluster"
+spec: {}
 ---
 kind: AWSManagedControlPlane
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1

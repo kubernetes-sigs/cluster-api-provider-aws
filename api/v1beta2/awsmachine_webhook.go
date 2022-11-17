@@ -25,7 +25,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"sigs.k8s.io/cluster-api-provider-aws/feature"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 )
 
 // log is for logging in this package.
@@ -193,7 +193,7 @@ func (r *AWSMachine) validateRootVolume() field.ErrorList {
 	}
 
 	if r.Spec.RootVolume.DeviceName != "" {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.rootVolume.deviceName"), "root volume shouldn't have device name"))
+		log.Info("root volume shouldn't have a device name (this can be ignored if performing a `clusterctl move`)")
 	}
 
 	return allErrs
@@ -251,9 +251,6 @@ func (r *AWSMachine) validateAdditionalSecurityGroups() field.ErrorList {
 	for _, additionalSecurityGroup := range r.Spec.AdditionalSecurityGroups {
 		if len(additionalSecurityGroup.Filters) > 0 && additionalSecurityGroup.ID != nil {
 			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.additionalSecurityGroups"), "only one of ID or Filters may be specified, specifying both is forbidden"))
-		}
-		if additionalSecurityGroup.ARN != nil {
-			log.Info("ARN field is deprecated and is no operation function.")
 		}
 	}
 	return allErrs

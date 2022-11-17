@@ -23,19 +23,19 @@ images:
     loadBehavior: tryLoad
   - name: quay.io/jetstack/cert-manager-controller:v1.7.2
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.2.2
+  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.2.5
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.2.2
+  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.2.5
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.2.2
+  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.2.5
     loadBehavior: tryLoad
 
 providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v1.2.2
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.2/core-components.yaml"
+      - name: v1.2.5
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.5/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -50,8 +50,8 @@ providers:
     files:
       - sourcePath: "./shared/v1beta1/metadata.yaml"
     versions:
-      - name: v1.2.2
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.2/bootstrap-components.yaml"
+      - name: v1.2.5
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.5/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -66,8 +66,8 @@ providers:
     files:
       - sourcePath: "./shared/v1beta1/metadata.yaml"
     versions:
-      - name: v1.2.2
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.2/control-plane-components.yaml"
+      - name: v1.2.5
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.5/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -112,12 +112,15 @@ providers:
         targetName: "cluster-template-eks-managedmachinepool.yaml"
       - sourcePath: "./eks/cluster-template-eks-ipv6-cluster.yaml"
         targetName: "cluster-template-eks-ipv6-cluster.yaml"
+      - sourcePath: "./eks/cluster-template-eks-control-plane-only-legacy.yaml"
+        targetName: "cluster-template-eks-control-plane-only-legacy.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.22.9"
   KUBERNETES_VERSION_MANAGEMENT: "v1.22.9" # Kind bootstrap
   EXP_MACHINE_POOL: "true"
   EXP_CLUSTER_RESOURCE_SET: "true"
+  EVENT_BRIDGE_INSTANCE_STATE: "true"
   AWS_NODE_MACHINE_TYPE: t3.large
   AWS_MACHINE_TYPE_VCPU_USAGE: 2
   AWS_SSH_KEY_NAME: "cluster-api-provider-aws-sigs-k8s-io"

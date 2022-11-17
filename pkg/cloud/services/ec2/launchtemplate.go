@@ -19,7 +19,6 @@ package ec2
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -31,12 +30,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
@@ -48,7 +47,7 @@ const (
 	// AdditionalTags in the AWSMachinePool Provider Config.
 	// See https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
 	// for annotation formatting rules.
-	TagsLastAppliedAnnotation = "sigs.k8s.io/cluster-api-provider-aws-last-applied-tags"
+	TagsLastAppliedAnnotation = "sigs.k8s.io/cluster-api-provider-aws/v2-last-applied-tags"
 )
 
 func (s *Service) ReconcileLaunchTemplate(
@@ -327,7 +326,7 @@ func (s *Service) GetLaunchTemplate(launchTemplateName string) (*expinfrav1.AWSL
 		return nil, "", nil
 	}
 
-	s.scope.V(2).Info("Looking for existing LaunchTemplates")
+	s.scope.Debug("Looking for existing LaunchTemplates")
 
 	input := &ec2.DescribeLaunchTemplateVersionsInput{
 		LaunchTemplateName: aws.String(launchTemplateName),
@@ -422,7 +421,7 @@ func (s *Service) CreateLaunchTemplate(scope scope.LaunchTemplateScope, imageID 
 
 // CreateLaunchTemplateVersion will create a launch template.
 func (s *Service) CreateLaunchTemplateVersion(id string, scope scope.LaunchTemplateScope, imageID *string, userData []byte) error {
-	s.scope.V(2).Info("creating new launch template version", "machine-pool", scope.LaunchTemplateName())
+	s.scope.Debug("creating new launch template version", "machine-pool", scope.LaunchTemplateName())
 
 	launchTemplateData, err := s.createLaunchTemplateData(scope, imageID, userData)
 	if err != nil {
@@ -547,7 +546,7 @@ func volumeToLaunchTemplateBlockDeviceMappingRequest(v *infrav1.Volume) *ec2.Lau
 
 // DeleteLaunchTemplate delete a launch template.
 func (s *Service) DeleteLaunchTemplate(id string) error {
-	s.scope.V(2).Info("Deleting launch template", "id", id)
+	s.scope.Debug("Deleting launch template", "id", id)
 
 	input := &ec2.DeleteLaunchTemplateInput{
 		LaunchTemplateId: aws.String(id),
@@ -557,7 +556,7 @@ func (s *Service) DeleteLaunchTemplate(id string) error {
 		return errors.Wrapf(err, "failed to delete launch template %q", id)
 	}
 
-	s.scope.V(2).Info("Deleted launch template", "id", id)
+	s.scope.Debug("Deleted launch template", "id", id)
 	return nil
 }
 
@@ -616,7 +615,7 @@ func (s *Service) GetLaunchTemplateLatestVersion(id string) (string, error) {
 }
 
 func (s *Service) deleteLaunchTemplateVersion(id string, version *int64) error {
-	s.scope.V(2).Info("Deleting launch template version", "id", id)
+	s.scope.Debug("Deleting launch template version", "id", id)
 
 	if version == nil {
 		return errors.New("version is a nil pointer")
@@ -633,7 +632,7 @@ func (s *Service) deleteLaunchTemplateVersion(id string, version *int64) error {
 		return err
 	}
 
-	s.scope.V(2).Info("Deleted launch template", "id", id, "version", *version)
+	s.scope.Debug("Deleted launch template", "id", id, "version", *version)
 	return nil
 }
 
@@ -772,12 +771,12 @@ func (s *Service) GetAdditionalSecurityGroupsIDs(securityGroups []infrav1.AWSRes
 		if sg.ID != nil {
 			additionalSecurityGroupsIDs = append(additionalSecurityGroupsIDs, *sg.ID)
 		} else if sg.Filters != nil {
-			id, err := s.getFilteredSecurityGroupID(sg)
+			ids, err := s.getFilteredSecurityGroupIDs(sg)
 			if err != nil {
 				return nil, err
 			}
 
-			additionalSecurityGroupsIDs = append(additionalSecurityGroupsIDs, id)
+			additionalSecurityGroupsIDs = append(additionalSecurityGroupsIDs, ids...)
 		}
 	}
 
@@ -822,10 +821,10 @@ func (s *Service) buildLaunchTemplateTagSpecificationRequest(scope scope.LaunchT
 	return tagSpecifications
 }
 
-// getFilteredSecurityGroupID get security group ID using filters.
-func (s *Service) getFilteredSecurityGroupID(securityGroup infrav1.AWSResourceReference) (string, error) {
+// getFilteredSecurityGroupIDs get security group IDs using filters.
+func (s *Service) getFilteredSecurityGroupIDs(securityGroup infrav1.AWSResourceReference) ([]string, error) {
 	if securityGroup.Filters == nil {
-		return "", nil
+		return nil, nil
 	}
 
 	filters := []*ec2.Filter{}
@@ -835,14 +834,14 @@ func (s *Service) getFilteredSecurityGroupID(securityGroup infrav1.AWSResourceRe
 
 	sgs, err := s.EC2Client.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{Filters: filters})
 	if err != nil {
-		return "", err
+		return nil, err
+	}
+	ids := make([]string, 0, len(sgs.SecurityGroups))
+	for _, sg := range sgs.SecurityGroups {
+		ids = append(ids, *sg.GroupId)
 	}
 
-	if len(sgs.SecurityGroups) == 0 {
-		return "", fmt.Errorf("failed to find security group matching filters: %q, reason: %w", filters, err)
-	}
-
-	return *sgs.SecurityGroups[0].GroupId, nil
+	return ids, nil
 }
 
 func getLaunchTemplateInstanceMarketOptionsRequest(spotMarketOptions *infrav1.SpotMarketOptions) *ec2.LaunchTemplateInstanceMarketOptionsRequest {

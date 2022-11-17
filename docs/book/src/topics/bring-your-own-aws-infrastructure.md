@@ -184,7 +184,7 @@ c, err := ctrl.NewControllerManagedBy(mgr).
         For(&providerv1.InfraCluster{}).
         Watches(...).
         WithOptions(options).
-        WithEventFilter(predicates.ResourceIsNotExternallyManaged(ctrl.LoggerFrom(ctx))).
+        WithEventFilter(predicates.ResourceIsNotExternallyManaged(logger.FromContext(ctx))).
         Build(r)
 if err != nil {
 	return errors.Wrap(err, "failed setting up with a controller manager")

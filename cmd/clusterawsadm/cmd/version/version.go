@@ -25,7 +25,7 @@ import (
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
 
-	"sigs.k8s.io/cluster-api-provider-aws/version"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/version"
 )
 
 // Version provides the version information of clusterawsadm.

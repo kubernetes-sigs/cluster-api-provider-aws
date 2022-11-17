@@ -26,15 +26,16 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/klog/v2"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/mock_eksiface"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks/mock_eksiface"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 )
 
 func TestEKSAddonPlan(t *testing.T) {
 	clusterName := "default.cluster"
 	identityProviderARN := "aws:mock:provider:arn"
 	idnetityProviderName := "IdentityProviderConfigName"
-	log := klog.Background()
+	log := logger.NewLogger(klog.Background())
 
 	testCases := []struct {
 		name                    string
@@ -227,8 +228,8 @@ func createDesiredIdentityProvider(name string, tags infrav1.Tags) *OidcIdentity
 
 func createCurrentIdentityProvider(name string, arn, status string, tags infrav1.Tags) *OidcIdentityProviderConfig {
 	config := createDesiredIdentityProvider(name, tags)
-	config.IdentityProviderConfigArn = aws.String(arn)
-	config.Status = aws.String(status)
+	config.IdentityProviderConfigArn = arn
+	config.Status = status
 
 	return config
 }
@@ -243,6 +244,11 @@ func createDesiredIdentityProviderRequest(name *string) *eks.OidcIdentityProvide
 		ClientId:                   aws.String("clientId"),
 		IdentityProviderConfigName: name,
 		IssuerUrl:                  aws.String("http://IssuerURL.com"),
+		RequiredClaims:             make(map[string]*string),
+		GroupsClaim:                aws.String(""),
+		GroupsPrefix:               aws.String(""),
+		UsernameClaim:              aws.String(""),
+		UsernamePrefix:             aws.String(""),
 	}
 }
 

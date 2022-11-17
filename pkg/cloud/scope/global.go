@@ -20,7 +20,7 @@ import (
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/pkg/errors"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 )
 
 // NewGlobalScope creates a new Scope from the supplied parameters.

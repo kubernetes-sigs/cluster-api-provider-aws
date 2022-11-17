@@ -23,7 +23,7 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/util/homedir"
 
-	gcproc "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/gc"
+	gcproc "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/gc"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 

@@ -17,8 +17,8 @@ limitations under the License.
 package bootstrap
 
 import (
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 )
 
 func (t Template) secretPolicy(secureSecretsBackend infrav1.SecretBackend) iamv1.StatementEntry {

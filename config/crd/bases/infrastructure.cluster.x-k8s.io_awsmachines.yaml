@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.2
+    controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
   name: awsmachines.infrastructure.cluster.x-k8s.io
 spec:
@@ -545,10 +545,6 @@ spec:
                     resource by ID or filters. Only one of ID or Filters may be specified.
                     Specifying more than one will result in a validation error.
                   properties:
-                    arn:
-                      description: 'ARN of resource. Deprecated: This field has no
-                        function and is going to be removed in the next release.'
-                      type: string
                     filters:
                       description: 'Filters is a set of key/value pairs used to identify
                         a resource They are applied according to the rules defined
@@ -629,13 +625,6 @@ spec:
                     - ssm-parameter-store
                     type: string
                 type: object
-              failureDomain:
-                description: FailureDomain is the failure domain unique identifier
-                  this Machine should be attached to, as defined in Cluster API. For
-                  this infrastructure provider, the ID is equivalent to an AWS Availability
-                  Zone. If multiple subnets are matched for the availability zone,
-                  the first one returned is picked.
-                type: string
               iamInstanceProfile:
                 description: IAMInstanceProfile is a name of an IAM instance profile
                   to assign to the instance
@@ -799,10 +788,6 @@ spec:
                 description: Subnet is a reference to the subnet to use for this instance.
                   If not specified, the cluster subnet will be used.
                 properties:
-                  arn:
-                    description: 'ARN of resource. Deprecated: This field has no function
-                      and is going to be removed in the next release.'
-                    type: string
                   filters:
                     description: 'Filters is a set of key/value pairs used to identify
                       a resource They are applied according to the rules defined by

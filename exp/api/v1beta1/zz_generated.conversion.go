@@ -26,9 +26,9 @@ import (
 
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	apiv1beta1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	apiv1beta2 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta2"
+	apiv1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
+	apiv1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	clusterapiapiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	errors "sigs.k8s.io/cluster-api/errors"
 )
@@ -95,16 +95,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*AWSMachinePoolSpec)(nil), (*v1beta2.AWSMachinePoolSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_AWSMachinePoolSpec_To_v1beta2_AWSMachinePoolSpec(a.(*AWSMachinePoolSpec), b.(*v1beta2.AWSMachinePoolSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.AWSMachinePoolSpec)(nil), (*AWSMachinePoolSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_AWSMachinePoolSpec_To_v1beta1_AWSMachinePoolSpec(a.(*v1beta2.AWSMachinePoolSpec), b.(*AWSMachinePoolSpec), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*AWSMachinePoolStatus)(nil), (*v1beta2.AWSMachinePoolStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_AWSMachinePoolStatus_To_v1beta2_AWSMachinePoolStatus(a.(*AWSMachinePoolStatus), b.(*v1beta2.AWSMachinePoolStatus), scope)
 	}); err != nil {
@@ -147,16 +137,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.AWSManagedMachinePoolStatus)(nil), (*AWSManagedMachinePoolStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_AWSManagedMachinePoolStatus_To_v1beta1_AWSManagedMachinePoolStatus(a.(*v1beta2.AWSManagedMachinePoolStatus), b.(*AWSManagedMachinePoolStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*AutoScalingGroup)(nil), (*v1beta2.AutoScalingGroup)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_AutoScalingGroup_To_v1beta2_AutoScalingGroup(a.(*AutoScalingGroup), b.(*v1beta2.AutoScalingGroup), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.AutoScalingGroup)(nil), (*AutoScalingGroup)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_AutoScalingGroup_To_v1beta1_AutoScalingGroup(a.(*v1beta2.AutoScalingGroup), b.(*AutoScalingGroup), scope)
 	}); err != nil {
 		return err
 	}
@@ -265,11 +245,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.RefreshPreferences)(nil), (*RefreshPreferences)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_RefreshPreferences_To_v1beta1_RefreshPreferences(a.(*v1beta2.RefreshPreferences), b.(*RefreshPreferences), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*Taint)(nil), (*v1beta2.Taint)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_Taint_To_v1beta2_Taint(a.(*Taint), b.(*v1beta2.Taint), scope)
 	}); err != nil {
@@ -295,6 +270,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*AWSMachinePoolSpec)(nil), (*v1beta2.AWSMachinePoolSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_AWSMachinePoolSpec_To_v1beta2_AWSMachinePoolSpec(a.(*AWSMachinePoolSpec), b.(*v1beta2.AWSMachinePoolSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*AutoScalingGroup)(nil), (*v1beta2.AutoScalingGroup)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_AutoScalingGroup_To_v1beta2_AutoScalingGroup(a.(*AutoScalingGroup), b.(*v1beta2.AutoScalingGroup), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*apiv1beta1.Instance)(nil), (*apiv1beta2.Instance)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_Instance_To_v1beta2_Instance(a.(*apiv1beta1.Instance), b.(*apiv1beta2.Instance), scope)
 	}); err != nil {
@@ -310,13 +295,28 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1beta2.AWSMachinePoolSpec)(nil), (*AWSMachinePoolSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_AWSMachinePoolSpec_To_v1beta1_AWSMachinePoolSpec(a.(*v1beta2.AWSMachinePoolSpec), b.(*AWSMachinePoolSpec), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta2.AWSManagedMachinePoolSpec)(nil), (*AWSManagedMachinePoolSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_AWSManagedMachinePoolSpec_To_v1beta1_AWSManagedMachinePoolSpec(a.(*v1beta2.AWSManagedMachinePoolSpec), b.(*AWSManagedMachinePoolSpec), scope)
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1beta2.AutoScalingGroup)(nil), (*AutoScalingGroup)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_AutoScalingGroup_To_v1beta1_AutoScalingGroup(a.(*v1beta2.AutoScalingGroup), b.(*AutoScalingGroup), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*apiv1beta2.Instance)(nil), (*apiv1beta1.Instance)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_Instance_To_v1beta1_Instance(a.(*apiv1beta2.Instance), b.(*apiv1beta1.Instance), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.RefreshPreferences)(nil), (*RefreshPreferences)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_RefreshPreferences_To_v1beta1_RefreshPreferences(a.(*v1beta2.RefreshPreferences), b.(*RefreshPreferences), scope)
 	}); err != nil {
 		return err
 	}
@@ -523,14 +523,17 @@ func autoConvert_v1beta1_AWSMachinePoolSpec_To_v1beta2_AWSMachinePoolSpec(in *AW
 	out.MixedInstancesPolicy = (*v1beta2.MixedInstancesPolicy)(unsafe.Pointer(in.MixedInstancesPolicy))
 	out.ProviderIDList = *(*[]string)(unsafe.Pointer(&in.ProviderIDList))
 	out.DefaultCoolDown = in.DefaultCoolDown
-	out.RefreshPreferences = (*v1beta2.RefreshPreferences)(unsafe.Pointer(in.RefreshPreferences))
+	if in.RefreshPreferences != nil {
+		in, out := &in.RefreshPreferences, &out.RefreshPreferences
+		*out = new(v1beta2.RefreshPreferences)
+		if err := Convert_v1beta1_RefreshPreferences_To_v1beta2_RefreshPreferences(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.RefreshPreferences = nil
+	}
 	out.CapacityRebalance = in.CapacityRebalance
 	return nil
-}
-
-// Convert_v1beta1_AWSMachinePoolSpec_To_v1beta2_AWSMachinePoolSpec is an autogenerated conversion function.
-func Convert_v1beta1_AWSMachinePoolSpec_To_v1beta2_AWSMachinePoolSpec(in *AWSMachinePoolSpec, out *v1beta2.AWSMachinePoolSpec, s conversion.Scope) error {
-	return autoConvert_v1beta1_AWSMachinePoolSpec_To_v1beta2_AWSMachinePoolSpec(in, out, s)
 }
 
 func autoConvert_v1beta2_AWSMachinePoolSpec_To_v1beta1_AWSMachinePoolSpec(in *v1beta2.AWSMachinePoolSpec, out *AWSMachinePoolSpec, s conversion.Scope) error {
@@ -546,14 +549,18 @@ func autoConvert_v1beta2_AWSMachinePoolSpec_To_v1beta1_AWSMachinePoolSpec(in *v1
 	out.MixedInstancesPolicy = (*MixedInstancesPolicy)(unsafe.Pointer(in.MixedInstancesPolicy))
 	out.ProviderIDList = *(*[]string)(unsafe.Pointer(&in.ProviderIDList))
 	out.DefaultCoolDown = in.DefaultCoolDown
-	out.RefreshPreferences = (*RefreshPreferences)(unsafe.Pointer(in.RefreshPreferences))
+	if in.RefreshPreferences != nil {
+		in, out := &in.RefreshPreferences, &out.RefreshPreferences
+		*out = new(RefreshPreferences)
+		if err := Convert_v1beta2_RefreshPreferences_To_v1beta1_RefreshPreferences(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.RefreshPreferences = nil
+	}
 	out.CapacityRebalance = in.CapacityRebalance
+	// WARNING: in.SuspendProcesses requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta2_AWSMachinePoolSpec_To_v1beta1_AWSMachinePoolSpec is an autogenerated conversion function.
-func Convert_v1beta2_AWSMachinePoolSpec_To_v1beta1_AWSMachinePoolSpec(in *v1beta2.AWSMachinePoolSpec, out *AWSMachinePoolSpec, s conversion.Scope) error {
-	return autoConvert_v1beta2_AWSMachinePoolSpec_To_v1beta1_AWSMachinePoolSpec(in, out, s)
 }
 
 func autoConvert_v1beta1_AWSMachinePoolStatus_To_v1beta2_AWSMachinePoolStatus(in *AWSMachinePoolStatus, out *v1beta2.AWSMachinePoolStatus, s conversion.Scope) error {
@@ -780,11 +787,6 @@ func autoConvert_v1beta1_AutoScalingGroup_To_v1beta2_AutoScalingGroup(in *AutoSc
 	return nil
 }
 
-// Convert_v1beta1_AutoScalingGroup_To_v1beta2_AutoScalingGroup is an autogenerated conversion function.
-func Convert_v1beta1_AutoScalingGroup_To_v1beta2_AutoScalingGroup(in *AutoScalingGroup, out *v1beta2.AutoScalingGroup, s conversion.Scope) error {
-	return autoConvert_v1beta1_AutoScalingGroup_To_v1beta2_AutoScalingGroup(in, out, s)
-}
-
 func autoConvert_v1beta2_AutoScalingGroup_To_v1beta1_AutoScalingGroup(in *v1beta2.AutoScalingGroup, out *AutoScalingGroup, s conversion.Scope) error {
 	out.ID = in.ID
 	out.Tags = *(*apiv1beta2.Tags)(unsafe.Pointer(&in.Tags))
@@ -799,12 +801,8 @@ func autoConvert_v1beta2_AutoScalingGroup_To_v1beta1_AutoScalingGroup(in *v1beta
 	out.MixedInstancesPolicy = (*MixedInstancesPolicy)(unsafe.Pointer(in.MixedInstancesPolicy))
 	out.Status = ASGStatus(in.Status)
 	out.Instances = *(*[]apiv1beta2.Instance)(unsafe.Pointer(&in.Instances))
+	// WARNING: in.CurrentlySuspendProcesses requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta2_AutoScalingGroup_To_v1beta1_AutoScalingGroup is an autogenerated conversion function.
-func Convert_v1beta2_AutoScalingGroup_To_v1beta1_AutoScalingGroup(in *v1beta2.AutoScalingGroup, out *AutoScalingGroup, s conversion.Scope) error {
-	return autoConvert_v1beta2_AutoScalingGroup_To_v1beta1_AutoScalingGroup(in, out, s)
 }
 
 func autoConvert_v1beta1_BlockDeviceMapping_To_v1beta2_BlockDeviceMapping(in *BlockDeviceMapping, out *v1beta2.BlockDeviceMapping, s conversion.Scope) error {
@@ -1062,15 +1060,11 @@ func Convert_v1beta1_RefreshPreferences_To_v1beta2_RefreshPreferences(in *Refres
 }
 
 func autoConvert_v1beta2_RefreshPreferences_To_v1beta1_RefreshPreferences(in *v1beta2.RefreshPreferences, out *RefreshPreferences, s conversion.Scope) error {
+	// WARNING: in.Disable requires manual conversion: does not exist in peer-type
 	out.Strategy = (*string)(unsafe.Pointer(in.Strategy))
 	out.InstanceWarmup = (*int64)(unsafe.Pointer(in.InstanceWarmup))
 	out.MinHealthyPercentage = (*int64)(unsafe.Pointer(in.MinHealthyPercentage))
 	return nil
-}
-
-// Convert_v1beta2_RefreshPreferences_To_v1beta1_RefreshPreferences is an autogenerated conversion function.
-func Convert_v1beta2_RefreshPreferences_To_v1beta1_RefreshPreferences(in *v1beta2.RefreshPreferences, out *RefreshPreferences, s conversion.Scope) error {
-	return autoConvert_v1beta2_RefreshPreferences_To_v1beta1_RefreshPreferences(in, out, s)
 }
 
 func autoConvert_v1beta1_Taint_To_v1beta2_Taint(in *Taint, out *v1beta2.Taint, s conversion.Scope) error {

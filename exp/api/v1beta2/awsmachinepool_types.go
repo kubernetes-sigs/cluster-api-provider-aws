@@ -17,10 +17,12 @@ limitations under the License.
 package v1beta2
 
 import (
+	"reflect"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/errors"
 )
@@ -83,10 +85,65 @@ type AWSMachinePoolSpec struct {
 	// Enable or disable the capacity rebalance autoscaling group feature
 	// +optional
 	CapacityRebalance bool `json:"capacityRebalance,omitempty"`
+
+	// SuspendProcesses defines a list of processes to suspend for the given ASG. This is constantly reconciled.
+	// If a process is removed from this list it will automatically be resumed.
+	SuspendProcesses *SuspendProcessesTypes `json:"suspendProcesses,omitempty"`
+}
+
+// SuspendProcessesTypes contains user friendly auto-completable values for suspended process names.
+type SuspendProcessesTypes struct {
+	All       bool       `json:"all,omitempty"`
+	Processes *Processes `json:"processes,omitempty"`
+}
+
+// Processes defines the processes which can be enabled or disabled individually.
+type Processes struct {
+	Launch            *bool `json:"launch,omitempty"`
+	Terminate         *bool `json:"terminate,omitempty"`
+	AddToLoadBalancer *bool `json:"addToLoadBalancer,omitempty"`
+	AlarmNotification *bool `json:"alarmNotification,omitempty"`
+	AZRebalance       *bool `json:"azRebalance,omitempty"`
+	HealthCheck       *bool `json:"healthCheck,omitempty"`
+	InstanceRefresh   *bool `json:"instanceRefresh,omitempty"`
+	ReplaceUnhealthy  *bool `json:"replaceUnhealthy,omitempty"`
+	ScheduledActions  *bool `json:"scheduledActions,omitempty"`
+}
+
+// ConvertSetValuesToStringSlice converts all the values that are set into a string slice for further processing.
+func (s *SuspendProcessesTypes) ConvertSetValuesToStringSlice() []string {
+	if s == nil {
+		return nil
+	}
+
+	if s.Processes == nil {
+		s.Processes = &Processes{}
+	}
+
+	e := reflect.ValueOf(s.Processes).Elem()
+	var result []string
+	for i := 0; i < e.NumField(); i++ {
+		if s.All {
+			if !e.Field(i).IsNil() && !*e.Field(i).Interface().(*bool) {
+				// don't enable if explicitly set to false.
+				continue
+			}
+			result = append(result, e.Type().Field(i).Name)
+		} else if !e.Field(i).IsNil() && *e.Field(i).Interface().(*bool) {
+			result = append(result, e.Type().Field(i).Name)
+		}
+	}
+
+	return result
 }
 
 // RefreshPreferences defines the specs for instance refreshing.
 type RefreshPreferences struct {
+	// Disable, if true, disables instance refresh from triggering when new launch templates are detected.
+	// This is useful in scenarios where ASG nodes are externally managed.
+	// +optional
+	Disable bool `json:"disable,omitempty"`
+
 	// The strategy to use for the instance refresh. The only valid value is Rolling.
 	// A rolling update is an update that is applied to all instances in an Auto
 	// Scaling group until all instances have been updated.

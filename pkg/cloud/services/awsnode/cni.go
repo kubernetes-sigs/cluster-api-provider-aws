@@ -23,16 +23,19 @@ import (
 	amazoncni "github.com/aws/amazon-vpc-cni-k8s/pkg/apis/crd/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/kustomize/api/konfig"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 )
 
 const (
@@ -72,7 +75,6 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 		for i := range ds.Spec.Template.Spec.Containers {
 			container := &ds.Spec.Template.Spec.Containers[i]
 			if container.Name == "aws-node" {
-				container.Env = s.filterEnv(container.Env)
 				container.Env, needsUpdate = s.applyUserProvidedEnvironmentProperties(container.Env)
 			}
 		}
@@ -161,22 +163,7 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 		}
 	}
 
-	s.scope.Info("updating containers", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
-	for i := range ds.Spec.Template.Spec.Containers {
-		if ds.Spec.Template.Spec.Containers[i].Name == "aws-node" {
-			ds.Spec.Template.Spec.Containers[i].Env = append(s.filterEnv(ds.Spec.Template.Spec.Containers[i].Env),
-				corev1.EnvVar{
-					Name:  "AWS_VPC_K8S_CNI_CUSTOM_NETWORK_CFG",
-					Value: "true",
-				},
-				corev1.EnvVar{
-					Name:  "ENI_CONFIG_LABEL_DEF",
-					Value: "failure-domain.beta.kubernetes.io/zone",
-				},
-			)
-		}
-	}
-
+	s.scope.Info("updating containers", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
 	return remoteClient.Update(ctx, &ds, &client.UpdateOptions{})
 }
 
@@ -194,18 +181,6 @@ func (s *Service) getSecurityGroups() ([]string, error) {
 	}
 
 	return sgs, nil
-}
-
-func (s *Service) filterEnv(env []corev1.EnvVar) []corev1.EnvVar {
-	var i int
-	for _, e := range env {
-		if e.Name == "ENI_CONFIG_LABEL_DEF" || e.Name == "AWS_VPC_K8S_CNI_CUSTOM_NETWORK_CFG" {
-			continue
-		}
-		env[i] = e
-		i++
-	}
-	return env[:i]
 }
 
 // applyUserProvidedEnvironmentProperties takes a container environment and applies user provided values to it.
@@ -239,26 +214,77 @@ func (s *Service) applyUserProvidedEnvironmentProperties(containerEnv []corev1.E
 }
 
 func (s *Service) deleteCNI(ctx context.Context, remoteClient client.Client) error {
-	s.scope.Info("Ensuring aws-node DaemonSet in cluster is deleted", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
+	// EKS has a tendency to pre-install the vpc-cni automagically even if you don't specify it as an addon
+	// and looks like a kubectl apply from a script of a manifest that looks like this
+	// https://github.com/aws/amazon-vpc-cni-k8s/blob/master/config/master/aws-k8s-cni.yaml
+	// and removing these pieces will enable someone to install and alternative CNI. There is also another use
+	// case where someone would want to remove the vpc-cni and reinstall it via the helm chart located here
+	// https://github.com/aws/amazon-vpc-cni-k8s/tree/master/charts/aws-vpc-cni meaning we need to account for
+	// managed-by: Helm label, or we will delete the helm chart resources every reconcile loop. EKS does make
+	// a CRD for eniconfigs but the default env var on the vpc-cni pod is ENABLE_POD_ENI=false. We will make an
+	// assumption no CRs are ever created and leave the CRD to reduce complexity of this operation.
 
-	ds := &appsv1.DaemonSet{}
-	if err := remoteClient.Get(ctx, types.NamespacedName{Namespace: awsNodeNamespace, Name: awsNodeName}, ds); err != nil {
-		if apierrors.IsNotFound(err) {
-			s.scope.V(2).Info("The aws-node DaemonSet is not found, not action")
-			return nil
-		}
-		return fmt.Errorf("getting aws-node daemonset: %w", err)
+	s.scope.Info("Ensuring all resources for AWS VPC CNI in cluster are deleted", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
+
+	s.scope.Info("Trying to delete AWS VPC CNI DaemonSet", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
+	if err := s.deleteResource(ctx, remoteClient, types.NamespacedName{
+		Namespace: awsNodeNamespace,
+		Name:      awsNodeName,
+	}, &appsv1.DaemonSet{}); err != nil {
+		return err
 	}
 
-	s.scope.V(2).Info("The aws-node DaemonSet found, deleting")
-	if err := remoteClient.Delete(ctx, ds, &client.DeleteOptions{}); err != nil {
-		if apierrors.IsNotFound(err) {
-			s.scope.V(2).Info("The aws-node DaemonSet is not found, not deleted")
-			return nil
-		}
-		return fmt.Errorf("deleting aws-node DaemonSet: %w", err)
+	s.scope.Info("Trying to delete AWS VPC CNI ServiceAccount", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
+	if err := s.deleteResource(ctx, remoteClient, types.NamespacedName{
+		Namespace: awsNodeNamespace,
+		Name:      awsNodeName,
+	}, &corev1.ServiceAccount{}); err != nil {
+		return err
 	}
+
+	s.scope.Info("Trying to delete AWS VPC CNI ClusterRoleBinding", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
+	if err := s.deleteResource(ctx, remoteClient, types.NamespacedName{
+		Namespace: string(meta.RESTScopeNameRoot),
+		Name:      awsNodeName,
+	}, &rbacv1.ClusterRoleBinding{}); err != nil {
+		return err
+	}
+
+	s.scope.Info("Trying to delete AWS VPC CNI ClusterRole", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
+	if err := s.deleteResource(ctx, remoteClient, types.NamespacedName{
+		Namespace: string(meta.RESTScopeNameRoot),
+		Name:      awsNodeName,
+	}, &rbacv1.ClusterRole{}); err != nil {
+		return err
+	}
+
 	record.Eventf(s.scope.InfraCluster(), "DeletedVPCCNI", "The AWS VPC CNI has been removed from the cluster. Ensure you enable a CNI via another mechanism")
+
+	return nil
+}
+
+func (s *Service) deleteResource(ctx context.Context, remoteClient client.Client, key client.ObjectKey, obj client.Object) error {
+	if err := remoteClient.Get(ctx, key, obj); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return fmt.Errorf("deleting resource %s: %w", key, err)
+		}
+		s.scope.Debug(fmt.Sprintf("resource %s was not found, no action", key))
+	} else {
+		// resource found, delete if no label or not managed by helm
+		if val, ok := obj.GetLabels()[konfig.ManagedbyLabelKey]; !ok || val != "Helm" {
+			if err := remoteClient.Delete(ctx, obj, &client.DeleteOptions{}); err != nil {
+				if !apierrors.IsNotFound(err) {
+					return fmt.Errorf("deleting %s: %w", key, err)
+				}
+				s.scope.Debug(fmt.Sprintf(
+					"resource %s was not found, not deleted", key))
+			} else {
+				s.scope.Debug(fmt.Sprintf("resource %s was deleted", key))
+			}
+		} else {
+			s.scope.Debug(fmt.Sprintf("resource %s is managed by helm, not deleted", key))
+		}
+	}
 
 	return nil
 }

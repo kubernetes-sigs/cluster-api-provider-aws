@@ -30,8 +30,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/eks"
 )
 
 const (
@@ -213,7 +213,7 @@ func (r *AWSManagedControlPlane) validateEKSVersion(old *AWSManagedControlPlane)
 		allErrs = append(allErrs, field.Invalid(path, *r.Spec.Version, err.Error()))
 	}
 
-	if old != nil {
+	if old != nil && old.Spec.Version != nil {
 		oldV, err := parseEKSVersion(*old.Spec.Version)
 		if err == nil && (v.Major() < oldV.Major() || v.Minor() < oldV.Minor()) {
 			allErrs = append(allErrs, field.Invalid(path, *r.Spec.Version, "new version less than old version"))
@@ -233,6 +233,10 @@ func (r *AWSManagedControlPlane) validateEKSAddons() field.ErrorList {
 	var allErrs field.ErrorList
 
 	if !r.Spec.NetworkSpec.VPC.IsIPv6Enabled() && (r.Spec.Addons == nil || len(*r.Spec.Addons) == 0) {
+		return allErrs
+	}
+
+	if r.Spec.Version == nil {
 		return allErrs
 	}
 
@@ -365,13 +369,13 @@ func (r *AWSManagedControlPlane) validateKubeProxy() field.ErrorList {
 func (r *AWSManagedControlPlane) validateDisableVPCCNI() field.ErrorList {
 	var allErrs field.ErrorList
 
-	if r.Spec.DisableVPCCNI {
-		disableField := field.NewPath("spec", "disableVPCCNI")
+	if r.Spec.VpcCni.Disable {
+		disableField := field.NewPath("spec", "vpcCni", "disable")
 
 		if r.Spec.Addons != nil {
 			for _, addon := range *r.Spec.Addons {
 				if addon.Name == vpcCniAddon {
-					allErrs = append(allErrs, field.Invalid(disableField, r.Spec.DisableVPCCNI, "cannot disable vpc cni if the vpc-cni addon is specified"))
+					allErrs = append(allErrs, field.Invalid(disableField, r.Spec.VpcCni.Disable, "cannot disable vpc cni if the vpc-cni addon is specified"))
 					break
 				}
 			}

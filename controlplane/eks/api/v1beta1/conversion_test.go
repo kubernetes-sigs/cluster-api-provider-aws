@@ -18,13 +18,27 @@ package v1beta1
 
 import (
 	"testing"
-
+	
 	. "github.com/onsi/gomega"
-
-	runtime "k8s.io/apimachinery/pkg/runtime"
-	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2"
+	
+	fuzz "github.com/google/gofuzz"
+	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	"k8s.io/apimachinery/pkg/runtime"
+	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
+
+func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		AWSManagedControlPlaneFuzzer,
+	}
+}
+
+func AWSManagedControlPlaneFuzzer(obj *AWSManagedControlPlane, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+	obj.Spec.DisableVPCCNI = false
+}
 
 func TestFuzzyConversion(t *testing.T) {
 	g := NewWithT(t)
@@ -36,5 +50,6 @@ func TestFuzzyConversion(t *testing.T) {
 		Scheme: scheme,
 		Hub:    &v1beta2.AWSManagedControlPlane{},
 		Spoke:  &AWSManagedControlPlane{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 }

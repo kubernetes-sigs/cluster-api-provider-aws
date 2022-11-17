@@ -27,15 +27,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/internal/cidr"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/internal/cidr"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -178,7 +178,7 @@ func (s *Service) reconcileSubnets() error {
 		}
 	}
 
-	s.scope.V(2).Info("reconciled subnets", "subnets", subnets)
+	s.scope.Debug("reconciled subnets", "subnets", subnets)
 	conditions.MarkTrue(s.scope.InfraCluster(), infrav1.SubnetsReadyCondition)
 	return nil
 }
@@ -199,7 +199,7 @@ func (s *Service) getDefaultSubnets() (infrav1.Subnets, error) {
 	}
 
 	if len(zones) > maxZones {
-		s.scope.V(2).Info("region has more than AvailabilityZoneUsageLimit availability zones, picking zones to use", "region", s.scope.Region(), "AvailabilityZoneUsageLimit", maxZones)
+		s.scope.Debug("region has more than AvailabilityZoneUsageLimit availability zones, picking zones to use", "region", s.scope.Region(), "AvailabilityZoneUsageLimit", maxZones)
 		if selectionScheme == infrav1.AZSelectionSchemeRandom {
 			rand.Shuffle(len(zones), func(i, j int) {
 				zones[i], zones[j] = zones[j], zones[i]
@@ -209,7 +209,7 @@ func (s *Service) getDefaultSubnets() (infrav1.Subnets, error) {
 			sort.Strings(zones)
 		}
 		zones = zones[:maxZones]
-		s.scope.V(2).Info("zones selected", "region", s.scope.Region(), "zones", zones)
+		s.scope.Debug("zones selected", "region", s.scope.Region(), "zones", zones)
 	}
 
 	// 1 private subnet for each AZ plus 1 other subnet that will be further sub-divided for the public subnets
@@ -276,7 +276,7 @@ func (s *Service) getDefaultSubnets() (infrav1.Subnets, error) {
 
 func (s *Service) deleteSubnets() error {
 	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
-		s.scope.V(4).Info("Skipping subnets deletion in unmanaged mode")
+		s.scope.Trace("Skipping subnets deletion in unmanaged mode")
 		return nil
 	}
 
@@ -462,7 +462,7 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 		}
 	}
 
-	s.scope.V(2).Info("Created new subnet in VPC with cidr and availability zone ",
+	s.scope.Debug("Created new subnet in VPC with cidr and availability zone ",
 		"subnet-id", *out.Subnet.SubnetId,
 		"vpc-id", *out.Subnet.VpcId,
 		"cidr-block", *out.Subnet.CidrBlock,
@@ -503,7 +503,7 @@ func (s *Service) getSubnetTagParams(unmanagedVPC bool, id string, public bool, 
 	}
 
 	// Add tag needed for Service type=LoadBalancer
-	additionalTags[infrav1.NameKubernetesAWSCloudProviderPrefix+s.scope.KubernetesClusterName()] = string(infrav1.ResourceLifecycleShared)
+	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())] = string(infrav1.ResourceLifecycleShared)
 
 	if !unmanagedVPC {
 		for k, v := range manualTags {

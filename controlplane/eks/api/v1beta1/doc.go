@@ -18,5 +18,5 @@ limitations under the License.
 // +gencrdrefdocs:force
 // +groupName=controlplane.cluster.x-k8s.io
 // +k8s:defaulter-gen=TypeMeta
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2
 package v1beta1

@@ -24,8 +24,18 @@ metadata:
   name: ${CLUSTER_NAME}
 spec:
   network:
+    securityGroupOverrides:
+      apiserver-lb: ${SG_ID}
+      bastion: ${SG_ID}
+      controlplane: ${SG_ID}
+      lb: ${SG_ID}
+      node: ${SG_ID}
+    subnets:
+    - id: ${MGMT_PUBLIC_SUBNET_ID}
+    - id: ${MGMT_PRIVATE_SUBNET_ID}
     vpc:
       availabilityZoneUsageLimit: 1
+      id: ${MGMT_VPC_ID}
   region: ${AWS_REGION}
   sshKeyName: ${AWS_SSH_KEY_NAME}
 ---
@@ -52,6 +62,10 @@ spec:
         kubeletExtraArgs:
           cloud-provider: aws
         name: '{{ ds.meta_data.local_hostname }}'
+    preKubeadmCommands:
+    - mkdir -p /opt/cluster-api
+    - ctr -n k8s.io images pull "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}"
+    - ctr -n k8s.io images tag "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}" gcr.io/k8s-staging-cluster-api/capa-manager:e2e
   machineTemplate:
     infrastructureRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
@@ -67,53 +81,69 @@ metadata:
 spec:
   template:
     spec:
+      additionalSecurityGroups:
+      - filters:
+        - name: vpc-id
+          values:
+          - ${MGMT_VPC_ID}
+        - name: group-name
+          values:
+          - ${MGMT_CLUSTER_NAME}-all
+      failureDomain: us-west-2a
       iamInstanceProfile: control-plane.cluster-api-provider-aws.sigs.k8s.io
       instanceType: ${AWS_CONTROL_PLANE_MACHINE_TYPE}
       sshKeyName: ${AWS_SSH_KEY_NAME}
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
-kind: MachinePool
+kind: MachineDeployment
 metadata:
-  name: ${CLUSTER_NAME}-mp-0
+  name: ${CLUSTER_NAME}-md-0
 spec:
   clusterName: ${CLUSTER_NAME}
   replicas: ${WORKER_MACHINE_COUNT}
+  selector:
+    matchLabels: null
   template:
     spec:
       bootstrap:
         configRef:
           apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-          kind: KubeadmConfig
-          name: ${CLUSTER_NAME}-mp-0
+          kind: KubeadmConfigTemplate
+          name: ${CLUSTER_NAME}-md-0
       clusterName: ${CLUSTER_NAME}
+      failureDomain: us-west-2a
       infrastructureRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-        kind: AWSMachinePool
-        name: ${CLUSTER_NAME}-mp-0
+        kind: AWSMachineTemplate
+        name: ${CLUSTER_NAME}-md-0
       version: ${KUBERNETES_VERSION}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-kind: AWSMachinePool
+kind: AWSMachineTemplate
 metadata:
-  name: ${CLUSTER_NAME}-mp-0
+  name: ${CLUSTER_NAME}-md-0
 spec:
-  awsLaunchTemplate:
-    iamInstanceProfile: nodes.cluster-api-provider-aws.sigs.k8s.io
-    instanceType: ${AWS_CONTROL_PLANE_MACHINE_TYPE}
-    sshKeyName: ${AWS_SSH_KEY_NAME}
-  maxSize: 4
-  minSize: 1
+  template:
+    spec:
+      iamInstanceProfile: nodes.cluster-api-provider-aws.sigs.k8s.io
+      instanceType: ${AWS_NODE_MACHINE_TYPE}
+      sshKeyName: ${AWS_SSH_KEY_NAME}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-kind: KubeadmConfig
+kind: KubeadmConfigTemplate
 metadata:
-  name: ${CLUSTER_NAME}-mp-0
+  name: ${CLUSTER_NAME}-md-0
 spec:
-  joinConfiguration:
-    nodeRegistration:
-      kubeletExtraArgs:
-        cloud-provider: aws
-      name: '{{ ds.meta_data.local_hostname }}'
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            cloud-provider: aws
+          name: '{{ ds.meta_data.local_hostname }}'
+      preKubeadmCommands:
+      - ctr -n k8s.io images pull "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}"
+      - ctr -n k8s.io images tag "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}" gcr.io/k8s-staging-cluster-api/capa-manager:e2e
 ---
 apiVersion: v1
 data: ${CNI_RESOURCES}

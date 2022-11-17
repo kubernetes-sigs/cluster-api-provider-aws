@@ -23,6 +23,9 @@ spec:
       conflictResolution: "overwrite"
 ```
 
+_Note_: For `conflictResolution` `overwrite` is the **default** behaviour. That means, if not otherwise specified, it's
+set to `overwrite`.
+
 Additionally, there is a cluster [flavor](https://cluster-api.sigs.k8s.io/clusterctl/commands/generate-cluster.html#flavors)
 called [eks-managedmachinepool-vpccni](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/templates/cluster-template-eks-managedmachinepool-vpccni.yaml) that you can use with **clusterctl**:
 

@@ -25,7 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
@@ -118,6 +118,21 @@ func TestAWSMachinePool_ValidateCreate(t *testing.T) {
 					Subnets: []infrav1.AWSResourceReference{
 						{
 							ID: pointer.StringPtr("subnet-id"),
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Ensure root volume with device name works (for clusterctl move)",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						RootVolume: &infrav1.Volume{
+							DeviceName: "name",
+							Type:       "gp2",
+							Size:       *aws.Int64(8),
 						},
 					},
 				},

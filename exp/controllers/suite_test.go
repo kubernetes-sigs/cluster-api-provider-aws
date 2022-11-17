@@ -26,9 +26,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	// +kubebuilder:scaffold:imports
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/helpers"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )

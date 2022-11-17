@@ -80,16 +80,18 @@ func TestAWSMachine_Create(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "ensure root volume has no device name",
+			name: "ensure root volume with device name works (for clusterctl move)",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
 					RootVolume: &Volume{
 						DeviceName: "name",
+						Type:       "gp2",
+						Size:       *aws.Int64(8),
 					},
 					InstanceType: "test",
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "ensure non root volume have device names",
@@ -104,7 +106,7 @@ func TestAWSMachine_Create(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "ensure ensure IOPS exists if type equal to io1 for non root volumes",
+			name: "ensure IOPS exists if type equal to io1 for non root volumes",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
 					NonRootVolumes: []Volume{
@@ -119,7 +121,7 @@ func TestAWSMachine_Create(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "ensure ensure IOPS exists if type equal to io2 for non root volumes",
+			name: "ensure IOPS exists if type equal to io2 for non root volumes",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
 					NonRootVolumes: []Volume{

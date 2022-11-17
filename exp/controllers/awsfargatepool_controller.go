@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/record"
@@ -33,10 +32,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -54,11 +54,11 @@ type AWSFargateProfileReconciler struct {
 
 // SetupWithManager is used to setup the controller.
 func (r *AWSFargateProfileReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	managedControlPlaneToFargateProfileMap := managedControlPlaneToFargateProfileMapFunc(r.Client, ctrl.LoggerFrom(ctx))
+	managedControlPlaneToFargateProfileMap := managedControlPlaneToFargateProfileMapFunc(r.Client, logger.FromContext(ctx))
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&expinfrav1.AWSFargateProfile{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(logger.FromContext(ctx).GetLogger(), r.WatchFilterValue)).
 		Watches(
 			&source.Kind{Type: &ekscontrolplanev1.AWSManagedControlPlane{}},
 			handler.EnqueueRequestsFromMapFunc(managedControlPlaneToFargateProfileMap),
@@ -74,7 +74,7 @@ func (r *AWSFargateProfileReconciler) SetupWithManager(ctx context.Context, mgr 
 
 // Reconcile reconciles AWSFargateProfiles.
 func (r *AWSFargateProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
-	log := ctrl.LoggerFrom(ctx)
+	log := logger.FromContext(ctx)
 
 	fargateProfile := &expinfrav1.AWSFargateProfile{}
 	if err := r.Get(ctx, req.NamespacedName, fargateProfile); err != nil {
@@ -182,7 +182,7 @@ func (r *AWSFargateProfileReconciler) reconcileDelete(
 	return res, nil
 }
 
-func managedControlPlaneToFargateProfileMapFunc(c client.Client, log logr.Logger) handler.MapFunc {
+func managedControlPlaneToFargateProfileMapFunc(c client.Client, log logger.Wrapper) handler.MapFunc {
 	return func(o client.Object) []ctrl.Request {
 		ctx := context.Background()
 

@@ -48,8 +48,8 @@ import (
 	"k8s.io/utils/pointer"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
@@ -460,7 +460,7 @@ func getAWSMachinesForDeployment(namespace string, machineDeployment clusterv1.M
 	return awsMachineList
 }
 
-func makeAWSMachineTemplate(namespace, name, instanceType string, az, subnetID *string) *infrav1.AWSMachineTemplate {
+func makeAWSMachineTemplate(namespace, name, instanceType string, subnetID *string) *infrav1.AWSMachineTemplate {
 	awsMachine := &infrav1.AWSMachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -475,9 +475,6 @@ func makeAWSMachineTemplate(namespace, name, instanceType string, az, subnetID *
 				},
 			},
 		},
-	}
-	if az != nil {
-		awsMachine.Spec.Template.Spec.FailureDomain = az
 	}
 
 	if subnetID != nil {
@@ -511,8 +508,8 @@ func makeJoinBootstrapConfigTemplate(namespace, name string) *bootstrapv1.Kubead
 	}
 }
 
-func makeMachineDeployment(namespace, mdName, clusterName string, replicas int32) *clusterv1.MachineDeployment {
-	return &clusterv1.MachineDeployment{
+func makeMachineDeployment(namespace, mdName, clusterName string, az *string, replicas int32) *clusterv1.MachineDeployment {
+	machineDeployment := &clusterv1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      mdName,
 			Namespace: namespace,
@@ -558,6 +555,10 @@ func makeMachineDeployment(namespace, mdName, clusterName string, replicas int32
 			},
 		},
 	}
+	if az != nil {
+		machineDeployment.Spec.Template.Spec.FailureDomain = az
+	}
+	return machineDeployment
 }
 
 func assertSpotInstanceType(instanceID string) {

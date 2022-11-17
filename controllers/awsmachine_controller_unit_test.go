@@ -41,11 +41,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/mock_services"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/mock_services"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -914,7 +915,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
 					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.SecurityGroupsFailedReason}})
 				})
-				t.Run("Should return silently if ensureSecurityGroups fails to fetch additional security groups", func(t *testing.T) {
+				t.Run("Should fail if ensureSecurityGroups fails to fetch additional security groups", func(t *testing.T) {
 					g := NewWithT(t)
 					awsMachine := getAWSMachine()
 					setup(t, g, awsMachine)
@@ -940,9 +941,9 @@ func TestAWSMachineReconciler(t *testing.T) {
 					ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return([]string{"sg-1"}, errors.New("failed to get filtered SGs"))
 
 					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
-					g.Expect(err).To(BeNil())
+					g.Expect(err).ToNot(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionTrue, "", ""}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.SecurityGroupsFailedReason}})
 				})
 				t.Run("Should fail to update security group", func(t *testing.T) {
 					g := NewWithT(t)
@@ -2028,7 +2029,7 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 				g.Expect(testEnv.Cleanup(ctx, tc.awsCluster, ns)).To(Succeed())
 			})
 
-			requests := reconciler.AWSClusterToAWSMachines(klog.Background())(tc.awsCluster)
+			requests := reconciler.AWSClusterToAWSMachines(logger.NewLogger(klog.Background()))(tc.awsCluster)
 			if tc.requests != nil {
 				if len(tc.requests) > 0 {
 					tc.requests[0].Namespace = ns.Name
@@ -2064,7 +2065,7 @@ func TestAWSMachineReconciler_requeueAWSMachinesForUnpausedCluster(t *testing.T)
 				Client: testEnv.Client,
 				Log:    klog.Background(),
 			}
-			requests := reconciler.requeueAWSMachinesForUnpausedCluster(klog.Background())(tc.ownerCluster)
+			requests := reconciler.requeueAWSMachinesForUnpausedCluster(logger.NewLogger(klog.Background()))(tc.ownerCluster)
 			if tc.requests != nil {
 				g.Expect(requests).To(ConsistOf(tc.requests))
 			} else {

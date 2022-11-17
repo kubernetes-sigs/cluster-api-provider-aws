@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.2
+    controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
   name: awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io
 spec:
@@ -1355,7 +1355,7 @@ spec:
                   description: Addon represents a EKS addon.
                   properties:
                     conflictResolution:
-                      default: none
+                      default: overwrite
                       description: ConflictResolution is used to declare what should
                         happen if there are parameter conflicts. Defaults to none
                       enum:
@@ -1430,15 +1430,6 @@ spec:
                 - host
                 - port
                 type: object
-              disableVPCCNI:
-                default: false
-                description: DisableVPCCNI indicates that the Amazon VPC CNI should
-                  be disabled. With EKS clusters the Amazon VPC CNI is automatically
-                  installed into the cluster. For clusters where you want to use an
-                  alternate CNI this option provides a way to specify that the Amazon
-                  VPC CNI should be deleted. You cannot set this to true if you are
-                  using the Amazon VPC CNI addon.
-                type: boolean
               eksClusterName:
                 description: EKSClusterName allows you to specify the name of the
                   EKS cluster in AWS. If you don't specify a name then a default name
@@ -1905,6 +1896,15 @@ spec:
                 description: VpcCni is used to set configuration options for the VPC
                   CNI plugin
                 properties:
+                  disable:
+                    default: false
+                    description: Disable indicates that the Amazon VPC CNI should
+                      be disabled. With EKS clusters the Amazon VPC CNI is automatically
+                      installed into the cluster. For clusters where you want to use
+                      an alternate CNI this option provides a way to specify that
+                      the Amazon VPC CNI should be deleted. You cannot set this to
+                      true if you are using the Amazon VPC CNI addon.
+                    type: boolean
                   env:
                     description: Env defines a list of environment variables to apply
                       to the `aws-node` DaemonSet

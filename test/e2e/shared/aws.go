@@ -52,12 +52,12 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/yaml"
 
-	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
-	cloudformation "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/service"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/credentials"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
+	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/bootstrap"
+	cloudformation "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/service"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/credentials"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 )
 
 type AWSInfrastructureSpec struct {
@@ -454,8 +454,7 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 		tayp := val.AWSCloudFormationType()
 		if tayp == configservice.ResourceTypeAwsIamRole {
 			role := val.(*cfn_iam.Role)
-			_, err := iamSvc.DeleteRole(&iam.DeleteRoleInput{RoleName: aws.String(role.RoleName)})
-			Expect(err).NotTo(HaveOccurred())
+			_, _ = iamSvc.DeleteRole(&iam.DeleteRoleInput{RoleName: aws.String(role.RoleName)})
 		}
 		if val.AWSCloudFormationType() == "AWS::IAM::InstanceProfile" {
 			profile := val.(*cfn_iam.InstanceProfile)
@@ -992,7 +991,7 @@ func ListClusterEC2Instances(e2eCtx *E2EContext, clusterName string) ([]*ec2.Ins
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 	filter := &ec2.Filter{
 		Name:   aws.String("tag-key"),
-		Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/" + clusterName}),
+		Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/v2/cluster/" + clusterName}),
 	}
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
@@ -1244,27 +1243,9 @@ func CreateSubnet(e2eCtx *E2EContext, clusterName string, cidrBlock string, az s
 						Key:   aws.String("Name"),
 						Value: aws.String(clusterName + "-subnet-" + st),
 					},
-					{
-						Key:   aws.String("kubernetes.io/cluster/" + clusterName),
-						Value: aws.String("shared"),
-					},
 				},
 			},
 		},
-	}
-
-	// Tag subnet based on type(st)
-	switch st {
-	case "private":
-		input.TagSpecifications[0].Tags = append(input.TagSpecifications[0].Tags, &ec2.Tag{
-			Key:   aws.String("kubernetes.io/role/internal-elb"),
-			Value: aws.String("1"),
-		})
-	case "public":
-		input.TagSpecifications[0].Tags = append(input.TagSpecifications[0].Tags, &ec2.Tag{
-			Key:   aws.String("kubernetes.io/role/elb"),
-			Value: aws.String("1"),
-		})
 	}
 
 	if az != "" {

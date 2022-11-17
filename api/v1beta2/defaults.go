@@ -60,12 +60,8 @@ func SetDefaults_AWSClusterSpec(s *AWSClusterSpec) { //nolint:golint,stylecheck
 			Name: AWSClusterControllerIdentityName,
 		}
 	}
-
-	// 	If ELB scheme is set to Internet-facing due to an API bug in versions > v0.6.6 and v0.7.0, default it to internet-facing.
 	if s.ControlPlaneLoadBalancer == nil {
 		s.ControlPlaneLoadBalancer = &AWSLoadBalancerSpec{Scheme: &ClassicELBSchemeInternetFacing}
-	} else if s.ControlPlaneLoadBalancer.Scheme != nil && s.ControlPlaneLoadBalancer.Scheme.String() == ClassicELBSchemeIncorrectInternetFacing.String() {
-		s.ControlPlaneLoadBalancer.Scheme = &ClassicELBSchemeInternetFacing
 	}
 }
 

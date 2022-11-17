@@ -17,7 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
@@ -65,7 +65,7 @@ func (dst *AWSMachineList) ConvertFrom(srcRaw conversion.Hub) error {
 	return Convert_v1beta2_AWSMachineList_To_v1beta1_AWSMachineList(src, dst, nil)
 }
 
-// ConvertTo converts the v1beta1 AWSCluster receiver to a v1beta2 AWSCluster.
+// ConvertTo converts the v1beta1 AWSMachineTemplate receiver to a v1beta2 AWSMachineTemplate.
 func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.AWSMachineTemplate)
 
@@ -113,4 +113,3 @@ func (dst *AWSMachineTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
 
 	return Convert_v1beta2_AWSMachineTemplateList_To_v1beta1_AWSMachineTemplateList(src, dst, nil)
 }
-

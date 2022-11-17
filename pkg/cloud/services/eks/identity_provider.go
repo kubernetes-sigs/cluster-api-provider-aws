@@ -24,14 +24,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/pkg/errors"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks/identityprovider"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/eks/identityprovider"
 )
 
 func (s *Service) reconcileIdentityProvider(ctx context.Context) error {
 	s.scope.Info("reconciling oidc identity provider")
-	if s.scope.ControlPlane.Spec.OIDCIdentityProviderConfig == nil {
+	if s.scope.OIDCIdentityProviderConfig() == nil {
+		s.scope.Info("no oidc provider config, skipping reconcile")
 		return nil
 	}
 
@@ -48,16 +49,21 @@ func (s *Service) reconcileIdentityProvider(ctx context.Context) error {
 		return nil
 	}
 
-	s.scope.V(2).Info("creating oidc provider plan", "desired", desired, "current", current)
-
-	identityProviderPlan := identityprovider.NewPlan(clusterName, current, desired, s.EKSClient, s.scope.Logger)
-
-	procedures, err := identityProviderPlan.Create(ctx)
+	s.scope.Debug("creating oidc provider plan", "desired", desired, "current", current)
+	procedures, err := identityprovider.
+		NewPlan(clusterName, current, desired, s.EKSClient, s.scope).
+		Create(ctx)
 	if err != nil {
 		s.scope.Error(err, "failed creating eks identity provider plan")
 		return fmt.Errorf("creating eks identity provider plan: %w", err)
 	}
-	s.scope.V(2).Info("computed EKS identity provider plan", "numprocs", len(procedures))
+
+	// nothing will be done, we can leave
+	if len(procedures) == 0 {
+		return nil
+	}
+
+	s.scope.Debug("computed EKS identity provider plan", "numprocs", len(procedures))
 
 	// Perform required operations
 	for _, procedure := range procedures {
@@ -73,16 +79,24 @@ func (s *Service) reconcileIdentityProvider(ctx context.Context) error {
 		return errors.Wrap(err, "getting associated identity provider")
 	}
 
-	if latest != nil {
-		s.scope.ControlPlane.Status.IdentityProviderStatus = ekscontrolplanev1.IdentityProviderStatus{
-			ARN:    aws.StringValue(latest.IdentityProviderConfigArn),
-			Status: aws.StringValue(latest.Status),
-		}
+	if latest == nil {
+		return nil
+	}
 
-		err := s.scope.PatchObject()
-		if err != nil {
-			return errors.Wrap(err, "updating identity provider status")
-		}
+	// don't patch if arn/status is the same
+	if latest.IdentityProviderConfigArn == s.scope.ControlPlane.Status.IdentityProviderStatus.ARN &&
+		latest.Status == s.scope.ControlPlane.Status.IdentityProviderStatus.Status {
+		return nil
+	}
+
+	// idp status has changed, patch the control plane
+	s.scope.ControlPlane.Status.IdentityProviderStatus = ekscontrolplanev1.IdentityProviderStatus{
+		ARN:    latest.IdentityProviderConfigArn,
+		Status: latest.Status,
+	}
+
+	if err := s.scope.PatchObject(); err != nil {
+		return errors.Wrap(err, "updating identity provider status")
 	}
 
 	return nil
@@ -114,16 +128,16 @@ func (s *Service) getAssociatedIdentityProvider(ctx context.Context, clusterName
 	config := providerconfig.IdentityProviderConfig.Oidc
 
 	return &identityprovider.OidcIdentityProviderConfig{
-		ClientID:                   *config.ClientId,
-		GroupsClaim:                config.GroupsClaim,
-		GroupsPrefix:               config.GroupsPrefix,
-		IdentityProviderConfigArn:  config.IdentityProviderConfigArn,
-		IdentityProviderConfigName: *config.IdentityProviderConfigName,
-		IssuerURL:                  *config.IssuerUrl,
-		RequiredClaims:             config.RequiredClaims,
-		Status:                     config.Status,
+		ClientID:                   aws.StringValue(config.ClientId),
+		GroupsClaim:                aws.StringValue(config.GroupsClaim),
+		GroupsPrefix:               aws.StringValue(config.GroupsPrefix),
+		IdentityProviderConfigArn:  aws.StringValue(config.IdentityProviderConfigArn),
+		IdentityProviderConfigName: aws.StringValue(config.IdentityProviderConfigName),
+		IssuerURL:                  aws.StringValue(config.IssuerUrl),
+		RequiredClaims:             aws.StringValueMap(config.RequiredClaims),
+		Status:                     aws.StringValue(config.Status),
 		Tags:                       converters.MapPtrToMap(config.Tags),
-		UsernameClaim:              config.UsernameClaim,
-		UsernamePrefix:             config.UsernamePrefix,
+		UsernameClaim:              aws.StringValue(config.UsernameClaim),
+		UsernamePrefix:             aws.StringValue(config.UsernamePrefix),
 	}, nil
 }

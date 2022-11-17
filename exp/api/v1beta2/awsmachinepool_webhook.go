@@ -26,7 +26,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
 
 var log = ctrl.Log.WithName("awsmachinepool-resource")
@@ -75,7 +75,7 @@ func (r *AWSMachinePool) validateRootVolume() field.ErrorList {
 	}
 
 	if r.Spec.AWSLaunchTemplate.RootVolume.DeviceName != "" {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.rootVolume.deviceName"), "root volume shouldn't have device name"))
+		log.Info("root volume shouldn't have a device name (this can be ignored if performing a `clusterctl move`)")
 	}
 
 	return allErrs
@@ -89,9 +89,6 @@ func (r *AWSMachinePool) validateSubnets() field.ErrorList {
 	}
 
 	for _, subnet := range r.Spec.Subnets {
-		if subnet.ARN != nil {
-			log.Info("ARN field is deprecated and is no operation function.")
-		}
 		if subnet.ID != nil && subnet.Filters != nil {
 			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.subnets.filters"), "providing either subnet ID or filter is supported, should not provide both"))
 			break
@@ -106,9 +103,6 @@ func (r *AWSMachinePool) validateAdditionalSecurityGroups() field.ErrorList {
 	for _, sg := range r.Spec.AWSLaunchTemplate.AdditionalSecurityGroups {
 		if sg.ID != nil && sg.Filters != nil {
 			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.AdditionalSecurityGroups"), "either ID or filters should be used"))
-		}
-		if sg.ARN != nil {
-			log.Info("ARN field is deprecated and is no operation function.")
 		}
 	}
 	return allErrs

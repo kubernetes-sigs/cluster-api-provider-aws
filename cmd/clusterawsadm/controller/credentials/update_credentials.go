@@ -24,7 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/controller"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/controller"
 )
 
 // UpdateCredentialsInput defines the specs for update credentials input.

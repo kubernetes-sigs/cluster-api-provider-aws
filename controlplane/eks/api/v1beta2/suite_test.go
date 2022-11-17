@@ -25,7 +25,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/helpers"
 )
 
 var (

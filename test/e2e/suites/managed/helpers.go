@@ -33,7 +33,7 @@ import (
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
@@ -47,6 +47,7 @@ const (
 	EKSManagedMachinePoolWithLaunchTemplateOnlyFlavor = "eks-managed-machinepool-with-launch-template-only"
 	EKSMachinePoolOnlyFlavor                          = "eks-machinepool-only"
 	EKSIPv6ClusterFlavor                              = "eks-ipv6-cluster"
+	EKSControlPlaneOnlyLegacyFlavor                   = "eks-control-plane-only-legacy"
 )
 
 type DefaultConfigClusterFn func(clusterName, namespace string) clusterctl.ConfigClusterInput

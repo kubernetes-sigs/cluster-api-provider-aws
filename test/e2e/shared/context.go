@@ -30,7 +30,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
+	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/bootstrap"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
@@ -89,6 +89,8 @@ type Settings struct {
 	SkipCloudFormationCreation bool
 	// SkipCloudFormationDeletion prevents the deletion of the AWS CloudFormation stack.
 	SkipCloudFormationDeletion bool
+	// SkipQuotas will skip requesting quotas for aws services.
+	SkipQuotas bool
 	// number of ginkgo nodes to use for kubetest.
 	GinkgoNodes int
 	// time in s before kubetest spec is marked as slow.
@@ -107,7 +109,7 @@ type Settings struct {
 
 // RuntimeEnvironment represents the runtime environment of the test.
 type RuntimeEnvironment struct {
-	// BootstrapClusterProvider manages provisioning of the the bootstrap cluster to be used for the e2e tests.
+	// BootstrapClusterProvider manages provisioning of the bootstrap cluster to be used for the e2e tests.
 	// Please note that provisioning will be skipped if use-existing-cluster is provided.
 	BootstrapClusterProvider bootstrap.ClusterProvider
 	// BootstrapClusterProxy allows to interact with the bootstrap cluster to be used for the e2e tests.

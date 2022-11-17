@@ -26,9 +26,9 @@ import (
 
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	v1beta1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/bootstrap/v1beta1"
-	apiv1beta1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
+	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	v1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/bootstrap/v1beta1"
+	apiv1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 )
 
 func init() {

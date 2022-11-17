@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"sigs.k8s.io/cluster-api-provider-aws/feature"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 	"sigs.k8s.io/cluster-api/util/topology"
 )
 
@@ -68,7 +68,7 @@ func (r *AWSMachineTemplate) validateRootVolume() field.ErrorList {
 	}
 
 	if spec.RootVolume.DeviceName != "" {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.template.spec.rootVolume.deviceName"), "root volume shouldn't have device name"))
+		log.Info("root volume shouldn't have a device name (this can be ignored if performing a `clusterctl move`)")
 	}
 
 	return allErrs

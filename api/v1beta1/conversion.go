@@ -18,9 +18,17 @@ package v1beta1
 
 import (
 	"k8s.io/apimachinery/pkg/conversion"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
 
 func Convert_v1beta2_AWSClusterSpec_To_v1beta1_AWSClusterSpec(in *v1beta2.AWSClusterSpec, out *AWSClusterSpec, s conversion.Scope) error {
 	return autoConvert_v1beta2_AWSClusterSpec_To_v1beta1_AWSClusterSpec(in, out, s)
+}
+
+func Convert_v1beta1_AWSResourceReference_To_v1beta2_AWSResourceReference(in *AWSResourceReference, out *v1beta2.AWSResourceReference, s conversion.Scope) error {
+	return autoConvert_v1beta1_AWSResourceReference_To_v1beta2_AWSResourceReference(in, out, s)
+}
+
+func Convert_v1beta1_AWSMachineSpec_To_v1beta2_AWSMachineSpec(in *AWSMachineSpec, out *v1beta2.AWSMachineSpec, s conversion.Scope) error {
+	return autoConvert_v1beta1_AWSMachineSpec_To_v1beta2_AWSMachineSpec(in, out, s)
 }

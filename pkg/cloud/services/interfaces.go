@@ -17,9 +17,9 @@ limitations under the License.
 package services
 
 import (
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 )
 
 const (
@@ -42,6 +42,8 @@ type ASGInterface interface {
 	CanStartASGInstanceRefresh(scope *scope.MachinePoolScope) (bool, error)
 	UpdateResourceTags(resourceID *string, create, remove map[string]string) error
 	DeleteASGAndWait(id string) error
+	SuspendProcesses(name string, processes []string) error
+	ResumeProcesses(name string, processes []string) error
 }
 
 // EC2Interface encapsulates the methods exposed to the machine

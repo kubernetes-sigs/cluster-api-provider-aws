@@ -25,14 +25,14 @@ import (
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
@@ -53,7 +53,7 @@ const (
 
 // ReconcileSecurityGroups will reconcile security groups against the Service object.
 func (s *Service) ReconcileSecurityGroups() error {
-	s.scope.V(2).Info("Reconciling security groups")
+	s.scope.Debug("Reconciling security groups")
 
 	if s.scope.Network().SecurityGroups == nil {
 		s.scope.Network().SecurityGroups = make(map[infrav1.SecurityGroupRole]infrav1.SecurityGroup)
@@ -93,7 +93,7 @@ func (s *Service) ReconcileSecurityGroups() error {
 		// if an override exists for this role use it
 		sgOverride, ok := securityGroupOverrides[role]
 		if ok {
-			s.scope.V(2).Info("Using security group override", "role", role, "security group", sgOverride.GroupName)
+			s.scope.Debug("Using security group override", "role", role, "security group", sgOverride.GroupName)
 			sg = sgOverride
 		}
 
@@ -115,11 +115,11 @@ func (s *Service) ReconcileSecurityGroups() error {
 		s.scope.SecurityGroups()[role] = existing
 
 		if s.isEKSOwned(existing) {
-			s.scope.V(2).Info("Security group is EKS owned", "role", role, "security-group", s.scope.SecurityGroups()[role])
+			s.scope.Debug("Security group is EKS owned", "role", role, "security-group", s.scope.SecurityGroups()[role])
 			continue
 		}
 
-		if !s.securityGroupIsOverridden(existing.ID) {
+		if !s.securityGroupIsAnOverride(existing.ID) {
 			// Make sure tags are up to date.
 			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 				buildParams := s.getSecurityGroupTagParams(existing.Name, existing.ID, role)
@@ -138,10 +138,10 @@ func (s *Service) ReconcileSecurityGroups() error {
 	// the specified ingress rules.
 	for i := range s.scope.SecurityGroups() {
 		sg := s.scope.SecurityGroups()[i]
-		s.scope.V(2).Info("second pass security group reconciliation", "group-id", sg.ID, "name", sg.Name, "role", i)
+		s.scope.Debug("second pass security group reconciliation", "group-id", sg.ID, "name", sg.Name, "role", i)
 
-		if s.securityGroupIsOverridden(sg.ID) {
-			// skip rule/tag reconciliation on security groups that are overridden, assuming they're managed by another process
+		if s.securityGroupIsAnOverride(sg.ID) {
+			// skip rule/tag reconciliation on security groups that are overrides, assuming they're managed by another process
 			continue
 		}
 
@@ -167,7 +167,7 @@ func (s *Service) ReconcileSecurityGroups() error {
 				return errors.Wrapf(err, "failed to revoke security group ingress rules for %q", sg.ID)
 			}
 
-			s.scope.V(2).Info("Revoked ingress rules from security group", "revoked-ingress-rules", toRevoke, "security-group-id", sg.ID)
+			s.scope.Debug("Revoked ingress rules from security group", "revoked-ingress-rules", toRevoke, "security-group-id", sg.ID)
 		}
 
 		toAuthorize := want.Difference(current)
@@ -181,14 +181,14 @@ func (s *Service) ReconcileSecurityGroups() error {
 				return err
 			}
 
-			s.scope.V(2).Info("Authorized ingress rules in security group", "authorized-ingress-rules", toAuthorize, "security-group-id", sg.ID)
+			s.scope.Debug("Authorized ingress rules in security group", "authorized-ingress-rules", toAuthorize, "security-group-id", sg.ID)
 		}
 	}
 	conditions.MarkTrue(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition)
 	return nil
 }
 
-func (s *Service) securityGroupIsOverridden(securityGroupID string) bool {
+func (s *Service) securityGroupIsAnOverride(securityGroupID string) bool {
 	for _, overrideID := range s.scope.SecurityGroupOverrides() {
 		if overrideID == securityGroupID {
 			return true
@@ -230,7 +230,7 @@ func (s *Service) describeSecurityGroupOverridesByID() (map[infrav1.SecurityGrou
 				continue
 			}
 			if *ec2sg.GroupId == *securityGroupIds[role] {
-				s.scope.V(2).Info("found security group override", "role", role, "security group", *ec2sg.GroupName)
+				s.scope.Debug("found security group override", "role", role, "security group", *ec2sg.GroupName)
 
 				res[role] = ec2sg
 				break
@@ -253,7 +253,7 @@ func (s *Service) ec2SecurityGroupToSecurityGroup(ec2SecurityGroup *ec2.Security
 // DeleteSecurityGroups will delete a service's security groups.
 func (s *Service) DeleteSecurityGroups() error {
 	if s.scope.VPC().ID == "" {
-		s.scope.V(2).Info("Skipping security group deletion, vpc-id is nil", "vpc-id", s.scope.VPC().ID)
+		s.scope.Debug("Skipping security group deletion, vpc-id is nil", "vpc-id", s.scope.VPC().ID)
 		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 		return nil
 	}
@@ -281,7 +281,7 @@ func (s *Service) DeleteSecurityGroups() error {
 			return err
 		}
 
-		s.scope.V(2).Info("Revoked ingress rules from security group", "revoked-ingress-rules", current, "security-group-id", sg.ID)
+		s.scope.Debug("Revoked ingress rules from security group", "revoked-ingress-rules", current, "security-group-id", sg.ID)
 
 		if deleteErr := s.deleteSecurityGroup(&sg, "cluster managed"); deleteErr != nil {
 			err = kerrors.NewAggregate([]error{err, deleteErr})
@@ -460,7 +460,7 @@ func (s *Service) defaultSSHIngressRule(sourceSecurityGroupID string) infrav1.In
 
 func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (infrav1.IngressRules, error) {
 	// Set source of CNI ingress rules to be control plane and node security groups
-	s.scope.V(2).Info("getting security group ingress rules", "role", role)
+	s.scope.Debug("getting security group ingress rules", "role", role)
 
 	cniRules := make(infrav1.IngressRules, len(s.scope.CNIIngressRules()))
 	for i, r := range s.scope.CNIIngressRules() {

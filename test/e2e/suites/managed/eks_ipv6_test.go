@@ -22,6 +22,7 @@ package managed
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -29,8 +30,8 @@ import (
 	"k8s.io/utils/net"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -96,19 +97,32 @@ var _ = ginkgo.Describe("[managed] [general] [ipv6] EKS cluster tests", func() {
 			Name:      clusterName,
 		})
 		Expect(cluster).NotTo(BeNil(), "couldn't find CAPI cluster")
-		// Don't replace this with var pods *corev1.PodsList as that results in a nil pointer error from List.
-		pods := &corev1.PodList{}
-		listOptions := []client.ListOption{
-			client.InNamespace(namespace.Namespace),
-			client.MatchingLabels(map[string]string{"app": "aws-node"}),
-		}
-		clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterName).GetClient()
-		err := clusterClient.List(ctx, pods, listOptions...)
-		Expect(err).ToNot(HaveOccurred())
 
-		for _, pod := range pods.Items {
-			Expect(net.IsIPv6String(pod.Status.PodIP)).To(BeTrue())
-		}
+		Eventually(func() bool {
+			pods := &corev1.PodList{}
+			listOptions := []client.ListOption{
+				client.InNamespace(namespace.Namespace),
+				client.MatchingLabels(map[string]string{"k8s-app": "aws-node"}),
+			}
+			clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterName).GetClient()
+			err := clusterClient.List(ctx, pods, listOptions...)
+			Expect(err).ToNot(HaveOccurred())
+			shared.Byf("checking if pods list is empty: %d", len(pods.Items))
+			if len(pods.Items) == 0 {
+				return false
+			}
+			for _, pod := range pods.Items {
+				shared.Byf("checking if pod ip address is ipv6 based: %s/%s", pod.Name, pod.Status.PodIP)
+				if pod.Status.PodIP == "" {
+					return false
+				}
+				if !net.IsIPv6String(pod.Status.PodIP) {
+					return false
+				}
+			}
+
+			return true
+		}).WithTimeout(5*time.Minute).WithPolling(10*time.Second).Should(BeTrue(), "failed to wait for pods to appear and have ipv6 address")
 
 		framework.DeleteCluster(ctx, framework.DeleteClusterInput{
 			Deleter: e2eCtx.Environment.BootstrapClusterProxy.GetClient(),

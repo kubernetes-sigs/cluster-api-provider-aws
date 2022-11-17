@@ -28,7 +28,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
+	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	errors "sigs.k8s.io/cluster-api/errors"
 )
@@ -265,11 +265,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*AWSMachineSpec)(nil), (*v1beta2.AWSMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_AWSMachineSpec_To_v1beta2_AWSMachineSpec(a.(*AWSMachineSpec), b.(*v1beta2.AWSMachineSpec), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.AWSMachineSpec)(nil), (*AWSMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_AWSMachineSpec_To_v1beta1_AWSMachineSpec(a.(*v1beta2.AWSMachineSpec), b.(*AWSMachineSpec), scope)
 	}); err != nil {
@@ -332,11 +327,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.AWSMachineTemplateStatus)(nil), (*AWSMachineTemplateStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_AWSMachineTemplateStatus_To_v1beta1_AWSMachineTemplateStatus(a.(*v1beta2.AWSMachineTemplateStatus), b.(*AWSMachineTemplateStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*AWSResourceReference)(nil), (*v1beta2.AWSResourceReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_AWSResourceReference_To_v1beta2_AWSResourceReference(a.(*AWSResourceReference), b.(*v1beta2.AWSResourceReference), scope)
 	}); err != nil {
 		return err
 	}
@@ -592,6 +582,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.Volume)(nil), (*Volume)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_Volume_To_v1beta1_Volume(a.(*v1beta2.Volume), b.(*Volume), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*AWSMachineSpec)(nil), (*v1beta2.AWSMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_AWSMachineSpec_To_v1beta2_AWSMachineSpec(a.(*AWSMachineSpec), b.(*v1beta2.AWSMachineSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*AWSResourceReference)(nil), (*v1beta2.AWSResourceReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_AWSResourceReference_To_v1beta2_AWSResourceReference(a.(*AWSResourceReference), b.(*v1beta2.AWSResourceReference), scope)
 	}); err != nil {
 		return err
 	}
@@ -1228,7 +1228,17 @@ func Convert_v1beta2_AWSMachine_To_v1beta1_AWSMachine(in *v1beta2.AWSMachine, ou
 
 func autoConvert_v1beta1_AWSMachineList_To_v1beta2_AWSMachineList(in *AWSMachineList, out *v1beta2.AWSMachineList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.AWSMachine)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.AWSMachine, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_AWSMachine_To_v1beta2_AWSMachine(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1239,7 +1249,17 @@ func Convert_v1beta1_AWSMachineList_To_v1beta2_AWSMachineList(in *AWSMachineList
 
 func autoConvert_v1beta2_AWSMachineList_To_v1beta1_AWSMachineList(in *v1beta2.AWSMachineList, out *AWSMachineList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]AWSMachine)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]AWSMachine, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_AWSMachine_To_v1beta1_AWSMachine(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1261,9 +1281,27 @@ func autoConvert_v1beta1_AWSMachineSpec_To_v1beta2_AWSMachineSpec(in *AWSMachine
 	out.AdditionalTags = *(*v1beta2.Tags)(unsafe.Pointer(&in.AdditionalTags))
 	out.IAMInstanceProfile = in.IAMInstanceProfile
 	out.PublicIP = (*bool)(unsafe.Pointer(in.PublicIP))
-	out.AdditionalSecurityGroups = *(*[]v1beta2.AWSResourceReference)(unsafe.Pointer(&in.AdditionalSecurityGroups))
-	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
-	out.Subnet = (*v1beta2.AWSResourceReference)(unsafe.Pointer(in.Subnet))
+	if in.AdditionalSecurityGroups != nil {
+		in, out := &in.AdditionalSecurityGroups, &out.AdditionalSecurityGroups
+		*out = make([]v1beta2.AWSResourceReference, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_AWSResourceReference_To_v1beta2_AWSResourceReference(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.AdditionalSecurityGroups = nil
+	}
+	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
+	if in.Subnet != nil {
+		in, out := &in.Subnet, &out.Subnet
+		*out = new(v1beta2.AWSResourceReference)
+		if err := Convert_v1beta1_AWSResourceReference_To_v1beta2_AWSResourceReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Subnet = nil
+	}
 	out.SSHKeyName = (*string)(unsafe.Pointer(in.SSHKeyName))
 	out.RootVolume = (*v1beta2.Volume)(unsafe.Pointer(in.RootVolume))
 	out.NonRootVolumes = *(*[]v1beta2.Volume)(unsafe.Pointer(&in.NonRootVolumes))
@@ -1276,11 +1314,6 @@ func autoConvert_v1beta1_AWSMachineSpec_To_v1beta2_AWSMachineSpec(in *AWSMachine
 	out.SpotMarketOptions = (*v1beta2.SpotMarketOptions)(unsafe.Pointer(in.SpotMarketOptions))
 	out.Tenancy = in.Tenancy
 	return nil
-}
-
-// Convert_v1beta1_AWSMachineSpec_To_v1beta2_AWSMachineSpec is an autogenerated conversion function.
-func Convert_v1beta1_AWSMachineSpec_To_v1beta2_AWSMachineSpec(in *AWSMachineSpec, out *v1beta2.AWSMachineSpec, s conversion.Scope) error {
-	return autoConvert_v1beta1_AWSMachineSpec_To_v1beta2_AWSMachineSpec(in, out, s)
 }
 
 func autoConvert_v1beta2_AWSMachineSpec_To_v1beta1_AWSMachineSpec(in *v1beta2.AWSMachineSpec, out *AWSMachineSpec, s conversion.Scope) error {
@@ -1296,9 +1329,26 @@ func autoConvert_v1beta2_AWSMachineSpec_To_v1beta1_AWSMachineSpec(in *v1beta2.AW
 	out.AdditionalTags = *(*Tags)(unsafe.Pointer(&in.AdditionalTags))
 	out.IAMInstanceProfile = in.IAMInstanceProfile
 	out.PublicIP = (*bool)(unsafe.Pointer(in.PublicIP))
-	out.AdditionalSecurityGroups = *(*[]AWSResourceReference)(unsafe.Pointer(&in.AdditionalSecurityGroups))
-	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
-	out.Subnet = (*AWSResourceReference)(unsafe.Pointer(in.Subnet))
+	if in.AdditionalSecurityGroups != nil {
+		in, out := &in.AdditionalSecurityGroups, &out.AdditionalSecurityGroups
+		*out = make([]AWSResourceReference, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_AWSResourceReference_To_v1beta1_AWSResourceReference(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.AdditionalSecurityGroups = nil
+	}
+	if in.Subnet != nil {
+		in, out := &in.Subnet, &out.Subnet
+		*out = new(AWSResourceReference)
+		if err := Convert_v1beta2_AWSResourceReference_To_v1beta1_AWSResourceReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Subnet = nil
+	}
 	out.SSHKeyName = (*string)(unsafe.Pointer(in.SSHKeyName))
 	out.RootVolume = (*Volume)(unsafe.Pointer(in.RootVolume))
 	out.NonRootVolumes = *(*[]Volume)(unsafe.Pointer(&in.NonRootVolumes))
@@ -1384,7 +1434,17 @@ func Convert_v1beta2_AWSMachineTemplate_To_v1beta1_AWSMachineTemplate(in *v1beta
 
 func autoConvert_v1beta1_AWSMachineTemplateList_To_v1beta2_AWSMachineTemplateList(in *AWSMachineTemplateList, out *v1beta2.AWSMachineTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.AWSMachineTemplate)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.AWSMachineTemplate, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_AWSMachineTemplate_To_v1beta2_AWSMachineTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1395,7 +1455,17 @@ func Convert_v1beta1_AWSMachineTemplateList_To_v1beta2_AWSMachineTemplateList(in
 
 func autoConvert_v1beta2_AWSMachineTemplateList_To_v1beta1_AWSMachineTemplateList(in *v1beta2.AWSMachineTemplateList, out *AWSMachineTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]AWSMachineTemplate)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]AWSMachineTemplate, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_AWSMachineTemplate_To_v1beta1_AWSMachineTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1476,19 +1546,13 @@ func Convert_v1beta2_AWSMachineTemplateStatus_To_v1beta1_AWSMachineTemplateStatu
 
 func autoConvert_v1beta1_AWSResourceReference_To_v1beta2_AWSResourceReference(in *AWSResourceReference, out *v1beta2.AWSResourceReference, s conversion.Scope) error {
 	out.ID = (*string)(unsafe.Pointer(in.ID))
-	out.ARN = (*string)(unsafe.Pointer(in.ARN))
+	// WARNING: in.ARN requires manual conversion: does not exist in peer-type
 	out.Filters = *(*[]v1beta2.Filter)(unsafe.Pointer(&in.Filters))
 	return nil
 }
 
-// Convert_v1beta1_AWSResourceReference_To_v1beta2_AWSResourceReference is an autogenerated conversion function.
-func Convert_v1beta1_AWSResourceReference_To_v1beta2_AWSResourceReference(in *AWSResourceReference, out *v1beta2.AWSResourceReference, s conversion.Scope) error {
-	return autoConvert_v1beta1_AWSResourceReference_To_v1beta2_AWSResourceReference(in, out, s)
-}
-
 func autoConvert_v1beta2_AWSResourceReference_To_v1beta1_AWSResourceReference(in *v1beta2.AWSResourceReference, out *AWSResourceReference, s conversion.Scope) error {
 	out.ID = (*string)(unsafe.Pointer(in.ID))
-	out.ARN = (*string)(unsafe.Pointer(in.ARN))
 	out.Filters = *(*[]Filter)(unsafe.Pointer(&in.Filters))
 	return nil
 }

@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,9 +30,10 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -43,11 +43,27 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
+const (
+	// ReplicasManagedByAnnotation is an annotation that indicates external (non-Cluster API) management of infra scaling.
+	// The practical effect of this is that the capi "replica" count is derived from the number of observed infra machines,
+	// instead of being a source of truth for eventual consistency.
+	//
+	// N.B. this is to be replaced by a direct reference to CAPI once https://github.com/kubernetes-sigs/cluster-api/pull/7107 is meged.
+	ReplicasManagedByAnnotation = "cluster.x-k8s.io/replicas-managed-by"
+
+	// ExternalAutoscalerReplicasManagedByAnnotationValue is used with the "cluster.x-k8s.io/replicas-managed-by" annotation
+	// to indicate an external autoscaler enforces replica count.
+	//
+	// N.B. this is to be replaced by a direct reference to CAPI once https://github.com/kubernetes-sigs/cluster-api/pull/7107 is meged.
+	ExternalAutoscalerReplicasManagedByAnnotationValue = "external-autoscaler"
+)
+
 // MachinePoolScope defines a scope defined around a machine and its cluster.
 type MachinePoolScope struct {
-	logr.Logger
+	logger.Logger
 	client.Client
-	patchHelper *patch.Helper
+	patchHelper                *patch.Helper
+	capiMachinePoolPatchHelper *patch.Helper
 
 	Cluster        *clusterv1.Cluster
 	MachinePool    *expclusterv1.MachinePool
@@ -58,7 +74,7 @@ type MachinePoolScope struct {
 // MachinePoolScopeParams defines a scope defined around a machine and its cluster.
 type MachinePoolScopeParams struct {
 	client.Client
-	Logger *logr.Logger
+	Logger *logger.Logger
 
 	Cluster        *clusterv1.Cluster
 	MachinePool    *expclusterv1.MachinePool
@@ -95,18 +111,23 @@ func NewMachinePoolScope(params MachinePoolScopeParams) (*MachinePoolScope, erro
 
 	if params.Logger == nil {
 		log := klog.Background()
-		params.Logger = &log
+		params.Logger = logger.NewLogger(log)
 	}
 
-	helper, err := patch.NewHelper(params.AWSMachinePool, params.Client)
+	ampHelper, err := patch.NewHelper(params.AWSMachinePool, params.Client)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to init patch helper")
+		return nil, errors.Wrap(err, "failed to init AWSMachinePool patch helper")
+	}
+	mpHelper, err := patch.NewHelper(params.MachinePool, params.Client)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to init MachinePool patch helper")
 	}
 
 	return &MachinePoolScope{
-		Logger:      *params.Logger,
-		Client:      params.Client,
-		patchHelper: helper,
+		Logger:                     *params.Logger,
+		Client:                     params.Client,
+		patchHelper:                ampHelper,
+		capiMachinePoolPatchHelper: mpHelper,
 
 		Cluster:        params.Cluster,
 		MachinePool:    params.MachinePool,
@@ -179,6 +200,14 @@ func (m *MachinePoolScope) PatchObject() error {
 			expinfrav1.ASGReadyCondition,
 			expinfrav1.LaunchTemplateReadyCondition,
 		}})
+}
+
+// PatchCAPIMachinePoolObject persists the capi machinepool configuration and status.
+func (m *MachinePoolScope) PatchCAPIMachinePoolObject(ctx context.Context) error {
+	return m.capiMachinePoolPatchHelper.Patch(
+		ctx,
+		m.MachinePool,
+	)
 }
 
 // Close the MachinePoolScope by updating the machinepool spec, machine status.
@@ -373,4 +402,9 @@ func (m *MachinePoolScope) LaunchTemplateName() string {
 
 func (m *MachinePoolScope) GetRuntimeObject() runtime.Object {
 	return m.AWSMachinePool
+}
+
+func ReplicasExternallyManaged(mp *expclusterv1.MachinePool) bool {
+	val, ok := mp.Annotations[ReplicasManagedByAnnotation]
+	return ok && val == ExternalAutoscalerReplicasManagedByAnnotationValue
 }

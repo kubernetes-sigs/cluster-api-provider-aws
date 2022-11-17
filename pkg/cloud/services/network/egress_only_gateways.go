@@ -23,24 +23,24 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func (s *Service) reconcileEgressOnlyInternetGateways() error {
 	if !s.scope.VPC().IsIPv6Enabled() {
-		s.scope.V(4).Info("Skipping egress only internet gateways reconcile in not ipv6 mode")
+		s.scope.Trace("Skipping egress only internet gateways reconcile in not ipv6 mode")
 		return nil
 	}
 
-	s.scope.V(2).Info("Reconciling egress only internet gateways")
+	s.scope.Debug("Reconciling egress only internet gateways")
 
 	eigws, err := s.describeEgressOnlyVpcInternetGateways()
 	if awserrors.IsNotFound(err) {
@@ -78,7 +78,7 @@ func (s *Service) reconcileEgressOnlyInternetGateways() error {
 
 func (s *Service) deleteEgressOnlyInternetGateways() error {
 	if !s.scope.VPC().IsIPv6Enabled() {
-		s.scope.V(4).Info("Skipping egress only internet gateway deletion in none ipv6 mode")
+		s.scope.Trace("Skipping egress only internet gateway deletion in none ipv6 mode")
 		return nil
 	}
 

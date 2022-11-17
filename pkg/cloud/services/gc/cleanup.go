@@ -26,9 +26,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/arn"
 	rgapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/annotations"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/annotations"
 )
 
 const (
@@ -109,11 +109,11 @@ func (s *Service) deleteResources(ctx context.Context) error {
 
 func (s *Service) isMatchingResource(resource *AWSResource, serviceName, resourceName string) bool {
 	if resource.ARN.Service != serviceName {
-		s.scope.V(5).Info("Resource not for service", "arn", resource.ARN.String(), "service_name", serviceName, "resource_name", resourceName)
+		s.scope.Debug("Resource not for service", "arn", resource.ARN.String(), "service_name", serviceName, "resource_name", resourceName)
 		return false
 	}
 	if !strings.HasPrefix(resource.ARN.Resource, resourceName+"/") {
-		s.scope.V(5).Info("Resource type does not match", "arn", resource.ARN.String(), "service_name", serviceName, "resource_name", resourceName)
+		s.scope.Debug("Resource type does not match", "arn", resource.ARN.String(), "service_name", serviceName, "resource_name", resourceName)
 		return false
 	}
 

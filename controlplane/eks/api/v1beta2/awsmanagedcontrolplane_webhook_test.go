@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
@@ -172,7 +172,7 @@ func TestWebhookCreate(t *testing.T) {
 		expectError    bool
 		eksVersion     string
 		hasAddons      bool
-		disableVPCCNI  bool
+		vpcCNI         VpcCni
 		additionalTags infrav1.Tags
 		secondaryCidr  *string
 		kubeProxy      KubeProxy
@@ -182,7 +182,7 @@ func TestWebhookCreate(t *testing.T) {
 			eksClusterName: "default_cluster1",
 			expectError:    false,
 			hasAddons:      false,
-			disableVPCCNI:  false,
+			vpcCNI:         VpcCni{Disable: false},
 			additionalTags: infrav1.Tags{
 				"a":     "b",
 				"key-2": "value-2",
@@ -193,7 +193,7 @@ func TestWebhookCreate(t *testing.T) {
 			eksClusterName: "",
 			expectError:    false,
 			hasAddons:      false,
-			disableVPCCNI:  false,
+			vpcCNI:         VpcCni{Disable: false},
 		},
 		{
 			name:           "invalid version",
@@ -201,7 +201,7 @@ func TestWebhookCreate(t *testing.T) {
 			eksVersion:     "v1.x17",
 			expectError:    true,
 			hasAddons:      false,
-			disableVPCCNI:  false,
+			vpcCNI:         VpcCni{Disable: false},
 		},
 		{
 			name:           "addons with allowed k8s version",
@@ -209,7 +209,7 @@ func TestWebhookCreate(t *testing.T) {
 			eksVersion:     "v1.18",
 			expectError:    false,
 			hasAddons:      true,
-			disableVPCCNI:  false,
+			vpcCNI:         VpcCni{Disable: false},
 		},
 		{
 			name:           "addons with not allowed k8s version",
@@ -217,7 +217,7 @@ func TestWebhookCreate(t *testing.T) {
 			eksVersion:     "v1.17",
 			expectError:    true,
 			hasAddons:      true,
-			disableVPCCNI:  false,
+			vpcCNI:         VpcCni{Disable: false},
 		},
 		{
 			name:           "disable vpc cni allowed with no addons or secondary cidr",
@@ -225,7 +225,7 @@ func TestWebhookCreate(t *testing.T) {
 			eksVersion:     "v1.19",
 			expectError:    false,
 			hasAddons:      false,
-			disableVPCCNI:  true,
+			vpcCNI:         VpcCni{Disable: false},
 		},
 		{
 			name:           "disable vpc cni not allowed with vpc cni addon",
@@ -233,7 +233,7 @@ func TestWebhookCreate(t *testing.T) {
 			eksVersion:     "v1.19",
 			expectError:    true,
 			hasAddons:      true,
-			disableVPCCNI:  true,
+			vpcCNI:         VpcCni{Disable: true},
 		},
 		{
 			name:           "disable vpc cni allowed with valid secondary",
@@ -241,7 +241,7 @@ func TestWebhookCreate(t *testing.T) {
 			eksVersion:     "v1.19",
 			expectError:    false,
 			hasAddons:      false,
-			disableVPCCNI:  true,
+			vpcCNI:         VpcCni{Disable: true},
 			secondaryCidr:  aws.String("100.64.0.0/16"),
 		},
 		{
@@ -250,7 +250,7 @@ func TestWebhookCreate(t *testing.T) {
 			eksVersion:     "v1.19",
 			expectError:    true,
 			hasAddons:      false,
-			disableVPCCNI:  true,
+			vpcCNI:         VpcCni{Disable: true},
 			secondaryCidr:  aws.String("100.64.0.0/10"),
 		},
 		{
@@ -258,7 +258,7 @@ func TestWebhookCreate(t *testing.T) {
 			eksClusterName: "default_cluster1",
 			expectError:    true,
 			hasAddons:      false,
-			disableVPCCNI:  false,
+			vpcCNI:         VpcCni{Disable: false},
 			additionalTags: infrav1.Tags{
 				"key-1":                    "value-1",
 				"":                         "value-2",
@@ -272,7 +272,7 @@ func TestWebhookCreate(t *testing.T) {
 			eksVersion:     "v1.19",
 			expectError:    false,
 			hasAddons:      false,
-			disableVPCCNI:  false,
+			vpcCNI:         VpcCni{Disable: false},
 			kubeProxy: KubeProxy{
 				Disable: true,
 			},
@@ -283,7 +283,7 @@ func TestWebhookCreate(t *testing.T) {
 			eksVersion:     "v1.19",
 			expectError:    true,
 			hasAddons:      true,
-			disableVPCCNI:  false,
+			vpcCNI:         VpcCni{Disable: false},
 			kubeProxy: KubeProxy{
 				Disable: true,
 			},
@@ -294,7 +294,7 @@ func TestWebhookCreate(t *testing.T) {
 			eksVersion:     "v1.19",
 			expectError:    false,
 			hasAddons:      false,
-			disableVPCCNI:  true,
+			vpcCNI:         VpcCni{Disable: true},
 			kubeProxy: KubeProxy{
 				Disable: true,
 			},
@@ -305,7 +305,7 @@ func TestWebhookCreate(t *testing.T) {
 			eksVersion:     "v1.19",
 			expectError:    true,
 			hasAddons:      true,
-			disableVPCCNI:  true,
+			vpcCNI:         VpcCni{Disable: true},
 			kubeProxy: KubeProxy{
 				Disable: true,
 			},
@@ -324,9 +324,9 @@ func TestWebhookCreate(t *testing.T) {
 				},
 				Spec: AWSManagedControlPlaneSpec{
 					EKSClusterName: tc.eksClusterName,
-					DisableVPCCNI:  tc.disableVPCCNI,
 					KubeProxy:      tc.kubeProxy,
 					AdditionalTags: tc.additionalTags,
+					VpcCni:         tc.vpcCNI,
 				},
 			}
 			if tc.eksVersion != "" {

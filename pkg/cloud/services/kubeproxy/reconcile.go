@@ -26,7 +26,7 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 )
 
 const (
@@ -59,16 +59,16 @@ func (s *Service) deleteKubeProxy(ctx context.Context, remoteClient client.Clien
 	ds := &appsv1.DaemonSet{}
 	if err := remoteClient.Get(ctx, types.NamespacedName{Namespace: kubeProxyNamespace, Name: kubeProxyName}, ds); err != nil {
 		if apierrors.IsNotFound(err) {
-			s.scope.V(2).Info("The kube-proxy DaemonSet is not found, no action")
+			s.scope.Debug("The kube-proxy DaemonSet is not found, no action")
 			return nil
 		}
 		return fmt.Errorf("getting kube-proxy daemonset: %w", err)
 	}
 
-	s.scope.V(2).Info("The kube-proxy DaemonSet found, deleting")
+	s.scope.Debug("The kube-proxy DaemonSet found, deleting")
 	if err := remoteClient.Delete(ctx, ds, &client.DeleteOptions{}); err != nil {
 		if apierrors.IsNotFound(err) {
-			s.scope.V(2).Info("The kube-proxy DaemonSet is not found, not deleted")
+			s.scope.Debug("The kube-proxy DaemonSet is not found, not deleted")
 			return nil
 		}
 		return fmt.Errorf("deleting kube-proxy DaemonSet: %w", err)

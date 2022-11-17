@@ -22,8 +22,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/request"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/internal/rate"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/internal/rate"
 )
 
 // ServiceLimiters defines a mapping of service limiters.

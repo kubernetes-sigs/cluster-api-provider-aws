@@ -24,14 +24,14 @@ import (
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
@@ -41,7 +41,7 @@ const (
 )
 
 func (s *Service) reconcileVPC() error {
-	s.scope.V(2).Info("Reconciling VPC")
+	s.scope.Debug("Reconciling VPC")
 
 	// If the ID is not nil, VPC is either managed or unmanaged but should exist in the AWS.
 	if s.scope.VPC().ID != "" {
@@ -56,7 +56,7 @@ func (s *Service) reconcileVPC() error {
 
 		// If VPC is unmanaged, return early.
 		if vpc.IsUnmanaged(s.scope.Name()) {
-			s.scope.V(2).Info("Working on unmanaged VPC", "vpc-id", vpc.ID)
+			s.scope.Debug("Working on unmanaged VPC", "vpc-id", vpc.ID)
 			if err := s.scope.PatchObject(); err != nil {
 				return errors.Wrap(err, "failed to patch unmanaged VPC fields")
 			}
@@ -71,7 +71,7 @@ func (s *Service) reconcileVPC() error {
 			}
 			return true, nil
 		}, awserrors.VPCNotFound); err != nil {
-			return errors.Wrapf(err, "failed to to set vpc attributes for %q", vpc.ID)
+			return errors.Wrapf(err, "failed to set vpc attributes for %q", vpc.ID)
 		}
 
 		return nil
@@ -102,7 +102,7 @@ func (s *Service) reconcileVPC() error {
 		}
 		return true, nil
 	}, awserrors.VPCNotFound); err != nil {
-		return errors.Wrapf(err, "failed to to set vpc attributes for %q", vpc.ID)
+		return errors.Wrapf(err, "failed to set vpc attributes for %q", vpc.ID)
 	}
 
 	return nil
@@ -201,7 +201,7 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 	}
 
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateVPC", "Created new managed VPC %q", *out.Vpc.VpcId)
-	s.scope.V(2).Info("Created new VPC with cidr", "vpc-id", *out.Vpc.VpcId, "cidr-block", *out.Vpc.CidrBlock)
+	s.scope.Debug("Created new VPC with cidr", "vpc-id", *out.Vpc.VpcId, "cidr-block", *out.Vpc.CidrBlock)
 
 	if !s.scope.VPC().IsIPv6Enabled() {
 		return &infrav1.VPCSpec{
@@ -257,7 +257,7 @@ func (s *Service) deleteVPC() error {
 	vpc := s.scope.VPC()
 
 	if vpc.IsUnmanaged(s.scope.Name()) {
-		s.scope.V(4).Info("Skipping VPC deletion in unmanaged mode")
+		s.scope.Trace("Skipping VPC deletion in unmanaged mode")
 		return nil
 	}
 
@@ -268,9 +268,16 @@ func (s *Service) deleteVPC() error {
 	if _, err := s.EC2Client.DeleteVpc(input); err != nil {
 		// Ignore if it's already deleted
 		if code, ok := awserrors.Code(err); ok && code == awserrors.VPCNotFound {
-			s.scope.V(4).Info("Skipping VPC deletion, VPC not found")
+			s.scope.Trace("Skipping VPC deletion, VPC not found")
 			return nil
 		}
+
+		// Ignore if VPC ID is not present,
+		if code, ok := awserrors.Code(err); ok && code == awserrors.VPCMissingParameter {
+			s.scope.Trace("Skipping VPC deletion, VPC ID not present")
+			return nil
+		}
+
 		record.Warnf(s.scope.InfraCluster(), "FailedDeleteVPC", "Failed to delete managed VPC %q: %v", vpc.ID, err)
 		return errors.Wrapf(err, "failed to delete vpc %q", vpc.ID)
 	}

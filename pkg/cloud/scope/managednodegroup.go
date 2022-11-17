@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,11 +29,12 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -44,7 +44,7 @@ import (
 // ManagedMachinePoolScopeParams defines the input parameters used to create a new Scope.
 type ManagedMachinePoolScopeParams struct {
 	Client             client.Client
-	Logger             *logr.Logger
+	Logger             *logger.Logger
 	Cluster            *clusterv1.Cluster
 	ControlPlane       *ekscontrolplanev1.AWSManagedControlPlane
 	ManagedMachinePool *expinfrav1.AWSManagedMachinePool
@@ -73,7 +73,7 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 	}
 	if params.Logger == nil {
 		log := klog.Background()
-		params.Logger = &log
+		params.Logger = logger.NewLogger(log)
 	}
 
 	managedScope := &ManagedControlPlaneScope{
@@ -83,7 +83,7 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 		ControlPlane:   params.ControlPlane,
 		controllerName: params.ControllerName,
 	}
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, *params.Logger)
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
@@ -112,7 +112,7 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 
 // ManagedMachinePoolScope defines the basic context for an actuator to operate upon.
 type ManagedMachinePoolScope struct {
-	logr.Logger
+	logger.Logger
 	client.Client
 	patchHelper *patch.Helper
 

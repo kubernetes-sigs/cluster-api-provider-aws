@@ -22,17 +22,17 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta2"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 // ReconcileControlPlane reconciles a EKS control plane.
 func (s *Service) ReconcileControlPlane(ctx context.Context) error {
-	s.scope.V(2).Info("Reconciling EKS control plane", "cluster", klog.KRef(s.scope.Cluster.Namespace, s.scope.Cluster.Name))
+	s.scope.Debug("Reconciling EKS control plane", "cluster", klog.KRef(s.scope.Cluster.Namespace, s.scope.Cluster.Name))
 
 	// Control Plane IAM Role
 	if err := s.reconcileControlPlaneIAMRole(); err != nil {
@@ -62,13 +62,13 @@ func (s *Service) ReconcileControlPlane(ctx context.Context) error {
 	}
 	conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSIdentityProviderConfiguredCondition)
 
-	s.scope.V(2).Info("Reconcile EKS control plane completed successfully")
+	s.scope.Debug("Reconcile EKS control plane completed successfully")
 	return nil
 }
 
 // DeleteControlPlane deletes the EKS control plane.
 func (s *Service) DeleteControlPlane() (err error) {
-	s.scope.V(2).Info("Deleting EKS control plane")
+	s.scope.Debug("Deleting EKS control plane")
 
 	// EKS Cluster
 	if err := s.deleteCluster(); err != nil {
@@ -85,13 +85,13 @@ func (s *Service) DeleteControlPlane() (err error) {
 		return err
 	}
 
-	s.scope.V(2).Info("Delete EKS control plane completed successfully")
+	s.scope.Debug("Delete EKS control plane completed successfully")
 	return nil
 }
 
 // ReconcilePool is the entrypoint for ManagedMachinePool reconciliation.
 func (s *NodegroupService) ReconcilePool() error {
-	s.scope.V(2).Info("Reconciling EKS nodegroup")
+	s.scope.Debug("Reconciling EKS nodegroup")
 
 	if err := s.reconcileNodegroupIAMRole(); err != nil {
 		conditions.MarkFalse(
@@ -123,14 +123,14 @@ func (s *NodegroupService) ReconcilePool() error {
 // ReconcilePoolDelete is the entrypoint for ManagedMachinePool deletion
 // reconciliation.
 func (s *NodegroupService) ReconcilePoolDelete() error {
-	s.scope.V(2).Info("Reconciling deletion of EKS nodegroup")
+	s.scope.Debug("Reconciling deletion of EKS nodegroup")
 
 	eksNodegroupName := s.scope.NodegroupName()
 
 	ng, err := s.describeNodegroup()
 	if err != nil {
 		if awserrors.IsNotFound(err) {
-			s.scope.V(4).Info("EKS nodegroup does not exist")
+			s.scope.Trace("EKS nodegroup does not exist")
 			return nil
 		}
 		return errors.Wrap(err, "failed to describe EKS nodegroup")

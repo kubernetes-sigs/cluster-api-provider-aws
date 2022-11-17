@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.2
+    controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
   name: awsmachinepools.infrastructure.cluster.x-k8s.io
 spec:
@@ -87,10 +87,6 @@ spec:
                         be specified. Specifying more than one will result in a validation
                         error.
                       properties:
-                        arn:
-                          description: 'ARN of resource. Deprecated: This field has
-                            no function and is going to be removed in the next release.'
-                          type: string
                         filters:
                           description: 'Filters is a set of key/value pairs used to
                             identify a resource They are applied according to the
@@ -341,10 +337,6 @@ spec:
                     resource by ID or filters. Only one of ID or Filters may be specified.
                     Specifying more than one will result in a validation error.
                   properties:
-                    arn:
-                      description: 'ARN of resource. Deprecated: This field has no
-                        function and is going to be removed in the next release.'
-                      type: string
                     filters:
                       description: 'Filters is a set of key/value pairs used to identify
                         a resource They are applied according to the rules defined
@@ -562,10 +554,6 @@ spec:
                         be specified. Specifying more than one will result in a validation
                         error.
                       properties:
-                        arn:
-                          description: 'ARN of resource. Deprecated: This field has
-                            no function and is going to be removed in the next release.'
-                          type: string
                         filters:
                           description: 'Filters is a set of key/value pairs used to
                             identify a resource They are applied according to the
@@ -789,6 +777,11 @@ spec:
                 description: RefreshPreferences describes set of preferences associated
                   with the instance refresh request.
                 properties:
+                  disable:
+                    description: Disable, if true, disables instance refresh from
+                      triggering when new launch templates are detected. This is useful
+                      in scenarios where ASG nodes are externally managed.
+                    type: boolean
                   instanceWarmup:
                     description: The number of seconds until a newly launched instance
                       is configured and ready to use. During this time, the next replacement
@@ -816,10 +809,6 @@ spec:
                     resource by ID or filters. Only one of ID or Filters may be specified.
                     Specifying more than one will result in a validation error.
                   properties:
-                    arn:
-                      description: 'ARN of resource. Deprecated: This field has no
-                        function and is going to be removed in the next release.'
-                      type: string
                     filters:
                       description: 'Filters is a set of key/value pairs used to identify
                         a resource They are applied according to the rules defined
@@ -846,6 +835,37 @@ spec:
                       type: string
                   type: object
                 type: array
+              suspendProcesses:
+                description: SuspendProcesses defines a list of processes to suspend
+                  for the given ASG. This is constantly reconciled. If a process is
+                  removed from this list it will automatically be resumed.
+                properties:
+                  all:
+                    type: boolean
+                  processes:
+                    description: Processes defines the processes which can be enabled
+                      or disabled individually.
+                    properties:
+                      addToLoadBalancer:
+                        type: boolean
+                      alarmNotification:
+                        type: boolean
+                      azRebalance:
+                        type: boolean
+                      healthCheck:
+                        type: boolean
+                      instanceRefresh:
+                        type: boolean
+                      launch:
+                        type: boolean
+                      replaceUnhealthy:
+                        type: boolean
+                      scheduledActions:
+                        type: boolean
+                      terminate:
+                        type: boolean
+                    type: object
+                type: object
             required:
             - awsLaunchTemplate
             - maxSize

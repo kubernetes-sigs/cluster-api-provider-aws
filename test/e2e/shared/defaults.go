@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	cgscheme "k8s.io/client-go/kubernetes/scheme"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 )
 
@@ -208,6 +208,7 @@ func CreateDefaultFlags(ctx *E2EContext) {
 	flag.BoolVar(&ctx.Settings.SkipCleanup, "skip-cleanup", false, "if true, the resource cleanup after tests will be skipped")
 	flag.BoolVar(&ctx.Settings.SkipCloudFormationDeletion, "skip-cloudformation-deletion", false, "if true, an AWS CloudFormation stack will not be deleted")
 	flag.BoolVar(&ctx.Settings.SkipCloudFormationCreation, "skip-cloudformation-creation", false, "if true, an AWS CloudFormation stack will not be created")
+	flag.BoolVar(&ctx.Settings.SkipQuotas, "skip-quotas", false, "if true, the requesting of quotas for aws services will be skipped")
 	flag.StringVar(&ctx.Settings.DataFolder, "data-folder", "", "path to the data folder")
-	flag.StringVar(&ctx.Settings.SourceTemplate, "source-template", "infrastructure-aws/generated/cluster-template.yaml", "path to the data folder")
+	flag.StringVar(&ctx.Settings.SourceTemplate, "source-template", "infrastructure-aws/withoutclusterclass/generated/cluster-template.yaml", "path to the data folder")
 }
