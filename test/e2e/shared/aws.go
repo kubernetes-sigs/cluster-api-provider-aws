@@ -758,8 +758,7 @@ func DumpCloudTrailEvents(e2eCtx *E2EContext) {
 // Kubernetes version in the e2econfig.
 func conformanceImageID(e2eCtx *E2EContext) string {
 	ver := e2eCtx.E2EConfig.GetVariable("CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION")
-	strippedVer := strings.Replace(ver, "v", "", 1)
-	amiName := AMIPrefix + strippedVer + "*"
+	amiName := AMIPrefix + ver + "*"
 
 	Byf("Searching for AMI: name=%s", amiName)
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
