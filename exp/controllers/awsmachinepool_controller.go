@@ -267,7 +267,7 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 
 	if asg == nil {
 		// Create new ASG
-		if _, err := r.createPool(machinePoolScope, clusterScope); err != nil {
+		if err := r.createPool(machinePoolScope, clusterScope); err != nil {
 			conditions.MarkFalse(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, expinfrav1.ASGProvisionFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return ctrl.Result{}, err
 		}
@@ -454,21 +454,17 @@ func (r *AWSMachinePoolReconciler) updatePool(machinePoolScope *scope.MachinePoo
 	return nil
 }
 
-func (r *AWSMachinePoolReconciler) createPool(machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper) (*expinfrav1.AutoScalingGroup, error) {
+func (r *AWSMachinePoolReconciler) createPool(machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper) error {
 	clusterScope.Info("Initializing ASG client")
 
 	asgsvc := r.getASGService(clusterScope)
 
 	machinePoolScope.Info("Creating Autoscaling Group")
-	asg, err := asgsvc.CreateASG(machinePoolScope)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create AWSMachinePool")
+	if _, err := asgsvc.CreateASG(machinePoolScope); err != nil {
+		return errors.Wrapf(err, "failed to create AWSMachinePool")
 	}
-	suspendedProcessesSlice := machinePoolScope.AWSMachinePool.Spec.SuspendProcesses.ConvertSetValuesToStringSlice()
-	if err := asgsvc.SuspendProcesses(asg.Name, suspendedProcessesSlice); err != nil {
-		return nil, errors.Wrapf(err, "failed to suspend processes while trying to create Pool")
-	}
-	return asg, nil
+
+	return nil
 }
 
 func (r *AWSMachinePoolReconciler) findASG(machinePoolScope *scope.MachinePoolScope, asgsvc services.ASGInterface) (*expinfrav1.AutoScalingGroup, error) {
