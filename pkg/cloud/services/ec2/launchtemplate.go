@@ -47,7 +47,7 @@ const (
 	// AdditionalTags in the AWSMachinePool Provider Config.
 	// See https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
 	// for annotation formatting rules.
-	TagsLastAppliedAnnotation = "sigs.k8s.io/cluster-api-provider-aws/v2-last-applied-tags"
+	TagsLastAppliedAnnotation = "sigs.k8s.io/cluster-api-provider-aws-last-applied-tags"
 )
 
 func (s *Service) ReconcileLaunchTemplate(
