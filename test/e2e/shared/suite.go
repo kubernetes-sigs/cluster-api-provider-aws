@@ -151,7 +151,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	e2eCtx.Environment.ClusterctlConfigPath = createClusterctlLocalRepository(e2eCtx, filepath.Join(e2eCtx.Settings.ArtifactFolder, "repository"))
 
 	By("Setting up the bootstrap cluster")
-	e2eCtx.Environment.BootstrapClusterProvider, e2eCtx.Environment.BootstrapClusterProxy = setupBootstrapCluster(e2eCtx.E2EConfig, e2eCtx.Environment.Scheme, e2eCtx.Settings.UseExistingCluster)
+	e2eCtx.Environment.BootstrapClusterProvider, e2eCtx.Environment.BootstrapClusterProxy = setupBootstrapCluster(e2eCtx.E2EConfig, e2eCtx.Environment.Scheme, e2eCtx.Settings.UseExistingCluster, e2eCtx.Settings.ArtifactFolder)
 
 	base64EncodedCredentials := encodeCredentials(e2eCtx.Environment.BootstrapAccessKey, boostrapTemplate.Spec.Region)
 	SetEnvVar("AWS_B64ENCODED_CREDENTIALS", base64EncodedCredentials, true)
@@ -262,6 +262,7 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 // Node1AfterSuite is cleanup that runs on the first ginkgo node after the test suite finishes.
 func Node1AfterSuite(e2eCtx *E2EContext) {
 	ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Minute)
+	DumpWorkloadClusterResources(ctx, e2eCtx)
 	DumpEKSClusters(ctx, e2eCtx)
 	DumpCloudTrailEvents(e2eCtx)
 
