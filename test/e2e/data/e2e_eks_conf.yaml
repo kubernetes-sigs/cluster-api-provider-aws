@@ -135,7 +135,7 @@ variables:
   CAPA_LOGLEVEL: "4"
 
 intervals:
-  default/wait-cluster: ["30m", "10s"]
+  default/wait-cluster: ["40m", "10s"]
   default/wait-control-plane: ["35m", "10s"]
   default/wait-worker-nodes: ["30m", "10s"]
   default/wait-controllers: ["5m", "10s"]
