@@ -342,7 +342,7 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 			"iam:CreateServiceLinkedRole",
 		},
 		Resource: iamv1.Resources{
-			"arn:aws:iam::*:role/aws-service-role/eks-fargate-pods.amazonaws.com/AWSServiceRoleForAmazonEKSForFargate",
+			"arn:" + t.Spec.Partition + ":iam::*:role/aws-service-role/eks-fargate-pods.amazonaws.com/AWSServiceRoleForAmazonEKSForFargate",
 		},
 		Condition: iamv1.Conditions{
 			iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks-fargate.amazonaws.com"},
