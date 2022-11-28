@@ -80,7 +80,7 @@ providers:
   - name: aws
     type: InfrastructureProvider
     versions:
-      - name: v1.6.99
+      - name: v2.0.99
         # Use manifest from source files
         value: ../../../config/default
         contract: v1beta1
@@ -116,8 +116,8 @@ providers:
         targetName: "cluster-template-eks-control-plane-only-legacy.yaml"
 
 variables:
-  KUBERNETES_VERSION: "v1.22.9"
-  KUBERNETES_VERSION_MANAGEMENT: "v1.22.9" # Kind bootstrap
+  KUBERNETES_VERSION: "v1.24.4"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.24.4" # Kind bootstrap
   EXP_MACHINE_POOL: "true"
   EXP_CLUSTER_RESOURCE_SET: "true"
   EVENT_BRIDGE_INSTANCE_STATE: "true"
@@ -126,10 +126,10 @@ variables:
   AWS_SSH_KEY_NAME: "cluster-api-provider-aws-sigs-k8s-io"
   EXP_EKS_IAM: "false"
   EXP_EKS_ADD_ROLES: "false"
-  VPC_ADDON_VERSION: "v1.11.0-eksbuild.1"
-  COREDNS_ADDON_VERSION: "v1.8.7-eksbuild.1"
-  KUBE_PROXY_ADDON_VERSION: "v1.22.6-eksbuild.1"
-  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "1.22.9"
+  VPC_ADDON_VERSION: "v1.11.4-eksbuild.1"
+  COREDNS_ADDON_VERSION: "v1.8.7-eksbuild.3"
+  KUBE_PROXY_ADDON_VERSION: "v1.24.7-eksbuild.2"
+  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "1.24.4"
   AUTO_CONTROLLER_IDENTITY_CREATOR: "false"
   IP_FAMILY: "IPv4"
   CAPA_LOGLEVEL: "4"
