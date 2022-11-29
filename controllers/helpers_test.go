@@ -48,7 +48,7 @@ var (
 	describeLBOutput = &elb.DescribeLoadBalancersOutput{
 		LoadBalancerDescriptions: []*elb.LoadBalancerDescription{
 			{
-				Scheme:            aws.String(string(infrav1.ElbSchemeInternetFacing)),
+				Scheme:            aws.String(string(infrav1.ELBSchemeInternetFacing)),
 				Subnets:           []*string{aws.String("subnet-1")},
 				AvailabilityZones: []*string{aws.String("us-east-1a")},
 				VPCId:             aws.String("vpc-exists"),
@@ -58,7 +58,7 @@ var (
 	describeLBOutputV2 = &elbv2.DescribeLoadBalancersOutput{
 		LoadBalancers: []*elbv2.LoadBalancer{
 			{
-				Scheme: aws.String(string(infrav1.ElbSchemeInternetFacing)),
+				Scheme: aws.String(string(infrav1.ELBSchemeInternetFacing)),
 				AvailabilityZones: []*elbv2.AvailabilityZone{
 					{
 						SubnetId: aws.String("subnet-1"),
@@ -106,11 +106,11 @@ var (
 			Value: lbName,
 		},
 		{
-			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 			Value: aws.String("owned"),
 		},
 		{
-			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 			Value: aws.String("apiserver"),
 		},
 	}
@@ -278,7 +278,7 @@ func mockedCreateLBV2Calls(t *testing.T, m *mocks.MockELBV2APIMockRecorder) {
 		}).AnyTimes()
 	m.RemoveTags(gomock.Eq(&elbv2.RemoveTagsInput{
 		ResourceArns: []*string{lbArn},
-		TagKeys:      []*string{aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster-apiserver")},
+		TagKeys:      []*string{aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster-apiserver")},
 	})).MaxTimes(1)
 }
 

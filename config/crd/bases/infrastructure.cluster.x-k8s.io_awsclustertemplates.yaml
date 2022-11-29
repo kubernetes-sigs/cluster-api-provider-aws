@@ -586,7 +586,7 @@ spec:
                             type: boolean
                           healthCheckProtocol:
                             description: HealthCheckProtocol sets the protocol type
-                              for ELB health check target default value is ElbProtocolSSL
+                              for ELB health check target default value is ELBProtocolSSL
                             type: string
                           loadBalancerType:
                             description: LoadBalancerType sets the type for a load

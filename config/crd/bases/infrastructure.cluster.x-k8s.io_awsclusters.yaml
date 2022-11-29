@@ -991,7 +991,7 @@ spec:
                     type: boolean
                   healthCheckProtocol:
                     description: HealthCheckProtocol sets the protocol type for ELB
-                      health check target default value is ElbProtocolSSL
+                      health check target default value is ELBProtocolSSL
                     type: string
                   loadBalancerType:
                     description: LoadBalancerType sets the type for a load balancer.
@@ -1569,6 +1569,81 @@ spec:
                       dnsName:
                         description: DNSName is the dns name of the load balancer.
                         type: string
+                      elbAttributes:
+                        additionalProperties:
+                          type: string
+                        description: ELBAttributes defines extra attributes associated
+                          with v2 load balancers.
+                        type: object
+                      elbListeners:
+                        description: ELBListeners is an array of listeners associated
+                          with the load balancer. There must be at least one.
+                        items:
+                          description: Listener defines an AWS network load balancer
+                            listener.
+                          properties:
+                            port:
+                              format: int64
+                              type: integer
+                            protocol:
+                              description: ELBProtocol defines listener protocols
+                                for a load balancer.
+                              type: string
+                            targetGroup:
+                              description: TargetGroupSpec specifies target group
+                                settings for a given listener. This is created first,
+                                and the ARN is then passed to the listener.
+                              properties:
+                                name:
+                                  description: Name of the TargetGroup. Must be unique
+                                    over the same group of listeners.
+                                  type: string
+                                port:
+                                  description: Port is the exposed port
+                                  format: int64
+                                  type: integer
+                                protocol:
+                                  description: ELBProtocol defines listener protocols
+                                    for a load balancer.
+                                  enum:
+                                  - tcp
+                                  - tls
+                                  - upd
+                                  type: string
+                                targetGroupHealthCheck:
+                                  description: HealthCheck is the elb health check
+                                    associated with the load balancer.
+                                  properties:
+                                    intervalSeconds:
+                                      format: int64
+                                      type: integer
+                                    path:
+                                      type: string
+                                    port:
+                                      type: string
+                                    protocol:
+                                      type: string
+                                    thresholdCount:
+                                      format: int64
+                                      type: integer
+                                    timeoutSeconds:
+                                      format: int64
+                                      type: integer
+                                  type: object
+                                vpcId:
+                                  type: string
+                              required:
+                              - name
+                              - port
+                              - protocol
+                              - vpcId
+                              type: object
+                          required:
+                          - port
+                          - protocol
+                          - targetGroup
+                          type: object
+                        type: array
                       healthChecks:
                         description: HealthCheck is the classic elb health check associated
                           with the load balancer.
@@ -1614,14 +1689,14 @@ spec:
                               format: int64
                               type: integer
                             instanceProtocol:
-                              description: ElbProtocol defines listener protocols
+                              description: ELBProtocol defines listener protocols
                                 for a load balancer.
                               type: string
                             port:
                               format: int64
                               type: integer
                             protocol:
-                              description: ElbProtocol defines listener protocols
+                              description: ELBProtocol defines listener protocols
                                 for a load balancer.
                               type: string
                           required:
@@ -1632,13 +1707,13 @@ spec:
                           type: object
                         type: array
                       loadBalancerType:
-                        description: LoadBalancerType defines the type of the Load
-                          Balancer.
+                        description: LoadBalancerType sets the type for a load balancer.
+                          The default type is classic.
                         enum:
                         - classic
-                        - nlb
-                        - alb
                         - elb
+                        - alb
+                        - nlb
                         type: string
                       name:
                         description: The name of the load balancer. It must be unique
@@ -1667,78 +1742,6 @@ spec:
                         description: Tags is a map of tags associated with the load
                           balancer.
                         type: object
-                      v2Attributes:
-                        additionalProperties:
-                          type: string
-                        description: V2Attributes defines extra attributes associated
-                          with v2 load balancers.
-                        type: object
-                      v2Listeners:
-                        description: V2Listeners is an array of listeners associated
-                          with the load balancer. There must be at least one.
-                        items:
-                          description: Listener defines an AWS network load balancer
-                            listener.
-                          properties:
-                            port:
-                              format: int64
-                              type: integer
-                            protocol:
-                              description: ElbProtocol defines listener protocols
-                                for a load balancer.
-                              type: string
-                            targetGroup:
-                              description: TargetGroupSpec specifies target group
-                                settings for a given listener. This is created first,
-                                and the ARN is then passed to the listener.
-                              properties:
-                                name:
-                                  type: string
-                                port:
-                                  format: int64
-                                  type: integer
-                                protocol:
-                                  description: ElbProtocol defines listener protocols
-                                    for a load balancer.
-                                  enum:
-                                  - tcp
-                                  - tls
-                                  - upd
-                                  type: string
-                                targetGroupHealthCheck:
-                                  description: HealthCheck is the elb health check
-                                    associated with the load balancer.
-                                  properties:
-                                    healthCheckIntervalSeconds:
-                                      format: int64
-                                      type: integer
-                                    healthCheckPath:
-                                      type: string
-                                    healthCheckPort:
-                                      type: string
-                                    healthCheckProtocol:
-                                      type: string
-                                    healthCheckTimeoutSeconds:
-                                      format: int64
-                                      type: integer
-                                    healthyThresholdCount:
-                                      format: int64
-                                      type: integer
-                                  type: object
-                                vpcId:
-                                  type: string
-                              required:
-                              - name
-                              - port
-                              - protocol
-                              - vpcId
-                              type: object
-                          required:
-                          - port
-                          - protocol
-                          - targetGroup
-                          type: object
-                        type: array
                     required:
                     - loadBalancerType
                     type: object

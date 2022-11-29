@@ -46,7 +46,7 @@ func Convert_v1beta2_NetworkStatus_To_v1beta1_NetworkStatus(in *v1beta2.NetworkS
 func Convert_v1beta1_ClassicELB_To_v1beta2_LoadBalancer(in *ClassicELB, out *v1beta2.LoadBalancer, s conversion.Scope) error {
 	out.Name = in.Name
 	out.DNSName = in.DNSName
-	out.Scheme = v1beta2.ElbScheme(in.Scheme)
+	out.Scheme = v1beta2.ELBScheme(in.Scheme)
 	out.HealthCheck = (*v1beta2.ClassicELBHealthCheck)(in.HealthCheck)
 	out.AvailabilityZones = in.AvailabilityZones
 	out.ClassicElbAttributes = (v1beta2.ClassicELBAttributes)(in.Attributes)

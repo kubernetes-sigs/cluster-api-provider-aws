@@ -298,11 +298,11 @@ func TestReconcileSecurityGroups(t *testing.T) {
 									Value: aws.String("test-cluster-bastion"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 									Value: aws.String("bastion"),
 								},
 							},
@@ -330,11 +330,11 @@ func TestReconcileSecurityGroups(t *testing.T) {
 									Value: aws.String("test-cluster-apiserver-lb"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 									Value: aws.String("apiserver-lb"),
 								},
 							},
@@ -366,11 +366,11 @@ func TestReconcileSecurityGroups(t *testing.T) {
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 									Value: aws.String("lb"),
 								},
 							},
@@ -397,11 +397,11 @@ func TestReconcileSecurityGroups(t *testing.T) {
 									Value: aws.String("test-cluster-controlplane"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 									Value: aws.String("controlplane"),
 								},
 							},
@@ -429,11 +429,11 @@ func TestReconcileSecurityGroups(t *testing.T) {
 									Value: aws.String("test-cluster-node"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 									Value: aws.String("node"),
 								},
 							},

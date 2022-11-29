@@ -31,7 +31,7 @@ It will also take into consideration IPv6 enabled clusters and create an IPv6 aw
 
 ## Preserve Client IPs
 
-By default, client ip preservation is disabled. This is to avoid [hairpinning](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-troubleshooting.html#loopback-timeout) issues between kubelet and node the
+By default, client ip preservation is disabled. This is to avoid [hairpinning](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-troubleshooting.html#loopback-timeout) issues between kubelet and the node
 registration process. To enable client IP preservation, you can set it to enable with the following flag:
 
 ```yaml
@@ -50,7 +50,7 @@ spec:
 
 ## Security
 
-NLBs cannot use Security Groups. Therefor, the following steps have been taken to increase security for nodes
+NLBs cannot use Security Groups. Therefore, the following steps have been taken to increase security for nodes
 communication. NLBs need access to the node in order to send traffic its way. A port has to be opened using an ip
 address range instead of a security group as a _source_. There are two scenarios and CIDRs that can be enabled.
 

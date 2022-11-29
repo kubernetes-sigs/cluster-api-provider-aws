@@ -42,7 +42,7 @@ func TestAWSClusterDefault(t *testing.T) {
 }
 
 func TestAWSCluster_ValidateCreate(t *testing.T) {
-	unsupportedIncorrectScheme := ElbScheme("any-other-scheme")
+	unsupportedIncorrectScheme := ELBScheme("any-other-scheme")
 
 	tests := []struct {
 		name    string
@@ -351,14 +351,14 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			oldCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						Scheme: &ElbSchemeInternal,
+						Scheme: &ELBSchemeInternal,
 					},
 				},
 			},
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						Scheme: &ElbSchemeInternetFacing,
+						Scheme: &ELBSchemeInternetFacing,
 					},
 				},
 			},
@@ -372,7 +372,7 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						Scheme: &ElbSchemeInternal,
+						Scheme: &ELBSchemeInternal,
 					},
 				},
 			},
@@ -386,7 +386,7 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						Scheme: &ElbSchemeInternetFacing,
+						Scheme: &ELBSchemeInternetFacing,
 					},
 				},
 			},
@@ -526,14 +526,14 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			oldCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						HealthCheckProtocol: &ElbProtocolTCP,
+						HealthCheckProtocol: &ELBProtocolTCP,
 					},
 				},
 			},
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						HealthCheckProtocol: &ElbProtocolSSL,
+						HealthCheckProtocol: &ELBProtocolSSL,
 					},
 				},
 			},
@@ -544,14 +544,14 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			oldCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						HealthCheckProtocol: &ElbProtocolTCP,
+						HealthCheckProtocol: &ELBProtocolTCP,
 					},
 				},
 			},
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						HealthCheckProtocol: &ElbProtocolTCP,
+						HealthCheckProtocol: &ELBProtocolTCP,
 					},
 				},
 			},
@@ -565,7 +565,7 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						HealthCheckProtocol: &ElbProtocolTCP,
+						HealthCheckProtocol: &ELBProtocolTCP,
 					},
 				},
 			},
