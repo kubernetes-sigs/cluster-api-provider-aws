@@ -53,8 +53,8 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 func restoreControlPlaneLoadBalancerStatus(restored, dst *infrav1.LoadBalancer) {
 	dst.ARN = restored.ARN
 	dst.LoadBalancerType = restored.LoadBalancerType
-	dst.V2Attributes = restored.V2Attributes
-	dst.V2Listeners = restored.V2Listeners
+	dst.ELBAttributes = restored.ELBAttributes
+	dst.ELBListeners = restored.ELBListeners
 }
 
 // restoreControlPlaneLoadBalancer manually restores the control plane loadbalancer data.

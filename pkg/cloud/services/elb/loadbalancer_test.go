@@ -231,12 +231,12 @@ func TestGetAPIServerClassicELBSpecControlPlaneLoadBalancer(t *testing.T) {
 		{
 			name: "Should create load balancer spec if elb health check protocol specified in config",
 			lb: &infrav1.AWSLoadBalancerSpec{
-				HealthCheckProtocol: &infrav1.ElbProtocolTCP,
+				HealthCheckProtocol: &infrav1.ELBProtocolTCP,
 			},
 			mocks: func(m *mocks.MockEC2APIMockRecorder) {},
 			expect: func(t *testing.T, g *WithT, res *infrav1.LoadBalancer) {
 				t.Helper()
-				expectedTarget := fmt.Sprintf("%v:%d", infrav1.ElbProtocolTCP, 6443)
+				expectedTarget := fmt.Sprintf("%v:%d", infrav1.ELBProtocolTCP, infrav1.DefaultAPIServerPort)
 				g.Expect(expectedTarget, res.HealthCheck.Target)
 			},
 		},
@@ -246,7 +246,7 @@ func TestGetAPIServerClassicELBSpecControlPlaneLoadBalancer(t *testing.T) {
 			mocks: func(m *mocks.MockEC2APIMockRecorder) {},
 			expect: func(t *testing.T, g *WithT, res *infrav1.LoadBalancer) {
 				t.Helper()
-				expectedTarget := fmt.Sprintf("%v:%d", infrav1.ElbProtocolTCP, 6443)
+				expectedTarget := fmt.Sprintf("%v:%d", infrav1.ELBProtocolTCP, infrav1.DefaultAPIServerPort)
 				g.Expect(expectedTarget, res.HealthCheck.Target)
 			},
 		},
@@ -311,7 +311,7 @@ func TestGetAPIServerV2ELBSpecControlPlaneLoadBalancer(t *testing.T) {
 			mocks: func(m *mocks.MockEC2APIMockRecorder) {},
 			expect: func(t *testing.T, g *WithT, res *infrav1.LoadBalancer) {
 				t.Helper()
-				if _, ok := res.V2Attributes["load_balancing.cross_zone.enabled"]; ok {
+				if _, ok := res.ELBAttributes["load_balancing.cross_zone.enabled"]; ok {
 					t.Error("Expected load balancer not to have cross-zone load balancing enabled")
 				}
 			},
@@ -324,7 +324,7 @@ func TestGetAPIServerV2ELBSpecControlPlaneLoadBalancer(t *testing.T) {
 			mocks: func(m *mocks.MockEC2APIMockRecorder) {},
 			expect: func(t *testing.T, g *WithT, res *infrav1.LoadBalancer) {
 				t.Helper()
-				if _, ok := res.V2Attributes["load_balancing.cross_zone.enabled"]; !ok {
+				if _, ok := res.ELBAttributes["load_balancing.cross_zone.enabled"]; !ok {
 					t.Error("Expected load balancer to have cross-zone load balancing enabled")
 				}
 			},
@@ -400,7 +400,7 @@ func TestGetAPIServerV2ELBSpecControlPlaneLoadBalancer(t *testing.T) {
 			mocks: func(m *mocks.MockEC2APIMockRecorder) {},
 			expect: func(t *testing.T, g *WithT, res *infrav1.LoadBalancer) {
 				t.Helper()
-				if len(res.V2Listeners) != 1 {
+				if len(res.ELBListeners) != 1 {
 					t.Errorf("Expected 1 listener to be configured by default, got %v listener(s)", len(res.SecurityGroupIDs))
 				}
 			},
@@ -496,7 +496,7 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 						LoadBalancerDescriptions: []*elb.LoadBalancerDescription{
 							{
 								LoadBalancerName: aws.String(elbName),
-								Scheme:           aws.String(string(infrav1.ElbSchemeInternetFacing)),
+								Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
 								Subnets:          []*string{aws.String(clusterSubnetID)},
 							},
 						},
@@ -564,7 +564,7 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 					Return(&elb.DescribeLoadBalancersOutput{
 						LoadBalancerDescriptions: []*elb.LoadBalancerDescription{
 							{
-								Scheme:            aws.String(string(infrav1.ElbSchemeInternetFacing)),
+								Scheme:            aws.String(string(infrav1.ELBSchemeInternetFacing)),
 								Subnets:           []*string{aws.String(elbSubnetID)},
 								AvailabilityZones: []*string{aws.String(az)},
 							},
@@ -647,7 +647,7 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 					Return(&elb.DescribeLoadBalancersOutput{
 						LoadBalancerDescriptions: []*elb.LoadBalancerDescription{
 							{
-								Scheme:            aws.String(string(infrav1.ElbSchemeInternetFacing)),
+								Scheme:            aws.String(string(infrav1.ELBSchemeInternetFacing)),
 								Subnets:           []*string{aws.String(elbSubnetID)},
 								AvailabilityZones: []*string{aws.String(differentAZ)},
 							},
@@ -798,7 +798,7 @@ func TestRegisterInstanceWithAPIServerNLB(t *testing.T) {
 							{
 								LoadBalancerArn:  aws.String(elbArn),
 								LoadBalancerName: aws.String(elbName),
-								Scheme:           aws.String(string(infrav1.ElbSchemeInternetFacing)),
+								Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
 								AvailabilityZones: []*elbv2.AvailabilityZone{
 									{
 										SubnetId: aws.String(clusterSubnetID),
@@ -836,10 +836,10 @@ func TestRegisterInstanceWithAPIServerNLB(t *testing.T) {
 					TargetGroups: []*elbv2.TargetGroup{
 						{
 							HealthCheckEnabled:  aws.Bool(true),
-							HealthCheckPort:     aws.String("6443"),
+							HealthCheckPort:     aws.String("infrav1.DefaultAPIServerPort"),
 							HealthCheckProtocol: aws.String("TCP"),
 							LoadBalancerArns:    aws.StringSlice([]string{elbArn}),
-							Port:                aws.Int64(6443),
+							Port:                aws.Int64(infrav1.DefaultAPIServerPort),
 							Protocol:            aws.String("TCP"),
 							TargetGroupArn:      aws.String("target-group::arn"),
 							TargetGroupName:     aws.String("something-generated"),
@@ -852,7 +852,7 @@ func TestRegisterInstanceWithAPIServerNLB(t *testing.T) {
 					Targets: []*elbv2.TargetDescription{
 						{
 							Id:   aws.String(instanceID),
-							Port: aws.Int64(6443),
+							Port: aws.Int64(infrav1.DefaultAPIServerPort),
 						},
 					},
 				})).Return(&elbv2.RegisterTargetsOutput{}, nil)
@@ -892,7 +892,7 @@ func TestRegisterInstanceWithAPIServerNLB(t *testing.T) {
 							{
 								LoadBalancerArn:  aws.String(elbArn),
 								LoadBalancerName: aws.String(elbName),
-								Scheme:           aws.String(string(infrav1.ElbSchemeInternetFacing)),
+								Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
 								AvailabilityZones: []*elbv2.AvailabilityZone{
 									{
 										SubnetId: aws.String(clusterSubnetID),
@@ -1033,17 +1033,17 @@ func TestCreateNLB(t *testing.T) {
 						{
 							LoadBalancerArn:  aws.String(elbArn),
 							LoadBalancerName: aws.String(elbName),
-							Scheme:           aws.String(string(infrav1.ElbSchemeInternetFacing)),
+							Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
 							DNSName:          aws.String(dns),
 						},
 					},
 				}, nil)
 				m.CreateTargetGroup(gomock.Eq(&elbv2.CreateTargetGroupInput{
 					HealthCheckEnabled:  aws.Bool(true),
-					HealthCheckPort:     aws.String("6443"),
+					HealthCheckPort:     aws.String("infrav1.DefaultAPIServerPort"),
 					HealthCheckProtocol: aws.String("tcp"),
 					Name:                aws.String("name"),
-					Port:                aws.Int64(6443),
+					Port:                aws.Int64(infrav1.DefaultAPIServerPort),
 					Protocol:            aws.String("TCP"),
 					VpcId:               aws.String(vpcID),
 				})).Return(&elbv2.CreateTargetGroupOutput{
@@ -1072,7 +1072,7 @@ func TestCreateNLB(t *testing.T) {
 						},
 					},
 					LoadBalancerArn: aws.String(elbArn),
-					Port:            aws.Int64(6443),
+					Port:            aws.Int64(infrav1.DefaultAPIServerPort),
 					Protocol:        aws.String("TCP"),
 					Tags: []*elbv2.Tag{
 						{
@@ -1128,17 +1128,17 @@ func TestCreateNLB(t *testing.T) {
 						{
 							LoadBalancerArn:  aws.String(elbArn),
 							LoadBalancerName: aws.String(elbName),
-							Scheme:           aws.String(string(infrav1.ElbSchemeInternetFacing)),
+							Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
 							DNSName:          aws.String(dns),
 						},
 					},
 				}, nil)
 				m.CreateTargetGroup(gomock.Eq(&elbv2.CreateTargetGroupInput{
 					HealthCheckEnabled:  aws.Bool(true),
-					HealthCheckPort:     aws.String("6443"),
+					HealthCheckPort:     aws.String("infrav1.DefaultAPIServerPort"),
 					HealthCheckProtocol: aws.String("tcp"),
 					Name:                aws.String("name"),
-					Port:                aws.Int64(6443),
+					Port:                aws.Int64(infrav1.DefaultAPIServerPort),
 					Protocol:            aws.String("TCP"),
 					VpcId:               aws.String(vpcID),
 					IpAddressType:       aws.String("ipv6"),
@@ -1168,7 +1168,7 @@ func TestCreateNLB(t *testing.T) {
 						},
 					},
 					LoadBalancerArn: aws.String(elbArn),
-					Port:            aws.Int64(6443),
+					Port:            aws.Int64(infrav1.DefaultAPIServerPort),
 					Protocol:        aws.String("TCP"),
 					Tags: []*elbv2.Tag{
 						{
@@ -1229,15 +1229,15 @@ func TestCreateNLB(t *testing.T) {
 		{
 			name: "no health check",
 			spec: func(spec infrav1.LoadBalancer) infrav1.LoadBalancer {
-				spec.V2Listeners = []infrav1.Listener{
+				spec.ELBListeners = []infrav1.Listener{
 					{
 						Protocol: "TCP",
-						Port:     6443,
+						Port:     infrav1.DefaultAPIServerPort,
 						TargetGroup: infrav1.TargetGroupSpec{
-							Name:     aws.String("name"),
-							Port:     aws.Int64(6443),
+							Name:     "name",
+							Port:     infrav1.DefaultAPIServerPort,
 							Protocol: "TCP",
-							VpcID:    aws.String(vpcID),
+							VpcID:    vpcID,
 						},
 					},
 				}
@@ -1263,14 +1263,14 @@ func TestCreateNLB(t *testing.T) {
 						{
 							LoadBalancerArn:  aws.String(elbArn),
 							LoadBalancerName: aws.String(elbName),
-							Scheme:           aws.String(string(infrav1.ElbSchemeInternetFacing)),
+							Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
 							DNSName:          aws.String(dns),
 						},
 					},
 				}, nil)
 				m.CreateTargetGroup(gomock.Eq(&elbv2.CreateTargetGroupInput{
 					Name:     aws.String("name"),
-					Port:     aws.Int64(6443),
+					Port:     aws.Int64(infrav1.DefaultAPIServerPort),
 					Protocol: aws.String("TCP"),
 					VpcId:    aws.String(vpcID),
 				})).Return(&elbv2.CreateTargetGroupOutput{
@@ -1299,7 +1299,7 @@ func TestCreateNLB(t *testing.T) {
 						},
 					},
 					LoadBalancerArn: aws.String(elbArn),
-					Port:            aws.Int64(6443),
+					Port:            aws.Int64(infrav1.DefaultAPIServerPort),
 					Protocol:        aws.String("TCP"),
 					Tags: []*elbv2.Tag{
 						{
@@ -1351,17 +1351,17 @@ func TestCreateNLB(t *testing.T) {
 						{
 							LoadBalancerArn:  aws.String(elbArn),
 							LoadBalancerName: aws.String(elbName),
-							Scheme:           aws.String(string(infrav1.ElbSchemeInternetFacing)),
+							Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
 							DNSName:          aws.String(dns),
 						},
 					},
 				}, nil)
 				m.CreateTargetGroup(gomock.Eq(&elbv2.CreateTargetGroupInput{
 					HealthCheckEnabled:  aws.Bool(true),
-					HealthCheckPort:     aws.String("6443"),
+					HealthCheckPort:     aws.String("infrav1.DefaultAPIServerPort"),
 					HealthCheckProtocol: aws.String("tcp"),
 					Name:                aws.String("name"),
-					Port:                aws.Int64(6443),
+					Port:                aws.Int64(infrav1.DefaultAPIServerPort),
 					Protocol:            aws.String("TCP"),
 					VpcId:               aws.String(vpcID),
 				})).Return(&elbv2.CreateTargetGroupOutput{
@@ -1381,7 +1381,7 @@ func TestCreateNLB(t *testing.T) {
 						},
 					},
 					LoadBalancerArn: aws.String(elbArn),
-					Port:            aws.Int64(6443),
+					Port:            aws.Int64(infrav1.DefaultAPIServerPort),
 					Protocol:        aws.String("TCP"),
 					Tags: []*elbv2.Tag{
 						{
@@ -1435,17 +1435,17 @@ func TestCreateNLB(t *testing.T) {
 						{
 							LoadBalancerArn:  aws.String(elbArn),
 							LoadBalancerName: aws.String(elbName),
-							Scheme:           aws.String(string(infrav1.ElbSchemeInternetFacing)),
+							Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
 							DNSName:          aws.String(dns),
 						},
 					},
 				}, nil)
 				m.CreateTargetGroup(gomock.Eq(&elbv2.CreateTargetGroupInput{
 					HealthCheckEnabled:  aws.Bool(true),
-					HealthCheckPort:     aws.String("6443"),
+					HealthCheckPort:     aws.String("infrav1.DefaultAPIServerPort"),
 					HealthCheckProtocol: aws.String("tcp"),
 					Name:                aws.String("name"),
-					Port:                aws.Int64(6443),
+					Port:                aws.Int64(infrav1.DefaultAPIServerPort),
 					Protocol:            aws.String("TCP"),
 					VpcId:               aws.String(vpcID),
 				})).Return(&elbv2.CreateTargetGroupOutput{
@@ -1474,7 +1474,7 @@ func TestCreateNLB(t *testing.T) {
 						},
 					},
 					LoadBalancerArn: aws.String(elbArn),
-					Port:            aws.Int64(6443),
+					Port:            aws.Int64(infrav1.DefaultAPIServerPort),
 					Protocol:        aws.String("TCP"),
 					Tags: []*elbv2.Tag{
 						{
@@ -1552,22 +1552,22 @@ func TestCreateNLB(t *testing.T) {
 			loadBalancerSpec := &infrav1.LoadBalancer{
 				ARN:    elbArn,
 				Name:   elbName,
-				Scheme: infrav1.ElbSchemeInternetFacing,
+				Scheme: infrav1.ELBSchemeInternetFacing,
 				Tags: map[string]string{
 					"test": "tag",
 				},
-				V2Listeners: []infrav1.Listener{
+				ELBListeners: []infrav1.Listener{
 					{
 						Protocol: "TCP",
-						Port:     6443,
+						Port:     infrav1.DefaultAPIServerPort,
 						TargetGroup: infrav1.TargetGroupSpec{
-							Name:     aws.String("name"),
-							Port:     aws.Int64(6443),
+							Name:     "name",
+							Port:     infrav1.DefaultAPIServerPort,
 							Protocol: "TCP",
-							VpcID:    aws.String(vpcID),
+							VpcID:    vpcID,
 							HealthCheck: &infrav1.TargetGroupHealthCheck{
-								HealthCheckProtocol: aws.String("tcp"),
-								HealthCheckPort:     aws.String("6443"),
+								Protocol: aws.String("tcp"),
+								Port:     aws.String("infrav1.DefaultAPIServerPort"),
 							},
 						},
 					},
@@ -1606,7 +1606,7 @@ func TestDeleteAPIServerELB(t *testing.T) {
 						LoadBalancerDescriptions: []*elb.LoadBalancerDescription{
 							{
 								LoadBalancerName: aws.String(elbName),
-								Scheme:           aws.String(string(infrav1.ElbSchemeInternetFacing)),
+								Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
 							},
 						},
 					},
@@ -1645,7 +1645,7 @@ func TestDeleteAPIServerELB(t *testing.T) {
 						LoadBalancerDescriptions: []*elb.LoadBalancerDescription{
 							{
 								LoadBalancerName: aws.String(elbName),
-								Scheme:           aws.String(string(infrav1.ElbSchemeInternetFacing)),
+								Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
 							},
 						},
 					},
@@ -1771,7 +1771,7 @@ func TestDeleteNLB(t *testing.T) {
 							{
 								LoadBalancerArn:  aws.String(elbArn),
 								LoadBalancerName: aws.String(elbName),
-								Scheme:           aws.String(string(infrav1.ElbSchemeInternetFacing)),
+								Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
 							},
 						},
 					},
@@ -1812,7 +1812,7 @@ func TestDeleteNLB(t *testing.T) {
 							{
 								LoadBalancerArn:  aws.String(elbArn),
 								LoadBalancerName: aws.String(elbName),
-								Scheme:           aws.String(string(infrav1.ElbSchemeInternetFacing)),
+								Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
 							},
 						},
 					},
@@ -2117,7 +2117,7 @@ func TestDescribeLoadbalancers(t *testing.T) {
 			DescribeElbAPIMocks: func(m *mocks.MockELBAPIMockRecorder) {
 				m.DescribeLoadBalancers(gomock.Eq(&elb.DescribeLoadBalancersInput{
 					LoadBalancerNames: aws.StringSlice([]string{"bar-apiserver"}),
-				})).Return(&elb.DescribeLoadBalancersOutput{LoadBalancerDescriptions: []*elb.LoadBalancerDescription{{Scheme: pointer.StringPtr(string(infrav1.ElbSchemeInternal))}}}, nil)
+				})).Return(&elb.DescribeLoadBalancersOutput{LoadBalancerDescriptions: []*elb.LoadBalancerDescription{{Scheme: pointer.StringPtr(string(infrav1.ELBSchemeInternal))}}}, nil)
 			},
 		},
 	}
@@ -2136,7 +2136,7 @@ func TestDescribeLoadbalancers(t *testing.T) {
 			awsCluster := &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
-					Scheme: &infrav1.ElbSchemeInternetFacing,
+					Scheme: &infrav1.ELBSchemeInternetFacing,
 				}},
 			}
 
@@ -2192,7 +2192,7 @@ func TestDescribeV2Loadbalancers(t *testing.T) {
 			DescribeElbV2APIMocks: func(m *mocks.MockELBV2APIMockRecorder) {
 				m.DescribeLoadBalancers(gomock.Eq(&elbv2.DescribeLoadBalancersInput{
 					Names: aws.StringSlice([]string{"bar-apiserver"}),
-				})).Return(&elbv2.DescribeLoadBalancersOutput{LoadBalancers: []*elbv2.LoadBalancer{{Scheme: pointer.StringPtr(string(infrav1.ElbSchemeInternal))}}}, nil)
+				})).Return(&elbv2.DescribeLoadBalancersOutput{LoadBalancers: []*elbv2.LoadBalancer{{Scheme: pointer.StringPtr(string(infrav1.ELBSchemeInternal))}}}, nil)
 			},
 		},
 	}
@@ -2211,7 +2211,7 @@ func TestDescribeV2Loadbalancers(t *testing.T) {
 			awsCluster := &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
-					Scheme:           &infrav1.ElbSchemeInternetFacing,
+					Scheme:           &infrav1.ELBSchemeInternetFacing,
 					LoadBalancerType: infrav1.LoadBalancerTypeNLB,
 				}},
 			}

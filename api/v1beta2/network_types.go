@@ -22,6 +22,13 @@ import (
 	"time"
 )
 
+const (
+	// DefaultAPIServerPort defines the API server port when defining a Load Balancer.
+	DefaultAPIServerPort = 6443
+	// DefaultAPIServerPortString defines the API server port as a string for convenience.
+	DefaultAPIServerPortString = "6443"
+)
+
 // NetworkStatus encapsulates AWS networking resources.
 type NetworkStatus struct {
 	// SecurityGroups is a map from the role/kind of the security group to its unique name, if any.
@@ -31,57 +38,53 @@ type NetworkStatus struct {
 	APIServerELB LoadBalancer `json:"apiServerElb,omitempty"`
 }
 
-// ElbScheme defines the scheme of a load balancer.
-type ElbScheme string
+// ELBScheme defines the scheme of a load balancer.
+type ELBScheme string
 
 var (
-	// ElbSchemeInternetFacing defines an internet-facing, publicly
+	// ELBSchemeInternetFacing defines an internet-facing, publicly
 	// accessible AWS ELB scheme.
-	ElbSchemeInternetFacing = ElbScheme("internet-facing")
+	ELBSchemeInternetFacing = ELBScheme("internet-facing")
 
-	// ElbSchemeInternal defines an internal-only facing
+	// ELBSchemeInternal defines an internal-only facing
 	// load balancer internal to an ELB.
-	ElbSchemeInternal = ElbScheme("internal")
+	ELBSchemeInternal = ELBScheme("internal")
 )
 
-func (e ElbScheme) String() string {
+func (e ELBScheme) String() string {
 	return string(e)
 }
 
-// ElbProtocol defines listener protocols for a load balancer.
-type ElbProtocol string
+// ELBProtocol defines listener protocols for a load balancer.
+type ELBProtocol string
 
-func (e ElbProtocol) String() string {
+func (e ELBProtocol) String() string {
 	return string(e)
 }
 
 var (
-	// ElbProtocolTCP defines the ELB API string representing the TCP protocol.
-	ElbProtocolTCP = ElbProtocol("TCP")
-
-	// ElbProtocolSSL defines the ELB API string representing the TLS protocol.
-	ElbProtocolSSL = ElbProtocol("SSL")
-
-	// ElbProtocolHTTP defines the ELB API string representing the HTTP protocol at L7.
-	ElbProtocolHTTP = ElbProtocol("HTTP")
-
-	// ElbProtocolHTTPS defines the ELB API string representing the HTTP protocol at L7.
-	ElbProtocolHTTPS = ElbProtocol("HTTPS")
-
-	// ElbProtocolTLS defines the NLB API string representing the TLS protocol.
-	ElbProtocolTLS = ElbProtocol("TLS")
-	// ElbProtocolUDP defines the NLB API string representing the UPD protocol.
-	ElbProtocolUDP = ElbProtocol("UDP")
+	// ELBProtocolTCP defines the ELB API string representing the TCP protocol.
+	ELBProtocolTCP = ELBProtocol("TCP")
+	// ELBProtocolSSL defines the ELB API string representing the TLS protocol.
+	ELBProtocolSSL = ELBProtocol("SSL")
+	// ELBProtocolHTTP defines the ELB API string representing the HTTP protocol at L7.
+	ELBProtocolHTTP = ELBProtocol("HTTP")
+	// ELBProtocolHTTPS defines the ELB API string representing the HTTP protocol at L7.
+	ELBProtocolHTTPS = ELBProtocol("HTTPS")
+	// ELBProtocolTLS defines the NLB API string representing the TLS protocol.
+	ELBProtocolTLS = ELBProtocol("TLS")
+	// ELBProtocolUDP defines the NLB API string representing the UPD protocol.
+	ELBProtocolUDP = ELBProtocol("UDP")
 )
 
 // TargetGroupHealthCheck defines health check settings for the target group.
 type TargetGroupHealthCheck struct {
-	HealthCheckProtocol        *string `json:"healthCheckProtocol,omitempty"`
-	HealthCheckPath            *string `json:"healthCheckPath,omitempty"`
-	HealthCheckPort            *string `json:"healthCheckPort,omitempty"`
-	HealthCheckIntervalSeconds *int64  `json:"healthCheckIntervalSeconds,omitempty"`
-	HealthCheckTimeoutSeconds  *int64  `json:"healthCheckTimeoutSeconds,omitempty"`
-	HealthyThresholdCount      *int64  `json:"healthyThresholdCount,omitempty"`
+	Protocol        *string `json:"protocol,omitempty"`
+	Path            *string `json:"path,omitempty"`
+	Port            *string `json:"port,omitempty"`
+	IntervalSeconds *int64  `json:"intervalSeconds,omitempty"`
+	TimeoutSeconds  *int64  `json:"timeoutSeconds,omitempty"`
+	ThresholdCount  *int64  `json:"thresholdCount,omitempty"`
 }
 
 // TargetGroupAttribute defines attribute key values for V2 Load Balancer Attributes.
@@ -95,25 +98,28 @@ var (
 type LoadBalancerAttribute string
 
 var (
-	LoadBalancerAttributeEnableLoadBalancingCrossZone = "load_balancing.cross_zone.enabled"
-	LoadBalancerAttributeIdleTimeTimeoutSeconds       = "idle_timeout.timeout_seconds"
+	LoadBalancerAttributeEnableLoadBalancingCrossZone           = "load_balancing.cross_zone.enabled"
+	LoadBalancerAttributeIdleTimeTimeoutSeconds                 = "idle_timeout.timeout_seconds"
+	LoadBalancerAttributeIdleTimeDefaultTimeoutSecondsInSeconds = "60"
 )
 
 // TargetGroupSpec specifies target group settings for a given listener.
 // This is created first, and the ARN is then passed to the listener.
 type TargetGroupSpec struct {
-	Name *string `json:"name"`
-	Port *int64  `json:"port"`
+	// Name of the TargetGroup. Must be unique over the same group of listeners.
+	Name string `json:"name"`
+	// Port is the exposed port
+	Port int64 `json:"port"`
 	// +kubebuilder:validation:Enum=tcp;tls;upd
-	Protocol ElbProtocol `json:"protocol"`
-	VpcID    *string     `json:"vpcId"`
+	Protocol ELBProtocol `json:"protocol"`
+	VpcID    string      `json:"vpcId"`
 	// HealthCheck is the elb health check associated with the load balancer.
 	HealthCheck *TargetGroupHealthCheck `json:"targetGroupHealthCheck,omitempty"`
 }
 
 // Listener defines an AWS network load balancer listener.
 type Listener struct {
-	Protocol    ElbProtocol     `json:"protocol"`
+	Protocol    ELBProtocol     `json:"protocol"`
 	Port        int64           `json:"port"`
 	TargetGroup TargetGroupSpec `json:"targetGroup"`
 }
@@ -132,7 +138,7 @@ type LoadBalancer struct {
 	DNSName string `json:"dnsName,omitempty"`
 
 	// Scheme is the load balancer scheme, either internet-facing or private.
-	Scheme ElbScheme `json:"scheme,omitempty"`
+	Scheme ELBScheme `json:"scheme,omitempty"`
 
 	// AvailabilityZones is an array of availability zones in the VPC attached to the load balancer.
 	AvailabilityZones []string `json:"availabilityZones,omitempty"`
@@ -155,14 +161,14 @@ type LoadBalancer struct {
 	// Tags is a map of tags associated with the load balancer.
 	Tags map[string]string `json:"tags,omitempty"`
 
-	// V2Listeners is an array of listeners associated with the load balancer. There must be at least one.
-	V2Listeners []Listener `json:"v2Listeners,omitempty"`
+	// ELBListeners is an array of listeners associated with the load balancer. There must be at least one.
+	ELBListeners []Listener `json:"elbListeners,omitempty"`
 
-	// V2Attributes defines extra attributes associated with v2 load balancers.
-	V2Attributes map[string]*string `json:"v2Attributes,omitempty"`
+	// ELBAttributes defines extra attributes associated with v2 load balancers.
+	ELBAttributes map[string]*string `json:"elbAttributes,omitempty"`
 
-	// LoadBalancerType defines the type of the Load Balancer.
-	// +kubebuilder:validation:Enum=classic;nlb;alb;elb
+	// LoadBalancerType sets the type for a load balancer. The default type is classic.
+	// +kubebuilder:validation:Enum:=classic;elb;alb;nlb
 	LoadBalancerType LoadBalancerType `json:"loadBalancerType"`
 }
 
@@ -189,9 +195,9 @@ type ClassicELBAttributes struct {
 
 // ClassicELBListener defines an AWS classic load balancer listener.
 type ClassicELBListener struct {
-	Protocol         ElbProtocol `json:"protocol"`
+	Protocol         ELBProtocol `json:"protocol"`
 	Port             int64       `json:"port"`
-	InstanceProtocol ElbProtocol `json:"instanceProtocol"`
+	InstanceProtocol ELBProtocol `json:"instanceProtocol"`
 	InstancePort     int64       `json:"instancePort"`
 }
 

@@ -493,8 +493,8 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 			{
 				Description: "Kubernetes API",
 				Protocol:    infrav1.SecurityGroupProtocolTCP,
-				FromPort:    6443,
-				ToPort:      6443,
+				FromPort:    infrav1.DefaultAPIServerPort,
+				ToPort:      infrav1.DefaultAPIServerPort,
 				SourceSecurityGroupIDs: []string{
 					s.scope.SecurityGroups()[infrav1.SecurityGroupAPIServerLB].ID,
 					s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID,
@@ -587,7 +587,6 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 		// Except if the load balancer type is NLB, and we have an AWS Cluster in which case we
 		// need to open port 6443 to the NLB traffic and health check inside the VPC.
 		if s.scope.ControlPlaneLoadBalancer() != nil && s.scope.ControlPlaneLoadBalancer().LoadBalancerType == infrav1.LoadBalancerTypeNLB {
-			// check for preserve ip
 			var (
 				ipv4CidrBlocks []string
 				ipv6CidrBlocks []string

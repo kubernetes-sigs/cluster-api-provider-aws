@@ -832,51 +832,51 @@ func (r *AWSMachineReconciler) registerInstanceToClassicLB(machineScope *scope.M
 	return nil
 }
 
-func (r *AWSMachineReconciler) registerInstanceToV2LB(machineScope *scope.MachineScope, elbsvc services.ELBInterface, i *infrav1.Instance) error {
-	_, registered, err := elbsvc.IsInstanceRegisteredWithAPIServerLB(i)
+func (r *AWSMachineReconciler) registerInstanceToV2LB(machineScope *scope.MachineScope, elbsvc services.ELBInterface, instance *infrav1.Instance) error {
+	_, registered, err := elbsvc.IsInstanceRegisteredWithAPIServerLB(instance)
 	if err != nil {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedAttachControlPlaneELB",
-			"Failed to register control plane instance %q with load balancer: failed to determine registration status: %v", i.ID, err)
-		return errors.Wrapf(err, "could not register control plane instance %q with load balancer - error determining registration status", i.ID)
+			"Failed to register control plane instance %q with load balancer: failed to determine registration status: %v", instance.ID, err)
+		return errors.Wrapf(err, "could not register control plane instance %q with load balancer - error determining registration status", instance.ID)
 	}
 	if registered {
-		// Already registered - nothing more to do
+		machineScope.Logger.Debug("Instance is already registered.", "instance", instance.ID)
 		return nil
 	}
 
-	if err := elbsvc.RegisterInstanceWithAPIServerLB(i); err != nil {
+	if err := elbsvc.RegisterInstanceWithAPIServerLB(instance); err != nil {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedAttachControlPlaneELB",
-			"Failed to register control plane instance %q with load balancer: %v", i.ID, err)
+			"Failed to register control plane instance %q with load balancer: %v", instance.ID, err)
 		conditions.MarkFalse(machineScope.AWSMachine, infrav1.ELBAttachedCondition, infrav1.ELBAttachFailedReason, clusterv1.ConditionSeverityError, err.Error())
-		return errors.Wrapf(err, "could not register control plane instance %q with load balancer", i.ID)
+		return errors.Wrapf(err, "could not register control plane instance %q with load balancer", instance.ID)
 	}
 	r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulAttachControlPlaneELB",
-		"Control plane instance %q is registered with load balancer", i.ID)
+		"Control plane instance %q is registered with load balancer", instance.ID)
 	conditions.MarkTrue(machineScope.AWSMachine, infrav1.ELBAttachedCondition)
 	return nil
 }
 
-func (r *AWSMachineReconciler) deregisterInstanceFromClassicLB(machineScope *scope.MachineScope, elbsvc services.ELBInterface, i *infrav1.Instance) error {
-	registered, err := elbsvc.IsInstanceRegisteredWithAPIServerELB(i)
+func (r *AWSMachineReconciler) deregisterInstanceFromClassicLB(machineScope *scope.MachineScope, elbsvc services.ELBInterface, instance *infrav1.Instance) error {
+	registered, err := elbsvc.IsInstanceRegisteredWithAPIServerELB(instance)
 	if err != nil {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedDetachControlPlaneELB",
-			"Failed to deregister control plane instance %q from load balancer: failed to determine registration status: %v", i.ID, err)
-		return errors.Wrapf(err, "could not deregister control plane instance %q from load balancer - error determining registration status", i.ID)
+			"Failed to deregister control plane instance %q from load balancer: failed to determine registration status: %v", instance.ID, err)
+		return errors.Wrapf(err, "could not deregister control plane instance %q from load balancer - error determining registration status", instance.ID)
 	}
 	if !registered {
-		// Already deregistered - nothing more to do
+		machineScope.Logger.Debug("Instance is already registered.", "instance", instance.ID)
 		return nil
 	}
 
-	if err := elbsvc.DeregisterInstanceFromAPIServerELB(i); err != nil {
+	if err := elbsvc.DeregisterInstanceFromAPIServerELB(instance); err != nil {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedDetachControlPlaneELB",
-			"Failed to deregister control plane instance %q from load balancer: %v", i.ID, err)
+			"Failed to deregister control plane instance %q from load balancer: %v", instance.ID, err)
 		conditions.MarkFalse(machineScope.AWSMachine, infrav1.ELBAttachedCondition, infrav1.ELBDetachFailedReason, clusterv1.ConditionSeverityError, err.Error())
-		return errors.Wrapf(err, "could not deregister control plane instance %q from load balancer", i.ID)
+		return errors.Wrapf(err, "could not deregister control plane instance %q from load balancer", instance.ID)
 	}
 
 	r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulDetachControlPlaneELB",
-		"Control plane instance %q is de-registered from load balancer", i.ID)
+		"Control plane instance %q is de-registered from load balancer", instance.ID)
 	return nil
 }
 

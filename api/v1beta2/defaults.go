@@ -63,7 +63,7 @@ func SetDefaults_AWSClusterSpec(s *AWSClusterSpec) { //nolint:golint,stylecheck
 	}
 	if s.ControlPlaneLoadBalancer == nil {
 		s.ControlPlaneLoadBalancer = &AWSLoadBalancerSpec{
-			Scheme:           &ElbSchemeInternetFacing,
+			Scheme:           &ELBSchemeInternetFacing,
 			LoadBalancerType: LoadBalancerTypeClassic,
 		}
 	}

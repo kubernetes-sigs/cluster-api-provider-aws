@@ -1182,10 +1182,10 @@ func Convert_v1beta2_AWSIdentityReference_To_v1beta1_AWSIdentityReference(in *v1
 
 func autoConvert_v1beta1_AWSLoadBalancerSpec_To_v1beta2_AWSLoadBalancerSpec(in *AWSLoadBalancerSpec, out *v1beta2.AWSLoadBalancerSpec, s conversion.Scope) error {
 	out.Name = (*string)(unsafe.Pointer(in.Name))
-	out.Scheme = (*v1beta2.ElbScheme)(unsafe.Pointer(in.Scheme))
+	out.Scheme = (*v1beta2.ELBScheme)(unsafe.Pointer(in.Scheme))
 	out.CrossZoneLoadBalancing = in.CrossZoneLoadBalancing
 	out.Subnets = *(*[]string)(unsafe.Pointer(&in.Subnets))
-	out.HealthCheckProtocol = (*v1beta2.ElbProtocol)(unsafe.Pointer(in.HealthCheckProtocol))
+	out.HealthCheckProtocol = (*v1beta2.ELBProtocol)(unsafe.Pointer(in.HealthCheckProtocol))
 	out.AdditionalSecurityGroups = *(*[]string)(unsafe.Pointer(&in.AdditionalSecurityGroups))
 	return nil
 }
@@ -1781,9 +1781,9 @@ func Convert_v1beta2_ClassicELBHealthCheck_To_v1beta1_ClassicELBHealthCheck(in *
 }
 
 func autoConvert_v1beta1_ClassicELBListener_To_v1beta2_ClassicELBListener(in *ClassicELBListener, out *v1beta2.ClassicELBListener, s conversion.Scope) error {
-	out.Protocol = v1beta2.ElbProtocol(in.Protocol)
+	out.Protocol = v1beta2.ELBProtocol(in.Protocol)
 	out.Port = in.Port
-	out.InstanceProtocol = v1beta2.ElbProtocol(in.InstanceProtocol)
+	out.InstanceProtocol = v1beta2.ELBProtocol(in.InstanceProtocol)
 	out.InstancePort = in.InstancePort
 	return nil
 }
