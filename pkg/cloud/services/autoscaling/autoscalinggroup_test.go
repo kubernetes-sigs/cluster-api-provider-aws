@@ -460,14 +460,14 @@ func TestServiceCreateASG(t *testing.T) {
 							Value:             aws.String("owned"),
 						},
 						{
-							Key:               aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test"),
+							Key:               aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test"),
 							PropagateAtLaunch: aws.Bool(false),
 							ResourceId:        aws.String("create-asg-success"),
 							ResourceType:      aws.String("auto-scaling-group"),
 							Value:             aws.String("owned"),
 						},
 						{
-							Key:               aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+							Key:               aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 							PropagateAtLaunch: aws.Bool(false),
 							ResourceId:        aws.String("create-asg-success"),
 							ResourceType:      aws.String("auto-scaling-group"),

@@ -123,11 +123,11 @@ func TestReconcileNatGateways(t *testing.T) {
 									Value: aws.String("test-cluster-eip-apiserver"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 									Value: aws.String("apiserver"),
 								},
 							},
@@ -149,11 +149,11 @@ func TestReconcileNatGateways(t *testing.T) {
 									Value: aws.String("test-cluster-nat"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 									Value: aws.String("common"),
 								},
 							},
@@ -230,11 +230,11 @@ func TestReconcileNatGateways(t *testing.T) {
 									Value: aws.String("test-cluster-eip-apiserver"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 									Value: aws.String("apiserver"),
 								},
 							},
@@ -256,11 +256,11 @@ func TestReconcileNatGateways(t *testing.T) {
 									Value: aws.String("test-cluster-nat"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 									Value: aws.String("owned"),
 								},
 								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 									Value: aws.String("common"),
 								},
 							},
@@ -318,7 +318,7 @@ func TestReconcileNatGateways(t *testing.T) {
 						SubnetId:     aws.String("subnet-1"),
 						Tags: []*ec2.Tag{
 							{
-								Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+								Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 								Value: aws.String("common"),
 							},
 							{
@@ -326,7 +326,7 @@ func TestReconcileNatGateways(t *testing.T) {
 								Value: aws.String("test-cluster-nat"),
 							},
 							{
-								Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+								Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 								Value: aws.String("owned"),
 							},
 						},

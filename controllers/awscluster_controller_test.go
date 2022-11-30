@@ -320,12 +320,12 @@ func mockedDescribeInstanceCall(m *mocks.MockEC2APIMockRecorder) {
 	m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			{
-				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/role"),
 				Values: aws.StringSlice([]string{"bastion"}),
 			},
 			{
 				Name:   aws.String("tag-key"),
-				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"}),
+				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
 			},
 			{
 				Name:   aws.String("instance-state-name"),
@@ -425,11 +425,11 @@ func mockedCreateVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 				Value: aws.String("1"),
 			},
 			{
-				Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+				Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 				Value: aws.String("owned"),
 			},
 			{
-				Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+				Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 				Value: aws.String("public"),
 			},
 		},
@@ -455,11 +455,11 @@ func mockedCreateVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 						Value: aws.String("1"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 						Value: aws.String("owned"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 						Value: aws.String("public"),
 					},
 				},
@@ -474,11 +474,11 @@ func mockedCreateVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 			MapPublicIpOnLaunch: aws.Bool(false),
 			Tags: []*ec2.Tag{
 				{
-					Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+					Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 					Value: aws.String("owned"),
 				},
 				{
-					Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+					Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 					Value: aws.String("public"),
 				},
 				{
@@ -519,11 +519,11 @@ func mockedCreateVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 				MapPublicIpOnLaunch: aws.Bool(false),
 				Tags: []*ec2.Tag{
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 						Value: aws.String("owned"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 						Value: aws.String("public"),
 					},
 					{
@@ -585,7 +585,7 @@ func mockedCreateVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 					CidrBlock: aws.String("10.0.0.0/8"),
 					Tags: []*ec2.Tag{
 						{
-							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 							Value: aws.String("common"),
 						},
 						{
@@ -632,7 +632,7 @@ func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 			},
 			{
 				Name:   aws.String("tag-key"),
-				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"}),
+				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
 			},
 		}})).Return(&ec2.DescribeRouteTablesOutput{
 		RouteTables: []*ec2.RouteTable{
@@ -686,7 +686,7 @@ func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 		Filters: []*ec2.Filter{
 			{
 				Name:   aws.String("tag-key"),
-				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"}),
+				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
 			}},
 	})).Return(&ec2.DescribeAddressesOutput{
 		Addresses: []*ec2.Address{
@@ -722,7 +722,7 @@ func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 					CidrBlock: aws.String("10.0.0.0/8"),
 					Tags: []*ec2.Tag{
 						{
-							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 							Value: aws.String("common"),
 						},
 						{
@@ -730,7 +730,7 @@ func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 							Value: aws.String("test-cluster"),
 						},
 						{
-							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 							Value: aws.String("owned"),
 						},
 					},
@@ -754,7 +754,7 @@ func mockedCreateSGCalls(m *mocks.MockEC2APIMockRecorder) {
 			},
 			{
 				Name:   aws.String("tag-key"),
-				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"}),
+				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
 			},
 		},
 	})).Return(
@@ -779,11 +779,11 @@ func mockedCreateSGCalls(m *mocks.MockEC2APIMockRecorder) {
 						Value: aws.String("test-cluster-bastion"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 						Value: aws.String("owned"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 						Value: aws.String("bastion"),
 					},
 				},
@@ -804,11 +804,11 @@ func mockedCreateSGCalls(m *mocks.MockEC2APIMockRecorder) {
 						Value: aws.String("test-cluster-apiserver-lb"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 						Value: aws.String("owned"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 						Value: aws.String("apiserver-lb"),
 					},
 				},
@@ -833,11 +833,11 @@ func mockedCreateSGCalls(m *mocks.MockEC2APIMockRecorder) {
 						Value: aws.String("owned"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 						Value: aws.String("owned"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 						Value: aws.String("lb"),
 					},
 				},
@@ -858,11 +858,11 @@ func mockedCreateSGCalls(m *mocks.MockEC2APIMockRecorder) {
 						Value: aws.String("test-cluster-controlplane"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 						Value: aws.String("owned"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 						Value: aws.String("controlplane"),
 					},
 				},
@@ -883,11 +883,11 @@ func mockedCreateSGCalls(m *mocks.MockEC2APIMockRecorder) {
 						Value: aws.String("test-cluster-node"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 						Value: aws.String("owned"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 						Value: aws.String("node"),
 					},
 				},
