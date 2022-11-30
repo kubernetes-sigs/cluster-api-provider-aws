@@ -267,7 +267,7 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 
 	if asg == nil {
 		// Create new ASG
-		if _, err := r.createPool(machinePoolScope, clusterScope); err != nil {
+		if err := r.createPool(machinePoolScope, clusterScope); err != nil {
 			conditions.MarkFalse(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, expinfrav1.ASGProvisionFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return ctrl.Result{}, err
 		}
@@ -404,6 +404,7 @@ func (r *AWSMachinePoolReconciler) updatePool(machinePoolScope *scope.MachinePoo
 
 	suspendedProcessesSlice := machinePoolScope.AWSMachinePool.Spec.SuspendProcesses.ConvertSetValuesToStringSlice()
 	if !cmp.Equal(existingASG.CurrentlySuspendProcesses, suspendedProcessesSlice) {
+		clusterScope.Info("reconciling processes", "suspend-processes", suspendedProcessesSlice)
 		var (
 			toBeSuspended []string
 			toBeResumed   []string
@@ -431,7 +432,7 @@ func (r *AWSMachinePoolReconciler) updatePool(machinePoolScope *scope.MachinePoo
 			delete(currentlySuspended, k)
 		}
 
-		// Convert them back into lists so
+		// Convert them back into lists to pass them to resume/suspend.
 		for k := range desiredSuspended {
 			toBeSuspended = append(toBeSuspended, k)
 		}
@@ -441,11 +442,13 @@ func (r *AWSMachinePoolReconciler) updatePool(machinePoolScope *scope.MachinePoo
 		}
 
 		if len(toBeSuspended) > 0 {
+			clusterScope.Info("suspending processes", "processes", toBeSuspended)
 			if err := asgSvc.SuspendProcesses(existingASG.Name, toBeSuspended); err != nil {
 				return errors.Wrapf(err, "failed to suspend processes while trying update pool")
 			}
 		}
 		if len(toBeResumed) > 0 {
+			clusterScope.Info("resuming processes", "processes", toBeResumed)
 			if err := asgSvc.ResumeProcesses(existingASG.Name, toBeResumed); err != nil {
 				return errors.Wrapf(err, "failed to resume processes while trying update pool")
 			}
@@ -454,21 +457,17 @@ func (r *AWSMachinePoolReconciler) updatePool(machinePoolScope *scope.MachinePoo
 	return nil
 }
 
-func (r *AWSMachinePoolReconciler) createPool(machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper) (*expinfrav1.AutoScalingGroup, error) {
+func (r *AWSMachinePoolReconciler) createPool(machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper) error {
 	clusterScope.Info("Initializing ASG client")
 
 	asgsvc := r.getASGService(clusterScope)
 
 	machinePoolScope.Info("Creating Autoscaling Group")
-	asg, err := asgsvc.CreateASG(machinePoolScope)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create AWSMachinePool")
+	if _, err := asgsvc.CreateASG(machinePoolScope); err != nil {
+		return errors.Wrapf(err, "failed to create AWSMachinePool")
 	}
-	suspendedProcessesSlice := machinePoolScope.AWSMachinePool.Spec.SuspendProcesses.ConvertSetValuesToStringSlice()
-	if err := asgsvc.SuspendProcesses(asg.Name, suspendedProcessesSlice); err != nil {
-		return nil, errors.Wrapf(err, "failed to suspend processes while trying to create Pool")
-	}
-	return asg, nil
+
+	return nil
 }
 
 func (r *AWSMachinePoolReconciler) findASG(machinePoolScope *scope.MachinePoolScope, asgsvc services.ASGInterface) (*expinfrav1.AutoScalingGroup, error) {
