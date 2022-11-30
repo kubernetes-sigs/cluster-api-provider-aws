@@ -2,7 +2,7 @@ module sigs.k8s.io/cluster-api-provider-aws/v2
 
 go 1.18
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.2.6
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.2.7
 
 require (
 	github.com/alessio/shellescape v1.4.1
@@ -38,8 +38,8 @@ require (
 	k8s.io/klog/v2 v2.80.0
 	k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed
 	sigs.k8s.io/aws-iam-authenticator v0.5.10
-	sigs.k8s.io/cluster-api v1.2.6
-	sigs.k8s.io/cluster-api/test v1.2.6
+	sigs.k8s.io/cluster-api v1.2.7
+	sigs.k8s.io/cluster-api/test v1.2.7
 	sigs.k8s.io/controller-runtime v0.12.3
 	sigs.k8s.io/kustomize/api v0.12.1
 	sigs.k8s.io/yaml v1.3.0
@@ -60,7 +60,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/coredns/caddy v1.1.0 // indirect
-	github.com/coredns/corefile-migration v1.0.17 // indirect
+	github.com/coredns/corefile-migration v1.0.18 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect

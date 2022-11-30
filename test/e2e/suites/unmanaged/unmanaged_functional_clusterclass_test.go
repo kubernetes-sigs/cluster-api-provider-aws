@@ -131,7 +131,7 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 	ginkgo.Describe("Workload cluster with external infrastructure [ClusterClass]", func() {
 		var namespace *corev1.Namespace
 		var requiredResources *shared.TestResource
-		specName := "functional-test-extinfra-clusterclass"
+		specName := "functional-test-extinfra-cc"
 		mgmtClusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		mgmtClusterInfra := new(shared.AWSInfrastructure)
 
