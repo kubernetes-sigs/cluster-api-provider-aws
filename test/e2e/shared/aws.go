@@ -991,7 +991,7 @@ func ListClusterEC2Instances(e2eCtx *E2EContext, clusterName string) ([]*ec2.Ins
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 	filter := &ec2.Filter{
 		Name:   aws.String("tag-key"),
-		Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/v2/cluster/" + clusterName}),
+		Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/" + clusterName}),
 	}
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
