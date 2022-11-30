@@ -266,7 +266,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					},
 				}
 			}
-			t.Run("it should suspend these processes", func(t *testing.T) {
+			t.Run("it should not call suspend as we don't have an ASG yet", func(t *testing.T) {
 				g := NewWithT(t)
 				setup(t, g)
 				defer teardown(t, g)
@@ -277,7 +277,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				asgSvc.EXPECT().CreateASG(gomock.Any()).Return(&expinfrav1.AutoScalingGroup{
 					Name: "name",
 				}, nil)
-				asgSvc.EXPECT().SuspendProcesses("name", []string{"Launch", "Terminate"}).Return(nil).AnyTimes()
+				asgSvc.EXPECT().SuspendProcesses("name", []string{"Launch", "Terminate"}).Return(nil).AnyTimes().Times(0)
 
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 				g.Expect(err).To(Succeed())
@@ -290,56 +290,29 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					All: true,
 				}
 			}
-			t.Run("it should result in all processes being included except the value all", func(t *testing.T) {
+			t.Run("processes should be suspended during an update call", func(t *testing.T) {
 				g := NewWithT(t)
 				setup(t, g)
 				defer teardown(t, g)
 				setSuspendedProcesses(t, g)
-
+				ms.AWSMachinePool.Spec.SuspendProcesses.All = true
 				ec2Svc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(nil, nil)
-				asgSvc.EXPECT().CreateASG(gomock.Any()).Return(&expinfrav1.AutoScalingGroup{
+				ec2Svc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil)
+				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(&expinfrav1.AutoScalingGroup{
 					Name: "name",
 				}, nil)
-				asgSvc.EXPECT().SuspendProcesses("name", []string{
+				asgSvc.EXPECT().UpdateASG(gomock.Any()).Return(nil).AnyTimes()
+				asgSvc.EXPECT().SuspendProcesses("name", gomock.InAnyOrder([]string{
+					"ScheduledActions",
 					"Launch",
 					"Terminate",
 					"AddToLoadBalancer",
 					"AlarmNotification",
 					"AZRebalance",
-					"HealthCheck",
 					"InstanceRefresh",
-					"ReplaceUnhealthy",
-					"ScheduledActions",
-				}).Return(nil).AnyTimes()
-
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
-				g.Expect(err).To(Succeed())
-			})
-			t.Run("and one or more processes are disabled, it should not list those", func(t *testing.T) {
-				g := NewWithT(t)
-				setup(t, g)
-				defer teardown(t, g)
-				setSuspendedProcesses(t, g)
-				ms.AWSMachinePool.Spec.SuspendProcesses.Processes = &expinfrav1.Processes{
-					Launch:      pointer.Bool(false),
-					AZRebalance: pointer.Bool(true), // this should still be included but not twice...
-				}
-				ec2Svc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(nil, nil)
-				asgSvc.EXPECT().CreateASG(gomock.Any()).Return(&expinfrav1.AutoScalingGroup{
-					Name: "name",
-				}, nil)
-				asgSvc.EXPECT().SuspendProcesses("name", []string{
-					"Terminate",
-					"AddToLoadBalancer",
-					"AlarmNotification",
-					"AZRebalance",
 					"HealthCheck",
-					"InstanceRefresh",
 					"ReplaceUnhealthy",
-					"ScheduledActions",
-				}).Return(nil).AnyTimes()
+				})).Return(nil).AnyTimes().Times(1)
 
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 				g.Expect(err).To(Succeed())
@@ -369,8 +342,8 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					CurrentlySuspendProcesses: []string{"Launch", "process3"},
 				}, nil)
 				asgSvc.EXPECT().UpdateASG(gomock.Any()).Return(nil).AnyTimes()
-				asgSvc.EXPECT().SuspendProcesses("name", []string{"Terminate"}).Return(nil).AnyTimes()
-				asgSvc.EXPECT().ResumeProcesses("name", []string{"process3"}).Return(nil).AnyTimes()
+				asgSvc.EXPECT().SuspendProcesses("name", []string{"Terminate"}).Return(nil).AnyTimes().Times(1)
+				asgSvc.EXPECT().ResumeProcesses("name", []string{"process3"}).Return(nil).AnyTimes().Times(1)
 
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 				g.Expect(err).To(Succeed())
