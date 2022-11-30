@@ -496,7 +496,7 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 				Values: aws.StringSlice([]string{""}),
 			},
 			{
-				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 				Values: aws.StringSlice([]string{"owned"}),
 			},
 			{

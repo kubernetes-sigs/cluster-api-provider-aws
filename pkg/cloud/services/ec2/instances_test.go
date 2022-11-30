@@ -2095,11 +2095,11 @@ func TestCreateInstance(t *testing.T) {
 										Value: aws.String("owned"),
 									},
 									{
-										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test1"),
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test1"),
 										Value: aws.String("owned"),
 									},
 									{
-										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 										Value: aws.String("node"),
 									},
 								},
@@ -2232,11 +2232,11 @@ func TestCreateInstance(t *testing.T) {
 										Value: aws.String("owned"),
 									},
 									{
-										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test1"),
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test1"),
 										Value: aws.String("owned"),
 									},
 									{
-										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 										Value: aws.String("node"),
 									},
 								},
