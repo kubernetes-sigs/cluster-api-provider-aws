@@ -146,7 +146,7 @@ If you want to save the private key directly into AWS Systems Manager Parameter
 Store with KMS encryption for security, you can use the following command:
 
 ```bash
-aws ssm put-parameter --name "/sigs.k8s.io/cluster-api-provider-aws/v2/ssh-key" \
+aws ssm put-parameter --name "/sigs.k8s.io/cluster-api-provider-aws/ssh-key" \
   --type SecureString \
   --value "$(aws ec2 create-key-pair --key-name default --output json | jq .KeyMaterial -r)"
 ```

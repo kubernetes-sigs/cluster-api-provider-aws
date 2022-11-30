@@ -66,11 +66,11 @@ var (
 			Value: lbName,
 		},
 		{
-			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 			Value: aws.String("owned"),
 		},
 		{
-			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 			Value: aws.String("apiserver"),
 		},
 	}
@@ -179,7 +179,7 @@ func mockedCreateLBCalls(t *testing.T, m *mocks.MockELBAPIMockRecorder) {
 		LoadBalancerNames: aws.StringSlice([]string{""}),
 		Tags: []*elb.TagKeyOnly{
 			{
-				Key: aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster-apiserver"),
+				Key: aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster-apiserver"),
 			},
 		},
 	})).MaxTimes(1)
