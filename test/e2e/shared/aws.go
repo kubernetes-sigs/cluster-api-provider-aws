@@ -798,9 +798,11 @@ type ServiceQuota struct {
 	RequestStatus       string
 }
 
-func EnsureServiceQuotas(sess client.ConfigProvider) map[string]*ServiceQuota {
+func EnsureServiceQuotas(sess client.ConfigProvider) (map[string]*ServiceQuota, map[string]*servicequotas.ServiceQuota) {
 	limitedResources := getLimitedResources()
 	serviceQuotasClient := servicequotas.New(sess)
+
+	originalQuotas := map[string]*servicequotas.ServiceQuota{}
 
 	for k, v := range limitedResources {
 		out, err := serviceQuotasClient.GetServiceQuota(&servicequotas.GetServiceQuotaInput{
@@ -808,6 +810,7 @@ func EnsureServiceQuotas(sess client.ConfigProvider) map[string]*ServiceQuota {
 			ServiceCode: aws.String(v.ServiceCode),
 		})
 		Expect(err).NotTo(HaveOccurred())
+		originalQuotas[k] = out.Quota
 		v.Value = int(aws.Float64Value(out.Quota.Value))
 		limitedResources[k] = v
 		if v.Value < v.DesiredMinimumValue {
@@ -815,7 +818,7 @@ func EnsureServiceQuotas(sess client.ConfigProvider) map[string]*ServiceQuota {
 		}
 	}
 
-	return limitedResources
+	return limitedResources, originalQuotas
 }
 
 func (s *ServiceQuota) attemptRaiseServiceQuotaRequest(serviceQuotasClient *servicequotas.ServiceQuotas) {
