@@ -45,7 +45,7 @@ var (
 )
 
 func (s *Service) reconcileOIDCProvider(cluster *eks.Cluster) error {
-	if !s.scope.ControlPlane.Spec.AssociateOIDCProvider || s.scope.ControlPlane.Status.OIDCProvider.ARN != "" {
+	if !s.scope.ControlPlane.Spec.AssociateOIDCProvider {
 		return nil
 	}
 
@@ -53,29 +53,25 @@ func (s *Service) reconcileOIDCProvider(cluster *eks.Cluster) error {
 		return errors.New("'AssociateOIDCProvider' provided without enabling the 'EKSEnableIAM' feature flag")
 	}
 
-	s.scope.Info("Reconciling EKS OIDC Provider", "cluster-name", cluster.Name)
+	if s.scope.ControlPlane.Status.OIDCProvider.ARN == "" {
+		s.scope.Info("Reconciling EKS OIDC Provider", "cluster-name", cluster.Name)
 
-	oidcProvider, err := s.FindAndVerifyOIDCProvider(cluster)
-	if err != nil {
-		return errors.Wrap(err, "failed to reconcile OIDC provider")
-	}
-	if oidcProvider == "" {
-		oidcProvider, err = s.CreateOIDCProvider(cluster)
+		oidcProvider, err := s.FindAndVerifyOIDCProvider(cluster)
 		if err != nil {
-			return errors.Wrap(err, "failed to create OIDC provider")
+			return errors.Wrap(err, "failed to reconcile OIDC provider")
+		}
+		if oidcProvider == "" {
+			oidcProvider, err = s.CreateOIDCProvider(cluster)
+			if err != nil {
+				return errors.Wrap(err, "failed to create OIDC provider")
+			}
+		}
+		s.scope.ControlPlane.Status.OIDCProvider.ARN = oidcProvider
+		if err := s.scope.PatchObject(); err != nil {
+			return errors.Wrap(err, "failed to update control plane with OIDC provider ARN")
 		}
 	}
 
-	s.scope.ControlPlane.Status.OIDCProvider.ARN = oidcProvider
-
-	policy, err := converters.IAMPolicyDocumentToJSON(s.buildOIDCTrustPolicy())
-	if err != nil {
-		return errors.Wrap(err, "failed to parse IAM policy")
-	}
-	s.scope.ControlPlane.Status.OIDCProvider.TrustPolicy = whitespaceRe.ReplaceAllString(policy, "")
-	if err := s.scope.PatchObject(); err != nil {
-		return errors.Wrap(err, "failed to update control plane with OIDC provider ARN")
-	}
 	// tagging the OIDC provider with the same tags of cluster
 	inputForTags := iam.TagOpenIDConnectProviderInput{
 		OpenIDConnectProviderArn: &s.scope.ControlPlane.Status.OIDCProvider.ARN,
@@ -85,8 +81,18 @@ func (s *Service) reconcileOIDCProvider(cluster *eks.Cluster) error {
 		return errors.Wrap(err, "failed to tag OIDC provider")
 	}
 
-	if err := s.reconcileTrustPolicy(); err != nil {
-		return errors.Wrap(err, "failed to reconcile trust policy in workload cluster")
+	if s.scope.ControlPlane.Status.OIDCProvider.TrustPolicy == "" {
+		policy, err := converters.IAMPolicyDocumentToJSON(s.buildOIDCTrustPolicy())
+		if err != nil {
+			return errors.Wrap(err, "failed to parse IAM policy")
+		}
+		if err := s.reconcileTrustPolicy(); err != nil {
+			return errors.Wrap(err, "failed to reconcile trust policy in workload cluster")
+		}
+		s.scope.ControlPlane.Status.OIDCProvider.TrustPolicy = whitespaceRe.ReplaceAllString(policy, "")
+		if err := s.scope.PatchObject(); err != nil {
+			return errors.Wrap(err, "failed to update control plane with OIDC provider trustPolicy")
+		}
 	}
 
 	return nil
