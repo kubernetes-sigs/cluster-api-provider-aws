@@ -22,55 +22,113 @@ import (
 	"time"
 )
 
+const (
+	// DefaultAPIServerPort defines the API server port when defining a Load Balancer.
+	DefaultAPIServerPort = 6443
+	// DefaultAPIServerPortString defines the API server port as a string for convenience.
+	DefaultAPIServerPortString = "6443"
+)
+
 // NetworkStatus encapsulates AWS networking resources.
 type NetworkStatus struct {
 	// SecurityGroups is a map from the role/kind of the security group to its unique name, if any.
 	SecurityGroups map[SecurityGroupRole]SecurityGroup `json:"securityGroups,omitempty"`
 
-	// APIServerELB is the Kubernetes api server classic load balancer.
-	APIServerELB ClassicELB `json:"apiServerElb,omitempty"`
+	// APIServerELB is the Kubernetes api server load balancer.
+	APIServerELB LoadBalancer `json:"apiServerElb,omitempty"`
 }
 
-// ClassicELBScheme defines the scheme of a classic load balancer.
-type ClassicELBScheme string
+// ELBScheme defines the scheme of a load balancer.
+type ELBScheme string
 
 var (
-	// ClassicELBSchemeInternetFacing defines an internet-facing, publicly
-	// accessible AWS Classic ELB scheme.
-	ClassicELBSchemeInternetFacing = ClassicELBScheme("internet-facing")
+	// ELBSchemeInternetFacing defines an internet-facing, publicly
+	// accessible AWS ELB scheme.
+	ELBSchemeInternetFacing = ELBScheme("internet-facing")
 
-	// ClassicELBSchemeInternal defines an internal-only facing
+	// ELBSchemeInternal defines an internal-only facing
 	// load balancer internal to an ELB.
-	ClassicELBSchemeInternal = ClassicELBScheme("internal")
+	ELBSchemeInternal = ELBScheme("internal")
 )
 
-func (e ClassicELBScheme) String() string {
+func (e ELBScheme) String() string {
 	return string(e)
 }
 
-// ClassicELBProtocol defines listener protocols for a classic load balancer.
-type ClassicELBProtocol string
+// ELBProtocol defines listener protocols for a load balancer.
+type ELBProtocol string
 
-func (e ClassicELBProtocol) String() string {
+func (e ELBProtocol) String() string {
 	return string(e)
 }
 
 var (
-	// ClassicELBProtocolTCP defines the ELB API string representing the TCP protocol.
-	ClassicELBProtocolTCP = ClassicELBProtocol("TCP")
-
-	// ClassicELBProtocolSSL defines the ELB API string representing the TLS protocol.
-	ClassicELBProtocolSSL = ClassicELBProtocol("SSL")
-
-	// ClassicELBProtocolHTTP defines the ELB API string representing the HTTP protocol at L7.
-	ClassicELBProtocolHTTP = ClassicELBProtocol("HTTP")
-
-	// ClassicELBProtocolHTTPS defines the ELB API string representing the HTTP protocol at L7.
-	ClassicELBProtocolHTTPS = ClassicELBProtocol("HTTPS")
+	// ELBProtocolTCP defines the ELB API string representing the TCP protocol.
+	ELBProtocolTCP = ELBProtocol("TCP")
+	// ELBProtocolSSL defines the ELB API string representing the TLS protocol.
+	ELBProtocolSSL = ELBProtocol("SSL")
+	// ELBProtocolHTTP defines the ELB API string representing the HTTP protocol at L7.
+	ELBProtocolHTTP = ELBProtocol("HTTP")
+	// ELBProtocolHTTPS defines the ELB API string representing the HTTP protocol at L7.
+	ELBProtocolHTTPS = ELBProtocol("HTTPS")
+	// ELBProtocolTLS defines the NLB API string representing the TLS protocol.
+	ELBProtocolTLS = ELBProtocol("TLS")
+	// ELBProtocolUDP defines the NLB API string representing the UPD protocol.
+	ELBProtocolUDP = ELBProtocol("UDP")
 )
 
-// ClassicELB defines an AWS classic load balancer.
-type ClassicELB struct {
+// TargetGroupHealthCheck defines health check settings for the target group.
+type TargetGroupHealthCheck struct {
+	Protocol        *string `json:"protocol,omitempty"`
+	Path            *string `json:"path,omitempty"`
+	Port            *string `json:"port,omitempty"`
+	IntervalSeconds *int64  `json:"intervalSeconds,omitempty"`
+	TimeoutSeconds  *int64  `json:"timeoutSeconds,omitempty"`
+	ThresholdCount  *int64  `json:"thresholdCount,omitempty"`
+}
+
+// TargetGroupAttribute defines attribute key values for V2 Load Balancer Attributes.
+type TargetGroupAttribute string
+
+var (
+	TargetGroupAttributeEnablePreserveClientIP = "preserve_client_ip.enabled"
+)
+
+// LoadBalancerAttribute defines a set of attributes for a V2 load balancer
+type LoadBalancerAttribute string
+
+var (
+	LoadBalancerAttributeEnableLoadBalancingCrossZone           = "load_balancing.cross_zone.enabled"
+	LoadBalancerAttributeIdleTimeTimeoutSeconds                 = "idle_timeout.timeout_seconds"
+	LoadBalancerAttributeIdleTimeDefaultTimeoutSecondsInSeconds = "60"
+)
+
+// TargetGroupSpec specifies target group settings for a given listener.
+// This is created first, and the ARN is then passed to the listener.
+type TargetGroupSpec struct {
+	// Name of the TargetGroup. Must be unique over the same group of listeners.
+	Name string `json:"name"`
+	// Port is the exposed port
+	Port int64 `json:"port"`
+	// +kubebuilder:validation:Enum=tcp;tls;upd
+	Protocol ELBProtocol `json:"protocol"`
+	VpcID    string      `json:"vpcId"`
+	// HealthCheck is the elb health check associated with the load balancer.
+	HealthCheck *TargetGroupHealthCheck `json:"targetGroupHealthCheck,omitempty"`
+}
+
+// Listener defines an AWS network load balancer listener.
+type Listener struct {
+	Protocol    ELBProtocol     `json:"protocol"`
+	Port        int64           `json:"port"`
+	TargetGroup TargetGroupSpec `json:"targetGroup"`
+}
+
+// LoadBalancer defines an AWS load balancer.
+type LoadBalancer struct {
+	// ARN of the load balancer. Unlike the ClassicLB, ARN is used mostly
+	// to define and get it.
+	ARN string `json:"arn,omitempty"`
 	// The name of the load balancer. It must be unique within the set of load balancers
 	// defined in the region. It also serves as identifier.
 	// +optional
@@ -80,7 +138,7 @@ type ClassicELB struct {
 	DNSName string `json:"dnsName,omitempty"`
 
 	// Scheme is the load balancer scheme, either internet-facing or private.
-	Scheme ClassicELBScheme `json:"scheme,omitempty"`
+	Scheme ELBScheme `json:"scheme,omitempty"`
 
 	// AvailabilityZones is an array of availability zones in the VPC attached to the load balancer.
 	AvailabilityZones []string `json:"availabilityZones,omitempty"`
@@ -91,26 +149,36 @@ type ClassicELB struct {
 	// SecurityGroupIDs is an array of security groups assigned to the load balancer.
 	SecurityGroupIDs []string `json:"securityGroupIds,omitempty"`
 
-	// Listeners is an array of classic elb listeners associated with the load balancer. There must be at least one.
-	Listeners []ClassicELBListener `json:"listeners,omitempty"`
+	// ClassicELBListeners is an array of classic elb listeners associated with the load balancer. There must be at least one.
+	ClassicELBListeners []ClassicELBListener `json:"listeners,omitempty"`
 
 	// HealthCheck is the classic elb health check associated with the load balancer.
 	HealthCheck *ClassicELBHealthCheck `json:"healthChecks,omitempty"`
 
-	// Attributes defines extra attributes associated with the load balancer.
-	Attributes ClassicELBAttributes `json:"attributes,omitempty"`
+	// ClassicElbAttributes defines extra attributes associated with the load balancer.
+	ClassicElbAttributes ClassicELBAttributes `json:"attributes,omitempty"`
 
 	// Tags is a map of tags associated with the load balancer.
 	Tags map[string]string `json:"tags,omitempty"`
+
+	// ELBListeners is an array of listeners associated with the load balancer. There must be at least one.
+	ELBListeners []Listener `json:"elbListeners,omitempty"`
+
+	// ELBAttributes defines extra attributes associated with v2 load balancers.
+	ELBAttributes map[string]*string `json:"elbAttributes,omitempty"`
+
+	// LoadBalancerType sets the type for a load balancer. The default type is classic.
+	// +kubebuilder:validation:Enum:=classic;elb;alb;nlb
+	LoadBalancerType LoadBalancerType `json:"loadBalancerType"`
 }
 
 // IsUnmanaged returns true if the Classic ELB is unmanaged.
-func (b *ClassicELB) IsUnmanaged(clusterName string) bool {
+func (b *LoadBalancer) IsUnmanaged(clusterName string) bool {
 	return b.Name != "" && !Tags(b.Tags).HasOwned(clusterName)
 }
 
 // IsManaged returns true if Classic ELB is managed.
-func (b *ClassicELB) IsManaged(clusterName string) bool {
+func (b *LoadBalancer) IsManaged(clusterName string) bool {
 	return !b.IsUnmanaged(clusterName)
 }
 
@@ -127,10 +195,10 @@ type ClassicELBAttributes struct {
 
 // ClassicELBListener defines an AWS classic load balancer listener.
 type ClassicELBListener struct {
-	Protocol         ClassicELBProtocol `json:"protocol"`
-	Port             int64              `json:"port"`
-	InstanceProtocol ClassicELBProtocol `json:"instanceProtocol"`
-	InstancePort     int64              `json:"instancePort"`
+	Protocol         ELBProtocol `json:"protocol"`
+	Port             int64       `json:"port"`
+	InstanceProtocol ELBProtocol `json:"instanceProtocol"`
+	InstancePort     int64       `json:"instancePort"`
 }
 
 // ClassicELBHealthCheck defines an AWS classic load balancer health check.
