@@ -250,11 +250,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*apiv1beta2.NetworkStatus)(nil), (*apiv1beta1.NetworkStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_NetworkStatus_To_v1beta1_NetworkStatus(a.(*apiv1beta2.NetworkStatus), b.(*apiv1beta1.NetworkStatus), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddConversionFunc((*v1beta2.VpcCni)(nil), (*VpcCni)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_VpcCni_To_v1beta1_VpcCni(a.(*v1beta2.VpcCni), b.(*VpcCni), scope)
 	}); err != nil {

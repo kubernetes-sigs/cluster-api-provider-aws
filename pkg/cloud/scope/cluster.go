@@ -179,11 +179,11 @@ func (s *ClusterScope) ControlPlaneLoadBalancer() *infrav1.AWSLoadBalancerSpec {
 }
 
 // ControlPlaneLoadBalancerScheme returns the Classic ELB scheme (public or internal facing).
-func (s *ClusterScope) ControlPlaneLoadBalancerScheme() infrav1.ClassicELBScheme {
+func (s *ClusterScope) ControlPlaneLoadBalancerScheme() infrav1.ELBScheme {
 	if s.ControlPlaneLoadBalancer() != nil && s.ControlPlaneLoadBalancer().Scheme != nil {
 		return *s.ControlPlaneLoadBalancer().Scheme
 	}
-	return infrav1.ClassicELBSchemeInternetFacing
+	return infrav1.ELBSchemeInternetFacing
 }
 
 func (s *ClusterScope) ControlPlaneLoadBalancerName() *string {
@@ -282,7 +282,7 @@ func (s *ClusterScope) APIServerPort() int32 {
 	if s.Cluster.Spec.ClusterNetwork != nil && s.Cluster.Spec.ClusterNetwork.APIServerPort != nil {
 		return *s.Cluster.Spec.ClusterNetwork.APIServerPort
 	}
-	return 6443
+	return infrav1.DefaultAPIServerPort
 }
 
 // SetFailureDomain sets the infrastructure provider failure domain key to the spec given as input.

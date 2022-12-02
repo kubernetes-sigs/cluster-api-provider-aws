@@ -42,7 +42,7 @@ type ELBScope interface {
 	ControlPlaneLoadBalancer() *infrav1.AWSLoadBalancerSpec
 
 	// ControlPlaneLoadBalancerScheme returns the Classic ELB scheme (public or internal facing)
-	ControlPlaneLoadBalancerScheme() infrav1.ClassicELBScheme
+	ControlPlaneLoadBalancerScheme() infrav1.ELBScheme
 
 	// ControlPlaneLoadBalancerName returns the Classic ELB name
 	ControlPlaneLoadBalancerName() *string

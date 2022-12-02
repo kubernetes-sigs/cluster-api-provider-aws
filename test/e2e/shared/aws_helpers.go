@@ -34,20 +34,12 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
 
-type LoadBalancerType string
-
-var (
-	LoadBalancerTypeELB = LoadBalancerType("elb")
-	LoadBalancerTypeALB = LoadBalancerType("alb")
-	LoadBalancerTypeNLB = LoadBalancerType("nlb")
-)
-
 type WaitForLoadBalancerToExistForServiceInput struct {
 	AWSSession       client.ConfigProvider
 	ServiceName      string
 	ServiceNamespace string
 	ClusterName      string
-	Type             LoadBalancerType
+	Type             infrav1.LoadBalancerType
 }
 
 func WaitForLoadBalancerToExistForService(input WaitForLoadBalancerToExistForServiceInput, intervals ...interface{}) {
@@ -79,7 +71,7 @@ type GetLoadBalancerARNsInput struct {
 	ServiceName      string
 	ServiceNamespace string
 	ClusterName      string
-	Type             LoadBalancerType
+	Type             infrav1.LoadBalancerType
 }
 
 func GetLoadBalancerARNs(input GetLoadBalancerARNsInput) ([]string, error) {
@@ -114,15 +106,15 @@ func GetLoadBalancerARNs(input GetLoadBalancerARNsInput) ([]string, error) {
 		}
 
 		switch input.Type {
-		case LoadBalancerTypeALB:
+		case infrav1.LoadBalancerTypeALB:
 			if strings.HasPrefix(parsedArn.Resource, "loadbalancer/app/") {
 				matchingARNs = append(matchingARNs, resARN)
 			}
-		case LoadBalancerTypeNLB:
+		case infrav1.LoadBalancerTypeNLB:
 			if strings.HasPrefix(parsedArn.Resource, "loadbalancer/net/") {
 				matchingARNs = append(matchingARNs, resARN)
 			}
-		case LoadBalancerTypeELB:
+		case infrav1.LoadBalancerTypeELB:
 			if strings.HasPrefix(parsedArn.Resource, "loadbalancer/") {
 				matchingARNs = append(matchingARNs, resARN)
 			}
