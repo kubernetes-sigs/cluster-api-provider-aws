@@ -41,8 +41,6 @@ rules:
   resources:
   - eksconfigs
   verbs:
-  - create
-  - delete
   - get
   - list
   - patch
@@ -107,7 +105,6 @@ rules:
   resources:
   - awsmanagedcontrolplanes
   verbs:
-  - create
   - delete
   - get
   - list
@@ -146,7 +143,6 @@ rules:
   resources:
   - awsclustercontrolleridentities
   verbs:
-  - create
   - get
   - list
   - watch
@@ -174,7 +170,6 @@ rules:
   resources:
   - awsclusters
   verbs:
-  - create
   - delete
   - get
   - list
@@ -194,7 +189,6 @@ rules:
   resources:
   - awsfargateprofiles
   verbs:
-  - create
   - delete
   - get
   - list
@@ -214,7 +208,6 @@ rules:
   resources:
   - awsmachinepools
   verbs:
-  - create
   - delete
   - get
   - list
@@ -243,7 +236,6 @@ rules:
   resources:
   - awsmachines
   verbs:
-  - create
   - delete
   - get
   - list
@@ -272,7 +264,6 @@ rules:
   resources:
   - awsmanagedclusters
   verbs:
-  - create
   - delete
   - get
   - list
@@ -301,7 +292,6 @@ rules:
   resources:
   - awsmanagedmachinepools
   verbs:
-  - create
   - delete
   - get
   - list
