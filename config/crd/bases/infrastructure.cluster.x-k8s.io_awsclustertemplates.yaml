@@ -578,10 +578,24 @@ spec:
                               registered instances in its Availability Zone only.
                               \n Defaults to false."
                             type: boolean
+                          disableHostsRewrite:
+                            description: DisableHostsRewrite disabled the hair pinning
+                              issue solution that adds the NLB's address as 127.0.0.1
+                              to the hosts file of each instance. This is by default,
+                              false.
+                            type: boolean
                           healthCheckProtocol:
                             description: HealthCheckProtocol sets the protocol type
-                              for classic ELB health check target default value is
-                              ClassicELBProtocolSSL
+                              for ELB health check target default value is ELBProtocolSSL
+                            type: string
+                          loadBalancerType:
+                            description: LoadBalancerType sets the type for a load
+                              balancer. The default type is classic.
+                            enum:
+                            - classic
+                            - elb
+                            - alb
+                            - nlb
                             type: string
                           name:
                             description: Name sets the name of the classic ELB load
@@ -593,6 +607,11 @@ spec:
                             maxLength: 32
                             pattern: ^[A-Za-z0-9]([A-Za-z0-9]{0,31}|[-A-Za-z0-9]{0,30}[A-Za-z0-9])$
                             type: string
+                          preserveClientIP:
+                            description: PreserveClientIP lets the user control if
+                              preservation of client ips must be retained or not.
+                              If this is enabled 6443 will be opened to 0.0.0.0/0.
+                            type: boolean
                           scheme:
                             default: internet-facing
                             description: Scheme sets the scheme of the load balancer

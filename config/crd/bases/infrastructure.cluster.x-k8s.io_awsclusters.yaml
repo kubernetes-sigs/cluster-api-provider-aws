@@ -984,9 +984,23 @@ spec:
                       registered instances in its Availability Zone only. \n Defaults
                       to false."
                     type: boolean
+                  disableHostsRewrite:
+                    description: DisableHostsRewrite disabled the hair pinning issue
+                      solution that adds the NLB's address as 127.0.0.1 to the hosts
+                      file of each instance. This is by default, false.
+                    type: boolean
                   healthCheckProtocol:
-                    description: HealthCheckProtocol sets the protocol type for classic
-                      ELB health check target default value is ClassicELBProtocolSSL
+                    description: HealthCheckProtocol sets the protocol type for ELB
+                      health check target default value is ELBProtocolSSL
+                    type: string
+                  loadBalancerType:
+                    description: LoadBalancerType sets the type for a load balancer.
+                      The default type is classic.
+                    enum:
+                    - classic
+                    - elb
+                    - alb
+                    - nlb
                     type: string
                   name:
                     description: Name sets the name of the classic ELB load balancer.
@@ -997,6 +1011,11 @@ spec:
                     maxLength: 32
                     pattern: ^[A-Za-z0-9]([A-Za-z0-9]{0,31}|[-A-Za-z0-9]{0,30}[A-Za-z0-9])$
                     type: string
+                  preserveClientIP:
+                    description: PreserveClientIP lets the user control if preservation
+                      of client ips must be retained or not. If this is enabled 6443
+                      will be opened to 0.0.0.0/0.
+                    type: boolean
                   scheme:
                     default: internet-facing
                     description: Scheme sets the scheme of the load balancer (defaults
@@ -1520,12 +1539,15 @@ spec:
                 description: NetworkStatus encapsulates AWS networking resources.
                 properties:
                   apiServerElb:
-                    description: APIServerELB is the Kubernetes api server classic
-                      load balancer.
+                    description: APIServerELB is the Kubernetes api server load balancer.
                     properties:
+                      arn:
+                        description: ARN of the load balancer. Unlike the ClassicLB,
+                          ARN is used mostly to define and get it.
+                        type: string
                       attributes:
-                        description: Attributes defines extra attributes associated
-                          with the load balancer.
+                        description: ClassicElbAttributes defines extra attributes
+                          associated with the load balancer.
                         properties:
                           crossZoneLoadBalancing:
                             description: CrossZoneLoadBalancing enables the classic
@@ -1547,6 +1569,81 @@ spec:
                       dnsName:
                         description: DNSName is the dns name of the load balancer.
                         type: string
+                      elbAttributes:
+                        additionalProperties:
+                          type: string
+                        description: ELBAttributes defines extra attributes associated
+                          with v2 load balancers.
+                        type: object
+                      elbListeners:
+                        description: ELBListeners is an array of listeners associated
+                          with the load balancer. There must be at least one.
+                        items:
+                          description: Listener defines an AWS network load balancer
+                            listener.
+                          properties:
+                            port:
+                              format: int64
+                              type: integer
+                            protocol:
+                              description: ELBProtocol defines listener protocols
+                                for a load balancer.
+                              type: string
+                            targetGroup:
+                              description: TargetGroupSpec specifies target group
+                                settings for a given listener. This is created first,
+                                and the ARN is then passed to the listener.
+                              properties:
+                                name:
+                                  description: Name of the TargetGroup. Must be unique
+                                    over the same group of listeners.
+                                  type: string
+                                port:
+                                  description: Port is the exposed port
+                                  format: int64
+                                  type: integer
+                                protocol:
+                                  description: ELBProtocol defines listener protocols
+                                    for a load balancer.
+                                  enum:
+                                  - tcp
+                                  - tls
+                                  - upd
+                                  type: string
+                                targetGroupHealthCheck:
+                                  description: HealthCheck is the elb health check
+                                    associated with the load balancer.
+                                  properties:
+                                    intervalSeconds:
+                                      format: int64
+                                      type: integer
+                                    path:
+                                      type: string
+                                    port:
+                                      type: string
+                                    protocol:
+                                      type: string
+                                    thresholdCount:
+                                      format: int64
+                                      type: integer
+                                    timeoutSeconds:
+                                      format: int64
+                                      type: integer
+                                  type: object
+                                vpcId:
+                                  type: string
+                              required:
+                              - name
+                              - port
+                              - protocol
+                              - vpcId
+                              type: object
+                          required:
+                          - port
+                          - protocol
+                          - targetGroup
+                          type: object
+                        type: array
                       healthChecks:
                         description: HealthCheck is the classic elb health check associated
                           with the load balancer.
@@ -1581,9 +1678,9 @@ spec:
                         - unhealthyThreshold
                         type: object
                       listeners:
-                        description: Listeners is an array of classic elb listeners
-                          associated with the load balancer. There must be at least
-                          one.
+                        description: ClassicELBListeners is an array of classic elb
+                          listeners associated with the load balancer. There must
+                          be at least one.
                         items:
                           description: ClassicELBListener defines an AWS classic load
                             balancer listener.
@@ -1592,15 +1689,15 @@ spec:
                               format: int64
                               type: integer
                             instanceProtocol:
-                              description: ClassicELBProtocol defines listener protocols
-                                for a classic load balancer.
+                              description: ELBProtocol defines listener protocols
+                                for a load balancer.
                               type: string
                             port:
                               format: int64
                               type: integer
                             protocol:
-                              description: ClassicELBProtocol defines listener protocols
-                                for a classic load balancer.
+                              description: ELBProtocol defines listener protocols
+                                for a load balancer.
                               type: string
                           required:
                           - instancePort
@@ -1609,6 +1706,15 @@ spec:
                           - protocol
                           type: object
                         type: array
+                      loadBalancerType:
+                        description: LoadBalancerType sets the type for a load balancer.
+                          The default type is classic.
+                        enum:
+                        - classic
+                        - elb
+                        - alb
+                        - nlb
+                        type: string
                       name:
                         description: The name of the load balancer. It must be unique
                           within the set of load balancers defined in the region.
@@ -1636,6 +1742,8 @@ spec:
                         description: Tags is a map of tags associated with the load
                           balancer.
                         type: object
+                    required:
+                    - loadBalancerType
                     type: object
                   securityGroups:
                     additionalProperties:

@@ -73,7 +73,7 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 		elbMock := mocks.NewMockELBAPI(mockCtrl)
 		expect := func(m *mocks.MockEC2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedCreateVPCCalls(m)
-			mockedCreateSGCalls(m)
+			mockedCreateSGCalls(false, m)
 			mockedCreateLBCalls(t, e)
 			mockedDescribeInstanceCall(m)
 		}
@@ -85,6 +85,9 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 
 		awsCluster := getAWSCluster("test", ns.Name)
+		awsCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
+			LoadBalancerType: infrav1.LoadBalancerTypeClassic,
+		}
 
 		g.Expect(testEnv.Create(ctx, &awsCluster)).To(Succeed())
 		g.Eventually(func() bool {
@@ -159,6 +162,106 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 			{conditionType: infrav1.SubnetsReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
 		})
 	})
+	t.Run("Should successfully reconcile AWSCluster creation with unmanaged VPC and a network type load balancer", func(t *testing.T) {
+		g := NewWithT(t)
+		mockCtrl = gomock.NewController(t)
+		ec2Mock := mocks.NewMockEC2API(mockCtrl)
+		elbv2Mock := mocks.NewMockELBV2API(mockCtrl)
+
+		setup(t)
+		controllerIdentity := createControllerIdentity(g)
+		ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("integ-test-%s", util.RandomString(5)))
+		g.Expect(err).To(BeNil())
+
+		awsCluster := getAWSCluster("test", ns.Name)
+		awsCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
+			LoadBalancerType: infrav1.LoadBalancerTypeNLB,
+			// Overwrite here because otherwise it's longer than 32, and we'll get a hashed name.
+			Name: aws.String("test-cluster-apiserver"),
+		}
+
+		expect := func(m *mocks.MockEC2APIMockRecorder, e *mocks.MockELBV2APIMockRecorder) {
+			mockedCreateVPCCalls(m)
+			mockedCreateSGCalls(true, m)
+			mockedCreateLBV2Calls(t, e)
+			mockedDescribeInstanceCall(m)
+		}
+		expect(ec2Mock.EXPECT(), elbv2Mock.EXPECT())
+
+		g.Expect(testEnv.Create(ctx, &awsCluster)).To(Succeed())
+		g.Eventually(func() bool {
+			cluster := &infrav1.AWSCluster{}
+			key := client.ObjectKey{
+				Name:      awsCluster.Name,
+				Namespace: ns.Name,
+			}
+			err := testEnv.Get(ctx, key, cluster)
+			return err == nil
+		}, 10*time.Second).Should(Equal(true))
+
+		defer teardown()
+		defer t.Cleanup(func() {
+			g.Expect(testEnv.Cleanup(ctx, &awsCluster, controllerIdentity, ns)).To(Succeed())
+		})
+
+		cs, err := getClusterScope(awsCluster)
+		cs.Cluster.Namespace = ns.Name
+		g.Expect(err).To(BeNil())
+		networkSvc := network.NewService(cs)
+		networkSvc.EC2Client = ec2Mock
+		reconciler.networkServiceFactory = func(clusterScope scope.ClusterScope) services.NetworkInterface {
+			return networkSvc
+		}
+
+		ec2Svc := ec2Service.NewService(cs)
+		ec2Svc.EC2Client = ec2Mock
+		reconciler.ec2ServiceFactory = func(scope scope.EC2Scope) services.EC2Interface {
+			return ec2Svc
+		}
+		testSecurityGroupRoles := []infrav1.SecurityGroupRole{
+			infrav1.SecurityGroupBastion,
+			infrav1.SecurityGroupAPIServerLB,
+			infrav1.SecurityGroupLB,
+			infrav1.SecurityGroupControlPlane,
+			infrav1.SecurityGroupNode,
+		}
+		sgSvc := securitygroup.NewService(cs, testSecurityGroupRoles)
+		sgSvc.EC2Client = ec2Mock
+
+		reconciler.securityGroupFactory = func(clusterScope scope.ClusterScope) services.SecurityGroupInterface {
+			return sgSvc
+		}
+		elbSvc := elbService.NewService(cs)
+		elbSvc.EC2Client = ec2Mock
+		elbSvc.ELBV2Client = elbv2Mock
+
+		reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
+			return elbSvc
+		}
+		cs.SetSubnets([]infrav1.SubnetSpec{
+			{
+				ID:               "subnet-2",
+				AvailabilityZone: "us-east-1c",
+				IsPublic:         true,
+				CidrBlock:        "10.0.11.0/24",
+			},
+			{
+				ID:               "subnet-1",
+				AvailabilityZone: "us-east-1a",
+				CidrBlock:        "10.0.10.0/24",
+				IsPublic:         false,
+			},
+		})
+		_, err = reconciler.reconcileNormal(cs)
+		g.Expect(err).To(BeNil())
+		g.Expect(cs.VPC().ID).To(Equal("vpc-exists"))
+		expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{
+			{conditionType: infrav1.ClusterSecurityGroupsReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
+			{conditionType: infrav1.BastionHostReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
+			{conditionType: infrav1.VpcReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
+			{conditionType: infrav1.SubnetsReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
+		})
+	})
 	t.Run("Should fail on AWSCluster reconciliation if VPC limit exceeded", func(t *testing.T) {
 		// Assuming the max VPC limit is 2 and when two VPCs are created, the creation of 3rd VPC throws mocked error from EC2 API
 		g := NewWithT(t)
@@ -180,6 +283,9 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 			},
 			Spec: infrav1.AWSClusterSpec{
 				Region: "us-east-1",
+				ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+					LoadBalancerType: infrav1.LoadBalancerTypeClassic,
+				},
 			},
 		}
 		g.Expect(testEnv.Create(ctx, &awsCluster)).To(Succeed())
@@ -285,14 +391,15 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 		mockCtrl = gomock.NewController(t)
 		ec2Mock := mocks.NewMockEC2API(mockCtrl)
 		elbMock := mocks.NewMockELBAPI(mockCtrl)
-		expect := func(m *mocks.MockEC2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
+		elbv2Mock := mocks.NewMockELBV2API(mockCtrl)
+		expect := func(m *mocks.MockEC2APIMockRecorder, ev2 *mocks.MockELBV2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedDeleteVPCCalls(m)
 			mockedDescribeInstanceCall(m)
-			mockedDeleteLBCalls(e)
+			mockedDeleteLBCalls(true, ev2, e)
 			mockedDeleteInstanceCalls(m)
 			mockedDeleteSGCalls(m)
 		}
-		expect(ec2Mock.EXPECT(), elbMock.EXPECT())
+		expect(ec2Mock.EXPECT(), elbv2Mock.EXPECT(), elbMock.EXPECT())
 
 		setup(t)
 		controllerIdentity := createControllerIdentity(g)
@@ -334,6 +441,7 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 		elbSvc := elbService.NewService(cs)
 		elbSvc.EC2Client = ec2Mock
 		elbSvc.ELBClient = elbMock
+		elbSvc.ELBV2Client = elbv2Mock
 		reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
 			return elbSvc
 		}
@@ -391,12 +499,12 @@ func mockedDescribeInstanceCall(m *mocks.MockEC2APIMockRecorder) {
 	m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			{
-				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/role"),
 				Values: aws.StringSlice([]string{"bastion"}),
 			},
 			{
 				Name:   aws.String("tag-key"),
-				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"}),
+				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
 			},
 			{
 				Name:   aws.String("instance-state-name"),
@@ -496,11 +604,11 @@ func mockedCreateVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 				Value: aws.String("1"),
 			},
 			{
-				Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+				Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 				Value: aws.String("owned"),
 			},
 			{
-				Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+				Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 				Value: aws.String("public"),
 			},
 		},
@@ -526,11 +634,11 @@ func mockedCreateVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 						Value: aws.String("1"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 						Value: aws.String("owned"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 						Value: aws.String("public"),
 					},
 				},
@@ -545,11 +653,11 @@ func mockedCreateVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 			MapPublicIpOnLaunch: aws.Bool(false),
 			Tags: []*ec2.Tag{
 				{
-					Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+					Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 					Value: aws.String("owned"),
 				},
 				{
-					Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+					Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 					Value: aws.String("public"),
 				},
 				{
@@ -590,11 +698,11 @@ func mockedCreateVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 				MapPublicIpOnLaunch: aws.Bool(false),
 				Tags: []*ec2.Tag{
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 						Value: aws.String("owned"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 						Value: aws.String("public"),
 					},
 					{
@@ -656,7 +764,7 @@ func mockedCreateVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 					CidrBlock: aws.String("10.0.0.0/8"),
 					Tags: []*ec2.Tag{
 						{
-							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 							Value: aws.String("common"),
 						},
 						{
@@ -735,7 +843,7 @@ func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 			},
 			{
 				Name:   aws.String("tag-key"),
-				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"}),
+				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
 			},
 		}})).Return(&ec2.DescribeRouteTablesOutput{
 		RouteTables: []*ec2.RouteTable{
@@ -789,7 +897,7 @@ func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 		Filters: []*ec2.Filter{
 			{
 				Name:   aws.String("tag-key"),
-				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"}),
+				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
 			}},
 	})).Return(&ec2.DescribeAddressesOutput{
 		Addresses: []*ec2.Address{
@@ -825,7 +933,7 @@ func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 					CidrBlock: aws.String("10.0.0.0/8"),
 					Tags: []*ec2.Tag{
 						{
-							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 							Value: aws.String("common"),
 						},
 						{
@@ -833,7 +941,7 @@ func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 							Value: aws.String("test-cluster"),
 						},
 						{
-							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 							Value: aws.String("owned"),
 						},
 					},
@@ -848,7 +956,7 @@ func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 	}))
 }
 
-func mockedCreateSGCalls(m *mocks.MockEC2APIMockRecorder) {
+func mockedCreateSGCalls(recordLBV2 bool, m *mocks.MockEC2APIMockRecorder) {
 	m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{
 		Filters: []*ec2.Filter{
 			{
@@ -857,7 +965,7 @@ func mockedCreateSGCalls(m *mocks.MockEC2APIMockRecorder) {
 			},
 			{
 				Name:   aws.String("tag-key"),
-				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"}),
+				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
 			},
 		},
 	})).Return(
@@ -882,11 +990,11 @@ func mockedCreateSGCalls(m *mocks.MockEC2APIMockRecorder) {
 						Value: aws.String("test-cluster-bastion"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 						Value: aws.String("owned"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 						Value: aws.String("bastion"),
 					},
 				},
@@ -907,11 +1015,11 @@ func mockedCreateSGCalls(m *mocks.MockEC2APIMockRecorder) {
 						Value: aws.String("test-cluster-apiserver-lb"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 						Value: aws.String("owned"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 						Value: aws.String("apiserver-lb"),
 					},
 				},
@@ -936,11 +1044,11 @@ func mockedCreateSGCalls(m *mocks.MockEC2APIMockRecorder) {
 						Value: aws.String("owned"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 						Value: aws.String("owned"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 						Value: aws.String("lb"),
 					},
 				},
@@ -961,11 +1069,11 @@ func mockedCreateSGCalls(m *mocks.MockEC2APIMockRecorder) {
 						Value: aws.String("test-cluster-controlplane"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 						Value: aws.String("owned"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 						Value: aws.String("controlplane"),
 					},
 				},
@@ -986,11 +1094,11 @@ func mockedCreateSGCalls(m *mocks.MockEC2APIMockRecorder) {
 						Value: aws.String("test-cluster-node"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/cluster/test-cluster"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 						Value: aws.String("owned"),
 					},
 					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/v2/role"),
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 						Value: aws.String("node"),
 					},
 				},
@@ -1008,4 +1116,11 @@ func mockedCreateSGCalls(m *mocks.MockEC2APIMockRecorder) {
 	})).
 		Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil).
 		After(securityGroupNode).Times(2)
+	if recordLBV2 {
+		m.AuthorizeSecurityGroupIngress(gomock.AssignableToTypeOf(&ec2.AuthorizeSecurityGroupIngressInput{
+			GroupId: aws.String("sg-lb"),
+		})).
+			Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil).
+			After(securityGroupNode).Times(1)
+	}
 }

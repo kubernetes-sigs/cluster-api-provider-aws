@@ -92,7 +92,7 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 	}
 	if oldC.Spec.ControlPlaneLoadBalancer == nil {
 		// If old scheme was nil, the only value accepted here is the default value: internet-facing
-		if newLoadBalancer.Scheme != nil && newLoadBalancer.Scheme.String() != ClassicELBSchemeInternetFacing.String() {
+		if newLoadBalancer.Scheme != nil && newLoadBalancer.Scheme.String() != ELBSchemeInternetFacing.String() {
 			allErrs = append(allErrs,
 				field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "scheme"),
 					r.Spec.ControlPlaneLoadBalancer.Scheme, "field is immutable, default value was set to internet-facing"),
@@ -117,7 +117,7 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 		}
 	}
 
-	// Block the update for HealthCheckProtocol :
+	// Block the update for Protocol :
 	// - if it was not set in old spec but added in new spec
 	// - if it was set in old spec but changed in new spec
 	if !cmp.Equal(newLoadBalancer.HealthCheckProtocol, existingLoadBalancer.HealthCheckProtocol) {

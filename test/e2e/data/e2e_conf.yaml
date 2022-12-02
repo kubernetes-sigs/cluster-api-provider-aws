@@ -27,19 +27,19 @@ images:
     loadBehavior: tryLoad
   - name: quay.io/jetstack/cert-manager-controller:v1.7.2
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.2.6
+  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.2.7
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.2.6
+  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.2.7
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.2.6
+  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.2.7
     loadBehavior: tryLoad
 
 providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v1.2.6 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.6/core-components.yaml"
+      - name: v1.2.7 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.7/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -54,8 +54,8 @@ providers:
     files:
       - sourcePath: "./shared/v1beta1/metadata.yaml"
     versions:
-      - name: v1.2.6 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.6/bootstrap-components.yaml"
+      - name: v1.2.7 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.7/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -70,8 +70,8 @@ providers:
     files:
       - sourcePath: "./shared/v1beta1/metadata.yaml"
     versions:
-      - name: v1.2.6 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.6/control-plane-components.yaml"
+      - name: v1.2.7 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.7/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -158,7 +158,7 @@ variables:
   AWS_SSH_KEY_NAME: "cluster-api-provider-aws-sigs-k8s-io"
   CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.24.4"
   CONFORMANCE_WORKER_MACHINE_COUNT: "5"
-  CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT: "1"
+  CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT: "3"
   ETCD_VERSION_UPGRADE_TO: "3.5.3-0"
   COREDNS_VERSION_UPGRADE_TO: "v1.8.6"
   MULTI_TENANCY_ROLE_NAME: "multi-tenancy-role"
