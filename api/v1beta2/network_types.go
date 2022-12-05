@@ -169,7 +169,7 @@ type LoadBalancer struct {
 
 	// LoadBalancerType sets the type for a load balancer. The default type is classic.
 	// +kubebuilder:validation:Enum:=classic;elb;alb;nlb
-	LoadBalancerType LoadBalancerType `json:"loadBalancerType"`
+	LoadBalancerType LoadBalancerType `json:"loadBalancerType,omitempty"`
 }
 
 // IsUnmanaged returns true if the Classic ELB is unmanaged.
