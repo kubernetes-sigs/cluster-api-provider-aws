@@ -43,6 +43,21 @@ spec:
         cidrBlock: "2009:1234:ff00::/56"
 ```
 
+If you have a VPC that is IPv6 enabled and you would like to use it, please define it in the config:
+
+```yaml
+spec:
+  network:
+    vpc:
+      ipv6: {}
+```
+
+This has to be done explicitly because otherwise, it would break in the following two scenarios:
+- During an upgrade from 1.5 to >=2.0 where the VPC is ipv6 enabled, but CAPA was only recently made aware
+- During a migration on the VPC, switching it from only IPv4 to Dual Stack ( it would see that ipv6 is enabled and
+  enforce it while doing that would not have been the intention of the user )
+
+
 ### Requirements
 
 The use of a Nitro enabled instance is required. To see a list of nitro instances in your region
