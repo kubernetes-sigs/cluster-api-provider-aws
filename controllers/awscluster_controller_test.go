@@ -262,15 +262,22 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 			{conditionType: infrav1.SubnetsReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
 		})
 	})
+
 	t.Run("Should fail on AWSCluster reconciliation if VPC limit exceeded", func(t *testing.T) {
 		// Assuming the max VPC limit is 2 and when two VPCs are created, the creation of 3rd VPC throws mocked error from EC2 API
 		g := NewWithT(t)
 		mockCtrl = gomock.NewController(t)
 		ec2Mock := mocks.NewMockEC2API(mockCtrl)
-		expect := func(m *mocks.MockEC2APIMockRecorder) {
+		elbv2Mock := mocks.NewMockELBV2API(mockCtrl)
+		elbMock := mocks.NewMockELBAPI(mockCtrl)
+		expect := func(m *mocks.MockEC2APIMockRecorder, ev2 *mocks.MockELBV2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedCreateMaximumVPCCalls(m)
+			mockedDeleteVPCCallsForNonExistentVPC(m)
+			mockedDeleteLBCalls(true, ev2, e)
+			mockedDescribeInstanceCall(m)
+			mockedDeleteInstanceCalls(m)
 		}
-		expect(ec2Mock.EXPECT())
+		expect(ec2Mock.EXPECT(), elbv2Mock.EXPECT(), elbMock.EXPECT())
 
 		setup(t)
 		controllerIdentity := createControllerIdentity(g)
@@ -283,9 +290,6 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 			},
 			Spec: infrav1.AWSClusterSpec{
 				Region: "us-east-1",
-				ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
-					LoadBalancerType: infrav1.LoadBalancerTypeClassic,
-				},
 			},
 		}
 		g.Expect(testEnv.Create(ctx, &awsCluster)).To(Succeed())
@@ -305,14 +309,32 @@ func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
 		})
 		cs, err := getClusterScope(awsCluster)
 		g.Expect(err).To(BeNil())
-		s := network.NewService(cs)
-		s.EC2Client = ec2Mock
 
+		networkSvc := network.NewService(cs)
+		networkSvc.EC2Client = ec2Mock
 		reconciler.networkServiceFactory = func(clusterScope scope.ClusterScope) services.NetworkInterface {
-			return s
+			return networkSvc
 		}
+
+		elbSvc := elbService.NewService(cs)
+		elbSvc.EC2Client = ec2Mock
+		elbSvc.ELBClient = elbMock
+		elbSvc.ELBV2Client = elbv2Mock
+		reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
+			return elbSvc
+		}
+
+		ec2Svc := ec2Service.NewService(cs)
+		ec2Svc.EC2Client = ec2Mock
+		reconciler.ec2ServiceFactory = func(ec2Scope scope.EC2Scope) services.EC2Interface {
+			return ec2Svc
+		}
+
 		_, err = reconciler.reconcileNormal(cs)
 		g.Expect(err.Error()).To(ContainSubstring("The maximum number of VPCs has been reached"))
+
+		_, err = reconciler.reconcileDelete(ctx, cs)
+		g.Expect(err).To(BeNil())
 	})
 	t.Run("Should successfully delete AWSCluster with managed VPC", func(t *testing.T) {
 		g := NewWithT(t)
@@ -708,6 +730,60 @@ func mockedCreateVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 
 func mockedCreateMaximumVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 	m.CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(nil, errors.New("The maximum number of VPCs has been reached"))
+}
+
+func mockedDeleteVPCCallsForNonExistentVPC(m *mocks.MockEC2APIMockRecorder) {
+	m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("state"),
+				Values: aws.StringSlice([]string{ec2.VpcStatePending, ec2.VpcStateAvailable}),
+			},
+			{
+				Name:   aws.String("tag-key"),
+				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
+			},
+		}})).Return(&ec2.DescribeSubnetsOutput{
+		Subnets: []*ec2.Subnet{},
+	}, nil).AnyTimes()
+	m.DescribeRouteTables(gomock.Eq(&ec2.DescribeRouteTablesInput{
+		Filters: []*ec2.Filter{{
+			Name:   aws.String("vpc-id"),
+			Values: aws.StringSlice([]string{""}),
+		},
+			{
+				Name:   aws.String("tag-key"),
+				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
+			},
+		}})).Return(&ec2.DescribeRouteTablesOutput{
+		RouteTables: []*ec2.RouteTable{}}, nil).AnyTimes()
+	m.DescribeInternetGateways(gomock.Eq(&ec2.DescribeInternetGatewaysInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("attachment.vpc-id"),
+				Values: aws.StringSlice([]string{""}),
+			},
+		},
+	})).Return(&ec2.DescribeInternetGatewaysOutput{
+		InternetGateways: []*ec2.InternetGateway{},
+	}, nil)
+	m.DescribeNatGatewaysPages(gomock.Eq(&ec2.DescribeNatGatewaysInput{
+		Filter: []*ec2.Filter{
+			{
+				Name:   aws.String("vpc-id"),
+				Values: []*string{aws.String("")},
+			},
+		},
+	}), gomock.Any()).Return(nil).AnyTimes()
+	m.DescribeAddresses(gomock.Eq(&ec2.DescribeAddressesInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("tag-key"),
+				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
+			}},
+	})).Return(nil, nil)
+	m.DeleteVpc(gomock.AssignableToTypeOf(&ec2.DeleteVpcInput{
+		VpcId: aws.String("vpc-exists")})).Return(nil, nil)
 }
 
 func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
