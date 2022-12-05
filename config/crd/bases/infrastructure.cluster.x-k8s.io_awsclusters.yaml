@@ -1742,8 +1742,6 @@ spec:
                         description: Tags is a map of tags associated with the load
                           balancer.
                         type: object
-                    required:
-                    - loadBalancerType
                     type: object
                   securityGroups:
                     additionalProperties:
