@@ -21,12 +21,13 @@ package shared
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path"
 
 	"github.com/awslabs/goformation/v4/cloudformation"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"gopkg.in/yaml.v2"
 
@@ -199,7 +200,7 @@ func getBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 // ApplyTemplate will render a cluster template and apply it to the management cluster.
 func ApplyTemplate(ctx context.Context, configCluster clusterctl.ConfigClusterInput, clusterProxy framework.ClusterProxy) error {
 	workloadClusterTemplate := GetTemplate(ctx, configCluster)
-	Byf("Applying the %s cluster template yaml to the cluster", configCluster.Flavor)
+	By(fmt.Sprintf("Applying the %s cluster template yaml to the cluster", configCluster.Flavor))
 	return clusterProxy.Apply(ctx, workloadClusterTemplate)
 }
 
@@ -207,7 +208,7 @@ func ApplyTemplate(ctx context.Context, configCluster clusterctl.ConfigClusterIn
 func GetTemplate(ctx context.Context, configCluster clusterctl.ConfigClusterInput) []byte {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for ApplyClusterTemplateAndWait")
 
-	Byf("Getting the cluster template yaml")
+	By("Getting the cluster template yaml")
 	workloadClusterTemplate := clusterctl.ConfigCluster(ctx, clusterctl.ConfigClusterInput{
 		KubeconfigPath:           configCluster.KubeconfigPath,
 		ClusterctlConfigPath:     configCluster.ClusterctlConfigPath,

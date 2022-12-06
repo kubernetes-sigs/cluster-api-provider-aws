@@ -21,12 +21,13 @@ package managed
 
 import (
 	"context"
+	"fmt"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 )
@@ -37,7 +38,7 @@ type deleteMachineDeploymentInput struct {
 }
 
 func deleteMachineDeployment(ctx context.Context, input deleteMachineDeploymentInput) {
-	shared.Byf("Deleting machine deployment %s", input.MachineDeployment.Name)
+	By(fmt.Sprintf("Deleting machine deployment %s", input.MachineDeployment.Name))
 	Expect(input.Deleter.Delete(ctx, input.MachineDeployment)).To(Succeed())
 }
 
@@ -47,7 +48,7 @@ type waitForMachineDeploymentDeletedInput struct {
 }
 
 func waitForMachineDeploymentDeleted(ctx context.Context, input waitForMachineDeploymentDeletedInput, intervals ...interface{}) {
-	shared.Byf("Waiting for machine deployment %s to be deleted", input.MachineDeployment.GetName())
+	By(fmt.Sprintf("Waiting for machine deployment %s to be deleted", input.MachineDeployment.GetName()))
 	Eventually(func() bool {
 		mp := &clusterv1.MachineDeployment{}
 		key := client.ObjectKey{
@@ -66,7 +67,7 @@ type waitForMachineDeletedInput struct {
 }
 
 func waitForMachineDeleted(ctx context.Context, input waitForMachineDeletedInput, intervals ...interface{}) {
-	shared.Byf("Waiting for machine %s to be deleted", input.Machine.GetName())
+	By(fmt.Sprintf("Waiting for machine %s to be deleted", input.Machine.GetName()))
 	Eventually(func() bool {
 		mp := &clusterv1.Machine{}
 		key := client.ObjectKey{

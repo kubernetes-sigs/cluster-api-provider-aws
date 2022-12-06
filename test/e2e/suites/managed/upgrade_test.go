@@ -23,7 +23,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 
@@ -36,7 +36,7 @@ import (
 // EKS cluster upgrade tests.
 var _ = ginkgo.Describe("EKS Cluster upgrade test", func() {
 	const (
-		initialVersion   = "v1.22.4"
+		initialVersion   = "v1.23.6"
 		upgradeToVersion = "v1.24.4"
 	)
 	var (
@@ -76,7 +76,7 @@ var _ = ginkgo.Describe("EKS Cluster upgrade test", func() {
 		})
 
 		// TODO: should cluster be returned from the ManagedClusterSpec as a convenience
-		shared.Byf("getting cluster with name %s", clusterName)
+		ginkgo.By(fmt.Sprintf("getting cluster with name %s", clusterName))
 		cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
 			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Namespace: namespace.Name,
@@ -93,7 +93,7 @@ var _ = ginkgo.Describe("EKS Cluster upgrade test", func() {
 		// }, e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes")...)
 		// Expect(len(mp)).To(Equal(1))
 
-		shared.Byf("should upgrade control plane to version %s", upgradeToVersion)
+		ginkgo.By(fmt.Sprintf("should upgrade control plane to version %s", upgradeToVersion))
 		UpgradeControlPlaneVersionSpec(ctx, func() UpgradeControlPlaneVersionSpecInput {
 			return UpgradeControlPlaneVersionSpecInput{
 				E2EConfig:             e2eCtx.E2EConfig,

@@ -23,7 +23,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 
@@ -92,7 +92,7 @@ var _ = ginkgo.Describe("[managed] [legacy] EKS cluster tests - single kind", fu
 			}
 		})
 
-		shared.Byf("getting cluster with name %s", clusterName)
+		ginkgo.By(fmt.Sprintf("getting cluster with name %s", clusterName))
 		cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
 			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Namespace: namespace.Name,
