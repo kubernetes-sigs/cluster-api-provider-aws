@@ -245,7 +245,7 @@ type cachingClient struct {
 	updateChain []client.Object
 }
 
-func (c *cachingClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+func (c *cachingClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	if _, ok := obj.(*v1.DaemonSet); ok {
 		daemonset, _ := obj.(*v1.DaemonSet)
 		*daemonset = *c.getValue.(*v1.DaemonSet)
