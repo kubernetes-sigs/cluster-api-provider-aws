@@ -15,7 +15,7 @@
 1. Set environment variable `GITHUB_TOKEN` to a GitHub personal access token. The token must have write access to the `kubernetes-sigs/cluster-api-provider-aws` repository.
 1. Set environment variables `PREVIOUS_VERSION` which is the last release tag and `VERSION` which is the current release version, e.g. `export PREVIOUS_VERSION=v1.4.0 VERSION=v1.5.0`, or `export PREVIOUS_VERSION=v1.5.0 VERSION=v1.5.1`).
 1. Create a tag `git tag -s -m $VERSION $VERSION`. `-s` flag is for GNU Privacy Guard (GPG) signing.
-1. Push tag you've just created (`git push origin $VERSION`).
+1. Make sure you have push permissions to the upstream CAPA repo. Push tag you've just created (`git push <upstream-repo-remote> $VERSION`).
 1. A prow job will start running to push images to the staging repo, can be seen [here](https://testgrid.k8s.io/sig-cluster-lifecycle-image-pushes#post-cluster-api-provider-aws-push-images). The job is called "post-cluster-api-provider-aws-push-images," and is defined in <https://github.com/kubernetes/test-infra/blob/master/config/jobs/image-pushing/k8s-staging-cluster-api.yaml>.
 1. When the job is finished, wait for the images to be created: `docker pull gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller:$VERSION`. You can also wrap this with a command to retry periodically, until the job is complete, e.g. `watch --interval 30 --chgexit docker pull <...>`.
 
