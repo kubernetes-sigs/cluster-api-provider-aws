@@ -36,6 +36,7 @@ import (
 
 const (
 	defaultSSHKeyName = "default"
+	defaultUsGovPartitionName = "us-gov"
 )
 
 var (
@@ -76,7 +77,7 @@ func (s *Service) ReconcileBastion() error {
 				return errors.Wrap(err, "failed to patch conditions")
 			}
 		}
-		defaultBastion, err := s.getDefaultBastion(s.scope.Bastion().InstanceType, s.scope.Bastion().AMI)
+		defaultBastion, err := s.getDefaultBastion(s.scope.Bastion().InstanceType, s.scope.Bastion().AMI, instance)
 		if err != nil {
 			record.Warnf(s.scope.InfraCluster(), "FailedFetchingBastion", "Failed to fetch default bastion instance: %v", err)
 			return err
@@ -166,7 +167,7 @@ func (s *Service) describeBastionInstance() (*infrav1.Instance, error) {
 	return nil, awserrors.NewNotFound("bastion host not found")
 }
 
-func (s *Service) getDefaultBastion(instanceType, ami string) (*infrav1.Instance, error) {
+func (s *Service) getDefaultBastion(instanceType, ami string, instance *infrav1.Instance) (*infrav1.Instance, error) {
 	name := fmt.Sprintf("%s-bastion", s.scope.Name())
 	userData, _ := userdata.NewBastion(&userdata.BastionInput{})
 
@@ -186,9 +187,10 @@ func (s *Service) getDefaultBastion(instanceType, ami string) (*infrav1.Instance
 		}
 	}
 
+	region := s.scope.Region()
 	if ami == "" {
 		var err error
-		ami, err = s.defaultBastionAMILookup()
+		ami, err = s.defaultBastionAMILookup(region)
 		if err != nil {
 			return nil, err
 		}

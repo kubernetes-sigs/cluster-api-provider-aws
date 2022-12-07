@@ -242,10 +242,10 @@ func (s *Service) bucketPolicy(bucketName string) (string, error) {
 			Sid:    "control-plane",
 			Effect: iam.EffectAllow,
 			Principal: map[iam.PrincipalType]iam.PrincipalID{
-				iam.PrincipalAWS: []string{fmt.Sprintf("arn:aws:iam::%s:role/%s", *accountID.Account, bucket.ControlPlaneIAMInstanceProfile)},
+				iam.PrincipalAWS: []string{fmt.Sprintf("arn:*:iam::%s:role/%s", *accountID.Account, bucket.ControlPlaneIAMInstanceProfile)},
 			},
 			Action:   []string{"s3:GetObject"},
-			Resource: []string{fmt.Sprintf("arn:aws:s3:::%s/control-plane/*", bucketName)},
+			Resource: []string{fmt.Sprintf("arn:*:s3:::%s/control-plane/*", bucketName)},
 		},
 	}
 
@@ -254,10 +254,10 @@ func (s *Service) bucketPolicy(bucketName string) (string, error) {
 			Sid:    iamInstanceProfile,
 			Effect: iam.EffectAllow,
 			Principal: map[iam.PrincipalType]iam.PrincipalID{
-				iam.PrincipalAWS: []string{fmt.Sprintf("arn:aws:iam::%s:role/%s", *accountID.Account, iamInstanceProfile)},
+				iam.PrincipalAWS: []string{fmt.Sprintf("arn:*:iam::%s:role/%s", *accountID.Account, iamInstanceProfile)},
 			},
 			Action:   []string{"s3:GetObject"},
-			Resource: []string{fmt.Sprintf("arn:aws:s3:::%s/node/*", bucketName)},
+			Resource: []string{fmt.Sprintf("arn:*:s3:::%s/node/*", bucketName)},
 		})
 	}
 

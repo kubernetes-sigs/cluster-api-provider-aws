@@ -48,7 +48,7 @@ func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
 		return fmt.Errorf("getting aws-iam-authenticator backend: %w", err)
 	}
 
-	roleARN := fmt.Sprintf("arn:aws:iam::%s:role/nodes%s", accountID, iamv1.DefaultNameSuffix)
+	roleARN := fmt.Sprintf("arn:*:iam::%s:role/nodes%s", accountID, iamv1.DefaultNameSuffix)
 	nodesRoleMapping := ekscontrolplanev1.RoleMapping{
 		RoleARN: roleARN,
 		KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
