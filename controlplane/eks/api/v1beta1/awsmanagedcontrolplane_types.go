@@ -17,15 +17,19 @@ limitations under the License.
 package v1beta1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const (
 	// ManagedControlPlaneFinalizer allows the controller to clean up resources on delete.
 	ManagedControlPlaneFinalizer = "awsmanagedcontrolplane.controlplane.cluster.x-k8s.io"
+
+	// AWSManagedControlPlaneKind is the Kind of AWSManagedControlPlane.
+	AWSManagedControlPlaneKind = "AWSManagedControlPlane"
 )
 
 // AWSManagedControlPlaneSpec defines the desired state of an Amazon EKS Cluster.
@@ -59,7 +63,7 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// is supplied then the latest version of Kubernetes that EKS supports
 	// will be used.
 	// +kubebuilder:validation:MinLength:=2
-	// +kubebuilder:validation:Pattern:=^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.?$
+	// +kubebuilder:validation:Pattern:=^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.?(\.0|[1-9][0-9]*)?$
 	// +optional
 	Version *string `json:"version,omitempty"`
 
@@ -167,6 +171,10 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// +kubebuilder:default=false
 	DisableVPCCNI bool `json:"disableVPCCNI,omitempty"`
 
+	// VpcCni is used to set configuration options for the VPC CNI plugin
+	// +optional
+	VpcCni VpcCni `json:"vpcCni,omitempty"`
+
 	// KubeProxy defines managed attributes of the kube-proxy daemonset
 	KubeProxy KubeProxy `json:"kubeProxy,omitempty"`
 }
@@ -180,6 +188,13 @@ type KubeProxy struct {
 	// set this to true if you are using the Amazon kube-proxy addon.
 	// +kubebuilder:default=false
 	Disable bool `json:"disable,omitempty"`
+}
+
+// VpcCni specifies configuration related to the VPC CNI.
+type VpcCni struct {
+	// Env defines a list of environment variables to apply to the `aws-node` DaemonSet
+	// +optional
+	Env []corev1.EnvVar `json:"env,omitempty"`
 }
 
 // EndpointAccess specifies how control plane endpoints are accessible.
@@ -262,7 +277,6 @@ type AWSManagedControlPlaneStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=awsmanagedcontrolplanes,shortName=awsmcp,scope=Namespaced,categories=cluster-api
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this AWSManagedControl belongs"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Control plane infrastructure is ready for worker nodes"

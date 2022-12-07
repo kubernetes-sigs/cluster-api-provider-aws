@@ -31,8 +31,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
@@ -74,31 +74,32 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 	Expect(err).ShouldNot(HaveOccurred())
 
 	shared.Byf("Waiting for the cluster to be provisioned")
+	start := time.Now()
 	cluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 		Getter:    input.BootstrapClusterProxy.GetClient(),
 		Namespace: configCluster.Namespace,
 		Name:      configCluster.ClusterName,
 	}, input.E2EConfig.GetIntervals("", "wait-cluster")...)
+	duration := time.Since(start)
+	shared.Byf("Finished waiting for cluster after: %s", duration)
 	Expect(cluster).NotTo(BeNil())
 
 	shared.Byf("Checking EKS cluster is active")
 	eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName)
-	verifyClusterActiveAndOwned(eksClusterName, input.ClusterName, input.AWSSession)
+	verifyClusterActiveAndOwned(eksClusterName, input.AWSSession)
 
 	if input.CluserSpecificRoles {
 		ginkgo.By("Checking that the cluster specific IAM role exists")
-		VerifyRoleExistsAndOwned(fmt.Sprintf("%s-iam-service-role", input.ClusterName), input.ClusterName, true, input.AWSSession)
+		VerifyRoleExistsAndOwned(fmt.Sprintf("%s-iam-service-role", input.ClusterName), eksClusterName, true, input.AWSSession)
 	} else {
 		ginkgo.By("Checking that the cluster default IAM role exists")
-		VerifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, input.ClusterName, false, input.AWSSession)
+		VerifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, eksClusterName, false, input.AWSSession)
 	}
 
 	shared.Byf("Checking kubeconfig secrets exist")
 	bootstrapClient := input.BootstrapClusterProxy.GetClient()
 	verifySecretExists(ctx, fmt.Sprintf("%s-kubeconfig", input.ClusterName), input.Namespace.Name, bootstrapClient)
 	verifySecretExists(ctx, fmt.Sprintf("%s-user-kubeconfig", input.ClusterName), input.Namespace.Name, bootstrapClient)
-
-	time.Sleep(2 * time.Minute) //TODO: replace with an eventually on the aws-iam-auth check
 
 	shared.Byf("Checking that aws-iam-authenticator config map exists")
 	workloadClusterProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace.Name, input.ClusterName)

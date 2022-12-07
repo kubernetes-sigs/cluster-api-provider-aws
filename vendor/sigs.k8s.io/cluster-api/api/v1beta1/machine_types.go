@@ -39,6 +39,9 @@ const (
 	// MachineDeploymentLabelName is the label set on machines if they're controlled by MachineDeployment.
 	MachineDeploymentLabelName = "cluster.x-k8s.io/deployment-name"
 
+	// MachineControlPlaneNameLabel is the label set on machines if they're controlled by a ControlPlane.
+	MachineControlPlaneNameLabel = "cluster.x-k8s.io/control-plane-name"
+
 	// PreDrainDeleteHookAnnotationPrefix annotation specifies the prefix we
 	// search each annotation for during the pre-drain.delete lifecycle hook
 	// to pause reconciliation of deletion. These hooks will prevent removal of
@@ -96,6 +99,12 @@ type MachineSpec struct {
 	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
 	// +optional
 	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
+
+	// NodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
+	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+	// Defaults to 10 seconds.
+	// +optional
+	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
 }
 
 // ANCHOR_END: MachineSpec

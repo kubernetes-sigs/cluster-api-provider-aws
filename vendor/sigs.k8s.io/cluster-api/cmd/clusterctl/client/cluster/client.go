@@ -29,10 +29,6 @@ import (
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
-const (
-	minimumKubernetesVersion = "v1.19.1"
-)
-
 var (
 	ctx = context.TODO()
 )

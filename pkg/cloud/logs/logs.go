@@ -18,8 +18,7 @@ package logs
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
-
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
+	"github.com/go-logr/logr"
 )
 
 const (
@@ -28,7 +27,7 @@ const (
 )
 
 // GetAWSLogLevel will return the log level of an AWS Logger.
-func GetAWSLogLevel(logger cloud.Logger) aws.LogLevelType {
+func GetAWSLogLevel(logger logr.Logger) aws.LogLevelType {
 	if logger.V(logWithHTTPBody).Enabled() {
 		return aws.LogDebugWithHTTPBody
 	}
@@ -41,14 +40,14 @@ func GetAWSLogLevel(logger cloud.Logger) aws.LogLevelType {
 }
 
 // NewWrapLogr will create an AWS Logger wrapper.
-func NewWrapLogr(logger cloud.Logger) aws.Logger {
+func NewWrapLogr(logger logr.Logger) aws.Logger {
 	return &logrWrapper{
 		log: logger,
 	}
 }
 
 type logrWrapper struct {
-	log cloud.Logger
+	log logr.Logger
 }
 
 func (l *logrWrapper) Log(msgs ...interface{}) {
@@ -58,6 +57,9 @@ func (l *logrWrapper) Log(msgs ...interface{}) {
 	case 1:
 		l.log.Info(msgs[0].(string))
 	default:
+		// Even the previous implementation had this problem but because it wasn't a direct
+		// logr.Logger thing, it didn't say this...
+		//nolint: logrlint
 		l.log.Info(msgs[0].(string), msgs[:1]...)
 	}
 }

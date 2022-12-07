@@ -26,9 +26,9 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/utils/pointer"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/tags"
 )
 
 const (
@@ -52,7 +52,7 @@ func (s *Service) getEKSTagParams(id string) *infrav1.BuildParams {
 	name := s.scope.KubernetesClusterName()
 
 	return &infrav1.BuildParams{
-		ClusterName: s.scope.Name(),
+		ClusterName: name,
 		ResourceID:  id,
 		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(name),
@@ -130,7 +130,7 @@ func (s *NodegroupService) reconcileASGTags(ng *eks.Nodegroup) error {
 	}
 
 	tagsToDelete, tagsToAdd := getASGTagUpdates(s.scope.ClusterName(), tagDescriptionsToMap(asg.Tags), s.scope.AdditionalTags())
-	s.scope.V(2).Info("Tags", "tagsToAdd", tagsToAdd, "tagsToDelete", tagsToDelete)
+	s.scope.Debug("Tags", "tagsToAdd", tagsToAdd, "tagsToDelete", tagsToDelete)
 
 	if len(tagsToAdd) > 0 {
 		input := &autoscaling.CreateOrUpdateTagsInput{}

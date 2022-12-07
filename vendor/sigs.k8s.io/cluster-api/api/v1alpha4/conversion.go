@@ -42,6 +42,11 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 			dst.Spec.Topology = &clusterv1.Topology{}
 		}
 		dst.Spec.Topology.Variables = restored.Spec.Topology.Variables
+
+		if restored.Spec.Topology.ControlPlane.NodeDrainTimeout != nil {
+			dst.Spec.Topology.ControlPlane.NodeDrainTimeout = restored.Spec.Topology.ControlPlane.NodeDrainTimeout
+		}
+
 		if restored.Spec.Topology.Workers != nil {
 			if dst.Spec.Topology.Workers == nil {
 				dst.Spec.Topology.Workers = &clusterv1.WorkersTopology{}
@@ -49,6 +54,7 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 			for i := range restored.Spec.Topology.Workers.MachineDeployments {
 				dst.Spec.Topology.Workers.MachineDeployments[i].FailureDomain = restored.Spec.Topology.Workers.MachineDeployments[i].FailureDomain
 				dst.Spec.Topology.Workers.MachineDeployments[i].Variables = restored.Spec.Topology.Workers.MachineDeployments[i].Variables
+				dst.Spec.Topology.Workers.MachineDeployments[i].NodeDrainTimeout = restored.Spec.Topology.Workers.MachineDeployments[i].NodeDrainTimeout
 			}
 		}
 	}
@@ -137,13 +143,33 @@ func (dst *ClusterClassList) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.Machine)
 
-	return Convert_v1alpha4_Machine_To_v1beta1_Machine(src, dst, nil)
+	if err := Convert_v1alpha4_Machine_To_v1beta1_Machine(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &clusterv1.Machine{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Spec.NodeDeletionTimeout = restored.Spec.NodeDeletionTimeout
+	return nil
 }
 
 func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.Machine)
 
-	return Convert_v1beta1_Machine_To_v1alpha4_Machine(src, dst, nil)
+	if err := Convert_v1beta1_Machine_To_v1alpha4_Machine(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (src *MachineList) ConvertTo(dstRaw conversion.Hub) error {
@@ -161,13 +187,29 @@ func (dst *MachineList) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineSet)
 
-	return Convert_v1alpha4_MachineSet_To_v1beta1_MachineSet(src, dst, nil)
+	if err := Convert_v1alpha4_MachineSet_To_v1beta1_MachineSet(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &clusterv1.MachineSet{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
+	return nil
 }
 
 func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineSet)
 
-	return Convert_v1beta1_MachineSet_To_v1alpha4_MachineSet(src, dst, nil)
+	if err := Convert_v1beta1_MachineSet_To_v1alpha4_MachineSet(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *MachineSetList) ConvertTo(dstRaw conversion.Hub) error {
@@ -185,13 +227,29 @@ func (dst *MachineSetList) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*clusterv1.MachineDeployment)
 
-	return Convert_v1alpha4_MachineDeployment_To_v1beta1_MachineDeployment(src, dst, nil)
+	if err := Convert_v1alpha4_MachineDeployment_To_v1beta1_MachineDeployment(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &clusterv1.MachineDeployment{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
+	return nil
 }
 
 func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*clusterv1.MachineDeployment)
 
-	return Convert_v1beta1_MachineDeployment_To_v1alpha4_MachineDeployment(src, dst, nil)
+	if err := Convert_v1beta1_MachineDeployment_To_v1alpha4_MachineDeployment(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *MachineDeploymentList) ConvertTo(dstRaw conversion.Hub) error {
@@ -240,6 +298,11 @@ func Convert_v1beta1_ClusterClassSpec_To_v1alpha4_ClusterClassSpec(in *clusterv1
 	return autoConvert_v1beta1_ClusterClassSpec_To_v1alpha4_ClusterClassSpec(in, out, s)
 }
 
+func Convert_v1beta1_MachineSpec_To_v1alpha4_MachineSpec(in *clusterv1.MachineSpec, out *MachineSpec, s apiconversion.Scope) error {
+	// spec.nodeDeletionTimeout has been added with v1beta1.
+	return autoConvert_v1beta1_MachineSpec_To_v1alpha4_MachineSpec(in, out, s)
+}
+
 func Convert_v1beta1_Topology_To_v1alpha4_Topology(in *clusterv1.Topology, out *Topology, s apiconversion.Scope) error {
 	// spec.topology.variables has been added with v1beta1.
 	return autoConvert_v1beta1_Topology_To_v1alpha4_Topology(in, out, s)
@@ -259,4 +322,9 @@ func Convert_v1beta1_MachineDeploymentClass_To_v1alpha4_MachineDeploymentClass(i
 func Convert_v1beta1_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(in *clusterv1.ControlPlaneClass, out *ControlPlaneClass, s apiconversion.Scope) error {
 	// controlPlaneClass.machineHealthCheck has been added with v1beta1.
 	return autoConvert_v1beta1_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(in, out, s)
+}
+
+func Convert_v1beta1_ControlPlaneTopology_To_v1alpha4_ControlPlaneTopology(in *clusterv1.ControlPlaneTopology, out *ControlPlaneTopology, s apiconversion.Scope) error {
+	// controlPlaneTopology.nodeDrainTimeout has been added with v1beta1.
+	return autoConvert_v1beta1_ControlPlaneTopology_To_v1alpha4_ControlPlaneTopology(in, out, s)
 }

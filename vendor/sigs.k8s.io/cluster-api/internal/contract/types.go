@@ -17,6 +17,7 @@ limitations under the License.
 package contract
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -28,6 +29,47 @@ var errNotFound = errors.New("not found")
 
 // Path defines a how to access a field in an Unstructured object.
 type Path []string
+
+// Append a field name to a path.
+func (p Path) Append(k string) Path {
+	return append(p, k)
+}
+
+// IsParentOf check if one path is Parent of the other.
+func (p Path) IsParentOf(other Path) bool {
+	if len(p) >= len(other) {
+		return false
+	}
+	for i := range p {
+		if p[i] != other[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// Equal check if two path are equal (exact match).
+func (p Path) Equal(other Path) bool {
+	if len(p) != len(other) {
+		return false
+	}
+	for i := range p {
+		if p[i] != other[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// Overlaps return true if two paths are Equal or one IsParentOf the other.
+func (p Path) Overlaps(other Path) bool {
+	return other.Equal(p) || other.IsParentOf(p) || p.IsParentOf(other)
+}
+
+// String returns the path as a dotted string.
+func (p Path) String() string {
+	return strings.Join(p, ".")
+}
 
 // Int64 represents an accessor to an int64 path value.
 type Int64 struct {
@@ -110,7 +152,7 @@ func (i *Duration) Get(obj *unstructured.Unstructured) (*metav1.Duration, error)
 	}
 
 	d := &metav1.Duration{}
-	if err := d.UnmarshalJSON([]byte(durationString)); err != nil {
+	if err := d.UnmarshalJSON([]byte(strconv.Quote(durationString))); err != nil {
 		return nil, errors.Wrapf(err, "failed to unmarshal duration %s from object", "."+strings.Join(i.path, "."))
 	}
 
@@ -119,12 +161,7 @@ func (i *Duration) Get(obj *unstructured.Unstructured) (*metav1.Duration, error)
 
 // Set sets the metav1.Duration value in the path.
 func (i *Duration) Set(obj *unstructured.Unstructured, value metav1.Duration) error {
-	durationString, err := value.MarshalJSON()
-	if err != nil {
-		return errors.Wrapf(err, "failed to marshal duration %s", value.Duration.String())
-	}
-
-	if err := unstructured.SetNestedField(obj.UnstructuredContent(), string(durationString), i.path...); err != nil {
+	if err := unstructured.SetNestedField(obj.UnstructuredContent(), value.Duration.String(), i.path...); err != nil {
 		return errors.Wrapf(err, "failed to set path %s of object %v", "."+strings.Join(i.path, "."), obj.GroupVersionKind())
 	}
 	return nil

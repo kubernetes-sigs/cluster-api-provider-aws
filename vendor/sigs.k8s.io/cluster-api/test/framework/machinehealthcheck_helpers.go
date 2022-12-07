@@ -103,7 +103,7 @@ func GetMachineHealthChecksForCluster(ctx context.Context, input GetMachineHealt
 	machineHealthCheckList := &clusterv1.MachineHealthCheckList{}
 	Eventually(func() error {
 		return input.Lister.List(ctx, machineHealthCheckList, byClusterOptions(input.ClusterName, input.Namespace)...)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachineHealthCheck object for Cluster %s/%s", input.Namespace, input.ClusterName)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachineDeployments object for Cluster %s/%s", input.Namespace, input.ClusterName)
 
 	machineHealthChecks := make([]*clusterv1.MachineHealthCheck, len(machineHealthCheckList.Items))
 	for i := range machineHealthCheckList.Items {

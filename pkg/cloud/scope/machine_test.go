@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -169,7 +169,7 @@ func TestGetRawBootstrapDataIsNotBase64Encoded(t *testing.T) {
 	}
 }
 
-func Test_GetRawBootstrapDataWithFormat(t *testing.T) {
+func TestGetRawBootstrapDataWithFormat(t *testing.T) {
 	t.Run("returns_empty_format_when_format_is_not_set_in_bootstrap_data", func(t *testing.T) {
 		scope, err := setupMachineScope()
 		if err != nil {
@@ -258,7 +258,7 @@ func TestUseSecretsManagerTrue(t *testing.T) {
 	}
 }
 
-func Test_UseIgnition(t *testing.T) {
+func TestUseIgnition(t *testing.T) {
 	t.Run("returns_true_when_given_bootstrap_data_format_is_ignition", func(t *testing.T) {
 		scope, err := setupMachineScope()
 		if err != nil {
@@ -283,7 +283,7 @@ func Test_UseIgnition(t *testing.T) {
 	})
 }
 
-func Test_CompressUserData(t *testing.T) {
+func TestCompressUserData(t *testing.T) {
 	// Ignition does not support compressed data in S3.
 	t.Run("returns_false_when_bootstrap_data_is_in_ignition_format", func(t *testing.T) {
 		scope, err := setupMachineScope()

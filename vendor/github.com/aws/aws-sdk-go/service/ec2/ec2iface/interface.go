@@ -23,37 +23,37 @@ import (
 // can be stubbed out for unit testing your code with the SDK without needing
 // to inject custom request handlers into the SDK's request pipeline.
 //
-//    // myFunc uses an SDK service client to make a request to
-//    // Amazon Elastic Compute Cloud.
-//    func myFunc(svc ec2iface.EC2API) bool {
-//        // Make svc.AcceptReservedInstancesExchangeQuote request
-//    }
+//	// myFunc uses an SDK service client to make a request to
+//	// Amazon Elastic Compute Cloud.
+//	func myFunc(svc ec2iface.EC2API) bool {
+//	    // Make svc.AcceptReservedInstancesExchangeQuote request
+//	}
 //
-//    func main() {
-//        sess := session.New()
-//        svc := ec2.New(sess)
+//	func main() {
+//	    sess := session.New()
+//	    svc := ec2.New(sess)
 //
-//        myFunc(svc)
-//    }
+//	    myFunc(svc)
+//	}
 //
 // In your _test.go file:
 //
-//    // Define a mock struct to be used in your unit tests of myFunc.
-//    type mockEC2Client struct {
-//        ec2iface.EC2API
-//    }
-//    func (m *mockEC2Client) AcceptReservedInstancesExchangeQuote(input *ec2.AcceptReservedInstancesExchangeQuoteInput) (*ec2.AcceptReservedInstancesExchangeQuoteOutput, error) {
-//        // mock response/functionality
-//    }
+//	// Define a mock struct to be used in your unit tests of myFunc.
+//	type mockEC2Client struct {
+//	    ec2iface.EC2API
+//	}
+//	func (m *mockEC2Client) AcceptReservedInstancesExchangeQuote(input *ec2.AcceptReservedInstancesExchangeQuoteInput) (*ec2.AcceptReservedInstancesExchangeQuoteOutput, error) {
+//	    // mock response/functionality
+//	}
 //
-//    func TestMyFunc(t *testing.T) {
-//        // Setup Test
-//        mockSvc := &mockEC2Client{}
+//	func TestMyFunc(t *testing.T) {
+//	    // Setup Test
+//	    mockSvc := &mockEC2Client{}
 //
-//        myfunc(mockSvc)
+//	    myfunc(mockSvc)
 //
-//        // Verify myFunc's functionality
-//    }
+//	    // Verify myFunc's functionality
+//	}
 //
 // It is important to note that this interface will have breaking changes
 // when the service model is updated and adds new API operations, paginators,
@@ -147,6 +147,10 @@ type EC2API interface {
 	AssociateTransitGatewayMulticastDomain(*ec2.AssociateTransitGatewayMulticastDomainInput) (*ec2.AssociateTransitGatewayMulticastDomainOutput, error)
 	AssociateTransitGatewayMulticastDomainWithContext(aws.Context, *ec2.AssociateTransitGatewayMulticastDomainInput, ...request.Option) (*ec2.AssociateTransitGatewayMulticastDomainOutput, error)
 	AssociateTransitGatewayMulticastDomainRequest(*ec2.AssociateTransitGatewayMulticastDomainInput) (*request.Request, *ec2.AssociateTransitGatewayMulticastDomainOutput)
+
+	AssociateTransitGatewayPolicyTable(*ec2.AssociateTransitGatewayPolicyTableInput) (*ec2.AssociateTransitGatewayPolicyTableOutput, error)
+	AssociateTransitGatewayPolicyTableWithContext(aws.Context, *ec2.AssociateTransitGatewayPolicyTableInput, ...request.Option) (*ec2.AssociateTransitGatewayPolicyTableOutput, error)
+	AssociateTransitGatewayPolicyTableRequest(*ec2.AssociateTransitGatewayPolicyTableInput) (*request.Request, *ec2.AssociateTransitGatewayPolicyTableOutput)
 
 	AssociateTransitGatewayRouteTable(*ec2.AssociateTransitGatewayRouteTableInput) (*ec2.AssociateTransitGatewayRouteTableOutput, error)
 	AssociateTransitGatewayRouteTableWithContext(aws.Context, *ec2.AssociateTransitGatewayRouteTableInput, ...request.Option) (*ec2.AssociateTransitGatewayRouteTableOutput, error)
@@ -268,6 +272,14 @@ type EC2API interface {
 	CreateClientVpnRouteWithContext(aws.Context, *ec2.CreateClientVpnRouteInput, ...request.Option) (*ec2.CreateClientVpnRouteOutput, error)
 	CreateClientVpnRouteRequest(*ec2.CreateClientVpnRouteInput) (*request.Request, *ec2.CreateClientVpnRouteOutput)
 
+	CreateCoipCidr(*ec2.CreateCoipCidrInput) (*ec2.CreateCoipCidrOutput, error)
+	CreateCoipCidrWithContext(aws.Context, *ec2.CreateCoipCidrInput, ...request.Option) (*ec2.CreateCoipCidrOutput, error)
+	CreateCoipCidrRequest(*ec2.CreateCoipCidrInput) (*request.Request, *ec2.CreateCoipCidrOutput)
+
+	CreateCoipPool(*ec2.CreateCoipPoolInput) (*ec2.CreateCoipPoolOutput, error)
+	CreateCoipPoolWithContext(aws.Context, *ec2.CreateCoipPoolInput, ...request.Option) (*ec2.CreateCoipPoolOutput, error)
+	CreateCoipPoolRequest(*ec2.CreateCoipPoolInput) (*request.Request, *ec2.CreateCoipPoolOutput)
+
 	CreateCustomerGateway(*ec2.CreateCustomerGatewayInput) (*ec2.CreateCustomerGatewayOutput, error)
 	CreateCustomerGatewayWithContext(aws.Context, *ec2.CreateCustomerGatewayInput, ...request.Option) (*ec2.CreateCustomerGatewayOutput, error)
 	CreateCustomerGatewayRequest(*ec2.CreateCustomerGatewayInput) (*request.Request, *ec2.CreateCustomerGatewayOutput)
@@ -343,6 +355,14 @@ type EC2API interface {
 	CreateLocalGatewayRoute(*ec2.CreateLocalGatewayRouteInput) (*ec2.CreateLocalGatewayRouteOutput, error)
 	CreateLocalGatewayRouteWithContext(aws.Context, *ec2.CreateLocalGatewayRouteInput, ...request.Option) (*ec2.CreateLocalGatewayRouteOutput, error)
 	CreateLocalGatewayRouteRequest(*ec2.CreateLocalGatewayRouteInput) (*request.Request, *ec2.CreateLocalGatewayRouteOutput)
+
+	CreateLocalGatewayRouteTable(*ec2.CreateLocalGatewayRouteTableInput) (*ec2.CreateLocalGatewayRouteTableOutput, error)
+	CreateLocalGatewayRouteTableWithContext(aws.Context, *ec2.CreateLocalGatewayRouteTableInput, ...request.Option) (*ec2.CreateLocalGatewayRouteTableOutput, error)
+	CreateLocalGatewayRouteTableRequest(*ec2.CreateLocalGatewayRouteTableInput) (*request.Request, *ec2.CreateLocalGatewayRouteTableOutput)
+
+	CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociation(*ec2.CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationInput) (*ec2.CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationOutput, error)
+	CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationWithContext(aws.Context, *ec2.CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationInput, ...request.Option) (*ec2.CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationOutput, error)
+	CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationRequest(*ec2.CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationInput) (*request.Request, *ec2.CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationOutput)
 
 	CreateLocalGatewayRouteTableVpcAssociation(*ec2.CreateLocalGatewayRouteTableVpcAssociationInput) (*ec2.CreateLocalGatewayRouteTableVpcAssociationOutput, error)
 	CreateLocalGatewayRouteTableVpcAssociationWithContext(aws.Context, *ec2.CreateLocalGatewayRouteTableVpcAssociationInput, ...request.Option) (*ec2.CreateLocalGatewayRouteTableVpcAssociationOutput, error)
@@ -476,6 +496,10 @@ type EC2API interface {
 	CreateTransitGatewayPeeringAttachmentWithContext(aws.Context, *ec2.CreateTransitGatewayPeeringAttachmentInput, ...request.Option) (*ec2.CreateTransitGatewayPeeringAttachmentOutput, error)
 	CreateTransitGatewayPeeringAttachmentRequest(*ec2.CreateTransitGatewayPeeringAttachmentInput) (*request.Request, *ec2.CreateTransitGatewayPeeringAttachmentOutput)
 
+	CreateTransitGatewayPolicyTable(*ec2.CreateTransitGatewayPolicyTableInput) (*ec2.CreateTransitGatewayPolicyTableOutput, error)
+	CreateTransitGatewayPolicyTableWithContext(aws.Context, *ec2.CreateTransitGatewayPolicyTableInput, ...request.Option) (*ec2.CreateTransitGatewayPolicyTableOutput, error)
+	CreateTransitGatewayPolicyTableRequest(*ec2.CreateTransitGatewayPolicyTableInput) (*request.Request, *ec2.CreateTransitGatewayPolicyTableOutput)
+
 	CreateTransitGatewayPrefixListReference(*ec2.CreateTransitGatewayPrefixListReferenceInput) (*ec2.CreateTransitGatewayPrefixListReferenceOutput, error)
 	CreateTransitGatewayPrefixListReferenceWithContext(aws.Context, *ec2.CreateTransitGatewayPrefixListReferenceInput, ...request.Option) (*ec2.CreateTransitGatewayPrefixListReferenceOutput, error)
 	CreateTransitGatewayPrefixListReferenceRequest(*ec2.CreateTransitGatewayPrefixListReferenceInput) (*request.Request, *ec2.CreateTransitGatewayPrefixListReferenceOutput)
@@ -487,6 +511,10 @@ type EC2API interface {
 	CreateTransitGatewayRouteTable(*ec2.CreateTransitGatewayRouteTableInput) (*ec2.CreateTransitGatewayRouteTableOutput, error)
 	CreateTransitGatewayRouteTableWithContext(aws.Context, *ec2.CreateTransitGatewayRouteTableInput, ...request.Option) (*ec2.CreateTransitGatewayRouteTableOutput, error)
 	CreateTransitGatewayRouteTableRequest(*ec2.CreateTransitGatewayRouteTableInput) (*request.Request, *ec2.CreateTransitGatewayRouteTableOutput)
+
+	CreateTransitGatewayRouteTableAnnouncement(*ec2.CreateTransitGatewayRouteTableAnnouncementInput) (*ec2.CreateTransitGatewayRouteTableAnnouncementOutput, error)
+	CreateTransitGatewayRouteTableAnnouncementWithContext(aws.Context, *ec2.CreateTransitGatewayRouteTableAnnouncementInput, ...request.Option) (*ec2.CreateTransitGatewayRouteTableAnnouncementOutput, error)
+	CreateTransitGatewayRouteTableAnnouncementRequest(*ec2.CreateTransitGatewayRouteTableAnnouncementInput) (*request.Request, *ec2.CreateTransitGatewayRouteTableAnnouncementOutput)
 
 	CreateTransitGatewayVpcAttachment(*ec2.CreateTransitGatewayVpcAttachmentInput) (*ec2.CreateTransitGatewayVpcAttachmentOutput, error)
 	CreateTransitGatewayVpcAttachmentWithContext(aws.Context, *ec2.CreateTransitGatewayVpcAttachmentInput, ...request.Option) (*ec2.CreateTransitGatewayVpcAttachmentOutput, error)
@@ -539,6 +567,14 @@ type EC2API interface {
 	DeleteClientVpnRoute(*ec2.DeleteClientVpnRouteInput) (*ec2.DeleteClientVpnRouteOutput, error)
 	DeleteClientVpnRouteWithContext(aws.Context, *ec2.DeleteClientVpnRouteInput, ...request.Option) (*ec2.DeleteClientVpnRouteOutput, error)
 	DeleteClientVpnRouteRequest(*ec2.DeleteClientVpnRouteInput) (*request.Request, *ec2.DeleteClientVpnRouteOutput)
+
+	DeleteCoipCidr(*ec2.DeleteCoipCidrInput) (*ec2.DeleteCoipCidrOutput, error)
+	DeleteCoipCidrWithContext(aws.Context, *ec2.DeleteCoipCidrInput, ...request.Option) (*ec2.DeleteCoipCidrOutput, error)
+	DeleteCoipCidrRequest(*ec2.DeleteCoipCidrInput) (*request.Request, *ec2.DeleteCoipCidrOutput)
+
+	DeleteCoipPool(*ec2.DeleteCoipPoolInput) (*ec2.DeleteCoipPoolOutput, error)
+	DeleteCoipPoolWithContext(aws.Context, *ec2.DeleteCoipPoolInput, ...request.Option) (*ec2.DeleteCoipPoolOutput, error)
+	DeleteCoipPoolRequest(*ec2.DeleteCoipPoolInput) (*request.Request, *ec2.DeleteCoipPoolOutput)
 
 	DeleteCustomerGateway(*ec2.DeleteCustomerGatewayInput) (*ec2.DeleteCustomerGatewayOutput, error)
 	DeleteCustomerGatewayWithContext(aws.Context, *ec2.DeleteCustomerGatewayInput, ...request.Option) (*ec2.DeleteCustomerGatewayOutput, error)
@@ -599,6 +635,14 @@ type EC2API interface {
 	DeleteLocalGatewayRoute(*ec2.DeleteLocalGatewayRouteInput) (*ec2.DeleteLocalGatewayRouteOutput, error)
 	DeleteLocalGatewayRouteWithContext(aws.Context, *ec2.DeleteLocalGatewayRouteInput, ...request.Option) (*ec2.DeleteLocalGatewayRouteOutput, error)
 	DeleteLocalGatewayRouteRequest(*ec2.DeleteLocalGatewayRouteInput) (*request.Request, *ec2.DeleteLocalGatewayRouteOutput)
+
+	DeleteLocalGatewayRouteTable(*ec2.DeleteLocalGatewayRouteTableInput) (*ec2.DeleteLocalGatewayRouteTableOutput, error)
+	DeleteLocalGatewayRouteTableWithContext(aws.Context, *ec2.DeleteLocalGatewayRouteTableInput, ...request.Option) (*ec2.DeleteLocalGatewayRouteTableOutput, error)
+	DeleteLocalGatewayRouteTableRequest(*ec2.DeleteLocalGatewayRouteTableInput) (*request.Request, *ec2.DeleteLocalGatewayRouteTableOutput)
+
+	DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociation(*ec2.DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationInput) (*ec2.DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationOutput, error)
+	DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationWithContext(aws.Context, *ec2.DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationInput, ...request.Option) (*ec2.DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationOutput, error)
+	DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationRequest(*ec2.DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationInput) (*request.Request, *ec2.DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationOutput)
 
 	DeleteLocalGatewayRouteTableVpcAssociation(*ec2.DeleteLocalGatewayRouteTableVpcAssociationInput) (*ec2.DeleteLocalGatewayRouteTableVpcAssociationOutput, error)
 	DeleteLocalGatewayRouteTableVpcAssociationWithContext(aws.Context, *ec2.DeleteLocalGatewayRouteTableVpcAssociationInput, ...request.Option) (*ec2.DeleteLocalGatewayRouteTableVpcAssociationOutput, error)
@@ -724,6 +768,10 @@ type EC2API interface {
 	DeleteTransitGatewayPeeringAttachmentWithContext(aws.Context, *ec2.DeleteTransitGatewayPeeringAttachmentInput, ...request.Option) (*ec2.DeleteTransitGatewayPeeringAttachmentOutput, error)
 	DeleteTransitGatewayPeeringAttachmentRequest(*ec2.DeleteTransitGatewayPeeringAttachmentInput) (*request.Request, *ec2.DeleteTransitGatewayPeeringAttachmentOutput)
 
+	DeleteTransitGatewayPolicyTable(*ec2.DeleteTransitGatewayPolicyTableInput) (*ec2.DeleteTransitGatewayPolicyTableOutput, error)
+	DeleteTransitGatewayPolicyTableWithContext(aws.Context, *ec2.DeleteTransitGatewayPolicyTableInput, ...request.Option) (*ec2.DeleteTransitGatewayPolicyTableOutput, error)
+	DeleteTransitGatewayPolicyTableRequest(*ec2.DeleteTransitGatewayPolicyTableInput) (*request.Request, *ec2.DeleteTransitGatewayPolicyTableOutput)
+
 	DeleteTransitGatewayPrefixListReference(*ec2.DeleteTransitGatewayPrefixListReferenceInput) (*ec2.DeleteTransitGatewayPrefixListReferenceOutput, error)
 	DeleteTransitGatewayPrefixListReferenceWithContext(aws.Context, *ec2.DeleteTransitGatewayPrefixListReferenceInput, ...request.Option) (*ec2.DeleteTransitGatewayPrefixListReferenceOutput, error)
 	DeleteTransitGatewayPrefixListReferenceRequest(*ec2.DeleteTransitGatewayPrefixListReferenceInput) (*request.Request, *ec2.DeleteTransitGatewayPrefixListReferenceOutput)
@@ -735,6 +783,10 @@ type EC2API interface {
 	DeleteTransitGatewayRouteTable(*ec2.DeleteTransitGatewayRouteTableInput) (*ec2.DeleteTransitGatewayRouteTableOutput, error)
 	DeleteTransitGatewayRouteTableWithContext(aws.Context, *ec2.DeleteTransitGatewayRouteTableInput, ...request.Option) (*ec2.DeleteTransitGatewayRouteTableOutput, error)
 	DeleteTransitGatewayRouteTableRequest(*ec2.DeleteTransitGatewayRouteTableInput) (*request.Request, *ec2.DeleteTransitGatewayRouteTableOutput)
+
+	DeleteTransitGatewayRouteTableAnnouncement(*ec2.DeleteTransitGatewayRouteTableAnnouncementInput) (*ec2.DeleteTransitGatewayRouteTableAnnouncementOutput, error)
+	DeleteTransitGatewayRouteTableAnnouncementWithContext(aws.Context, *ec2.DeleteTransitGatewayRouteTableAnnouncementInput, ...request.Option) (*ec2.DeleteTransitGatewayRouteTableAnnouncementOutput, error)
+	DeleteTransitGatewayRouteTableAnnouncementRequest(*ec2.DeleteTransitGatewayRouteTableAnnouncementInput) (*request.Request, *ec2.DeleteTransitGatewayRouteTableAnnouncementOutput)
 
 	DeleteTransitGatewayVpcAttachment(*ec2.DeleteTransitGatewayVpcAttachmentInput) (*ec2.DeleteTransitGatewayVpcAttachmentOutput, error)
 	DeleteTransitGatewayVpcAttachmentWithContext(aws.Context, *ec2.DeleteTransitGatewayVpcAttachmentInput, ...request.Option) (*ec2.DeleteTransitGatewayVpcAttachmentOutput, error)
@@ -1501,6 +1553,20 @@ type EC2API interface {
 	DescribeTransitGatewayPeeringAttachmentsPages(*ec2.DescribeTransitGatewayPeeringAttachmentsInput, func(*ec2.DescribeTransitGatewayPeeringAttachmentsOutput, bool) bool) error
 	DescribeTransitGatewayPeeringAttachmentsPagesWithContext(aws.Context, *ec2.DescribeTransitGatewayPeeringAttachmentsInput, func(*ec2.DescribeTransitGatewayPeeringAttachmentsOutput, bool) bool, ...request.Option) error
 
+	DescribeTransitGatewayPolicyTables(*ec2.DescribeTransitGatewayPolicyTablesInput) (*ec2.DescribeTransitGatewayPolicyTablesOutput, error)
+	DescribeTransitGatewayPolicyTablesWithContext(aws.Context, *ec2.DescribeTransitGatewayPolicyTablesInput, ...request.Option) (*ec2.DescribeTransitGatewayPolicyTablesOutput, error)
+	DescribeTransitGatewayPolicyTablesRequest(*ec2.DescribeTransitGatewayPolicyTablesInput) (*request.Request, *ec2.DescribeTransitGatewayPolicyTablesOutput)
+
+	DescribeTransitGatewayPolicyTablesPages(*ec2.DescribeTransitGatewayPolicyTablesInput, func(*ec2.DescribeTransitGatewayPolicyTablesOutput, bool) bool) error
+	DescribeTransitGatewayPolicyTablesPagesWithContext(aws.Context, *ec2.DescribeTransitGatewayPolicyTablesInput, func(*ec2.DescribeTransitGatewayPolicyTablesOutput, bool) bool, ...request.Option) error
+
+	DescribeTransitGatewayRouteTableAnnouncements(*ec2.DescribeTransitGatewayRouteTableAnnouncementsInput) (*ec2.DescribeTransitGatewayRouteTableAnnouncementsOutput, error)
+	DescribeTransitGatewayRouteTableAnnouncementsWithContext(aws.Context, *ec2.DescribeTransitGatewayRouteTableAnnouncementsInput, ...request.Option) (*ec2.DescribeTransitGatewayRouteTableAnnouncementsOutput, error)
+	DescribeTransitGatewayRouteTableAnnouncementsRequest(*ec2.DescribeTransitGatewayRouteTableAnnouncementsInput) (*request.Request, *ec2.DescribeTransitGatewayRouteTableAnnouncementsOutput)
+
+	DescribeTransitGatewayRouteTableAnnouncementsPages(*ec2.DescribeTransitGatewayRouteTableAnnouncementsInput, func(*ec2.DescribeTransitGatewayRouteTableAnnouncementsOutput, bool) bool) error
+	DescribeTransitGatewayRouteTableAnnouncementsPagesWithContext(aws.Context, *ec2.DescribeTransitGatewayRouteTableAnnouncementsInput, func(*ec2.DescribeTransitGatewayRouteTableAnnouncementsOutput, bool) bool, ...request.Option) error
+
 	DescribeTransitGatewayRouteTables(*ec2.DescribeTransitGatewayRouteTablesInput) (*ec2.DescribeTransitGatewayRouteTablesOutput, error)
 	DescribeTransitGatewayRouteTablesWithContext(aws.Context, *ec2.DescribeTransitGatewayRouteTablesInput, ...request.Option) (*ec2.DescribeTransitGatewayRouteTablesOutput, error)
 	DescribeTransitGatewayRouteTablesRequest(*ec2.DescribeTransitGatewayRouteTablesInput) (*request.Request, *ec2.DescribeTransitGatewayRouteTablesOutput)
@@ -1722,6 +1788,10 @@ type EC2API interface {
 	DisassociateTransitGatewayMulticastDomainWithContext(aws.Context, *ec2.DisassociateTransitGatewayMulticastDomainInput, ...request.Option) (*ec2.DisassociateTransitGatewayMulticastDomainOutput, error)
 	DisassociateTransitGatewayMulticastDomainRequest(*ec2.DisassociateTransitGatewayMulticastDomainInput) (*request.Request, *ec2.DisassociateTransitGatewayMulticastDomainOutput)
 
+	DisassociateTransitGatewayPolicyTable(*ec2.DisassociateTransitGatewayPolicyTableInput) (*ec2.DisassociateTransitGatewayPolicyTableOutput, error)
+	DisassociateTransitGatewayPolicyTableWithContext(aws.Context, *ec2.DisassociateTransitGatewayPolicyTableInput, ...request.Option) (*ec2.DisassociateTransitGatewayPolicyTableOutput, error)
+	DisassociateTransitGatewayPolicyTableRequest(*ec2.DisassociateTransitGatewayPolicyTableInput) (*request.Request, *ec2.DisassociateTransitGatewayPolicyTableOutput)
+
 	DisassociateTransitGatewayRouteTable(*ec2.DisassociateTransitGatewayRouteTableInput) (*ec2.DisassociateTransitGatewayRouteTableOutput, error)
 	DisassociateTransitGatewayRouteTableWithContext(aws.Context, *ec2.DisassociateTransitGatewayRouteTableInput, ...request.Option) (*ec2.DisassociateTransitGatewayRouteTableOutput, error)
 	DisassociateTransitGatewayRouteTableRequest(*ec2.DisassociateTransitGatewayRouteTableInput) (*request.Request, *ec2.DisassociateTransitGatewayRouteTableOutput)
@@ -1855,6 +1925,10 @@ type EC2API interface {
 	GetInstanceTypesFromInstanceRequirementsPages(*ec2.GetInstanceTypesFromInstanceRequirementsInput, func(*ec2.GetInstanceTypesFromInstanceRequirementsOutput, bool) bool) error
 	GetInstanceTypesFromInstanceRequirementsPagesWithContext(aws.Context, *ec2.GetInstanceTypesFromInstanceRequirementsInput, func(*ec2.GetInstanceTypesFromInstanceRequirementsOutput, bool) bool, ...request.Option) error
 
+	GetInstanceUefiData(*ec2.GetInstanceUefiDataInput) (*ec2.GetInstanceUefiDataOutput, error)
+	GetInstanceUefiDataWithContext(aws.Context, *ec2.GetInstanceUefiDataInput, ...request.Option) (*ec2.GetInstanceUefiDataOutput, error)
+	GetInstanceUefiDataRequest(*ec2.GetInstanceUefiDataInput) (*request.Request, *ec2.GetInstanceUefiDataOutput)
+
 	GetIpamAddressHistory(*ec2.GetIpamAddressHistoryInput) (*ec2.GetIpamAddressHistoryOutput, error)
 	GetIpamAddressHistoryWithContext(aws.Context, *ec2.GetIpamAddressHistoryInput, ...request.Option) (*ec2.GetIpamAddressHistoryOutput, error)
 	GetIpamAddressHistoryRequest(*ec2.GetIpamAddressHistoryInput) (*request.Request, *ec2.GetIpamAddressHistoryOutput)
@@ -1945,6 +2019,17 @@ type EC2API interface {
 
 	GetTransitGatewayMulticastDomainAssociationsPages(*ec2.GetTransitGatewayMulticastDomainAssociationsInput, func(*ec2.GetTransitGatewayMulticastDomainAssociationsOutput, bool) bool) error
 	GetTransitGatewayMulticastDomainAssociationsPagesWithContext(aws.Context, *ec2.GetTransitGatewayMulticastDomainAssociationsInput, func(*ec2.GetTransitGatewayMulticastDomainAssociationsOutput, bool) bool, ...request.Option) error
+
+	GetTransitGatewayPolicyTableAssociations(*ec2.GetTransitGatewayPolicyTableAssociationsInput) (*ec2.GetTransitGatewayPolicyTableAssociationsOutput, error)
+	GetTransitGatewayPolicyTableAssociationsWithContext(aws.Context, *ec2.GetTransitGatewayPolicyTableAssociationsInput, ...request.Option) (*ec2.GetTransitGatewayPolicyTableAssociationsOutput, error)
+	GetTransitGatewayPolicyTableAssociationsRequest(*ec2.GetTransitGatewayPolicyTableAssociationsInput) (*request.Request, *ec2.GetTransitGatewayPolicyTableAssociationsOutput)
+
+	GetTransitGatewayPolicyTableAssociationsPages(*ec2.GetTransitGatewayPolicyTableAssociationsInput, func(*ec2.GetTransitGatewayPolicyTableAssociationsOutput, bool) bool) error
+	GetTransitGatewayPolicyTableAssociationsPagesWithContext(aws.Context, *ec2.GetTransitGatewayPolicyTableAssociationsInput, func(*ec2.GetTransitGatewayPolicyTableAssociationsOutput, bool) bool, ...request.Option) error
+
+	GetTransitGatewayPolicyTableEntries(*ec2.GetTransitGatewayPolicyTableEntriesInput) (*ec2.GetTransitGatewayPolicyTableEntriesOutput, error)
+	GetTransitGatewayPolicyTableEntriesWithContext(aws.Context, *ec2.GetTransitGatewayPolicyTableEntriesInput, ...request.Option) (*ec2.GetTransitGatewayPolicyTableEntriesOutput, error)
+	GetTransitGatewayPolicyTableEntriesRequest(*ec2.GetTransitGatewayPolicyTableEntriesInput) (*request.Request, *ec2.GetTransitGatewayPolicyTableEntriesOutput)
 
 	GetTransitGatewayPrefixListReferences(*ec2.GetTransitGatewayPrefixListReferencesInput) (*ec2.GetTransitGatewayPrefixListReferencesOutput, error)
 	GetTransitGatewayPrefixListReferencesWithContext(aws.Context, *ec2.GetTransitGatewayPrefixListReferencesInput, ...request.Option) (*ec2.GetTransitGatewayPrefixListReferencesOutput, error)
@@ -2119,6 +2204,10 @@ type EC2API interface {
 	ModifyLaunchTemplate(*ec2.ModifyLaunchTemplateInput) (*ec2.ModifyLaunchTemplateOutput, error)
 	ModifyLaunchTemplateWithContext(aws.Context, *ec2.ModifyLaunchTemplateInput, ...request.Option) (*ec2.ModifyLaunchTemplateOutput, error)
 	ModifyLaunchTemplateRequest(*ec2.ModifyLaunchTemplateInput) (*request.Request, *ec2.ModifyLaunchTemplateOutput)
+
+	ModifyLocalGatewayRoute(*ec2.ModifyLocalGatewayRouteInput) (*ec2.ModifyLocalGatewayRouteOutput, error)
+	ModifyLocalGatewayRouteWithContext(aws.Context, *ec2.ModifyLocalGatewayRouteInput, ...request.Option) (*ec2.ModifyLocalGatewayRouteOutput, error)
+	ModifyLocalGatewayRouteRequest(*ec2.ModifyLocalGatewayRouteInput) (*request.Request, *ec2.ModifyLocalGatewayRouteOutput)
 
 	ModifyManagedPrefixList(*ec2.ModifyManagedPrefixListInput) (*ec2.ModifyManagedPrefixListOutput, error)
 	ModifyManagedPrefixListWithContext(aws.Context, *ec2.ModifyManagedPrefixListInput, ...request.Option) (*ec2.ModifyManagedPrefixListOutput, error)
@@ -2552,6 +2641,9 @@ type EC2API interface {
 
 	WaitUntilNatGatewayAvailable(*ec2.DescribeNatGatewaysInput) error
 	WaitUntilNatGatewayAvailableWithContext(aws.Context, *ec2.DescribeNatGatewaysInput, ...request.WaiterOption) error
+
+	WaitUntilNatGatewayDeleted(*ec2.DescribeNatGatewaysInput) error
+	WaitUntilNatGatewayDeletedWithContext(aws.Context, *ec2.DescribeNatGatewaysInput, ...request.WaiterOption) error
 
 	WaitUntilNetworkInterfaceAvailable(*ec2.DescribeNetworkInterfacesInput) error
 	WaitUntilNetworkInterfaceAvailableWithContext(aws.Context, *ec2.DescribeNetworkInterfacesInput, ...request.WaiterOption) error

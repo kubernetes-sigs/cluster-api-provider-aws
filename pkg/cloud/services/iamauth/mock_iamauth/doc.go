@@ -18,4 +18,4 @@ limitations under the License.
 //go:generate ../../../../../hack/tools/bin/mockgen -destination iamauth_mock.go -package mock_iamauth github.com/aws/aws-sdk-go/service/iam/iamiface IAMAPI
 //go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt iamauth_mock.go > _iamauth_mock.go && mv _iamauth_mock.go iamauth_mock.go"
 
-package mock_iamauth // nolint:stylecheck
+package mock_iamauth //nolint:stylecheck

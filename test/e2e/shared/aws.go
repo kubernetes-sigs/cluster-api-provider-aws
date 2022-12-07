@@ -52,12 +52,12 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/yaml"
 
-	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
-	cloudformation "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/service"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/credentials"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
+	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/bootstrap"
+	cloudformation "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/service"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/credentials"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 )
 
 type AWSInfrastructureSpec struct {
@@ -165,28 +165,19 @@ func (i *AWSInfrastructure) AllocateAddress() AWSInfrastructure {
 		return *i
 	}
 
-	t := 0
-	addr, _ := GetAddress(i.Context, *aa.AllocationId)
-	for addr == nil && t < 180 {
-		time.Sleep(1 * time.Second)
+	var addr *ec2.Address
+	Eventually(func(gomega Gomega) {
 		addr, _ = GetAddress(i.Context, *aa.AllocationId)
-		t++
-	}
+	}, 2*time.Minute, 5*time.Second).Should(Succeed())
 	i.ElasticIP = addr
 	return *i
 }
 
 func (i *AWSInfrastructure) CreateNatGateway(ct string) AWSInfrastructure {
-	t := 0
-	s, serr := GetSubnetByName(i.Context, i.Spec.ClusterName+"-subnet-"+ct)
-	if serr != nil {
-		return *i
-	}
-	for s == nil && t < 180 {
-		time.Sleep(1 * time.Second)
+	var s *ec2.Subnet
+	Eventually(func(gomega Gomega) {
 		s, _ = GetSubnetByName(i.Context, i.Spec.ClusterName+"-subnet-"+ct)
-		t++
-	}
+	}, 2*time.Minute, 5*time.Second).Should(Succeed())
 	if s == nil {
 		return *i
 	}
@@ -194,7 +185,7 @@ func (i *AWSInfrastructure) CreateNatGateway(ct string) AWSInfrastructure {
 	if ngwce != nil {
 		return *i
 	}
-	if WaitForNatGatewayState(i.Context, *ngwC.NatGatewayId, 180, "available") {
+	if WaitForNatGatewayState(i.Context, *ngwC.NatGatewayId, "available") {
 		ngw, _ := GetNatGateway(i.Context, *ngwC.NatGatewayId)
 		i.NatGateway = ngw
 		i.State.NatGatewayState = ngw.State
@@ -238,6 +229,10 @@ func (i *AWSInfrastructure) GetRouteTable(rtID string) AWSInfrastructure {
 // routes to their respective gateway.
 func (i *AWSInfrastructure) CreateInfrastructure() AWSInfrastructure {
 	i.CreateVPC()
+	Eventually(func(gomega Gomega) bool {
+		return *i.RefreshVPCState().State.VpcState == "available"
+	}, 2*time.Minute, 5*time.Second).Should(BeTrue())
+
 	Byf("Created VPC - %s", *i.VPC.VpcId)
 	if i.VPC != nil {
 		i.CreatePublicSubnet()
@@ -247,12 +242,6 @@ func (i *AWSInfrastructure) CreateInfrastructure() AWSInfrastructure {
 		i.CreatePrivateSubnet()
 		if i.State.PrivateSubnetID != nil {
 			Byf("Created Private Subnet - %s", *i.State.PrivateSubnetID)
-		}
-		for t := 0; t < 30; t++ {
-			if *i.RefreshVPCState().State.VpcState == "available" {
-				break
-			}
-			time.Sleep(1 * time.Second)
 		}
 		i.CreateInternetGateway()
 		if i.InternetGateway != nil {
@@ -264,7 +253,7 @@ func (i *AWSInfrastructure) CreateInfrastructure() AWSInfrastructure {
 		Byf("Created Elastic IP - %s", *i.ElasticIP.AllocationId)
 		i.CreateNatGateway("public")
 		if i.NatGateway != nil && i.NatGateway.NatGatewayId != nil {
-			WaitForNatGatewayState(i.Context, *i.NatGateway.NatGatewayId, 180, "available")
+			WaitForNatGatewayState(i.Context, *i.NatGateway.NatGatewayId, "available")
 			Byf("Created NAT Gateway - %s", *i.NatGateway.NatGatewayId)
 		}
 	}
@@ -304,7 +293,7 @@ func (i *AWSInfrastructure) DeleteInfrastructure() {
 			Byf("Deleting orphaned instance: %s - %v", *instance.InstanceId, TerminateInstance(i.Context, *instance.InstanceId))
 		}
 	}
-	WaitForInstanceState(i.Context, i.Spec.ClusterName, 300, "terminated")
+	WaitForInstanceState(i.Context, i.Spec.ClusterName, "terminated")
 
 	loadbalancers, _ := ListLoadBalancers(i.Context, i.Spec.ClusterName)
 	for _, lb := range loadbalancers {
@@ -320,7 +309,7 @@ func (i *AWSInfrastructure) DeleteInfrastructure() {
 
 	if i.NatGateway != nil {
 		Byf("Deleting NAT Gateway - %s - %v", *i.NatGateway.NatGatewayId, DeleteNatGateway(i.Context, *i.NatGateway.NatGatewayId))
-		WaitForNatGatewayState(i.Context, *i.NatGateway.NatGatewayId, 180, "deleted")
+		WaitForNatGatewayState(i.Context, *i.NatGateway.NatGatewayId, "deleted")
 	}
 
 	if i.ElasticIP != nil {
@@ -454,8 +443,7 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 		tayp := val.AWSCloudFormationType()
 		if tayp == configservice.ResourceTypeAwsIamRole {
 			role := val.(*cfn_iam.Role)
-			_, err := iamSvc.DeleteRole(&iam.DeleteRoleInput{RoleName: aws.String(role.RoleName)})
-			Expect(err).NotTo(HaveOccurred())
+			_, _ = iamSvc.DeleteRole(&iam.DeleteRoleInput{RoleName: aws.String(role.RoleName)})
 		}
 		if val.AWSCloudFormationType() == "AWS::IAM::InstanceProfile" {
 			profile := val.(*cfn_iam.InstanceProfile)
@@ -759,8 +747,7 @@ func DumpCloudTrailEvents(e2eCtx *E2EContext) {
 // Kubernetes version in the e2econfig.
 func conformanceImageID(e2eCtx *E2EContext) string {
 	ver := e2eCtx.E2EConfig.GetVariable("CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION")
-	strippedVer := strings.Replace(ver, "v", "", 1)
-	amiName := AMIPrefix + strippedVer + "*"
+	amiName := AMIPrefix + ver + "*"
 
 	Byf("Searching for AMI: name=%s", amiName)
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
@@ -800,9 +787,11 @@ type ServiceQuota struct {
 	RequestStatus       string
 }
 
-func EnsureServiceQuotas(sess client.ConfigProvider) map[string]*ServiceQuota {
+func EnsureServiceQuotas(sess client.ConfigProvider) (map[string]*ServiceQuota, map[string]*servicequotas.ServiceQuota) {
 	limitedResources := getLimitedResources()
 	serviceQuotasClient := servicequotas.New(sess)
+
+	originalQuotas := map[string]*servicequotas.ServiceQuota{}
 
 	for k, v := range limitedResources {
 		out, err := serviceQuotasClient.GetServiceQuota(&servicequotas.GetServiceQuotaInput{
@@ -810,6 +799,7 @@ func EnsureServiceQuotas(sess client.ConfigProvider) map[string]*ServiceQuota {
 			ServiceCode: aws.String(v.ServiceCode),
 		})
 		Expect(err).NotTo(HaveOccurred())
+		originalQuotas[k] = out.Quota
 		v.Value = int(aws.Float64Value(out.Quota.Value))
 		limitedResources[k] = v
 		if v.Value < v.DesiredMinimumValue {
@@ -817,7 +807,7 @@ func EnsureServiceQuotas(sess client.ConfigProvider) map[string]*ServiceQuota {
 		}
 	}
 
-	return limitedResources
+	return limitedResources, originalQuotas
 }
 
 func (s *ServiceQuota) attemptRaiseServiceQuotaRequest(serviceQuotasClient *servicequotas.ServiceQuotas) {
@@ -1011,9 +1001,8 @@ func ListClusterEC2Instances(e2eCtx *E2EContext, clusterName string) ([]*ec2.Ins
 	return instances, nil
 }
 
-func WaitForInstanceState(e2eCtx *E2EContext, clusterName string, timeout int, state string) bool {
-	t := 0
-	for t < timeout {
+func WaitForInstanceState(e2eCtx *E2EContext, clusterName string, state string) bool {
+	Eventually(func(gomega Gomega) bool {
 		st := map[string]int{
 			"pending":       0,
 			"running":       0,
@@ -1028,9 +1017,9 @@ func WaitForInstanceState(e2eCtx *E2EContext, clusterName string, timeout int, s
 		if st[state] == len(instances) || len(instances) == 0 {
 			return true
 		}
-		time.Sleep(1 * time.Second)
-		t++
-	}
+		return false
+	}, 5*time.Minute, 5*time.Second).Should(BeTrue())
+
 	return false
 }
 
@@ -1244,27 +1233,9 @@ func CreateSubnet(e2eCtx *E2EContext, clusterName string, cidrBlock string, az s
 						Key:   aws.String("Name"),
 						Value: aws.String(clusterName + "-subnet-" + st),
 					},
-					{
-						Key:   aws.String("kubernetes.io/cluster/" + clusterName),
-						Value: aws.String("shared"),
-					},
 				},
 			},
 		},
-	}
-
-	// Tag subnet based on type(st)
-	switch st {
-	case "private":
-		input.TagSpecifications[0].Tags = append(input.TagSpecifications[0].Tags, &ec2.Tag{
-			Key:   aws.String("kubernetes.io/role/internal-elb"),
-			Value: aws.String("1"),
-		})
-	case "public":
-		input.TagSpecifications[0].Tags = append(input.TagSpecifications[0].Tags, &ec2.Tag{
-			Key:   aws.String("kubernetes.io/role/elb"),
-			Value: aws.String("1"),
-		})
 	}
 
 	if az != "" {
@@ -1436,17 +1407,12 @@ func DeleteNatGateway(e2eCtx *E2EContext, gatewayID string) bool {
 	return true
 }
 
-func WaitForNatGatewayState(e2eCtx *E2EContext, gatewayID string, timeout int, state string) bool {
-	t := 0
-	for t < timeout {
+func WaitForNatGatewayState(e2eCtx *E2EContext, gatewayID string, state string) bool {
+	Eventually(func(gomega Gomega) bool {
 		gw, _ := GetNatGateway(e2eCtx, gatewayID)
 		gwState := *gw.State
-		if gwState == state {
-			return true
-		}
-		time.Sleep(1 * time.Second)
-		t++
-	}
+		return gwState == state
+	}, 3*time.Minute, 5*time.Second).Should(BeTrue())
 	return false
 }
 

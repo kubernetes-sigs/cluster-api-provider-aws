@@ -22,8 +22,8 @@ import (
 	"github.com/awslabs/goformation/v4/cloudformation"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 )
 
 const (
@@ -81,12 +81,19 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 			Effect:   iamv1.EffectAllow,
 			Resource: iamv1.Resources{iamv1.Any},
 			Action: iamv1.Actions{
+				"ec2:AttachNetworkInterface",
+				"ec2:DetachNetworkInterface",
 				"ec2:AllocateAddress",
+				"ec2:AssignIpv6Addresses",
+				"ec2:AssignPrivateIpAddresses",
+				"ec2:UnassignPrivateIpAddresses",
 				"ec2:AssociateRouteTable",
 				"ec2:AttachInternetGateway",
 				"ec2:AuthorizeSecurityGroupIngress",
 				"ec2:CreateInternetGateway",
+				"ec2:CreateEgressOnlyInternetGateway",
 				"ec2:CreateNatGateway",
+				"ec2:CreateNetworkInterface",
 				"ec2:CreateRoute",
 				"ec2:CreateRouteTable",
 				"ec2:CreateSecurityGroup",
@@ -95,6 +102,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"ec2:CreateVpc",
 				"ec2:ModifyVpcAttribute",
 				"ec2:DeleteInternetGateway",
+				"ec2:DeleteEgressOnlyInternetGateway",
 				"ec2:DeleteNatGateway",
 				"ec2:DeleteRouteTable",
 				"ec2:ReplaceRoute",
@@ -107,6 +115,8 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"ec2:DescribeAvailabilityZones",
 				"ec2:DescribeInstances",
 				"ec2:DescribeInternetGateways",
+				"ec2:DescribeEgressOnlyInternetGateways",
+				"ec2:DescribeInstanceTypes",
 				"ec2:DescribeImages",
 				"ec2:DescribeNatGateways",
 				"ec2:DescribeNetworkInterfaces",
@@ -117,6 +127,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"ec2:DescribeVpcs",
 				"ec2:DescribeVpcAttribute",
 				"ec2:DescribeVolumes",
+				"ec2:DescribeTags",
 				"ec2:DetachInternetGateway",
 				"ec2:DisassociateRouteTable",
 				"ec2:DisassociateAddress",
@@ -331,7 +342,7 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 			"iam:CreateServiceLinkedRole",
 		},
 		Resource: iamv1.Resources{
-			"arn:aws:iam::*:role/aws-service-role/eks-fargate-pods.amazonaws.com/AWSServiceRoleForAmazonEKSForFargate",
+			"arn:" + t.Spec.Partition + ":iam::*:role/aws-service-role/eks-fargate-pods.amazonaws.com/AWSServiceRoleForAmazonEKSForFargate",
 		},
 		Condition: iamv1.Conditions{
 			iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks-fargate.amazonaws.com"},
@@ -350,6 +361,7 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 		statement = append(statement, iamv1.StatementEntry{
 			Action: iamv1.Actions{
 				"iam:ListOpenIDConnectProviders",
+				"iam:GetOpenIDConnectProvider",
 				"iam:CreateOpenIDConnectProvider",
 				"iam:AddClientIDToOpenIDConnectProvider",
 				"iam:UpdateOpenIDConnectProviderThumbprint",

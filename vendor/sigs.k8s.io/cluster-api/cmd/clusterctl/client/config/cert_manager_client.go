@@ -17,8 +17,10 @@ limitations under the License.
 package config
 
 import (
+	"os"
 	"time"
 
+	"github.com/drone/envsubst/v2"
 	"github.com/pkg/errors"
 )
 
@@ -27,7 +29,7 @@ const (
 	CertManagerConfigKey = "cert-manager"
 
 	// CertManagerDefaultVersion defines the default cert-manager version to be used by clusterctl.
-	CertManagerDefaultVersion = "v1.7.2"
+	CertManagerDefaultVersion = "v1.9.1"
 
 	// CertManagerDefaultURL defines the default cert-manager repository url to be used by clusterctl.
 	// NOTE: At runtime /latest will be replaced with the CertManagerDefaultVersion or with the
@@ -77,6 +79,12 @@ func (p *certManagerClient) Get() (CertManager, error) {
 	if userCertManager.URL != "" {
 		url = userCertManager.URL
 	}
+
+	url, err := envsubst.Eval(url, os.Getenv)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to evaluate url: %q", url)
+	}
+
 	if userCertManager.Version != "" {
 		version = userCertManager.Version
 	}

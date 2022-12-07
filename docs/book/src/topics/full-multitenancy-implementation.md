@@ -89,7 +89,7 @@ spec:
       Condition:
         "ForAnyValue:StringEquals":
           "oidc.eks.${AWS_REGION}.amazonaws.com/id/${OIDC_PROVIDER_ID}:sub":
-            - system:serviceaccount:capa-system:capa-controller-manager
+            - system:serviceaccount:capi-providers:capa-controller-manager
             - system:serviceaccount:capa-eks-control-plane-system:capa-eks-control-plane-controller-manager # Include if also using EKS
 EOL
 ```
@@ -144,7 +144,7 @@ Follow AWS documentation to create an OIDC provider https://docs.aws.amazon.com/
 export OIDC_PROVIDER_ID=<OIDC_ID_OF_THE_CLUSTER>
 ```
 
-run the [Prepare the manager account](./full-multitenancy-implementation.md#prepare-the-manager-aws-account-0-account) step again
+run the [Prepare the manager account](./full-multitenancy-implementation.md#prepare-the-manager-account) step again
 
 ### Get manager cluster credentials
 
@@ -177,7 +177,7 @@ Time to build the managed cluster for pivoting the bootstrap cluster.
 ```bash
 export AWS_SSH_KEY_NAME=default
 export VPC_ADDON_VERSION="v1.10.2-eksbuild.1"
-clusterctl generate cluster manager --flavor eks-managedmachinepool-vpccni --kubernetes-version v1.20.2 --worker-machine-count=3 > managed-cluster.yaml
+clusterctl generate cluster managed --flavor eks-managedmachinepool-vpccni --kubernetes-version v1.20.2 --worker-machine-count=3 > managed-cluster.yaml
 ```
 
 Edit the file and add the following to the `AWSManagedControlPlane` resource spec to point the controller to the manager account when creating the cluster.
@@ -199,7 +199,7 @@ metadata:
 spec:
   allowedNamespaces: {} # This is unsafe since every namespace is allowed to use the role identity
   roleARN: arn:aws:iam::${AWS_MANAGED_ACCOUNT_ID}:role/controllers.cluster-api-provider-aws.sigs.k8s.io
-  sourceidentityRef:
+  sourceIdentityRef:
     kind: AWSClusterControllerIdentity
     name: default
 ---
@@ -208,7 +208,7 @@ kind: AWSClusterControllerIdentity
 metadata:
   name: default
 spec:
-  allowedNamespaces:{}
+  allowedNamespaces: {}
 EOL
 ```
 

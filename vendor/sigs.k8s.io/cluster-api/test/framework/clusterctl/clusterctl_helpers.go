@@ -20,6 +20,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"time"
 
 	. "github.com/onsi/gomega"
 
@@ -122,10 +123,14 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 
 // UpgradeManagementClusterAndWaitInput is the input type for UpgradeManagementClusterAndWait.
 type UpgradeManagementClusterAndWaitInput struct {
-	ClusterProxy         framework.ClusterProxy
-	ClusterctlConfigPath string
-	Contract             string
-	LogFolder            string
+	ClusterProxy            framework.ClusterProxy
+	ClusterctlConfigPath    string
+	Contract                string
+	CoreProvider            string
+	BootstrapProviders      []string
+	ControlPlaneProviders   []string
+	InfrastructureProviders []string
+	LogFolder               string
 }
 
 // UpgradeManagementClusterAndWait upgrades provider a management cluster using clusterctl, and waits for the cluster to be ready.
@@ -133,14 +138,27 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 	Expect(ctx).NotTo(BeNil(), "ctx is required for UpgradeManagementClusterAndWait")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling UpgradeManagementClusterAndWait")
 	Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling UpgradeManagementClusterAndWait")
-	Expect(input.Contract).ToNot(BeEmpty(), "Invalid argument. input.Contract can't be empty when calling UpgradeManagementClusterAndWait")
+	// Check if the user want a custom upgrade
+	isCustomUpgrade := input.CoreProvider != "" ||
+		len(input.BootstrapProviders) > 0 ||
+		len(input.ControlPlaneProviders) > 0 ||
+		len(input.InfrastructureProviders) > 0
+
+	Expect((input.Contract != "" && !isCustomUpgrade) || (input.Contract == "" && isCustomUpgrade)).To(BeTrue(), `Invalid argument. Either the input.Contract parameter or at least one of the following providers has to be set:
+		input.CoreProvider, input.BootstrapProviders, input.ControlPlaneProviders, input.InfrastructureProviders, input.IPAMProviders, input.RuntimeExtensionProviders`)
+
 	Expect(os.MkdirAll(input.LogFolder, 0750)).To(Succeed(), "Invalid argument. input.LogFolder can't be created for UpgradeManagementClusterAndWait")
 
 	Upgrade(ctx, UpgradeInput{
-		ClusterctlConfigPath: input.ClusterctlConfigPath,
-		KubeconfigPath:       input.ClusterProxy.GetKubeconfigPath(),
-		Contract:             input.Contract,
-		LogFolder:            input.LogFolder,
+		ClusterctlConfigPath:    input.ClusterctlConfigPath,
+		ClusterName:             input.ClusterProxy.GetName(),
+		KubeconfigPath:          input.ClusterProxy.GetKubeconfigPath(),
+		Contract:                input.Contract,
+		CoreProvider:            input.CoreProvider,
+		BootstrapProviders:      input.BootstrapProviders,
+		ControlPlaneProviders:   input.ControlPlaneProviders,
+		InfrastructureProviders: input.InfrastructureProviders,
+		LogFolder:               input.LogFolder,
 	})
 
 	client := input.ClusterProxy.GetClient()
@@ -184,10 +202,12 @@ type ApplyClusterTemplateAndWaitInput struct {
 	WaitForMachineDeployments    []interface{}
 	WaitForMachinePools          []interface{}
 	Args                         []string // extra args to be used during `kubectl apply`
+	PreWaitForCluster            func()
+	PostMachinesProvisioned      func()
 	ControlPlaneWaiters
 }
 
-// Waiter is a function that runs and waits for a long running operation to finish and updates the result.
+// Waiter is a function that runs and waits for a long-running operation to finish and updates the result.
 type Waiter func(ctx context.Context, input ApplyClusterTemplateAndWaitInput, result *ApplyClusterTemplateAndWaitResult)
 
 // ControlPlaneWaiters are Waiter functions for the control plane.
@@ -270,7 +290,17 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 	Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
 
 	log.Logf("Applying the cluster template yaml to the cluster")
-	Expect(input.ClusterProxy.Apply(ctx, workloadClusterTemplate, input.Args...)).To(Succeed())
+	Eventually(func() error {
+		return input.ClusterProxy.Apply(ctx, workloadClusterTemplate, input.Args...)
+	}, 10*time.Second).Should(Succeed(), "Failed to apply the cluster template")
+
+	// Once we applied the cluster template we can run PreWaitForCluster.
+	// Note: This can e.g. be used to verify the BeforeClusterCreate lifecycle hook is executed
+	// and blocking correctly.
+	if input.PreWaitForCluster != nil {
+		log.Logf("Calling PreWaitForCluster")
+		input.PreWaitForCluster()
+	}
 
 	log.Logf("Waiting for the cluster infrastructure to be provisioned")
 	result.Cluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
@@ -315,6 +345,11 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 		Lister:  input.ClusterProxy.GetClient(),
 		Cluster: result.Cluster,
 	}, input.WaitForMachinePools...)
+
+	if input.PostMachinesProvisioned != nil {
+		log.Logf("Calling PostMachinesProvisioned")
+		input.PostMachinesProvisioned()
+	}
 }
 
 // setDefaults sets the default values for ApplyClusterTemplateAndWaitInput if not set.

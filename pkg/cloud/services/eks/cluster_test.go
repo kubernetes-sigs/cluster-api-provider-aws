@@ -31,11 +31,11 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/mock_eksiface"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/iamauth/mock_iamauth"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks/mock_eksiface"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/iamauth/mock_iamauth"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -102,6 +102,7 @@ func TestParseEKSVersion(t *testing.T) {
 		})
 	}
 }
+
 func TestVersionToEKS(t *testing.T) {
 	testCases := []struct {
 		name   string
@@ -171,6 +172,33 @@ func TestMakeVPCConfig(t *testing.T) {
 						CidrBlock:        "10.0.10.0/24",
 						AvailabilityZone: "us-west-2b",
 						IsPublic:         false,
+					},
+				},
+				endpointAccess: ekscontrolplanev1.EndpointAccess{},
+			},
+			expect: &eks.VpcConfigRequest{
+				SubnetIds: []*string{&idOne, &idTwo},
+			},
+		},
+		{
+			name: "ipv6 subnets",
+			input: input{
+				subnets: []infrav1.SubnetSpec{
+					{
+						ID:               idOne,
+						CidrBlock:        "10.0.10.0/24",
+						AvailabilityZone: "us-west-2a",
+						IsPublic:         true,
+						IsIPv6:           true,
+						IPv6CidrBlock:    "2001:db8:85a3:1::/64",
+					},
+					{
+						ID:               idTwo,
+						CidrBlock:        "10.0.10.0/24",
+						AvailabilityZone: "us-west-2b",
+						IsPublic:         false,
+						IsIPv6:           true,
+						IPv6CidrBlock:    "2001:db8:85a3:2::/64",
 					},
 				},
 				endpointAccess: ekscontrolplanev1.EndpointAccess{},
@@ -641,4 +669,102 @@ func TestReconcileEKSEncryptionConfig(t *testing.T) {
 			g.Expect(err).To(BeNil())
 		})
 	}
+}
+
+func TestCreateIPv6Cluster(t *testing.T) {
+	g := NewWithT(t)
+
+	mockControl := gomock.NewController(t)
+	defer mockControl.Finish()
+
+	eksMock := mock_eksiface.NewMockEKSAPI(mockControl)
+	iamMock := mock_iamauth.NewMockIAMAPI(mockControl)
+
+	scheme := runtime.NewScheme()
+	_ = infrav1.AddToScheme(scheme)
+	_ = ekscontrolplanev1.AddToScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+	encryptionConfig := &ekscontrolplanev1.EncryptionConfig{
+		Provider:  pointer.String("new-provider"),
+		Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+	}
+	vpcSpec := infrav1.VPCSpec{
+		IPv6: &infrav1.IPv6{
+			CidrBlock: "2001:db8:85a3::/56",
+		},
+	}
+	scope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+		Client: client,
+		Cluster: &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "ns",
+				Name:      "cluster-name",
+			},
+		},
+		ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
+			Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				RoleName: pointer.String("arn-role"),
+				Version:  aws.String("1.22"),
+				NetworkSpec: infrav1.NetworkSpec{
+					Subnets: []infrav1.SubnetSpec{
+						{
+							ID:               "sub-1",
+							CidrBlock:        "10.0.10.0/24",
+							AvailabilityZone: "us-west-2a",
+							IsPublic:         true,
+							IsIPv6:           true,
+							IPv6CidrBlock:    "2001:db8:85a3:1::/64",
+						},
+						{
+							ID:               "sub-2",
+							CidrBlock:        "10.0.10.0/24",
+							AvailabilityZone: "us-west-2b",
+							IsPublic:         false,
+							IsIPv6:           true,
+							IPv6CidrBlock:    "2001:db8:85a3:2::/64",
+						},
+					},
+					VPC: vpcSpec,
+				},
+				EncryptionConfig: encryptionConfig,
+			},
+		},
+	})
+	g.Expect(err).To(BeNil())
+
+	eksMock.EXPECT().CreateCluster(&eks.CreateClusterInput{
+		Name:    aws.String("cluster-name"),
+		Version: aws.String("1.22"),
+		EncryptionConfig: []*eks.EncryptionConfig{
+			{
+				Provider: &eks.Provider{
+					KeyArn: encryptionConfig.Provider,
+				},
+				Resources: encryptionConfig.Resources,
+			},
+		},
+		ResourcesVpcConfig: &eks.VpcConfigRequest{
+			SubnetIds: []*string{pointer.StringPtr("sub-1"), pointer.StringPtr("sub-2")},
+		},
+		KubernetesNetworkConfig: &eks.KubernetesNetworkConfigRequest{
+			IpFamily: pointer.StringPtr("ipv6"),
+		},
+		Tags: map[string]*string{
+			"kubernetes.io/cluster/cluster-name": pointer.StringPtr("owned"),
+		},
+	}).Return(&eks.CreateClusterOutput{}, nil)
+	iamMock.EXPECT().GetRole(&iam.GetRoleInput{
+		RoleName: aws.String("arn-role"),
+	}).Return(&iam.GetRoleOutput{
+		Role: &iam.Role{
+			RoleName: pointer.String("arn-role"),
+		},
+	}, nil)
+
+	s := NewService(scope)
+	s.EKSClient = eksMock
+	s.IAMClient = iamMock
+
+	_, err = s.createCluster("cluster-name")
+	g.Expect(err).To(BeNil())
 }

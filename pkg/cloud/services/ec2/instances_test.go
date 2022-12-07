@@ -33,12 +33,12 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
-	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -348,7 +348,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -404,14 +404,14 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("bootstrap-data"),
 					},
+					FailureDomain: aws.String("us-east-1c"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
 				AMI: infrav1.AMIReference{
 					ID: aws.String("abc"),
 				},
-				InstanceType:  "m5.2xlarge",
-				FailureDomain: aws.String("us-east-1c"),
+				InstanceType: "m5.2xlarge",
 			},
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
@@ -454,7 +454,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -550,14 +550,14 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "v1.16.1")
+				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "1.16.1")
 				if err != nil {
 					t.Fatalf("Failed to process ami format: %v", err)
 				}
@@ -680,14 +680,14 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "v1.16.1")
+				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "1.16.1")
 				if err != nil {
 					t.Fatalf("Failed to process ami format: %v", err)
 				}
@@ -811,14 +811,14 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "v1.16.1")
+				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "1.16.1")
 				if err != nil {
 					t.Fatalf("Failed to process ami format: %v", err)
 				}
@@ -906,6 +906,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("bootstrap-data"),
 					},
+					FailureDomain: aws.String("us-east-1b"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -919,7 +920,6 @@ func TestCreateInstance(t *testing.T) {
 						Values: []string{"some-value"},
 					}},
 				},
-				FailureDomain: aws.String("us-east-1b"),
 			},
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
@@ -943,7 +943,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1049,7 +1049,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1155,7 +1155,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1231,7 +1231,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1300,6 +1300,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("bootstrap-data"),
 					},
+					FailureDomain: aws.String("us-east-1b"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -1310,7 +1311,6 @@ func TestCreateInstance(t *testing.T) {
 				Subnet: &infrav1.AWSResourceReference{
 					ID: aws.String("subnet-1"),
 				},
-				FailureDomain: aws.String("us-east-1b"),
 			},
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
@@ -1338,7 +1338,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1381,15 +1381,15 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("bootstrap-data"),
 					},
+					FailureDomain: aws.String("us-east-1b"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
 				AMI: infrav1.AMIReference{
 					ID: aws.String("abc"),
 				},
-				InstanceType:  "m5.large",
-				FailureDomain: aws.String("us-east-1b"),
-				PublicIP:      aws.Bool(true),
+				InstanceType: "m5.large",
+				PublicIP:     aws.Bool(true),
 			},
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
@@ -1418,7 +1418,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1485,7 +1485,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1594,7 +1594,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1685,7 +1685,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1796,7 +1796,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1889,7 +1889,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -1958,7 +1958,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -2059,7 +2059,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -2196,7 +2196,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -2326,7 +2326,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -2435,7 +2435,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -2545,7 +2545,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -2655,7 +2655,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -2762,7 +2762,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -2869,7 +2869,7 @@ func TestCreateInstance(t *testing.T) {
 								ID: "3",
 							},
 						},
-						APIServerELB: infrav1.ClassicELB{
+						APIServerELB: infrav1.LoadBalancer{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -3079,10 +3079,10 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 		name          string
 		securityGroup infrav1.AWSResourceReference
 		expect        func(m *mocks.MockEC2APIMockRecorder)
-		check         func(id string, err error)
+		check         func(ids []string, err error)
 	}{
 		{
-			name: "successfully return security group id",
+			name: "successfully return single security group id",
 			securityGroup: infrav1.AWSResourceReference{
 				Filters: []infrav1.Filter{
 					{
@@ -3107,13 +3107,57 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 						},
 					}, nil)
 			},
-			check: func(id string, err error) {
+			check: func(ids []string, err error) {
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
 				}
 
-				if id != securityGroupID {
-					t.Fatalf("expected security group id %v but got: %v", securityGroupID, id)
+				if ids[0] != securityGroupID {
+					t.Fatalf("expected security group id %v but got: %v", securityGroupID, ids[0])
+				}
+			},
+		},
+		{
+			name: "allow returning multiple security groups",
+			securityGroup: infrav1.AWSResourceReference{
+				Filters: []infrav1.Filter{
+					{
+						Name: securityGroupFilterName, Values: securityGroupFilterValues,
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String(securityGroupFilterName),
+							Values: aws.StringSlice(securityGroupFilterValues),
+						},
+					},
+				})).Return(
+					&ec2.DescribeSecurityGroupsOutput{
+						SecurityGroups: []*ec2.SecurityGroup{
+							{
+								GroupId: aws.String(securityGroupID),
+							},
+							{
+								GroupId: aws.String(securityGroupID),
+							},
+							{
+								GroupId: aws.String(securityGroupID),
+							},
+						},
+					}, nil)
+			},
+			check: func(ids []string, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+
+				for _, id := range ids {
+					if id != securityGroupID {
+						t.Fatalf("expected security group id %v but got: %v", securityGroupID, id)
+					}
 				}
 			},
 		},
@@ -3121,13 +3165,13 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 			name:          "return early when filters are missing",
 			securityGroup: infrav1.AWSResourceReference{},
 			expect:        func(m *mocks.MockEC2APIMockRecorder) {},
-			check: func(id string, err error) {
+			check: func(ids []string, err error) {
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
 				}
 
-				if id != "" {
-					t.Fatalf("didn't expect secutity group id %v", id)
+				if len(ids) > 0 {
+					t.Fatalf("didn't expect security group ids %v", ids)
 				}
 			},
 		},
@@ -3150,14 +3194,14 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 					},
 				})).Return(nil, errors.New("some error"))
 			},
-			check: func(id string, err error) {
+			check: func(_ []string, err error) {
 				if err == nil {
 					t.Fatalf("expected error but got none.")
 				}
 			},
 		},
 		{
-			name: "error when no security groups found",
+			name: "no error when no security groups found",
 			securityGroup: infrav1.AWSResourceReference{
 				Filters: []infrav1.Filter{
 					{
@@ -3178,9 +3222,12 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 						SecurityGroups: []*ec2.SecurityGroup{},
 					}, nil)
 			},
-			check: func(id string, err error) {
-				if err == nil {
-					t.Fatalf("expected error but got none.")
+			check: func(ids []string, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+				if len(ids) > 0 {
+					t.Fatalf("didn't expect security group ids %v", ids)
 				}
 			},
 		},
@@ -3195,8 +3242,8 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 				EC2Client: ec2Mock,
 			}
 
-			id, err := s.getFilteredSecurityGroupID(tc.securityGroup)
-			tc.check(id, err)
+			ids, err := s.getFilteredSecurityGroupIDs(tc.securityGroup)
+			tc.check(ids, err)
 		})
 	}
 }

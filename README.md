@@ -62,12 +62,11 @@ cluster on AWS.
 This provider's versions are compatible with the following versions of Cluster API
 and support all Kubernetes versions that is supported by its compatible Cluster API version:
 
-|                             | Cluster API v1alpha3 (v0.3) | Cluster API v1alpha4 (v0.4) | Cluster API v1beta1 (v1.x)  |
-| --------------------------- | :-------------------------: | :-------------------------: | :-------------------------: | 
-| CAPA v1alpha3 `(v0.6)`      |              ✓              |              ☓              |              ☓              |
-| CAPA v1alpha4 `(v0.7)`      |              ☓              |              ✓              |              ☓              |
-| CAPA v1beta1  `(v1.x, main)`|              ☓              |              ☓              |               ✓             |
-
+|                             | Cluster API v1alpha4 (v0.4) | Cluster API v1beta1 (v1.x)  |
+| --------------------------- | :-------------------------: | :-------------------------: |
+| CAPA v1alpha4 `(v0.7)`      |              ✓              |              ☓              |
+| CAPA v1beta1  `(v1.x)`      |              ☓              |               ✓             |
+| CAPA v1beta2  `(v2.x, main)`|              ☓              |               ✓             |
 
 (See [Kubernetes support matrix][cluster-api-supported-v] of Cluster API versions).
 
@@ -86,6 +85,7 @@ See [amis] for the list of most recently published AMIs.
 `clusterawsadm` binaries are released with each release, can be found under [assets](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/latest) section.
 
 ------
+
 ## Getting involved and contributing
 
 Are you interested in contributing to cluster-api-provider-aws? We, the
@@ -113,16 +113,13 @@ This repository uses the Kubernetes bots.  See a full list of the commands [here
 
 If you want to just build the CAPA containers locally, run
 
-```
-	REGISTRY=docker.io/my-reg make docker-build
+```shell
+  REGISTRY=docker.io/my-reg make docker-build
 ```
 
 ### Tilt-based development environment
 
-See [development][development] section for details
-
-[development]: https://cluster-api-aws.sigs.k8s.io/development/development.html
-
+See [development][development] section for details.
 
 ### Implementer office hours
 
@@ -172,15 +169,15 @@ and/or other countries."
 
 Thank you to all contributors and a special thanks to our current maintainers & reviewers:
 
-| Maintainers                                       | Reviewers                                      |
-| ------------------------------------------------- | ---------------------------------------------- |
-| [@richardcase](https://github.com/richardcase)    | [@Ankitasw](https://github.com/Ankitasw)       |
-| [@sedefsavas](https://github.com/sedefsavas)      | [@dthorsen](https://github.com/dthorsen)       |
-|                                                   | [@dlipovetsky](https://github.com/dlipovetsky) |
-|                                                   | [@pydctw](https://github.com/pydctw)           |
-|                                                   | [@shivi28](https://github.com/shivi28)         |
+| Maintainers                                                          | Reviewers                                                            |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| [@richardcase](https://github.com/richardcase) (from 2020-12-04)     | [@shivi28](https://github.com/shivi28) (from 2021-08-27)             |
+| [@sedefsavas](https://github.com/sedefsavas) (from 2021-03-21)       | [@dthorsen](https://github.com/dthorsen) (from 2020-12-04)           |
+| [@Skarlso](https://github.com/Skarlso) (from 2022-10-19)             | [@pydctw](https://github.com/pydctw) (from 2021-12-09)               |
+| [@Ankitasw](https://github.com/Ankitasw) (from 2022-10-19)           | [@AverageMarcus](https://github.com/AverageMarcus) (from 2022-10-19) |
+| [@dlipovetsky](https://github.com/dlipovetsky) (from 2021-10-31)     |                                                                      |
 
-and the previous/emeritus maintainers & reviwers:
+and the previous/emeritus maintainers & reviewers:
 
 | Emeritus Maintainers                                 | Emeritus Reviewers                                     |
 | ---------------------------------------------------- | ------------------------------------------------------ |
@@ -199,7 +196,6 @@ All the CAPA contributors:
 </a>
 </p>
 
-
 <!-- References -->
 [slack]: https://kubernetes.slack.com/messages/CD6U2V71N
 [good_first_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22
@@ -209,9 +205,8 @@ All the CAPA contributors:
 [cluster_api]: https://github.com/kubernetes-sigs/cluster-api
 [kops]: https://github.com/kubernetes/kops
 [kubicorn]: http://kubicorn.io/
-[tilt]: https://tilt.dev
-[cluster_api_tilt]: https://master.cluster-api.sigs.k8s.io/developer/tilt.html
 [amis]: https://cluster-api-aws.sigs.k8s.io/topics/images/amis.html
 [published_amis]: https://cluster-api-aws.sigs.k8s.io/topics/images/built-amis.html
 [eks_support]: https://cluster-api-aws.sigs.k8s.io/topics/eks/index.html
 [cluster-api-supported-v]: https://cluster-api.sigs.k8s.io/reference/versions.html
+[development]: https://cluster-api-aws.sigs.k8s.io/development/development.html

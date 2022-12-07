@@ -33,11 +33,12 @@ const (
 	//
 	//    * For PutOrganizationConfigRule, organization Config rule cannot be created
 	//    because you do not have permissions to call IAM GetRole action or create
-	//    a service linked role.
+	//    a service-linked role.
 	//
 	//    * For PutConformancePack and PutOrganizationConformancePack, a conformance
 	//    pack cannot be created because you do not have permissions: To call IAM
-	//    GetRole action or create a service linked role. To read Amazon S3 bucket.
+	//    GetRole action or create a service-linked role. To read Amazon S3 bucket
+	//    or call SSM:GetDocument.
 	ErrCodeInsufficientPermissionsException = "InsufficientPermissionsException"
 
 	// ErrCodeInvalidConfigurationRecorderNameException for service response error code

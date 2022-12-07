@@ -19,7 +19,7 @@ package s3_test
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/url"
 	"reflect"
 	"strings"
@@ -34,12 +34,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/s3"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/s3/mock_s3iface"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/s3/mock_stsiface"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3/mock_s3iface"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3/mock_stsiface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -48,7 +48,7 @@ const (
 	testClusterNamespace = "test-namespace"
 )
 
-func Test_Reconcile_bucket(t *testing.T) {
+func TestReconcile_bucket(t *testing.T) {
 	t.Parallel()
 
 	t.Run("does_nothing_when_bucket_management_is_disabled", func(t *testing.T) {
@@ -270,7 +270,7 @@ func Test_Reconcile_bucket(t *testing.T) {
 	})
 }
 
-func Test_Delete_bucket(t *testing.T) {
+func TestDelete_bucket(t *testing.T) {
 	t.Parallel()
 
 	const bucketName = "foo"
@@ -355,7 +355,7 @@ func Test_Delete_bucket(t *testing.T) {
 	})
 }
 
-func Test_Create_object(t *testing.T) {
+func TestCreate_object(t *testing.T) {
 	t.Parallel()
 
 	const (
@@ -405,7 +405,7 @@ func Test_Create_object(t *testing.T) {
 			t.Run("puts_given_bootstrap_data_untouched", func(t *testing.T) {
 				t.Parallel()
 
-				data, err := ioutil.ReadAll(putObjectInput.Body)
+				data, err := io.ReadAll(putObjectInput.Body)
 				if err != nil {
 					t.Fatalf("Reading put object body: %v", err)
 				}
@@ -565,7 +565,7 @@ func Test_Create_object(t *testing.T) {
 	})
 }
 
-func Test_Delete_object(t *testing.T) {
+func TestDelete_object(t *testing.T) {
 	t.Parallel()
 
 	const nodeName = "aws-test1"

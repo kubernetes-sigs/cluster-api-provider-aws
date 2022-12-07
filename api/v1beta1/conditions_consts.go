@@ -25,7 +25,7 @@ const (
 	// PrincipalCredentialRetrievalFailedReason used when errors occur during identity credential retrieval.
 	PrincipalCredentialRetrievalFailedReason = "PrincipalCredentialRetrievalFailed"
 	// CredentialProviderBuildFailedReason used when errors occur during building providers before trying credential retrieval.
-	// nolint:gosec
+	//nolint:gosec
 	CredentialProviderBuildFailedReason = "CredentialProviderBuildFailed"
 	// PrincipalUsageAllowedCondition reports on whether Principal and all the nested source identities are allowed to be used in the AWSCluster namespace.
 	PrincipalUsageAllowedCondition clusterv1.ConditionType = "PrincipalUsageAllowed"
@@ -59,6 +59,14 @@ const (
 	InternetGatewayReadyCondition clusterv1.ConditionType = "InternetGatewayReady"
 	// InternetGatewayFailedReason used when errors occur during internet gateway reconciliation.
 	InternetGatewayFailedReason = "InternetGatewayFailed"
+)
+
+const (
+	// EgressOnlyInternetGatewayReadyCondition reports on the successful reconciliation of egress only internet gateways.
+	// Only applicable to managed clusters.
+	EgressOnlyInternetGatewayReadyCondition clusterv1.ConditionType = "EgressOnlyInternetGatewayReady"
+	// EgressOnlyInternetGatewayFailedReason used when errors occur during egress only internet gateway reconciliation.
+	EgressOnlyInternetGatewayFailedReason = "EgressOnlyInternetGatewayFailed"
 )
 
 const (

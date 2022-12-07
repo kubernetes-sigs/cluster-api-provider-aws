@@ -27,9 +27,9 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/mock_eksiface"
-	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks/mock_eksiface"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 )
 
 var (
@@ -60,7 +60,7 @@ var (
 	}
 )
 
-func TestTags_ComputeDiff(t *testing.T) {
+func TestTagsComputeDiff(t *testing.T) {
 	pName := "test"
 	pRole := "testrole"
 	bp := infrav1.BuildParams{
@@ -132,7 +132,7 @@ func TestTags_ComputeDiff(t *testing.T) {
 	}
 }
 
-func TestTags_EnsureWithEC2(t *testing.T) {
+func TestTagsEnsureWithEC2(t *testing.T) {
 	tests := []struct {
 		name    string
 		builder Builder
@@ -190,7 +190,7 @@ func TestTags_EnsureWithEC2(t *testing.T) {
 	}
 }
 
-func TestTags_EnsureWithEKS(t *testing.T) {
+func TestTagsEnsureWithEKS(t *testing.T) {
 	tests := []struct {
 		name    string
 		builder Builder
@@ -240,7 +240,7 @@ func TestTags_EnsureWithEKS(t *testing.T) {
 	}
 }
 
-func TestTags_BuildParamsToTagSpecification(t *testing.T) {
+func TestTagsBuildParamsToTagSpecification(t *testing.T) {
 	g := NewWithT(t)
 	tagSpec := BuildParamsToTagSpecification("test-resource", bp)
 	expectedTagSpec := &ec2.TagSpecification{

@@ -23,8 +23,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/flags"
-	creds "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/credentials"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/flags"
+	creds "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/credentials"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
@@ -37,7 +37,7 @@ const (
 
 	// CredentialHelp provides an explanation as to how credentials are resolved by
 	// clusterawsadm.
-	// nolint:gosec
+	//nolint:gosec
 	CredentialHelp = `
 	The utility will attempt to find credentials in the following order:
 

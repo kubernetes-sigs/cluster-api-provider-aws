@@ -21,12 +21,12 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	ctrl "sigs.k8s.io/controller-runtime"
 
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/ami"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/flags"
-	cmdout "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/printers"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/ami"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/flags"
+	cmdout "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/printers"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
-	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
 var (
@@ -86,7 +86,7 @@ func EncryptedCopyAMICmd() *cobra.Command {
 				fmt.Printf("Failed to parse dry-run value: %v. Defaulting to --dry-run=false\n", err)
 			}
 
-			log := logf.Log
+			log := ctrl.Log
 
 			ami, err := ami.Copy(ami.CopyInput{
 				DestinationRegion: region,

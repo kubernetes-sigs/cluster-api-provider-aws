@@ -14,7 +14,7 @@ Also, visit the [Cluster API documentation on Tilt][cluster_api_tilt] for more i
 First, make sure you have a kind cluster and that your `KUBECONFIG` is set up correctly:
 
 ``` bash
-kind create cluster
+kind create cluster --name=capi-test
 ```
 
 This local cluster will be running all the cluster api controllers and become the management cluster which then can be used to spin up workload clusters on AWS.
@@ -24,7 +24,7 @@ This local cluster will be running all the cluster api controllers and become th
 Get the source for core cluster-api for development with Tilt along with cluster-api-provider-aws.
 
 ```bash
-cd "$(go env GOPATH)"
+cd "$(go env GOPATH)"/src
 mkdir sigs.k8s.io
 cd sigs.k8s.io/
 git clone git@github.com:kubernetes-sigs/cluster-api.git
@@ -47,7 +47,7 @@ Next, create a `tilt-settings.json` file and place it in your local copy of `clu
   ],
   "default_registry": "gcr.io/your-project-name-here",
   "provider_repos": [
-    "/Users/username/go/src/sigs.k8s.io/cluster-api-provider-aws"
+    "/Users/username/go/src/sigs.k8s.io/cluster-api-provider-aws/v2"
   ],
   "kustomize_substitutions": {
     "EXP_CLUSTER_RESOURCE_SET": "true",
@@ -103,7 +103,7 @@ An example **tilt-settings.json**:
   ],
   "default_registry": "gcr.io/your-project-name-here",
   "provider_repos": [
-    "/Users/username/go/src/sigs.k8s.io/cluster-api-provider-aws"
+    "/Users/username/go/src/sigs.k8s.io/cluster-api-provider-aws/v2"
   ],
   "kustomize_substitutions": {
     "EXP_CLUSTER_RESOURCE_SET": "true",

@@ -19,6 +19,7 @@ package framework
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -31,6 +32,7 @@ import (
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/api/policy/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -100,6 +102,18 @@ type WatchDeploymentLogsInput struct {
 	LogPath    string
 }
 
+// logMetadata contains metadata about the logs.
+// The format is very similar to the one used by promtail.
+type logMetadata struct {
+	Job       string `json:"job"`
+	Namespace string `json:"namespace"`
+	App       string `json:"app"`
+	Pod       string `json:"pod"`
+	Container string `json:"container"`
+	NodeName  string `json:"node_name"`
+	Stream    string `json:"stream"`
+}
+
 // WatchDeploymentLogs streams logs for all containers for all pods belonging to a deployment. Each container's logs are streamed
 // in a separate goroutine so they can all be streamed concurrently. This only causes a test failure if there are errors
 // retrieving the deployment, its pods, or setting up a log file. If there is an error with the log streaming itself,
@@ -124,6 +138,23 @@ func WatchDeploymentLogs(ctx context.Context, input WatchDeploymentLogsInput) {
 	for _, pod := range pods.Items {
 		for _, container := range deployment.Spec.Template.Spec.Containers {
 			log.Logf("Creating log watcher for controller %s/%s, pod %s, container %s", input.Deployment.Namespace, input.Deployment.Name, pod.Name, container.Name)
+
+			// Create log metadata file.
+			logMetadataFile := filepath.Clean(path.Join(input.LogPath, input.Deployment.Name, pod.Name, container.Name+"-log-metadata.json"))
+			Expect(os.MkdirAll(filepath.Dir(logMetadataFile), 0750)).To(Succeed())
+
+			metadata := logMetadata{
+				Job:       input.Deployment.Namespace + "/" + input.Deployment.Name,
+				Namespace: input.Deployment.Namespace,
+				App:       input.Deployment.Name,
+				Pod:       pod.Name,
+				Container: container.Name,
+				NodeName:  pod.Spec.NodeName,
+				Stream:    "stderr",
+			}
+			metadataBytes, err := json.Marshal(&metadata)
+			Expect(err).To(BeNil())
+			Expect(os.WriteFile(logMetadataFile, metadataBytes, 0600)).To(Succeed())
 
 			// Watch each container's logs in a goroutine so we can stream them all concurrently.
 			go func(pod corev1.Pod, container corev1.Container) {
@@ -238,7 +269,8 @@ type WaitForDNSUpgradeInput struct {
 	DNSVersion string
 }
 
-// WaitForDNSUpgrade waits until CoreDNS version matches with the CoreDNS upgrade version. This is called during KCP upgrade.
+// WaitForDNSUpgrade waits until CoreDNS version matches with the CoreDNS upgrade version and all its replicas
+// are ready for use with the upgraded version. This is called during KCP upgrade.
 func WaitForDNSUpgrade(ctx context.Context, input WaitForDNSUpgradeInput, intervals ...interface{}) {
 	By("Ensuring CoreDNS has the correct image")
 
@@ -250,10 +282,18 @@ func WaitForDNSUpgrade(ctx context.Context, input WaitForDNSUpgradeInput, interv
 		}
 
 		// NOTE: coredns image name has changed over time (k8s.gcr.io/coredns,
-		// k8s.gcr.io/coredns/coredns), so we are checking only if the version actually changed.
+		// k8s.gcr.io/coredns/coredns), so we are checking if the version actually changed.
 		if strings.HasSuffix(d.Spec.Template.Spec.Containers[0].Image, fmt.Sprintf(":%s", input.DNSVersion)) {
 			return true, nil
 		}
+
+		// check whether the upgraded CoreDNS replicas are available and ready for use.
+		if d.Status.ObservedGeneration >= d.Generation {
+			if d.Spec.Replicas != nil && d.Status.UpdatedReplicas == *d.Spec.Replicas && d.Status.AvailableReplicas == *d.Spec.Replicas {
+				return true, nil
+			}
+		}
+
 		return false, nil
 	}, intervals...).Should(BeTrue())
 }
@@ -326,6 +366,7 @@ func DeployUnevictablePod(ctx context.Context, input DeployUnevictablePodInput) 
 			},
 		},
 	}
+
 	if input.ControlPlane != nil {
 		var serverVersion *version.Info
 		Eventually(func() error {
@@ -358,33 +399,72 @@ func DeployUnevictablePod(ctx context.Context, input DeployUnevictablePodInput) 
 		Deployment: workloadDeployment,
 	})
 
-	budget := &v1beta1.PodDisruptionBudget{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "PodDisruptionBudget",
-			APIVersion: "policy/v1beta1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      input.DeploymentName,
-			Namespace: input.Namespace,
-		},
-		Spec: v1beta1.PodDisruptionBudgetSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": "nonstop",
+	// TODO(oscr): Remove when Kubernetes 1.20 support is dropped.
+	serverVersion, err := workloadClient.ServerVersion()
+	Expect(err).ToNot(HaveOccurred(), "Failed to get Kubernetes version for workload")
+
+	// If Kubernetes < 1.21.0 we need to use PDB from v1beta1
+	if utilversion.MustParseGeneric(serverVersion.String()).LessThan(utilversion.MustParseGeneric("v1.21.0")) {
+		budgetV1Beta1 := &v1beta1.PodDisruptionBudget{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "PodDisruptionBudget",
+				APIVersion: "policy/v1beta1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      input.DeploymentName,
+				Namespace: input.Namespace,
+			},
+			Spec: v1beta1.PodDisruptionBudgetSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"app": "nonstop",
+					},
+				},
+				MaxUnavailable: &intstr.IntOrString{
+					Type:   intstr.Int,
+					IntVal: 1,
+					StrVal: "1",
 				},
 			},
-			MaxUnavailable: &intstr.IntOrString{
-				Type:   intstr.Int,
-				IntVal: 1,
-				StrVal: "1",
+		}
+
+		AddPodDisruptionBudgetV1Beta1(ctx, AddPodDisruptionBudgetInputV1Beta1{
+			Namespace: input.Namespace,
+			ClientSet: workloadClient,
+			Budget:    budgetV1Beta1,
+		})
+
+		// If Kubernetes >= 1.21.0 then we need to use PDB from v1
+	} else {
+		budget := &policyv1.PodDisruptionBudget{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "PodDisruptionBudget",
+				APIVersion: "policy/v1",
 			},
-		},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      input.DeploymentName,
+				Namespace: input.Namespace,
+			},
+			Spec: policyv1.PodDisruptionBudgetSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"app": "nonstop",
+					},
+				},
+				MaxUnavailable: &intstr.IntOrString{
+					Type:   intstr.Int,
+					IntVal: 1,
+					StrVal: "1",
+				},
+			},
+		}
+
+		AddPodDisruptionBudget(ctx, AddPodDisruptionBudgetInput{
+			Namespace: input.Namespace,
+			ClientSet: workloadClient,
+			Budget:    budget,
+		})
 	}
-	AddPodDisruptionBudget(ctx, AddPodDisruptionBudgetInput{
-		Namespace: input.Namespace,
-		ClientSet: workloadClient,
-		Budget:    budget,
-	})
 
 	WaitForDeploymentsAvailable(ctx, WaitForDeploymentsAvailableInput{
 		Getter:     input.WorkloadClusterProxy.GetClient(),
@@ -410,11 +490,29 @@ func AddDeploymentToWorkloadCluster(ctx context.Context, input AddDeploymentToWo
 
 type AddPodDisruptionBudgetInput struct {
 	ClientSet *kubernetes.Clientset
-	Budget    *v1beta1.PodDisruptionBudget
+	Budget    *policyv1.PodDisruptionBudget
 	Namespace string
 }
 
 func AddPodDisruptionBudget(ctx context.Context, input AddPodDisruptionBudgetInput) {
+	Eventually(func() error {
+		budget, err := input.ClientSet.PolicyV1().PodDisruptionBudgets(input.Namespace).Create(ctx, input.Budget, metav1.CreateOptions{})
+		if budget != nil && err == nil {
+			return nil
+		}
+		return fmt.Errorf("podDisruptionBudget needs to be successfully deployed: %v", err)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "podDisruptionBudget needs to be successfully deployed")
+}
+
+// TODO(oscr): Delete below when Kubernetes 1.20 support is dropped.
+
+type AddPodDisruptionBudgetInputV1Beta1 struct {
+	ClientSet *kubernetes.Clientset
+	Budget    *v1beta1.PodDisruptionBudget
+	Namespace string
+}
+
+func AddPodDisruptionBudgetV1Beta1(ctx context.Context, input AddPodDisruptionBudgetInputV1Beta1) {
 	Eventually(func() error {
 		budget, err := input.ClientSet.PolicyV1beta1().PodDisruptionBudgets(input.Namespace).Create(ctx, input.Budget, metav1.CreateOptions{})
 		if budget != nil && err == nil {

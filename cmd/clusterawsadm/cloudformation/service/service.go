@@ -31,7 +31,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 )
 
 // Service holds a collection of interfaces.
@@ -63,9 +63,10 @@ func (s *Service) ReconcileBootstrapStack(stackName string, t go_cfn.Template, t
 			Value: pointer.StringPtr(v),
 		})
 	}
-	if err := s.createStack(stackName, processedYaml, stackTags); err != nil { // nolint:nestif
+	//nolint:nestif
+	if err := s.createStack(stackName, processedYaml, stackTags); err != nil {
 		if code, _ := awserrors.Code(errors.Cause(err)); code == "AlreadyExistsException" {
-			klog.Infof("AWS Cloudformation stack %q already exists, updating", stackName)
+			klog.Infof("AWS Cloudformation stack %q already exists, updating", klog.KRef("", stackName))
 			updateErr := s.updateStack(stackName, processedYaml, stackTags)
 			if updateErr != nil {
 				code, ok := awserrors.Code(errors.Cause(updateErr))

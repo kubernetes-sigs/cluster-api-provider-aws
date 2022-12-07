@@ -49,4 +49,22 @@ spec:
 
 See [AWS doc](https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html) for more details.
 
-> **IMPORTANT NOTE**: The experimental feature `AWSMachinePool` does not support using spot instances as of now.
+## Using Spot Instances with AWSMachinePool
+To enable AWSMachinePool to be backed by a Spot Instance, users need to add `spotMarketOptions` to AWSLaunchTemplate:
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSMachinePool
+metadata:
+  name: ${CLUSTER_NAME}-mp-0
+spec:
+  minSize: 1
+  maxSize: 4
+  awsLaunchTemplate:
+    instanceType: "${AWS_CONTROL_PLANE_MACHINE_TYPE}"
+    iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
+    sshKeyName: "${AWS_SSH_KEY_NAME}"
+    spotMarketOptions:
+       maxPrice: ""
+```
+
+> **IMPORTANT WARNING**: The experimental feature `AWSMachinePool` supports using spot instances, but the graceful shutdown of machines in `AWSMachinePool` is not supported and has to be handled externally by users.

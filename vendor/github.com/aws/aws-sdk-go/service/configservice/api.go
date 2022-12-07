@@ -29,14 +29,13 @@ const opBatchGetAggregateResourceConfig = "BatchGetAggregateResourceConfig"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the BatchGetAggregateResourceConfigRequest method.
+//	req, resp := client.BatchGetAggregateResourceConfigRequest(params)
 //
-//    // Example sending a request using the BatchGetAggregateResourceConfigRequest method.
-//    req, resp := client.BatchGetAggregateResourceConfigRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/BatchGetAggregateResourceConfig
 func (c *ConfigService) BatchGetAggregateResourceConfigRequest(input *BatchGetAggregateResourceConfigInput) (req *request.Request, output *BatchGetAggregateResourceConfigOutput) {
@@ -62,9 +61,9 @@ func (c *ConfigService) BatchGetAggregateResourceConfigRequest(input *BatchGetAg
 // are not processed in the current request. If there are no unprocessed resources,
 // the operation returns an empty unprocessedResourceIdentifiers list.
 //
-//    * The API does not return results for deleted resources.
+//   - The API does not return results for deleted resources.
 //
-//    * The API does not return tags and relationships.
+//   - The API does not return tags and relationships.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -74,19 +73,20 @@ func (c *ConfigService) BatchGetAggregateResourceConfigRequest(input *BatchGetAg
 // API operation BatchGetAggregateResourceConfig for usage and error information.
 //
 // Returned Error Types:
-//   * ValidationException
-//   The requested action is not valid.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * NoSuchConfigurationAggregatorException
-//   You have specified a configuration aggregator that does not exist.
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
+//
+//   - NoSuchConfigurationAggregatorException
+//     You have specified a configuration aggregator that does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/BatchGetAggregateResourceConfig
 func (c *ConfigService) BatchGetAggregateResourceConfig(input *BatchGetAggregateResourceConfigInput) (*BatchGetAggregateResourceConfigOutput, error) {
@@ -126,14 +126,13 @@ const opBatchGetResourceConfig = "BatchGetResourceConfig"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the BatchGetResourceConfigRequest method.
+//	req, resp := client.BatchGetResourceConfigRequest(params)
 //
-//    // Example sending a request using the BatchGetResourceConfigRequest method.
-//    req, resp := client.BatchGetResourceConfigRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/BatchGetResourceConfig
 func (c *ConfigService) BatchGetResourceConfigRequest(input *BatchGetResourceConfigInput) (req *request.Request, output *BatchGetResourceConfigOutput) {
@@ -159,10 +158,10 @@ func (c *ConfigService) BatchGetResourceConfigRequest(input *BatchGetResourceCon
 // current request. If there are no unprocessed resources, the operation returns
 // an empty unprocessedResourceKeys list.
 //
-//    * The API does not return results for deleted resources.
+//   - The API does not return results for deleted resources.
 //
-//    * The API does not return any tags for the requested resources. This information
-//    is filtered out of the supplementaryConfiguration section of the API response.
+//   - The API does not return any tags for the requested resources. This information
+//     is filtered out of the supplementaryConfiguration section of the API response.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -172,20 +171,21 @@ func (c *ConfigService) BatchGetResourceConfigRequest(input *BatchGetResourceCon
 // API operation BatchGetResourceConfig for usage and error information.
 //
 // Returned Error Types:
-//   * ValidationException
-//   The requested action is not valid.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * NoAvailableConfigurationRecorderException
-//   There are no configuration recorders available to provide the role needed
-//   to describe your resources. Create a configuration recorder.
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
+//
+//   - NoAvailableConfigurationRecorderException
+//     There are no configuration recorders available to provide the role needed
+//     to describe your resources. Create a configuration recorder.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/BatchGetResourceConfig
 func (c *ConfigService) BatchGetResourceConfig(input *BatchGetResourceConfigInput) (*BatchGetResourceConfigOutput, error) {
@@ -225,14 +225,13 @@ const opDeleteAggregationAuthorization = "DeleteAggregationAuthorization"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteAggregationAuthorizationRequest method.
+//	req, resp := client.DeleteAggregationAuthorizationRequest(params)
 //
-//    // Example sending a request using the DeleteAggregationAuthorizationRequest method.
-//    req, resp := client.DeleteAggregationAuthorizationRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteAggregationAuthorization
 func (c *ConfigService) DeleteAggregationAuthorizationRequest(input *DeleteAggregationAuthorizationInput) (req *request.Request, output *DeleteAggregationAuthorizationOutput) {
@@ -265,9 +264,9 @@ func (c *ConfigService) DeleteAggregationAuthorizationRequest(input *DeleteAggre
 // API operation DeleteAggregationAuthorization for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteAggregationAuthorization
 func (c *ConfigService) DeleteAggregationAuthorization(input *DeleteAggregationAuthorizationInput) (*DeleteAggregationAuthorizationOutput, error) {
@@ -307,14 +306,13 @@ const opDeleteConfigRule = "DeleteConfigRule"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteConfigRuleRequest method.
+//	req, resp := client.DeleteConfigRuleRequest(params)
 //
-//    // Example sending a request using the DeleteConfigRuleRequest method.
-//    req, resp := client.DeleteConfigRuleRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConfigRule
 func (c *ConfigService) DeleteConfigRuleRequest(input *DeleteConfigRuleInput) (req *request.Request, output *DeleteConfigRuleOutput) {
@@ -352,36 +350,37 @@ func (c *ConfigService) DeleteConfigRuleRequest(input *DeleteConfigRuleInput) (r
 // API operation DeleteConfigRule for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchConfigRuleException
-//   The Config rule in the request is not valid. Verify that the rule is an Config
-//   Custom Policy rule, that the rule name is correct, and that valid Amazon
-//   Resouce Names (ARNs) are used before trying again.
 //
-//   * ResourceInUseException
-//   You see this exception in the following cases:
+//   - NoSuchConfigRuleException
+//     The Config rule in the request is not valid. Verify that the rule is an Config
+//     Custom Policy rule, that the rule name is correct, and that valid Amazon
+//     Resouce Names (ARNs) are used before trying again.
 //
-//      * For DeleteConfigRule, Config is deleting this rule. Try your request
-//      again later.
+//   - ResourceInUseException
+//     You see this exception in the following cases:
 //
-//      * For DeleteConfigRule, the rule is deleting your evaluation results.
-//      Try your request again later.
+//   - For DeleteConfigRule, Config is deleting this rule. Try your request
+//     again later.
 //
-//      * For DeleteConfigRule, a remediation action is associated with the rule
-//      and Config cannot delete this rule. Delete the remediation action associated
-//      with the rule before deleting the rule and try your request again later.
+//   - For DeleteConfigRule, the rule is deleting your evaluation results.
+//     Try your request again later.
 //
-//      * For PutConfigOrganizationRule, organization Config rule deletion is
-//      in progress. Try your request again later.
+//   - For DeleteConfigRule, a remediation action is associated with the rule
+//     and Config cannot delete this rule. Delete the remediation action associated
+//     with the rule before deleting the rule and try your request again later.
 //
-//      * For DeleteOrganizationConfigRule, organization Config rule creation
-//      is in progress. Try your request again later.
+//   - For PutConfigOrganizationRule, organization Config rule deletion is
+//     in progress. Try your request again later.
 //
-//      * For PutConformancePack and PutOrganizationConformancePack, a conformance
-//      pack creation, update, and deletion is in progress. Try your request again
-//      later.
+//   - For DeleteOrganizationConfigRule, organization Config rule creation
+//     is in progress. Try your request again later.
 //
-//      * For DeleteConformancePack, a conformance pack creation, update, and
-//      deletion is in progress. Try your request again later.
+//   - For PutConformancePack and PutOrganizationConformancePack, a conformance
+//     pack creation, update, and deletion is in progress. Try your request again
+//     later.
+//
+//   - For DeleteConformancePack, a conformance pack creation, update, and
+//     deletion is in progress. Try your request again later.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConfigRule
 func (c *ConfigService) DeleteConfigRule(input *DeleteConfigRuleInput) (*DeleteConfigRuleOutput, error) {
@@ -421,14 +420,13 @@ const opDeleteConfigurationAggregator = "DeleteConfigurationAggregator"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteConfigurationAggregatorRequest method.
+//	req, resp := client.DeleteConfigurationAggregatorRequest(params)
 //
-//    // Example sending a request using the DeleteConfigurationAggregatorRequest method.
-//    req, resp := client.DeleteConfigurationAggregatorRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConfigurationAggregator
 func (c *ConfigService) DeleteConfigurationAggregatorRequest(input *DeleteConfigurationAggregatorInput) (req *request.Request, output *DeleteConfigurationAggregatorOutput) {
@@ -461,8 +459,8 @@ func (c *ConfigService) DeleteConfigurationAggregatorRequest(input *DeleteConfig
 // API operation DeleteConfigurationAggregator for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchConfigurationAggregatorException
-//   You have specified a configuration aggregator that does not exist.
+//   - NoSuchConfigurationAggregatorException
+//     You have specified a configuration aggregator that does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConfigurationAggregator
 func (c *ConfigService) DeleteConfigurationAggregator(input *DeleteConfigurationAggregatorInput) (*DeleteConfigurationAggregatorOutput, error) {
@@ -502,14 +500,13 @@ const opDeleteConfigurationRecorder = "DeleteConfigurationRecorder"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteConfigurationRecorderRequest method.
+//	req, resp := client.DeleteConfigurationRecorderRequest(params)
 //
-//    // Example sending a request using the DeleteConfigurationRecorderRequest method.
-//    req, resp := client.DeleteConfigurationRecorderRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConfigurationRecorder
 func (c *ConfigService) DeleteConfigurationRecorderRequest(input *DeleteConfigurationRecorderInput) (req *request.Request, output *DeleteConfigurationRecorderOutput) {
@@ -550,8 +547,8 @@ func (c *ConfigService) DeleteConfigurationRecorderRequest(input *DeleteConfigur
 // API operation DeleteConfigurationRecorder for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchConfigurationRecorderException
-//   You have specified a configuration recorder that does not exist.
+//   - NoSuchConfigurationRecorderException
+//     You have specified a configuration recorder that does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConfigurationRecorder
 func (c *ConfigService) DeleteConfigurationRecorder(input *DeleteConfigurationRecorderInput) (*DeleteConfigurationRecorderOutput, error) {
@@ -591,14 +588,13 @@ const opDeleteConformancePack = "DeleteConformancePack"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteConformancePackRequest method.
+//	req, resp := client.DeleteConformancePackRequest(params)
 //
-//    // Example sending a request using the DeleteConformancePackRequest method.
-//    req, resp := client.DeleteConformancePackRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConformancePack
 func (c *ConfigService) DeleteConformancePackRequest(input *DeleteConformancePackInput) (req *request.Request, output *DeleteConformancePackOutput) {
@@ -634,34 +630,35 @@ func (c *ConfigService) DeleteConformancePackRequest(input *DeleteConformancePac
 // API operation DeleteConformancePack for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchConformancePackException
-//   You specified one or more conformance packs that do not exist.
 //
-//   * ResourceInUseException
-//   You see this exception in the following cases:
+//   - NoSuchConformancePackException
+//     You specified one or more conformance packs that do not exist.
 //
-//      * For DeleteConfigRule, Config is deleting this rule. Try your request
-//      again later.
+//   - ResourceInUseException
+//     You see this exception in the following cases:
 //
-//      * For DeleteConfigRule, the rule is deleting your evaluation results.
-//      Try your request again later.
+//   - For DeleteConfigRule, Config is deleting this rule. Try your request
+//     again later.
 //
-//      * For DeleteConfigRule, a remediation action is associated with the rule
-//      and Config cannot delete this rule. Delete the remediation action associated
-//      with the rule before deleting the rule and try your request again later.
+//   - For DeleteConfigRule, the rule is deleting your evaluation results.
+//     Try your request again later.
 //
-//      * For PutConfigOrganizationRule, organization Config rule deletion is
-//      in progress. Try your request again later.
+//   - For DeleteConfigRule, a remediation action is associated with the rule
+//     and Config cannot delete this rule. Delete the remediation action associated
+//     with the rule before deleting the rule and try your request again later.
 //
-//      * For DeleteOrganizationConfigRule, organization Config rule creation
-//      is in progress. Try your request again later.
+//   - For PutConfigOrganizationRule, organization Config rule deletion is
+//     in progress. Try your request again later.
 //
-//      * For PutConformancePack and PutOrganizationConformancePack, a conformance
-//      pack creation, update, and deletion is in progress. Try your request again
-//      later.
+//   - For DeleteOrganizationConfigRule, organization Config rule creation
+//     is in progress. Try your request again later.
 //
-//      * For DeleteConformancePack, a conformance pack creation, update, and
-//      deletion is in progress. Try your request again later.
+//   - For PutConformancePack and PutOrganizationConformancePack, a conformance
+//     pack creation, update, and deletion is in progress. Try your request again
+//     later.
+//
+//   - For DeleteConformancePack, a conformance pack creation, update, and
+//     deletion is in progress. Try your request again later.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConformancePack
 func (c *ConfigService) DeleteConformancePack(input *DeleteConformancePackInput) (*DeleteConformancePackOutput, error) {
@@ -701,14 +698,13 @@ const opDeleteDeliveryChannel = "DeleteDeliveryChannel"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteDeliveryChannelRequest method.
+//	req, resp := client.DeleteDeliveryChannelRequest(params)
 //
-//    // Example sending a request using the DeleteDeliveryChannelRequest method.
-//    req, resp := client.DeleteDeliveryChannelRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteDeliveryChannel
 func (c *ConfigService) DeleteDeliveryChannelRequest(input *DeleteDeliveryChannelInput) (req *request.Request, output *DeleteDeliveryChannelOutput) {
@@ -743,12 +739,13 @@ func (c *ConfigService) DeleteDeliveryChannelRequest(input *DeleteDeliveryChanne
 // API operation DeleteDeliveryChannel for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchDeliveryChannelException
-//   You have specified a delivery channel that does not exist.
 //
-//   * LastDeliveryChannelDeleteFailedException
-//   You cannot delete the delivery channel you specified because the configuration
-//   recorder is running.
+//   - NoSuchDeliveryChannelException
+//     You have specified a delivery channel that does not exist.
+//
+//   - LastDeliveryChannelDeleteFailedException
+//     You cannot delete the delivery channel you specified because the configuration
+//     recorder is running.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteDeliveryChannel
 func (c *ConfigService) DeleteDeliveryChannel(input *DeleteDeliveryChannelInput) (*DeleteDeliveryChannelOutput, error) {
@@ -788,14 +785,13 @@ const opDeleteEvaluationResults = "DeleteEvaluationResults"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteEvaluationResultsRequest method.
+//	req, resp := client.DeleteEvaluationResultsRequest(params)
 //
-//    // Example sending a request using the DeleteEvaluationResultsRequest method.
-//    req, resp := client.DeleteEvaluationResultsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteEvaluationResults
 func (c *ConfigService) DeleteEvaluationResultsRequest(input *DeleteEvaluationResultsInput) (req *request.Request, output *DeleteEvaluationResultsOutput) {
@@ -830,36 +826,37 @@ func (c *ConfigService) DeleteEvaluationResultsRequest(input *DeleteEvaluationRe
 // API operation DeleteEvaluationResults for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchConfigRuleException
-//   The Config rule in the request is not valid. Verify that the rule is an Config
-//   Custom Policy rule, that the rule name is correct, and that valid Amazon
-//   Resouce Names (ARNs) are used before trying again.
 //
-//   * ResourceInUseException
-//   You see this exception in the following cases:
+//   - NoSuchConfigRuleException
+//     The Config rule in the request is not valid. Verify that the rule is an Config
+//     Custom Policy rule, that the rule name is correct, and that valid Amazon
+//     Resouce Names (ARNs) are used before trying again.
 //
-//      * For DeleteConfigRule, Config is deleting this rule. Try your request
-//      again later.
+//   - ResourceInUseException
+//     You see this exception in the following cases:
 //
-//      * For DeleteConfigRule, the rule is deleting your evaluation results.
-//      Try your request again later.
+//   - For DeleteConfigRule, Config is deleting this rule. Try your request
+//     again later.
 //
-//      * For DeleteConfigRule, a remediation action is associated with the rule
-//      and Config cannot delete this rule. Delete the remediation action associated
-//      with the rule before deleting the rule and try your request again later.
+//   - For DeleteConfigRule, the rule is deleting your evaluation results.
+//     Try your request again later.
 //
-//      * For PutConfigOrganizationRule, organization Config rule deletion is
-//      in progress. Try your request again later.
+//   - For DeleteConfigRule, a remediation action is associated with the rule
+//     and Config cannot delete this rule. Delete the remediation action associated
+//     with the rule before deleting the rule and try your request again later.
 //
-//      * For DeleteOrganizationConfigRule, organization Config rule creation
-//      is in progress. Try your request again later.
+//   - For PutConfigOrganizationRule, organization Config rule deletion is
+//     in progress. Try your request again later.
 //
-//      * For PutConformancePack and PutOrganizationConformancePack, a conformance
-//      pack creation, update, and deletion is in progress. Try your request again
-//      later.
+//   - For DeleteOrganizationConfigRule, organization Config rule creation
+//     is in progress. Try your request again later.
 //
-//      * For DeleteConformancePack, a conformance pack creation, update, and
-//      deletion is in progress. Try your request again later.
+//   - For PutConformancePack and PutOrganizationConformancePack, a conformance
+//     pack creation, update, and deletion is in progress. Try your request again
+//     later.
+//
+//   - For DeleteConformancePack, a conformance pack creation, update, and
+//     deletion is in progress. Try your request again later.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteEvaluationResults
 func (c *ConfigService) DeleteEvaluationResults(input *DeleteEvaluationResultsInput) (*DeleteEvaluationResultsOutput, error) {
@@ -899,14 +896,13 @@ const opDeleteOrganizationConfigRule = "DeleteOrganizationConfigRule"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteOrganizationConfigRuleRequest method.
+//	req, resp := client.DeleteOrganizationConfigRuleRequest(params)
 //
-//    // Example sending a request using the DeleteOrganizationConfigRuleRequest method.
-//    req, resp := client.DeleteOrganizationConfigRuleRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteOrganizationConfigRule
 func (c *ConfigService) DeleteOrganizationConfigRuleRequest(input *DeleteOrganizationConfigRuleInput) (req *request.Request, output *DeleteOrganizationConfigRuleOutput) {
@@ -947,61 +943,62 @@ func (c *ConfigService) DeleteOrganizationConfigRuleRequest(input *DeleteOrganiz
 // API operation DeleteOrganizationConfigRule for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchOrganizationConfigRuleException
-//   The Config rule in the request is not valid. Verify that the rule is an organization
-//   Config Custom Policy rule, that the rule name is correct, and that valid
-//   Amazon Resouce Names (ARNs) are used before trying again.
 //
-//   * ResourceInUseException
-//   You see this exception in the following cases:
+//   - NoSuchOrganizationConfigRuleException
+//     The Config rule in the request is not valid. Verify that the rule is an organization
+//     Config Custom Policy rule, that the rule name is correct, and that valid
+//     Amazon Resouce Names (ARNs) are used before trying again.
 //
-//      * For DeleteConfigRule, Config is deleting this rule. Try your request
-//      again later.
+//   - ResourceInUseException
+//     You see this exception in the following cases:
 //
-//      * For DeleteConfigRule, the rule is deleting your evaluation results.
-//      Try your request again later.
+//   - For DeleteConfigRule, Config is deleting this rule. Try your request
+//     again later.
 //
-//      * For DeleteConfigRule, a remediation action is associated with the rule
-//      and Config cannot delete this rule. Delete the remediation action associated
-//      with the rule before deleting the rule and try your request again later.
+//   - For DeleteConfigRule, the rule is deleting your evaluation results.
+//     Try your request again later.
 //
-//      * For PutConfigOrganizationRule, organization Config rule deletion is
-//      in progress. Try your request again later.
+//   - For DeleteConfigRule, a remediation action is associated with the rule
+//     and Config cannot delete this rule. Delete the remediation action associated
+//     with the rule before deleting the rule and try your request again later.
 //
-//      * For DeleteOrganizationConfigRule, organization Config rule creation
-//      is in progress. Try your request again later.
+//   - For PutConfigOrganizationRule, organization Config rule deletion is
+//     in progress. Try your request again later.
 //
-//      * For PutConformancePack and PutOrganizationConformancePack, a conformance
-//      pack creation, update, and deletion is in progress. Try your request again
-//      later.
+//   - For DeleteOrganizationConfigRule, organization Config rule creation
+//     is in progress. Try your request again later.
 //
-//      * For DeleteConformancePack, a conformance pack creation, update, and
-//      deletion is in progress. Try your request again later.
+//   - For PutConformancePack and PutOrganizationConformancePack, a conformance
+//     pack creation, update, and deletion is in progress. Try your request again
+//     later.
 //
-//   * OrganizationAccessDeniedException
-//   For PutConfigurationAggregator API, you can see this exception for the following
-//   reasons:
+//   - For DeleteConformancePack, a conformance pack creation, update, and
+//     deletion is in progress. Try your request again later.
 //
-//      * No permission to call EnableAWSServiceAccess API
+//   - OrganizationAccessDeniedException
+//     For PutConfigurationAggregator API, you can see this exception for the following
+//     reasons:
 //
-//      * The configuration aggregator cannot be updated because your Amazon Web
-//      Services Organization management account or the delegated administrator
-//      role changed. Delete this aggregator and create a new one with the current
-//      Amazon Web Services Organization.
+//   - No permission to call EnableAWSServiceAccess API
 //
-//      * The configuration aggregator is associated with a previous Amazon Web
-//      Services Organization and Config cannot aggregate data with current Amazon
-//      Web Services Organization. Delete this aggregator and create a new one
-//      with the current Amazon Web Services Organization.
+//   - The configuration aggregator cannot be updated because your Amazon Web
+//     Services Organization management account or the delegated administrator
+//     role changed. Delete this aggregator and create a new one with the current
+//     Amazon Web Services Organization.
 //
-//      * You are not a registered delegated administrator for Config with permissions
-//      to call ListDelegatedAdministrators API. Ensure that the management account
-//      registers delagated administrator for Config service principle name before
-//      the delegated administrator creates an aggregator.
+//   - The configuration aggregator is associated with a previous Amazon Web
+//     Services Organization and Config cannot aggregate data with current Amazon
+//     Web Services Organization. Delete this aggregator and create a new one
+//     with the current Amazon Web Services Organization.
 //
-//   For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
-//   throws an exception if APIs are called from member accounts. All APIs must
-//   be called from organization master account.
+//   - You are not a registered delegated administrator for Config with permissions
+//     to call ListDelegatedAdministrators API. Ensure that the management account
+//     registers delagated administrator for Config service principle name before
+//     the delegated administrator creates an aggregator.
+//
+//     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
+//     throws an exception if APIs are called from member accounts. All APIs must
+//     be called from organization master account.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteOrganizationConfigRule
 func (c *ConfigService) DeleteOrganizationConfigRule(input *DeleteOrganizationConfigRuleInput) (*DeleteOrganizationConfigRuleOutput, error) {
@@ -1041,14 +1038,13 @@ const opDeleteOrganizationConformancePack = "DeleteOrganizationConformancePack"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteOrganizationConformancePackRequest method.
+//	req, resp := client.DeleteOrganizationConformancePackRequest(params)
 //
-//    // Example sending a request using the DeleteOrganizationConformancePackRequest method.
-//    req, resp := client.DeleteOrganizationConformancePackRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteOrganizationConformancePack
 func (c *ConfigService) DeleteOrganizationConformancePackRequest(input *DeleteOrganizationConformancePackInput) (req *request.Request, output *DeleteOrganizationConformancePackOutput) {
@@ -1090,63 +1086,64 @@ func (c *ConfigService) DeleteOrganizationConformancePackRequest(input *DeleteOr
 // API operation DeleteOrganizationConformancePack for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchOrganizationConformancePackException
-//   Config organization conformance pack that you passed in the filter does not
-//   exist.
 //
-//   For DeleteOrganizationConformancePack, you tried to delete an organization
-//   conformance pack that does not exist.
+//   - NoSuchOrganizationConformancePackException
+//     Config organization conformance pack that you passed in the filter does not
+//     exist.
 //
-//   * ResourceInUseException
-//   You see this exception in the following cases:
+//     For DeleteOrganizationConformancePack, you tried to delete an organization
+//     conformance pack that does not exist.
 //
-//      * For DeleteConfigRule, Config is deleting this rule. Try your request
-//      again later.
+//   - ResourceInUseException
+//     You see this exception in the following cases:
 //
-//      * For DeleteConfigRule, the rule is deleting your evaluation results.
-//      Try your request again later.
+//   - For DeleteConfigRule, Config is deleting this rule. Try your request
+//     again later.
 //
-//      * For DeleteConfigRule, a remediation action is associated with the rule
-//      and Config cannot delete this rule. Delete the remediation action associated
-//      with the rule before deleting the rule and try your request again later.
+//   - For DeleteConfigRule, the rule is deleting your evaluation results.
+//     Try your request again later.
 //
-//      * For PutConfigOrganizationRule, organization Config rule deletion is
-//      in progress. Try your request again later.
+//   - For DeleteConfigRule, a remediation action is associated with the rule
+//     and Config cannot delete this rule. Delete the remediation action associated
+//     with the rule before deleting the rule and try your request again later.
 //
-//      * For DeleteOrganizationConfigRule, organization Config rule creation
-//      is in progress. Try your request again later.
+//   - For PutConfigOrganizationRule, organization Config rule deletion is
+//     in progress. Try your request again later.
 //
-//      * For PutConformancePack and PutOrganizationConformancePack, a conformance
-//      pack creation, update, and deletion is in progress. Try your request again
-//      later.
+//   - For DeleteOrganizationConfigRule, organization Config rule creation
+//     is in progress. Try your request again later.
 //
-//      * For DeleteConformancePack, a conformance pack creation, update, and
-//      deletion is in progress. Try your request again later.
+//   - For PutConformancePack and PutOrganizationConformancePack, a conformance
+//     pack creation, update, and deletion is in progress. Try your request again
+//     later.
 //
-//   * OrganizationAccessDeniedException
-//   For PutConfigurationAggregator API, you can see this exception for the following
-//   reasons:
+//   - For DeleteConformancePack, a conformance pack creation, update, and
+//     deletion is in progress. Try your request again later.
 //
-//      * No permission to call EnableAWSServiceAccess API
+//   - OrganizationAccessDeniedException
+//     For PutConfigurationAggregator API, you can see this exception for the following
+//     reasons:
 //
-//      * The configuration aggregator cannot be updated because your Amazon Web
-//      Services Organization management account or the delegated administrator
-//      role changed. Delete this aggregator and create a new one with the current
-//      Amazon Web Services Organization.
+//   - No permission to call EnableAWSServiceAccess API
 //
-//      * The configuration aggregator is associated with a previous Amazon Web
-//      Services Organization and Config cannot aggregate data with current Amazon
-//      Web Services Organization. Delete this aggregator and create a new one
-//      with the current Amazon Web Services Organization.
+//   - The configuration aggregator cannot be updated because your Amazon Web
+//     Services Organization management account or the delegated administrator
+//     role changed. Delete this aggregator and create a new one with the current
+//     Amazon Web Services Organization.
 //
-//      * You are not a registered delegated administrator for Config with permissions
-//      to call ListDelegatedAdministrators API. Ensure that the management account
-//      registers delagated administrator for Config service principle name before
-//      the delegated administrator creates an aggregator.
+//   - The configuration aggregator is associated with a previous Amazon Web
+//     Services Organization and Config cannot aggregate data with current Amazon
+//     Web Services Organization. Delete this aggregator and create a new one
+//     with the current Amazon Web Services Organization.
 //
-//   For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
-//   throws an exception if APIs are called from member accounts. All APIs must
-//   be called from organization master account.
+//   - You are not a registered delegated administrator for Config with permissions
+//     to call ListDelegatedAdministrators API. Ensure that the management account
+//     registers delagated administrator for Config service principle name before
+//     the delegated administrator creates an aggregator.
+//
+//     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
+//     throws an exception if APIs are called from member accounts. All APIs must
+//     be called from organization master account.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteOrganizationConformancePack
 func (c *ConfigService) DeleteOrganizationConformancePack(input *DeleteOrganizationConformancePackInput) (*DeleteOrganizationConformancePackOutput, error) {
@@ -1186,14 +1183,13 @@ const opDeletePendingAggregationRequest = "DeletePendingAggregationRequest"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeletePendingAggregationRequestRequest method.
+//	req, resp := client.DeletePendingAggregationRequestRequest(params)
 //
-//    // Example sending a request using the DeletePendingAggregationRequestRequest method.
-//    req, resp := client.DeletePendingAggregationRequestRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeletePendingAggregationRequest
 func (c *ConfigService) DeletePendingAggregationRequestRequest(input *DeletePendingAggregationRequestInput) (req *request.Request, output *DeletePendingAggregationRequestOutput) {
@@ -1226,9 +1222,9 @@ func (c *ConfigService) DeletePendingAggregationRequestRequest(input *DeletePend
 // API operation DeletePendingAggregationRequest for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeletePendingAggregationRequest
 func (c *ConfigService) DeletePendingAggregationRequest(input *DeletePendingAggregationRequestInput) (*DeletePendingAggregationRequestOutput, error) {
@@ -1268,14 +1264,13 @@ const opDeleteRemediationConfiguration = "DeleteRemediationConfiguration"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteRemediationConfigurationRequest method.
+//	req, resp := client.DeleteRemediationConfigurationRequest(params)
 //
-//    // Example sending a request using the DeleteRemediationConfigurationRequest method.
-//    req, resp := client.DeleteRemediationConfigurationRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteRemediationConfiguration
 func (c *ConfigService) DeleteRemediationConfigurationRequest(input *DeleteRemediationConfigurationInput) (req *request.Request, output *DeleteRemediationConfigurationOutput) {
@@ -1307,33 +1302,35 @@ func (c *ConfigService) DeleteRemediationConfigurationRequest(input *DeleteRemed
 // API operation DeleteRemediationConfiguration for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchRemediationConfigurationException
-//   You specified an Config rule without a remediation configuration.
 //
-//   * RemediationInProgressException
-//   Remediation action is in progress. You can either cancel execution in Amazon
-//   Web Services Systems Manager or wait and try again later.
+//   - NoSuchRemediationConfigurationException
+//     You specified an Config rule without a remediation configuration.
 //
-//   * InsufficientPermissionsException
-//   Indicates one of the following errors:
+//   - RemediationInProgressException
+//     Remediation action is in progress. You can either cancel execution in Amazon
+//     Web Services Systems Manager or wait and try again later.
 //
-//      * For PutConfigRule, the rule cannot be created because the IAM role assigned
-//      to Config lacks permissions to perform the config:Put* action.
+//   - InsufficientPermissionsException
+//     Indicates one of the following errors:
 //
-//      * For PutConfigRule, the Lambda function cannot be invoked. Check the
-//      function ARN, and check the function's permissions.
+//   - For PutConfigRule, the rule cannot be created because the IAM role assigned
+//     to Config lacks permissions to perform the config:Put* action.
 //
-//      * For PutOrganizationConfigRule, organization Config rule cannot be created
-//      because you do not have permissions to call IAM GetRole action or create
-//      a service linked role.
+//   - For PutConfigRule, the Lambda function cannot be invoked. Check the
+//     function ARN, and check the function's permissions.
 //
-//      * For PutConformancePack and PutOrganizationConformancePack, a conformance
-//      pack cannot be created because you do not have permissions: To call IAM
-//      GetRole action or create a service linked role. To read Amazon S3 bucket.
+//   - For PutOrganizationConfigRule, organization Config rule cannot be created
+//     because you do not have permissions to call IAM GetRole action or create
+//     a service-linked role.
 //
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
+//   - For PutConformancePack and PutOrganizationConformancePack, a conformance
+//     pack cannot be created because you do not have permissions: To call IAM
+//     GetRole action or create a service-linked role. To read Amazon S3 bucket
+//     or call SSM:GetDocument.
+//
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteRemediationConfiguration
 func (c *ConfigService) DeleteRemediationConfiguration(input *DeleteRemediationConfigurationInput) (*DeleteRemediationConfigurationOutput, error) {
@@ -1373,14 +1370,13 @@ const opDeleteRemediationExceptions = "DeleteRemediationExceptions"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteRemediationExceptionsRequest method.
+//	req, resp := client.DeleteRemediationExceptionsRequest(params)
 //
-//    // Example sending a request using the DeleteRemediationExceptionsRequest method.
-//    req, resp := client.DeleteRemediationExceptionsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteRemediationExceptions
 func (c *ConfigService) DeleteRemediationExceptionsRequest(input *DeleteRemediationExceptionsInput) (req *request.Request, output *DeleteRemediationExceptionsOutput) {
@@ -1415,8 +1411,8 @@ func (c *ConfigService) DeleteRemediationExceptionsRequest(input *DeleteRemediat
 // API operation DeleteRemediationExceptions for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchRemediationExceptionException
-//   You tried to delete a remediation exception that does not exist.
+//   - NoSuchRemediationExceptionException
+//     You tried to delete a remediation exception that does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteRemediationExceptions
 func (c *ConfigService) DeleteRemediationExceptions(input *DeleteRemediationExceptionsInput) (*DeleteRemediationExceptionsOutput, error) {
@@ -1456,14 +1452,13 @@ const opDeleteResourceConfig = "DeleteResourceConfig"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteResourceConfigRequest method.
+//	req, resp := client.DeleteResourceConfigRequest(params)
 //
-//    // Example sending a request using the DeleteResourceConfigRequest method.
-//    req, resp := client.DeleteResourceConfigRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteResourceConfig
 func (c *ConfigService) DeleteResourceConfigRequest(input *DeleteResourceConfigInput) (req *request.Request, output *DeleteResourceConfigOutput) {
@@ -1498,19 +1493,20 @@ func (c *ConfigService) DeleteResourceConfigRequest(input *DeleteResourceConfigI
 // API operation DeleteResourceConfig for usage and error information.
 //
 // Returned Error Types:
-//   * ValidationException
-//   The requested action is not valid.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * NoRunningConfigurationRecorderException
-//   There is no configuration recorder running.
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
+//
+//   - NoRunningConfigurationRecorderException
+//     There is no configuration recorder running.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteResourceConfig
 func (c *ConfigService) DeleteResourceConfig(input *DeleteResourceConfigInput) (*DeleteResourceConfigOutput, error) {
@@ -1550,14 +1546,13 @@ const opDeleteRetentionConfiguration = "DeleteRetentionConfiguration"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteRetentionConfigurationRequest method.
+//	req, resp := client.DeleteRetentionConfigurationRequest(params)
 //
-//    // Example sending a request using the DeleteRetentionConfigurationRequest method.
-//    req, resp := client.DeleteRetentionConfigurationRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteRetentionConfiguration
 func (c *ConfigService) DeleteRetentionConfigurationRequest(input *DeleteRetentionConfigurationInput) (req *request.Request, output *DeleteRetentionConfigurationOutput) {
@@ -1589,12 +1584,13 @@ func (c *ConfigService) DeleteRetentionConfigurationRequest(input *DeleteRetenti
 // API operation DeleteRetentionConfiguration for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
 //
-//   * NoSuchRetentionConfigurationException
-//   You have specified a retention configuration that does not exist.
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
+//
+//   - NoSuchRetentionConfigurationException
+//     You have specified a retention configuration that does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteRetentionConfiguration
 func (c *ConfigService) DeleteRetentionConfiguration(input *DeleteRetentionConfigurationInput) (*DeleteRetentionConfigurationOutput, error) {
@@ -1634,14 +1630,13 @@ const opDeleteStoredQuery = "DeleteStoredQuery"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeleteStoredQueryRequest method.
+//	req, resp := client.DeleteStoredQueryRequest(params)
 //
-//    // Example sending a request using the DeleteStoredQueryRequest method.
-//    req, resp := client.DeleteStoredQueryRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteStoredQuery
 func (c *ConfigService) DeleteStoredQueryRequest(input *DeleteStoredQueryInput) (req *request.Request, output *DeleteStoredQueryOutput) {
@@ -1674,19 +1669,20 @@ func (c *ConfigService) DeleteStoredQueryRequest(input *DeleteStoredQueryInput) 
 // API operation DeleteStoredQuery for usage and error information.
 //
 // Returned Error Types:
-//   * ValidationException
-//   The requested action is not valid.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * ResourceNotFoundException
-//   You have specified a resource that does not exist.
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
+//
+//   - ResourceNotFoundException
+//     You have specified a resource that does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteStoredQuery
 func (c *ConfigService) DeleteStoredQuery(input *DeleteStoredQueryInput) (*DeleteStoredQueryOutput, error) {
@@ -1726,14 +1722,13 @@ const opDeliverConfigSnapshot = "DeliverConfigSnapshot"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DeliverConfigSnapshotRequest method.
+//	req, resp := client.DeliverConfigSnapshotRequest(params)
 //
-//    // Example sending a request using the DeliverConfigSnapshotRequest method.
-//    req, resp := client.DeliverConfigSnapshotRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeliverConfigSnapshot
 func (c *ConfigService) DeliverConfigSnapshotRequest(input *DeliverConfigSnapshotInput) (req *request.Request, output *DeliverConfigSnapshotOutput) {
@@ -1758,12 +1753,12 @@ func (c *ConfigService) DeliverConfigSnapshotRequest(input *DeliverConfigSnapsho
 // the specified delivery channel. After the delivery has started, Config sends
 // the following notifications using an Amazon SNS topic that you have specified.
 //
-//    * Notification of the start of the delivery.
+//   - Notification of the start of the delivery.
 //
-//    * Notification of the completion of the delivery, if the delivery was
-//    successfully completed.
+//   - Notification of the completion of the delivery, if the delivery was
+//     successfully completed.
 //
-//    * Notification of delivery failure, if the delivery failed.
+//   - Notification of delivery failure, if the delivery failed.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1773,15 +1768,16 @@ func (c *ConfigService) DeliverConfigSnapshotRequest(input *DeliverConfigSnapsho
 // API operation DeliverConfigSnapshot for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchDeliveryChannelException
-//   You have specified a delivery channel that does not exist.
 //
-//   * NoAvailableConfigurationRecorderException
-//   There are no configuration recorders available to provide the role needed
-//   to describe your resources. Create a configuration recorder.
+//   - NoSuchDeliveryChannelException
+//     You have specified a delivery channel that does not exist.
 //
-//   * NoRunningConfigurationRecorderException
-//   There is no configuration recorder running.
+//   - NoAvailableConfigurationRecorderException
+//     There are no configuration recorders available to provide the role needed
+//     to describe your resources. Create a configuration recorder.
+//
+//   - NoRunningConfigurationRecorderException
+//     There is no configuration recorder running.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeliverConfigSnapshot
 func (c *ConfigService) DeliverConfigSnapshot(input *DeliverConfigSnapshotInput) (*DeliverConfigSnapshotOutput, error) {
@@ -1821,14 +1817,13 @@ const opDescribeAggregateComplianceByConfigRules = "DescribeAggregateComplianceB
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeAggregateComplianceByConfigRulesRequest method.
+//	req, resp := client.DescribeAggregateComplianceByConfigRulesRequest(params)
 //
-//    // Example sending a request using the DescribeAggregateComplianceByConfigRulesRequest method.
-//    req, resp := client.DescribeAggregateComplianceByConfigRulesRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeAggregateComplianceByConfigRules
 func (c *ConfigService) DescribeAggregateComplianceByConfigRulesRequest(input *DescribeAggregateComplianceByConfigRulesInput) (req *request.Request, output *DescribeAggregateComplianceByConfigRulesOutput) {
@@ -1870,26 +1865,27 @@ func (c *ConfigService) DescribeAggregateComplianceByConfigRulesRequest(input *D
 // API operation DescribeAggregateComplianceByConfigRules for usage and error information.
 //
 // Returned Error Types:
-//   * ValidationException
-//   The requested action is not valid.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
-//   * NoSuchConfigurationAggregatorException
-//   You have specified a configuration aggregator that does not exist.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
+//
+//   - NoSuchConfigurationAggregatorException
+//     You have specified a configuration aggregator that does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeAggregateComplianceByConfigRules
 func (c *ConfigService) DescribeAggregateComplianceByConfigRules(input *DescribeAggregateComplianceByConfigRulesInput) (*DescribeAggregateComplianceByConfigRulesOutput, error) {
@@ -1921,15 +1917,14 @@ func (c *ConfigService) DescribeAggregateComplianceByConfigRulesWithContext(ctx 
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeAggregateComplianceByConfigRules operation.
-//    pageNum := 0
-//    err := client.DescribeAggregateComplianceByConfigRulesPages(params,
-//        func(page *configservice.DescribeAggregateComplianceByConfigRulesOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeAggregateComplianceByConfigRules operation.
+//	pageNum := 0
+//	err := client.DescribeAggregateComplianceByConfigRulesPages(params,
+//	    func(page *configservice.DescribeAggregateComplianceByConfigRulesOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) DescribeAggregateComplianceByConfigRulesPages(input *DescribeAggregateComplianceByConfigRulesInput, fn func(*DescribeAggregateComplianceByConfigRulesOutput, bool) bool) error {
 	return c.DescribeAggregateComplianceByConfigRulesPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -1981,14 +1976,13 @@ const opDescribeAggregateComplianceByConformancePacks = "DescribeAggregateCompli
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeAggregateComplianceByConformancePacksRequest method.
+//	req, resp := client.DescribeAggregateComplianceByConformancePacksRequest(params)
 //
-//    // Example sending a request using the DescribeAggregateComplianceByConformancePacksRequest method.
-//    req, resp := client.DescribeAggregateComplianceByConformancePacksRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeAggregateComplianceByConformancePacks
 func (c *ConfigService) DescribeAggregateComplianceByConformancePacksRequest(input *DescribeAggregateComplianceByConformancePacksInput) (req *request.Request, output *DescribeAggregateComplianceByConformancePacksOutput) {
@@ -2031,26 +2025,27 @@ func (c *ConfigService) DescribeAggregateComplianceByConformancePacksRequest(inp
 // API operation DescribeAggregateComplianceByConformancePacks for usage and error information.
 //
 // Returned Error Types:
-//   * ValidationException
-//   The requested action is not valid.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
-//   * NoSuchConfigurationAggregatorException
-//   You have specified a configuration aggregator that does not exist.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
+//
+//   - NoSuchConfigurationAggregatorException
+//     You have specified a configuration aggregator that does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeAggregateComplianceByConformancePacks
 func (c *ConfigService) DescribeAggregateComplianceByConformancePacks(input *DescribeAggregateComplianceByConformancePacksInput) (*DescribeAggregateComplianceByConformancePacksOutput, error) {
@@ -2082,15 +2077,14 @@ func (c *ConfigService) DescribeAggregateComplianceByConformancePacksWithContext
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeAggregateComplianceByConformancePacks operation.
-//    pageNum := 0
-//    err := client.DescribeAggregateComplianceByConformancePacksPages(params,
-//        func(page *configservice.DescribeAggregateComplianceByConformancePacksOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeAggregateComplianceByConformancePacks operation.
+//	pageNum := 0
+//	err := client.DescribeAggregateComplianceByConformancePacksPages(params,
+//	    func(page *configservice.DescribeAggregateComplianceByConformancePacksOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) DescribeAggregateComplianceByConformancePacksPages(input *DescribeAggregateComplianceByConformancePacksInput, fn func(*DescribeAggregateComplianceByConformancePacksOutput, bool) bool) error {
 	return c.DescribeAggregateComplianceByConformancePacksPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -2142,14 +2136,13 @@ const opDescribeAggregationAuthorizations = "DescribeAggregationAuthorizations"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeAggregationAuthorizationsRequest method.
+//	req, resp := client.DescribeAggregationAuthorizationsRequest(params)
 //
-//    // Example sending a request using the DescribeAggregationAuthorizationsRequest method.
-//    req, resp := client.DescribeAggregationAuthorizationsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeAggregationAuthorizations
 func (c *ConfigService) DescribeAggregationAuthorizationsRequest(input *DescribeAggregationAuthorizationsInput) (req *request.Request, output *DescribeAggregationAuthorizationsOutput) {
@@ -2187,16 +2180,17 @@ func (c *ConfigService) DescribeAggregationAuthorizationsRequest(input *Describe
 // API operation DescribeAggregationAuthorizations for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
+//
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeAggregationAuthorizations
 func (c *ConfigService) DescribeAggregationAuthorizations(input *DescribeAggregationAuthorizationsInput) (*DescribeAggregationAuthorizationsOutput, error) {
@@ -2228,15 +2222,14 @@ func (c *ConfigService) DescribeAggregationAuthorizationsWithContext(ctx aws.Con
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeAggregationAuthorizations operation.
-//    pageNum := 0
-//    err := client.DescribeAggregationAuthorizationsPages(params,
-//        func(page *configservice.DescribeAggregationAuthorizationsOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeAggregationAuthorizations operation.
+//	pageNum := 0
+//	err := client.DescribeAggregationAuthorizationsPages(params,
+//	    func(page *configservice.DescribeAggregationAuthorizationsOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) DescribeAggregationAuthorizationsPages(input *DescribeAggregationAuthorizationsInput, fn func(*DescribeAggregationAuthorizationsOutput, bool) bool) error {
 	return c.DescribeAggregationAuthorizationsPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -2288,14 +2281,13 @@ const opDescribeComplianceByConfigRule = "DescribeComplianceByConfigRule"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeComplianceByConfigRuleRequest method.
+//	req, resp := client.DescribeComplianceByConfigRuleRequest(params)
 //
-//    // Example sending a request using the DescribeComplianceByConfigRuleRequest method.
-//    req, resp := client.DescribeComplianceByConfigRuleRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeComplianceByConfigRule
 func (c *ConfigService) DescribeComplianceByConfigRuleRequest(input *DescribeComplianceByConfigRuleInput) (req *request.Request, output *DescribeComplianceByConfigRuleOutput) {
@@ -2332,19 +2324,19 @@ func (c *ConfigService) DescribeComplianceByConfigRuleRequest(input *DescribeCom
 // If Config has no current evaluation results for the rule, it returns INSUFFICIENT_DATA.
 // This result might indicate one of the following conditions:
 //
-//    * Config has never invoked an evaluation for the rule. To check whether
-//    it has, use the DescribeConfigRuleEvaluationStatus action to get the LastSuccessfulInvocationTime
-//    and LastFailedInvocationTime.
+//   - Config has never invoked an evaluation for the rule. To check whether
+//     it has, use the DescribeConfigRuleEvaluationStatus action to get the LastSuccessfulInvocationTime
+//     and LastFailedInvocationTime.
 //
-//    * The rule's Lambda function is failing to send evaluation results to
-//    Config. Verify that the role you assigned to your configuration recorder
-//    includes the config:PutEvaluations permission. If the rule is a custom
-//    rule, verify that the Lambda execution role includes the config:PutEvaluations
-//    permission.
+//   - The rule's Lambda function is failing to send evaluation results to
+//     Config. Verify that the role you assigned to your configuration recorder
+//     includes the config:PutEvaluations permission. If the rule is a custom
+//     rule, verify that the Lambda execution role includes the config:PutEvaluations
+//     permission.
 //
-//    * The rule's Lambda function has returned NOT_APPLICABLE for all evaluation
-//    results. This can occur if the resources were deleted or removed from
-//    the rule's scope.
+//   - The rule's Lambda function has returned NOT_APPLICABLE for all evaluation
+//     results. This can occur if the resources were deleted or removed from
+//     the rule's scope.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2354,18 +2346,19 @@ func (c *ConfigService) DescribeComplianceByConfigRuleRequest(input *DescribeCom
 // API operation DescribeComplianceByConfigRule for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
 //
-//   * NoSuchConfigRuleException
-//   The Config rule in the request is not valid. Verify that the rule is an Config
-//   Custom Policy rule, that the rule name is correct, and that valid Amazon
-//   Resouce Names (ARNs) are used before trying again.
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - NoSuchConfigRuleException
+//     The Config rule in the request is not valid. Verify that the rule is an Config
+//     Custom Policy rule, that the rule name is correct, and that valid Amazon
+//     Resouce Names (ARNs) are used before trying again.
+//
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeComplianceByConfigRule
 func (c *ConfigService) DescribeComplianceByConfigRule(input *DescribeComplianceByConfigRuleInput) (*DescribeComplianceByConfigRuleOutput, error) {
@@ -2397,15 +2390,14 @@ func (c *ConfigService) DescribeComplianceByConfigRuleWithContext(ctx aws.Contex
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeComplianceByConfigRule operation.
-//    pageNum := 0
-//    err := client.DescribeComplianceByConfigRulePages(params,
-//        func(page *configservice.DescribeComplianceByConfigRuleOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeComplianceByConfigRule operation.
+//	pageNum := 0
+//	err := client.DescribeComplianceByConfigRulePages(params,
+//	    func(page *configservice.DescribeComplianceByConfigRuleOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) DescribeComplianceByConfigRulePages(input *DescribeComplianceByConfigRuleInput, fn func(*DescribeComplianceByConfigRuleOutput, bool) bool) error {
 	return c.DescribeComplianceByConfigRulePagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -2457,14 +2449,13 @@ const opDescribeComplianceByResource = "DescribeComplianceByResource"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeComplianceByResourceRequest method.
+//	req, resp := client.DescribeComplianceByResourceRequest(params)
 //
-//    // Example sending a request using the DescribeComplianceByResourceRequest method.
-//    req, resp := client.DescribeComplianceByResourceRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeComplianceByResource
 func (c *ConfigService) DescribeComplianceByResourceRequest(input *DescribeComplianceByResourceInput) (req *request.Request, output *DescribeComplianceByResourceOutput) {
@@ -2502,19 +2493,19 @@ func (c *ConfigService) DescribeComplianceByResourceRequest(input *DescribeCompl
 // INSUFFICIENT_DATA. This result might indicate one of the following conditions
 // about the rules that evaluate the resource:
 //
-//    * Config has never invoked an evaluation for the rule. To check whether
-//    it has, use the DescribeConfigRuleEvaluationStatus action to get the LastSuccessfulInvocationTime
-//    and LastFailedInvocationTime.
+//   - Config has never invoked an evaluation for the rule. To check whether
+//     it has, use the DescribeConfigRuleEvaluationStatus action to get the LastSuccessfulInvocationTime
+//     and LastFailedInvocationTime.
 //
-//    * The rule's Lambda function is failing to send evaluation results to
-//    Config. Verify that the role that you assigned to your configuration recorder
-//    includes the config:PutEvaluations permission. If the rule is a custom
-//    rule, verify that the Lambda execution role includes the config:PutEvaluations
-//    permission.
+//   - The rule's Lambda function is failing to send evaluation results to
+//     Config. Verify that the role that you assigned to your configuration recorder
+//     includes the config:PutEvaluations permission. If the rule is a custom
+//     rule, verify that the Lambda execution role includes the config:PutEvaluations
+//     permission.
 //
-//    * The rule's Lambda function has returned NOT_APPLICABLE for all evaluation
-//    results. This can occur if the resources were deleted or removed from
-//    the rule's scope.
+//   - The rule's Lambda function has returned NOT_APPLICABLE for all evaluation
+//     results. This can occur if the resources were deleted or removed from
+//     the rule's scope.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2524,13 +2515,14 @@ func (c *ConfigService) DescribeComplianceByResourceRequest(input *DescribeCompl
 // API operation DescribeComplianceByResource for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
+//
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeComplianceByResource
 func (c *ConfigService) DescribeComplianceByResource(input *DescribeComplianceByResourceInput) (*DescribeComplianceByResourceOutput, error) {
@@ -2562,15 +2554,14 @@ func (c *ConfigService) DescribeComplianceByResourceWithContext(ctx aws.Context,
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeComplianceByResource operation.
-//    pageNum := 0
-//    err := client.DescribeComplianceByResourcePages(params,
-//        func(page *configservice.DescribeComplianceByResourceOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeComplianceByResource operation.
+//	pageNum := 0
+//	err := client.DescribeComplianceByResourcePages(params,
+//	    func(page *configservice.DescribeComplianceByResourceOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) DescribeComplianceByResourcePages(input *DescribeComplianceByResourceInput, fn func(*DescribeComplianceByResourceOutput, bool) bool) error {
 	return c.DescribeComplianceByResourcePagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -2622,14 +2613,13 @@ const opDescribeConfigRuleEvaluationStatus = "DescribeConfigRuleEvaluationStatus
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeConfigRuleEvaluationStatusRequest method.
+//	req, resp := client.DescribeConfigRuleEvaluationStatusRequest(params)
 //
-//    // Example sending a request using the DescribeConfigRuleEvaluationStatusRequest method.
-//    req, resp := client.DescribeConfigRuleEvaluationStatusRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigRuleEvaluationStatus
 func (c *ConfigService) DescribeConfigRuleEvaluationStatusRequest(input *DescribeConfigRuleEvaluationStatusInput) (req *request.Request, output *DescribeConfigRuleEvaluationStatusOutput) {
@@ -2669,18 +2659,19 @@ func (c *ConfigService) DescribeConfigRuleEvaluationStatusRequest(input *Describ
 // API operation DescribeConfigRuleEvaluationStatus for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchConfigRuleException
-//   The Config rule in the request is not valid. Verify that the rule is an Config
-//   Custom Policy rule, that the rule name is correct, and that valid Amazon
-//   Resouce Names (ARNs) are used before trying again.
 //
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
+//   - NoSuchConfigRuleException
+//     The Config rule in the request is not valid. Verify that the rule is an Config
+//     Custom Policy rule, that the rule name is correct, and that valid Amazon
+//     Resouce Names (ARNs) are used before trying again.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
+//
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigRuleEvaluationStatus
 func (c *ConfigService) DescribeConfigRuleEvaluationStatus(input *DescribeConfigRuleEvaluationStatusInput) (*DescribeConfigRuleEvaluationStatusOutput, error) {
@@ -2712,15 +2703,14 @@ func (c *ConfigService) DescribeConfigRuleEvaluationStatusWithContext(ctx aws.Co
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeConfigRuleEvaluationStatus operation.
-//    pageNum := 0
-//    err := client.DescribeConfigRuleEvaluationStatusPages(params,
-//        func(page *configservice.DescribeConfigRuleEvaluationStatusOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeConfigRuleEvaluationStatus operation.
+//	pageNum := 0
+//	err := client.DescribeConfigRuleEvaluationStatusPages(params,
+//	    func(page *configservice.DescribeConfigRuleEvaluationStatusOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) DescribeConfigRuleEvaluationStatusPages(input *DescribeConfigRuleEvaluationStatusInput, fn func(*DescribeConfigRuleEvaluationStatusOutput, bool) bool) error {
 	return c.DescribeConfigRuleEvaluationStatusPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -2772,14 +2762,13 @@ const opDescribeConfigRules = "DescribeConfigRules"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeConfigRulesRequest method.
+//	req, resp := client.DescribeConfigRulesRequest(params)
 //
-//    // Example sending a request using the DescribeConfigRulesRequest method.
-//    req, resp := client.DescribeConfigRulesRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigRules
 func (c *ConfigService) DescribeConfigRulesRequest(input *DescribeConfigRulesInput) (req *request.Request, output *DescribeConfigRulesOutput) {
@@ -2816,14 +2805,15 @@ func (c *ConfigService) DescribeConfigRulesRequest(input *DescribeConfigRulesInp
 // API operation DescribeConfigRules for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchConfigRuleException
-//   The Config rule in the request is not valid. Verify that the rule is an Config
-//   Custom Policy rule, that the rule name is correct, and that valid Amazon
-//   Resouce Names (ARNs) are used before trying again.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - NoSuchConfigRuleException
+//     The Config rule in the request is not valid. Verify that the rule is an Config
+//     Custom Policy rule, that the rule name is correct, and that valid Amazon
+//     Resouce Names (ARNs) are used before trying again.
+//
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigRules
 func (c *ConfigService) DescribeConfigRules(input *DescribeConfigRulesInput) (*DescribeConfigRulesOutput, error) {
@@ -2855,15 +2845,14 @@ func (c *ConfigService) DescribeConfigRulesWithContext(ctx aws.Context, input *D
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeConfigRules operation.
-//    pageNum := 0
-//    err := client.DescribeConfigRulesPages(params,
-//        func(page *configservice.DescribeConfigRulesOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeConfigRules operation.
+//	pageNum := 0
+//	err := client.DescribeConfigRulesPages(params,
+//	    func(page *configservice.DescribeConfigRulesOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) DescribeConfigRulesPages(input *DescribeConfigRulesInput, fn func(*DescribeConfigRulesOutput, bool) bool) error {
 	return c.DescribeConfigRulesPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -2915,14 +2904,13 @@ const opDescribeConfigurationAggregatorSourcesStatus = "DescribeConfigurationAgg
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeConfigurationAggregatorSourcesStatusRequest method.
+//	req, resp := client.DescribeConfigurationAggregatorSourcesStatusRequest(params)
 //
-//    // Example sending a request using the DescribeConfigurationAggregatorSourcesStatusRequest method.
-//    req, resp := client.DescribeConfigurationAggregatorSourcesStatusRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationAggregatorSourcesStatus
 func (c *ConfigService) DescribeConfigurationAggregatorSourcesStatusRequest(input *DescribeConfigurationAggregatorSourcesStatusInput) (req *request.Request, output *DescribeConfigurationAggregatorSourcesStatusOutput) {
@@ -2962,19 +2950,20 @@ func (c *ConfigService) DescribeConfigurationAggregatorSourcesStatusRequest(inpu
 // API operation DescribeConfigurationAggregatorSourcesStatus for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
 //
-//   * NoSuchConfigurationAggregatorException
-//   You have specified a configuration aggregator that does not exist.
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - NoSuchConfigurationAggregatorException
+//     You have specified a configuration aggregator that does not exist.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
+//
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationAggregatorSourcesStatus
 func (c *ConfigService) DescribeConfigurationAggregatorSourcesStatus(input *DescribeConfigurationAggregatorSourcesStatusInput) (*DescribeConfigurationAggregatorSourcesStatusOutput, error) {
@@ -3006,15 +2995,14 @@ func (c *ConfigService) DescribeConfigurationAggregatorSourcesStatusWithContext(
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeConfigurationAggregatorSourcesStatus operation.
-//    pageNum := 0
-//    err := client.DescribeConfigurationAggregatorSourcesStatusPages(params,
-//        func(page *configservice.DescribeConfigurationAggregatorSourcesStatusOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeConfigurationAggregatorSourcesStatus operation.
+//	pageNum := 0
+//	err := client.DescribeConfigurationAggregatorSourcesStatusPages(params,
+//	    func(page *configservice.DescribeConfigurationAggregatorSourcesStatusOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) DescribeConfigurationAggregatorSourcesStatusPages(input *DescribeConfigurationAggregatorSourcesStatusInput, fn func(*DescribeConfigurationAggregatorSourcesStatusOutput, bool) bool) error {
 	return c.DescribeConfigurationAggregatorSourcesStatusPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -3066,14 +3054,13 @@ const opDescribeConfigurationAggregators = "DescribeConfigurationAggregators"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeConfigurationAggregatorsRequest method.
+//	req, resp := client.DescribeConfigurationAggregatorsRequest(params)
 //
-//    // Example sending a request using the DescribeConfigurationAggregatorsRequest method.
-//    req, resp := client.DescribeConfigurationAggregatorsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationAggregators
 func (c *ConfigService) DescribeConfigurationAggregatorsRequest(input *DescribeConfigurationAggregatorsInput) (req *request.Request, output *DescribeConfigurationAggregatorsOutput) {
@@ -3112,19 +3099,20 @@ func (c *ConfigService) DescribeConfigurationAggregatorsRequest(input *DescribeC
 // API operation DescribeConfigurationAggregators for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
 //
-//   * NoSuchConfigurationAggregatorException
-//   You have specified a configuration aggregator that does not exist.
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - NoSuchConfigurationAggregatorException
+//     You have specified a configuration aggregator that does not exist.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
+//
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationAggregators
 func (c *ConfigService) DescribeConfigurationAggregators(input *DescribeConfigurationAggregatorsInput) (*DescribeConfigurationAggregatorsOutput, error) {
@@ -3156,15 +3144,14 @@ func (c *ConfigService) DescribeConfigurationAggregatorsWithContext(ctx aws.Cont
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeConfigurationAggregators operation.
-//    pageNum := 0
-//    err := client.DescribeConfigurationAggregatorsPages(params,
-//        func(page *configservice.DescribeConfigurationAggregatorsOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeConfigurationAggregators operation.
+//	pageNum := 0
+//	err := client.DescribeConfigurationAggregatorsPages(params,
+//	    func(page *configservice.DescribeConfigurationAggregatorsOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) DescribeConfigurationAggregatorsPages(input *DescribeConfigurationAggregatorsInput, fn func(*DescribeConfigurationAggregatorsOutput, bool) bool) error {
 	return c.DescribeConfigurationAggregatorsPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -3216,14 +3203,13 @@ const opDescribeConfigurationRecorderStatus = "DescribeConfigurationRecorderStat
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeConfigurationRecorderStatusRequest method.
+//	req, resp := client.DescribeConfigurationRecorderStatusRequest(params)
 //
-//    // Example sending a request using the DescribeConfigurationRecorderStatusRequest method.
-//    req, resp := client.DescribeConfigurationRecorderStatusRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationRecorderStatus
 func (c *ConfigService) DescribeConfigurationRecorderStatusRequest(input *DescribeConfigurationRecorderStatusInput) (req *request.Request, output *DescribeConfigurationRecorderStatusOutput) {
@@ -3259,8 +3245,8 @@ func (c *ConfigService) DescribeConfigurationRecorderStatusRequest(input *Descri
 // API operation DescribeConfigurationRecorderStatus for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchConfigurationRecorderException
-//   You have specified a configuration recorder that does not exist.
+//   - NoSuchConfigurationRecorderException
+//     You have specified a configuration recorder that does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationRecorderStatus
 func (c *ConfigService) DescribeConfigurationRecorderStatus(input *DescribeConfigurationRecorderStatusInput) (*DescribeConfigurationRecorderStatusOutput, error) {
@@ -3300,14 +3286,13 @@ const opDescribeConfigurationRecorders = "DescribeConfigurationRecorders"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeConfigurationRecordersRequest method.
+//	req, resp := client.DescribeConfigurationRecordersRequest(params)
 //
-//    // Example sending a request using the DescribeConfigurationRecordersRequest method.
-//    req, resp := client.DescribeConfigurationRecordersRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationRecorders
 func (c *ConfigService) DescribeConfigurationRecordersRequest(input *DescribeConfigurationRecordersInput) (req *request.Request, output *DescribeConfigurationRecordersOutput) {
@@ -3343,8 +3328,8 @@ func (c *ConfigService) DescribeConfigurationRecordersRequest(input *DescribeCon
 // API operation DescribeConfigurationRecorders for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchConfigurationRecorderException
-//   You have specified a configuration recorder that does not exist.
+//   - NoSuchConfigurationRecorderException
+//     You have specified a configuration recorder that does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationRecorders
 func (c *ConfigService) DescribeConfigurationRecorders(input *DescribeConfigurationRecordersInput) (*DescribeConfigurationRecordersOutput, error) {
@@ -3384,14 +3369,13 @@ const opDescribeConformancePackCompliance = "DescribeConformancePackCompliance"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeConformancePackComplianceRequest method.
+//	req, resp := client.DescribeConformancePackComplianceRequest(params)
 //
-//    // Example sending a request using the DescribeConformancePackComplianceRequest method.
-//    req, resp := client.DescribeConformancePackComplianceRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConformancePackCompliance
 func (c *ConfigService) DescribeConformancePackComplianceRequest(input *DescribeConformancePackComplianceInput) (req *request.Request, output *DescribeConformancePackComplianceOutput) {
@@ -3430,22 +3414,23 @@ func (c *ConfigService) DescribeConformancePackComplianceRequest(input *Describe
 // API operation DescribeConformancePackCompliance for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
 //
-//   * NoSuchConfigRuleInConformancePackException
-//   Config rule that you passed in the filter does not exist.
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
-//   * NoSuchConformancePackException
-//   You specified one or more conformance packs that do not exist.
+//   - NoSuchConfigRuleInConformancePackException
+//     Config rule that you passed in the filter does not exist.
+//
+//   - NoSuchConformancePackException
+//     You specified one or more conformance packs that do not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConformancePackCompliance
 func (c *ConfigService) DescribeConformancePackCompliance(input *DescribeConformancePackComplianceInput) (*DescribeConformancePackComplianceOutput, error) {
@@ -3477,15 +3462,14 @@ func (c *ConfigService) DescribeConformancePackComplianceWithContext(ctx aws.Con
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeConformancePackCompliance operation.
-//    pageNum := 0
-//    err := client.DescribeConformancePackCompliancePages(params,
-//        func(page *configservice.DescribeConformancePackComplianceOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeConformancePackCompliance operation.
+//	pageNum := 0
+//	err := client.DescribeConformancePackCompliancePages(params,
+//	    func(page *configservice.DescribeConformancePackComplianceOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) DescribeConformancePackCompliancePages(input *DescribeConformancePackComplianceInput, fn func(*DescribeConformancePackComplianceOutput, bool) bool) error {
 	return c.DescribeConformancePackCompliancePagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -3537,14 +3521,13 @@ const opDescribeConformancePackStatus = "DescribeConformancePackStatus"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeConformancePackStatusRequest method.
+//	req, resp := client.DescribeConformancePackStatusRequest(params)
 //
-//    // Example sending a request using the DescribeConformancePackStatusRequest method.
-//    req, resp := client.DescribeConformancePackStatusRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConformancePackStatus
 func (c *ConfigService) DescribeConformancePackStatusRequest(input *DescribeConformancePackStatusInput) (req *request.Request, output *DescribeConformancePackStatusOutput) {
@@ -3583,16 +3566,17 @@ func (c *ConfigService) DescribeConformancePackStatusRequest(input *DescribeConf
 // API operation DescribeConformancePackStatus for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
+//
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConformancePackStatus
 func (c *ConfigService) DescribeConformancePackStatus(input *DescribeConformancePackStatusInput) (*DescribeConformancePackStatusOutput, error) {
@@ -3624,15 +3608,14 @@ func (c *ConfigService) DescribeConformancePackStatusWithContext(ctx aws.Context
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeConformancePackStatus operation.
-//    pageNum := 0
-//    err := client.DescribeConformancePackStatusPages(params,
-//        func(page *configservice.DescribeConformancePackStatusOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeConformancePackStatus operation.
+//	pageNum := 0
+//	err := client.DescribeConformancePackStatusPages(params,
+//	    func(page *configservice.DescribeConformancePackStatusOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) DescribeConformancePackStatusPages(input *DescribeConformancePackStatusInput, fn func(*DescribeConformancePackStatusOutput, bool) bool) error {
 	return c.DescribeConformancePackStatusPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -3684,14 +3667,13 @@ const opDescribeConformancePacks = "DescribeConformancePacks"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeConformancePacksRequest method.
+//	req, resp := client.DescribeConformancePacksRequest(params)
 //
-//    // Example sending a request using the DescribeConformancePacksRequest method.
-//    req, resp := client.DescribeConformancePacksRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConformancePacks
 func (c *ConfigService) DescribeConformancePacksRequest(input *DescribeConformancePacksInput) (req *request.Request, output *DescribeConformancePacksOutput) {
@@ -3728,19 +3710,20 @@ func (c *ConfigService) DescribeConformancePacksRequest(input *DescribeConforman
 // API operation DescribeConformancePacks for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchConformancePackException
-//   You specified one or more conformance packs that do not exist.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//   - NoSuchConformancePackException
+//     You specified one or more conformance packs that do not exist.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
+//
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConformancePacks
 func (c *ConfigService) DescribeConformancePacks(input *DescribeConformancePacksInput) (*DescribeConformancePacksOutput, error) {
@@ -3772,15 +3755,14 @@ func (c *ConfigService) DescribeConformancePacksWithContext(ctx aws.Context, inp
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeConformancePacks operation.
-//    pageNum := 0
-//    err := client.DescribeConformancePacksPages(params,
-//        func(page *configservice.DescribeConformancePacksOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeConformancePacks operation.
+//	pageNum := 0
+//	err := client.DescribeConformancePacksPages(params,
+//	    func(page *configservice.DescribeConformancePacksOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) DescribeConformancePacksPages(input *DescribeConformancePacksInput, fn func(*DescribeConformancePacksOutput, bool) bool) error {
 	return c.DescribeConformancePacksPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -3832,14 +3814,13 @@ const opDescribeDeliveryChannelStatus = "DescribeDeliveryChannelStatus"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeDeliveryChannelStatusRequest method.
+//	req, resp := client.DescribeDeliveryChannelStatusRequest(params)
 //
-//    // Example sending a request using the DescribeDeliveryChannelStatusRequest method.
-//    req, resp := client.DescribeDeliveryChannelStatusRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeDeliveryChannelStatus
 func (c *ConfigService) DescribeDeliveryChannelStatusRequest(input *DescribeDeliveryChannelStatusInput) (req *request.Request, output *DescribeDeliveryChannelStatusOutput) {
@@ -3874,8 +3855,8 @@ func (c *ConfigService) DescribeDeliveryChannelStatusRequest(input *DescribeDeli
 // API operation DescribeDeliveryChannelStatus for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchDeliveryChannelException
-//   You have specified a delivery channel that does not exist.
+//   - NoSuchDeliveryChannelException
+//     You have specified a delivery channel that does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeDeliveryChannelStatus
 func (c *ConfigService) DescribeDeliveryChannelStatus(input *DescribeDeliveryChannelStatusInput) (*DescribeDeliveryChannelStatusOutput, error) {
@@ -3915,14 +3896,13 @@ const opDescribeDeliveryChannels = "DescribeDeliveryChannels"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeDeliveryChannelsRequest method.
+//	req, resp := client.DescribeDeliveryChannelsRequest(params)
 //
-//    // Example sending a request using the DescribeDeliveryChannelsRequest method.
-//    req, resp := client.DescribeDeliveryChannelsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeDeliveryChannels
 func (c *ConfigService) DescribeDeliveryChannelsRequest(input *DescribeDeliveryChannelsInput) (req *request.Request, output *DescribeDeliveryChannelsOutput) {
@@ -3957,8 +3937,8 @@ func (c *ConfigService) DescribeDeliveryChannelsRequest(input *DescribeDeliveryC
 // API operation DescribeDeliveryChannels for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchDeliveryChannelException
-//   You have specified a delivery channel that does not exist.
+//   - NoSuchDeliveryChannelException
+//     You have specified a delivery channel that does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeDeliveryChannels
 func (c *ConfigService) DescribeDeliveryChannels(input *DescribeDeliveryChannelsInput) (*DescribeDeliveryChannelsOutput, error) {
@@ -3998,14 +3978,13 @@ const opDescribeOrganizationConfigRuleStatuses = "DescribeOrganizationConfigRule
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeOrganizationConfigRuleStatusesRequest method.
+//	req, resp := client.DescribeOrganizationConfigRuleStatusesRequest(params)
 //
-//    // Example sending a request using the DescribeOrganizationConfigRuleStatusesRequest method.
-//    req, resp := client.DescribeOrganizationConfigRuleStatusesRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeOrganizationConfigRuleStatuses
 func (c *ConfigService) DescribeOrganizationConfigRuleStatusesRequest(input *DescribeOrganizationConfigRuleStatusesInput) (req *request.Request, output *DescribeOrganizationConfigRuleStatusesOutput) {
@@ -4051,42 +4030,43 @@ func (c *ConfigService) DescribeOrganizationConfigRuleStatusesRequest(input *Des
 // API operation DescribeOrganizationConfigRuleStatuses for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchOrganizationConfigRuleException
-//   The Config rule in the request is not valid. Verify that the rule is an organization
-//   Config Custom Policy rule, that the rule name is correct, and that valid
-//   Amazon Resouce Names (ARNs) are used before trying again.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//   - NoSuchOrganizationConfigRuleException
+//     The Config rule in the request is not valid. Verify that the rule is an organization
+//     Config Custom Policy rule, that the rule name is correct, and that valid
+//     Amazon Resouce Names (ARNs) are used before trying again.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
-//   * OrganizationAccessDeniedException
-//   For PutConfigurationAggregator API, you can see this exception for the following
-//   reasons:
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
 //
-//      * No permission to call EnableAWSServiceAccess API
+//   - OrganizationAccessDeniedException
+//     For PutConfigurationAggregator API, you can see this exception for the following
+//     reasons:
 //
-//      * The configuration aggregator cannot be updated because your Amazon Web
-//      Services Organization management account or the delegated administrator
-//      role changed. Delete this aggregator and create a new one with the current
-//      Amazon Web Services Organization.
+//   - No permission to call EnableAWSServiceAccess API
 //
-//      * The configuration aggregator is associated with a previous Amazon Web
-//      Services Organization and Config cannot aggregate data with current Amazon
-//      Web Services Organization. Delete this aggregator and create a new one
-//      with the current Amazon Web Services Organization.
+//   - The configuration aggregator cannot be updated because your Amazon Web
+//     Services Organization management account or the delegated administrator
+//     role changed. Delete this aggregator and create a new one with the current
+//     Amazon Web Services Organization.
 //
-//      * You are not a registered delegated administrator for Config with permissions
-//      to call ListDelegatedAdministrators API. Ensure that the management account
-//      registers delagated administrator for Config service principle name before
-//      the delegated administrator creates an aggregator.
+//   - The configuration aggregator is associated with a previous Amazon Web
+//     Services Organization and Config cannot aggregate data with current Amazon
+//     Web Services Organization. Delete this aggregator and create a new one
+//     with the current Amazon Web Services Organization.
 //
-//   For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
-//   throws an exception if APIs are called from member accounts. All APIs must
-//   be called from organization master account.
+//   - You are not a registered delegated administrator for Config with permissions
+//     to call ListDelegatedAdministrators API. Ensure that the management account
+//     registers delagated administrator for Config service principle name before
+//     the delegated administrator creates an aggregator.
+//
+//     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
+//     throws an exception if APIs are called from member accounts. All APIs must
+//     be called from organization master account.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeOrganizationConfigRuleStatuses
 func (c *ConfigService) DescribeOrganizationConfigRuleStatuses(input *DescribeOrganizationConfigRuleStatusesInput) (*DescribeOrganizationConfigRuleStatusesOutput, error) {
@@ -4118,15 +4098,14 @@ func (c *ConfigService) DescribeOrganizationConfigRuleStatusesWithContext(ctx aw
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeOrganizationConfigRuleStatuses operation.
-//    pageNum := 0
-//    err := client.DescribeOrganizationConfigRuleStatusesPages(params,
-//        func(page *configservice.DescribeOrganizationConfigRuleStatusesOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeOrganizationConfigRuleStatuses operation.
+//	pageNum := 0
+//	err := client.DescribeOrganizationConfigRuleStatusesPages(params,
+//	    func(page *configservice.DescribeOrganizationConfigRuleStatusesOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) DescribeOrganizationConfigRuleStatusesPages(input *DescribeOrganizationConfigRuleStatusesInput, fn func(*DescribeOrganizationConfigRuleStatusesOutput, bool) bool) error {
 	return c.DescribeOrganizationConfigRuleStatusesPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -4178,14 +4157,13 @@ const opDescribeOrganizationConfigRules = "DescribeOrganizationConfigRules"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeOrganizationConfigRulesRequest method.
+//	req, resp := client.DescribeOrganizationConfigRulesRequest(params)
 //
-//    // Example sending a request using the DescribeOrganizationConfigRulesRequest method.
-//    req, resp := client.DescribeOrganizationConfigRulesRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeOrganizationConfigRules
 func (c *ConfigService) DescribeOrganizationConfigRulesRequest(input *DescribeOrganizationConfigRulesInput) (req *request.Request, output *DescribeOrganizationConfigRulesOutput) {
@@ -4215,9 +4193,23 @@ func (c *ConfigService) DescribeOrganizationConfigRulesRequest(input *DescribeOr
 // Returns a list of organization Config rules.
 //
 // When you specify the limit and the next token, you receive a paginated response.
+//
 // Limit and next token are not applicable if you specify organization Config
 // rule names. It is only applicable, when you request all the organization
 // Config rules.
+//
+// # For accounts within an organzation
+//
+// If you deploy an organizational rule or conformance pack in an organization
+// administrator account, and then establish a delegated administrator and deploy
+// an organizational rule or conformance pack in the delegated administrator
+// account, you won't be able to see the organizational rule or conformance
+// pack in the organization administrator account from the delegated administrator
+// account or see the organizational rule or conformance pack in the delegated
+// administrator account from organization administrator account. The DescribeOrganizationConfigRules
+// and DescribeOrganizationConformancePacks APIs can only see and interact with
+// the organization-related resource that were deployed from within the account
+// calling those APIs.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -4227,42 +4219,43 @@ func (c *ConfigService) DescribeOrganizationConfigRulesRequest(input *DescribeOr
 // API operation DescribeOrganizationConfigRules for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchOrganizationConfigRuleException
-//   The Config rule in the request is not valid. Verify that the rule is an organization
-//   Config Custom Policy rule, that the rule name is correct, and that valid
-//   Amazon Resouce Names (ARNs) are used before trying again.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - NoSuchOrganizationConfigRuleException
+//     The Config rule in the request is not valid. Verify that the rule is an organization
+//     Config Custom Policy rule, that the rule name is correct, and that valid
+//     Amazon Resouce Names (ARNs) are used before trying again.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
 //
-//   * OrganizationAccessDeniedException
-//   For PutConfigurationAggregator API, you can see this exception for the following
-//   reasons:
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
-//      * No permission to call EnableAWSServiceAccess API
+//   - OrganizationAccessDeniedException
+//     For PutConfigurationAggregator API, you can see this exception for the following
+//     reasons:
 //
-//      * The configuration aggregator cannot be updated because your Amazon Web
-//      Services Organization management account or the delegated administrator
-//      role changed. Delete this aggregator and create a new one with the current
-//      Amazon Web Services Organization.
+//   - No permission to call EnableAWSServiceAccess API
 //
-//      * The configuration aggregator is associated with a previous Amazon Web
-//      Services Organization and Config cannot aggregate data with current Amazon
-//      Web Services Organization. Delete this aggregator and create a new one
-//      with the current Amazon Web Services Organization.
+//   - The configuration aggregator cannot be updated because your Amazon Web
+//     Services Organization management account or the delegated administrator
+//     role changed. Delete this aggregator and create a new one with the current
+//     Amazon Web Services Organization.
 //
-//      * You are not a registered delegated administrator for Config with permissions
-//      to call ListDelegatedAdministrators API. Ensure that the management account
-//      registers delagated administrator for Config service principle name before
-//      the delegated administrator creates an aggregator.
+//   - The configuration aggregator is associated with a previous Amazon Web
+//     Services Organization and Config cannot aggregate data with current Amazon
+//     Web Services Organization. Delete this aggregator and create a new one
+//     with the current Amazon Web Services Organization.
 //
-//   For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
-//   throws an exception if APIs are called from member accounts. All APIs must
-//   be called from organization master account.
+//   - You are not a registered delegated administrator for Config with permissions
+//     to call ListDelegatedAdministrators API. Ensure that the management account
+//     registers delagated administrator for Config service principle name before
+//     the delegated administrator creates an aggregator.
+//
+//     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
+//     throws an exception if APIs are called from member accounts. All APIs must
+//     be called from organization master account.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeOrganizationConfigRules
 func (c *ConfigService) DescribeOrganizationConfigRules(input *DescribeOrganizationConfigRulesInput) (*DescribeOrganizationConfigRulesOutput, error) {
@@ -4294,15 +4287,14 @@ func (c *ConfigService) DescribeOrganizationConfigRulesWithContext(ctx aws.Conte
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeOrganizationConfigRules operation.
-//    pageNum := 0
-//    err := client.DescribeOrganizationConfigRulesPages(params,
-//        func(page *configservice.DescribeOrganizationConfigRulesOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeOrganizationConfigRules operation.
+//	pageNum := 0
+//	err := client.DescribeOrganizationConfigRulesPages(params,
+//	    func(page *configservice.DescribeOrganizationConfigRulesOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) DescribeOrganizationConfigRulesPages(input *DescribeOrganizationConfigRulesInput, fn func(*DescribeOrganizationConfigRulesOutput, bool) bool) error {
 	return c.DescribeOrganizationConfigRulesPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -4354,14 +4346,13 @@ const opDescribeOrganizationConformancePackStatuses = "DescribeOrganizationConfo
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeOrganizationConformancePackStatusesRequest method.
+//	req, resp := client.DescribeOrganizationConformancePackStatusesRequest(params)
 //
-//    // Example sending a request using the DescribeOrganizationConformancePackStatusesRequest method.
-//    req, resp := client.DescribeOrganizationConformancePackStatusesRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeOrganizationConformancePackStatuses
 func (c *ConfigService) DescribeOrganizationConformancePackStatusesRequest(input *DescribeOrganizationConformancePackStatusesInput) (req *request.Request, output *DescribeOrganizationConformancePackStatusesOutput) {
@@ -4407,44 +4398,45 @@ func (c *ConfigService) DescribeOrganizationConformancePackStatusesRequest(input
 // API operation DescribeOrganizationConformancePackStatuses for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchOrganizationConformancePackException
-//   Config organization conformance pack that you passed in the filter does not
-//   exist.
 //
-//   For DeleteOrganizationConformancePack, you tried to delete an organization
-//   conformance pack that does not exist.
+//   - NoSuchOrganizationConformancePackException
+//     Config organization conformance pack that you passed in the filter does not
+//     exist.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//     For DeleteOrganizationConformancePack, you tried to delete an organization
+//     conformance pack that does not exist.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
-//   * OrganizationAccessDeniedException
-//   For PutConfigurationAggregator API, you can see this exception for the following
-//   reasons:
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
 //
-//      * No permission to call EnableAWSServiceAccess API
+//   - OrganizationAccessDeniedException
+//     For PutConfigurationAggregator API, you can see this exception for the following
+//     reasons:
 //
-//      * The configuration aggregator cannot be updated because your Amazon Web
-//      Services Organization management account or the delegated administrator
-//      role changed. Delete this aggregator and create a new one with the current
-//      Amazon Web Services Organization.
+//   - No permission to call EnableAWSServiceAccess API
 //
-//      * The configuration aggregator is associated with a previous Amazon Web
-//      Services Organization and Config cannot aggregate data with current Amazon
-//      Web Services Organization. Delete this aggregator and create a new one
-//      with the current Amazon Web Services Organization.
+//   - The configuration aggregator cannot be updated because your Amazon Web
+//     Services Organization management account or the delegated administrator
+//     role changed. Delete this aggregator and create a new one with the current
+//     Amazon Web Services Organization.
 //
-//      * You are not a registered delegated administrator for Config with permissions
-//      to call ListDelegatedAdministrators API. Ensure that the management account
-//      registers delagated administrator for Config service principle name before
-//      the delegated administrator creates an aggregator.
+//   - The configuration aggregator is associated with a previous Amazon Web
+//     Services Organization and Config cannot aggregate data with current Amazon
+//     Web Services Organization. Delete this aggregator and create a new one
+//     with the current Amazon Web Services Organization.
 //
-//   For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
-//   throws an exception if APIs are called from member accounts. All APIs must
-//   be called from organization master account.
+//   - You are not a registered delegated administrator for Config with permissions
+//     to call ListDelegatedAdministrators API. Ensure that the management account
+//     registers delagated administrator for Config service principle name before
+//     the delegated administrator creates an aggregator.
+//
+//     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
+//     throws an exception if APIs are called from member accounts. All APIs must
+//     be called from organization master account.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeOrganizationConformancePackStatuses
 func (c *ConfigService) DescribeOrganizationConformancePackStatuses(input *DescribeOrganizationConformancePackStatusesInput) (*DescribeOrganizationConformancePackStatusesOutput, error) {
@@ -4476,15 +4468,14 @@ func (c *ConfigService) DescribeOrganizationConformancePackStatusesWithContext(c
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeOrganizationConformancePackStatuses operation.
-//    pageNum := 0
-//    err := client.DescribeOrganizationConformancePackStatusesPages(params,
-//        func(page *configservice.DescribeOrganizationConformancePackStatusesOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeOrganizationConformancePackStatuses operation.
+//	pageNum := 0
+//	err := client.DescribeOrganizationConformancePackStatusesPages(params,
+//	    func(page *configservice.DescribeOrganizationConformancePackStatusesOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) DescribeOrganizationConformancePackStatusesPages(input *DescribeOrganizationConformancePackStatusesInput, fn func(*DescribeOrganizationConformancePackStatusesOutput, bool) bool) error {
 	return c.DescribeOrganizationConformancePackStatusesPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -4536,14 +4527,13 @@ const opDescribeOrganizationConformancePacks = "DescribeOrganizationConformanceP
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeOrganizationConformancePacksRequest method.
+//	req, resp := client.DescribeOrganizationConformancePacksRequest(params)
 //
-//    // Example sending a request using the DescribeOrganizationConformancePacksRequest method.
-//    req, resp := client.DescribeOrganizationConformancePacksRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeOrganizationConformancePacks
 func (c *ConfigService) DescribeOrganizationConformancePacksRequest(input *DescribeOrganizationConformancePacksInput) (req *request.Request, output *DescribeOrganizationConformancePacksOutput) {
@@ -4578,6 +4568,19 @@ func (c *ConfigService) DescribeOrganizationConformancePacksRequest(input *Descr
 // packs names. They are only applicable, when you request all the organization
 // conformance packs.
 //
+// # For accounts within an organzation
+//
+// If you deploy an organizational rule or conformance pack in an organization
+// administrator account, and then establish a delegated administrator and deploy
+// an organizational rule or conformance pack in the delegated administrator
+// account, you won't be able to see the organizational rule or conformance
+// pack in the organization administrator account from the delegated administrator
+// account or see the organizational rule or conformance pack in the delegated
+// administrator account from organization administrator account. The DescribeOrganizationConfigRules
+// and DescribeOrganizationConformancePacks APIs can only see and interact with
+// the organization-related resource that were deployed from within the account
+// calling those APIs.
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -4586,44 +4589,45 @@ func (c *ConfigService) DescribeOrganizationConformancePacksRequest(input *Descr
 // API operation DescribeOrganizationConformancePacks for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchOrganizationConformancePackException
-//   Config organization conformance pack that you passed in the filter does not
-//   exist.
 //
-//   For DeleteOrganizationConformancePack, you tried to delete an organization
-//   conformance pack that does not exist.
+//   - NoSuchOrganizationConformancePackException
+//     Config organization conformance pack that you passed in the filter does not
+//     exist.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//     For DeleteOrganizationConformancePack, you tried to delete an organization
+//     conformance pack that does not exist.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
 //
-//   * OrganizationAccessDeniedException
-//   For PutConfigurationAggregator API, you can see this exception for the following
-//   reasons:
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
-//      * No permission to call EnableAWSServiceAccess API
+//   - OrganizationAccessDeniedException
+//     For PutConfigurationAggregator API, you can see this exception for the following
+//     reasons:
 //
-//      * The configuration aggregator cannot be updated because your Amazon Web
-//      Services Organization management account or the delegated administrator
-//      role changed. Delete this aggregator and create a new one with the current
-//      Amazon Web Services Organization.
+//   - No permission to call EnableAWSServiceAccess API
 //
-//      * The configuration aggregator is associated with a previous Amazon Web
-//      Services Organization and Config cannot aggregate data with current Amazon
-//      Web Services Organization. Delete this aggregator and create a new one
-//      with the current Amazon Web Services Organization.
+//   - The configuration aggregator cannot be updated because your Amazon Web
+//     Services Organization management account or the delegated administrator
+//     role changed. Delete this aggregator and create a new one with the current
+//     Amazon Web Services Organization.
 //
-//      * You are not a registered delegated administrator for Config with permissions
-//      to call ListDelegatedAdministrators API. Ensure that the management account
-//      registers delagated administrator for Config service principle name before
-//      the delegated administrator creates an aggregator.
+//   - The configuration aggregator is associated with a previous Amazon Web
+//     Services Organization and Config cannot aggregate data with current Amazon
+//     Web Services Organization. Delete this aggregator and create a new one
+//     with the current Amazon Web Services Organization.
 //
-//   For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
-//   throws an exception if APIs are called from member accounts. All APIs must
-//   be called from organization master account.
+//   - You are not a registered delegated administrator for Config with permissions
+//     to call ListDelegatedAdministrators API. Ensure that the management account
+//     registers delagated administrator for Config service principle name before
+//     the delegated administrator creates an aggregator.
+//
+//     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
+//     throws an exception if APIs are called from member accounts. All APIs must
+//     be called from organization master account.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeOrganizationConformancePacks
 func (c *ConfigService) DescribeOrganizationConformancePacks(input *DescribeOrganizationConformancePacksInput) (*DescribeOrganizationConformancePacksOutput, error) {
@@ -4655,15 +4659,14 @@ func (c *ConfigService) DescribeOrganizationConformancePacksWithContext(ctx aws.
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeOrganizationConformancePacks operation.
-//    pageNum := 0
-//    err := client.DescribeOrganizationConformancePacksPages(params,
-//        func(page *configservice.DescribeOrganizationConformancePacksOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeOrganizationConformancePacks operation.
+//	pageNum := 0
+//	err := client.DescribeOrganizationConformancePacksPages(params,
+//	    func(page *configservice.DescribeOrganizationConformancePacksOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) DescribeOrganizationConformancePacksPages(input *DescribeOrganizationConformancePacksInput, fn func(*DescribeOrganizationConformancePacksOutput, bool) bool) error {
 	return c.DescribeOrganizationConformancePacksPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -4715,14 +4718,13 @@ const opDescribePendingAggregationRequests = "DescribePendingAggregationRequests
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribePendingAggregationRequestsRequest method.
+//	req, resp := client.DescribePendingAggregationRequestsRequest(params)
 //
-//    // Example sending a request using the DescribePendingAggregationRequestsRequest method.
-//    req, resp := client.DescribePendingAggregationRequestsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribePendingAggregationRequests
 func (c *ConfigService) DescribePendingAggregationRequestsRequest(input *DescribePendingAggregationRequestsInput) (req *request.Request, output *DescribePendingAggregationRequestsOutput) {
@@ -4759,16 +4761,17 @@ func (c *ConfigService) DescribePendingAggregationRequestsRequest(input *Describ
 // API operation DescribePendingAggregationRequests for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
+//
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribePendingAggregationRequests
 func (c *ConfigService) DescribePendingAggregationRequests(input *DescribePendingAggregationRequestsInput) (*DescribePendingAggregationRequestsOutput, error) {
@@ -4800,15 +4803,14 @@ func (c *ConfigService) DescribePendingAggregationRequestsWithContext(ctx aws.Co
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribePendingAggregationRequests operation.
-//    pageNum := 0
-//    err := client.DescribePendingAggregationRequestsPages(params,
-//        func(page *configservice.DescribePendingAggregationRequestsOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribePendingAggregationRequests operation.
+//	pageNum := 0
+//	err := client.DescribePendingAggregationRequestsPages(params,
+//	    func(page *configservice.DescribePendingAggregationRequestsOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) DescribePendingAggregationRequestsPages(input *DescribePendingAggregationRequestsInput, fn func(*DescribePendingAggregationRequestsOutput, bool) bool) error {
 	return c.DescribePendingAggregationRequestsPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -4860,14 +4862,13 @@ const opDescribeRemediationConfigurations = "DescribeRemediationConfigurations"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeRemediationConfigurationsRequest method.
+//	req, resp := client.DescribeRemediationConfigurationsRequest(params)
 //
-//    // Example sending a request using the DescribeRemediationConfigurationsRequest method.
-//    req, resp := client.DescribeRemediationConfigurationsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeRemediationConfigurations
 func (c *ConfigService) DescribeRemediationConfigurationsRequest(input *DescribeRemediationConfigurationsInput) (req *request.Request, output *DescribeRemediationConfigurationsOutput) {
@@ -4934,14 +4935,13 @@ const opDescribeRemediationExceptions = "DescribeRemediationExceptions"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeRemediationExceptionsRequest method.
+//	req, resp := client.DescribeRemediationExceptionsRequest(params)
 //
-//    // Example sending a request using the DescribeRemediationExceptionsRequest method.
-//    req, resp := client.DescribeRemediationExceptionsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeRemediationExceptions
 func (c *ConfigService) DescribeRemediationExceptionsRequest(input *DescribeRemediationExceptionsInput) (req *request.Request, output *DescribeRemediationExceptionsOutput) {
@@ -4990,13 +4990,14 @@ func (c *ConfigService) DescribeRemediationExceptionsRequest(input *DescribeReme
 // API operation DescribeRemediationExceptions for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
 //
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
+//
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeRemediationExceptions
 func (c *ConfigService) DescribeRemediationExceptions(input *DescribeRemediationExceptionsInput) (*DescribeRemediationExceptionsOutput, error) {
@@ -5028,15 +5029,14 @@ func (c *ConfigService) DescribeRemediationExceptionsWithContext(ctx aws.Context
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeRemediationExceptions operation.
-//    pageNum := 0
-//    err := client.DescribeRemediationExceptionsPages(params,
-//        func(page *configservice.DescribeRemediationExceptionsOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeRemediationExceptions operation.
+//	pageNum := 0
+//	err := client.DescribeRemediationExceptionsPages(params,
+//	    func(page *configservice.DescribeRemediationExceptionsOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) DescribeRemediationExceptionsPages(input *DescribeRemediationExceptionsInput, fn func(*DescribeRemediationExceptionsOutput, bool) bool) error {
 	return c.DescribeRemediationExceptionsPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -5088,14 +5088,13 @@ const opDescribeRemediationExecutionStatus = "DescribeRemediationExecutionStatus
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeRemediationExecutionStatusRequest method.
+//	req, resp := client.DescribeRemediationExecutionStatusRequest(params)
 //
-//    // Example sending a request using the DescribeRemediationExecutionStatusRequest method.
-//    req, resp := client.DescribeRemediationExecutionStatusRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeRemediationExecutionStatus
 func (c *ConfigService) DescribeRemediationExecutionStatusRequest(input *DescribeRemediationExecutionStatusInput) (req *request.Request, output *DescribeRemediationExecutionStatusOutput) {
@@ -5135,16 +5134,17 @@ func (c *ConfigService) DescribeRemediationExecutionStatusRequest(input *Describ
 // API operation DescribeRemediationExecutionStatus for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchRemediationConfigurationException
-//   You specified an Config rule without a remediation configuration.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - NoSuchRemediationConfigurationException
+//     You specified an Config rule without a remediation configuration.
 //
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
+//
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeRemediationExecutionStatus
 func (c *ConfigService) DescribeRemediationExecutionStatus(input *DescribeRemediationExecutionStatusInput) (*DescribeRemediationExecutionStatusOutput, error) {
@@ -5176,15 +5176,14 @@ func (c *ConfigService) DescribeRemediationExecutionStatusWithContext(ctx aws.Co
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeRemediationExecutionStatus operation.
-//    pageNum := 0
-//    err := client.DescribeRemediationExecutionStatusPages(params,
-//        func(page *configservice.DescribeRemediationExecutionStatusOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeRemediationExecutionStatus operation.
+//	pageNum := 0
+//	err := client.DescribeRemediationExecutionStatusPages(params,
+//	    func(page *configservice.DescribeRemediationExecutionStatusOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) DescribeRemediationExecutionStatusPages(input *DescribeRemediationExecutionStatusInput, fn func(*DescribeRemediationExecutionStatusOutput, bool) bool) error {
 	return c.DescribeRemediationExecutionStatusPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -5236,14 +5235,13 @@ const opDescribeRetentionConfigurations = "DescribeRetentionConfigurations"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the DescribeRetentionConfigurationsRequest method.
+//	req, resp := client.DescribeRetentionConfigurationsRequest(params)
 //
-//    // Example sending a request using the DescribeRetentionConfigurationsRequest method.
-//    req, resp := client.DescribeRetentionConfigurationsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeRetentionConfigurations
 func (c *ConfigService) DescribeRetentionConfigurationsRequest(input *DescribeRetentionConfigurationsInput) (req *request.Request, output *DescribeRetentionConfigurationsOutput) {
@@ -5285,16 +5283,17 @@ func (c *ConfigService) DescribeRetentionConfigurationsRequest(input *DescribeRe
 // API operation DescribeRetentionConfigurations for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
 //
-//   * NoSuchRetentionConfigurationException
-//   You have specified a retention configuration that does not exist.
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - NoSuchRetentionConfigurationException
+//     You have specified a retention configuration that does not exist.
+//
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeRetentionConfigurations
 func (c *ConfigService) DescribeRetentionConfigurations(input *DescribeRetentionConfigurationsInput) (*DescribeRetentionConfigurationsOutput, error) {
@@ -5326,15 +5325,14 @@ func (c *ConfigService) DescribeRetentionConfigurationsWithContext(ctx aws.Conte
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a DescribeRetentionConfigurations operation.
-//    pageNum := 0
-//    err := client.DescribeRetentionConfigurationsPages(params,
-//        func(page *configservice.DescribeRetentionConfigurationsOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a DescribeRetentionConfigurations operation.
+//	pageNum := 0
+//	err := client.DescribeRetentionConfigurationsPages(params,
+//	    func(page *configservice.DescribeRetentionConfigurationsOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) DescribeRetentionConfigurationsPages(input *DescribeRetentionConfigurationsInput, fn func(*DescribeRetentionConfigurationsOutput, bool) bool) error {
 	return c.DescribeRetentionConfigurationsPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -5386,14 +5384,13 @@ const opGetAggregateComplianceDetailsByConfigRule = "GetAggregateComplianceDetai
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetAggregateComplianceDetailsByConfigRuleRequest method.
+//	req, resp := client.GetAggregateComplianceDetailsByConfigRuleRequest(params)
 //
-//    // Example sending a request using the GetAggregateComplianceDetailsByConfigRuleRequest method.
-//    req, resp := client.GetAggregateComplianceDetailsByConfigRuleRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetAggregateComplianceDetailsByConfigRule
 func (c *ConfigService) GetAggregateComplianceDetailsByConfigRuleRequest(input *GetAggregateComplianceDetailsByConfigRuleInput) (req *request.Request, output *GetAggregateComplianceDetailsByConfigRuleOutput) {
@@ -5436,26 +5433,27 @@ func (c *ConfigService) GetAggregateComplianceDetailsByConfigRuleRequest(input *
 // API operation GetAggregateComplianceDetailsByConfigRule for usage and error information.
 //
 // Returned Error Types:
-//   * ValidationException
-//   The requested action is not valid.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
-//   * NoSuchConfigurationAggregatorException
-//   You have specified a configuration aggregator that does not exist.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
+//
+//   - NoSuchConfigurationAggregatorException
+//     You have specified a configuration aggregator that does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetAggregateComplianceDetailsByConfigRule
 func (c *ConfigService) GetAggregateComplianceDetailsByConfigRule(input *GetAggregateComplianceDetailsByConfigRuleInput) (*GetAggregateComplianceDetailsByConfigRuleOutput, error) {
@@ -5487,15 +5485,14 @@ func (c *ConfigService) GetAggregateComplianceDetailsByConfigRuleWithContext(ctx
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a GetAggregateComplianceDetailsByConfigRule operation.
-//    pageNum := 0
-//    err := client.GetAggregateComplianceDetailsByConfigRulePages(params,
-//        func(page *configservice.GetAggregateComplianceDetailsByConfigRuleOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a GetAggregateComplianceDetailsByConfigRule operation.
+//	pageNum := 0
+//	err := client.GetAggregateComplianceDetailsByConfigRulePages(params,
+//	    func(page *configservice.GetAggregateComplianceDetailsByConfigRuleOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) GetAggregateComplianceDetailsByConfigRulePages(input *GetAggregateComplianceDetailsByConfigRuleInput, fn func(*GetAggregateComplianceDetailsByConfigRuleOutput, bool) bool) error {
 	return c.GetAggregateComplianceDetailsByConfigRulePagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -5547,14 +5544,13 @@ const opGetAggregateConfigRuleComplianceSummary = "GetAggregateConfigRuleComplia
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetAggregateConfigRuleComplianceSummaryRequest method.
+//	req, resp := client.GetAggregateConfigRuleComplianceSummaryRequest(params)
 //
-//    // Example sending a request using the GetAggregateConfigRuleComplianceSummaryRequest method.
-//    req, resp := client.GetAggregateConfigRuleComplianceSummaryRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetAggregateConfigRuleComplianceSummary
 func (c *ConfigService) GetAggregateConfigRuleComplianceSummaryRequest(input *GetAggregateConfigRuleComplianceSummaryInput) (req *request.Request, output *GetAggregateConfigRuleComplianceSummaryOutput) {
@@ -5595,26 +5591,27 @@ func (c *ConfigService) GetAggregateConfigRuleComplianceSummaryRequest(input *Ge
 // API operation GetAggregateConfigRuleComplianceSummary for usage and error information.
 //
 // Returned Error Types:
-//   * ValidationException
-//   The requested action is not valid.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
-//   * NoSuchConfigurationAggregatorException
-//   You have specified a configuration aggregator that does not exist.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
+//
+//   - NoSuchConfigurationAggregatorException
+//     You have specified a configuration aggregator that does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetAggregateConfigRuleComplianceSummary
 func (c *ConfigService) GetAggregateConfigRuleComplianceSummary(input *GetAggregateConfigRuleComplianceSummaryInput) (*GetAggregateConfigRuleComplianceSummaryOutput, error) {
@@ -5646,15 +5643,14 @@ func (c *ConfigService) GetAggregateConfigRuleComplianceSummaryWithContext(ctx a
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a GetAggregateConfigRuleComplianceSummary operation.
-//    pageNum := 0
-//    err := client.GetAggregateConfigRuleComplianceSummaryPages(params,
-//        func(page *configservice.GetAggregateConfigRuleComplianceSummaryOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a GetAggregateConfigRuleComplianceSummary operation.
+//	pageNum := 0
+//	err := client.GetAggregateConfigRuleComplianceSummaryPages(params,
+//	    func(page *configservice.GetAggregateConfigRuleComplianceSummaryOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) GetAggregateConfigRuleComplianceSummaryPages(input *GetAggregateConfigRuleComplianceSummaryInput, fn func(*GetAggregateConfigRuleComplianceSummaryOutput, bool) bool) error {
 	return c.GetAggregateConfigRuleComplianceSummaryPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -5706,14 +5702,13 @@ const opGetAggregateConformancePackComplianceSummary = "GetAggregateConformanceP
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetAggregateConformancePackComplianceSummaryRequest method.
+//	req, resp := client.GetAggregateConformancePackComplianceSummaryRequest(params)
 //
-//    // Example sending a request using the GetAggregateConformancePackComplianceSummaryRequest method.
-//    req, resp := client.GetAggregateConformancePackComplianceSummaryRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetAggregateConformancePackComplianceSummary
 func (c *ConfigService) GetAggregateConformancePackComplianceSummaryRequest(input *GetAggregateConformancePackComplianceSummaryInput) (req *request.Request, output *GetAggregateConformancePackComplianceSummaryOutput) {
@@ -5756,26 +5751,27 @@ func (c *ConfigService) GetAggregateConformancePackComplianceSummaryRequest(inpu
 // API operation GetAggregateConformancePackComplianceSummary for usage and error information.
 //
 // Returned Error Types:
-//   * ValidationException
-//   The requested action is not valid.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
-//   * NoSuchConfigurationAggregatorException
-//   You have specified a configuration aggregator that does not exist.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
+//
+//   - NoSuchConfigurationAggregatorException
+//     You have specified a configuration aggregator that does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetAggregateConformancePackComplianceSummary
 func (c *ConfigService) GetAggregateConformancePackComplianceSummary(input *GetAggregateConformancePackComplianceSummaryInput) (*GetAggregateConformancePackComplianceSummaryOutput, error) {
@@ -5807,15 +5803,14 @@ func (c *ConfigService) GetAggregateConformancePackComplianceSummaryWithContext(
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a GetAggregateConformancePackComplianceSummary operation.
-//    pageNum := 0
-//    err := client.GetAggregateConformancePackComplianceSummaryPages(params,
-//        func(page *configservice.GetAggregateConformancePackComplianceSummaryOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a GetAggregateConformancePackComplianceSummary operation.
+//	pageNum := 0
+//	err := client.GetAggregateConformancePackComplianceSummaryPages(params,
+//	    func(page *configservice.GetAggregateConformancePackComplianceSummaryOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) GetAggregateConformancePackComplianceSummaryPages(input *GetAggregateConformancePackComplianceSummaryInput, fn func(*GetAggregateConformancePackComplianceSummaryOutput, bool) bool) error {
 	return c.GetAggregateConformancePackComplianceSummaryPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -5867,14 +5862,13 @@ const opGetAggregateDiscoveredResourceCounts = "GetAggregateDiscoveredResourceCo
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetAggregateDiscoveredResourceCountsRequest method.
+//	req, resp := client.GetAggregateDiscoveredResourceCountsRequest(params)
 //
-//    // Example sending a request using the GetAggregateDiscoveredResourceCountsRequest method.
-//    req, resp := client.GetAggregateDiscoveredResourceCountsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetAggregateDiscoveredResourceCounts
 func (c *ConfigService) GetAggregateDiscoveredResourceCountsRequest(input *GetAggregateDiscoveredResourceCountsInput) (req *request.Request, output *GetAggregateDiscoveredResourceCountsOutput) {
@@ -5919,26 +5913,27 @@ func (c *ConfigService) GetAggregateDiscoveredResourceCountsRequest(input *GetAg
 // API operation GetAggregateDiscoveredResourceCounts for usage and error information.
 //
 // Returned Error Types:
-//   * ValidationException
-//   The requested action is not valid.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
-//   * NoSuchConfigurationAggregatorException
-//   You have specified a configuration aggregator that does not exist.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
+//
+//   - NoSuchConfigurationAggregatorException
+//     You have specified a configuration aggregator that does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetAggregateDiscoveredResourceCounts
 func (c *ConfigService) GetAggregateDiscoveredResourceCounts(input *GetAggregateDiscoveredResourceCountsInput) (*GetAggregateDiscoveredResourceCountsOutput, error) {
@@ -5970,15 +5965,14 @@ func (c *ConfigService) GetAggregateDiscoveredResourceCountsWithContext(ctx aws.
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a GetAggregateDiscoveredResourceCounts operation.
-//    pageNum := 0
-//    err := client.GetAggregateDiscoveredResourceCountsPages(params,
-//        func(page *configservice.GetAggregateDiscoveredResourceCountsOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a GetAggregateDiscoveredResourceCounts operation.
+//	pageNum := 0
+//	err := client.GetAggregateDiscoveredResourceCountsPages(params,
+//	    func(page *configservice.GetAggregateDiscoveredResourceCountsOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) GetAggregateDiscoveredResourceCountsPages(input *GetAggregateDiscoveredResourceCountsInput, fn func(*GetAggregateDiscoveredResourceCountsOutput, bool) bool) error {
 	return c.GetAggregateDiscoveredResourceCountsPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -6030,14 +6024,13 @@ const opGetAggregateResourceConfig = "GetAggregateResourceConfig"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetAggregateResourceConfigRequest method.
+//	req, resp := client.GetAggregateResourceConfigRequest(params)
 //
-//    // Example sending a request using the GetAggregateResourceConfigRequest method.
-//    req, resp := client.GetAggregateResourceConfigRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetAggregateResourceConfig
 func (c *ConfigService) GetAggregateResourceConfigRequest(input *GetAggregateResourceConfigInput) (req *request.Request, output *GetAggregateResourceConfigOutput) {
@@ -6069,25 +6062,26 @@ func (c *ConfigService) GetAggregateResourceConfigRequest(input *GetAggregateRes
 // API operation GetAggregateResourceConfig for usage and error information.
 //
 // Returned Error Types:
-//   * ValidationException
-//   The requested action is not valid.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * NoSuchConfigurationAggregatorException
-//   You have specified a configuration aggregator that does not exist.
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
 //
-//   * OversizedConfigurationItemException
-//   The configuration item size is outside the allowable range.
+//   - NoSuchConfigurationAggregatorException
+//     You have specified a configuration aggregator that does not exist.
 //
-//   * ResourceNotDiscoveredException
-//   You have specified a resource that is either unknown or has not been discovered.
+//   - OversizedConfigurationItemException
+//     The configuration item size is outside the allowable range.
+//
+//   - ResourceNotDiscoveredException
+//     You have specified a resource that is either unknown or has not been discovered.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetAggregateResourceConfig
 func (c *ConfigService) GetAggregateResourceConfig(input *GetAggregateResourceConfigInput) (*GetAggregateResourceConfigOutput, error) {
@@ -6127,14 +6121,13 @@ const opGetComplianceDetailsByConfigRule = "GetComplianceDetailsByConfigRule"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetComplianceDetailsByConfigRuleRequest method.
+//	req, resp := client.GetComplianceDetailsByConfigRuleRequest(params)
 //
-//    // Example sending a request using the GetComplianceDetailsByConfigRuleRequest method.
-//    req, resp := client.GetComplianceDetailsByConfigRuleRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceDetailsByConfigRule
 func (c *ConfigService) GetComplianceDetailsByConfigRuleRequest(input *GetComplianceDetailsByConfigRuleInput) (req *request.Request, output *GetComplianceDetailsByConfigRuleOutput) {
@@ -6174,18 +6167,19 @@ func (c *ConfigService) GetComplianceDetailsByConfigRuleRequest(input *GetCompli
 // API operation GetComplianceDetailsByConfigRule for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
-//   * NoSuchConfigRuleException
-//   The Config rule in the request is not valid. Verify that the rule is an Config
-//   Custom Policy rule, that the rule name is correct, and that valid Amazon
-//   Resouce Names (ARNs) are used before trying again.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
+//
+//   - NoSuchConfigRuleException
+//     The Config rule in the request is not valid. Verify that the rule is an Config
+//     Custom Policy rule, that the rule name is correct, and that valid Amazon
+//     Resouce Names (ARNs) are used before trying again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceDetailsByConfigRule
 func (c *ConfigService) GetComplianceDetailsByConfigRule(input *GetComplianceDetailsByConfigRuleInput) (*GetComplianceDetailsByConfigRuleOutput, error) {
@@ -6217,15 +6211,14 @@ func (c *ConfigService) GetComplianceDetailsByConfigRuleWithContext(ctx aws.Cont
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a GetComplianceDetailsByConfigRule operation.
-//    pageNum := 0
-//    err := client.GetComplianceDetailsByConfigRulePages(params,
-//        func(page *configservice.GetComplianceDetailsByConfigRuleOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a GetComplianceDetailsByConfigRule operation.
+//	pageNum := 0
+//	err := client.GetComplianceDetailsByConfigRulePages(params,
+//	    func(page *configservice.GetComplianceDetailsByConfigRuleOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) GetComplianceDetailsByConfigRulePages(input *GetComplianceDetailsByConfigRuleInput, fn func(*GetComplianceDetailsByConfigRuleOutput, bool) bool) error {
 	return c.GetComplianceDetailsByConfigRulePagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -6277,14 +6270,13 @@ const opGetComplianceDetailsByResource = "GetComplianceDetailsByResource"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetComplianceDetailsByResourceRequest method.
+//	req, resp := client.GetComplianceDetailsByResourceRequest(params)
 //
-//    // Example sending a request using the GetComplianceDetailsByResourceRequest method.
-//    req, resp := client.GetComplianceDetailsByResourceRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceDetailsByResource
 func (c *ConfigService) GetComplianceDetailsByResourceRequest(input *GetComplianceDetailsByResourceInput) (req *request.Request, output *GetComplianceDetailsByResourceOutput) {
@@ -6324,9 +6316,9 @@ func (c *ConfigService) GetComplianceDetailsByResourceRequest(input *GetComplian
 // API operation GetComplianceDetailsByResource for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceDetailsByResource
 func (c *ConfigService) GetComplianceDetailsByResource(input *GetComplianceDetailsByResourceInput) (*GetComplianceDetailsByResourceOutput, error) {
@@ -6358,15 +6350,14 @@ func (c *ConfigService) GetComplianceDetailsByResourceWithContext(ctx aws.Contex
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a GetComplianceDetailsByResource operation.
-//    pageNum := 0
-//    err := client.GetComplianceDetailsByResourcePages(params,
-//        func(page *configservice.GetComplianceDetailsByResourceOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a GetComplianceDetailsByResource operation.
+//	pageNum := 0
+//	err := client.GetComplianceDetailsByResourcePages(params,
+//	    func(page *configservice.GetComplianceDetailsByResourceOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) GetComplianceDetailsByResourcePages(input *GetComplianceDetailsByResourceInput, fn func(*GetComplianceDetailsByResourceOutput, bool) bool) error {
 	return c.GetComplianceDetailsByResourcePagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -6418,14 +6409,13 @@ const opGetComplianceSummaryByConfigRule = "GetComplianceSummaryByConfigRule"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetComplianceSummaryByConfigRuleRequest method.
+//	req, resp := client.GetComplianceSummaryByConfigRuleRequest(params)
 //
-//    // Example sending a request using the GetComplianceSummaryByConfigRuleRequest method.
-//    req, resp := client.GetComplianceSummaryByConfigRuleRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceSummaryByConfigRule
 func (c *ConfigService) GetComplianceSummaryByConfigRuleRequest(input *GetComplianceSummaryByConfigRuleInput) (req *request.Request, output *GetComplianceSummaryByConfigRuleOutput) {
@@ -6493,14 +6483,13 @@ const opGetComplianceSummaryByResourceType = "GetComplianceSummaryByResourceType
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetComplianceSummaryByResourceTypeRequest method.
+//	req, resp := client.GetComplianceSummaryByResourceTypeRequest(params)
 //
-//    // Example sending a request using the GetComplianceSummaryByResourceTypeRequest method.
-//    req, resp := client.GetComplianceSummaryByResourceTypeRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceSummaryByResourceType
 func (c *ConfigService) GetComplianceSummaryByResourceTypeRequest(input *GetComplianceSummaryByResourceTypeInput) (req *request.Request, output *GetComplianceSummaryByResourceTypeOutput) {
@@ -6533,9 +6522,9 @@ func (c *ConfigService) GetComplianceSummaryByResourceTypeRequest(input *GetComp
 // API operation GetComplianceSummaryByResourceType for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetComplianceSummaryByResourceType
 func (c *ConfigService) GetComplianceSummaryByResourceType(input *GetComplianceSummaryByResourceTypeInput) (*GetComplianceSummaryByResourceTypeOutput, error) {
@@ -6575,14 +6564,13 @@ const opGetConformancePackComplianceDetails = "GetConformancePackComplianceDetai
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetConformancePackComplianceDetailsRequest method.
+//	req, resp := client.GetConformancePackComplianceDetailsRequest(params)
 //
-//    // Example sending a request using the GetConformancePackComplianceDetailsRequest method.
-//    req, resp := client.GetConformancePackComplianceDetailsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetConformancePackComplianceDetails
 func (c *ConfigService) GetConformancePackComplianceDetailsRequest(input *GetConformancePackComplianceDetailsInput) (req *request.Request, output *GetConformancePackComplianceDetailsOutput) {
@@ -6620,22 +6608,23 @@ func (c *ConfigService) GetConformancePackComplianceDetailsRequest(input *GetCon
 // API operation GetConformancePackComplianceDetails for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
-//   * NoSuchConformancePackException
-//   You specified one or more conformance packs that do not exist.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
 //
-//   * NoSuchConfigRuleInConformancePackException
-//   Config rule that you passed in the filter does not exist.
+//   - NoSuchConformancePackException
+//     You specified one or more conformance packs that do not exist.
 //
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
+//   - NoSuchConfigRuleInConformancePackException
+//     Config rule that you passed in the filter does not exist.
+//
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetConformancePackComplianceDetails
 func (c *ConfigService) GetConformancePackComplianceDetails(input *GetConformancePackComplianceDetailsInput) (*GetConformancePackComplianceDetailsOutput, error) {
@@ -6667,15 +6656,14 @@ func (c *ConfigService) GetConformancePackComplianceDetailsWithContext(ctx aws.C
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a GetConformancePackComplianceDetails operation.
-//    pageNum := 0
-//    err := client.GetConformancePackComplianceDetailsPages(params,
-//        func(page *configservice.GetConformancePackComplianceDetailsOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a GetConformancePackComplianceDetails operation.
+//	pageNum := 0
+//	err := client.GetConformancePackComplianceDetailsPages(params,
+//	    func(page *configservice.GetConformancePackComplianceDetailsOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) GetConformancePackComplianceDetailsPages(input *GetConformancePackComplianceDetailsInput, fn func(*GetConformancePackComplianceDetailsOutput, bool) bool) error {
 	return c.GetConformancePackComplianceDetailsPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -6727,14 +6715,13 @@ const opGetConformancePackComplianceSummary = "GetConformancePackComplianceSumma
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetConformancePackComplianceSummaryRequest method.
+//	req, resp := client.GetConformancePackComplianceSummaryRequest(params)
 //
-//    // Example sending a request using the GetConformancePackComplianceSummaryRequest method.
-//    req, resp := client.GetConformancePackComplianceSummaryRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetConformancePackComplianceSummary
 func (c *ConfigService) GetConformancePackComplianceSummaryRequest(input *GetConformancePackComplianceSummaryInput) (req *request.Request, output *GetConformancePackComplianceSummaryOutput) {
@@ -6772,15 +6759,16 @@ func (c *ConfigService) GetConformancePackComplianceSummaryRequest(input *GetCon
 // API operation GetConformancePackComplianceSummary for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchConformancePackException
-//   You specified one or more conformance packs that do not exist.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//   - NoSuchConformancePackException
+//     You specified one or more conformance packs that do not exist.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
+//
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetConformancePackComplianceSummary
 func (c *ConfigService) GetConformancePackComplianceSummary(input *GetConformancePackComplianceSummaryInput) (*GetConformancePackComplianceSummaryOutput, error) {
@@ -6812,15 +6800,14 @@ func (c *ConfigService) GetConformancePackComplianceSummaryWithContext(ctx aws.C
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a GetConformancePackComplianceSummary operation.
-//    pageNum := 0
-//    err := client.GetConformancePackComplianceSummaryPages(params,
-//        func(page *configservice.GetConformancePackComplianceSummaryOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a GetConformancePackComplianceSummary operation.
+//	pageNum := 0
+//	err := client.GetConformancePackComplianceSummaryPages(params,
+//	    func(page *configservice.GetConformancePackComplianceSummaryOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) GetConformancePackComplianceSummaryPages(input *GetConformancePackComplianceSummaryInput, fn func(*GetConformancePackComplianceSummaryOutput, bool) bool) error {
 	return c.GetConformancePackComplianceSummaryPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -6872,14 +6859,13 @@ const opGetCustomRulePolicy = "GetCustomRulePolicy"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetCustomRulePolicyRequest method.
+//	req, resp := client.GetCustomRulePolicyRequest(params)
 //
-//    // Example sending a request using the GetCustomRulePolicyRequest method.
-//    req, resp := client.GetCustomRulePolicyRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetCustomRulePolicy
 func (c *ConfigService) GetCustomRulePolicyRequest(input *GetCustomRulePolicyInput) (req *request.Request, output *GetCustomRulePolicyOutput) {
@@ -6911,10 +6897,10 @@ func (c *ConfigService) GetCustomRulePolicyRequest(input *GetCustomRulePolicyInp
 // API operation GetCustomRulePolicy for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchConfigRuleException
-//   The Config rule in the request is not valid. Verify that the rule is an Config
-//   Custom Policy rule, that the rule name is correct, and that valid Amazon
-//   Resouce Names (ARNs) are used before trying again.
+//   - NoSuchConfigRuleException
+//     The Config rule in the request is not valid. Verify that the rule is an Config
+//     Custom Policy rule, that the rule name is correct, and that valid Amazon
+//     Resouce Names (ARNs) are used before trying again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetCustomRulePolicy
 func (c *ConfigService) GetCustomRulePolicy(input *GetCustomRulePolicyInput) (*GetCustomRulePolicyOutput, error) {
@@ -6954,14 +6940,13 @@ const opGetDiscoveredResourceCounts = "GetDiscoveredResourceCounts"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetDiscoveredResourceCountsRequest method.
+//	req, resp := client.GetDiscoveredResourceCountsRequest(params)
 //
-//    // Example sending a request using the GetDiscoveredResourceCountsRequest method.
-//    req, resp := client.GetDiscoveredResourceCountsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetDiscoveredResourceCounts
 func (c *ConfigService) GetDiscoveredResourceCountsRequest(input *GetDiscoveredResourceCountsInput) (req *request.Request, output *GetDiscoveredResourceCountsOutput) {
@@ -6992,7 +6977,7 @@ func (c *ConfigService) GetDiscoveredResourceCountsRequest(input *GetDiscoveredR
 // number of resources that Config is recording in this region for your Amazon
 // Web Services account.
 //
-// Example
+// # Example
 //
 // Config is recording three resource types in the US East (Ohio) Region for
 // your account: 25 EC2 instances, 20 IAM users, and 15 S3 buckets.
@@ -7002,11 +6987,11 @@ func (c *ConfigService) GetDiscoveredResourceCountsRequest(input *GetDiscoveredR
 //
 // Config returns the following:
 //
-//    * The resource types (EC2 instances, IAM users, and S3 buckets).
+//   - The resource types (EC2 instances, IAM users, and S3 buckets).
 //
-//    * The number of each resource type (25, 20, and 15).
+//   - The number of each resource type (25, 20, and 15).
 //
-//    * The total number of all resources (60).
+//   - The total number of all resources (60).
 //
 // The response is paginated. By default, Config lists 100 ResourceCount objects
 // on each page. You can customize this number with the limit parameter. The
@@ -7016,9 +7001,9 @@ func (c *ConfigService) GetDiscoveredResourceCountsRequest(input *GetDiscoveredR
 // If you make a call to the GetDiscoveredResourceCounts action, you might not
 // immediately receive resource counts in the following situations:
 //
-//    * You are a new Config customer.
+//   - You are a new Config customer.
 //
-//    * You just enabled resource recording.
+//   - You just enabled resource recording.
 //
 // It might take a few minutes for Config to record and count your resources.
 // Wait a few minutes and then retry the GetDiscoveredResourceCounts action.
@@ -7031,23 +7016,24 @@ func (c *ConfigService) GetDiscoveredResourceCountsRequest(input *GetDiscoveredR
 // API operation GetDiscoveredResourceCounts for usage and error information.
 //
 // Returned Error Types:
-//   * ValidationException
-//   The requested action is not valid.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
+//
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetDiscoveredResourceCounts
 func (c *ConfigService) GetDiscoveredResourceCounts(input *GetDiscoveredResourceCountsInput) (*GetDiscoveredResourceCountsOutput, error) {
@@ -7079,15 +7065,14 @@ func (c *ConfigService) GetDiscoveredResourceCountsWithContext(ctx aws.Context, 
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a GetDiscoveredResourceCounts operation.
-//    pageNum := 0
-//    err := client.GetDiscoveredResourceCountsPages(params,
-//        func(page *configservice.GetDiscoveredResourceCountsOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a GetDiscoveredResourceCounts operation.
+//	pageNum := 0
+//	err := client.GetDiscoveredResourceCountsPages(params,
+//	    func(page *configservice.GetDiscoveredResourceCountsOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) GetDiscoveredResourceCountsPages(input *GetDiscoveredResourceCountsInput, fn func(*GetDiscoveredResourceCountsOutput, bool) bool) error {
 	return c.GetDiscoveredResourceCountsPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -7139,14 +7124,13 @@ const opGetOrganizationConfigRuleDetailedStatus = "GetOrganizationConfigRuleDeta
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetOrganizationConfigRuleDetailedStatusRequest method.
+//	req, resp := client.GetOrganizationConfigRuleDetailedStatusRequest(params)
 //
-//    // Example sending a request using the GetOrganizationConfigRuleDetailedStatusRequest method.
-//    req, resp := client.GetOrganizationConfigRuleDetailedStatusRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetOrganizationConfigRuleDetailedStatus
 func (c *ConfigService) GetOrganizationConfigRuleDetailedStatusRequest(input *GetOrganizationConfigRuleDetailedStatusInput) (req *request.Request, output *GetOrganizationConfigRuleDetailedStatusOutput) {
@@ -7184,42 +7168,43 @@ func (c *ConfigService) GetOrganizationConfigRuleDetailedStatusRequest(input *Ge
 // API operation GetOrganizationConfigRuleDetailedStatus for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchOrganizationConfigRuleException
-//   The Config rule in the request is not valid. Verify that the rule is an organization
-//   Config Custom Policy rule, that the rule name is correct, and that valid
-//   Amazon Resouce Names (ARNs) are used before trying again.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//   - NoSuchOrganizationConfigRuleException
+//     The Config rule in the request is not valid. Verify that the rule is an organization
+//     Config Custom Policy rule, that the rule name is correct, and that valid
+//     Amazon Resouce Names (ARNs) are used before trying again.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
-//   * OrganizationAccessDeniedException
-//   For PutConfigurationAggregator API, you can see this exception for the following
-//   reasons:
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
 //
-//      * No permission to call EnableAWSServiceAccess API
+//   - OrganizationAccessDeniedException
+//     For PutConfigurationAggregator API, you can see this exception for the following
+//     reasons:
 //
-//      * The configuration aggregator cannot be updated because your Amazon Web
-//      Services Organization management account or the delegated administrator
-//      role changed. Delete this aggregator and create a new one with the current
-//      Amazon Web Services Organization.
+//   - No permission to call EnableAWSServiceAccess API
 //
-//      * The configuration aggregator is associated with a previous Amazon Web
-//      Services Organization and Config cannot aggregate data with current Amazon
-//      Web Services Organization. Delete this aggregator and create a new one
-//      with the current Amazon Web Services Organization.
+//   - The configuration aggregator cannot be updated because your Amazon Web
+//     Services Organization management account or the delegated administrator
+//     role changed. Delete this aggregator and create a new one with the current
+//     Amazon Web Services Organization.
 //
-//      * You are not a registered delegated administrator for Config with permissions
-//      to call ListDelegatedAdministrators API. Ensure that the management account
-//      registers delagated administrator for Config service principle name before
-//      the delegated administrator creates an aggregator.
+//   - The configuration aggregator is associated with a previous Amazon Web
+//     Services Organization and Config cannot aggregate data with current Amazon
+//     Web Services Organization. Delete this aggregator and create a new one
+//     with the current Amazon Web Services Organization.
 //
-//   For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
-//   throws an exception if APIs are called from member accounts. All APIs must
-//   be called from organization master account.
+//   - You are not a registered delegated administrator for Config with permissions
+//     to call ListDelegatedAdministrators API. Ensure that the management account
+//     registers delagated administrator for Config service principle name before
+//     the delegated administrator creates an aggregator.
+//
+//     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
+//     throws an exception if APIs are called from member accounts. All APIs must
+//     be called from organization master account.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetOrganizationConfigRuleDetailedStatus
 func (c *ConfigService) GetOrganizationConfigRuleDetailedStatus(input *GetOrganizationConfigRuleDetailedStatusInput) (*GetOrganizationConfigRuleDetailedStatusOutput, error) {
@@ -7251,15 +7236,14 @@ func (c *ConfigService) GetOrganizationConfigRuleDetailedStatusWithContext(ctx a
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a GetOrganizationConfigRuleDetailedStatus operation.
-//    pageNum := 0
-//    err := client.GetOrganizationConfigRuleDetailedStatusPages(params,
-//        func(page *configservice.GetOrganizationConfigRuleDetailedStatusOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a GetOrganizationConfigRuleDetailedStatus operation.
+//	pageNum := 0
+//	err := client.GetOrganizationConfigRuleDetailedStatusPages(params,
+//	    func(page *configservice.GetOrganizationConfigRuleDetailedStatusOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) GetOrganizationConfigRuleDetailedStatusPages(input *GetOrganizationConfigRuleDetailedStatusInput, fn func(*GetOrganizationConfigRuleDetailedStatusOutput, bool) bool) error {
 	return c.GetOrganizationConfigRuleDetailedStatusPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -7311,14 +7295,13 @@ const opGetOrganizationConformancePackDetailedStatus = "GetOrganizationConforman
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetOrganizationConformancePackDetailedStatusRequest method.
+//	req, resp := client.GetOrganizationConformancePackDetailedStatusRequest(params)
 //
-//    // Example sending a request using the GetOrganizationConformancePackDetailedStatusRequest method.
-//    req, resp := client.GetOrganizationConformancePackDetailedStatusRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetOrganizationConformancePackDetailedStatus
 func (c *ConfigService) GetOrganizationConformancePackDetailedStatusRequest(input *GetOrganizationConformancePackDetailedStatusInput) (req *request.Request, output *GetOrganizationConformancePackDetailedStatusOutput) {
@@ -7356,44 +7339,45 @@ func (c *ConfigService) GetOrganizationConformancePackDetailedStatusRequest(inpu
 // API operation GetOrganizationConformancePackDetailedStatus for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchOrganizationConformancePackException
-//   Config organization conformance pack that you passed in the filter does not
-//   exist.
 //
-//   For DeleteOrganizationConformancePack, you tried to delete an organization
-//   conformance pack that does not exist.
+//   - NoSuchOrganizationConformancePackException
+//     Config organization conformance pack that you passed in the filter does not
+//     exist.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//     For DeleteOrganizationConformancePack, you tried to delete an organization
+//     conformance pack that does not exist.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
-//   * OrganizationAccessDeniedException
-//   For PutConfigurationAggregator API, you can see this exception for the following
-//   reasons:
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
 //
-//      * No permission to call EnableAWSServiceAccess API
+//   - OrganizationAccessDeniedException
+//     For PutConfigurationAggregator API, you can see this exception for the following
+//     reasons:
 //
-//      * The configuration aggregator cannot be updated because your Amazon Web
-//      Services Organization management account or the delegated administrator
-//      role changed. Delete this aggregator and create a new one with the current
-//      Amazon Web Services Organization.
+//   - No permission to call EnableAWSServiceAccess API
 //
-//      * The configuration aggregator is associated with a previous Amazon Web
-//      Services Organization and Config cannot aggregate data with current Amazon
-//      Web Services Organization. Delete this aggregator and create a new one
-//      with the current Amazon Web Services Organization.
+//   - The configuration aggregator cannot be updated because your Amazon Web
+//     Services Organization management account or the delegated administrator
+//     role changed. Delete this aggregator and create a new one with the current
+//     Amazon Web Services Organization.
 //
-//      * You are not a registered delegated administrator for Config with permissions
-//      to call ListDelegatedAdministrators API. Ensure that the management account
-//      registers delagated administrator for Config service principle name before
-//      the delegated administrator creates an aggregator.
+//   - The configuration aggregator is associated with a previous Amazon Web
+//     Services Organization and Config cannot aggregate data with current Amazon
+//     Web Services Organization. Delete this aggregator and create a new one
+//     with the current Amazon Web Services Organization.
 //
-//   For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
-//   throws an exception if APIs are called from member accounts. All APIs must
-//   be called from organization master account.
+//   - You are not a registered delegated administrator for Config with permissions
+//     to call ListDelegatedAdministrators API. Ensure that the management account
+//     registers delagated administrator for Config service principle name before
+//     the delegated administrator creates an aggregator.
+//
+//     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
+//     throws an exception if APIs are called from member accounts. All APIs must
+//     be called from organization master account.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetOrganizationConformancePackDetailedStatus
 func (c *ConfigService) GetOrganizationConformancePackDetailedStatus(input *GetOrganizationConformancePackDetailedStatusInput) (*GetOrganizationConformancePackDetailedStatusOutput, error) {
@@ -7425,15 +7409,14 @@ func (c *ConfigService) GetOrganizationConformancePackDetailedStatusWithContext(
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a GetOrganizationConformancePackDetailedStatus operation.
-//    pageNum := 0
-//    err := client.GetOrganizationConformancePackDetailedStatusPages(params,
-//        func(page *configservice.GetOrganizationConformancePackDetailedStatusOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a GetOrganizationConformancePackDetailedStatus operation.
+//	pageNum := 0
+//	err := client.GetOrganizationConformancePackDetailedStatusPages(params,
+//	    func(page *configservice.GetOrganizationConformancePackDetailedStatusOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) GetOrganizationConformancePackDetailedStatusPages(input *GetOrganizationConformancePackDetailedStatusInput, fn func(*GetOrganizationConformancePackDetailedStatusOutput, bool) bool) error {
 	return c.GetOrganizationConformancePackDetailedStatusPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -7485,14 +7468,13 @@ const opGetOrganizationCustomRulePolicy = "GetOrganizationCustomRulePolicy"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetOrganizationCustomRulePolicyRequest method.
+//	req, resp := client.GetOrganizationCustomRulePolicyRequest(params)
 //
-//    // Example sending a request using the GetOrganizationCustomRulePolicyRequest method.
-//    req, resp := client.GetOrganizationCustomRulePolicyRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetOrganizationCustomRulePolicy
 func (c *ConfigService) GetOrganizationCustomRulePolicyRequest(input *GetOrganizationCustomRulePolicyInput) (req *request.Request, output *GetOrganizationCustomRulePolicyOutput) {
@@ -7524,35 +7506,36 @@ func (c *ConfigService) GetOrganizationCustomRulePolicyRequest(input *GetOrganiz
 // API operation GetOrganizationCustomRulePolicy for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchOrganizationConfigRuleException
-//   The Config rule in the request is not valid. Verify that the rule is an organization
-//   Config Custom Policy rule, that the rule name is correct, and that valid
-//   Amazon Resouce Names (ARNs) are used before trying again.
 //
-//   * OrganizationAccessDeniedException
-//   For PutConfigurationAggregator API, you can see this exception for the following
-//   reasons:
+//   - NoSuchOrganizationConfigRuleException
+//     The Config rule in the request is not valid. Verify that the rule is an organization
+//     Config Custom Policy rule, that the rule name is correct, and that valid
+//     Amazon Resouce Names (ARNs) are used before trying again.
 //
-//      * No permission to call EnableAWSServiceAccess API
+//   - OrganizationAccessDeniedException
+//     For PutConfigurationAggregator API, you can see this exception for the following
+//     reasons:
 //
-//      * The configuration aggregator cannot be updated because your Amazon Web
-//      Services Organization management account or the delegated administrator
-//      role changed. Delete this aggregator and create a new one with the current
-//      Amazon Web Services Organization.
+//   - No permission to call EnableAWSServiceAccess API
 //
-//      * The configuration aggregator is associated with a previous Amazon Web
-//      Services Organization and Config cannot aggregate data with current Amazon
-//      Web Services Organization. Delete this aggregator and create a new one
-//      with the current Amazon Web Services Organization.
+//   - The configuration aggregator cannot be updated because your Amazon Web
+//     Services Organization management account or the delegated administrator
+//     role changed. Delete this aggregator and create a new one with the current
+//     Amazon Web Services Organization.
 //
-//      * You are not a registered delegated administrator for Config with permissions
-//      to call ListDelegatedAdministrators API. Ensure that the management account
-//      registers delagated administrator for Config service principle name before
-//      the delegated administrator creates an aggregator.
+//   - The configuration aggregator is associated with a previous Amazon Web
+//     Services Organization and Config cannot aggregate data with current Amazon
+//     Web Services Organization. Delete this aggregator and create a new one
+//     with the current Amazon Web Services Organization.
 //
-//   For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
-//   throws an exception if APIs are called from member accounts. All APIs must
-//   be called from organization master account.
+//   - You are not a registered delegated administrator for Config with permissions
+//     to call ListDelegatedAdministrators API. Ensure that the management account
+//     registers delagated administrator for Config service principle name before
+//     the delegated administrator creates an aggregator.
+//
+//     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
+//     throws an exception if APIs are called from member accounts. All APIs must
+//     be called from organization master account.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetOrganizationCustomRulePolicy
 func (c *ConfigService) GetOrganizationCustomRulePolicy(input *GetOrganizationCustomRulePolicyInput) (*GetOrganizationCustomRulePolicyOutput, error) {
@@ -7592,14 +7575,13 @@ const opGetResourceConfigHistory = "GetResourceConfigHistory"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetResourceConfigHistoryRequest method.
+//	req, resp := client.GetResourceConfigHistoryRequest(params)
 //
-//    // Example sending a request using the GetResourceConfigHistoryRequest method.
-//    req, resp := client.GetResourceConfigHistoryRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetResourceConfigHistory
 func (c *ConfigService) GetResourceConfigHistoryRequest(input *GetResourceConfigHistoryInput) (req *request.Request, output *GetResourceConfigHistoryOutput) {
@@ -7649,34 +7631,35 @@ func (c *ConfigService) GetResourceConfigHistoryRequest(input *GetResourceConfig
 // API operation GetResourceConfigHistory for usage and error information.
 //
 // Returned Error Types:
-//   * ValidationException
-//   The requested action is not valid.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * InvalidTimeRangeException
-//   The specified time range is not valid. The earlier time is not chronologically
-//   before the later time.
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//   - InvalidTimeRangeException
+//     The specified time range is not valid. The earlier time is not chronologically
+//     before the later time.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
-//   * NoAvailableConfigurationRecorderException
-//   There are no configuration recorders available to provide the role needed
-//   to describe your resources. Create a configuration recorder.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
 //
-//   * ResourceNotDiscoveredException
-//   You have specified a resource that is either unknown or has not been discovered.
+//   - NoAvailableConfigurationRecorderException
+//     There are no configuration recorders available to provide the role needed
+//     to describe your resources. Create a configuration recorder.
+//
+//   - ResourceNotDiscoveredException
+//     You have specified a resource that is either unknown or has not been discovered.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetResourceConfigHistory
 func (c *ConfigService) GetResourceConfigHistory(input *GetResourceConfigHistoryInput) (*GetResourceConfigHistoryOutput, error) {
@@ -7708,15 +7691,14 @@ func (c *ConfigService) GetResourceConfigHistoryWithContext(ctx aws.Context, inp
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a GetResourceConfigHistory operation.
-//    pageNum := 0
-//    err := client.GetResourceConfigHistoryPages(params,
-//        func(page *configservice.GetResourceConfigHistoryOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a GetResourceConfigHistory operation.
+//	pageNum := 0
+//	err := client.GetResourceConfigHistoryPages(params,
+//	    func(page *configservice.GetResourceConfigHistoryOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) GetResourceConfigHistoryPages(input *GetResourceConfigHistoryInput, fn func(*GetResourceConfigHistoryOutput, bool) bool) error {
 	return c.GetResourceConfigHistoryPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -7768,14 +7750,13 @@ const opGetStoredQuery = "GetStoredQuery"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the GetStoredQueryRequest method.
+//	req, resp := client.GetStoredQueryRequest(params)
 //
-//    // Example sending a request using the GetStoredQueryRequest method.
-//    req, resp := client.GetStoredQueryRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetStoredQuery
 func (c *ConfigService) GetStoredQueryRequest(input *GetStoredQueryInput) (req *request.Request, output *GetStoredQueryOutput) {
@@ -7806,19 +7787,20 @@ func (c *ConfigService) GetStoredQueryRequest(input *GetStoredQueryInput) (req *
 // API operation GetStoredQuery for usage and error information.
 //
 // Returned Error Types:
-//   * ValidationException
-//   The requested action is not valid.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * ResourceNotFoundException
-//   You have specified a resource that does not exist.
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
+//
+//   - ResourceNotFoundException
+//     You have specified a resource that does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetStoredQuery
 func (c *ConfigService) GetStoredQuery(input *GetStoredQueryInput) (*GetStoredQueryOutput, error) {
@@ -7858,14 +7840,13 @@ const opListAggregateDiscoveredResources = "ListAggregateDiscoveredResources"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the ListAggregateDiscoveredResourcesRequest method.
+//	req, resp := client.ListAggregateDiscoveredResourcesRequest(params)
 //
-//    // Example sending a request using the ListAggregateDiscoveredResourcesRequest method.
-//    req, resp := client.ListAggregateDiscoveredResourcesRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ListAggregateDiscoveredResources
 func (c *ConfigService) ListAggregateDiscoveredResourcesRequest(input *ListAggregateDiscoveredResourcesInput) (req *request.Request, output *ListAggregateDiscoveredResourcesOutput) {
@@ -7911,26 +7892,27 @@ func (c *ConfigService) ListAggregateDiscoveredResourcesRequest(input *ListAggre
 // API operation ListAggregateDiscoveredResources for usage and error information.
 //
 // Returned Error Types:
-//   * ValidationException
-//   The requested action is not valid.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
-//   * NoSuchConfigurationAggregatorException
-//   You have specified a configuration aggregator that does not exist.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
+//
+//   - NoSuchConfigurationAggregatorException
+//     You have specified a configuration aggregator that does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ListAggregateDiscoveredResources
 func (c *ConfigService) ListAggregateDiscoveredResources(input *ListAggregateDiscoveredResourcesInput) (*ListAggregateDiscoveredResourcesOutput, error) {
@@ -7962,15 +7944,14 @@ func (c *ConfigService) ListAggregateDiscoveredResourcesWithContext(ctx aws.Cont
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a ListAggregateDiscoveredResources operation.
-//    pageNum := 0
-//    err := client.ListAggregateDiscoveredResourcesPages(params,
-//        func(page *configservice.ListAggregateDiscoveredResourcesOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a ListAggregateDiscoveredResources operation.
+//	pageNum := 0
+//	err := client.ListAggregateDiscoveredResourcesPages(params,
+//	    func(page *configservice.ListAggregateDiscoveredResourcesOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) ListAggregateDiscoveredResourcesPages(input *ListAggregateDiscoveredResourcesInput, fn func(*ListAggregateDiscoveredResourcesOutput, bool) bool) error {
 	return c.ListAggregateDiscoveredResourcesPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -8006,6 +7987,159 @@ func (c *ConfigService) ListAggregateDiscoveredResourcesPagesWithContext(ctx aws
 	return p.Err()
 }
 
+const opListConformancePackComplianceScores = "ListConformancePackComplianceScores"
+
+// ListConformancePackComplianceScoresRequest generates a "aws/request.Request" representing the
+// client's request for the ListConformancePackComplianceScores operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListConformancePackComplianceScores for more information on using the ListConformancePackComplianceScores
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the ListConformancePackComplianceScoresRequest method.
+//	req, resp := client.ListConformancePackComplianceScoresRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ListConformancePackComplianceScores
+func (c *ConfigService) ListConformancePackComplianceScoresRequest(input *ListConformancePackComplianceScoresInput) (req *request.Request, output *ListConformancePackComplianceScoresOutput) {
+	op := &request.Operation{
+		Name:       opListConformancePackComplianceScores,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "Limit",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &ListConformancePackComplianceScoresInput{}
+	}
+
+	output = &ListConformancePackComplianceScoresOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListConformancePackComplianceScores API operation for AWS Config.
+//
+// Returns a list of conformance pack compliance scores. A compliance score
+// is the percentage of the number of compliant rule-resource combinations in
+// a conformance pack compared to the number of total possible rule-resource
+// combinations in the conformance pack. This metric provides you with a high-level
+// view of the compliance state of your conformance packs, and can be used to
+// identify, investigate, and understand the level of compliance in your conformance
+// packs.
+//
+// Conformance packs with no evaluation results will have a compliance score
+// of INSUFFICIENT_DATA.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation ListConformancePackComplianceScores for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
+//
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
+//
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ListConformancePackComplianceScores
+func (c *ConfigService) ListConformancePackComplianceScores(input *ListConformancePackComplianceScoresInput) (*ListConformancePackComplianceScoresOutput, error) {
+	req, out := c.ListConformancePackComplianceScoresRequest(input)
+	return out, req.Send()
+}
+
+// ListConformancePackComplianceScoresWithContext is the same as ListConformancePackComplianceScores with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListConformancePackComplianceScores for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) ListConformancePackComplianceScoresWithContext(ctx aws.Context, input *ListConformancePackComplianceScoresInput, opts ...request.Option) (*ListConformancePackComplianceScoresOutput, error) {
+	req, out := c.ListConformancePackComplianceScoresRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// ListConformancePackComplianceScoresPages iterates over the pages of a ListConformancePackComplianceScores operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListConformancePackComplianceScores method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//	// Example iterating over at most 3 pages of a ListConformancePackComplianceScores operation.
+//	pageNum := 0
+//	err := client.ListConformancePackComplianceScoresPages(params,
+//	    func(page *configservice.ListConformancePackComplianceScoresOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
+func (c *ConfigService) ListConformancePackComplianceScoresPages(input *ListConformancePackComplianceScoresInput, fn func(*ListConformancePackComplianceScoresOutput, bool) bool) error {
+	return c.ListConformancePackComplianceScoresPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListConformancePackComplianceScoresPagesWithContext same as ListConformancePackComplianceScoresPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) ListConformancePackComplianceScoresPagesWithContext(ctx aws.Context, input *ListConformancePackComplianceScoresInput, fn func(*ListConformancePackComplianceScoresOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListConformancePackComplianceScoresInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListConformancePackComplianceScoresRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*ListConformancePackComplianceScoresOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
 const opListDiscoveredResources = "ListDiscoveredResources"
 
 // ListDiscoveredResourcesRequest generates a "aws/request.Request" representing the
@@ -8022,14 +8156,13 @@ const opListDiscoveredResources = "ListDiscoveredResources"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the ListDiscoveredResourcesRequest method.
+//	req, resp := client.ListDiscoveredResourcesRequest(params)
 //
-//    // Example sending a request using the ListDiscoveredResourcesRequest method.
-//    req, resp := client.ListDiscoveredResourcesRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ListDiscoveredResources
 func (c *ConfigService) ListDiscoveredResourcesRequest(input *ListDiscoveredResourcesInput) (req *request.Request, output *ListDiscoveredResourcesOutput) {
@@ -8079,27 +8212,28 @@ func (c *ConfigService) ListDiscoveredResourcesRequest(input *ListDiscoveredReso
 // API operation ListDiscoveredResources for usage and error information.
 //
 // Returned Error Types:
-//   * ValidationException
-//   The requested action is not valid.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
 //
-//   * NoAvailableConfigurationRecorderException
-//   There are no configuration recorders available to provide the role needed
-//   to describe your resources. Create a configuration recorder.
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
+//
+//   - NoAvailableConfigurationRecorderException
+//     There are no configuration recorders available to provide the role needed
+//     to describe your resources. Create a configuration recorder.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ListDiscoveredResources
 func (c *ConfigService) ListDiscoveredResources(input *ListDiscoveredResourcesInput) (*ListDiscoveredResourcesOutput, error) {
@@ -8131,15 +8265,14 @@ func (c *ConfigService) ListDiscoveredResourcesWithContext(ctx aws.Context, inpu
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a ListDiscoveredResources operation.
-//    pageNum := 0
-//    err := client.ListDiscoveredResourcesPages(params,
-//        func(page *configservice.ListDiscoveredResourcesOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a ListDiscoveredResources operation.
+//	pageNum := 0
+//	err := client.ListDiscoveredResourcesPages(params,
+//	    func(page *configservice.ListDiscoveredResourcesOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) ListDiscoveredResourcesPages(input *ListDiscoveredResourcesInput, fn func(*ListDiscoveredResourcesOutput, bool) bool) error {
 	return c.ListDiscoveredResourcesPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -8191,14 +8324,13 @@ const opListStoredQueries = "ListStoredQueries"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the ListStoredQueriesRequest method.
+//	req, resp := client.ListStoredQueriesRequest(params)
 //
-//    // Example sending a request using the ListStoredQueriesRequest method.
-//    req, resp := client.ListStoredQueriesRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ListStoredQueries
 func (c *ConfigService) ListStoredQueriesRequest(input *ListStoredQueriesInput) (req *request.Request, output *ListStoredQueriesOutput) {
@@ -8236,20 +8368,21 @@ func (c *ConfigService) ListStoredQueriesRequest(input *ListStoredQueriesInput) 
 // API operation ListStoredQueries for usage and error information.
 //
 // Returned Error Types:
-//   * ValidationException
-//   The requested action is not valid.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
+//
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ListStoredQueries
 func (c *ConfigService) ListStoredQueries(input *ListStoredQueriesInput) (*ListStoredQueriesOutput, error) {
@@ -8281,15 +8414,14 @@ func (c *ConfigService) ListStoredQueriesWithContext(ctx aws.Context, input *Lis
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a ListStoredQueries operation.
-//    pageNum := 0
-//    err := client.ListStoredQueriesPages(params,
-//        func(page *configservice.ListStoredQueriesOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a ListStoredQueries operation.
+//	pageNum := 0
+//	err := client.ListStoredQueriesPages(params,
+//	    func(page *configservice.ListStoredQueriesOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) ListStoredQueriesPages(input *ListStoredQueriesInput, fn func(*ListStoredQueriesOutput, bool) bool) error {
 	return c.ListStoredQueriesPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -8341,14 +8473,13 @@ const opListTagsForResource = "ListTagsForResource"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the ListTagsForResourceRequest method.
+//	req, resp := client.ListTagsForResourceRequest(params)
 //
-//    // Example sending a request using the ListTagsForResourceRequest method.
-//    req, resp := client.ListTagsForResourceRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ListTagsForResource
 func (c *ConfigService) ListTagsForResourceRequest(input *ListTagsForResourceInput) (req *request.Request, output *ListTagsForResourceOutput) {
@@ -8385,26 +8516,27 @@ func (c *ConfigService) ListTagsForResourceRequest(input *ListTagsForResourceInp
 // API operation ListTagsForResource for usage and error information.
 //
 // Returned Error Types:
-//   * ResourceNotFoundException
-//   You have specified a resource that does not exist.
 //
-//   * ValidationException
-//   The requested action is not valid.
+//   - ResourceNotFoundException
+//     You have specified a resource that does not exist.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
+//
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ListTagsForResource
 func (c *ConfigService) ListTagsForResource(input *ListTagsForResourceInput) (*ListTagsForResourceOutput, error) {
@@ -8436,15 +8568,14 @@ func (c *ConfigService) ListTagsForResourceWithContext(ctx aws.Context, input *L
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a ListTagsForResource operation.
-//    pageNum := 0
-//    err := client.ListTagsForResourcePages(params,
-//        func(page *configservice.ListTagsForResourceOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a ListTagsForResource operation.
+//	pageNum := 0
+//	err := client.ListTagsForResourcePages(params,
+//	    func(page *configservice.ListTagsForResourceOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) ListTagsForResourcePages(input *ListTagsForResourceInput, fn func(*ListTagsForResourceOutput, bool) bool) error {
 	return c.ListTagsForResourcePagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -8496,14 +8627,13 @@ const opPutAggregationAuthorization = "PutAggregationAuthorization"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutAggregationAuthorizationRequest method.
+//	req, resp := client.PutAggregationAuthorizationRequest(params)
 //
-//    // Example sending a request using the PutAggregationAuthorizationRequest method.
-//    req, resp := client.PutAggregationAuthorizationRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutAggregationAuthorization
 func (c *ConfigService) PutAggregationAuthorizationRequest(input *PutAggregationAuthorizationInput) (req *request.Request, output *PutAggregationAuthorizationOutput) {
@@ -8535,9 +8665,9 @@ func (c *ConfigService) PutAggregationAuthorizationRequest(input *PutAggregation
 // API operation PutAggregationAuthorization for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutAggregationAuthorization
 func (c *ConfigService) PutAggregationAuthorization(input *PutAggregationAuthorizationInput) (*PutAggregationAuthorizationOutput, error) {
@@ -8577,14 +8707,13 @@ const opPutConfigRule = "PutConfigRule"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutConfigRuleRequest method.
+//	req, resp := client.PutConfigRuleRequest(params)
 //
-//    // Example sending a request using the PutConfigRuleRequest method.
-//    req, resp := client.PutConfigRuleRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConfigRule
 func (c *ConfigService) PutConfigRuleRequest(input *PutConfigRuleInput) (req *request.Request, output *PutConfigRuleOutput) {
@@ -8606,23 +8735,30 @@ func (c *ConfigService) PutConfigRuleRequest(input *PutConfigRuleInput) (req *re
 
 // PutConfigRule API operation for AWS Config.
 //
-// Adds or updates an Config rule for evaluating whether your Amazon Web Services
-// resources comply with your desired configurations.
+// Adds or updates an Config rule to evaluate if your Amazon Web Services resources
+// comply with your desired configurations. For information on how many Config
+// rules you can have per account, see Service Limits (https://docs.aws.amazon.com/config/latest/developerguide/configlimits.html)
+// in the Config Developer Guide.
 //
-// You can use this action for custom Config rules and Config managed rules.
-// A custom Config rule is a rule that you develop and maintain. An Config managed
-// rule is a customizable, predefined rule that Config provides.
+// There are two types of rules: Config Custom Rules and Config Managed Rules.
+// You can use PutConfigRule to create both Config custom rules and Config managed
+// rules.
 //
-// If you are adding a new custom Config rule, you must first create the Lambda
-// function that the rule invokes to evaluate your resources. When you use the
-// PutConfigRule action to add the rule to Config, you must specify the Amazon
-// Resource Name (ARN) that Lambda assigns to the function. Specify the ARN
-// for the SourceIdentifier key. This key is part of the Source object, which
-// is part of the ConfigRule object.
+// Custom rules are rules that you can create using either Guard or Lambda functions.
+// Guard (Guard GitHub Repository (https://github.com/aws-cloudformation/cloudformation-guard))
+// is a policy-as-code language that allows you to write policies that are enforced
+// by Config Custom Policy rules. Lambda uses custom code that you upload to
+// evaluate a custom rule. If you are adding a new Custom Lambda rule, you first
+// need to create an Lambda function that the rule invokes to evaluate your
+// resources. When you use PutConfigRule to add a Custom Lambda rule to Config,
+// you must specify the Amazon Resource Name (ARN) that Lambda assigns to the
+// function. You specify the ARN in the SourceIdentifier key. This key is part
+// of the Source object, which is part of the ConfigRule object.
 //
-// If you are adding an Config managed rule, specify the rule's identifier for
-// the SourceIdentifier key. To reference Config managed rule identifiers, see
-// About Config managed rules (https://docs.aws.amazon.com/config/latest/developerguide/evaluate-config_use-managed-rules.html).
+// Managed rules are predefined, customizable rules created by Config. For a
+// list of managed rules, see List of Config Managed Rules (https://docs.aws.amazon.com/config/latest/developerguide/managed-rules-by-aws-config.html).
+// If you are adding an Config managed rule, you must specify the rule's identifier
+// for the SourceIdentifier key.
 //
 // For any new rule that you add, specify the ConfigRuleName in the ConfigRule
 // object. Do not specify the ConfigRuleArn or the ConfigRuleId. These values
@@ -8631,12 +8767,6 @@ func (c *ConfigService) PutConfigRuleRequest(input *PutConfigRuleInput) (req *re
 // If you are updating a rule that you added previously, you can specify the
 // rule by ConfigRuleName, ConfigRuleId, or ConfigRuleArn in the ConfigRule
 // data type that you use in this request.
-//
-// The maximum number of rules that Config supports is 150.
-//
-// For information about requesting a rule limit increase, see Config Limits
-// (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_config)
-// in the Amazon Web Services General Reference Guide.
 //
 // For more information about developing and using Config rules, see Evaluating
 // Amazon Web Services resource Configurations with Config (https://docs.aws.amazon.com/config/latest/developerguide/evaluate-config.html)
@@ -8650,61 +8780,63 @@ func (c *ConfigService) PutConfigRuleRequest(input *PutConfigRuleInput) (req *re
 // API operation PutConfigRule for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
 //
-//   * MaxNumberOfConfigRulesExceededException
-//   Failed to add the Config rule because the account already contains the maximum
-//   number of 150 rules. Consider deleting any deactivated rules before you add
-//   new rules.
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
-//   * ResourceInUseException
-//   You see this exception in the following cases:
+//   - MaxNumberOfConfigRulesExceededException
+//     Failed to add the Config rule because the account already contains the maximum
+//     number of 150 rules. Consider deleting any deactivated rules before you add
+//     new rules.
 //
-//      * For DeleteConfigRule, Config is deleting this rule. Try your request
-//      again later.
+//   - ResourceInUseException
+//     You see this exception in the following cases:
 //
-//      * For DeleteConfigRule, the rule is deleting your evaluation results.
-//      Try your request again later.
+//   - For DeleteConfigRule, Config is deleting this rule. Try your request
+//     again later.
 //
-//      * For DeleteConfigRule, a remediation action is associated with the rule
-//      and Config cannot delete this rule. Delete the remediation action associated
-//      with the rule before deleting the rule and try your request again later.
+//   - For DeleteConfigRule, the rule is deleting your evaluation results.
+//     Try your request again later.
 //
-//      * For PutConfigOrganizationRule, organization Config rule deletion is
-//      in progress. Try your request again later.
+//   - For DeleteConfigRule, a remediation action is associated with the rule
+//     and Config cannot delete this rule. Delete the remediation action associated
+//     with the rule before deleting the rule and try your request again later.
 //
-//      * For DeleteOrganizationConfigRule, organization Config rule creation
-//      is in progress. Try your request again later.
+//   - For PutConfigOrganizationRule, organization Config rule deletion is
+//     in progress. Try your request again later.
 //
-//      * For PutConformancePack and PutOrganizationConformancePack, a conformance
-//      pack creation, update, and deletion is in progress. Try your request again
-//      later.
+//   - For DeleteOrganizationConfigRule, organization Config rule creation
+//     is in progress. Try your request again later.
 //
-//      * For DeleteConformancePack, a conformance pack creation, update, and
-//      deletion is in progress. Try your request again later.
+//   - For PutConformancePack and PutOrganizationConformancePack, a conformance
+//     pack creation, update, and deletion is in progress. Try your request again
+//     later.
 //
-//   * InsufficientPermissionsException
-//   Indicates one of the following errors:
+//   - For DeleteConformancePack, a conformance pack creation, update, and
+//     deletion is in progress. Try your request again later.
 //
-//      * For PutConfigRule, the rule cannot be created because the IAM role assigned
-//      to Config lacks permissions to perform the config:Put* action.
+//   - InsufficientPermissionsException
+//     Indicates one of the following errors:
 //
-//      * For PutConfigRule, the Lambda function cannot be invoked. Check the
-//      function ARN, and check the function's permissions.
+//   - For PutConfigRule, the rule cannot be created because the IAM role assigned
+//     to Config lacks permissions to perform the config:Put* action.
 //
-//      * For PutOrganizationConfigRule, organization Config rule cannot be created
-//      because you do not have permissions to call IAM GetRole action or create
-//      a service linked role.
+//   - For PutConfigRule, the Lambda function cannot be invoked. Check the
+//     function ARN, and check the function's permissions.
 //
-//      * For PutConformancePack and PutOrganizationConformancePack, a conformance
-//      pack cannot be created because you do not have permissions: To call IAM
-//      GetRole action or create a service linked role. To read Amazon S3 bucket.
+//   - For PutOrganizationConfigRule, organization Config rule cannot be created
+//     because you do not have permissions to call IAM GetRole action or create
+//     a service-linked role.
 //
-//   * NoAvailableConfigurationRecorderException
-//   There are no configuration recorders available to provide the role needed
-//   to describe your resources. Create a configuration recorder.
+//   - For PutConformancePack and PutOrganizationConformancePack, a conformance
+//     pack cannot be created because you do not have permissions: To call IAM
+//     GetRole action or create a service-linked role. To read Amazon S3 bucket
+//     or call SSM:GetDocument.
+//
+//   - NoAvailableConfigurationRecorderException
+//     There are no configuration recorders available to provide the role needed
+//     to describe your resources. Create a configuration recorder.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConfigRule
 func (c *ConfigService) PutConfigRule(input *PutConfigRuleInput) (*PutConfigRuleOutput, error) {
@@ -8744,14 +8876,13 @@ const opPutConfigurationAggregator = "PutConfigurationAggregator"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutConfigurationAggregatorRequest method.
+//	req, resp := client.PutConfigurationAggregatorRequest(params)
 //
-//    // Example sending a request using the PutConfigurationAggregatorRequest method.
-//    req, resp := client.PutConfigurationAggregatorRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConfigurationAggregator
 func (c *ConfigService) PutConfigurationAggregatorRequest(input *PutConfigurationAggregatorInput) (req *request.Request, output *PutConfigurationAggregatorOutput) {
@@ -8802,52 +8933,53 @@ func (c *ConfigService) PutConfigurationAggregatorRequest(input *PutConfiguratio
 // API operation PutConfigurationAggregator for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
 //
-//   * LimitExceededException
-//   For StartConfigRulesEvaluation API, this exception is thrown if an evaluation
-//   is in progress or if you call the StartConfigRulesEvaluation API more than
-//   once per minute.
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
-//   For PutConfigurationAggregator API, this exception is thrown if the number
-//   of accounts and aggregators exceeds the limit.
+//   - LimitExceededException
+//     For StartConfigRulesEvaluation API, this exception is thrown if an evaluation
+//     is in progress or if you call the StartConfigRulesEvaluation API more than
+//     once per minute.
 //
-//   * InvalidRoleException
-//   You have provided a null or empty role ARN.
+//     For PutConfigurationAggregator API, this exception is thrown if the number
+//     of accounts and aggregators exceeds the limit.
 //
-//   * OrganizationAccessDeniedException
-//   For PutConfigurationAggregator API, you can see this exception for the following
-//   reasons:
+//   - InvalidRoleException
+//     You have provided a null or empty role ARN.
 //
-//      * No permission to call EnableAWSServiceAccess API
+//   - OrganizationAccessDeniedException
+//     For PutConfigurationAggregator API, you can see this exception for the following
+//     reasons:
 //
-//      * The configuration aggregator cannot be updated because your Amazon Web
-//      Services Organization management account or the delegated administrator
-//      role changed. Delete this aggregator and create a new one with the current
-//      Amazon Web Services Organization.
+//   - No permission to call EnableAWSServiceAccess API
 //
-//      * The configuration aggregator is associated with a previous Amazon Web
-//      Services Organization and Config cannot aggregate data with current Amazon
-//      Web Services Organization. Delete this aggregator and create a new one
-//      with the current Amazon Web Services Organization.
+//   - The configuration aggregator cannot be updated because your Amazon Web
+//     Services Organization management account or the delegated administrator
+//     role changed. Delete this aggregator and create a new one with the current
+//     Amazon Web Services Organization.
 //
-//      * You are not a registered delegated administrator for Config with permissions
-//      to call ListDelegatedAdministrators API. Ensure that the management account
-//      registers delagated administrator for Config service principle name before
-//      the delegated administrator creates an aggregator.
+//   - The configuration aggregator is associated with a previous Amazon Web
+//     Services Organization and Config cannot aggregate data with current Amazon
+//     Web Services Organization. Delete this aggregator and create a new one
+//     with the current Amazon Web Services Organization.
 //
-//   For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
-//   throws an exception if APIs are called from member accounts. All APIs must
-//   be called from organization master account.
+//   - You are not a registered delegated administrator for Config with permissions
+//     to call ListDelegatedAdministrators API. Ensure that the management account
+//     registers delagated administrator for Config service principle name before
+//     the delegated administrator creates an aggregator.
 //
-//   * NoAvailableOrganizationException
-//   Organization is no longer available.
+//     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
+//     throws an exception if APIs are called from member accounts. All APIs must
+//     be called from organization master account.
 //
-//   * OrganizationAllFeaturesNotEnabledException
-//   Config resource cannot be created because your organization does not have
-//   all features enabled.
+//   - NoAvailableOrganizationException
+//     Organization is no longer available.
+//
+//   - OrganizationAllFeaturesNotEnabledException
+//     Config resource cannot be created because your organization does not have
+//     all features enabled.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConfigurationAggregator
 func (c *ConfigService) PutConfigurationAggregator(input *PutConfigurationAggregatorInput) (*PutConfigurationAggregatorOutput, error) {
@@ -8887,14 +9019,13 @@ const opPutConfigurationRecorder = "PutConfigurationRecorder"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutConfigurationRecorderRequest method.
+//	req, resp := client.PutConfigurationRecorderRequest(params)
 //
-//    // Example sending a request using the PutConfigurationRecorderRequest method.
-//    req, resp := client.PutConfigurationRecorderRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConfigurationRecorder
 func (c *ConfigService) PutConfigurationRecorderRequest(input *PutConfigurationRecorderInput) (req *request.Request, output *PutConfigurationRecorderOutput) {
@@ -8936,18 +9067,19 @@ func (c *ConfigService) PutConfigurationRecorderRequest(input *PutConfigurationR
 // API operation PutConfigurationRecorder for usage and error information.
 //
 // Returned Error Types:
-//   * MaxNumberOfConfigurationRecordersExceededException
-//   You have reached the limit of the number of recorders you can create.
 //
-//   * InvalidConfigurationRecorderNameException
-//   You have provided a configuration recorder name that is not valid.
+//   - MaxNumberOfConfigurationRecordersExceededException
+//     You have reached the limit of the number of recorders you can create.
 //
-//   * InvalidRoleException
-//   You have provided a null or empty role ARN.
+//   - InvalidConfigurationRecorderNameException
+//     You have provided a configuration recorder name that is not valid.
 //
-//   * InvalidRecordingGroupException
-//   Config throws an exception if the recording group does not contain a valid
-//   list of resource types. Invalid values might also be incorrectly formatted.
+//   - InvalidRoleException
+//     You have provided a null or empty role ARN.
+//
+//   - InvalidRecordingGroupException
+//     Config throws an exception if the recording group does not contain a valid
+//     list of resource types. Invalid values might also be incorrectly formatted.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConfigurationRecorder
 func (c *ConfigService) PutConfigurationRecorder(input *PutConfigurationRecorderInput) (*PutConfigurationRecorderOutput, error) {
@@ -8987,14 +9119,13 @@ const opPutConformancePack = "PutConformancePack"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutConformancePackRequest method.
+//	req, resp := client.PutConformancePackRequest(params)
 //
-//    // Example sending a request using the PutConformancePackRequest method.
-//    req, resp := client.PutConformancePackRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConformancePack
 func (c *ConfigService) PutConformancePackRequest(input *PutConformancePackInput) (req *request.Request, output *PutConformancePackOutput) {
@@ -9017,15 +9148,16 @@ func (c *ConfigService) PutConformancePackRequest(input *PutConformancePackInput
 //
 // Creates or updates a conformance pack. A conformance pack is a collection
 // of Config rules that can be easily deployed in an account and a region and
-// across Amazon Web Services Organization.
+// across Amazon Web Services Organization. For information on how many conformance
+// packs you can have per account, see Service Limits (https://docs.aws.amazon.com/config/latest/developerguide/configlimits.html)
+// in the Config Developer Guide.
 //
-// This API creates a service linked role AWSServiceRoleForConfigConforms in
-// your account. The service linked role is created only when the role does
+// This API creates a service-linked role AWSServiceRoleForConfigConforms in
+// your account. The service-linked role is created only when the role does
 // not exist in your account.
 //
-// You must specify either the TemplateS3Uri or the TemplateBody parameter,
-// but not both. If you provide both Config uses the TemplateS3Uri parameter
-// and ignores the TemplateBody parameter.
+// You must specify one and only one of theTemplateS3Uri, TemplateBody or TemplateSSMDocumentDetails
+// parameters.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -9035,59 +9167,61 @@ func (c *ConfigService) PutConformancePackRequest(input *PutConformancePackInput
 // API operation PutConformancePack for usage and error information.
 //
 // Returned Error Types:
-//   * InsufficientPermissionsException
-//   Indicates one of the following errors:
 //
-//      * For PutConfigRule, the rule cannot be created because the IAM role assigned
-//      to Config lacks permissions to perform the config:Put* action.
+//   - InsufficientPermissionsException
+//     Indicates one of the following errors:
 //
-//      * For PutConfigRule, the Lambda function cannot be invoked. Check the
-//      function ARN, and check the function's permissions.
+//   - For PutConfigRule, the rule cannot be created because the IAM role assigned
+//     to Config lacks permissions to perform the config:Put* action.
 //
-//      * For PutOrganizationConfigRule, organization Config rule cannot be created
-//      because you do not have permissions to call IAM GetRole action or create
-//      a service linked role.
+//   - For PutConfigRule, the Lambda function cannot be invoked. Check the
+//     function ARN, and check the function's permissions.
 //
-//      * For PutConformancePack and PutOrganizationConformancePack, a conformance
-//      pack cannot be created because you do not have permissions: To call IAM
-//      GetRole action or create a service linked role. To read Amazon S3 bucket.
+//   - For PutOrganizationConfigRule, organization Config rule cannot be created
+//     because you do not have permissions to call IAM GetRole action or create
+//     a service-linked role.
 //
-//   * ConformancePackTemplateValidationException
-//   You have specified a template that is not valid or supported.
+//   - For PutConformancePack and PutOrganizationConformancePack, a conformance
+//     pack cannot be created because you do not have permissions: To call IAM
+//     GetRole action or create a service-linked role. To read Amazon S3 bucket
+//     or call SSM:GetDocument.
 //
-//   * ResourceInUseException
-//   You see this exception in the following cases:
+//   - ConformancePackTemplateValidationException
+//     You have specified a template that is not valid or supported.
 //
-//      * For DeleteConfigRule, Config is deleting this rule. Try your request
-//      again later.
+//   - ResourceInUseException
+//     You see this exception in the following cases:
 //
-//      * For DeleteConfigRule, the rule is deleting your evaluation results.
-//      Try your request again later.
+//   - For DeleteConfigRule, Config is deleting this rule. Try your request
+//     again later.
 //
-//      * For DeleteConfigRule, a remediation action is associated with the rule
-//      and Config cannot delete this rule. Delete the remediation action associated
-//      with the rule before deleting the rule and try your request again later.
+//   - For DeleteConfigRule, the rule is deleting your evaluation results.
+//     Try your request again later.
 //
-//      * For PutConfigOrganizationRule, organization Config rule deletion is
-//      in progress. Try your request again later.
+//   - For DeleteConfigRule, a remediation action is associated with the rule
+//     and Config cannot delete this rule. Delete the remediation action associated
+//     with the rule before deleting the rule and try your request again later.
 //
-//      * For DeleteOrganizationConfigRule, organization Config rule creation
-//      is in progress. Try your request again later.
+//   - For PutConfigOrganizationRule, organization Config rule deletion is
+//     in progress. Try your request again later.
 //
-//      * For PutConformancePack and PutOrganizationConformancePack, a conformance
-//      pack creation, update, and deletion is in progress. Try your request again
-//      later.
+//   - For DeleteOrganizationConfigRule, organization Config rule creation
+//     is in progress. Try your request again later.
 //
-//      * For DeleteConformancePack, a conformance pack creation, update, and
-//      deletion is in progress. Try your request again later.
+//   - For PutConformancePack and PutOrganizationConformancePack, a conformance
+//     pack creation, update, and deletion is in progress. Try your request again
+//     later.
 //
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
+//   - For DeleteConformancePack, a conformance pack creation, update, and
+//     deletion is in progress. Try your request again later.
 //
-//   * MaxNumberOfConformancePacksExceededException
-//   You have reached the limit (6) of the number of conformance packs in an account
-//   (6 conformance pack with 25 Config rules per pack).
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
+//
+//   - MaxNumberOfConformancePacksExceededException
+//     You have reached the limit (6) of the number of conformance packs in an account
+//     (6 conformance pack with 25 Config rules per pack).
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConformancePack
 func (c *ConfigService) PutConformancePack(input *PutConformancePackInput) (*PutConformancePackOutput, error) {
@@ -9127,14 +9261,13 @@ const opPutDeliveryChannel = "PutDeliveryChannel"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutDeliveryChannelRequest method.
+//	req, resp := client.PutDeliveryChannelRequest(params)
 //
-//    // Example sending a request using the PutDeliveryChannelRequest method.
-//    req, resp := client.PutDeliveryChannelRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutDeliveryChannel
 func (c *ConfigService) PutDeliveryChannelRequest(input *PutDeliveryChannelInput) (req *request.Request, output *PutDeliveryChannelOutput) {
@@ -9179,30 +9312,31 @@ func (c *ConfigService) PutDeliveryChannelRequest(input *PutDeliveryChannelInput
 // API operation PutDeliveryChannel for usage and error information.
 //
 // Returned Error Types:
-//   * MaxNumberOfDeliveryChannelsExceededException
-//   You have reached the limit of the number of delivery channels you can create.
 //
-//   * NoAvailableConfigurationRecorderException
-//   There are no configuration recorders available to provide the role needed
-//   to describe your resources. Create a configuration recorder.
+//   - MaxNumberOfDeliveryChannelsExceededException
+//     You have reached the limit of the number of delivery channels you can create.
 //
-//   * InvalidDeliveryChannelNameException
-//   The specified delivery channel name is not valid.
+//   - NoAvailableConfigurationRecorderException
+//     There are no configuration recorders available to provide the role needed
+//     to describe your resources. Create a configuration recorder.
 //
-//   * NoSuchBucketException
-//   The specified Amazon S3 bucket does not exist.
+//   - InvalidDeliveryChannelNameException
+//     The specified delivery channel name is not valid.
 //
-//   * InvalidS3KeyPrefixException
-//   The specified Amazon S3 key prefix is not valid.
+//   - NoSuchBucketException
+//     The specified Amazon S3 bucket does not exist.
 //
-//   * InvalidS3KmsKeyArnException
-//   The specified Amazon KMS Key ARN is not valid.
+//   - InvalidS3KeyPrefixException
+//     The specified Amazon S3 key prefix is not valid.
 //
-//   * InvalidSNSTopicARNException
-//   The specified Amazon SNS topic does not exist.
+//   - InvalidS3KmsKeyArnException
+//     The specified Amazon KMS Key ARN is not valid.
 //
-//   * InsufficientDeliveryPolicyException
-//   Your Amazon S3 bucket policy does not permit Config to write to it.
+//   - InvalidSNSTopicARNException
+//     The specified Amazon SNS topic does not exist.
+//
+//   - InsufficientDeliveryPolicyException
+//     Your Amazon S3 bucket policy does not permit Config to write to it.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutDeliveryChannel
 func (c *ConfigService) PutDeliveryChannel(input *PutDeliveryChannelInput) (*PutDeliveryChannelOutput, error) {
@@ -9242,14 +9376,13 @@ const opPutEvaluations = "PutEvaluations"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutEvaluationsRequest method.
+//	req, resp := client.PutEvaluationsRequest(params)
 //
-//    // Example sending a request using the PutEvaluationsRequest method.
-//    req, resp := client.PutEvaluationsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutEvaluations
 func (c *ConfigService) PutEvaluationsRequest(input *PutEvaluationsInput) (req *request.Request, output *PutEvaluationsOutput) {
@@ -9282,17 +9415,18 @@ func (c *ConfigService) PutEvaluationsRequest(input *PutEvaluationsInput) (req *
 // API operation PutEvaluations for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
 //
-//   * InvalidResultTokenException
-//   The specified ResultToken is invalid.
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
-//   * NoSuchConfigRuleException
-//   The Config rule in the request is not valid. Verify that the rule is an Config
-//   Custom Policy rule, that the rule name is correct, and that valid Amazon
-//   Resouce Names (ARNs) are used before trying again.
+//   - InvalidResultTokenException
+//     The specified ResultToken is invalid.
+//
+//   - NoSuchConfigRuleException
+//     The Config rule in the request is not valid. Verify that the rule is an Config
+//     Custom Policy rule, that the rule name is correct, and that valid Amazon
+//     Resouce Names (ARNs) are used before trying again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutEvaluations
 func (c *ConfigService) PutEvaluations(input *PutEvaluationsInput) (*PutEvaluationsOutput, error) {
@@ -9332,14 +9466,13 @@ const opPutExternalEvaluation = "PutExternalEvaluation"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutExternalEvaluationRequest method.
+//	req, resp := client.PutExternalEvaluationRequest(params)
 //
-//    // Example sending a request using the PutExternalEvaluationRequest method.
-//    req, resp := client.PutExternalEvaluationRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutExternalEvaluation
 func (c *ConfigService) PutExternalEvaluationRequest(input *PutExternalEvaluationInput) (req *request.Request, output *PutExternalEvaluationOutput) {
@@ -9372,14 +9505,15 @@ func (c *ConfigService) PutExternalEvaluationRequest(input *PutExternalEvaluatio
 // API operation PutExternalEvaluation for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchConfigRuleException
-//   The Config rule in the request is not valid. Verify that the rule is an Config
-//   Custom Policy rule, that the rule name is correct, and that valid Amazon
-//   Resouce Names (ARNs) are used before trying again.
 //
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
+//   - NoSuchConfigRuleException
+//     The Config rule in the request is not valid. Verify that the rule is an Config
+//     Custom Policy rule, that the rule name is correct, and that valid Amazon
+//     Resouce Names (ARNs) are used before trying again.
+//
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutExternalEvaluation
 func (c *ConfigService) PutExternalEvaluation(input *PutExternalEvaluationInput) (*PutExternalEvaluationOutput, error) {
@@ -9419,14 +9553,13 @@ const opPutOrganizationConfigRule = "PutOrganizationConfigRule"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutOrganizationConfigRuleRequest method.
+//	req, resp := client.PutOrganizationConfigRuleRequest(params)
 //
-//    // Example sending a request using the PutOrganizationConfigRuleRequest method.
-//    req, resp := client.PutOrganizationConfigRuleRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutOrganizationConfigRule
 func (c *ConfigService) PutOrganizationConfigRuleRequest(input *PutOrganizationConfigRuleInput) (req *request.Request, output *PutOrganizationConfigRuleOutput) {
@@ -9447,41 +9580,54 @@ func (c *ConfigService) PutOrganizationConfigRuleRequest(input *PutOrganizationC
 
 // PutOrganizationConfigRule API operation for AWS Config.
 //
-// Adds or updates organization Config rule for your entire organization evaluating
-// whether your Amazon Web Services resources comply with your desired configurations.
+// Adds or updates an Config rule for your entire organization to evaluate if
+// your Amazon Web Services resources comply with your desired configurations.
+// For information on how many organization Config rules you can have per account,
+// see Service Limits (https://docs.aws.amazon.com/config/latest/developerguide/configlimits.html)
+// in the Config Developer Guide.
 //
 // Only a master account and a delegated administrator can create or update
 // an organization Config rule. When calling this API with a delegated administrator,
 // you must ensure Organizations ListDelegatedAdministrator permissions are
-// added.
+// added. An organization can have up to 3 delegated administrators.
 //
 // This API enables organization service access through the EnableAWSServiceAccess
-// action and creates a service linked role AWSServiceRoleForConfigMultiAccountSetup
+// action and creates a service-linked role AWSServiceRoleForConfigMultiAccountSetup
 // in the master or delegated administrator account of your organization. The
-// service linked role is created only when the role does not exist in the caller
+// service-linked role is created only when the role does not exist in the caller
 // account. Config verifies the existence of role with GetRole action.
 //
 // To use this API with delegated administrator, register a delegated administrator
 // by calling Amazon Web Services Organization register-delegated-administrator
 // for config-multiaccountsetup.amazonaws.com.
 //
-// You can use this action to create both custom Config rules and Config managed
-// rules. If you are adding a new custom Config rule, you must first create
-// Lambda function in the master account or a delegated administrator that the
-// rule invokes to evaluate your resources. You also need to create an IAM role
-// in the managed-account that can be assumed by the Lambda function. When you
-// use the PutOrganizationConfigRule action to add the rule to Config, you must
-// specify the Amazon Resource Name (ARN) that Lambda assigns to the function.
-// If you are adding an Config managed rule, specify the rule's identifier for
-// the RuleIdentifier key.
+// There are two types of rules: Config Custom Rules and Config Managed Rules.
+// You can use PutOrganizationConfigRule to create both Config custom rules
+// and Config managed rules.
 //
-// The maximum number of organization Config rules that Config supports is 150
-// and 3 delegated administrator per organization.
+// Custom rules are rules that you can create using either Guard or Lambda functions.
+// Guard (Guard GitHub Repository (https://github.com/aws-cloudformation/cloudformation-guard))
+// is a policy-as-code language that allows you to write policies that are enforced
+// by Config Custom Policy rules. Lambda uses custom code that you upload to
+// evaluate a custom rule. If you are adding a new Custom Lambda rule, you first
+// need to create an Lambda function in the master account or a delegated administrator
+// that the rule invokes to evaluate your resources. You also need to create
+// an IAM role in the managed account that can be assumed by the Lambda function.
+// When you use PutOrganizationConfigRule to add a Custom Lambda rule to Config,
+// you must specify the Amazon Resource Name (ARN) that Lambda assigns to the
+// function.
+//
+// Managed rules are predefined, customizable rules created by Config. For a
+// list of managed rules, see List of Config Managed Rules (https://docs.aws.amazon.com/config/latest/developerguide/managed-rules-by-aws-config.html).
+// If you are adding an Config managed rule, you must specify the rule's identifier
+// for the RuleIdentifier key.
 //
 // Prerequisite: Ensure you call EnableAllFeatures API to enable all features
 // in an organization.
 //
-// Specify either OrganizationCustomRuleMetadata or OrganizationManagedRuleMetadata.
+// Make sure to specify one of either OrganizationCustomPolicyRuleMetadata for
+// Custom Policy rules, OrganizationCustomRuleMetadata for Custom Lambda rules,
+// or OrganizationManagedRuleMetadata for managed rules.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -9491,99 +9637,101 @@ func (c *ConfigService) PutOrganizationConfigRuleRequest(input *PutOrganizationC
 // API operation PutOrganizationConfigRule for usage and error information.
 //
 // Returned Error Types:
-//   * MaxNumberOfOrganizationConfigRulesExceededException
-//   You have reached the limit of the number of organization Config rules you
-//   can create.
 //
-//   * ResourceInUseException
-//   You see this exception in the following cases:
+//   - MaxNumberOfOrganizationConfigRulesExceededException
+//     You have reached the limit of the number of organization Config rules you
+//     can create.
 //
-//      * For DeleteConfigRule, Config is deleting this rule. Try your request
-//      again later.
+//   - ResourceInUseException
+//     You see this exception in the following cases:
 //
-//      * For DeleteConfigRule, the rule is deleting your evaluation results.
-//      Try your request again later.
+//   - For DeleteConfigRule, Config is deleting this rule. Try your request
+//     again later.
 //
-//      * For DeleteConfigRule, a remediation action is associated with the rule
-//      and Config cannot delete this rule. Delete the remediation action associated
-//      with the rule before deleting the rule and try your request again later.
+//   - For DeleteConfigRule, the rule is deleting your evaluation results.
+//     Try your request again later.
 //
-//      * For PutConfigOrganizationRule, organization Config rule deletion is
-//      in progress. Try your request again later.
+//   - For DeleteConfigRule, a remediation action is associated with the rule
+//     and Config cannot delete this rule. Delete the remediation action associated
+//     with the rule before deleting the rule and try your request again later.
 //
-//      * For DeleteOrganizationConfigRule, organization Config rule creation
-//      is in progress. Try your request again later.
+//   - For PutConfigOrganizationRule, organization Config rule deletion is
+//     in progress. Try your request again later.
 //
-//      * For PutConformancePack and PutOrganizationConformancePack, a conformance
-//      pack creation, update, and deletion is in progress. Try your request again
-//      later.
+//   - For DeleteOrganizationConfigRule, organization Config rule creation
+//     is in progress. Try your request again later.
 //
-//      * For DeleteConformancePack, a conformance pack creation, update, and
-//      deletion is in progress. Try your request again later.
+//   - For PutConformancePack and PutOrganizationConformancePack, a conformance
+//     pack creation, update, and deletion is in progress. Try your request again
+//     later.
 //
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
+//   - For DeleteConformancePack, a conformance pack creation, update, and
+//     deletion is in progress. Try your request again later.
 //
-//   * ValidationException
-//   The requested action is not valid.
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * OrganizationAccessDeniedException
-//   For PutConfigurationAggregator API, you can see this exception for the following
-//   reasons:
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
 //
-//      * No permission to call EnableAWSServiceAccess API
+//   - OrganizationAccessDeniedException
+//     For PutConfigurationAggregator API, you can see this exception for the following
+//     reasons:
 //
-//      * The configuration aggregator cannot be updated because your Amazon Web
-//      Services Organization management account or the delegated administrator
-//      role changed. Delete this aggregator and create a new one with the current
-//      Amazon Web Services Organization.
+//   - No permission to call EnableAWSServiceAccess API
 //
-//      * The configuration aggregator is associated with a previous Amazon Web
-//      Services Organization and Config cannot aggregate data with current Amazon
-//      Web Services Organization. Delete this aggregator and create a new one
-//      with the current Amazon Web Services Organization.
+//   - The configuration aggregator cannot be updated because your Amazon Web
+//     Services Organization management account or the delegated administrator
+//     role changed. Delete this aggregator and create a new one with the current
+//     Amazon Web Services Organization.
 //
-//      * You are not a registered delegated administrator for Config with permissions
-//      to call ListDelegatedAdministrators API. Ensure that the management account
-//      registers delagated administrator for Config service principle name before
-//      the delegated administrator creates an aggregator.
+//   - The configuration aggregator is associated with a previous Amazon Web
+//     Services Organization and Config cannot aggregate data with current Amazon
+//     Web Services Organization. Delete this aggregator and create a new one
+//     with the current Amazon Web Services Organization.
 //
-//   For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
-//   throws an exception if APIs are called from member accounts. All APIs must
-//   be called from organization master account.
+//   - You are not a registered delegated administrator for Config with permissions
+//     to call ListDelegatedAdministrators API. Ensure that the management account
+//     registers delagated administrator for Config service principle name before
+//     the delegated administrator creates an aggregator.
 //
-//   * NoAvailableOrganizationException
-//   Organization is no longer available.
+//     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
+//     throws an exception if APIs are called from member accounts. All APIs must
+//     be called from organization master account.
 //
-//   * OrganizationAllFeaturesNotEnabledException
-//   Config resource cannot be created because your organization does not have
-//   all features enabled.
+//   - NoAvailableOrganizationException
+//     Organization is no longer available.
 //
-//   * InsufficientPermissionsException
-//   Indicates one of the following errors:
+//   - OrganizationAllFeaturesNotEnabledException
+//     Config resource cannot be created because your organization does not have
+//     all features enabled.
 //
-//      * For PutConfigRule, the rule cannot be created because the IAM role assigned
-//      to Config lacks permissions to perform the config:Put* action.
+//   - InsufficientPermissionsException
+//     Indicates one of the following errors:
 //
-//      * For PutConfigRule, the Lambda function cannot be invoked. Check the
-//      function ARN, and check the function's permissions.
+//   - For PutConfigRule, the rule cannot be created because the IAM role assigned
+//     to Config lacks permissions to perform the config:Put* action.
 //
-//      * For PutOrganizationConfigRule, organization Config rule cannot be created
-//      because you do not have permissions to call IAM GetRole action or create
-//      a service linked role.
+//   - For PutConfigRule, the Lambda function cannot be invoked. Check the
+//     function ARN, and check the function's permissions.
 //
-//      * For PutConformancePack and PutOrganizationConformancePack, a conformance
-//      pack cannot be created because you do not have permissions: To call IAM
-//      GetRole action or create a service linked role. To read Amazon S3 bucket.
+//   - For PutOrganizationConfigRule, organization Config rule cannot be created
+//     because you do not have permissions to call IAM GetRole action or create
+//     a service-linked role.
+//
+//   - For PutConformancePack and PutOrganizationConformancePack, a conformance
+//     pack cannot be created because you do not have permissions: To call IAM
+//     GetRole action or create a service-linked role. To read Amazon S3 bucket
+//     or call SSM:GetDocument.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutOrganizationConfigRule
 func (c *ConfigService) PutOrganizationConfigRule(input *PutOrganizationConfigRuleInput) (*PutOrganizationConfigRuleOutput, error) {
@@ -9623,14 +9771,13 @@ const opPutOrganizationConformancePack = "PutOrganizationConformancePack"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutOrganizationConformancePackRequest method.
+//	req, resp := client.PutOrganizationConformancePackRequest(params)
 //
-//    // Example sending a request using the PutOrganizationConformancePackRequest method.
-//    req, resp := client.PutOrganizationConformancePackRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutOrganizationConformancePack
 func (c *ConfigService) PutOrganizationConformancePackRequest(input *PutOrganizationConformancePackInput) (req *request.Request, output *PutOrganizationConformancePackOutput) {
@@ -9652,16 +9799,19 @@ func (c *ConfigService) PutOrganizationConformancePackRequest(input *PutOrganiza
 // PutOrganizationConformancePack API operation for AWS Config.
 //
 // Deploys conformance packs across member accounts in an Amazon Web Services
-// Organization.
+// Organization. For information on how many organization conformance packs
+// and how many Config rules you can have per account, see Service Limits (https://docs.aws.amazon.com/config/latest/developerguide/configlimits.html)
+// in the Config Developer Guide.
 //
 // Only a master account and a delegated administrator can call this API. When
 // calling this API with a delegated administrator, you must ensure Organizations
-// ListDelegatedAdministrator permissions are added.
+// ListDelegatedAdministrator permissions are added. An organization can have
+// up to 3 delegated administrators.
 //
 // This API enables organization service access for config-multiaccountsetup.amazonaws.com
-// through the EnableAWSServiceAccess action and creates a service linked role
+// through the EnableAWSServiceAccess action and creates a service-linked role
 // AWSServiceRoleForConfigMultiAccountSetup in the master or delegated administrator
-// account of your organization. The service linked role is created only when
+// account of your organization. The service-linked role is created only when
 // the role does not exist in the caller account. To use this API with delegated
 // administrator, register a delegated administrator by calling Amazon Web Services
 // Organization register-delegate-admin for config-multiaccountsetup.amazonaws.com.
@@ -9677,9 +9827,6 @@ func (c *ConfigService) PutOrganizationConformancePackRequest(input *PutOrganiza
 // until the conformance pack is created or updated. You cannot update a conformance
 // pack while it is in this state.
 //
-// You can create 50 conformance packs with 25 Config rules in each pack and
-// 3 delegated administrator per organization.
-//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -9688,99 +9835,101 @@ func (c *ConfigService) PutOrganizationConformancePackRequest(input *PutOrganiza
 // API operation PutOrganizationConformancePack for usage and error information.
 //
 // Returned Error Types:
-//   * MaxNumberOfOrganizationConformancePacksExceededException
-//   You have reached the limit (6) of the number of organization conformance
-//   packs in an account (6 conformance pack with 25 Config rules per pack per
-//   account).
 //
-//   * ResourceInUseException
-//   You see this exception in the following cases:
+//   - MaxNumberOfOrganizationConformancePacksExceededException
+//     You have reached the limit (6) of the number of organization conformance
+//     packs in an account (6 conformance pack with 25 Config rules per pack per
+//     account).
 //
-//      * For DeleteConfigRule, Config is deleting this rule. Try your request
-//      again later.
+//   - ResourceInUseException
+//     You see this exception in the following cases:
 //
-//      * For DeleteConfigRule, the rule is deleting your evaluation results.
-//      Try your request again later.
+//   - For DeleteConfigRule, Config is deleting this rule. Try your request
+//     again later.
 //
-//      * For DeleteConfigRule, a remediation action is associated with the rule
-//      and Config cannot delete this rule. Delete the remediation action associated
-//      with the rule before deleting the rule and try your request again later.
+//   - For DeleteConfigRule, the rule is deleting your evaluation results.
+//     Try your request again later.
 //
-//      * For PutConfigOrganizationRule, organization Config rule deletion is
-//      in progress. Try your request again later.
+//   - For DeleteConfigRule, a remediation action is associated with the rule
+//     and Config cannot delete this rule. Delete the remediation action associated
+//     with the rule before deleting the rule and try your request again later.
 //
-//      * For DeleteOrganizationConfigRule, organization Config rule creation
-//      is in progress. Try your request again later.
+//   - For PutConfigOrganizationRule, organization Config rule deletion is
+//     in progress. Try your request again later.
 //
-//      * For PutConformancePack and PutOrganizationConformancePack, a conformance
-//      pack creation, update, and deletion is in progress. Try your request again
-//      later.
+//   - For DeleteOrganizationConfigRule, organization Config rule creation
+//     is in progress. Try your request again later.
 //
-//      * For DeleteConformancePack, a conformance pack creation, update, and
-//      deletion is in progress. Try your request again later.
+//   - For PutConformancePack and PutOrganizationConformancePack, a conformance
+//     pack creation, update, and deletion is in progress. Try your request again
+//     later.
 //
-//   * ValidationException
-//   The requested action is not valid.
+//   - For DeleteConformancePack, a conformance pack creation, update, and
+//     deletion is in progress. Try your request again later.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * OrganizationAccessDeniedException
-//   For PutConfigurationAggregator API, you can see this exception for the following
-//   reasons:
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
 //
-//      * No permission to call EnableAWSServiceAccess API
+//   - OrganizationAccessDeniedException
+//     For PutConfigurationAggregator API, you can see this exception for the following
+//     reasons:
 //
-//      * The configuration aggregator cannot be updated because your Amazon Web
-//      Services Organization management account or the delegated administrator
-//      role changed. Delete this aggregator and create a new one with the current
-//      Amazon Web Services Organization.
+//   - No permission to call EnableAWSServiceAccess API
 //
-//      * The configuration aggregator is associated with a previous Amazon Web
-//      Services Organization and Config cannot aggregate data with current Amazon
-//      Web Services Organization. Delete this aggregator and create a new one
-//      with the current Amazon Web Services Organization.
+//   - The configuration aggregator cannot be updated because your Amazon Web
+//     Services Organization management account or the delegated administrator
+//     role changed. Delete this aggregator and create a new one with the current
+//     Amazon Web Services Organization.
 //
-//      * You are not a registered delegated administrator for Config with permissions
-//      to call ListDelegatedAdministrators API. Ensure that the management account
-//      registers delagated administrator for Config service principle name before
-//      the delegated administrator creates an aggregator.
+//   - The configuration aggregator is associated with a previous Amazon Web
+//     Services Organization and Config cannot aggregate data with current Amazon
+//     Web Services Organization. Delete this aggregator and create a new one
+//     with the current Amazon Web Services Organization.
 //
-//   For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
-//   throws an exception if APIs are called from member accounts. All APIs must
-//   be called from organization master account.
+//   - You are not a registered delegated administrator for Config with permissions
+//     to call ListDelegatedAdministrators API. Ensure that the management account
+//     registers delagated administrator for Config service principle name before
+//     the delegated administrator creates an aggregator.
 //
-//   * InsufficientPermissionsException
-//   Indicates one of the following errors:
+//     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
+//     throws an exception if APIs are called from member accounts. All APIs must
+//     be called from organization master account.
 //
-//      * For PutConfigRule, the rule cannot be created because the IAM role assigned
-//      to Config lacks permissions to perform the config:Put* action.
+//   - InsufficientPermissionsException
+//     Indicates one of the following errors:
 //
-//      * For PutConfigRule, the Lambda function cannot be invoked. Check the
-//      function ARN, and check the function's permissions.
+//   - For PutConfigRule, the rule cannot be created because the IAM role assigned
+//     to Config lacks permissions to perform the config:Put* action.
 //
-//      * For PutOrganizationConfigRule, organization Config rule cannot be created
-//      because you do not have permissions to call IAM GetRole action or create
-//      a service linked role.
+//   - For PutConfigRule, the Lambda function cannot be invoked. Check the
+//     function ARN, and check the function's permissions.
 //
-//      * For PutConformancePack and PutOrganizationConformancePack, a conformance
-//      pack cannot be created because you do not have permissions: To call IAM
-//      GetRole action or create a service linked role. To read Amazon S3 bucket.
+//   - For PutOrganizationConfigRule, organization Config rule cannot be created
+//     because you do not have permissions to call IAM GetRole action or create
+//     a service-linked role.
 //
-//   * OrganizationConformancePackTemplateValidationException
-//   You have specified a template that is not valid or supported.
+//   - For PutConformancePack and PutOrganizationConformancePack, a conformance
+//     pack cannot be created because you do not have permissions: To call IAM
+//     GetRole action or create a service-linked role. To read Amazon S3 bucket
+//     or call SSM:GetDocument.
 //
-//   * OrganizationAllFeaturesNotEnabledException
-//   Config resource cannot be created because your organization does not have
-//   all features enabled.
+//   - OrganizationConformancePackTemplateValidationException
+//     You have specified a template that is not valid or supported.
 //
-//   * NoAvailableOrganizationException
-//   Organization is no longer available.
+//   - OrganizationAllFeaturesNotEnabledException
+//     Config resource cannot be created because your organization does not have
+//     all features enabled.
+//
+//   - NoAvailableOrganizationException
+//     Organization is no longer available.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutOrganizationConformancePack
 func (c *ConfigService) PutOrganizationConformancePack(input *PutOrganizationConformancePackInput) (*PutOrganizationConformancePackOutput, error) {
@@ -9820,14 +9969,13 @@ const opPutRemediationConfigurations = "PutRemediationConfigurations"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutRemediationConfigurationsRequest method.
+//	req, resp := client.PutRemediationConfigurationsRequest(params)
 //
-//    // Example sending a request using the PutRemediationConfigurationsRequest method.
-//    req, resp := client.PutRemediationConfigurationsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutRemediationConfigurations
 func (c *ConfigService) PutRemediationConfigurationsRequest(input *PutRemediationConfigurationsInput) (req *request.Request, output *PutRemediationConfigurationsOutput) {
@@ -9861,6 +10009,14 @@ func (c *ConfigService) PutRemediationConfigurationsRequest(input *PutRemediatio
 // Config Rules such as Organization Config rules, the rules deployed by conformance
 // packs, and rules deployed by Amazon Web Services Security Hub.
 //
+// For manual remediation configuration, you need to provide a value for automationAssumeRole
+// or use a value in the assumeRolefield to remediate your resources. The SSM
+// automation document can use either as long as it maps to a valid parameter.
+//
+// However, for automatic remediation configuration, the only valid assumeRole
+// field value is AutomationAssumeRole and you need to provide a value for AutomationAssumeRole
+// to remediate your resources.
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -9869,26 +10025,28 @@ func (c *ConfigService) PutRemediationConfigurationsRequest(input *PutRemediatio
 // API operation PutRemediationConfigurations for usage and error information.
 //
 // Returned Error Types:
-//   * InsufficientPermissionsException
-//   Indicates one of the following errors:
 //
-//      * For PutConfigRule, the rule cannot be created because the IAM role assigned
-//      to Config lacks permissions to perform the config:Put* action.
+//   - InsufficientPermissionsException
+//     Indicates one of the following errors:
 //
-//      * For PutConfigRule, the Lambda function cannot be invoked. Check the
-//      function ARN, and check the function's permissions.
+//   - For PutConfigRule, the rule cannot be created because the IAM role assigned
+//     to Config lacks permissions to perform the config:Put* action.
 //
-//      * For PutOrganizationConfigRule, organization Config rule cannot be created
-//      because you do not have permissions to call IAM GetRole action or create
-//      a service linked role.
+//   - For PutConfigRule, the Lambda function cannot be invoked. Check the
+//     function ARN, and check the function's permissions.
 //
-//      * For PutConformancePack and PutOrganizationConformancePack, a conformance
-//      pack cannot be created because you do not have permissions: To call IAM
-//      GetRole action or create a service linked role. To read Amazon S3 bucket.
+//   - For PutOrganizationConfigRule, organization Config rule cannot be created
+//     because you do not have permissions to call IAM GetRole action or create
+//     a service-linked role.
 //
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
+//   - For PutConformancePack and PutOrganizationConformancePack, a conformance
+//     pack cannot be created because you do not have permissions: To call IAM
+//     GetRole action or create a service-linked role. To read Amazon S3 bucket
+//     or call SSM:GetDocument.
+//
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutRemediationConfigurations
 func (c *ConfigService) PutRemediationConfigurations(input *PutRemediationConfigurationsInput) (*PutRemediationConfigurationsOutput, error) {
@@ -9928,14 +10086,13 @@ const opPutRemediationExceptions = "PutRemediationExceptions"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutRemediationExceptionsRequest method.
+//	req, resp := client.PutRemediationExceptionsRequest(params)
 //
-//    // Example sending a request using the PutRemediationExceptionsRequest method.
-//    req, resp := client.PutRemediationExceptionsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutRemediationExceptions
 func (c *ConfigService) PutRemediationExceptionsRequest(input *PutRemediationExceptionsInput) (req *request.Request, output *PutRemediationExceptionsOutput) {
@@ -9972,26 +10129,28 @@ func (c *ConfigService) PutRemediationExceptionsRequest(input *PutRemediationExc
 // API operation PutRemediationExceptions for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
 //
-//   * InsufficientPermissionsException
-//   Indicates one of the following errors:
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
-//      * For PutConfigRule, the rule cannot be created because the IAM role assigned
-//      to Config lacks permissions to perform the config:Put* action.
+//   - InsufficientPermissionsException
+//     Indicates one of the following errors:
 //
-//      * For PutConfigRule, the Lambda function cannot be invoked. Check the
-//      function ARN, and check the function's permissions.
+//   - For PutConfigRule, the rule cannot be created because the IAM role assigned
+//     to Config lacks permissions to perform the config:Put* action.
 //
-//      * For PutOrganizationConfigRule, organization Config rule cannot be created
-//      because you do not have permissions to call IAM GetRole action or create
-//      a service linked role.
+//   - For PutConfigRule, the Lambda function cannot be invoked. Check the
+//     function ARN, and check the function's permissions.
 //
-//      * For PutConformancePack and PutOrganizationConformancePack, a conformance
-//      pack cannot be created because you do not have permissions: To call IAM
-//      GetRole action or create a service linked role. To read Amazon S3 bucket.
+//   - For PutOrganizationConfigRule, organization Config rule cannot be created
+//     because you do not have permissions to call IAM GetRole action or create
+//     a service-linked role.
+//
+//   - For PutConformancePack and PutOrganizationConformancePack, a conformance
+//     pack cannot be created because you do not have permissions: To call IAM
+//     GetRole action or create a service-linked role. To read Amazon S3 bucket
+//     or call SSM:GetDocument.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutRemediationExceptions
 func (c *ConfigService) PutRemediationExceptions(input *PutRemediationExceptionsInput) (*PutRemediationExceptionsOutput, error) {
@@ -10031,14 +10190,13 @@ const opPutResourceConfig = "PutResourceConfig"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutResourceConfigRequest method.
+//	req, resp := client.PutResourceConfigRequest(params)
 //
-//    // Example sending a request using the PutResourceConfigRequest method.
-//    req, resp := client.PutResourceConfigRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutResourceConfig
 func (c *ConfigService) PutResourceConfigRequest(input *PutResourceConfigInput) (req *request.Request, output *PutResourceConfigOutput) {
@@ -10084,40 +10242,42 @@ func (c *ConfigService) PutResourceConfigRequest(input *PutResourceConfigInput) 
 // API operation PutResourceConfig for usage and error information.
 //
 // Returned Error Types:
-//   * ValidationException
-//   The requested action is not valid.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * InsufficientPermissionsException
-//   Indicates one of the following errors:
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
 //
-//      * For PutConfigRule, the rule cannot be created because the IAM role assigned
-//      to Config lacks permissions to perform the config:Put* action.
+//   - InsufficientPermissionsException
+//     Indicates one of the following errors:
 //
-//      * For PutConfigRule, the Lambda function cannot be invoked. Check the
-//      function ARN, and check the function's permissions.
+//   - For PutConfigRule, the rule cannot be created because the IAM role assigned
+//     to Config lacks permissions to perform the config:Put* action.
 //
-//      * For PutOrganizationConfigRule, organization Config rule cannot be created
-//      because you do not have permissions to call IAM GetRole action or create
-//      a service linked role.
+//   - For PutConfigRule, the Lambda function cannot be invoked. Check the
+//     function ARN, and check the function's permissions.
 //
-//      * For PutConformancePack and PutOrganizationConformancePack, a conformance
-//      pack cannot be created because you do not have permissions: To call IAM
-//      GetRole action or create a service linked role. To read Amazon S3 bucket.
+//   - For PutOrganizationConfigRule, organization Config rule cannot be created
+//     because you do not have permissions to call IAM GetRole action or create
+//     a service-linked role.
 //
-//   * NoRunningConfigurationRecorderException
-//   There is no configuration recorder running.
+//   - For PutConformancePack and PutOrganizationConformancePack, a conformance
+//     pack cannot be created because you do not have permissions: To call IAM
+//     GetRole action or create a service-linked role. To read Amazon S3 bucket
+//     or call SSM:GetDocument.
 //
-//   * MaxActiveResourcesExceededException
-//   You have reached the limit (100,000) of active custom resource types in your
-//   account. Delete unused resources using DeleteResourceConfig.
+//   - NoRunningConfigurationRecorderException
+//     There is no configuration recorder running.
+//
+//   - MaxActiveResourcesExceededException
+//     You have reached the limit (100,000) of active custom resource types in your
+//     account. Delete unused resources using DeleteResourceConfig.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutResourceConfig
 func (c *ConfigService) PutResourceConfig(input *PutResourceConfigInput) (*PutResourceConfigOutput, error) {
@@ -10157,14 +10317,13 @@ const opPutRetentionConfiguration = "PutRetentionConfiguration"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutRetentionConfigurationRequest method.
+//	req, resp := client.PutRetentionConfigurationRequest(params)
 //
-//    // Example sending a request using the PutRetentionConfigurationRequest method.
-//    req, resp := client.PutRetentionConfigurationRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutRetentionConfiguration
 func (c *ConfigService) PutRetentionConfigurationRequest(input *PutRetentionConfigurationInput) (req *request.Request, output *PutRetentionConfigurationOutput) {
@@ -10202,13 +10361,14 @@ func (c *ConfigService) PutRetentionConfigurationRequest(input *PutRetentionConf
 // API operation PutRetentionConfiguration for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
 //
-//   * MaxNumberOfRetentionConfigurationsExceededException
-//   Failed to add the retention configuration because a retention configuration
-//   with that name already exists.
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
+//
+//   - MaxNumberOfRetentionConfigurationsExceededException
+//     Failed to add the retention configuration because a retention configuration
+//     with that name already exists.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutRetentionConfiguration
 func (c *ConfigService) PutRetentionConfiguration(input *PutRetentionConfigurationInput) (*PutRetentionConfigurationOutput, error) {
@@ -10248,14 +10408,13 @@ const opPutStoredQuery = "PutStoredQuery"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the PutStoredQueryRequest method.
+//	req, resp := client.PutStoredQueryRequest(params)
 //
-//    // Example sending a request using the PutStoredQueryRequest method.
-//    req, resp := client.PutStoredQueryRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutStoredQuery
 func (c *ConfigService) PutStoredQueryRequest(input *PutStoredQueryInput) (req *request.Request, output *PutStoredQueryOutput) {
@@ -10289,24 +10448,25 @@ func (c *ConfigService) PutStoredQueryRequest(input *PutStoredQueryInput) (req *
 // API operation PutStoredQuery for usage and error information.
 //
 // Returned Error Types:
-//   * ValidationException
-//   The requested action is not valid.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * TooManyTagsException
-//   You have reached the limit of the number of tags you can use. You have more
-//   than 50 tags.
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
 //
-//   * ResourceConcurrentModificationException
-//   Two users are trying to modify the same query at the same time. Wait for
-//   a moment and try again.
+//   - TooManyTagsException
+//     You have reached the limit of the number of tags you can use. You have more
+//     than 50 tags.
+//
+//   - ResourceConcurrentModificationException
+//     Two users are trying to modify the same query at the same time. Wait for
+//     a moment and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutStoredQuery
 func (c *ConfigService) PutStoredQuery(input *PutStoredQueryInput) (*PutStoredQueryOutput, error) {
@@ -10346,14 +10506,13 @@ const opSelectAggregateResourceConfig = "SelectAggregateResourceConfig"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the SelectAggregateResourceConfigRequest method.
+//	req, resp := client.SelectAggregateResourceConfigRequest(params)
 //
-//    // Example sending a request using the SelectAggregateResourceConfigRequest method.
-//    req, resp := client.SelectAggregateResourceConfigRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/SelectAggregateResourceConfig
 func (c *ConfigService) SelectAggregateResourceConfigRequest(input *SelectAggregateResourceConfigInput) (req *request.Request, output *SelectAggregateResourceConfigOutput) {
@@ -10406,18 +10565,19 @@ func (c *ConfigService) SelectAggregateResourceConfigRequest(input *SelectAggreg
 // API operation SelectAggregateResourceConfig for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidExpressionException
-//   The syntax of the query is incorrect.
 //
-//   * NoSuchConfigurationAggregatorException
-//   You have specified a configuration aggregator that does not exist.
+//   - InvalidExpressionException
+//     The syntax of the query is incorrect.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//   - NoSuchConfigurationAggregatorException
+//     You have specified a configuration aggregator that does not exist.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
+//
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/SelectAggregateResourceConfig
 func (c *ConfigService) SelectAggregateResourceConfig(input *SelectAggregateResourceConfigInput) (*SelectAggregateResourceConfigOutput, error) {
@@ -10449,15 +10609,14 @@ func (c *ConfigService) SelectAggregateResourceConfigWithContext(ctx aws.Context
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a SelectAggregateResourceConfig operation.
-//    pageNum := 0
-//    err := client.SelectAggregateResourceConfigPages(params,
-//        func(page *configservice.SelectAggregateResourceConfigOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a SelectAggregateResourceConfig operation.
+//	pageNum := 0
+//	err := client.SelectAggregateResourceConfigPages(params,
+//	    func(page *configservice.SelectAggregateResourceConfigOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) SelectAggregateResourceConfigPages(input *SelectAggregateResourceConfigInput, fn func(*SelectAggregateResourceConfigOutput, bool) bool) error {
 	return c.SelectAggregateResourceConfigPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -10509,14 +10668,13 @@ const opSelectResourceConfig = "SelectResourceConfig"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the SelectResourceConfigRequest method.
+//	req, resp := client.SelectResourceConfigRequest(params)
 //
-//    // Example sending a request using the SelectResourceConfigRequest method.
-//    req, resp := client.SelectResourceConfigRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/SelectResourceConfig
 func (c *ConfigService) SelectResourceConfigRequest(input *SelectResourceConfigInput) (req *request.Request, output *SelectResourceConfigOutput) {
@@ -10557,15 +10715,16 @@ func (c *ConfigService) SelectResourceConfigRequest(input *SelectResourceConfigI
 // API operation SelectResourceConfig for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidExpressionException
-//   The syntax of the query is incorrect.
 //
-//   * InvalidLimitException
-//   The specified limit is outside the allowable range.
+//   - InvalidExpressionException
+//     The syntax of the query is incorrect.
 //
-//   * InvalidNextTokenException
-//   The specified next token is invalid. Specify the nextToken string that was
-//   returned in the previous response to get the next page of results.
+//   - InvalidLimitException
+//     The specified limit is outside the allowable range.
+//
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/SelectResourceConfig
 func (c *ConfigService) SelectResourceConfig(input *SelectResourceConfigInput) (*SelectResourceConfigOutput, error) {
@@ -10597,15 +10756,14 @@ func (c *ConfigService) SelectResourceConfigWithContext(ctx aws.Context, input *
 //
 // Note: This operation can generate multiple requests to a service.
 //
-//    // Example iterating over at most 3 pages of a SelectResourceConfig operation.
-//    pageNum := 0
-//    err := client.SelectResourceConfigPages(params,
-//        func(page *configservice.SelectResourceConfigOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
+//	// Example iterating over at most 3 pages of a SelectResourceConfig operation.
+//	pageNum := 0
+//	err := client.SelectResourceConfigPages(params,
+//	    func(page *configservice.SelectResourceConfigOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
 func (c *ConfigService) SelectResourceConfigPages(input *SelectResourceConfigInput, fn func(*SelectResourceConfigOutput, bool) bool) error {
 	return c.SelectResourceConfigPagesWithContext(aws.BackgroundContext(), input, fn)
 }
@@ -10657,14 +10815,13 @@ const opStartConfigRulesEvaluation = "StartConfigRulesEvaluation"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the StartConfigRulesEvaluationRequest method.
+//	req, resp := client.StartConfigRulesEvaluationRequest(params)
 //
-//    // Example sending a request using the StartConfigRulesEvaluationRequest method.
-//    req, resp := client.StartConfigRulesEvaluationRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StartConfigRulesEvaluation
 func (c *ConfigService) StartConfigRulesEvaluationRequest(input *StartConfigRulesEvaluationInput) (req *request.Request, output *StartConfigRulesEvaluationOutput) {
@@ -10725,48 +10882,49 @@ func (c *ConfigService) StartConfigRulesEvaluationRequest(input *StartConfigRule
 // API operation StartConfigRulesEvaluation for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchConfigRuleException
-//   The Config rule in the request is not valid. Verify that the rule is an Config
-//   Custom Policy rule, that the rule name is correct, and that valid Amazon
-//   Resouce Names (ARNs) are used before trying again.
 //
-//   * LimitExceededException
-//   For StartConfigRulesEvaluation API, this exception is thrown if an evaluation
-//   is in progress or if you call the StartConfigRulesEvaluation API more than
-//   once per minute.
+//   - NoSuchConfigRuleException
+//     The Config rule in the request is not valid. Verify that the rule is an Config
+//     Custom Policy rule, that the rule name is correct, and that valid Amazon
+//     Resouce Names (ARNs) are used before trying again.
 //
-//   For PutConfigurationAggregator API, this exception is thrown if the number
-//   of accounts and aggregators exceeds the limit.
+//   - LimitExceededException
+//     For StartConfigRulesEvaluation API, this exception is thrown if an evaluation
+//     is in progress or if you call the StartConfigRulesEvaluation API more than
+//     once per minute.
 //
-//   * ResourceInUseException
-//   You see this exception in the following cases:
+//     For PutConfigurationAggregator API, this exception is thrown if the number
+//     of accounts and aggregators exceeds the limit.
 //
-//      * For DeleteConfigRule, Config is deleting this rule. Try your request
-//      again later.
+//   - ResourceInUseException
+//     You see this exception in the following cases:
 //
-//      * For DeleteConfigRule, the rule is deleting your evaluation results.
-//      Try your request again later.
+//   - For DeleteConfigRule, Config is deleting this rule. Try your request
+//     again later.
 //
-//      * For DeleteConfigRule, a remediation action is associated with the rule
-//      and Config cannot delete this rule. Delete the remediation action associated
-//      with the rule before deleting the rule and try your request again later.
+//   - For DeleteConfigRule, the rule is deleting your evaluation results.
+//     Try your request again later.
 //
-//      * For PutConfigOrganizationRule, organization Config rule deletion is
-//      in progress. Try your request again later.
+//   - For DeleteConfigRule, a remediation action is associated with the rule
+//     and Config cannot delete this rule. Delete the remediation action associated
+//     with the rule before deleting the rule and try your request again later.
 //
-//      * For DeleteOrganizationConfigRule, organization Config rule creation
-//      is in progress. Try your request again later.
+//   - For PutConfigOrganizationRule, organization Config rule deletion is
+//     in progress. Try your request again later.
 //
-//      * For PutConformancePack and PutOrganizationConformancePack, a conformance
-//      pack creation, update, and deletion is in progress. Try your request again
-//      later.
+//   - For DeleteOrganizationConfigRule, organization Config rule creation
+//     is in progress. Try your request again later.
 //
-//      * For DeleteConformancePack, a conformance pack creation, update, and
-//      deletion is in progress. Try your request again later.
+//   - For PutConformancePack and PutOrganizationConformancePack, a conformance
+//     pack creation, update, and deletion is in progress. Try your request again
+//     later.
 //
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
+//   - For DeleteConformancePack, a conformance pack creation, update, and
+//     deletion is in progress. Try your request again later.
+//
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StartConfigRulesEvaluation
 func (c *ConfigService) StartConfigRulesEvaluation(input *StartConfigRulesEvaluationInput) (*StartConfigRulesEvaluationOutput, error) {
@@ -10806,14 +10964,13 @@ const opStartConfigurationRecorder = "StartConfigurationRecorder"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the StartConfigurationRecorderRequest method.
+//	req, resp := client.StartConfigurationRecorderRequest(params)
 //
-//    // Example sending a request using the StartConfigurationRecorderRequest method.
-//    req, resp := client.StartConfigurationRecorderRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StartConfigurationRecorder
 func (c *ConfigService) StartConfigurationRecorderRequest(input *StartConfigurationRecorderInput) (req *request.Request, output *StartConfigurationRecorderOutput) {
@@ -10849,11 +11006,12 @@ func (c *ConfigService) StartConfigurationRecorderRequest(input *StartConfigurat
 // API operation StartConfigurationRecorder for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchConfigurationRecorderException
-//   You have specified a configuration recorder that does not exist.
 //
-//   * NoAvailableDeliveryChannelException
-//   There is no delivery channel available to record configurations.
+//   - NoSuchConfigurationRecorderException
+//     You have specified a configuration recorder that does not exist.
+//
+//   - NoAvailableDeliveryChannelException
+//     There is no delivery channel available to record configurations.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StartConfigurationRecorder
 func (c *ConfigService) StartConfigurationRecorder(input *StartConfigurationRecorderInput) (*StartConfigurationRecorderOutput, error) {
@@ -10893,14 +11051,13 @@ const opStartRemediationExecution = "StartRemediationExecution"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the StartRemediationExecutionRequest method.
+//	req, resp := client.StartRemediationExecutionRequest(params)
 //
-//    // Example sending a request using the StartRemediationExecutionRequest method.
-//    req, resp := client.StartRemediationExecutionRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StartRemediationExecution
 func (c *ConfigService) StartRemediationExecutionRequest(input *StartRemediationExecutionInput) (req *request.Request, output *StartRemediationExecutionOutput) {
@@ -10937,29 +11094,31 @@ func (c *ConfigService) StartRemediationExecutionRequest(input *StartRemediation
 // API operation StartRemediationExecution for usage and error information.
 //
 // Returned Error Types:
-//   * InvalidParameterValueException
-//   One or more of the specified parameters are invalid. Verify that your parameters
-//   are valid and try again.
 //
-//   * InsufficientPermissionsException
-//   Indicates one of the following errors:
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
-//      * For PutConfigRule, the rule cannot be created because the IAM role assigned
-//      to Config lacks permissions to perform the config:Put* action.
+//   - InsufficientPermissionsException
+//     Indicates one of the following errors:
 //
-//      * For PutConfigRule, the Lambda function cannot be invoked. Check the
-//      function ARN, and check the function's permissions.
+//   - For PutConfigRule, the rule cannot be created because the IAM role assigned
+//     to Config lacks permissions to perform the config:Put* action.
 //
-//      * For PutOrganizationConfigRule, organization Config rule cannot be created
-//      because you do not have permissions to call IAM GetRole action or create
-//      a service linked role.
+//   - For PutConfigRule, the Lambda function cannot be invoked. Check the
+//     function ARN, and check the function's permissions.
 //
-//      * For PutConformancePack and PutOrganizationConformancePack, a conformance
-//      pack cannot be created because you do not have permissions: To call IAM
-//      GetRole action or create a service linked role. To read Amazon S3 bucket.
+//   - For PutOrganizationConfigRule, organization Config rule cannot be created
+//     because you do not have permissions to call IAM GetRole action or create
+//     a service-linked role.
 //
-//   * NoSuchRemediationConfigurationException
-//   You specified an Config rule without a remediation configuration.
+//   - For PutConformancePack and PutOrganizationConformancePack, a conformance
+//     pack cannot be created because you do not have permissions: To call IAM
+//     GetRole action or create a service-linked role. To read Amazon S3 bucket
+//     or call SSM:GetDocument.
+//
+//   - NoSuchRemediationConfigurationException
+//     You specified an Config rule without a remediation configuration.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StartRemediationExecution
 func (c *ConfigService) StartRemediationExecution(input *StartRemediationExecutionInput) (*StartRemediationExecutionOutput, error) {
@@ -10999,14 +11158,13 @@ const opStopConfigurationRecorder = "StopConfigurationRecorder"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the StopConfigurationRecorderRequest method.
+//	req, resp := client.StopConfigurationRecorderRequest(params)
 //
-//    // Example sending a request using the StopConfigurationRecorderRequest method.
-//    req, resp := client.StopConfigurationRecorderRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StopConfigurationRecorder
 func (c *ConfigService) StopConfigurationRecorderRequest(input *StopConfigurationRecorderInput) (req *request.Request, output *StopConfigurationRecorderOutput) {
@@ -11039,8 +11197,8 @@ func (c *ConfigService) StopConfigurationRecorderRequest(input *StopConfiguratio
 // API operation StopConfigurationRecorder for usage and error information.
 //
 // Returned Error Types:
-//   * NoSuchConfigurationRecorderException
-//   You have specified a configuration recorder that does not exist.
+//   - NoSuchConfigurationRecorderException
+//     You have specified a configuration recorder that does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StopConfigurationRecorder
 func (c *ConfigService) StopConfigurationRecorder(input *StopConfigurationRecorderInput) (*StopConfigurationRecorderOutput, error) {
@@ -11080,14 +11238,13 @@ const opTagResource = "TagResource"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the TagResourceRequest method.
+//	req, resp := client.TagResourceRequest(params)
 //
-//    // Example sending a request using the TagResourceRequest method.
-//    req, resp := client.TagResourceRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/TagResource
 func (c *ConfigService) TagResourceRequest(input *TagResourceInput) (req *request.Request, output *TagResourceOutput) {
@@ -11122,23 +11279,24 @@ func (c *ConfigService) TagResourceRequest(input *TagResourceInput) (req *reques
 // API operation TagResource for usage and error information.
 //
 // Returned Error Types:
-//   * ValidationException
-//   The requested action is not valid.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * ResourceNotFoundException
-//   You have specified a resource that does not exist.
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
 //
-//   * TooManyTagsException
-//   You have reached the limit of the number of tags you can use. You have more
-//   than 50 tags.
+//   - ResourceNotFoundException
+//     You have specified a resource that does not exist.
+//
+//   - TooManyTagsException
+//     You have reached the limit of the number of tags you can use. You have more
+//     than 50 tags.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/TagResource
 func (c *ConfigService) TagResource(input *TagResourceInput) (*TagResourceOutput, error) {
@@ -11178,14 +11336,13 @@ const opUntagResource = "UntagResource"
 // This method is useful when you want to inject custom logic or configuration
 // into the SDK's request lifecycle. Such as custom headers, or retry logic.
 //
+//	// Example sending a request using the UntagResourceRequest method.
+//	req, resp := client.UntagResourceRequest(params)
 //
-//    // Example sending a request using the UntagResourceRequest method.
-//    req, resp := client.UntagResourceRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/UntagResource
 func (c *ConfigService) UntagResourceRequest(input *UntagResourceInput) (req *request.Request, output *UntagResourceOutput) {
@@ -11217,19 +11374,20 @@ func (c *ConfigService) UntagResourceRequest(input *UntagResourceInput) (req *re
 // API operation UntagResource for usage and error information.
 //
 // Returned Error Types:
-//   * ValidationException
-//   The requested action is not valid.
 //
-//   For PutStoredQuery, you will see this exception if there are missing required
-//   fields or if the input value fails the validation, or if you are trying to
-//   create more than 300 queries.
+//   - ValidationException
+//     The requested action is not valid.
 //
-//   For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
-//   exception if there are missing required fields or if the input value fails
-//   the validation.
+//     For PutStoredQuery, you will see this exception if there are missing required
+//     fields or if the input value fails the validation, or if you are trying to
+//     create more than 300 queries.
 //
-//   * ResourceNotFoundException
-//   You have specified a resource that does not exist.
+//     For GetStoredQuery, ListStoredQuery, and DeleteStoredQuery you will see this
+//     exception if there are missing required fields or if the input value fails
+//     the validation.
+//
+//   - ResourceNotFoundException
+//     You have specified a resource that does not exist.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/UntagResource
 func (c *ConfigService) UntagResource(input *UntagResourceInput) (*UntagResourceOutput, error) {
@@ -12897,20 +13055,28 @@ func (s *ConfigExportDeliveryInfo) SetNextDeliveryTime(v time.Time) *ConfigExpor
 	return s
 }
 
-// An Config rule represents an Lambda function that you create for a custom
-// rule or a predefined function for an Config managed rule. The function evaluates
-// configuration items to assess whether your Amazon Web Services resources
-// comply with your desired configurations. This function can run when Config
-// detects a configuration change to an Amazon Web Services resource and at
-// a periodic frequency that you choose (for example, every 24 hours).
+// Config rules evaluate the configuration settings of your Amazon Web Services
+// resources. A rule can run when Config detects a configuration change to an
+// Amazon Web Services resource or at a periodic frequency that you choose (for
+// example, every 24 hours). There are two types of rules: Config Managed Rules
+// and Config Custom Rules. Managed rules are predefined, customizable rules
+// created by Config. For a list of managed rules, see List of Config Managed
+// Rules (https://docs.aws.amazon.com/config/latest/developerguide/managed-rules-by-aws-config.html).
 //
-// You can use the Amazon Web Services CLI and Amazon Web Services SDKs if you
-// want to create a rule that triggers evaluations for your resources when Config
-// delivers the configuration snapshot. For more information, see ConfigSnapshotDeliveryProperties.
+// Custom rules are rules that you can create using either Guard or Lambda functions.
+// Guard (Guard GitHub Repository (https://github.com/aws-cloudformation/cloudformation-guard))
+// is a policy-as-code language that allows you to write policies that are enforced
+// by Config Custom Policy rules. Lambda uses custom code that you upload to
+// evaluate a custom rule. It is invoked by events that are published to it
+// by an event source, which Config invokes when the custom rule is initiated.
 //
 // For more information about developing and using Config rules, see Evaluating
 // Amazon Web Services resource Configurations with Config (https://docs.aws.amazon.com/config/latest/developerguide/evaluate-config.html)
 // in the Config Developer Guide.
+//
+// You can use the Amazon Web Services CLI and Amazon Web Services SDKs if you
+// want to create a rule that triggers evaluations for your resources when Config
+// delivers the configuration snapshot. For more information, see ConfigSnapshotDeliveryProperties.
 type ConfigRule struct {
 	_ struct{} `type:"structure"`
 
@@ -12942,7 +13108,7 @@ type ConfigRule struct {
 
 	// Service principal name of the service that created the rule.
 	//
-	// The field is populated only if the service linked rule is created by a service.
+	// The field is populated only if the service-linked rule is created by a service.
 	// The field is empty if you create your own rule.
 	CreatedBy *string `min:"1" type:"string"`
 
@@ -12955,8 +13121,7 @@ type ConfigRule struct {
 	// The maximum frequency with which Config runs evaluations for a rule. You
 	// can specify a value for MaximumExecutionFrequency when:
 	//
-	//    * You are using an Config managed rule that is triggered at a periodic
-	//    frequency.
+	//    * This is for an Config managed rule that is triggered at a periodic frequency.
 	//
 	//    * Your custom rule is triggered when Config delivers the configuration
 	//    snapshot. For more information, see ConfigSnapshotDeliveryProperties.
@@ -12976,9 +13141,10 @@ type ConfigRule struct {
 	// The scope can be empty.
 	Scope *Scope `type:"structure"`
 
-	// Provides the rule owner (Amazon Web Services or customer), the rule identifier,
-	// and the notifications that cause the function to evaluate your Amazon Web
-	// Services resources.
+	// Provides the rule owner (Amazon Web Services for managed rules, CUSTOM_POLICY
+	// for Custom Policy rules, and CUSTOM_LAMBDA for Custom Lambda rules), the
+	// rule identifier, and the notifications that cause the function to evaluate
+	// your Amazon Web Services resources.
 	//
 	// Source is a required field
 	Source *Source `type:"structure" required:"true"`
@@ -13418,13 +13584,13 @@ func (s *ConfigRuleEvaluationStatus) SetLastSuccessfulInvocationTime(v time.Time
 // Config delivers the configuration snapshot is set by one of two values, depending
 // on which is less frequent:
 //
-//    * The value for the deliveryFrequency parameter within the delivery channel
-//    configuration, which sets how often Config delivers configuration snapshots.
-//    This value also sets how often Config invokes evaluations for Config rules.
+//   - The value for the deliveryFrequency parameter within the delivery channel
+//     configuration, which sets how often Config delivers configuration snapshots.
+//     This value also sets how often Config invokes evaluations for Config rules.
 //
-//    * The value for the MaximumExecutionFrequency parameter, which sets the
-//    maximum frequency with which Config invokes evaluations for the rule.
-//    For more information, see ConfigRule.
+//   - The value for the MaximumExecutionFrequency parameter, which sets the
+//     maximum frequency with which Config invokes evaluations for the rule.
+//     For more information, see ConfigRule.
 //
 // If the deliveryFrequency value is less frequent than the MaximumExecutionFrequency
 // value for a rule, Config invokes the rule only as often as the deliveryFrequency
@@ -13859,6 +14025,9 @@ type ConfigurationRecorder struct {
 
 	// Amazon Resource Name (ARN) of the IAM role used to describe the Amazon Web
 	// Services resources associated with the account.
+	//
+	// While the API model does not require this field, the server will reject a
+	// request without a defined roleARN for the configuration recorder.
 	RoleARN *string `locationName:"roleARN" type:"string"`
 }
 
@@ -14050,6 +14219,116 @@ func (s *ConformancePackComplianceFilters) SetConfigRuleNames(v []*string) *Conf
 	return s
 }
 
+// A compliance score is the percentage of the number of compliant rule-resource
+// combinations in a conformance pack compared to the number of total possible
+// rule-resource combinations in the conformance pack. This metric provides
+// you with a high-level view of the compliance state of your conformance packs,
+// and can be used to identify, investigate, and understand the level of compliance
+// in your conformance packs.
+type ConformancePackComplianceScore struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the conformance pack.
+	ConformancePackName *string `min:"1" type:"string"`
+
+	// The time that the conformance pack compliance score was last updated.
+	LastUpdatedTime *time.Time `type:"timestamp"`
+
+	// Compliance score for the conformance pack. Conformance packs with no evaluation
+	// results will have a compliance score of INSUFFICIENT_DATA.
+	Score *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConformancePackComplianceScore) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConformancePackComplianceScore) GoString() string {
+	return s.String()
+}
+
+// SetConformancePackName sets the ConformancePackName field's value.
+func (s *ConformancePackComplianceScore) SetConformancePackName(v string) *ConformancePackComplianceScore {
+	s.ConformancePackName = &v
+	return s
+}
+
+// SetLastUpdatedTime sets the LastUpdatedTime field's value.
+func (s *ConformancePackComplianceScore) SetLastUpdatedTime(v time.Time) *ConformancePackComplianceScore {
+	s.LastUpdatedTime = &v
+	return s
+}
+
+// SetScore sets the Score field's value.
+func (s *ConformancePackComplianceScore) SetScore(v string) *ConformancePackComplianceScore {
+	s.Score = &v
+	return s
+}
+
+// A list of filters to apply to the conformance pack compliance score result
+// set.
+type ConformancePackComplianceScoresFilters struct {
+	_ struct{} `type:"structure"`
+
+	// The names of the conformance packs whose compliance scores you want to include
+	// in the conformance pack compliance score result set. You can include up to
+	// 25 conformance packs in the ConformancePackNames array of strings, each with
+	// a character limit of 256 characters for the conformance pack name.
+	//
+	// ConformancePackNames is a required field
+	ConformancePackNames []*string `min:"1" type:"list" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConformancePackComplianceScoresFilters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ConformancePackComplianceScoresFilters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ConformancePackComplianceScoresFilters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ConformancePackComplianceScoresFilters"}
+	if s.ConformancePackNames == nil {
+		invalidParams.Add(request.NewErrParamRequired("ConformancePackNames"))
+	}
+	if s.ConformancePackNames != nil && len(s.ConformancePackNames) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ConformancePackNames", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetConformancePackNames sets the ConformancePackNames field's value.
+func (s *ConformancePackComplianceScoresFilters) SetConformancePackNames(v []*string) *ConformancePackComplianceScoresFilters {
+	s.ConformancePackNames = v
+	return s
+}
+
 // Summary includes the name and status of the conformance pack.
 type ConformancePackComplianceSummary struct {
 	_ struct{} `type:"structure"`
@@ -14120,7 +14399,7 @@ type ConformancePackDetail struct {
 	// ConformancePackName is a required field
 	ConformancePackName *string `min:"1" type:"string" required:"true"`
 
-	// Amazon Web Services service that created the conformance pack.
+	// The Amazon Web Services service that created the conformance pack.
 	CreatedBy *string `min:"1" type:"string"`
 
 	// The name of the Amazon S3 bucket where Config stores conformance pack templates.
@@ -14133,8 +14412,13 @@ type ConformancePackDetail struct {
 	// This field is optional.
 	DeliveryS3KeyPrefix *string `type:"string"`
 
-	// Last time when conformation pack update was requested.
+	// The last time a conformation pack update was requested.
 	LastUpdateRequestedTime *time.Time `type:"timestamp"`
+
+	// An object that contains the name or Amazon Resource Name (ARN) of the Amazon
+	// Web Services Systems Manager document (SSM document) and the version of the
+	// SSM document that is used to create a conformance pack.
+	TemplateSSMDocumentDetails *TemplateSSMDocumentDetails `type:"structure"`
 }
 
 // String returns the string representation.
@@ -14200,6 +14484,12 @@ func (s *ConformancePackDetail) SetDeliveryS3KeyPrefix(v string) *ConformancePac
 // SetLastUpdateRequestedTime sets the LastUpdateRequestedTime field's value.
 func (s *ConformancePackDetail) SetLastUpdateRequestedTime(v time.Time) *ConformancePackDetail {
 	s.LastUpdateRequestedTime = &v
+	return s
+}
+
+// SetTemplateSSMDocumentDetails sets the TemplateSSMDocumentDetails field's value.
+func (s *ConformancePackDetail) SetTemplateSSMDocumentDetails(v *TemplateSSMDocumentDetails) *ConformancePackDetail {
+	s.TemplateSSMDocumentDetails = v
 	return s
 }
 
@@ -21420,19 +21710,20 @@ func (s *InsufficientDeliveryPolicyException) RequestID() string {
 
 // Indicates one of the following errors:
 //
-//    * For PutConfigRule, the rule cannot be created because the IAM role assigned
-//    to Config lacks permissions to perform the config:Put* action.
+//   - For PutConfigRule, the rule cannot be created because the IAM role assigned
+//     to Config lacks permissions to perform the config:Put* action.
 //
-//    * For PutConfigRule, the Lambda function cannot be invoked. Check the
-//    function ARN, and check the function's permissions.
+//   - For PutConfigRule, the Lambda function cannot be invoked. Check the
+//     function ARN, and check the function's permissions.
 //
-//    * For PutOrganizationConfigRule, organization Config rule cannot be created
-//    because you do not have permissions to call IAM GetRole action or create
-//    a service linked role.
+//   - For PutOrganizationConfigRule, organization Config rule cannot be created
+//     because you do not have permissions to call IAM GetRole action or create
+//     a service-linked role.
 //
-//    * For PutConformancePack and PutOrganizationConformancePack, a conformance
-//    pack cannot be created because you do not have permissions: To call IAM
-//    GetRole action or create a service linked role. To read Amazon S3 bucket.
+//   - For PutConformancePack and PutOrganizationConformancePack, a conformance
+//     pack cannot be created because you do not have permissions: To call IAM
+//     GetRole action or create a service-linked role. To read Amazon S3 bucket
+//     or call SSM:GetDocument.
 type InsufficientPermissionsException struct {
 	_            struct{}                  `type:"structure"`
 	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
@@ -22601,6 +22892,142 @@ func (s *ListAggregateDiscoveredResourcesOutput) SetNextToken(v string) *ListAgg
 // SetResourceIdentifiers sets the ResourceIdentifiers field's value.
 func (s *ListAggregateDiscoveredResourcesOutput) SetResourceIdentifiers(v []*AggregateResourceIdentifier) *ListAggregateDiscoveredResourcesOutput {
 	s.ResourceIdentifiers = v
+	return s
+}
+
+type ListConformancePackComplianceScoresInput struct {
+	_ struct{} `type:"structure"`
+
+	// Filters the results based on the ConformancePackComplianceScoresFilters.
+	Filters *ConformancePackComplianceScoresFilters `type:"structure"`
+
+	// The maximum number of conformance pack compliance scores returned on each
+	// page.
+	Limit *int64 `type:"integer"`
+
+	// The nextToken string in a prior request that you can use to get the paginated
+	// response for next set of conformance pack compliance scores.
+	NextToken *string `type:"string"`
+
+	// Sorts your conformance pack compliance scores in either ascending or descending
+	// order, depending on SortOrder.
+	//
+	// By default, conformance pack compliance scores are sorted in ascending order
+	// by compliance score and alphabetically by name of the conformance pack if
+	// there is more than one conformance pack with the same compliance score.
+	SortBy *string `type:"string" enum:"SortBy"`
+
+	// Determines the order in which conformance pack compliance scores are sorted.
+	// Either in ascending or descending order.
+	//
+	// Conformance packs with a compliance score of INSUFFICIENT_DATA will be first
+	// when sorting by ascending order and last when sorting by descending order.
+	SortOrder *string `type:"string" enum:"SortOrder"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListConformancePackComplianceScoresInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListConformancePackComplianceScoresInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListConformancePackComplianceScoresInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListConformancePackComplianceScoresInput"}
+	if s.Filters != nil {
+		if err := s.Filters.Validate(); err != nil {
+			invalidParams.AddNested("Filters", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetFilters sets the Filters field's value.
+func (s *ListConformancePackComplianceScoresInput) SetFilters(v *ConformancePackComplianceScoresFilters) *ListConformancePackComplianceScoresInput {
+	s.Filters = v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *ListConformancePackComplianceScoresInput) SetLimit(v int64) *ListConformancePackComplianceScoresInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListConformancePackComplianceScoresInput) SetNextToken(v string) *ListConformancePackComplianceScoresInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetSortBy sets the SortBy field's value.
+func (s *ListConformancePackComplianceScoresInput) SetSortBy(v string) *ListConformancePackComplianceScoresInput {
+	s.SortBy = &v
+	return s
+}
+
+// SetSortOrder sets the SortOrder field's value.
+func (s *ListConformancePackComplianceScoresInput) SetSortOrder(v string) *ListConformancePackComplianceScoresInput {
+	s.SortOrder = &v
+	return s
+}
+
+type ListConformancePackComplianceScoresOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of ConformancePackComplianceScore objects.
+	//
+	// ConformancePackComplianceScores is a required field
+	ConformancePackComplianceScores []*ConformancePackComplianceScore `type:"list" required:"true"`
+
+	// The nextToken string that you can use to get the next page of results in
+	// a paginated response.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListConformancePackComplianceScoresOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListConformancePackComplianceScoresOutput) GoString() string {
+	return s.String()
+}
+
+// SetConformancePackComplianceScores sets the ConformancePackComplianceScores field's value.
+func (s *ListConformancePackComplianceScoresOutput) SetConformancePackComplianceScores(v []*ConformancePackComplianceScore) *ListConformancePackComplianceScoresOutput {
+	s.ConformancePackComplianceScores = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListConformancePackComplianceScoresOutput) SetNextToken(v string) *ListConformancePackComplianceScoresOutput {
+	s.NextToken = &v
 	return s
 }
 
@@ -24611,22 +25038,22 @@ func (s *NoSuchRetentionConfigurationException) RequestID() string {
 // For PutConfigurationAggregator API, you can see this exception for the following
 // reasons:
 //
-//    * No permission to call EnableAWSServiceAccess API
+//   - No permission to call EnableAWSServiceAccess API
 //
-//    * The configuration aggregator cannot be updated because your Amazon Web
-//    Services Organization management account or the delegated administrator
-//    role changed. Delete this aggregator and create a new one with the current
-//    Amazon Web Services Organization.
+//   - The configuration aggregator cannot be updated because your Amazon Web
+//     Services Organization management account or the delegated administrator
+//     role changed. Delete this aggregator and create a new one with the current
+//     Amazon Web Services Organization.
 //
-//    * The configuration aggregator is associated with a previous Amazon Web
-//    Services Organization and Config cannot aggregate data with current Amazon
-//    Web Services Organization. Delete this aggregator and create a new one
-//    with the current Amazon Web Services Organization.
+//   - The configuration aggregator is associated with a previous Amazon Web
+//     Services Organization and Config cannot aggregate data with current Amazon
+//     Web Services Organization. Delete this aggregator and create a new one
+//     with the current Amazon Web Services Organization.
 //
-//    * You are not a registered delegated administrator for Config with permissions
-//    to call ListDelegatedAdministrators API. Ensure that the management account
-//    registers delagated administrator for Config service principle name before
-//    the delegated administrator creates an aggregator.
+//   - You are not a registered delegated administrator for Config with permissions
+//     to call ListDelegatedAdministrators API. Ensure that the management account
+//     registers delagated administrator for Config service principle name before
+//     the delegated administrator creates an aggregator.
 //
 // For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
 // throws an exception if APIs are called from member accounts. All APIs must
@@ -25926,8 +26353,8 @@ type OrganizationManagedRuleMetadata struct {
 	// Lambda function.
 	InputParameters *string `min:"1" type:"string"`
 
-	// The maximum frequency with which Config runs evaluations for a rule. You
-	// are using an Config managed rule that is triggered at a periodic frequency.
+	// The maximum frequency with which Config runs evaluations for a rule. This
+	// is for an Config managed rule that is triggered at a periodic frequency.
 	//
 	// By default, rules with a periodic trigger are evaluated every 24 hours. To
 	// change the frequency, specify a valid value for the MaximumExecutionFrequency
@@ -26651,7 +27078,7 @@ type PutConformancePackInput struct {
 	// A list of ConformancePackInputParameter objects.
 	ConformancePackInputParameters []*ConformancePackInputParameter `type:"list"`
 
-	// Name of the conformance pack you want to create.
+	// The unique name of the conformance pack you want to deploy.
 	//
 	// ConformancePackName is a required field
 	ConformancePackName *string `min:"1" type:"string" required:"true"`
@@ -26666,20 +27093,26 @@ type PutConformancePackInput struct {
 	// This field is optional.
 	DeliveryS3KeyPrefix *string `type:"string"`
 
-	// A string containing full conformance pack template body. Structure containing
-	// the template body with a minimum length of 1 byte and a maximum length of
-	// 51,200 bytes.
+	// A string containing the full conformance pack template body. The structure
+	// containing the template body has a minimum length of 1 byte and a maximum
+	// length of 51,200 bytes.
 	//
 	// You can only use a YAML template with two resource types: Config rule (AWS::Config::ConfigRule)
-	// and a remediation action (AWS::Config::RemediationConfiguration).
+	// and remediation action (AWS::Config::RemediationConfiguration).
 	TemplateBody *string `min:"1" type:"string"`
 
-	// Location of file containing the template body (s3://bucketname/prefix). The
-	// uri must point to the conformance pack template (max size: 300 KB) that is
-	// located in an Amazon S3 bucket in the same region as the conformance pack.
+	// The location of the file containing the template body (s3://bucketname/prefix).
+	// The uri must point to a conformance pack template (max size: 300 KB) that
+	// is located in an Amazon S3 bucket in the same region as the conformance pack.
 	//
 	// You must have access to read Amazon S3 bucket.
 	TemplateS3Uri *string `min:"1" type:"string"`
+
+	// An object of type TemplateSSMDocumentDetails, which contains the name or
+	// the Amazon Resource Name (ARN) of the Amazon Web Services Systems Manager
+	// document (SSM document) and the version of the SSM document that is used
+	// to create a conformance pack.
+	TemplateSSMDocumentDetails *TemplateSSMDocumentDetails `type:"structure"`
 }
 
 // String returns the string representation.
@@ -26725,6 +27158,11 @@ func (s *PutConformancePackInput) Validate() error {
 			}
 		}
 	}
+	if s.TemplateSSMDocumentDetails != nil {
+		if err := s.TemplateSSMDocumentDetails.Validate(); err != nil {
+			invalidParams.AddNested("TemplateSSMDocumentDetails", err.(request.ErrInvalidParams))
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -26765,6 +27203,12 @@ func (s *PutConformancePackInput) SetTemplateBody(v string) *PutConformancePackI
 // SetTemplateS3Uri sets the TemplateS3Uri field's value.
 func (s *PutConformancePackInput) SetTemplateS3Uri(v string) *PutConformancePackInput {
 	s.TemplateS3Uri = &v
+	return s
+}
+
+// SetTemplateSSMDocumentDetails sets the TemplateSSMDocumentDetails field's value.
+func (s *PutConformancePackInput) SetTemplateSSMDocumentDetails(v *TemplateSSMDocumentDetails) *PutConformancePackInput {
+	s.TemplateSSMDocumentDetails = v
 	return s
 }
 
@@ -27090,18 +27534,27 @@ type PutOrganizationConfigRuleInput struct {
 	// OrganizationConfigRuleName is a required field
 	OrganizationConfigRuleName *string `min:"1" type:"string" required:"true"`
 
-	// An object that specifies metadata for your organization's Config Custom Policy
-	// rule. The metadata includes the runtime system in use, which accounts have
-	// debug logging enabled, and other custom rule metadata, such as resource type,
-	// resource ID of Amazon Web Services resource, and organization trigger types
-	// that initiate Config to evaluate Amazon Web Services resources against a
-	// rule.
+	// An OrganizationCustomPolicyRuleMetadata object. This object specifies metadata
+	// for your organization's Config Custom Policy rule. The metadata includes
+	// the runtime system in use, which accounts have debug logging enabled, and
+	// other custom rule metadata, such as resource type, resource ID of Amazon
+	// Web Services resource, and organization trigger types that initiate Config
+	// to evaluate Amazon Web Services resources against a rule.
 	OrganizationCustomPolicyRuleMetadata *OrganizationCustomPolicyRuleMetadata `type:"structure"`
 
-	// An OrganizationCustomRuleMetadata object.
+	// An OrganizationCustomRuleMetadata object. This object specifies organization
+	// custom rule metadata such as resource type, resource ID of Amazon Web Services
+	// resource, Lambda function ARN, and organization trigger types that trigger
+	// Config to evaluate your Amazon Web Services resources against a rule. It
+	// also provides the frequency with which you want Config to run evaluations
+	// for the rule if the trigger type is periodic.
 	OrganizationCustomRuleMetadata *OrganizationCustomRuleMetadata `type:"structure"`
 
-	// An OrganizationManagedRuleMetadata object.
+	// An OrganizationManagedRuleMetadata object. This object specifies organization
+	// managed rule metadata such as resource type and ID of Amazon Web Services
+	// resource along with the rule identifier. It also provides the frequency with
+	// which you want Config to run evaluations for the rule if the trigger type
+	// is periodic.
 	OrganizationManagedRuleMetadata *OrganizationManagedRuleMetadata `type:"structure"`
 }
 
@@ -27628,6 +28081,10 @@ type PutResourceConfigInput struct {
 	SchemaVersionId *string `min:"1" type:"string" required:"true"`
 
 	// Tags associated with the resource.
+	//
+	// This field is not to be confused with the Amazon Web Services-wide tag feature
+	// for Amazon Web Services resources. Tags for PutResourceConfig are tags that
+	// you supply for the configuration items of your custom resources.
 	Tags map[string]*string `type:"map"`
 }
 
@@ -28140,7 +28597,7 @@ type RemediationConfiguration struct {
 	// ConfigRuleName is a required field
 	ConfigRuleName *string `min:"1" type:"string" required:"true"`
 
-	// Name of the service that owns the service linked rule, if applicable.
+	// Name of the service that owns the service-linked rule, if applicable.
 	CreatedByService *string `min:"1" type:"string"`
 
 	// An ExecutionControls object.
@@ -29033,28 +29490,28 @@ func (s *ResourceIdentifier) SetResourceType(v string) *ResourceIdentifier {
 
 // You see this exception in the following cases:
 //
-//    * For DeleteConfigRule, Config is deleting this rule. Try your request
-//    again later.
+//   - For DeleteConfigRule, Config is deleting this rule. Try your request
+//     again later.
 //
-//    * For DeleteConfigRule, the rule is deleting your evaluation results.
-//    Try your request again later.
+//   - For DeleteConfigRule, the rule is deleting your evaluation results.
+//     Try your request again later.
 //
-//    * For DeleteConfigRule, a remediation action is associated with the rule
-//    and Config cannot delete this rule. Delete the remediation action associated
-//    with the rule before deleting the rule and try your request again later.
+//   - For DeleteConfigRule, a remediation action is associated with the rule
+//     and Config cannot delete this rule. Delete the remediation action associated
+//     with the rule before deleting the rule and try your request again later.
 //
-//    * For PutConfigOrganizationRule, organization Config rule deletion is
-//    in progress. Try your request again later.
+//   - For PutConfigOrganizationRule, organization Config rule deletion is
+//     in progress. Try your request again later.
 //
-//    * For DeleteOrganizationConfigRule, organization Config rule creation
-//    is in progress. Try your request again later.
+//   - For DeleteOrganizationConfigRule, organization Config rule creation
+//     is in progress. Try your request again later.
 //
-//    * For PutConformancePack and PutOrganizationConformancePack, a conformance
-//    pack creation, update, and deletion is in progress. Try your request again
-//    later.
+//   - For PutConformancePack and PutOrganizationConformancePack, a conformance
+//     pack creation, update, and deletion is in progress. Try your request again
+//     later.
 //
-//    * For DeleteConformancePack, a conformance pack creation, update, and
-//    deletion is in progress. Try your request again later.
+//   - For DeleteConformancePack, a conformance pack creation, update, and
+//     deletion is in progress. Try your request again later.
 type ResourceInUseException struct {
 	_            struct{}                  `type:"structure"`
 	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
@@ -29760,9 +30217,10 @@ func (s *SelectResourceConfigOutput) SetResults(v []*string) *SelectResourceConf
 	return s
 }
 
-// Provides the CustomPolicyDetails, the rule owner (Amazon Web Services or
-// customer), the rule identifier, and the events that cause the evaluation
-// of your Amazon Web Services resources.
+// Provides the CustomPolicyDetails, the rule owner (Amazon Web Services for
+// managed rules, CUSTOM_POLICY for Custom Policy rules, and CUSTOM_LAMBDA for
+// Custom Lambda rules), the rule identifier, and the events that cause the
+// evaluation of your Amazon Web Services resources.
 type Source struct {
 	_ struct{} `type:"structure"`
 
@@ -30784,6 +31242,75 @@ func (s TagResourceOutput) String() string {
 // value will be replaced with "sensitive".
 func (s TagResourceOutput) GoString() string {
 	return s.String()
+}
+
+// This API allows you to create a conformance pack template with an Amazon
+// Web Services Systems Manager document (SSM document). To deploy a conformance
+// pack using an SSM document, you first create an SSM document with conformance
+// pack content, and then provide the DocumentName (and optionally DocumentVersion)
+// in the PutConformancePack API (https://docs.aws.amazon.com/config/latest/APIReference/API_PutConformancePack.html).
+//
+// The TemplateSSMDocumentDetails object contains the name of the SSM document
+// and the version of the SSM document.
+type TemplateSSMDocumentDetails struct {
+	_ struct{} `type:"structure"`
+
+	// The name or Amazon Resource Name (ARN) of the SSM document to use to create
+	// a conformance pack. If you use the Document Name, Config checks only your
+	// account and region for the SSM document. If you want to use an SSM document
+	// from another region or account, you must provide the ARN.
+	//
+	// DocumentName is a required field
+	DocumentName *string `type:"string" required:"true"`
+
+	// The version of the SSM document to use to create a conformance pack. By default,
+	// Config uses the latest version.
+	//
+	// This field is optional.
+	DocumentVersion *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TemplateSSMDocumentDetails) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TemplateSSMDocumentDetails) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TemplateSSMDocumentDetails) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TemplateSSMDocumentDetails"}
+	if s.DocumentName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DocumentName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDocumentName sets the DocumentName field's value.
+func (s *TemplateSSMDocumentDetails) SetDocumentName(v string) *TemplateSSMDocumentDetails {
+	s.DocumentName = &v
+	return s
+}
+
+// SetDocumentVersion sets the DocumentVersion field's value.
+func (s *TemplateSSMDocumentDetails) SetDocumentVersion(v string) *TemplateSSMDocumentDetails {
+	s.DocumentVersion = &v
+	return s
 }
 
 // You have reached the limit of the number of tags you can use. You have more
@@ -31987,6 +32514,84 @@ const (
 
 	// ResourceTypeAwsGuardDutyDetector is a ResourceType enum value
 	ResourceTypeAwsGuardDutyDetector = "AWS::GuardDuty::Detector"
+
+	// ResourceTypeAwsEmrSecurityConfiguration is a ResourceType enum value
+	ResourceTypeAwsEmrSecurityConfiguration = "AWS::EMR::SecurityConfiguration"
+
+	// ResourceTypeAwsSageMakerCodeRepository is a ResourceType enum value
+	ResourceTypeAwsSageMakerCodeRepository = "AWS::SageMaker::CodeRepository"
+
+	// ResourceTypeAwsRoute53resolverResolverEndpoint is a ResourceType enum value
+	ResourceTypeAwsRoute53resolverResolverEndpoint = "AWS::Route53Resolver::ResolverEndpoint"
+
+	// ResourceTypeAwsRoute53resolverResolverRule is a ResourceType enum value
+	ResourceTypeAwsRoute53resolverResolverRule = "AWS::Route53Resolver::ResolverRule"
+
+	// ResourceTypeAwsRoute53resolverResolverRuleAssociation is a ResourceType enum value
+	ResourceTypeAwsRoute53resolverResolverRuleAssociation = "AWS::Route53Resolver::ResolverRuleAssociation"
+
+	// ResourceTypeAwsDmsReplicationSubnetGroup is a ResourceType enum value
+	ResourceTypeAwsDmsReplicationSubnetGroup = "AWS::DMS::ReplicationSubnetGroup"
+
+	// ResourceTypeAwsDmsEventSubscription is a ResourceType enum value
+	ResourceTypeAwsDmsEventSubscription = "AWS::DMS::EventSubscription"
+
+	// ResourceTypeAwsMskCluster is a ResourceType enum value
+	ResourceTypeAwsMskCluster = "AWS::MSK::Cluster"
+
+	// ResourceTypeAwsStepFunctionsActivity is a ResourceType enum value
+	ResourceTypeAwsStepFunctionsActivity = "AWS::StepFunctions::Activity"
+
+	// ResourceTypeAwsWorkSpacesWorkspace is a ResourceType enum value
+	ResourceTypeAwsWorkSpacesWorkspace = "AWS::WorkSpaces::Workspace"
+
+	// ResourceTypeAwsWorkSpacesConnectionAlias is a ResourceType enum value
+	ResourceTypeAwsWorkSpacesConnectionAlias = "AWS::WorkSpaces::ConnectionAlias"
+
+	// ResourceTypeAwsSageMakerModel is a ResourceType enum value
+	ResourceTypeAwsSageMakerModel = "AWS::SageMaker::Model"
+
+	// ResourceTypeAwsElasticLoadBalancingV2Listener is a ResourceType enum value
+	ResourceTypeAwsElasticLoadBalancingV2Listener = "AWS::ElasticLoadBalancingV2::Listener"
+
+	// ResourceTypeAwsStepFunctionsStateMachine is a ResourceType enum value
+	ResourceTypeAwsStepFunctionsStateMachine = "AWS::StepFunctions::StateMachine"
+
+	// ResourceTypeAwsBatchJobQueue is a ResourceType enum value
+	ResourceTypeAwsBatchJobQueue = "AWS::Batch::JobQueue"
+
+	// ResourceTypeAwsBatchComputeEnvironment is a ResourceType enum value
+	ResourceTypeAwsBatchComputeEnvironment = "AWS::Batch::ComputeEnvironment"
+
+	// ResourceTypeAwsAccessAnalyzerAnalyzer is a ResourceType enum value
+	ResourceTypeAwsAccessAnalyzerAnalyzer = "AWS::AccessAnalyzer::Analyzer"
+
+	// ResourceTypeAwsAthenaWorkGroup is a ResourceType enum value
+	ResourceTypeAwsAthenaWorkGroup = "AWS::Athena::WorkGroup"
+
+	// ResourceTypeAwsAthenaDataCatalog is a ResourceType enum value
+	ResourceTypeAwsAthenaDataCatalog = "AWS::Athena::DataCatalog"
+
+	// ResourceTypeAwsDetectiveGraph is a ResourceType enum value
+	ResourceTypeAwsDetectiveGraph = "AWS::Detective::Graph"
+
+	// ResourceTypeAwsGlobalAcceleratorAccelerator is a ResourceType enum value
+	ResourceTypeAwsGlobalAcceleratorAccelerator = "AWS::GlobalAccelerator::Accelerator"
+
+	// ResourceTypeAwsGlobalAcceleratorEndpointGroup is a ResourceType enum value
+	ResourceTypeAwsGlobalAcceleratorEndpointGroup = "AWS::GlobalAccelerator::EndpointGroup"
+
+	// ResourceTypeAwsGlobalAcceleratorListener is a ResourceType enum value
+	ResourceTypeAwsGlobalAcceleratorListener = "AWS::GlobalAccelerator::Listener"
+
+	// ResourceTypeAwsEc2TransitGatewayAttachment is a ResourceType enum value
+	ResourceTypeAwsEc2TransitGatewayAttachment = "AWS::EC2::TransitGatewayAttachment"
+
+	// ResourceTypeAwsEc2TransitGatewayRouteTable is a ResourceType enum value
+	ResourceTypeAwsEc2TransitGatewayRouteTable = "AWS::EC2::TransitGatewayRouteTable"
+
+	// ResourceTypeAwsDmsCertificate is a ResourceType enum value
+	ResourceTypeAwsDmsCertificate = "AWS::DMS::Certificate"
 )
 
 // ResourceType_Values returns all elements of the ResourceType enum
@@ -32110,6 +32715,32 @@ func ResourceType_Values() []string {
 		ResourceTypeAwsEc2LaunchTemplate,
 		ResourceTypeAwsEcrPublicRepository,
 		ResourceTypeAwsGuardDutyDetector,
+		ResourceTypeAwsEmrSecurityConfiguration,
+		ResourceTypeAwsSageMakerCodeRepository,
+		ResourceTypeAwsRoute53resolverResolverEndpoint,
+		ResourceTypeAwsRoute53resolverResolverRule,
+		ResourceTypeAwsRoute53resolverResolverRuleAssociation,
+		ResourceTypeAwsDmsReplicationSubnetGroup,
+		ResourceTypeAwsDmsEventSubscription,
+		ResourceTypeAwsMskCluster,
+		ResourceTypeAwsStepFunctionsActivity,
+		ResourceTypeAwsWorkSpacesWorkspace,
+		ResourceTypeAwsWorkSpacesConnectionAlias,
+		ResourceTypeAwsSageMakerModel,
+		ResourceTypeAwsElasticLoadBalancingV2Listener,
+		ResourceTypeAwsStepFunctionsStateMachine,
+		ResourceTypeAwsBatchJobQueue,
+		ResourceTypeAwsBatchComputeEnvironment,
+		ResourceTypeAwsAccessAnalyzerAnalyzer,
+		ResourceTypeAwsAthenaWorkGroup,
+		ResourceTypeAwsAthenaDataCatalog,
+		ResourceTypeAwsDetectiveGraph,
+		ResourceTypeAwsGlobalAcceleratorAccelerator,
+		ResourceTypeAwsGlobalAcceleratorEndpointGroup,
+		ResourceTypeAwsGlobalAcceleratorListener,
+		ResourceTypeAwsEc2TransitGatewayAttachment,
+		ResourceTypeAwsEc2TransitGatewayRouteTable,
+		ResourceTypeAwsDmsCertificate,
 	}
 }
 
@@ -32122,5 +32753,33 @@ const (
 func ResourceValueType_Values() []string {
 	return []string{
 		ResourceValueTypeResourceId,
+	}
+}
+
+const (
+	// SortByScore is a SortBy enum value
+	SortByScore = "SCORE"
+)
+
+// SortBy_Values returns all elements of the SortBy enum
+func SortBy_Values() []string {
+	return []string{
+		SortByScore,
+	}
+}
+
+const (
+	// SortOrderAscending is a SortOrder enum value
+	SortOrderAscending = "ASCENDING"
+
+	// SortOrderDescending is a SortOrder enum value
+	SortOrderDescending = "DESCENDING"
+)
+
+// SortOrder_Values returns all elements of the SortOrder enum
+func SortOrder_Values() []string {
+	return []string{
+		SortOrderAscending,
+		SortOrderDescending,
 	}
 }

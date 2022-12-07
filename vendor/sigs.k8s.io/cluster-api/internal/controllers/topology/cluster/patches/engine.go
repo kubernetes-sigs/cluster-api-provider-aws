@@ -19,17 +19,22 @@ package patches
 
 import (
 	"context"
+	"strings"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/pkg/errors"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/api"
+	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/external"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/inline"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
+	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 )
 
 // Engine is a patch engine which applies patches defined in a ClusterBlueprint to a ClusterState.
@@ -38,25 +43,22 @@ type Engine interface {
 }
 
 // NewEngine creates a new patch engine.
-func NewEngine() Engine {
+func NewEngine(runtimeClient runtimeclient.Client) Engine {
 	return &engine{
-		createPatchGenerator: createPatchGenerator,
+		runtimeClient: runtimeClient,
 	}
 }
 
 // engine implements the Engine interface.
 type engine struct {
-	// createPatchGenerator is the func which returns a patch generator
-	// based on a ClusterClassPatch.
-	// Note: This field is also used to inject patches in unit tests.
-	createPatchGenerator func(patch *clusterv1.ClusterClassPatch) (api.Generator, error)
+	runtimeClient runtimeclient.Client
 }
 
 // Apply applies patches to the desired state according to the patches from the ClusterClass, variables from the Cluster
 // and builtin variables.
-// * A GenerateRequest with all templates and global and template-specific variables is created.
+// * A GeneratePatchesRequest with all templates and global and template-specific variables is created.
 // * Then for all ClusterClassPatches of a ClusterClass, JSON or JSON merge patches are generated
-//   and successively applied to the templates in the GenerateRequest.
+//   and successively applied to the templates in the GeneratePatchesRequest.
 // * Eventually the patched templates are used to update the specs of the desired objects.
 func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, desired *scope.ClusterState) error {
 	// Return if there are no patches.
@@ -81,7 +83,7 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 		log.V(5).Infof("Applying patch to templates")
 
 		// Create patch generator for the current patch.
-		generator, err := e.createPatchGenerator(&clusterClassPatch)
+		generator, err := createPatchGenerator(e.runtimeClient, &clusterClassPatch)
 		if err != nil {
 			return err
 		}
@@ -90,7 +92,7 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 		// NOTE: All the partial patches accumulate on top of the request, so the
 		// patch generator in the next iteration of the loop will get the modified
 		// version of the request (including the patched version of the templates).
-		resp, err := generator.Generate(ctx, req)
+		resp, err := generator.Generate(ctx, desired.Cluster, req)
 		if err != nil {
 			return errors.Wrapf(err, "failed to generate patches for patch %q", clusterClassPatch.Name)
 		}
@@ -98,6 +100,30 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 		// Apply patches to the request.
 		if err := applyPatchesToRequest(ctx, req, resp); err != nil {
 			return err
+		}
+	}
+
+	// Convert request to validation request.
+	validationRequest := convertToValidationRequest(req)
+
+	// Loop over patches in ClusterClass and validate topology,
+	// respecting the order in which they are defined.
+	for i := range blueprint.ClusterClass.Spec.Patches {
+		clusterClassPatch := blueprint.ClusterClass.Spec.Patches[i]
+
+		if clusterClassPatch.External == nil || clusterClassPatch.External.ValidateExtension == nil {
+			continue
+		}
+
+		ctx, log = log.WithValues("patch", clusterClassPatch.Name).Into(ctx)
+
+		log.V(5).Infof("Validating topology")
+
+		validator := external.NewValidator(e.runtimeClient, &clusterClassPatch)
+
+		_, err := validator.Validate(ctx, desired.Cluster, validationRequest)
+		if err != nil {
+			return errors.Wrapf(err, "validation of patch %q failed", clusterClassPatch.Name)
 		}
 	}
 
@@ -110,15 +136,15 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 	return nil
 }
 
-// createRequest creates a GenerateRequest based on the ClusterBlueprint and the desired state.
+// createRequest creates a GeneratePatchesRequest based on the ClusterBlueprint and the desired state.
 // ClusterBlueprint supplies the templates. Desired state is used to calculate variables which are later used
 // as input for the patch generation.
 // NOTE: GenerateRequestTemplates are created for the templates of each individual MachineDeployment in the desired
 // state. This is necessary because some builtin variables are MachineDeployment specific. For example version and
 // replicas of a MachineDeployment.
-// NOTE: A single GenerateRequest object is used to carry templates state across subsequent Generate calls.
-func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterState) (*api.GenerateRequest, error) {
-	req := &api.GenerateRequest{}
+// NOTE: A single GeneratePatchesRequest object is used to carry templates state across subsequent Generate calls.
+func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterState) (*runtimehooksv1.GeneratePatchesRequest, error) {
+	req := &runtimehooksv1.GeneratePatchesRequest{}
 
 	// Calculate global variables.
 	globalVariables, err := variables.Global(blueprint.Topology, desired.Cluster)
@@ -128,14 +154,14 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 	req.Variables = globalVariables
 
 	// Add the InfrastructureClusterTemplate.
-	t, err := newTemplateBuilder(blueprint.InfrastructureClusterTemplate).
-		WithType(api.InfrastructureClusterTemplateType).
+	t, err := newRequestItemBuilder(blueprint.InfrastructureClusterTemplate).
+		WithHolder(desired.Cluster, "spec.infrastructureRef").
 		Build()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to prepare InfrastructureCluster template %s for patching",
 			tlog.KObj{Obj: blueprint.InfrastructureClusterTemplate})
 	}
-	req.Items = append(req.Items, t)
+	req.Items = append(req.Items, *t)
 
 	// Calculate controlPlane variables.
 	controlPlaneVariables, err := variables.ControlPlane(&blueprint.Topology.ControlPlane, desired.ControlPlane.Object, desired.ControlPlane.InfrastructureMachineTemplate)
@@ -144,28 +170,28 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 	}
 
 	// Add the ControlPlaneTemplate.
-	t, err = newTemplateBuilder(blueprint.ControlPlane.Template).
-		WithType(api.ControlPlaneTemplateType).
+	t, err = newRequestItemBuilder(blueprint.ControlPlane.Template).
+		WithHolder(desired.Cluster, "spec.controlPlaneRef").
 		Build()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to prepare ControlPlane template %s for patching",
 			tlog.KObj{Obj: blueprint.ControlPlane.Template})
 	}
 	t.Variables = controlPlaneVariables
-	req.Items = append(req.Items, t)
+	req.Items = append(req.Items, *t)
 
 	// If the clusterClass mandates the controlPlane has infrastructureMachines,
 	// add the InfrastructureMachineTemplate for control plane machines.
 	if blueprint.HasControlPlaneInfrastructureMachine() {
-		t, err := newTemplateBuilder(blueprint.ControlPlane.InfrastructureMachineTemplate).
-			WithType(api.ControlPlaneInfrastructureMachineTemplateType).
+		t, err := newRequestItemBuilder(blueprint.ControlPlane.InfrastructureMachineTemplate).
+			WithHolder(desired.ControlPlane.Object, strings.Join(contract.ControlPlane().MachineTemplate().InfrastructureRef().Path(), ".")).
 			Build()
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to prepare ControlPlane's machine template %s for patching",
 				tlog.KObj{Obj: blueprint.ControlPlane.InfrastructureMachineTemplate})
 		}
 		t.Variables = controlPlaneVariables
-		req.Items = append(req.Items, t)
+		req.Items = append(req.Items, *t)
 	}
 
 	// Add BootstrapConfigTemplate and InfrastructureMachine template for all MachineDeploymentTopologies
@@ -194,28 +220,26 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 		}
 
 		// Add the BootstrapTemplate.
-		t, err := newTemplateBuilder(mdClass.BootstrapTemplate).
-			WithType(api.MachineDeploymentBootstrapConfigTemplateType).
-			WithMachineDeploymentRef(mdTopology).
+		t, err := newRequestItemBuilder(mdClass.BootstrapTemplate).
+			WithHolder(md.Object, "spec.template.spec.bootstrap.configRef").
 			Build()
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to prepare BootstrapConfig template %s for MachineDeployment topology %s for patching",
 				tlog.KObj{Obj: mdClass.BootstrapTemplate}, mdTopologyName)
 		}
 		t.Variables = mdVariables
-		req.Items = append(req.Items, t)
+		req.Items = append(req.Items, *t)
 
 		// Add the InfrastructureMachineTemplate.
-		t, err = newTemplateBuilder(mdClass.InfrastructureMachineTemplate).
-			WithType(api.MachineDeploymentInfrastructureMachineTemplateType).
-			WithMachineDeploymentRef(mdTopology).
+		t, err = newRequestItemBuilder(mdClass.InfrastructureMachineTemplate).
+			WithHolder(md.Object, "spec.template.spec.infrastructureRef").
 			Build()
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to prepare InfrastructureMachine template %s for MachineDeployment topology %s for patching",
 				tlog.KObj{Obj: mdClass.InfrastructureMachineTemplate}, mdTopologyName)
 		}
 		t.Variables = mdVariables
-		req.Items = append(req.Items, t)
+		req.Items = append(req.Items, *t)
 	}
 
 	return req, nil
@@ -234,29 +258,40 @@ func lookupMDTopology(topology *clusterv1.Topology, mdTopologyName string) (*clu
 // createPatchGenerator creates a patch generator for the given patch.
 // NOTE: Currently only inline JSON patches are supported; in the future we will add
 // external patches as well.
-func createPatchGenerator(patch *clusterv1.ClusterClassPatch) (api.Generator, error) {
+func createPatchGenerator(runtimeClient runtimeclient.Client, patch *clusterv1.ClusterClassPatch) (api.Generator, error) {
 	// Return a jsonPatchGenerator if there are PatchDefinitions in the patch.
 	if len(patch.Definitions) > 0 {
-		return inline.New(patch), nil
+		return inline.NewGenerator(patch), nil
+	}
+	// Return an externalPatchGenerator if there is an external configuration in the patch.
+	if patch.External != nil && patch.External.GenerateExtension != nil {
+		if !feature.Gates.Enabled(feature.RuntimeSDK) {
+			return nil, errors.Errorf("can not use external patch %q if RuntimeSDK feature flag is disabled", patch.Name)
+		}
+		if runtimeClient == nil {
+			return nil, errors.Errorf("failed to create patch generator for patch %q: runtimeClient is not set up", patch.Name)
+		}
+		return external.NewGenerator(runtimeClient, patch), nil
 	}
 
 	return nil, errors.Errorf("failed to create patch generator for patch %q", patch.Name)
 }
 
-// applyPatchesToRequest updates the templates of a GenerateRequest by applying the patches
-// of a GenerateResponse.
-func applyPatchesToRequest(ctx context.Context, req *api.GenerateRequest, resp *api.GenerateResponse) error {
+// applyPatchesToRequest updates the templates of a GeneratePatchesRequest by applying the patches
+// of a GeneratePatchesResponse.
+func applyPatchesToRequest(ctx context.Context, req *runtimehooksv1.GeneratePatchesRequest, resp *runtimehooksv1.GeneratePatchesResponse) error {
 	log := tlog.LoggerFrom(ctx)
 
 	for _, patch := range resp.Items {
-		log = log.WithValues("templateRef", patch.TemplateRef.String())
+		log = log.WithValues("uid", patch.UID)
 
-		// Get the template the patch should be applied to.
-		template := getTemplate(req, patch.TemplateRef)
+		// Get the request item the patch belongs to.
+		requestItem := getRequestItemByUID(req, patch.UID)
 
-		// If a patch doesn't apply to any template, this is a misconfiguration.
-		if template == nil {
-			return errors.Errorf("generated patch is targeted at the template with ID %q that does not exists", patch.TemplateRef)
+		// If a patch doesn't have a corresponding request item, the patch is invalid.
+		if requestItem == nil {
+			log.Infof("Unable to find corresponding request item with uid %q for the patch", patch.UID)
+			return errors.Errorf("unable to find corresponding request item for patch")
 		}
 
 		// Use the patch to create a patched copy of the template.
@@ -264,49 +299,63 @@ func applyPatchesToRequest(ctx context.Context, req *api.GenerateRequest, resp *
 		var err error
 
 		switch patch.PatchType {
-		case api.JSONPatchType:
-			log.V(5).Infof("Accumulating JSON patch: %s", string(patch.Patch.Raw))
-			jsonPatch, err := jsonpatch.DecodePatch(patch.Patch.Raw)
+		case runtimehooksv1.JSONPatchType:
+			log.V(5).Infof("Accumulating JSON patch: %s", string(patch.Patch))
+			jsonPatch, err := jsonpatch.DecodePatch(patch.Patch)
 			if err != nil {
-				return errors.Wrapf(err, "failed to apply patch to template %s: error decoding json patch (RFC6902): %s",
-					template.TemplateRef, string(patch.Patch.Raw))
+				log.Infof("Failed to apply patch with uid %q: error decoding json patch (RFC6902): %s: %s", requestItem.UID, string(patch.Patch), err)
+				return errors.Wrap(err, "failed to apply patch: error decoding json patch (RFC6902)")
 			}
 
-			patchedTemplate, err = jsonPatch.Apply(template.Template.Raw)
+			patchedTemplate, err = jsonPatch.Apply(requestItem.Object.Raw)
 			if err != nil {
-				return errors.Wrapf(err, "failed to apply patch to template %s: error applying json patch (RFC6902): %s",
-					template.TemplateRef, string(patch.Patch.Raw))
+				log.Infof("Failed to apply patch with uid %q: error applying json patch (RFC6902): %s: %s", requestItem.UID, string(patch.Patch), err)
+				return errors.Wrap(err, "failed to apply patch: error applying json patch (RFC6902)")
 			}
-		case api.JSONMergePatchType:
-			log.V(5).Infof("Accumulating JSON merge patch: %s", string(patch.Patch.Raw))
-			patchedTemplate, err = jsonpatch.MergePatch(template.Template.Raw, patch.Patch.Raw)
+		case runtimehooksv1.JSONMergePatchType:
+			log.V(5).Infof("Accumulating JSON merge patch: %s", string(patch.Patch))
+			patchedTemplate, err = jsonpatch.MergePatch(requestItem.Object.Raw, patch.Patch)
 			if err != nil {
-				return errors.Wrapf(err, "failed to apply patch to template %s: error applying json merge patch (RFC7386): %s",
-					template.TemplateRef, string(patch.Patch.Raw))
+				log.Infof("Failed to apply patch with uid %q: error applying json merge patch (RFC7386): %s: %s", requestItem.UID, string(patch.Patch), err)
+				return errors.Wrap(err, "failed to apply patch: error applying json merge patch (RFC7386)")
 			}
 		}
 
 		// Overwrite the spec of template.Template with the spec of the patchedTemplate,
 		// to ensure that we only pick up changes to the spec.
-		if err := patchTemplateSpec(&template.Template, patchedTemplate); err != nil {
-			return errors.Wrapf(err, "failed to apply patch to template %s",
-				template.TemplateRef)
+		if err := patchTemplateSpec(&requestItem.Object, patchedTemplate); err != nil {
+			log.Infof("Failed to apply patch to template %s: %s", requestItem.UID, err)
+			return errors.Wrap(err, "failed to apply patch to template")
 		}
 	}
 	return nil
 }
 
-// updateDesiredState uses the patched templates of a GenerateRequest to update the desired state.
-// NOTE: This func should be called after all the patches have been applied to the GenerateRequest.
-func updateDesiredState(ctx context.Context, req *api.GenerateRequest, blueprint *scope.ClusterBlueprint, desired *scope.ClusterState) error {
+// convertToValidationRequest converts a GeneratePatchesRequest to a ValidateTopologyRequest.
+func convertToValidationRequest(generateRequest *runtimehooksv1.GeneratePatchesRequest) *runtimehooksv1.ValidateTopologyRequest {
+	validationRequest := &runtimehooksv1.ValidateTopologyRequest{}
+	validationRequest.Variables = generateRequest.Variables
+
+	for i := range generateRequest.Items {
+		item := generateRequest.Items[i]
+
+		validationRequest.Items = append(validationRequest.Items, &runtimehooksv1.ValidateTopologyRequestItem{
+			HolderReference: item.HolderReference,
+			Object:          item.Object,
+			Variables:       item.Variables,
+		})
+	}
+
+	return validationRequest
+}
+
+// updateDesiredState uses the patched templates of a GeneratePatchesRequest to update the desired state.
+// NOTE: This func should be called after all the patches have been applied to the GeneratePatchesRequest.
+func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatchesRequest, blueprint *scope.ClusterBlueprint, desired *scope.ClusterState) error {
 	var err error
 
 	// Update the InfrastructureCluster.
-	infrastructureClusterTemplate, err := getTemplateAsUnstructured(req,
-		newTemplateBuilder(blueprint.InfrastructureClusterTemplate).
-			WithType(api.InfrastructureClusterTemplateType).
-			BuildTemplateRef(),
-	)
+	infrastructureClusterTemplate, err := getTemplateAsUnstructured(req, "Cluster", "spec.infrastructureRef", "")
 	if err != nil {
 		return err
 	}
@@ -315,17 +364,14 @@ func updateDesiredState(ctx context.Context, req *api.GenerateRequest, blueprint
 	}
 
 	// Update the ControlPlane.
-	controlPlaneTemplate, err := getTemplateAsUnstructured(req,
-		newTemplateBuilder(blueprint.ControlPlane.Template).
-			WithType(api.ControlPlaneTemplateType).
-			BuildTemplateRef(),
-	)
+	controlPlaneTemplate, err := getTemplateAsUnstructured(req, "Cluster", "spec.controlPlaneRef", "")
 	if err != nil {
 		return err
 	}
 	if err := patchObject(ctx, desired.ControlPlane.Object, controlPlaneTemplate, PreserveFields{
 		contract.ControlPlane().MachineTemplate().Metadata().Path(),
 		contract.ControlPlane().MachineTemplate().InfrastructureRef().Path(),
+		contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path(),
 		contract.ControlPlane().Replicas().Path(),
 		contract.ControlPlane().Version().Path(),
 	}); err != nil {
@@ -335,11 +381,7 @@ func updateDesiredState(ctx context.Context, req *api.GenerateRequest, blueprint
 	// If the ClusterClass mandates the ControlPlane has InfrastructureMachines,
 	// update the InfrastructureMachineTemplate for ControlPlane machines.
 	if blueprint.HasControlPlaneInfrastructureMachine() {
-		infrastructureMachineTemplate, err := getTemplateAsUnstructured(req,
-			newTemplateBuilder(blueprint.ControlPlane.InfrastructureMachineTemplate).
-				WithType(api.ControlPlaneInfrastructureMachineTemplateType).
-				BuildTemplateRef(),
-		)
+		infrastructureMachineTemplate, err := getTemplateAsUnstructured(req, desired.ControlPlane.Object.GetKind(), strings.Join(contract.ControlPlane().MachineTemplate().InfrastructureRef().Path(), "."), "")
 		if err != nil {
 			return err
 		}
@@ -350,19 +392,8 @@ func updateDesiredState(ctx context.Context, req *api.GenerateRequest, blueprint
 
 	// Update the templates for all MachineDeployments.
 	for mdTopologyName, md := range desired.MachineDeployments {
-		// Lookup MachineDeploymentTopology.
-		mdTopology, err := lookupMDTopology(blueprint.Topology, mdTopologyName)
-		if err != nil {
-			return err
-		}
-
 		// Update the BootstrapConfigTemplate.
-		bootstrapTemplate, err := getTemplateAsUnstructured(req,
-			newTemplateBuilder(md.BootstrapTemplate).
-				WithType(api.MachineDeploymentBootstrapConfigTemplateType).
-				WithMachineDeploymentRef(mdTopology).
-				BuildTemplateRef(),
-		)
+		bootstrapTemplate, err := getTemplateAsUnstructured(req, "MachineDeployment", "spec.template.spec.bootstrap.configRef", mdTopologyName)
 		if err != nil {
 			return err
 		}
@@ -371,12 +402,7 @@ func updateDesiredState(ctx context.Context, req *api.GenerateRequest, blueprint
 		}
 
 		// Update the InfrastructureMachineTemplate.
-		infrastructureMachineTemplate, err := getTemplateAsUnstructured(req,
-			newTemplateBuilder(md.InfrastructureMachineTemplate).
-				WithType(api.MachineDeploymentInfrastructureMachineTemplateType).
-				WithMachineDeploymentRef(mdTopology).
-				BuildTemplateRef(),
-		)
+		infrastructureMachineTemplate, err := getTemplateAsUnstructured(req, "MachineDeployment", "spec.template.spec.infrastructureRef", mdTopologyName)
 		if err != nil {
 			return err
 		}

@@ -19,11 +19,14 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -32,19 +35,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/feature"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/awsnode"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/gc"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/iamauth"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/kubeproxy"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/network"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/securitygroup"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/awsnode"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ec2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/gc"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/iamauth"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/instancestate"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/kubeproxy"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/network"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/securitygroup"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	capiannotations "sigs.k8s.io/cluster-api/util/annotations"
@@ -56,6 +61,8 @@ const (
 	// deleteRequeueAfter is how long to wait before checking again to see if the control plane still
 	// has dependencies during deletion.
 	deleteRequeueAfter = 20 * time.Second
+
+	awsManagedControlPlaneKind = "AWSManagedControlPlane"
 )
 
 var defaultEKSSecurityGroupRoles = []infrav1.SecurityGroupRole{
@@ -88,13 +95,13 @@ type AWSManagedControlPlaneReconciler struct {
 
 // SetupWithManager is used to setup the controller.
 func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	log := ctrl.LoggerFrom(ctx)
+	log := logger.FromContext(ctx)
 
 	awsManagedControlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(awsManagedControlPlane).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log.GetLogger(), r.WatchFilterValue)).
 		Build(r)
 
 	if err != nil {
@@ -103,10 +110,17 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context,
 
 	if err = c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(awsManagedControlPlane.GroupVersionKind())),
-		predicates.ClusterUnpausedAndInfrastructureReady(log),
+		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, awsManagedControlPlane.GroupVersionKind(), mgr.GetClient(), &ekscontrolplanev1.AWSManagedControlPlane{})),
+		predicates.ClusterUnpausedAndInfrastructureReady(log.GetLogger()),
 	); err != nil {
 		return fmt.Errorf("failed adding a watch for ready clusters: %w", err)
+	}
+
+	if err = c.Watch(
+		&source.Kind{Type: &infrav1.AWSManagedCluster{}},
+		handler.EnqueueRequestsFromMapFunc(r.managedClusterToManagedControlPlane(ctx, log)),
+	); err != nil {
+		return fmt.Errorf("failed adding a watch for AWSManagedCluster")
 	}
 
 	return nil
@@ -122,10 +136,11 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context,
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclusterroleidentities;awsclusterstaticidentities;awsclustercontrolleridentities,verbs=get;list;watch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedclusters;awsmanagedclusters/status,verbs=get;list;watch
 
 // Reconcile will reconcile AWSManagedControlPlane Resources.
 func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
-	log := ctrl.LoggerFrom(ctx)
+	log := logger.FromContext(ctx)
 
 	// Get the control plane instance
 	awsControlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
@@ -156,7 +171,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 		Client:               r.Client,
 		Cluster:              cluster,
 		ControlPlane:         awsControlPlane,
-		ControllerName:       "awsmanagedcontrolplane",
+		ControllerName:       strings.ToLower(awsManagedControlPlaneKind),
 		EnableIAM:            r.EnableIAM,
 		AllowAdditionalRoles: r.AllowAdditionalRoles,
 		Endpoints:            r.Endpoints,
@@ -186,6 +201,9 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 			if managedScope.Bastion().Enabled {
 				applicableConditions = append(applicableConditions, infrav1.BastionHostReadyCondition)
 			}
+			if managedScope.VPC().IsIPv6Enabled() {
+				applicableConditions = append(applicableConditions, infrav1.EgressOnlyInternetGatewayReadyCondition)
+			}
 		}
 
 		conditions.SetSummary(managedScope.ControlPlane, conditions.WithConditions(applicableConditions...), conditions.WithStepCounter())
@@ -206,6 +224,17 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 
 func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, managedScope *scope.ManagedControlPlaneScope) (res ctrl.Result, reterr error) {
 	managedScope.Info("Reconciling AWSManagedControlPlane")
+
+	// TODO (richardcase): we can remove the if check here in the future when we have
+	// allowed enough time for users to move away from using the single kind for
+	// infrastructureRef and controlplaneRef.
+	if managedScope.Cluster.Spec.InfrastructureRef.Kind != awsManagedControlPlaneKind {
+		// Wait for the cluster infrastructure to be ready before creating machines
+		if !managedScope.Cluster.Status.InfrastructureReady {
+			managedScope.Info("Cluster infrastructure is not ready yet")
+			return ctrl.Result{}, nil
+		}
+	}
 
 	awsManagedControlPlane := managedScope.ControlPlane
 
@@ -249,6 +278,14 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 		return reconcile.Result{}, fmt.Errorf("failed to reconcile control plane for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
 	}
 
+	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
+		instancestateSvc := instancestate.NewService(managedScope)
+		if err := instancestateSvc.ReconcileEC2Events(); err != nil {
+			// non fatal error, so we continue
+			managedScope.Error(err, "non-fatal: failed to set up EventBridge")
+		}
+	}
+
 	if err := authService.ReconcileIAMAuthenticator(ctx); err != nil {
 		conditions.MarkFalse(awsManagedControlPlane, ekscontrolplanev1.IAMAuthenticatorConfiguredCondition, ekscontrolplanev1.IAMAuthenticatorConfigurationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile aws-iam-authenticator config for AWSManagedControlPlane %s/%s", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name)
@@ -265,7 +302,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 }
 
 func (r *AWSManagedControlPlaneReconciler) reconcileDelete(ctx context.Context, managedScope *scope.ManagedControlPlaneScope) (_ ctrl.Result, reterr error) {
-	log := ctrl.LoggerFrom(ctx)
+	log := logger.FromContext(ctx)
 
 	managedScope.Info("Reconciling AWSManagedControlPlane delete")
 
@@ -332,7 +369,7 @@ func (r *AWSManagedControlPlaneReconciler) ClusterToAWSManagedControlPlane(o cli
 	}
 
 	controlPlaneRef := c.Spec.ControlPlaneRef
-	if controlPlaneRef != nil && controlPlaneRef.Kind == "AWSManagedControlPlane" {
+	if controlPlaneRef != nil && controlPlaneRef.Kind == awsManagedControlPlaneKind {
 		return []ctrl.Request{{NamespacedName: client.ObjectKey{Namespace: controlPlaneRef.Namespace, Name: controlPlaneRef.Name}}}
 	}
 
@@ -340,11 +377,11 @@ func (r *AWSManagedControlPlaneReconciler) ClusterToAWSManagedControlPlane(o cli
 }
 
 func (r *AWSManagedControlPlaneReconciler) dependencyCount(ctx context.Context, managedScope *scope.ManagedControlPlaneScope) (int, error) {
-	log := ctrl.LoggerFrom(ctx)
+	log := logger.FromContext(ctx)
 
 	clusterName := managedScope.Name()
 	namespace := managedScope.Namespace()
-	log.Info("looking for EKS cluster dependencies", "cluster", clusterName, "namespace", namespace)
+	log.Info("looking for EKS cluster dependencies", "cluster", klog.KRef(namespace, clusterName))
 
 	listOptions := []client.ListOption{
 		client.InNamespace(namespace),
@@ -357,7 +394,7 @@ func (r *AWSManagedControlPlaneReconciler) dependencyCount(ctx context.Context, 
 	if err := r.Client.List(ctx, machines, listOptions...); err != nil {
 		return dependencies, fmt.Errorf("failed to list machines for cluster %s/%s: %w", namespace, clusterName, err)
 	}
-	log.V(2).Info("tested for AWSMachine dependencies", "count", len(machines.Items))
+	log.Debug("tested for AWSMachine dependencies", "count", len(machines.Items))
 	dependencies += len(machines.Items)
 
 	if feature.Gates.Enabled(feature.MachinePool) {
@@ -365,16 +402,56 @@ func (r *AWSManagedControlPlaneReconciler) dependencyCount(ctx context.Context, 
 		if err := r.Client.List(ctx, managedMachinePools, listOptions...); err != nil {
 			return dependencies, fmt.Errorf("failed to list managed machine pools for cluster %s/%s: %w", namespace, clusterName, err)
 		}
-		log.V(2).Info("tested for AWSManagedMachinePool dependencies", "count", len(managedMachinePools.Items))
+		log.Debug("tested for AWSManagedMachinePool dependencies", "count", len(managedMachinePools.Items))
 		dependencies += len(managedMachinePools.Items)
 
 		machinePools := &expinfrav1.AWSMachinePoolList{}
 		if err := r.Client.List(ctx, machinePools, listOptions...); err != nil {
 			return dependencies, fmt.Errorf("failed to list machine pools for cluster %s/%s: %w", namespace, clusterName, err)
 		}
-		log.V(2).Info("tested for AWSMachinePool dependencies", "count", len(machinePools.Items))
+		log.Debug("tested for AWSMachinePool dependencies", "count", len(machinePools.Items))
 		dependencies += len(machinePools.Items)
 	}
 
 	return dependencies, nil
+}
+
+func (r *AWSManagedControlPlaneReconciler) managedClusterToManagedControlPlane(ctx context.Context, log *logger.Logger) handler.MapFunc {
+	return func(o client.Object) []ctrl.Request {
+		awsManagedCluster, ok := o.(*infrav1.AWSManagedCluster)
+		if !ok {
+			log.Error(fmt.Errorf("expected a AWSManagedCluster but got a %T", o), "Expected AWSManagedCluster")
+			return nil
+		}
+
+		if !awsManagedCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+			log.Debug("AWSManagedCluster has a deletion timestamp, skipping mapping")
+			return nil
+		}
+
+		cluster, err := util.GetOwnerCluster(ctx, r.Client, awsManagedCluster.ObjectMeta)
+		if err != nil {
+			log.Error(err, "failed to get owning cluster")
+			return nil
+		}
+		if cluster == nil {
+			log.Debug("Owning cluster not set on AWSManagedCluster, skipping mapping")
+			return nil
+		}
+
+		controlPlaneRef := cluster.Spec.ControlPlaneRef
+		if controlPlaneRef == nil || controlPlaneRef.Kind != awsManagedControlPlaneKind {
+			log.Debug("ControlPlaneRef is nil or not AWSManagedControlPlane, skipping mapping")
+			return nil
+		}
+
+		return []ctrl.Request{
+			{
+				NamespacedName: types.NamespacedName{
+					Name:      controlPlaneRef.Name,
+					Namespace: controlPlaneRef.Namespace,
+				},
+			},
+		}
+	}
 }

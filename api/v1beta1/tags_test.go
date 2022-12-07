@@ -180,6 +180,13 @@ func TestTags_Validate(t *testing.T) {
 			expected: nil,
 		},
 		{
+			name: "no errors - spaces allowed",
+			self: Tags{
+				"validKey": "valid Value",
+			},
+			expected: nil,
+		},
+		{
 			name: "key cannot be empty",
 			self: Tags{
 				"": "validValue",

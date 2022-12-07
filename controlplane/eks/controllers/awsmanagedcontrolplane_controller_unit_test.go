@@ -21,7 +21,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
 
 func TestSecurityGroupRolesForCluster(t *testing.T) {

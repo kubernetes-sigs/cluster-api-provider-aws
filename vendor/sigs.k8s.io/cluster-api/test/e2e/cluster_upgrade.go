@@ -41,10 +41,12 @@ type ClusterUpgradeConformanceSpecInput struct {
 	ArtifactFolder        string
 	SkipCleanup           bool
 	SkipConformanceTests  bool
+	ControlPlaneWaiters   clusterctl.ControlPlaneWaiters
 
 	// ControlPlaneMachineCount is used in `config cluster` to configure the count of the control plane machines used in the test.
 	// Default is 1.
 	ControlPlaneMachineCount *int64
+
 	// WorkerMachineCount is used in `config cluster` to configure the count of the worker machines used in the test.
 	// NOTE: If the WORKER_MACHINE_COUNT var is used multiple times in the cluster template, the absolute count of
 	// worker machines is a multiple of WorkerMachineCount.
@@ -66,6 +68,7 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 		kubetestConfigurationVariable = "KUBETEST_CONFIGURATION"
 		specName                      = "k8s-upgrade-and-conformance"
 	)
+
 	var (
 		input         ClusterUpgradeConformanceSpecInput
 		namespace     *corev1.Namespace
@@ -112,7 +115,7 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
-	It("Should create and upgrade a workload cluster and run kubetest", func() {
+	It("Should create and upgrade a workload cluster and eventually run kubetest", func() {
 		By("Creating a workload cluster")
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
@@ -129,6 +132,7 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 				ControlPlaneMachineCount: pointer.Int64Ptr(controlPlaneMachineCount),
 				WorkerMachineCount:       pointer.Int64Ptr(workerMachineCount),
 			},
+			ControlPlaneWaiters:          input.ControlPlaneWaiters,
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),

@@ -40,11 +40,16 @@ const (
 	// to easily discover which fields have been set by templates + patches/variables at a given reconcile;
 	// instead, it is not necessary to store managed paths for typed objets (e.g. Cluster, MachineDeployments)
 	// given that the topology controller explicitly sets a well-known, immutable list of fields at every reconcile.
+	// Deprecated: Topology controller is now using server side apply and this annotation will be removed in a future release.
 	ClusterTopologyManagedFieldsAnnotation = "topology.cluster.x-k8s.io/managed-field-paths"
 
 	// ClusterTopologyMachineDeploymentLabelName is the label set on the generated  MachineDeployment objects
 	// to track the name of the MachineDeployment topology it represents.
 	ClusterTopologyMachineDeploymentLabelName = "topology.cluster.x-k8s.io/deployment-name"
+
+	// ClusterTopologyUnsafeUpdateClassNameAnnotation can be used to disable the webhook check on
+	// update that disallows a pre-existing Cluster to be populated with Topology information and Class.
+	ClusterTopologyUnsafeUpdateClassNameAnnotation = "unsafe.topology.cluster.x-k8s.io/disable-update-class-name-check"
 
 	// ProviderLabelName is the label set on components in the provider manifest.
 	// This label allows to easily identify all the components belonging to a provider; the clusterctl
@@ -100,6 +105,8 @@ const (
 	MachineSkipRemediationAnnotation = "cluster.x-k8s.io/skip-remediation"
 
 	// ClusterSecretType defines the type of secret created by core components.
+	// Note: This is used by core CAPI, CAPBK, and KCP to determine whether a secret is created by the controllers
+	// themselves or supplied by the user (e.g. bring your own certificates).
 	ClusterSecretType corev1.SecretType = "cluster.x-k8s.io/secret" //nolint:gosec
 
 	// InterruptibleLabel is the label used to mark the nodes that run on interruptible instances.
@@ -112,6 +119,15 @@ const (
 	// An external controller must fulfill the contract of the InfraCluster resource.
 	// External infrastructure providers should ensure that the annotation, once set, cannot be removed.
 	ManagedByAnnotation = "cluster.x-k8s.io/managed-by"
+
+	// TopologyDryRunAnnotation is an annotation that gets set on objects by the topology controller
+	// only during a server side dry run apply operation. It is used for validating
+	// update webhooks for objects which get updated by template rotation (e.g. InfrastructureMachineTemplate).
+	// When the annotation is set and the admission request is a dry run, the webhook should
+	// deny validation due to immutability. By that the request will succeed (without
+	// any changes to the actual object because it is a dry run) and the topology controller
+	// will receive the resulting object.
+	TopologyDryRunAnnotation = "topology.cluster.x-k8s.io/dry-run"
 )
 
 const (

@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"reflect"
 	"strings"
 	"time"
 
@@ -195,60 +196,45 @@ func ObjectKey(object metav1.Object) client.ObjectKey {
 
 // ClusterToInfrastructureMapFunc returns a handler.ToRequestsFunc that watches for
 // Cluster events and returns reconciliation requests for an infrastructure provider object.
-func ClusterToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.MapFunc {
+func ClusterToInfrastructureMapFunc(ctx context.Context, gvk schema.GroupVersionKind, c client.Client, providerCluster client.Object) handler.MapFunc {
+	log := ctrl.LoggerFrom(ctx)
 	return func(o client.Object) []reconcile.Request {
-		c, ok := o.(*clusterv1.Cluster)
+		cluster, ok := o.(*clusterv1.Cluster)
 		if !ok {
 			return nil
 		}
 
 		// Return early if the InfrastructureRef is nil.
-		if c.Spec.InfrastructureRef == nil {
+		if cluster.Spec.InfrastructureRef == nil {
 			return nil
 		}
 		gk := gvk.GroupKind()
 		// Return early if the GroupKind doesn't match what we expect.
-		infraGK := c.Spec.InfrastructureRef.GroupVersionKind().GroupKind()
+		infraGK := cluster.Spec.InfrastructureRef.GroupVersionKind().GroupKind()
 		if gk != infraGK {
+			return nil
+		}
+		providerCluster := providerCluster.DeepCopyObject().(client.Object)
+		key := types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Spec.InfrastructureRef.Name}
+
+		if err := c.Get(ctx, key, providerCluster); err != nil {
+			log.V(4).Error(err, fmt.Sprintf("Failed to get %T", providerCluster))
+			return nil
+		}
+
+		if annotations.IsExternallyManaged(providerCluster) {
+			log.V(4).Info(fmt.Sprintf("%T is externally managed, skipping mapping", providerCluster))
 			return nil
 		}
 
 		return []reconcile.Request{
 			{
 				NamespacedName: client.ObjectKey{
-					Namespace: c.Namespace,
-					Name:      c.Spec.InfrastructureRef.Name,
+					Namespace: cluster.Namespace,
+					Name:      cluster.Spec.InfrastructureRef.Name,
 				},
 			},
 		}
-	}
-}
-
-// ClusterToInfrastructureMapFuncWithExternallyManagedCheck is like ClusterToInfrastructureMapFunc but will exclude externally managed infrastructures from the mapping.
-// We will update  ClusterToInfrastructureMapFunc to include this check in an upcoming release but defer that for now as adjusting the signature is a breaking change.
-func ClusterToInfrastructureMapFuncWithExternallyManagedCheck(ctx context.Context, gvk schema.GroupVersionKind, c client.Client, providerCluster client.Object) handler.MapFunc {
-	baseMapper := ClusterToInfrastructureMapFunc(gvk)
-	log := ctrl.LoggerFrom(ctx)
-	return func(o client.Object) []reconcile.Request {
-		var result []reconcile.Request
-		for _, request := range baseMapper(o) {
-			providerCluster := providerCluster.DeepCopyObject().(client.Object)
-			key := types.NamespacedName{Namespace: request.Namespace, Name: request.Name}
-
-			if err := c.Get(ctx, key, providerCluster); err != nil {
-				log.V(4).Error(err, fmt.Sprintf("Failed to get %T", providerCluster))
-				continue
-			}
-
-			if annotations.IsExternallyManaged(providerCluster) {
-				log.V(4).Info(fmt.Sprintf("%T is externally managed, skipping mapping", providerCluster))
-				continue
-			}
-
-			result = append(result, request)
-		}
-
-		return result
 	}
 }
 
@@ -404,6 +390,10 @@ func refersTo(ref *metav1.OwnerReference, obj client.Object) bool {
 // UnstructuredUnmarshalField is a wrapper around json and unstructured objects to decode and copy a specific field
 // value into an object.
 func UnstructuredUnmarshalField(obj *unstructured.Unstructured, v interface{}, fields ...string) error {
+	if obj == nil || obj.Object == nil {
+		return errors.Errorf("failed to unmarshal unstructured object: object is nil")
+	}
+
 	value, found, err := unstructured.NestedFieldNoCopy(obj.Object, fields...)
 	if err != nil {
 		return errors.Wrapf(err, "failed to retrieve field %q from %q", strings.Join(fields, "."), obj.GroupVersionKind())
@@ -501,6 +491,7 @@ func (k KubeAwareAPIVersions) Less(i, j int) bool {
 }
 
 // MachinesByCreationTimestamp sorts a list of Machine by creation timestamp, using their names as a tie breaker.
+// Deprecated: This struct will be removed in a future release.
 type MachinesByCreationTimestamp []*clusterv1.Machine
 
 func (o MachinesByCreationTimestamp) Len() int      { return len(o) }
@@ -613,4 +604,16 @@ func LowestNonZeroResult(i, j ctrl.Result) ctrl.Result {
 	default:
 		return j
 	}
+}
+
+// IsNil returns an error if the passed interface is equal to nil or if it has an interface value of nil.
+func IsNil(i interface{}) bool {
+	if i == nil {
+		return true
+	}
+	switch reflect.TypeOf(i).Kind() {
+	case reflect.Ptr, reflect.Map, reflect.Chan, reflect.Slice, reflect.Interface, reflect.UnsafePointer, reflect.Func:
+		return reflect.ValueOf(i).IsValid() && reflect.ValueOf(i).IsNil()
+	}
+	return false
 }

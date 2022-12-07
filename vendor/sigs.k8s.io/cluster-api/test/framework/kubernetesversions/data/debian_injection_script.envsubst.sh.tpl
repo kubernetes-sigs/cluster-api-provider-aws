@@ -102,16 +102,17 @@ if [[ "$${KUBERNETES_VERSION}" != "" ]]; then
     done
     systemctl restart kubelet
   fi
+  IMAGE_REGISTRY_PREFIX=registry.k8s.io
+  # Kubernetes builds from 1.20 through 1.24 are tagged with k8s.gcr.io
+  if [[ "$${KUBERNETES_VERSION}" =~ ^v1\.(1[0-9]|2[0-4])[\.[0-9]+ ]]; then
+    IMAGE_REGISTRY_PREFIX=k8s.gcr.io
+  fi
   for CI_CONTAINER in "$${CONTAINERS_TO_TEST[@]}"; do
-    # Redirect: https://dl.k8s.io/release/{path}
-    # e.g. https://dl.k8s.io/release/v1.20.4/bin/linux/amd64/kube-apiserver.tar
-    # Browser: https://gcsweb.k8s.io/gcs/kubernetes-release/
-    # e.g. https://gcsweb.k8s.io/gcs/kubernetes-release/release/v1.20.4/bin/linux/amd64
     echo "* downloading package: $${CI_URL}/$${CI_CONTAINER}.$${CONTAINER_EXT}"
     wget "$${CI_URL}/$${CI_CONTAINER}.$${CONTAINER_EXT}" -O "$${CI_DIR}/$${CI_CONTAINER}.$${CONTAINER_EXT}"
     $${SUDO} ctr -n k8s.io images import "$${CI_DIR}/$${CI_CONTAINER}.$${CONTAINER_EXT}" || echo "* ignoring expected 'ctr images import' result"
-    $${SUDO} ctr -n k8s.io images tag "k8s.gcr.io/$${CI_CONTAINER}-amd64:$${KUBERNETES_VERSION//+/_}" "k8s.gcr.io/$${CI_CONTAINER}:$${KUBERNETES_VERSION//+/_}"
-    $${SUDO} ctr -n k8s.io images tag "k8s.gcr.io/$${CI_CONTAINER}-amd64:$${KUBERNETES_VERSION//+/_}" "gcr.io/k8s-staging-ci-images/$${CI_CONTAINER}:$${KUBERNETES_VERSION//+/_}"
+    $${SUDO} ctr -n k8s.io images tag "$${IMAGE_REGISTRY_PREFIX}/$${CI_CONTAINER}-amd64:$${KUBERNETES_VERSION//+/_}" "$${IMAGE_REGISTRY_PREFIX}/$${CI_CONTAINER}:$${KUBERNETES_VERSION//+/_}"
+    $${SUDO} ctr -n k8s.io images tag "$${IMAGE_REGISTRY_PREFIX}/$${CI_CONTAINER}-amd64:$${KUBERNETES_VERSION//+/_}" "gcr.io/k8s-staging-ci-images/$${CI_CONTAINER}:$${KUBERNETES_VERSION//+/_}"
   done
 fi
 echo "* checking binary versions"

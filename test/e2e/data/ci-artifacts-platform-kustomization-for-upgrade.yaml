@@ -8,7 +8,7 @@ spec:
     spec:
       infrastructureRef:
         name: "${CLUSTER_NAME}-md-1"
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: AWSMachineTemplate
 ---
 kind: KubeadmControlPlane
@@ -19,5 +19,5 @@ spec:
   machineTemplate:
     infrastructureRef:
       kind: AWSMachineTemplate
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       name: "${CLUSTER_NAME}-control-plane-1"

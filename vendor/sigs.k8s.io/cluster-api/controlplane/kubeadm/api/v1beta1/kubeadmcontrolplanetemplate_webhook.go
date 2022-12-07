@@ -26,6 +26,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 )
 
@@ -43,6 +44,8 @@ var _ webhook.Defaulter = &KubeadmControlPlaneTemplate{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
 func (r *KubeadmControlPlaneTemplate) Default() {
+	bootstrapv1.DefaultKubeadmConfigSpec(&r.Spec.Template.Spec.KubeadmConfigSpec)
+
 	r.Spec.Template.Spec.RolloutStrategy = defaultRolloutStrategy(r.Spec.Template.Spec.RolloutStrategy)
 }
 
@@ -64,6 +67,7 @@ func (r *KubeadmControlPlaneTemplate) ValidateCreate() error {
 	spec := r.Spec.Template.Spec
 	allErrs := validateKubeadmControlPlaneTemplateResourceSpec(spec, field.NewPath("spec", "template", "spec"))
 	allErrs = append(allErrs, validateClusterConfiguration(spec.KubeadmConfigSpec.ClusterConfiguration, nil, field.NewPath("spec", "template", "spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
+	allErrs = append(allErrs, spec.KubeadmConfigSpec.Validate(field.NewPath("spec", "template", "spec", "kubeadmConfigSpec"))...)
 	if len(allErrs) > 0 {
 		return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlaneTemplate").GroupKind(), r.Name, allErrs)
 	}

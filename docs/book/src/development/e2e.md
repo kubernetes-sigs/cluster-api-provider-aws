@@ -21,7 +21,7 @@ $ make test-e2e-eks
 The following useful env variables can help to speed up the runs:
 
 - `E2E_ARGS="--skip-cloudformation-creation --skip-cloudformation-deletion"` - in case the cloudformation stack is already properly set up, this ensures a quicker start and tear down.
-- `GINKGO_FOCUS='\[PR-Blocking\]'` - only run a subset of tests
+- `E2E_FOCUS='\[PR-Blocking\]'` - only run a subset of tests
 - `USE_EXISTING_CLUSTER` - use an existing management cluster (useful if you have a [Tilt][tilt-setup] setup)
 
 [tilt-setup]: ./tilt-setup.md
@@ -49,7 +49,7 @@ The following run configuration can be used:
       <env name="AWS_SECRET_ACCESS_KEY" value="2W2RlZmFZSZnRg==" />
     </envs>
     <kind value="PACKAGE" />
-    <package value="sigs.k8s.io/cluster-api-provider-aws/test/e2e/suites/unmanaged" />
+    <package value="sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/suites/unmanaged" />
     <directory value="$PROJECT_DIR$" />
     <filePath value="$PROJECT_DIR$" />
     <framework value="gotest" />

@@ -25,7 +25,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
 
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd"
 )
 
 type byName []*cobra.Command

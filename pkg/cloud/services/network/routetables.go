@@ -23,14 +23,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -40,11 +40,11 @@ const (
 
 func (s *Service) reconcileRouteTables() error {
 	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
-		s.scope.V(4).Info("Skipping routing tables reconcile in unmanaged mode")
+		s.scope.Trace("Skipping routing tables reconcile in unmanaged mode")
 		return nil
 	}
 
-	s.scope.V(2).Info("Reconciling routing tables")
+	s.scope.Debug("Reconciling routing tables")
 
 	subnetRouteMap, err := s.describeVpcRouteTablesBySubnet()
 	if err != nil {
@@ -61,16 +61,28 @@ func (s *Service) reconcileRouteTables() error {
 				return errors.Errorf("failed to create routing tables: internet gateway for %q is nil", s.scope.VPC().ID)
 			}
 			routes = append(routes, s.getGatewayPublicRoute())
+			if sn.IsIPv6 {
+				routes = append(routes, s.getGatewayPublicIPv6Route())
+			}
 		} else {
 			natGatewayID, err := s.getNatGatewayForSubnet(&sn)
 			if err != nil {
 				return err
 			}
 			routes = append(routes, s.getNatGatewayPrivateRoute(natGatewayID))
+			if sn.IsIPv6 {
+				if !s.scope.VPC().IsIPv6Enabled() {
+					// Safety net because EgressOnlyInternetGateway needs the ID from the ipv6 block.
+					// if, for whatever reason by this point that is not available, we don't want to
+					// panic because of a nil pointer access. This should never occur. Famous last words though.
+					return errors.Errorf("ipv6 block missing for ipv6 enabled subnet, can't create egress only internet gateway")
+				}
+				routes = append(routes, s.getEgressOnlyInternetGateway())
+			}
 		}
 
 		if rt, ok := subnetRouteMap[sn.ID]; ok {
-			s.scope.V(2).Info("Subnet is already associated with route table", "subnet-id", sn.ID, "route-table-id", *rt.RouteTableId)
+			s.scope.Debug("Subnet is already associated with route table", "subnet-id", sn.ID, "route-table-id", *rt.RouteTableId)
 			// TODO(vincepri): check that everything is in order, e.g. routes match the subnet type.
 
 			// For managed environments we need to reconcile the routes of our tables if there is a mistmatch.
@@ -80,30 +92,13 @@ func (s *Service) reconcileRouteTables() error {
 				for i := range routes {
 					// Routes destination cidr blocks must be unique within a routing table.
 					// If there is a mistmatch, we replace the routing association.
-					specRoute := routes[i]
-					if (currentRoute.DestinationCidrBlock != nil && // Manually-created routes can have .DestinationIpv6CidrBlock or .DestinationPrefixListId set instead.
-						*currentRoute.DestinationCidrBlock == *specRoute.DestinationCidrBlock) &&
-						((currentRoute.GatewayId != nil && *currentRoute.GatewayId != *specRoute.GatewayId) ||
-							(currentRoute.NatGatewayId != nil && *currentRoute.NatGatewayId != *specRoute.NatGatewayId)) {
-						if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-							if _, err := s.EC2Client.ReplaceRoute(&ec2.ReplaceRouteInput{
-								RouteTableId:         rt.RouteTableId,
-								DestinationCidrBlock: specRoute.DestinationCidrBlock,
-								GatewayId:            specRoute.GatewayId,
-								NatGatewayId:         specRoute.NatGatewayId,
-							}); err != nil {
-								return false, err
-							}
-							return true, nil
-						}); err != nil {
-							record.Warnf(s.scope.InfraCluster(), "FailedReplaceRoute", "Failed to replace outdated route on managed RouteTable %q: %v", *rt.RouteTableId, err)
-							return errors.Wrapf(err, "failed to replace outdated route on route table %q", *rt.RouteTableId)
-						}
+					if err := s.fixMismatchedRouting(routes[i], currentRoute, rt); err != nil {
+						return err
 					}
 				}
 			}
 
-			// Make sure tags are up to date.
+			// Make sure tags are up-to-date.
 			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 				buildParams := s.getRouteTableTagParams(*rt.RouteTableId, sn.IsPublic, sn.AvailabilityZone)
 				tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
@@ -137,10 +132,54 @@ func (s *Service) reconcileRouteTables() error {
 			return err
 		}
 
-		s.scope.V(2).Info("Subnet has been associated with route table", "subnet-id", sn.ID, "route-table-id", rt.ID)
+		s.scope.Debug("Subnet has been associated with route table", "subnet-id", sn.ID, "route-table-id", rt.ID)
 		sn.RouteTableID = aws.String(rt.ID)
 	}
 	conditions.MarkTrue(s.scope.InfraCluster(), infrav1.RouteTablesReadyCondition)
+	return nil
+}
+
+func (s *Service) fixMismatchedRouting(specRoute *ec2.Route, currentRoute *ec2.Route, rt *ec2.RouteTable) error {
+	var input *ec2.ReplaceRouteInput
+	if specRoute.DestinationCidrBlock != nil {
+		if (currentRoute.DestinationCidrBlock != nil &&
+			*currentRoute.DestinationCidrBlock == *specRoute.DestinationCidrBlock) &&
+			((currentRoute.GatewayId != nil && *currentRoute.GatewayId != *specRoute.GatewayId) ||
+				(currentRoute.NatGatewayId != nil && *currentRoute.NatGatewayId != *specRoute.NatGatewayId)) {
+			input = &ec2.ReplaceRouteInput{
+				RouteTableId:         rt.RouteTableId,
+				DestinationCidrBlock: specRoute.DestinationCidrBlock,
+				GatewayId:            specRoute.GatewayId,
+				NatGatewayId:         specRoute.NatGatewayId,
+			}
+		}
+	}
+	if specRoute.DestinationIpv6CidrBlock != nil {
+		if (currentRoute.DestinationIpv6CidrBlock != nil &&
+			*currentRoute.DestinationIpv6CidrBlock == *specRoute.DestinationIpv6CidrBlock) &&
+			((currentRoute.GatewayId != nil && *currentRoute.GatewayId != *specRoute.GatewayId) ||
+				(currentRoute.NatGatewayId != nil && *currentRoute.NatGatewayId != *specRoute.NatGatewayId)) {
+			input = &ec2.ReplaceRouteInput{
+				RouteTableId:                rt.RouteTableId,
+				DestinationIpv6CidrBlock:    specRoute.DestinationIpv6CidrBlock,
+				DestinationPrefixListId:     specRoute.DestinationPrefixListId,
+				GatewayId:                   specRoute.GatewayId,
+				NatGatewayId:                specRoute.NatGatewayId,
+				EgressOnlyInternetGatewayId: specRoute.EgressOnlyInternetGatewayId,
+			}
+		}
+	}
+	if input != nil {
+		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+			if _, err := s.EC2Client.ReplaceRoute(input); err != nil {
+				return false, err
+			}
+			return true, nil
+		}); err != nil {
+			record.Warnf(s.scope.InfraCluster(), "FailedReplaceRoute", "Failed to replace outdated route on managed RouteTable %q: %v", *rt.RouteTableId, err)
+			return errors.Wrapf(err, "failed to replace outdated route on route table %q", *rt.RouteTableId)
+		}
+	}
 	return nil
 }
 
@@ -171,7 +210,7 @@ func (s *Service) describeVpcRouteTablesBySubnet() (map[string]*ec2.RouteTable, 
 
 func (s *Service) deleteRouteTables() error {
 	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
-		s.scope.V(4).Info("Skipping routing tables deletion in unmanaged mode")
+		s.scope.Trace("Skipping routing tables deletion in unmanaged mode")
 		return nil
 	}
 
@@ -192,7 +231,7 @@ func (s *Service) deleteRouteTables() error {
 			}
 
 			record.Eventf(s.scope.InfraCluster(), "SuccessfulDisassociateRouteTable", "Disassociated managed RouteTable %q from subnet %q", *rt.RouteTableId, *as.SubnetId)
-			s.scope.V(2).Info("Deleted association between route table and subnet", "route-table-id", *rt.RouteTableId, "subnet-id", *as.SubnetId)
+			s.scope.Debug("Deleted association between route table and subnet", "route-table-id", *rt.RouteTableId, "subnet-id", *as.SubnetId)
 		}
 
 		if _, err := s.EC2Client.DeleteRouteTable(&ec2.DeleteRouteTableInput{RouteTableId: rt.RouteTableId}); err != nil {
@@ -286,8 +325,15 @@ func (s *Service) associateRouteTable(rt *infrav1.RouteTable, subnetID string) e
 
 func (s *Service) getNatGatewayPrivateRoute(natGatewayID string) *ec2.Route {
 	return &ec2.Route{
-		DestinationCidrBlock: aws.String(services.AnyIPv4CidrBlock),
 		NatGatewayId:         aws.String(natGatewayID),
+		DestinationCidrBlock: aws.String(services.AnyIPv4CidrBlock),
+	}
+}
+
+func (s *Service) getEgressOnlyInternetGateway() *ec2.Route {
+	return &ec2.Route{
+		DestinationIpv6CidrBlock:    aws.String(services.AnyIPv6CidrBlock),
+		EgressOnlyInternetGatewayId: s.scope.VPC().IPv6.EgressOnlyInternetGatewayID,
 	}
 }
 
@@ -295,6 +341,13 @@ func (s *Service) getGatewayPublicRoute() *ec2.Route {
 	return &ec2.Route{
 		DestinationCidrBlock: aws.String(services.AnyIPv4CidrBlock),
 		GatewayId:            aws.String(*s.scope.VPC().InternetGatewayID),
+	}
+}
+
+func (s *Service) getGatewayPublicIPv6Route() *ec2.Route {
+	return &ec2.Route{
+		DestinationIpv6CidrBlock: aws.String(services.AnyIPv6CidrBlock),
+		GatewayId:                aws.String(*s.scope.VPC().InternetGatewayID),
 	}
 }
 
@@ -311,12 +364,15 @@ func (s *Service) getRouteTableTagParams(id string, public bool, zone string) in
 	name.WriteString("-")
 	name.WriteString(zone)
 
+	additionalTags := s.scope.AdditionalTags()
+	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())] = string(infrav1.ResourceLifecycleOwned)
+
 	return infrav1.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
 		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(name.String()),
 		Role:        aws.String(infrav1.CommonRoleTagValue),
-		Additional:  s.scope.AdditionalTags(),
+		Additional:  additionalTags,
 	}
 }

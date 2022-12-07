@@ -24,7 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	. "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
+	. "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 )
 
 var (

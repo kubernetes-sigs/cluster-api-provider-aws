@@ -27,9 +27,9 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -39,6 +39,7 @@ var (
 	e2eCtx           *shared.E2EContext
 	skipUpgradeTests bool
 	skipGeneralTests bool
+	skipLegacyTests  bool
 )
 
 func init() {
@@ -47,6 +48,7 @@ func init() {
 	shared.CreateDefaultFlags(e2eCtx)
 	flag.BoolVar(&skipGeneralTests, "skip-eks-general-tests", false, "if true, the general EKS tests will be skipped")
 	flag.BoolVar(&skipUpgradeTests, "skip-eks-upgrade-tests", false, "if true, the EKS upgrade tests will be skipped")
+	flag.BoolVar(&skipLegacyTests, "skip-eks-legacy-tests", false, "if true, the EKS legacy tests will be skipped")
 }
 
 func TestE2E(t *testing.T) {
@@ -75,6 +77,10 @@ func runGeneralTests() bool {
 
 func runUpgradeTests() bool {
 	return !skipUpgradeTests
+}
+
+func runLegacyTests() bool {
+	return !skipLegacyTests
 }
 
 func initScheme() *runtime.Scheme {

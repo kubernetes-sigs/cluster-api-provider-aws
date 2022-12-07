@@ -115,6 +115,12 @@ type ControlPlaneTopology struct {
 	// When specified against a control plane provider that lacks support for this field, this value will be ignored.
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
+
+	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+	// The default value is 0, meaning that the node can be drained without any time limitations.
+	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
+	// +optional
+	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
 }
 
 // WorkersTopology represents the different sets of worker nodes in the cluster.
@@ -154,6 +160,12 @@ type MachineDeploymentTopology struct {
 	// of this value.
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
+
+	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+	// The default value is 0, meaning that the node can be drained without any time limitations.
+	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
+	// +optional
+	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
 
 	// Variables can be used to customize the MachineDeployment through patches.
 	// +optional
@@ -218,8 +230,8 @@ type NetworkRanges struct {
 	CIDRBlocks []string `json:"cidrBlocks"`
 }
 
-func (n *NetworkRanges) String() string {
-	if n == nil {
+func (n NetworkRanges) String() string {
+	if len(n.CIDRBlocks) == 0 {
 		return ""
 	}
 	return strings.Join(n.CIDRBlocks, ",")

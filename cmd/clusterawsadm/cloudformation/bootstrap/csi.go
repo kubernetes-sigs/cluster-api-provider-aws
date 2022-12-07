@@ -19,12 +19,12 @@ package bootstrap
 import (
 	"github.com/awslabs/goformation/v4/cloudformation"
 
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 )
 
 func (t Template) csiControlPlaneAwsRoles() []string {
 	roles := []string{}
-	if !t.Spec.ControlPlane.EnableCSIPolicy {
+	if !t.Spec.ControlPlane.DisableCloudProviderPolicy && t.Spec.ControlPlane.EnableCSIPolicy {
 		roles = append(roles, cloudformation.Ref(AWSIAMRoleControlPlane))
 	}
 	return roles

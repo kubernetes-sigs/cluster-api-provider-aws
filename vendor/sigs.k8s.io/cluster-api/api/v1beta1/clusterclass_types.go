@@ -216,12 +216,23 @@ type JSONSchemaProps struct {
 
 	// Properties specifies fields of an object.
 	// NOTE: Can only be set if type is object.
+	// NOTE: Properties is mutually exclusive with AdditionalProperties.
 	// NOTE: This field uses PreserveUnknownFields and Schemaless,
 	// because recursive validation is not possible.
 	// +optional
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
 	Properties map[string]JSONSchemaProps `json:"properties,omitempty"`
+
+	// AdditionalProperties specifies the schema of values in a map (keys are always strings).
+	// NOTE: Can only be set if type is object.
+	// NOTE: AdditionalProperties is mutually exclusive with Properties.
+	// NOTE: This field uses PreserveUnknownFields and Schemaless,
+	// because recursive validation is not possible.
+	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	AdditionalProperties *JSONSchemaProps `json:"additionalProperties,omitempty"`
 
 	// Required specifies which fields of an object are required.
 	// NOTE: Can only be set if type is object.
@@ -325,9 +336,16 @@ type ClusterClassPatch struct {
 	// +optional
 	EnabledIf *string `json:"enabledIf,omitempty"`
 
-	// Definitions define the patches inline.
+	// Definitions define inline patches.
 	// Note: Patches will be applied in the order of the array.
-	Definitions []PatchDefinition `json:"definitions"`
+	// Note: Exactly one of Definitions or External must be set.
+	// +optional
+	Definitions []PatchDefinition `json:"definitions,omitempty"`
+
+	// External defines an external patch.
+	// Note: Exactly one of Definitions or External must be set.
+	// +optional
+	External *ExternalPatchDefinition `json:"external,omitempty"`
 }
 
 // PatchDefinition defines a patch which is applied to customize the referenced templates.
@@ -428,6 +446,18 @@ type JSONPatchValue struct {
 	// Note: The template must evaluate to a valid YAML or JSON value.
 	// +optional
 	Template *string `json:"template,omitempty"`
+}
+
+// ExternalPatchDefinition defines an external patch.
+// Note: At least one of GenerateExtension or ValidateExtension must be set.
+type ExternalPatchDefinition struct {
+	// GenerateExtension references an extension which is called to generate patches.
+	// +optional
+	GenerateExtension *string `json:"generateExtension,omitempty"`
+
+	// ValidateExtension references an extension which is called to validate the topology.
+	// +optional
+	ValidateExtension *string `json:"validateExtension,omitempty"`
 }
 
 // LocalObjectTemplate defines a template for a topology Class.

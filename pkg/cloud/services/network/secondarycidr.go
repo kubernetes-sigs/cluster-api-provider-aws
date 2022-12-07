@@ -21,7 +21,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 )
 
 func isVPCPresent(vpcs *ec2.DescribeVpcsOutput) bool {

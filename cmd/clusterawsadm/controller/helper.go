@@ -26,7 +26,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"sigs.k8s.io/cluster-api-provider-aws/version"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/version"
 )
 
 // BootstrapCredsSecret defines the tag for capa manager bootstrap credentials.
