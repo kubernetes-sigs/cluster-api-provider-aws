@@ -1,0 +1,25 @@
+name: scan-images
+
+on:
+  schedule:
+    # every Monday at 12:00PM
+    - cron: "0 12 * * 1"
+
+# Remove all permissions from GITHUB_TOKEN except metadata.
+permissions: {}
+
+jobs:
+  scan:
+    name: Trivy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3.1.0
+      - name: Make images
+        run:  make REGISTRY=gcr.io/k8s-staging-cluster-api-aws PULL_POLICY=IfNotPresent TAG=dev ARCH=amd64 docker-build
+      - name: Run Trivy vulnerability scanner on CAPA image
+        uses: aquasecurity/trivy-action@v0.8.0
+        with:
+          image-ref: 'gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller-arm64:dev'
+          format: 'table'
+          exit-code: '1'
