@@ -24,14 +24,14 @@ import (
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
@@ -41,7 +41,7 @@ const (
 )
 
 func (s *Service) reconcileVPC() error {
-	s.scope.V(2).Info("Reconciling VPC")
+	s.scope.Debug("Reconciling VPC")
 
 	// If the ID is not nil, VPC is either managed or unmanaged but should exist in the AWS.
 	if s.scope.VPC().ID != "" {
@@ -52,10 +52,11 @@ func (s *Service) reconcileVPC() error {
 
 		s.scope.VPC().CidrBlock = vpc.CidrBlock
 		s.scope.VPC().Tags = vpc.Tags
+		s.scope.VPC().IPv6 = vpc.IPv6
 
 		// If VPC is unmanaged, return early.
 		if vpc.IsUnmanaged(s.scope.Name()) {
-			s.scope.V(2).Info("Working on unmanaged VPC", "vpc-id", vpc.ID)
+			s.scope.Debug("Working on unmanaged VPC", "vpc-id", vpc.ID)
 			if err := s.scope.PatchObject(); err != nil {
 				return errors.Wrap(err, "failed to patch unmanaged VPC fields")
 			}
@@ -70,7 +71,7 @@ func (s *Service) reconcileVPC() error {
 			}
 			return true, nil
 		}, awserrors.VPCNotFound); err != nil {
-			return errors.Wrapf(err, "failed to to set vpc attributes for %q", vpc.ID)
+			return errors.Wrapf(err, "failed to set vpc attributes for %q", vpc.ID)
 		}
 
 		return nil
@@ -90,6 +91,7 @@ func (s *Service) reconcileVPC() error {
 	s.scope.Info("Created VPC", "vpc-id", vpc.ID)
 
 	s.scope.VPC().CidrBlock = vpc.CidrBlock
+	s.scope.VPC().IPv6 = vpc.IPv6
 	s.scope.VPC().Tags = vpc.Tags
 	s.scope.VPC().ID = vpc.ID
 
@@ -100,7 +102,7 @@ func (s *Service) reconcileVPC() error {
 		}
 		return true, nil
 	}, awserrors.VPCNotFound); err != nil {
-		return errors.Wrapf(err, "failed to to set vpc attributes for %q", vpc.ID)
+		return errors.Wrapf(err, "failed to set vpc attributes for %q", vpc.ID)
 	}
 
 	return nil
@@ -172,16 +174,25 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 }
 
 func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
-	if s.scope.VPC().CidrBlock == "" {
-		s.scope.VPC().CidrBlock = defaultVPCCidr
-	}
-
 	input := &ec2.CreateVpcInput{
-		CidrBlock: aws.String(s.scope.VPC().CidrBlock),
 		TagSpecifications: []*ec2.TagSpecification{
 			tags.BuildParamsToTagSpecification(ec2.ResourceTypeVpc, s.getVPCTagParams(services.TemporaryResourceID)),
 		},
 	}
+
+	// setup BYOIP
+	if s.scope.VPC().IsIPv6Enabled() && s.scope.VPC().IPv6.CidrBlock != "" {
+		input.Ipv6CidrBlock = aws.String(s.scope.VPC().IPv6.CidrBlock)
+		input.Ipv6Pool = aws.String(s.scope.VPC().IPv6.PoolID)
+		input.AmazonProvidedIpv6CidrBlock = aws.Bool(false)
+	} else {
+		input.AmazonProvidedIpv6CidrBlock = aws.Bool(s.scope.VPC().IsIPv6Enabled())
+	}
+
+	if s.scope.VPC().CidrBlock == "" {
+		s.scope.VPC().CidrBlock = defaultVPCCidr
+	}
+	input.CidrBlock = &s.scope.VPC().CidrBlock
 
 	out, err := s.EC2Client.CreateVpc(input)
 	if err != nil {
@@ -190,20 +201,63 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 	}
 
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateVPC", "Created new managed VPC %q", *out.Vpc.VpcId)
-	s.scope.V(2).Info("Created new VPC with cidr", "vpc-id", *out.Vpc.VpcId, "cidr-block", *out.Vpc.CidrBlock)
+	s.scope.Debug("Created new VPC with cidr", "vpc-id", *out.Vpc.VpcId, "cidr-block", *out.Vpc.CidrBlock)
 
-	return &infrav1.VPCSpec{
-		ID:        *out.Vpc.VpcId,
-		CidrBlock: *out.Vpc.CidrBlock,
-		Tags:      converters.TagsToMap(out.Vpc.Tags),
-	}, nil
+	if !s.scope.VPC().IsIPv6Enabled() {
+		return &infrav1.VPCSpec{
+			ID:        *out.Vpc.VpcId,
+			CidrBlock: *out.Vpc.CidrBlock,
+			Tags:      converters.TagsToMap(out.Vpc.Tags),
+		}, nil
+	}
+
+	// BYOIP was defined, no need to look up the VPC.
+	if s.scope.VPC().IsIPv6Enabled() && s.scope.VPC().IPv6.CidrBlock != "" {
+		return &infrav1.VPCSpec{
+			ID:        *out.Vpc.VpcId,
+			CidrBlock: *out.Vpc.CidrBlock,
+			IPv6: &infrav1.IPv6{
+				CidrBlock: s.scope.VPC().IPv6.CidrBlock,
+				PoolID:    s.scope.VPC().IPv6.PoolID,
+			},
+			Tags: converters.TagsToMap(out.Vpc.Tags),
+		}, nil
+	}
+
+	// We have to describe the VPC again because the `create` output will **NOT** contain the associated IPv6 address.
+	vpc, err := s.EC2Client.DescribeVpcs(&ec2.DescribeVpcsInput{
+		VpcIds: aws.StringSlice([]string{aws.StringValue(out.Vpc.VpcId)}),
+	})
+	if err != nil {
+		record.Warnf(s.scope.InfraCluster(), "DescribeVpcs", "Failed to describe the new ipv6 vpc: %v", err)
+		return nil, errors.Wrap(err, "failed to describe new ipv6 vpc")
+	}
+	if len(vpc.Vpcs) == 0 {
+		record.Warnf(s.scope.InfraCluster(), "DescribeVpcs", "Failed to find the new ipv6 vpc, returned list was empty.")
+		return nil, errors.New("failed to find new ipv6 vpc; returned list was empty")
+	}
+	for _, set := range vpc.Vpcs[0].Ipv6CidrBlockAssociationSet {
+		if *set.Ipv6CidrBlockState.State == ec2.SubnetCidrBlockStateCodeAssociated {
+			return &infrav1.VPCSpec{
+				IPv6: &infrav1.IPv6{
+					CidrBlock: aws.StringValue(set.Ipv6CidrBlock),
+					PoolID:    aws.StringValue(set.Ipv6Pool),
+				},
+				ID:        *vpc.Vpcs[0].VpcId,
+				CidrBlock: *out.Vpc.CidrBlock,
+				Tags:      converters.TagsToMap(vpc.Vpcs[0].Tags),
+			}, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no IPv6 associated CIDR block sets found for IPv6 enabled cluster with vpc id %s", *out.Vpc.VpcId)
 }
 
 func (s *Service) deleteVPC() error {
 	vpc := s.scope.VPC()
 
 	if vpc.IsUnmanaged(s.scope.Name()) {
-		s.scope.V(4).Info("Skipping VPC deletion in unmanaged mode")
+		s.scope.Trace("Skipping VPC deletion in unmanaged mode")
 		return nil
 	}
 
@@ -214,9 +268,16 @@ func (s *Service) deleteVPC() error {
 	if _, err := s.EC2Client.DeleteVpc(input); err != nil {
 		// Ignore if it's already deleted
 		if code, ok := awserrors.Code(err); ok && code == awserrors.VPCNotFound {
-			s.scope.V(4).Info("Skipping VPC deletion, VPC not found")
+			s.scope.Trace("Skipping VPC deletion, VPC not found")
 			return nil
 		}
+
+		// Ignore if VPC ID is not present,
+		if code, ok := awserrors.Code(err); ok && code == awserrors.VPCMissingParameter {
+			s.scope.Trace("Skipping VPC deletion, VPC ID not present")
+			return nil
+		}
+
 		record.Warnf(s.scope.InfraCluster(), "FailedDeleteVPC", "Failed to delete managed VPC %q: %v", vpc.ID, err)
 		return errors.Wrapf(err, "failed to delete vpc %q", vpc.ID)
 	}
@@ -260,11 +321,21 @@ func (s *Service) describeVPCByID() (*infrav1.VPCSpec, error) {
 		return nil, awserrors.NewNotFound("could not find available or pending vpc")
 	}
 
-	return &infrav1.VPCSpec{
+	vpc := &infrav1.VPCSpec{
 		ID:        *out.Vpcs[0].VpcId,
 		CidrBlock: *out.Vpcs[0].CidrBlock,
 		Tags:      converters.TagsToMap(out.Vpcs[0].Tags),
-	}, nil
+	}
+	for _, set := range out.Vpcs[0].Ipv6CidrBlockAssociationSet {
+		if *set.Ipv6CidrBlockState.State == ec2.SubnetCidrBlockStateCodeAssociated {
+			vpc.IPv6 = &infrav1.IPv6{
+				CidrBlock: aws.StringValue(set.Ipv6CidrBlock),
+				PoolID:    aws.StringValue(set.Ipv6Pool),
+			}
+			break
+		}
+	}
+	return vpc, nil
 }
 
 func (s *Service) getVPCTagParams(id string) infrav1.BuildParams {

@@ -1,0 +1,71 @@
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: "${CLUSTER_NAME}"
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: ["192.168.0.0/16"]
+  infrastructureRef:
+    kind: AWSManagedCluster
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    name: "${CLUSTER_NAME}"
+  controlPlaneRef:
+    kind: AWSManagedControlPlane
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+    name: "${CLUSTER_NAME}-control-plane"
+---
+kind: AWSManagedCluster
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+metadata:
+  name: "${CLUSTER_NAME}"
+spec: {}
+---
+kind: AWSManagedControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  region: "${AWS_REGION}"
+  sshKeyName: "${AWS_SSH_KEY_NAME}"
+  version: "${KUBERNETES_VERSION}"
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachinePool
+metadata:
+  name: "${CLUSTER_NAME}-mp-0"
+spec:
+  clusterName: "${CLUSTER_NAME}"
+  replicas: ${WORKER_MACHINE_COUNT}
+  template:
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: EKSConfig
+          name: "${CLUSTER_NAME}-mp-0"
+      clusterName: "${CLUSTER_NAME}"
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        kind: AWSMachinePool
+        name: "${CLUSTER_NAME}-mp-0"
+      version: "${KUBERNETES_VERSION}"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSMachinePool
+metadata:
+  name: "${CLUSTER_NAME}-mp-0"
+spec:
+  minSize: 1
+  maxSize: 10
+  awsLaunchTemplate:
+    iamInstanceProfile: nodes.cluster-api-provider-aws.sigs.k8s.io
+    instanceType: "${AWS_NODE_MACHINE_TYPE}"
+    sshKeyName: "${AWS_SSH_KEY_NAME}"
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+kind: EKSConfig
+metadata:
+  name: "${CLUSTER_NAME}-mp-0"
+spec: {}

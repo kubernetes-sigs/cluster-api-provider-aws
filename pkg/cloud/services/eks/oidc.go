@@ -30,8 +30,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/converters"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 )
 
@@ -52,10 +52,18 @@ func (s *Service) reconcileOIDCProvider(cluster *eks.Cluster) error {
 	}
 
 	s.scope.Info("Reconciling EKS OIDC Provider", "cluster-name", cluster.Name)
-	oidcProvider, err := s.CreateOIDCProvider(cluster)
+
+	oidcProvider, err := s.FindAndVerifyOIDCProvider(cluster)
 	if err != nil {
-		return errors.Wrap(err, "failed to create OIDC provider")
+		return errors.Wrap(err, "failed to reconcile OIDC provider")
 	}
+	if oidcProvider == "" {
+		oidcProvider, err = s.CreateOIDCProvider(cluster)
+		if err != nil {
+			return errors.Wrap(err, "failed to create OIDC provider")
+		}
+	}
+
 	s.scope.ControlPlane.Status.OIDCProvider.ARN = oidcProvider
 
 	policy, err := converters.IAMPolicyDocumentToJSON(s.buildOIDCTrustPolicy())
@@ -116,11 +124,11 @@ func (s *Service) reconcileTrustPolicy() error {
 	if trustPolicyConfigMap.UID == "" {
 		trustPolicyConfigMap.Name = trustPolicyConfigMapName
 		trustPolicyConfigMap.Namespace = trustPolicyConfigMapNamespace
-		s.V(2).Info("Creating new Trust Policy ConfigMap", "cluster", s.scope.Name(), "configmap", trustPolicyConfigMapName)
+		s.Debug("Creating new Trust Policy ConfigMap", "cluster", s.scope.Name(), "configmap", trustPolicyConfigMapName)
 		return remoteClient.Create(ctx, trustPolicyConfigMap)
 	}
 
-	s.V(2).Info("Updating existing Trust Policy ConfigMap", "cluster", s.scope.Name(), "configmap", trustPolicyConfigMapName)
+	s.Debug("Updating existing Trust Policy ConfigMap", "cluster", s.scope.Name(), "configmap", trustPolicyConfigMapName)
 	return remoteClient.Update(ctx, trustPolicyConfigMap)
 }
 

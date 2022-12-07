@@ -21,15 +21,16 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/v2/klogr"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -42,7 +43,7 @@ import (
 // MachineScopeParams defines the input parameters used to create a new MachineScope.
 type MachineScopeParams struct {
 	Client       client.Client
-	Logger       *logr.Logger
+	Logger       *logger.Logger
 	Cluster      *clusterv1.Cluster
 	Machine      *clusterv1.Machine
 	InfraCluster EC2Scope
@@ -69,8 +70,8 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 	}
 
 	if params.Logger == nil {
-		log := klogr.New()
-		params.Logger = &log
+		log := klog.Background()
+		params.Logger = logger.NewLogger(log)
 	}
 
 	helper, err := patch.NewHelper(params.AWSMachine, params.Client)
@@ -91,7 +92,7 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 
 // MachineScope defines a scope defined around a machine and its cluster.
 type MachineScope struct {
-	logr.Logger
+	logger.Logger
 	client      client.Client
 	patchHelper *patch.Helper
 
@@ -363,7 +364,7 @@ func (m *MachineScope) AWSMachineIsDeleted() bool {
 
 // IsEKSManaged checks if the machine is EKS managed.
 func (m *MachineScope) IsEKSManaged() bool {
-	return m.InfraCluster.InfraCluster().GetObjectKind().GroupVersionKind().Kind == "AWSManagedControlPlane"
+	return m.InfraCluster.InfraCluster().GetObjectKind().GroupVersionKind().Kind == ekscontrolplanev1.AWSManagedControlPlaneKind
 }
 
 // IsExternallyManaged checks if the machine is externally managed.

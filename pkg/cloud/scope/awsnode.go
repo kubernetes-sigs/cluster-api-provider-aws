@@ -19,8 +19,9 @@ package scope
 import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 )
 
 // AWSNodeScope is the interface for the scope to be used with the awsnode reconciling service.
@@ -37,4 +38,8 @@ type AWSNodeScope interface {
 	SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.SecurityGroup
 	// DisableVPCCNI returns whether the AWS VPC CNI should be disabled
 	DisableVPCCNI() bool
+	// VpcCni specifies configuration related to the VPC CNI.
+	VpcCni() ekscontrolplanev1.VpcCni
+	// VPC returns the given VPC configuration.
+	VPC() *infrav1.VPCSpec
 }

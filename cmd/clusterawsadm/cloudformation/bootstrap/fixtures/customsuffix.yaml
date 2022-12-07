@@ -28,6 +28,7 @@ Resources:
           - autoscaling:DescribeAutoScalingGroups
           - autoscaling:DescribeLaunchConfigurations
           - autoscaling:DescribeTags
+          - ec2:AssignIpv6Addresses
           - ec2:DescribeInstances
           - ec2:DescribeImages
           - ec2:DescribeRegions
@@ -69,6 +70,7 @@ Resources:
           - elasticloadbalancing:CreateTargetGroup
           - elasticloadbalancing:DeleteListener
           - elasticloadbalancing:DeleteTargetGroup
+          - elasticloadbalancing:DeregisterTargets
           - elasticloadbalancing:DescribeListeners
           - elasticloadbalancing:DescribeLoadBalancerPolicies
           - elasticloadbalancing:DescribeTargetGroups
@@ -93,8 +95,13 @@ Resources:
       PolicyDocument:
         Statement:
         - Action:
+          - ec2:AssignIpv6Addresses
           - ec2:DescribeInstances
           - ec2:DescribeRegions
+          - ec2:CreateTags
+          - ec2:DescribeTags
+          - ec2:DescribeNetworkInterfaces
+          - ec2:DescribeInstanceTypes
           - ecr:GetAuthorizationToken
           - ecr:BatchCheckLayerAvailability
           - ecr:GetDownloadUrlForLayer
@@ -133,12 +140,19 @@ Resources:
       PolicyDocument:
         Statement:
         - Action:
+          - ec2:AttachNetworkInterface
+          - ec2:DetachNetworkInterface
           - ec2:AllocateAddress
+          - ec2:AssignIpv6Addresses
+          - ec2:AssignPrivateIpAddresses
+          - ec2:UnassignPrivateIpAddresses
           - ec2:AssociateRouteTable
           - ec2:AttachInternetGateway
           - ec2:AuthorizeSecurityGroupIngress
           - ec2:CreateInternetGateway
+          - ec2:CreateEgressOnlyInternetGateway
           - ec2:CreateNatGateway
+          - ec2:CreateNetworkInterface
           - ec2:CreateRoute
           - ec2:CreateRouteTable
           - ec2:CreateSecurityGroup
@@ -147,6 +161,7 @@ Resources:
           - ec2:CreateVpc
           - ec2:ModifyVpcAttribute
           - ec2:DeleteInternetGateway
+          - ec2:DeleteEgressOnlyInternetGateway
           - ec2:DeleteNatGateway
           - ec2:DeleteRouteTable
           - ec2:ReplaceRoute
@@ -159,6 +174,8 @@ Resources:
           - ec2:DescribeAvailabilityZones
           - ec2:DescribeInstances
           - ec2:DescribeInternetGateways
+          - ec2:DescribeEgressOnlyInternetGateways
+          - ec2:DescribeInstanceTypes
           - ec2:DescribeImages
           - ec2:DescribeNatGateways
           - ec2:DescribeNetworkInterfaces
@@ -169,6 +186,7 @@ Resources:
           - ec2:DescribeVpcs
           - ec2:DescribeVpcAttribute
           - ec2:DescribeVolumes
+          - ec2:DescribeTags
           - ec2:DetachInternetGateway
           - ec2:DisassociateRouteTable
           - ec2:DisassociateAddress

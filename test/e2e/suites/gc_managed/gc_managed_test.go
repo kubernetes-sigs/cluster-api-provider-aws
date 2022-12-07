@@ -8,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,9 +30,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
-	ms "sigs.k8s.io/cluster-api-provider-aws/test/e2e/suites/managed"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
+	ms "sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/suites/managed"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
@@ -118,14 +119,14 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 			ServiceName:      "podinfo-nlb",
 			ServiceNamespace: "default",
 			ClusterName:      cp.Spec.EKSClusterName,
-			Type:             shared.LoadBalancerTypeNLB,
+			Type:             infrav1.LoadBalancerTypeNLB,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-loadbalancer-ready")...)
 		shared.WaitForLoadBalancerToExistForService(shared.WaitForLoadBalancerToExistForServiceInput{
 			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-elb",
 			ServiceNamespace: "default",
 			ClusterName:      cp.Spec.EKSClusterName,
-			Type:             shared.LoadBalancerTypeELB,
+			Type:             infrav1.LoadBalancerTypeELB,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-loadbalancer-ready")...)
 
 		shared.Byf("Deleting workload/tenant cluster %s", clusterName)
@@ -144,7 +145,7 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 			ServiceName:      "podinfo-nlb",
 			ServiceNamespace: "default",
 			ClusterName:      cp.Spec.EKSClusterName,
-			Type:             shared.LoadBalancerTypeNLB,
+			Type:             infrav1.LoadBalancerTypeNLB,
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(arns).To(HaveLen(0), "there are %d service load balancers (nlb) still", len(arns))
@@ -153,7 +154,7 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 			ServiceName:      "podinfo-elb",
 			ServiceNamespace: "default",
 			ClusterName:      cp.Spec.EKSClusterName,
-			Type:             shared.LoadBalancerTypeELB,
+			Type:             infrav1.LoadBalancerTypeELB,
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(arns).To(HaveLen(0), "there are %d service load balancers (elb) still", len(arns))

@@ -3,7 +3,7 @@
 New AMIs are built whenever a new Kubernetes version is released for each supported OS distribution and then published to supported regions.
 
 `clusterawsadm ami list` command lists pre-built reference AMIs by Kubernetes version, OS, or AWS region.
-See [clusterawsadm ami list](../clusterawsadm/clusterawsadm_ami_list.md) for details.
+See [clusterawsadm ami list](https://cluster-api-aws.sigs.k8s.io/clusterawsadm/clusterawsadm_ami_list.html) for details.
 
 > **Note:**  These images are not updated for security fixes and it is recommended to always use the latest patch version for the Kubernetes version you want to run. For production environments, it is highly recommended to build and use your own custom images.
 

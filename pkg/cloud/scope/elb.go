@@ -17,8 +17,8 @@ limitations under the License.
 package scope
 
 import (
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -42,7 +42,7 @@ type ELBScope interface {
 	ControlPlaneLoadBalancer() *infrav1.AWSLoadBalancerSpec
 
 	// ControlPlaneLoadBalancerScheme returns the Classic ELB scheme (public or internal facing)
-	ControlPlaneLoadBalancerScheme() infrav1.ClassicELBScheme
+	ControlPlaneLoadBalancerScheme() infrav1.ELBScheme
 
 	// ControlPlaneLoadBalancerName returns the Classic ELB name
 	ControlPlaneLoadBalancerName() *string

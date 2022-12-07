@@ -21,14 +21,14 @@ import (
 	"fmt"
 
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	"k8s.io/klog/v2/klogr"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -37,7 +37,7 @@ import (
 // ClusterScopeParams defines the input parameters used to create a new Scope.
 type ClusterScopeParams struct {
 	Client         client.Client
-	Logger         *logr.Logger
+	Logger         *logger.Logger
 	Cluster        *clusterv1.Cluster
 	AWSCluster     *infrav1.AWSCluster
 	ControllerName string
@@ -56,8 +56,8 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	}
 
 	if params.Logger == nil {
-		log := klogr.New()
-		params.Logger = &log
+		log := klog.Background()
+		params.Logger = logger.NewLogger(log)
 	}
 
 	clusterScope := &ClusterScope{
@@ -68,7 +68,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		controllerName: params.ControllerName,
 	}
 
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, clusterScope, params.AWSCluster.Spec.Region, params.Endpoints, *params.Logger)
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, clusterScope, params.AWSCluster.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
@@ -87,7 +87,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 
 // ClusterScope defines the basic context for an actuator to operate upon.
 type ClusterScope struct {
-	logr.Logger
+	logger.Logger
 	client      client.Client
 	patchHelper *patch.Helper
 
@@ -179,11 +179,11 @@ func (s *ClusterScope) ControlPlaneLoadBalancer() *infrav1.AWSLoadBalancerSpec {
 }
 
 // ControlPlaneLoadBalancerScheme returns the Classic ELB scheme (public or internal facing).
-func (s *ClusterScope) ControlPlaneLoadBalancerScheme() infrav1.ClassicELBScheme {
+func (s *ClusterScope) ControlPlaneLoadBalancerScheme() infrav1.ELBScheme {
 	if s.ControlPlaneLoadBalancer() != nil && s.ControlPlaneLoadBalancer().Scheme != nil {
 		return *s.ControlPlaneLoadBalancer().Scheme
 	}
-	return infrav1.ClassicELBSchemeInternetFacing
+	return infrav1.ELBSchemeInternetFacing
 }
 
 func (s *ClusterScope) ControlPlaneLoadBalancerName() *string {
@@ -234,6 +234,9 @@ func (s *ClusterScope) PatchObject() error {
 		if s.AWSCluster.Spec.Bastion.Enabled {
 			applicableConditions = append(applicableConditions, infrav1.BastionHostReadyCondition)
 		}
+		if s.VPC().IsIPv6Enabled() {
+			applicableConditions = append(applicableConditions, infrav1.EgressOnlyInternetGatewayReadyCondition)
+		}
 	}
 
 	conditions.SetSummary(s.AWSCluster,
@@ -250,6 +253,7 @@ func (s *ClusterScope) PatchObject() error {
 			infrav1.VpcReadyCondition,
 			infrav1.SubnetsReadyCondition,
 			infrav1.InternetGatewayReadyCondition,
+			infrav1.EgressOnlyInternetGatewayReadyCondition,
 			infrav1.NatGatewaysReadyCondition,
 			infrav1.RouteTablesReadyCondition,
 			infrav1.ClusterSecurityGroupsReadyCondition,
@@ -278,7 +282,7 @@ func (s *ClusterScope) APIServerPort() int32 {
 	if s.Cluster.Spec.ClusterNetwork != nil && s.Cluster.Spec.ClusterNetwork.APIServerPort != nil {
 		return *s.Cluster.Spec.ClusterNetwork.APIServerPort
 	}
-	return 6443
+	return infrav1.DefaultAPIServerPort
 }
 
 // SetFailureDomain sets the infrastructure provider failure domain key to the spec given as input.

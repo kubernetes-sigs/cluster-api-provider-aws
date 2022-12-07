@@ -31,13 +31,13 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ssm/mock_ssmiface"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
-	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ssm/mock_ssmiface"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -290,7 +290,7 @@ func TestGetLaunchTemplate(t *testing.T) {
 	}
 }
 
-func TestService_SDKToLaunchTemplate(t *testing.T) {
+func TestServiceSDKToLaunchTemplate(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    *ec2.LaunchTemplateVersion
@@ -358,7 +358,7 @@ func TestService_SDKToLaunchTemplate(t *testing.T) {
 	}
 }
 
-func TestService_LaunchTemplateNeedsUpdate(t *testing.T) {
+func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -738,6 +738,12 @@ func TestCreateLaunchTemplate(t *testing.T) {
 						UserData:         pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "1"}),
 						ImageId:          aws.String("imageID"),
+						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
+							MarketType: aws.String("spot"),
+							SpotOptions: &ec2.LaunchTemplateSpotMarketOptionsRequest{
+								MaxPrice: aws.String("0.9"),
+							},
+						},
 						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
 							{
 								ResourceType: aws.String(ec2.ResourceTypeInstance),
@@ -792,6 +798,12 @@ func TestCreateLaunchTemplate(t *testing.T) {
 						UserData:         pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "sg-1"}),
 						ImageId:          aws.String("imageID"),
+						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
+							MarketType: aws.String("spot"),
+							SpotOptions: &ec2.LaunchTemplateSpotMarketOptionsRequest{
+								MaxPrice: aws.String("0.9"),
+							},
+						},
 						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
 							{
 								ResourceType: aws.String(ec2.ResourceTypeInstance),
@@ -848,6 +860,12 @@ func TestCreateLaunchTemplate(t *testing.T) {
 						UserData:         pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "1"}),
 						ImageId:          aws.String("imageID"),
+						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
+							MarketType: aws.String("spot"),
+							SpotOptions: &ec2.LaunchTemplateSpotMarketOptionsRequest{
+								MaxPrice: aws.String("0.9"),
+							},
+						},
 						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
 							{
 								ResourceType: aws.String(ec2.ResourceTypeInstance),
@@ -912,7 +930,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 	}
 }
 
-func Test_LaunchTemplateDataCreation(t *testing.T) {
+func TestLaunchTemplateDataCreation(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	t.Run("Should return error if failed to create launch template data", func(t *testing.T) {
@@ -971,6 +989,12 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 						UserData:         pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "1"}),
 						ImageId:          aws.String("imageID"),
+						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
+							MarketType: aws.String("spot"),
+							SpotOptions: &ec2.LaunchTemplateSpotMarketOptionsRequest{
+								MaxPrice: aws.String("0.9"),
+							},
+						},
 						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
 							{
 								ResourceType: aws.String(ec2.ResourceTypeInstance),
@@ -1016,6 +1040,12 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 						UserData:         pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "1"}),
 						ImageId:          aws.String("imageID"),
+						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
+							MarketType: aws.String("spot"),
+							SpotOptions: &ec2.LaunchTemplateSpotMarketOptionsRequest{
+								MaxPrice: aws.String("0.9"),
+							},
+						},
 						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
 							{
 								ResourceType: aws.String(ec2.ResourceTypeInstance),
@@ -1053,10 +1083,10 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 			cs, err := setupClusterScope(client)
 			g.Expect(err).NotTo(HaveOccurred())
 
-			mpScope, err := setupMachinePoolScope(client, cs)
+			ms, err := setupMachinePoolScope(client, cs)
 			g.Expect(err).NotTo(HaveOccurred())
 
-			mpScope.AWSMachinePool.Spec.AWSLaunchTemplate.AdditionalSecurityGroups = tc.awsResourceReference
+			ms.AWSMachinePool.Spec.AWSLaunchTemplate.AdditionalSecurityGroups = tc.awsResourceReference
 
 			mockEC2Client := mocks.NewMockEC2API(mockCtrl)
 			s := NewService(cs)
@@ -1066,10 +1096,10 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 				tc.expect(mockEC2Client.EXPECT())
 			}
 			if tc.wantErr {
-				g.Expect(s.CreateLaunchTemplateVersion(mpScope, aws.String("imageID"), userData)).To(HaveOccurred())
+				g.Expect(s.CreateLaunchTemplateVersion("launch-template-id", ms, aws.String("imageID"), userData)).To(HaveOccurred())
 				return
 			}
-			g.Expect(s.CreateLaunchTemplateVersion(mpScope, aws.String("imageID"), userData)).NotTo(HaveOccurred())
+			g.Expect(s.CreateLaunchTemplateVersion("launch-template-id", ms, aws.String("imageID"), userData)).NotTo(HaveOccurred())
 		})
 	}
 }
@@ -1114,11 +1144,11 @@ func TestBuildLaunchTemplateTagSpecificationRequest(t *testing.T) {
 			cs, err := setupClusterScope(client)
 			g.Expect(err).NotTo(HaveOccurred())
 
-			mpScope, err := setupMachinePoolScope(client, cs)
+			ms, err := setupMachinePoolScope(client, cs)
 			g.Expect(err).NotTo(HaveOccurred())
 
 			s := NewService(cs)
-			tc.check(g, s.buildLaunchTemplateTagSpecificationRequest(mpScope))
+			tc.check(g, s.buildLaunchTemplateTagSpecificationRequest(ms))
 		})
 	}
 }

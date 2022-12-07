@@ -85,9 +85,7 @@ kind: AWSClusterStaticIdentity
 metadata:
   name: "test-account"
 spec:
-  secretRef:
-    name: test-account-creds
-    namespace: capa-system
+  secretRef: test-account-creds
   allowedNamespaces:
     selector:
       matchLabels:
@@ -162,7 +160,7 @@ spec:
   durationSeconds: 900 # default and min value is 900 seconds
   roleARN: arn:aws:iam::11122233344:role/multi-tenancy-role
   sessionName: multi-tenancy-role-session
-  sourceidentityRef:
+  sourceIdentityRef:
     kind: AWSClusterControllerIdentity
     name: default
 ---
@@ -175,7 +173,7 @@ spec:
     list: []
   roleARN: arn:aws:iam::11122233355:role/multi-tenancy-nested-role
   sessionName: multi-tenancy-nested-role-session
-  sourceidentityRef:
+  sourceIdentityRef:
     kind: AWSClusterRoleIdentity
     name: multi-tenancy-role
 ```
@@ -269,11 +267,11 @@ spec:
     name: "test-multi-tenant-workload"
 ```
 
-More specific examples can be referenced from the existing [templates](../../../../templates/) directory.
+More specific examples can be referenced from the existing [templates](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/templates/) directory.
 
-In order to use the [EC2 template](../../../../templates/cluster-template.yaml) with identity type, you can add the `identityRef` section to `kind: AWSCluster` spec section in the template. If you do not, CAPA will automatically add the default identity provider (which is usually your local account credentials).
+In order to use the [EC2 template](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/templates/cluster-template.yaml) with identity type, you can add the `identityRef` section to `kind: AWSCluster` spec section in the template. If you do not, CAPA will automatically add the default identity provider (which is usually your local account credentials).
 
-Similarly, to use the [EKS template](../../../../templates/cluster-template-eks.yaml) with identity type, you can add the `identityRef` section to `kind: AWSManagedControlPlane` spec section in the template. If you do not, CAPA will automatically add the default identity provider (which is usually your local account credentials).
+Similarly, to use the [EKS template](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/templates/cluster-template-eks.yaml) with identity type, you can add the `identityRef` section to `kind: AWSManagedControlPlane` spec section in the template. If you do not, CAPA will automatically add the default identity provider (which is usually your local account credentials).
 
 ## Secure Access to Identities
 `allowedNamespaces` field is used to grant access to the namespaces to use Identities.

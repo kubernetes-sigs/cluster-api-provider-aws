@@ -16,7 +16,7 @@ limitations under the License.
 
 package ssm
 
-// nolint: gosec
+//nolint:gosec
 const secretFetchScript = `#cloud-boothook 
 #!/bin/bash
 

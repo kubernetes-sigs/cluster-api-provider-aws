@@ -24,9 +24,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks/identityprovider"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/eks/identityprovider"
 )
 
 var (
@@ -148,16 +148,19 @@ func TaintEffectFromSDK(effect string) (expinfrav1.TaintEffect, error) {
 
 func ConvertSDKToIdentityProvider(in *ekscontrolplanev1.OIDCIdentityProviderConfig) *identityprovider.OidcIdentityProviderConfig {
 	if in != nil {
+		if in.RequiredClaims == nil {
+			in.RequiredClaims = make(map[string]string)
+		}
 		return &identityprovider.OidcIdentityProviderConfig{
 			ClientID:                   in.ClientID,
-			GroupsClaim:                in.GroupsClaim,
-			GroupsPrefix:               in.GroupsPrefix,
+			GroupsClaim:                aws.StringValue(in.GroupsClaim),
+			GroupsPrefix:               aws.StringValue(in.GroupsPrefix),
 			IdentityProviderConfigName: in.IdentityProviderConfigName,
 			IssuerURL:                  in.IssuerURL,
-			RequiredClaims:             aws.StringMap(in.RequiredClaims),
+			RequiredClaims:             in.RequiredClaims,
 			Tags:                       in.Tags,
-			UsernameClaim:              in.UsernameClaim,
-			UsernamePrefix:             in.UsernamePrefix,
+			UsernameClaim:              aws.StringValue(in.UsernameClaim),
+			UsernamePrefix:             aws.StringValue(in.UsernamePrefix),
 		}
 	}
 

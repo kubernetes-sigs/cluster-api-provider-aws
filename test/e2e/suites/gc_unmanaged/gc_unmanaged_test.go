@@ -8,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,7 +31,8 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/pointer"
 
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -99,14 +100,14 @@ var _ = ginkgo.Context("[unmanaged] [gc]", func() {
 			ServiceName:      "podinfo-nlb",
 			ServiceNamespace: "default",
 			ClusterName:      clusterName,
-			Type:             shared.LoadBalancerTypeNLB,
+			Type:             infrav1.LoadBalancerTypeNLB,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-loadbalancer-ready")...)
 		shared.WaitForLoadBalancerToExistForService(shared.WaitForLoadBalancerToExistForServiceInput{
 			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-elb",
 			ServiceNamespace: "default",
 			ClusterName:      clusterName,
-			Type:             shared.LoadBalancerTypeELB,
+			Type:             infrav1.LoadBalancerTypeELB,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-loadbalancer-ready")...)
 
 		shared.Byf("Deleting workload/tenant cluster %s", clusterName)
@@ -125,7 +126,7 @@ var _ = ginkgo.Context("[unmanaged] [gc]", func() {
 			ServiceName:      "podinfo-nlb",
 			ServiceNamespace: "default",
 			ClusterName:      clusterName,
-			Type:             shared.LoadBalancerTypeNLB,
+			Type:             infrav1.LoadBalancerTypeNLB,
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(arns).To(HaveLen(0), "there are %d service load balancers (nlb) still", len(arns))
@@ -134,7 +135,7 @@ var _ = ginkgo.Context("[unmanaged] [gc]", func() {
 			ServiceName:      "podinfo-elb",
 			ServiceNamespace: "default",
 			ClusterName:      clusterName,
-			Type:             shared.LoadBalancerTypeELB,
+			Type:             infrav1.LoadBalancerTypeELB,
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(arns).To(HaveLen(0), "there are %d service load balancers (elb) still", len(arns))

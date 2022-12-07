@@ -27,10 +27,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
-	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 )
 
 // AWSPrincipalTypeProvider defines the interface for AWS Principal Type Provider.
@@ -79,7 +79,7 @@ func GetAssumeRoleCredentials(roleIdentityProvider *AWSRolePrincipalTypeProvider
 }
 
 // NewAWSRolePrincipalTypeProvider will create a new AWSRolePrincipalTypeProvider from an AWSClusterRoleIdentity.
-func NewAWSRolePrincipalTypeProvider(identity *infrav1.AWSClusterRoleIdentity, sourceProvider *AWSPrincipalTypeProvider, log logr.Logger) *AWSRolePrincipalTypeProvider {
+func NewAWSRolePrincipalTypeProvider(identity *infrav1.AWSClusterRoleIdentity, sourceProvider *AWSPrincipalTypeProvider, log logger.Wrapper) *AWSRolePrincipalTypeProvider {
 	return &AWSRolePrincipalTypeProvider{
 		credentials:    nil,
 		stsClient:      nil,
@@ -130,7 +130,7 @@ type AWSRolePrincipalTypeProvider struct {
 	Principal      *infrav1.AWSClusterRoleIdentity
 	credentials    *credentials.Credentials
 	sourceProvider *AWSPrincipalTypeProvider
-	log            logr.Logger
+	log            logger.Wrapper
 	stsClient      stsiface.STSAPI
 }
 

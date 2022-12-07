@@ -29,14 +29,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-func TestService_DeleteBastion(t *testing.T) {
+func TestServiceDeleteBastion(t *testing.T) {
 	clusterName := "cluster"
 
 	describeInput := &ec2.DescribeInstancesInput{
@@ -226,7 +226,7 @@ func TestService_DeleteBastion(t *testing.T) {
 	}
 }
 
-func TestService_ReconcileBastion(t *testing.T) {
+func TestServiceReconcileBastion(t *testing.T) {
 	clusterName := "cluster"
 
 	describeInput := &ec2.DescribeInstancesInput{

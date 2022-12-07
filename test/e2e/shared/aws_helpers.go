@@ -8,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,15 +31,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-)
-
-type LoadBalancerType string
-
-var (
-	LoadBalancerTypeELB = LoadBalancerType("elb")
-	LoadBalancerTypeALB = LoadBalancerType("alb")
-	LoadBalancerTypeNLB = LoadBalancerType("nlb")
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
 
 type WaitForLoadBalancerToExistForServiceInput struct {
@@ -47,7 +39,7 @@ type WaitForLoadBalancerToExistForServiceInput struct {
 	ServiceName      string
 	ServiceNamespace string
 	ClusterName      string
-	Type             LoadBalancerType
+	Type             infrav1.LoadBalancerType
 }
 
 func WaitForLoadBalancerToExistForService(input WaitForLoadBalancerToExistForServiceInput, intervals ...interface{}) {
@@ -79,7 +71,7 @@ type GetLoadBalancerARNsInput struct {
 	ServiceName      string
 	ServiceNamespace string
 	ClusterName      string
-	Type             LoadBalancerType
+	Type             infrav1.LoadBalancerType
 }
 
 func GetLoadBalancerARNs(input GetLoadBalancerARNsInput) ([]string, error) {
@@ -114,15 +106,15 @@ func GetLoadBalancerARNs(input GetLoadBalancerARNsInput) ([]string, error) {
 		}
 
 		switch input.Type {
-		case LoadBalancerTypeALB:
+		case infrav1.LoadBalancerTypeALB:
 			if strings.HasPrefix(parsedArn.Resource, "loadbalancer/app/") {
 				matchingARNs = append(matchingARNs, resARN)
 			}
-		case LoadBalancerTypeNLB:
+		case infrav1.LoadBalancerTypeNLB:
 			if strings.HasPrefix(parsedArn.Resource, "loadbalancer/net/") {
 				matchingARNs = append(matchingARNs, resARN)
 			}
-		case LoadBalancerTypeELB:
+		case infrav1.LoadBalancerTypeELB:
 			if strings.HasPrefix(parsedArn.Resource, "loadbalancer/") {
 				matchingARNs = append(matchingARNs, resARN)
 			}

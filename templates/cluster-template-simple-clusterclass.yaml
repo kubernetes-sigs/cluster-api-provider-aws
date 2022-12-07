@@ -42,11 +42,11 @@ spec:
     machineInfrastructure:
       ref:
         kind: AWSMachineTemplate
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         name: quick-start-control-plane
   infrastructure:
     ref:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: AWSClusterTemplate
       name: quick-start
   workers:
@@ -60,7 +60,7 @@ spec:
               name: quick-start-worker-bootstraptemplate
           infrastructure:
             ref:
-              apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+              apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
               kind: AWSMachineTemplate
               name: quick-start-worker-machinetemplate
   variables:
@@ -92,7 +92,7 @@ spec:
     - name: region
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
             kind: AWSClusterTemplate
             matchResources:
               infrastructureCluster: true
@@ -104,7 +104,7 @@ spec:
     - name: sshKeyName
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
             kind: AWSClusterTemplate
             matchResources:
               infrastructureCluster: true
@@ -114,7 +114,7 @@ spec:
               valueFrom:
                 variable: sshKeyName
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
             kind: AWSMachineTemplate
             matchResources:
               controlPlane: true
@@ -129,7 +129,7 @@ spec:
     - name: controlPlaneMachineType
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
             kind: AWSMachineTemplate
             matchResources:
               controlPlane: true
@@ -141,7 +141,7 @@ spec:
     - name: workerMachineType
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
             kind: AWSMachineTemplate
             matchResources:
               machineDeploymentClass:
@@ -153,7 +153,7 @@ spec:
               valueFrom:
                 variable: workerMachineType
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSClusterTemplate
 metadata:
   name: quick-start
@@ -187,7 +187,7 @@ spec:
             kubeletExtraArgs:
               cloud-provider: aws
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
 metadata:
   name: quick-start-control-plane
@@ -198,7 +198,7 @@ spec:
       instanceType: REPLACEME
       iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
 metadata:
   name: quick-start-worker-machinetemplate

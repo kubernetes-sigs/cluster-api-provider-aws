@@ -1,0 +1,13 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSCluster
+metadata:
+  name: "${CLUSTER_NAME}"
+spec:
+  network:
+    securityGroupOverrides:
+      controlplane: "${SG_ID}"
+      apiserver-lb: "${SG_ID}"
+      node: "${SG_ID}"
+      lb: "${SG_ID}"
+      bastion: ${SG_ID}
+

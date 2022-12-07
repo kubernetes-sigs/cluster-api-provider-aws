@@ -30,11 +30,11 @@ import (
 	. "github.com/onsi/gomega"
 	"gopkg.in/yaml.v2"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/bootstrap/v1beta1"
-	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/credentials"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/bootstrap/v1beta1"
+	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/bootstrap"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/credentials"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
@@ -198,6 +198,13 @@ func getBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 
 // ApplyTemplate will render a cluster template and apply it to the management cluster.
 func ApplyTemplate(ctx context.Context, configCluster clusterctl.ConfigClusterInput, clusterProxy framework.ClusterProxy) error {
+	workloadClusterTemplate := GetTemplate(ctx, configCluster)
+	Byf("Applying the %s cluster template yaml to the cluster", configCluster.Flavor)
+	return clusterProxy.Apply(ctx, workloadClusterTemplate)
+}
+
+// GetTemplate will render a cluster template.
+func GetTemplate(ctx context.Context, configCluster clusterctl.ConfigClusterInput) []byte {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for ApplyClusterTemplateAndWait")
 
 	Byf("Getting the cluster template yaml")
@@ -215,6 +222,5 @@ func ApplyTemplate(ctx context.Context, configCluster clusterctl.ConfigClusterIn
 	})
 	Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
 
-	Byf("Applying the %s cluster template yaml to the cluster", configCluster.Flavor)
-	return clusterProxy.Apply(ctx, workloadClusterTemplate)
+	return workloadClusterTemplate
 }

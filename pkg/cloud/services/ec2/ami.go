@@ -31,8 +31,8 @@ import (
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 )
 
 const (
@@ -77,7 +77,7 @@ type AMILookup struct {
 
 // GenerateAmiName will generate an AMI name.
 func GenerateAmiName(amiNameFormat, baseOS, kubernetesVersion string) (string, error) {
-	amiNameParameters := AMILookup{baseOS, strings.TrimPrefix(kubernetesVersion, "v")}
+	amiNameParameters := AMILookup{baseOS, kubernetesVersion}
 	// revert to default if not specified
 	if amiNameFormat == "" {
 		amiNameFormat = DefaultAmiNameFormat
@@ -106,7 +106,7 @@ func DefaultAMILookup(ec2Client ec2iface.EC2API, ownerID, baseOS, kubernetesVers
 		baseOS = defaultMachineAMILookupBaseOS
 	}
 
-	amiName, err := GenerateAmiName(amiNameFormat, baseOS, kubernetesVersion)
+	amiName, err := GenerateAmiName(amiNameFormat, baseOS, strings.TrimPrefix(kubernetesVersion, "v"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to process ami format: %q", amiNameFormat)
 	}
@@ -158,7 +158,7 @@ func (s *Service) defaultAMIIDLookup(amiNameFormat, ownerID, baseOS, kubernetesV
 		return "", errors.Wrapf(err, "failed to find ami")
 	}
 
-	s.scope.V(2).Info("Found and using an existing AMI", "ami-id", aws.StringValue(latestImage.ImageId))
+	s.scope.Debug("Found and using an existing AMI", "ami-id", aws.StringValue(latestImage.ImageId))
 	return aws.StringValue(latestImage.ImageId), nil
 }
 

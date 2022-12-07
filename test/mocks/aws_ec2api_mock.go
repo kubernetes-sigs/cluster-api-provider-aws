@@ -1152,6 +1152,56 @@ func (mr *MockEC2APIMockRecorder) AssociateTransitGatewayMulticastDomainWithCont
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateTransitGatewayMulticastDomainWithContext", reflect.TypeOf((*MockEC2API)(nil).AssociateTransitGatewayMulticastDomainWithContext), varargs...)
 }
 
+// AssociateTransitGatewayPolicyTable mocks base method.
+func (m *MockEC2API) AssociateTransitGatewayPolicyTable(arg0 *ec2.AssociateTransitGatewayPolicyTableInput) (*ec2.AssociateTransitGatewayPolicyTableOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AssociateTransitGatewayPolicyTable", arg0)
+	ret0, _ := ret[0].(*ec2.AssociateTransitGatewayPolicyTableOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AssociateTransitGatewayPolicyTable indicates an expected call of AssociateTransitGatewayPolicyTable.
+func (mr *MockEC2APIMockRecorder) AssociateTransitGatewayPolicyTable(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateTransitGatewayPolicyTable", reflect.TypeOf((*MockEC2API)(nil).AssociateTransitGatewayPolicyTable), arg0)
+}
+
+// AssociateTransitGatewayPolicyTableRequest mocks base method.
+func (m *MockEC2API) AssociateTransitGatewayPolicyTableRequest(arg0 *ec2.AssociateTransitGatewayPolicyTableInput) (*request.Request, *ec2.AssociateTransitGatewayPolicyTableOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AssociateTransitGatewayPolicyTableRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.AssociateTransitGatewayPolicyTableOutput)
+	return ret0, ret1
+}
+
+// AssociateTransitGatewayPolicyTableRequest indicates an expected call of AssociateTransitGatewayPolicyTableRequest.
+func (mr *MockEC2APIMockRecorder) AssociateTransitGatewayPolicyTableRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateTransitGatewayPolicyTableRequest", reflect.TypeOf((*MockEC2API)(nil).AssociateTransitGatewayPolicyTableRequest), arg0)
+}
+
+// AssociateTransitGatewayPolicyTableWithContext mocks base method.
+func (m *MockEC2API) AssociateTransitGatewayPolicyTableWithContext(arg0 context.Context, arg1 *ec2.AssociateTransitGatewayPolicyTableInput, arg2 ...request.Option) (*ec2.AssociateTransitGatewayPolicyTableOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AssociateTransitGatewayPolicyTableWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.AssociateTransitGatewayPolicyTableOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AssociateTransitGatewayPolicyTableWithContext indicates an expected call of AssociateTransitGatewayPolicyTableWithContext.
+func (mr *MockEC2APIMockRecorder) AssociateTransitGatewayPolicyTableWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateTransitGatewayPolicyTableWithContext", reflect.TypeOf((*MockEC2API)(nil).AssociateTransitGatewayPolicyTableWithContext), varargs...)
+}
+
 // AssociateTransitGatewayRouteTable mocks base method.
 func (m *MockEC2API) AssociateTransitGatewayRouteTable(arg0 *ec2.AssociateTransitGatewayRouteTableInput) (*ec2.AssociateTransitGatewayRouteTableOutput, error) {
 	m.ctrl.T.Helper()
@@ -2652,6 +2702,106 @@ func (mr *MockEC2APIMockRecorder) CreateClientVpnRouteWithContext(arg0, arg1 int
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClientVpnRouteWithContext", reflect.TypeOf((*MockEC2API)(nil).CreateClientVpnRouteWithContext), varargs...)
 }
 
+// CreateCoipCidr mocks base method.
+func (m *MockEC2API) CreateCoipCidr(arg0 *ec2.CreateCoipCidrInput) (*ec2.CreateCoipCidrOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateCoipCidr", arg0)
+	ret0, _ := ret[0].(*ec2.CreateCoipCidrOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateCoipCidr indicates an expected call of CreateCoipCidr.
+func (mr *MockEC2APIMockRecorder) CreateCoipCidr(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCoipCidr", reflect.TypeOf((*MockEC2API)(nil).CreateCoipCidr), arg0)
+}
+
+// CreateCoipCidrRequest mocks base method.
+func (m *MockEC2API) CreateCoipCidrRequest(arg0 *ec2.CreateCoipCidrInput) (*request.Request, *ec2.CreateCoipCidrOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateCoipCidrRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.CreateCoipCidrOutput)
+	return ret0, ret1
+}
+
+// CreateCoipCidrRequest indicates an expected call of CreateCoipCidrRequest.
+func (mr *MockEC2APIMockRecorder) CreateCoipCidrRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCoipCidrRequest", reflect.TypeOf((*MockEC2API)(nil).CreateCoipCidrRequest), arg0)
+}
+
+// CreateCoipCidrWithContext mocks base method.
+func (m *MockEC2API) CreateCoipCidrWithContext(arg0 context.Context, arg1 *ec2.CreateCoipCidrInput, arg2 ...request.Option) (*ec2.CreateCoipCidrOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateCoipCidrWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.CreateCoipCidrOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateCoipCidrWithContext indicates an expected call of CreateCoipCidrWithContext.
+func (mr *MockEC2APIMockRecorder) CreateCoipCidrWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCoipCidrWithContext", reflect.TypeOf((*MockEC2API)(nil).CreateCoipCidrWithContext), varargs...)
+}
+
+// CreateCoipPool mocks base method.
+func (m *MockEC2API) CreateCoipPool(arg0 *ec2.CreateCoipPoolInput) (*ec2.CreateCoipPoolOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateCoipPool", arg0)
+	ret0, _ := ret[0].(*ec2.CreateCoipPoolOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateCoipPool indicates an expected call of CreateCoipPool.
+func (mr *MockEC2APIMockRecorder) CreateCoipPool(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCoipPool", reflect.TypeOf((*MockEC2API)(nil).CreateCoipPool), arg0)
+}
+
+// CreateCoipPoolRequest mocks base method.
+func (m *MockEC2API) CreateCoipPoolRequest(arg0 *ec2.CreateCoipPoolInput) (*request.Request, *ec2.CreateCoipPoolOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateCoipPoolRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.CreateCoipPoolOutput)
+	return ret0, ret1
+}
+
+// CreateCoipPoolRequest indicates an expected call of CreateCoipPoolRequest.
+func (mr *MockEC2APIMockRecorder) CreateCoipPoolRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCoipPoolRequest", reflect.TypeOf((*MockEC2API)(nil).CreateCoipPoolRequest), arg0)
+}
+
+// CreateCoipPoolWithContext mocks base method.
+func (m *MockEC2API) CreateCoipPoolWithContext(arg0 context.Context, arg1 *ec2.CreateCoipPoolInput, arg2 ...request.Option) (*ec2.CreateCoipPoolOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateCoipPoolWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.CreateCoipPoolOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateCoipPoolWithContext indicates an expected call of CreateCoipPoolWithContext.
+func (mr *MockEC2APIMockRecorder) CreateCoipPoolWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCoipPoolWithContext", reflect.TypeOf((*MockEC2API)(nil).CreateCoipPoolWithContext), varargs...)
+}
+
 // CreateCustomerGateway mocks base method.
 func (m *MockEC2API) CreateCustomerGateway(arg0 *ec2.CreateCustomerGatewayInput) (*ec2.CreateCustomerGatewayOutput, error) {
 	m.ctrl.T.Helper()
@@ -3582,6 +3732,86 @@ func (mr *MockEC2APIMockRecorder) CreateLocalGatewayRouteRequest(arg0 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLocalGatewayRouteRequest", reflect.TypeOf((*MockEC2API)(nil).CreateLocalGatewayRouteRequest), arg0)
 }
 
+// CreateLocalGatewayRouteTable mocks base method.
+func (m *MockEC2API) CreateLocalGatewayRouteTable(arg0 *ec2.CreateLocalGatewayRouteTableInput) (*ec2.CreateLocalGatewayRouteTableOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateLocalGatewayRouteTable", arg0)
+	ret0, _ := ret[0].(*ec2.CreateLocalGatewayRouteTableOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateLocalGatewayRouteTable indicates an expected call of CreateLocalGatewayRouteTable.
+func (mr *MockEC2APIMockRecorder) CreateLocalGatewayRouteTable(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLocalGatewayRouteTable", reflect.TypeOf((*MockEC2API)(nil).CreateLocalGatewayRouteTable), arg0)
+}
+
+// CreateLocalGatewayRouteTableRequest mocks base method.
+func (m *MockEC2API) CreateLocalGatewayRouteTableRequest(arg0 *ec2.CreateLocalGatewayRouteTableInput) (*request.Request, *ec2.CreateLocalGatewayRouteTableOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateLocalGatewayRouteTableRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.CreateLocalGatewayRouteTableOutput)
+	return ret0, ret1
+}
+
+// CreateLocalGatewayRouteTableRequest indicates an expected call of CreateLocalGatewayRouteTableRequest.
+func (mr *MockEC2APIMockRecorder) CreateLocalGatewayRouteTableRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLocalGatewayRouteTableRequest", reflect.TypeOf((*MockEC2API)(nil).CreateLocalGatewayRouteTableRequest), arg0)
+}
+
+// CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociation mocks base method.
+func (m *MockEC2API) CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociation(arg0 *ec2.CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationInput) (*ec2.CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociation", arg0)
+	ret0, _ := ret[0].(*ec2.CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociation indicates an expected call of CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociation.
+func (mr *MockEC2APIMockRecorder) CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociation(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociation", reflect.TypeOf((*MockEC2API)(nil).CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociation), arg0)
+}
+
+// CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationRequest mocks base method.
+func (m *MockEC2API) CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationRequest(arg0 *ec2.CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationInput) (*request.Request, *ec2.CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationOutput)
+	return ret0, ret1
+}
+
+// CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationRequest indicates an expected call of CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationRequest.
+func (mr *MockEC2APIMockRecorder) CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationRequest", reflect.TypeOf((*MockEC2API)(nil).CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationRequest), arg0)
+}
+
+// CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationWithContext mocks base method.
+func (m *MockEC2API) CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationWithContext(arg0 context.Context, arg1 *ec2.CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationInput, arg2 ...request.Option) (*ec2.CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationWithContext indicates an expected call of CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationWithContext.
+func (mr *MockEC2APIMockRecorder) CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationWithContext", reflect.TypeOf((*MockEC2API)(nil).CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationWithContext), varargs...)
+}
+
 // CreateLocalGatewayRouteTableVpcAssociation mocks base method.
 func (m *MockEC2API) CreateLocalGatewayRouteTableVpcAssociation(arg0 *ec2.CreateLocalGatewayRouteTableVpcAssociationInput) (*ec2.CreateLocalGatewayRouteTableVpcAssociationOutput, error) {
 	m.ctrl.T.Helper()
@@ -3630,6 +3860,26 @@ func (mr *MockEC2APIMockRecorder) CreateLocalGatewayRouteTableVpcAssociationWith
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLocalGatewayRouteTableVpcAssociationWithContext", reflect.TypeOf((*MockEC2API)(nil).CreateLocalGatewayRouteTableVpcAssociationWithContext), varargs...)
+}
+
+// CreateLocalGatewayRouteTableWithContext mocks base method.
+func (m *MockEC2API) CreateLocalGatewayRouteTableWithContext(arg0 context.Context, arg1 *ec2.CreateLocalGatewayRouteTableInput, arg2 ...request.Option) (*ec2.CreateLocalGatewayRouteTableOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateLocalGatewayRouteTableWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.CreateLocalGatewayRouteTableOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateLocalGatewayRouteTableWithContext indicates an expected call of CreateLocalGatewayRouteTableWithContext.
+func (mr *MockEC2APIMockRecorder) CreateLocalGatewayRouteTableWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLocalGatewayRouteTableWithContext", reflect.TypeOf((*MockEC2API)(nil).CreateLocalGatewayRouteTableWithContext), varargs...)
 }
 
 // CreateLocalGatewayRouteWithContext mocks base method.
@@ -5217,6 +5467,56 @@ func (mr *MockEC2APIMockRecorder) CreateTransitGatewayPeeringAttachmentWithConte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTransitGatewayPeeringAttachmentWithContext", reflect.TypeOf((*MockEC2API)(nil).CreateTransitGatewayPeeringAttachmentWithContext), varargs...)
 }
 
+// CreateTransitGatewayPolicyTable mocks base method.
+func (m *MockEC2API) CreateTransitGatewayPolicyTable(arg0 *ec2.CreateTransitGatewayPolicyTableInput) (*ec2.CreateTransitGatewayPolicyTableOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateTransitGatewayPolicyTable", arg0)
+	ret0, _ := ret[0].(*ec2.CreateTransitGatewayPolicyTableOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateTransitGatewayPolicyTable indicates an expected call of CreateTransitGatewayPolicyTable.
+func (mr *MockEC2APIMockRecorder) CreateTransitGatewayPolicyTable(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTransitGatewayPolicyTable", reflect.TypeOf((*MockEC2API)(nil).CreateTransitGatewayPolicyTable), arg0)
+}
+
+// CreateTransitGatewayPolicyTableRequest mocks base method.
+func (m *MockEC2API) CreateTransitGatewayPolicyTableRequest(arg0 *ec2.CreateTransitGatewayPolicyTableInput) (*request.Request, *ec2.CreateTransitGatewayPolicyTableOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateTransitGatewayPolicyTableRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.CreateTransitGatewayPolicyTableOutput)
+	return ret0, ret1
+}
+
+// CreateTransitGatewayPolicyTableRequest indicates an expected call of CreateTransitGatewayPolicyTableRequest.
+func (mr *MockEC2APIMockRecorder) CreateTransitGatewayPolicyTableRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTransitGatewayPolicyTableRequest", reflect.TypeOf((*MockEC2API)(nil).CreateTransitGatewayPolicyTableRequest), arg0)
+}
+
+// CreateTransitGatewayPolicyTableWithContext mocks base method.
+func (m *MockEC2API) CreateTransitGatewayPolicyTableWithContext(arg0 context.Context, arg1 *ec2.CreateTransitGatewayPolicyTableInput, arg2 ...request.Option) (*ec2.CreateTransitGatewayPolicyTableOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateTransitGatewayPolicyTableWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.CreateTransitGatewayPolicyTableOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateTransitGatewayPolicyTableWithContext indicates an expected call of CreateTransitGatewayPolicyTableWithContext.
+func (mr *MockEC2APIMockRecorder) CreateTransitGatewayPolicyTableWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTransitGatewayPolicyTableWithContext", reflect.TypeOf((*MockEC2API)(nil).CreateTransitGatewayPolicyTableWithContext), varargs...)
+}
+
 // CreateTransitGatewayPrefixListReference mocks base method.
 func (m *MockEC2API) CreateTransitGatewayPrefixListReference(arg0 *ec2.CreateTransitGatewayPrefixListReferenceInput) (*ec2.CreateTransitGatewayPrefixListReferenceOutput, error) {
 	m.ctrl.T.Helper()
@@ -5325,6 +5625,56 @@ func (m *MockEC2API) CreateTransitGatewayRouteTable(arg0 *ec2.CreateTransitGatew
 func (mr *MockEC2APIMockRecorder) CreateTransitGatewayRouteTable(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTransitGatewayRouteTable", reflect.TypeOf((*MockEC2API)(nil).CreateTransitGatewayRouteTable), arg0)
+}
+
+// CreateTransitGatewayRouteTableAnnouncement mocks base method.
+func (m *MockEC2API) CreateTransitGatewayRouteTableAnnouncement(arg0 *ec2.CreateTransitGatewayRouteTableAnnouncementInput) (*ec2.CreateTransitGatewayRouteTableAnnouncementOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateTransitGatewayRouteTableAnnouncement", arg0)
+	ret0, _ := ret[0].(*ec2.CreateTransitGatewayRouteTableAnnouncementOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateTransitGatewayRouteTableAnnouncement indicates an expected call of CreateTransitGatewayRouteTableAnnouncement.
+func (mr *MockEC2APIMockRecorder) CreateTransitGatewayRouteTableAnnouncement(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTransitGatewayRouteTableAnnouncement", reflect.TypeOf((*MockEC2API)(nil).CreateTransitGatewayRouteTableAnnouncement), arg0)
+}
+
+// CreateTransitGatewayRouteTableAnnouncementRequest mocks base method.
+func (m *MockEC2API) CreateTransitGatewayRouteTableAnnouncementRequest(arg0 *ec2.CreateTransitGatewayRouteTableAnnouncementInput) (*request.Request, *ec2.CreateTransitGatewayRouteTableAnnouncementOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateTransitGatewayRouteTableAnnouncementRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.CreateTransitGatewayRouteTableAnnouncementOutput)
+	return ret0, ret1
+}
+
+// CreateTransitGatewayRouteTableAnnouncementRequest indicates an expected call of CreateTransitGatewayRouteTableAnnouncementRequest.
+func (mr *MockEC2APIMockRecorder) CreateTransitGatewayRouteTableAnnouncementRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTransitGatewayRouteTableAnnouncementRequest", reflect.TypeOf((*MockEC2API)(nil).CreateTransitGatewayRouteTableAnnouncementRequest), arg0)
+}
+
+// CreateTransitGatewayRouteTableAnnouncementWithContext mocks base method.
+func (m *MockEC2API) CreateTransitGatewayRouteTableAnnouncementWithContext(arg0 context.Context, arg1 *ec2.CreateTransitGatewayRouteTableAnnouncementInput, arg2 ...request.Option) (*ec2.CreateTransitGatewayRouteTableAnnouncementOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateTransitGatewayRouteTableAnnouncementWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.CreateTransitGatewayRouteTableAnnouncementOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateTransitGatewayRouteTableAnnouncementWithContext indicates an expected call of CreateTransitGatewayRouteTableAnnouncementWithContext.
+func (mr *MockEC2APIMockRecorder) CreateTransitGatewayRouteTableAnnouncementWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTransitGatewayRouteTableAnnouncementWithContext", reflect.TypeOf((*MockEC2API)(nil).CreateTransitGatewayRouteTableAnnouncementWithContext), varargs...)
 }
 
 // CreateTransitGatewayRouteTableRequest mocks base method.
@@ -6050,6 +6400,106 @@ func (mr *MockEC2APIMockRecorder) DeleteClientVpnRouteWithContext(arg0, arg1 int
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClientVpnRouteWithContext", reflect.TypeOf((*MockEC2API)(nil).DeleteClientVpnRouteWithContext), varargs...)
+}
+
+// DeleteCoipCidr mocks base method.
+func (m *MockEC2API) DeleteCoipCidr(arg0 *ec2.DeleteCoipCidrInput) (*ec2.DeleteCoipCidrOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteCoipCidr", arg0)
+	ret0, _ := ret[0].(*ec2.DeleteCoipCidrOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteCoipCidr indicates an expected call of DeleteCoipCidr.
+func (mr *MockEC2APIMockRecorder) DeleteCoipCidr(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCoipCidr", reflect.TypeOf((*MockEC2API)(nil).DeleteCoipCidr), arg0)
+}
+
+// DeleteCoipCidrRequest mocks base method.
+func (m *MockEC2API) DeleteCoipCidrRequest(arg0 *ec2.DeleteCoipCidrInput) (*request.Request, *ec2.DeleteCoipCidrOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteCoipCidrRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DeleteCoipCidrOutput)
+	return ret0, ret1
+}
+
+// DeleteCoipCidrRequest indicates an expected call of DeleteCoipCidrRequest.
+func (mr *MockEC2APIMockRecorder) DeleteCoipCidrRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCoipCidrRequest", reflect.TypeOf((*MockEC2API)(nil).DeleteCoipCidrRequest), arg0)
+}
+
+// DeleteCoipCidrWithContext mocks base method.
+func (m *MockEC2API) DeleteCoipCidrWithContext(arg0 context.Context, arg1 *ec2.DeleteCoipCidrInput, arg2 ...request.Option) (*ec2.DeleteCoipCidrOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteCoipCidrWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DeleteCoipCidrOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteCoipCidrWithContext indicates an expected call of DeleteCoipCidrWithContext.
+func (mr *MockEC2APIMockRecorder) DeleteCoipCidrWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCoipCidrWithContext", reflect.TypeOf((*MockEC2API)(nil).DeleteCoipCidrWithContext), varargs...)
+}
+
+// DeleteCoipPool mocks base method.
+func (m *MockEC2API) DeleteCoipPool(arg0 *ec2.DeleteCoipPoolInput) (*ec2.DeleteCoipPoolOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteCoipPool", arg0)
+	ret0, _ := ret[0].(*ec2.DeleteCoipPoolOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteCoipPool indicates an expected call of DeleteCoipPool.
+func (mr *MockEC2APIMockRecorder) DeleteCoipPool(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCoipPool", reflect.TypeOf((*MockEC2API)(nil).DeleteCoipPool), arg0)
+}
+
+// DeleteCoipPoolRequest mocks base method.
+func (m *MockEC2API) DeleteCoipPoolRequest(arg0 *ec2.DeleteCoipPoolInput) (*request.Request, *ec2.DeleteCoipPoolOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteCoipPoolRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DeleteCoipPoolOutput)
+	return ret0, ret1
+}
+
+// DeleteCoipPoolRequest indicates an expected call of DeleteCoipPoolRequest.
+func (mr *MockEC2APIMockRecorder) DeleteCoipPoolRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCoipPoolRequest", reflect.TypeOf((*MockEC2API)(nil).DeleteCoipPoolRequest), arg0)
+}
+
+// DeleteCoipPoolWithContext mocks base method.
+func (m *MockEC2API) DeleteCoipPoolWithContext(arg0 context.Context, arg1 *ec2.DeleteCoipPoolInput, arg2 ...request.Option) (*ec2.DeleteCoipPoolOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteCoipPoolWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DeleteCoipPoolOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteCoipPoolWithContext indicates an expected call of DeleteCoipPoolWithContext.
+func (mr *MockEC2APIMockRecorder) DeleteCoipPoolWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCoipPoolWithContext", reflect.TypeOf((*MockEC2API)(nil).DeleteCoipPoolWithContext), varargs...)
 }
 
 // DeleteCustomerGateway mocks base method.
@@ -6782,6 +7232,86 @@ func (mr *MockEC2APIMockRecorder) DeleteLocalGatewayRouteRequest(arg0 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLocalGatewayRouteRequest", reflect.TypeOf((*MockEC2API)(nil).DeleteLocalGatewayRouteRequest), arg0)
 }
 
+// DeleteLocalGatewayRouteTable mocks base method.
+func (m *MockEC2API) DeleteLocalGatewayRouteTable(arg0 *ec2.DeleteLocalGatewayRouteTableInput) (*ec2.DeleteLocalGatewayRouteTableOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteLocalGatewayRouteTable", arg0)
+	ret0, _ := ret[0].(*ec2.DeleteLocalGatewayRouteTableOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteLocalGatewayRouteTable indicates an expected call of DeleteLocalGatewayRouteTable.
+func (mr *MockEC2APIMockRecorder) DeleteLocalGatewayRouteTable(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLocalGatewayRouteTable", reflect.TypeOf((*MockEC2API)(nil).DeleteLocalGatewayRouteTable), arg0)
+}
+
+// DeleteLocalGatewayRouteTableRequest mocks base method.
+func (m *MockEC2API) DeleteLocalGatewayRouteTableRequest(arg0 *ec2.DeleteLocalGatewayRouteTableInput) (*request.Request, *ec2.DeleteLocalGatewayRouteTableOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteLocalGatewayRouteTableRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DeleteLocalGatewayRouteTableOutput)
+	return ret0, ret1
+}
+
+// DeleteLocalGatewayRouteTableRequest indicates an expected call of DeleteLocalGatewayRouteTableRequest.
+func (mr *MockEC2APIMockRecorder) DeleteLocalGatewayRouteTableRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLocalGatewayRouteTableRequest", reflect.TypeOf((*MockEC2API)(nil).DeleteLocalGatewayRouteTableRequest), arg0)
+}
+
+// DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociation mocks base method.
+func (m *MockEC2API) DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociation(arg0 *ec2.DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationInput) (*ec2.DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociation", arg0)
+	ret0, _ := ret[0].(*ec2.DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociation indicates an expected call of DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociation.
+func (mr *MockEC2APIMockRecorder) DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociation(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociation", reflect.TypeOf((*MockEC2API)(nil).DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociation), arg0)
+}
+
+// DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationRequest mocks base method.
+func (m *MockEC2API) DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationRequest(arg0 *ec2.DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationInput) (*request.Request, *ec2.DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationOutput)
+	return ret0, ret1
+}
+
+// DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationRequest indicates an expected call of DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationRequest.
+func (mr *MockEC2APIMockRecorder) DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationRequest", reflect.TypeOf((*MockEC2API)(nil).DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationRequest), arg0)
+}
+
+// DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationWithContext mocks base method.
+func (m *MockEC2API) DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationWithContext(arg0 context.Context, arg1 *ec2.DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationInput, arg2 ...request.Option) (*ec2.DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationWithContext indicates an expected call of DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationWithContext.
+func (mr *MockEC2APIMockRecorder) DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationWithContext", reflect.TypeOf((*MockEC2API)(nil).DeleteLocalGatewayRouteTableVirtualInterfaceGroupAssociationWithContext), varargs...)
+}
+
 // DeleteLocalGatewayRouteTableVpcAssociation mocks base method.
 func (m *MockEC2API) DeleteLocalGatewayRouteTableVpcAssociation(arg0 *ec2.DeleteLocalGatewayRouteTableVpcAssociationInput) (*ec2.DeleteLocalGatewayRouteTableVpcAssociationOutput, error) {
 	m.ctrl.T.Helper()
@@ -6830,6 +7360,26 @@ func (mr *MockEC2APIMockRecorder) DeleteLocalGatewayRouteTableVpcAssociationWith
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLocalGatewayRouteTableVpcAssociationWithContext", reflect.TypeOf((*MockEC2API)(nil).DeleteLocalGatewayRouteTableVpcAssociationWithContext), varargs...)
+}
+
+// DeleteLocalGatewayRouteTableWithContext mocks base method.
+func (m *MockEC2API) DeleteLocalGatewayRouteTableWithContext(arg0 context.Context, arg1 *ec2.DeleteLocalGatewayRouteTableInput, arg2 ...request.Option) (*ec2.DeleteLocalGatewayRouteTableOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteLocalGatewayRouteTableWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DeleteLocalGatewayRouteTableOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteLocalGatewayRouteTableWithContext indicates an expected call of DeleteLocalGatewayRouteTableWithContext.
+func (mr *MockEC2APIMockRecorder) DeleteLocalGatewayRouteTableWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLocalGatewayRouteTableWithContext", reflect.TypeOf((*MockEC2API)(nil).DeleteLocalGatewayRouteTableWithContext), varargs...)
 }
 
 // DeleteLocalGatewayRouteWithContext mocks base method.
@@ -8317,6 +8867,56 @@ func (mr *MockEC2APIMockRecorder) DeleteTransitGatewayPeeringAttachmentWithConte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTransitGatewayPeeringAttachmentWithContext", reflect.TypeOf((*MockEC2API)(nil).DeleteTransitGatewayPeeringAttachmentWithContext), varargs...)
 }
 
+// DeleteTransitGatewayPolicyTable mocks base method.
+func (m *MockEC2API) DeleteTransitGatewayPolicyTable(arg0 *ec2.DeleteTransitGatewayPolicyTableInput) (*ec2.DeleteTransitGatewayPolicyTableOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteTransitGatewayPolicyTable", arg0)
+	ret0, _ := ret[0].(*ec2.DeleteTransitGatewayPolicyTableOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteTransitGatewayPolicyTable indicates an expected call of DeleteTransitGatewayPolicyTable.
+func (mr *MockEC2APIMockRecorder) DeleteTransitGatewayPolicyTable(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTransitGatewayPolicyTable", reflect.TypeOf((*MockEC2API)(nil).DeleteTransitGatewayPolicyTable), arg0)
+}
+
+// DeleteTransitGatewayPolicyTableRequest mocks base method.
+func (m *MockEC2API) DeleteTransitGatewayPolicyTableRequest(arg0 *ec2.DeleteTransitGatewayPolicyTableInput) (*request.Request, *ec2.DeleteTransitGatewayPolicyTableOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteTransitGatewayPolicyTableRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DeleteTransitGatewayPolicyTableOutput)
+	return ret0, ret1
+}
+
+// DeleteTransitGatewayPolicyTableRequest indicates an expected call of DeleteTransitGatewayPolicyTableRequest.
+func (mr *MockEC2APIMockRecorder) DeleteTransitGatewayPolicyTableRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTransitGatewayPolicyTableRequest", reflect.TypeOf((*MockEC2API)(nil).DeleteTransitGatewayPolicyTableRequest), arg0)
+}
+
+// DeleteTransitGatewayPolicyTableWithContext mocks base method.
+func (m *MockEC2API) DeleteTransitGatewayPolicyTableWithContext(arg0 context.Context, arg1 *ec2.DeleteTransitGatewayPolicyTableInput, arg2 ...request.Option) (*ec2.DeleteTransitGatewayPolicyTableOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteTransitGatewayPolicyTableWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DeleteTransitGatewayPolicyTableOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteTransitGatewayPolicyTableWithContext indicates an expected call of DeleteTransitGatewayPolicyTableWithContext.
+func (mr *MockEC2APIMockRecorder) DeleteTransitGatewayPolicyTableWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTransitGatewayPolicyTableWithContext", reflect.TypeOf((*MockEC2API)(nil).DeleteTransitGatewayPolicyTableWithContext), varargs...)
+}
+
 // DeleteTransitGatewayPrefixListReference mocks base method.
 func (m *MockEC2API) DeleteTransitGatewayPrefixListReference(arg0 *ec2.DeleteTransitGatewayPrefixListReferenceInput) (*ec2.DeleteTransitGatewayPrefixListReferenceOutput, error) {
 	m.ctrl.T.Helper()
@@ -8425,6 +9025,56 @@ func (m *MockEC2API) DeleteTransitGatewayRouteTable(arg0 *ec2.DeleteTransitGatew
 func (mr *MockEC2APIMockRecorder) DeleteTransitGatewayRouteTable(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTransitGatewayRouteTable", reflect.TypeOf((*MockEC2API)(nil).DeleteTransitGatewayRouteTable), arg0)
+}
+
+// DeleteTransitGatewayRouteTableAnnouncement mocks base method.
+func (m *MockEC2API) DeleteTransitGatewayRouteTableAnnouncement(arg0 *ec2.DeleteTransitGatewayRouteTableAnnouncementInput) (*ec2.DeleteTransitGatewayRouteTableAnnouncementOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteTransitGatewayRouteTableAnnouncement", arg0)
+	ret0, _ := ret[0].(*ec2.DeleteTransitGatewayRouteTableAnnouncementOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteTransitGatewayRouteTableAnnouncement indicates an expected call of DeleteTransitGatewayRouteTableAnnouncement.
+func (mr *MockEC2APIMockRecorder) DeleteTransitGatewayRouteTableAnnouncement(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTransitGatewayRouteTableAnnouncement", reflect.TypeOf((*MockEC2API)(nil).DeleteTransitGatewayRouteTableAnnouncement), arg0)
+}
+
+// DeleteTransitGatewayRouteTableAnnouncementRequest mocks base method.
+func (m *MockEC2API) DeleteTransitGatewayRouteTableAnnouncementRequest(arg0 *ec2.DeleteTransitGatewayRouteTableAnnouncementInput) (*request.Request, *ec2.DeleteTransitGatewayRouteTableAnnouncementOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteTransitGatewayRouteTableAnnouncementRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DeleteTransitGatewayRouteTableAnnouncementOutput)
+	return ret0, ret1
+}
+
+// DeleteTransitGatewayRouteTableAnnouncementRequest indicates an expected call of DeleteTransitGatewayRouteTableAnnouncementRequest.
+func (mr *MockEC2APIMockRecorder) DeleteTransitGatewayRouteTableAnnouncementRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTransitGatewayRouteTableAnnouncementRequest", reflect.TypeOf((*MockEC2API)(nil).DeleteTransitGatewayRouteTableAnnouncementRequest), arg0)
+}
+
+// DeleteTransitGatewayRouteTableAnnouncementWithContext mocks base method.
+func (m *MockEC2API) DeleteTransitGatewayRouteTableAnnouncementWithContext(arg0 context.Context, arg1 *ec2.DeleteTransitGatewayRouteTableAnnouncementInput, arg2 ...request.Option) (*ec2.DeleteTransitGatewayRouteTableAnnouncementOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteTransitGatewayRouteTableAnnouncementWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DeleteTransitGatewayRouteTableAnnouncementOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteTransitGatewayRouteTableAnnouncementWithContext indicates an expected call of DeleteTransitGatewayRouteTableAnnouncementWithContext.
+func (mr *MockEC2APIMockRecorder) DeleteTransitGatewayRouteTableAnnouncementWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTransitGatewayRouteTableAnnouncementWithContext", reflect.TypeOf((*MockEC2API)(nil).DeleteTransitGatewayRouteTableAnnouncementWithContext), varargs...)
 }
 
 // DeleteTransitGatewayRouteTableRequest mocks base method.
@@ -17691,6 +18341,172 @@ func (mr *MockEC2APIMockRecorder) DescribeTransitGatewayPeeringAttachmentsWithCo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTransitGatewayPeeringAttachmentsWithContext", reflect.TypeOf((*MockEC2API)(nil).DescribeTransitGatewayPeeringAttachmentsWithContext), varargs...)
 }
 
+// DescribeTransitGatewayPolicyTables mocks base method.
+func (m *MockEC2API) DescribeTransitGatewayPolicyTables(arg0 *ec2.DescribeTransitGatewayPolicyTablesInput) (*ec2.DescribeTransitGatewayPolicyTablesOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeTransitGatewayPolicyTables", arg0)
+	ret0, _ := ret[0].(*ec2.DescribeTransitGatewayPolicyTablesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeTransitGatewayPolicyTables indicates an expected call of DescribeTransitGatewayPolicyTables.
+func (mr *MockEC2APIMockRecorder) DescribeTransitGatewayPolicyTables(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTransitGatewayPolicyTables", reflect.TypeOf((*MockEC2API)(nil).DescribeTransitGatewayPolicyTables), arg0)
+}
+
+// DescribeTransitGatewayPolicyTablesPages mocks base method.
+func (m *MockEC2API) DescribeTransitGatewayPolicyTablesPages(arg0 *ec2.DescribeTransitGatewayPolicyTablesInput, arg1 func(*ec2.DescribeTransitGatewayPolicyTablesOutput, bool) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeTransitGatewayPolicyTablesPages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeTransitGatewayPolicyTablesPages indicates an expected call of DescribeTransitGatewayPolicyTablesPages.
+func (mr *MockEC2APIMockRecorder) DescribeTransitGatewayPolicyTablesPages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTransitGatewayPolicyTablesPages", reflect.TypeOf((*MockEC2API)(nil).DescribeTransitGatewayPolicyTablesPages), arg0, arg1)
+}
+
+// DescribeTransitGatewayPolicyTablesPagesWithContext mocks base method.
+func (m *MockEC2API) DescribeTransitGatewayPolicyTablesPagesWithContext(arg0 context.Context, arg1 *ec2.DescribeTransitGatewayPolicyTablesInput, arg2 func(*ec2.DescribeTransitGatewayPolicyTablesOutput, bool) bool, arg3 ...request.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeTransitGatewayPolicyTablesPagesWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeTransitGatewayPolicyTablesPagesWithContext indicates an expected call of DescribeTransitGatewayPolicyTablesPagesWithContext.
+func (mr *MockEC2APIMockRecorder) DescribeTransitGatewayPolicyTablesPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTransitGatewayPolicyTablesPagesWithContext", reflect.TypeOf((*MockEC2API)(nil).DescribeTransitGatewayPolicyTablesPagesWithContext), varargs...)
+}
+
+// DescribeTransitGatewayPolicyTablesRequest mocks base method.
+func (m *MockEC2API) DescribeTransitGatewayPolicyTablesRequest(arg0 *ec2.DescribeTransitGatewayPolicyTablesInput) (*request.Request, *ec2.DescribeTransitGatewayPolicyTablesOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeTransitGatewayPolicyTablesRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DescribeTransitGatewayPolicyTablesOutput)
+	return ret0, ret1
+}
+
+// DescribeTransitGatewayPolicyTablesRequest indicates an expected call of DescribeTransitGatewayPolicyTablesRequest.
+func (mr *MockEC2APIMockRecorder) DescribeTransitGatewayPolicyTablesRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTransitGatewayPolicyTablesRequest", reflect.TypeOf((*MockEC2API)(nil).DescribeTransitGatewayPolicyTablesRequest), arg0)
+}
+
+// DescribeTransitGatewayPolicyTablesWithContext mocks base method.
+func (m *MockEC2API) DescribeTransitGatewayPolicyTablesWithContext(arg0 context.Context, arg1 *ec2.DescribeTransitGatewayPolicyTablesInput, arg2 ...request.Option) (*ec2.DescribeTransitGatewayPolicyTablesOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeTransitGatewayPolicyTablesWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DescribeTransitGatewayPolicyTablesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeTransitGatewayPolicyTablesWithContext indicates an expected call of DescribeTransitGatewayPolicyTablesWithContext.
+func (mr *MockEC2APIMockRecorder) DescribeTransitGatewayPolicyTablesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTransitGatewayPolicyTablesWithContext", reflect.TypeOf((*MockEC2API)(nil).DescribeTransitGatewayPolicyTablesWithContext), varargs...)
+}
+
+// DescribeTransitGatewayRouteTableAnnouncements mocks base method.
+func (m *MockEC2API) DescribeTransitGatewayRouteTableAnnouncements(arg0 *ec2.DescribeTransitGatewayRouteTableAnnouncementsInput) (*ec2.DescribeTransitGatewayRouteTableAnnouncementsOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeTransitGatewayRouteTableAnnouncements", arg0)
+	ret0, _ := ret[0].(*ec2.DescribeTransitGatewayRouteTableAnnouncementsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeTransitGatewayRouteTableAnnouncements indicates an expected call of DescribeTransitGatewayRouteTableAnnouncements.
+func (mr *MockEC2APIMockRecorder) DescribeTransitGatewayRouteTableAnnouncements(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTransitGatewayRouteTableAnnouncements", reflect.TypeOf((*MockEC2API)(nil).DescribeTransitGatewayRouteTableAnnouncements), arg0)
+}
+
+// DescribeTransitGatewayRouteTableAnnouncementsPages mocks base method.
+func (m *MockEC2API) DescribeTransitGatewayRouteTableAnnouncementsPages(arg0 *ec2.DescribeTransitGatewayRouteTableAnnouncementsInput, arg1 func(*ec2.DescribeTransitGatewayRouteTableAnnouncementsOutput, bool) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeTransitGatewayRouteTableAnnouncementsPages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeTransitGatewayRouteTableAnnouncementsPages indicates an expected call of DescribeTransitGatewayRouteTableAnnouncementsPages.
+func (mr *MockEC2APIMockRecorder) DescribeTransitGatewayRouteTableAnnouncementsPages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTransitGatewayRouteTableAnnouncementsPages", reflect.TypeOf((*MockEC2API)(nil).DescribeTransitGatewayRouteTableAnnouncementsPages), arg0, arg1)
+}
+
+// DescribeTransitGatewayRouteTableAnnouncementsPagesWithContext mocks base method.
+func (m *MockEC2API) DescribeTransitGatewayRouteTableAnnouncementsPagesWithContext(arg0 context.Context, arg1 *ec2.DescribeTransitGatewayRouteTableAnnouncementsInput, arg2 func(*ec2.DescribeTransitGatewayRouteTableAnnouncementsOutput, bool) bool, arg3 ...request.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeTransitGatewayRouteTableAnnouncementsPagesWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeTransitGatewayRouteTableAnnouncementsPagesWithContext indicates an expected call of DescribeTransitGatewayRouteTableAnnouncementsPagesWithContext.
+func (mr *MockEC2APIMockRecorder) DescribeTransitGatewayRouteTableAnnouncementsPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTransitGatewayRouteTableAnnouncementsPagesWithContext", reflect.TypeOf((*MockEC2API)(nil).DescribeTransitGatewayRouteTableAnnouncementsPagesWithContext), varargs...)
+}
+
+// DescribeTransitGatewayRouteTableAnnouncementsRequest mocks base method.
+func (m *MockEC2API) DescribeTransitGatewayRouteTableAnnouncementsRequest(arg0 *ec2.DescribeTransitGatewayRouteTableAnnouncementsInput) (*request.Request, *ec2.DescribeTransitGatewayRouteTableAnnouncementsOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeTransitGatewayRouteTableAnnouncementsRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DescribeTransitGatewayRouteTableAnnouncementsOutput)
+	return ret0, ret1
+}
+
+// DescribeTransitGatewayRouteTableAnnouncementsRequest indicates an expected call of DescribeTransitGatewayRouteTableAnnouncementsRequest.
+func (mr *MockEC2APIMockRecorder) DescribeTransitGatewayRouteTableAnnouncementsRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTransitGatewayRouteTableAnnouncementsRequest", reflect.TypeOf((*MockEC2API)(nil).DescribeTransitGatewayRouteTableAnnouncementsRequest), arg0)
+}
+
+// DescribeTransitGatewayRouteTableAnnouncementsWithContext mocks base method.
+func (m *MockEC2API) DescribeTransitGatewayRouteTableAnnouncementsWithContext(arg0 context.Context, arg1 *ec2.DescribeTransitGatewayRouteTableAnnouncementsInput, arg2 ...request.Option) (*ec2.DescribeTransitGatewayRouteTableAnnouncementsOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeTransitGatewayRouteTableAnnouncementsWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DescribeTransitGatewayRouteTableAnnouncementsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeTransitGatewayRouteTableAnnouncementsWithContext indicates an expected call of DescribeTransitGatewayRouteTableAnnouncementsWithContext.
+func (mr *MockEC2APIMockRecorder) DescribeTransitGatewayRouteTableAnnouncementsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTransitGatewayRouteTableAnnouncementsWithContext", reflect.TypeOf((*MockEC2API)(nil).DescribeTransitGatewayRouteTableAnnouncementsWithContext), varargs...)
+}
+
 // DescribeTransitGatewayRouteTables mocks base method.
 func (m *MockEC2API) DescribeTransitGatewayRouteTables(arg0 *ec2.DescribeTransitGatewayRouteTablesInput) (*ec2.DescribeTransitGatewayRouteTablesOutput, error) {
 	m.ctrl.T.Helper()
@@ -20386,6 +21202,56 @@ func (mr *MockEC2APIMockRecorder) DisassociateTransitGatewayMulticastDomainWithC
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisassociateTransitGatewayMulticastDomainWithContext", reflect.TypeOf((*MockEC2API)(nil).DisassociateTransitGatewayMulticastDomainWithContext), varargs...)
 }
 
+// DisassociateTransitGatewayPolicyTable mocks base method.
+func (m *MockEC2API) DisassociateTransitGatewayPolicyTable(arg0 *ec2.DisassociateTransitGatewayPolicyTableInput) (*ec2.DisassociateTransitGatewayPolicyTableOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DisassociateTransitGatewayPolicyTable", arg0)
+	ret0, _ := ret[0].(*ec2.DisassociateTransitGatewayPolicyTableOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DisassociateTransitGatewayPolicyTable indicates an expected call of DisassociateTransitGatewayPolicyTable.
+func (mr *MockEC2APIMockRecorder) DisassociateTransitGatewayPolicyTable(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisassociateTransitGatewayPolicyTable", reflect.TypeOf((*MockEC2API)(nil).DisassociateTransitGatewayPolicyTable), arg0)
+}
+
+// DisassociateTransitGatewayPolicyTableRequest mocks base method.
+func (m *MockEC2API) DisassociateTransitGatewayPolicyTableRequest(arg0 *ec2.DisassociateTransitGatewayPolicyTableInput) (*request.Request, *ec2.DisassociateTransitGatewayPolicyTableOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DisassociateTransitGatewayPolicyTableRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DisassociateTransitGatewayPolicyTableOutput)
+	return ret0, ret1
+}
+
+// DisassociateTransitGatewayPolicyTableRequest indicates an expected call of DisassociateTransitGatewayPolicyTableRequest.
+func (mr *MockEC2APIMockRecorder) DisassociateTransitGatewayPolicyTableRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisassociateTransitGatewayPolicyTableRequest", reflect.TypeOf((*MockEC2API)(nil).DisassociateTransitGatewayPolicyTableRequest), arg0)
+}
+
+// DisassociateTransitGatewayPolicyTableWithContext mocks base method.
+func (m *MockEC2API) DisassociateTransitGatewayPolicyTableWithContext(arg0 context.Context, arg1 *ec2.DisassociateTransitGatewayPolicyTableInput, arg2 ...request.Option) (*ec2.DisassociateTransitGatewayPolicyTableOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DisassociateTransitGatewayPolicyTableWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DisassociateTransitGatewayPolicyTableOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DisassociateTransitGatewayPolicyTableWithContext indicates an expected call of DisassociateTransitGatewayPolicyTableWithContext.
+func (mr *MockEC2APIMockRecorder) DisassociateTransitGatewayPolicyTableWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisassociateTransitGatewayPolicyTableWithContext", reflect.TypeOf((*MockEC2API)(nil).DisassociateTransitGatewayPolicyTableWithContext), varargs...)
+}
+
 // DisassociateTransitGatewayRouteTable mocks base method.
 func (m *MockEC2API) DisassociateTransitGatewayRouteTable(arg0 *ec2.DisassociateTransitGatewayRouteTableInput) (*ec2.DisassociateTransitGatewayRouteTableOutput, error) {
 	m.ctrl.T.Helper()
@@ -22035,6 +22901,56 @@ func (mr *MockEC2APIMockRecorder) GetInstanceTypesFromInstanceRequirementsWithCo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstanceTypesFromInstanceRequirementsWithContext", reflect.TypeOf((*MockEC2API)(nil).GetInstanceTypesFromInstanceRequirementsWithContext), varargs...)
 }
 
+// GetInstanceUefiData mocks base method.
+func (m *MockEC2API) GetInstanceUefiData(arg0 *ec2.GetInstanceUefiDataInput) (*ec2.GetInstanceUefiDataOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstanceUefiData", arg0)
+	ret0, _ := ret[0].(*ec2.GetInstanceUefiDataOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetInstanceUefiData indicates an expected call of GetInstanceUefiData.
+func (mr *MockEC2APIMockRecorder) GetInstanceUefiData(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstanceUefiData", reflect.TypeOf((*MockEC2API)(nil).GetInstanceUefiData), arg0)
+}
+
+// GetInstanceUefiDataRequest mocks base method.
+func (m *MockEC2API) GetInstanceUefiDataRequest(arg0 *ec2.GetInstanceUefiDataInput) (*request.Request, *ec2.GetInstanceUefiDataOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstanceUefiDataRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.GetInstanceUefiDataOutput)
+	return ret0, ret1
+}
+
+// GetInstanceUefiDataRequest indicates an expected call of GetInstanceUefiDataRequest.
+func (mr *MockEC2APIMockRecorder) GetInstanceUefiDataRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstanceUefiDataRequest", reflect.TypeOf((*MockEC2API)(nil).GetInstanceUefiDataRequest), arg0)
+}
+
+// GetInstanceUefiDataWithContext mocks base method.
+func (m *MockEC2API) GetInstanceUefiDataWithContext(arg0 context.Context, arg1 *ec2.GetInstanceUefiDataInput, arg2 ...request.Option) (*ec2.GetInstanceUefiDataOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetInstanceUefiDataWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.GetInstanceUefiDataOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetInstanceUefiDataWithContext indicates an expected call of GetInstanceUefiDataWithContext.
+func (mr *MockEC2APIMockRecorder) GetInstanceUefiDataWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstanceUefiDataWithContext", reflect.TypeOf((*MockEC2API)(nil).GetInstanceUefiDataWithContext), varargs...)
+}
+
 // GetIpamAddressHistory mocks base method.
 func (m *MockEC2API) GetIpamAddressHistory(arg0 *ec2.GetIpamAddressHistoryInput) (*ec2.GetIpamAddressHistoryOutput, error) {
 	m.ctrl.T.Helper()
@@ -23130,6 +24046,139 @@ func (mr *MockEC2APIMockRecorder) GetTransitGatewayMulticastDomainAssociationsWi
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransitGatewayMulticastDomainAssociationsWithContext", reflect.TypeOf((*MockEC2API)(nil).GetTransitGatewayMulticastDomainAssociationsWithContext), varargs...)
+}
+
+// GetTransitGatewayPolicyTableAssociations mocks base method.
+func (m *MockEC2API) GetTransitGatewayPolicyTableAssociations(arg0 *ec2.GetTransitGatewayPolicyTableAssociationsInput) (*ec2.GetTransitGatewayPolicyTableAssociationsOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTransitGatewayPolicyTableAssociations", arg0)
+	ret0, _ := ret[0].(*ec2.GetTransitGatewayPolicyTableAssociationsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTransitGatewayPolicyTableAssociations indicates an expected call of GetTransitGatewayPolicyTableAssociations.
+func (mr *MockEC2APIMockRecorder) GetTransitGatewayPolicyTableAssociations(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransitGatewayPolicyTableAssociations", reflect.TypeOf((*MockEC2API)(nil).GetTransitGatewayPolicyTableAssociations), arg0)
+}
+
+// GetTransitGatewayPolicyTableAssociationsPages mocks base method.
+func (m *MockEC2API) GetTransitGatewayPolicyTableAssociationsPages(arg0 *ec2.GetTransitGatewayPolicyTableAssociationsInput, arg1 func(*ec2.GetTransitGatewayPolicyTableAssociationsOutput, bool) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTransitGatewayPolicyTableAssociationsPages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GetTransitGatewayPolicyTableAssociationsPages indicates an expected call of GetTransitGatewayPolicyTableAssociationsPages.
+func (mr *MockEC2APIMockRecorder) GetTransitGatewayPolicyTableAssociationsPages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransitGatewayPolicyTableAssociationsPages", reflect.TypeOf((*MockEC2API)(nil).GetTransitGatewayPolicyTableAssociationsPages), arg0, arg1)
+}
+
+// GetTransitGatewayPolicyTableAssociationsPagesWithContext mocks base method.
+func (m *MockEC2API) GetTransitGatewayPolicyTableAssociationsPagesWithContext(arg0 context.Context, arg1 *ec2.GetTransitGatewayPolicyTableAssociationsInput, arg2 func(*ec2.GetTransitGatewayPolicyTableAssociationsOutput, bool) bool, arg3 ...request.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetTransitGatewayPolicyTableAssociationsPagesWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GetTransitGatewayPolicyTableAssociationsPagesWithContext indicates an expected call of GetTransitGatewayPolicyTableAssociationsPagesWithContext.
+func (mr *MockEC2APIMockRecorder) GetTransitGatewayPolicyTableAssociationsPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransitGatewayPolicyTableAssociationsPagesWithContext", reflect.TypeOf((*MockEC2API)(nil).GetTransitGatewayPolicyTableAssociationsPagesWithContext), varargs...)
+}
+
+// GetTransitGatewayPolicyTableAssociationsRequest mocks base method.
+func (m *MockEC2API) GetTransitGatewayPolicyTableAssociationsRequest(arg0 *ec2.GetTransitGatewayPolicyTableAssociationsInput) (*request.Request, *ec2.GetTransitGatewayPolicyTableAssociationsOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTransitGatewayPolicyTableAssociationsRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.GetTransitGatewayPolicyTableAssociationsOutput)
+	return ret0, ret1
+}
+
+// GetTransitGatewayPolicyTableAssociationsRequest indicates an expected call of GetTransitGatewayPolicyTableAssociationsRequest.
+func (mr *MockEC2APIMockRecorder) GetTransitGatewayPolicyTableAssociationsRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransitGatewayPolicyTableAssociationsRequest", reflect.TypeOf((*MockEC2API)(nil).GetTransitGatewayPolicyTableAssociationsRequest), arg0)
+}
+
+// GetTransitGatewayPolicyTableAssociationsWithContext mocks base method.
+func (m *MockEC2API) GetTransitGatewayPolicyTableAssociationsWithContext(arg0 context.Context, arg1 *ec2.GetTransitGatewayPolicyTableAssociationsInput, arg2 ...request.Option) (*ec2.GetTransitGatewayPolicyTableAssociationsOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetTransitGatewayPolicyTableAssociationsWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.GetTransitGatewayPolicyTableAssociationsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTransitGatewayPolicyTableAssociationsWithContext indicates an expected call of GetTransitGatewayPolicyTableAssociationsWithContext.
+func (mr *MockEC2APIMockRecorder) GetTransitGatewayPolicyTableAssociationsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransitGatewayPolicyTableAssociationsWithContext", reflect.TypeOf((*MockEC2API)(nil).GetTransitGatewayPolicyTableAssociationsWithContext), varargs...)
+}
+
+// GetTransitGatewayPolicyTableEntries mocks base method.
+func (m *MockEC2API) GetTransitGatewayPolicyTableEntries(arg0 *ec2.GetTransitGatewayPolicyTableEntriesInput) (*ec2.GetTransitGatewayPolicyTableEntriesOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTransitGatewayPolicyTableEntries", arg0)
+	ret0, _ := ret[0].(*ec2.GetTransitGatewayPolicyTableEntriesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTransitGatewayPolicyTableEntries indicates an expected call of GetTransitGatewayPolicyTableEntries.
+func (mr *MockEC2APIMockRecorder) GetTransitGatewayPolicyTableEntries(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransitGatewayPolicyTableEntries", reflect.TypeOf((*MockEC2API)(nil).GetTransitGatewayPolicyTableEntries), arg0)
+}
+
+// GetTransitGatewayPolicyTableEntriesRequest mocks base method.
+func (m *MockEC2API) GetTransitGatewayPolicyTableEntriesRequest(arg0 *ec2.GetTransitGatewayPolicyTableEntriesInput) (*request.Request, *ec2.GetTransitGatewayPolicyTableEntriesOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTransitGatewayPolicyTableEntriesRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.GetTransitGatewayPolicyTableEntriesOutput)
+	return ret0, ret1
+}
+
+// GetTransitGatewayPolicyTableEntriesRequest indicates an expected call of GetTransitGatewayPolicyTableEntriesRequest.
+func (mr *MockEC2APIMockRecorder) GetTransitGatewayPolicyTableEntriesRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransitGatewayPolicyTableEntriesRequest", reflect.TypeOf((*MockEC2API)(nil).GetTransitGatewayPolicyTableEntriesRequest), arg0)
+}
+
+// GetTransitGatewayPolicyTableEntriesWithContext mocks base method.
+func (m *MockEC2API) GetTransitGatewayPolicyTableEntriesWithContext(arg0 context.Context, arg1 *ec2.GetTransitGatewayPolicyTableEntriesInput, arg2 ...request.Option) (*ec2.GetTransitGatewayPolicyTableEntriesOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetTransitGatewayPolicyTableEntriesWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.GetTransitGatewayPolicyTableEntriesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTransitGatewayPolicyTableEntriesWithContext indicates an expected call of GetTransitGatewayPolicyTableEntriesWithContext.
+func (mr *MockEC2APIMockRecorder) GetTransitGatewayPolicyTableEntriesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransitGatewayPolicyTableEntriesWithContext", reflect.TypeOf((*MockEC2API)(nil).GetTransitGatewayPolicyTableEntriesWithContext), varargs...)
 }
 
 // GetTransitGatewayPrefixListReferences mocks base method.
@@ -25278,6 +26327,56 @@ func (mr *MockEC2APIMockRecorder) ModifyLaunchTemplateWithContext(arg0, arg1 int
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyLaunchTemplateWithContext", reflect.TypeOf((*MockEC2API)(nil).ModifyLaunchTemplateWithContext), varargs...)
+}
+
+// ModifyLocalGatewayRoute mocks base method.
+func (m *MockEC2API) ModifyLocalGatewayRoute(arg0 *ec2.ModifyLocalGatewayRouteInput) (*ec2.ModifyLocalGatewayRouteOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ModifyLocalGatewayRoute", arg0)
+	ret0, _ := ret[0].(*ec2.ModifyLocalGatewayRouteOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ModifyLocalGatewayRoute indicates an expected call of ModifyLocalGatewayRoute.
+func (mr *MockEC2APIMockRecorder) ModifyLocalGatewayRoute(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyLocalGatewayRoute", reflect.TypeOf((*MockEC2API)(nil).ModifyLocalGatewayRoute), arg0)
+}
+
+// ModifyLocalGatewayRouteRequest mocks base method.
+func (m *MockEC2API) ModifyLocalGatewayRouteRequest(arg0 *ec2.ModifyLocalGatewayRouteInput) (*request.Request, *ec2.ModifyLocalGatewayRouteOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ModifyLocalGatewayRouteRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.ModifyLocalGatewayRouteOutput)
+	return ret0, ret1
+}
+
+// ModifyLocalGatewayRouteRequest indicates an expected call of ModifyLocalGatewayRouteRequest.
+func (mr *MockEC2APIMockRecorder) ModifyLocalGatewayRouteRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyLocalGatewayRouteRequest", reflect.TypeOf((*MockEC2API)(nil).ModifyLocalGatewayRouteRequest), arg0)
+}
+
+// ModifyLocalGatewayRouteWithContext mocks base method.
+func (m *MockEC2API) ModifyLocalGatewayRouteWithContext(arg0 context.Context, arg1 *ec2.ModifyLocalGatewayRouteInput, arg2 ...request.Option) (*ec2.ModifyLocalGatewayRouteOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ModifyLocalGatewayRouteWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.ModifyLocalGatewayRouteOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ModifyLocalGatewayRouteWithContext indicates an expected call of ModifyLocalGatewayRouteWithContext.
+func (mr *MockEC2APIMockRecorder) ModifyLocalGatewayRouteWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyLocalGatewayRouteWithContext", reflect.TypeOf((*MockEC2API)(nil).ModifyLocalGatewayRouteWithContext), varargs...)
 }
 
 // ModifyManagedPrefixList mocks base method.
@@ -30555,6 +31654,39 @@ func (mr *MockEC2APIMockRecorder) WaitUntilNatGatewayAvailableWithContext(arg0, 
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilNatGatewayAvailableWithContext", reflect.TypeOf((*MockEC2API)(nil).WaitUntilNatGatewayAvailableWithContext), varargs...)
+}
+
+// WaitUntilNatGatewayDeleted mocks base method.
+func (m *MockEC2API) WaitUntilNatGatewayDeleted(arg0 *ec2.DescribeNatGatewaysInput) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WaitUntilNatGatewayDeleted", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WaitUntilNatGatewayDeleted indicates an expected call of WaitUntilNatGatewayDeleted.
+func (mr *MockEC2APIMockRecorder) WaitUntilNatGatewayDeleted(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilNatGatewayDeleted", reflect.TypeOf((*MockEC2API)(nil).WaitUntilNatGatewayDeleted), arg0)
+}
+
+// WaitUntilNatGatewayDeletedWithContext mocks base method.
+func (m *MockEC2API) WaitUntilNatGatewayDeletedWithContext(arg0 context.Context, arg1 *ec2.DescribeNatGatewaysInput, arg2 ...request.WaiterOption) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "WaitUntilNatGatewayDeletedWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WaitUntilNatGatewayDeletedWithContext indicates an expected call of WaitUntilNatGatewayDeletedWithContext.
+func (mr *MockEC2APIMockRecorder) WaitUntilNatGatewayDeletedWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilNatGatewayDeletedWithContext", reflect.TypeOf((*MockEC2API)(nil).WaitUntilNatGatewayDeletedWithContext), varargs...)
 }
 
 // WaitUntilNetworkInterfaceAvailable mocks base method.

@@ -17,9 +17,9 @@ limitations under the License.
 package services
 
 import (
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 )
 
 const (
@@ -27,6 +27,8 @@ const (
 	TemporaryResourceID = "temporary-resource-id"
 	// AnyIPv4CidrBlock is the CIDR block to match all IPv4 addresses.
 	AnyIPv4CidrBlock = "0.0.0.0/0"
+	// AnyIPv6CidrBlock is the CIDR block to match all IPv6 addresses.
+	AnyIPv6CidrBlock = "::/0"
 )
 
 // ASGInterface encapsulates the methods exposed to the machinepool
@@ -40,6 +42,8 @@ type ASGInterface interface {
 	CanStartASGInstanceRefresh(scope *scope.MachinePoolScope) (bool, error)
 	UpdateResourceTags(resourceID *string, create, remove map[string]string) error
 	DeleteASGAndWait(id string) error
+	SuspendProcesses(name string, processes []string) error
+	ResumeProcesses(name string, processes []string) error
 }
 
 // EC2Interface encapsulates the methods exposed to the machine
@@ -59,14 +63,18 @@ type EC2Interface interface {
 	TerminateInstanceAndWait(instanceID string) error
 	DetachSecurityGroupsFromNetworkInterface(groups []string, interfaceID string) error
 
-	DiscoverLaunchTemplateAMI(scope *scope.MachinePoolScope) (*string, error)
+	ReconcileLaunchTemplate(scope scope.LaunchTemplateScope, canUpdateLaunchTemplate func() (bool, error), runPostLaunchTemplateUpdateOperation func() error) error
+	ReconcileTags(scope scope.LaunchTemplateScope, resourceServicesToUpdate []scope.ResourceServiceToUpdate) error
+
+	DiscoverLaunchTemplateAMI(scope scope.LaunchTemplateScope) (*string, error)
 	GetLaunchTemplate(id string) (lt *expinfrav1.AWSLaunchTemplate, userDataHash string, err error)
 	GetLaunchTemplateID(id string) (string, error)
-	CreateLaunchTemplate(scope *scope.MachinePoolScope, imageID *string, userData []byte) (string, error)
-	CreateLaunchTemplateVersion(scope *scope.MachinePoolScope, imageID *string, userData []byte) error
+	GetLaunchTemplateLatestVersion(id string) (string, error)
+	CreateLaunchTemplate(scope scope.LaunchTemplateScope, imageID *string, userData []byte) (string, error)
+	CreateLaunchTemplateVersion(id string, scope scope.LaunchTemplateScope, imageID *string, userData []byte) error
 	PruneLaunchTemplateVersions(id string) error
 	DeleteLaunchTemplate(id string) error
-	LaunchTemplateNeedsUpdate(scope *scope.MachinePoolScope, incoming *expinfrav1.AWSLaunchTemplate, existing *expinfrav1.AWSLaunchTemplate) (bool, error)
+	LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, incoming *expinfrav1.AWSLaunchTemplate, existing *expinfrav1.AWSLaunchTemplate) (bool, error)
 	DeleteBastion() error
 	ReconcileBastion() error
 }
@@ -85,8 +93,11 @@ type ELBInterface interface {
 	DeleteLoadbalancers() error
 	ReconcileLoadbalancers() error
 	IsInstanceRegisteredWithAPIServerELB(i *infrav1.Instance) (bool, error)
+	IsInstanceRegisteredWithAPIServerLB(i *infrav1.Instance) (string, bool, error)
 	DeregisterInstanceFromAPIServerELB(i *infrav1.Instance) error
+	DeregisterInstanceFromAPIServerLB(targetGroupArn string, i *infrav1.Instance) error
 	RegisterInstanceWithAPIServerELB(i *infrav1.Instance) error
+	RegisterInstanceWithAPIServerLB(i *infrav1.Instance) error
 }
 
 // NetworkInterface encapsulates the methods exposed to the cluster

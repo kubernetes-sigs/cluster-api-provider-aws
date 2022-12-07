@@ -24,16 +24,17 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/ami"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/bootstrap"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/controller"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/eks"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/gc"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/resource"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/version"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/ami"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/bootstrap"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/controller"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/eks"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/gc"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/resource"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/version"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
-	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
 var (
@@ -92,7 +93,7 @@ func Execute() {
 
 func init() {
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	verbosity := flag.CommandLine.Int("v", 2, "Set the log level verbosity.")
+	verbosity = flag.CommandLine.Int("v", 2, "Set the log level verbosity.")
 	_ = flag.Set("v", strconv.Itoa(*verbosity))
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 }
@@ -102,5 +103,5 @@ func init() {
 }
 
 func initConfig() {
-	logf.SetLogger(logf.NewLogger(logf.WithThreshold(verbosity)))
+	ctrl.SetLogger(klog.NewKlogr().V(*verbosity))
 }

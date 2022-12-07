@@ -18,4 +18,4 @@ limitations under the License.
 //go:generate ../../../../../hack/tools/bin/mockgen -destination secretsmanagerapi_mock.go -package mock_secretsmanageriface github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface SecretsManagerAPI
 //go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt secretsmanagerapi_mock.go > _secretsmanagerapi_mock.go && mv _secretsmanagerapi_mock.go secretsmanagerapi_mock.go"
 
-package mock_secretsmanageriface // nolint:stylecheck
+package mock_secretsmanageriface //nolint:stylecheck

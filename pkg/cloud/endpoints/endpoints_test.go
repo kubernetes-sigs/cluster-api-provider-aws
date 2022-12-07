@@ -20,7 +20,7 @@ import (
 	"errors"
 	"testing"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 )
 
 func TestParseFlags(t *testing.T) {

@@ -26,9 +26,9 @@ import (
 
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	apiv1beta1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	v1beta1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/bootstrap/v1beta1"
-	iamapiv1beta1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
+	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	v1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/bootstrap/v1beta1"
+	apiv1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 )
 
 func init() {
@@ -175,7 +175,7 @@ func autoConvert_v1alpha1_AWSIAMConfigurationSpec_To_v1beta1_AWSIAMConfiguration
 	out.EKS = (*v1beta1.EKSConfig)(unsafe.Pointer(in.EKS))
 	out.EventBridge = (*v1beta1.EventBridgeConfig)(unsafe.Pointer(in.EventBridge))
 	out.Partition = in.Partition
-	out.SecureSecretsBackends = *(*[]apiv1beta1.SecretBackend)(unsafe.Pointer(&in.SecureSecretsBackends))
+	out.SecureSecretsBackends = *(*[]v1beta2.SecretBackend)(unsafe.Pointer(&in.SecureSecretsBackends))
 	return nil
 }
 
@@ -205,7 +205,7 @@ func autoConvert_v1beta1_AWSIAMConfigurationSpec_To_v1alpha1_AWSIAMConfiguration
 	out.EKS = (*EKSConfig)(unsafe.Pointer(in.EKS))
 	out.EventBridge = (*EventBridgeConfig)(unsafe.Pointer(in.EventBridge))
 	out.Partition = in.Partition
-	out.SecureSecretsBackends = *(*[]apiv1beta1.SecretBackend)(unsafe.Pointer(&in.SecureSecretsBackends))
+	out.SecureSecretsBackends = *(*[]v1beta2.SecretBackend)(unsafe.Pointer(&in.SecureSecretsBackends))
 	// WARNING: in.S3Buckets requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -213,9 +213,9 @@ func autoConvert_v1beta1_AWSIAMConfigurationSpec_To_v1alpha1_AWSIAMConfiguration
 func autoConvert_v1alpha1_AWSIAMRoleSpec_To_v1beta1_AWSIAMRoleSpec(in *AWSIAMRoleSpec, out *v1beta1.AWSIAMRoleSpec, s conversion.Scope) error {
 	out.Disable = in.Disable
 	out.ExtraPolicyAttachments = *(*[]string)(unsafe.Pointer(&in.ExtraPolicyAttachments))
-	out.ExtraStatements = *(*[]iamapiv1beta1.StatementEntry)(unsafe.Pointer(&in.ExtraStatements))
-	out.TrustStatements = *(*[]iamapiv1beta1.StatementEntry)(unsafe.Pointer(&in.TrustStatements))
-	out.Tags = *(*apiv1beta1.Tags)(unsafe.Pointer(&in.Tags))
+	out.ExtraStatements = *(*[]apiv1beta1.StatementEntry)(unsafe.Pointer(&in.ExtraStatements))
+	out.TrustStatements = *(*[]apiv1beta1.StatementEntry)(unsafe.Pointer(&in.TrustStatements))
+	out.Tags = *(*v1beta2.Tags)(unsafe.Pointer(&in.Tags))
 	return nil
 }
 
@@ -227,9 +227,9 @@ func Convert_v1alpha1_AWSIAMRoleSpec_To_v1beta1_AWSIAMRoleSpec(in *AWSIAMRoleSpe
 func autoConvert_v1beta1_AWSIAMRoleSpec_To_v1alpha1_AWSIAMRoleSpec(in *v1beta1.AWSIAMRoleSpec, out *AWSIAMRoleSpec, s conversion.Scope) error {
 	out.Disable = in.Disable
 	out.ExtraPolicyAttachments = *(*[]string)(unsafe.Pointer(&in.ExtraPolicyAttachments))
-	out.ExtraStatements = *(*[]iamapiv1beta1.StatementEntry)(unsafe.Pointer(&in.ExtraStatements))
-	out.TrustStatements = *(*[]iamapiv1beta1.StatementEntry)(unsafe.Pointer(&in.TrustStatements))
-	out.Tags = *(*apiv1beta1.Tags)(unsafe.Pointer(&in.Tags))
+	out.ExtraStatements = *(*[]apiv1beta1.StatementEntry)(unsafe.Pointer(&in.ExtraStatements))
+	out.TrustStatements = *(*[]apiv1beta1.StatementEntry)(unsafe.Pointer(&in.TrustStatements))
+	out.Tags = *(*v1beta2.Tags)(unsafe.Pointer(&in.Tags))
 	return nil
 }
 
@@ -244,8 +244,8 @@ func autoConvert_v1alpha1_BootstrapUser_To_v1beta1_BootstrapUser(in *BootstrapUs
 	out.GroupName = in.GroupName
 	out.ExtraPolicyAttachments = *(*[]string)(unsafe.Pointer(&in.ExtraPolicyAttachments))
 	out.ExtraGroups = *(*[]string)(unsafe.Pointer(&in.ExtraGroups))
-	out.ExtraStatements = *(*[]iamapiv1beta1.StatementEntry)(unsafe.Pointer(&in.ExtraStatements))
-	out.Tags = *(*apiv1beta1.Tags)(unsafe.Pointer(&in.Tags))
+	out.ExtraStatements = *(*[]apiv1beta1.StatementEntry)(unsafe.Pointer(&in.ExtraStatements))
+	out.Tags = *(*v1beta2.Tags)(unsafe.Pointer(&in.Tags))
 	return nil
 }
 
@@ -260,8 +260,8 @@ func autoConvert_v1beta1_BootstrapUser_To_v1alpha1_BootstrapUser(in *v1beta1.Boo
 	out.GroupName = in.GroupName
 	out.ExtraPolicyAttachments = *(*[]string)(unsafe.Pointer(&in.ExtraPolicyAttachments))
 	out.ExtraGroups = *(*[]string)(unsafe.Pointer(&in.ExtraGroups))
-	out.ExtraStatements = *(*[]iamapiv1beta1.StatementEntry)(unsafe.Pointer(&in.ExtraStatements))
-	out.Tags = *(*apiv1beta1.Tags)(unsafe.Pointer(&in.Tags))
+	out.ExtraStatements = *(*[]apiv1beta1.StatementEntry)(unsafe.Pointer(&in.ExtraStatements))
+	out.Tags = *(*v1beta2.Tags)(unsafe.Pointer(&in.Tags))
 	return nil
 }
 

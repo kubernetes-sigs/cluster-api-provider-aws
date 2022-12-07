@@ -23,18 +23,19 @@ import (
 
 	amazoncni "github.com/aws/amazon-vpc-cni-k8s/pkg/apis/crd/v1alpha1"
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/klog/v2/klogr"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -48,12 +49,13 @@ func init() {
 	_ = amazoncni.AddToScheme(scheme)
 	_ = appsv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
+	_ = rbacv1.AddToScheme(scheme)
 }
 
 // ManagedControlPlaneScopeParams defines the input parameters used to create a new Scope.
 type ManagedControlPlaneScopeParams struct {
 	Client         client.Client
-	Logger         *logr.Logger
+	Logger         *logger.Logger
 	Cluster        *clusterv1.Cluster
 	ControlPlane   *ekscontrolplanev1.AWSManagedControlPlane
 	ControllerName string
@@ -74,8 +76,8 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 		return nil, errors.New("failed to generate new scope from nil AWSManagedControlPlane")
 	}
 	if params.Logger == nil {
-		log := klogr.New()
-		params.Logger = &log
+		log := klog.Background()
+		params.Logger = logger.NewLogger(log)
 	}
 
 	managedScope := &ManagedControlPlaneScope{
@@ -90,7 +92,7 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 		allowAdditionalRoles: params.AllowAdditionalRoles,
 		enableIAM:            params.EnableIAM,
 	}
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, *params.Logger)
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
@@ -109,7 +111,7 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 
 // ManagedControlPlaneScope defines the basic context for an actuator to operate upon.
 type ManagedControlPlaneScope struct {
-	logr.Logger
+	logger.Logger
 	Client      client.Client
 	patchHelper *patch.Helper
 
@@ -191,7 +193,7 @@ func (s *ManagedControlPlaneScope) SecondaryCidrBlock() *string {
 	return s.ControlPlane.Spec.SecondaryCidrBlock
 }
 
-// SecurityGroupOverrides returns the the security groups that are overridden in the ControlPlane spec.
+// SecurityGroupOverrides returns the security groups that are overrides in the ControlPlane spec.
 func (s *ManagedControlPlaneScope) SecurityGroupOverrides() map[infrav1.SecurityGroupRole]string {
 	return s.ControlPlane.Spec.NetworkSpec.SecurityGroupOverrides
 }
@@ -236,6 +238,7 @@ func (s *ManagedControlPlaneScope) PatchObject() error {
 			infrav1.NatGatewaysReadyCondition,
 			infrav1.RouteTablesReadyCondition,
 			infrav1.BastionHostReadyCondition,
+			infrav1.EgressOnlyInternetGatewayReadyCondition,
 			ekscontrolplanev1.EKSControlPlaneCreatingCondition,
 			ekscontrolplanev1.EKSControlPlaneReadyCondition,
 			ekscontrolplanev1.EKSControlPlaneUpdatingCondition,
@@ -369,7 +372,12 @@ func (s *ManagedControlPlaneScope) DisableKubeProxy() bool {
 
 // DisableVPCCNI returns whether the AWS VPC CNI should be disabled.
 func (s *ManagedControlPlaneScope) DisableVPCCNI() bool {
-	return s.ControlPlane.Spec.DisableVPCCNI
+	return s.ControlPlane.Spec.VpcCni.Disable
+}
+
+// VpcCni returns a list of environment variables to apply to the `aws-node` DaemonSet.
+func (s *ManagedControlPlaneScope) VpcCni() ekscontrolplanev1.VpcCni {
+	return s.ControlPlane.Spec.VpcCni
 }
 
 func (s *ManagedControlPlaneScope) OIDCIdentityProviderConfig() *ekscontrolplanev1.OIDCIdentityProviderConfig {
@@ -386,5 +394,10 @@ func (s *ManagedControlPlaneScope) ServiceCidrs() *clusterv1.NetworkRanges {
 		}
 	}
 
+	return nil
+}
+
+// ControlPlaneLoadBalancer returns the AWSLoadBalancerSpec.
+func (s *ManagedControlPlaneScope) ControlPlaneLoadBalancer() *infrav1.AWSLoadBalancerSpec {
 	return nil
 }

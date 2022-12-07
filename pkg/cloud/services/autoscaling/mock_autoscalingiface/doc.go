@@ -18,4 +18,4 @@ limitations under the License.
 //go:generate ../../../../../hack/tools/bin/mockgen -destination autoscalingapi_mock.go -package mock_autoscalingiface github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface AutoScalingAPI
 //go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt autoscalingapi_mock.go > _autoscalingapi_mock.go && mv _autoscalingapi_mock.go autoscalingapi_mock.go"
 
-package mock_autoscalingiface // nolint:stylecheck
+package mock_autoscalingiface //nolint:stylecheck

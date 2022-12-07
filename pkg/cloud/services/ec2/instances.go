@@ -30,21 +30,21 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/utils/pointer"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
-	awslogs "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/logs"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
+	awslogs "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/logs"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
 // GetRunningInstanceByTags returns the existing instance or nothing if it doesn't exist.
 func (s *Service) GetRunningInstanceByTags(scope *scope.MachineScope) (*infrav1.Instance, error) {
-	s.scope.V(2).Info("Looking for existing machine instance by tags")
+	s.scope.Debug("Looking for existing machine instance by tags")
 
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
@@ -84,7 +84,7 @@ func (s *Service) InstanceIfExists(id *string) (*infrav1.Instance, error) {
 		return nil, nil
 	}
 
-	s.scope.V(2).Info("Looking for instance by id", "instance-id", *id)
+	s.scope.Debug("Looking for instance by id", "instance-id", *id)
 
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{id},
@@ -111,7 +111,7 @@ func (s *Service) InstanceIfExists(id *string) (*infrav1.Instance, error) {
 
 // CreateInstance runs an ec2 instance.
 func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, userDataFormat string) (*infrav1.Instance, error) {
-	s.scope.V(2).Info("Creating an instance for a machine")
+	s.scope.Debug("Creating an instance for a machine")
 
 	input := &infrav1.Instance{
 		Type:              scope.AWSMachine.Spec.InstanceType,
@@ -133,7 +133,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 
 	var err error
 	// Pick image from the machine configuration, or use a default one.
-	if scope.AWSMachine.Spec.AMI.ID != nil { // nolint:nestif
+	if scope.AWSMachine.Spec.AMI.ID != nil { //nolint:nestif
 		input.ImageID = *scope.AWSMachine.Spec.AMI.ID
 	} else {
 		if scope.Machine.Spec.Version == nil {
@@ -229,7 +229,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 
 	input.Tenancy = scope.AWSMachine.Spec.Tenancy
 
-	s.scope.V(2).Info("Running instance", "machine-role", scope.Role())
+	s.scope.Debug("Running instance", "machine-role", scope.Role())
 	out, err := s.runInstance(scope.Role(), input)
 	if err != nil {
 		// Only record the failure event if the error is not related to failed dependencies.
@@ -242,7 +242,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 
 	if len(input.NetworkInterfaces) > 0 {
 		for _, id := range input.NetworkInterfaces {
-			s.scope.V(2).Info("Attaching security groups to provided network interface", "groups", input.SecurityGroupIDs, "interface", id)
+			s.scope.Debug("Attaching security groups to provided network interface", "groups", input.SecurityGroupIDs, "interface", id)
 			if err := s.attachSecurityGroupsToNetworkInterface(input.SecurityGroupIDs, id); err != nil {
 				return nil, err
 			}
@@ -261,9 +261,6 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 	// Check Machine.Spec.FailureDomain first as it's used by KubeadmControlPlane to spread machines across failure domains.
 	failureDomain := scope.Machine.Spec.FailureDomain
-	if failureDomain == nil {
-		failureDomain = scope.AWSMachine.Spec.FailureDomain
-	}
 
 	// We basically have 2 sources for subnets:
 	//   1. If subnet.id or subnet.filters are specified, we directly query AWS
@@ -409,7 +406,7 @@ func (s *Service) GetCoreSecurityGroups(scope *scope.MachineScope) ([]string, er
 
 // GetCoreNodeSecurityGroups looks up the security group IDs managed by this actuator
 // They are considered "core" to its proper functioning.
-func (s *Service) GetCoreNodeSecurityGroups(scope *scope.MachinePoolScope) ([]string, error) {
+func (s *Service) GetCoreNodeSecurityGroups(scope scope.LaunchTemplateScope) ([]string, error) {
 	// These are common across both controlplane and node machines
 	sgRoles := []infrav1.SecurityGroupRole{
 		infrav1.SecurityGroupNode,
@@ -436,7 +433,7 @@ func (s *Service) GetCoreNodeSecurityGroups(scope *scope.MachinePoolScope) ([]st
 // TerminateInstance terminates an EC2 instance.
 // Returns nil on success, error in all other cases.
 func (s *Service) TerminateInstance(instanceID string) error {
-	s.scope.V(2).Info("Attempting to terminate instance", "instance-id", instanceID)
+	s.scope.Debug("Attempting to terminate instance", "instance-id", instanceID)
 
 	input := &ec2.TerminateInstancesInput{
 		InstanceIds: aws.StringSlice([]string{instanceID}),
@@ -446,7 +443,7 @@ func (s *Service) TerminateInstance(instanceID string) error {
 		return errors.Wrapf(err, "failed to terminate instance with id %q", instanceID)
 	}
 
-	s.scope.V(2).Info("Terminated instance", "instance-id", instanceID)
+	s.scope.Debug("Terminated instance", "instance-id", instanceID)
 	return nil
 }
 
@@ -457,7 +454,7 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 		return err
 	}
 
-	s.scope.V(2).Info("Waiting for EC2 instance to terminate", "instance-id", instanceID)
+	s.scope.Debug("Waiting for EC2 instance to terminate", "instance-id", instanceID)
 
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: aws.StringSlice([]string{instanceID}),
@@ -481,7 +478,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		UserData:     i.UserData,
 	}
 
-	s.scope.V(2).Info("userData size", "bytes", len(*i.UserData), "role", role)
+	s.scope.Debug("userData size", "bytes", len(*i.UserData), "role", role)
 
 	if len(i.NetworkInterfaces) > 0 {
 		netInterfaces := make([]*ec2.InstanceNetworkInterfaceSpecification, 0, len(i.NetworkInterfaces))
@@ -572,16 +569,16 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 	}
 
 	waitTimeout := 1 * time.Minute
-	s.scope.V(2).Info("Waiting for instance to be in running state", "instance-id", *out.Instances[0].InstanceId, "timeout", waitTimeout.String())
+	s.scope.Debug("Waiting for instance to be in running state", "instance-id", *out.Instances[0].InstanceId, "timeout", waitTimeout.String())
 	ctx, cancel := context.WithTimeout(aws.BackgroundContext(), waitTimeout)
 	defer cancel()
 
 	if err := s.EC2Client.WaitUntilInstanceRunningWithContext(
 		ctx,
 		&ec2.DescribeInstancesInput{InstanceIds: []*string{out.Instances[0].InstanceId}},
-		request.WithWaiterLogger(awslogs.NewWrapLogr(s.scope)),
+		request.WithWaiterLogger(awslogs.NewWrapLogr(s.scope.GetLogger())),
 	); err != nil {
-		s.scope.V(2).Info("Could not determine if Machine is running. Machine state might be unavailable until next renconciliation.")
+		s.scope.Debug("Could not determine if Machine is running. Machine state might be unavailable until next renconciliation.")
 	}
 
 	return s.SDKToInstance(out.Instances[0])
@@ -639,14 +636,14 @@ func (s *Service) GetInstanceSecurityGroups(instanceID string) (map[string][]str
 // UpdateInstanceSecurityGroups modifies the security groups of the given
 // EC2 instance.
 func (s *Service) UpdateInstanceSecurityGroups(instanceID string, ids []string) error {
-	s.scope.V(2).Info("Attempting to update security groups on instance", "instance-id", instanceID)
+	s.scope.Debug("Attempting to update security groups on instance", "instance-id", instanceID)
 
 	enis, err := s.getInstanceENIs(instanceID)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get ENIs for instance %q", instanceID)
 	}
 
-	s.scope.V(3).Info("Found ENIs on instance", "number-of-enis", len(enis), "instance-id", instanceID)
+	s.scope.Debug("Found ENIs on instance", "number-of-enis", len(enis), "instance-id", instanceID)
 
 	for _, eni := range enis {
 		if err := s.attachSecurityGroupsToNetworkInterface(ids, aws.StringValue(eni.NetworkInterfaceId)); err != nil {
@@ -662,11 +659,11 @@ func (s *Service) UpdateInstanceSecurityGroups(instanceID string, ids []string) 
 // We may not always have to perform each action, so we check what we're
 // receiving to avoid calling AWS if we don't need to.
 func (s *Service) UpdateResourceTags(resourceID *string, create, remove map[string]string) error {
-	s.scope.V(2).Info("Attempting to update tags on resource", "resource-id", *resourceID)
+	s.scope.Debug("Attempting to update tags on resource", "resource-id", *resourceID)
 
 	// If we have anything to create or update
 	if len(create) > 0 {
-		s.scope.V(2).Info("Attempting to create tags on resource", "resource-id", *resourceID)
+		s.scope.Debug("Attempting to create tags on resource", "resource-id", *resourceID)
 
 		// Convert our create map into an array of *ec2.Tag
 		createTagsInput := converters.MapToTags(create)
@@ -685,7 +682,7 @@ func (s *Service) UpdateResourceTags(resourceID *string, create, remove map[stri
 
 	// If we have anything to remove
 	if len(remove) > 0 {
-		s.scope.V(2).Info("Attempting to delete tags on resource", "resource-id", *resourceID)
+		s.scope.Debug("Attempting to delete tags on resource", "resource-id", *resourceID)
 
 		// Convert our remove map into an array of *ec2.Tag
 		removeTagsInput := converters.MapToTags(remove)

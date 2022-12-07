@@ -19,9 +19,9 @@ package controllers
 import (
 	"sort"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	service "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 )
 
 const (
@@ -51,7 +51,7 @@ func (r *AWSMachineReconciler) ensureSecurityGroups(ec2svc service.EC2Interface,
 
 	additionalSecurityGroupsIDs, err := ec2svc.GetAdditionalSecurityGroupsIDs(additional)
 	if err != nil {
-		return false, nil // nolint:nilerr
+		return false, err
 	}
 
 	changed, ids := r.securityGroupsChanged(annotation, core, additionalSecurityGroupsIDs, existing)

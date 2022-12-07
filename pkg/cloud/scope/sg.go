@@ -17,8 +17,8 @@ limitations under the License.
 package scope
 
 import (
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 )
 
 // SGScope is the interface for the scope to be used with the sg service.
@@ -31,7 +31,7 @@ type SGScope interface {
 	// SecurityGroups returns the cluster security groups as a map, it creates the map if empty.
 	SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.SecurityGroup
 
-	// SecurityGroupOverrides returns the security groups that are overridden in the cluster spec
+	// SecurityGroupOverrides returns the security groups that are used as overrides in the cluster spec
 	SecurityGroupOverrides() map[infrav1.SecurityGroupRole]string
 
 	// VPC returns the cluster VPC.
@@ -42,4 +42,7 @@ type SGScope interface {
 
 	// Bastion returns the bastion details for the cluster.
 	Bastion() *infrav1.Bastion
+
+	// ControlPlaneLoadBalancer returns the load balancer settings that are requested.
+	ControlPlaneLoadBalancer() *infrav1.AWSLoadBalancerSpec
 }

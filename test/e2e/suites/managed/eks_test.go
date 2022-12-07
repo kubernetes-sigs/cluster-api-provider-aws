@@ -27,8 +27,8 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -38,7 +38,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 	var (
 		namespace        *corev1.Namespace
 		ctx              context.Context
-		specName         = "eks-nodes"
+		specName         = "cluster"
 		clusterName      string
 		cniAddonName     = "vpc-cni"
 		corednsAddonName = "coredns"
@@ -55,9 +55,10 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 		ctx = context.TODO()
 		namespace = shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 		clusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
+		eksClusterName := getEKSClusterName(namespace.Name, clusterName)
 
 		ginkgo.By("default iam role should exist")
-		VerifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, clusterName, false, e2eCtx.BootstrapUserAWSSession)
+		VerifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, eksClusterName, false, e2eCtx.BootstrapUserAWSSession)
 
 		ginkgo.By("should create an EKS control plane")
 		ManagedClusterSpec(ctx, func() ManagedClusterSpecInput {
@@ -71,6 +72,17 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				Flavour:                  EKSControlPlaneOnlyWithAddonFlavor,
 				ControlPlaneMachineCount: 1, //NOTE: this cannot be zero as clusterctl returns an error
 				WorkerMachineCount:       0,
+			}
+		})
+
+		ginkgo.By("should set environment variables on the aws-node daemonset")
+		CheckAwsNodeEnvVarsSet(ctx, func() UpdateAwsNodeVersionSpecInput {
+			return UpdateAwsNodeVersionSpecInput{
+				E2EConfig:             e2eCtx.E2EConfig,
+				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				AWSSession:            e2eCtx.BootstrapUserAWSSession,
+				Namespace:             namespace,
+				ClusterName:           clusterName,
 			}
 		})
 
@@ -115,8 +127,8 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 		})
 
 		ginkgo.By("should create a managed node pool and scale")
-		ManagedMachinePoolSpec(ctx, func() ManagedMachinePoolSpecInput {
-			return ManagedMachinePoolSpecInput{
+		MachinePoolSpec(ctx, func() MachinePoolSpecInput {
+			return MachinePoolSpecInput{
 				E2EConfig:             e2eCtx.E2EConfig,
 				ConfigClusterFn:       defaultConfigCluster,
 				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
@@ -125,6 +137,42 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				ClusterName:           clusterName,
 				IncludeScaling:        true,
 				Cleanup:               true,
+				ManagedMachinePool:    true,
+				Flavor:                EKSManagedMachinePoolOnlyFlavor,
+			}
+		})
+
+		ginkgo.By("should create a machine pool and scale")
+		MachinePoolSpec(ctx, func() MachinePoolSpecInput {
+			return MachinePoolSpecInput{
+				E2EConfig:             e2eCtx.E2EConfig,
+				ConfigClusterFn:       defaultConfigCluster,
+				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				AWSSession:            e2eCtx.BootstrapUserAWSSession,
+				Namespace:             namespace,
+				ClusterName:           clusterName,
+				IncludeScaling:        true,
+				Cleanup:               true,
+				ManagedMachinePool:    false,
+				Flavor:                EKSMachinePoolOnlyFlavor,
+				UsesLaunchTemplate:    false,
+			}
+		})
+
+		ginkgo.By("should create a managed node pool with launch template and scale")
+		MachinePoolSpec(ctx, func() MachinePoolSpecInput {
+			return MachinePoolSpecInput{
+				E2EConfig:             e2eCtx.E2EConfig,
+				ConfigClusterFn:       defaultConfigCluster,
+				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				AWSSession:            e2eCtx.BootstrapUserAWSSession,
+				Namespace:             namespace,
+				ClusterName:           clusterName,
+				IncludeScaling:        true,
+				Cleanup:               true,
+				ManagedMachinePool:    true,
+				Flavor:                EKSManagedMachinePoolWithLaunchTemplateOnlyFlavor,
+				UsesLaunchTemplate:    true,
 			}
 		})
 

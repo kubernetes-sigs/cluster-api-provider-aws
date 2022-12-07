@@ -31,17 +31,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/autoscaling/mock_autoscalingiface"
-	"sigs.k8s.io/cluster-api-provider-aws/test/mocks"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/autoscaling/mock_autoscalingiface"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
-func TestService_GetASGByName(t *testing.T) {
+func TestServiceGetASGByName(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	tests := []struct {
@@ -128,7 +128,7 @@ func TestService_GetASGByName(t *testing.T) {
 	}
 }
 
-func TestService_SDKToAutoScalingGroup(t *testing.T) {
+func TestServiceSDKToAutoScalingGroup(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   *autoscaling.Group
@@ -185,6 +185,27 @@ func TestService_SDKToAutoScalingGroup(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "valid input - suspended processes",
+			input: &autoscaling.Group{
+				DesiredCapacity: aws.Int64(1234),
+				MaxSize:         aws.Int64(1234),
+				MinSize:         aws.Int64(1234),
+				SuspendedProcesses: []*autoscaling.SuspendedProcess{
+					{
+						ProcessName:      aws.String("process1"),
+						SuspensionReason: aws.String("not relevant"),
+					},
+				},
+			},
+			want: &expinfrav1.AutoScalingGroup{
+				DesiredCapacity:           aws.Int32(1234),
+				MaxSize:                   int32(1234),
+				MinSize:                   int32(1234),
+				CurrentlySuspendProcesses: []string{"process1"},
+			},
+			wantErr: false,
+		},
+		{
 			name: "valid input - all fields filled",
 			input: &autoscaling.Group{
 				AutoScalingGroupARN:  aws.String("test-id"),
@@ -218,8 +239,9 @@ func TestService_SDKToAutoScalingGroup(t *testing.T) {
 				},
 				Instances: []*autoscaling.Instance{
 					{
-						InstanceId:     aws.String("instanceId"),
-						LifecycleState: aws.String("lifecycleState"),
+						InstanceId:       aws.String("instanceId"),
+						LifecycleState:   aws.String("lifecycleState"),
+						AvailabilityZone: aws.String("us-east-1a"),
 					},
 				},
 			},
@@ -249,8 +271,9 @@ func TestService_SDKToAutoScalingGroup(t *testing.T) {
 				},
 				Instances: []infrav1.Instance{
 					{
-						ID:    "instanceId",
-						State: "lifecycleState",
+						ID:               "instanceId",
+						State:            "lifecycleState",
+						AvailabilityZone: "us-east-1a",
 					},
 				},
 			},
@@ -294,7 +317,7 @@ func TestService_SDKToAutoScalingGroup(t *testing.T) {
 	}
 }
 
-func TestService_ASGIfExists(t *testing.T) {
+func TestServiceASGIfExists(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -385,7 +408,7 @@ func TestService_ASGIfExists(t *testing.T) {
 	}
 }
 
-func TestService_CreateASG(t *testing.T) {
+func TestServiceCreateASG(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	tests := []struct {
@@ -536,7 +559,7 @@ func TestService_CreateASG(t *testing.T) {
 	}
 }
 
-func TestService_UpdateASG(t *testing.T) {
+func TestServiceUpdateASG(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -593,7 +616,7 @@ func TestService_UpdateASG(t *testing.T) {
 	}
 }
 
-func TestService_UpdateASGWithSubnetFilters(t *testing.T) {
+func TestServiceUpdateASGWithSubnetFilters(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -662,7 +685,7 @@ func TestService_UpdateASGWithSubnetFilters(t *testing.T) {
 	}
 }
 
-func TestService_UpdateResourceTags(t *testing.T) {
+func TestServiceUpdateResourceTags(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -778,7 +801,7 @@ func TestService_UpdateResourceTags(t *testing.T) {
 	}
 }
 
-func TestService_DeleteASG(t *testing.T) {
+func TestServiceDeleteASG(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -829,7 +852,7 @@ func TestService_DeleteASG(t *testing.T) {
 	}
 }
 
-func TestService_DeleteASGAndWait(t *testing.T) {
+func TestServiceDeleteASGAndWait(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -899,7 +922,7 @@ func TestService_DeleteASGAndWait(t *testing.T) {
 	}
 }
 
-func TestService_CanStartASGInstanceRefresh(t *testing.T) {
+func TestServiceCanStartASGInstanceRefresh(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -977,7 +1000,7 @@ func TestService_CanStartASGInstanceRefresh(t *testing.T) {
 	}
 }
 
-func TestService_StartASGInstanceRefresh(t *testing.T) {
+func TestServiceStartASGInstanceRefresh(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -1044,6 +1067,7 @@ func getFakeClient() client.Client {
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
 	_ = expinfrav1.AddToScheme(scheme)
+	_ = expclusterv1.AddToScheme(scheme)
 	return fake.NewClientBuilder().WithScheme(scheme).Build()
 }
 
