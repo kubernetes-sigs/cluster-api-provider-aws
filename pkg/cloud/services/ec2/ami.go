@@ -44,6 +44,8 @@ const (
 	// https://ubuntu.com/server/docs/cloud-images/amazon-ec2
 	ubuntuOwnerID = "099720109477"
 
+	ubuntuOwnerIDUsGov = "513442679011"
+
 	// Description regex for fetching Ubuntu AMIs for bastion host.
 	ubuntuImageDescription = "Canonical??Ubuntu??20.04?LTS??amd64?focal?image*"
 
@@ -195,13 +197,9 @@ func GetLatestImage(imgs []*ec2.Image) (*ec2.Image, error) {
 	return imgs[len(imgs)-1], nil
 }
 
-func (s *Service) defaultBastionAMILookup() (string, error) {
+func (s *Service) defaultBastionAMILookup(region string) (string, error) {
 	describeImageInput := &ec2.DescribeImagesInput{
 		Filters: []*ec2.Filter{
-			{
-				Name:   aws.String("owner-id"),
-				Values: []*string{aws.String(ubuntuOwnerID)},
-			},
 			{
 				Name:   aws.String("architecture"),
 				Values: []*string{aws.String("x86_64")},
@@ -220,6 +218,21 @@ func (s *Service) defaultBastionAMILookup() (string, error) {
 			},
 		},
 	}
+
+	if strings.Contains(region, defaultUsGovPartitionName) {
+		filter := &ec2.Filter{
+				Name:   aws.String("owner-id"),
+				Values: []*string{aws.String(ubuntuOwnerIDUsGov)},
+			}
+		describeImageInput.Filters = append(describeImageInput.Filters, filter)
+	} else {
+		filter := &ec2.Filter{
+			Name:   aws.String("owner-id"),
+			Values: []*string{aws.String(ubuntuOwnerID)},
+		}
+		describeImageInput.Filters = append(describeImageInput.Filters, filter)
+	}
+
 	out, err := s.EC2Client.DescribeImages(describeImageInput)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to describe images within region: %q", s.scope.Region())

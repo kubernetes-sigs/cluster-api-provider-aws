@@ -21,8 +21,13 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks"
 )
 
-func fargateProfilePolicies(roleSpec *bootstrapv1.AWSIAMRoleSpec) []string {
-	policies := eks.FargateRolePolicies()
+func (t Template) fargateProfilePolicies(roleSpec *bootstrapv1.AWSIAMRoleSpec) []string {
+	var policies []string
+	if t.Spec.Partition == bootstrapv1.DefaultPartitionNameUSGov {
+		policies = eks.FargateRolePoliciesAWSUSGov()
+	} else {
+		policies = eks.FargateRolePolicies()
+	}
 	if roleSpec.ExtraPolicyAttachments != nil {
 		policies = append(policies, roleSpec.ExtraPolicyAttachments...)
 	}
