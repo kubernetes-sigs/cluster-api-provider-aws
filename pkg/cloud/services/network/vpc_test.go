@@ -351,8 +351,13 @@ func TestReconcileVPC(t *testing.T) {
 			},
 		},
 		{
-			name:  "should set up IPv6 associations if found VPC is IPv6 enabled",
-			input: &infrav1.VPCSpec{ID: "unmanaged-vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
+			name: "should set up IPv6 associations if found VPC is IPv6 enabled",
+			input: &infrav1.VPCSpec{
+				ID:                         "unmanaged-vpc-exists",
+				IPv6:                       &infrav1.IPv6{},
+				AvailabilityZoneUsageLimit: &usageLimit,
+				AvailabilityZoneSelection:  &selection,
+			},
 			want: &infrav1.VPCSpec{
 				ID:        "unmanaged-vpc-exists",
 				CidrBlock: "10.0.0.0/8",

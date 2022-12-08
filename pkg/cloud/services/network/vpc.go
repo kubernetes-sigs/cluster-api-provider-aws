@@ -52,7 +52,9 @@ func (s *Service) reconcileVPC() error {
 
 		s.scope.VPC().CidrBlock = vpc.CidrBlock
 		s.scope.VPC().Tags = vpc.Tags
-		s.scope.VPC().IPv6 = vpc.IPv6
+		if s.scope.VPC().IsIPv6Enabled() {
+			s.scope.VPC().IPv6 = vpc.IPv6
+		}
 
 		// If VPC is unmanaged, return early.
 		if vpc.IsUnmanaged(s.scope.Name()) {
