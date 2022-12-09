@@ -110,10 +110,17 @@ func (s *Service) reconcileControlPlaneIAMRole() error {
 	}
 
 	//TODO: check tags and trust relationship to see if they need updating
-
-	policies := []*string{
-		aws.String("arn:*:iam::aws:policy/AmazonEKSClusterPolicy"),
+	var policies []*string
+	if strings.Contains(s.scope.ControlPlane.Spec.Region, v1beta1.DefaultPartitionNameUSGov) {
+		policies = []*string{
+			aws.String("arn:aws-us-gov:iam::aws:policy/AmazonEKSClusterPolicy"),
+		}
+	} else {
+		policies = []*string{
+			aws.String("arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"),
+		}
 	}
+
 	if s.scope.ControlPlane.Spec.RoleAdditionalPolicies != nil {
 		if !s.scope.AllowAdditionalRoles() && len(*s.scope.ControlPlane.Spec.RoleAdditionalPolicies) > 0 {
 			return ErrCannotUseAdditionalRoles
