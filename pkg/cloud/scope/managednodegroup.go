@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -163,6 +164,11 @@ func (s *ManagedMachinePoolScope) EnableIAM() bool {
 // AllowAdditionalRoles indicates if additional roles can be added to the created IAM roles.
 func (s *ManagedMachinePoolScope) AllowAdditionalRoles() bool {
 	return s.allowAdditionalRoles
+}
+
+// Partition returns the machine pool subnet IDs.
+func (s *ManagedMachinePoolScope) Partition() string {
+	return system.GetPartitionFromRegion(s.ControlPlane.Spec.Region)
 }
 
 // IdentityRef returns the cluster identityRef.

@@ -32,13 +32,14 @@ func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	if err := Convert_v1beta1_AWSManagedControlPlane_To_v1beta2_AWSManagedControlPlane(r, dst, nil); err != nil {
 		return err
 	}
-	
+
 	// Manually restore data.
 	restored := &ekscontrolplanev1.AWSManagedControlPlane{}
 	if ok, err := utilconversion.UnmarshalData(r, restored); err != nil || !ok {
 		return err
 	}
 	dst.Spec.VpcCni.Disable = r.Spec.DisableVPCCNI
+	dst.Spec.Partition = restored.Spec.Partition
 
 	return nil
 }
@@ -50,7 +51,7 @@ func (r *AWSManagedControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 	if err := Convert_v1beta2_AWSManagedControlPlane_To_v1beta1_AWSManagedControlPlane(src, r, nil); err != nil {
 		return err
 	}
-	
+
 	r.Spec.DisableVPCCNI = src.Spec.VpcCni.Disable
 	if err := utilconversion.MarshalData(src, r); err != nil {
 		return err
@@ -109,4 +110,9 @@ func Convert_v1beta1_AWSManagedControlPlaneSpec_To_v1beta2_AWSManagedControlPlan
 
 func Convert_v1beta2_VpcCni_To_v1beta1_VpcCni(in *ekscontrolplanev1.VpcCni, out *VpcCni, s apiconversion.Scope) error {
 	return autoConvert_v1beta2_VpcCni_To_v1beta1_VpcCni(in, out, s)
+}
+
+// Convert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControlPlaneSpec is a generated conversion function
+func Convert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControlPlaneSpec(in *ekscontrolplanev1.AWSManagedControlPlaneSpec, out *AWSManagedControlPlaneSpec, scope apiconversion.Scope) error {
+	return autoConvert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControlPlaneSpec(in, out, scope)
 }

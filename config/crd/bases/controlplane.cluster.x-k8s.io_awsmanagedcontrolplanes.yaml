@@ -1989,6 +1989,10 @@ spec:
                       prefixing.
                     type: string
                 type: object
+              partition:
+                description: Partition is the AWS security partition being used. Defaults
+                  to "aws"
+                type: string
               region:
                 description: The AWS Region the cluster lives in.
                 type: string
