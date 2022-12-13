@@ -27,6 +27,7 @@ import (
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 )
 
 // ReconcileIAMAuthenticator is used to create the aws-iam-authenticator in a cluster.
@@ -49,7 +50,8 @@ func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
 		return fmt.Errorf("getting aws-iam-authenticator backend: %w", err)
 	}
 
-	roleARN := fmt.Sprintf("arn:aws:iam::%s:role/nodes%s", accountID, iamv1.DefaultNameSuffix)
+	partition := system.GetPartitionFromRegion(s.scope.Region())
+	roleARN := fmt.Sprintf("arn:%s:iam::%s:role/nodes%s", partition, accountID, iamv1.DefaultNameSuffix)
 	nodesRoleMapping := ekscontrolplanev1.RoleMapping{
 		RoleARN: roleARN,
 		KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
