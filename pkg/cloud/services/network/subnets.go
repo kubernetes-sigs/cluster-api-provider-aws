@@ -137,6 +137,7 @@ func (s *Service) reconcileSubnets() error {
 			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 				buildParams := s.getSubnetTagParams(unmanagedVPC, existingSubnet.GetResourceID(), existingSubnet.IsPublic, existingSubnet.AvailabilityZone, subnetTags, existingSubnet.IsEdge())
 				tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
+				s.removeNonClusterSharedTags(subnetTags, existingSubnet.Tags)
 				if err := tagsBuilder.Ensure(existingSubnet.Tags); err != nil {
 					return false, err
 				}
@@ -353,7 +354,44 @@ func (s *Service) getDefaultSubnets() (infrav1.Subnets, error) {
 }
 
 func (s *Service) deleteSubnets() error {
+	s.scope.Trace("Deleting subnets")
 	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
+		s.scope.Trace("Deleting subnet tags if vpc is unmanaged")
+
+		// For deletion of the subnet tag while the static placement cluster is getting deleted:
+		// for all the subnets, the specific tag of key and value is fetched (in this case it will be equal to one's of the cluster getting deleted)
+		// If the tag is found, it will be deleted. If not found, an error will be returned.
+		// The fetching of tags is done in the same way tags are described using AWS CLI.
+		existing, err := s.describeSubnets()
+		if err != nil {
+			return err
+		}
+
+		for i := range existing.Subnets {
+
+			describeTagsInput := &ec2.DescribeTagsInput{Filters: []*ec2.Filter{
+				{Name: aws.String("resource-type"), Values: []*string{aws.String("subnet")}},
+				{Name: aws.String("key"), Values: []*string{aws.String(infrav1.NameKubernetesAWSCloudProviderPrefix + s.scope.KubernetesClusterName())}},
+				{Name: aws.String("value"), Values: []*string{aws.String(string(infrav1.ResourceLifecycleShared))}},
+			},
+			}
+
+			if fetchedTags, err := s.EC2Client.DescribeTags(describeTagsInput); err != nil {
+				return errors.Wrapf(err, "failed to delete tags for resource %q", *existing.Subnets[i].SubnetId)
+			} else if len(fetchedTags.Tags) > 0 {
+				s.scope.Trace("Found a tag for deletion")
+				// Create the DeleteTags input
+				deleteTagsInput := &ec2.DeleteTagsInput{
+					Resources: []*string{existing.Subnets[i].SubnetId},
+					Tags:      []*ec2.Tag{{Key: aws.String(infrav1.NameKubernetesAWSCloudProviderPrefix + s.scope.KubernetesClusterName()), Value: aws.String(string(infrav1.ResourceLifecycleShared))}},
+				}
+
+				// Delete tags in AWS.
+				if _, err = s.EC2Client.DeleteTags(deleteTagsInput); err != nil {
+					return errors.Wrapf(err, "failed to delete tags for resource %q", *existing.Subnets[i].SubnetId)
+				}
+			}
+		}
 		s.scope.Trace("Skipping subnets deletion in unmanaged mode")
 		return nil
 	}
@@ -682,4 +720,20 @@ func (s *Service) getSubnetTagParams(unmanagedVPC bool, id string, public bool, 
 		ResourceID: id,
 		Additional: additionalTags,
 	}
+}
+
+func (s *Service) removeNonClusterSharedTags(clusterSubnetTags, VPCSubnetTags infrav1.Tags) {
+
+	for key, value := range clusterSubnetTags {
+		if key != infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName()) && value == string(infrav1.ResourceLifecycleShared) {
+			delete(clusterSubnetTags, key)
+		}
+	}
+
+	for key, value := range VPCSubnetTags {
+		if key != infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName()) && value == string(infrav1.ResourceLifecycleShared) {
+			delete(VPCSubnetTags, key)
+		}
+	}
+
 }
