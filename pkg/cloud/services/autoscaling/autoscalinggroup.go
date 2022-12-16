@@ -47,6 +47,10 @@ func (s *Service) SDKToAutoScalingGroup(v *autoscaling.Group) (*expinfrav1.AutoS
 		//TODO: determine what additional values go here and what else should be in the struct
 	}
 
+	if v.VPCZoneIdentifier != nil {
+		i.Subnets = strings.Split(*v.VPCZoneIdentifier, ",")
+	}
+
 	if v.MixedInstancesPolicy != nil {
 		i.MixedInstancesPolicy = &expinfrav1.MixedInstancesPolicy{
 			InstancesDistribution: &expinfrav1.InstancesDistribution{
@@ -286,7 +290,7 @@ func (s *Service) UpdateASG(scope *scope.MachinePoolScope) error {
 		AutoScalingGroupName: aws.String(scope.Name()), //TODO: define dynamically - borrow logic from ec2
 		MaxSize:              aws.Int64(int64(scope.AWSMachinePool.Spec.MaxSize)),
 		MinSize:              aws.Int64(int64(scope.AWSMachinePool.Spec.MinSize)),
-		VPCZoneIdentifier:    aws.String(strings.Join(subnetIDs, ", ")),
+		VPCZoneIdentifier:    aws.String(strings.Join(subnetIDs, ",")),
 		CapacityRebalance:    aws.Bool(scope.AWSMachinePool.Spec.CapacityRebalance),
 	}
 
