@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -393,7 +394,18 @@ func (r *AWSMachinePoolReconciler) reconcileDelete(machinePoolScope *scope.Machi
 
 func (r *AWSMachinePoolReconciler) updatePool(machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper, existingASG *expinfrav1.AutoScalingGroup) error {
 	asgSvc := r.getASGService(clusterScope)
-	if asgNeedsUpdates(machinePoolScope, existingASG) {
+
+	subnetIDs, err := asgSvc.SubnetIDs(machinePoolScope)
+	if err != nil {
+		return errors.Wrapf(err, "fail to get subnets for ASG")
+	}
+	machinePoolScope.Debug("determining if subnets change in machinePoolScope",
+		"subnets of machinePoolScope", subnetIDs,
+		"subnets of existing asg", existingASG.Subnets)
+	less := func(a, b string) bool { return a < b }
+	subnetChanges := cmp.Diff(subnetIDs, existingASG.Subnets, cmpopts.SortSlices(less)) != ""
+
+	if asgNeedsUpdates(machinePoolScope, existingASG) || subnetChanges {
 		machinePoolScope.Info("updating AutoScalingGroup")
 
 		if err := asgSvc.UpdateASG(machinePoolScope); err != nil {
@@ -508,8 +520,6 @@ func asgNeedsUpdates(machinePoolScope *scope.MachinePoolScope, existingASG *expi
 		machinePoolScope.Info("got a mixed diff here", "incoming", machinePoolScope.AWSMachinePool.Spec.MixedInstancesPolicy, "existing", existingASG.MixedInstancesPolicy)
 		return true
 	}
-
-	// todo subnet diff
 
 	return false
 }
