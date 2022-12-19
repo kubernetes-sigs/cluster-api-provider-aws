@@ -84,6 +84,17 @@ See [amis] for the list of most recently published AMIs.
 
 `clusterawsadm` binaries are released with each release, can be found under [assets](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/latest) section.
 
+`clusterawsadm` could also be installed via Homebrew on macOS and linux OS.
+Install the latest release using homebrew:
+```shell
+brew install clusterawsadm
+```
+
+Test to ensure the version you installed is up-to-date:
+```shell
+clusterawsadm version
+```
+
 ------
 
 ## Getting involved and contributing
