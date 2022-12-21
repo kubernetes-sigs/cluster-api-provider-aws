@@ -6,6 +6,7 @@ metadata:
 spec:
   template:
     spec:
+      imageLookupBaseOS: amazon-2
       cloudInit:
         secureSecretsBackend: ssm-parameter-store
 ---
@@ -16,5 +17,6 @@ metadata:
 spec:
   template:
     spec:
+      imageLookupBaseOS: amazon-2
       cloudInit:
         secureSecretsBackend: ssm-parameter-store

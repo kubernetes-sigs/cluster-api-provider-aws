@@ -461,7 +461,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("Workload cluster with AWS SSM Parameter as the Secret Backend", func() {
+	ginkgo.FDescribe("Workload cluster with AWS SSM Parameter as the Secret Backend", func() {
 		ginkgo.It("should be creatable and deletable", func() {
 			specName := "functional-test-ssm-parameter-store"
 			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
