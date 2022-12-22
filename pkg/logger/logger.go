@@ -15,7 +15,6 @@ limitations under the License.
 */
 
 // Package logger
-//nolint: logrlint
 package logger
 
 import (
