@@ -549,7 +549,7 @@ type IngressRule struct {
 }
 
 // String returns a string representation of the ingress rule.
-func (i *IngressRule) String() string {
+func (i IngressRule) String() string {
 	return fmt.Sprintf("protocol=%s/range=[%d-%d]/description=%s", i.Protocol, i.FromPort, i.ToPort, i.Description)
 }
 
