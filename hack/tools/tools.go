@@ -29,7 +29,7 @@ import (
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
 	_ "github.com/itchyny/gojq/cmd/gojq"
 	_ "github.com/joelanford/go-apidiff"
-	_ "github.com/onsi/ginkgo/ginkgo"
+	_ "github.com/onsi/ginkgo/v2/ginkgo"
 	_ "k8s.io/apimachinery/pkg/util/intstr"
 	_ "k8s.io/code-generator"
 	_ "k8s.io/code-generator/cmd/conversion-gen"

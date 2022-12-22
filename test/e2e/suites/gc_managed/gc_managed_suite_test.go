@@ -22,7 +22,7 @@ package gc_managed //nolint:stylecheck
 import (
 	"testing"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -31,7 +31,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api/test/framework"
 )
 
 var (
@@ -46,7 +45,7 @@ func init() {
 
 func TestE2E(t *testing.T) {
 	RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "capa-eks-gc-e2e", []ginkgo.Reporter{framework.CreateJUnitReporterForProw(e2eCtx.Settings.ArtifactFolder)})
+	ginkgo.RunSpecs(t, "capa-eks-gc-e2e")
 }
 
 var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {

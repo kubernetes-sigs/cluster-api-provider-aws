@@ -22,10 +22,11 @@ package managed
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/eks"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/util/version"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -82,6 +83,13 @@ func GetControlPlaneByName(ctx context.Context, input GetControlPlaneByNameInput
 		Name:      input.Name,
 		Namespace: input.Namespace,
 	}
+	Eventually(func() error {
+		err := input.Getter.Get(ctx, key, cp)
+		if err != nil {
+			return err
+		}
+		return nil
+	}, 2*time.Minute, 5*time.Second).Should(Succeed())
 	Expect(input.Getter.Get(ctx, key, cp)).To(Succeed(), "Failed to get AWSManagedControlPlane object %s/%s", input.Namespace, input.Name)
 	return cp
 }

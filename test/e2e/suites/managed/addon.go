@@ -21,15 +21,16 @@ package managed
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/eks"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
@@ -58,12 +59,12 @@ func CheckAddonExistsSpec(ctx context.Context, inputGetter func() CheckAddonExis
 	mgmtClient := input.BootstrapClusterProxy.GetClient()
 	controlPlaneName := getControlPlaneName(input.ClusterName)
 
-	shared.Byf("Getting control plane: %s", controlPlaneName)
+	By(fmt.Sprintf("Getting control plane: %s", controlPlaneName))
 	controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 	err := mgmtClient.Get(ctx, crclient.ObjectKey{Namespace: input.Namespace.Name, Name: controlPlaneName}, controlPlane)
 	Expect(err).ToNot(HaveOccurred())
 
-	shared.Byf("Checking EKS addon %s is installed on cluster %s and is active", input.AddonName, input.ClusterName)
+	By(fmt.Sprintf("Checking EKS addon %s is installed on cluster %s and is active", input.AddonName, input.ClusterName))
 	waitForEKSAddonToHaveStatus(waitForEKSAddonToHaveStatusInput{
 		ControlPlane: controlPlane,
 		AWSSession:   input.AWSSession,
