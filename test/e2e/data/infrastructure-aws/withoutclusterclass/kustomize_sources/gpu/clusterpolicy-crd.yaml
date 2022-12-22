@@ -40,6 +40,13 @@ spec:
                 properties:
                   priorityClassName:
                     type: string
+                  rollingUpdate:
+                    description: 'Optional: Configuration for rolling update of NVIDIA
+                      Driver DaemonSet pods'
+                    properties:
+                      maxUnavailable:
+                        type: string
+                    type: object
                   tolerations:
                     description: 'Optional: Set tolerations'
                     items:
@@ -81,6 +88,12 @@ spec:
                           type: string
                       type: object
                     type: array
+                  updateStrategy:
+                    default: RollingUpdate
+                    enum:
+                    - RollingUpdate
+                    - OnDelete
+                    type: string
                 type: object
               dcgm:
                 description: DCGM component spec
@@ -272,6 +285,10 @@ spec:
                           metrics to be collected by NVIDIA DCGM Exporter
                         type: string
                     type: object
+                  enabled:
+                    description: Enabled indicates if deployment of NVIDIA DCGM Exporter
+                      through operator is enabled
+                    type: boolean
                   env:
                     description: 'Optional: List of environment variables'
                     items:
@@ -424,6 +441,32 @@ spec:
                           to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                         type: object
                     type: object
+                  serviceMonitor:
+                    description: 'Optional: ServiceMonitor configuration for NVIDIA
+                      DCGM Exporter'
+                    properties:
+                      additionalLabels:
+                        additionalProperties:
+                          type: string
+                        description: AdditionalLabels to add to ServiceMonitor instance
+                          for NVIDIA DCGM Exporter
+                        type: object
+                      enabled:
+                        description: Enabled indicates if ServiceMonitor is deployed
+                          for NVIDIA DCGM Exporter
+                        type: boolean
+                      honorLabels:
+                        description: HonorLabels chooses the metric’s labels on collisions
+                          with target labels.
+                        type: boolean
+                      interval:
+                        description: 'Interval which metrics should be scraped from
+                          NVIDIA DCGM Exporter. If not specified Prometheus’ global
+                          scrape interval is used. Supported units: y, w, d, h, m,
+                          s, ms'
+                        pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
+                        type: string
+                    type: object
                   version:
                     description: NVIDIA DCGM Exporter image tag
                     type: string
@@ -449,6 +492,10 @@ spec:
                           including shared config between plugin and GFD
                         type: string
                     type: object
+                  enabled:
+                    description: Enabled indicates if deployment of NVIDIA Device
+                      Plugin through operator is enabled
+                    type: boolean
                   env:
                     description: 'Optional: List of environment variables'
                     items:
@@ -954,13 +1001,6 @@ spec:
                           to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                         type: object
                     type: object
-                  rollingUpdate:
-                    description: 'Optional: Configuration for rolling update of NVIDIA
-                      Driver DaemonSet pods'
-                    properties:
-                      maxUnavailable:
-                        type: string
-                    type: object
                   version:
                     description: NVIDIA Driver image tag
                     type: string
@@ -1123,6 +1163,10 @@ spec:
                     items:
                       type: string
                     type: array
+                  enabled:
+                    description: Enabled indicates if deployment of GPU Feature Discovery
+                      Plugin is enabled.
+                    type: boolean
                   env:
                     description: 'Optional: List of environment variables'
                     items:
@@ -2017,6 +2061,10 @@ spec:
                     items:
                       type: string
                     type: array
+                  installDir:
+                    default: /usr/local/nvidia
+                    description: Toolkit install directory on the host
+                    type: string
                   repository:
                     description: NVIDIA Container Toolkit image repository
                     type: string
@@ -3366,7 +3414,6 @@ spec:
                         description: Default config name within the ConfigMap
                         type: string
                       name:
-                        default: vgpu-devices-config
                         description: ConfigMap name
                         type: string
                     type: object

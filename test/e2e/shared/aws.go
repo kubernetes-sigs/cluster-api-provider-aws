@@ -47,7 +47,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/yaml"
@@ -233,38 +233,38 @@ func (i *AWSInfrastructure) CreateInfrastructure() AWSInfrastructure {
 		return *i.RefreshVPCState().State.VpcState == "available"
 	}, 2*time.Minute, 5*time.Second).Should(BeTrue())
 
-	Byf("Created VPC - %s", *i.VPC.VpcId)
+	By(fmt.Sprintf("Created VPC - %s", *i.VPC.VpcId))
 	if i.VPC != nil {
 		i.CreatePublicSubnet()
 		if i.State.PublicSubnetID != nil {
-			Byf("Created Public Subnet - %s", *i.State.PublicSubnetID)
+			By(fmt.Sprintf("Created Public Subnet - %s", *i.State.PublicSubnetID))
 		}
 		i.CreatePrivateSubnet()
 		if i.State.PrivateSubnetID != nil {
-			Byf("Created Private Subnet - %s", *i.State.PrivateSubnetID)
+			By(fmt.Sprintf("Created Private Subnet - %s", *i.State.PrivateSubnetID))
 		}
 		i.CreateInternetGateway()
 		if i.InternetGateway != nil {
-			Byf("Created Internet Gateway - %s", *i.InternetGateway.InternetGatewayId)
+			By(fmt.Sprintf("Created Internet Gateway - %s", *i.InternetGateway.InternetGatewayId))
 		}
 	}
 	i.AllocateAddress()
 	if i.ElasticIP != nil && i.ElasticIP.AllocationId != nil {
-		Byf("Created Elastic IP - %s", *i.ElasticIP.AllocationId)
+		By(fmt.Sprintf("Created Elastic IP - %s", *i.ElasticIP.AllocationId))
 		i.CreateNatGateway("public")
 		if i.NatGateway != nil && i.NatGateway.NatGatewayId != nil {
 			WaitForNatGatewayState(i.Context, *i.NatGateway.NatGatewayId, "available")
-			Byf("Created NAT Gateway - %s", *i.NatGateway.NatGatewayId)
+			By(fmt.Sprintf("Created NAT Gateway - %s", *i.NatGateway.NatGatewayId))
 		}
 	}
 	if len(i.Subnets) == 2 {
 		i.CreateRouteTable("public")
 		if i.State.PublicRouteTableID != nil {
-			Byf("Created public route table - %s", *i.State.PublicRouteTableID)
+			By(fmt.Sprintf("Created public route table - %s", *i.State.PublicRouteTableID))
 		}
 		i.CreateRouteTable("private")
 		if i.State.PrivateRouteTableID != nil {
-			Byf("Created private route table - %s", *i.State.PrivateRouteTableID)
+			By(fmt.Sprintf("Created private route table - %s", *i.State.PrivateRouteTableID))
 		}
 		if i.InternetGateway != nil && i.InternetGateway.InternetGatewayId != nil {
 			CreateRoute(i.Context, *i.State.PublicRouteTableID, "0.0.0.0/0", nil, i.InternetGateway.InternetGatewayId, nil)
@@ -290,35 +290,35 @@ func (i *AWSInfrastructure) DeleteInfrastructure() {
 	instances, _ := ListClusterEC2Instances(i.Context, i.Spec.ClusterName)
 	for _, instance := range instances {
 		if instance.State.Code != aws.Int64(48) {
-			Byf("Deleting orphaned instance: %s - %v", *instance.InstanceId, TerminateInstance(i.Context, *instance.InstanceId))
+			By(fmt.Sprintf("Deleting orphaned instance: %s - %v", *instance.InstanceId, TerminateInstance(i.Context, *instance.InstanceId)))
 		}
 	}
 	WaitForInstanceState(i.Context, i.Spec.ClusterName, "terminated")
 
 	loadbalancers, _ := ListLoadBalancers(i.Context, i.Spec.ClusterName)
 	for _, lb := range loadbalancers {
-		Byf("Deleting orphaned load balancer: %s - %v", *lb.LoadBalancerName, DeleteLoadBalancer(i.Context, *lb.LoadBalancerName))
+		By(fmt.Sprintf("Deleting orphaned load balancer: %s - %v", *lb.LoadBalancerName, DeleteLoadBalancer(i.Context, *lb.LoadBalancerName)))
 	}
 
 	for _, rt := range i.RouteTables {
 		for _, a := range rt.Associations {
-			Byf("Disassociating route table - %s - %v", *a.RouteTableAssociationId, DisassociateRouteTable(i.Context, *a.RouteTableAssociationId))
+			By(fmt.Sprintf("Disassociating route table - %s - %v", *a.RouteTableAssociationId, DisassociateRouteTable(i.Context, *a.RouteTableAssociationId)))
 		}
-		Byf("Deleting route table - %s - %v", *rt.RouteTableId, DeleteRouteTable(i.Context, *rt.RouteTableId))
+		By(fmt.Sprintf("Deleting route table - %s - %v", *rt.RouteTableId, DeleteRouteTable(i.Context, *rt.RouteTableId)))
 	}
 
 	if i.NatGateway != nil {
-		Byf("Deleting NAT Gateway - %s - %v", *i.NatGateway.NatGatewayId, DeleteNatGateway(i.Context, *i.NatGateway.NatGatewayId))
+		By(fmt.Sprintf("Deleting NAT Gateway - %s - %v", *i.NatGateway.NatGatewayId, DeleteNatGateway(i.Context, *i.NatGateway.NatGatewayId)))
 		WaitForNatGatewayState(i.Context, *i.NatGateway.NatGatewayId, "deleted")
 	}
 
 	if i.ElasticIP != nil {
-		Byf("Deleting Elastic IP - %s - %v", *i.ElasticIP.AllocationId, ReleaseAddress(i.Context, *i.ElasticIP.AllocationId))
+		By(fmt.Sprintf("Deleting Elastic IP - %s - %v", *i.ElasticIP.AllocationId, ReleaseAddress(i.Context, *i.ElasticIP.AllocationId)))
 	}
 
 	if i.InternetGateway != nil {
-		Byf("Detaching Internet Gateway - %s - %v", *i.InternetGateway.InternetGatewayId, DetachInternetGateway(i.Context, *i.InternetGateway.InternetGatewayId, *i.VPC.VpcId))
-		Byf("Deleting Internet Gateway - %s - %v", *i.InternetGateway.InternetGatewayId, DeleteInternetGateway(i.Context, *i.InternetGateway.InternetGatewayId))
+		By(fmt.Sprintf("Detaching Internet Gateway - %s - %v", *i.InternetGateway.InternetGatewayId, DetachInternetGateway(i.Context, *i.InternetGateway.InternetGatewayId, *i.VPC.VpcId)))
+		By(fmt.Sprintf("Deleting Internet Gateway - %s - %v", *i.InternetGateway.InternetGatewayId, DeleteInternetGateway(i.Context, *i.InternetGateway.InternetGatewayId)))
 	}
 
 	sgGroups, _ := GetSecurityGroupsByVPC(i.Context, *i.VPC.VpcId)
@@ -331,12 +331,12 @@ func (i *AWSInfrastructure) DeleteInfrastructure() {
 					for d = DeleteSecurityGroupRule(i.Context, *sgr.GroupId, *sgr.SecurityGroupRuleId, "egress"); !d; {
 						d = DeleteSecurityGroupRule(i.Context, *sgr.GroupId, *sgr.SecurityGroupRuleId, "egress")
 					}
-					Byf("Deleting Egress Security Group Rule - %s - %v", *sgr.SecurityGroupRuleId, d)
+					By(fmt.Sprintf("Deleting Egress Security Group Rule - %s - %v", *sgr.SecurityGroupRuleId, d))
 				} else {
 					for d = DeleteSecurityGroupRule(i.Context, *sgr.GroupId, *sgr.SecurityGroupRuleId, "ingress"); !d; {
 						d = DeleteSecurityGroupRule(i.Context, *sgr.GroupId, *sgr.SecurityGroupRuleId, "ingress")
 					}
-					Byf("Deleting Ingress Security Group Rule - %s - %v", *sgr.SecurityGroupRuleId, d)
+					By(fmt.Sprintf("Deleting Ingress Security Group Rule - %s - %v", *sgr.SecurityGroupRuleId, d))
 				}
 			}
 		}
@@ -345,16 +345,16 @@ func (i *AWSInfrastructure) DeleteInfrastructure() {
 	sgGroups, _ = GetSecurityGroupsByVPC(i.Context, *i.VPC.VpcId)
 	for _, sg := range sgGroups {
 		if *sg.GroupName != "default" {
-			Byf("Deleting Security Group - %s - %v", *sg.GroupId, DeleteSecurityGroup(i.Context, *sg.GroupId))
+			By(fmt.Sprintf("Deleting Security Group - %s - %v", *sg.GroupId, DeleteSecurityGroup(i.Context, *sg.GroupId)))
 		}
 	}
 
 	for _, subnet := range i.Subnets {
-		Byf("Deleting Subnet - %s - %v", *subnet.SubnetId, DeleteSubnet(i.Context, *subnet.SubnetId))
+		By(fmt.Sprintf("Deleting Subnet - %s - %v", *subnet.SubnetId, DeleteSubnet(i.Context, *subnet.SubnetId)))
 	}
 
 	if i.VPC != nil {
-		Byf("Deleting VPC - %s - %v", *i.VPC.VpcId, DeleteVPC(i.Context, *i.VPC.VpcId))
+		By(fmt.Sprintf("Deleting VPC - %s - %v", *i.VPC.VpcId, DeleteVPC(i.Context, *i.VPC.VpcId)))
 	}
 }
 
@@ -405,7 +405,7 @@ func NewAWSSessionWithKey(accessKey *iam.AccessKey) client.ConfigProvider {
 
 // createCloudFormationStack ensures the cloudformation stack is up to date.
 func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Template, tags map[string]string) error {
-	Byf("Creating AWS CloudFormation stack for AWS IAM resources: stack-name=%s", t.Spec.StackName)
+	By(fmt.Sprintf("Creating AWS CloudFormation stack for AWS IAM resources: stack-name=%s", t.Spec.StackName))
 	CFN := cfn.New(prov)
 	cfnSvc := cloudformation.NewService(CFN)
 
@@ -537,7 +537,7 @@ func GetPolicyArn(prov client.ConfigProvider, name string) string {
 
 // deleteCloudFormationStack removes the provisioned clusterawsadm stack.
 func deleteCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Template) {
-	Byf("Deleting %s CloudFormation stack", t.Spec.StackName)
+	By(fmt.Sprintf("Deleting %s CloudFormation stack", t.Spec.StackName))
 	CFN := cfn.New(prov)
 	cfnSvc := cloudformation.NewService(CFN)
 	err := cfnSvc.DeleteStack(t.Spec.StackName, nil)
@@ -636,7 +636,7 @@ func ensureTestImageUploaded(e2eCtx *E2EContext) error {
 // ensureNoServiceLinkedRoles removes an auto-created IAM role, and tests
 // the controller's IAM permissions to use ELB and Spot instances successfully.
 func ensureNoServiceLinkedRoles(prov client.ConfigProvider) {
-	Byf("Deleting AWS IAM Service Linked Role: role-name=AWSServiceRoleForElasticLoadBalancing")
+	By("Deleting AWS IAM Service Linked Role: role-name=AWSServiceRoleForElasticLoadBalancing")
 	iamSvc := iam.New(prov)
 	_, err := iamSvc.DeleteServiceLinkedRole(&iam.DeleteServiceLinkedRoleInput{
 		RoleName: aws.String("AWSServiceRoleForElasticLoadBalancing"),
@@ -645,7 +645,7 @@ func ensureNoServiceLinkedRoles(prov client.ConfigProvider) {
 		Expect(err).NotTo(HaveOccurred())
 	}
 
-	Byf("Deleting AWS IAM Service Linked Role: role-name=AWSServiceRoleForEC2Spot")
+	By("Deleting AWS IAM Service Linked Role: role-name=AWSServiceRoleForEC2Spot")
 	_, err = iamSvc.DeleteServiceLinkedRole(&iam.DeleteServiceLinkedRoleInput{
 		RoleName: aws.String("AWSServiceRoleForEC2Spot"),
 	})
@@ -656,7 +656,7 @@ func ensureNoServiceLinkedRoles(prov client.ConfigProvider) {
 
 // ensureSSHKeyPair ensures A SSH key is present under the name.
 func ensureSSHKeyPair(prov client.ConfigProvider, keyPairName string) {
-	Byf("Ensuring presence of SSH key in EC2: key-name=%s", keyPairName)
+	By(fmt.Sprintf("Ensuring presence of SSH key in EC2: key-name=%s", keyPairName))
 	ec2c := ec2.New(prov)
 	_, err := ec2c.CreateKeyPair(&ec2.CreateKeyPairInput{KeyName: aws.String(keyPairName)})
 	if code, _ := awserrors.Code(err); code != "InvalidKeyPair.Duplicate" {
@@ -665,7 +665,7 @@ func ensureSSHKeyPair(prov client.ConfigProvider, keyPairName string) {
 }
 
 func ensureStackTags(prov client.ConfigProvider, stackName string, expectedTags map[string]string) {
-	Byf("Ensuring AWS CloudFormation stack is created or updated with the specified tags: stack-name=%s", stackName)
+	By(fmt.Sprintf("Ensuring AWS CloudFormation stack is created or updated with the specified tags: stack-name=%s", stackName))
 	CFN := cfn.New(prov)
 	r, err := CFN.DescribeStacks(&cfn.DescribeStacksInput{StackName: &stackName})
 	Expect(err).NotTo(HaveOccurred())
@@ -698,14 +698,14 @@ func newUserAccessKey(prov client.ConfigProvider, userName string) *iam.AccessKe
 		UserName: aws.String(userName),
 	})
 	for i := range keyOuts.AccessKeyMetadata {
-		Byf("Deleting an existing access key: user-name=%s", userName)
+		By(fmt.Sprintf("Deleting an existing access key: user-name=%s", userName))
 		_, err := iamSvc.DeleteAccessKey(&iam.DeleteAccessKeyInput{
 			UserName:    aws.String(userName),
 			AccessKeyId: keyOuts.AccessKeyMetadata[i].AccessKeyId,
 		})
 		Expect(err).NotTo(HaveOccurred())
 	}
-	Byf("Creating an access key: user-name=%s", userName)
+	By(fmt.Sprintf("Creating an access key: user-name=%s", userName))
 	out, err := iamSvc.CreateAccessKey(&iam.CreateAccessKeyInput{UserName: aws.String(userName)})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(out.AccessKey).ToNot(BeNil())
@@ -749,7 +749,7 @@ func conformanceImageID(e2eCtx *E2EContext) string {
 	ver := e2eCtx.E2EConfig.GetVariable("CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION")
 	amiName := AMIPrefix + ver + "*"
 
-	Byf("Searching for AMI: name=%s", amiName)
+	By(fmt.Sprintf("Searching for AMI: name=%s", amiName))
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 	filters := []*ec2.Filter{
 		{
@@ -767,7 +767,7 @@ func conformanceImageID(e2eCtx *E2EContext) string {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(len(resp.Images)).To(Not(BeZero()))
 	imageID := aws.StringValue(resp.Images[0].ImageId)
-	Byf("Using AMI: image-id=%s", imageID)
+	By(fmt.Sprintf("Using AMI: image-id=%s", imageID))
 	return imageID
 }
 

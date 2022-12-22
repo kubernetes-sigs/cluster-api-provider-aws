@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/net"
@@ -90,7 +90,7 @@ var _ = ginkgo.Describe("[managed] [general] [ipv6] EKS cluster tests", func() {
 			}
 		})
 
-		shared.Byf("getting cluster with name %s", clusterName)
+		ginkgo.By(fmt.Sprintf("getting cluster with name %s", clusterName))
 		cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
 			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Namespace: namespace.Name,
@@ -107,12 +107,12 @@ var _ = ginkgo.Describe("[managed] [general] [ipv6] EKS cluster tests", func() {
 			clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterName).GetClient()
 			err := clusterClient.List(ctx, pods, listOptions...)
 			Expect(err).ToNot(HaveOccurred())
-			shared.Byf("checking if pods list is empty: %d", len(pods.Items))
+			ginkgo.By(fmt.Sprintf("checking if pods list is empty: %d", len(pods.Items)))
 			if len(pods.Items) == 0 {
 				return false
 			}
 			for _, pod := range pods.Items {
-				shared.Byf("checking if pod ip address is ipv6 based: %s/%s", pod.Name, pod.Status.PodIP)
+				ginkgo.By(fmt.Sprintf("checking if pod ip address is ipv6 based: %s/%s", pod.Name, pod.Status.PodIP))
 				if pod.Status.PodIP == "" {
 					return false
 				}

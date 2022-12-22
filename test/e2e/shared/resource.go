@@ -29,6 +29,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/servicequotas"
 	"github.com/gofrs/flock"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/yaml"
 )
@@ -183,10 +184,10 @@ func AcquireResources(request *TestResource, nodeNum int, fileLock *flock.Flock)
 		}
 	}()
 
-	Byf("Node %d acquiring resources: %s", nodeNum, request.String())
+	By(fmt.Sprintf("Node %d acquiring resources: %s", nodeNum, request.String()))
 	for range time.Tick(time.Second) { //nolint:staticcheck
 		if time.Now().After(timeoutAfter) {
-			Byf("Timeout reached for node %d", nodeNum)
+			By(fmt.Sprintf("Timeout reached for node %d", nodeNum))
 			break
 		}
 		err := fileLock.Lock()
@@ -212,7 +213,7 @@ func AcquireResources(request *TestResource, nodeNum int, fileLock *flock.Flock)
 			if err := os.WriteFile(ResourceQuotaFilePath, data, 0644); err != nil { //nolint:gosec
 				return err
 			}
-			Byf("Node %d acquired resources: %s", nodeNum, request.String())
+			By(fmt.Sprintf("Node %d acquired resources: %s", nodeNum, request.String()))
 			return nil
 		}
 		e2eDebugBy("Insufficient resources, retrying")
@@ -225,7 +226,7 @@ func AcquireResources(request *TestResource, nodeNum int, fileLock *flock.Flock)
 
 func e2eDebugBy(msg string) {
 	if os.Getenv("E2E_DEBUG") != "" {
-		Byf(msg)
+		By(msg)
 	}
 }
 
@@ -265,7 +266,7 @@ func ReleaseResources(request *TestResource, nodeNum int, fileLock *flock.Flock)
 		if err := os.WriteFile(ResourceQuotaFilePath, data, 0644); err != nil { //nolint:gosec
 			return err
 		}
-		Byf("Node %d released resources: %s", nodeNum, request.String())
+		By(fmt.Sprintf("Node %d released resources: %s", nodeNum, request.String()))
 		return nil
 	}
 	return errors.New("giving up on releasing resource due to timeout")

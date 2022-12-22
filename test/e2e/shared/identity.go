@@ -21,7 +21,9 @@ package shared
 
 import (
 	"context"
+	"fmt"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,7 +54,7 @@ func SetupStaticCredentials(e2eCtx *E2EContext) {
 	}
 
 	client := e2eCtx.Environment.BootstrapClusterProxy.GetClient()
-	Byf("Creating credentials secret %s in namespace %s", secret.Name, secret.Namespace)
+	By(fmt.Sprintf("Creating credentials secret %s in namespace %s", secret.Name, secret.Namespace))
 	Eventually(func() error {
 		return client.Create(ctx, secret)
 	}, e2eCtx.E2EConfig.GetIntervals("", "wait-create-identity")...).Should(Succeed())
@@ -69,7 +71,7 @@ func SetupStaticCredentials(e2eCtx *E2EContext) {
 		},
 	}
 
-	Byf("Creating AWSClusterStaticIdentity %s", id.Name)
+	By(fmt.Sprintf("Creating AWSClusterStaticIdentity %s", id.Name))
 	Eventually(func() error {
 		return client.Create(ctx, id)
 	}, e2eCtx.E2EConfig.GetIntervals("", "wait-create-identity")...).Should(Succeed())
@@ -85,7 +87,7 @@ func CleanupStaticCredentials(ctx context.Context, e2eCtx *E2EContext) {
 		},
 	}
 
-	Byf("Deleting AWSClusterStaticIdentity %s", idName)
+	By(fmt.Sprintf("Deleting AWSClusterStaticIdentity %s", idName))
 	client := e2eCtx.Environment.BootstrapClusterProxy.GetClient()
 	Eventually(func() error {
 		return client.Delete(ctx, id)

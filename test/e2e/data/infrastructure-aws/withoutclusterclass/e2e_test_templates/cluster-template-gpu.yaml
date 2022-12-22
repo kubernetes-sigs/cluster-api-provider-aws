@@ -105,12 +105,12 @@ spec:
           name: ${CLUSTER_NAME}-md
       clusterName: ${CLUSTER_NAME}
       infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: AWSMachineTemplate
         name: ${CLUSTER_NAME}-md
       version: ${KUBERNETES_VERSION}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-md
@@ -201,6 +201,13 @@ data:
                     properties:
                       priorityClassName:
                         type: string
+                      rollingUpdate:
+                        description: 'Optional: Configuration for rolling update of NVIDIA
+                          Driver DaemonSet pods'
+                        properties:
+                          maxUnavailable:
+                            type: string
+                        type: object
                       tolerations:
                         description: 'Optional: Set tolerations'
                         items:
@@ -242,6 +249,12 @@ data:
                               type: string
                           type: object
                         type: array
+                      updateStrategy:
+                        default: RollingUpdate
+                        enum:
+                        - RollingUpdate
+                        - OnDelete
+                        type: string
                     type: object
                   dcgm:
                     description: DCGM component spec
@@ -433,6 +446,10 @@ data:
                               metrics to be collected by NVIDIA DCGM Exporter
                             type: string
                         type: object
+                      enabled:
+                        description: Enabled indicates if deployment of NVIDIA DCGM Exporter
+                          through operator is enabled
+                        type: boolean
                       env:
                         description: 'Optional: List of environment variables'
                         items:
@@ -585,6 +602,32 @@ data:
                               to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                             type: object
                         type: object
+                      serviceMonitor:
+                        description: 'Optional: ServiceMonitor configuration for NVIDIA
+                          DCGM Exporter'
+                        properties:
+                          additionalLabels:
+                            additionalProperties:
+                              type: string
+                            description: AdditionalLabels to add to ServiceMonitor instance
+                              for NVIDIA DCGM Exporter
+                            type: object
+                          enabled:
+                            description: Enabled indicates if ServiceMonitor is deployed
+                              for NVIDIA DCGM Exporter
+                            type: boolean
+                          honorLabels:
+                            description: HonorLabels chooses the metric’s labels on collisions
+                              with target labels.
+                            type: boolean
+                          interval:
+                            description: 'Interval which metrics should be scraped from
+                              NVIDIA DCGM Exporter. If not specified Prometheus’ global
+                              scrape interval is used. Supported units: y, w, d, h, m,
+                              s, ms'
+                            pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
+                            type: string
+                        type: object
                       version:
                         description: NVIDIA DCGM Exporter image tag
                         type: string
@@ -610,6 +653,10 @@ data:
                               including shared config between plugin and GFD
                             type: string
                         type: object
+                      enabled:
+                        description: Enabled indicates if deployment of NVIDIA Device
+                          Plugin through operator is enabled
+                        type: boolean
                       env:
                         description: 'Optional: List of environment variables'
                         items:
@@ -1115,13 +1162,6 @@ data:
                               to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                             type: object
                         type: object
-                      rollingUpdate:
-                        description: 'Optional: Configuration for rolling update of NVIDIA
-                          Driver DaemonSet pods'
-                        properties:
-                          maxUnavailable:
-                            type: string
-                        type: object
                       version:
                         description: NVIDIA Driver image tag
                         type: string
@@ -1284,6 +1324,10 @@ data:
                         items:
                           type: string
                         type: array
+                      enabled:
+                        description: Enabled indicates if deployment of GPU Feature Discovery
+                          Plugin is enabled.
+                        type: boolean
                       env:
                         description: 'Optional: List of environment variables'
                         items:
@@ -2178,6 +2222,10 @@ data:
                         items:
                           type: string
                         type: array
+                      installDir:
+                        default: /usr/local/nvidia
+                        description: Toolkit install directory on the host
+                        type: string
                       repository:
                         description: NVIDIA Container Toolkit image repository
                         type: string
@@ -3527,7 +3575,6 @@ data:
                             description: Default config name within the ConfigMap
                             type: string
                           name:
-                            default: vgpu-devices-config
                             description: ConfigMap name
                             type: string
                         type: object
@@ -4091,10 +4138,10 @@ data:
     metadata:
       name: gpu-operator-node-feature-discovery
       labels:
-        helm.sh/chart: node-feature-discovery-0.8.2
+        helm.sh/chart: node-feature-discovery-0.10.1
         app.kubernetes.io/name: node-feature-discovery
         app.kubernetes.io/instance: gpu-operator
-        app.kubernetes.io/version: "v0.8.2"
+        app.kubernetes.io/version: "v0.10.1"
         app.kubernetes.io/managed-by: Helm
     roleRef:
       apiGroup: rbac.authorization.k8s.io
@@ -4214,7 +4261,7 @@ data:
         helm.sh/chart: node-feature-discovery-0.10.1
         app.kubernetes.io/name: node-feature-discovery
         app.kubernetes.io/instance: gpu-operator
-        app.kubernetes.io/version: "v0.8.2"
+        app.kubernetes.io/version: "v0.10.1"
         app.kubernetes.io/managed-by: Helm
         role: master
     spec:
@@ -4282,7 +4329,7 @@ data:
                   - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
-            image: "k8s.gcr.io/nfd/node-feature-discovery:v0.8.2"
+            image: "k8s.gcr.io/nfd/node-feature-discovery:v0.10.1"
             imagePullPolicy: IfNotPresent
             env:
             - name: NODE_NAME
@@ -4364,7 +4411,7 @@ data:
         initContainer:
           repository: nvcr.io/nvidia
           image: cuda
-          version: 11.4.2-base-ubi8
+          version: 11.6.1-base-ubi8
           imagePullPolicy: IfNotPresent
       daemonsets:
         tolerations:
@@ -4375,7 +4422,7 @@ data:
       validator:
         repository: nvcr.io/nvidia/cloud-native
         image: gpu-operator-validator
-        version: v1.11.1
+        version: v22.9.1
         imagePullPolicy: IfNotPresent
         securityContext:
           privileged: true
@@ -4393,7 +4440,7 @@ data:
         enabled: true
         repository: nvcr.io/nvidia
         image: driver
-        version: 515.48.07
+        version: 525.60.13-ubuntu20.04
         imagePullPolicy: IfNotPresent
         rdma:
           enabled: false
@@ -4401,7 +4448,7 @@ data:
         manager:
           repository: nvcr.io/nvidia/cloud-native
           image: k8s-driver-manager
-          version: v0.4.1
+          version: v0.5.1
           imagePullPolicy: IfNotPresent
           env:
             - name: ENABLE_AUTO_DRAIN
@@ -4431,7 +4478,7 @@ data:
         enabled: true
         repository: nvcr.io/nvidia/k8s
         image: container-toolkit
-        version: v1.10.0-ubuntu20.04
+        version: v1.11.0
         imagePullPolicy: IfNotPresent
         securityContext:
           privileged: true
@@ -4440,7 +4487,7 @@ data:
       devicePlugin:
         repository: nvcr.io/nvidia
         image: k8s-device-plugin
-        version: v0.12.2-ubi8
+        version: v0.13.0
         imagePullPolicy: IfNotPresent
         securityContext:
           privileged: true
@@ -4461,13 +4508,13 @@ data:
         enabled: false
         repository: nvcr.io/nvidia/cloud-native
         image: dcgm
-        version: 2.4.5-1-ubuntu20.04
+        version: 3.1.3-1-ubuntu20.04
         imagePullPolicy: IfNotPresent
         hostPort: 5555
       dcgmExporter:
         repository: nvcr.io/nvidia/k8s
         image: dcgm-exporter
-        version: 2.4.5-2.6.7-ubuntu20.04
+        version: 3.1.3-3.1.2-ubuntu20.04
         imagePullPolicy: IfNotPresent
         env:
           - name: DCGM_EXPORTER_LISTEN
@@ -4479,7 +4526,7 @@ data:
       gfd:
         repository: nvcr.io/nvidia
         image: gpu-feature-discovery
-        version: v0.6.1-ubi8
+        version: v0.7.0
         imagePullPolicy: IfNotPresent
         env:
           - name: GFD_SLEEP_INTERVAL
@@ -4490,7 +4537,7 @@ data:
         enabled: true
         repository: nvcr.io/nvidia/cloud-native
         image: k8s-mig-manager
-        version: v0.4.2-ubuntu20.04
+        version: v0.5.0
         imagePullPolicy: IfNotPresent
         securityContext:
           privileged: true
@@ -4505,7 +4552,7 @@ data:
         enabled: false
         repository: nvcr.io/nvidia/cloud-native
         image: gpu-operator-validator
-        version: v1.11.1
+        version: v22.9.1
         imagePullPolicy: IfNotPresent
     ---
     # Source: gpu-operator/templates/operator.yaml
@@ -4537,7 +4584,7 @@ data:
           priorityClassName: system-node-critical
           containers:
           - name: gpu-operator
-            image: nvcr.io/nvidia/gpu-operator:v1.11.1
+            image: nvcr.io/nvidia/gpu-operator:v22.9.1
             imagePullPolicy: IfNotPresent
             command: ["gpu-operator"]
             args:
@@ -4645,6 +4692,7 @@ data:
       - create
       - watch
       - update
+      - patch
     - apiGroups:
       - apps
       resources:
@@ -4665,6 +4713,7 @@ data:
       - create
       - watch
       - update
+      - delete
     - apiGroups:
       - nvidia.com
       resources:
@@ -4703,6 +4752,7 @@ data:
       - get
       - update
       - list
+      - delete
     - apiGroups:
       - config.openshift.io
       resources:
@@ -4743,6 +4793,20 @@ data:
       - get
       - list
       - watch
+    - apiGroups:
+      - apiextensions.k8s.io
+      resources:
+      - customresourcedefinitions
+      verbs:
+      - get
+      - list
+      - watch
+    {{- if or (.Values.operator.cleanupCRD) (.Values.operator.upgradeCRD) }}
+      - delete
+      - create
+      - update
+      - patch
+    {{- end }}
     ---
     # Source: gpu-operator/templates/rolebinding.yaml
     kind: ClusterRoleBinding
@@ -4751,7 +4815,6 @@ data:
       name: gpu-operator
       labels:
         app.kubernetes.io/component: "gpu-operator"
-
     subjects:
     - kind: ServiceAccount
       name: gpu-operator
