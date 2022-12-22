@@ -1202,6 +1202,56 @@ func (mr *MockSSMAPIMockRecorder) DeleteResourceDataSyncWithContext(arg0, arg1 i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteResourceDataSyncWithContext", reflect.TypeOf((*MockSSMAPI)(nil).DeleteResourceDataSyncWithContext), varargs...)
 }
 
+// DeleteResourcePolicy mocks base method.
+func (m *MockSSMAPI) DeleteResourcePolicy(arg0 *ssm.DeleteResourcePolicyInput) (*ssm.DeleteResourcePolicyOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteResourcePolicy", arg0)
+	ret0, _ := ret[0].(*ssm.DeleteResourcePolicyOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteResourcePolicy indicates an expected call of DeleteResourcePolicy.
+func (mr *MockSSMAPIMockRecorder) DeleteResourcePolicy(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteResourcePolicy", reflect.TypeOf((*MockSSMAPI)(nil).DeleteResourcePolicy), arg0)
+}
+
+// DeleteResourcePolicyRequest mocks base method.
+func (m *MockSSMAPI) DeleteResourcePolicyRequest(arg0 *ssm.DeleteResourcePolicyInput) (*request.Request, *ssm.DeleteResourcePolicyOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteResourcePolicyRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ssm.DeleteResourcePolicyOutput)
+	return ret0, ret1
+}
+
+// DeleteResourcePolicyRequest indicates an expected call of DeleteResourcePolicyRequest.
+func (mr *MockSSMAPIMockRecorder) DeleteResourcePolicyRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteResourcePolicyRequest", reflect.TypeOf((*MockSSMAPI)(nil).DeleteResourcePolicyRequest), arg0)
+}
+
+// DeleteResourcePolicyWithContext mocks base method.
+func (m *MockSSMAPI) DeleteResourcePolicyWithContext(arg0 context.Context, arg1 *ssm.DeleteResourcePolicyInput, arg2 ...request.Option) (*ssm.DeleteResourcePolicyOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteResourcePolicyWithContext", varargs...)
+	ret0, _ := ret[0].(*ssm.DeleteResourcePolicyOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteResourcePolicyWithContext indicates an expected call of DeleteResourcePolicyWithContext.
+func (mr *MockSSMAPIMockRecorder) DeleteResourcePolicyWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteResourcePolicyWithContext", reflect.TypeOf((*MockSSMAPI)(nil).DeleteResourcePolicyWithContext), varargs...)
+}
+
 // DeregisterManagedInstance mocks base method.
 func (m *MockSSMAPI) DeregisterManagedInstance(arg0 *ssm.DeregisterManagedInstanceInput) (*ssm.DeregisterManagedInstanceOutput, error) {
 	m.ctrl.T.Helper()
@@ -5291,6 +5341,89 @@ func (mr *MockSSMAPIMockRecorder) GetPatchBaselineWithContext(arg0, arg1 interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPatchBaselineWithContext", reflect.TypeOf((*MockSSMAPI)(nil).GetPatchBaselineWithContext), varargs...)
 }
 
+// GetResourcePolicies mocks base method.
+func (m *MockSSMAPI) GetResourcePolicies(arg0 *ssm.GetResourcePoliciesInput) (*ssm.GetResourcePoliciesOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetResourcePolicies", arg0)
+	ret0, _ := ret[0].(*ssm.GetResourcePoliciesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetResourcePolicies indicates an expected call of GetResourcePolicies.
+func (mr *MockSSMAPIMockRecorder) GetResourcePolicies(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResourcePolicies", reflect.TypeOf((*MockSSMAPI)(nil).GetResourcePolicies), arg0)
+}
+
+// GetResourcePoliciesPages mocks base method.
+func (m *MockSSMAPI) GetResourcePoliciesPages(arg0 *ssm.GetResourcePoliciesInput, arg1 func(*ssm.GetResourcePoliciesOutput, bool) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetResourcePoliciesPages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GetResourcePoliciesPages indicates an expected call of GetResourcePoliciesPages.
+func (mr *MockSSMAPIMockRecorder) GetResourcePoliciesPages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResourcePoliciesPages", reflect.TypeOf((*MockSSMAPI)(nil).GetResourcePoliciesPages), arg0, arg1)
+}
+
+// GetResourcePoliciesPagesWithContext mocks base method.
+func (m *MockSSMAPI) GetResourcePoliciesPagesWithContext(arg0 context.Context, arg1 *ssm.GetResourcePoliciesInput, arg2 func(*ssm.GetResourcePoliciesOutput, bool) bool, arg3 ...request.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetResourcePoliciesPagesWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GetResourcePoliciesPagesWithContext indicates an expected call of GetResourcePoliciesPagesWithContext.
+func (mr *MockSSMAPIMockRecorder) GetResourcePoliciesPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResourcePoliciesPagesWithContext", reflect.TypeOf((*MockSSMAPI)(nil).GetResourcePoliciesPagesWithContext), varargs...)
+}
+
+// GetResourcePoliciesRequest mocks base method.
+func (m *MockSSMAPI) GetResourcePoliciesRequest(arg0 *ssm.GetResourcePoliciesInput) (*request.Request, *ssm.GetResourcePoliciesOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetResourcePoliciesRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ssm.GetResourcePoliciesOutput)
+	return ret0, ret1
+}
+
+// GetResourcePoliciesRequest indicates an expected call of GetResourcePoliciesRequest.
+func (mr *MockSSMAPIMockRecorder) GetResourcePoliciesRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResourcePoliciesRequest", reflect.TypeOf((*MockSSMAPI)(nil).GetResourcePoliciesRequest), arg0)
+}
+
+// GetResourcePoliciesWithContext mocks base method.
+func (m *MockSSMAPI) GetResourcePoliciesWithContext(arg0 context.Context, arg1 *ssm.GetResourcePoliciesInput, arg2 ...request.Option) (*ssm.GetResourcePoliciesOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetResourcePoliciesWithContext", varargs...)
+	ret0, _ := ret[0].(*ssm.GetResourcePoliciesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetResourcePoliciesWithContext indicates an expected call of GetResourcePoliciesWithContext.
+func (mr *MockSSMAPIMockRecorder) GetResourcePoliciesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResourcePoliciesWithContext", reflect.TypeOf((*MockSSMAPI)(nil).GetResourcePoliciesWithContext), varargs...)
+}
+
 // GetServiceSetting mocks base method.
 func (m *MockSSMAPI) GetServiceSetting(arg0 *ssm.GetServiceSettingInput) (*ssm.GetServiceSettingOutput, error) {
 	m.ctrl.T.Helper()
@@ -6818,6 +6951,56 @@ func (mr *MockSSMAPIMockRecorder) PutParameterWithContext(arg0, arg1 interface{}
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutParameterWithContext", reflect.TypeOf((*MockSSMAPI)(nil).PutParameterWithContext), varargs...)
+}
+
+// PutResourcePolicy mocks base method.
+func (m *MockSSMAPI) PutResourcePolicy(arg0 *ssm.PutResourcePolicyInput) (*ssm.PutResourcePolicyOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PutResourcePolicy", arg0)
+	ret0, _ := ret[0].(*ssm.PutResourcePolicyOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PutResourcePolicy indicates an expected call of PutResourcePolicy.
+func (mr *MockSSMAPIMockRecorder) PutResourcePolicy(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutResourcePolicy", reflect.TypeOf((*MockSSMAPI)(nil).PutResourcePolicy), arg0)
+}
+
+// PutResourcePolicyRequest mocks base method.
+func (m *MockSSMAPI) PutResourcePolicyRequest(arg0 *ssm.PutResourcePolicyInput) (*request.Request, *ssm.PutResourcePolicyOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PutResourcePolicyRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ssm.PutResourcePolicyOutput)
+	return ret0, ret1
+}
+
+// PutResourcePolicyRequest indicates an expected call of PutResourcePolicyRequest.
+func (mr *MockSSMAPIMockRecorder) PutResourcePolicyRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutResourcePolicyRequest", reflect.TypeOf((*MockSSMAPI)(nil).PutResourcePolicyRequest), arg0)
+}
+
+// PutResourcePolicyWithContext mocks base method.
+func (m *MockSSMAPI) PutResourcePolicyWithContext(arg0 context.Context, arg1 *ssm.PutResourcePolicyInput, arg2 ...request.Option) (*ssm.PutResourcePolicyOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "PutResourcePolicyWithContext", varargs...)
+	ret0, _ := ret[0].(*ssm.PutResourcePolicyOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PutResourcePolicyWithContext indicates an expected call of PutResourcePolicyWithContext.
+func (mr *MockSSMAPIMockRecorder) PutResourcePolicyWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutResourcePolicyWithContext", reflect.TypeOf((*MockSSMAPI)(nil).PutResourcePolicyWithContext), varargs...)
 }
 
 // RegisterDefaultPatchBaseline mocks base method.
