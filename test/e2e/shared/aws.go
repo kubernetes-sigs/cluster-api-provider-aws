@@ -409,18 +409,23 @@ func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Temp
 	CFN := cfn.New(prov)
 	cfnSvc := cloudformation.NewService(CFN)
 
-	err := cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *renderCustomCloudFormation(t), tags)
-	if err != nil {
-		stack, err := CFN.DescribeStacks(&cfn.DescribeStacksInput{StackName: aws.String(t.Spec.StackName)})
-		if err == nil && len(stack.Stacks) > 0 {
-			deleteMultitenancyRoles(prov)
-			if aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusRollbackFailed ||
-				aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusRollbackComplete ||
-				aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusRollbackInProgress {
-				// If cloudformation stack creation fails due to resources that already exist, stack stays in rollback status and must be manually deleted.
-				// Delete resources that failed because they already exists.
-				deleteResourcesInCloudFormation(prov, t)
-			}
+	Eventually(func() bool {
+		err := cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *renderCustomCloudFormation(t), tags)
+		output, err1 := CFN.DescribeStackEvents(&cfn.DescribeStackEventsInput{StackName: aws.String(t.Spec.StackName), NextToken: aws.String("1")})
+		for _, event := range output.StackEvents {
+			By(fmt.Sprintf("Event details for %s : Resource: %s, Status: %s", aws.StringValue(event.LogicalResourceId), aws.StringValue(event.ResourceType), aws.StringValue(event.ResourceStatus)))
+		}
+		return err == nil && err1 == nil
+	}, 2*time.Minute).Should(Equal(true))
+	stack, err := CFN.DescribeStacks(&cfn.DescribeStacksInput{StackName: aws.String(t.Spec.StackName)})
+	if err == nil && len(stack.Stacks) > 0 {
+		deleteMultitenancyRoles(prov)
+		if aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusRollbackFailed ||
+			aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusRollbackComplete ||
+			aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusRollbackInProgress {
+			// If cloudformation stack creation fails due to resources that already exist, stack stays in rollback status and must be manually deleted.
+			// Delete resources that failed because they already exists.
+			deleteResourcesInCloudFormation(prov, t)
 		}
 	}
 	return err
