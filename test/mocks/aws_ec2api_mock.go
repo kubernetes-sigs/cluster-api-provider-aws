@@ -52,6 +52,56 @@ func (m *MockEC2API) EXPECT() *MockEC2APIMockRecorder {
 	return m.recorder
 }
 
+// AcceptAddressTransfer mocks base method.
+func (m *MockEC2API) AcceptAddressTransfer(arg0 *ec2.AcceptAddressTransferInput) (*ec2.AcceptAddressTransferOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AcceptAddressTransfer", arg0)
+	ret0, _ := ret[0].(*ec2.AcceptAddressTransferOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AcceptAddressTransfer indicates an expected call of AcceptAddressTransfer.
+func (mr *MockEC2APIMockRecorder) AcceptAddressTransfer(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AcceptAddressTransfer", reflect.TypeOf((*MockEC2API)(nil).AcceptAddressTransfer), arg0)
+}
+
+// AcceptAddressTransferRequest mocks base method.
+func (m *MockEC2API) AcceptAddressTransferRequest(arg0 *ec2.AcceptAddressTransferInput) (*request.Request, *ec2.AcceptAddressTransferOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AcceptAddressTransferRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.AcceptAddressTransferOutput)
+	return ret0, ret1
+}
+
+// AcceptAddressTransferRequest indicates an expected call of AcceptAddressTransferRequest.
+func (mr *MockEC2APIMockRecorder) AcceptAddressTransferRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AcceptAddressTransferRequest", reflect.TypeOf((*MockEC2API)(nil).AcceptAddressTransferRequest), arg0)
+}
+
+// AcceptAddressTransferWithContext mocks base method.
+func (m *MockEC2API) AcceptAddressTransferWithContext(arg0 context.Context, arg1 *ec2.AcceptAddressTransferInput, arg2 ...request.Option) (*ec2.AcceptAddressTransferOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AcceptAddressTransferWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.AcceptAddressTransferOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AcceptAddressTransferWithContext indicates an expected call of AcceptAddressTransferWithContext.
+func (mr *MockEC2APIMockRecorder) AcceptAddressTransferWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AcceptAddressTransferWithContext", reflect.TypeOf((*MockEC2API)(nil).AcceptAddressTransferWithContext), varargs...)
+}
+
 // AcceptReservedInstancesExchangeQuote mocks base method.
 func (m *MockEC2API) AcceptReservedInstancesExchangeQuote(arg0 *ec2.AcceptReservedInstancesExchangeQuoteInput) (*ec2.AcceptReservedInstancesExchangeQuoteOutput, error) {
 	m.ctrl.T.Helper()
@@ -2050,6 +2100,56 @@ func (mr *MockEC2APIMockRecorder) CancelExportTaskWithContext(arg0, arg1 interfa
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelExportTaskWithContext", reflect.TypeOf((*MockEC2API)(nil).CancelExportTaskWithContext), varargs...)
+}
+
+// CancelImageLaunchPermission mocks base method.
+func (m *MockEC2API) CancelImageLaunchPermission(arg0 *ec2.CancelImageLaunchPermissionInput) (*ec2.CancelImageLaunchPermissionOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CancelImageLaunchPermission", arg0)
+	ret0, _ := ret[0].(*ec2.CancelImageLaunchPermissionOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CancelImageLaunchPermission indicates an expected call of CancelImageLaunchPermission.
+func (mr *MockEC2APIMockRecorder) CancelImageLaunchPermission(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelImageLaunchPermission", reflect.TypeOf((*MockEC2API)(nil).CancelImageLaunchPermission), arg0)
+}
+
+// CancelImageLaunchPermissionRequest mocks base method.
+func (m *MockEC2API) CancelImageLaunchPermissionRequest(arg0 *ec2.CancelImageLaunchPermissionInput) (*request.Request, *ec2.CancelImageLaunchPermissionOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CancelImageLaunchPermissionRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.CancelImageLaunchPermissionOutput)
+	return ret0, ret1
+}
+
+// CancelImageLaunchPermissionRequest indicates an expected call of CancelImageLaunchPermissionRequest.
+func (mr *MockEC2APIMockRecorder) CancelImageLaunchPermissionRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelImageLaunchPermissionRequest", reflect.TypeOf((*MockEC2API)(nil).CancelImageLaunchPermissionRequest), arg0)
+}
+
+// CancelImageLaunchPermissionWithContext mocks base method.
+func (m *MockEC2API) CancelImageLaunchPermissionWithContext(arg0 context.Context, arg1 *ec2.CancelImageLaunchPermissionInput, arg2 ...request.Option) (*ec2.CancelImageLaunchPermissionOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CancelImageLaunchPermissionWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.CancelImageLaunchPermissionOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CancelImageLaunchPermissionWithContext indicates an expected call of CancelImageLaunchPermissionWithContext.
+func (mr *MockEC2APIMockRecorder) CancelImageLaunchPermissionWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelImageLaunchPermissionWithContext", reflect.TypeOf((*MockEC2API)(nil).CancelImageLaunchPermissionWithContext), varargs...)
 }
 
 // CancelImportTask mocks base method.
@@ -10050,6 +10150,89 @@ func (mr *MockEC2APIMockRecorder) DescribeAccountAttributesWithContext(arg0, arg
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAccountAttributesWithContext", reflect.TypeOf((*MockEC2API)(nil).DescribeAccountAttributesWithContext), varargs...)
+}
+
+// DescribeAddressTransfers mocks base method.
+func (m *MockEC2API) DescribeAddressTransfers(arg0 *ec2.DescribeAddressTransfersInput) (*ec2.DescribeAddressTransfersOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeAddressTransfers", arg0)
+	ret0, _ := ret[0].(*ec2.DescribeAddressTransfersOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeAddressTransfers indicates an expected call of DescribeAddressTransfers.
+func (mr *MockEC2APIMockRecorder) DescribeAddressTransfers(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAddressTransfers", reflect.TypeOf((*MockEC2API)(nil).DescribeAddressTransfers), arg0)
+}
+
+// DescribeAddressTransfersPages mocks base method.
+func (m *MockEC2API) DescribeAddressTransfersPages(arg0 *ec2.DescribeAddressTransfersInput, arg1 func(*ec2.DescribeAddressTransfersOutput, bool) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeAddressTransfersPages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeAddressTransfersPages indicates an expected call of DescribeAddressTransfersPages.
+func (mr *MockEC2APIMockRecorder) DescribeAddressTransfersPages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAddressTransfersPages", reflect.TypeOf((*MockEC2API)(nil).DescribeAddressTransfersPages), arg0, arg1)
+}
+
+// DescribeAddressTransfersPagesWithContext mocks base method.
+func (m *MockEC2API) DescribeAddressTransfersPagesWithContext(arg0 context.Context, arg1 *ec2.DescribeAddressTransfersInput, arg2 func(*ec2.DescribeAddressTransfersOutput, bool) bool, arg3 ...request.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeAddressTransfersPagesWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeAddressTransfersPagesWithContext indicates an expected call of DescribeAddressTransfersPagesWithContext.
+func (mr *MockEC2APIMockRecorder) DescribeAddressTransfersPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAddressTransfersPagesWithContext", reflect.TypeOf((*MockEC2API)(nil).DescribeAddressTransfersPagesWithContext), varargs...)
+}
+
+// DescribeAddressTransfersRequest mocks base method.
+func (m *MockEC2API) DescribeAddressTransfersRequest(arg0 *ec2.DescribeAddressTransfersInput) (*request.Request, *ec2.DescribeAddressTransfersOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeAddressTransfersRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DescribeAddressTransfersOutput)
+	return ret0, ret1
+}
+
+// DescribeAddressTransfersRequest indicates an expected call of DescribeAddressTransfersRequest.
+func (mr *MockEC2APIMockRecorder) DescribeAddressTransfersRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAddressTransfersRequest", reflect.TypeOf((*MockEC2API)(nil).DescribeAddressTransfersRequest), arg0)
+}
+
+// DescribeAddressTransfersWithContext mocks base method.
+func (m *MockEC2API) DescribeAddressTransfersWithContext(arg0 context.Context, arg1 *ec2.DescribeAddressTransfersInput, arg2 ...request.Option) (*ec2.DescribeAddressTransfersOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeAddressTransfersWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DescribeAddressTransfersOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeAddressTransfersWithContext indicates an expected call of DescribeAddressTransfersWithContext.
+func (mr *MockEC2APIMockRecorder) DescribeAddressTransfersWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAddressTransfersWithContext", reflect.TypeOf((*MockEC2API)(nil).DescribeAddressTransfersWithContext), varargs...)
 }
 
 // DescribeAddresses mocks base method.
@@ -20302,6 +20485,56 @@ func (mr *MockEC2APIMockRecorder) DetachVpnGatewayWithContext(arg0, arg1 interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetachVpnGatewayWithContext", reflect.TypeOf((*MockEC2API)(nil).DetachVpnGatewayWithContext), varargs...)
 }
 
+// DisableAddressTransfer mocks base method.
+func (m *MockEC2API) DisableAddressTransfer(arg0 *ec2.DisableAddressTransferInput) (*ec2.DisableAddressTransferOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DisableAddressTransfer", arg0)
+	ret0, _ := ret[0].(*ec2.DisableAddressTransferOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DisableAddressTransfer indicates an expected call of DisableAddressTransfer.
+func (mr *MockEC2APIMockRecorder) DisableAddressTransfer(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableAddressTransfer", reflect.TypeOf((*MockEC2API)(nil).DisableAddressTransfer), arg0)
+}
+
+// DisableAddressTransferRequest mocks base method.
+func (m *MockEC2API) DisableAddressTransferRequest(arg0 *ec2.DisableAddressTransferInput) (*request.Request, *ec2.DisableAddressTransferOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DisableAddressTransferRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DisableAddressTransferOutput)
+	return ret0, ret1
+}
+
+// DisableAddressTransferRequest indicates an expected call of DisableAddressTransferRequest.
+func (mr *MockEC2APIMockRecorder) DisableAddressTransferRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableAddressTransferRequest", reflect.TypeOf((*MockEC2API)(nil).DisableAddressTransferRequest), arg0)
+}
+
+// DisableAddressTransferWithContext mocks base method.
+func (m *MockEC2API) DisableAddressTransferWithContext(arg0 context.Context, arg1 *ec2.DisableAddressTransferInput, arg2 ...request.Option) (*ec2.DisableAddressTransferOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DisableAddressTransferWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DisableAddressTransferOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DisableAddressTransferWithContext indicates an expected call of DisableAddressTransferWithContext.
+func (mr *MockEC2APIMockRecorder) DisableAddressTransferWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableAddressTransferWithContext", reflect.TypeOf((*MockEC2API)(nil).DisableAddressTransferWithContext), varargs...)
+}
+
 // DisableEbsEncryptionByDefault mocks base method.
 func (m *MockEC2API) DisableEbsEncryptionByDefault(arg0 *ec2.DisableEbsEncryptionByDefaultInput) (*ec2.DisableEbsEncryptionByDefaultOutput, error) {
 	m.ctrl.T.Helper()
@@ -21400,6 +21633,56 @@ func (mr *MockEC2APIMockRecorder) DisassociateVpcCidrBlockWithContext(arg0, arg1
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisassociateVpcCidrBlockWithContext", reflect.TypeOf((*MockEC2API)(nil).DisassociateVpcCidrBlockWithContext), varargs...)
+}
+
+// EnableAddressTransfer mocks base method.
+func (m *MockEC2API) EnableAddressTransfer(arg0 *ec2.EnableAddressTransferInput) (*ec2.EnableAddressTransferOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnableAddressTransfer", arg0)
+	ret0, _ := ret[0].(*ec2.EnableAddressTransferOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EnableAddressTransfer indicates an expected call of EnableAddressTransfer.
+func (mr *MockEC2APIMockRecorder) EnableAddressTransfer(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableAddressTransfer", reflect.TypeOf((*MockEC2API)(nil).EnableAddressTransfer), arg0)
+}
+
+// EnableAddressTransferRequest mocks base method.
+func (m *MockEC2API) EnableAddressTransferRequest(arg0 *ec2.EnableAddressTransferInput) (*request.Request, *ec2.EnableAddressTransferOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnableAddressTransferRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.EnableAddressTransferOutput)
+	return ret0, ret1
+}
+
+// EnableAddressTransferRequest indicates an expected call of EnableAddressTransferRequest.
+func (mr *MockEC2APIMockRecorder) EnableAddressTransferRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableAddressTransferRequest", reflect.TypeOf((*MockEC2API)(nil).EnableAddressTransferRequest), arg0)
+}
+
+// EnableAddressTransferWithContext mocks base method.
+func (m *MockEC2API) EnableAddressTransferWithContext(arg0 context.Context, arg1 *ec2.EnableAddressTransferInput, arg2 ...request.Option) (*ec2.EnableAddressTransferOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "EnableAddressTransferWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.EnableAddressTransferOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EnableAddressTransferWithContext indicates an expected call of EnableAddressTransferWithContext.
+func (mr *MockEC2APIMockRecorder) EnableAddressTransferWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableAddressTransferWithContext", reflect.TypeOf((*MockEC2API)(nil).EnableAddressTransferWithContext), varargs...)
 }
 
 // EnableEbsEncryptionByDefault mocks base method.
