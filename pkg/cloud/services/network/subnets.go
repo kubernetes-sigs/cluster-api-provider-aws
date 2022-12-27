@@ -267,7 +267,7 @@ func (s *Service) deleteSubnets() error {
 			}
 
 			if fetchedTags, err := s.EC2Client.DescribeTags(describeTagsInput); err != nil {
-				return errors.Wrapf(err, "failed to delete tags for resource %q", *existing.Subnets[i].SubnetId)
+				return errors.Wrapf(err, "failed to fetch tags for resource %q", *existing.Subnets[i].SubnetId)
 			} else if len(fetchedTags.Tags) > 0 {
 				s.scope.V(0).Info("Found a tag for deletion")
 				// Create the DeleteTags input

@@ -582,7 +582,7 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 					},
 				},
 			},
-		}}, nil).MaxTimes(2)
+		}}, nil).MaxTimes(3)
 	m.DescribeNetworkInterfaceAttribute(gomock.Eq(&ec2.DescribeNetworkInterfaceAttributeInput{
 		NetworkInterfaceId: aws.String("eni-1"),
 		Attribute:          aws.String("groupSet"),

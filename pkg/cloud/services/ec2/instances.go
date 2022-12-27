@@ -110,6 +110,8 @@ func (s *Service) InstanceIfExists(id *string) (*infrav1.Instance, error) {
 }
 
 // CreateInstance runs an ec2 instance.
+//
+//nolint:gocyclo // this function has multiple processes to perform
 func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, userDataFormat string) (*infrav1.Instance, error) {
 	s.scope.V(2).Info("Creating an instance for a machine")
 
@@ -245,6 +247,27 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 			s.scope.V(2).Info("Attaching security groups to provided network interface", "groups", input.SecurityGroupIDs, "interface", id)
 			if err := s.attachSecurityGroupsToNetworkInterface(input.SecurityGroupIDs, id); err != nil {
 				return nil, err
+			}
+		}
+	}
+
+	s.scope.V(2).Info("Adding tags on each network interface from resource", "resource-id", out.ID)
+
+	// Fetching the network interfaces attached to the specific instanace
+	networkInterfaces, err := s.getInstanceENIs(out.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	s.scope.V(2).Info("Fetched the network interfaces")
+
+	// Once all the network interfaces attached to the specific instanace are found, the similar tags of instance are created for network interfaces too
+	if len(networkInterfaces) > 0 {
+		s.scope.V(2).Info("Attempting to create tags from resource", "resource-id", out.ID)
+		for _, networkInterface := range networkInterfaces {
+			// Create/Update tags in AWS.
+			if err := s.UpdateResourceTags(networkInterface.NetworkInterfaceId, out.Tags, nil); err != nil {
+				return nil, errors.Wrapf(err, "failed to create tags for resource %q: ", *networkInterface.NetworkInterfaceId)
 			}
 		}
 	}
