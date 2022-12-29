@@ -387,6 +387,12 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+				m.
+					DescribeNetworkInterfaces(gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -494,6 +500,12 @@ func TestCreateInstance(t *testing.T) {
 
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+				m.
+					DescribeNetworkInterfaces(gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -628,6 +640,12 @@ func TestCreateInstance(t *testing.T) {
 
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+				m.
+					DescribeNetworkInterfaces(gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -758,6 +776,12 @@ func TestCreateInstance(t *testing.T) {
 
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+				m.
+					DescribeNetworkInterfaces(gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -889,6 +913,12 @@ func TestCreateInstance(t *testing.T) {
 
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+				m.
+					DescribeNetworkInterfaces(gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -996,6 +1026,12 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+				m.
+					DescribeNetworkInterfaces(gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -1102,6 +1138,12 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+				m.
+					DescribeNetworkInterfaces(gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -1283,6 +1325,12 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+				m.
+					DescribeNetworkInterfaces(gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -1539,6 +1587,12 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+				m.
+					DescribeNetworkInterfaces(gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -1738,6 +1792,12 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+				m.
+					DescribeNetworkInterfaces(gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -1835,6 +1895,12 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+				m.
+					DescribeNetworkInterfaces(gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -2003,6 +2069,12 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+				m.
+					DescribeNetworkInterfaces(gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -2138,6 +2210,12 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+				m.
+					DescribeNetworkInterfaces(gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -2275,6 +2353,12 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+				m.
+					DescribeNetworkInterfaces(gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -2383,6 +2467,12 @@ func TestCreateInstance(t *testing.T) {
 					})
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+				m.
+					DescribeNetworkInterfaces(gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -2492,6 +2582,12 @@ func TestCreateInstance(t *testing.T) {
 					})
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+				m.
+					DescribeNetworkInterfaces(gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -2602,6 +2698,12 @@ func TestCreateInstance(t *testing.T) {
 					})
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+				m.
+					DescribeNetworkInterfaces(gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -2709,6 +2811,12 @@ func TestCreateInstance(t *testing.T) {
 					})
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+				m.
+					DescribeNetworkInterfaces(gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -2816,6 +2924,12 @@ func TestCreateInstance(t *testing.T) {
 					})
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+				m.
+					DescribeNetworkInterfaces(gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -2923,6 +3037,12 @@ func TestCreateInstance(t *testing.T) {
 					})
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
+				m.
+					DescribeNetworkInterfaces(gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
