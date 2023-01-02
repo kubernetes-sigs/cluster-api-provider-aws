@@ -101,17 +101,12 @@ import (
 	"k8s.io/klog/v2"
 
 	generatorargs "k8s.io/code-generator/cmd/conversion-gen/args"
-	"k8s.io/code-generator/pkg/util"
 	"sigs.k8s.io/cluster-api-provider-aws/hack/tools/third_party/conversion-gen/generators"
 )
 
 func main() {
 	klog.InitFlags(nil)
 	genericArgs, customArgs := generatorargs.NewDefaults()
-
-	// Override defaults.
-	// TODO: move this out of conversion-gen
-	genericArgs.GoHeaderFilePath = util.BoilerplatePath()
 
 	genericArgs.AddFlags(pflag.CommandLine)
 	customArgs.AddFlags(pflag.CommandLine)
