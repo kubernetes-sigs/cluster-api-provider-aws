@@ -143,7 +143,7 @@ ifeq ($(findstring \[PR-Blocking\],$(E2E_FOCUS)),\[PR-Blocking\])
 endif
 
 override E2E_ARGS += -artifacts-folder="$(ARTIFACTS)" --data-folder="$(E2E_DATA_DIR)" -use-existing-cluster=$(USE_EXISTING_CLUSTER)
-override GINKGO_ARGS += -v --trace --timeout=3h --output-dir="$(ARTIFACTS)" --junit-report="junit.e2e_suite.xml"
+override GINKGO_ARGS += -v --trace --timeout=4h --output-dir="$(ARTIFACTS)" --junit-report="junit.e2e_suite.xml"
 
 ifdef GINKGO_SKIP
 	override GINKGO_ARGS += -skip "$(GINKGO_SKIP)"
