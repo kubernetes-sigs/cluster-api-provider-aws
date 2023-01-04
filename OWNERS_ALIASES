@@ -18,13 +18,11 @@ aliases:
     - fabriziopandini
     - sbueringer
     - vincepri
-  # Correct as of 2022/10/19
+  # Correct as of 2023/01/04
   cluster-api-aws-admins:
     - richardcase
-    - sedefsavas
   cluster-api-aws-maintainers:
     - richardcase
-    - sedefsavas
     - Skarlso
     - Ankitasw
     - dlipovetsky
