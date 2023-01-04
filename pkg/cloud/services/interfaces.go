@@ -44,6 +44,7 @@ type ASGInterface interface {
 	DeleteASGAndWait(id string) error
 	SuspendProcesses(name string, processes []string) error
 	ResumeProcesses(name string, processes []string) error
+	SubnetIDs(scope *scope.MachinePoolScope) ([]string, error)
 }
 
 // EC2Interface encapsulates the methods exposed to the machine
