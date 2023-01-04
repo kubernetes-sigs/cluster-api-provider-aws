@@ -301,6 +301,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(&expinfrav1.AutoScalingGroup{
 					Name: "name",
 				}, nil)
+				asgSvc.EXPECT().SubnetIDs(gomock.Any()).Return([]string{}, nil).Times(1)
 				asgSvc.EXPECT().UpdateASG(gomock.Any()).Return(nil).AnyTimes()
 				asgSvc.EXPECT().SuspendProcesses("name", gomock.InAnyOrder([]string{
 					"ScheduledActions",
@@ -341,6 +342,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					Name:                      "name",
 					CurrentlySuspendProcesses: []string{"Launch", "process3"},
 				}, nil)
+				asgSvc.EXPECT().SubnetIDs(gomock.Any()).Return([]string{}, nil).Times(1)
 				asgSvc.EXPECT().UpdateASG(gomock.Any()).Return(nil).AnyTimes()
 				asgSvc.EXPECT().SuspendProcesses("name", []string{"Terminate"}).Return(nil).AnyTimes().Times(1)
 				asgSvc.EXPECT().ResumeProcesses("name", []string{"process3"}).Return(nil).AnyTimes().Times(1)
@@ -360,6 +362,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				DesiredCapacity: pointer.Int32(1),
 			}
 			asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(&asg, nil).AnyTimes()
+			asgSvc.EXPECT().SubnetIDs(gomock.Any()).Return([]string{}, nil).Times(1)
 			asgSvc.EXPECT().UpdateASG(gomock.Any()).Return(nil).AnyTimes()
 			ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, "", nil).AnyTimes()
 			ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any()).Return(nil, nil).AnyTimes()
@@ -376,6 +379,60 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 
 			_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 			g.Expect(*ms.MachinePool.Spec.Replicas).To(Equal(int32(1)))
+		})
+		t.Run("No need to update Asg because asgNeedsUpdates is false and no subnets change", func(t *testing.T) {
+			g := NewWithT(t)
+			setup(t, g)
+			defer teardown(t, g)
+
+			asg := expinfrav1.AutoScalingGroup{
+				MinSize: int32(0),
+				MaxSize: int32(1),
+				Subnets: []string{"subnet1", "subnet2"}}
+			ec2Svc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			ec2Svc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil)
+			asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(&asg, nil).AnyTimes()
+			asgSvc.EXPECT().SubnetIDs(gomock.Any()).Return([]string{"subnet2", "subnet1"}, nil).Times(1)
+			asgSvc.EXPECT().UpdateASG(gomock.Any()).Return(nil).Times(0)
+
+			_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+			g.Expect(err).To(Succeed())
+		})
+		t.Run("update Asg due to subnet changes", func(t *testing.T) {
+			g := NewWithT(t)
+			setup(t, g)
+			defer teardown(t, g)
+
+			asg := expinfrav1.AutoScalingGroup{
+				MinSize: int32(0),
+				MaxSize: int32(1),
+				Subnets: []string{"subnet1", "subnet2"}}
+			ec2Svc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			ec2Svc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil)
+			asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(&asg, nil).AnyTimes()
+			asgSvc.EXPECT().SubnetIDs(gomock.Any()).Return([]string{"subnet1"}, nil).Times(1)
+			asgSvc.EXPECT().UpdateASG(gomock.Any()).Return(nil).Times(1)
+
+			_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+			g.Expect(err).To(Succeed())
+		})
+		t.Run("update Asg due to asgNeedsUpdates returns true", func(t *testing.T) {
+			g := NewWithT(t)
+			setup(t, g)
+			defer teardown(t, g)
+
+			asg := expinfrav1.AutoScalingGroup{
+				MinSize: int32(0),
+				MaxSize: int32(2),
+				Subnets: []string{}}
+			ec2Svc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			ec2Svc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil)
+			asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(&asg, nil).AnyTimes()
+			asgSvc.EXPECT().SubnetIDs(gomock.Any()).Return([]string{}, nil).Times(1)
+			asgSvc.EXPECT().UpdateASG(gomock.Any()).Return(nil).Times(1)
+
+			_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+			g.Expect(err).To(Succeed())
 		})
 	})
 
