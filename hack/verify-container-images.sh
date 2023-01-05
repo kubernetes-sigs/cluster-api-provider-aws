@@ -13,11 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# This refers https://github.com/kubernetes-sigs/cluster-api/blob/main/hack/verify-container-images.sh
+
 set -o errexit
 set -o nounset
 set -o pipefail
 
-TRIVY_VERSION=0.34.0
+if [[ "${TRACE-0}" == "1" ]]; then
+    set -o xtrace
+fi
+
+TRIVY_VERSION=0.35.0
 
 GO_OS="$(go env GOOS)"
 if [[ "${GO_OS}" == "linux" ]]; then
@@ -51,5 +57,21 @@ rm ${TOOL_BIN}/trivy.tar.gz
 ## Builds the container images to be scanned
 make REGISTRY=gcr.io/k8s-staging-cluster-api-aws PULL_POLICY=IfNotPresent TAG=dev docker-build
 
+BRed='\033[1;31m'
+BGreen='\033[1;32m'
+NC='\033[0m' # No
+
 # Scan the images
-${TOOL_BIN}/trivy image -q gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller-${GO_ARCH}:dev
+echo -e "\n${BGreen}List of dependencies that can bumped to fix the vulnerabilities:${NC}"
+${TOOL_BIN}/trivy image -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller-${GO_ARCH}:dev && R1=$? || R1=$?
+echo -e "\n${BGreen}List of dependencies having fixes/no fixes for review only:${NC}"
+${TOOL_BIN}/trivy image -q  --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller-${GO_ARCH}:dev
+
+if [ "$R1" -ne "0" ]
+then
+  echo -e "\n${BRed}Container images check failed! There are vulnerability to be fixed${NC}"
+  exit 1
+fi
+
+echo -e "\n${BGreen}Container images check passed! No unfixed vulnerability found${NC}"
+
