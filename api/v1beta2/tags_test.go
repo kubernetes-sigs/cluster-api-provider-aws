@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
-func TestTags_Merge(t *testing.T) {
+func TestTagsMerge(t *testing.T) {
 	tests := []struct {
 		name     string
 		other    Tags
@@ -90,7 +90,7 @@ func TestTags_Merge(t *testing.T) {
 	}
 }
 
-func TestTags_Difference(t *testing.T) {
+func TestTagsDifference(t *testing.T) {
 	tests := []struct {
 		name     string
 		self     Tags
@@ -166,7 +166,7 @@ func TestTags_Difference(t *testing.T) {
 	}
 }
 
-func TestTags_Validate(t *testing.T) {
+func TestTagsValidate(t *testing.T) {
 	tests := []struct {
 		name     string
 		self     Tags

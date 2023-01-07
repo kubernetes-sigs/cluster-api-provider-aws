@@ -1308,7 +1308,7 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 	}
 }
 
-func TestDiscoverLaunchTemplateAMI_ForEKS(t *testing.T) {
+func TestDiscoverLaunchTemplateAMIForEKS(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 

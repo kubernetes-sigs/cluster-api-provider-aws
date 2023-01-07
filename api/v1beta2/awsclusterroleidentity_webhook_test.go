@@ -225,7 +225,7 @@ func TestAWSClusterRoleIdentityUpdateValidation(t *testing.T) {
 	}
 }
 
-func TestAWSClusterRoleIdentity_Default(t *testing.T) {
+func TestAWSClusterRoleIdentityDefault(t *testing.T) {
 	g := NewWithT(t)
 	tests := []struct {
 		name                         string

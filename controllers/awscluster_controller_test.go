@@ -43,7 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-func TestAWSClusterReconciler_IntegrationTests(t *testing.T) {
+func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 	var (
 		reconciler AWSClusterReconciler
 		mockCtrl   *gomock.Controller

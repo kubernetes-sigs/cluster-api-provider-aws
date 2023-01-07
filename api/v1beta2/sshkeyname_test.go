@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func Test_SSHKeyName(t *testing.T) {
+func TestSSHKeyName(t *testing.T) {
 	tests := []struct {
 		name       string
 		sshKeyName *string
