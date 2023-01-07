@@ -199,7 +199,7 @@ func TestAWSClusterStaticIdentityUpdateLabelSelectorValidation(t *testing.T) {
 	}
 }
 
-func TestAWSClusterStaticIdentity_Default(t *testing.T) {
+func TestAWSClusterStaticIdentityDefault(t *testing.T) {
 	g := NewWithT(t)
 	tests := []struct {
 		name                           string

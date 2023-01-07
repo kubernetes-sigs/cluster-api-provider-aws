@@ -46,7 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
-func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
+func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 	var (
 		reconciler AWSMachineReconciler
 		mockCtrl   *gomock.Controller

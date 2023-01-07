@@ -248,7 +248,7 @@ func TestAWSClusterControllerIdentityUpdateValidation(t *testing.T) {
 	}
 }
 
-func TestAWSClusterControllerIdentity_Default(t *testing.T) {
+func TestAWSClusterControllerIdentityDefault(t *testing.T) {
 	g := NewWithT(t)
 	tests := []struct {
 		name                               string
