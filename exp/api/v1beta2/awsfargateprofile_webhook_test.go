@@ -128,7 +128,7 @@ func TestAWSFargateProfileValidateRoleNameUpdate(t *testing.T) {
 	}
 }
 
-func TestAWSFargateProfile_ValidateCreate(t *testing.T) {
+func TestAWSFargateProfileValidateCreate(t *testing.T) {
 	g := NewWithT(t)
 
 	tests := []struct {

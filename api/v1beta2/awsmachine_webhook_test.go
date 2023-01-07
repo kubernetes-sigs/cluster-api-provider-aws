@@ -37,7 +37,7 @@ func TestMachineDefault(t *testing.T) {
 	g.Expect(machine.Spec.CloudInit.SecureSecretsBackend).To(Equal(SecretBackendSecretsManager))
 }
 
-func TestAWSMachine_Create(t *testing.T) {
+func TestAWSMachineCreate(t *testing.T) {
 	tests := []struct {
 		name    string
 		machine *AWSMachine
@@ -265,7 +265,7 @@ func TestAWSMachine_Create(t *testing.T) {
 	}
 }
 
-func TestAWSMachine_Update(t *testing.T) {
+func TestAWSMachineUpdate(t *testing.T) {
 	tests := []struct {
 		name       string
 		oldMachine *AWSMachine
@@ -376,7 +376,7 @@ func TestAWSMachine_Update(t *testing.T) {
 	}
 }
 
-func TestAWSMachine_SecretsBackend(t *testing.T) {
+func TestAWSMachineSecretsBackend(t *testing.T) {
 	baseMachine := &AWSMachine{
 		Spec: AWSMachineSpec{
 			ProviderID:               nil,
