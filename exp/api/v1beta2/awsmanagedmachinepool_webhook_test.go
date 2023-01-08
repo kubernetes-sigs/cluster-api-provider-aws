@@ -35,7 +35,7 @@ func TestAWSManagedMachinePoolDefault(t *testing.T) {
 	fargate.Default()
 }
 
-func TestAWSManagedMachinePool_ValidateCreate(t *testing.T) {
+func TestAWSManagedMachinePoolValidateCreate(t *testing.T) {
 	g := NewWithT(t)
 
 	tests := []struct {
@@ -152,7 +152,7 @@ func TestAWSManagedMachinePool_ValidateCreate(t *testing.T) {
 	}
 }
 
-func TestAWSManagedMachinePool_ValidateUpdate(t *testing.T) {
+func TestAWSManagedMachinePoolValidateUpdate(t *testing.T) {
 	g := NewWithT(t)
 
 	tests := []struct {

@@ -26,7 +26,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-func TestEKSConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T) {
+func TestEKSConfigReconcilerReturnEarlyIfClusterInfraNotReady(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := newCluster("cluster")
@@ -48,7 +48,7 @@ func TestEKSConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T) {
 	}).Should(Succeed())
 }
 
-func TestEKSConfigReconciler_ReturnEarlyIfClusterControlPlaneNotInitialized(t *testing.T) {
+func TestEKSConfigReconcilerReturnEarlyIfClusterControlPlaneNotInitialized(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := newCluster("cluster")

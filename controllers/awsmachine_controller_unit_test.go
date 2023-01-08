@@ -1802,7 +1802,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 	})
 }
 
-func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
+func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 	testCases := []struct {
 		name         string
 		ownerCluster *clusterv1.Cluster
@@ -2048,7 +2048,7 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 	}
 }
 
-func TestAWSMachineReconciler_requeueAWSMachinesForUnpausedCluster(t *testing.T) {
+func TestAWSMachineReconcilerRequeueAWSMachinesForUnpausedCluster(t *testing.T) {
 	testCases := []struct {
 		name         string
 		ownerCluster *clusterv1.Cluster
@@ -2081,7 +2081,7 @@ func TestAWSMachineReconciler_requeueAWSMachinesForUnpausedCluster(t *testing.T)
 	}
 }
 
-func TestAWSMachineReconciler_indexAWSMachineByInstanceID(t *testing.T) {
+func TestAWSMachineReconcilerIndexAWSMachineByInstanceID(t *testing.T) {
 	t.Run("Should not return instance id if cluster type is not AWSCluster", func(t *testing.T) {
 		g := NewWithT(t)
 		reconciler := &AWSMachineReconciler{
@@ -2114,7 +2114,7 @@ func TestAWSMachineReconciler_indexAWSMachineByInstanceID(t *testing.T) {
 	})
 }
 
-func TestAWSMachineReconciler_Reconcile(t *testing.T) {
+func TestAWSMachineReconcilerReconcile(t *testing.T) {
 	testCases := []struct {
 		name         string
 		awsMachine   *infrav1.AWSMachine

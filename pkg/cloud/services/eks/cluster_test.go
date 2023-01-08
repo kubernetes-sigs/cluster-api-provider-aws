@@ -39,7 +39,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-func TestMakeEksEncryptionConfigs(t *testing.T) {
+func TestMakeEKSEncryptionConfigs(t *testing.T) {
 	providerOne := "provider"
 	resourceOne := "resourceOne"
 	resourceTwo := "resourceTwo"

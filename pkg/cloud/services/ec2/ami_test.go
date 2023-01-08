@@ -249,7 +249,7 @@ func TestFormatVersionForEKS(t *testing.T) {
 	}
 }
 
-func TestGenerateAmiName(t *testing.T) {
+func TestGenerateAMIName(t *testing.T) {
 	type args struct {
 		amiNameFormat     string
 		baseOS            string
