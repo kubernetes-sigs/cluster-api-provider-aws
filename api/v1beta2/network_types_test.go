@@ -22,7 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestSG_Difference(t *testing.T) {
+func TestSGDifference(t *testing.T) {
 	tests := []struct {
 		name     string
 		self     IngressRules

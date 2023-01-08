@@ -41,7 +41,7 @@ func TestAWSClusterDefault(t *testing.T) {
 	g.Expect(cluster.Spec.IdentityRef).NotTo(BeNil())
 }
 
-func TestAWSCluster_ValidateCreate(t *testing.T) {
+func TestAWSClusterValidateCreate(t *testing.T) {
 	unsupportedIncorrectScheme := ELBScheme("any-other-scheme")
 
 	tests := []struct {
@@ -289,7 +289,7 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 	}
 }
 
-func TestAWSCluster_ValidateUpdate(t *testing.T) {
+func TestAWSClusterValidateUpdate(t *testing.T) {
 	tests := []struct {
 		name       string
 		oldCluster *AWSCluster
@@ -592,7 +592,7 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func TestAWSCluster_DefaultCNIIngressRules(t *testing.T) {
+func TestAWSClusterDefaultCNIIngressRules(t *testing.T) {
 	AZUsageLimit := 3
 	defaultVPCSpec := VPCSpec{
 		AvailabilityZoneUsageLimit: &AZUsageLimit,
@@ -705,7 +705,7 @@ func TestAWSCluster_DefaultCNIIngressRules(t *testing.T) {
 	}
 }
 
-func TestAWSCluster_ValidateAllowedCIDRBlocks(t *testing.T) {
+func TestAWSClusterValidateAllowedCIDRBlocks(t *testing.T) {
 	tests := []struct {
 		name    string
 		awsc    *AWSCluster
@@ -794,7 +794,7 @@ func TestAWSCluster_ValidateAllowedCIDRBlocks(t *testing.T) {
 	}
 }
 
-func TestAWSCluster_DefaultAllowedCIDRBlocks(t *testing.T) {
+func TestAWSClusterDefaultAllowedCIDRBlocks(t *testing.T) {
 	g := NewWithT(t)
 	tests := []struct {
 		name          string

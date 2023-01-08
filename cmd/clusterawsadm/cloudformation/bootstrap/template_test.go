@@ -31,7 +31,7 @@ import (
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 )
 
-func Test_RenderCloudformation(t *testing.T) {
+func TestRenderCloudformation(t *testing.T) {
 	cases := []struct {
 		fixture  string
 		template func() Template
