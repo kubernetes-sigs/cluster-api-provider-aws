@@ -101,6 +101,78 @@ func (r *AWSMachineTemplate) validateNonRootVolumes() field.ErrorList {
 	return allErrs
 }
 
+func (r *AWSMachineTemplate) validateAdditionalSecurityGroups() field.ErrorList {
+	var allErrs field.ErrorList
+
+	spec := r.Spec.Template.Spec
+
+	for _, additionalSecurityGroup := range spec.AdditionalSecurityGroups {
+		if len(additionalSecurityGroup.Filters) > 0 && additionalSecurityGroup.ID != nil {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "additionalSecurityGroups"), "only one of ID or Filters may be specified, specifying both is forbidden"))
+		}
+	}
+	return allErrs
+}
+
+func (r *AWSMachineTemplate) validateCloudInitSecret() field.ErrorList {
+	var allErrs field.ErrorList
+
+	spec := r.Spec.Template.Spec
+	if spec.CloudInit.InsecureSkipSecretsManager {
+		if spec.CloudInit.SecretPrefix != "" {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "cloudInit", "secretPrefix"), "cannot be set if spec.template.spec.cloudInit.insecureSkipSecretsManager is true"))
+		}
+		if spec.CloudInit.SecretCount != 0 {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "cloudInit", "secretCount"), "cannot be set if spec.template.spec.cloudInit.insecureSkipSecretsManager is true"))
+		}
+		if spec.CloudInit.SecureSecretsBackend != "" {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "cloudInit", "secureSecretsBackend"), "cannot be set if spec.template.spec.cloudInit.insecureSkipSecretsManager is true"))
+		}
+	}
+
+	if (spec.CloudInit.SecretPrefix != "") != (spec.CloudInit.SecretCount != 0) {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "cloudInit", "secretCount"), "must be set together with spec.template.spec.CloudInit.SecretPrefix"))
+	}
+
+	return allErrs
+}
+
+func (r *AWSMachineTemplate) cloudInitConfigured() bool {
+	spec := r.Spec.Template.Spec
+	configured := false
+
+	configured = configured || spec.CloudInit.SecretPrefix != ""
+	configured = configured || spec.CloudInit.SecretCount != 0
+	configured = configured || spec.CloudInit.SecureSecretsBackend != ""
+	configured = configured || spec.CloudInit.InsecureSkipSecretsManager
+
+	return configured
+}
+
+func (r *AWSMachineTemplate) ignitionEnabled() bool {
+	return r.Spec.Template.Spec.Ignition != nil
+}
+
+func (r *AWSMachineTemplate) validateIgnitionAndCloudInit() field.ErrorList {
+	var allErrs field.ErrorList
+
+	// Feature gate is not enabled but ignition is enabled then send a forbidden error.
+	if !feature.Gates.Enabled(feature.BootstrapFormatIgnition) && r.ignitionEnabled() {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "ignition"),
+			"can be set only if the BootstrapFormatIgnition feature gate is enabled"))
+	}
+
+	if r.ignitionEnabled() && r.cloudInitConfigured() {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "cloudInit"),
+			"cannot be set if spec.template.spec.ignition is set"))
+	}
+
+	return allErrs
+}
+func (r *AWSMachineTemplate) validateSSHKeyName() field.ErrorList {
+	return validateSSHKeyName(r.Spec.Template.Spec.SSHKeyName)
+}
+
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSMachineTemplateWebhook) ValidateCreate(_ context.Context, raw runtime.Object) error {
 	var allErrs field.ErrorList
@@ -123,20 +195,13 @@ func (r *AWSMachineTemplateWebhook) ValidateCreate(_ context.Context, raw runtim
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "providerID"), "cannot be set in templates"))
 	}
 
+	allErrs = append(allErrs, obj.validateCloudInitSecret()...)
+	allErrs = append(allErrs, obj.validateIgnitionAndCloudInit()...)
 	allErrs = append(allErrs, obj.validateRootVolume()...)
 	allErrs = append(allErrs, obj.validateNonRootVolumes()...)
-
-	// Feature gate is not enabled but ignition is enabled then send a forbidden error.
-	if !feature.Gates.Enabled(feature.BootstrapFormatIgnition) && spec.Ignition != nil {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "ignition"),
-			"can be set only if the BootstrapFormatIgnition feature gate is enabled"))
-	}
-
-	cloudInitConfigured := spec.CloudInit.SecureSecretsBackend != "" || spec.CloudInit.InsecureSkipSecretsManager
-	if cloudInitConfigured && spec.Ignition != nil {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "cloudInit"),
-			"cannot be set if spec.template.spec.ignition is set"))
-	}
+	allErrs = append(allErrs, obj.validateSSHKeyName()...)
+	allErrs = append(allErrs, obj.validateAdditionalSecurityGroups()...)
+	allErrs = append(allErrs, obj.Spec.Template.Spec.AdditionalTags.Validate()...)
 
 	return aggregateObjErrors(obj.GroupVersionKind().GroupKind(), obj.Name, allErrs)
 }
