@@ -7,17 +7,17 @@ require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/golang/mock v1.6.0
 	github.com/golangci/golangci-lint v1.50.1
-	github.com/itchyny/gojq v0.12.10
+	github.com/itchyny/gojq v0.12.11
 	github.com/joelanford/go-apidiff v0.5.0
 	github.com/onsi/ginkgo/v2 v2.6.1
 	github.com/spf13/pflag v1.0.5
-	k8s.io/apimachinery v0.25.0
-	k8s.io/code-generator v0.25.0
-	k8s.io/gengo v0.0.0-20211129171323-c02415ce4185
+	k8s.io/apimachinery v0.26.0
+	k8s.io/code-generator v0.26.0
+	k8s.io/gengo v0.0.0-20220902162205-c0856e24416d
 	k8s.io/klog/v2 v2.80.1
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20221121093230-b1688621953c
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20211110210527-619e6b92dab9
-	sigs.k8s.io/controller-tools v0.10.0
+	sigs.k8s.io/controller-tools v0.11.1
 	sigs.k8s.io/kind v0.17.0
 	sigs.k8s.io/kustomize/kustomize/v4 v4.5.7
 	sigs.k8s.io/testing_frameworks v0.1.2
@@ -146,7 +146,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
+	github.com/matttproud/golang_protobuf_extensions v1.0.2 // indirect
 	github.com/mbilski/exhaustivestruct v1.2.0 // indirect
 	github.com/mgechev/revive v1.2.4 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
@@ -160,15 +160,15 @@ require (
 	github.com/nishanths/exhaustive v0.8.3 // indirect
 	github.com/nishanths/predeclared v0.2.2 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
-	github.com/onsi/gomega v1.24.1 // indirect
+	github.com/onsi/gomega v1.24.2 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.5 // indirect
 	github.com/phayes/checkstyle v0.0.0-20170904204023-bfd46e6a821d // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/polyfloyd/go-errorlint v1.0.5 // indirect
-	github.com/prometheus/client_golang v1.13.0 // indirect
-	github.com/prometheus/client_model v0.2.0 // indirect
+	github.com/prometheus/client_golang v1.14.0 // indirect
+	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/quasilyte/go-ruleguard v0.3.18 // indirect
@@ -223,7 +223,7 @@ require (
 	golang.org/x/exp v0.0.0-20220921164117-439092de6870 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20220827204233-334a2380cb91 // indirect
 	golang.org/x/mod v0.7.0 // indirect
-	golang.org/x/net v0.3.0 // indirect
+	golang.org/x/net v0.4.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.3.0 // indirect
 	golang.org/x/text v0.5.0 // indirect
@@ -235,11 +235,11 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	honnef.co/go/tools v0.3.3 // indirect
-	k8s.io/api v0.25.0 // indirect
-	k8s.io/apiextensions-apiserver v0.25.0 // indirect
+	k8s.io/api v0.26.0 // indirect
+	k8s.io/apiextensions-apiserver v0.26.0 // indirect
 	k8s.io/klog v0.2.0 // indirect
-	k8s.io/kube-openapi v0.0.0-20220803164354-a70c9af30aea // indirect
-	k8s.io/utils v0.0.0-20220823124924-e9cbc92d1a73 // indirect
+	k8s.io/kube-openapi v0.0.0-20221012153701-172d655c2280 // indirect
+	k8s.io/utils v0.0.0-20221107191617-1a15be271d1d // indirect
 	mvdan.cc/gofumpt v0.4.0 // indirect
 	mvdan.cc/interfacer v0.0.0-20180901003855-c20040233aed // indirect
 	mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b // indirect
