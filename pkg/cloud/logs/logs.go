@@ -57,9 +57,6 @@ func (l *logrWrapper) Log(msgs ...interface{}) {
 	case 1:
 		l.log.Info(msgs[0].(string))
 	default:
-		// Even the previous implementation had this problem but because it wasn't a direct
-		// logr.Logger thing, it didn't say this...
-		//nolint: logrlint
 		l.log.Info(msgs[0].(string), msgs[:1]...)
 	}
 }
