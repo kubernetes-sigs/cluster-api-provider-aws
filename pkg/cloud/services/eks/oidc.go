@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -32,6 +33,7 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/converters"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
+	tagConverter "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 )
 
@@ -73,6 +75,14 @@ func (s *Service) reconcileOIDCProvider(cluster *eks.Cluster) error {
 	s.scope.ControlPlane.Status.OIDCProvider.TrustPolicy = whitespaceRe.ReplaceAllString(policy, "")
 	if err := s.scope.PatchObject(); err != nil {
 		return errors.Wrap(err, "failed to update control plane with OIDC provider ARN")
+	}
+	// tagging the OIDC provider with the same tags of cluster
+	inputForTags := iam.TagOpenIDConnectProviderInput{
+		OpenIDConnectProviderArn: &s.scope.ControlPlane.Status.OIDCProvider.ARN,
+		Tags:                     tagConverter.MapToIAMTags(tagConverter.MapPtrToMap(cluster.Tags)),
+	}
+	if _, err := s.IAMClient.TagOpenIDConnectProvider(&inputForTags); err != nil {
+		return errors.Wrap(err, "failed to tag OIDC provider")
 	}
 
 	if err := s.reconcileTrustPolicy(); err != nil {
