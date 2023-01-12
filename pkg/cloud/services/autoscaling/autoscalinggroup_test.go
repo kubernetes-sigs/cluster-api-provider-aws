@@ -623,6 +623,26 @@ func TestService_UpdateASGWithSubnetFilters(t *testing.T) {
 			},
 		},
 		{
+			name:            "should return an error if no matching subnets found",
+			machinePoolName: "update-asg-fail",
+			wantErr:         true,
+			awsResourceReference: []infrav1.AWSResourceReference{
+				{
+					Filters: []infrav1.Filter{
+						{
+							Name:   "tag:subnet-role",
+							Values: []string{"non-existent"},
+						},
+					},
+				},
+			},
+			expect: func(e *mocks.MockEC2APIMockRecorder, m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {
+				e.DescribeSubnets(gomock.AssignableToTypeOf(&ec2.DescribeSubnetsInput{})).Return(&ec2.DescribeSubnetsOutput{
+					Subnets: []*ec2.Subnet{},
+				}, nil)
+			},
+		},
+		{
 			name:            "should return error if update ASG fails",
 			machinePoolName: "update-asg-fail",
 			wantErr:         true,
