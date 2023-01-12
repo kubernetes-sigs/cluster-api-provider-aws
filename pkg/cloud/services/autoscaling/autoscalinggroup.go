@@ -526,6 +526,12 @@ func (s *Service) SubnetIDs(scope *scope.MachinePoolScope) ([]string, error) {
 		for _, subnet := range out.Subnets {
 			subnetIDs = append(subnetIDs, *subnet.SubnetId)
 		}
+
+		if len(subnetIDs) == 0 {
+			errMessage := fmt.Sprintf("failed to create ASG %q, no subnets available matching criteria %q", scope.Name(), inputFilters)
+			record.Warnf(scope.AWSMachinePool, "FailedCreate", errMessage)
+			return subnetIDs, awserrors.NewFailedDependency(errMessage)
+		}
 	}
 
 	return scope.SubnetIDs(subnetIDs)
