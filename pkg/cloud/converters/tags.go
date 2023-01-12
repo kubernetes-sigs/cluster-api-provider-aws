@@ -21,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/ssm"
 
@@ -114,6 +115,22 @@ func MapToSSMTags(src infrav1.Tags) []*ssm.Tag {
 
 	for k, v := range src {
 		tag := &ssm.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v),
+		}
+
+		tags = append(tags, tag)
+	}
+
+	return tags
+}
+
+// MapToIAMTags converts a infrav1.Tags to a []*iam.Tag.
+func MapToIAMTags(src infrav1.Tags) []*iam.Tag {
+	tags := make([]*iam.Tag, 0, len(src))
+
+	for k, v := range src {
+		tag := &iam.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v),
 		}

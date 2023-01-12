@@ -20,12 +20,12 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
