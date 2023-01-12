@@ -69,6 +69,10 @@ func TestOIDCReconcile(t *testing.T) {
 				}).Return(&iam.CreateOpenIDConnectProviderOutput{
 					OpenIDConnectProviderArn: aws.String("arn::oidc"),
 				}, nil)
+				m.TagOpenIDConnectProvider(&iam.TagOpenIDConnectProviderInput{
+					OpenIDConnectProviderArn: aws.String("arn::oidc"),
+					Tags:                     []*iam.Tag{},
+				}).Return(&iam.TagOpenIDConnectProviderOutput{}, nil)
 			},
 		},
 		{
@@ -101,6 +105,10 @@ func TestOIDCReconcile(t *testing.T) {
 					ThumbprintList: aws.StringSlice([]string{"15dbd260c7465ecca6de2c0b2181187f66ee0d1a"}),
 					Url:            &url,
 				}, nil)
+				m.TagOpenIDConnectProvider(&iam.TagOpenIDConnectProviderInput{
+					OpenIDConnectProviderArn: aws.String("arn::oidc"),
+					Tags:                     []*iam.Tag{},
+				}).Return(&iam.TagOpenIDConnectProviderOutput{}, nil)
 			},
 		},
 	}
