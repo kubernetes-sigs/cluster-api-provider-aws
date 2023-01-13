@@ -1,9 +1,18 @@
 resources:
-  - ../limit-az
+  - ../base
+  - machine-deployment.yaml
+  - ../addons/cni/resources/cni-resource-set.yaml
+  - ../addons/ccm/resources/ccm-resource-set.yaml
   - csi-resource-set.yaml
 patchesStrategicMerge:
+  - ../addons/cni/patches/cluster-cni.yaml
+  - ../addons/ccm/patches/external-cloud-provider.yaml
   - patches/efs-support.yaml
+  - patches/limit-az.yaml
 configMapGenerator:
+  - name: cloud-controller-manager-addon
+    files:
+      - ../addons/ccm/data/aws-ccm-external.yaml
   - name: aws-efs-csi-driver-addon
     files:
       - aws-efs-csi-external.yaml
@@ -13,3 +22,4 @@ generatorOptions:
     type: generated
   annotations:
     note: generated
+

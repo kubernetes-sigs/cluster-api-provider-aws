@@ -1,4 +1,16 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
 resources:
   - cluster-template.yaml
+configMapGenerator:
+  - name: cloud-controller-manager-addon
+    files:
+      - ../../..//withoutclusterclass/kustomize_sources/addons/ccm/data/aws-ccm-external.yaml
+  - name: aws-ebs-csi-driver-addon
+    files:
+      - ../../../withoutclusterclass/kustomize_sources/addons/csi/data/aws-ebs-csi-external.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    type: generated
+  annotations:
+    note: generated
+

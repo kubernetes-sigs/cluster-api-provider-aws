@@ -3,7 +3,9 @@ apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
   labels:
+    ccm: external
     cni: ${CLUSTER_NAME}-crs-0
+    csi: external
   name: "${CLUSTER_NAME}"
 spec:
   clusterNetwork:
@@ -54,4 +56,30 @@ spec:
   resources:
   - kind: ConfigMap
     name: cni-${CLUSTER_NAME}-crs-0
+  strategy: ApplyOnce
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta1
+kind: ClusterResourceSet
+metadata:
+  name: crs-ccm
+spec:
+  clusterSelector:
+    matchLabels:
+      ccm: external
+  resources:
+    - kind: ConfigMap
+      name: cloud-controller-manager-addon
+  strategy: ApplyOnce
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta1
+kind: ClusterResourceSet
+metadata:
+  name: crs-csi
+spec:
+  clusterSelector:
+    matchLabels:
+      csi: external
+  resources:
+    - kind: ConfigMap
+      name: aws-ebs-csi-driver-addon
   strategy: ApplyOnce
