@@ -133,7 +133,7 @@ providers:
           - sourcePath: "./infrastructure-aws/generated/cluster-template-efs-support.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-external-csi.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-csimigration-off.yaml"
-          - sourcePath: "./infrastructure-aws/generated/cluster-template-external-cloud-provider.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-intree-cloud-provider.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-kcp-remediation.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-kcp-scale-in.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-limit-az.yaml"
@@ -155,6 +155,7 @@ providers:
           - sourcePath: "./infrastructure-aws/kustomize_sources/topology/clusterclass-quick-start.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-nested-multitenancy-clusterclass.yaml"
           - sourcePath: "./infrastructure-aws/kustomize_sources/nested-multitenancy-clusterclass/clusterclass-multi-tenancy.yaml"
+          - sourcePath: "./infrastructure-aws/generated/cluster-template-upgrade-to-external-cloud-provider.yaml"
           - sourcePath: "./shared/v1beta1_provider/metadata.yaml"
           - sourcePath: "./infrastructure-aws/generated/cluster-template-ignition.yaml"
         replacements:
@@ -213,16 +214,16 @@ variables:
   GC_WORKLOAD: "../../data/gcworkload.yaml"
 
 intervals:
-  default/wait-cluster: ["30m", "10s"]
-  default/wait-control-plane: ["25m", "10s"]
+  default/wait-cluster: ["35m", "10s"]
+  default/wait-control-plane: ["35m", "10s"]
   default/wait-worker-nodes: ["20m", "10s"]
   conformance/wait-control-plane: ["35m", "10s"]
   conformance/wait-worker-nodes: ["35m", "10s"]
   default/wait-controllers: ["5m", "10s"]
   default/wait-delete-cluster: ["20m", "10s"]
-  default/wait-machine-upgrade: ["30m", "10s"]
+  default/wait-machine-upgrade: ["35m", "10s"]
   default/wait-contolplane-upgrade: ["40m", "10s"]
-  default/wait-machine-status: ["20m", "10s"]
+  default/wait-machine-status: ["25m", "10s"]
   default/wait-failed-machine-status: ["2m", "10s"]
   default/wait-infra-subnets: ["5m", "30s"]
   default/wait-machine-pool-nodes: ["40m", "10s"]
