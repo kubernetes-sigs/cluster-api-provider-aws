@@ -21,3 +21,6 @@ func (*AWSManagedControlPlane) Hub() {}
 
 // Hub marks AWSManagedControlPlaneList as a conversion hub.
 func (*AWSManagedControlPlaneList) Hub() {}
+
+// Hub marks AWSManagedControlPlaneSpec as a conversion hub.
+func (*AWSManagedControlPlaneSpec) Hub() {}
