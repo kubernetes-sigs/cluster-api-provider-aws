@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -350,4 +351,12 @@ func (s *ClusterScope) ImageLookupOrg() string {
 // ImageLookupBaseOS returns the base operating system name to use when looking up AMIs.
 func (s *ClusterScope) ImageLookupBaseOS() string {
 	return s.AWSCluster.Spec.ImageLookupBaseOS
+}
+
+// Partition returns the cluster partition.
+func (s *ClusterScope) Partition() string {
+	if s.AWSCluster.Spec.Partition == "" {
+		s.AWSCluster.Spec.Partition = system.GetPartitionFromRegion(s.Region())
+	}
+	return s.AWSCluster.Spec.Partition
 }
