@@ -416,7 +416,7 @@ func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Temp
 			By(fmt.Sprintf("Event details for %s : Resource: %s, Status: %s", aws.StringValue(event.LogicalResourceId), aws.StringValue(event.ResourceType), aws.StringValue(event.ResourceStatus)))
 		}
 		return err == nil && err1 == nil
-	}, 2*time.Minute).Should(Equal(true))
+	}, 15*time.Minute).Should(Equal(true))
 	stack, err := CFN.DescribeStacks(&cfn.DescribeStacksInput{StackName: aws.String(t.Spec.StackName)})
 	if err == nil && len(stack.Stacks) > 0 {
 		deleteMultitenancyRoles(prov)
