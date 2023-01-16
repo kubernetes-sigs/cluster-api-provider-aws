@@ -32,9 +32,7 @@ import (
 	"github.com/pkg/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/bootstrap/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 )
 
 const (
@@ -45,8 +43,6 @@ const (
 	// ubuntuOwnerID is Ubuntu owned account. Please see:
 	// https://ubuntu.com/server/docs/cloud-images/amazon-ec2
 	ubuntuOwnerID = "099720109477"
-
-	ubuntuOwnerIDUsGov = "513442679011"
 
 	// Description regex for fetching Ubuntu AMIs for bastion host.
 	ubuntuImageDescription = "Canonical??Ubuntu??20.04?LTS??amd64?focal?image*"
@@ -203,6 +199,10 @@ func (s *Service) defaultBastionAMILookup() (string, error) {
 	describeImageInput := &ec2.DescribeImagesInput{
 		Filters: []*ec2.Filter{
 			{
+				Name:   aws.String("owner-id"),
+				Values: []*string{aws.String(ubuntuOwnerID)},
+			},
+			{
 				Name:   aws.String("architecture"),
 				Values: []*string{aws.String("x86_64")},
 			},
@@ -220,19 +220,6 @@ func (s *Service) defaultBastionAMILookup() (string, error) {
 			},
 		},
 	}
-
-	ownerID := ubuntuOwnerID
-	partition := system.GetPartitionFromRegion(s.scope.Region())
-	if strings.Contains(partition, v1beta1.PartitionNameUSGov) {
-		ownerID = ubuntuOwnerIDUsGov
-	}
-
-	filter := &ec2.Filter{
-		Name:   aws.String("owner-id"),
-		Values: []*string{aws.String(ownerID)},
-	}
-	describeImageInput.Filters = append(describeImageInput.Filters, filter)
-
 	out, err := s.EC2Client.DescribeImages(describeImageInput)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to describe images within region: %q", s.scope.Region())
