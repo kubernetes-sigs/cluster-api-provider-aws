@@ -33,7 +33,6 @@ import (
 
 	iam "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 )
 
 // Service holds a collection of interfaces.
@@ -237,17 +236,16 @@ func (s *Service) bucketPolicy(bucketName string) (string, error) {
 	}
 
 	bucket := s.scope.Bucket()
-	partition := system.GetPartitionFromRegion(s.scope.Region())
 
 	statements := []iam.StatementEntry{
 		{
 			Sid:    "control-plane",
 			Effect: iam.EffectAllow,
 			Principal: map[iam.PrincipalType]iam.PrincipalID{
-				iam.PrincipalAWS: []string{fmt.Sprintf("arn:%s:iam::%s:role/%s", s.scope, *accountID.Account, bucket.ControlPlaneIAMInstanceProfile)},
+				iam.PrincipalAWS: []string{fmt.Sprintf("arn:aws:iam::%s:role/%s", *accountID.Account, bucket.ControlPlaneIAMInstanceProfile)},
 			},
 			Action:   []string{"s3:GetObject"},
-			Resource: []string{fmt.Sprintf("arn:%s:s3:::%s/control-plane/*", partition, bucketName)},
+			Resource: []string{fmt.Sprintf("arn:aws:s3:::%s/control-plane/*", bucketName)},
 		},
 	}
 
@@ -256,10 +254,10 @@ func (s *Service) bucketPolicy(bucketName string) (string, error) {
 			Sid:    iamInstanceProfile,
 			Effect: iam.EffectAllow,
 			Principal: map[iam.PrincipalType]iam.PrincipalID{
-				iam.PrincipalAWS: []string{fmt.Sprintf("arn:%s:iam::%s:role/%s", partition, *accountID.Account, iamInstanceProfile)},
+				iam.PrincipalAWS: []string{fmt.Sprintf("arn:aws:iam::%s:role/%s", *accountID.Account, iamInstanceProfile)},
 			},
 			Action:   []string{"s3:GetObject"},
-			Resource: []string{fmt.Sprintf("arn:%s:s3:::%s/node/*", partition, bucketName)},
+			Resource: []string{fmt.Sprintf("arn:aws:s3:::%s/node/*", bucketName)},
 		})
 	}
 
