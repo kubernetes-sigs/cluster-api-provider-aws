@@ -170,6 +170,7 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 				infrav1.PrincipalCredentialRetrievedCondition,
 				infrav1.PrincipalUsageAllowedCondition,
+				infrav1.LoadBalancerReadyCondition,
 			}})
 		if e != nil {
 			fmt.Println(e.Error())

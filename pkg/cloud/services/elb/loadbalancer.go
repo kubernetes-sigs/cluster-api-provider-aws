@@ -157,6 +157,8 @@ func (s *Service) deleteAPIServerELB() error {
 
 	apiELB, err := s.describeClassicELB(elbName)
 	if IsNotFound(err) {
+		s.scope.V(2).Info("Control plane load balancer not found, skipping deletion")
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 		return nil
 	}
 	if err != nil {
@@ -165,6 +167,7 @@ func (s *Service) deleteAPIServerELB() error {
 
 	if apiELB.IsUnmanaged(s.scope.Name()) {
 		s.scope.V(2).Info("Found unmanaged classic load balancer for apiserver, skipping deletion", "api-server-elb-name", apiELB.Name)
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 		return nil
 	}
 
