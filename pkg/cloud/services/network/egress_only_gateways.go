@@ -82,6 +82,11 @@ func (s *Service) deleteEgressOnlyInternetGateways() error {
 		return nil
 	}
 
+	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
+		s.scope.Trace("Skipping egress only internet gateway deletion in unmanaged mode")
+		return nil
+	}
+
 	eigws, err := s.describeEgressOnlyVpcInternetGateways()
 	if awserrors.IsNotFound(err) {
 		return nil
