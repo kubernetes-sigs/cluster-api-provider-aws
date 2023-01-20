@@ -189,12 +189,16 @@ func (s *Service) getAPIServerLBSpec(elbName string) (*infrav1.LoadBalancer, err
 		Additional:  s.scope.AdditionalTags(),
 	})
 
-	// If subnet IDs have been specified for this load balancer
-	if s.scope.ControlPlaneLoadBalancer() != nil && len(s.scope.ControlPlaneLoadBalancer().Subnets) > 0 {
+	subnetIDs, err := s.SubnetIDs(&s.scope)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(subnetIDs) > 0 {
 		// This set of subnets may not match the subnets specified on the Cluster, so we may not have already discovered them
 		// We need to call out to AWS to describe them just in case
 		input := &ec2.DescribeSubnetsInput{
-			SubnetIds: aws.StringSlice(s.scope.ControlPlaneLoadBalancer().Subnets),
+			SubnetIds: aws.StringSlice(subnetIDs),
 		}
 		out, err := s.EC2Client.DescribeSubnets(input)
 		if err != nil {
@@ -1494,4 +1498,59 @@ func chunkELBs(names []string) [][]string {
 		chunked = append(chunked, names[i:end])
 	}
 	return chunked
+}
+
+// SubnetIDs return subnet IDs defined for the Control Plane LoadBalancer
+func (s *Service) SubnetIDs(scope *scope.ELBScope) ([]string, error) {
+	subnetIDs := make([]string, 0)
+	var inputFilters = make([]*ec2.Filter, 0)
+
+	if s.scope.ControlPlaneLoadBalancer() != nil {
+		// Handle migration from `.Subnets` to `.SubnetSpec`
+		if len(s.scope.ControlPlaneLoadBalancer().Subnets) > 0 && len(s.scope.ControlPlaneLoadBalancer().SubnetSpec) == 0 {
+			for _, subnet := range s.scope.ControlPlaneLoadBalancer().Subnets {
+				s.scope.ControlPlaneLoadBalancer().SubnetSpec = append(
+					s.scope.ControlPlaneLoadBalancer().SubnetSpec,
+					infrav1.AWSResourceReference{
+						ID: &subnet,
+					},
+				)
+			}
+		}
+
+		for _, subnet := range s.scope.ControlPlaneLoadBalancer().SubnetSpec {
+			switch {
+			case subnet.ID != nil:
+				subnetIDs = append(subnetIDs, aws.StringValue(subnet.ID))
+			case subnet.Filters != nil:
+				for _, eachFilter := range subnet.Filters {
+					inputFilters = append(inputFilters, &ec2.Filter{
+						Name:   aws.String(eachFilter.Name),
+						Values: aws.StringSlice(eachFilter.Values),
+					})
+				}
+			}
+		}
+	}
+
+	if len(inputFilters) > 0 {
+		out, err := s.EC2Client.DescribeSubnets(&ec2.DescribeSubnetsInput{
+			Filters: inputFilters,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if len(out.Subnets) == 0 {
+			errMessage := fmt.Sprintf("failed create Control Plane Load Balancer, no subnets available matching criteria %q", inputFilters)
+			record.Warnf(s.scope.InfraCluster(), "SubnetNotFound", errMessage)
+			return subnetIDs, awserrors.NewFailedDependency(errMessage)
+		}
+
+		for _, subnet := range out.Subnets {
+			subnetIDs = append(subnetIDs, *subnet.SubnetId)
+		}
+	}
+
+	return subnetIDs, nil
 }
