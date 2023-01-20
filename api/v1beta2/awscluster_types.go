@@ -194,9 +194,9 @@ type AWSLoadBalancerSpec struct {
 	// Deprecated: This field is being replaced by `SubnetSpec`
 	Subnets []string `json:"subnets,omitempty"`
 
-	// SubnetSpec is an array of subnet configurations that should be applied to the control plane load balancer (defaults to discovered subnets for managed VPCs or an empty set for unmanaged VPCs)
+	// SubnetFilter is an array of subnet configurations that should be applied to the control plane load balancer (defaults to discovered subnets for managed VPCs or an empty set for unmanaged VPCs)
 	// +optional
-	SubnetSpec []AWSResourceReference `json:"subnetSpec,omitempty"`
+	SubnetFilter []AWSResourceReference `json:"subnetSpec,omitempty"`
 
 	// HealthCheckProtocol sets the protocol type for ELB health check target
 	// default value is ELBProtocolSSL

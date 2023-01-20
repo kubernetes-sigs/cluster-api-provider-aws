@@ -1507,10 +1507,10 @@ func (s *Service) SubnetIDs(scope *scope.ELBScope) ([]string, error) {
 
 	if s.scope.ControlPlaneLoadBalancer() != nil {
 		// Handle migration from `.Subnets` to `.SubnetSpec`
-		if len(s.scope.ControlPlaneLoadBalancer().Subnets) > 0 && len(s.scope.ControlPlaneLoadBalancer().SubnetSpec) == 0 {
+		if len(s.scope.ControlPlaneLoadBalancer().Subnets) > 0 && len(s.scope.ControlPlaneLoadBalancer().SubnetFilter) == 0 {
 			for _, subnet := range s.scope.ControlPlaneLoadBalancer().Subnets {
-				s.scope.ControlPlaneLoadBalancer().SubnetSpec = append(
-					s.scope.ControlPlaneLoadBalancer().SubnetSpec,
+				s.scope.ControlPlaneLoadBalancer().SubnetFilter = append(
+					s.scope.ControlPlaneLoadBalancer().SubnetFilter,
 					infrav1.AWSResourceReference{
 						ID: &subnet,
 					},
@@ -1518,7 +1518,7 @@ func (s *Service) SubnetIDs(scope *scope.ELBScope) ([]string, error) {
 			}
 		}
 
-		for _, subnet := range s.scope.ControlPlaneLoadBalancer().SubnetSpec {
+		for _, subnet := range s.scope.ControlPlaneLoadBalancer().SubnetFilter {
 			switch {
 			case subnet.ID != nil:
 				subnetIDs = append(subnetIDs, aws.StringValue(subnet.ID))
