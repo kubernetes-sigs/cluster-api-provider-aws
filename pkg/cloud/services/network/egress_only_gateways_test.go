@@ -173,6 +173,16 @@ func TestDeleteEgressOnlyInternetGateways(t *testing.T) {
 			expect: func(m *mocks.MockEC2APIMockRecorder) {},
 		},
 		{
+			name: "Should ignore deletion if vpc is unmanaged",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					IPv6: &infrav1.IPv6{},
+					ID:   "vpc-gateways",
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {},
+		},
+		{
 			name: "Should ignore deletion if egress only internet gateway is not found",
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
