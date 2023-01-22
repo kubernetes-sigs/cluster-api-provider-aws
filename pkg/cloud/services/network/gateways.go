@@ -60,7 +60,7 @@ func (s *Service) reconcileInternetGateways() error {
 	gateway := igs[0]
 	s.scope.VPC().InternetGatewayID = gateway.InternetGatewayId
 
-	// Make sure tags are up to date.
+	// Make sure tags are up-to-date.
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		buildParams := s.getGatewayTagParams(*gateway.InternetGatewayId)
 		tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
