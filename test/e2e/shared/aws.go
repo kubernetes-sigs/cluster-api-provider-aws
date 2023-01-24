@@ -859,7 +859,11 @@ func (s *ServiceQuota) updateServiceQuotaRequestStatus(serviceQuotasClient *serv
 }
 
 func DumpEKSClusters(ctx context.Context, e2eCtx *E2EContext) {
-	logPath := filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName(), "aws-resources")
+	name := "no-bootstrap-cluster"
+	if e2eCtx.Environment.BootstrapClusterProxy != nil {
+		name = e2eCtx.Environment.BootstrapClusterProxy.GetName()
+	}
+	logPath := filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", name, "aws-resources")
 	if err := os.MkdirAll(logPath, os.ModePerm); err != nil {
 		fmt.Fprintf(GinkgoWriter, "couldn't create directory: path=%s, err=%s", logPath, err)
 	}
