@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,11 +24,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/pkg/errors"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
-	eksiam "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/iam"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	eksiam "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks/iam"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/eks"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -53,7 +53,7 @@ func FargateRolePolicies() []string {
 }
 
 func (s *Service) reconcileControlPlaneIAMRole() error {
-	s.scope.V(2).Info("Reconciling EKS Control Plane IAM Role")
+	s.scope.Debug("Reconciling EKS Control Plane IAM Role")
 
 	if s.scope.ControlPlane.Spec.RoleName == nil {
 		if !s.scope.EnableIAM() {
@@ -87,7 +87,7 @@ func (s *Service) reconcileControlPlaneIAMRole() error {
 	}
 
 	if s.IsUnmanaged(role, s.scope.Name()) {
-		s.scope.V(2).Info("Skipping, EKS control plane role policy assignment as role is unamanged")
+		s.scope.Debug("Skipping, EKS control plane role policy assignment as role is unamanged")
 		return nil
 	}
 
@@ -120,16 +120,16 @@ func (s *Service) deleteControlPlaneIAMRole() error {
 	}
 	roleName := *s.scope.ControlPlane.Spec.RoleName
 	if !s.scope.EnableIAM() {
-		s.scope.V(2).Info("EKS IAM disabled, skipping deleting EKS Control Plane IAM Role")
+		s.scope.Debug("EKS IAM disabled, skipping deleting EKS Control Plane IAM Role")
 		return nil
 	}
 
-	s.scope.V(2).Info("Deleting EKS Control Plane IAM Role")
+	s.scope.Debug("Deleting EKS Control Plane IAM Role")
 
 	role, err := s.GetIAMRole(roleName)
 	if err != nil {
 		if isNotFound(err) {
-			s.V(2).Info("EKS Control Plane IAM Role already deleted")
+			s.Debug("EKS Control Plane IAM Role already deleted")
 			return nil
 		}
 
@@ -137,7 +137,7 @@ func (s *Service) deleteControlPlaneIAMRole() error {
 	}
 
 	if s.IsUnmanaged(role, s.scope.Name()) {
-		s.V(2).Info("Skipping, EKS control plane iam role deletion as role is unamanged")
+		s.Debug("Skipping, EKS control plane iam role deletion as role is unamanged")
 		return nil
 	}
 
@@ -152,7 +152,7 @@ func (s *Service) deleteControlPlaneIAMRole() error {
 }
 
 func (s *NodegroupService) reconcileNodegroupIAMRole() error {
-	s.scope.V(2).Info("Reconciling EKS Nodegroup IAM Role")
+	s.scope.Debug("Reconciling EKS Nodegroup IAM Role")
 
 	if s.scope.RoleName() == "" {
 		var roleName string
@@ -194,7 +194,7 @@ func (s *NodegroupService) reconcileNodegroupIAMRole() error {
 	}
 
 	if s.IsUnmanaged(role, s.scope.ClusterName()) {
-		s.scope.V(2).Info("Skipping, EKS nodegroup role policy assignment as role is unamanged")
+		s.scope.Debug("Skipping, EKS nodegroup role policy assignment as role is unamanged")
 		return nil
 	}
 
@@ -238,16 +238,16 @@ func (s *NodegroupService) deleteNodegroupIAMRole() (reterr error) {
 	}()
 	roleName := s.scope.RoleName()
 	if !s.scope.EnableIAM() {
-		s.scope.V(2).Info("EKS IAM disabled, skipping deleting EKS Nodegroup IAM Role")
+		s.scope.Debug("EKS IAM disabled, skipping deleting EKS Nodegroup IAM Role")
 		return nil
 	}
 
-	s.scope.V(2).Info("Deleting EKS Nodegroup IAM Role")
+	s.scope.Debug("Deleting EKS Nodegroup IAM Role")
 
 	role, err := s.GetIAMRole(roleName)
 	if err != nil {
 		if isNotFound(err) {
-			s.V(2).Info("EKS Nodegroup IAM Role already deleted")
+			s.Debug("EKS Nodegroup IAM Role already deleted")
 			return nil
 		}
 
@@ -255,7 +255,7 @@ func (s *NodegroupService) deleteNodegroupIAMRole() (reterr error) {
 	}
 
 	if s.IsUnmanaged(role, s.scope.ClusterName()) {
-		s.V(2).Info("Skipping, EKS Nodegroup iam role deletion as role is unamanged")
+		s.Debug("Skipping, EKS Nodegroup iam role deletion as role is unamanged")
 		return nil
 	}
 
@@ -270,7 +270,7 @@ func (s *NodegroupService) deleteNodegroupIAMRole() (reterr error) {
 }
 
 func (s *FargateService) reconcileFargateIAMRole() (requeue bool, err error) {
-	s.scope.V(2).Info("Reconciling EKS Fargate IAM Role")
+	s.scope.Debug("Reconciling EKS Fargate IAM Role")
 
 	if s.scope.RoleName() == "" {
 		var roleName string
@@ -346,16 +346,16 @@ func (s *FargateService) deleteFargateIAMRole() (reterr error) {
 	}()
 	roleName := s.scope.RoleName()
 	if !s.scope.EnableIAM() {
-		s.scope.V(2).Info("EKS IAM disabled, skipping deleting EKS fargate IAM Role")
+		s.scope.Debug("EKS IAM disabled, skipping deleting EKS fargate IAM Role")
 		return nil
 	}
 
-	s.scope.V(2).Info("Deleting EKS fargate IAM Role")
+	s.scope.Debug("Deleting EKS fargate IAM Role")
 
 	_, err := s.GetIAMRole(roleName)
 	if err != nil {
 		if isNotFound(err) {
-			s.V(2).Info("EKS fargate IAM Role already deleted")
+			s.Debug("EKS fargate IAM Role already deleted")
 			return nil
 		}
 

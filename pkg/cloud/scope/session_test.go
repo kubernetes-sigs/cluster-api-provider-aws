@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,19 +21,20 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/klog/v2/klogr"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/identity"
-	"sigs.k8s.io/cluster-api-provider-aws/util/system"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/identity"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 func TestIsClusterPermittedToUsePrincipal(t *testing.T) {
@@ -41,7 +42,7 @@ func TestIsClusterPermittedToUsePrincipal(t *testing.T) {
 		name             string
 		clusterNamespace string
 		allowedNs        *infrav1.AllowedNamespaces
-		setup            func(client.Client, *testing.T)
+		setup            func(*testing.T, client.Client)
 		expectedResult   bool
 		expectErr        bool
 	}{
@@ -66,7 +67,9 @@ func TestIsClusterPermittedToUsePrincipal(t *testing.T) {
 				NamespaceList: []string{"match"},
 				Selector:      metav1.LabelSelector{},
 			},
-			setup: func(c client.Client, t *testing.T) {
+			setup: func(t *testing.T, c client.Client) {
+				t.Helper()
+
 				ns := &corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "match",
@@ -88,7 +91,9 @@ func TestIsClusterPermittedToUsePrincipal(t *testing.T) {
 				NamespaceList: []string{"nomatch"},
 				Selector:      metav1.LabelSelector{},
 			},
-			setup: func(c client.Client, t *testing.T) {
+			setup: func(t *testing.T, c client.Client) {
+				t.Helper()
+
 				ns := &corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "default",
@@ -112,7 +117,9 @@ func TestIsClusterPermittedToUsePrincipal(t *testing.T) {
 					MatchLabels: map[string]string{"ns": "nomatchlabel"},
 				},
 			},
-			setup: func(c client.Client, t *testing.T) {
+			setup: func(t *testing.T, c client.Client) {
+				t.Helper()
+
 				ns := &corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "match",
@@ -136,7 +143,9 @@ func TestIsClusterPermittedToUsePrincipal(t *testing.T) {
 					MatchLabels: map[string]string{"ns": "nomatchlabel"},
 				},
 			},
-			setup: func(c client.Client, t *testing.T) {
+			setup: func(t *testing.T, c client.Client) {
+				t.Helper()
+
 				ns := &corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "default",
@@ -160,7 +169,9 @@ func TestIsClusterPermittedToUsePrincipal(t *testing.T) {
 					MatchLabels: map[string]string{"ns": "matchlabel"},
 				},
 			},
-			setup: func(c client.Client, t *testing.T) {
+			setup: func(t *testing.T, c client.Client) {
+				t.Helper()
+
 				ns := &corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   "default",
@@ -188,7 +199,7 @@ func TestIsClusterPermittedToUsePrincipal(t *testing.T) {
 			}
 			k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 			if tc.setup != nil {
-				tc.setup(k8sClient, t)
+				tc.setup(t, k8sClient)
 			}
 			result, err := isClusterPermittedToUsePrincipal(k8sClient, tc.allowedNs, tc.clusterNamespace)
 			if tc.expectErr {
@@ -226,7 +237,7 @@ func TestPrincipalParsing(t *testing.T) {
 		awsCluster  infrav1.AWSCluster
 		identityRef *corev1.ObjectReference
 		identity    runtime.Object
-		setup       func(client.Client, *testing.T)
+		setup       func(*testing.T, client.Client)
 		expect      func([]identity.AWSPrincipalTypeProvider)
 		expectError bool
 	}{
@@ -243,7 +254,8 @@ func TestPrincipalParsing(t *testing.T) {
 				},
 				Spec: infrav1.AWSClusterSpec{},
 			},
-			setup: func(c client.Client, t *testing.T) {
+			setup: func(t *testing.T, c client.Client) {
+				t.Helper()
 			},
 			expect: func(providers []identity.AWSPrincipalTypeProvider) {
 				if len(providers) != 0 {
@@ -269,7 +281,9 @@ func TestPrincipalParsing(t *testing.T) {
 					},
 				},
 			},
-			setup: func(c client.Client, t *testing.T) {
+			setup: func(t *testing.T, c client.Client) {
+				t.Helper()
+
 				identity := &infrav1.AWSClusterStaticIdentity{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "static-identity",
@@ -342,7 +356,9 @@ func TestPrincipalParsing(t *testing.T) {
 					},
 				},
 			},
-			setup: func(c client.Client, t *testing.T) {
+			setup: func(t *testing.T, c client.Client) {
+				t.Helper()
+
 				staticPrincipal := &infrav1.AWSClusterStaticIdentity{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "static-identity",
@@ -425,7 +441,9 @@ func TestPrincipalParsing(t *testing.T) {
 					},
 				},
 			},
-			setup: func(c client.Client, t *testing.T) {
+			setup: func(t *testing.T, c client.Client) {
+				t.Helper()
+
 				identity := &infrav1.AWSClusterRoleIdentity{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "role-identity",
@@ -469,9 +487,9 @@ func TestPrincipalParsing(t *testing.T) {
 				t.Fatal(err)
 			}
 			k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
-			tc.setup(k8sClient, t)
+			tc.setup(t, k8sClient)
 			clusterScope.AWSCluster = &tc.awsCluster
-			providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScope, klogr.New())
+			providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScope, logger.NewLogger(klog.Background()))
 			if tc.expectError {
 				if err == nil {
 					t.Fatal("Expected an error but didn't get one")

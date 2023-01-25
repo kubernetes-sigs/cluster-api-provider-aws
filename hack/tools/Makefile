@@ -76,6 +76,10 @@ CONVERSION_GEN := $(BIN_DIR)/conversion-gen
 $(CONVERSION_GEN): $(BIN_DIR) go.mod go.sum $(call rwildcard,.,third_party/conversion-gen/*.*)
 	go build -tags=tools -o $@ ./third_party/conversion-gen
 
+CONVERSION_VERIFIER := $(BIN_DIR)/conversion-verifier
+$(CONVERSION_VERIFIER): $(BIN_DIR) go.mod go.sum
+	go build -tags=tools -o $@ sigs.k8s.io/cluster-api/hack/tools/conversion-verifier
+
 DEFAULTER_GEN := $(BIN_DIR)/defaulter-gen
 $(DEFAULTER_GEN): $(BIN_DIR) go.mod go.sum
 	go build -tags=tools -o $@ k8s.io/code-generator/cmd/defaulter-gen
@@ -104,7 +108,7 @@ $(GH): $(GTAR) $(GH_SHARE)/gh.tar.gz
 
 GINKGO := $(BIN_DIR)/ginkgo
 $(GINKGO): $(BIN_DIR) go.mod go.sum
-	go build -tags=tools -o $@ github.com/onsi/ginkgo/ginkgo
+	go build -tags=tools -o $@ github.com/onsi/ginkgo/v2/ginkgo
 
 GOJQ := $(BIN_DIR)/gojq
 $(GOJQ): $(BIN_DIR) go.mod go.sum
@@ -147,10 +151,6 @@ $(MDBOOK_TABULATE): $(BIN_DIR) go.mod go.sum
 MOCKGEN := $(BIN_DIR)/mockgen
 $(MOCKGEN): $(BIN_DIR) go.mod go.sum # Build mockgen from tools folder.
 	go build -tags=tools -o $@ github.com/golang/mock/mockgen
-
-RELEASE_NOTES := $(BIN_DIR)/release-notes
-$(RELEASE_NOTES): $(BIN_DIR) go.mod go.sum
-	go build -tags tools -o $@ k8s.io/release/cmd/release-notes
 
 PLANTUML := $(BIN_DIR)/plantuml-sentinal
 $(PLANTUML): plantuml.Dockerfile ../../versions.mk

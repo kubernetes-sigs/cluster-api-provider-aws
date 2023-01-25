@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: metrics-service
+  namespace: system
+spec:
+  selector:
+    cluster.x-k8s.io/provider: infrastructure-aws
+  ports:
+    - port: 8080
+      targetPort: metrics
+      protocol: TCP
+  type: ClusterIP

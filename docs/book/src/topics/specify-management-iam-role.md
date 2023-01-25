@@ -10,7 +10,7 @@ To be able to specify the IAM role that the management components should run as 
 
 ## Setting IAM Role
 
-Set the `AWS_CONTROLLER_IAM_ROLE` environment variable to the ARN of the IAM role to use when performing the `clustercrl init` command.
+Set the `AWS_CONTROLLER_IAM_ROLE` environment variable to the ARN of the IAM role to use when performing the `clusterctl init` command.
 
 For example:
 
@@ -23,7 +23,7 @@ clusterctl init --infrastructure=aws
 
 ### IAM Roles for Service Accounts
 
-When creating the IAM role the following trust policy will need to be used with the `AWS_ACCOUNT_ID`, `AWS_REGION` and `OIDC_PROVIDER_ID` environment variables replaced.
+When creating the IAM role, the following trust policy will need to be used with the `AWS_ACCOUNT_ID`, `AWS_REGION` and `OIDC_PROVIDER_ID` environment variables replaced.
 
 ```json
 {
@@ -77,7 +77,7 @@ With this you can then set `AWS_CONTROLLER_IAM_ROLE` to `arn:aws:iam::${AWS_ACCO
 
 ### Kiam / kube2iam
 
-When creating the IAM role the you will need to give apply the `kubernetes.io/cluster/${CLUSTER_NAME}/role": "enabled"` tag to the role and use the following trust policy with the `AWS_ACCOUNT_ID` and `CLUSTER_NAME` environment variables correctly replaced.
+When creating the IAM role, you will need to apply the `kubernetes.io/cluster/${CLUSTER_NAME}/role": "enabled"` tag to the role and use the following trust policy with the `AWS_ACCOUNT_ID` and `CLUSTER_NAME` environment variables correctly replaced.
 
 ```json
 {

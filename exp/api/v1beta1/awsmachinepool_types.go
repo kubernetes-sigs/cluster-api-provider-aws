@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,16 +19,14 @@ package v1beta1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/errors"
 )
 
 // Constants block.
 const (
-	// MachinePoolFinalizer is the finalizer for the machine pool.
-	MachinePoolFinalizer = "awsmachinepool.infrastructure.cluster.x-k8s.io"
-
 	// LaunchTemplateLatestVersion defines the launching of the latest version of the template.
 	LaunchTemplateLatestVersion = "$Latest"
 )
@@ -41,7 +39,7 @@ type AWSMachinePoolSpec struct {
 
 	// MinSize defines the minimum size of the group.
 	// +kubebuilder:default=1
-	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Minimum=0
 	MinSize int32 `json:"minSize"`
 
 	// MaxSize defines the maximum size of the group.
@@ -128,6 +126,10 @@ type AWSMachinePoolStatus struct {
 	// The ID of the launch template
 	LaunchTemplateID string `json:"launchTemplateID,omitempty"`
 
+	// The version of the launch template
+	// +optional
+	LaunchTemplateVersion *string `json:"launchTemplateVersion,omitempty"`
+
 	// FailureReason will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a succinct value suitable
 	// for machine interpretation.
@@ -182,7 +184,6 @@ type AWSMachinePoolInstanceStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:storageversion
 // +kubebuilder:resource:path=awsmachinepools,scope=Namespaced,categories=cluster-api,shortName=awsmp
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Machine ready status"
 // +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".status.replicas",description="Machine ready status"

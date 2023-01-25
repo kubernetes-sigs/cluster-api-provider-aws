@@ -1,0 +1,43 @@
+@startuml "IPv6 Sequence Diagram"
+actor User #orange
+box "CAPA Internal Services" #LightBlue
+database APIServer
+control InfraClusterController
+participant network_service
+participant aws_node_service
+participant eks_service
+end box
+box "AWS" #LightGreen
+participant aws
+end box
+
+User -> APIServer: apply capi yaml
+InfraClusterController -> APIServer: watch (create/update)
+opt if ipv6 network requested
+    InfraClusterController -> network_service: Create a VPC with IPFamily set to `ipv6`
+    network_service -> aws: Create a VPC with IPFamily set to `ipv6`
+    aws -> aws: Create IPv6 Pool and assign IPv6 CIDR to new VPC
+    aws -> network_service: return the VPC
+    note right: "At this point, CIDR and Pool aren't yet\n set on the returned VPC.\n We must Describe it to get that."
+    network_service -> aws: `DescribeVpcs` to get IPv6 CIDR and Pool ID
+    aws->network_service: return VPC with IPv6 CIDR and Pool now set
+    network_service -> network_service: update internal VPC config
+    network_service -> InfraClusterController: VPC successfully reconciled
+    InfraClusterController -> aws_node_service: patch aws-node with IPv6 environment properties
+    InfraClusterController -> network_service: reconcile EgressOnlyInternetGateway
+    aws_node_service -> aws_node_service: update aws-node DaemonSet with new environment properties
+    InfraClusterController -> eks_service: set up IPv6 bootstrap properties
+    InfraClusterController -> eks_service: create cluster and provision nodes
+    eks_service -> aws: create cluster and provision nodes
+    aws -> eks_service: ok
+    eks_service -> InfraClusterController: ok
+else
+    InfraClusterController -> network_service: normal cluster flow
+    network_service -> aws: normal cluster flow
+    aws -> network_service: ok
+    network_service -> InfraClusterController: ok
+end
+InfraClusterController -> InfraClusterController: update status
+InfraClusterController -> APIServer: patch
+deactivate InfraClusterController
+@enduml

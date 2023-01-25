@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,9 +24,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks/identityprovider"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/eks/identityprovider"
 )
 
 var (
@@ -148,16 +148,19 @@ func TaintEffectFromSDK(effect string) (expinfrav1.TaintEffect, error) {
 
 func ConvertSDKToIdentityProvider(in *ekscontrolplanev1.OIDCIdentityProviderConfig) *identityprovider.OidcIdentityProviderConfig {
 	if in != nil {
+		if in.RequiredClaims == nil {
+			in.RequiredClaims = make(map[string]string)
+		}
 		return &identityprovider.OidcIdentityProviderConfig{
 			ClientID:                   in.ClientID,
-			GroupsClaim:                in.GroupsClaim,
-			GroupsPrefix:               in.GroupsPrefix,
+			GroupsClaim:                aws.StringValue(in.GroupsClaim),
+			GroupsPrefix:               aws.StringValue(in.GroupsPrefix),
 			IdentityProviderConfigName: in.IdentityProviderConfigName,
 			IssuerURL:                  in.IssuerURL,
-			RequiredClaims:             aws.StringMap(in.RequiredClaims),
+			RequiredClaims:             in.RequiredClaims,
 			Tags:                       in.Tags,
-			UsernameClaim:              in.UsernameClaim,
-			UsernamePrefix:             in.UsernamePrefix,
+			UsernameClaim:              aws.StringValue(in.UsernameClaim),
+			UsernamePrefix:             aws.StringValue(in.UsernamePrefix),
 		}
 	}
 
@@ -174,4 +177,38 @@ func CapacityTypeToSDK(capacityType expinfrav1.ManagedMachinePoolCapacityType) (
 	default:
 		return "", ErrUnknownCapacityType
 	}
+}
+
+// NodegroupUpdateconfigToSDK is used to convert a CAPA UpdateConfig to AWS SDK NodegroupUpdateConfig.
+func NodegroupUpdateconfigToSDK(updateConfig *expinfrav1.UpdateConfig) *eks.NodegroupUpdateConfig {
+	if updateConfig == nil {
+		return nil
+	}
+
+	converted := &eks.NodegroupUpdateConfig{}
+	if updateConfig.MaxUnavailable != nil {
+		converted.MaxUnavailable = aws.Int64(int64(*updateConfig.MaxUnavailable))
+	}
+	if updateConfig.MaxUnavailablePercentage != nil {
+		converted.MaxUnavailablePercentage = aws.Int64(int64(*updateConfig.MaxUnavailablePercentage))
+	}
+
+	return converted
+}
+
+// NodegroupUpdateconfigFromSDK is used to convert a AWS SDK NodegroupUpdateConfig to a CAPA UpdateConfig.
+func NodegroupUpdateconfigFromSDK(ngUpdateConfig *eks.NodegroupUpdateConfig) *expinfrav1.UpdateConfig {
+	if ngUpdateConfig == nil {
+		return nil
+	}
+
+	converted := &expinfrav1.UpdateConfig{}
+	if ngUpdateConfig.MaxUnavailable != nil {
+		converted.MaxUnavailable = aws.Int(int(*ngUpdateConfig.MaxUnavailable))
+	}
+	if ngUpdateConfig.MaxUnavailablePercentage != nil {
+		converted.MaxUnavailablePercentage = aws.Int(int(*ngUpdateConfig.MaxUnavailablePercentage))
+	}
+
+	return converted
 }

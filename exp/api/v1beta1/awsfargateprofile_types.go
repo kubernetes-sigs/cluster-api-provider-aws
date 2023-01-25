@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,15 +21,10 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/errors"
-)
-
-const (
-	// FargateProfileFinalizer allows the controller to clean up resources on delete.
-	FargateProfileFinalizer = "awsfargateprofile.infrastructure.cluster.x-k8s.io"
 )
 
 var (
@@ -129,7 +124,6 @@ type FargateProfileStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=awsfargateprofiles,scope=Namespaced,categories=cluster-api,shortName=awsfp
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="AWSFargateProfile ready status"
 // +kubebuilder:printcolumn:name="ProfileName",type="string",JSONPath=".spec.profileName",description="EKS Fargate profile name"

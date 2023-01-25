@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,10 +23,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
-	cloudformation "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/service"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/bootstrap/credentials"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/flags"
+
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/bootstrap"
+	cloudformation "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/service"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/bootstrap/credentials"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/flags"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
@@ -108,7 +109,7 @@ func createCloudFormationStackCmd() *cobra.Command {
 
 			cfnSvc := cloudformation.NewService(cfn.New(sess))
 
-			err = cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *t.RenderCloudFormation())
+			err = cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *t.RenderCloudFormation(), t.Spec.StackTags)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 				return err

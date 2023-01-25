@@ -1,0 +1,165 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  labels:
+    cni: ${CLUSTER_NAME}-crs-0
+  name: ${CLUSTER_NAME}
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+      - 192.168.0.0/16
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    kind: KubeadmControlPlane
+    name: ${CLUSTER_NAME}-control-plane
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    kind: AWSCluster
+    name: ${CLUSTER_NAME}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSCluster
+metadata:
+  name: ${CLUSTER_NAME}
+spec:
+  network:
+    securityGroupOverrides:
+      apiserver-lb: ${SG_ID}
+      bastion: ${SG_ID}
+      controlplane: ${SG_ID}
+      lb: ${SG_ID}
+      node: ${SG_ID}
+    subnets:
+    - id: ${MGMT_PUBLIC_SUBNET_ID}
+    - id: ${MGMT_PRIVATE_SUBNET_ID}
+    vpc:
+      availabilityZoneUsageLimit: 1
+      id: ${MGMT_VPC_ID}
+  region: ${AWS_REGION}
+  sshKeyName: ${AWS_SSH_KEY_NAME}
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: KubeadmControlPlane
+metadata:
+  name: ${CLUSTER_NAME}-control-plane
+spec:
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      apiServer:
+        extraArgs:
+          cloud-provider: aws
+      controllerManager:
+        extraArgs:
+          cloud-provider: aws
+    initConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          cloud-provider: aws
+        name: '{{ ds.meta_data.local_hostname }}'
+    joinConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          cloud-provider: aws
+        name: '{{ ds.meta_data.local_hostname }}'
+    preKubeadmCommands:
+    - mkdir -p /opt/cluster-api
+    - ctr -n k8s.io images pull "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}"
+    - ctr -n k8s.io images tag "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}" gcr.io/k8s-staging-cluster-api/capa-manager:e2e
+  machineTemplate:
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+      kind: AWSMachineTemplate
+      name: ${CLUSTER_NAME}-control-plane
+  replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+  version: ${KUBERNETES_VERSION}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-control-plane
+spec:
+  template:
+    spec:
+      additionalSecurityGroups:
+      - filters:
+        - name: vpc-id
+          values:
+          - ${MGMT_VPC_ID}
+        - name: group-name
+          values:
+          - ${MGMT_CLUSTER_NAME}-all
+      failureDomain: us-west-2a
+      iamInstanceProfile: control-plane.cluster-api-provider-aws.sigs.k8s.io
+      instanceType: ${AWS_CONTROL_PLANE_MACHINE_TYPE}
+      sshKeyName: ${AWS_SSH_KEY_NAME}
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name: ${CLUSTER_NAME}-md-0
+spec:
+  clusterName: ${CLUSTER_NAME}
+  replicas: ${WORKER_MACHINE_COUNT}
+  selector:
+    matchLabels: null
+  template:
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+          name: ${CLUSTER_NAME}-md-0
+      clusterName: ${CLUSTER_NAME}
+      failureDomain: us-west-2a
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        kind: AWSMachineTemplate
+        name: ${CLUSTER_NAME}-md-0
+      version: ${KUBERNETES_VERSION}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-md-0
+spec:
+  template:
+    spec:
+      iamInstanceProfile: nodes.cluster-api-provider-aws.sigs.k8s.io
+      instanceType: ${AWS_NODE_MACHINE_TYPE}
+      sshKeyName: ${AWS_SSH_KEY_NAME}
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: ${CLUSTER_NAME}-md-0
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            cloud-provider: aws
+          name: '{{ ds.meta_data.local_hostname }}'
+      preKubeadmCommands:
+      - ctr -n k8s.io images pull "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}"
+      - ctr -n k8s.io images tag "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}" gcr.io/k8s-staging-cluster-api/capa-manager:e2e
+---
+apiVersion: v1
+data: ${CNI_RESOURCES}
+kind: ConfigMap
+metadata:
+  name: cni-${CLUSTER_NAME}-crs-0
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta1
+kind: ClusterResourceSet
+metadata:
+  name: ${CLUSTER_NAME}-crs-0
+spec:
+  clusterSelector:
+    matchLabels:
+      cni: ${CLUSTER_NAME}-crs-0
+  resources:
+  - kind: ConfigMap
+    name: cni-${CLUSTER_NAME}-crs-0
+  strategy: ApplyOnce

@@ -1,4 +1,0 @@
-resources:
-  - ../default
-patchesStrategicMerge:
-  - patches/ssm.yaml

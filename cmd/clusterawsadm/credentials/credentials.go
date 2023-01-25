@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,15 +22,16 @@ import (
 	"errors"
 	"text/template"
 
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/util"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/util"
 )
 
 // AWSCredentialsTemplate generates an AWS credentials file that can
 // be loaded by the various SDKs.
-// nolint:gosec
+//
+//nolint:gosec
 const AWSCredentialsTemplate = `[default]
 aws_access_key_id = {{ .AccessKeyID }}
 aws_secret_access_key = {{ .SecretAccessKey }}

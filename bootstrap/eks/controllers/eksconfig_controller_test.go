@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,12 +21,12 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func TestEKSConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T) {
+func TestEKSConfigReconcilerReturnEarlyIfClusterInfraNotReady(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := newCluster("cluster")
@@ -48,7 +48,7 @@ func TestEKSConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T) {
 	}).Should(Succeed())
 }
 
-func TestEKSConfigReconciler_ReturnEarlyIfClusterControlPlaneNotInitialized(t *testing.T) {
+func TestEKSConfigReconcilerReturnEarlyIfClusterControlPlaneNotInitialized(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := newCluster("cluster")

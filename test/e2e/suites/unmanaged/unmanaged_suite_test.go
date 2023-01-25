@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -7,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,12 +23,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"sigs.k8s.io/cluster-api/test/framework"
-
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 )
 
 var (
@@ -43,7 +42,7 @@ func init() {
 
 func TestE2E(t *testing.T) {
 	RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "capa-e2e", []ginkgo.Reporter{framework.CreateJUnitReporterForProw(e2eCtx.Settings.ArtifactFolder)})
+	ginkgo.RunSpecs(t, "capa-e2e")
 }
 
 var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {

@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,7 +25,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pkg/errors"
-
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,11 +32,10 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/secret"
-
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
 const (
@@ -47,7 +45,7 @@ const (
 )
 
 func (s *Service) reconcileKubeconfig(ctx context.Context, cluster *eks.Cluster) error {
-	s.scope.V(2).Info("Reconciling EKS kubeconfigs for cluster", "cluster-name", s.scope.KubernetesClusterName())
+	s.scope.Debug("Reconciling EKS kubeconfigs for cluster", "cluster-name", s.scope.KubernetesClusterName())
 
 	clusterRef := types.NamespacedName{
 		Name:      s.scope.Cluster.Name,
@@ -79,7 +77,7 @@ func (s *Service) reconcileKubeconfig(ctx context.Context, cluster *eks.Cluster)
 }
 
 func (s *Service) reconcileAdditionalKubeconfigs(ctx context.Context, cluster *eks.Cluster) error {
-	s.scope.V(2).Info("Reconciling additional EKS kubeconfigs for cluster", "cluster-name", s.scope.KubernetesClusterName())
+	s.scope.Debug("Reconciling additional EKS kubeconfigs for cluster", "cluster-name", s.scope.KubernetesClusterName())
 
 	clusterRef := types.NamespacedName{
 		Name:      s.scope.Cluster.Name + "-user",
@@ -143,7 +141,7 @@ func (s *Service) createCAPIKubeconfigSecret(ctx context.Context, cluster *eks.C
 }
 
 func (s *Service) updateCAPIKubeconfigSecret(ctx context.Context, configSecret *corev1.Secret, cluster *eks.Cluster) error {
-	s.scope.V(2).Info("Updating EKS kubeconfigs for cluster", "cluster-name", s.scope.KubernetesClusterName())
+	s.scope.Debug("Updating EKS kubeconfigs for cluster", "cluster-name", s.scope.KubernetesClusterName())
 
 	data, ok := configSecret.Data[secret.KubeconfigDataName]
 	if !ok {
@@ -189,7 +187,11 @@ func (s *Service) createUserKubeconfigSecret(ctx context.Context, cluster *eks.C
 		return fmt.Errorf("creating base kubeconfig: %w", err)
 	}
 
-	execConfig := &api.ExecConfig{APIVersion: "client.authentication.k8s.io/v1alpha1"}
+	// Version v1alpha1 was removed in Kubernetes v1.23.
+	// Version v1 was released in Kubernetes v1.23.
+	// Version v1beta1 was selected as it has the widest range of support
+	// This should be changed to v1 once EKS no longer supports Kubernetes <v1.23
+	execConfig := &api.ExecConfig{APIVersion: "client.authentication.k8s.io/v1beta1"}
 	switch s.scope.TokenMethod() {
 	case ekscontrolplanev1.EKSTokenMethodIAMAuthenticator:
 		execConfig.Command = "aws-iam-authenticator"
@@ -263,7 +265,7 @@ func (s *Service) generateToken() (string, error) {
 
 	req, output := s.STSClient.GetCallerIdentityRequest(&sts.GetCallerIdentityInput{})
 	req.HTTPRequest.Header.Add(clusterNameHeader, eksClusterName)
-	s.Logger.V(4).Info("generating token for AWS identity", "user", output.UserId, "account", output.Account, "arn", output.Arn)
+	s.Trace("generating token for AWS identity", "user", output.UserId, "account", output.Account, "arn", output.Arn)
 
 	presignedURL, err := req.Presign(tokenAgeMins * time.Minute)
 	if err != nil {

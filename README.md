@@ -6,7 +6,16 @@
 <p align="center">
 <!-- go doc / reference card -->
 <a href="https://godoc.org/sigs.k8s.io/cluster-api-provider-aws">
- <img src="https://godoc.org/sigs.k8s.io/cluster-api-provider-aws?status.svg"></a>
+<img src="https://godoc.org/sigs.k8s.io/cluster-api-provider-aws?status.svg"></a>
+<!-- goreportcard badge -->
+<a href="https://goreportcard.com/report/sigs.k8s.io/cluster-api-provider-aws">
+<img src="https://goreportcard.com/badge/sigs.k8s.io/cluster-api-provider-aws"></a>
+<!-- join kubernetes slack channel for cluster-api-aws-provider -->
+<a href="http://slack.k8s.io/">
+<img src="https://img.shields.io/badge/join%20slack-%23cluster--api--aws-brightgreen"></a>
+<!-- openssf badge -->
+<a href="https://bestpractices.coreinfrastructure.org/projects/5688">
+<img src="https://bestpractices.coreinfrastructure.org/projects/5688/badge"></a>
 </p>
 
 ------
@@ -37,45 +46,29 @@ cluster on AWS.
 
 - Native Kubernetes manifests and API
 - Manages the bootstrapping of VPCs, gateways, security groups and instances.
-- Choice of Linux distribution between Amazon Linux 2, CentOS 7 and Ubuntu 18.04,
-  using [pre-baked AMIs](/docs/book/topics/images/built-amis.md).
+- Choice of Linux distribution among Amazon Linux 2, CentOS 7, Ubuntu(18.04, 20.04) and Flatcar
+  using [pre-baked AMIs][published_amis].
 - Deploys Kubernetes control planes into private subnets with a separate
   bastion server.
 - Doesn't use SSH for bootstrapping nodes.
 - Installs only the minimal components to bootstrap a control plane and workers.
 - Supports control planes on EC2 instances.
-- Experimental [EKS support](docs/book/src/topics/eks/index.md)
+- [EKS support][eks_support]
 
 ------
 
 ## Compatibility with Cluster API and Kubernetes Versions
 
-This provider's versions are compatible with the following versions of Cluster API:
+This provider's versions are compatible with the following versions of Cluster API
+and support all Kubernetes versions that is supported by its compatible Cluster API version:
 
+|                             | Cluster API v1alpha4 (v0.4) | Cluster API v1beta1 (v1.x)  |
+| --------------------------- | :-------------------------: | :-------------------------: |
+| CAPA v1alpha4 `(v0.7)`      |              ✓              |              ☓              |
+| CAPA v1beta1  `(v1.x)`      |              ☓              |               ✓             |
+| CAPA v1beta2  `(v2.x, main)`|              ☓              |               ✓             |
 
-|                              | v1alpha3 (v0.3) | v1alpha4 (v0.4) | v1beta1 (v1.0) |
-| ---------------------------- | --------------- | --------------- | -------------- |
-| AWS Provider v1alpha3 (v0.5) | ✓               |                 |                |
-| AWS Provider v1alpha3 (v0.6) | ✓               |                 |                |
-| AWS Provider v1alpha4 (v0.7) |                 | ✓               |                |
-| AWS Provider v1beta1 (v1.0)  |                 |                 | ✓              |
-
-
-This provider's versions are able to install and manage the following versions of Kubernetes:
-
-|                              | v1.16 | v 1.17 | v1.18 | v1.19 | v1.20 | v1.21 | v1.22 |
-| ---------------------------- | ----- | ------ | ----- | ----- | ----- | ----- | ----- |
-| AWS Provider v1alpha3 (v0.5) | ✓     | ✓      | ✓     | ✓     | ✓     |       |       |
-| AWS Provider v1alpha3 (v0.6) | ✓     | ✓      | ✓     | ✓     | ✓     | ✓     | ✓*    |
-| AWS Provider v1alpha4 (v0.7) |       |        | ✓*    | ✓     | ✓     | ✓     | ✓     |
-| AWS Provider v1beta1 (v1.0)  |       |        |       | ✓     | ✓     | ✓     | ✓     |
-
-\* Not management clusters
-
-Each version of Cluster API for AWS will attempt to support two Kubernetes versions; e.g., Cluster API for AWS `v0.3` supports Kubernetes 1.16, 1.17, 1.18 etc.
-
-**NOTE:** As the versioning for this project is tied to the versioning of Cluster API, future modifications to this
-policy may be made to more closely align with other providers in the Cluster API ecosystem.
+(See [Kubernetes support matrix][cluster-api-supported-v] of Cluster API versions).
 
 ------
 
@@ -91,7 +84,19 @@ See [amis] for the list of most recently published AMIs.
 
 `clusterawsadm` binaries are released with each release, can be found under [assets](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/latest) section.
 
+`clusterawsadm` could also be installed via Homebrew on macOS and linux OS.
+Install the latest release using homebrew:
+```shell
+brew install clusterawsadm
+```
+
+Test to ensure the version you installed is up-to-date:
+```shell
+clusterawsadm version
+```
+
 ------
+
 ## Getting involved and contributing
 
 Are you interested in contributing to cluster-api-provider-aws? We, the
@@ -119,16 +124,13 @@ This repository uses the Kubernetes bots.  See a full list of the commands [here
 
 If you want to just build the CAPA containers locally, run
 
-```
-	REGISTRY=docker.io/my-reg make docker-build
+```shell
+  REGISTRY=docker.io/my-reg make docker-build
 ```
 
 ### Tilt-based development environment
 
-See [development][development] section for details
-
-[development]: https://cluster-api-aws.sigs.k8s.io/development/development.html
-
+See [development][development] section for details.
 
 ### Implementer office hours
 
@@ -136,7 +138,7 @@ Maintainers hold office hours every two weeks, with sessions open to all
 developers working on this project.
 
 Office hours are hosted on a zoom video chat every other Monday
-at 10:00 (Pacific) / 13:00 (Eastern) / 18:00 (Europe/London),
+at 09:00 (Pacific) / 12:00 (Eastern) / 17:00 (Europe/London),
 and are published on the [Kubernetes community meetings calendar][gcal].
 
 ### Other ways to communicate with the contributors
@@ -174,6 +176,37 @@ We also use the issue tracker to track features. If you have an idea for a featu
 trademarks of Amazon.com, Inc. or its affiliates in the United States
 and/or other countries."
 
+## Our Contributors
+
+Thank you to all contributors and a special thanks to our current maintainers & reviewers:
+
+| Maintainers                                                      | Reviewers                                                            |
+|------------------------------------------------------------------| -------------------------------------------------------------------- |
+| [@richardcase](https://github.com/richardcase) (from 2020-12-04) | [@shivi28](https://github.com/shivi28) (from 2021-08-27)             |
+| [@Skarlso](https://github.com/Skarlso) (from 2022-10-19)         | [@dthorsen](https://github.com/dthorsen) (from 2020-12-04)           |
+| [@Ankitasw](https://github.com/Ankitasw) (from 2022-10-19)       | [@pydctw](https://github.com/pydctw) (from 2021-12-09)               |
+| [@dlipovetsky](https://github.com/dlipovetsky) (from 2021-10-31) | [@AverageMarcus](https://github.com/AverageMarcus) (from 2022-10-19) |
+
+and the previous/emeritus maintainers & reviewers:
+
+| Emeritus Maintainers                                 | Emeritus Reviewers                                     |
+|------------------------------------------------------|--------------------------------------------------------|
+| [@chuckha](https://github.com/chuckha)               | [@ashish-amarnath](https://github.com/ashish-amarnath) |
+| [@detiber](https://github.com/detiber)               | [@davidewatson](https://github.com/davidewatson)       |
+| [@ncdc](https://github.com/ncdc)                     | [@enxebre](https://github.com/enxebre)                 |
+| [@randomvariable](https://github.com/randomvariable) | [@ingvagabund](https://github.com/ingvagabund)         |
+| [@rudoi](https://github.com/rudoi)                   | [@michaelbeaumont](https://github.com/michaelbeaumont) |
+| [@sedefsavas](https://github.com/sedefsavas)         | [@sethp-nr](https://github.com/sethp-nr)               |
+| [@vincepri](https://github.com/vincepri)             |                                                        | 
+
+All the CAPA contributors:
+
+<p>
+<a href="https://github.com/kubernetes-sigs/cluster-api-provider-aws/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=kubernetes-sigs/cluster-api-provider-aws" />
+</a>
+</p>
+
 <!-- References -->
 [slack]: https://kubernetes.slack.com/messages/CD6U2V71N
 [good_first_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22
@@ -183,6 +216,8 @@ and/or other countries."
 [cluster_api]: https://github.com/kubernetes-sigs/cluster-api
 [kops]: https://github.com/kubernetes/kops
 [kubicorn]: http://kubicorn.io/
-[tilt]: https://tilt.dev
-[cluster_api_tilt]: https://master.cluster-api.sigs.k8s.io/developer/tilt.html
-[amis]: https://cluster-api-aws.sigs.k8s.io/amis.html
+[amis]: https://cluster-api-aws.sigs.k8s.io/topics/images/amis.html
+[published_amis]: https://cluster-api-aws.sigs.k8s.io/topics/images/built-amis.html
+[eks_support]: https://cluster-api-aws.sigs.k8s.io/topics/eks/index.html
+[cluster-api-supported-v]: https://cluster-api.sigs.k8s.io/reference/versions.html
+[development]: https://cluster-api-aws.sigs.k8s.io/development/development.html

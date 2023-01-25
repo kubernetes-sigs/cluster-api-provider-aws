@@ -1,0 +1,14 @@
+on:
+  pull_request:
+    branches: [ main ]
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3.3.0
+      - uses: artyom/mdlinks@v0
+        with:
+          dir: 'docs/book'

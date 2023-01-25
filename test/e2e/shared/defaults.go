@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -7,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,33 +27,46 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"k8s.io/apimachinery/pkg/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	cgscheme "k8s.io/client-go/kubernetes/scheme"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 )
 
+// Constants.
 const (
-	DefaultSSHKeyPairName        = "cluster-api-provider-aws-sigs-k8s-io"
-	AMIPrefix                    = "capa-ami-ubuntu-18.04-"
-	DefaultImageLookupOrg        = "258751437250"
-	KubernetesVersion            = "KUBERNETES_VERSION"
-	KubernetesVersionManagement  = "KUBERNETES_VERSION_MANAGEMENT"
-	CNIPath                      = "CNI"
-	CNIResources                 = "CNI_RESOURCES"
-	AwsNodeMachineType           = "AWS_NODE_MACHINE_TYPE"
-	AwsAvailabilityZone1         = "AWS_AVAILABILITY_ZONE_1"
-	AwsAvailabilityZone2         = "AWS_AVAILABILITY_ZONE_2"
-	MultiAzFlavor                = "multi-az"
-	LimitAzFlavor                = "limit-az"
-	SpotInstancesFlavor          = "spot-instances"
-	SSMFlavor                    = "ssm"
-	UpgradeToMain                = "upgrade-to-main"
-	ExternalCloudProvider        = "external-cloud-provider"
-	SimpleMultitenancyFlavor     = "simple-multitenancy"
-	NestedMultitenancyFlavor     = "nested-multitenancy"
-	KCPScaleInFlavor             = "kcp-scale-in"
-	StorageClassOutTreeZoneLabel = "topology.ebs.csi.aws.com/zone"
-	GPUFlavor                    = "gpu"
+	DefaultSSHKeyPairName                = "cluster-api-provider-aws-sigs-k8s-io"
+	AMIPrefix                            = "capa-ami-ubuntu-18.04-"
+	DefaultImageLookupOrg                = "258751437250"
+	KubernetesVersion                    = "KUBERNETES_VERSION"
+	KubernetesVersionManagement          = "KUBERNETES_VERSION_MANAGEMENT"
+	CNIPath                              = "CNI"
+	CNIResources                         = "CNI_RESOURCES"
+	CNIAddonVersion                      = "VPC_ADDON_VERSION"
+	CorednsAddonVersion                  = "COREDNS_ADDON_VERSION"
+	GcWorkloadPath                       = "GC_WORKLOAD"
+	KubeproxyAddonVersion                = "KUBE_PROXY_ADDON_VERSION"
+	AwsNodeMachineType                   = "AWS_NODE_MACHINE_TYPE"
+	AwsAvailabilityZone1                 = "AWS_AVAILABILITY_ZONE_1"
+	AwsAvailabilityZone2                 = "AWS_AVAILABILITY_ZONE_2"
+	LimitAzFlavor                        = "limit-az"
+	SpotInstancesFlavor                  = "spot-instances"
+	SSMFlavor                            = "ssm"
+	TopologyFlavor                       = "topology"
+	SelfHostedClusterClassFlavor         = "self-hosted-clusterclass"
+	UpgradeToMain                        = "upgrade-to-main"
+	ExternalCloudProvider                = "external-cloud-provider"
+	SimpleMultitenancyFlavor             = "simple-multitenancy"
+	NestedMultitenancyFlavor             = "nested-multitenancy"
+	NestedMultitenancyClusterClassFlavor = "nested-multitenancy-clusterclass"
+	KCPScaleInFlavor                     = "kcp-scale-in"
+	IgnitionFlavor                       = "ignition"
+	StorageClassOutTreeZoneLabel         = "topology.ebs.csi.aws.com/zone"
+	GPUFlavor                            = "gpu"
+	InstanceVcpu                         = "AWS_MACHINE_TYPE_VCPU_USAGE"
+	PreCSIKubernetesVer                  = "PRE_1_23_KUBERNETES_VERSION"
+	PostCSIKubernetesVer                 = "POST_1_23_KUBERNETES_VERSION"
+	EFSSupport                           = "efs-support"
 )
 
 var ResourceQuotaFilePath = "/tmp/capa-e2e-resource-usage.lock"
@@ -111,6 +125,7 @@ func (m MultitenancyRole) RoleARN(prov client.ConfigProvider) (string, error) {
 	return roleARN, nil
 }
 
+// Service codes and quotas can be found under: https://us-west-1.console.aws.amazon.com/servicequotas/home/services
 func getLimitedResources() map[string]*ServiceQuota {
 	serviceQuotas := map[string]*ServiceQuota{}
 	serviceQuotas["igw"] = &ServiceQuota{
@@ -131,14 +146,14 @@ func getLimitedResources() map[string]*ServiceQuota {
 		ServiceCode:         "vpc",
 		QuotaName:           "VPCs per Region",
 		QuotaCode:           "L-F678F1CE",
-		DesiredMinimumValue: 20,
+		DesiredMinimumValue: 25,
 	}
 
-	serviceQuotas["ec2"] = &ServiceQuota{
+	serviceQuotas["ec2-normal"] = &ServiceQuota{
 		ServiceCode:         "ec2",
 		QuotaName:           "Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances",
 		QuotaCode:           "L-1216C47A",
-		DesiredMinimumValue: 20,
+		DesiredMinimumValue: 128,
 	}
 
 	serviceQuotas["eip"] = &ServiceQuota{
@@ -154,19 +169,34 @@ func getLimitedResources() map[string]*ServiceQuota {
 		QuotaCode:           "L-E9E9831D",
 		DesiredMinimumValue: 20,
 	}
+
+	serviceQuotas["ec2-GPU"] = &ServiceQuota{
+		ServiceCode:         "ec2",
+		QuotaName:           "Running On-Demand G and VT instances",
+		QuotaCode:           "L-DB2E81BA",
+		DesiredMinimumValue: 8,
+	}
+
+	serviceQuotas["volume-GP2"] = &ServiceQuota{
+		ServiceCode:         "ebs",
+		QuotaName:           "Storage for General Purpose SSD (gp2) volumes, in TiB",
+		QuotaCode:           "L-D18FCD1D",
+		DesiredMinimumValue: 50,
+	}
+
 	return serviceQuotas
 }
 
-// DefaultScheme returns the default scheme to use for testing
+// DefaultScheme returns the default scheme to use for testing.
 func DefaultScheme() *runtime.Scheme {
 	sc := runtime.NewScheme()
 	framework.TryAddDefaultSchemes(sc)
 	_ = infrav1.AddToScheme(sc)
-	_ = clientgoscheme.AddToScheme(sc)
+	_ = cgscheme.AddToScheme(sc)
 	return sc
 }
 
-// CreateDefaultFlags will create the default flags used for the tests and binds them to the e2e context
+// CreateDefaultFlags will create the default flags used for the tests and binds them to the e2e context.
 func CreateDefaultFlags(ctx *E2EContext) {
 	flag.StringVar(&ctx.Settings.ConfigPath, "config-path", "", "path to the e2e config file")
 	flag.StringVar(&ctx.Settings.ArtifactFolder, "artifacts-folder", "", "folder where e2e test artifact should be stored")
@@ -178,6 +208,7 @@ func CreateDefaultFlags(ctx *E2EContext) {
 	flag.BoolVar(&ctx.Settings.SkipCleanup, "skip-cleanup", false, "if true, the resource cleanup after tests will be skipped")
 	flag.BoolVar(&ctx.Settings.SkipCloudFormationDeletion, "skip-cloudformation-deletion", false, "if true, an AWS CloudFormation stack will not be deleted")
 	flag.BoolVar(&ctx.Settings.SkipCloudFormationCreation, "skip-cloudformation-creation", false, "if true, an AWS CloudFormation stack will not be created")
+	flag.BoolVar(&ctx.Settings.SkipQuotas, "skip-quotas", false, "if true, the requesting of quotas for aws services will be skipped")
 	flag.StringVar(&ctx.Settings.DataFolder, "data-folder", "", "path to the data folder")
-	flag.StringVar(&ctx.Settings.SourceTemplate, "source-template", "infrastructure-aws/generated/cluster-template.yaml", "path to the data folder")
+	flag.StringVar(&ctx.Settings.SourceTemplate, "source-template", "infrastructure-aws/withoutclusterclass/generated/cluster-template.yaml", "path to the data folder")
 }

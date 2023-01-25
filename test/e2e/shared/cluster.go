@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -7,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,8 +24,8 @@ import (
 	"path/filepath"
 
 	. "github.com/onsi/gomega"
-
 	"k8s.io/apimachinery/pkg/runtime"
+
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
@@ -32,25 +33,27 @@ import (
 )
 
 // createClusterctlLocalRepository generates a clusterctl repository.
-// Must always be run after kubetest.NewConfiguration
-func createClusterctlLocalRepository(config *clusterctl.E2EConfig, repositoryFolder string) string {
+// Must always be run after kubetest.NewConfiguration.
+func createClusterctlLocalRepository(e2eCtx *E2EContext, repositoryFolder string) string {
 	createRepositoryInput := clusterctl.CreateRepositoryInput{
-		E2EConfig:        config,
+		E2EConfig:        e2eCtx.E2EConfig,
 		RepositoryFolder: repositoryFolder,
 	}
 
-	// Ensuring a CNI file is defined in the config and register a FileTransformation to inject the referenced file as in place of the CNI_RESOURCES envSubst variable.
-	Expect(config.Variables).To(HaveKey(capi_e2e.CNIPath), "Missing %s variable in the config", capi_e2e.CNIPath)
-	cniPath := config.GetVariable(capi_e2e.CNIPath)
-	Expect(cniPath).To(BeAnExistingFile(), "The %s variable should resolve to an existing file", capi_e2e.CNIPath)
-	createRepositoryInput.RegisterClusterResourceSetConfigMapTransformation(cniPath, capi_e2e.CNIResources)
+	if !e2eCtx.IsManaged {
+		// Ensuring a CNI file is defined in the config and register a FileTransformation to inject the referenced file as in place of the CNI_RESOURCES envSubst variable.
+		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(capi_e2e.CNIPath), "Missing %s variable in the config", capi_e2e.CNIPath)
+		cniPath := e2eCtx.E2EConfig.GetVariable(capi_e2e.CNIPath)
+		Expect(cniPath).To(BeAnExistingFile(), "The %s variable should resolve to an existing file", capi_e2e.CNIPath)
+		createRepositoryInput.RegisterClusterResourceSetConfigMapTransformation(cniPath, capi_e2e.CNIResources)
+	}
 
 	clusterctlConfig := clusterctl.CreateRepository(context.TODO(), createRepositoryInput)
 	Expect(clusterctlConfig).To(BeAnExistingFile(), "The clusterctl generate file does not exists in the local repository %s", repositoryFolder)
 	return clusterctlConfig
 }
 
-// setupBootstrapCluster installs Cluster API components via clusterctl
+// setupBootstrapCluster installs Cluster API components via clusterctl.
 func setupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme, useExistingCluster bool) (bootstrap.ClusterProvider, framework.ClusterProxy) {
 	var clusterProvider bootstrap.ClusterProvider
 	kubeconfigPath := ""
@@ -73,7 +76,7 @@ func setupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme,
 	return clusterProvider, clusterProxy
 }
 
-// initBootstrapCluster uses kind to create a cluster
+// initBootstrapCluster uses kind to create a cluster.
 func initBootstrapCluster(e2eCtx *E2EContext) {
 	// NOTE: the following originally used clusterctl.InitManagementClusterAndWatchControllerLogs.
 	// This can be used again when https://github.com/kubernetes-sigs/cluster-api/issues/3983 is completed
@@ -87,7 +90,7 @@ func initBootstrapCluster(e2eCtx *E2EContext) {
 	}, e2eCtx.E2EConfig.GetIntervals(e2eCtx.Environment.BootstrapClusterProxy.GetName(), "wait-controllers")...)
 }
 
-// tearDown the bootstrap kind cluster
+// tearDown the bootstrap kind cluster.
 func tearDown(bootstrapClusterProvider bootstrap.ClusterProvider, bootstrapClusterProxy framework.ClusterProxy) {
 	if bootstrapClusterProxy != nil {
 		bootstrapClusterProxy.Dispose(context.TODO())

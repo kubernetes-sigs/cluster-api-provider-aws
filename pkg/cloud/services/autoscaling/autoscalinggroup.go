@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,14 +22,16 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	"k8s.io/utils/pointer"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 )
 
 // SDKToAutoScalingGroup converts an AWS EC2 SDK AutoScalingGroup to the CAPA AutoScalingGroup type.
@@ -43,6 +45,10 @@ func (s *Service) SDKToAutoScalingGroup(v *autoscaling.Group) (*expinfrav1.AutoS
 		MinSize:           int32(aws.Int64Value(v.MinSize)),
 		CapacityRebalance: aws.BoolValue(v.CapacityRebalance),
 		//TODO: determine what additional values go here and what else should be in the struct
+	}
+
+	if v.VPCZoneIdentifier != nil {
+		i.Subnets = strings.Split(*v.VPCZoneIdentifier, ",")
 	}
 
 	if v.MixedInstancesPolicy != nil {
@@ -81,11 +87,20 @@ func (s *Service) SDKToAutoScalingGroup(v *autoscaling.Group) (*expinfrav1.AutoS
 	if len(v.Instances) > 0 {
 		for _, autoscalingInstance := range v.Instances {
 			tmp := &infrav1.Instance{
-				ID:    aws.StringValue(autoscalingInstance.InstanceId),
-				State: infrav1.InstanceState(*autoscalingInstance.LifecycleState),
+				ID:               aws.StringValue(autoscalingInstance.InstanceId),
+				State:            infrav1.InstanceState(*autoscalingInstance.LifecycleState),
+				AvailabilityZone: *autoscalingInstance.AvailabilityZone,
 			}
 			i.Instances = append(i.Instances, *tmp)
 		}
+	}
+
+	if len(v.SuspendedProcesses) > 0 {
+		currentlySuspendedProcesses := make([]string, len(v.SuspendedProcesses))
+		for i, service := range v.SuspendedProcesses {
+			currentlySuspendedProcesses[i] = aws.StringValue(service.ProcessName)
+		}
+		i.CurrentlySuspendProcesses = currentlySuspendedProcesses
 	}
 
 	return i, nil
@@ -118,7 +133,7 @@ func (s *Service) ASGIfExists(name *string) (*expinfrav1.AutoScalingGroup, error
 
 // GetASGByName returns the existing ASG or nothing if it doesn't exist.
 func (s *Service) GetASGByName(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
-	s.scope.V(2).Info("Looking for existing AutoScalingGroup by name")
+	s.scope.Debug("Looking for existing AutoScalingGroup by name")
 
 	input := &autoscaling.DescribeAutoScalingGroupsInput{
 		AutoScalingGroupNames: []*string{
@@ -143,7 +158,7 @@ func (s *Service) GetASGByName(scope *scope.MachinePoolScope) (*expinfrav1.AutoS
 
 // CreateASG runs an autoscaling group.
 func (s *Service) CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
-	subnets, err := scope.SubnetIDs()
+	subnets, err := s.SubnetIDs(scope)
 	if err != nil {
 		return nil, fmt.Errorf("getting subnets for ASG: %w", err)
 	}
@@ -169,10 +184,10 @@ func (s *Service) CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScal
 	// Make sure to use the MachinePoolScope here to get the merger of AWSCluster and AWSMachinePool tags
 	additionalTags := scope.AdditionalTags()
 	// Set the cloud provider tag
-	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())] = string(infrav1.ResourceLifecycleOwned)
+	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())] = string(infrav1.ResourceLifecycleOwned)
 
 	input.Tags = infrav1.Build(infrav1.BuildParams{
-		ClusterName: s.scope.Name(),
+		ClusterName: s.scope.KubernetesClusterName(),
 		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(scope.Name()),
 		Role:        aws.String("node"),
@@ -234,7 +249,7 @@ func (s *Service) DeleteASGAndWait(name string) error {
 		return err
 	}
 
-	s.scope.V(2).Info("Waiting for ASG to be deleted", "name", name)
+	s.scope.Debug("Waiting for ASG to be deleted", "name", name)
 
 	input := &autoscaling.DescribeAutoScalingGroupsInput{
 		AutoScalingGroupNames: aws.StringSlice([]string{name}),
@@ -249,7 +264,7 @@ func (s *Service) DeleteASGAndWait(name string) error {
 
 // DeleteASG will delete the ASG of a service.
 func (s *Service) DeleteASG(name string) error {
-	s.scope.V(2).Info("Attempting to delete ASG", "name", name)
+	s.scope.Debug("Attempting to delete ASG", "name", name)
 
 	input := &autoscaling.DeleteAutoScalingGroupInput{
 		AutoScalingGroupName: aws.String(name),
@@ -260,28 +275,22 @@ func (s *Service) DeleteASG(name string) error {
 		return errors.Wrapf(err, "failed to delete ASG %q", name)
 	}
 
-	s.scope.V(2).Info("Deleted ASG", "name", name)
+	s.scope.Debug("Deleted ASG", "name", name)
 	return nil
 }
 
 // UpdateASG will update the ASG of a service.
 func (s *Service) UpdateASG(scope *scope.MachinePoolScope) error {
-	subnetIDs := make([]string, len(scope.AWSMachinePool.Spec.Subnets))
-	for i, v := range scope.AWSMachinePool.Spec.Subnets {
-		subnetIDs[i] = aws.StringValue(v.ID)
-	}
-
-	if len(subnetIDs) == 0 {
-		for _, subnet := range scope.InfraCluster.Subnets() {
-			subnetIDs = append(subnetIDs, subnet.ID)
-		}
+	subnetIDs, err := s.SubnetIDs(scope)
+	if err != nil {
+		return fmt.Errorf("getting subnets for ASG: %w", err)
 	}
 
 	input := &autoscaling.UpdateAutoScalingGroupInput{
 		AutoScalingGroupName: aws.String(scope.Name()), //TODO: define dynamically - borrow logic from ec2
 		MaxSize:              aws.Int64(int64(scope.AWSMachinePool.Spec.MaxSize)),
 		MinSize:              aws.Int64(int64(scope.AWSMachinePool.Spec.MinSize)),
-		VPCZoneIdentifier:    aws.String(strings.Join(subnetIDs, ", ")),
+		VPCZoneIdentifier:    aws.String(strings.Join(subnetIDs, ",")),
 		CapacityRebalance:    aws.Bool(scope.AWSMachinePool.Spec.CapacityRebalance),
 	}
 
@@ -388,58 +397,6 @@ func createSDKMixedInstancesPolicy(name string, i *expinfrav1.MixedInstancesPoli
 	return mixedInstancesPolicy
 }
 
-// BuildTags takes the tag configuration from the resources and returns a slice of autoscaling Tags
-// usable in autoscaling API calls.
-func BuildTags(name string, params infrav1.BuildParams) []*autoscaling.Tag {
-	tags := make([]*autoscaling.Tag, 0)
-	resourceName := aws.String(name)
-	propagateAtLaunch := aws.Bool(false)
-	resourceType := aws.String("auto-scaling-group")
-	if params.Additional != nil {
-		for k, v := range params.Additional {
-			tags = append(tags, &autoscaling.Tag{
-				Key:   aws.String(k),
-				Value: aws.String(v),
-				// We set the instance tags in the LaunchTemplate, disabling propagation to prevent the two
-				// resources from clobbering each other's tags
-				PropagateAtLaunch: propagateAtLaunch,
-				ResourceId:        resourceName,
-				ResourceType:      resourceType,
-			})
-		}
-	}
-
-	tags = append(tags, &autoscaling.Tag{
-		Key:               aws.String(infrav1.ClusterTagKey(params.ClusterName)),
-		Value:             aws.String(string(params.Lifecycle)),
-		PropagateAtLaunch: propagateAtLaunch,
-		ResourceId:        resourceName,
-		ResourceType:      resourceType,
-	})
-
-	if params.Role != nil {
-		tags = append(tags, &autoscaling.Tag{
-			Key:               aws.String(infrav1.NameAWSClusterAPIRole),
-			Value:             params.Role,
-			PropagateAtLaunch: propagateAtLaunch,
-			ResourceId:        resourceName,
-			ResourceType:      resourceType,
-		})
-	}
-
-	if params.Name != nil {
-		tags = append(tags, &autoscaling.Tag{
-			Key:               aws.String("Name"),
-			Value:             params.Name,
-			PropagateAtLaunch: propagateAtLaunch,
-			ResourceId:        resourceName,
-			ResourceType:      resourceType,
-		})
-	}
-
-	return tags
-}
-
 // BuildTagsFromMap takes a map of keys and values and returns them as autoscaling group tags.
 func BuildTagsFromMap(asgName string, inTags map[string]string) []*autoscaling.Tag {
 	if inTags == nil {
@@ -466,12 +423,12 @@ func BuildTagsFromMap(asgName string, inTags map[string]string) []*autoscaling.T
 // We may not always have to perform each action, so we check what we're
 // receiving to avoid calling AWS if we don't need to.
 func (s *Service) UpdateResourceTags(resourceID *string, create, remove map[string]string) error {
-	s.scope.V(2).Info("Attempting to update tags on resource", "resource-id", *resourceID)
+	s.scope.Debug("Attempting to update tags on resource", "resource-id", *resourceID)
 	s.scope.Info("updating tags on resource", "resource-id", *resourceID, "create", create, "remove", remove)
 
 	// If we have anything to create or update
 	if len(create) > 0 {
-		s.scope.V(2).Info("Attempting to create tags on resource", "resource-id", *resourceID)
+		s.scope.Debug("Attempting to create tags on resource", "resource-id", *resourceID)
 
 		createOrUpdateTagsInput := &autoscaling.CreateOrUpdateTagsInput{}
 
@@ -484,7 +441,7 @@ func (s *Service) UpdateResourceTags(resourceID *string, create, remove map[stri
 
 	// If we have anything to remove
 	if len(remove) > 0 {
-		s.scope.V(2).Info("Attempting to delete tags on resource", "resource-id", *resourceID)
+		s.scope.Debug("Attempting to delete tags on resource", "resource-id", *resourceID)
 
 		// Convert our remove map into an array of *ec2.Tag
 		removeTagsInput := mapToTags(remove, resourceID)
@@ -503,6 +460,28 @@ func (s *Service) UpdateResourceTags(resourceID *string, create, remove map[stri
 	return nil
 }
 
+func (s *Service) SuspendProcesses(name string, processes []string) error {
+	input := autoscaling.ScalingProcessQuery{
+		AutoScalingGroupName: aws.String(name),
+		ScalingProcesses:     aws.StringSlice(processes),
+	}
+	if _, err := s.ASGClient.SuspendProcesses(&input); err != nil {
+		return errors.Wrapf(err, "failed to suspend processes for AutoScalingGroup: %q", name)
+	}
+	return nil
+}
+
+func (s *Service) ResumeProcesses(name string, processes []string) error {
+	input := autoscaling.ScalingProcessQuery{
+		AutoScalingGroupName: aws.String(name),
+		ScalingProcesses:     aws.StringSlice(processes),
+	}
+	if _, err := s.ASGClient.ResumeProcesses(&input); err != nil {
+		return errors.Wrapf(err, "failed to resume processes for AutoScalingGroup: %q", name)
+	}
+	return nil
+}
+
 func mapToTags(input map[string]string, resourceID *string) []*autoscaling.Tag {
 	tags := make([]*autoscaling.Tag, 0)
 	for k, v := range input {
@@ -515,4 +494,45 @@ func mapToTags(input map[string]string, resourceID *string) []*autoscaling.Tag {
 		})
 	}
 	return tags
+}
+
+// SubnetIDs return subnet IDs of a AWSMachinePool based on given subnetIDs and filters.
+func (s *Service) SubnetIDs(scope *scope.MachinePoolScope) ([]string, error) {
+	subnetIDs := make([]string, 0)
+	var inputFilters = make([]*ec2.Filter, 0)
+
+	for _, subnet := range scope.AWSMachinePool.Spec.Subnets {
+		switch {
+		case subnet.ID != nil:
+			subnetIDs = append(subnetIDs, aws.StringValue(subnet.ID))
+		case subnet.Filters != nil:
+			for _, eachFilter := range subnet.Filters {
+				inputFilters = append(inputFilters, &ec2.Filter{
+					Name:   aws.String(eachFilter.Name),
+					Values: aws.StringSlice(eachFilter.Values),
+				})
+			}
+		}
+	}
+
+	if len(inputFilters) > 0 {
+		out, err := s.EC2Client.DescribeSubnets(&ec2.DescribeSubnetsInput{
+			Filters: inputFilters,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, subnet := range out.Subnets {
+			subnetIDs = append(subnetIDs, *subnet.SubnetId)
+		}
+
+		if len(subnetIDs) == 0 {
+			errMessage := fmt.Sprintf("failed to create ASG %q, no subnets available matching criteria %q", scope.Name(), inputFilters)
+			record.Warnf(scope.AWSMachinePool, "FailedCreate", errMessage)
+			return subnetIDs, awserrors.NewFailedDependency(errMessage)
+		}
+	}
+
+	return scope.SubnetIDs(subnetIDs)
 }

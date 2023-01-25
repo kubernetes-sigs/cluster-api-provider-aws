@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,11 +18,10 @@ package iamauth
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -30,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 )
 
 var (
@@ -173,7 +172,7 @@ func TestAddRoleMappingCM(t *testing.T) {
 				g.Expect(err).To(BeNil())
 				g.Expect(len(roles)).To(Equal(len(tc.expectedRoleMaps)))
 				//TODO: we may need to do a better match
-				bothMatch := reflect.DeepEqual(roles, tc.expectedRoleMaps)
+				bothMatch := cmp.Equal(roles, tc.expectedRoleMaps)
 				g.Expect(bothMatch).To(BeTrue())
 			}
 
@@ -306,7 +305,7 @@ func TestAddUserMappingCM(t *testing.T) {
 				g.Expect(err).To(BeNil())
 				g.Expect(len(users)).To(Equal(len(tc.expectedUsersMap)))
 				//TODO: we may need to do a better match
-				bothMatch := reflect.DeepEqual(users, tc.expectedUsersMap)
+				bothMatch := cmp.Equal(users, tc.expectedUsersMap)
 				g.Expect(bothMatch).To(BeTrue())
 			}
 

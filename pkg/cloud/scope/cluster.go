@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,22 +21,23 @@ import (
 	"fmt"
 
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	"k8s.io/klog/v2/klogr"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ClusterScopeParams defines the input parameters used to create a new Scope.
 type ClusterScopeParams struct {
 	Client         client.Client
-	Logger         *logr.Logger
+	Logger         *logger.Logger
 	Cluster        *clusterv1.Cluster
 	AWSCluster     *infrav1.AWSCluster
 	ControllerName string
@@ -55,8 +56,8 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	}
 
 	if params.Logger == nil {
-		log := klogr.New()
-		params.Logger = &log
+		log := klog.Background()
+		params.Logger = logger.NewLogger(log)
 	}
 
 	clusterScope := &ClusterScope{
@@ -67,7 +68,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		controllerName: params.ControllerName,
 	}
 
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, clusterScope, params.AWSCluster.Spec.Region, params.Endpoints, *params.Logger)
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, clusterScope, params.AWSCluster.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
@@ -86,7 +87,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 
 // ClusterScope defines the basic context for an actuator to operate upon.
 type ClusterScope struct {
-	logr.Logger
+	logger.Logger
 	client      client.Client
 	patchHelper *patch.Helper
 
@@ -178,11 +179,11 @@ func (s *ClusterScope) ControlPlaneLoadBalancer() *infrav1.AWSLoadBalancerSpec {
 }
 
 // ControlPlaneLoadBalancerScheme returns the Classic ELB scheme (public or internal facing).
-func (s *ClusterScope) ControlPlaneLoadBalancerScheme() infrav1.ClassicELBScheme {
+func (s *ClusterScope) ControlPlaneLoadBalancerScheme() infrav1.ELBScheme {
 	if s.ControlPlaneLoadBalancer() != nil && s.ControlPlaneLoadBalancer().Scheme != nil {
 		return *s.ControlPlaneLoadBalancer().Scheme
 	}
-	return infrav1.ClassicELBSchemeInternetFacing
+	return infrav1.ELBSchemeInternetFacing
 }
 
 func (s *ClusterScope) ControlPlaneLoadBalancerName() *string {
@@ -190,6 +191,14 @@ func (s *ClusterScope) ControlPlaneLoadBalancerName() *string {
 		return s.AWSCluster.Spec.ControlPlaneLoadBalancer.Name
 	}
 	return nil
+}
+
+func (s *ClusterScope) ControlPlaneEndpoint() clusterv1.APIEndpoint {
+	return s.AWSCluster.Spec.ControlPlaneEndpoint
+}
+
+func (s *ClusterScope) Bucket() *infrav1.S3Bucket {
+	return s.AWSCluster.Spec.S3Bucket
 }
 
 // ControlPlaneConfigMapName returns the name of the ConfigMap used to
@@ -225,6 +234,9 @@ func (s *ClusterScope) PatchObject() error {
 		if s.AWSCluster.Spec.Bastion.Enabled {
 			applicableConditions = append(applicableConditions, infrav1.BastionHostReadyCondition)
 		}
+		if s.VPC().IsIPv6Enabled() {
+			applicableConditions = append(applicableConditions, infrav1.EgressOnlyInternetGatewayReadyCondition)
+		}
 	}
 
 	conditions.SetSummary(s.AWSCluster,
@@ -241,6 +253,7 @@ func (s *ClusterScope) PatchObject() error {
 			infrav1.VpcReadyCondition,
 			infrav1.SubnetsReadyCondition,
 			infrav1.InternetGatewayReadyCondition,
+			infrav1.EgressOnlyInternetGatewayReadyCondition,
 			infrav1.NatGatewaysReadyCondition,
 			infrav1.RouteTablesReadyCondition,
 			infrav1.ClusterSecurityGroupsReadyCondition,
@@ -269,7 +282,7 @@ func (s *ClusterScope) APIServerPort() int32 {
 	if s.Cluster.Spec.ClusterNetwork != nil && s.Cluster.Spec.ClusterNetwork.APIServerPort != nil {
 		return *s.Cluster.Spec.ClusterNetwork.APIServerPort
 	}
-	return 6443
+	return infrav1.DefaultAPIServerPort
 }
 
 // SetFailureDomain sets the infrastructure provider failure domain key to the spec given as input.
@@ -283,6 +296,11 @@ func (s *ClusterScope) SetFailureDomain(id string, spec clusterv1.FailureDomainS
 // InfraCluster returns the AWS infrastructure cluster or control plane object.
 func (s *ClusterScope) InfraCluster() cloud.ClusterObject {
 	return s.AWSCluster
+}
+
+// ClusterObj returns the cluster object.
+func (s *ClusterScope) ClusterObj() cloud.ClusterObject {
+	return s.Cluster
 }
 
 // Session returns the AWS SDK session. Used for creating clients.

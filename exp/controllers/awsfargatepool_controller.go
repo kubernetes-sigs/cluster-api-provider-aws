@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,18 +20,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/record"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/predicates"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -39,6 +31,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
 // AWSFargateProfileReconciler reconciles a AWSFargateProfile object.
@@ -52,11 +54,11 @@ type AWSFargateProfileReconciler struct {
 
 // SetupWithManager is used to setup the controller.
 func (r *AWSFargateProfileReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	managedControlPlaneToFargateProfileMap := managedControlPlaneToFargateProfileMapFunc(r.Client, ctrl.LoggerFrom(ctx))
+	managedControlPlaneToFargateProfileMap := managedControlPlaneToFargateProfileMapFunc(r.Client, logger.FromContext(ctx))
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&expinfrav1.AWSFargateProfile{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(logger.FromContext(ctx).GetLogger(), r.WatchFilterValue)).
 		Watches(
 			&source.Kind{Type: &ekscontrolplanev1.AWSManagedControlPlane{}},
 			handler.EnqueueRequestsFromMapFunc(managedControlPlaneToFargateProfileMap),
@@ -67,12 +69,12 @@ func (r *AWSFargateProfileReconciler) SetupWithManager(ctx context.Context, mgr 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes;awsmanagedcontrolplanes/status,verbs=get;list;watch
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsfargateprofiles,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsfargateprofiles,verbs=get;list;watch;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsfargateprofiles/status,verbs=get;update;patch
 
 // Reconcile reconciles AWSFargateProfiles.
 func (r *AWSFargateProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
-	log := ctrl.LoggerFrom(ctx)
+	log := logger.FromContext(ctx)
 
 	fargateProfile := &expinfrav1.AWSFargateProfile{}
 	if err := r.Get(ctx, req.NamespacedName, fargateProfile); err != nil {
@@ -88,7 +90,7 @@ func (r *AWSFargateProfileReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return reconcile.Result{}, nil
 	}
 
-	log = log.WithValues("Cluster", cluster.Name)
+	log = log.WithValues("cluster", klog.KObj(cluster))
 
 	controlPlaneKey := client.ObjectKey{
 		Namespace: fargateProfile.Namespace,
@@ -180,7 +182,7 @@ func (r *AWSFargateProfileReconciler) reconcileDelete(
 	return res, nil
 }
 
-func managedControlPlaneToFargateProfileMapFunc(c client.Client, log logr.Logger) handler.MapFunc {
+func managedControlPlaneToFargateProfileMapFunc(c client.Client, log logger.Wrapper) handler.MapFunc {
 	return func(o client.Object) []ctrl.Request {
 		ctx := context.Background()
 

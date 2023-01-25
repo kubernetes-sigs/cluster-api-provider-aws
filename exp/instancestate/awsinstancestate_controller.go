@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,20 +23,24 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/controllers"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/instancestate"
-	"sigs.k8s.io/cluster-api/util/patch"
-	"sigs.k8s.io/cluster-api/util/predicates"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/controllers"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/instancestate"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
 // Ec2InstanceStateLabelKey defines an ec2 instance state label.
@@ -78,7 +82,7 @@ func (r *AwsInstanceStateReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	err := r.Get(ctx, req.NamespacedName, awsCluster)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			r.Log.Info("cluster not found, removing queue URL", "cluster", req.Name)
+			r.Log.Info("cluster not found, removing queue URL", "cluster", klog.KRef(req.Namespace, req.Name))
 			r.queueURLs.Delete(req.Name)
 			return reconcile.Result{}, nil
 		}
@@ -87,14 +91,17 @@ func (r *AwsInstanceStateReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	// Handle deleted clusters
 	if !awsCluster.DeletionTimestamp.IsZero() {
-		r.Log.Info("cluster deleted, removing queue URL", "cluster", awsCluster.Name)
 		r.queueURLs.Delete(req.Name)
+		return reconcile.Result{}, nil
 	}
 
 	// retrieve queue URL if it isn't already tracked
 	if _, ok := r.queueURLs.Load(awsCluster.Name); !ok {
 		URL, err := r.getQueueURL(awsCluster)
 		if err != nil {
+			if queueNotFoundError(err) {
+				return reconcile.Result{}, nil
+			}
 			return reconcile.Result{}, err
 		}
 		r.queueURLs.Store(awsCluster.Name, queueParams{region: awsCluster.Spec.Region, URL: URL})
@@ -110,7 +117,7 @@ func (r *AwsInstanceStateReconciler) SetupWithManager(ctx context.Context, mgr c
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.AWSCluster{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(logger.FromContext(ctx).GetLogger(), r.WatchFilterValue)).
 		Complete(r)
 }
 
@@ -219,6 +226,15 @@ func (r *AwsInstanceStateReconciler) getQueueURL(cluster *infrav1.AWSCluster) (s
 	}
 
 	return *resp.QueueUrl, nil
+}
+
+func queueNotFoundError(err error) bool {
+	if aerr, ok := err.(awserr.Error); ok {
+		if aerr.Code() == sqs.ErrCodeQueueDoesNotExist {
+			return true
+		}
+	}
+	return false
 }
 
 type queueParams struct {

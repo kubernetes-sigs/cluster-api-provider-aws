@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,11 +24,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/pkg/errors"
-
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/instancestate/mock_sqsiface"
+	"github.com/pkg/errors"
+
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/instancestate/mock_sqsiface"
 )
 
 func TestReconcileSQSQueue(t *testing.T) {

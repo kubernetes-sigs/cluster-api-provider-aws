@@ -1,0 +1,28 @@
+- op: add
+  path: /spec/topology/variables/-
+  value:
+    name: byoInfra
+    value: "true"
+- op: add
+  path: /spec/topology/variables/-
+  value:
+    name: vpcID
+    value: "${BYO_VPC_ID}"
+- op: add
+  path: /spec/topology/variables/-
+  value:
+    name: publicSubnetID
+    value: "${BYO_PUBLIC_SUBNET_ID}"
+- op: add
+  path: /spec/topology/variables/-
+  value:
+    name: privateSubnetID
+    value: "${BYO_PRIVATE_SUBNET_ID}"
+- op: add
+  path: /spec/topology/variables/-
+  value:
+    name: fdForBYOSubnets
+    value: "us-west-2a"
+- op: replace
+  path: /spec/topology/workers/machineDeployments/0/failureDomain
+  value: "us-west-2a"

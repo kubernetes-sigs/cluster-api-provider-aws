@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,19 +18,18 @@ package iamauth
 
 import (
 	"context"
-	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	iamauthv1 "sigs.k8s.io/aws-iam-authenticator/pkg/mapper/crd/apis/iamauthenticator/v1alpha1"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 )
 
 func TestAddRoleMappingCRD(t *testing.T) {
@@ -149,7 +148,7 @@ func TestAddRoleMappingCRD(t *testing.T) {
 			for _, actualMapping := range mappings.Items {
 				found := false
 				for _, expectedMappingSpec := range tc.expectedRoleMapSpecs {
-					if reflect.DeepEqual(actualMapping.Spec, expectedMappingSpec) {
+					if cmp.Equal(actualMapping.Spec, expectedMappingSpec) {
 						found = true
 					}
 				}
@@ -160,6 +159,7 @@ func TestAddRoleMappingCRD(t *testing.T) {
 		})
 	}
 }
+
 func TestAddUserMappingCRD(t *testing.T) {
 	testCases := []struct {
 		name                 string
@@ -276,7 +276,7 @@ func TestAddUserMappingCRD(t *testing.T) {
 			for _, actualMapping := range mappings.Items {
 				found := false
 				for _, expectedMappingSpec := range tc.expectedUserMapSpecs {
-					if reflect.DeepEqual(actualMapping.Spec, expectedMappingSpec) {
+					if cmp.Equal(actualMapping.Spec, expectedMappingSpec) {
 						found = true
 					}
 				}

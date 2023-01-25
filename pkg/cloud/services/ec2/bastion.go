@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,17 +21,17 @@ import (
 	"fmt"
 	"strings"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/conditions"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 const (
@@ -46,7 +46,7 @@ var (
 // ReconcileBastion ensures a bastion is created for the cluster.
 func (s *Service) ReconcileBastion() error {
 	if !s.scope.Bastion().Enabled {
-		s.scope.V(4).Info("Skipping bastion reconcile")
+		s.scope.Trace("Skipping bastion reconcile")
 		_, err := s.describeBastionInstance()
 		if err != nil {
 			if awserrors.IsNotFound(err) {
@@ -57,11 +57,11 @@ func (s *Service) ReconcileBastion() error {
 		return s.DeleteBastion()
 	}
 
-	s.scope.V(2).Info("Reconciling bastion host")
+	s.scope.Debug("Reconciling bastion host")
 
 	subnets := s.scope.Subnets()
 	if len(subnets.FilterPrivate()) == 0 {
-		s.scope.V(2).Info("No private subnets available, skipping bastion host")
+		s.scope.Debug("No private subnets available, skipping bastion host")
 		return nil
 	} else if len(subnets.FilterPublic()) == 0 {
 		return errors.New("failed to reconcile bastion host, no public subnets are available")
@@ -69,21 +69,26 @@ func (s *Service) ReconcileBastion() error {
 
 	// Describe bastion instance, if any.
 	instance, err := s.describeBastionInstance()
-	if awserrors.IsNotFound(err) { // nolint:nestif
+	if awserrors.IsNotFound(err) { //nolint:nestif
 		if !conditions.Has(s.scope.InfraCluster(), infrav1.BastionHostReadyCondition) {
 			conditions.MarkFalse(s.scope.InfraCluster(), infrav1.BastionHostReadyCondition, infrav1.BastionCreationStartedReason, clusterv1.ConditionSeverityInfo, "")
 			if err := s.scope.PatchObject(); err != nil {
 				return errors.Wrap(err, "failed to patch conditions")
 			}
 		}
-		instance, err = s.runInstance("bastion", s.getDefaultBastion(s.scope.Bastion().InstanceType, s.scope.Bastion().AMI))
+		defaultBastion, err := s.getDefaultBastion(s.scope.Bastion().InstanceType, s.scope.Bastion().AMI)
+		if err != nil {
+			record.Warnf(s.scope.InfraCluster(), "FailedFetchingBastion", "Failed to fetch default bastion instance: %v", err)
+			return err
+		}
+		instance, err = s.runInstance("bastion", defaultBastion)
 		if err != nil {
 			record.Warnf(s.scope.InfraCluster(), "FailedCreateBastion", "Failed to create bastion instance: %v", err)
 			return err
 		}
 
 		record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateBastion", "Created bastion instance %q", instance.ID)
-		s.scope.V(2).Info("Created new bastion host", "instance", instance)
+		s.scope.Info("Created new bastion host", "id", instance.ID)
 	} else if err != nil {
 		return err
 	}
@@ -92,7 +97,7 @@ func (s *Service) ReconcileBastion() error {
 
 	s.scope.SetBastionInstance(instance.DeepCopy())
 	conditions.MarkTrue(s.scope.InfraCluster(), infrav1.BastionHostReadyCondition)
-	s.scope.V(2).Info("Reconcile bastion completed successfully")
+	s.scope.Debug("Reconcile bastion completed successfully")
 
 	return nil
 }
@@ -102,7 +107,7 @@ func (s *Service) DeleteBastion() error {
 	instance, err := s.describeBastionInstance()
 	if err != nil {
 		if awserrors.IsNotFound(err) {
-			s.scope.V(4).Info("bastion instance does not exist")
+			s.scope.Trace("bastion instance does not exist")
 			return nil
 		}
 		return errors.Wrap(err, "unable to describe bastion instance")
@@ -118,8 +123,12 @@ func (s *Service) DeleteBastion() error {
 		record.Warnf(s.scope.InfraCluster(), "FailedTerminateBastion", "Failed to terminate bastion instance %q: %v", instance.ID, err)
 		return errors.Wrap(err, "unable to delete bastion instance")
 	}
+
+	s.scope.SetBastionInstance(nil)
+
 	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.BastionHostReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulTerminateBastion", "Terminated bastion instance %q", instance.ID)
+	s.scope.Info("Deleted bastion host", "id", instance.ID)
 
 	return nil
 }
@@ -157,7 +166,7 @@ func (s *Service) describeBastionInstance() (*infrav1.Instance, error) {
 	return nil, awserrors.NewNotFound("bastion host not found")
 }
 
-func (s *Service) getDefaultBastion(instanceType, ami string) *infrav1.Instance {
+func (s *Service) getDefaultBastion(instanceType, ami string) (*infrav1.Instance, error) {
 	name := fmt.Sprintf("%s-bastion", s.scope.Name())
 	userData, _ := userdata.NewBastion(&userdata.BastionInput{})
 
@@ -178,7 +187,11 @@ func (s *Service) getDefaultBastion(instanceType, ami string) *infrav1.Instance 
 	}
 
 	if ami == "" {
-		ami = s.defaultBastionAMILookup(s.scope.Region())
+		var err error
+		ami, err = s.defaultBastionAMILookup()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	i := &infrav1.Instance{
@@ -199,5 +212,5 @@ func (s *Service) getDefaultBastion(instanceType, ami string) *infrav1.Instance 
 		}),
 	}
 
-	return i
+	return i, nil
 }

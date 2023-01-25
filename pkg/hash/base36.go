@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,9 +19,7 @@ package hash
 import (
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/blake2b"
-
-	// keep the blank import to include intstr.
-	_ "k8s.io/apimachinery/pkg/util/intstr"
+	_ "k8s.io/apimachinery/pkg/util/intstr" // keep the blank import to include intstr.
 )
 
 const base36set = "0123456789abcdefghijklmnopqrstuvwxyz"
@@ -29,8 +27,8 @@ const base36set = "0123456789abcdefghijklmnopqrstuvwxyz"
 // Base36TruncatedHash returns a consistent hash using blake2b
 // and truncating the byte values to alphanumeric only
 // of a fixed length specified by the consumer.
-func Base36TruncatedHash(str string, len int) (string, error) {
-	hasher, err := blake2b.New(len, nil)
+func Base36TruncatedHash(str string, length int) (string, error) {
+	hasher, err := blake2b.New(length, nil)
 	if err != nil {
 		return "", errors.Wrap(err, "unable to create hash function")
 	}

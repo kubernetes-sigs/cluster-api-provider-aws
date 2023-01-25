@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,8 +17,8 @@ limitations under the License.
 package bootstrap
 
 import (
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 )
 
 func (t Template) secretPolicy(secureSecretsBackend infrav1.SecretBackend) iamv1.StatementEntry {

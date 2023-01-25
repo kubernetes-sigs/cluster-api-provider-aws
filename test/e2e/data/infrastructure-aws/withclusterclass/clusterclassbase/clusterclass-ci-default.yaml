@@ -1,0 +1,338 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: ci-default
+spec:
+  controlPlane:
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: ci-default-control-plane
+    machineInfrastructure:
+      ref:
+        kind: AWSMachineTemplate
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        name: ci-default-control-plane
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+      kind: AWSClusterTemplate
+      name: ci-default
+  workers:
+    machineDeployments:
+    - class: default-worker
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: ci-default-worker-bootstraptemplate
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+            kind: AWSMachineTemplate
+            name: ci-default-worker-machinetemplate
+  variables:
+  - name: region
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: us-east-1
+  - name: sshKeyName
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: default
+  - name: controlPlaneMachineType
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: t3.large
+  - name: workerMachineType
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: t3.large
+  - name: secureSecretsBackend
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: secrets-manager
+  - name: healthCheckProtocol
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: SSL
+  - name: vpcAZUsageLimit
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+        example: "1"
+  - name: vpcID
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+  - name: publicSubnetID
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+  - name: privateSubnetID
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+  - name: fdForBYOSubnets
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+  - name: byoInfra
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: "false"
+  - name: selfHosted
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+  patches:
+  - name: awsClusterTemplateGeneral
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          kind: AWSClusterTemplate
+          matchResources:
+            infrastructureCluster: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/region"
+            valueFrom:
+              variable: region
+          - op: add
+            path: "/spec/template/spec/sshKeyName"
+            valueFrom:
+              variable: sshKeyName
+  - name: awsMachineTemplateControlPlane
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          kind: AWSMachineTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/instanceType"
+            valueFrom:
+              variable: controlPlaneMachineType
+          - op: add
+            path: "/spec/template/spec/sshKeyName"
+            valueFrom:
+              variable: sshKeyName
+  - name: awsMachineTemplateWorker
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          kind: AWSMachineTemplate
+          matchResources:
+            machineDeploymentClass:
+              names:
+                - default-worker
+        jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/instanceType"
+            valueFrom:
+              variable: workerMachineType
+          - op: add
+            path: "/spec/template/spec/sshKeyName"
+            valueFrom:
+              variable: sshKeyName
+  - name: secureSecretsBackend
+    enabledIf: '{{if .secureSecretsBackend }}true{{end}}'
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          kind: AWSMachineTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/cloudInit/secureSecretsBackend"
+            valueFrom:
+              variable: secureSecretsBackend
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          kind: AWSMachineTemplate
+          matchResources:
+            machineDeploymentClass:
+              names:
+                - default-worker
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/cloudInit/secureSecretsBackend"
+            valueFrom:
+              variable: secureSecretsBackend
+  - name: healthCheckProtocol
+    enabledIf: '{{if .healthCheckProtocol }}true{{end}}'
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          kind: AWSClusterTemplate
+          matchResources:
+            infrastructureCluster: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/controlPlaneLoadBalancer/healthCheckProtocol"
+            valueFrom:
+              variable: healthCheckProtocol
+  - name: preKubeadmCommands
+    enabledIf: '{{ eq .selfHosted "yes" }}'
+    definitions:
+      - selector:
+          apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+          kind: KubeadmControlPlaneTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/preKubeadmCommands"
+            valueFrom:
+              template: |
+                - mkdir -p /opt/cluster-api
+                - ctr -n k8s.io images pull "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}"
+                - ctr -n k8s.io images tag "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}" gcr.io/k8s-staging-cluster-api/capa-manager:e2e
+      - selector:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+          matchResources:
+            machineDeploymentClass:
+              names:
+                - default-worker
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/preKubeadmCommands"
+            valueFrom:
+              template: |
+                - ctr -n k8s.io images pull "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}"
+                - ctr -n k8s.io images tag "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}" gcr.io/k8s-staging-cluster-api/capa-manager:e2e
+  - name: limitAZ
+    enabledIf: '{{ ne .vpcAZUsageLimit "" }}'
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          kind: AWSClusterTemplate
+          matchResources:
+            infrastructureCluster: true
+        jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/network/vpc/availabilityZoneUsageLimit"
+            valueFrom:
+              template: "{{ .vpcAZUsageLimit }}"
+  - name: byoInfra
+    enabledIf: '{{ eq .byoInfra "true" }}'
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          kind: AWSClusterTemplate
+          matchResources:
+            infrastructureCluster: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/network/vpc/id"
+            valueFrom:
+              variable: vpcID
+          - op: add
+            path: /spec/template/spec/network/subnets
+            valueFrom:
+              template: |
+                - id: "{{ .publicSubnetID }}"
+                  availabilityZone: "{{ .fdForBYOSubnets }}"
+                - id: "{{ .privateSubnetID }}"
+                  availabilityZone: "{{ .fdForBYOSubnets }}"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSClusterTemplate
+metadata:
+  name: ci-default
+spec:
+  template:
+    spec: {}
+---
+kind: KubeadmControlPlaneTemplate
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+metadata:
+  name: ci-default-control-plane
+spec:
+  template:
+    spec:
+      kubeadmConfigSpec:
+        clusterConfiguration:
+          apiServer:
+            extraArgs:
+              cloud-provider: aws
+          controllerManager:
+            extraArgs:
+              cloud-provider: aws
+        initConfiguration:
+          nodeRegistration:
+            name: '{{ ds.meta_data.local_hostname }}'
+            kubeletExtraArgs:
+              cloud-provider: aws
+        joinConfiguration:
+          nodeRegistration:
+            name: '{{ ds.meta_data.local_hostname }}'
+            kubeletExtraArgs:
+              cloud-provider: aws
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSMachineTemplate
+metadata:
+  name: ci-default-control-plane
+spec:
+  template:
+    spec:
+      # instanceType is a required field (OpenAPI schema).
+      instanceType: REPLACEME
+      iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
+      cloudInit: {}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSMachineTemplate
+metadata:
+  name: ci-default-worker-machinetemplate
+spec:
+  template:
+    spec:
+      # instanceType is a required field (OpenAPI schema).
+      instanceType: REPLACEME
+      iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
+      cloudInit: {}
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: ci-default-worker-bootstraptemplate
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          name: '{{ ds.meta_data.local_hostname }}'
+          kubeletExtraArgs:
+            cloud-provider: aws

@@ -12,10 +12,10 @@ spec:
         dataSecretName: ""
       infrastructureRef:
         name: "${CLUSTER_NAME}-pool-0"
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: AWSManagedMachinePool
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSManagedMachinePool
 metadata:
   name: "${CLUSTER_NAME}-pool-0"
@@ -23,3 +23,5 @@ spec:
   scaling:
     minSize: 1
     maxSize: 2
+  updateConfig:
+    maxUnavailable: 2

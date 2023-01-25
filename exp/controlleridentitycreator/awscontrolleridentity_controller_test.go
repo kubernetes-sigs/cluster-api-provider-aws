@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,19 +18,19 @@ package controlleridentitycreator
 
 import (
 	"context"
-	"reflect"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
 
-func TestAWSInstanceStateController(t *testing.T) {
-	t.Run("should maintain list of cluster queue URLs and reconcile failing machines", func(t *testing.T) {
+func TestAWSControllerIdentityController(t *testing.T) {
+	t.Run("should create AWSClusterControllerIdentity when identityRef is not specified", func(t *testing.T) {
 		g := NewWithT(t)
 		ctx := context.Background()
 
@@ -50,7 +50,7 @@ func TestAWSInstanceStateController(t *testing.T) {
 			if err != nil {
 				return false
 			}
-			if reflect.DeepEqual(*cp.Spec.AllowedNamespaces, infrav1.AllowedNamespaces{}) {
+			if cmp.Equal(*cp.Spec.AllowedNamespaces, infrav1.AllowedNamespaces{}) {
 				return true
 			}
 			return false

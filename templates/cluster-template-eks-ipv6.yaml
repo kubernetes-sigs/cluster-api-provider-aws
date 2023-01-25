@@ -1,0 +1,93 @@
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: "${CLUSTER_NAME}"
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: ["192.168.0.0/16"]
+  infrastructureRef:
+    kind: AWSManagedCluster
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    name: "${CLUSTER_NAME}"
+  controlPlaneRef:
+    kind: AWSManagedControlPlane
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+    name: "${CLUSTER_NAME}-control-plane"
+---
+kind: AWSManagedCluster
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+metadata:
+  name: "${CLUSTER_NAME}"
+spec: {}
+---
+kind: AWSManagedControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  vpcCni:
+    env:
+      - name: ENABLE_PREFIX_DELEGATION
+        value: "true"
+      - name: ENABLE_IPv6
+        value: "true"
+      - name: ENABLE_IPv4
+        value: "false"
+  network:
+    vpc:
+      ipv6: {}
+  region: "${AWS_REGION}"
+  sshKeyName: "${AWS_SSH_KEY_NAME}"
+  version: "${KUBERNETES_VERSION}"
+  addons:
+    - name: "vpc-cni"
+      version: "v1.11.0-eksbuild.1"
+      conflictResolution: "overwrite"
+    - name: "coredns"
+      version: "v1.8.7-eksbuild.1"
+    - name: "kube-proxy"
+      version: "v1.22.6-eksbuild.1"
+
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name: "${CLUSTER_NAME}-md-0"
+spec:
+  clusterName: "${CLUSTER_NAME}"
+  replicas: ${WORKER_MACHINE_COUNT}
+  selector:
+    matchLabels:
+  template:
+    spec:
+      clusterName: "${CLUSTER_NAME}"
+      version: "${KUBERNETES_VERSION}"
+      bootstrap:
+        configRef:
+          name: "${CLUSTER_NAME}-md-0"
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: EKSConfigTemplate
+      infrastructureRef:
+        name: "${CLUSTER_NAME}-md-0"
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        kind: AWSMachineTemplate
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSMachineTemplate
+metadata:
+  name: "${CLUSTER_NAME}-md-0"
+spec:
+  template:
+    spec:
+      instanceType: "${AWS_NODE_MACHINE_TYPE}"
+      iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
+      sshKeyName: "${AWS_SSH_KEY_NAME}"
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+kind: EKSConfigTemplate
+metadata:
+  name: "${CLUSTER_NAME}-md-0"
+spec:
+  template: {}

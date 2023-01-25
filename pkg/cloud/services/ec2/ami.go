@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,21 +24,28 @@ import (
 	"text/template"
 	"time"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 )
 
 const (
 	// DefaultMachineAMIOwnerID is a heptio/VMware owned account. Please see:
 	// https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/487
 	DefaultMachineAMIOwnerID = "258751437250"
+
+	// ubuntuOwnerID is Ubuntu owned account. Please see:
+	// https://ubuntu.com/server/docs/cloud-images/amazon-ec2
+	ubuntuOwnerID = "099720109477"
+
+	// Description regex for fetching Ubuntu AMIs for bastion host.
+	ubuntuImageDescription = "Canonical??Ubuntu??20.04?LTS??amd64?focal?image*"
 
 	// defaultMachineAMILookupBaseOS is the default base operating system to use
 	// when looking up machine AMIs.
@@ -70,7 +77,7 @@ type AMILookup struct {
 
 // GenerateAmiName will generate an AMI name.
 func GenerateAmiName(amiNameFormat, baseOS, kubernetesVersion string) (string, error) {
-	amiNameParameters := AMILookup{baseOS, strings.TrimPrefix(kubernetesVersion, "v")}
+	amiNameParameters := AMILookup{baseOS, kubernetesVersion}
 	// revert to default if not specified
 	if amiNameFormat == "" {
 		amiNameFormat = DefaultAmiNameFormat
@@ -99,7 +106,7 @@ func DefaultAMILookup(ec2Client ec2iface.EC2API, ownerID, baseOS, kubernetesVers
 		baseOS = defaultMachineAMILookupBaseOS
 	}
 
-	amiName, err := GenerateAmiName(amiNameFormat, baseOS, kubernetesVersion)
+	amiName, err := GenerateAmiName(amiNameFormat, baseOS, strings.TrimPrefix(kubernetesVersion, "v"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to process ami format: %q", amiNameFormat)
 	}
@@ -132,7 +139,7 @@ func DefaultAMILookup(ec2Client ec2iface.EC2API, ownerID, baseOS, kubernetesVers
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to find ami: %q", amiName)
 	}
-	if len(out.Images) == 0 {
+	if out == nil || len(out.Images) == 0 {
 		return nil, errors.Errorf("found no AMIs with the name: %q", amiName)
 	}
 	latestImage, err := GetLatestImage(out.Images)
@@ -151,7 +158,7 @@ func (s *Service) defaultAMIIDLookup(amiNameFormat, ownerID, baseOS, kubernetesV
 		return "", errors.Wrapf(err, "failed to find ami")
 	}
 
-	s.scope.V(2).Info("Found and using an existing AMI", "ami-id", aws.StringValue(latestImage.ImageId))
+	s.scope.Debug("Found and using an existing AMI", "ami-id", aws.StringValue(latestImage.ImageId))
 	return aws.StringValue(latestImage.ImageId), nil
 }
 
@@ -188,45 +195,43 @@ func GetLatestImage(imgs []*ec2.Image) (*ec2.Image, error) {
 	return imgs[len(imgs)-1], nil
 }
 
-func (s *Service) defaultBastionAMILookup(region string) string {
-	switch region {
-	case "ap-northeast-1":
-		return "ami-09b86f9709b3c33d4"
-	case "ap-northeast-2":
-		return "ami-044057cb1bc4ce527"
-	case "ap-south-1":
-		return "ami-0cda377a1b884a1bc"
-	case "ap-southeast-1":
-		return "ami-093da183b859d5a4b"
-	case "ap-southeast-2":
-		return "ami-0f158b0f26f18e619"
-	case "ca-central-1":
-		return "ami-0edab43b6fa892279"
-	case "eu-central-1":
-		return "ami-0c960b947cbb2dd16"
-	case "eu-west-1":
-		return "ami-06fd8a495a537da8b"
-	case "eu-west-2":
-		return "ami-05c424d59413a2876"
-	case "eu-west-3":
-		return "ami-078db6d55a16afc82"
-	case "sa-east-1":
-		return "ami-02dc8ad50da58fffd"
-	case "us-east-1":
-		return "ami-0dba2cb6798deb6d8"
-	case "us-east-2":
-		return "ami-07efac79022b86107"
-	case "us-west-1":
-		return "ami-021809d9177640a20"
-	case "us-west-2":
-		return "ami-06e54d05255faf8f6"
-	case "eu-north-1":
-		return "ami-008dea09a148cea39"
-	case "eu-south-1":
-		return "ami-01eec6bdfa20f008e"
-	default:
-		return "unknown region"
+func (s *Service) defaultBastionAMILookup() (string, error) {
+	describeImageInput := &ec2.DescribeImagesInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("owner-id"),
+				Values: []*string{aws.String(ubuntuOwnerID)},
+			},
+			{
+				Name:   aws.String("architecture"),
+				Values: []*string{aws.String("x86_64")},
+			},
+			{
+				Name:   aws.String("state"),
+				Values: []*string{aws.String("available")},
+			},
+			{
+				Name:   aws.String("virtualization-type"),
+				Values: []*string{aws.String("hvm")},
+			},
+			{
+				Name:   aws.String("description"),
+				Values: aws.StringSlice([]string{ubuntuImageDescription}),
+			},
+		},
 	}
+	out, err := s.EC2Client.DescribeImages(describeImageInput)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to describe images within region: %q", s.scope.Region())
+	}
+	if len(out.Images) == 0 {
+		return "", errors.Errorf("found no AMIs within the region: %q", s.scope.Region())
+	}
+	latestImage, err := GetLatestImage(out.Images)
+	if err != nil {
+		return "", err
+	}
+	return *latestImage.ImageId, nil
 }
 
 func (s *Service) eksAMILookup(kubernetesVersion string, amiType *infrav1.EKSAMILookupType) (string, error) {
@@ -260,7 +265,7 @@ func (s *Service) eksAMILookup(kubernetesVersion string, amiType *infrav1.EKSAMI
 		return "", errors.Wrapf(err, "failed to get ami SSM parameter: %q", paramName)
 	}
 
-	if out.Parameter.Value == nil {
+	if out.Parameter == nil || out.Parameter.Value == nil {
 		return "", errors.Errorf("SSM parameter returned with nil value: %q", paramName)
 	}
 

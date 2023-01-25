@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,8 +21,8 @@ import (
 	"os"
 	"path"
 
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/converters"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 )
 
 // PolicyName defines the name of a managed IAM policy.

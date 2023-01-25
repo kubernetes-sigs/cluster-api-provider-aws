@@ -5,28 +5,32 @@
 ### Install prerequisites
 
 1. Install [go][go]
-    - Get the latest patch version for go v1.17.
+    - Get the latest patch version for go v1.19.
 2. Install [jq][jq]
     - `brew install jq` on macOS.
     - `chocolatey install jq` on Windows.
     - `sudo apt install jq` on Ubuntu Linux.
 3. Install [KIND][kind]
-    - `GO111MODULE="on" go get sigs.k8s.io/kind@v0.11.0`.
+    - `GO111MODULE="on" go get sigs.k8s.io/kind@v0.12.0`.
 4. Install [Kustomize][kustomize]
-    - `brew install kustomize` on macOS.
-    - `choco install kustomize` on Windows.
-    - [install instructions][kustomizelinux] on Linux
+    - [install instructions](https://kubectl.docs.kubernetes.io/installation/kustomize/)
 5. Install [envsubst][envsubst]
 6. Install make.
 7. Install direnv
     - `brew install direnv` on macOS.
+8. Set AWS Environment variable for an IAM Admin user
+    - ```bash
+      export AWS_ACCESS_KEY_ID=ADMID
+      export AWS_SECRET_ACCESS_KEY=ADMKEY
+      export AWS_REGION=eu-west-1
+      ```
 
 ### Get the source
 
 Fork the [cluster-api-provider-aws repo](https://github.com/kubernetes-sigs/cluster-api-provider-aws):
 
 ```bash
-cd "$(go env GOPATH)"
+cd "$(go env GOPATH)"/src
 mkdir sigs.k8s.io
 cd sigs.k8s.io/
 git clone git@github.com:<GITHUB USERNAME>/cluster-api-provider-aws.git
@@ -40,9 +44,9 @@ git fetch upstream
 Build `clusterawsadm` in `cluster-api-provider-aws`:
 
 ```bash
-cd "$(go env GOPATH)"/src/sigs.k8s.io/cluster-api-provider-aws
+cd "$(go env GOPATH)"/src/sigs.k8s.io/cluster-api-provider-aws/
 make clusterawsadm
-mv ./bin/clusterawsadm /usr/local/bin/clusterawsadm
+sudo mv ./bin/clusterawsadm /usr/local/bin/clusterawsadm
 ```
 
 ### Setup AWS Environment
@@ -82,7 +86,7 @@ spec:
 Use the configuration file to create the additional IAM role:
 
 ```bash
-$ ./bin/clusterawsadm bootstrap iam create-cloudformation-stack --config=config-bootstrap.yaml
+$ clusterawsadm bootstrap iam create-cloudformation-stack --config=config-bootstrap.yaml
 Attempting to create AWS CloudFormation stack cluster-api-provider-aws-sigs-k8s-io
 ```
 
@@ -129,7 +133,7 @@ AWS::IAM::User            |bootstrapper.cluster-api-provider-aws.sigs.k8s.io    
 
 Before the next steps, make sure [initial setup for development environment][Initial-setup-for-development-environment] steps are complete.
 
-[Initial-setup-for-development-environment]: ../development/development.html#initial-setup-for-development-environment
+[Initial-setup-for-development-environment]: development.md#initial-setup-for-development-environment
 
 There are two ways to build aws manager from local cluster-api-provider-aws source and run it in local kind cluster:
 

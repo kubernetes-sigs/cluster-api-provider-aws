@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,25 +17,26 @@ limitations under the License.
 package securitygroup
 
 import (
-	"context"
 	"strings"
 	"testing"
 
-	. "github.com/onsi/gomega"
-
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
+	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 var (
@@ -53,13 +54,17 @@ func TestReconcileSecurityGroups(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	testCases := []struct {
-		name   string
-		input  *infrav1.NetworkSpec
-		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
-		err    error
+		name       string
+		input      *infrav1.NetworkSpec
+		expect     func(m *mocks.MockEC2APIMockRecorder)
+		err        error
+		awsCluster func(acl infrav1.AWSCluster) infrav1.AWSCluster
 	}{
 		{
 			name: "no existing",
+			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
+				return acl
+			},
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					ID:                "vpc-securitygroups",
@@ -82,7 +87,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSecurityGroups(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).
 					Return(&ec2.DescribeSecurityGroupsOutput{}, nil)
 
@@ -246,7 +251,209 @@ func TestReconcileSecurityGroups(t *testing.T) {
 			},
 		},
 		{
-			name: "all overridden, do not tag",
+			name: "NLB is defined with preserve client IP disabled",
+			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
+				acl.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
+					LoadBalancerType: infrav1.LoadBalancerTypeNLB,
+				}
+				return acl
+			},
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID:                "vpc-securitygroups",
+					InternetGatewayID: aws.String("igw-01"),
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+					CidrBlock: "10.0.0.0/16",
+				},
+				Subnets: infrav1.Subnets{
+					infrav1.SubnetSpec{
+						ID:               "subnet-securitygroups-private",
+						IsPublic:         false,
+						AvailabilityZone: "us-east-1a",
+					},
+					infrav1.SubnetSpec{
+						ID:               "subnet-securitygroups-public",
+						IsPublic:         true,
+						NatGatewayID:     aws.String("nat-01"),
+						AvailabilityZone: "us-east-1a",
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeSecurityGroups(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).
+					Return(&ec2.DescribeSecurityGroupsOutput{}, nil)
+
+				securityGroupBastion := m.CreateSecurityGroup(gomock.Eq(&ec2.CreateSecurityGroupInput{
+					VpcId:       aws.String("vpc-securitygroups"),
+					GroupName:   aws.String("test-cluster-bastion"),
+					Description: aws.String("Kubernetes cluster test-cluster: bastion"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("security-group"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-bastion"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("bastion"),
+								},
+							},
+						},
+					},
+				})).
+					Return(&ec2.CreateSecurityGroupOutput{GroupId: aws.String("sg-bastion")}, nil)
+
+				m.AuthorizeSecurityGroupIngress(gomock.AssignableToTypeOf(&ec2.AuthorizeSecurityGroupIngressInput{
+					GroupId: aws.String("sg-bastion"),
+				})).
+					Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil).
+					After(securityGroupBastion)
+
+				securityGroupAPIServerLb := m.CreateSecurityGroup(gomock.Eq(&ec2.CreateSecurityGroupInput{
+					VpcId:       aws.String("vpc-securitygroups"),
+					GroupName:   aws.String("test-cluster-apiserver-lb"),
+					Description: aws.String("Kubernetes cluster test-cluster: apiserver-lb"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("security-group"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-apiserver-lb"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("apiserver-lb"),
+								},
+							},
+						},
+					},
+				})).
+					Return(&ec2.CreateSecurityGroupOutput{GroupId: aws.String("sg-apiserver-lb")}, nil)
+
+				m.AuthorizeSecurityGroupIngress(gomock.AssignableToTypeOf(&ec2.AuthorizeSecurityGroupIngressInput{
+					GroupId: aws.String("sg-apiserver-lb"),
+				})).
+					Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil).
+					After(securityGroupAPIServerLb)
+
+				lbSecurityGroup := m.CreateSecurityGroup(gomock.Eq(&ec2.CreateSecurityGroupInput{
+					VpcId:       aws.String("vpc-securitygroups"),
+					GroupName:   aws.String("test-cluster-lb"),
+					Description: aws.String("Kubernetes cluster test-cluster: lb"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("security-group"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-lb"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("lb"),
+								},
+							},
+						},
+					},
+				})).Return(&ec2.CreateSecurityGroupOutput{GroupId: aws.String("sg-lb")}, nil)
+
+				m.AuthorizeSecurityGroupIngress(gomock.AssignableToTypeOf(&ec2.AuthorizeSecurityGroupIngressInput{
+					GroupId: aws.String("sg-lb"),
+				})).
+					Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil).
+					After(lbSecurityGroup)
+
+				securityGroupControl := m.CreateSecurityGroup(gomock.Eq(&ec2.CreateSecurityGroupInput{
+					VpcId:       aws.String("vpc-securitygroups"),
+					GroupName:   aws.String("test-cluster-controlplane"),
+					Description: aws.String("Kubernetes cluster test-cluster: controlplane"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("security-group"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-controlplane"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("controlplane"),
+								},
+							},
+						},
+					},
+				})).
+					Return(&ec2.CreateSecurityGroupOutput{GroupId: aws.String("sg-control")}, nil)
+
+				m.AuthorizeSecurityGroupIngress(gomock.AssignableToTypeOf(&ec2.AuthorizeSecurityGroupIngressInput{
+					GroupId: aws.String("sg-control"),
+				})).
+					Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil).
+					After(securityGroupControl)
+
+				securityGroupNode := m.CreateSecurityGroup(gomock.Eq(&ec2.CreateSecurityGroupInput{
+					VpcId:       aws.String("vpc-securitygroups"),
+					GroupName:   aws.String("test-cluster-node"),
+					Description: aws.String("Kubernetes cluster test-cluster: node"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("security-group"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-node"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("node"),
+								},
+							},
+						},
+					},
+				})).
+					Return(&ec2.CreateSecurityGroupOutput{GroupId: aws.String("sg-node")}, nil)
+
+				m.AuthorizeSecurityGroupIngress(gomock.AssignableToTypeOf(&ec2.AuthorizeSecurityGroupIngressInput{
+					GroupId: aws.String("sg-node"),
+				})).
+					Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil).
+					After(securityGroupNode)
+			},
+		},
+		{
+			name: "all overrides defined, do not tag",
+			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
+				return acl
+			},
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					ID:                "vpc-securitygroups",
@@ -273,7 +480,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 					infrav1.SecurityGroupNode:         "sg-node",
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSecurityGroups(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).
 					Return(&ec2.DescribeSecurityGroupsOutput{
 						SecurityGroups: []*ec2.SecurityGroup{
@@ -288,6 +495,9 @@ func TestReconcileSecurityGroups(t *testing.T) {
 		},
 		{
 			name: "managed vpc with overrides, returns error",
+			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
+				return acl
+			},
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					ID:                "vpc-securitygroups",
@@ -317,7 +527,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 					infrav1.SecurityGroupNode:         "sg-node",
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSecurityGroups(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).
 					Return(&ec2.DescribeSecurityGroupsOutput{
 						SecurityGroups: []*ec2.SecurityGroup{
@@ -335,22 +545,24 @@ func TestReconcileSecurityGroups(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scheme := runtime.NewScheme()
 			_ = infrav1.AddToScheme(scheme)
 			client := fake.NewClientBuilder().WithScheme(scheme).Build()
-			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+			cluster := &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: *tc.input,
+				},
+			}
+			awsCluster := tc.awsCluster(*cluster)
+			cs, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Client: client,
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
 				},
-				AWSCluster: &infrav1.AWSCluster{
-					ObjectMeta: metav1.ObjectMeta{Name: "test"},
-					Spec: infrav1.AWSClusterSpec{
-						NetworkSpec: *tc.input,
-					},
-				},
+				AWSCluster: &awsCluster,
 			})
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
@@ -358,7 +570,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 
 			tc.expect(ec2Mock.EXPECT())
 
-			s := NewService(scope, testSecurityGroupRoles)
+			s := NewService(cs, testSecurityGroupRoles)
 			s.EC2Client = ec2Mock
 
 			if err := s.ReconcileSecurityGroups(); err != nil && tc.err != nil {
@@ -376,7 +588,7 @@ func TestControlPlaneSecurityGroupNotOpenToAnyCIDR(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
-	scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+	cs, err := scope.NewClusterScope(scope.ClusterScopeParams{
 		Client: client,
 		Cluster: &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
@@ -387,7 +599,7 @@ func TestControlPlaneSecurityGroupNotOpenToAnyCIDR(t *testing.T) {
 		t.Fatalf("Failed to create test context: %v", err)
 	}
 
-	s := NewService(scope, testSecurityGroupRoles)
+	s := NewService(cs, testSecurityGroupRoles)
 	rules, err := s.getSecurityGroupIngressRules(infrav1.SecurityGroupControlPlane)
 	if err != nil {
 		t.Fatalf("Failed to lookup controlplane security group ingress rules: %v", err)
@@ -405,13 +617,13 @@ func TestDeleteSecurityGroups(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	testCases := []struct {
-		name   string
-		input  *infrav1.NetworkSpec
-		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
-		err    error
+		name    string
+		input   *infrav1.NetworkSpec
+		expect  func(m *mocks.MockEC2APIMockRecorder)
+		wantErr bool
 	}{
 		{
-			name: "do not delete overridden security groups",
+			name: "do not delete security groups provided as overrides",
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					ID:                "vpc-securitygroups",
@@ -438,18 +650,116 @@ func TestDeleteSecurityGroups(t *testing.T) {
 					infrav1.SecurityGroupNode:         "sg-node",
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
-				m.DescribeSecurityGroupsPages(gomock.Any(), gomock.Any()).Return(nil)
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeSecurityGroupsPages(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{}), gomock.Any()).Return(nil)
+			},
+		},
+		{
+			name: "Should skip SG deletion if VPC ID not present",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{},
+			},
+		},
+		{
+			name: "Should return error if unable to find cluster-owned security groups in vpc",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{ID: "vpc-id"},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeSecurityGroupsPages(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{}), gomock.Any()).Return(awserrors.NewFailedDependency("dependency-failure"))
+			},
+			wantErr: true,
+		},
+		{
+			name: "Should return error if unable to describe any SG present in VPC and owned by cluster",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{ID: "vpc-id"},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeSecurityGroupsPages(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{}), gomock.Any()).
+					Do(processSecurityGroupsPage).Return(nil)
+				m.DescribeSecurityGroups(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).Return(nil, awserr.New("dependency-failure", "dependency-failure", errors.Errorf("dependency-failure")))
+			},
+			wantErr: true,
+		},
+		{
+			name: "Should not revoke Ingress rules for a SG if IP permissions are not set and able to delete the SG",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{ID: "vpc-id"},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeSecurityGroupsPages(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{}), gomock.Any()).
+					Do(processSecurityGroupsPage).Return(nil)
+				m.DescribeSecurityGroups(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).Return(&ec2.DescribeSecurityGroupsOutput{
+					SecurityGroups: []*ec2.SecurityGroup{
+						{
+							GroupId:   aws.String("group-id"),
+							GroupName: aws.String("group-name"),
+						},
+					},
+				}, nil)
+				m.DeleteSecurityGroup(gomock.AssignableToTypeOf(&ec2.DeleteSecurityGroupInput{})).Return(nil, nil)
+			},
+		},
+		{
+			name: "Should return error if failed to revoke Ingress rules for a SG",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{ID: "vpc-id"},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeSecurityGroupsPages(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{}), gomock.Any()).
+					Do(processSecurityGroupsPage).Return(nil)
+				m.DescribeSecurityGroups(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).Return(&ec2.DescribeSecurityGroupsOutput{
+					SecurityGroups: []*ec2.SecurityGroup{
+						{
+							GroupId:   aws.String("group-id"),
+							GroupName: aws.String("group-name"),
+							IpPermissions: []*ec2.IpPermission{
+								{
+									ToPort: aws.Int64(4),
+								},
+							},
+						},
+					},
+				}, nil)
+				m.RevokeSecurityGroupIngress(gomock.AssignableToTypeOf(&ec2.RevokeSecurityGroupIngressInput{})).Return(nil, awserr.New("failure", "failure", errors.Errorf("failure")))
+			},
+			wantErr: true,
+		},
+		{
+			name: "Should delete SG successfully",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{ID: "vpc-id"},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeSecurityGroupsPages(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{}), gomock.Any()).
+					Do(processSecurityGroupsPage).Return(nil)
+				m.DescribeSecurityGroups(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).Return(&ec2.DescribeSecurityGroupsOutput{
+					SecurityGroups: []*ec2.SecurityGroup{
+						{
+							GroupId:   aws.String("group-id"),
+							GroupName: aws.String("group-name"),
+							IpPermissions: []*ec2.IpPermission{
+								{
+									ToPort: aws.Int64(4),
+								},
+							},
+						},
+					},
+				}, nil)
+				m.RevokeSecurityGroupIngress(gomock.AssignableToTypeOf(&ec2.RevokeSecurityGroupIngressInput{})).Return(nil, nil)
+				m.DeleteSecurityGroup(gomock.AssignableToTypeOf(&ec2.DeleteSecurityGroupInput{})).Return(nil, nil)
 			},
 		},
 	}
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			g := NewWithT(t)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scheme := runtime.NewScheme()
-			_ = infrav1.AddToScheme(scheme)
+			g.Expect(infrav1.AddToScheme(scheme)).NotTo(HaveOccurred())
+
 			awsCluster := &infrav1.AWSCluster{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: infrav1.GroupVersion.String(),
@@ -460,34 +770,31 @@ func TestDeleteSecurityGroups(t *testing.T) {
 					NetworkSpec: *tc.input,
 				},
 			}
+
 			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).Build()
 
-			ctx := context.TODO()
-			client.Create(ctx, awsCluster)
-
-			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+			cs, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Client: client,
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
 				},
 				AWSCluster: awsCluster,
 			})
-			if err != nil {
-				t.Fatalf("Failed to create test context: %v", err)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			if tc.expect != nil {
+				tc.expect(ec2Mock.EXPECT())
 			}
 
-			tc.expect(ec2Mock.EXPECT())
-
-			s := NewService(scope, testSecurityGroupRoles)
+			s := NewService(cs, testSecurityGroupRoles)
 			s.EC2Client = ec2Mock
 
-			if err := s.DeleteSecurityGroups(); err != nil && tc.err != nil {
-				if !strings.Contains(err.Error(), tc.err.Error()) {
-					t.Fatalf("was expecting error to look like '%v', but got '%v'", tc.err, err)
-				}
-			} else if err != nil {
-				t.Fatalf("got an unexpected error: %v", err)
+			err = s.DeleteSecurityGroups()
+			if tc.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
 			}
+			g.Expect(err).NotTo(HaveOccurred())
 		})
 	}
 }
@@ -574,4 +881,16 @@ func TestIngressRulesFromSDKType(t *testing.T) {
 			g.Expect(output).To(Equal(tc.expected))
 		})
 	}
+}
+
+var processSecurityGroupsPage = func(_, y interface{}) {
+	funcType := y.(func(out *ec2.DescribeSecurityGroupsOutput, last bool) bool)
+	funcType(&ec2.DescribeSecurityGroupsOutput{
+		SecurityGroups: []*ec2.SecurityGroup{
+			{
+				GroupId:   aws.String("group-id"),
+				GroupName: aws.String("group-name"),
+			},
+		},
+	}, true)
 }

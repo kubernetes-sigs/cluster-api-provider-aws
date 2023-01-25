@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,7 +18,8 @@ package bootstrap
 
 import (
 	"github.com/awslabs/goformation/v4/cloudformation"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
+
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 )
 
 func (t Template) cloudProviderControlPlaneAwsRoles() []string {
@@ -41,6 +42,7 @@ func (t Template) cloudProviderControlPlaneAwsPolicy() *iamv1.PolicyDocument {
 					"autoscaling:DescribeAutoScalingGroups",
 					"autoscaling:DescribeLaunchConfigurations",
 					"autoscaling:DescribeTags",
+					"ec2:AssignIpv6Addresses",
 					"ec2:DescribeInstances",
 					"ec2:DescribeImages",
 					"ec2:DescribeRegions",
@@ -82,6 +84,7 @@ func (t Template) cloudProviderControlPlaneAwsPolicy() *iamv1.PolicyDocument {
 					"elasticloadbalancing:CreateTargetGroup",
 					"elasticloadbalancing:DeleteListener",
 					"elasticloadbalancing:DeleteTargetGroup",
+					"elasticloadbalancing:DeregisterTargets",
 					"elasticloadbalancing:DescribeListeners",
 					"elasticloadbalancing:DescribeLoadBalancerPolicies",
 					"elasticloadbalancing:DescribeTargetGroups",

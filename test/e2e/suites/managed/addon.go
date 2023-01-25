@@ -8,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,20 +21,18 @@ package managed
 
 import (
 	"context"
-
-	. "github.com/onsi/gomega"
-
-	corev1 "k8s.io/api/core/v1"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/eks"
-
-	"sigs.k8s.io/cluster-api/test/framework"
-	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
 type CheckAddonExistsSpecInput struct {
@@ -47,13 +45,9 @@ type CheckAddonExistsSpecInput struct {
 	AddonVersion          string
 }
 
-// CheckAddonExistsSpec implements a test for a cluster having an addon
+// CheckAddonExistsSpec implements a test for a cluster having an addon.
 func CheckAddonExistsSpec(ctx context.Context, inputGetter func() CheckAddonExistsSpecInput) {
-	var (
-		input CheckAddonExistsSpecInput
-	)
-
-	input = inputGetter()
+	input := inputGetter()
 	Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil")
 	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")
 	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
@@ -65,13 +59,13 @@ func CheckAddonExistsSpec(ctx context.Context, inputGetter func() CheckAddonExis
 	mgmtClient := input.BootstrapClusterProxy.GetClient()
 	controlPlaneName := getControlPlaneName(input.ClusterName)
 
-	shared.Byf("Getting control plane: %s", controlPlaneName)
-	controlPlane := &controlplanev1.AWSManagedControlPlane{}
+	By(fmt.Sprintf("Getting control plane: %s", controlPlaneName))
+	controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 	err := mgmtClient.Get(ctx, crclient.ObjectKey{Namespace: input.Namespace.Name, Name: controlPlaneName}, controlPlane)
 	Expect(err).ToNot(HaveOccurred())
 
-	shared.Byf("Checking EKS addon %s is installed on cluster %s and is active", input.AddonName, input.ClusterName)
-	waitForEKSAddonToHaveStatus(ctx, waitForEKSAddonToHaveStatusInput{
+	By(fmt.Sprintf("Checking EKS addon %s is installed on cluster %s and is active", input.AddonName, input.ClusterName))
+	waitForEKSAddonToHaveStatus(waitForEKSAddonToHaveStatusInput{
 		ControlPlane: controlPlane,
 		AWSSession:   input.AWSSession,
 		AddonName:    input.AddonName,

@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,11 +20,12 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/bootstrap/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/configreader"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 	"sigs.k8s.io/yaml"
+
+	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/bootstrap/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/bootstrap"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/configreader"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
 func printConfigCmd() *cobra.Command {
@@ -91,7 +92,7 @@ func addConfigFlag(c *cobra.Command) {
 		kind.
 
 		Documentation for this kind can be found at:
-		https://pkg.go.dev/sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/bootstrap/v1beta1
+		https://pkg.go.dev/sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/bootstrap/v1beta1
 
 		To see the default configuration, run 'clusterawsadm bootstrap iam print-config'.
 	`))

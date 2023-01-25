@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.7.1-0.20211110210727-ab52f76cc7d1
+    controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
   name: awsmanagedclusters.infrastructure.cluster.x-k8s.io
 spec:
@@ -28,16 +28,12 @@ spec:
       jsonPath: .status.ready
       name: Ready
       type: string
-    - description: AWS VPC the control plane is using
-      jsonPath: .spec.networkSpec.vpc.id
-      name: VPC
-      type: string
     - description: API Endpoint
       jsonPath: .spec.controlPlaneEndpoint.host
       name: Endpoint
       priority: 1
       type: string
-    name: v1alpha3
+    name: v1beta2
     schema:
       openAPIV3Schema:
         description: AWSManagedCluster is the Schema for the awsmanagedclusters API
@@ -106,9 +102,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
