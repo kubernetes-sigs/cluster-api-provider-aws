@@ -31,6 +31,11 @@ cd "${REPO_ROOT}" || exit 1
 
 # shellcheck source=../hack/ensure-go.sh
 source "${REPO_ROOT}/hack/ensure-go.sh"
+# shellcheck source=../hack/ensure-kind.sh
+source "${REPO_ROOT}/hack/ensure-kind.sh"
+# shellcheck source=../hack/ensure-kubectl.sh
+source "${REPO_ROOT}/hack/ensure-kubectl.sh"
+
 
 ARTIFACTS="${ARTIFACTS:-${PWD}/_artifacts}"
 mkdir -p "$ARTIFACTS/logs/"
@@ -42,8 +47,13 @@ cleanup() {
 }
 trap cleanup EXIT
 
-#Install requests module explicitly for HTTP calls
-python3 -m pip install requests
+# Ensure that python3-pip is installed.
+apt update
+apt install -y python3-pip
+rm -rf /var/lib/apt/lists/*
+
+# Install/upgrade pip and requests module explicitly for HTTP calls.
+python3 -m pip install --upgrade pip requests
 
 # If BOSKOS_HOST is set then acquire an AWS account from Boskos.
 if [ -n "${BOSKOS_HOST:-}" ]; then

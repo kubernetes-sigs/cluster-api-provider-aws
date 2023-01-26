@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,24 +24,24 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/version"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
-
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
 func (s *NodegroupService) describeNodegroup() (*eks.Nodegroup, error) {
 	eksClusterName := s.scope.KubernetesClusterName()
 	nodegroupName := s.scope.NodegroupName()
-	s.scope.V(2).Info("describing eks node group", "cluster", eksClusterName, "nodegroup", nodegroupName)
+	s.scope.Debug("describing eks node group", "cluster", eksClusterName, "nodegroup", nodegroupName)
 	input := &eks.DescribeNodegroupInput{
 		ClusterName:   aws.String(eksClusterName),
 		NodegroupName: aws.String(nodegroupName),
@@ -64,6 +64,34 @@ func (s *NodegroupService) describeNodegroup() (*eks.Nodegroup, error) {
 	return out.Nodegroup, nil
 }
 
+func (s *NodegroupService) describeASGs(ng *eks.Nodegroup) (*autoscaling.Group, error) {
+	eksClusterName := s.scope.KubernetesClusterName()
+	nodegroupName := s.scope.NodegroupName()
+	s.scope.Debug("describing node group ASG", "cluster", eksClusterName, "nodegroup", nodegroupName)
+
+	if len(ng.Resources.AutoScalingGroups) == 0 {
+		return nil, nil
+	}
+
+	input := &autoscaling.DescribeAutoScalingGroupsInput{
+		AutoScalingGroupNames: []*string{
+			ng.Resources.AutoScalingGroups[0].Name,
+		},
+	}
+
+	out, err := s.AutoscalingClient.DescribeAutoScalingGroups(input)
+	switch {
+	case awserrors.IsNotFound(err):
+		return nil, nil
+	case err != nil:
+		return nil, errors.Wrap(err, "failed to describe ASGs")
+	case len(out.AutoScalingGroups) == 0:
+		return nil, errors.Wrap(err, "no ASG found")
+	}
+
+	return out.AutoScalingGroups[0], nil
+}
+
 func (s *NodegroupService) scalingConfig() *eks.NodegroupScalingConfig {
 	var replicas int32 = 1
 	if s.scope.MachinePool.Spec.Replicas != nil {
@@ -83,6 +111,12 @@ func (s *NodegroupService) scalingConfig() *eks.NodegroupScalingConfig {
 		cfg.MinSize = aws.Int64(int64(*scaling.MinSize))
 	}
 	return &cfg
+}
+
+func (s *NodegroupService) updateConfig() *eks.NodegroupUpdateConfig {
+	updateConfig := s.scope.ManagedMachinePool.Spec.UpdateConfig
+
+	return converters.NodegroupUpdateconfigToSDK(updateConfig)
 }
 
 func (s *NodegroupService) roleArn() (*string, error) {
@@ -180,8 +214,9 @@ func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
 		Labels:        aws.StringMap(managedPool.Labels),
 		Tags:          aws.StringMap(tags),
 		RemoteAccess:  remoteAccess,
+		UpdateConfig:  s.updateConfig(),
 	}
-	if managedPool.AMIType != nil {
+	if managedPool.AMIType != nil && (managedPool.AWSLaunchTemplate == nil || managedPool.AWSLaunchTemplate.AMI.ID == nil) {
 		input.AmiType = aws.String(string(*managedPool.AMIType))
 	}
 	if managedPool.DiskSize != nil {
@@ -204,6 +239,12 @@ func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
 			return nil, fmt.Errorf("converting capacity type: %w", err)
 		}
 		input.CapacityType = aws.String(capacityType)
+	}
+	if managedPool.AWSLaunchTemplate != nil {
+		input.LaunchTemplate = &eks.LaunchTemplateSpecification{
+			Id:      s.scope.ManagedMachinePool.Status.LaunchTemplateID,
+			Version: s.scope.ManagedMachinePool.Status.LaunchTemplateVersion,
+		}
 	}
 
 	if err := input.Validate(); err != nil {
@@ -289,9 +330,14 @@ func (s *NodegroupService) reconcileNodegroupVersion(ng *eks.Nodegroup) error {
 	ngVersion := version.MustParseGeneric(*ng.Version)
 	specAMI := s.scope.ManagedMachinePool.Spec.AMIVersion
 	ngAMI := *ng.ReleaseVersion
+	statusLaunchTemplateVersion := s.scope.ManagedMachinePool.Status.LaunchTemplateVersion
+	var ngLaunchTemplateVersion *string
+	if ng.LaunchTemplate != nil {
+		ngLaunchTemplateVersion = ng.LaunchTemplate.Version
+	}
 
 	eksClusterName := s.scope.KubernetesClusterName()
-	if (specVersion != nil && ngVersion.LessThan(specVersion)) || (specAMI != nil && *specAMI != ngAMI) {
+	if (specVersion != nil && ngVersion.LessThan(specVersion)) || (specAMI != nil && *specAMI != ngAMI) || (statusLaunchTemplateVersion != nil && *statusLaunchTemplateVersion != *ngLaunchTemplateVersion) {
 		input := &eks.UpdateNodegroupVersionInput{
 			ClusterName:   aws.String(eksClusterName),
 			NodegroupName: aws.String(s.scope.NodegroupName()),
@@ -299,14 +345,21 @@ func (s *NodegroupService) reconcileNodegroupVersion(ng *eks.Nodegroup) error {
 
 		var updateMsg string
 		// Either update k8s version or AMI version
-		if specVersion != nil && ngVersion.LessThan(specVersion) {
+		switch {
+		case specVersion != nil && ngVersion.LessThan(specVersion):
 			// NOTE: you can only upgrade increments of minor versions. If you want to upgrade 1.14 to 1.16 we
 			// need to go 1.14-> 1.15 and then 1.15 -> 1.16.
 			input.Version = aws.String(versionToEKS(ngVersion.WithMinor(ngVersion.Minor() + 1)))
 			updateMsg = fmt.Sprintf("to version %s", *input.Version)
-		} else if specAMI != nil && *specAMI != ngAMI {
+		case specAMI != nil && *specAMI != ngAMI:
 			input.ReleaseVersion = specAMI
 			updateMsg = fmt.Sprintf("to AMI version %s", *input.ReleaseVersion)
+		case statusLaunchTemplateVersion != nil && *statusLaunchTemplateVersion != *ngLaunchTemplateVersion:
+			input.LaunchTemplate = &eks.LaunchTemplateSpecification{
+				Id:      s.scope.ManagedMachinePool.Status.LaunchTemplateID,
+				Version: statusLaunchTemplateVersion,
+			}
+			updateMsg = fmt.Sprintf("to launch template version %s", *statusLaunchTemplateVersion)
 		}
 
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
@@ -348,7 +401,7 @@ func createLabelUpdate(specLabels map[string]string, ng *eks.Nodegroup) *eks.Upd
 }
 
 func (s *NodegroupService) createTaintsUpdate(specTaints expinfrav1.Taints, ng *eks.Nodegroup) (*eks.UpdateTaintsPayload, error) {
-	s.V(2).Info("Creating taints update for node group", "name", *ng.NodegroupName, "num_current", len(ng.Taints), "num_required", len(specTaints))
+	s.Debug("Creating taints update for node group", "name", *ng.NodegroupName, "num_current", len(ng.Taints), "num_required", len(specTaints))
 	current, err := converters.TaintsFromSDK(ng.Taints)
 	if err != nil {
 		return nil, fmt.Errorf("converting taints: %w", err)
@@ -375,17 +428,17 @@ func (s *NodegroupService) createTaintsUpdate(specTaints expinfrav1.Taints, ng *
 		}
 	}
 	if len(payload.AddOrUpdateTaints) > 0 || len(payload.RemoveTaints) > 0 {
-		s.V(2).Info("Node group taints update required", "name", *ng.NodegroupName, "addupdate", len(payload.AddOrUpdateTaints), "remove", len(payload.RemoveTaints))
+		s.Debug("Node group taints update required", "name", *ng.NodegroupName, "addupdate", len(payload.AddOrUpdateTaints), "remove", len(payload.RemoveTaints))
 		return &payload, nil
 	}
 
-	s.V(2).Info("No updates required for node group taints", "name", *ng.NodegroupName)
+	s.Debug("No updates required for node group taints", "name", *ng.NodegroupName)
 	return nil, nil
 }
 
 func (s *NodegroupService) reconcileNodegroupConfig(ng *eks.Nodegroup) error {
 	eksClusterName := s.scope.KubernetesClusterName()
-	s.V(2).Info("reconciling node group config", "cluster", eksClusterName, "name", *ng.NodegroupName)
+	s.Debug("reconciling node group config", "cluster", eksClusterName, "name", *ng.NodegroupName)
 
 	managedPool := s.scope.ManagedMachinePool.Spec
 	input := &eks.UpdateNodegroupConfigInput{
@@ -394,7 +447,7 @@ func (s *NodegroupService) reconcileNodegroupConfig(ng *eks.Nodegroup) error {
 	}
 	var needsUpdate bool
 	if labelPayload := createLabelUpdate(managedPool.Labels, ng); labelPayload != nil {
-		s.V(2).Info("Nodegroup labels need an update", "nodegroup", ng.NodegroupName)
+		s.Debug("Nodegroup labels need an update", "nodegroup", ng.NodegroupName)
 		input.Labels = labelPayload
 		needsUpdate = true
 	}
@@ -403,29 +456,35 @@ func (s *NodegroupService) reconcileNodegroupConfig(ng *eks.Nodegroup) error {
 		return fmt.Errorf("creating taints update payload: %w", err)
 	}
 	if taintsPayload != nil {
-		s.V(2).Info("nodegroup taints need updating")
+		s.Debug("nodegroup taints need updating")
 		input.Taints = taintsPayload
 		needsUpdate = true
 	}
 	if machinePool := s.scope.MachinePool.Spec; machinePool.Replicas == nil {
 		if ng.ScalingConfig.DesiredSize != nil && *ng.ScalingConfig.DesiredSize != 1 {
-			s.V(2).Info("Nodegroup desired size differs from spec, updating scaling configuration", "nodegroup", ng.NodegroupName)
+			s.Debug("Nodegroup desired size differs from spec, updating scaling configuration", "nodegroup", ng.NodegroupName)
 			input.ScalingConfig = s.scalingConfig()
 			needsUpdate = true
 		}
 	} else if ng.ScalingConfig.DesiredSize == nil || int64(*machinePool.Replicas) != *ng.ScalingConfig.DesiredSize {
-		s.V(2).Info("Nodegroup has no desired size or differs from replicas, updating scaling configuration", "nodegroup", ng.NodegroupName)
+		s.Debug("Nodegroup has no desired size or differs from replicas, updating scaling configuration", "nodegroup", ng.NodegroupName)
 		input.ScalingConfig = s.scalingConfig()
 		needsUpdate = true
 	}
 	if managedPool.Scaling != nil && ((aws.Int64Value(ng.ScalingConfig.MaxSize) != int64(aws.Int32Value(managedPool.Scaling.MaxSize))) ||
 		(aws.Int64Value(ng.ScalingConfig.MinSize) != int64(aws.Int32Value(managedPool.Scaling.MinSize)))) {
-		s.V(2).Info("Nodegroup min/max differ from spec, updating scaling configuration", "nodegroup", ng.NodegroupName)
+		s.Debug("Nodegroup min/max differ from spec, updating scaling configuration", "nodegroup", ng.NodegroupName)
 		input.ScalingConfig = s.scalingConfig()
 		needsUpdate = true
 	}
+	currentUpdateConfig := converters.NodegroupUpdateconfigFromSDK(ng.UpdateConfig)
+	if !cmp.Equal(managedPool.UpdateConfig, currentUpdateConfig) {
+		s.Debug("Nodegroup update configuration differs from spec, updating the nodegroup update config", "nodegroup", ng.NodegroupName)
+		input.UpdateConfig = s.updateConfig()
+		needsUpdate = true
+	}
 	if !needsUpdate {
-		s.V(2).Info("node group config update not needed", "cluster", eksClusterName, "name", *ng.NodegroupName)
+		s.Debug("node group config update not needed", "cluster", eksClusterName, "name", *ng.NodegroupName)
 		return nil
 	}
 	if err := input.Validate(); err != nil {
@@ -456,9 +515,9 @@ func (s *NodegroupService) reconcileNodegroup() error {
 		tagKey := infrav1.ClusterAWSCloudProviderTagKey(s.scope.ClusterName())
 		ownedTag := ng.Tags[tagKey]
 		if ownedTag == nil {
-			return errors.Wrapf(err, "owner of %s mismatch: %s", eksNodegroupName, s.scope.ClusterName())
+			return errors.Errorf("owner of %s mismatch: %s", eksNodegroupName, s.scope.ClusterName())
 		}
-		s.scope.V(2).Info("Found owned EKS nodegroup in AWS", "cluster-name", eksClusterName, "nodegroup-name", eksNodegroupName)
+		s.scope.Debug("Found owned EKS nodegroup in AWS", "cluster-name", eksClusterName, "nodegroup-name", eksNodegroupName)
 	}
 
 	if err := s.setStatus(ng); err != nil {
@@ -486,6 +545,10 @@ func (s *NodegroupService) reconcileNodegroup() error {
 
 	if err := s.reconcileTags(ng); err != nil {
 		return errors.Wrapf(err, "failed to reconcile nodegroup tags")
+	}
+
+	if err := s.reconcileASGTags(ng); err != nil {
+		return errors.Wrapf(err, "failed to reconcile asg tags")
 	}
 
 	return nil
@@ -527,12 +590,7 @@ func (s *NodegroupService) setStatus(ng *eks.Nodegroup) error {
 		for _, group := range groups.AutoScalingGroups {
 			replicas += int32(len(group.Instances))
 			for _, instance := range group.Instances {
-				id, err := noderefutil.NewProviderID(fmt.Sprintf("aws://%s/%s", *instance.AvailabilityZone, *instance.InstanceId))
-				if err != nil {
-					s.Error(err, "couldn't create provider ID for instance", "id", *instance.InstanceId)
-					continue
-				}
-				providerIDList = append(providerIDList, id.String())
+				providerIDList = append(providerIDList, fmt.Sprintf("aws:///%s/%s", *instance.AvailabilityZone, *instance.InstanceId))
 			}
 		}
 		managedPool.Spec.ProviderIDList = providerIDList

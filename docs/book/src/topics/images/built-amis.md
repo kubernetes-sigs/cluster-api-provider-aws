@@ -3,7 +3,7 @@
 New AMIs are built whenever a new Kubernetes version is released for each supported OS distribution and then published to supported regions.
 
 `clusterawsadm ami list` command lists pre-built reference AMIs by Kubernetes version, OS, or AWS region.
-See [clusterawsadm ami list](../clusterawsadm/clusterawsadm_ami_list.md) for details.
+See [clusterawsadm ami list](https://cluster-api-aws.sigs.k8s.io/clusterawsadm/clusterawsadm_ami_list.html) for details.
 
 > **Note:**  These images are not updated for security fixes and it is recommended to always use the latest patch version for the Kubernetes version you want to run. For production environments, it is highly recommended to build and use your own custom images.
 
@@ -11,6 +11,7 @@ See [clusterawsadm ami list](../clusterawsadm/clusterawsadm_ami_list.md) for det
 - Amazon Linux 2 (amazon-2)
 - Ubuntu (ubuntu-20.04, ubuntu-18.04)
 - Centos (centos-7)
+- Flatcar (flatcar-stable)
 
 ## Supported AWS Regions
 - ap-northeast-1
@@ -105,3 +106,7 @@ See [clusterawsadm ami list](../clusterawsadm/clusterawsadm_ami_list.md) for det
   .catch((error) => console.error('Error:', error));
 </script>
 
+If you want to query any other AMI which is not listed in the table, then use below command
+```
+clusterawsadm ami list --kubernetes-version <some-k8s-version> --region <supported-aws-region> --os <supported-os-name>
+```

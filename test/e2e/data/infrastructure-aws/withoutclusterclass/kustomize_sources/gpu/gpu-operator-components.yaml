@@ -1,0 +1,740 @@
+---
+# Source: gpu-operator/templates/resources-namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gpu-operator-resources
+  labels:
+    app.kubernetes.io/component: "gpu-operator"
+    openshift.io/cluster-monitoring: "true"
+---
+# Source: gpu-operator/charts/node-feature-discovery/templates/clusterrole.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gpu-operator-node-feature-discovery
+  namespace: gpu-operator-resources
+  labels:
+    helm.sh/chart: node-feature-discovery-0.10.1
+    app.kubernetes.io/name: node-feature-discovery
+    app.kubernetes.io/instance: gpu-operator
+    app.kubernetes.io/version: "v0.10.1"
+    app.kubernetes.io/managed-by: Helm
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  # when using command line flag --resource-labels to create extended resources
+  # you will need to uncomment "- nodes/status"
+  # - nodes/status
+  verbs:
+  - get
+  - patch
+  - update
+  - list
+---
+# Source: gpu-operator/charts/node-feature-discovery/templates/clusterrolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gpu-operator-node-feature-discovery
+  labels:
+    helm.sh/chart: node-feature-discovery-0.10.1
+    app.kubernetes.io/name: node-feature-discovery
+    app.kubernetes.io/instance: gpu-operator
+    app.kubernetes.io/version: "v0.10.1"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gpu-operator-node-feature-discovery
+subjects:
+- kind: ServiceAccount
+  name: node-feature-discovery
+  namespace: gpu-operator-resources
+---
+# Source: gpu-operator/charts/node-feature-discovery/templates/master.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  gpu-operator-node-feature-discovery-master
+  namespace: gpu-operator-resources
+  labels:
+    helm.sh/chart: node-feature-discovery-0.10.1
+    app.kubernetes.io/name: node-feature-discovery
+    app.kubernetes.io/instance: gpu-operator
+    app.kubernetes.io/version: "v0.10.1"
+    app.kubernetes.io/managed-by: Helm
+    role: master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: node-feature-discovery
+      app.kubernetes.io/instance: gpu-operator
+      role: master
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: node-feature-discovery
+        app.kubernetes.io/instance: gpu-operator
+        role: master
+      annotations:
+        {}
+    spec:
+      serviceAccountName: node-feature-discovery
+      securityContext:
+        {}
+      containers:
+        - name: master
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          image: "k8s.gcr.io/nfd/node-feature-discovery:v0.10.1"
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 8080
+            name: grpc
+            namespace: gpu-operator-resources
+          env:
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          command:
+            - "nfd-master"
+          resources:
+            {}
+          args:
+            - "--extra-label-ns=nvidia.com"
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - preference:
+              matchExpressions:
+              - key: node-role.kubernetes.io/master
+                operator: In
+                values:
+                - ""
+            weight: 1
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+          operator: Equal
+          value: ""
+---
+# Source: gpu-operator/charts/node-feature-discovery/templates/nfd-worker-conf.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nfd-worker-conf
+  namespace: gpu-operator-resources
+  labels:
+    helm.sh/chart: node-feature-discovery-0.10.1
+    app.kubernetes.io/name: node-feature-discovery
+    app.kubernetes.io/instance: gpu-operator
+    app.kubernetes.io/version: "v0.10.1"
+    app.kubernetes.io/managed-by: Helm
+data:
+  nfd-worker.conf: |-
+    sources:
+      pci:
+        deviceClassWhitelist:
+        - "02"
+        - "0200"
+        - "0207"
+        - "0300"
+        - "0302"
+        deviceLabelFields:
+        - vendor
+---
+# Source: gpu-operator/charts/node-feature-discovery/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: gpu-operator-node-feature-discovery-master
+  namespace: gpu-operator-resources
+  labels:
+    helm.sh/chart: node-feature-discovery-0.10.1
+    app.kubernetes.io/name: node-feature-discovery
+    app.kubernetes.io/instance: gpu-operator
+    app.kubernetes.io/version: "v0.10.1"
+    app.kubernetes.io/managed-by: Helm
+    role: master
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+      namespace: gpu-operator-resources
+  selector:
+    app.kubernetes.io/name: node-feature-discovery
+    app.kubernetes.io/instance: gpu-operator
+---
+# Source: gpu-operator/charts/node-feature-discovery/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: node-feature-discovery
+  namespace: gpu-operator-resources
+  labels:
+    helm.sh/chart: node-feature-discovery-0.10.1
+    app.kubernetes.io/name: node-feature-discovery
+    app.kubernetes.io/instance: gpu-operator
+    app.kubernetes.io/version: "v0.10.1"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: gpu-operator/charts/node-feature-discovery/templates/worker.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name:  gpu-operator-node-feature-discovery-worker
+  namespace: gpu-operator-resources
+  labels:
+    helm.sh/chart: node-feature-discovery-0.10.1
+    app.kubernetes.io/name: node-feature-discovery
+    app.kubernetes.io/instance: gpu-operator
+    app.kubernetes.io/version: "v0.10.1"
+    app.kubernetes.io/managed-by: Helm
+    role: worker
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: node-feature-discovery
+      app.kubernetes.io/instance: gpu-operator
+      role: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: node-feature-discovery
+        app.kubernetes.io/instance: gpu-operator
+        role: worker
+      annotations:
+        {}
+    spec:
+      dnsPolicy: ClusterFirstWithHostNet
+      securityContext:
+        {}
+      containers:
+      - name: worker
+        securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+        image: "k8s.gcr.io/nfd/node-feature-discovery:v0.10.1"
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        resources:
+            {}
+        command:
+        - "nfd-worker"
+        args:
+        - "--sleep-interval=60s"
+        - "--server=gpu-operator-node-feature-discovery-master:8080"
+        volumeMounts:
+        - name: host-boot
+          mountPath: "/host-boot"
+          readOnly: true
+        - name: host-os-release
+          mountPath: "/host-etc/os-release"
+          readOnly: true
+        - name: host-sys
+          mountPath: "/host-sys"
+          readOnly: true
+        - name: host-usr-lib
+          mountPath: "/host-usr/lib"
+          readOnly: true
+        - name: source-d
+          mountPath: "/etc/kubernetes/node-feature-discovery/source.d/"
+          readOnly: true
+        - name: features-d
+          mountPath: "/etc/kubernetes/node-feature-discovery/features.d/"
+          readOnly: true
+        - name: nfd-worker-conf
+          mountPath: "/etc/kubernetes/node-feature-discovery"
+          readOnly: true
+      volumes:
+        - name: host-boot
+          hostPath:
+            path: "/boot"
+        - name: host-os-release
+          hostPath:
+            path: "/etc/os-release"
+        - name: host-sys
+          hostPath:
+            path: "/sys"
+        - name: host-usr-lib
+          hostPath:
+            path: "/usr/lib"
+        - name: source-d
+          hostPath:
+            path: "/etc/kubernetes/node-feature-discovery/source.d/"
+        - name: features-d
+          hostPath:
+            path: "/etc/kubernetes/node-feature-discovery/features.d/"
+        - name: nfd-worker-conf
+          configMap:
+            name: nfd-worker-conf
+            namespace: gpu-operator-resources
+            items:
+              - key: nfd-worker.conf
+                path: nfd-worker.conf
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+          operator: Equal
+          value: ""
+        - effect: NoSchedule
+          key: nvidia.com/gpu
+          operator: Equal
+          value: present
+---
+# Source: gpu-operator/templates/clusterpolicy.yaml
+apiVersion: nvidia.com/v1
+kind: ClusterPolicy
+metadata:
+  name: cluster-policy
+  namespace: gpu-operator-resources
+  labels:
+    app.kubernetes.io/component: "gpu-operator"
+
+spec:
+  operator:
+    defaultRuntime: docker
+    runtimeClass: nvidia
+    initContainer:
+      repository: nvcr.io/nvidia
+      image: cuda
+      version: 11.6.1-base-ubi8
+      imagePullPolicy: IfNotPresent
+  daemonsets:
+    tolerations:
+      - effect: NoSchedule
+        key: nvidia.com/gpu
+        operator: Exists
+    priorityClassName: system-node-critical
+  validator:
+    repository: nvcr.io/nvidia/cloud-native
+    image: gpu-operator-validator
+    version: v22.9.1
+    imagePullPolicy: IfNotPresent
+    securityContext:
+      privileged: true
+      seLinuxOptions:
+        level: s0
+    plugin:
+      env:
+        - name: WITH_WORKLOAD
+          value: "false"
+  mig:
+    strategy: single
+  psp:
+    enabled: false
+  driver:
+    enabled: true
+    repository: nvcr.io/nvidia
+    image: driver
+    version: 525.60.13
+    imagePullPolicy: IfNotPresent
+    rdma:
+      enabled: false
+      useHostMofed: false
+    manager:
+      repository: nvcr.io/nvidia/cloud-native
+      image: k8s-driver-manager
+      version: v0.5.1
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: ENABLE_AUTO_DRAIN
+          value: "true"
+        - name: DRAIN_USE_FORCE
+          value: "false"
+        - name: DRAIN_POD_SELECTOR_LABEL
+          value: ""
+        - name: DRAIN_TIMEOUT_SECONDS
+          value: 0s
+        - name: DRAIN_DELETE_EMPTYDIR_DATA
+          value: "false"
+    repoConfig:
+      configMapName: ""
+    certConfig:
+      name: ""
+    licensingConfig:
+      configMapName: ""
+      nlsEnabled: false
+    virtualTopology:
+      config: ""
+    securityContext:
+      privileged: true
+      seLinuxOptions:
+        level: s0
+  toolkit:
+    enabled: true
+    repository: nvcr.io/nvidia/k8s
+    image: container-toolkit
+    version: v1.11.0
+    imagePullPolicy: IfNotPresent
+    securityContext:
+      privileged: true
+      seLinuxOptions:
+        level: s0
+  devicePlugin:
+    repository: nvcr.io/nvidia
+    image: k8s-device-plugin
+    version: v0.13.0
+    imagePullPolicy: IfNotPresent
+    securityContext:
+      privileged: true
+    env:
+      - name: PASS_DEVICE_SPECS
+        value: "true"
+      - name: FAIL_ON_INIT_ERROR
+        value: "true"
+      - name: DEVICE_LIST_STRATEGY
+        value: envvar
+      - name: DEVICE_ID_STRATEGY
+        value: uuid
+      - name: NVIDIA_VISIBLE_DEVICES
+        value: all
+      - name: NVIDIA_DRIVER_CAPABILITIES
+        value: all
+  dcgm:
+    enabled: false
+    repository: nvcr.io/nvidia/cloud-native
+    image: dcgm
+    version: 3.1.3-1-ubuntu20.04
+    imagePullPolicy: IfNotPresent
+    hostPort: 5555
+  dcgmExporter:
+    repository: nvcr.io/nvidia/k8s
+    image: dcgm-exporter
+    version: 3.1.3-3.1.2-ubuntu20.04
+    imagePullPolicy: IfNotPresent
+    env:
+      - name: DCGM_EXPORTER_LISTEN
+        value: :9400
+      - name: DCGM_EXPORTER_KUBERNETES
+        value: "true"
+      - name: DCGM_EXPORTER_COLLECTORS
+        value: /etc/dcgm-exporter/dcp-metrics-included.csv
+  gfd:
+    repository: nvcr.io/nvidia
+    image: gpu-feature-discovery
+    version: v0.7.0
+    imagePullPolicy: IfNotPresent
+    env:
+      - name: GFD_SLEEP_INTERVAL
+        value: 60s
+      - name: GFD_FAIL_ON_INIT_ERROR
+        value: "true"
+  migManager:
+    enabled: true
+    repository: nvcr.io/nvidia/cloud-native
+    image: k8s-mig-manager
+    version: v0.5.0
+    imagePullPolicy: IfNotPresent
+    securityContext:
+      privileged: true
+    env:
+      - name: WITH_REBOOT
+        value: "false"
+    config:
+      name: ""
+    gpuClientsConfig:
+      name: ""
+  nodeStatusExporter:
+    enabled: false
+    repository: nvcr.io/nvidia/cloud-native
+    image: gpu-operator-validator
+    version: v22.9.1
+    imagePullPolicy: IfNotPresent
+---
+# Source: gpu-operator/templates/operator.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-operator
+  namespace: gpu-operator-resources
+  labels:
+    app.kubernetes.io/component: "gpu-operator"
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+
+      app.kubernetes.io/component: "gpu-operator"
+      app: "gpu-operator"
+  template:
+    metadata:
+      labels:
+
+        app.kubernetes.io/component: "gpu-operator"
+        app: "gpu-operator"
+      annotations:
+        openshift.io/scc: restricted-readonly
+    spec:
+      serviceAccountName: gpu-operator
+      priorityClassName: system-node-critical
+      containers:
+      - name: gpu-operator
+        image: nvcr.io/nvidia/gpu-operator:v22.9.1
+        imagePullPolicy: IfNotPresent
+        command: ["gpu-operator"]
+        args:
+        - --leader-elect
+        env:
+        - name: WATCH_NAMESPACE
+          value: ""
+        - name: OPERATOR_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        volumeMounts:
+          - name: host-os-release
+            mountPath: "/host-etc/os-release"
+            readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 350Mi
+          requests:
+            cpu: 200m
+            memory: 100Mi
+        ports:
+          - name: metrics
+            containerPort: 8080
+      volumes:
+        - name: host-os-release
+          hostPath:
+            path: "/etc/os-release"
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - preference:
+              matchExpressions:
+              - key: node-role.kubernetes.io/master
+                operator: In
+                values:
+                - ""
+            weight: 1
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+          operator: Equal
+          value: ""
+---
+# Source: gpu-operator/templates/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: gpu-operator
+  namespace: gpu-operator-resources
+  labels:
+    app.kubernetes.io/component: "gpu-operator"
+
+rules:
+- apiGroups:
+  - config.openshift.io
+  resources:
+  - proxies
+  verbs:
+  - get
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  - rolebindings
+  - clusterroles
+  - clusterrolebindings
+  verbs:
+  - '*'
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - services
+  - endpoints
+  - persistentvolumeclaims
+  - events
+  - configmaps
+  - secrets
+  - serviceaccounts
+  - nodes
+  verbs:
+  - '*'
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - create
+  - watch
+  - update
+  - patch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - daemonsets
+  - replicasets
+  - statefulsets
+  verbs:
+  - '*'
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - servicemonitors
+  - prometheusrules
+  verbs:
+  - get
+  - list
+  - create
+  - watch
+  - update
+  - delete
+- apiGroups:
+  - nvidia.com
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - scheduling.k8s.io
+  resources:
+  - priorityclasses
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+- apiGroups:
+  - security.openshift.io
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - '*'
+- apiGroups:
+  - policy
+  resources:
+  - podsecuritypolicies
+  verbs:
+  - use
+  resourceNames:
+  - gpu-operator-restricted
+- apiGroups:
+  - policy
+  resources:
+  - podsecuritypolicies
+  verbs:
+  - create
+  - get
+  - update
+  - list
+  - delete
+- apiGroups:
+  - config.openshift.io
+  resources:
+  - clusterversions
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  - coordination.k8s.io
+  resources:
+  - configmaps
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - node.k8s.io
+  resources:
+  - runtimeclasses
+  verbs:
+  - get
+  - list
+  - create
+  - update
+  - watch
+- apiGroups:
+  - image.openshift.io
+  resources:
+  - imagestreams
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - get
+  - list
+  - watch
+---
+# Source: gpu-operator/templates/rolebinding.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: gpu-operator
+  labels:
+    app.kubernetes.io/component: "gpu-operator"
+
+subjects:
+- kind: ServiceAccount
+  name: gpu-operator
+  namespace: gpu-operator-resources
+- kind: ServiceAccount
+  name: node-feature-discovery
+  namespace: gpu-operator-resources
+roleRef:
+  kind: ClusterRole
+  name: gpu-operator
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: gpu-operator/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gpu-operator
+  namespace: gpu-operator-resources
+  labels:
+    app.kubernetes.io/component: "gpu-operator"

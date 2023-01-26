@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,22 +25,23 @@ import (
 
 // Error singletons for AWS errors.
 const (
-	AssociationIDNotFound      = "InvalidAssociationID.NotFound"
-	AuthFailure                = "AuthFailure"
-	BucketAlreadyOwnedByYou    = "BucketAlreadyOwnedByYou"
-	EIPNotFound                = "InvalidElasticIpID.NotFound"
-	GatewayNotFound            = "InvalidGatewayID.NotFound"
-	GroupNotFound              = "InvalidGroup.NotFound"
-	InternetGatewayNotFound    = "InvalidInternetGatewayID.NotFound"
-	InUseIPAddress             = "InvalidIPAddress.InUse"
-	InvalidAccessKeyID         = "InvalidAccessKeyId"
-	InvalidClientTokenID       = "InvalidClientTokenId"
-	InvalidInstanceID          = "InvalidInstanceID.NotFound"
-	InvalidSubnet              = "InvalidSubnet"
-	LaunchTemplateNameNotFound = "InvalidLaunchTemplateName.NotFoundException"
-	LoadBalancerNotFound       = "LoadBalancerNotFound"
-	NATGatewayNotFound         = "InvalidNatGatewayID.NotFound"
-	// nolint:gosec
+	AssociationIDNotFound             = "InvalidAssociationID.NotFound"
+	AuthFailure                       = "AuthFailure"
+	BucketAlreadyOwnedByYou           = "BucketAlreadyOwnedByYou"
+	EIPNotFound                       = "InvalidElasticIpID.NotFound"
+	GatewayNotFound                   = "InvalidGatewayID.NotFound"
+	GroupNotFound                     = "InvalidGroup.NotFound"
+	InternetGatewayNotFound           = "InvalidInternetGatewayID.NotFound"
+	EgressOnlyInternetGatewayNotFound = "InvalidEgressOnlyInternetGatewayID.NotFound"
+	InUseIPAddress                    = "InvalidIPAddress.InUse"
+	InvalidAccessKeyID                = "InvalidAccessKeyId"
+	InvalidClientTokenID              = "InvalidClientTokenId"
+	InvalidInstanceID                 = "InvalidInstanceID.NotFound"
+	InvalidSubnet                     = "InvalidSubnet"
+	LaunchTemplateNameNotFound        = "InvalidLaunchTemplateName.NotFoundException"
+	LoadBalancerNotFound              = "LoadBalancerNotFound"
+	NATGatewayNotFound                = "InvalidNatGatewayID.NotFound"
+	//nolint:gosec
 	NoCredentialProviders                   = "NoCredentialProviders"
 	NoSuchKey                               = "NoSuchKey"
 	PermissionNotFound                      = "InvalidPermission.NotFound"
@@ -50,6 +51,7 @@ const (
 	SubnetNotFound                          = "InvalidSubnetID.NotFound"
 	UnrecognizedClientException             = "UnrecognizedClientException"
 	VPCNotFound                             = "InvalidVpcID.NotFound"
+	VPCMissingParameter                     = "MissingParameter"
 	ErrCodeRepositoryAlreadyExistsException = "RepositoryAlreadyExistsException"
 )
 

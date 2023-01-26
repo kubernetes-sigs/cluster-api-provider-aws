@@ -1,0 +1,79 @@
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: "${CLUSTER_NAME}"
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: ["192.168.0.0/16"]
+  infrastructureRef:
+    kind: AWSManagedCluster
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    name: "${CLUSTER_NAME}"
+  controlPlaneRef:
+    kind: AWSManagedControlPlane
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+    name: "${CLUSTER_NAME}-control-plane"
+---
+kind: AWSManagedCluster
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+metadata:
+  name: "${CLUSTER_NAME}"
+spec: {}
+---
+kind: AWSManagedControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  vpcCni:
+    env:
+      - name: ENABLE_PREFIX_DELEGATION
+        value: "true"
+      - name: ENABLE_IPV6
+        value: "true"
+      - name: ENABLE_IPV4
+        value: "false"
+  network:
+    vpc:
+      ipv6: {}
+  region: "${AWS_REGION}"
+  sshKeyName: "${AWS_SSH_KEY_NAME}"
+  version: "${KUBERNETES_VERSION}"
+  addons:
+    - name: "vpc-cni"
+      version: "${VPC_ADDON_VERSION}"
+      conflictResolution: "overwrite"
+    - name: "coredns"
+      version: "${COREDNS_ADDON_VERSION}"
+      conflictResolution: "overwrite"
+    - name: "kube-proxy"
+      version: "${KUBE_PROXY_ADDON_VERSION}"
+      conflictResolution: "overwrite"
+  identityRef:
+    kind: AWSClusterStaticIdentity
+    name: e2e-account
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachinePool
+metadata:
+  name: "${CLUSTER_NAME}-pool-0"
+spec:
+  clusterName: "${CLUSTER_NAME}"
+  replicas: ${WORKER_MACHINE_COUNT}
+  template:
+    spec:
+      clusterName: "${CLUSTER_NAME}"
+      bootstrap:
+        dataSecretName: ""
+      infrastructureRef:
+        name: "${CLUSTER_NAME}-pool-0"
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        kind: AWSManagedMachinePool
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSManagedMachinePool
+metadata:
+  name: "${CLUSTER_NAME}-pool-0"
+spec: {}

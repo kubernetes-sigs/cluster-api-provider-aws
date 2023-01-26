@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,21 +29,22 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	"k8s.io/utils/pointer"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
-	awslogs "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/logs"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
+	awslogs "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/logs"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
 // GetRunningInstanceByTags returns the existing instance or nothing if it doesn't exist.
 func (s *Service) GetRunningInstanceByTags(scope *scope.MachineScope) (*infrav1.Instance, error) {
-	s.scope.V(2).Info("Looking for existing machine instance by tags")
+	s.scope.Debug("Looking for existing machine instance by tags")
 
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
@@ -83,7 +84,7 @@ func (s *Service) InstanceIfExists(id *string) (*infrav1.Instance, error) {
 		return nil, nil
 	}
 
-	s.scope.V(2).Info("Looking for instance by id", "instance-id", *id)
+	s.scope.Debug("Looking for instance by id", "instance-id", *id)
 
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{id},
@@ -109,31 +110,32 @@ func (s *Service) InstanceIfExists(id *string) (*infrav1.Instance, error) {
 }
 
 // CreateInstance runs an ec2 instance.
-func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*infrav1.Instance, error) {
-	s.scope.V(2).Info("Creating an instance for a machine")
+//
+//nolint:gocyclo // this function has multiple processes to perform
+func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, userDataFormat string) (*infrav1.Instance, error) {
+	s.scope.Debug("Creating an instance for a machine")
 
 	input := &infrav1.Instance{
 		Type:              scope.AWSMachine.Spec.InstanceType,
 		IAMProfile:        scope.AWSMachine.Spec.IAMInstanceProfile,
-		RootVolume:        scope.AWSMachine.Spec.RootVolume,
+		RootVolume:        scope.AWSMachine.Spec.RootVolume.DeepCopy(),
 		NonRootVolumes:    scope.AWSMachine.Spec.NonRootVolumes,
 		NetworkInterfaces: scope.AWSMachine.Spec.NetworkInterfaces,
 	}
 
 	// Make sure to use the MachineScope here to get the merger of AWSCluster and AWSMachine tags
 	additionalTags := scope.AdditionalTags()
-
 	input.Tags = infrav1.Build(infrav1.BuildParams{
-		ClusterName: s.scope.Name(),
+		ClusterName: s.scope.KubernetesClusterName(),
 		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(scope.Name()),
 		Role:        aws.String(scope.Role()),
 		Additional:  additionalTags,
-	}.WithCloudProvider(s.scope.Name()).WithMachineName(scope.Machine))
+	}.WithCloudProvider(s.scope.KubernetesClusterName()).WithMachineName(scope.Machine))
 
 	var err error
 	// Pick image from the machine configuration, or use a default one.
-	if scope.AWSMachine.Spec.AMI.ID != nil { // nolint:nestif
+	if scope.AWSMachine.Spec.AMI.ID != nil { //nolint:nestif
 		input.ImageID = *scope.AWSMachine.Spec.AMI.ID
 	} else {
 		if scope.Machine.Spec.Version == nil {
@@ -182,7 +184,8 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 
 		return nil, awserrors.NewFailedDependency("failed to run controlplane, APIServer ELB not available")
 	}
-	if !scope.UserDataIsUncompressed() {
+
+	if scope.CompressUserData(userDataFormat) {
 		userData, err = userdata.GzipBytes(userData)
 		if err != nil {
 			return nil, errors.New("failed to gzip userdata")
@@ -228,7 +231,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 
 	input.Tenancy = scope.AWSMachine.Spec.Tenancy
 
-	s.scope.V(2).Info("Running instance", "machine-role", scope.Role())
+	s.scope.Debug("Running instance", "machine-role", scope.Role())
 	out, err := s.runInstance(scope.Role(), input)
 	if err != nil {
 		// Only record the failure event if the error is not related to failed dependencies.
@@ -241,9 +244,30 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 
 	if len(input.NetworkInterfaces) > 0 {
 		for _, id := range input.NetworkInterfaces {
-			s.scope.V(2).Info("Attaching security groups to provided network interface", "groups", input.SecurityGroupIDs, "interface", id)
+			s.scope.Debug("Attaching security groups to provided network interface", "groups", input.SecurityGroupIDs, "interface", id)
 			if err := s.attachSecurityGroupsToNetworkInterface(input.SecurityGroupIDs, id); err != nil {
 				return nil, err
+			}
+		}
+	}
+
+	s.scope.Debug("Adding tags on each network interface from resource", "resource-id", out.ID)
+
+	// Fetching the network interfaces attached to the specific instanace
+	networkInterfaces, err := s.getInstanceENIs(out.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	s.scope.Debug("Fetched the network interfaces")
+
+	// Once all the network interfaces attached to the specific instanace are found, the similar tags of instance are created for network interfaces too
+	if len(networkInterfaces) > 0 {
+		s.scope.Debug("Attempting to create tags from resource", "resource-id", out.ID)
+		for _, networkInterface := range networkInterfaces {
+			// Create/Update tags in AWS.
+			if err := s.UpdateResourceTags(networkInterface.NetworkInterfaceId, out.Tags, nil); err != nil {
+				return nil, errors.Wrapf(err, "failed to create tags for resource %q: ", *networkInterface.NetworkInterfaceId)
 			}
 		}
 	}
@@ -260,61 +284,60 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 	// Check Machine.Spec.FailureDomain first as it's used by KubeadmControlPlane to spread machines across failure domains.
 	failureDomain := scope.Machine.Spec.FailureDomain
-	if failureDomain == nil {
-		failureDomain = scope.AWSMachine.Spec.FailureDomain
-	}
+
+	// We basically have 2 sources for subnets:
+	//   1. If subnet.id or subnet.filters are specified, we directly query AWS
+	//   2. All other cases use the subnets provided in the cluster network spec without ever calling AWS
 
 	switch {
-	case scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.ID != nil:
-		subnet := s.scope.Subnets().FindByID(*scope.AWSMachine.Spec.Subnet.ID)
-		if subnet == nil {
-			errMessage := fmt.Sprintf("failed to run machine %q, subnet with id %q not found",
-				scope.Name(), aws.StringValue(scope.AWSMachine.Spec.Subnet.ID))
-			record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
-			return "", awserrors.NewFailedDependency(errMessage)
-		}
-		if scope.AWSMachine.Spec.PublicIP != nil && *scope.AWSMachine.Spec.PublicIP {
-			if !subnet.IsPublic {
-				errMessage := fmt.Sprintf("failed to run machine %q with public IP, a specified subnet %q is a private subnet",
-					scope.Name(), aws.StringValue(scope.AWSMachine.Spec.Subnet.ID))
-				record.Eventf(scope.AWSMachine, "FailedCreate", errMessage)
-				return "", awserrors.NewFailedDependency(errMessage)
-			}
-		}
-		if failureDomain != nil && subnet.AvailabilityZone != *failureDomain {
-			errMessage := fmt.Sprintf("failed to run machine %q, subnet's availability zone %q does not match with the failure domain %q",
-				scope.Name(), subnet.AvailabilityZone, *failureDomain)
-			record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
-			return "", awserrors.NewFailedDependency(errMessage)
-		}
-		return subnet.ID, nil
-	case scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.Filters != nil:
+	case scope.AWSMachine.Spec.Subnet != nil && (scope.AWSMachine.Spec.Subnet.ID != nil || scope.AWSMachine.Spec.Subnet.Filters != nil):
 		criteria := []*ec2.Filter{
 			filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
 		}
 		if !scope.IsExternallyManaged() {
 			criteria = append(criteria, filter.EC2.VPC(s.scope.VPC().ID))
 		}
-		if failureDomain != nil {
-			criteria = append(criteria, filter.EC2.AvailabilityZone(*failureDomain))
-		}
-		if scope.AWSMachine.Spec.PublicIP != nil && *scope.AWSMachine.Spec.PublicIP {
-			criteria = append(criteria, &ec2.Filter{Name: aws.String("map-public-ip-on-launch"), Values: aws.StringSlice([]string{"true"})})
+		if scope.AWSMachine.Spec.Subnet.ID != nil {
+			criteria = append(criteria, &ec2.Filter{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{*scope.AWSMachine.Spec.Subnet.ID})})
 		}
 		for _, f := range scope.AWSMachine.Spec.Subnet.Filters {
 			criteria = append(criteria, &ec2.Filter{Name: aws.String(f.Name), Values: aws.StringSlice(f.Values)})
 		}
+
 		subnets, err := s.getFilteredSubnets(criteria...)
 		if err != nil {
 			return "", errors.Wrapf(err, "failed to filter subnets for criteria %q", criteria)
 		}
 		if len(subnets) == 0 {
-			errMessage := fmt.Sprintf("failed to run machine %q, no subnets available matching filters %q",
-				scope.Name(), scope.AWSMachine.Spec.Subnet.Filters)
+			errMessage := fmt.Sprintf("failed to run machine %q, no subnets available matching criteria %q",
+				scope.Name(), criteria)
 			record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
 			return "", awserrors.NewFailedDependency(errMessage)
 		}
-		return *subnets[0].SubnetId, nil
+
+		var filtered []*ec2.Subnet
+		var errMessage string
+		for _, subnet := range subnets {
+			if failureDomain != nil && *subnet.AvailabilityZone != *failureDomain {
+				// we could have included the failure domain in the query criteria, but then we end up with EC2 error
+				// messages that don't give a good hint about what is really wrong
+				errMessage += fmt.Sprintf(" subnet %q availability zone %q does not match failure domain %q.",
+					*subnet.SubnetId, *subnet.AvailabilityZone, *failureDomain)
+				continue
+			}
+			if scope.AWSMachine.Spec.PublicIP != nil && *scope.AWSMachine.Spec.PublicIP && !*subnet.MapPublicIpOnLaunch {
+				errMessage += fmt.Sprintf(" subnet %q is a private subnet.", *subnet.SubnetId)
+				continue
+			}
+			filtered = append(filtered, subnet)
+		}
+		if len(filtered) == 0 {
+			errMessage = fmt.Sprintf("failed to run machine %q, found %d subnets matching criteria but post-filtering failed.",
+				scope.Name(), len(subnets)) + errMessage
+			record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
+			return "", awserrors.NewFailedDependency(errMessage)
+		}
+		return *filtered[0].SubnetId, nil
 	case failureDomain != nil:
 		if scope.AWSMachine.Spec.PublicIP != nil && *scope.AWSMachine.Spec.PublicIP {
 			subnets := s.scope.Subnets().FilterPublic().FilterByZone(*failureDomain)
@@ -406,7 +429,7 @@ func (s *Service) GetCoreSecurityGroups(scope *scope.MachineScope) ([]string, er
 
 // GetCoreNodeSecurityGroups looks up the security group IDs managed by this actuator
 // They are considered "core" to its proper functioning.
-func (s *Service) GetCoreNodeSecurityGroups(scope *scope.MachinePoolScope) ([]string, error) {
+func (s *Service) GetCoreNodeSecurityGroups(scope scope.LaunchTemplateScope) ([]string, error) {
 	// These are common across both controlplane and node machines
 	sgRoles := []infrav1.SecurityGroupRole{
 		infrav1.SecurityGroupNode,
@@ -433,7 +456,7 @@ func (s *Service) GetCoreNodeSecurityGroups(scope *scope.MachinePoolScope) ([]st
 // TerminateInstance terminates an EC2 instance.
 // Returns nil on success, error in all other cases.
 func (s *Service) TerminateInstance(instanceID string) error {
-	s.scope.V(2).Info("Attempting to terminate instance", "instance-id", instanceID)
+	s.scope.Debug("Attempting to terminate instance", "instance-id", instanceID)
 
 	input := &ec2.TerminateInstancesInput{
 		InstanceIds: aws.StringSlice([]string{instanceID}),
@@ -443,7 +466,7 @@ func (s *Service) TerminateInstance(instanceID string) error {
 		return errors.Wrapf(err, "failed to terminate instance with id %q", instanceID)
 	}
 
-	s.scope.V(2).Info("Terminated instance", "instance-id", instanceID)
+	s.scope.Debug("Terminated instance", "instance-id", instanceID)
 	return nil
 }
 
@@ -454,7 +477,7 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 		return err
 	}
 
-	s.scope.V(2).Info("Waiting for EC2 instance to terminate", "instance-id", instanceID)
+	s.scope.Debug("Waiting for EC2 instance to terminate", "instance-id", instanceID)
 
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: aws.StringSlice([]string{instanceID}),
@@ -478,7 +501,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		UserData:     i.UserData,
 	}
 
-	s.scope.V(2).Info("userData size", "bytes", len(*i.UserData), "role", role)
+	s.scope.Debug("userData size", "bytes", len(*i.UserData), "role", role)
 
 	if len(i.NetworkInterfaces) > 0 {
 		netInterfaces := make([]*ec2.InstanceNetworkInterfaceSpecification, 0, len(i.NetworkInterfaces))
@@ -569,16 +592,16 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 	}
 
 	waitTimeout := 1 * time.Minute
-	s.scope.V(2).Info("Waiting for instance to be in running state", "instance-id", *out.Instances[0].InstanceId, "timeout", waitTimeout.String())
+	s.scope.Debug("Waiting for instance to be in running state", "instance-id", *out.Instances[0].InstanceId, "timeout", waitTimeout.String())
 	ctx, cancel := context.WithTimeout(aws.BackgroundContext(), waitTimeout)
 	defer cancel()
 
 	if err := s.EC2Client.WaitUntilInstanceRunningWithContext(
 		ctx,
 		&ec2.DescribeInstancesInput{InstanceIds: []*string{out.Instances[0].InstanceId}},
-		request.WithWaiterLogger(awslogs.NewWrapLogr(s.scope)),
+		request.WithWaiterLogger(awslogs.NewWrapLogr(s.scope.GetLogger())),
 	); err != nil {
-		s.scope.V(2).Info("Could not determine if Machine is running. Machine state might be unavailable until next renconciliation.")
+		s.scope.Debug("Could not determine if Machine is running. Machine state might be unavailable until next renconciliation.")
 	}
 
 	return s.SDKToInstance(out.Instances[0])
@@ -636,14 +659,14 @@ func (s *Service) GetInstanceSecurityGroups(instanceID string) (map[string][]str
 // UpdateInstanceSecurityGroups modifies the security groups of the given
 // EC2 instance.
 func (s *Service) UpdateInstanceSecurityGroups(instanceID string, ids []string) error {
-	s.scope.V(2).Info("Attempting to update security groups on instance", "instance-id", instanceID)
+	s.scope.Debug("Attempting to update security groups on instance", "instance-id", instanceID)
 
 	enis, err := s.getInstanceENIs(instanceID)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get ENIs for instance %q", instanceID)
 	}
 
-	s.scope.V(3).Info("Found ENIs on instance", "number-of-enis", len(enis), "instance-id", instanceID)
+	s.scope.Debug("Found ENIs on instance", "number-of-enis", len(enis), "instance-id", instanceID)
 
 	for _, eni := range enis {
 		if err := s.attachSecurityGroupsToNetworkInterface(ids, aws.StringValue(eni.NetworkInterfaceId)); err != nil {
@@ -659,11 +682,11 @@ func (s *Service) UpdateInstanceSecurityGroups(instanceID string, ids []string) 
 // We may not always have to perform each action, so we check what we're
 // receiving to avoid calling AWS if we don't need to.
 func (s *Service) UpdateResourceTags(resourceID *string, create, remove map[string]string) error {
-	s.scope.V(2).Info("Attempting to update tags on resource", "resource-id", *resourceID)
+	s.scope.Debug("Attempting to update tags on resource", "resource-id", *resourceID)
 
 	// If we have anything to create or update
 	if len(create) > 0 {
-		s.scope.V(2).Info("Attempting to create tags on resource", "resource-id", *resourceID)
+		s.scope.Debug("Attempting to create tags on resource", "resource-id", *resourceID)
 
 		// Convert our create map into an array of *ec2.Tag
 		createTagsInput := converters.MapToTags(create)
@@ -682,7 +705,7 @@ func (s *Service) UpdateResourceTags(resourceID *string, create, remove map[stri
 
 	// If we have anything to remove
 	if len(remove) > 0 {
-		s.scope.V(2).Info("Attempting to delete tags on resource", "resource-id", *resourceID)
+		s.scope.Debug("Attempting to delete tags on resource", "resource-id", *resourceID)
 
 		// Convert our remove map into an array of *ec2.Tag
 		removeTagsInput := converters.MapToTags(remove)
@@ -986,27 +1009,4 @@ func getInstanceMarketOptionsRequest(spotMarketOptions *infrav1.SpotMarketOption
 	instanceMarketOptionsRequest.SetSpotOptions(spotOptions)
 
 	return instanceMarketOptionsRequest
-}
-
-// GetFilteredSecurityGroupID get security group ID using filters.
-func (s *Service) GetFilteredSecurityGroupID(securityGroup infrav1.AWSResourceReference) (string, error) {
-	if securityGroup.Filters == nil {
-		return "", nil
-	}
-
-	filters := []*ec2.Filter{}
-	for _, f := range securityGroup.Filters {
-		filters = append(filters, &ec2.Filter{Name: aws.String(f.Name), Values: aws.StringSlice(f.Values)})
-	}
-
-	sgs, err := s.EC2Client.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{Filters: filters})
-	if err != nil {
-		return "", err
-	}
-
-	if len(sgs.SecurityGroups) == 0 {
-		return "", fmt.Errorf("failed to find security group matching filters: %q, reason: %w", filters, err)
-	}
-
-	return *sgs.SecurityGroups[0].GroupId, nil
 }

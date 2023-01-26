@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,8 +22,8 @@ import (
 	"github.com/awslabs/goformation/v4/cloudformation"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 )
 
 const (
@@ -81,12 +81,19 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 			Effect:   iamv1.EffectAllow,
 			Resource: iamv1.Resources{iamv1.Any},
 			Action: iamv1.Actions{
+				"ec2:AttachNetworkInterface",
+				"ec2:DetachNetworkInterface",
 				"ec2:AllocateAddress",
+				"ec2:AssignIpv6Addresses",
+				"ec2:AssignPrivateIpAddresses",
+				"ec2:UnassignPrivateIpAddresses",
 				"ec2:AssociateRouteTable",
 				"ec2:AttachInternetGateway",
 				"ec2:AuthorizeSecurityGroupIngress",
 				"ec2:CreateInternetGateway",
+				"ec2:CreateEgressOnlyInternetGateway",
 				"ec2:CreateNatGateway",
+				"ec2:CreateNetworkInterface",
 				"ec2:CreateRoute",
 				"ec2:CreateRouteTable",
 				"ec2:CreateSecurityGroup",
@@ -95,8 +102,10 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"ec2:CreateVpc",
 				"ec2:ModifyVpcAttribute",
 				"ec2:DeleteInternetGateway",
+				"ec2:DeleteEgressOnlyInternetGateway",
 				"ec2:DeleteNatGateway",
 				"ec2:DeleteRouteTable",
+				"ec2:ReplaceRoute",
 				"ec2:DeleteSecurityGroup",
 				"ec2:DeleteSubnet",
 				"ec2:DeleteTags",
@@ -106,6 +115,8 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"ec2:DescribeAvailabilityZones",
 				"ec2:DescribeInstances",
 				"ec2:DescribeInternetGateways",
+				"ec2:DescribeEgressOnlyInternetGateways",
+				"ec2:DescribeInstanceTypes",
 				"ec2:DescribeImages",
 				"ec2:DescribeNatGateways",
 				"ec2:DescribeNetworkInterfaces",
@@ -116,6 +127,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"ec2:DescribeVpcs",
 				"ec2:DescribeVpcAttribute",
 				"ec2:DescribeVolumes",
+				"ec2:DescribeTags",
 				"ec2:DetachInternetGateway",
 				"ec2:DisassociateRouteTable",
 				"ec2:DisassociateAddress",
@@ -131,6 +143,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"elasticloadbalancing:CreateLoadBalancer",
 				"elasticloadbalancing:ConfigureHealthCheck",
 				"elasticloadbalancing:DeleteLoadBalancer",
+				"elasticloadbalancing:DeleteTargetGroup",
 				"elasticloadbalancing:DescribeLoadBalancers",
 				"elasticloadbalancing:DescribeLoadBalancerAttributes",
 				"elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
@@ -236,6 +249,21 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 			})
 		}
 	}
+	if t.Spec.S3Buckets.Enable {
+		statement = append(statement, iamv1.StatementEntry{
+			Effect: iamv1.EffectAllow,
+			Resource: iamv1.Resources{
+				fmt.Sprintf("arn:*:s3:::%s*", t.Spec.S3Buckets.NamePrefix),
+			},
+			Action: iamv1.Actions{
+				"s3:CreateBucket",
+				"s3:DeleteBucket",
+				"s3:PutObject",
+				"s3:DeleteObject",
+				"s3:PutBucketPolicy",
+			},
+		})
+	}
 	if t.Spec.EventBridge.Enable {
 		statement = append(statement, iamv1.StatementEntry{
 			Effect:   iamv1.EffectAllow,
@@ -314,7 +342,7 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 			"iam:CreateServiceLinkedRole",
 		},
 		Resource: iamv1.Resources{
-			"arn:aws:iam::*:role/aws-service-role/eks-fargate-pods.amazonaws.com/AWSServiceRoleForAmazonEKSForFargate",
+			"arn:" + t.Spec.Partition + ":iam::*:role/aws-service-role/eks-fargate-pods.amazonaws.com/AWSServiceRoleForAmazonEKSForFargate",
 		},
 		Condition: iamv1.Conditions{
 			iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks-fargate.amazonaws.com"},
@@ -333,6 +361,7 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 		statement = append(statement, iamv1.StatementEntry{
 			Action: iamv1.Actions{
 				"iam:ListOpenIDConnectProviders",
+				"iam:GetOpenIDConnectProvider",
 				"iam:CreateOpenIDConnectProvider",
 				"iam:AddClientIDToOpenIDConnectProvider",
 				"iam:UpdateOpenIDConnectProviderThumbprint",
@@ -387,6 +416,8 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 			Effect: iamv1.EffectAllow,
 		}, {
 			Action: iamv1.Actions{
+				"ec2:AssociateVpcCidrBlock",
+				"ec2:DisassociateVpcCidrBlock",
 				"eks:ListAddons",
 				"eks:CreateAddon",
 				"eks:DescribeAddonVersions",

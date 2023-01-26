@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,21 +19,23 @@ package network
 import (
 	"fmt"
 	"math/rand"
+	"net"
 	"sort"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/internal/cidr"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/internal/cidr"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -176,7 +178,7 @@ func (s *Service) reconcileSubnets() error {
 		}
 	}
 
-	s.scope.V(2).Info("reconciled subnets", "subnets", subnets)
+	s.scope.Debug("reconciled subnets", "subnets", subnets)
 	conditions.MarkTrue(s.scope.InfraCluster(), infrav1.SubnetsReadyCondition)
 	return nil
 }
@@ -197,7 +199,7 @@ func (s *Service) getDefaultSubnets() (infrav1.Subnets, error) {
 	}
 
 	if len(zones) > maxZones {
-		s.scope.V(2).Info("region has more than AvailabilityZoneUsageLimit availability zones, picking zones to use", "region", s.scope.Region(), "AvailabilityZoneUsageLimit", maxZones)
+		s.scope.Debug("region has more than AvailabilityZoneUsageLimit availability zones, picking zones to use", "region", s.scope.Region(), "AvailabilityZoneUsageLimit", maxZones)
 		if selectionScheme == infrav1.AZSelectionSchemeRandom {
 			rand.Shuffle(len(zones), func(i, j int) {
 				zones[i], zones[j] = zones[j], zones[i]
@@ -207,34 +209,66 @@ func (s *Service) getDefaultSubnets() (infrav1.Subnets, error) {
 			sort.Strings(zones)
 		}
 		zones = zones[:maxZones]
-		s.scope.V(2).Info("zones selected", "region", s.scope.Region(), "zones", zones)
+		s.scope.Debug("zones selected", "region", s.scope.Region(), "zones", zones)
 	}
 
 	// 1 private subnet for each AZ plus 1 other subnet that will be further sub-divided for the public subnets
+	// All subnets will have an ipv4 address for now as well. We aren't supporting ipv6-only yet.
 	numSubnets := len(zones) + 1
-	subnetCIDRs, err := cidr.SplitIntoSubnetsIPv4(s.scope.VPC().CidrBlock, numSubnets)
+	var (
+		subnetCIDRs            []*net.IPNet
+		publicSubnetCIDRs      []*net.IPNet
+		ipv6SubnetCIDRs        []*net.IPNet
+		publicIPv6SubnetCIDRs  []*net.IPNet
+		privateIPv6SubnetCIDRs []*net.IPNet
+	)
+	subnetCIDRs, err = cidr.SplitIntoSubnetsIPv4(s.scope.VPC().CidrBlock, numSubnets)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed splitting VPC CIDR %s into subnets", s.scope.VPC().CidrBlock)
+		return nil, errors.Wrapf(err, "failed splitting VPC CIDR %q into subnets", s.scope.VPC().CidrBlock)
 	}
 
-	publicSubnetCIDRs, err := cidr.SplitIntoSubnetsIPv4(subnetCIDRs[0].String(), len(zones))
+	publicSubnetCIDRs, err = cidr.SplitIntoSubnetsIPv4(subnetCIDRs[0].String(), len(zones))
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed splitting CIDR %s into public subnets", subnetCIDRs[0].String())
+		return nil, errors.Wrapf(err, "failed splitting CIDR %q into public subnets", subnetCIDRs[0].String())
 	}
 	privateSubnetCIDRs := append(subnetCIDRs[:0], subnetCIDRs[1:]...)
 
+	if s.scope.VPC().IsIPv6Enabled() {
+		ipv6SubnetCIDRs, err = cidr.SplitIntoSubnetsIPv6(s.scope.VPC().IPv6.CidrBlock, numSubnets)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed splitting IPv6 VPC CIDR %q into subnets", s.scope.VPC().IPv6.CidrBlock)
+		}
+
+		// We need to take the last, so it doesn't conflict with the rest. The subnetID is increment each time by 1.
+		publicIPv6SubnetCIDRs, err = cidr.SplitIntoSubnetsIPv6(ipv6SubnetCIDRs[len(ipv6SubnetCIDRs)-1].String(), len(zones))
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed splitting IPv6 CIDR %q into public subnets", ipv6SubnetCIDRs[len(ipv6SubnetCIDRs)-1].String())
+		}
+		// TODO: this might need to be the last instead of the first..
+		privateIPv6SubnetCIDRs = append(ipv6SubnetCIDRs[:0], ipv6SubnetCIDRs[1:]...)
+	}
+
 	subnets := infrav1.Subnets{}
 	for i, zone := range zones {
-		subnets = append(subnets, infrav1.SubnetSpec{
+		publicSubnet := infrav1.SubnetSpec{
 			CidrBlock:        publicSubnetCIDRs[i].String(),
 			AvailabilityZone: zone,
 			IsPublic:         true,
-		})
-		subnets = append(subnets, infrav1.SubnetSpec{
+		}
+		privateSubnet := infrav1.SubnetSpec{
 			CidrBlock:        privateSubnetCIDRs[i].String(),
 			AvailabilityZone: zone,
 			IsPublic:         false,
-		})
+		}
+
+		if s.scope.VPC().IsIPv6Enabled() {
+			publicSubnet.IPv6CidrBlock = publicIPv6SubnetCIDRs[i].String()
+			publicSubnet.IsIPv6 = true
+			privateSubnet.IPv6CidrBlock = privateIPv6SubnetCIDRs[i].String()
+			privateSubnet.IsIPv6 = true
+		}
+
+		subnets = append(subnets, publicSubnet, privateSubnet)
 	}
 
 	return subnets, nil
@@ -242,18 +276,18 @@ func (s *Service) getDefaultSubnets() (infrav1.Subnets, error) {
 
 func (s *Service) deleteSubnets() error {
 	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
-		s.scope.V(4).Info("Skipping subnets deletion in unmanaged mode")
+		s.scope.Trace("Skipping subnets deletion in unmanaged mode")
 		return nil
 	}
 
 	// Describe subnets in the vpc.
-	existing, err := s.describeVpcSubnets()
+	existing, err := s.describeSubnets()
 	if err != nil {
 		return err
 	}
 
-	for _, sn := range existing {
-		if err := s.deleteSubnet(sn.ID); err != nil {
+	for _, sn := range existing.Subnets {
+		if err := s.deleteSubnet(aws.StringValue(sn.SubnetId)); err != nil {
 			return err
 		}
 	}
@@ -262,22 +296,9 @@ func (s *Service) deleteSubnets() error {
 }
 
 func (s *Service) describeVpcSubnets() (infrav1.Subnets, error) {
-	input := &ec2.DescribeSubnetsInput{
-		Filters: []*ec2.Filter{
-			filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-		},
-	}
-
-	if s.scope.VPC().ID == "" {
-		input.Filters = append(input.Filters, filter.EC2.Cluster(s.scope.Name()))
-	} else {
-		input.Filters = append(input.Filters, filter.EC2.VPC(s.scope.VPC().ID))
-	}
-
-	out, err := s.EC2Client.DescribeSubnets(input)
+	sns, err := s.describeSubnets()
 	if err != nil {
-		record.Eventf(s.scope.InfraCluster(), "FailedDescribeSubnet", "Failed to describe subnets in vpc %q: %v", s.scope.VPC().ID, err)
-		return nil, errors.Wrapf(err, "failed to describe subnets in vpc %q", s.scope.VPC().ID)
+		return nil, err
 	}
 
 	routeTables, err := s.describeVpcRouteTablesBySubnet()
@@ -290,17 +311,23 @@ func (s *Service) describeVpcSubnets() (infrav1.Subnets, error) {
 		return nil, err
 	}
 
-	subnets := make([]infrav1.SubnetSpec, 0, len(out.Subnets))
+	subnets := make([]infrav1.SubnetSpec, 0, len(sns.Subnets))
 	// Besides what the AWS API tells us directly about the subnets, we also want to discover whether the subnet is "public" (i.e. directly connected to the internet) and if there are any associated NAT gateways.
 	// We also look for a tag indicating that a particular subnet should be public, to try and determine whether a managed VPC's subnet should have such a route, but does not.
-	for _, ec2sn := range out.Subnets {
+	for _, ec2sn := range sns.Subnets {
 		spec := infrav1.SubnetSpec{
 			ID:               *ec2sn.SubnetId,
-			CidrBlock:        *ec2sn.CidrBlock,
 			AvailabilityZone: *ec2sn.AvailabilityZone,
 			Tags:             converters.TagsToMap(ec2sn.Tags),
 		}
-
+		// For IPv6 subnets, both, ipv4 and 6 have to be defined so pods can have ipv6 cidr ranges.
+		spec.CidrBlock = aws.StringValue(ec2sn.CidrBlock)
+		for _, set := range ec2sn.Ipv6CidrBlockAssociationSet {
+			if *set.Ipv6CidrBlockState.State == ec2.SubnetCidrBlockStateCodeAssociated {
+				spec.IPv6CidrBlock = aws.StringValue(set.Ipv6CidrBlock)
+				spec.IsIPv6 = true
+			}
+		}
 		// A subnet is public if it's tagged as such...
 		if spec.Tags.GetRole() == infrav1.PublicRoleTagValue {
 			spec.IsPublic = true
@@ -331,8 +358,29 @@ func (s *Service) describeVpcSubnets() (infrav1.Subnets, error) {
 	return subnets, nil
 }
 
+func (s *Service) describeSubnets() (*ec2.DescribeSubnetsOutput, error) {
+	input := &ec2.DescribeSubnetsInput{
+		Filters: []*ec2.Filter{
+			filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+		},
+	}
+
+	if s.scope.VPC().ID == "" {
+		input.Filters = append(input.Filters, filter.EC2.Cluster(s.scope.Name()))
+	} else {
+		input.Filters = append(input.Filters, filter.EC2.VPC(s.scope.VPC().ID))
+	}
+
+	out, err := s.EC2Client.DescribeSubnets(input)
+	if err != nil {
+		record.Eventf(s.scope.InfraCluster(), "FailedDescribeSubnet", "Failed to describe subnets in vpc %q: %v", s.scope.VPC().ID, err)
+		return nil, errors.Wrapf(err, "failed to describe subnets in vpc %q", s.scope.VPC().ID)
+	}
+	return out, nil
+}
+
 func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, error) {
-	out, err := s.EC2Client.CreateSubnet(&ec2.CreateSubnetInput{
+	input := &ec2.CreateSubnetInput{
 		VpcId:            aws.String(s.scope.VPC().ID),
 		CidrBlock:        aws.String(sn.CidrBlock),
 		AvailabilityZone: aws.String(sn.AvailabilityZone),
@@ -342,52 +390,86 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 				s.getSubnetTagParams(false, services.TemporaryResourceID, sn.IsPublic, sn.AvailabilityZone, sn.Tags),
 			),
 		},
-	})
+	}
+	if s.scope.VPC().IsIPv6Enabled() {
+		input.Ipv6CidrBlock = aws.String(sn.IPv6CidrBlock)
+		sn.IsIPv6 = true
+	}
+	out, err := s.EC2Client.CreateSubnet(input)
 	if err != nil {
 		record.Warnf(s.scope.InfraCluster(), "FailedCreateSubnet", "Failed creating new managed Subnet %v", err)
 		return nil, errors.Wrap(err, "failed to create subnet")
 	}
 
-	s.scope.Info("created subnet", "id", *out.Subnet.SubnetId, "public", sn.IsPublic, "az", sn.AvailabilityZone, "cidr", sn.CidrBlock)
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateSubnet", "Created new managed Subnet %q", *out.Subnet.SubnetId)
+	s.scope.Info("Created subnet", "id", *out.Subnet.SubnetId, "public", sn.IsPublic, "az", sn.AvailabilityZone, "cidr", sn.CidrBlock, "ipv6", sn.IsIPv6, "ipv6-cidr", sn.IPv6CidrBlock)
 
 	wReq := &ec2.DescribeSubnetsInput{SubnetIds: []*string{out.Subnet.SubnetId}}
 	if err := s.EC2Client.WaitUntilSubnetAvailable(wReq); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for subnet %q", *out.Subnet.SubnetId)
 	}
 
-	if sn.IsPublic {
-		attReq := &ec2.ModifySubnetAttributeInput{
-			MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
-				Value: aws.Bool(true),
-			},
-			SubnetId: out.Subnet.SubnetId,
-		}
-
+	// This has to be done separately, because:
+	// InvalidParameterCombination: Only one subnet attribute can be modified at a time
+	if sn.IsIPv6 {
+		// regardless of the subnet being public or not, ipv6 address needs to be assigned
+		// on creation. There is no such thing as private ipv6 address.
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-			if _, err := s.EC2Client.ModifySubnetAttribute(attReq); err != nil {
+			if _, err := s.EC2Client.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
+				SubnetId: out.Subnet.SubnetId,
+				AssignIpv6AddressOnCreation: &ec2.AttributeBooleanValue{
+					Value: aws.Bool(true),
+				},
+			}); err != nil {
 				return false, err
 			}
 			return true, nil
 		}, awserrors.SubnetNotFound); err != nil {
 			record.Warnf(s.scope.InfraCluster(), "FailedModifySubnetAttributes", "Failed modifying managed Subnet %q attributes: %v", *out.Subnet.SubnetId, err)
-			return nil, errors.Wrapf(err, "failed to set subnet %q attributes", *out.Subnet.SubnetId)
+			return nil, errors.Wrapf(err, "failed to set subnet %q attribute assign ipv6 address on creation", *out.Subnet.SubnetId)
 		}
 		record.Eventf(s.scope.InfraCluster(), "SuccessfulModifySubnetAttributes", "Modified managed Subnet %q attributes", *out.Subnet.SubnetId)
 	}
 
-	s.scope.V(2).Info("Created new subnet in VPC with cidr and availability zone ",
+	if sn.IsPublic {
+		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+			if _, err := s.EC2Client.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
+				SubnetId: out.Subnet.SubnetId,
+				MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
+					Value: aws.Bool(true),
+				},
+			}); err != nil {
+				return false, err
+			}
+			return true, nil
+		}, awserrors.SubnetNotFound); err != nil {
+			record.Warnf(s.scope.InfraCluster(), "FailedModifySubnetAttributes", "Failed modifying managed Subnet %q attributes: %v", *out.Subnet.SubnetId, err)
+			return nil, errors.Wrapf(err, "failed to set subnet %q attribute assign ipv4 address on creation", *out.Subnet.SubnetId)
+		}
+		record.Eventf(s.scope.InfraCluster(), "SuccessfulModifySubnetAttributes", "Modified managed Subnet %q attributes", *out.Subnet.SubnetId)
+	}
+
+	subnet := &infrav1.SubnetSpec{
+		ID:               *out.Subnet.SubnetId,
+		AvailabilityZone: *out.Subnet.AvailabilityZone,
+		CidrBlock:        *out.Subnet.CidrBlock, // TODO: this will panic in case of IPv6 only subnets...
+		IsPublic:         sn.IsPublic,
+	}
+	for _, set := range out.Subnet.Ipv6CidrBlockAssociationSet {
+		if *set.Ipv6CidrBlockState.State == ec2.SubnetCidrBlockStateCodeAssociated {
+			subnet.IPv6CidrBlock = aws.StringValue(set.Ipv6CidrBlock)
+			subnet.IsIPv6 = true
+		}
+	}
+
+	s.scope.Debug("Created new subnet in VPC with cidr and availability zone ",
 		"subnet-id", *out.Subnet.SubnetId,
 		"vpc-id", *out.Subnet.VpcId,
 		"cidr-block", *out.Subnet.CidrBlock,
+		"ipv6-cidr-block", subnet.IPv6CidrBlock,
 		"availability-zone", *out.Subnet.AvailabilityZone)
 
-	return &infrav1.SubnetSpec{
-		ID:               *out.Subnet.SubnetId,
-		AvailabilityZone: *out.Subnet.AvailabilityZone,
-		CidrBlock:        *out.Subnet.CidrBlock,
-		IsPublic:         sn.IsPublic,
-	}, nil
+	return subnet, nil
 }
 
 func (s *Service) deleteSubnet(id string) error {
@@ -399,14 +481,18 @@ func (s *Service) deleteSubnet(id string) error {
 		return errors.Wrapf(err, "failed to delete subnet %q", id)
 	}
 
-	s.scope.V(2).Info("Deleted subnet in vpc", "subnet-id", id, "vpc-id", s.scope.VPC().ID)
+	s.scope.Info("Deleted subnet", "subnet-id", id, "vpc-id", s.scope.VPC().ID)
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulDeleteSubnet", "Deleted managed Subnet %q", id)
 	return nil
 }
 
 func (s *Service) getSubnetTagParams(unmanagedVPC bool, id string, public bool, zone string, manualTags infrav1.Tags) infrav1.BuildParams {
 	var role string
-	additionalTags := s.scope.AdditionalTags()
+	additionalTags := make(map[string]string)
+
+	if !unmanagedVPC {
+		additionalTags = s.scope.AdditionalTags()
+	}
 
 	if public {
 		role = infrav1.PublicRoleTagValue
@@ -417,13 +503,13 @@ func (s *Service) getSubnetTagParams(unmanagedVPC bool, id string, public bool, 
 	}
 
 	// Add tag needed for Service type=LoadBalancer
-	additionalTags[infrav1.NameKubernetesAWSCloudProviderPrefix+s.scope.Name()] = string(infrav1.ResourceLifecycleShared)
-
-	for k, v := range manualTags {
-		additionalTags[k] = v
-	}
+	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())] = string(infrav1.ResourceLifecycleShared)
 
 	if !unmanagedVPC {
+		for k, v := range manualTags {
+			additionalTags[k] = v
+		}
+
 		var name strings.Builder
 		name.WriteString(s.scope.Name())
 		name.WriteString("-subnet-")

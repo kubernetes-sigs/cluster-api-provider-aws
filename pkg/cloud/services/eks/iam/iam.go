@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,23 +17,24 @@ limitations under the License.
 package iam
 
 import (
+	"context"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"net/url"
-	"reflect"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
-	"github.com/go-logr/logr"
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/converters"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 )
 
 const (
@@ -43,8 +44,9 @@ const (
 
 // IAMService defines the specs for an IAM service.
 type IAMService struct {
-	logr.Logger
+	logger.Wrapper
 	IAMClient iamiface.IAMAPI
+	Client    *http.Client
 }
 
 // GetIAMRole will return the IAM role for the IAMService.
@@ -120,7 +122,7 @@ func (s *IAMService) attachIAMRolePolicy(roleName string, policyARN string) erro
 
 // EnsurePoliciesAttached will ensure the IAMService has policies attached.
 func (s *IAMService) EnsurePoliciesAttached(role *iam.Role, policies []*string) (bool, error) {
-	s.V(2).Info("Ensuring Polices are attached to role")
+	s.Debug("Ensuring Polices are attached to role")
 	existingPolices, err := s.getIAMRolePolicies(*role.RoleName)
 	if err != nil {
 		return false, err
@@ -136,7 +138,7 @@ func (s *IAMService) EnsurePoliciesAttached(role *iam.Role, policies []*string) 
 			if err != nil {
 				return false, err
 			}
-			s.V(2).Info("Detached policy from role", "role", role.RoleName, "policy", existingPolicy)
+			s.Debug("Detached policy from role", "role", role.RoleName, "policy", existingPolicy)
 		}
 	}
 
@@ -155,7 +157,7 @@ func (s *IAMService) EnsurePoliciesAttached(role *iam.Role, policies []*string) 
 			if err != nil {
 				return false, err
 			}
-			s.V(2).Info("Attached policy to role", "role", role.RoleName, "policy", *policy)
+			s.Debug("Attached policy to role", "role", role.RoleName, "policy", *policy)
 		}
 	}
 
@@ -210,7 +212,7 @@ func (s *IAMService) EnsureTagsAndPolicy(
 	trustRelationship *iamv1.PolicyDocument,
 	additionalTags infrav1.Tags,
 ) (bool, error) {
-	s.V(2).Info("Ensuring tags and AssumeRolePolicyDocument are set on role")
+	s.Debug("Ensuring tags and AssumeRolePolicyDocument are set on role")
 
 	rolePolicyDocumentRaw, err := url.PathUnescape(*role.AssumeRolePolicyDocument)
 	if err != nil {
@@ -224,7 +226,7 @@ func (s *IAMService) EnsureTagsAndPolicy(
 	}
 
 	var updated bool
-	if !reflect.DeepEqual(*trustRelationship, rolePolicyDocument) {
+	if !cmp.Equal(*trustRelationship, rolePolicyDocument) {
 		trustRelationshipJSON, err := converters.IAMPolicyDocumentToJSON(*trustRelationship)
 		if err != nil {
 			return false, errors.Wrap(err, "error converting trust relationship to json")
@@ -284,7 +286,7 @@ func (s *IAMService) EnsureTagsAndPolicy(
 }
 
 func (s *IAMService) detachAllPoliciesForRole(name string) error {
-	s.V(3).Info("Detaching all policies for role", "role", name)
+	s.Debug("Detaching all policies for role", "role", name)
 	input := &iam.ListAttachedRolePoliciesInput{
 		RoleName: &name,
 	}
@@ -293,7 +295,7 @@ func (s *IAMService) detachAllPoliciesForRole(name string) error {
 		return errors.Wrapf(err, "error fetching policies for role %s", name)
 	}
 	for _, p := range policies.AttachedPolicies {
-		s.V(2).Info("Detaching policy", "policy", *p)
+		s.Debug("Detaching policy", "policy", *p)
 		if err := s.detachIAMRolePolicy(name, *p.PolicyArn); err != nil {
 			return err
 		}
@@ -418,7 +420,7 @@ func (s *IAMService) CreateOIDCProvider(cluster *eks.Cluster) (string, error) {
 		return "", errors.Errorf("invalid scheme for issuer URL %s", issuerURL.String())
 	}
 
-	thumbprint, err := fetchRootCAThumbprint(issuerURL.String())
+	thumbprint, err := fetchRootCAThumbprint(issuerURL.String(), s.Client)
 	if err != nil {
 		return "", err
 	}
@@ -434,8 +436,53 @@ func (s *IAMService) CreateOIDCProvider(cluster *eks.Cluster) (string, error) {
 	return *provider.OpenIDConnectProviderArn, nil
 }
 
-func fetchRootCAThumbprint(issuerURL string) (string, error) {
-	response, err := http.Get(issuerURL)
+// FindAndVerifyOIDCProvider will try to find an OIDC provider. It will return an error if the found provider does not
+// match the cluster spec.
+func (s *IAMService) FindAndVerifyOIDCProvider(cluster *eks.Cluster) (string, error) {
+	issuerURL, err := url.Parse(*cluster.Identity.Oidc.Issuer)
+	if err != nil {
+		return "", err
+	}
+	if issuerURL.Scheme != "https" {
+		return "", errors.Errorf("invalid scheme for issuer URL %s", issuerURL.String())
+	}
+
+	thumbprint, err := fetchRootCAThumbprint(issuerURL.String(), s.Client)
+	if err != nil {
+		return "", err
+	}
+	output, err := s.IAMClient.ListOpenIDConnectProviders(&iam.ListOpenIDConnectProvidersInput{})
+	if err != nil {
+		return "", errors.Wrap(err, "error listing providers")
+	}
+	for _, r := range output.OpenIDConnectProviderList {
+		provider, err := s.IAMClient.GetOpenIDConnectProvider(&iam.GetOpenIDConnectProviderInput{OpenIDConnectProviderArn: r.Arn})
+		if err != nil {
+			return "", errors.Wrap(err, "error getting provider")
+		}
+		// URL should always contain `https`.
+		if *provider.Url != issuerURL.String() {
+			continue
+		}
+		if len(provider.ThumbprintList) != 1 || *provider.ThumbprintList[0] != thumbprint {
+			return "", errors.Wrap(err, "found provider with matching issuerURL but with non-matching thumbprint")
+		}
+		if len(provider.ClientIDList) != 1 || *provider.ClientIDList[0] != stsAWSAudience {
+			return "", errors.Wrap(err, "found provider with matching issuerURL but with non-matching clientID")
+		}
+		return *r.Arn, nil
+	}
+	return "", nil
+}
+
+func fetchRootCAThumbprint(issuerURL string, client *http.Client) (string, error) {
+	// needed to appease noctx.
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, issuerURL, nil)
+	if err != nil {
+		return "", err
+	}
+
+	response, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}

@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,4 +18,4 @@ limitations under the License.
 //go:generate ../../../../../hack/tools/bin/mockgen -destination autoscalingapi_mock.go -package mock_autoscalingiface github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface AutoScalingAPI
 //go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt autoscalingapi_mock.go > _autoscalingapi_mock.go && mv _autoscalingapi_mock.go autoscalingapi_mock.go"
 
-package mock_autoscalingiface // nolint:stylecheck
+package mock_autoscalingiface //nolint:stylecheck

@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,8 +17,8 @@ limitations under the License.
 package controllers
 
 import (
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	service "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 )
 
 const (
@@ -39,7 +39,7 @@ const (
 // Returns bool, error
 // Bool indicates if changes were made or not, allowing the caller to decide
 // if the machine should be updated.
-func (r *AWSMachineReconciler) ensureTags(svc service.EC2MachineInterface, machine *infrav1.AWSMachine, instanceID *string, additionalTags map[string]string) (bool, error) {
+func (r *AWSMachineReconciler) ensureTags(svc service.EC2Interface, machine *infrav1.AWSMachine, instanceID *string, additionalTags map[string]string) (bool, error) {
 	annotation, err := r.machineAnnotationJSON(machine, TagsLastAppliedAnnotation)
 	if err != nil {
 		return false, err
@@ -68,7 +68,7 @@ func (r *AWSMachineReconciler) ensureTags(svc service.EC2MachineInterface, machi
 
 // Ensure that the tags of the volumes in the machine are correct
 // Returns tags which are being created/updated/deleted and error.
-func (r *AWSMachineReconciler) ensureVolumeTags(svc service.EC2MachineInterface, volumeID *string, annotation map[string]interface{}, additionalTags map[string]string) (map[string]interface{}, error) {
+func (r *AWSMachineReconciler) ensureVolumeTags(svc service.EC2Interface, volumeID *string, annotation map[string]interface{}, additionalTags map[string]string) (map[string]interface{}, error) {
 	// Check if the volume tags were changed. If they were, update them.
 	// It would be possible here to only send new/updated tags, but for the
 	// moment we send everything, even if only a single tag was created or

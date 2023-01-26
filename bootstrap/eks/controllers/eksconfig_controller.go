@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,10 +26,18 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
-	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/internal/userdata"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/internal/userdata"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bsutil "sigs.k8s.io/cluster-api/bootstrap/util"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -39,11 +47,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // EKSConfigReconciler reconciles a EKSConfig object.
@@ -53,7 +56,7 @@ type EKSConfigReconciler struct {
 	WatchFilterValue string
 }
 
-// +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=eksconfigs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=eksconfigs,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=eksconfigs/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machinepools;clusters,verbs=get;list;watch
@@ -61,7 +64,7 @@ type EKSConfigReconciler struct {
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;delete;
 
 func (r *EKSConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
-	log := ctrl.LoggerFrom(ctx)
+	log := logger.FromContext(ctx)
 
 	// get EKSConfig
 	config := &eksbootstrapv1.EKSConfig{}
@@ -103,7 +106,7 @@ func (r *EKSConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		log.Error(err, "Could not get cluster with metadata")
 		return ctrl.Result{}, err
 	}
-	log = log.WithValues("cluster", cluster.Name)
+	log = log.WithValues("cluster", klog.KObj(cluster))
 
 	if annotations.IsPaused(cluster, config) {
 		log.Info("Reconciliation is paused for this object")
@@ -140,7 +143,7 @@ func (r *EKSConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 }
 
 func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1.Cluster, config *eksbootstrapv1.EKSConfig) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx)
+	log := logger.FromContext(ctx)
 
 	if config.Status.DataSecretName != nil {
 		secretKey := client.ObjectKey{Namespace: config.Namespace, Name: *config.Status.DataSecretName}
@@ -185,13 +188,45 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 
 	log.Info("Generating userdata")
 
-	// generate userdata
-	userDataScript, err := userdata.NewNode(&userdata.NodeInput{
+	nodeInput := &userdata.NodeInput{
 		// AWSManagedControlPlane webhooks default and validate EKSClusterName
-		ClusterName: controlPlane.Spec.EKSClusterName,
+		ClusterName:              controlPlane.Spec.EKSClusterName,
+		KubeletExtraArgs:         config.Spec.KubeletExtraArgs,
+		ContainerRuntime:         config.Spec.ContainerRuntime,
+		DNSClusterIP:             config.Spec.DNSClusterIP,
+		DockerConfigJSON:         config.Spec.DockerConfigJSON,
+		APIRetryAttempts:         config.Spec.APIRetryAttempts,
+		UseMaxPods:               config.Spec.UseMaxPods,
+		PreBootstrapCommands:     config.Spec.PreBootstrapCommands,
+		PostBootstrapCommands:    config.Spec.PostBootstrapCommands,
+		BootstrapCommandOverride: config.Spec.BootstrapCommandOverride,
+		NTP:                      config.Spec.NTP,
+		Users:                    config.Spec.Users,
+		DiskSetup:                config.Spec.DiskSetup,
+		Mounts:                   config.Spec.Mounts,
+		Files:                    config.Spec.Files,
+	}
+	if config.Spec.PauseContainer != nil {
+		nodeInput.PauseContainerAccount = &config.Spec.PauseContainer.AccountNumber
+		nodeInput.PauseContainerVersion = &config.Spec.PauseContainer.Version
+	}
 
-		KubeletExtraArgs: config.Spec.KubeletExtraArgs,
-	})
+	// Check if IPv6 was provided to the user configuration first
+	// If not, we also check if the cluster is ipv6 based.
+	if config.Spec.ServiceIPV6Cidr != nil && *config.Spec.ServiceIPV6Cidr != "" {
+		nodeInput.ServiceIPV6Cidr = config.Spec.ServiceIPV6Cidr
+		nodeInput.IPFamily = pointer.String("ipv6")
+	}
+
+	// we don't want to override any manually set configuration options.
+	if config.Spec.ServiceIPV6Cidr == nil && controlPlane.Spec.NetworkSpec.VPC.IsIPv6Enabled() {
+		log.Info("Adding ipv6 data to userdata....")
+		nodeInput.ServiceIPV6Cidr = pointer.String(controlPlane.Spec.NetworkSpec.VPC.IPv6.CidrBlock)
+		nodeInput.IPFamily = pointer.String("ipv6")
+	}
+
+	// generate userdata
+	userDataScript, err := userdata.NewNode(nodeInput)
 	if err != nil {
 		log.Error(err, "Failed to create a worker join configuration")
 		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, "")
@@ -212,7 +247,7 @@ func (r *EKSConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 	b := ctrl.NewControllerManagedBy(mgr).
 		For(&eksbootstrapv1.EKSConfig{}).
 		WithOptions(option).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(logger.FromContext(ctx).GetLogger(), r.WatchFilterValue)).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
 			handler.EnqueueRequestsFromMapFunc(r.MachineToBootstrapMapFunc),
@@ -233,7 +268,7 @@ func (r *EKSConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 	err = c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc((r.ClusterToEKSConfigs)),
-		predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
+		predicates.ClusterUnpausedAndInfrastructureReady(logger.FromContext(ctx).GetLogger()),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed adding watch for Clusters to controller manager")
@@ -245,7 +280,7 @@ func (r *EKSConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 // storeBootstrapData creates a new secret with the data passed in as input,
 // sets the reference in the configuration status and ready to true.
 func (r *EKSConfigReconciler) storeBootstrapData(ctx context.Context, cluster *clusterv1.Cluster, config *eksbootstrapv1.EKSConfig, data []byte) error {
-	log := ctrl.LoggerFrom(ctx)
+	log := logger.FromContext(ctx)
 
 	// as secret creation and scope.Config status patch are not atomic operations
 	// it is possible that secret creation happens but the config.Status patches are not applied
@@ -258,7 +293,7 @@ func (r *EKSConfigReconciler) storeBootstrapData(ctx context.Context, cluster *c
 			if err := r.createBootstrapSecret(ctx, cluster, config, data); err != nil {
 				return errors.Wrap(err, "failed to create bootstrap data secret for EKSConfig")
 			}
-			log.Info("created bootstrap data secret for EKSConfig", "secret", secret.Name)
+			log.Info("created bootstrap data secret for EKSConfig", "secret", klog.KObj(secret))
 		} else {
 			return errors.Wrap(err, "failed to get data secret for EKSConfig")
 		}
@@ -268,9 +303,9 @@ func (r *EKSConfigReconciler) storeBootstrapData(ctx context.Context, cluster *c
 			return errors.Wrap(err, "failed to update data secret for EKSConfig")
 		}
 		if updated {
-			log.Info("updated bootstrap data secret for EKSConfig", "secret", secret.Name)
+			log.Info("updated bootstrap data secret for EKSConfig", "secret", klog.KObj(secret))
 		} else {
-			log.V(4).Info("no change in bootstrap data secret for EKSConfig", "secret", secret.Name)
+			log.Trace("no change in bootstrap data secret for EKSConfig", "secret", klog.KObj(secret))
 		}
 	}
 

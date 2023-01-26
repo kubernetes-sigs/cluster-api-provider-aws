@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,16 +19,18 @@ package helpers
 import (
 	"context"
 	"fmt"
+	"go/build"
 	"net"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	goruntime "runtime"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/pkg/errors"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -40,15 +42,14 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
-	"k8s.io/klog/v2/klogr"
-	"sigs.k8s.io/cluster-api-provider-aws/test/helpers/external"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
-	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 )
 
 const (
@@ -59,17 +60,15 @@ const (
 )
 
 var (
-	root string
+	root                   string
+	clusterAPIVersionRegex = regexp.MustCompile(`^(\W)sigs.k8s.io/cluster-api v(.+)`)
 )
 
 func init() {
 	klog.InitFlags(nil)
-
-	logger := klogr.New()
-	// use klog as the internal logger for this envtest environment.
-	log.SetLogger(logger)
-	// additionally force all of the controllers to use the Ginkgo logger.
-	ctrl.SetLogger(logger)
+	// additionally force all the controllers to use the Ginkgo logger.
+	ctrl.SetLogger(klog.Background())
+	logf.SetLogger(klog.Background())
 	// add logger for ginkgo
 	klog.SetOutput(ginkgo.GinkgoWriter)
 
@@ -141,14 +140,14 @@ func NewTestEnvironmentConfiguration(crdDirectoryPaths []string) *TestEnvironmen
 		resolvedCrdDirectoryPaths[i] = path.Join(root, p)
 	}
 
+	if capiPath := getFilePathToCAPICRDs(root); capiPath != "" {
+		resolvedCrdDirectoryPaths = append(resolvedCrdDirectoryPaths, capiPath)
+	}
+
 	return &TestEnvironmentConfiguration{
 		env: &envtest.Environment{
 			ErrorIfCRDPathMissing: true,
 			CRDDirectoryPaths:     resolvedCrdDirectoryPaths,
-			CRDs: []*apiextensionsv1.CustomResourceDefinition{
-				external.TestClusterCRD.DeepCopy(),
-				external.TestMachineCRD.DeepCopy(),
-			},
 		},
 	}
 }
@@ -276,4 +275,33 @@ func (t *TestEnvironment) WaitForWebhooks() {
 func (t *TestEnvironment) Stop() error {
 	t.cancel()
 	return t.env.Stop()
+}
+
+func getFilePathToCAPICRDs(root string) string {
+	modBits, err := os.ReadFile(filepath.Join(root, "go.mod")) //nolint:gosec
+	if err != nil {
+		return ""
+	}
+
+	var clusterAPIVersion string
+	for _, line := range strings.Split(string(modBits), "\n") {
+		matches := clusterAPIVersionRegex.FindStringSubmatch(line)
+		if len(matches) == 3 {
+			clusterAPIVersion = matches[2]
+		}
+	}
+
+	if clusterAPIVersion == "" {
+		return ""
+	}
+
+	gopath := envOr("GOPATH", build.Default.GOPATH)
+	return filepath.Join(gopath, "pkg", "mod", "sigs.k8s.io", fmt.Sprintf("cluster-api@v%s", clusterAPIVersion), "config", "crd", "bases")
+}
+
+func envOr(envKey, defaultValue string) string {
+	if value, ok := os.LookupEnv(envKey); ok {
+		return value
+	}
+	return defaultValue
 }

@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,7 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
 	"github.com/pkg/errors"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
 
 var (
@@ -78,8 +78,10 @@ func (b *Builder) Apply() error {
 
 // Ensure applies the tags if the current tags differ from the params.
 func (b *Builder) Ensure(current infrav1.Tags) error {
-	diff := computeDiff(current, *b.params)
-	if len(diff) > 0 {
+	if b.params == nil {
+		return ErrBuildParamsRequired
+	}
+	if diff := computeDiff(current, *b.params); len(diff) > 0 {
 		return b.Apply()
 	}
 	return nil

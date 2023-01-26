@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -7,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,15 +21,15 @@ package managed
 
 import (
 	"context"
+	"fmt"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/test/framework"
 )
 
 type deleteMachineDeploymentInput struct {
@@ -37,7 +38,7 @@ type deleteMachineDeploymentInput struct {
 }
 
 func deleteMachineDeployment(ctx context.Context, input deleteMachineDeploymentInput) {
-	shared.Byf("Deleting machine deployment %s", input.MachineDeployment.Name)
+	By(fmt.Sprintf("Deleting machine deployment %s", input.MachineDeployment.Name))
 	Expect(input.Deleter.Delete(ctx, input.MachineDeployment)).To(Succeed())
 }
 
@@ -47,7 +48,7 @@ type waitForMachineDeploymentDeletedInput struct {
 }
 
 func waitForMachineDeploymentDeleted(ctx context.Context, input waitForMachineDeploymentDeletedInput, intervals ...interface{}) {
-	shared.Byf("Waiting for machine deployment %s to be deleted", input.MachineDeployment.GetName())
+	By(fmt.Sprintf("Waiting for machine deployment %s to be deleted", input.MachineDeployment.GetName()))
 	Eventually(func() bool {
 		mp := &clusterv1.MachineDeployment{}
 		key := client.ObjectKey{
@@ -60,23 +61,13 @@ func waitForMachineDeploymentDeleted(ctx context.Context, input waitForMachineDe
 	}, intervals...).Should(BeTrue())
 }
 
-type deleteMachineInput struct {
-	Machine *clusterv1.Machine
-	Deleter framework.Deleter
-}
-
-func deleteMachine(ctx context.Context, input deleteMachineInput) {
-	shared.Byf("Deleting machine %s", input.Machine.Name)
-	Expect(input.Deleter.Delete(ctx, input.Machine)).To(Succeed())
-}
-
 type waitForMachineDeletedInput struct {
 	Machine *clusterv1.Machine
 	Getter  framework.Getter
 }
 
 func waitForMachineDeleted(ctx context.Context, input waitForMachineDeletedInput, intervals ...interface{}) {
-	shared.Byf("Waiting for machine %s to be deleted", input.Machine.GetName())
+	By(fmt.Sprintf("Waiting for machine %s to be deleted", input.Machine.GetName()))
 	Eventually(func() bool {
 		mp := &clusterv1.Machine{}
 		key := client.ObjectKey{

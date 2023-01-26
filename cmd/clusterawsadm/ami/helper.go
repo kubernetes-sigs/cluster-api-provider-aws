@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -27,14 +28,17 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
-	ec2service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
-	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
+
+	ec2service "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ec2"
 )
 
-const latestStableReleaseURL = "https://dl.k8s.io/release/stable%s.txt"
+const (
+	latestStableReleaseURL = "https://dl.k8s.io/release/stable%s.txt"
+	tagPrefix              = "v"
+)
 
 func getSupportedOsList() []string {
-	return []string{"centos-7", "ubuntu-18.04", "ubuntu-20.04", "amazon-2"}
+	return []string{"centos-7", "ubuntu-18.04", "ubuntu-20.04", "amazon-2", "flatcar-stable"}
 }
 
 func getimageRegionList() []string {
@@ -57,27 +61,83 @@ func getimageRegionList() []string {
 	}
 }
 
-func getSupportedKubernetesVersions() ([]string, error) {
-	supportedVersions := make([]string, 0)
-	latestVersion, err := latestStableRelease()
+// LatestPatchRelease returns the latest patch release matching.
+func LatestPatchRelease(searchVersion string) (string, error) {
+	searchSemVer, err := semver.Make(strings.TrimPrefix(searchVersion, tagPrefix))
+	if err != nil {
+		return "", err
+	}
+	resp, err := http.Get(fmt.Sprintf(latestStableReleaseURL, "-"+strconv.Itoa(int(searchSemVer.Major))+"."+strconv.Itoa(int(searchSemVer.Minor))))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(b)), nil
+}
+
+// PreviousMinorRelease returns the latest patch release for the previous version
+// of Kubernetes, e.g. v1.19.1 returns v1.18.8 as of Sep 2020.
+func PreviousMinorRelease(searchVersion string) (string, error) {
+	semVer, err := semver.Make(strings.TrimPrefix(searchVersion, tagPrefix))
+	if err != nil {
+		return "", err
+	}
+	semVer.Minor--
+
+	return LatestPatchRelease(semVer.String())
+}
+
+// getSupportedKubernetesVersions returns all possible k8s versions till last nth kubernetes release.
+func getSupportedKubernetesVersions(lastNReleases int) ([]string, error) {
+	currentVersion, err := latestStableRelease()
 	if err != nil {
 		return nil, err
 	}
 
-	supportedVersions = append(supportedVersions, latestVersion)
-	nMinusOne, err := kubernetesversions.PreviousMinorRelease(latestVersion)
+	versionPatches, err := allPatchesForVersion(currentVersion)
 	if err != nil {
 		return nil, err
 	}
-	supportedVersions = append(supportedVersions, nMinusOne)
 
-	nMinusTwo, err := kubernetesversions.PreviousMinorRelease(nMinusOne)
+	versionPatches = append(versionPatches, currentVersion)
+
+	for lastNReleases != 0 {
+		currentVersion, err = PreviousMinorRelease(currentVersion)
+		if err != nil {
+			return nil, err
+		}
+
+		currentVersionPatches, err := allPatchesForVersion(currentVersion)
+		if err != nil {
+			return nil, err
+		}
+
+		versionPatches = append(versionPatches, currentVersion)
+		versionPatches = append(versionPatches, currentVersionPatches...)
+
+		lastNReleases--
+	}
+	return versionPatches, nil
+}
+
+// allPatchesForVersion return all patches for a given version starting with given minor release.
+func allPatchesForVersion(latestVersion string) ([]string, error) {
+	semVer, err := semver.Make(strings.TrimPrefix(latestVersion, tagPrefix))
 	if err != nil {
 		return nil, err
 	}
-	supportedVersions = append(supportedVersions, nMinusTwo)
-
-	return supportedVersions, nil
+	patchVersions := make([]string, 0)
+	versionStr := fmt.Sprintf("%s%d.%d", tagPrefix, semVer.Major, semVer.Minor)
+	for semVer.Patch != 0 {
+		semVer.Patch--
+		patchVersions = append(patchVersions, fmt.Sprintf("%s.%d", versionStr, semVer.Patch))
+	}
+	return patchVersions, nil
 }
 
 // latestStableRelease fetches the latest stable Kubernetes version
@@ -150,13 +210,17 @@ func getAllImages(ec2Client ec2iface.EC2API, ownerID string) (map[string][]*ec2.
 		return nil, errors.Wrap(err, "failed to fetch AMIs")
 	}
 	if len(out.Images) == 0 {
-		return nil, errors.Errorf("no AMIs in the account: %q", ownerID)
+		return nil, nil
 	}
 
 	imagesMap := make(map[string][]*ec2.Image)
 	for _, image := range out.Images {
 		arr := strings.Split(aws.StringValue(image.Name), "-")
-		arr = arr[:len(arr)-2]
+		if arr[len(arr)-2] == "00" {
+			arr = arr[:len(arr)-2]
+		} else {
+			arr = arr[:len(arr)-1]
+		}
 		name := strings.Join(arr, "-")
 		images, ok := imagesMap[name]
 		if !ok {
@@ -170,18 +234,30 @@ func getAllImages(ec2Client ec2iface.EC2API, ownerID string) (map[string][]*ec2.
 
 func findAMI(imagesMap map[string][]*ec2.Image, baseOS, kubernetesVersion string) (*ec2.Image, error) {
 	amiNameFormat := "capa-ami-{{.BaseOS}}-{{.K8sVersion}}"
+	// Support new AMI format capa-ami-<os-version>-?<k8s-version>-*
 	amiName, err := ec2service.GenerateAmiName(amiNameFormat, baseOS, kubernetesVersion)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to process ami format: %q", amiNameFormat)
 	}
-
-	if val, ok := imagesMap[amiName]; ok {
-		latestImage, err := ec2service.GetLatestImage(val)
+	if val, ok := imagesMap[amiName]; ok && val != nil {
+		return latestAMI(val)
+	} else {
+		amiName, err = ec2service.GenerateAmiName(amiNameFormat, baseOS, strings.TrimPrefix(kubernetesVersion, "v"))
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to process ami format: %q", amiNameFormat)
 		}
-		return latestImage, nil
+		if val, ok = imagesMap[amiName]; ok && val != nil {
+			return latestAMI(val)
+		}
 	}
 
-	return nil, errors.Errorf("failed to find ami %s", amiName)
+	return nil, nil
+}
+
+func latestAMI(val []*ec2.Image) (*ec2.Image, error) {
+	latestImage, err := ec2service.GetLatestImage(val)
+	if err != nil {
+		return nil, err
+	}
+	return latestImage, nil
 }

@@ -16,11 +16,11 @@ spec:
     kind: KubeadmControlPlane
     name: ${CLUSTER_NAME}-control-plane
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
     kind: AWSCluster
     name: ${CLUSTER_NAME}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSCluster
 metadata:
   name: ${CLUSTER_NAME}
@@ -56,13 +56,13 @@ spec:
         name: '{{ ds.meta_data.local_hostname }}'
   machineTemplate:
     infrastructureRef:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: AWSMachineTemplate
       name: ${CLUSTER_NAME}-control-plane
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}
   version: ${KUBERNETES_VERSION}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-control-plane
@@ -91,12 +91,12 @@ spec:
           name: ${CLUSTER_NAME}-md-0
       clusterName: ${CLUSTER_NAME}
       infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: AWSMachineTemplate
         name: ${CLUSTER_NAME}-md-0
       version: ${KUBERNETES_VERSION}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0
@@ -730,7 +730,7 @@ data:
                       key: access_key
                       name: aws-secret
                       optional: true
-              image: k8s.gcr.io/provider-aws/aws-ebs-csi-driver:v1.2.0
+              image: registry.k8s.io/provider-aws/aws-ebs-csi-driver:v1.2.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 failureThreshold: 5
@@ -766,7 +766,7 @@ data:
               env:
                 - name: ADDRESS
                   value: /var/lib/csi/sockets/pluginproxy/csi.sock
-              image: k8s.gcr.io/sig-storage/csi-provisioner:v2.1.1
+              image: registry.k8.io/sig-storage/csi-provisioner:v2.1.1
               name: csi-provisioner
               volumeMounts:
                 - mountPath: /var/lib/csi/sockets/pluginproxy/
@@ -778,7 +778,7 @@ data:
               env:
                 - name: ADDRESS
                   value: /var/lib/csi/sockets/pluginproxy/csi.sock
-              image: k8s.gcr.io/sig-storage/csi-attacher:v3.1.0
+              image: registry.k8.io/sig-storage/csi-attacher:v3.1.0
               name: csi-attacher
               volumeMounts:
                 - mountPath: /var/lib/csi/sockets/pluginproxy/
@@ -789,7 +789,7 @@ data:
               env:
                 - name: ADDRESS
                   value: /var/lib/csi/sockets/pluginproxy/csi.sock
-              image: k8s.gcr.io/sig-storage/csi-snapshotter:v3.0.3
+              image: registry.k8.io/sig-storage/csi-snapshotter:v3.0.3
               name: csi-snapshotter
               volumeMounts:
                 - mountPath: /var/lib/csi/sockets/pluginproxy/
@@ -800,7 +800,7 @@ data:
               env:
                 - name: ADDRESS
                   value: /var/lib/csi/sockets/pluginproxy/csi.sock
-              image: k8s.gcr.io/sig-storage/csi-resizer:v1.0.0
+              image: registry.k8.io/sig-storage/csi-resizer:v1.0.0
               imagePullPolicy: Always
               name: csi-resizer
               volumeMounts:
@@ -808,7 +808,7 @@ data:
                   name: socket-dir
             - args:
                 - --csi-address=/csi/csi.sock
-              image: k8s.gcr.io/sig-storage/livenessprobe:v2.2.0
+              image: registry.k8.io/sig-storage/livenessprobe:v2.2.0
               name: liveness-probe
               volumeMounts:
                 - mountPath: /csi
@@ -895,7 +895,7 @@ data:
                   valueFrom:
                     fieldRef:
                       fieldPath: spec.nodeName
-              image: k8s.gcr.io/provider-aws/aws-ebs-csi-driver:v1.2.0
+              image: registry.k8.io/provider-aws/aws-ebs-csi-driver:v1.2.0
               livenessProbe:
                 failureThreshold: 5
                 httpGet:
@@ -928,7 +928,7 @@ data:
                   value: /csi/csi.sock
                 - name: DRIVER_REG_SOCK_PATH
                   value: /var/lib/kubelet/plugins/ebs.csi.aws.com/csi.sock
-              image: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.1.0
+              image: registry.k8.io/sig-storage/csi-node-driver-registrar:v2.1.0
               name: node-driver-registrar
               volumeMounts:
                 - mountPath: /csi
@@ -937,7 +937,7 @@ data:
                   name: registration-dir
             - args:
                 - --csi-address=/csi/csi.sock
-              image: k8s.gcr.io/sig-storage/livenessprobe:v2.2.0
+              image: registry.k8.io/sig-storage/livenessprobe:v2.2.0
               name: liveness-probe
               volumeMounts:
                 - mountPath: /csi

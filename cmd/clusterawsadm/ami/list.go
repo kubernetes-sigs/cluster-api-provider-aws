@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,7 +24,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	amiv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/ami/v1beta1"
+
+	amiv1 "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/ami/v1beta1"
 )
 
 // ListInput defines the specs required to construct an AWSAMIList.
@@ -32,7 +33,10 @@ type ListInput struct {
 	Region            string
 	KubernetesVersion string
 	OperatingSystem   string
+	OwnerID           string
 }
+
+const lastNReleases = 3
 
 // List will create an AWSAMIList from a given ListInput.
 func List(input ListInput) (*amiv1.AWSAMIList, error) {
@@ -52,7 +56,7 @@ func List(input ListInput) (*amiv1.AWSAMIList, error) {
 	supportedVersions := []string{}
 	if input.KubernetesVersion == "" {
 		var err error
-		supportedVersions, err = getSupportedKubernetesVersions()
+		supportedVersions, err = getSupportedKubernetesVersions(lastNReleases)
 		if err != nil {
 			fmt.Println("Failed to calculate supported Kubernetes versions")
 			return nil, err
@@ -78,7 +82,7 @@ func List(input ListInput) (*amiv1.AWSAMIList, error) {
 		}
 
 		ec2Client := ec2.New(sess)
-		imagesForRegion, err := getAllImages(ec2Client, "")
+		imagesForRegion, err := getAllImages(ec2Client, input.OwnerID)
 		if err != nil {
 			return nil, err
 		}
@@ -95,6 +99,9 @@ func List(input ListInput) (*amiv1.AWSAMIList, error) {
 				image, err := findAMI(imageMap, os, version)
 				if err != nil {
 					return nil, err
+				}
+				if image == nil {
+					continue
 				}
 				creationTimestamp, err := time.Parse(time.RFC3339, aws.StringValue(image.CreationDate))
 				if err != nil {

@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,7 +18,7 @@ package logs
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
+	"github.com/go-logr/logr"
 )
 
 const (
@@ -27,7 +27,7 @@ const (
 )
 
 // GetAWSLogLevel will return the log level of an AWS Logger.
-func GetAWSLogLevel(logger cloud.Logger) aws.LogLevelType {
+func GetAWSLogLevel(logger logr.Logger) aws.LogLevelType {
 	if logger.V(logWithHTTPBody).Enabled() {
 		return aws.LogDebugWithHTTPBody
 	}
@@ -40,14 +40,14 @@ func GetAWSLogLevel(logger cloud.Logger) aws.LogLevelType {
 }
 
 // NewWrapLogr will create an AWS Logger wrapper.
-func NewWrapLogr(logger cloud.Logger) aws.Logger {
+func NewWrapLogr(logger logr.Logger) aws.Logger {
 	return &logrWrapper{
 		log: logger,
 	}
 }
 
 type logrWrapper struct {
-	log cloud.Logger
+	log logr.Logger
 }
 
 func (l *logrWrapper) Log(msgs ...interface{}) {

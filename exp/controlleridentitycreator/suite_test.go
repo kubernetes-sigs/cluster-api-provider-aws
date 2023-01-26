@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,20 +18,19 @@ package controlleridentitycreator
 
 import (
 	"fmt"
-	"os"
 	"path"
 	"testing"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+
 	// +kubebuilder:scaffold:imports
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/helpers"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -43,11 +42,9 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	code := 0
-	defer func() { os.Exit(code) }()
 	setup()
 	defer teardown()
-	code = m.Run()
+	m.Run()
 }
 
 func setup() {
@@ -57,7 +54,6 @@ func setup() {
 
 	testEnvConfig := helpers.NewTestEnvironmentConfiguration([]string{
 		path.Join("config", "crd", "bases"),
-		path.Join("controlplane", "eks", "config", "crd", "bases"),
 	},
 	).WithWebhookConfiguration("unmanaged", path.Join("config", "webhook", "manifests.yaml"))
 	var err error
@@ -80,7 +76,7 @@ func setup() {
 
 	err = (&AWSControllerIdentityReconciler{
 		Client: testEnv,
-		Log:    log.Log,
+		Log:    ctrl.Log,
 	}).SetupWithManager(ctx, testEnv.Manager, controller.Options{})
 	if err != nil {
 		panic(fmt.Sprintf("Failed to add AWSControllerIdentityReconciler to the envtest manager: %v", err))

@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -28,8 +29,7 @@ type AWSClusterTemplateSpec struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=awsclustertemplates,scope=Namespaced,categories=cluster-api,shortName=awsct
-// +kubebuilder:storageversion
-// +k8s:defaulter-gen=true
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of AWSClusterTemplate"
 
 // AWSClusterTemplate is the schema for Amazon EC2 based Kubernetes Cluster Templates.
 type AWSClusterTemplate struct {

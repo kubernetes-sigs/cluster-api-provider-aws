@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/errors"
 )
@@ -26,6 +27,9 @@ const (
 	// MachineFinalizer allows ReconcileAWSMachine to clean up AWS resources associated with AWSMachine before
 	// removing it from the apiserver.
 	MachineFinalizer = "awsmachine.infrastructure.cluster.x-k8s.io"
+
+	// DefaultIgnitionVersion represents default Ignition version generated for machine userdata.
+	DefaultIgnitionVersion = "2.3"
 )
 
 // SecretBackend defines variants for backend secret storage.
@@ -141,6 +145,10 @@ type AWSMachineSpec struct {
 	// +optional
 	CloudInit CloudInit `json:"cloudInit,omitempty"`
 
+	// Ignition defined options related to the bootstrapping systems where Ignition is used.
+	// +optional
+	Ignition *Ignition `json:"ignition,omitempty"`
+
 	// SpotMarketOptions allows users to configure instances to be run using AWS Spot instances.
 	// +optional
 	SpotMarketOptions *SpotMarketOptions `json:"spotMarketOptions,omitempty"`
@@ -176,6 +184,16 @@ type CloudInit struct {
 	// +optional
 	// +kubebuilder:validation:Enum=secrets-manager;ssm-parameter-store
 	SecureSecretsBackend SecretBackend `json:"secureSecretsBackend,omitempty"`
+}
+
+// Ignition defines options related to the bootstrapping systems where Ignition is used.
+type Ignition struct {
+	// Version defines which version of Ignition will be used to generate bootstrap data.
+	//
+	// +optional
+	// +kubebuilder:default="2.3"
+	// +kubebuilder:validation:Enum="2.3"
+	Version string `json:"version,omitempty"`
 }
 
 // AWSMachineStatus defines the observed state of AWSMachine.
@@ -241,14 +259,12 @@ type AWSMachineStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=awsmachines,scope=Namespaced,categories=cluster-api,shortName=awsm
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this AWSMachine belongs"
 // +kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.instanceState",description="EC2 instance state"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Machine ready status"
 // +kubebuilder:printcolumn:name="InstanceID",type="string",JSONPath=".spec.providerID",description="EC2 instance ID"
 // +kubebuilder:printcolumn:name="Machine",type="string",JSONPath=".metadata.ownerReferences[?(@.kind==\"Machine\")].name",description="Machine object which owns with this AWSMachine"
-// +k8s:defaulter-gen=true
 
 // AWSMachine is the schema for Amazon EC2 machines.
 type AWSMachine struct {

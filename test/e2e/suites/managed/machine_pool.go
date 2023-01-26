@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -7,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,22 +21,23 @@ package managed
 
 import (
 	"context"
+	"encoding/base64"
+	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 )
 
-// ManagedMachinePoolSpecInput is the input for ManagedMachinePoolSpec
-type ManagedMachinePoolSpecInput struct {
+// MachinePoolSpecInput is the input for MachinePoolSpec.
+type MachinePoolSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ConfigClusterFn       DefaultConfigClusterFn
 	BootstrapClusterProxy framework.ClusterProxy
@@ -44,23 +46,23 @@ type ManagedMachinePoolSpecInput struct {
 	ClusterName           string
 	IncludeScaling        bool
 	Cleanup               bool
+	ManagedMachinePool    bool
+	Flavor                string
+	UsesLaunchTemplate    bool
 }
 
-// ManagedMachinePoolSpec implements a test for creating a managed machine pool
-func ManagedMachinePoolSpec(ctx context.Context, inputGetter func() ManagedMachinePoolSpecInput) {
-	var (
-		input ManagedMachinePoolSpecInput
-	)
-
-	input = inputGetter()
+// MachinePoolSpec implements a test for creating a machine pool.
+func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInput) {
+	input := inputGetter()
 	Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil")
 	Expect(input.ConfigClusterFn).ToNot(BeNil(), "Invalid argument. input.ConfigClusterFn can't be nil")
 	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")
 	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
 	Expect(input.Namespace).NotTo(BeNil(), "Invalid argument. input.Namespace can't be nil")
 	Expect(input.ClusterName).ShouldNot(HaveLen(0), "Invalid argument. input.ClusterName can't be empty")
+	Expect(input.Flavor).ShouldNot(HaveLen(0), "Invalid argument. input.Flavor can't be empty")
 
-	shared.Byf("getting cluster with name %s", input.ClusterName)
+	ginkgo.By(fmt.Sprintf("getting cluster with name %s", input.ClusterName))
 	cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
 		Getter:    input.BootstrapClusterProxy.GetClient(),
 		Namespace: input.Namespace.Name,
@@ -68,14 +70,27 @@ func ManagedMachinePoolSpec(ctx context.Context, inputGetter func() ManagedMachi
 	})
 	Expect(cluster).NotTo(BeNil(), "couldn't find CAPI cluster")
 
-	shared.Byf("creating an applying the %s template", EKSManagedPoolOnlyFlavor)
+	ginkgo.By(fmt.Sprintf("creating an applying the %s template", input.Flavor))
 	configCluster := input.ConfigClusterFn(input.ClusterName, input.Namespace.Name)
-	configCluster.Flavor = EKSManagedPoolOnlyFlavor
+	configCluster.Flavor = input.Flavor
 	configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
-	err := shared.ApplyTemplate(ctx, configCluster, input.BootstrapClusterProxy)
+	workloadClusterTemplate := shared.GetTemplate(ctx, configCluster)
+	if input.UsesLaunchTemplate {
+		userDataTemplate := `#!/bin/bash
+/etc/eks/bootstrap.sh %s \
+  --container-runtime containerd
+`
+		eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName)
+		userData := fmt.Sprintf(userDataTemplate, eksClusterName)
+		userDataEncoded := base64.StdEncoding.EncodeToString([]byte(userData))
+		workloadClusterTemplate = []byte(strings.ReplaceAll(string(workloadClusterTemplate), "USER_DATA", userDataEncoded))
+	}
+	ginkgo.By(string(workloadClusterTemplate))
+	ginkgo.By(fmt.Sprintf("Applying the %s cluster template yaml to the cluster", configCluster.Flavor))
+	err := input.BootstrapClusterProxy.Apply(ctx, workloadClusterTemplate)
 	Expect(err).ShouldNot(HaveOccurred())
 
-	shared.Byf("Waiting for the machine pool to be running")
+	ginkgo.By("Waiting for the machine pool to be running")
 	mp := framework.DiscoveryAndWaitForMachinePools(ctx, framework.DiscoveryAndWaitForMachinePoolsInput{
 		Lister:  input.BootstrapClusterProxy.GetClient(),
 		Getter:  input.BootstrapClusterProxy.GetClient(),
@@ -83,12 +98,22 @@ func ManagedMachinePoolSpec(ctx context.Context, inputGetter func() ManagedMachi
 	}, input.E2EConfig.GetIntervals("", "wait-worker-nodes")...)
 	Expect(len(mp)).To(Equal(1))
 
-	shared.Byf("Check the status of the node group")
-	nodeGroupName := getEKSNodegroupName(input.Namespace.Name, input.ClusterName)
+	ginkgo.By("Check the status of the node group")
 	eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName)
-	verifyManagedNodeGroup(input.ClusterName, eksClusterName, nodeGroupName, true, input.AWSSession)
+	if input.ManagedMachinePool {
+		var nodeGroupName string
+		if input.UsesLaunchTemplate {
+			nodeGroupName = getEKSNodegroupWithLaunchTemplateName(input.Namespace.Name, input.ClusterName)
+		} else {
+			nodeGroupName = getEKSNodegroupName(input.Namespace.Name, input.ClusterName)
+		}
+		verifyManagedNodeGroup(eksClusterName, nodeGroupName, true, input.AWSSession)
+	} else {
+		asgName := getASGName(input.ClusterName)
+		verifyASG(eksClusterName, asgName, true, input.AWSSession)
+	}
 
-	if input.IncludeScaling { //TODO (richardcase): should this be a separate spec?
+	if input.IncludeScaling { // TODO (richardcase): should this be a separate spec?
 		ginkgo.By("Scaling the machine pool up")
 		framework.ScaleMachinePoolAndWait(ctx, framework.ScaleMachinePoolAndWaitInput{
 			ClusterProxy:              input.BootstrapClusterProxy,

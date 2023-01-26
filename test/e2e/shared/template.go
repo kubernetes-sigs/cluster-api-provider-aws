@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 /*
@@ -7,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,26 +21,27 @@ package shared
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path"
 
 	"github.com/awslabs/goformation/v4/cloudformation"
-	. "github.com/onsi/ginkgo"
+	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
 	"gopkg.in/yaml.v2"
 
-	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/bootstrap/v1beta1"
-	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/credentials"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/bootstrap/v1beta1"
+	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/bootstrap"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/credentials"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
 const (
+	// MultiTenancyJumpPolicy is the policy name for jump host to be used in multi-tenancy test.
 	MultiTenancyJumpPolicy = "CAPAMultiTenancyJumpPolicy"
 )
 
@@ -48,7 +50,7 @@ var (
 )
 
 // newBootstrapTemplate generates a clusterawsadm configuration, and prints it
-// and the resultant cloudformation template to the artifacts directory
+// and the resultant cloudformation template to the artifacts directory.
 func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 	By("Creating a bootstrap AWSIAMConfiguration")
 	t := cfn_bootstrap.NewTemplate()
@@ -75,6 +77,20 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 				"ssm:GetDocument",
 				"ssm:TerminateSession",
 				"ssm:ResumeSession",
+				"ec2:DescribeSubnets",
+				"ec2:DescribeNetworkInterfaces",
+				"ec2:CreateNetworkInterface",
+				"ec2:DescribeAvailabilityZones",
+				"ec2:DeleteNetworkInterface",
+				"elasticfilesystem:DescribeMountTargets",
+				"elasticfilesystem:CreateMountTarget",
+				"elasticfilesystem:DeleteMountTarget",
+				"elasticfilesystem:DescribeFileSystems",
+				"elasticfilesystem:CreateFileSystem",
+				"elasticfilesystem:DeleteFileSystem",
+				"elasticfilesystem:DescribeAccessPoints",
+				"elasticfilesystem:CreateAccessPoint",
+				"elasticfilesystem:DeleteAccessPoint",
 			},
 		},
 		{
@@ -104,13 +120,30 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 	t.Spec.EKS.AllowIAMRoleCreation = false
 	t.Spec.EKS.DefaultControlPlaneRole.Disable = false
 	t.Spec.EKS.ManagedMachinePool.Disable = false
+	t.Spec.S3Buckets.Enable = true
+	t.Spec.Nodes.ExtraStatements = []iamv1.StatementEntry{
+		{
+			Effect: iamv1.EffectAllow,
+			Resource: iamv1.Resources{
+				iamv1.Any,
+			},
+			Action: iamv1.Actions{
+				"elasticfilesystem:DescribeMountTargets",
+				"elasticfilesystem:DeleteAccessPoint",
+				"elasticfilesystem:DescribeAccessPoints",
+				"elasticfilesystem:DescribeFileSystems",
+				"elasticfilesystem:CreateAccessPoint",
+				"ec2:DescribeAvailabilityZones",
+			},
+		},
+	}
 	str, err := yaml.Marshal(t.Spec)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(os.WriteFile(path.Join(e2eCtx.Settings.ArtifactFolder, "awsiamconfiguration.yaml"), str, 0644)).To(Succeed())
+	Expect(os.WriteFile(path.Join(e2eCtx.Settings.ArtifactFolder, "awsiamconfiguration.yaml"), str, 0644)).To(Succeed()) //nolint:gosec
 	cloudformationTemplate := renderCustomCloudFormation(&t)
 	cfnData, err := cloudformationTemplate.YAML()
 	Expect(err).NotTo(HaveOccurred())
-	Expect(os.WriteFile(path.Join(e2eCtx.Settings.ArtifactFolder, "cloudformation.yaml"), cfnData, 0644)).To(Succeed())
+	Expect(os.WriteFile(path.Join(e2eCtx.Settings.ArtifactFolder, "cloudformation.yaml"), cfnData, 0644)).To(Succeed()) //nolint:gosec
 	return &t
 }
 
@@ -121,7 +154,6 @@ func renderCustomCloudFormation(t *cfn_bootstrap.Template) *cloudformation.Templ
 }
 
 func appendMultiTenancyRoles(t *cfn_bootstrap.Template, cfnt *cloudformation.Template) {
-
 	controllersPolicy := cfnt.Resources[string(cfn_bootstrap.ControllersPolicy)].(*cfn_iam.ManagedPolicy)
 	controllersPolicy.Roles = append(
 		controllersPolicy.Roles,
@@ -157,7 +189,7 @@ func appendMultiTenancyRoles(t *cfn_bootstrap.Template, cfnt *cloudformation.Tem
 	}
 }
 
-// getBootstrapTemplate gets or generates a new bootstrap template
+// getBootstrapTemplate gets or generates a new bootstrap template.
 func getBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 	if e2eCtx.Environment.BootstrapTemplate == nil {
 		e2eCtx.Environment.BootstrapTemplate = newBootstrapTemplate(e2eCtx)
@@ -165,11 +197,18 @@ func getBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 	return e2eCtx.Environment.BootstrapTemplate
 }
 
-// ApplyTemplate will render a cluster template and apply it to the management cluster
+// ApplyTemplate will render a cluster template and apply it to the management cluster.
 func ApplyTemplate(ctx context.Context, configCluster clusterctl.ConfigClusterInput, clusterProxy framework.ClusterProxy) error {
+	workloadClusterTemplate := GetTemplate(ctx, configCluster)
+	By(fmt.Sprintf("Applying the %s cluster template yaml to the cluster", configCluster.Flavor))
+	return clusterProxy.Apply(ctx, workloadClusterTemplate)
+}
+
+// GetTemplate will render a cluster template.
+func GetTemplate(ctx context.Context, configCluster clusterctl.ConfigClusterInput) []byte {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for ApplyClusterTemplateAndWait")
 
-	Byf("Getting the cluster template yaml")
+	By("Getting the cluster template yaml")
 	workloadClusterTemplate := clusterctl.ConfigCluster(ctx, clusterctl.ConfigClusterInput{
 		KubeconfigPath:           configCluster.KubeconfigPath,
 		ClusterctlConfigPath:     configCluster.ClusterctlConfigPath,
@@ -184,6 +223,5 @@ func ApplyTemplate(ctx context.Context, configCluster clusterctl.ConfigClusterIn
 	})
 	Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
 
-	Byf("Applying the %s cluster template yaml to the cluster", configCluster.Flavor)
-	return clusterProxy.Apply(ctx, workloadClusterTemplate)
+	return workloadClusterTemplate
 }

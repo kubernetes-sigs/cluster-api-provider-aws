@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -300,6 +300,56 @@ func (mr *MockEventBridgeAPIMockRecorder) CreateConnectionWithContext(arg0, arg1
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateConnectionWithContext", reflect.TypeOf((*MockEventBridgeAPI)(nil).CreateConnectionWithContext), varargs...)
+}
+
+// CreateEndpoint mocks base method.
+func (m *MockEventBridgeAPI) CreateEndpoint(arg0 *eventbridge.CreateEndpointInput) (*eventbridge.CreateEndpointOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateEndpoint", arg0)
+	ret0, _ := ret[0].(*eventbridge.CreateEndpointOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateEndpoint indicates an expected call of CreateEndpoint.
+func (mr *MockEventBridgeAPIMockRecorder) CreateEndpoint(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEndpoint", reflect.TypeOf((*MockEventBridgeAPI)(nil).CreateEndpoint), arg0)
+}
+
+// CreateEndpointRequest mocks base method.
+func (m *MockEventBridgeAPI) CreateEndpointRequest(arg0 *eventbridge.CreateEndpointInput) (*request.Request, *eventbridge.CreateEndpointOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateEndpointRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*eventbridge.CreateEndpointOutput)
+	return ret0, ret1
+}
+
+// CreateEndpointRequest indicates an expected call of CreateEndpointRequest.
+func (mr *MockEventBridgeAPIMockRecorder) CreateEndpointRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEndpointRequest", reflect.TypeOf((*MockEventBridgeAPI)(nil).CreateEndpointRequest), arg0)
+}
+
+// CreateEndpointWithContext mocks base method.
+func (m *MockEventBridgeAPI) CreateEndpointWithContext(arg0 context.Context, arg1 *eventbridge.CreateEndpointInput, arg2 ...request.Option) (*eventbridge.CreateEndpointOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateEndpointWithContext", varargs...)
+	ret0, _ := ret[0].(*eventbridge.CreateEndpointOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateEndpointWithContext indicates an expected call of CreateEndpointWithContext.
+func (mr *MockEventBridgeAPIMockRecorder) CreateEndpointWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEndpointWithContext", reflect.TypeOf((*MockEventBridgeAPI)(nil).CreateEndpointWithContext), varargs...)
 }
 
 // CreateEventBus mocks base method.
@@ -652,6 +702,56 @@ func (mr *MockEventBridgeAPIMockRecorder) DeleteConnectionWithContext(arg0, arg1
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteConnectionWithContext", reflect.TypeOf((*MockEventBridgeAPI)(nil).DeleteConnectionWithContext), varargs...)
 }
 
+// DeleteEndpoint mocks base method.
+func (m *MockEventBridgeAPI) DeleteEndpoint(arg0 *eventbridge.DeleteEndpointInput) (*eventbridge.DeleteEndpointOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteEndpoint", arg0)
+	ret0, _ := ret[0].(*eventbridge.DeleteEndpointOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteEndpoint indicates an expected call of DeleteEndpoint.
+func (mr *MockEventBridgeAPIMockRecorder) DeleteEndpoint(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteEndpoint", reflect.TypeOf((*MockEventBridgeAPI)(nil).DeleteEndpoint), arg0)
+}
+
+// DeleteEndpointRequest mocks base method.
+func (m *MockEventBridgeAPI) DeleteEndpointRequest(arg0 *eventbridge.DeleteEndpointInput) (*request.Request, *eventbridge.DeleteEndpointOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteEndpointRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*eventbridge.DeleteEndpointOutput)
+	return ret0, ret1
+}
+
+// DeleteEndpointRequest indicates an expected call of DeleteEndpointRequest.
+func (mr *MockEventBridgeAPIMockRecorder) DeleteEndpointRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteEndpointRequest", reflect.TypeOf((*MockEventBridgeAPI)(nil).DeleteEndpointRequest), arg0)
+}
+
+// DeleteEndpointWithContext mocks base method.
+func (m *MockEventBridgeAPI) DeleteEndpointWithContext(arg0 context.Context, arg1 *eventbridge.DeleteEndpointInput, arg2 ...request.Option) (*eventbridge.DeleteEndpointOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteEndpointWithContext", varargs...)
+	ret0, _ := ret[0].(*eventbridge.DeleteEndpointOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteEndpointWithContext indicates an expected call of DeleteEndpointWithContext.
+func (mr *MockEventBridgeAPIMockRecorder) DeleteEndpointWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteEndpointWithContext", reflect.TypeOf((*MockEventBridgeAPI)(nil).DeleteEndpointWithContext), varargs...)
+}
+
 // DeleteEventBus mocks base method.
 func (m *MockEventBridgeAPI) DeleteEventBus(arg0 *eventbridge.DeleteEventBusInput) (*eventbridge.DeleteEventBusOutput, error) {
 	m.ctrl.T.Helper()
@@ -950,6 +1050,56 @@ func (mr *MockEventBridgeAPIMockRecorder) DescribeConnectionWithContext(arg0, ar
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeConnectionWithContext", reflect.TypeOf((*MockEventBridgeAPI)(nil).DescribeConnectionWithContext), varargs...)
+}
+
+// DescribeEndpoint mocks base method.
+func (m *MockEventBridgeAPI) DescribeEndpoint(arg0 *eventbridge.DescribeEndpointInput) (*eventbridge.DescribeEndpointOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeEndpoint", arg0)
+	ret0, _ := ret[0].(*eventbridge.DescribeEndpointOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeEndpoint indicates an expected call of DescribeEndpoint.
+func (mr *MockEventBridgeAPIMockRecorder) DescribeEndpoint(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeEndpoint", reflect.TypeOf((*MockEventBridgeAPI)(nil).DescribeEndpoint), arg0)
+}
+
+// DescribeEndpointRequest mocks base method.
+func (m *MockEventBridgeAPI) DescribeEndpointRequest(arg0 *eventbridge.DescribeEndpointInput) (*request.Request, *eventbridge.DescribeEndpointOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeEndpointRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*eventbridge.DescribeEndpointOutput)
+	return ret0, ret1
+}
+
+// DescribeEndpointRequest indicates an expected call of DescribeEndpointRequest.
+func (mr *MockEventBridgeAPIMockRecorder) DescribeEndpointRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeEndpointRequest", reflect.TypeOf((*MockEventBridgeAPI)(nil).DescribeEndpointRequest), arg0)
+}
+
+// DescribeEndpointWithContext mocks base method.
+func (m *MockEventBridgeAPI) DescribeEndpointWithContext(arg0 context.Context, arg1 *eventbridge.DescribeEndpointInput, arg2 ...request.Option) (*eventbridge.DescribeEndpointOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeEndpointWithContext", varargs...)
+	ret0, _ := ret[0].(*eventbridge.DescribeEndpointOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeEndpointWithContext indicates an expected call of DescribeEndpointWithContext.
+func (mr *MockEventBridgeAPIMockRecorder) DescribeEndpointWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeEndpointWithContext", reflect.TypeOf((*MockEventBridgeAPI)(nil).DescribeEndpointWithContext), varargs...)
 }
 
 // DescribeEventBus mocks base method.
@@ -1450,6 +1600,56 @@ func (mr *MockEventBridgeAPIMockRecorder) ListConnectionsWithContext(arg0, arg1 
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListConnectionsWithContext", reflect.TypeOf((*MockEventBridgeAPI)(nil).ListConnectionsWithContext), varargs...)
+}
+
+// ListEndpoints mocks base method.
+func (m *MockEventBridgeAPI) ListEndpoints(arg0 *eventbridge.ListEndpointsInput) (*eventbridge.ListEndpointsOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListEndpoints", arg0)
+	ret0, _ := ret[0].(*eventbridge.ListEndpointsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListEndpoints indicates an expected call of ListEndpoints.
+func (mr *MockEventBridgeAPIMockRecorder) ListEndpoints(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEndpoints", reflect.TypeOf((*MockEventBridgeAPI)(nil).ListEndpoints), arg0)
+}
+
+// ListEndpointsRequest mocks base method.
+func (m *MockEventBridgeAPI) ListEndpointsRequest(arg0 *eventbridge.ListEndpointsInput) (*request.Request, *eventbridge.ListEndpointsOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListEndpointsRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*eventbridge.ListEndpointsOutput)
+	return ret0, ret1
+}
+
+// ListEndpointsRequest indicates an expected call of ListEndpointsRequest.
+func (mr *MockEventBridgeAPIMockRecorder) ListEndpointsRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEndpointsRequest", reflect.TypeOf((*MockEventBridgeAPI)(nil).ListEndpointsRequest), arg0)
+}
+
+// ListEndpointsWithContext mocks base method.
+func (m *MockEventBridgeAPI) ListEndpointsWithContext(arg0 context.Context, arg1 *eventbridge.ListEndpointsInput, arg2 ...request.Option) (*eventbridge.ListEndpointsOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListEndpointsWithContext", varargs...)
+	ret0, _ := ret[0].(*eventbridge.ListEndpointsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListEndpointsWithContext indicates an expected call of ListEndpointsWithContext.
+func (mr *MockEventBridgeAPIMockRecorder) ListEndpointsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEndpointsWithContext", reflect.TypeOf((*MockEventBridgeAPI)(nil).ListEndpointsWithContext), varargs...)
 }
 
 // ListEventBuses mocks base method.
@@ -2600,4 +2800,54 @@ func (mr *MockEventBridgeAPIMockRecorder) UpdateConnectionWithContext(arg0, arg1
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateConnectionWithContext", reflect.TypeOf((*MockEventBridgeAPI)(nil).UpdateConnectionWithContext), varargs...)
+}
+
+// UpdateEndpoint mocks base method.
+func (m *MockEventBridgeAPI) UpdateEndpoint(arg0 *eventbridge.UpdateEndpointInput) (*eventbridge.UpdateEndpointOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateEndpoint", arg0)
+	ret0, _ := ret[0].(*eventbridge.UpdateEndpointOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateEndpoint indicates an expected call of UpdateEndpoint.
+func (mr *MockEventBridgeAPIMockRecorder) UpdateEndpoint(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEndpoint", reflect.TypeOf((*MockEventBridgeAPI)(nil).UpdateEndpoint), arg0)
+}
+
+// UpdateEndpointRequest mocks base method.
+func (m *MockEventBridgeAPI) UpdateEndpointRequest(arg0 *eventbridge.UpdateEndpointInput) (*request.Request, *eventbridge.UpdateEndpointOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateEndpointRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*eventbridge.UpdateEndpointOutput)
+	return ret0, ret1
+}
+
+// UpdateEndpointRequest indicates an expected call of UpdateEndpointRequest.
+func (mr *MockEventBridgeAPIMockRecorder) UpdateEndpointRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEndpointRequest", reflect.TypeOf((*MockEventBridgeAPI)(nil).UpdateEndpointRequest), arg0)
+}
+
+// UpdateEndpointWithContext mocks base method.
+func (m *MockEventBridgeAPI) UpdateEndpointWithContext(arg0 context.Context, arg1 *eventbridge.UpdateEndpointInput, arg2 ...request.Option) (*eventbridge.UpdateEndpointOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "UpdateEndpointWithContext", varargs...)
+	ret0, _ := ret[0].(*eventbridge.UpdateEndpointOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateEndpointWithContext indicates an expected call of UpdateEndpointWithContext.
+func (mr *MockEventBridgeAPIMockRecorder) UpdateEndpointWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEndpointWithContext", reflect.TypeOf((*MockEventBridgeAPI)(nil).UpdateEndpointWithContext), varargs...)
 }

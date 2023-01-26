@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,8 +19,9 @@ package v1beta1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 )
 
 // BootstrapUser contains a list of elements that is specific
@@ -83,7 +84,7 @@ type AWSIAMRoleSpec struct {
 	ExtraStatements []iamv1.StatementEntry `json:"extraStatements,omitempty"`
 
 	// TrustStatements is an IAM PolicyDocument defining what identities are allowed to assume this role.
-	// See "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1beta1" for more documentation.
+	// See "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/iam/v1beta1" for more documentation.
 	TrustStatements []iamv1.StatementEntry `json:"trustStatements,omitempty"`
 
 	// Tags is a map of tags to be applied to the AWS IAM role.
@@ -158,6 +159,17 @@ type AWSIAMConfiguration struct {
 	Spec AWSIAMConfigurationSpec `json:"spec,omitempty"`
 }
 
+// S3Buckets controls the configuration of the AWS IAM role for S3 buckets
+// which can be created for storing bootstrap data for nodes requiring it.
+type S3Buckets struct {
+	// Enable controls whether permissions are granted to manage S3 buckets.
+	Enable bool `json:"enable"`
+
+	// NamePrefix will be prepended to every AWS IAM role bucket name. Defaults to "cluster-api-provider-aws-".
+	// AWSCluster S3 Bucket name must be prefixed with the same prefix.
+	NamePrefix string `json:"namePrefix"`
+}
+
 // AWSIAMConfigurationSpec defines the specification of the AWSIAMConfiguration.
 type AWSIAMConfigurationSpec struct {
 	// NamePrefix will be prepended to every AWS IAM role, user and policy created by clusterawsadm. Defaults to "".
@@ -183,6 +195,10 @@ type AWSIAMConfigurationSpec struct {
 	// StackName defines the name of the AWS CloudFormation stack.
 	StackName string `json:"stackName,omitempty"`
 
+	// StackTags defines the tags of the AWS CloudFormation stack.
+	// +optional
+	StackTags map[string]string `json:"stackTags,omitempty"`
+
 	// Region controls which region the control-plane is created in if not specified on the command line or
 	// via environment variables.
 	Region string `json:"region,omitempty"`
@@ -202,6 +218,12 @@ type AWSIAMConfigurationSpec struct {
 	// will generate AWS Secrets Manager policies instead.
 	// +kubebuilder:validation:Enum=secrets-manager;ssm-parameter-store
 	SecureSecretsBackends []infrav1.SecretBackend `json:"secureSecretBackends,omitempty"`
+
+	// S3Buckets, when enabled, will add controller nodes permissions to
+	// create S3 Buckets for workload clusters.
+	// TODO: This field could be a pointer, but it seems it breaks setting default values?
+	// +optional
+	S3Buckets S3Buckets `json:"s3Buckets,omitempty"`
 }
 
 // GetObjectKind returns the AAWSIAMConfiguration's TypeMeta.

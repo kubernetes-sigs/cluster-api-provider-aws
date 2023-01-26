@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,26 +20,25 @@ import (
 	"context"
 
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	"k8s.io/klog/v2/klogr"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 )
 
 // FargateProfileScopeParams defines the input parameters used to create a new Scope.
 type FargateProfileScopeParams struct {
 	Client         client.Client
-	Logger         *logr.Logger
+	Logger         *logger.Logger
 	Cluster        *clusterv1.Cluster
 	ControlPlane   *ekscontrolplanev1.AWSManagedControlPlane
 	FargateProfile *expinfrav1.AWSFargateProfile
@@ -57,8 +56,8 @@ func NewFargateProfileScope(params FargateProfileScopeParams) (*FargateProfileSc
 		return nil, errors.New("failed to generate new scope from nil AWSFargateProfile")
 	}
 	if params.Logger == nil {
-		log := klogr.New()
-		params.Logger = &log
+		log := klog.Background()
+		params.Logger = logger.NewLogger(log)
 	}
 
 	managedScope := &ManagedControlPlaneScope{
@@ -69,7 +68,7 @@ func NewFargateProfileScope(params FargateProfileScopeParams) (*FargateProfileSc
 		controllerName: params.ControllerName,
 	}
 
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, *params.Logger)
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
@@ -95,7 +94,7 @@ func NewFargateProfileScope(params FargateProfileScopeParams) (*FargateProfileSc
 
 // FargateProfileScope defines the basic context for an actuator to operate upon.
 type FargateProfileScope struct {
-	logr.Logger
+	logger.Logger
 	Client      client.Client
 	patchHelper *patch.Helper
 
@@ -199,6 +198,11 @@ func (s *FargateProfileScope) Close() error {
 // InfraCluster returns the AWS infrastructure cluster or control plane object.
 func (s *FargateProfileScope) InfraCluster() cloud.ClusterObject {
 	return s.ControlPlane
+}
+
+// ClusterObj returns the cluster object.
+func (s *FargateProfileScope) ClusterObj() cloud.ClusterObject {
+	return s.Cluster
 }
 
 // Session returns the AWS SDK session. Used for creating clients.

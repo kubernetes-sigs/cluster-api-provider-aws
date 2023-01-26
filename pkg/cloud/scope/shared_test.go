@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,12 +19,11 @@ package scope
 import (
 	"testing"
 
-	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
+	"k8s.io/klog/v2"
 
-	"k8s.io/klog/v2/klogr"
-
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 )
 
 func TestSubnetPlacement(t *testing.T) {
@@ -34,7 +33,7 @@ func TestSubnetPlacement(t *testing.T) {
 		specAZs             []string
 		parentAZs           []string
 		controlPlaneSubnets infrav1.Subnets
-		logger              logr.Logger
+		logger              *logger.Logger
 		expectedSubnetIDs   []string
 		expectError         bool
 	}{
@@ -57,7 +56,7 @@ func TestSubnetPlacement(t *testing.T) {
 					AvailabilityZone: "eu-west-1c",
 				},
 			},
-			logger:            klogr.New(),
+			logger:            logger.NewLogger(klog.Background()),
 			expectedSubnetIDs: []string{"az1"},
 			expectError:       false,
 		},
@@ -80,7 +79,7 @@ func TestSubnetPlacement(t *testing.T) {
 					AvailabilityZone: "eu-west-1c",
 				},
 			},
-			logger:            klogr.New(),
+			logger:            logger.NewLogger(klog.Background()),
 			expectedSubnetIDs: []string{"az2"},
 			expectError:       false,
 		},
@@ -103,7 +102,7 @@ func TestSubnetPlacement(t *testing.T) {
 					AvailabilityZone: "eu-west-1c",
 				},
 			},
-			logger:            klogr.New(),
+			logger:            logger.NewLogger(klog.Background()),
 			expectedSubnetIDs: []string{"az3"},
 			expectError:       false,
 		},
@@ -129,7 +128,7 @@ func TestSubnetPlacement(t *testing.T) {
 					IsPublic:         true,
 				},
 			},
-			logger:            klogr.New(),
+			logger:            logger.NewLogger(klog.Background()),
 			expectedSubnetIDs: []string{"az1", "az2"},
 			expectError:       false,
 		},
@@ -139,7 +138,7 @@ func TestSubnetPlacement(t *testing.T) {
 			specAZs:             []string{},
 			parentAZs:           []string{},
 			controlPlaneSubnets: infrav1.Subnets{},
-			logger:              klogr.New(),
+			logger:              logger.NewLogger(klog.Background()),
 			expectedSubnetIDs:   []string{},
 			expectError:         true,
 		},
@@ -149,7 +148,7 @@ func TestSubnetPlacement(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewGomegaWithT(t)
 
-			strategy, err := newDefaultSubnetPlacementStrategy(&tc.logger)
+			strategy, err := newDefaultSubnetPlacementStrategy(tc.logger)
 			g.Expect(err).NotTo(HaveOccurred())
 
 			actualSubnetIDs, err := strategy.Place(&placementInput{

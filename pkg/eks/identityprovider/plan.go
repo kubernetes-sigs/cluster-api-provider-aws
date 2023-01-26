@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,16 +19,15 @@ package identityprovider
 import (
 	"context"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
-	"github.com/go-logr/logr"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/planner"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/planner"
 )
 
 // NewPlan creates plan to manage EKS OIDC identity provider association.
-func NewPlan(clusterName string, currentIdentityProvider, desiredIdentityProvider *OidcIdentityProviderConfig, client eksiface.EKSAPI, log logr.Logger) planner.Plan {
+func NewPlan(clusterName string, currentIdentityProvider, desiredIdentityProvider *OidcIdentityProviderConfig, client eksiface.EKSAPI, log logger.Wrapper) planner.Plan {
 	return &plan{
 		currentIdentityProvider: currentIdentityProvider,
 		desiredIdentityProvider: desiredIdentityProvider,
@@ -43,7 +42,7 @@ type plan struct {
 	currentIdentityProvider *OidcIdentityProviderConfig
 	desiredIdentityProvider *OidcIdentityProviderConfig
 	eksClient               eksiface.EKSAPI
-	log                     logr.Logger
+	log                     logger.Wrapper
 	clusterName             string
 }
 
@@ -56,9 +55,9 @@ func (p *plan) Create(ctx context.Context) ([]planner.Procedure, error) {
 
 	// no config is mentioned deleted provider if we have one
 	if p.desiredIdentityProvider == nil {
-		// disassociation will also also trigger deletion hence
+		// disassociation will also trigger deletion hence
 		// we do nothing in case of ConfigStatusDeleting as it will happen eventually
-		if aws.StringValue(p.currentIdentityProvider.Status) == eks.ConfigStatusActive {
+		if p.currentIdentityProvider.Status == eks.ConfigStatusActive {
 			procedures = append(procedures, &DisassociateIdentityProviderConfig{plan: p})
 		}
 
@@ -80,7 +79,7 @@ func (p *plan) Create(ctx context.Context) ([]planner.Procedure, error) {
 		if len(p.desiredIdentityProvider.Tags) == 0 && len(p.currentIdentityProvider.Tags) != 0 {
 			procedures = append(procedures, &RemoveIdentityProviderTagsProcedure{plan: p})
 		}
-		switch aws.StringValue(p.currentIdentityProvider.Status) {
+		switch p.currentIdentityProvider.Status {
 		case eks.ConfigStatusActive:
 			// config active no work to be done
 			return procedures, nil

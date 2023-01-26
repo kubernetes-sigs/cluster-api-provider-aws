@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,19 +18,19 @@ package controllers
 
 import (
 	"fmt"
-	"os"
 	"path"
 	"testing"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
+	ctrl "sigs.k8s.io/controller-runtime"
+
+	// +kubebuilder:scaffold:imports
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/helpers"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	ctrl "sigs.k8s.io/controller-runtime"
-	// +kubebuilder:scaffold:imports
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -42,11 +42,9 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	code := 0
-	defer func() { os.Exit(code) }()
 	setup()
 	defer teardown()
-	code = m.Run()
+	m.Run()
 }
 
 func setup() {
@@ -69,11 +67,8 @@ func setup() {
 	if err := (&infrav1.AWSMachine{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSMachine webhook: %v", err))
 	}
-	if err := (&infrav1.AWSMachineTemplate{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&infrav1.AWSMachineTemplateWebhook{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSMachineTemplate webhook: %v", err))
-	}
-	if err := (&infrav1.AWSMachineList{}).SetupWebhookWithManager(testEnv); err != nil {
-		panic(fmt.Sprintf("Unable to setup AWSMachineList webhook: %v", err))
 	}
 	if err := (&expinfrav1.AWSMachinePool{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSMachinePool webhook: %v", err))

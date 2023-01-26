@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,24 +22,25 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func (s *Service) reconcileInternetGateways() error {
 	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
-		s.scope.V(4).Info("Skipping internet gateways reconcile in unmanaged mode")
+		s.scope.Trace("Skipping internet gateways reconcile in unmanaged mode")
 		return nil
 	}
 
-	s.scope.V(2).Info("Reconciling internet gateways")
+	s.scope.Debug("Reconciling internet gateways")
 
 	igs, err := s.describeVpcInternetGateways()
 	if awserrors.IsNotFound(err) {
@@ -59,7 +60,7 @@ func (s *Service) reconcileInternetGateways() error {
 	gateway := igs[0]
 	s.scope.VPC().InternetGatewayID = gateway.InternetGatewayId
 
-	// Make sure tags are up to date.
+	// Make sure tags are up-to-date.
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		buildParams := s.getGatewayTagParams(*gateway.InternetGatewayId)
 		tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
@@ -77,7 +78,7 @@ func (s *Service) reconcileInternetGateways() error {
 
 func (s *Service) deleteInternetGateways() error {
 	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
-		s.scope.V(4).Info("Skipping internet gateway deletion in unmanaged mode")
+		s.scope.Trace("Skipping internet gateway deletion in unmanaged mode")
 		return nil
 	}
 
@@ -100,7 +101,7 @@ func (s *Service) deleteInternetGateways() error {
 		}
 
 		record.Eventf(s.scope.InfraCluster(), "SuccessfulDetachInternetGateway", "Detached Internet Gateway %q from VPC %q", *ig.InternetGatewayId, s.scope.VPC().ID)
-		s.scope.Info("Detached internet gateway from VPC", "internet-gateway-id", *ig.InternetGatewayId, "vpc-id", s.scope.VPC().ID)
+		s.scope.Debug("Detached internet gateway from VPC", "internet-gateway-id", *ig.InternetGatewayId, "vpc-id", s.scope.VPC().ID)
 
 		deleteReq := &ec2.DeleteInternetGatewayInput{
 			InternetGatewayId: ig.InternetGatewayId,
@@ -112,7 +113,7 @@ func (s *Service) deleteInternetGateways() error {
 		}
 
 		record.Eventf(s.scope.InfraCluster(), "SuccessfulDeleteInternetGateway", "Deleted Internet Gateway %q previously attached to VPC %q", *ig.InternetGatewayId, s.scope.VPC().ID)
-		s.scope.Info("Deleted internet gateway in VPC", "internet-gateway-id", *ig.InternetGatewayId, "vpc-id", s.scope.VPC().ID)
+		s.scope.Info("Deleted Internet gateway in VPC", "internet-gateway-id", *ig.InternetGatewayId, "vpc-id", s.scope.VPC().ID)
 	}
 
 	return nil
@@ -129,7 +130,7 @@ func (s *Service) createInternetGateway() (*ec2.InternetGateway, error) {
 		return nil, errors.Wrap(err, "failed to create internet gateway")
 	}
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateInternetGateway", "Created new managed Internet Gateway %q", *ig.InternetGateway.InternetGatewayId)
-	s.scope.Info("Created internet gateway for VPC", "vpc-id", s.scope.VPC().ID)
+	s.scope.Info("Created Internet gateway for VPC", "internet-gateway-id", *ig.InternetGateway.InternetGatewayId, "vpc-id", s.scope.VPC().ID)
 
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		if _, err := s.EC2Client.AttachInternetGateway(&ec2.AttachInternetGatewayInput{
@@ -144,7 +145,7 @@ func (s *Service) createInternetGateway() (*ec2.InternetGateway, error) {
 		return nil, errors.Wrapf(err, "failed to attach internet gateway %q to vpc %q", *ig.InternetGateway.InternetGatewayId, s.scope.VPC().ID)
 	}
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulAttachInternetGateway", "Internet Gateway %q attached to VPC %q", *ig.InternetGateway.InternetGatewayId, s.scope.VPC().ID)
-	s.scope.Info("attached internet gateway to VPC", "internet-gateway-id", *ig.InternetGateway.InternetGatewayId, "vpc-id", s.scope.VPC().ID)
+	s.scope.Debug("attached internet gateway to VPC", "internet-gateway-id", *ig.InternetGateway.InternetGatewayId, "vpc-id", s.scope.VPC().ID)
 
 	return ig.InternetGateway, nil
 }

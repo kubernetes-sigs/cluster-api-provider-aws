@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,9 +30,9 @@ func TestCompareSlices(t *testing.T) {
 	slice2 := []*string{pointer.String("bar"), pointer.String("foo")}
 
 	expected := Equals(slice1, slice2)
-	g.Expect(expected, true)
+	g.Expect(expected).To(BeTrue())
 
 	slice2 = append(slice2, pointer.String("test"))
 	expected = Equals(slice1, slice2)
-	g.Expect(expected, false)
+	g.Expect(expected).To(BeFalse())
 }

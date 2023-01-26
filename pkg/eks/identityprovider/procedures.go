@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,7 +22,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
+
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 )
 
 var oidcType = aws.String("oidc")
@@ -105,13 +106,13 @@ func (a *AssociateIdentityProviderProcedure) Do(ctx context.Context) error {
 		ClusterName: aws.String(a.plan.clusterName),
 		Oidc: &eks.OidcIdentityProviderConfigRequest{
 			ClientId:                   aws.String(oidc.ClientID),
-			GroupsClaim:                oidc.GroupsClaim,
-			GroupsPrefix:               oidc.GroupsPrefix,
+			GroupsClaim:                aws.String(oidc.GroupsClaim),
+			GroupsPrefix:               aws.String(oidc.GroupsPrefix),
 			IdentityProviderConfigName: aws.String(oidc.IdentityProviderConfigName),
 			IssuerUrl:                  aws.String(oidc.IssuerURL),
-			RequiredClaims:             oidc.RequiredClaims,
-			UsernameClaim:              oidc.UsernameClaim,
-			UsernamePrefix:             oidc.UsernamePrefix,
+			RequiredClaims:             aws.StringMap(oidc.RequiredClaims),
+			UsernameClaim:              aws.String(oidc.UsernameClaim),
+			UsernamePrefix:             aws.String(oidc.UsernamePrefix),
 		},
 	}
 
@@ -138,7 +139,7 @@ func (u *UpdatedIdentityProviderTagsProcedure) Name() string {
 func (u *UpdatedIdentityProviderTagsProcedure) Do(ctx context.Context) error {
 	arn := u.plan.currentIdentityProvider.IdentityProviderConfigArn
 	_, err := u.plan.eksClient.TagResource(&eks.TagResourceInput{
-		ResourceArn: arn,
+		ResourceArn: &arn,
 		Tags:        aws.StringMap(u.plan.desiredIdentityProvider.Tags),
 	})
 
@@ -163,8 +164,10 @@ func (r *RemoveIdentityProviderTagsProcedure) Do(ctx context.Context) error {
 	for key := range r.plan.currentIdentityProvider.Tags {
 		keys = append(keys, aws.String(key))
 	}
+
+	arn := r.plan.currentIdentityProvider.IdentityProviderConfigArn
 	_, err := r.plan.eksClient.UntagResource(&eks.UntagResourceInput{
-		ResourceArn: r.plan.currentIdentityProvider.IdentityProviderConfigArn,
+		ResourceArn: &arn,
 		TagKeys:     keys,
 	})
 

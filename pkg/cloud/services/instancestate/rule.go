@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,7 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/pkg/errors"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
 
 // Ec2StateChangeNotification defines the EC2 instance's state change notification.
@@ -129,10 +129,13 @@ func (s Service) createRule() error {
 			States: []infrav1.InstanceState{infrav1.InstanceStateShuttingDown, infrav1.InstanceStateTerminated},
 		},
 	}
-	data, _ := json.Marshal(eventPattern)
+	data, err := json.Marshal(eventPattern)
+	if err != nil {
+		return err
+	}
 	// create in disabled state so the rule doesn't pick up all EC2 instances. As machines get created,
 	// the rule will get updated to track those machines
-	_, err := s.EventBridgeClient.PutRule(&eventbridge.PutRuleInput{
+	_, err = s.EventBridgeClient.PutRule(&eventbridge.PutRuleInput{
 		Name:         aws.String(s.getEC2RuleName()),
 		EventPattern: aws.String(string(data)),
 		State:        aws.String(eventbridge.RuleStateDisabled),
