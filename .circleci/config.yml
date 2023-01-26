@@ -16,6 +16,11 @@ jobs:
           command: |
             for registry in $REGISTRY_QUAY $REGISTRY_CHINA; do
               make docker-build-all ALL_ARCH="$ALL_ARCH" TAG=$CIRCLE_SHA1 REGISTRY=$registry
+
+              if [ -n "$CIRCLE_TAG" ]; then
+                echo "Building tag $CIRCLE_TAG"
+                make docker-build-all ALL_ARCH="$ALL_ARCH" TAG="$CIRCLE_TAG" REGISTRY=$registry
+              fi
             done
       - run:
           name: Push to quay
@@ -23,7 +28,11 @@ jobs:
             docker login --username $QUAY_USERNAME --password $QUAY_PASSWORD quay.io
 
             make docker-push-all ALL_ARCH="$ALL_ARCH" TAG=$CIRCLE_SHA1 REGISTRY=$REGISTRY_QUAY
-            if [[ -n $CIRCLE_TAG ]]; then docker tag quay.io/giantswarm/cluster-api-aws-controller:$CIRCLE_SHA1 quay.io/giantswarm/cluster-api-aws-controller:$CIRCLE_TAG && docker push quay.io/giantswarm/cluster-api-aws-controller:$CIRCLE_TAG; fi
+
+            if [ -n "$CIRCLE_TAG" ]; then
+              echo "Pushing tag $CIRCLE_TAG"
+              make docker-push-all ALL_ARCH="$ALL_ARCH" TAG="$CIRCLE_TAG" REGISTRY=$REGISTRY_QUAY
+            fi
 
       # Waiting for https://gigantic.slack.com/archives/C3C7ZQXC1/p1674714600715149
       # ---
@@ -33,7 +42,11 @@ jobs:
       #       docker login --username $ALIYUN_USERNAME --password $ALIYUN_PASSWORD registry-intl.cn-shanghai.aliyuncs.com
 
       #       make docker-push-all ALL_ARCH="$ALL_ARCH" TAG=$CIRCLE_SHA1 REGISTRY=$REGISTRY_CHINA
-      #       if [[ -n $CIRCLE_TAG ]]; then docker tag registry-intl.cn-shanghai.aliyuncs.com/giantswarm/cluster-api-aws-controller:$CIRCLE_SHA1 registry-intl.cn-shanghai.aliyuncs.com/giantswarm/cluster-api-aws-controller:$CIRCLE_TAG && docker push registry-intl.cn-shanghai.aliyuncs.com/giantswarm/cluster-api-aws-controller:$CIRCLE_TAG; fi
+
+      #       if [ -n "$CIRCLE_TAG" ]; then
+      #         echo "Pushing tag $CIRCLE_TAG"
+      #         make docker-push-all ALL_ARCH="$ALL_ARCH" TAG="$CIRCLE_TAG" REGISTRY=$REGISTRY_CHINA
+      #       fi
 
 workflows:
   version: 2
