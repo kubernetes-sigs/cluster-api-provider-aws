@@ -413,7 +413,7 @@ func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Temp
 		err := cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *renderCustomCloudFormation(t), tags)
 		output, err1 := CFN.DescribeStackEvents(&cfn.DescribeStackEventsInput{StackName: aws.String(t.Spec.StackName), NextToken: aws.String("1")})
 		for _, event := range output.StackEvents {
-			By(fmt.Sprintf("Event details for %s : Resource: %s, Status: %s", aws.StringValue(event.LogicalResourceId), aws.StringValue(event.ResourceType), aws.StringValue(event.ResourceStatus)))
+			By(fmt.Sprintf("Event details for %s : Resource: %s, Status: %s, Reason: %s", aws.StringValue(event.LogicalResourceId), aws.StringValue(event.ResourceType), aws.StringValue(event.ResourceStatus), aws.StringValue(event.ResourceStatusReason)))
 		}
 		return err == nil && err1 == nil
 	}, 2*time.Minute).Should(Equal(true))
@@ -870,7 +870,13 @@ func DumpEKSClusters(ctx context.Context, e2eCtx *E2EContext) {
 	fmt.Fprintf(GinkgoWriter, "folder created for eks clusters: %s\n", logPath)
 
 	input := &eks.ListClustersInput{}
-	eksClient := eks.New(e2eCtx.BootstrapUserAWSSession)
+	var eksClient *eks.EKS
+	if e2eCtx.BootstrapUserAWSSession == nil {
+		eksClient = eks.New(e2eCtx.AWSSession)
+	} else {
+		eksClient = eks.New(e2eCtx.BootstrapUserAWSSession)
+	}
+
 	output, err := eksClient.ListClusters(input)
 	if err != nil {
 		fmt.Fprintf(GinkgoWriter, "couldn't list EKS clusters: err=%s", err)

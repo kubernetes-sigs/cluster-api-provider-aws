@@ -125,21 +125,23 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 
 	Expect(err).NotTo(HaveOccurred())
 	e2eCtx.AWSSession = NewAWSSession()
-	boostrapTemplate := getBootstrapTemplate(e2eCtx)
+	bootstrapTemplate := getBootstrapTemplate(e2eCtx)
 	bootstrapTags := map[string]string{"capa-e2e-test": "true"}
-	e2eCtx.CloudFormationTemplate = renderCustomCloudFormation(boostrapTemplate)
+	e2eCtx.CloudFormationTemplate = renderCustomCloudFormation(bootstrapTemplate)
+
 	if !e2eCtx.Settings.SkipCloudFormationCreation {
-		err = createCloudFormationStack(e2eCtx.AWSSession, boostrapTemplate, bootstrapTags)
+		err = createCloudFormationStack(e2eCtx.AWSSession, bootstrapTemplate, bootstrapTags)
 		if err != nil {
-			deleteCloudFormationStack(e2eCtx.AWSSession, boostrapTemplate)
-			err = createCloudFormationStack(e2eCtx.AWSSession, boostrapTemplate, bootstrapTags)
+			deleteCloudFormationStack(e2eCtx.AWSSession, bootstrapTemplate)
+			err = createCloudFormationStack(e2eCtx.AWSSession, bootstrapTemplate, bootstrapTags)
 			Expect(err).NotTo(HaveOccurred())
 		}
 	}
-	ensureStackTags(e2eCtx.AWSSession, boostrapTemplate.Spec.StackName, bootstrapTags)
+
+	ensureStackTags(e2eCtx.AWSSession, bootstrapTemplate.Spec.StackName, bootstrapTags)
 	ensureNoServiceLinkedRoles(e2eCtx.AWSSession)
 	ensureSSHKeyPair(e2eCtx.AWSSession, DefaultSSHKeyPairName)
-	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(e2eCtx.AWSSession, boostrapTemplate.Spec.BootstrapUser.UserName)
+	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(e2eCtx.AWSSession, bootstrapTemplate.Spec.BootstrapUser.UserName)
 	e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(e2eCtx.Environment.BootstrapAccessKey)
 	Expect(ensureTestImageUploaded(e2eCtx)).NotTo(HaveOccurred())
 
@@ -154,7 +156,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	By("Setting up the bootstrap cluster")
 	e2eCtx.Environment.BootstrapClusterProvider, e2eCtx.Environment.BootstrapClusterProxy = setupBootstrapCluster(e2eCtx.E2EConfig, e2eCtx.Environment.Scheme, e2eCtx.Settings.UseExistingCluster)
 
-	base64EncodedCredentials := encodeCredentials(e2eCtx.Environment.BootstrapAccessKey, boostrapTemplate.Spec.Region)
+	base64EncodedCredentials := encodeCredentials(e2eCtx.Environment.BootstrapAccessKey, bootstrapTemplate.Spec.Region)
 	SetEnvVar("AWS_B64ENCODED_CREDENTIALS", base64EncodedCredentials, true)
 
 	if !e2eCtx.Settings.SkipQuotas {
