@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -45,8 +46,11 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
+	ec2Service "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ec2"
+	elbService "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/elb"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/mock_services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -2365,6 +2369,220 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testing.T) {
+	g := NewWithT(t)
+
+	ns := "testns"
+
+	ownerCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1", Namespace: ns},
+		Spec: clusterv1.ClusterSpec{
+			InfrastructureRef: &corev1.ObjectReference{
+				Kind:       "AWSCluster",
+				Name:       "capi-test-1", // assuming same name
+				Namespace:  ns,
+				APIVersion: infrav1.GroupVersion.String(),
+			},
+		},
+		Status: clusterv1.ClusterStatus{
+			InfrastructureReady: true,
+		},
+	}
+
+	awsCluster := &infrav1.AWSCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "capi-test-1",
+			Namespace: ns,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "Cluster",
+					Name:       ownerCluster.Name,
+					UID:        "1",
+				},
+			},
+		},
+		Spec: infrav1.AWSClusterSpec{
+			ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+				Scheme: &infrav1.ELBSchemeInternetFacing,
+				// `LoadBalancerType` not set (i.e. empty string; must default to attaching instance to classic LB)
+			},
+			NetworkSpec: infrav1.NetworkSpec{
+				Subnets: infrav1.Subnets{
+					infrav1.SubnetSpec{
+						ID:       "subnet-1",
+						IsPublic: false,
+					},
+					infrav1.SubnetSpec{
+						IsPublic: false,
+					},
+				},
+			},
+		},
+		Status: infrav1.AWSClusterStatus{
+			Ready: true,
+			Network: infrav1.NetworkStatus{
+				SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+					infrav1.SecurityGroupControlPlane: {
+						ID: "1",
+					},
+					infrav1.SecurityGroupNode: {
+						ID: "2",
+					},
+					infrav1.SecurityGroupLB: {
+						ID: "3",
+					},
+				},
+			},
+		},
+	}
+
+	ownerMachine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName:             "capi-test-1",
+				clusterv1.MachineControlPlaneLabelName: "", // control plane node so that controller tries to register it with LB
+			},
+			Name:      "capi-test-machine",
+			Namespace: ns,
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: "capi-test",
+			Bootstrap: clusterv1.Bootstrap{
+				DataSecretName: aws.String("bootstrap-data"),
+			},
+		},
+	}
+
+	awsMachine := &infrav1.AWSMachine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "aws-test-7",
+			Namespace: ns,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "Machine",
+					Name:       "capi-test-machine",
+					UID:        "1",
+				},
+			},
+		},
+		Spec: infrav1.AWSMachineSpec{
+			InstanceType: "test",
+			ProviderID:   aws.String("aws://the-zone/two"),
+			CloudInit: infrav1.CloudInit{
+				SecureSecretsBackend: infrav1.SecretBackendSecretsManager,
+				SecretPrefix:         "prefix",
+				SecretCount:          1000,
+			},
+		},
+	}
+
+	controllerIdentity := &infrav1.AWSClusterControllerIdentity{
+		TypeMeta: metav1.TypeMeta{
+			Kind: string(infrav1.ControllerIdentityKind),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "default",
+		},
+		Spec: infrav1.AWSClusterControllerIdentitySpec{
+			AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+				AllowedNamespaces: &infrav1.AllowedNamespaces{},
+			},
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithObjects(ownerCluster, awsCluster, ownerMachine, awsMachine, controllerIdentity).Build()
+
+	recorder := record.NewFakeRecorder(10)
+	reconciler := &AWSMachineReconciler{
+		Client:   fakeClient,
+		Recorder: recorder,
+	}
+
+	mockCtrl := gomock.NewController(t)
+	ec2Mock := mocks.NewMockEC2API(mockCtrl)
+	elbMock := mocks.NewMockELBAPI(mockCtrl)
+	secretMock := mock_services.NewMockSecretInterface(mockCtrl)
+
+	cs, err := getClusterScope(*awsCluster)
+	g.Expect(err).To(BeNil())
+
+	ec2Svc := ec2Service.NewService(cs)
+	ec2Svc.EC2Client = ec2Mock
+	reconciler.ec2ServiceFactory = func(scope scope.EC2Scope) services.EC2Interface {
+		return ec2Svc
+	}
+
+	elbSvc := elbService.NewService(cs)
+	elbSvc.EC2Client = ec2Mock
+	elbSvc.ELBClient = elbMock
+	reconciler.elbServiceFactory = func(scope scope.ELBScope) services.ELBInterface {
+		return elbSvc
+	}
+
+	reconciler.secretsManagerServiceFactory = func(clusterScope cloud.ClusterScoper) services.SecretInterface {
+		return secretMock
+	}
+
+	ec2Mock.EXPECT().DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
+		InstanceIds: aws.StringSlice([]string{"two"}),
+	})).Return(&ec2.DescribeInstancesOutput{
+		Reservations: []*ec2.Reservation{
+			{
+				Instances: []*ec2.Instance{
+					{
+						InstanceId:   aws.String("two"),
+						InstanceType: aws.String("m5.large"),
+						SubnetId:     aws.String("subnet-1"),
+						ImageId:      aws.String("ami-1"),
+						State: &ec2.InstanceState{
+							Name: aws.String(ec2.InstanceStateNameRunning),
+						},
+						Placement: &ec2.Placement{
+							AvailabilityZone: aws.String("thezone"),
+						},
+					},
+				},
+			},
+		},
+	}, nil)
+
+	// Must attach to a classic LB, not another type. Only these mock calls are therefore expected.
+	mockedCreateLBCalls(t, elbMock.EXPECT())
+
+	ec2Mock.EXPECT().DescribeNetworkInterfaces(gomock.Eq(&ec2.DescribeNetworkInterfacesInput{Filters: []*ec2.Filter{
+		{
+			Name:   aws.String("attachment.instance-id"),
+			Values: aws.StringSlice([]string{"two"}),
+		},
+	}})).Return(&ec2.DescribeNetworkInterfacesOutput{
+		NetworkInterfaces: []*ec2.NetworkInterface{
+			{
+				NetworkInterfaceId: aws.String("eni-1"),
+				Groups: []*ec2.GroupIdentifier{
+					{
+						GroupId: aws.String("3"),
+					},
+				},
+			},
+		}}, nil).MaxTimes(3)
+	ec2Mock.EXPECT().DescribeNetworkInterfaceAttribute(gomock.Eq(&ec2.DescribeNetworkInterfaceAttributeInput{
+		NetworkInterfaceId: aws.String("eni-1"),
+		Attribute:          aws.String("groupSet"),
+	})).Return(&ec2.DescribeNetworkInterfaceAttributeOutput{Groups: []*ec2.GroupIdentifier{{GroupId: aws.String("3")}}}, nil).MaxTimes(1)
+	ec2Mock.EXPECT().ModifyNetworkInterfaceAttribute(gomock.Any()).AnyTimes()
+
+	_, err = reconciler.Reconcile(ctx, ctrl.Request{
+		NamespacedName: client.ObjectKey{
+			Namespace: awsMachine.Namespace,
+			Name:      awsMachine.Name,
+		},
+	})
+
+	g.Expect(err).To(BeNil())
 }
 
 func createObject(g *WithT, obj client.Object, namespace string) {
