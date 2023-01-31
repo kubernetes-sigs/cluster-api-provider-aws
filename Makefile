@@ -138,7 +138,7 @@ SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 
 # Enable Cluster API Framework tests for the purposes of running the PR blocking test
-ifeq ($(findstring \[PR-Blocking\],$(E2E_FOCUS)),\[PR-Blocking\])
+ifeq ($(findstring \[PR-Blocking\],$(GINKGO_FOCUS)),\[PR-Blocking\])
   override undefine GINKGO_SKIP
 endif
 
@@ -149,7 +149,7 @@ ifdef GINKGO_SKIP
 	override GINKGO_ARGS += -skip "$(GINKGO_SKIP)"
 endif
 
-# DEPRECATED, use E2E_FOCUS instead
+# DEPRECATED, use GINKGO_FOCUS instead
 ifdef E2E_UNMANAGED_FOCUS
 	override GINKGO_ARGS += -focus="$(E2E_UNMANAGED_FOCUS)"
 endif
@@ -161,11 +161,11 @@ endif
 # infrastructure reconciliation
 
 # Instead, you can run a quick smoke test, it should run fast (9 minutes)...
-# E2E_FOCUS := "\\[smoke\\]"
-# For running CAPI e2e tests: E2E_FOCUS := "\\[Cluster API Framework\\]"
-# For running CAPI blocking e2e test: E2E_FOCUS := "\\[PR-Blocking\\]"
-ifdef E2E_FOCUS
-	override GINKGO_ARGS += -focus="$(E2E_FOCUS)"
+# GINKGO_FOCUS := "\\[smoke\\]"
+# For running CAPI e2e tests: GINKGO_FOCUS := "\\[Cluster API Framework\\]"
+# For running CAPI blocking e2e test: GINKGO_FOCUS := "\\[PR-Blocking\\]"
+ifdef GINKGO_FOCUS
+	override GINKGO_ARGS += -focus="$(GINKGO_FOCUS)"
 endif
 
 ifeq ($(E2E_SKIP_EKS_UPGRADE),"true")
