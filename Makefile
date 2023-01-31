@@ -131,8 +131,8 @@ E2E_SKIP_EKS_UPGRADE ?= "false"
 EKS_SOURCE_TEMPLATE ?= eks/cluster-template-eks-control-plane-only.yaml
 
 # set up `setup-envtest` to install kubebuilder dependency
-export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.23.3
-SETUP_ENVTEST_VER := v0.0.0-20211110210527-619e6b92dab9
+export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.24.2
+SETUP_ENVTEST_VER := v0.0.0-20230131074648-f5014c077fc3
 SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
@@ -385,13 +385,9 @@ install-setup-envtest: # Install setup-envtest so that setup-envtest's eval is e
 
 .PHONY: setup-envtest
 setup-envtest: install-setup-envtest # Build setup-envtest from tools folder.
-	@if [ $(shell go env GOOS) == "darwin" ]; then \
-		$(eval KUBEBUILDER_ASSETS := $(shell $(SETUP_ENVTEST) use --use-env -p path --arch amd64 $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))) \
-		echo "kube-builder assets set using darwin OS"; \
-	else \
-		$(eval KUBEBUILDER_ASSETS := $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))) \
-		echo "kube-builder assets set using other OS"; \
-	fi
+	@$(eval KUBEBUILDER_ASSETS := $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))) \
+	if [ -z "$(KUBEBUILDER_ASSETS)" ]; then echo "Failed to find kubebuilder assets, see errors above"; exit 1; fi; \
+	echo "kube-builder assets: $(KUBEBUILDER_ASSETS)"
 
 .PHONY: test
 test: setup-envtest ## Run tests
