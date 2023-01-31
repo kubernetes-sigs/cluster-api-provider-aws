@@ -17,7 +17,7 @@ Prow Presubmits:
 * [pull-cluster-api-provider-aws-e2e-conformance-with-ci-artifacts] `./scripts/ci-conformance.sh`
   * E2E_ARGS: `-kubetest.use-ci-artifacts`
 * [pull-cluster-api-provider-aws-e2e-blocking] `./scripts/ci-e2e.sh`
-  * E2E_FOCUS: `[PR-Blocking]`
+  * GINKGO_FOCUS: `[PR-Blocking]`
 * [pull-cluster-api-provider-aws-e2e] `./scripts/ci-e2e.sh`
 * [pull-cluster-api-provider-aws-e2e-eks] `./scripts/ci-e2e-eks.sh`
 
