@@ -2,7 +2,24 @@ resources:
   - ../base
   - machine-pool.yaml
   - spot-instance-machine-pool.yaml
-  - ../addons/cni/cluster-resource-set-cni.yaml
+  - ../addons/cni/resources/cni-resource-set.yaml
+  - ../addons/ccm/resources/ccm-resource-set.yaml
+  - ../addons/csi/resources/csi-resource-set.yaml
 patchesStrategicMerge:
-  - ../patches/cluster-cni.yaml
+  - ../addons/cni/patches/cluster-cni.yaml
+  - patches/external-csi-provider-controlplane.yaml
+  - ../addons/csi/patches/external-csi-provider.yaml
   - patches/limit-az.yaml
+configMapGenerator:
+  - name: cloud-controller-manager-addon
+    files:
+      - ../addons/ccm/data/aws-ccm-external.yaml
+  - name: aws-ebs-csi-driver-addon
+    files:
+      - ../addons/csi/data/aws-ebs-csi-external.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    type: generated
+  annotations:
+    note: generated

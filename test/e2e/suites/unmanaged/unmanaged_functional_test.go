@@ -255,7 +255,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	})
 
 	ginkgo.Describe("CSI=in-tree CCM=in-tree AWSCSIMigration=off: upgrade to v1.23", func() {
-		ginkgo.It("should create volumes dynamically with external cloud provider", func() {
+		ginkgo.It("should create volumes dynamically with in tree CSI driver and in tree cloud provider", func() {
 			specName := "csimigration-off-upgrade"
 			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, VolumeGP2: 4}
 			requiredResources.WriteRequestedResources(e2eCtx, specName)
@@ -269,6 +269,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			configCluster := defaultConfigCluster(cluster1Name, namespace.Name)
 			configCluster.KubernetesVersion = e2eCtx.E2EConfig.GetVariable(shared.PreCSIKubernetesVer)
 			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+			configCluster.Flavor = shared.IntreeCloudProvider
 			createCluster(ctx, configCluster, result)
 
 			// Create statefulSet with PVC and confirm it is working with in-tree providers
@@ -323,7 +324,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	})
 
 	ginkgo.Describe("CSI=external CCM=in-tree AWSCSIMigration=on: upgrade to v1.23", func() {
-		ginkgo.It("should create volumes dynamically with external cloud provider", func() {
+		ginkgo.It("should create volumes dynamically with external CSI driver and in tree cloud provider", func() {
 			specName := "only-csi-external-upgrade"
 			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, VolumeGP2: 4}
 			requiredResources.WriteRequestedResources(e2eCtx, specName)
@@ -337,6 +338,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			configCluster := defaultConfigCluster(cluster1Name, namespace.Name)
 			configCluster.KubernetesVersion = e2eCtx.E2EConfig.GetVariable(shared.PreCSIKubernetesVer)
 			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+			configCluster.Flavor = shared.IntreeCloudProvider
 			createCluster(ctx, configCluster, result)
 
 			// Create statefulSet with PVC and confirm it is working with in-tree providers
@@ -392,7 +394,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	})
 
 	ginkgo.Describe("CSI=external CCM=external AWSCSIMigration=on: upgrade to v1.23", func() {
-		ginkgo.It("should create volumes dynamically with external cloud provider", func() {
+		ginkgo.It("should create volumes dynamically with external CSI driver and external cloud provider", func() {
 			specName := "csi-ccm-external-upgrade"
 			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, VolumeGP2: 4}
 			requiredResources.WriteRequestedResources(e2eCtx, specName)
@@ -407,6 +409,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			configCluster.KubernetesVersion = e2eCtx.E2EConfig.GetVariable(shared.PreCSIKubernetesVer)
 
 			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+			configCluster.Flavor = shared.IntreeCloudProvider
 			createCluster(ctx, configCluster, result)
 
 			// Create statefulSet with PVC and confirm it is working with in-tree providers
@@ -421,7 +424,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 
 			kubernetesUgradeVersion := e2eCtx.E2EConfig.GetVariable(shared.PostCSIKubernetesVer)
 			configCluster.KubernetesVersion = kubernetesUgradeVersion
-			configCluster.Flavor = "external-cloud-provider"
+			configCluster.Flavor = "upgrade-to-external-cloud-provider"
 
 			cluster2, _, kcp := createCluster(ctx, configCluster, result)
 
