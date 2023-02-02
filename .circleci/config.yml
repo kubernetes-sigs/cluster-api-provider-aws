@@ -14,6 +14,24 @@ jobs:
       - run:
           name: Build the CAPI docker images
           command: |
+            # Add release manifest to our Docker image. These are used by
+            # https://github.com/giantswarm/cluster-api-provider-aws-app to fetch CRD manifests. We don't create
+            # GitHub releases as https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases, so our fork
+            # uses this alternative way of providing the files.
+            awk '
+                /RUN.*go-build/ {
+                    print "RUN make release-manifests RELEASE_TAG=REPLACE_ME_RELEASE_TAG REGISTRY=REPLACE_ME_REGISTRY"
+                }
+                /COPY --from=builder \/workspace\/manager/ {
+                    print "COPY --from=builder /workspace/out/infrastructure-components.yaml /for-cluster-api-provider-aws-app-only/infrastructure-components.yaml"
+                }
+
+                { print }
+                ' Dockerfile >/tmp/Dockerfile && mv /tmp/Dockerfile Dockerfile
+            # `make release-manifests` needs `config/`, `hack/`, `Makefile` and probably more, so just copy
+            # everything into the Docker context
+            rm .dockerignore
+
             for registry in $REGISTRY_QUAY $REGISTRY_CHINA; do
               make docker-build-all ALL_ARCH="$ALL_ARCH" TAG=$CIRCLE_SHA1 REGISTRY=$registry
 
