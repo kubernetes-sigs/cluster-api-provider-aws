@@ -114,9 +114,6 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
 		cs.AWSCluster.Status.Network.APIServerELB.DNSName = DNSName
-		cs.AWSCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
-			LoadBalancerType: infrav1.LoadBalancerTypeClassic,
-		}
 		cs.AWSCluster.Status.Network.SecurityGroups = map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 			infrav1.SecurityGroupNode: {
 				ID: "1",
@@ -165,14 +162,13 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		mockCtrl = gomock.NewController(t)
 		ec2Mock := mocks.NewMockEC2API(mockCtrl)
 		elbMock := mocks.NewMockELBAPI(mockCtrl)
-		elbv2Mock := mocks.NewMockELBV2API(mockCtrl)
 
-		expect := func(m *mocks.MockEC2APIMockRecorder, ev2 *mocks.MockELBV2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
+		expect := func(m *mocks.MockEC2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedDescribeInstanceCalls(m)
-			mockedDeleteLBCalls(false, ev2, e)
+			mockedDeleteLBCalls(e)
 			mockedDeleteInstanceCalls(m)
 		}
-		expect(ec2Mock.EXPECT(), elbv2Mock.EXPECT(), elbMock.EXPECT())
+		expect(ec2Mock.EXPECT(), elbMock.EXPECT())
 
 		ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("integ-test-%s", util.RandomString(5)))
 		g.Expect(err).To(BeNil())
@@ -190,9 +186,6 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}})
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
-		cs.AWSCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
-			LoadBalancerType: infrav1.LoadBalancerTypeClassic,
-		}
 		ms, err := getMachineScope(cs, awsMachine)
 		g.Expect(err).To(BeNil())
 
@@ -209,7 +202,6 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		elbSvc := elbService.NewService(cs)
 		elbSvc.EC2Client = ec2Mock
 		elbSvc.ELBClient = elbMock
-		elbSvc.ELBV2Client = elbv2Mock
 		reconciler.elbServiceFactory = func(scope scope.ELBScope) services.ELBInterface {
 			return elbSvc
 		}
@@ -271,9 +263,6 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
 		cs.AWSCluster.Status.Network.APIServerELB.DNSName = DNSName
-		cs.AWSCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
-			LoadBalancerType: infrav1.LoadBalancerTypeClassic,
-		}
 		cs.AWSCluster.Status.Network.SecurityGroups = map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 			infrav1.SecurityGroupNode: {
 				ID: "1",
@@ -320,11 +309,10 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		mockCtrl = gomock.NewController(t)
 		ec2Mock := mocks.NewMockEC2API(mockCtrl)
 		elbMock := mocks.NewMockELBAPI(mockCtrl)
-		elbv2Mock := mocks.NewMockELBV2API(mockCtrl)
 
-		expect := func(m *mocks.MockEC2APIMockRecorder, ev2 *mocks.MockELBV2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
+		expect := func(m *mocks.MockEC2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedDescribeInstanceCalls(m)
-			mockedDeleteLBCalls(false, ev2, e)
+			mockedDeleteLBCalls(e)
 			m.TerminateInstances(
 				gomock.Eq(&ec2.TerminateInstancesInput{
 					InstanceIds: aws.StringSlice([]string{"id-1"}),
@@ -332,7 +320,7 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 			).
 				Return(nil, errors.New("Failed to delete instance"))
 		}
-		expect(ec2Mock.EXPECT(), elbv2Mock.EXPECT(), elbMock.EXPECT())
+		expect(ec2Mock.EXPECT(), elbMock.EXPECT())
 
 		ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("integ-test-%s", util.RandomString(5)))
 		g.Expect(err).To(BeNil())
@@ -350,9 +338,6 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}})
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
-		cs.AWSCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
-			LoadBalancerType: infrav1.LoadBalancerTypeClassic,
-		}
 		ms, err := getMachineScope(cs, awsMachine)
 		g.Expect(err).To(BeNil())
 
@@ -369,7 +354,6 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		elbSvc := elbService.NewService(cs)
 		elbSvc.EC2Client = ec2Mock
 		elbSvc.ELBClient = elbMock
-		elbSvc.ELBV2Client = elbv2Mock
 		reconciler.elbServiceFactory = func(scope scope.ELBScope) services.ELBInterface {
 			return elbSvc
 		}

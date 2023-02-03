@@ -747,7 +747,8 @@ func DumpCloudTrailEvents(e2eCtx *E2EContext) {
 // Kubernetes version in the e2econfig.
 func conformanceImageID(e2eCtx *E2EContext) string {
 	ver := e2eCtx.E2EConfig.GetVariable("CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION")
-	amiName := AMIPrefix + ver + "*"
+	strippedVer := strings.Replace(ver, "v", "", 1)
+	amiName := AMIPrefix + strippedVer + "*"
 
 	Byf("Searching for AMI: name=%s", amiName)
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
@@ -787,11 +788,9 @@ type ServiceQuota struct {
 	RequestStatus       string
 }
 
-func EnsureServiceQuotas(sess client.ConfigProvider) (map[string]*ServiceQuota, map[string]*servicequotas.ServiceQuota) {
+func EnsureServiceQuotas(sess client.ConfigProvider) map[string]*ServiceQuota {
 	limitedResources := getLimitedResources()
 	serviceQuotasClient := servicequotas.New(sess)
-
-	originalQuotas := map[string]*servicequotas.ServiceQuota{}
 
 	for k, v := range limitedResources {
 		out, err := serviceQuotasClient.GetServiceQuota(&servicequotas.GetServiceQuotaInput{
@@ -799,7 +798,6 @@ func EnsureServiceQuotas(sess client.ConfigProvider) (map[string]*ServiceQuota, 
 			ServiceCode: aws.String(v.ServiceCode),
 		})
 		Expect(err).NotTo(HaveOccurred())
-		originalQuotas[k] = out.Quota
 		v.Value = int(aws.Float64Value(out.Quota.Value))
 		limitedResources[k] = v
 		if v.Value < v.DesiredMinimumValue {
@@ -807,7 +805,7 @@ func EnsureServiceQuotas(sess client.ConfigProvider) (map[string]*ServiceQuota, 
 		}
 	}
 
-	return limitedResources, originalQuotas
+	return limitedResources
 }
 
 func (s *ServiceQuota) attemptRaiseServiceQuotaRequest(serviceQuotasClient *servicequotas.ServiceQuotas) {

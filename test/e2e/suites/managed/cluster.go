@@ -74,14 +74,11 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 	Expect(err).ShouldNot(HaveOccurred())
 
 	shared.Byf("Waiting for the cluster to be provisioned")
-	start := time.Now()
 	cluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 		Getter:    input.BootstrapClusterProxy.GetClient(),
 		Namespace: configCluster.Namespace,
 		Name:      configCluster.ClusterName,
 	}, input.E2EConfig.GetIntervals("", "wait-cluster")...)
-	duration := time.Since(start)
-	shared.Byf("Finished waiting for cluster after: %s", duration)
 	Expect(cluster).NotTo(BeNil())
 
 	shared.Byf("Checking EKS cluster is active")
@@ -100,6 +97,8 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 	bootstrapClient := input.BootstrapClusterProxy.GetClient()
 	verifySecretExists(ctx, fmt.Sprintf("%s-kubeconfig", input.ClusterName), input.Namespace.Name, bootstrapClient)
 	verifySecretExists(ctx, fmt.Sprintf("%s-user-kubeconfig", input.ClusterName), input.Namespace.Name, bootstrapClient)
+
+	time.Sleep(2 * time.Minute) //TODO: replace with an eventually on the aws-iam-auth check
 
 	shared.Byf("Checking that aws-iam-authenticator config map exists")
 	workloadClusterProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace.Name, input.ClusterName)

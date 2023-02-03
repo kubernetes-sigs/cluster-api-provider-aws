@@ -146,7 +146,7 @@ func getLimitedResources() map[string]*ServiceQuota {
 		ServiceCode:         "vpc",
 		QuotaName:           "VPCs per Region",
 		QuotaCode:           "L-F678F1CE",
-		DesiredMinimumValue: 25,
+		DesiredMinimumValue: 20,
 	}
 
 	serviceQuotas["ec2-normal"] = &ServiceQuota{

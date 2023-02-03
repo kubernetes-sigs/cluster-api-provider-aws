@@ -158,10 +158,9 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 
 	if !e2eCtx.Settings.SkipQuotas {
 		By("Writing AWS service quotas to a file for parallel tests")
-		quotas, originalQuotas := EnsureServiceQuotas(e2eCtx.BootstrapUserAWSSession)
+		quotas := EnsureServiceQuotas(e2eCtx.BootstrapUserAWSSession)
 		WriteResourceQuotesToFile(ResourceQuotaFilePath, quotas)
 		WriteResourceQuotesToFile(path.Join(e2eCtx.Settings.ArtifactFolder, "initial-resource-quotas.yaml"), quotas)
-		WriteAWSResourceQuotesToFile(path.Join(e2eCtx.Settings.ArtifactFolder, "initial-aws-resource-quotas.yaml"), originalQuotas)
 	}
 
 	e2eCtx.Settings.InstanceVCPU, err = strconv.Atoi(e2eCtx.E2EConfig.GetVariable(InstanceVcpu))

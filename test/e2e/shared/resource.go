@@ -27,7 +27,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/servicequotas"
 	"github.com/gofrs/flock"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/yaml"
@@ -61,19 +60,6 @@ func WriteResourceQuotesToFile(logPath string, serviceQuotas map[string]*Service
 		VolumeGP2: serviceQuotas["volume-GP2"].Value,
 	}
 	data, err := yaml.Marshal(resources)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = os.WriteFile(logPath, data, 0644) //nolint:gosec
-	Expect(err).NotTo(HaveOccurred())
-}
-
-func WriteAWSResourceQuotesToFile(logPath string, serviceQuotas map[string]*servicequotas.ServiceQuota) {
-	if _, err := os.Stat(logPath); err == nil {
-		// If resource-quotas file exists, remove it. Should not fail on error, another ginkgo node might have already deleted it.
-		os.Remove(logPath)
-	}
-
-	data, err := yaml.Marshal(serviceQuotas)
 	Expect(err).NotTo(HaveOccurred())
 
 	err = os.WriteFile(logPath, data, 0644) //nolint:gosec

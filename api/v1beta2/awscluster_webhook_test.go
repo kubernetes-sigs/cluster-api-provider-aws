@@ -42,7 +42,7 @@ func TestAWSClusterDefault(t *testing.T) {
 }
 
 func TestAWSCluster_ValidateCreate(t *testing.T) {
-	unsupportedIncorrectScheme := ELBScheme("any-other-scheme")
+	unsupportedIncorrectScheme := ClassicELBScheme("any-other-scheme")
 
 	tests := []struct {
 		name    string
@@ -52,7 +52,7 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 	}{
 		// The SSHKeyName tests were moved to sshkeyname_test.go
 		{
-			name: "Supported schemes are 'internet-facing, Internet-facing, internal, or nil', rest will be rejected",
+			name: "Supported schemes are 'internet-facing, internal, or nil', rest will be rejected",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{Scheme: &unsupportedIncorrectScheme},
@@ -351,14 +351,14 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			oldCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						Scheme: &ELBSchemeInternal,
+						Scheme: &ClassicELBSchemeInternal,
 					},
 				},
 			},
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						Scheme: &ELBSchemeInternetFacing,
+						Scheme: &ClassicELBSchemeInternetFacing,
 					},
 				},
 			},
@@ -372,7 +372,7 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						Scheme: &ELBSchemeInternal,
+						Scheme: &ClassicELBSchemeInternal,
 					},
 				},
 			},
@@ -386,7 +386,7 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						Scheme: &ELBSchemeInternetFacing,
+						Scheme: &ClassicELBSchemeInternetFacing,
 					},
 				},
 			},
@@ -526,14 +526,14 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			oldCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						HealthCheckProtocol: &ELBProtocolTCP,
+						HealthCheckProtocol: &ClassicELBProtocolTCP,
 					},
 				},
 			},
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						HealthCheckProtocol: &ELBProtocolSSL,
+						HealthCheckProtocol: &ClassicELBProtocolSSL,
 					},
 				},
 			},
@@ -544,14 +544,14 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			oldCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						HealthCheckProtocol: &ELBProtocolTCP,
+						HealthCheckProtocol: &ClassicELBProtocolTCP,
 					},
 				},
 			},
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						HealthCheckProtocol: &ELBProtocolTCP,
+						HealthCheckProtocol: &ClassicELBProtocolTCP,
 					},
 				},
 			},
@@ -565,7 +565,7 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						HealthCheckProtocol: &ELBProtocolTCP,
+						HealthCheckProtocol: &ClassicELBProtocolTCP,
 					},
 				},
 			},
