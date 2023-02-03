@@ -243,6 +243,12 @@ func (b BuildParams) WithCloudProvider(name string) BuildParams {
 // Build builds tags including the cluster tag and returns them in map form.
 func Build(params BuildParams) Tags {
 	tags := make(Tags)
+
+	// Add the name tag first so that it can be overwritten by a user-provided tag in the `Additional` tags.
+	if params.Name != nil {
+		tags["Name"] = *params.Name
+	}
+
 	for k, v := range params.Additional {
 		tags[k] = v
 	}
@@ -252,10 +258,6 @@ func Build(params BuildParams) Tags {
 	}
 	if params.Role != nil {
 		tags[NameAWSClusterAPIRole] = *params.Role
-	}
-
-	if params.Name != nil {
-		tags["Name"] = *params.Name
 	}
 
 	return tags
