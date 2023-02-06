@@ -8,7 +8,7 @@ jobs:
     environment:
       ALL_ARCH: "amd64 arm64"
       REGISTRY_QUAY: quay.io/giantswarm
-      REGISTRY_CHINA: registry-intl.cn-shanghai.aliyuncs.com/giantswarm
+      REGISTRY_CHINA: giantswarm-registry.cn-shanghai.cr.aliyuncs.com/giantswarm
     steps:
       - checkout
       - run:
@@ -34,19 +34,27 @@ jobs:
               make docker-push-all ALL_ARCH="$ALL_ARCH" TAG="$CIRCLE_TAG" REGISTRY=$REGISTRY_QUAY
             fi
 
-      # Waiting for https://gigantic.slack.com/archives/C3C7ZQXC1/p1674714600715149
-      # ---
-      # - run:
-      #     name: Push to aliyun
-      #     command: |
-      #       docker login --username $ALIYUN_USERNAME --password $ALIYUN_PASSWORD registry-intl.cn-shanghai.aliyuncs.com
+      - run:
+          name: Push to aliyun
+          command: |
+            for n in $(seq 1 5); do
+              (
+                set -eu
+                docker login --username $ALIYUN_USERNAME --password $ALIYUN_PASSWORD giantswarm-registry.cn-shanghai.cr.aliyuncs.com
 
-      #       make docker-push-all ALL_ARCH="$ALL_ARCH" TAG=$CIRCLE_SHA1 REGISTRY=$REGISTRY_CHINA
+                make docker-push-all ALL_ARCH="$ALL_ARCH" TAG=$CIRCLE_SHA1 REGISTRY=$REGISTRY_CHINA
 
-      #       if [ -n "$CIRCLE_TAG" ]; then
-      #         echo "Pushing tag $CIRCLE_TAG"
-      #         make docker-push-all ALL_ARCH="$ALL_ARCH" TAG="$CIRCLE_TAG" REGISTRY=$REGISTRY_CHINA
-      #       fi
+                if [ -n "${CIRCLE_TAG:-}" ]; then
+                  echo "Pushing tag $CIRCLE_TAG"
+                  make docker-push-all ALL_ARCH="$ALL_ARCH" TAG="$CIRCLE_TAG" REGISTRY=$REGISTRY_CHINA
+                fi
+              ) || { echo "Failed attempt ${n}"; continue; }
+
+              echo "Succeeded in attempt ${n}"
+              exit 0
+            done
+
+            exit 1
 
 workflows:
   version: 2
