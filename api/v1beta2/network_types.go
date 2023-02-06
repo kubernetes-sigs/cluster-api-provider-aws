@@ -307,7 +307,7 @@ func (v *VPCSpec) IsIPv6Enabled() bool {
 // SubnetSpec configures an AWS Subnet.
 type SubnetSpec struct {
 	// ID defines a unique identifier to reference this resource.
-	ID string `json:"id"`
+	ID string `json:"id,omitempty"`
 
 	// CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
 	CidrBlock string `json:"cidrBlock,omitempty"`
@@ -349,8 +349,6 @@ func (s *SubnetSpec) String() string {
 }
 
 // Subnets is a slice of Subnet.
-// +listType=map
-// +listMapKey=id
 type Subnets []SubnetSpec
 
 // ToMap returns a map from id to subnet.
