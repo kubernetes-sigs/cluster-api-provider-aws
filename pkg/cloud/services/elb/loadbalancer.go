@@ -1512,7 +1512,7 @@ func (s *Service) SubnetIDs(scope *scope.ELBScope) ([]string, error) {
 				s.scope.ControlPlaneLoadBalancer().SubnetFilter = append(
 					s.scope.ControlPlaneLoadBalancer().SubnetFilter,
 					infrav1.AWSResourceReference{
-						ID: &subnet,
+						ID: aws.String(subnet),
 					},
 				)
 			}
