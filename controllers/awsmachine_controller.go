@@ -798,22 +798,31 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.Machine
 		return r.deregisterInstanceFromV2LB(machineScope, elbsvc, i)
 	}
 
-	// This changes the flow because previously it didn't care about this part.
-	if elbScope.ControlPlaneLoadBalancer().LoadBalancerType == infrav1.LoadBalancerTypeClassic {
+	switch elbScope.ControlPlaneLoadBalancer().LoadBalancerType {
+	case infrav1.LoadBalancerTypeClassic:
+		fallthrough
+	case "":
 		machineScope.Debug("registering to classic load balancer")
 		return r.registerInstanceToClassicLB(machineScope, elbsvc, i)
+
+	case infrav1.LoadBalancerTypeELB:
+		fallthrough
+	case infrav1.LoadBalancerTypeALB:
+		fallthrough
+	case infrav1.LoadBalancerTypeNLB:
+		machineScope.Debug("registering to v2 load balancer")
+		return r.registerInstanceToV2LB(machineScope, elbsvc, i)
 	}
 
-	machineScope.Debug("registering to v2 load balancer")
-	return r.registerInstanceToV2LB(machineScope, elbsvc, i)
+	return errors.Errorf("unknown load balancer type %q", elbScope.ControlPlaneLoadBalancer().LoadBalancerType)
 }
 
 func (r *AWSMachineReconciler) registerInstanceToClassicLB(machineScope *scope.MachineScope, elbsvc services.ELBInterface, i *infrav1.Instance) error {
 	registered, err := elbsvc.IsInstanceRegisteredWithAPIServerELB(i)
 	if err != nil {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedAttachControlPlaneELB",
-			"Failed to register control plane instance %q with load balancer: failed to determine registration status: %v", i.ID, err)
-		return errors.Wrapf(err, "could not register control plane instance %q with load balancer - error determining registration status", i.ID)
+			"Failed to register control plane instance %q with classic load balancer: failed to determine registration status: %v", i.ID, err)
+		return errors.Wrapf(err, "could not register control plane instance %q with classic load balancer - error determining registration status", i.ID)
 	}
 	if registered {
 		// Already registered - nothing more to do
@@ -822,12 +831,12 @@ func (r *AWSMachineReconciler) registerInstanceToClassicLB(machineScope *scope.M
 
 	if err := elbsvc.RegisterInstanceWithAPIServerELB(i); err != nil {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedAttachControlPlaneELB",
-			"Failed to register control plane instance %q with load balancer: %v", i.ID, err)
+			"Failed to register control plane instance %q with classic load balancer: %v", i.ID, err)
 		conditions.MarkFalse(machineScope.AWSMachine, infrav1.ELBAttachedCondition, infrav1.ELBAttachFailedReason, clusterv1.ConditionSeverityError, err.Error())
-		return errors.Wrapf(err, "could not register control plane instance %q with load balancer", i.ID)
+		return errors.Wrapf(err, "could not register control plane instance %q with classic load balancer", i.ID)
 	}
 	r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulAttachControlPlaneELB",
-		"Control plane instance %q is registered with load balancer", i.ID)
+		"Control plane instance %q is registered with classic load balancer", i.ID)
 	conditions.MarkTrue(machineScope.AWSMachine, infrav1.ELBAttachedCondition)
 	return nil
 }

@@ -21,7 +21,7 @@ $ make test-e2e-eks
 The following useful env variables can help to speed up the runs:
 
 - `E2E_ARGS="--skip-cloudformation-creation --skip-cloudformation-deletion"` - in case the cloudformation stack is already properly set up, this ensures a quicker start and tear down.
-- `E2E_FOCUS='\[PR-Blocking\]'` - only run a subset of tests
+- `GINKGO_FOCUS='\[PR-Blocking\]'` - only run a subset of tests
 - `USE_EXISTING_CLUSTER` - use an existing management cluster (useful if you have a [Tilt][tilt-setup] setup)
 
 [tilt-setup]: ./tilt-setup.md
