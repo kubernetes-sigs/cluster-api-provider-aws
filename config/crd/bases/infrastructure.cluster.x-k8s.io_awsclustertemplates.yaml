@@ -589,6 +589,7 @@ spec:
                               for ELB health check target default value is ELBProtocolSSL
                             type: string
                           loadBalancerType:
+                            default: classic
                             description: LoadBalancerType sets the type for a load
                               balancer. The default type is classic.
                             enum:
