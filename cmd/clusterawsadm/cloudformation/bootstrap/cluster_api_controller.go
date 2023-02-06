@@ -366,6 +366,7 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 				"iam:AddClientIDToOpenIDConnectProvider",
 				"iam:UpdateOpenIDConnectProviderThumbprint",
 				"iam:DeleteOpenIDConnectProvider",
+				"iam:TagOpenIDConnectProvider",
 			},
 			Resource: iamv1.Resources{
 				"*",
