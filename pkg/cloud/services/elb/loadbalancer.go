@@ -1500,7 +1500,7 @@ func chunkELBs(names []string) [][]string {
 	return chunked
 }
 
-// SubnetIDs return subnet IDs defined for the Control Plane LoadBalancer
+// SubnetIDs return subnet IDs defined for the Control Plane LoadBalancer.
 func (s *Service) SubnetIDs(scope *scope.ELBScope) ([]string, error) {
 	subnetIDs := make([]string, 0)
 	var inputFilters = make([]*ec2.Filter, 0)
