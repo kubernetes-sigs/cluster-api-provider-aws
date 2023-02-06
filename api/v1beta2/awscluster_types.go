@@ -204,6 +204,7 @@ type AWSLoadBalancerSpec struct {
 	AdditionalSecurityGroups []string `json:"additionalSecurityGroups,omitempty"`
 
 	// LoadBalancerType sets the type for a load balancer. The default type is classic.
+	// +kubebuilder:default=classic
 	// +kubebuilder:validation:Enum:=classic;elb;alb;nlb
 	LoadBalancerType LoadBalancerType `json:"loadBalancerType,omitempty"`
 

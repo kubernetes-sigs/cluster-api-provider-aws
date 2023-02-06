@@ -443,9 +443,6 @@ func (s *Service) reconcileClassicLoadBalancer() error {
 				return errors.Wrapf(err, "failed to attach apiserver load balancer %q to subnets", apiELB.Name)
 			}
 		}
-		if len(apiELB.AvailabilityZones) != len(spec.AvailabilityZones) {
-			apiELB.AvailabilityZones = spec.AvailabilityZones
-		}
 
 		// Reconcile the security groups from the spec and the ones currently attached to the load balancer
 		if !sets.NewString(apiELB.SecurityGroupIDs...).Equal(sets.NewString(spec.SecurityGroupIDs...)) {
@@ -459,6 +456,10 @@ func (s *Service) reconcileClassicLoadBalancer() error {
 		}
 	} else {
 		s.scope.Trace("Unmanaged control plane load balancer, skipping load balancer configuration", "api-server-elb", apiELB)
+	}
+
+	if len(apiELB.AvailabilityZones) != len(spec.AvailabilityZones) {
+		apiELB.AvailabilityZones = spec.AvailabilityZones
 	}
 
 	// TODO(vincepri): check if anything has changed and reconcile as necessary.

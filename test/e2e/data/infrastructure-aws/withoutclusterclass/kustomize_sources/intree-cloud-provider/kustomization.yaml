@@ -1,0 +1,6 @@
+resources:
+  - ../base
+  - machine-deployment.yaml
+  - ../addons/cni/resources/cni-resource-set.yaml
+patchesStrategicMerge:
+  - ../addons/cni/patches/cluster-cni.yaml

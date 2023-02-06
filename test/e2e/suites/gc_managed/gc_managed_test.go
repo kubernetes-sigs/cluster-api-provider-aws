@@ -88,7 +88,7 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 		cp := ms.GetControlPlaneByName(ctx, ms.GetControlPlaneByNameInput{
 			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Namespace: cluster.Spec.InfrastructureRef.Namespace,
-			Name:      cluster.Spec.InfrastructureRef.Name,
+			Name:      cluster.Spec.ControlPlaneRef.Name,
 		})
 
 		ginkgo.By("Waiting for the machine pool to be running")
