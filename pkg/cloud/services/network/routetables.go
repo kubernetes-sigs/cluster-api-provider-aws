@@ -52,8 +52,12 @@ func (s *Service) reconcileRouteTables() error {
 	}
 
 	subnets := s.scope.Subnets()
+	defer func() {
+		s.scope.SetSubnets(subnets)
+	}()
+
 	for i := range subnets {
-		sn := subnets[i]
+		sn := &subnets[i]
 		// We need to compile the minimum routes for this subnet first, so we can compare it or create them.
 		var routes []*ec2.Route
 		if sn.IsPublic {
@@ -65,7 +69,7 @@ func (s *Service) reconcileRouteTables() error {
 				routes = append(routes, s.getGatewayPublicIPv6Route())
 			}
 		} else {
-			natGatewayID, err := s.getNatGatewayForSubnet(&sn)
+			natGatewayID, err := s.getNatGatewayForSubnet(sn)
 			if err != nil {
 				return err
 			}
