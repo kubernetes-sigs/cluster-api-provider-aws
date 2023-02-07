@@ -252,6 +252,15 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 			})
 		}
 	}
+	if t.Spec.AllowAssumeRole {
+		statement = append(statement, iamv1.StatementEntry{
+			Effect:   iamv1.EffectAllow,
+			Resource: t.allowedEC2InstanceProfiles(),
+			Action: iamv1.Actions{
+				"sts:AssumeRole",
+			},
+		})
+	}
 	if t.Spec.S3Buckets.Enable {
 		statement = append(statement, iamv1.StatementEntry{
 			Effect: iamv1.EffectAllow,
