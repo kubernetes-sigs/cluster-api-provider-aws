@@ -259,6 +259,7 @@ Resources:
           - arn:*:iam::*:role/aws-service-role/spot.amazonaws.com/AWSServiceRoleForEC2Spot
         - Action:
           - iam:PassRole
+          - sts:AssumeRole
           Effect: Allow
           Resource:
           - arn:*:iam::*:role/*.custom-suffix.com

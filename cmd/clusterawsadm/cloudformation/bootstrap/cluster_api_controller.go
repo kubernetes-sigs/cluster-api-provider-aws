@@ -218,6 +218,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 			Resource: t.allowedEC2InstanceProfiles(),
 			Action: iamv1.Actions{
 				"iam:PassRole",
+				"sts:AssumeRole",
 			},
 		},
 	}
