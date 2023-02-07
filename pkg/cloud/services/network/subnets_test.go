@@ -1828,6 +1828,138 @@ func TestReconcileSubnets(t *testing.T) {
 			},
 		},
 		{
+			name: "Managed VPC, existing public subnet, 2 subnets in spec, should create 1 subnet, custom Name tag",
+			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID: subnetsVPCID,
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+				},
+				Subnets: []infrav1.SubnetSpec{
+					{
+						ID:               "subnet-1",
+						AvailabilityZone: "us-east-1a",
+						CidrBlock:        "10.0.0.0/17",
+						IsPublic:         true,
+					},
+					{
+						AvailabilityZone: "us-east-1a",
+						CidrBlock:        "10.0.128.0/17",
+						IsPublic:         false,
+						Tags:             map[string]string{"Name": "custom-sub"},
+					},
+				},
+			}),
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: []*string{aws.String("pending"), aws.String("available")},
+						},
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []*string{aws.String(subnetsVPCID)},
+						},
+					},
+				})).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{
+							{
+								VpcId:            aws.String(subnetsVPCID),
+								SubnetId:         aws.String("subnet-1"),
+								AvailabilityZone: aws.String("us-east-1a"),
+								CidrBlock:        aws.String("10.0.0.0/17"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("public"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("test-cluster-subnet-public"),
+									},
+									{
+										Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+										Value: aws.String("shared"),
+									},
+								},
+							},
+						},
+					}, nil)
+
+				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+					Return(&ec2.DescribeRouteTablesOutput{}, nil)
+
+				m.DescribeNatGatewaysPages(
+					gomock.Eq(&ec2.DescribeNatGatewaysInput{
+						Filter: []*ec2.Filter{
+							{
+								Name:   aws.String("vpc-id"),
+								Values: []*string{aws.String(subnetsVPCID)},
+							},
+							{
+								Name:   aws.String("state"),
+								Values: []*string{aws.String("pending"), aws.String("available")},
+							},
+						},
+					}),
+					gomock.Any()).Return(nil)
+
+				m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+					VpcId:            aws.String(subnetsVPCID),
+					CidrBlock:        aws.String("10.0.128.0/17"),
+					AvailabilityZone: aws.String("us-east-1a"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("subnet"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("custom-sub"), // must use the provided `Name` tag, not generate a name
+								},
+								{
+									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+									Value: aws.String("shared"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/role/internal-elb"),
+									Value: aws.String("1"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("private"),
+								},
+							},
+						},
+					},
+				})).
+					Return(&ec2.CreateSubnetOutput{
+						Subnet: &ec2.Subnet{
+							VpcId:            aws.String(subnetsVPCID),
+							SubnetId:         aws.String("subnet-2"),
+							CidrBlock:        aws.String("10.0.128.0/17"),
+							AvailabilityZone: aws.String("us-east-1a"),
+						},
+					}, nil)
+
+				m.WaitUntilSubnetAvailable(gomock.Any())
+
+				// Public subnet
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+					Return(nil, nil)
+			},
+		},
+		{
 			name: "With ManagedControlPlaneScope, Managed VPC, no existing subnets exist, two az's, expect two private and two public from default, created with tag including eksClusterName not a name of Cluster resource",
 			input: NewManagedControlPlaneScope().
 				WithEKSClusterName("test-eks-cluster").
