@@ -450,7 +450,7 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 			role := val.(*cfn_iam.Role)
 			Eventually(func(gomega Gomega) bool {
 				_, err := iamSvc.DeleteRole(&iam.DeleteRoleInput{RoleName: aws.String(role.RoleName)})
-				return awserrors.IsNotFound(err) || err != nil
+				return awserrors.IsNotFound(err) || err == nil
 			}, 5*time.Minute, 5*time.Second).Should(BeTrue())
 		}
 		if val.AWSCloudFormationType() == "AWS::IAM::InstanceProfile" {
