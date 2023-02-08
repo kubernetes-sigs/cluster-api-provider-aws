@@ -130,7 +130,10 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context,
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;delete;patch
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinepools,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachines;awsmachines/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedmachinepools;awsmanagedmachinepools/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools;awsmachinepools/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes,verbs=get;list;watch;update;patch;delete
@@ -285,7 +288,6 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 			managedScope.Error(err, "non-fatal: failed to set up EventBridge")
 		}
 	}
-
 	if err := authService.ReconcileIAMAuthenticator(ctx); err != nil {
 		conditions.MarkFalse(awsManagedControlPlane, ekscontrolplanev1.IAMAuthenticatorConfiguredCondition, ekscontrolplanev1.IAMAuthenticatorConfigurationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile aws-iam-authenticator config for AWSManagedControlPlane %s/%s", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name)
