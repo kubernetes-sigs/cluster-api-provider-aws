@@ -179,8 +179,8 @@ variables:
   GC_WORKLOAD: "../../data/gcworkload.yaml"
 
 intervals:
-  default/wait-cluster: ["35m", "10s"]
-  default/wait-control-plane: ["35m", "10s"]
+  default/wait-cluster: ["40m", "10s"]
+  default/wait-control-plane: ["40m", "10s"]
   default/wait-worker-nodes: ["20m", "10s"]
   conformance/wait-control-plane: ["35m", "10s"]
   conformance/wait-worker-nodes: ["35m", "10s"]

@@ -410,13 +410,15 @@ func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Temp
 	cfnSvc := cloudformation.NewService(CFN)
 
 	Eventually(func() bool {
+		deleteResourcesInCloudFormation(prov, t)
 		err := cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *renderCustomCloudFormation(t), tags)
 		output, err1 := CFN.DescribeStackEvents(&cfn.DescribeStackEventsInput{StackName: aws.String(t.Spec.StackName), NextToken: aws.String("1")})
+		Expect(err1).ToNot(HaveOccurred())
 		for _, event := range output.StackEvents {
 			By(fmt.Sprintf("Event details for %s : Resource: %s, Status: %s, Reason: %s", aws.StringValue(event.LogicalResourceId), aws.StringValue(event.ResourceType), aws.StringValue(event.ResourceStatus), aws.StringValue(event.ResourceStatusReason)))
 		}
-		return err == nil && err1 == nil
-	}, 2*time.Minute).Should(Equal(true))
+		return err == nil
+	}, 2*time.Minute, 5*time.Second).Should(Equal(true))
 	stack, err := CFN.DescribeStacks(&cfn.DescribeStacksInput{StackName: aws.String(t.Spec.StackName)})
 	if err == nil && len(stack.Stacks) > 0 {
 		deleteMultitenancyRoles(prov)
@@ -455,7 +457,10 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 		}
 		if val.AWSCloudFormationType() == "AWS::IAM::InstanceProfile" {
 			profile := val.(*cfn_iam.InstanceProfile)
-			_, _ = iamSvc.DeleteInstanceProfile(&iam.DeleteInstanceProfileInput{InstanceProfileName: aws.String(profile.InstanceProfileName)})
+			Eventually(func(gomega Gomega) bool {
+				_, err := iamSvc.DeleteInstanceProfile(&iam.DeleteInstanceProfileInput{InstanceProfileName: aws.String(profile.InstanceProfileName)})
+				return awserrors.IsNotFound(err) || err == nil
+			}, 5*time.Minute, 5*time.Second).Should(BeTrue())
 		}
 		if val.AWSCloudFormationType() == "AWS::IAM::ManagedPolicy" {
 			policy := val.(*cfn_iam.ManagedPolicy)
@@ -464,7 +469,10 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 			if len(policies.Policies) > 0 {
 				for _, p := range policies.Policies {
 					if aws.StringValue(p.PolicyName) == policy.ManagedPolicyName {
-						_, _ = iamSvc.DeletePolicy(&iam.DeletePolicyInput{PolicyArn: p.Arn})
+						Eventually(func(gomega Gomega) bool {
+							_, err := iamSvc.DeletePolicy(&iam.DeletePolicyInput{PolicyArn: p.Arn})
+							return awserrors.IsNotFound(err) || err == nil
+						}, 5*time.Minute, 5*time.Second).Should(BeTrue())
 						break
 					}
 				}
@@ -472,7 +480,10 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 		}
 		if val.AWSCloudFormationType() == configservice.ResourceTypeAwsIamGroup {
 			group := val.(*cfn_iam.Group)
-			_, _ = iamSvc.DeleteGroup(&iam.DeleteGroupInput{GroupName: aws.String(group.GroupName)})
+			Eventually(func(gomega Gomega) bool {
+				_, err := iamSvc.DeleteGroup(&iam.DeleteGroupInput{GroupName: aws.String(group.GroupName)})
+				return awserrors.IsNotFound(err) || err == nil
+			}, 5*time.Minute, 5*time.Second).Should(BeTrue())
 		}
 	}
 }
