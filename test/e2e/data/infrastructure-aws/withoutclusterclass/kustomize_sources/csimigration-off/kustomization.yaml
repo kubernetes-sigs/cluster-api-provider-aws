@@ -1,4 +1,4 @@
 resources:
-  - ../intree-cloud-provider
+  - ../limit-az
 patchesStrategicMerge:
   - patches/csimigration-off.yaml

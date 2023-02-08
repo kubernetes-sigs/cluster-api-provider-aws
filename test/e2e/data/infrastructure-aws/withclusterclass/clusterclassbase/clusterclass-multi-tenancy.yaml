@@ -163,20 +163,20 @@ spec:
         clusterConfiguration:
           apiServer:
             extraArgs:
-              cloud-provider: external
+              cloud-provider: aws
           controllerManager:
             extraArgs:
-              cloud-provider: external
+              cloud-provider: aws
         initConfiguration:
           nodeRegistration:
             name: '{{ ds.meta_data.local_hostname }}'
             kubeletExtraArgs:
-              cloud-provider: external
+              cloud-provider: aws
         joinConfiguration:
           nodeRegistration:
             name: '{{ ds.meta_data.local_hostname }}'
             kubeletExtraArgs:
-              cloud-provider: external
+              cloud-provider: aws
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
@@ -211,4 +211,4 @@ spec:
         nodeRegistration:
           name: '{{ ds.meta_data.local_hostname }}'
           kubeletExtraArgs:
-            cloud-provider: external
+            cloud-provider: aws
