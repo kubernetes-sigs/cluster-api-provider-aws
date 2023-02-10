@@ -402,7 +402,7 @@ func TestGetAPIServerV2ELBSpecControlPlaneLoadBalancer(t *testing.T) {
 			expect: func(t *testing.T, g *WithT, res *infrav1.LoadBalancer) {
 				t.Helper()
 				if len(res.ELBListeners) != 1 {
-					t.Errorf("Expected 1 listener to be configured by default, got %v listener(s)", len(res.SecurityGroupIDs))
+					t.Errorf("Expected 1 listener to be configured by default, got %v listener(s)", len(res.ELBListeners))
 				}
 			},
 		},
