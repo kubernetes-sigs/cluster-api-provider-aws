@@ -410,19 +410,24 @@ func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Temp
 	cfnSvc := cloudformation.NewService(CFN)
 
 	Eventually(func() bool {
-		err := cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *renderCustomCloudFormation(t), tags)
+		err := cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *renderCustomCloudFormation(t), tags, true)
 		output, err1 := CFN.DescribeStackEvents(&cfn.DescribeStackEventsInput{StackName: aws.String(t.Spec.StackName), NextToken: aws.String("1")})
+		By("========= Stack Event Output Begin =========")
 		for _, event := range output.StackEvents {
 			By(fmt.Sprintf("Event details for %s : Resource: %s, Status: %s, Reason: %s", aws.StringValue(event.LogicalResourceId), aws.StringValue(event.ResourceType), aws.StringValue(event.ResourceStatus), aws.StringValue(event.ResourceStatusReason)))
 		}
+		By("========= Stack Event Output End =========")
 		return err == nil && err1 == nil
 	}, 2*time.Minute).Should(Equal(true))
+
 	stack, err := CFN.DescribeStacks(&cfn.DescribeStacksInput{StackName: aws.String(t.Spec.StackName)})
 	if err == nil && len(stack.Stacks) > 0 {
 		deleteMultitenancyRoles(prov)
 		if aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusRollbackFailed ||
 			aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusRollbackComplete ||
-			aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusRollbackInProgress {
+			aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusRollbackInProgress ||
+			aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusCreateFailed ||
+			aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusDeleteFailed {
 			// If cloudformation stack creation fails due to resources that already exist, stack stays in rollback status and must be manually deleted.
 			// Delete resources that failed because they already exists.
 			deleteResourcesInCloudFormation(prov, t)
@@ -445,9 +450,11 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 	iamSvc := iam.New(prov)
 	temp := *renderCustomCloudFormation(t)
 	for _, val := range temp.Resources {
+		By(fmt.Sprintf("deleting the following resource: %s", val.AWSCloudFormationType()))
 		tayp := val.AWSCloudFormationType()
 		if tayp == configservice.ResourceTypeAwsIamRole {
 			role := val.(*cfn_iam.Role)
+			By(fmt.Sprintf("cleanup for role with name '%s'", role.RoleName))
 			Eventually(func(gomega Gomega) bool {
 				_, err := iamSvc.DeleteRole(&iam.DeleteRoleInput{RoleName: aws.String(role.RoleName)})
 				return awserrors.IsNotFound(err) || err == nil
@@ -455,7 +462,11 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 		}
 		if val.AWSCloudFormationType() == "AWS::IAM::InstanceProfile" {
 			profile := val.(*cfn_iam.InstanceProfile)
-			_, _ = iamSvc.DeleteInstanceProfile(&iam.DeleteInstanceProfileInput{InstanceProfileName: aws.String(profile.InstanceProfileName)})
+			By(fmt.Sprintf("cleanup for profile with name '%s'", profile.InstanceProfileName))
+			Eventually(func(gomega Gomega) bool {
+				_, err := iamSvc.DeleteInstanceProfile(&iam.DeleteInstanceProfileInput{InstanceProfileName: aws.String(profile.InstanceProfileName)})
+				return awserrors.IsNotFound(err) || err == nil
+			}, 5*time.Minute, 5*time.Second).Should(BeTrue())
 		}
 		if val.AWSCloudFormationType() == "AWS::IAM::ManagedPolicy" {
 			policy := val.(*cfn_iam.ManagedPolicy)
@@ -464,7 +475,12 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 			if len(policies.Policies) > 0 {
 				for _, p := range policies.Policies {
 					if aws.StringValue(p.PolicyName) == policy.ManagedPolicyName {
-						_, _ = iamSvc.DeletePolicy(&iam.DeletePolicyInput{PolicyArn: p.Arn})
+						By(fmt.Sprintf("cleanup for policy '%s'", p.String()))
+						Eventually(func(gomega Gomega) bool {
+							_, err := iamSvc.DeletePolicy(&iam.DeletePolicyInput{PolicyArn: p.Arn})
+							return awserrors.IsNotFound(err) || err == nil
+						}, 5*time.Minute, 5*time.Second).Should(BeTrue())
+						// TODO: why is there a break here? Don't we want to clean up everything?
 						break
 					}
 				}
