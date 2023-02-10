@@ -49,7 +49,7 @@ func NewService(i cloudformationiface.CloudFormationAPI) *Service {
 }
 
 // ReconcileBootstrapStack creates or updates bootstrap CloudFormation.
-func (s *Service) ReconcileBootstrapStack(stackName string, t go_cfn.Template, tags map[string]string) error {
+func (s *Service) ReconcileBootstrapStack(stackName string, t go_cfn.Template, tags map[string]string, deleteOnFailure bool) error {
 	yaml, err := t.YAML()
 	processedYaml := string(yaml)
 	if err != nil {
@@ -64,7 +64,7 @@ func (s *Service) ReconcileBootstrapStack(stackName string, t go_cfn.Template, t
 		})
 	}
 	//nolint:nestif
-	if err := s.createStack(stackName, processedYaml, stackTags); err != nil {
+	if err := s.createStack(stackName, processedYaml, stackTags, deleteOnFailure); err != nil {
 		if code, _ := awserrors.Code(errors.Cause(err)); code == "AlreadyExistsException" {
 			klog.Infof("AWS Cloudformation stack %q already exists, updating", klog.KRef("", stackName))
 			updateErr := s.updateStack(stackName, processedYaml, stackTags)
@@ -82,12 +82,15 @@ func (s *Service) ReconcileBootstrapStack(stackName string, t go_cfn.Template, t
 	return nil
 }
 
-func (s *Service) createStack(stackName, yaml string, tags []*cfn.Tag) error {
+func (s *Service) createStack(stackName, yaml string, tags []*cfn.Tag, deleteOnFailure bool) error {
 	input := &cfn.CreateStackInput{
 		Capabilities: aws.StringSlice([]string{cfn.CapabilityCapabilityIam, cfn.CapabilityCapabilityNamedIam}),
 		TemplateBody: aws.String(yaml),
 		StackName:    aws.String(stackName),
 		Tags:         tags,
+	}
+	if deleteOnFailure {
+		input.OnFailure = aws.String(cfn.OnFailureDelete)
 	}
 	klog.V(2).Infof("creating AWS CloudFormation stack %q", stackName)
 	if _, err := s.CFN.CreateStack(input); err != nil {
