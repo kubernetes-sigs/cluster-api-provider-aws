@@ -305,8 +305,8 @@ func (s *Service) deleteSecurityGroup(sg *infrav1.SecurityGroup, typ string) err
 	}
 
 	if _, err := s.EC2Client.DeleteSecurityGroup(input); awserrors.IsIgnorableSecurityGroupError(err) != nil {
-		record.Warnf(s.scope.InfraCluster(), "FailedDeleteSecurityGroup", "Failed to delete %s SecurityGroup %q: %v", typ, sg.ID, err)
-		return errors.Wrapf(err, "failed to delete security group %q", sg.ID)
+		record.Warnf(s.scope.InfraCluster(), "FailedDeleteSecurityGroup", "Failed to delete %s SecurityGroup %q with name %q: %v", typ, sg.ID, sg.Name, err)
+		return errors.Wrapf(err, "failed to delete security group %q with name %q", sg.ID, sg.Name)
 	}
 
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulDeleteSecurityGroup", "Deleted %s SecurityGroup %q", typ, sg.ID)

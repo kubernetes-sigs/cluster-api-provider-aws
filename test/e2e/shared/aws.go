@@ -425,7 +425,9 @@ func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Temp
 		deleteMultitenancyRoles(prov)
 		if aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusRollbackFailed ||
 			aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusRollbackComplete ||
-			aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusRollbackInProgress {
+			aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusRollbackInProgress ||
+			aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusCreateFailed ||
+			aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusDeleteFailed {
 			// If cloudformation stack creation fails due to resources that already exist, stack stays in rollback status and must be manually deleted.
 			// Delete resources that failed because they already exists.
 			deleteResourcesInCloudFormation(prov, t)
