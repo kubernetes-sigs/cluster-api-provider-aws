@@ -49,6 +49,7 @@ import (
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	pkgerr "github.com/pkg/errors"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/yaml"
 
@@ -429,6 +430,21 @@ func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Temp
 		}
 	}
 	return err
+}
+
+func cloudFormationStackExists(prov client.ConfigProvider, t *cfn_bootstrap.Template) (bool, error) {
+	By(fmt.Sprintf("Checking if AWS CloudFormation stack %s exists", t.Spec.StackName))
+	CFN := cfn.New(prov)
+	stack, err := CFN.DescribeStacks(&cfn.DescribeStacksInput{StackName: aws.String(t.Spec.StackName)})
+	if err != nil {
+		code, _ := awserrors.Code(pkgerr.Cause(err))
+		if code == "ValidationError" {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return stack != nil, nil
 }
 
 func SetMultitenancyEnvVars(prov client.ConfigProvider) error {
