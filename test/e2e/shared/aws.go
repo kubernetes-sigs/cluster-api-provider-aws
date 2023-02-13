@@ -411,6 +411,9 @@ func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Temp
 
 	Eventually(func() bool {
 		err := cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *renderCustomCloudFormation(t), tags, true)
+		if err != nil {
+			By(fmt.Sprintf("Error reconciling Cloud formation stack %v", err))
+		}
 		output, err1 := CFN.DescribeStackEvents(&cfn.DescribeStackEventsInput{StackName: aws.String(t.Spec.StackName), NextToken: aws.String("1")})
 		By("========= Stack Event Output Begin =========")
 		for _, event := range output.StackEvents {
