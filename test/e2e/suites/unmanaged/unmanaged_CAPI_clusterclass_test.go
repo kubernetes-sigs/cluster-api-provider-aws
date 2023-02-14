@@ -44,7 +44,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework] [ClusterClass]", fun
 	ginkgo.Describe("Self Hosted Spec [ClusterClass]", func() {
 		ginkgo.BeforeEach(func() {
 			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
-			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
+			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, EventBridgeRules: 50}
 			requiredResources.WriteRequestedResources(e2eCtx, "capi-clusterctl-self-hosted-test-clusterclass")
 			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 		})
@@ -68,7 +68,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework] [ClusterClass]", fun
 	ginkgo.Describe("Cluster Upgrade Spec - HA control plane with workers [K8s-Upgrade] [ClusterClass]", func() {
 		ginkgo.BeforeEach(func() {
 			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
-			requiredResources = &shared.TestResource{EC2Normal: 5 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2}
+			requiredResources = &shared.TestResource{EC2Normal: 5 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2, EventBridgeRules: 50}
 			requiredResources.WriteRequestedResources(e2eCtx, "capi-cluster-upgrade-clusterclass-test")
 			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 		})
@@ -94,7 +94,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework] [ClusterClass]", fun
 	ginkgo.Describe("ClusterClass Changes Spec - SSA immutability checks [ClusterClass]", func() {
 		ginkgo.BeforeEach(func() {
 			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
-			requiredResources = &shared.TestResource{EC2Normal: 5 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2}
+			requiredResources = &shared.TestResource{EC2Normal: 5 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2, EventBridgeRules: 50}
 			requiredResources.WriteRequestedResources(e2eCtx, "capi-cluster-ssa-clusterclass-test")
 			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 		})

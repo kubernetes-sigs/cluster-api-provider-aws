@@ -53,7 +53,7 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 		ginkgo.It("should create cluster with nested assumed role", func() {
 			// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
 			specName := "functional-multitenancy-nested-clusterclass"
-			requiredResources = &shared.TestResource{EC2Normal: 1 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
+			requiredResources = &shared.TestResource{EC2Normal: 1 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, EventBridgeRules: 50}
 			requiredResources.WriteRequestedResources(e2eCtx, specName)
 			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 			defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
@@ -94,7 +94,7 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 	ginkgo.Describe("Workload cluster with AWS SSM Parameter as the Secret Backend [ClusterClass]", func() {
 		ginkgo.It("should be creatable and deletable", func() {
 			specName := "functional-test-ssm-parameter-store-clusterclass"
-			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
+			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3, EventBridgeRules: 50}
 			requiredResources.WriteRequestedResources(e2eCtx, specName)
 			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 			defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
@@ -136,7 +136,7 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 
 		// Some infrastructure creation was moved to a setup node to better organize the test.
 		ginkgo.JustBeforeEach(func() {
-			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 5}
+			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 5, EventBridgeRules: 50}
 			requiredResources.WriteRequestedResources(e2eCtx, specName)
 			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 			namespace = shared.SetupSpecNamespace(ctx, specName, e2eCtx)
