@@ -98,7 +98,7 @@ providers:
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-efs-support.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-external-csi.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-csimigration-off.yaml"
-          - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-intree-cloud-provider.yaml"
+          - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-external-cloud-provider.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-kcp-remediation.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-kcp-scale-in.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-limit-az.yaml"
@@ -123,7 +123,6 @@ providers:
           - sourcePath: "./infrastructure-aws/withclusterclass/generated/cluster-template-external-vpc-clusterclass.yaml"
           - sourcePath: "./shared/v1beta2_provider/metadata.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-ignition.yaml"
-          - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-upgrade-to-external-cloud-provider.yaml"
         replacements:
           # To allow bugs to be catched.
           - old: "failureThreshold: 3"

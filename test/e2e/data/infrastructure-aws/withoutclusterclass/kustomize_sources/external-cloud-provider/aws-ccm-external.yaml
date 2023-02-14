@@ -18,8 +18,7 @@ spec:
         k8s-app: aws-cloud-controller-manager
     spec:
       nodeSelector:
-        node-role.kubernetes.io/control-plane: ""
-      priorityClassName: system-node-critical
+        node-role.kubernetes.io/master: ""
       tolerations:
         - key: node.cloudprovider.kubernetes.io/uninitialized
           value: "true"
@@ -28,11 +27,6 @@ spec:
           effect: NoSchedule
         - effect: NoSchedule
           key: node-role.kubernetes.io/control-plane
-        # Mark the pod as a critical add-on for rescheduling.
-        - key: CriticalAddonsOnly
-          operator: Exists
-        - effect: NoExecute
-          operator: Exists
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
