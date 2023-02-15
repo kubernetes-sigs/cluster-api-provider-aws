@@ -104,6 +104,7 @@ providers:
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-limit-az.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-machine-pool.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-md-remediation.yaml"
+          - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-multi-az.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-nested-multitenancy.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-remote-management-cluster.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-simple-multitenancy.yaml"

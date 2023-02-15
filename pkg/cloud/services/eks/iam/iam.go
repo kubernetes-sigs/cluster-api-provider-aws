@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"sort"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
@@ -174,6 +175,10 @@ func RoleTags(key string, additionalTags infrav1.Tags) []*iam.Tag {
 			Value: aws.String(v),
 		})
 	}
+
+	// Sort so that unit tests can expect a stable order
+	sort.Slice(tags, func(i, j int) bool { return *tags[i].Key < *tags[j].Key })
+
 	return tags
 }
 
