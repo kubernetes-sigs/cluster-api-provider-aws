@@ -34,7 +34,6 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 )
 
 const (
@@ -260,7 +259,8 @@ func (s *Service) deleteCNI(ctx context.Context, remoteClient client.Client) err
 		return err
 	}
 
-	record.Eventf(s.scope.InfraCluster(), "DeletedVPCCNI", "The AWS VPC CNI has been removed from the cluster. Ensure you enable a CNI via another mechanism")
+	// Disable in palette to prevent repetitive message
+	//record.Eventf(s.scope.InfraCluster(), "DeletedVPCCNI", "The AWS VPC CNI has been removed from the cluster. Ensure you enable a CNI via another mechanism")
 
 	return nil
 }
