@@ -143,7 +143,7 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 			oldC.Spec.NetworkSpec.VPC.ID != r.Spec.NetworkSpec.VPC.ID {
 			allErrs = append(allErrs,
 				field.Invalid(field.NewPath("spec", "network", "vpc", "id"),
-					r.Spec.IdentityRef, "field cannot be modified once set"))
+					r.Spec.NetworkSpec.VPC.ID, "field cannot be modified once set"))
 		}
 	}
 
