@@ -1053,10 +1053,10 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 			cs, err := setupClusterScope(client)
 			g.Expect(err).NotTo(HaveOccurred())
 
-			mpScope, err := setupMachinePoolScope(client, cs)
+			ms, err := setupMachinePoolScope(client, cs)
 			g.Expect(err).NotTo(HaveOccurred())
 
-			mpScope.AWSMachinePool.Spec.AWSLaunchTemplate.AdditionalSecurityGroups = tc.awsResourceReference
+			ms.AWSMachinePool.Spec.AWSLaunchTemplate.AdditionalSecurityGroups = tc.awsResourceReference
 
 			mockEC2Client := mocks.NewMockEC2API(mockCtrl)
 			s := NewService(cs)
@@ -1066,10 +1066,10 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 				tc.expect(mockEC2Client.EXPECT())
 			}
 			if tc.wantErr {
-				g.Expect(s.CreateLaunchTemplateVersion(mpScope, aws.String("imageID"), userData)).To(HaveOccurred())
+				g.Expect(s.CreateLaunchTemplateVersion("launch-template-id", ms, aws.String("imageID"), userData)).To(HaveOccurred())
 				return
 			}
-			g.Expect(s.CreateLaunchTemplateVersion(mpScope, aws.String("imageID"), userData)).NotTo(HaveOccurred())
+			g.Expect(s.CreateLaunchTemplateVersion("launch-template-id", ms, aws.String("imageID"), userData)).NotTo(HaveOccurred())
 		})
 	}
 }
@@ -1114,11 +1114,11 @@ func TestBuildLaunchTemplateTagSpecificationRequest(t *testing.T) {
 			cs, err := setupClusterScope(client)
 			g.Expect(err).NotTo(HaveOccurred())
 
-			mpScope, err := setupMachinePoolScope(client, cs)
+			ms, err := setupMachinePoolScope(client, cs)
 			g.Expect(err).NotTo(HaveOccurred())
 
 			s := NewService(cs)
-			tc.check(g, s.buildLaunchTemplateTagSpecificationRequest(mpScope))
+			tc.check(g, s.buildLaunchTemplateTagSpecificationRequest(ms))
 		})
 	}
 }

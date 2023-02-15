@@ -168,6 +168,8 @@ providers:
         targetName: "cluster-template-eks-machine-deployment-only.yaml"
       - sourcePath: "./eks/cluster-template-eks-managed-machinepool-only.yaml"
         targetName: "cluster-template-eks-managed-machinepool-only.yaml"
+      - sourcePath: "./eks/cluster-template-eks-managed-machinepool-with-launch-template-only.yaml"
+        targetName: "cluster-template-eks-managed-machinepool-with-launch-template-only.yaml"
       - sourcePath: "./eks/cluster-template-eks-managedmachinepool.yaml"
         targetName: "cluster-template-eks-managedmachinepool.yaml"
 

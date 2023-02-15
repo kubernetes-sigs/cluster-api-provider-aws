@@ -43,6 +43,8 @@ type ManagedMachinePoolSpecInput struct {
 	ClusterName           string
 	IncludeScaling        bool
 	Cleanup               bool
+	UsesLaunchTemplate    bool
+	EKSKubernetesVersion  string
 }
 
 // ManagedMachinePoolSpec implements a test for creating a managed machine pool.
@@ -67,7 +69,21 @@ func ManagedMachinePoolSpec(ctx context.Context, inputGetter func() ManagedMachi
 	configCluster := input.ConfigClusterFn(input.ClusterName, input.Namespace.Name)
 	configCluster.Flavor = EKSManagedPoolOnlyFlavor
 	configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
-	err := shared.ApplyTemplate(ctx, configCluster, input.BootstrapClusterProxy)
+	workloadClusterTemplate := shared.GetTemplate(ctx, configCluster)
+	if input.UsesLaunchTemplate {
+		userDataTemplate := `#!/bin/bash
+/etc/eks/bootstrap.sh %s \
+  --container-runtime containerd
+`
+		eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName)
+		userData := fmt.Sprintf(userDataTemplate, eksClusterName)
+		userDataEncoded := base64.StdEncoding.EncodeToString([]byte(userData))
+		workloadClusterTemplate = []byte(strings.ReplaceAll(string(workloadClusterTemplate), "USER_DATA", userDataEncoded))
+		workloadClusterTemplate = []byte(strings.ReplaceAll(string(workloadClusterTemplate), "EKS_KUBERNETES_VERSION", input.EKSKubernetesVersion))
+	}
+	shared.Byf(string(workloadClusterTemplate))
+	shared.Byf("Applying the %s cluster template yaml to the cluster", configCluster.Flavor)
+	err := input.BootstrapClusterProxy.Apply(ctx, workloadClusterTemplate)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	shared.Byf("Waiting for the machine pool to be running")
@@ -79,9 +95,20 @@ func ManagedMachinePoolSpec(ctx context.Context, inputGetter func() ManagedMachi
 	Expect(len(mp)).To(Equal(1))
 
 	shared.Byf("Check the status of the node group")
-	nodeGroupName := getEKSNodegroupName(input.Namespace.Name, input.ClusterName)
+	var nodeGroupName string
+	if input.UsesLaunchTemplate {
+		nodeGroupName = getEKSNodegroupWithLaunchTemplateName(input.Namespace.Name, input.ClusterName)
+	} else {
+		nodeGroupName = getEKSNodegroupName(input.Namespace.Name, input.ClusterName)
+	}
 	eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName)
-	verifyManagedNodeGroup(eksClusterName, nodeGroupName, true, input.AWSSession)
+	if input.ManagedMachinePool {
+		nodeGroupName := getEKSNodegroupName(input.Namespace.Name, input.ClusterName)
+		verifyManagedNodeGroup(eksClusterName, nodeGroupName, true, input.AWSSession)
+	} else {
+		asgName := getASGName(input.ClusterName)
+		verifyASG(eksClusterName, asgName, true, input.AWSSession)
+	}
 
 	if input.IncludeScaling { // TODO (richardcase): should this be a separate spec?
 		ginkgo.By("Scaling the machine pool up")

@@ -35,3 +35,10 @@ patchesJson6902:
       namespace: system
       version: v1
     path: patch_healthcheck.yaml
+  - target:
+      group: apps
+      kind: Deployment
+      name: controller-manager
+      namespace: system
+      version: v1
+    path: patch_credentials.yaml

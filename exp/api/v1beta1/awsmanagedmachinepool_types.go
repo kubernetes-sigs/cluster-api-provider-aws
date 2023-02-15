@@ -144,6 +144,12 @@ type AWSManagedMachinePoolSpec struct {
 	// to the nodegroup.
 	// +optional
 	UpdateConfig *UpdateConfig `json:"updateConfig,omitempty"`
+
+	// AWSLaunchTemplate specifies the launch template to use to create the managed node group.
+	// If AWSLaunchTemplate is specified, certain node group configuraions outside of launch template
+	// are prohibited (https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html).
+	// +optional
+	AWSLaunchTemplate *AWSLaunchTemplate `json:"awsLaunchTemplate,omitempty"`
 }
 
 // ManagedMachinePoolScaling specifies scaling options.
@@ -175,6 +181,14 @@ type AWSManagedMachinePoolStatus struct {
 	// Replicas is the most recently observed number of replicas.
 	// +optional
 	Replicas int32 `json:"replicas"`
+
+	// The ID of the launch template
+	// +optional
+	LaunchTemplateID *string `json:"launchTemplateID,omitempty"`
+
+	// The version of the launch template
+	// +optional
+	LaunchTemplateVersion *string `json:"launchTemplateVersion,omitempty"`
 
 	// FailureReason will be set in the event that there is a terminal problem
 	// reconciling the MachinePool and will contain a succinct value suitable
