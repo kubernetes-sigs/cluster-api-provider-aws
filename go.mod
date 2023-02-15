@@ -1,6 +1,6 @@
 module sigs.k8s.io/cluster-api-provider-aws
 
-go 1.17
+go 1.19
 
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.1.5
 
