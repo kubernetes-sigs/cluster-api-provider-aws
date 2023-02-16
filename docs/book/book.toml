@@ -7,7 +7,7 @@ title = "Kubernetes Cluster API Provider AWS"
 
 [output.html]
 curly-quotes = true
-git-repository-url = "https://sigs.k8s.io/cluster-api-provider-aws/v2"
+git-repository-url = "https://sigs.k8s.io/cluster-api-provider-aws"
 no-section-label = true
 
 [preprocessor.tabulate]
