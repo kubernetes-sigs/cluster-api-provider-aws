@@ -410,30 +410,19 @@ func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Temp
 	// CloudFormation stack will clean up on a failure, we don't need an Eventually here.
 	// The `create` already does a WaitUntilStackCreateComplete.
 	cfnSvc := cloudformation.NewService(cfnClient)
-	err := cfnSvc.ReconcileBootstrapNoUpdate(t.Spec.StackName, *renderCustomCloudFormation(t), tags)
-	if err != nil {
+	if err := cfnSvc.ReconcileBootstrapNoUpdate(t.Spec.StackName, *renderCustomCloudFormation(t), tags); err != nil {
 		By(fmt.Sprintf("Error reconciling Cloud formation stack %v", err))
 		spewCloudFormationResources(cfnClient, t)
 
-		stack, derr := cfnClient.DescribeStacks(&cfn.DescribeStacksInput{StackName: aws.String(t.Spec.StackName)})
-		if derr == nil && len(stack.Stacks) > 0 {
-			if aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusRollbackFailed ||
-				aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusRollbackComplete ||
-				aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusRollbackInProgress ||
-				aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusCreateFailed ||
-				aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusDeleteFailed {
-				// If cloudformation stack creation fails due to resources that already exist, stack stays in rollback status and must be manually deleted.
-				// Delete resources that failed because they already exists.
-				By("Starting cleanup process as the stack failed to create")
-				deleteMultitenancyRoles(prov)
-				deleteResourcesInCloudFormation(prov, t)
-			}
-		}
+		// always clean up on a failure because we could leak these resources and the next cloud formation create would
+		// fail with the same problem.
+		deleteMultitenancyRoles(prov)
+		deleteResourcesInCloudFormation(prov, t)
 		return err
 	}
 
 	spewCloudFormationResources(cfnClient, t)
-	return err
+	return nil
 }
 
 func spewCloudFormationResources(cfnClient *cfn.CloudFormation, t *cfn_bootstrap.Template) {
