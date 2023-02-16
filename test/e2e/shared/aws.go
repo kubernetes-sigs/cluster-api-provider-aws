@@ -477,6 +477,9 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 			By(fmt.Sprintf("cleanup for role with name '%s'", role.RoleName))
 			Eventually(func(gomega Gomega) bool {
 				_, err := iamSvc.DeleteRole(&iam.DeleteRoleInput{RoleName: aws.String(role.RoleName)})
+				if err != nil {
+					By(fmt.Sprintf("failed to delete role '%s'; reason: %s", role.RoleName, err.Error()))
+				}
 				return awserrors.IsNotFound(err) || err == nil
 			}, 5*time.Minute, 5*time.Second).Should(BeTrue())
 		}
@@ -485,6 +488,9 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 			By(fmt.Sprintf("cleanup for profile with name '%s'", profile.InstanceProfileName))
 			Eventually(func(gomega Gomega) bool {
 				_, err := iamSvc.DeleteInstanceProfile(&iam.DeleteInstanceProfileInput{InstanceProfileName: aws.String(profile.InstanceProfileName)})
+				if err != nil {
+					By(fmt.Sprintf("failed to delete role '%s'; reason: %s", profile.InstanceProfileName, err.Error()))
+				}
 				return awserrors.IsNotFound(err) || err == nil
 			}, 5*time.Minute, 5*time.Second).Should(BeTrue())
 		}
@@ -498,6 +504,9 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 						By(fmt.Sprintf("cleanup for policy '%s'", p.String()))
 						Eventually(func(gomega Gomega) bool {
 							_, err := iamSvc.DeletePolicy(&iam.DeletePolicyInput{PolicyArn: p.Arn})
+							if err != nil {
+								By(fmt.Sprintf("failed to delete policy '%s'; reason: %s", policy.Description, err.Error()))
+							}
 							return awserrors.IsNotFound(err) || err == nil
 						}, 5*time.Minute, 5*time.Second).Should(BeTrue())
 						// TODO: why is there a break here? Don't we want to clean up everything?
