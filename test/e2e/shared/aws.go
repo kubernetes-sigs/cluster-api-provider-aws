@@ -422,6 +422,7 @@ func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Temp
 
 	err := cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *renderCustomCloudFormation(t), tags)
 	if err != nil {
+		By(fmt.Sprintf("Error reconciling Cloud formation stack %v", err))
 		stack, err := CFN.DescribeStacks(&cfn.DescribeStacksInput{StackName: aws.String(t.Spec.StackName)})
 		if err == nil && len(stack.Stacks) > 0 {
 			deleteMultitenancyRoles(prov)

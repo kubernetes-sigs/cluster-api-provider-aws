@@ -116,7 +116,7 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 	Expect(err).NotTo(HaveOccurred())
 	t.Spec.Region = region
 	t.Spec.EKS.Disable = false
-	t.Spec.EKS.AllowIAMRoleCreation = true
+	t.Spec.EKS.AllowIAMRoleCreation = false
 	t.Spec.EKS.DefaultControlPlaneRole.Disable = false
 	t.Spec.EKS.ManagedMachinePool.Disable = false
 	t.Spec.S3Buckets.Enable = true
