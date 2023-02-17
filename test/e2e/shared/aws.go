@@ -498,7 +498,7 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 		By(fmt.Sprintf("deleting the following role: %s", role.RoleName))
 		repeat := false
 		Eventually(func(gomega Gomega) bool {
-			_, err := iamSvc.DeleteRole(&iam.DeleteRoleInput{RoleName: aws.String(role.RoleName)})
+			err := DeleteRole(prov, role.RoleName)
 			if err != nil && !repeat {
 				By(fmt.Sprintf("failed to delete role '%s'; reason: %+v", role.RoleName, err))
 				repeat = true
@@ -529,9 +529,11 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 					By(fmt.Sprintf("cleanup for policy '%s'", p.String()))
 					repeat := false
 					Eventually(func(gomega Gomega) bool {
-						_, err := iamSvc.DeletePolicy(&iam.DeletePolicyInput{PolicyArn: p.Arn})
+						response, err := iamSvc.DeletePolicy(&iam.DeletePolicyInput{
+							PolicyArn: p.Arn,
+						})
 						if err != nil && !repeat {
-							By(fmt.Sprintf("failed to delete policy '%s'; reason: %+v", policy.Description, err))
+							By(fmt.Sprintf("failed to delete policy '%s'; reason: %+v, response: %s", policy.Description, err, response.String()))
 							repeat = true
 						}
 						code, ok := awserrors.Code(err)
@@ -559,8 +561,12 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 
 // TODO: remove once test infra accounts are fixed.
 func deleteMultitenancyRoles(prov client.ConfigProvider) {
-	DeleteRole(prov, "multi-tenancy-role")
-	DeleteRole(prov, "multi-tenancy-nested-role")
+	if err := DeleteRole(prov, "multi-tenancy-role"); err != nil {
+		By(fmt.Sprintf("failed to delete role multi-tenancy-role %s", err))
+	}
+	if err := DeleteRole(prov, "multi-tenancy-nested-role"); err != nil {
+		By(fmt.Sprintf("failed to delete role multi-tenancy-nested-role %s", err))
+	}
 }
 
 // detachAllPoliciesForRole detaches all policies for role.
@@ -589,23 +595,25 @@ func detachAllPoliciesForRole(prov client.ConfigProvider, name string) error {
 }
 
 // DeleteRole deletes roles in a best effort manner.
-func DeleteRole(prov client.ConfigProvider, name string) {
+func DeleteRole(prov client.ConfigProvider, name string) error {
 	iamSvc := iam.New(prov)
 
 	// if role does not exist, return.
 	_, err := iamSvc.GetRole(&iam.GetRoleInput{RoleName: aws.String(name)})
 	if err != nil {
-		return
+		return err
 	}
 
 	if err := detachAllPoliciesForRole(prov, name); err != nil {
-		return
+		return err
 	}
 
 	_, err = iamSvc.DeleteRole(&iam.DeleteRoleInput{RoleName: aws.String(name)})
 	if err != nil {
-		return
+		return err
 	}
+
+	return nil
 }
 
 func GetPolicyArn(prov client.ConfigProvider, name string) string {
