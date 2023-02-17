@@ -520,6 +520,18 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 			return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
 		}, 5*time.Minute, 5*time.Second).Should(BeTrue())
 	}
+	for _, group := range groups {
+		repeat := false
+		Eventually(func(gomega Gomega) bool {
+			_, err := iamSvc.DeleteGroup(&iam.DeleteGroupInput{GroupName: aws.String(group.GroupName)})
+			if err != nil && !repeat {
+				By(fmt.Sprintf("failed to delete group '%s'; reason: %+v", group.GroupName, err))
+				repeat = true
+			}
+			code, ok := awserrors.Code(err)
+			return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
+		}, 5*time.Minute, 5*time.Second).Should(BeTrue())
+	}
 	for _, policy := range policies {
 		policies, err := iamSvc.ListPolicies(&iam.ListPoliciesInput{})
 		Expect(err).NotTo(HaveOccurred())
@@ -544,18 +556,6 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 				}
 			}
 		}
-	}
-	for _, group := range groups {
-		repeat := false
-		Eventually(func(gomega Gomega) bool {
-			_, err := iamSvc.DeleteGroup(&iam.DeleteGroupInput{GroupName: aws.String(group.GroupName)})
-			if err != nil && !repeat {
-				By(fmt.Sprintf("failed to delete group '%s'; reason: %+v", group.GroupName, err))
-				repeat = true
-			}
-			code, ok := awserrors.Code(err)
-			return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
-		}, 5*time.Minute, 5*time.Second).Should(BeTrue())
 	}
 }
 
