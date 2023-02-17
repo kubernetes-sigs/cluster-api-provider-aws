@@ -475,23 +475,30 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 		if tayp == configservice.ResourceTypeAwsIamRole {
 			role := val.(*cfn_iam.Role)
 			By(fmt.Sprintf("cleanup for role with name '%s'", role.RoleName))
+			// added repeat to not keep flooding the logs.
+			repeat := false
 			Eventually(func(gomega Gomega) bool {
 				_, err := iamSvc.DeleteRole(&iam.DeleteRoleInput{RoleName: aws.String(role.RoleName)})
-				if err != nil {
-					By(fmt.Sprintf("failed to delete role '%s'; reason: %s", role.RoleName, err.Error()))
+				if err != nil && !repeat {
+					By(fmt.Sprintf("failed to delete role '%s'; reason: %+v", role.RoleName, err))
+					repeat = true
 				}
-				return awserrors.IsNotFound(err) || err == nil
+				code, ok := awserrors.Code(err)
+				return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
 			}, 5*time.Minute, 5*time.Second).Should(BeTrue())
 		}
 		if val.AWSCloudFormationType() == "AWS::IAM::InstanceProfile" {
 			profile := val.(*cfn_iam.InstanceProfile)
 			By(fmt.Sprintf("cleanup for profile with name '%s'", profile.InstanceProfileName))
+			repeat := false
 			Eventually(func(gomega Gomega) bool {
 				_, err := iamSvc.DeleteInstanceProfile(&iam.DeleteInstanceProfileInput{InstanceProfileName: aws.String(profile.InstanceProfileName)})
-				if err != nil {
-					By(fmt.Sprintf("failed to delete role '%s'; reason: %s", profile.InstanceProfileName, err.Error()))
+				if err != nil && !repeat {
+					By(fmt.Sprintf("failed to delete role '%s'; reason: %+v", profile.InstanceProfileName, err))
+					repeat = true
 				}
-				return awserrors.IsNotFound(err) || err == nil
+				code, ok := awserrors.Code(err)
+				return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
 			}, 5*time.Minute, 5*time.Second).Should(BeTrue())
 		}
 		if val.AWSCloudFormationType() == "AWS::IAM::ManagedPolicy" {
@@ -502,12 +509,15 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 				for _, p := range policies.Policies {
 					if aws.StringValue(p.PolicyName) == policy.ManagedPolicyName {
 						By(fmt.Sprintf("cleanup for policy '%s'", p.String()))
+						repeat := false
 						Eventually(func(gomega Gomega) bool {
 							_, err := iamSvc.DeletePolicy(&iam.DeletePolicyInput{PolicyArn: p.Arn})
-							if err != nil {
-								By(fmt.Sprintf("failed to delete policy '%s'; reason: %s", policy.Description, err.Error()))
+							if err != nil && !repeat {
+								By(fmt.Sprintf("failed to delete policy '%s'; reason: %+v", policy.Description, err))
+								repeat = true
 							}
-							return awserrors.IsNotFound(err) || err == nil
+							code, ok := awserrors.Code(err)
+							return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
 						}, 5*time.Minute, 5*time.Second).Should(BeTrue())
 						// TODO: why is there a break here? Don't we want to clean up everything?
 						break
