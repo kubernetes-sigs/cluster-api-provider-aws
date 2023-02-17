@@ -469,66 +469,91 @@ func SetMultitenancyEnvVars(prov client.ConfigProvider) error {
 func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstrap.Template) {
 	iamSvc := iam.New(prov)
 	temp := *renderCustomCloudFormation(t)
+	var (
+		iamRoles         []*cfn_iam.Role
+		instanceProfiles []*cfn_iam.InstanceProfile
+		policies         []*cfn_iam.ManagedPolicy
+		groups           []*cfn_iam.Group
+	)
+	// the deletion order of these resources is important. Policies need to be last,
+	// so they don't have any attached resources which prevents their deletion.
+	// temp.Resources is a map. Traversing that directly results in undetermined order.
 	for _, val := range temp.Resources {
-		By(fmt.Sprintf("deleting the following resource: %s", val.AWSCloudFormationType()))
-		tayp := val.AWSCloudFormationType()
-		if tayp == configservice.ResourceTypeAwsIamRole {
+		switch val.AWSCloudFormationType() {
+		case configservice.ResourceTypeAwsIamRole:
 			role := val.(*cfn_iam.Role)
-			By(fmt.Sprintf("cleanup for role with name '%s'", role.RoleName))
-			// added repeat to not keep flooding the logs.
-			repeat := false
-			Eventually(func(gomega Gomega) bool {
-				_, err := iamSvc.DeleteRole(&iam.DeleteRoleInput{RoleName: aws.String(role.RoleName)})
-				if err != nil && !repeat {
-					By(fmt.Sprintf("failed to delete role '%s'; reason: %+v", role.RoleName, err))
-					repeat = true
-				}
-				code, ok := awserrors.Code(err)
-				return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
-			}, 5*time.Minute, 5*time.Second).Should(BeTrue())
-		}
-		if val.AWSCloudFormationType() == "AWS::IAM::InstanceProfile" {
+			iamRoles = append(iamRoles, role)
+		case "AWS::IAM::InstanceProfile":
 			profile := val.(*cfn_iam.InstanceProfile)
-			By(fmt.Sprintf("cleanup for profile with name '%s'", profile.InstanceProfileName))
-			repeat := false
-			Eventually(func(gomega Gomega) bool {
-				_, err := iamSvc.DeleteInstanceProfile(&iam.DeleteInstanceProfileInput{InstanceProfileName: aws.String(profile.InstanceProfileName)})
-				if err != nil && !repeat {
-					By(fmt.Sprintf("failed to delete role '%s'; reason: %+v", profile.InstanceProfileName, err))
-					repeat = true
-				}
-				code, ok := awserrors.Code(err)
-				return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
-			}, 5*time.Minute, 5*time.Second).Should(BeTrue())
-		}
-		if val.AWSCloudFormationType() == "AWS::IAM::ManagedPolicy" {
+			instanceProfiles = append(instanceProfiles, profile)
+		case "AWS::IAM::ManagedPolicy":
 			policy := val.(*cfn_iam.ManagedPolicy)
-			policies, err := iamSvc.ListPolicies(&iam.ListPoliciesInput{})
-			Expect(err).NotTo(HaveOccurred())
-			if len(policies.Policies) > 0 {
-				for _, p := range policies.Policies {
-					if aws.StringValue(p.PolicyName) == policy.ManagedPolicyName {
-						By(fmt.Sprintf("cleanup for policy '%s'", p.String()))
-						repeat := false
-						Eventually(func(gomega Gomega) bool {
-							_, err := iamSvc.DeletePolicy(&iam.DeletePolicyInput{PolicyArn: p.Arn})
-							if err != nil && !repeat {
-								By(fmt.Sprintf("failed to delete policy '%s'; reason: %+v", policy.Description, err))
-								repeat = true
-							}
-							code, ok := awserrors.Code(err)
-							return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
-						}, 5*time.Minute, 5*time.Second).Should(BeTrue())
-						// TODO: why is there a break here? Don't we want to clean up everything?
-						break
-					}
+			policies = append(policies, policy)
+		case configservice.ResourceTypeAwsIamGroup:
+			group := val.(*cfn_iam.Group)
+			groups = append(groups, group)
+		}
+	}
+	for _, role := range iamRoles {
+		By(fmt.Sprintf("deleting the following role: %s", role.RoleName))
+		repeat := false
+		Eventually(func(gomega Gomega) bool {
+			_, err := iamSvc.DeleteRole(&iam.DeleteRoleInput{RoleName: aws.String(role.RoleName)})
+			if err != nil && !repeat {
+				By(fmt.Sprintf("failed to delete role '%s'; reason: %+v", role.RoleName, err))
+				repeat = true
+			}
+			code, ok := awserrors.Code(err)
+			return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
+		}, 5*time.Minute, 5*time.Second).Should(BeTrue())
+	}
+	for _, profile := range instanceProfiles {
+		By(fmt.Sprintf("cleanup for profile with name '%s'", profile.InstanceProfileName))
+		repeat := false
+		Eventually(func(gomega Gomega) bool {
+			_, err := iamSvc.DeleteInstanceProfile(&iam.DeleteInstanceProfileInput{InstanceProfileName: aws.String(profile.InstanceProfileName)})
+			if err != nil && !repeat {
+				By(fmt.Sprintf("failed to delete role '%s'; reason: %+v", profile.InstanceProfileName, err))
+				repeat = true
+			}
+			code, ok := awserrors.Code(err)
+			return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
+		}, 5*time.Minute, 5*time.Second).Should(BeTrue())
+	}
+	for _, policy := range policies {
+		policies, err := iamSvc.ListPolicies(&iam.ListPoliciesInput{})
+		Expect(err).NotTo(HaveOccurred())
+		if len(policies.Policies) > 0 {
+			for _, p := range policies.Policies {
+				if aws.StringValue(p.PolicyName) == policy.ManagedPolicyName {
+					By(fmt.Sprintf("cleanup for policy '%s'", p.String()))
+					repeat := false
+					Eventually(func(gomega Gomega) bool {
+						_, err := iamSvc.DeletePolicy(&iam.DeletePolicyInput{PolicyArn: p.Arn})
+						if err != nil && !repeat {
+							By(fmt.Sprintf("failed to delete policy '%s'; reason: %+v", policy.Description, err))
+							repeat = true
+						}
+						code, ok := awserrors.Code(err)
+						return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
+					}, 5*time.Minute, 5*time.Second).Should(BeTrue())
+					// TODO: why is there a break here? Don't we want to clean up everything?
+					break
 				}
 			}
 		}
-		if val.AWSCloudFormationType() == configservice.ResourceTypeAwsIamGroup {
-			group := val.(*cfn_iam.Group)
-			_, _ = iamSvc.DeleteGroup(&iam.DeleteGroupInput{GroupName: aws.String(group.GroupName)})
-		}
+	}
+	for _, group := range groups {
+		repeat := false
+		Eventually(func(gomega Gomega) bool {
+			_, err := iamSvc.DeleteGroup(&iam.DeleteGroupInput{GroupName: aws.String(group.GroupName)})
+			if err != nil && !repeat {
+				By(fmt.Sprintf("failed to delete group '%s'; reason: %+v", group.GroupName, err))
+				repeat = true
+			}
+			code, ok := awserrors.Code(err)
+			return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
+		}, 5*time.Minute, 5*time.Second).Should(BeTrue())
 	}
 }
 
