@@ -17,7 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
-	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -27,6 +27,8 @@ import (
 const (
 	// DefaultBootstrapUserName is the default bootstrap user name.
 	DefaultBootstrapUserName = "bootstrapper.cluster-api-provider-aws.sigs.k8s.io"
+	// DefaultBootstrapGroupName is the default bootstrap user name.
+	DefaultBootstrapGroupName = "bootstrapper.cluster-api-provider-aws.sigs.k8s.io"
 	// DefaultStackName is the default CloudFormation stack name.
 	DefaultStackName = "cluster-api-provider-aws-sigs-k8s-io"
 	// DefaultPartitionName is the default security partition for AWS ARNs.
@@ -43,8 +45,13 @@ func addDefaultingFuncs(scheme *runtime.Scheme) error {
 
 // SetDefaults_BootstrapUser is used by defaulter-gen.
 func SetDefaults_BootstrapUser(obj *BootstrapUser) { //nolint:golint,stylecheck
-	if obj != nil && obj.UserName == "" {
-		obj.UserName = DefaultBootstrapUserName
+	if obj != nil {
+		if obj.UserName == "" {
+			obj.UserName = DefaultBootstrapUserName
+		}
+		if obj.GroupName == "" {
+			obj.GroupName = DefaultBootstrapGroupName
+		}
 	}
 }
 

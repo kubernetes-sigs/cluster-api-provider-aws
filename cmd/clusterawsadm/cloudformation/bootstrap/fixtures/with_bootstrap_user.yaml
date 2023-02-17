@@ -1,7 +1,8 @@
 AWSTemplateFormatVersion: 2010-09-09
 Resources:
   AWSIAMGroupBootstrapper:
-    Properties: {}
+    Properties:
+      GroupName: bootstrapper.cluster-api-provider-aws.sigs.k8s.io
     Type: AWS::IAM::Group
   AWSIAMInstanceProfileControlPlane:
     Properties:
