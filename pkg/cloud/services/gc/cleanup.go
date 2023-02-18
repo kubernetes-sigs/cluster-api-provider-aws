@@ -77,7 +77,9 @@ func (s *Service) deleteResources(ctx context.Context) error {
 
 	awsOutput, err := s.resourceTaggingClient.GetResourcesWithContext(ctx, &awsInput)
 	if err != nil {
-		return fmt.Errorf("getting tagged resources: %w", err)
+		// retry by listing all LB/TG/SG as using tagging client will fail in air-gapped environments
+		s.scope.Error(err, "Getting resources with tagging client fails, fallback to query resources directly")
+		return s.deleteResourcesWithoutTagging(ctx)
 	}
 
 	resources := []*AWSResource{}
@@ -118,4 +120,55 @@ func (s *Service) isMatchingResource(resource *AWSResource, serviceName, resourc
 	}
 
 	return true
+}
+
+func (s *Service) deleteResourcesWithoutTagging(ctx context.Context) error {
+	resources, err := s.getProviderOwnedResources()
+	if err != nil {
+		return err
+	}
+
+	if deleteErr := s.cleanupFuncs.Execute(ctx, resources); deleteErr != nil {
+		return fmt.Errorf("deleting resources: %w", deleteErr)
+	}
+
+	return nil
+}
+
+// getProviderOwnedResources gets cloud provider created LB, security groups, LBv2(NLB and ALB), target groups for this cluster, filtering by tag: kubernetes.io/cluster/<cluster-name>:owned.
+func (s *Service) getProviderOwnedResources() ([]*AWSResource, error) {
+	resources := []*AWSResource{}
+
+	// cloud provider created LB
+	lbs, err := s.getProviderOwnedLoadBalancers()
+	if err != nil {
+		return nil, err
+	}
+	resources = append(resources, lbs...)
+
+	// cloud provider created security groups for LB
+	sg, err := s.getProviderOwnedSecurityGroups()
+	if err != nil {
+		return nil, err
+	}
+	resources = append(resources, sg...)
+
+	// cloud provider created LB v2
+	lbsv2, err := s.getProviderOwnedLoadBalancersV2()
+	if err != nil {
+		return nil, err
+	}
+	resources = append(resources, lbsv2...)
+
+	// cloud provider created target groups for LB v2
+	tgs, err := s.getProviderOwnedTargetgroups()
+	if err != nil {
+		return nil, err
+	}
+	resources = append(resources, tgs...)
+
+	for _, r := range resources {
+		s.scope.Info("Resource found:", "resource", r)
+	}
+	return resources, nil
 }

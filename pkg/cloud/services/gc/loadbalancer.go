@@ -24,6 +24,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/elbv2"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
 
 func (s *Service) deleteLoadBalancers(ctx context.Context, resources []*AWSResource) error {
@@ -127,4 +129,151 @@ func (s *Service) deleteTargetGroup(ctx context.Context, targetGroupARN string) 
 	}
 
 	return nil
+}
+
+func (s *Service) describeTargetgroups() ([]string, error) {
+	groups, err := s.elbv2Client.DescribeTargetGroups(&elbv2.DescribeTargetGroupsInput{})
+	if err != nil {
+		return nil, err
+	}
+
+	targetGroups := []string{}
+	for _, group := range groups.TargetGroups {
+		if err != nil {
+			return nil, err
+		}
+		targetGroups = append(targetGroups, *group.TargetGroupArn)
+	}
+	return targetGroups, nil
+}
+
+// getAllLoadBalancers gets all elastic LBs.
+func (s *Service) getAllLoadBalancers() ([]string, error) {
+	var names []string
+	err := s.elbClient.DescribeLoadBalancersPages(&elb.DescribeLoadBalancersInput{}, func(r *elb.DescribeLoadBalancersOutput, last bool) bool {
+		for _, lb := range r.LoadBalancerDescriptions {
+			names = append(names, *lb.LoadBalancerName)
+		}
+		return true
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return names, nil
+}
+
+// getAllLoadBalancersV2 gets all network and application LBs.
+func (s *Service) getAllLoadBalancersV2() ([]string, error) {
+	var arns []string
+	err := s.elbv2Client.DescribeLoadBalancersPages(&elbv2.DescribeLoadBalancersInput{}, func(r *elbv2.DescribeLoadBalancersOutput, last bool) bool {
+		for _, lb := range r.LoadBalancers {
+			arns = append(arns, *lb.LoadBalancerArn)
+		}
+		return true
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return arns, nil
+}
+
+// getProviderOwnedLoadBalancers gets cloud provider created LB(ELB) for this cluster, filtering by tag: kubernetes.io/cluster/<cluster-name>:owned.
+func (s *Service) getProviderOwnedLoadBalancers() ([]*AWSResource, error) {
+	names, err := s.getAllLoadBalancers()
+	if err != nil {
+		return nil, err
+	}
+
+	resources := []*AWSResource{}
+	lbChunks := chunkResources(names)
+	for _, chunk := range lbChunks {
+		output, err := s.elbClient.DescribeTags(&elb.DescribeTagsInput{LoadBalancerNames: aws.StringSlice(chunk)})
+		if err != nil {
+			return nil, err
+		}
+
+		serviceTag := infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())
+		for _, tagDesc := range output.TagDescriptions {
+			for _, tag := range tagDesc.Tags {
+				if *tag.Key == serviceTag && *tag.Value == string(infrav1.ResourceLifecycleOwned) {
+					arn := composeArn(elbService, elbResourcePrefix+*tagDesc.LoadBalancerName)
+					resource, err := composeAWSResource(aws.String(arn), tagDesc.Tags)
+					if err != nil {
+						return nil, err
+					}
+					resources = append(resources, resource)
+					break
+				}
+			}
+		}
+	}
+
+	return resources, nil
+}
+
+// getProviderOwnedLoadBalancersV2 gets cloud provider created LBv2(NLB and ALB) for this cluster, filtering by tag: kubernetes.io/cluster/<cluster-name>:owned.
+func (s *Service) getProviderOwnedLoadBalancersV2() ([]*AWSResource, error) {
+	arns, err := s.getAllLoadBalancersV2()
+	if err != nil {
+		return nil, err
+	}
+
+	resources := []*AWSResource{}
+	lbChunks := chunkResources(arns)
+	for _, chunk := range lbChunks {
+		output, err := s.elbv2Client.DescribeTags(&elbv2.DescribeTagsInput{ResourceArns: aws.StringSlice(chunk)})
+		if err != nil {
+			return nil, err
+		}
+
+		serviceTag := infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())
+		for _, tagDesc := range output.TagDescriptions {
+			for _, tag := range tagDesc.Tags {
+				if *tag.Key == serviceTag && *tag.Value == string(infrav1.ResourceLifecycleOwned) {
+					resource, err := composeAWSResource(tagDesc.ResourceArn, tagDesc.Tags)
+					if err != nil {
+						return nil, err
+					}
+					resources = append(resources, resource)
+					break
+				}
+			}
+		}
+	}
+
+	return resources, nil
+}
+
+// getProviderOwnedTargetgroups gets cloud provider created target groups of v2 LBs(NLB and ALB) for this cluster, filtering by tag: kubernetes.io/cluster/<cluster-name>:owned.
+func (s *Service) getProviderOwnedTargetgroups() ([]*AWSResource, error) {
+	targetGroups, err := s.describeTargetgroups()
+	if err != nil {
+		return nil, err
+	}
+
+	resources := []*AWSResource{}
+	groupChunks := chunkResources(targetGroups)
+	serviceTag := infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())
+	for _, chunk := range groupChunks {
+		output, err := s.elbv2Client.DescribeTags(&elbv2.DescribeTagsInput{ResourceArns: aws.StringSlice(chunk)})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, tagDesc := range output.TagDescriptions {
+			for _, tag := range tagDesc.Tags {
+				if *tag.Key == serviceTag && *tag.Value == string(infrav1.ResourceLifecycleOwned) {
+					resource, err := composeAWSResource(tagDesc.ResourceArn, tagDesc.Tags)
+					if err != nil {
+						return nil, err
+					}
+					resources = append(resources, resource)
+					break
+				}
+			}
+		}
+	}
+	return resources, nil
 }
