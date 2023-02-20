@@ -106,10 +106,6 @@ $(GH): $(GTAR) $(GH_SHARE)/gh.tar.gz
 	chmod +x $@
 	touch -m $@
 
-GINKGO := $(BIN_DIR)/ginkgo
-$(GINKGO): $(BIN_DIR) go.mod go.sum
-	go build -tags=tools -o $@ github.com/onsi/ginkgo/v2/ginkgo
-
 GOJQ := $(BIN_DIR)/gojq
 $(GOJQ): $(BIN_DIR) go.mod go.sum
 	go build -tags=tools -o $@ github.com/itchyny/gojq/cmd/gojq
