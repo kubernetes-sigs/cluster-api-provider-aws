@@ -352,7 +352,7 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 			return ctrl.Result{}, err
 		}
 
-		if err := ec2Service.TerminateInstanceAndWait(instance.ID); err != nil {
+		if err := ec2Service.TerminateInstance(instance.ID); err != nil {
 			machineScope.Error(err, "failed to terminate instance")
 			conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
 			r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedTerminate", "Failed to terminate instance %q: %v", instance.ID, err)
