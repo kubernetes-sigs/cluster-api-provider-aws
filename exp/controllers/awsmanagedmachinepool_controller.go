@@ -199,9 +199,10 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 ) (ctrl.Result, error) {
 	machinePoolScope.Info("Reconciling AWSManagedMachinePool")
 
-	controllerutil.AddFinalizer(machinePoolScope.ManagedMachinePool, expinfrav1.ManagedMachinePoolFinalizer)
-	if err := machinePoolScope.PatchObject(); err != nil {
-		return ctrl.Result{}, err
+	if controllerutil.AddFinalizer(machinePoolScope.ManagedMachinePool, expinfrav1.ManagedMachinePoolFinalizer) {
+		if err := machinePoolScope.PatchObject(); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	ekssvc := eks.NewNodegroupService(machinePoolScope)
