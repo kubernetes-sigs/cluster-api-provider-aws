@@ -55,7 +55,6 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	capiannotations "sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -166,24 +165,6 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	log = log.WithValues("cluster", klog.KObj(cluster))
-	helper, err := patch.NewHelper(awsCluster, r.Client)
-	if err != nil {
-		return reconcile.Result{}, errors.Wrap(err, "failed to init patch helper")
-	}
-
-	defer func() {
-		e := helper.Patch(
-			context.TODO(),
-			awsCluster,
-			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-				infrav1.PrincipalCredentialRetrievedCondition,
-				infrav1.PrincipalUsageAllowedCondition,
-				infrav1.LoadBalancerReadyCondition,
-			}})
-		if e != nil {
-			fmt.Println(e.Error())
-		}
-	}()
 
 	// Create the scope.
 	clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
@@ -274,10 +255,11 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 	awsCluster := clusterScope.AWSCluster
 
 	// If the AWSCluster doesn't have our finalizer, add it.
-	controllerutil.AddFinalizer(awsCluster, infrav1.ClusterFinalizer)
-	// Register the finalizer immediately to avoid orphaning AWS resources on delete
-	if err := clusterScope.PatchObject(); err != nil {
-		return reconcile.Result{}, err
+	if controllerutil.AddFinalizer(awsCluster, infrav1.ClusterFinalizer) {
+		// Register the finalizer immediately to avoid orphaning AWS resources on delete
+		if err := clusterScope.PatchObject(); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	ec2Service := r.getEC2Service(clusterScope)
