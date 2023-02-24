@@ -147,9 +147,10 @@ func (r *AWSFargateProfileReconciler) reconcileNormal(
 ) (ctrl.Result, error) {
 	fargateProfileScope.Info("Reconciling AWSFargateProfile")
 
-	controllerutil.AddFinalizer(fargateProfileScope.FargateProfile, expinfrav1.FargateProfileFinalizer)
-	if err := fargateProfileScope.PatchObject(); err != nil {
-		return ctrl.Result{}, err
+	if controllerutil.AddFinalizer(fargateProfileScope.FargateProfile, expinfrav1.FargateProfileFinalizer) {
+		if err := fargateProfileScope.PatchObject(); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	ekssvc := eks.NewFargateService(fargateProfileScope)
