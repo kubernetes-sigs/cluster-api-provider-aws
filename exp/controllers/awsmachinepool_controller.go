@@ -203,11 +203,11 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	}
 
 	// If the AWSMachinepool doesn't have our finalizer, add it
-	controllerutil.AddFinalizer(machinePoolScope.AWSMachinePool, expinfrav1.MachinePoolFinalizer)
-
-	// Register finalizer immediately to avoid orphaning AWS resources
-	if err := machinePoolScope.PatchObject(); err != nil {
-		return ctrl.Result{}, err
+	if controllerutil.AddFinalizer(machinePoolScope.AWSMachinePool, expinfrav1.MachinePoolFinalizer) {
+		// Register finalizer immediately to avoid orphaning AWS resources
+		if err := machinePoolScope.PatchObject(); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	if !machinePoolScope.Cluster.Status.InfrastructureReady {
