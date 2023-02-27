@@ -193,6 +193,15 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			Expect(err).To(BeNil())
 			Expect(awsCluster.Status.Bastion.State).To(Equal(infrav1.InstanceStateRunning))
 			expectAWSClusterConditions(awsCluster, []conditionAssertion{{infrav1.BastionHostReadyCondition, corev1.ConditionTrue, "", ""}})
+
+			controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
+				Lister:      e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				ClusterName: clusterName,
+				Namespace:   namespace.Name,
+			})
+
+			Expect(len(controlPlaneMachines)).To(Equal(1))
+			assertInstanceMetadataOptions(*controlPlaneMachines[0].Spec.ProviderID)
 			ginkgo.By("PASSED!")
 		})
 	})

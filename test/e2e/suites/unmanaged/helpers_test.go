@@ -577,6 +577,30 @@ func assertSpotInstanceType(instanceID string) {
 	Expect(len(result.Reservations[0].Instances)).To(Equal(1))
 }
 
+func assertInstanceMetadataOptions(instanceID string) {
+	ginkgo.By(fmt.Sprintf("Finding EC2 instance with ID: %s", instanceID))
+	ec2Client := ec2.New(e2eCtx.AWSSession)
+	input := &ec2.DescribeInstancesInput{
+		InstanceIds: []*string{
+			aws.String(instanceID[strings.LastIndex(instanceID, "/")+1:]),
+		},
+	}
+
+	result, err := ec2Client.DescribeInstances(input)
+	Expect(err).To(BeNil())
+	Expect(len(result.Reservations)).To(Equal(1))
+	Expect(len(result.Reservations[0].Instances)).To(Equal(1))
+
+	metadataOptions := result.Reservations[0].Instances[0].MetadataOptions
+	Expect(metadataOptions).ToNot(BeNil())
+
+	// assert defaults
+	Expect(metadataOptions.HttpTokens).To(HaveValue(Equal(string(infrav1.HTTPTokensStateRequired)))) // IMDSv2 enabled
+	Expect(metadataOptions.HttpEndpoint).To(HaveValue(Equal(string(infrav1.InstanceMetadataEndpointStateEnabled))))
+	Expect(metadataOptions.InstanceMetadataTags).To(HaveValue(Equal(string(infrav1.InstanceMetadataEndpointStateDisabled))))
+	Expect(metadataOptions.HttpPutResponseHopLimit).To(HaveValue(Equal(1)))
+}
+
 func terminateInstance(instanceID string) {
 	ginkgo.By(fmt.Sprintf("Terminating EC2 instance with ID: %s", instanceID))
 	ec2Client := ec2.New(e2eCtx.AWSSession)
