@@ -229,6 +229,8 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 
 	input.SpotMarketOptions = scope.AWSMachine.Spec.SpotMarketOptions
 
+	input.InstanceMetadataOptions = scope.AWSMachine.Spec.InstanceMetadataOptions
+
 	input.Tenancy = scope.AWSMachine.Spec.Tenancy
 
 	s.scope.Debug("Running instance", "machine-role", scope.Role())
@@ -575,6 +577,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 	}
 
 	input.InstanceMarketOptions = getInstanceMarketOptionsRequest(i.SpotMarketOptions)
+	input.MetadataOptions = getInstanceMetadataOptionsRequest(i.InstanceMetadataOptions)
 
 	if i.Tenancy != "" {
 		input.Placement = &ec2.Placement{
@@ -833,6 +836,24 @@ func (s *Service) SDKToInstance(v *ec2.Instance) (*infrav1.Instance, error) {
 		i.VolumeIDs = append(i.VolumeIDs, *volume.Ebs.VolumeId)
 	}
 
+	if v.MetadataOptions != nil {
+		metadataOptions := &infrav1.InstanceMetadataOptions{}
+		if v.MetadataOptions.HttpEndpoint != nil {
+			metadataOptions.HTTPEndpoint = infrav1.InstanceMetadataState(*v.MetadataOptions.HttpEndpoint)
+		}
+		if v.MetadataOptions.HttpPutResponseHopLimit != nil {
+			metadataOptions.HTTPPutResponseHopLimit = *v.MetadataOptions.HttpPutResponseHopLimit
+		}
+		if v.MetadataOptions.HttpTokens != nil {
+			metadataOptions.HTTPTokens = infrav1.HTTPTokensState(*v.MetadataOptions.HttpTokens)
+		}
+		if v.MetadataOptions.InstanceMetadataTags != nil {
+			metadataOptions.InstanceMetadataTags = infrav1.InstanceMetadataState(*v.MetadataOptions.InstanceMetadataTags)
+		}
+
+		i.InstanceMetadataOptions = metadataOptions
+	}
+
 	return i, nil
 }
 
@@ -961,6 +982,23 @@ func (s *Service) checkRootVolume(rootVolume *infrav1.Volume, imageID string) (*
 	return rootDeviceName, nil
 }
 
+// ModifyInstanceMetadataOptions modifies the metadata options of the given EC2 instance.
+func (s *Service) ModifyInstanceMetadataOptions(instanceID string, options *infrav1.InstanceMetadataOptions) error {
+	input := &ec2.ModifyInstanceMetadataOptionsInput{
+		HttpEndpoint:            aws.String(string(options.HTTPEndpoint)),
+		HttpPutResponseHopLimit: aws.Int64(options.HTTPPutResponseHopLimit),
+		HttpTokens:              aws.String(string(options.HTTPTokens)),
+		InstanceMetadataTags:    aws.String(string(options.InstanceMetadataTags)),
+		InstanceId:              aws.String(instanceID),
+	}
+
+	if _, err := s.EC2Client.ModifyInstanceMetadataOptions(input); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // filterGroups filters a list for a string.
 func filterGroups(list []string, strToFilter string) (newList []string) {
 	for _, item := range list {
@@ -1009,4 +1047,26 @@ func getInstanceMarketOptionsRequest(spotMarketOptions *infrav1.SpotMarketOption
 	instanceMarketOptionsRequest.SetSpotOptions(spotOptions)
 
 	return instanceMarketOptionsRequest
+}
+
+func getInstanceMetadataOptionsRequest(metadataOptions *infrav1.InstanceMetadataOptions) *ec2.InstanceMetadataOptionsRequest {
+	if metadataOptions == nil {
+		return nil
+	}
+
+	request := &ec2.InstanceMetadataOptionsRequest{}
+	if metadataOptions.HTTPEndpoint != "" {
+		request.SetHttpEndpoint(string(metadataOptions.HTTPEndpoint))
+	}
+	if metadataOptions.HTTPPutResponseHopLimit != 0 {
+		request.SetHttpPutResponseHopLimit(metadataOptions.HTTPPutResponseHopLimit)
+	}
+	if metadataOptions.HTTPTokens != "" {
+		request.SetHttpTokens(string(metadataOptions.HTTPTokens))
+	}
+	if metadataOptions.InstanceMetadataTags != "" {
+		request.SetInstanceMetadataTags(string(metadataOptions.InstanceMetadataTags))
+	}
+
+	return request
 }

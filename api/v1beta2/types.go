@@ -201,6 +201,83 @@ type Instance struct {
 	// IDs of the instance's volumes
 	// +optional
 	VolumeIDs []string `json:"volumeIDs,omitempty"`
+
+	// InstanceMetadataOptions is the metadata options for the EC2 instance.
+	// +optional
+	InstanceMetadataOptions *InstanceMetadataOptions `json:"instanceMetadataOptions,omitempty"`
+}
+
+// InstanceMetadataState describes the state of InstanceMetadataOptions.HttpEndpoint and InstanceMetadataOptions.InstanceMetadataTags
+type InstanceMetadataState string
+
+const (
+	// InstanceMetadataEndpointStateDisabled represents the disabled state
+	InstanceMetadataEndpointStateDisabled = InstanceMetadataState("disabled")
+
+	// InstanceMetadataEndpointStateEnabled represents the enabled state
+	InstanceMetadataEndpointStateEnabled = InstanceMetadataState("enabled")
+)
+
+// HTTPTokensState describes the state of InstanceMetadataOptions.HTTPTokensState
+type HTTPTokensState string
+
+const (
+	// HTTPTokensStateOptional represents the optional state
+	HTTPTokensStateOptional = HTTPTokensState("optional")
+
+	// HTTPTokensStateRequired represents the required state (IMDSv2)
+	HTTPTokensStateRequired = HTTPTokensState("required")
+)
+
+// InstanceMetadataOptions describes metadata options for the EC2 instance.
+type InstanceMetadataOptions struct {
+	// Enables or disables the HTTP metadata endpoint on your instances.
+	//
+	// If you specify a value of disabled, you cannot access your instance metadata.
+	//
+	// Default: enabled
+	//
+	// +kubebuilder:validation:Enum:=enabled;disabled
+	// +kubebuilder:default=enabled
+	HTTPEndpoint InstanceMetadataState `json:"httpEndpoint,omitempty"`
+
+	// The desired HTTP PUT response hop limit for instance metadata requests. The
+	// larger the number, the further instance metadata requests can travel.
+	//
+	// Default: 1
+	//
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=64
+	// +kubebuilder:default=1
+	HTTPPutResponseHopLimit int64 `json:"httpPutResponseHopLimit,omitempty"`
+
+	// The state of token usage for your instance metadata requests.
+	//
+	// If the state is optional, you can choose to retrieve instance metadata with
+	// or without a session token on your request. If you retrieve the IAM role
+	// credentials without a token, the version 1.0 role credentials are returned.
+	// If you retrieve the IAM role credentials using a valid session token, the
+	// version 2.0 role credentials are returned.
+	//
+	// If the state is required, you must send a session token with any instance
+	// metadata retrieval requests. In this state, retrieving the IAM role credentials
+	// always returns the version 2.0 credentials; the version 1.0 credentials are
+	// not available.
+	//
+	// Default: required
+	// +kubebuilder:validation:Enum:=optional;required
+	// +kubebuilder:default=required
+	HTTPTokens HTTPTokensState `json:"httpTokens,omitempty"`
+
+	// Set to enabled to allow access to instance tags from the instance metadata.
+	// Set to disabled to turn off access to instance tags from the instance metadata.
+	// For more information, see Work with instance tags using the instance metadata
+	// (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#work-with-tags-in-IMDS).
+	//
+	// Default: disabled
+	// +kubebuilder:validation:Enum:=enabled;disabled
+	// +kubebuilder:default=disabled
+	InstanceMetadataTags InstanceMetadataState `json:"instanceMetadataTags,omitempty"`
 }
 
 // Volume encapsulates the configuration options for the storage device.

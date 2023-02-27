@@ -51,6 +51,10 @@ type AWSMachineSpec struct {
 	// InstanceID is the EC2 instance ID for this machine.
 	InstanceID *string `json:"instanceID,omitempty"`
 
+	// InstanceMetadataOptions is the metadata options for the EC2 instance.
+	// +optional
+	InstanceMetadataOptions *InstanceMetadataOptions `json:"instanceMetadataOptions,omitempty"`
+
 	// AMI is the reference to the AMI from which to create the machine instance.
 	AMI AMIReference `json:"ami,omitempty"`
 
