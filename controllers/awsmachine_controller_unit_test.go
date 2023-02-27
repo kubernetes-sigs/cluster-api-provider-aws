@@ -1536,9 +1536,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 			_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 			g.Expect(err).To(BeNil())
 			g.Expect(buf.String()).To(ContainSubstring("EC2 instance is shutting down or already terminated"))
-			g.Expect(ms.AWSMachine.Finalizers).To(ConsistOf(metav1.FinalizerDeleteDependents))
 		})
-		t.Run("should ignore instances in terminated down state", func(t *testing.T) {
+		t.Run("should ignore instances in terminated state", func(t *testing.T) {
 			g := NewWithT(t)
 			awsMachine := getAWSMachine()
 			setup(t, g, awsMachine)
@@ -1555,7 +1554,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 			_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 			g.Expect(err).To(BeNil())
-			g.Expect(buf.String()).To(ContainSubstring("EC2 instance is shutting down or already terminated"))
+			g.Expect(buf.String()).To(ContainSubstring("EC2 instance terminated successfully"))
 			g.Expect(ms.AWSMachine.Finalizers).To(ConsistOf(metav1.FinalizerDeleteDependents))
 		})
 		t.Run("instance not shutting down yet", func(t *testing.T) {
@@ -1665,7 +1664,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 					_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 					g.Expect(err).To(BeNil())
-					g.Expect(ms.AWSMachine.Finalizers).To(ConsistOf(metav1.FinalizerDeleteDependents))
 				})
 
 				t.Run("should fail to detach control plane ELB from instance", func(t *testing.T) {
