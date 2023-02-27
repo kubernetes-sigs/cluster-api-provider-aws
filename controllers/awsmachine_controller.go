@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	ignTypes "github.com/flatcar/ignition/config/v2_3/types"
@@ -340,8 +341,14 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 	// This decision is based on the ec2-instance-lifecycle graph at
 	// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html
 	switch instance.State {
-	case infrav1.InstanceStateShuttingDown, infrav1.InstanceStateTerminated:
+	case infrav1.InstanceStateShuttingDown:
 		machineScope.Info("EC2 instance is shutting down or already terminated", "instance-id", instance.ID)
+		// requeue reconciliation until we observe termination (or the instance can no longer be looked up)
+		return ctrl.Result{RequeueAfter: time.Minute}, nil
+	case infrav1.InstanceStateTerminated:
+		machineScope.Info("EC2 instance terminated successfully", "instance-id", instance.ID)
+		controllerutil.RemoveFinalizer(machineScope.AWSMachine, infrav1.MachineFinalizer)
+		return ctrl.Result{}, nil
 	default:
 		machineScope.Info("Terminating EC2 instance", "instance-id", instance.ID)
 
@@ -391,12 +398,10 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 
 		machineScope.Info("EC2 instance successfully terminated", "instance-id", instance.ID)
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulTerminate", "Terminated instance %q", instance.ID)
+
+		// requeue reconciliation until we observe termination (or the instance can no longer be looked up)
+		return ctrl.Result{RequeueAfter: time.Minute}, nil
 	}
-
-	// Instance is deleted so remove the finalizer.
-	controllerutil.RemoveFinalizer(machineScope.AWSMachine, infrav1.MachineFinalizer)
-
-	return ctrl.Result{}, nil
 }
 
 // findInstance queries the EC2 apis and retrieves the instance if it exists.
