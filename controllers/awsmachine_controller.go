@@ -580,32 +580,41 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 
 	// tasks that can only take place during operational instance states
 	if machineScope.InstanceIsOperational() {
-		machineScope.SetAddresses(instance.Addresses)
-
-		existingSecurityGroups, err := ec2svc.GetInstanceSecurityGroups(*machineScope.GetInstanceID())
+		err := r.reconcileOperationalState(ec2svc, machineScope, instance)
 		if err != nil {
-			machineScope.Error(err, "unable to get instance security groups")
-			return ctrl.Result{}, err
-		}
-
-		// Ensure that the security groups are correct.
-		_, err = r.ensureSecurityGroups(ec2svc, machineScope, machineScope.AWSMachine.Spec.AdditionalSecurityGroups, existingSecurityGroups)
-		if err != nil {
-			conditions.MarkFalse(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition, infrav1.SecurityGroupsFailedReason, clusterv1.ConditionSeverityError, err.Error())
-			machineScope.Error(err, "unable to ensure security groups")
-			return ctrl.Result{}, err
-		}
-		conditions.MarkTrue(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition)
-
-		err = r.ensureInstanceMetadataOptions(ec2svc, instance, machineScope.AWSMachine)
-		if err != nil {
-			machineScope.Error(err, "failed to ensure instance metadata options")
 			return ctrl.Result{}, err
 		}
 	}
 
 	machineScope.Debug("done reconciling instance", "instance", instance)
 	return ctrl.Result{}, nil
+}
+
+func (r *AWSMachineReconciler) reconcileOperationalState(ec2svc services.EC2Interface, machineScope *scope.MachineScope, instance *infrav1.Instance) error {
+	machineScope.SetAddresses(instance.Addresses)
+
+	existingSecurityGroups, err := ec2svc.GetInstanceSecurityGroups(*machineScope.GetInstanceID())
+	if err != nil {
+		machineScope.Error(err, "unable to get instance security groups")
+		return err
+	}
+
+	// Ensure that the security groups are correct.
+	_, err = r.ensureSecurityGroups(ec2svc, machineScope, machineScope.AWSMachine.Spec.AdditionalSecurityGroups, existingSecurityGroups)
+	if err != nil {
+		conditions.MarkFalse(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition, infrav1.SecurityGroupsFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		machineScope.Error(err, "unable to ensure security groups")
+		return err
+	}
+	conditions.MarkTrue(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition)
+
+	err = r.ensureInstanceMetadataOptions(ec2svc, instance, machineScope.AWSMachine)
+	if err != nil {
+		machineScope.Error(err, "failed to ensure instance metadata options")
+		return err
+	}
+
+	return nil
 }
 
 func (r *AWSMachineReconciler) deleteEncryptedBootstrapDataSecret(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper) error {
