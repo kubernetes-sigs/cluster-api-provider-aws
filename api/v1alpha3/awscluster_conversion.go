@@ -20,11 +20,12 @@ import (
 	"unsafe"
 
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 // ConvertTo converts the v1alpha3 AWSCluster receiver to a v1beta1 AWSCluster.
@@ -130,4 +131,8 @@ func Convert_v1beta1_AWSLoadBalancerSpec_To_v1alpha3_AWSLoadBalancerSpec(in *inf
 
 func Convert_v1beta1_AWSClusterSpec_To_v1alpha3_AWSClusterSpec(in *infrav1.AWSClusterSpec, out *AWSClusterSpec, s apiconversion.Scope) error {
 	return autoConvert_v1beta1_AWSClusterSpec_To_v1alpha3_AWSClusterSpec(in, out, s)
+}
+
+func Convert_v1beta1_AWSClusterStatus_To_v1alpha3_AWSClusterStatus(in *infrav1.AWSClusterStatus, out *AWSClusterStatus, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_AWSClusterStatus_To_v1alpha3_AWSClusterStatus(in, out, s)
 }

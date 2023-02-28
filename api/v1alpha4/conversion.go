@@ -18,6 +18,7 @@ package v1alpha4
 
 import (
 	"k8s.io/apimachinery/pkg/conversion"
+
 	"sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 )
 

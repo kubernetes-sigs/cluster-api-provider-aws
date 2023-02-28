@@ -19,12 +19,12 @@ package scope
 import (
 	"context"
 	"fmt"
-	"time"
 
 	amazoncni "github.com/aws/amazon-vpc-cni-k8s/pkg/apis/crd/v1alpha1"
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -50,6 +50,7 @@ func init() {
 	_ = appsv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
 	_ = rbacv1.AddToScheme(scheme)
+	_ = admissionregistrationv1.AddToScheme(scheme)
 }
 
 // ManagedControlPlaneScopeParams defines the input parameters used to create a new Scope.
@@ -137,9 +138,14 @@ func (s *ManagedControlPlaneScope) RemoteClient() (client.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getting remote rest config for %s/%s: %w", s.Namespace(), s.Name(), err)
 	}
-	restConfig.Timeout = 1 * time.Minute
+	restConfig.Timeout = DefaultKubeClientTimeout
 
 	return client.New(restConfig, client.Options{Scheme: scheme})
+}
+
+// ManagementClient returns the Kubernetes Client for the management cluster.
+func (s *ManagedControlPlaneScope) ManagementClient() client.Client {
+	return s.Client
 }
 
 // Network returns the control plane network object.
@@ -292,6 +298,16 @@ func (s *ManagedControlPlaneScope) Bastion() *infrav1.Bastion {
 	return &s.ControlPlane.Spec.Bastion
 }
 
+// Bucket returns the s3 bucket details.
+func (s *ManagedControlPlaneScope) Bucket() *infrav1.S3Bucket {
+	return nil // no s3 bucket for managed clusters
+}
+
+// AssociateOIDCProvider returns if the cluster should have an OIDC Provider Associated.
+func (s *ManagedControlPlaneScope) AssociateOIDCProvider() bool {
+	return s.ControlPlane.Spec.AssociateOIDCProvider
+}
+
 // SetBastionInstance sets the bastion instance in the status of the cluster.
 func (s *ManagedControlPlaneScope) SetBastionInstance(instance *infrav1.Instance) {
 	s.ControlPlane.Status.Bastion = instance
@@ -376,6 +392,10 @@ func (s *ManagedControlPlaneScope) DisableVPCCNI() bool {
 
 func (s *ManagedControlPlaneScope) OIDCIdentityProviderConfig() *ekscontrolplanev1.OIDCIdentityProviderConfig {
 	return s.ControlPlane.Spec.OIDCIdentityProviderConfig
+}
+
+func (s *ManagedControlPlaneScope) OIDCProviderStatus() *infrav1.OIDCProviderStatus {
+	return &s.ControlPlane.Status.OIDCProvider
 }
 
 // ServiceCidrs returns the CIDR blocks used for services.

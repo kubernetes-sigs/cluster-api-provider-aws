@@ -100,3 +100,7 @@ func (r *AWSClusterList) ConvertFrom(srcRaw conversion.Hub) error {
 func Convert_v1beta1_AWSLoadBalancerSpec_To_v1alpha4_AWSLoadBalancerSpec(in *infrav1.AWSLoadBalancerSpec, out *AWSLoadBalancerSpec, s apiconversion.Scope) error {
 	return autoConvert_v1beta1_AWSLoadBalancerSpec_To_v1alpha4_AWSLoadBalancerSpec(in, out, s)
 }
+
+func Convert_v1beta1_AWSClusterStatus_To_v1alpha4_AWSClusterStatus(in *infrav1.AWSClusterStatus, out *AWSClusterStatus, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_AWSClusterStatus_To_v1alpha4_AWSClusterStatus(in, out, s)
+}

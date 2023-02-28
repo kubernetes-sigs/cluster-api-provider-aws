@@ -20,6 +20,8 @@ import (
 	"context"
 	"fmt"
 
+	"sigs.k8s.io/cluster-api/controllers/remote"
+
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -32,6 +34,14 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
+)
+
+const (
+	// KubeconfigReadyAnnotation is the key for the cluster object annotation
+	// which tracks if the Kubeconfig is available to communicate with the workload cluster
+	// See https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+	// for annotation formatting rules.
+	KubeconfigReadyAnnotation = "sigs.k8s.io/cluster-api-provider-aws-kubeconfig-ready"
 )
 
 // ClusterScopeParams defines the input parameters used to create a new Scope.
@@ -62,7 +72,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 
 	clusterScope := &ClusterScope{
 		Logger:         *params.Logger,
-		client:         params.Client,
+		Client:         params.Client,
 		Cluster:        params.Cluster,
 		AWSCluster:     params.AWSCluster,
 		controllerName: params.ControllerName,
@@ -88,7 +98,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 // ClusterScope defines the basic context for an actuator to operate upon.
 type ClusterScope struct {
 	logr.Logger
-	client      client.Client
+	Client      client.Client
 	patchHelper *patch.Helper
 
 	Cluster    *clusterv1.Cluster
@@ -97,6 +107,27 @@ type ClusterScope struct {
 	session         awsclient.ConfigProvider
 	serviceLimiters throttle.ServiceLimiters
 	controllerName  string
+}
+
+// RemoteClient returns the Kubernetes Client for connecting to the workload cluster.
+func (s *ClusterScope) RemoteClient() (client.Client, error) {
+	clusterKey := client.ObjectKey{
+		Name:      s.Name(),
+		Namespace: s.Namespace(),
+	}
+
+	restConfig, err := remote.RESTConfig(context.Background(), s.Cluster.Name, s.Client, clusterKey)
+	if err != nil {
+		return nil, fmt.Errorf("getting remote rest config for %s/%s: %w", s.Namespace(), s.Name(), err)
+	}
+	restConfig.Timeout = DefaultKubeClientTimeout
+
+	return client.New(restConfig, client.Options{Scheme: scheme})
+}
+
+// ManagementClient returns the Kubernetes Client for the management cluster.
+func (s *ClusterScope) ManagementClient() client.Client {
+	return s.Client
 }
 
 // Network returns the cluster network object.
@@ -315,6 +346,20 @@ func (s *ClusterScope) ServiceLimiter(service string) *throttle.ServiceLimiter {
 // Bastion returns the bastion details.
 func (s *ClusterScope) Bastion() *infrav1.Bastion {
 	return &s.AWSCluster.Spec.Bastion
+}
+
+// S3Bucket returns the s3 bucket details.
+func (s *ClusterScope) S3Bucket() *infrav1.S3Bucket {
+	return s.AWSCluster.Spec.S3Bucket
+}
+
+// AssociateOIDCProvider returns if the cluster should have an OIDC Provider Associated.
+func (s *ClusterScope) AssociateOIDCProvider() bool {
+	return s.AWSCluster.Spec.AssociateOIDCProvider
+}
+
+func (s *ClusterScope) OIDCProviderStatus() *infrav1.OIDCProviderStatus {
+	return &s.AWSCluster.Status.OIDCProvider
 }
 
 // SetBastionInstance sets the bastion instance in the status of the cluster.

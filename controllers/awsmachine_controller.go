@@ -21,6 +21,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/aws/aws-sdk-go/aws"
 	ignTypes "github.com/flatcar-linux/ignition/config/v2_3/types"
 	"github.com/go-logr/logr"
@@ -428,7 +430,7 @@ func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc se
 	return instance, nil
 }
 
-func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope, elbScope scope.ELBScope, objectStoreScope scope.S3Scope) (ctrl.Result, error) {
+func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope, elbScope scope.ELBScope, objectStoreScope scope.S3Scope) (ctrl.Result, error) {
 	machineScope.Info("Reconciling AWSMachine")
 
 	// If the AWSMachine is in an error state, return early.
@@ -560,43 +562,100 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 
 	// tasks that can take place during all known instance states
 	if machineScope.InstanceIsInKnownState() {
-		_, err = r.ensureTags(ec2svc, machineScope.AWSMachine, machineScope.GetInstanceID(), machineScope.AdditionalTags())
-		if err != nil {
-			machineScope.Error(err, "failed to ensure tags")
-			return ctrl.Result{}, err
-		}
-
-		if instance != nil {
-			r.ensureStorageTags(ec2svc, instance, machineScope.AWSMachine)
-		}
-
-		if err := r.reconcileLBAttachment(machineScope, elbScope, instance); err != nil {
-			machineScope.Error(err, "failed to reconcile LB attachment")
+		machineScope.V(5).Info("running known state tasks", "instance", instance)
+		if err := r.knownStateTasks(ctx, machineScope, ec2svc, elbScope, instance); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
 	// tasks that can only take place during operational instance states
 	if machineScope.InstanceIsOperational() {
-		machineScope.SetAddresses(instance.Addresses)
-
-		existingSecurityGroups, err := ec2svc.GetInstanceSecurityGroups(*machineScope.GetInstanceID())
-		if err != nil {
-			machineScope.Error(err, "unable to get instance security groups")
+		machineScope.V(5).Info("running operational tasks", "instance", instance)
+		if err := r.operationalTasks(ctx, machineScope, ec2svc, elbScope, instance); err != nil {
 			return ctrl.Result{}, err
 		}
-
-		// Ensure that the security groups are correct.
-		_, err = r.ensureSecurityGroups(ec2svc, machineScope, machineScope.AWSMachine.Spec.AdditionalSecurityGroups, existingSecurityGroups)
-		if err != nil {
-			conditions.MarkFalse(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition, infrav1.SecurityGroupsFailedReason, clusterv1.ConditionSeverityError, err.Error())
-			machineScope.Error(err, "unable to ensure security groups")
-			return ctrl.Result{}, err
-		}
-		conditions.MarkTrue(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition)
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *AWSMachineReconciler) knownStateTasks(_ context.Context, machineScope *scope.MachineScope, ec2svc services.EC2Interface, elbScope scope.ELBScope, instance *infrav1.Instance) error {
+	_, err := r.ensureTags(ec2svc, machineScope.AWSMachine, machineScope.GetInstanceID(), machineScope.AdditionalTags())
+	if err != nil {
+		machineScope.Error(err, "failed to ensure tags")
+		return err
+	}
+
+	if instance != nil {
+		r.ensureStorageTags(ec2svc, instance, machineScope.AWSMachine)
+	}
+
+	if err := r.reconcileLBAttachment(machineScope, elbScope, instance); err != nil {
+		machineScope.Error(err, "failed to reconcile LB attachment")
+		return err
+	}
+
+	return nil
+}
+
+func (r *AWSMachineReconciler) operationalTasks(ctx context.Context, machineScope *scope.MachineScope, ec2svc services.EC2Interface, _ scope.ELBScope, instance *infrav1.Instance) error {
+	machineScope.SetAddresses(instance.Addresses)
+
+	existingSecurityGroups, err := ec2svc.GetInstanceSecurityGroups(*machineScope.GetInstanceID())
+	if err != nil {
+		machineScope.Error(err, "unable to get instance security groups")
+		return err
+	}
+
+	// Ensure that the security groups are correct.
+	_, err = r.ensureSecurityGroups(ec2svc, machineScope, machineScope.AWSMachine.Spec.AdditionalSecurityGroups, existingSecurityGroups)
+	if err != nil {
+		conditions.MarkFalse(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition, infrav1.SecurityGroupsFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		machineScope.Error(err, "unable to ensure security groups")
+		return err
+	}
+	conditions.MarkTrue(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition)
+
+	// check if the remote kubeconfig works and annotate the cluster
+	_, ok := machineScope.InfraCluster.InfraCluster().GetAnnotations()[scope.KubeconfigReadyAnnotation]
+	if !ok && machineScope.IsControlPlane() {
+		// if a control plane node is operational check for a kubeconfig and a working control plane node
+		// and set the annotation so any reconciliation which requires workload api access can complete
+		remoteClient, err := machineScope.InfraCluster.RemoteClient()
+		if err != nil {
+			return err
+		}
+
+		var nodes corev1.NodeList
+		if err := remoteClient.List(ctx, &nodes, client.MatchingLabels(map[string]string{"node-role.kubernetes.io/control-plane": ""})); err != nil {
+			return err
+		}
+
+		oneReady := false
+		for i := range nodes.Items {
+			if util.IsNodeReady(&nodes.Items[i]) {
+				oneReady = true // if one control plane is ready return true
+			}
+		}
+
+		if oneReady {
+			awsCluster := &infrav1.AWSCluster{}
+			key := types.NamespacedName{Namespace: machineScope.InfraCluster.Namespace(), Name: machineScope.InfraCluster.Name()}
+			if err := r.Client.Get(ctx, key, awsCluster); err != nil {
+				return err
+			}
+			anno := awsCluster.GetAnnotations()
+			anno[scope.KubeconfigReadyAnnotation] = "true"
+			awsCluster.SetAnnotations(anno)
+			if err := r.Client.Update(ctx, awsCluster); err != nil {
+				return err
+			}
+		} else {
+			r.Log.Info("waiting for a control plane node to be ready before annotating the cluster, do you need to deploy a CNI?")
+		}
+	}
+
+	return nil
 }
 
 func (r *AWSMachineReconciler) deleteEncryptedBootstrapDataSecret(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper) error {
@@ -705,7 +764,7 @@ func (r *AWSMachineReconciler) ignitionUserData(scope *scope.MachineScope, objec
 		return nil, errors.New("object store service not available")
 	}
 
-	objectURL, err := objectStoreSvc.Create(scope, userData)
+	objectURL, err := objectStoreSvc.Create(scope.GetBootstrapDataKey(), userData)
 	if err != nil {
 		return nil, errors.Wrap(err, "creating userdata object")
 	}
@@ -734,7 +793,7 @@ func (r *AWSMachineReconciler) ignitionUserData(scope *scope.MachineScope, objec
 
 func (r *AWSMachineReconciler) deleteBootstrapData(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, objectStoreScope scope.S3Scope) error {
 	if !machineScope.AWSMachine.Spec.CloudInit.InsecureSkipSecretsManager {
-		if err := r.deleteEncryptedBootstrapDataSecret(machineScope, clusterScope); err != nil {
+		if err := r.deleteEncryptedBootstrapDataSecret(machineScope, clusterScope); err != nil && !apierrors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -772,7 +831,7 @@ func (r *AWSMachineReconciler) deleteIgnitionBootstrapDataFromS3(machineScope *s
 		return nil
 	}
 
-	if err := objectStoreSvc.Delete(machineScope); err != nil {
+	if err := objectStoreSvc.Delete(machineScope.GetBootstrapDataKey()); err != nil {
 		return errors.Wrap(err, "deleting bootstrap data object")
 	}
 
@@ -984,27 +1043,28 @@ func (r *AWSMachineReconciler) indexAWSMachineByInstanceID(o client.Object) []st
 }
 
 func (r *AWSMachineReconciler) ensureStorageTags(ec2svc services.EC2Interface, instance *infrav1.Instance, machine *infrav1.AWSMachine) {
-	annotations, err := r.machineAnnotationJSON(machine, VolumeTagsLastAppliedAnnotation)
+	machineAnnotations, err := r.machineAnnotationJSON(machine, VolumeTagsLastAppliedAnnotation)
 	if err != nil {
-		r.Log.Error(err, "Failed to fetch the annotations for volume tags")
+
+		r.Log.Error(err, "Failed to fetch the machineAnnotations for volume tags")
 	}
 	for _, volumeID := range instance.VolumeIDs {
-		if subAnnotation, ok := annotations[volumeID].(map[string]interface{}); ok {
+		if subAnnotation, ok := machineAnnotations[volumeID].(map[string]interface{}); ok {
 			newAnnotation, err := r.ensureVolumeTags(ec2svc, aws.String(volumeID), subAnnotation, machine.Spec.AdditionalTags)
 			if err != nil {
 				r.Log.Error(err, "Failed to fetch the changed volume tags in EC2 instance")
 			}
-			annotations[volumeID] = newAnnotation
+			machineAnnotations[volumeID] = newAnnotation
 		} else {
 			newAnnotation, err := r.ensureVolumeTags(ec2svc, aws.String(volumeID), make(map[string]interface{}), machine.Spec.AdditionalTags)
 			if err != nil {
 				r.Log.Error(err, "Failed to fetch the changed volume tags in EC2 instance")
 			}
-			annotations[volumeID] = newAnnotation
+			machineAnnotations[volumeID] = newAnnotation
 		}
 
 		// We also need to update the annotation if anything changed.
-		err = r.updateMachineAnnotationJSON(machine, VolumeTagsLastAppliedAnnotation, annotations)
+		err = r.updateMachineAnnotationJSON(machine, VolumeTagsLastAppliedAnnotation, machineAnnotations)
 		if err != nil {
 			r.Log.Error(err, "Failed to fetch the changed volume tags in EC2 instance")
 		}

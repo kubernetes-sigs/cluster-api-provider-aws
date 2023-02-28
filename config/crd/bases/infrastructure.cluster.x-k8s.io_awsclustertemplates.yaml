@@ -402,6 +402,13 @@ spec:
                           add to AWS resources managed by the AWS provider, in addition
                           to the ones added by default.
                         type: object
+                      associateOIDCProvider:
+                        default: false
+                        description: AssociateOIDCProvider can be enabled to automatically
+                          create an identity provider and install the pod identity
+                          webhook from AWS for use with IRSA. This will only work
+                          if the S3Bucket is configured properly.
+                        type: boolean
                       bastion:
                         description: Bastion contains options to configure the bastion
                           host.
@@ -692,9 +699,10 @@ spec:
                         type: string
                       s3Bucket:
                         description: S3Bucket contains options to configure a supporting
-                          S3 bucket for this cluster - currently used for nodes requiring
-                          Ignition (https://coreos.github.io/ignition/) for bootstrapping
-                          (requires BootstrapFormatIgnition feature flag to be enabled).
+                          S3 bucket for this cluster - Used  for nodes requiring Ignition
+                          (https://coreos.github.io/ignition/) for bootstrapping (requires
+                          BootstrapFormatIgnition feature flag to be enabled) and
+                          for storing OIDC endpoint certificates for use with IRSA
                         properties:
                           controlPlaneIAMInstanceProfile:
                             description: ControlPlaneIAMInstanceProfile is a name

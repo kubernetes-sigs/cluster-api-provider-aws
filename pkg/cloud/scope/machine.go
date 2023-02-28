@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"path"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -257,6 +258,11 @@ func (m *MachineScope) GetBootstrapData() (string, error) {
 		return "", err
 	}
 	return base64.StdEncoding.EncodeToString(value), nil
+}
+
+// GetBootstrapDataKey returns the bootstrap data key to use in the s3 bucket when storing ignition bootstrap data.
+func (m *MachineScope) GetBootstrapDataKey() string {
+	return path.Join(m.Role(), m.Name())
 }
 
 // GetRawBootstrapData returns the bootstrap data from the secret in the Machine's bootstrap.dataSecretName.
