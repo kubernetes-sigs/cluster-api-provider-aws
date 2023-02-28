@@ -275,7 +275,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			mockedDeleteVPCCallsForNonExistentVPC(m)
 			mockedDeleteLBCalls(true, ev2, e)
 			mockedDescribeInstanceCall(m)
-			mockedDeleteInstanceCalls(m)
+			mockedDeleteInstanceAndAwaitTerminationCalls(m)
 		}
 		expect(ec2Mock.EXPECT(), elbv2Mock.EXPECT(), elbMock.EXPECT())
 
@@ -347,7 +347,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			mockedDeleteVPCCalls(m)
 			mockedDescribeInstanceCall(m)
 			mockedDeleteLBCalls(true, ev2, e)
-			mockedDeleteInstanceCalls(m)
+			mockedDeleteInstanceAndAwaitTerminationCalls(m)
 			mockedDeleteSGCalls(m)
 		}
 		expect(ec2Mock.EXPECT(), elbv2Mock.EXPECT(), elbMock.EXPECT())
@@ -497,19 +497,25 @@ func mockedDescribeInstanceCall(m *mocks.MockEC2APIMockRecorder) {
 	}, nil)
 }
 
+func mockedDeleteInstanceAndAwaitTerminationCalls(m *mocks.MockEC2APIMockRecorder) {
+	m.TerminateInstances(
+		gomock.Eq(&ec2.TerminateInstancesInput{
+			InstanceIds: aws.StringSlice([]string{"id-1"}),
+		}),
+	).Return(nil, nil)
+	m.WaitUntilInstanceTerminated(
+		gomock.Eq(&ec2.DescribeInstancesInput{
+			InstanceIds: aws.StringSlice([]string{"id-1"}),
+		}),
+	).Return(nil)
+}
+
 func mockedDeleteInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 	m.TerminateInstances(
 		gomock.Eq(&ec2.TerminateInstancesInput{
 			InstanceIds: aws.StringSlice([]string{"id-1"}),
 		}),
-	).
-		Return(nil, nil)
-	m.WaitUntilInstanceTerminated(
-		gomock.Eq(&ec2.DescribeInstancesInput{
-			InstanceIds: aws.StringSlice([]string{"id-1"}),
-		}),
-	).
-		Return(nil)
+	).Return(nil, nil)
 }
 
 func mockedCreateVPCCalls(m *mocks.MockEC2APIMockRecorder) {

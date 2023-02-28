@@ -385,8 +385,6 @@ func TestCreateInstance(t *testing.T) {
 							},
 						},
 					}, nil)
-				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(nil)
 				m.
 					DescribeNetworkInterfaces(gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
@@ -497,9 +495,6 @@ func TestCreateInstance(t *testing.T) {
 							},
 						},
 					}, nil)
-
-				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(nil)
 				m.
 					DescribeNetworkInterfaces(gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
@@ -637,9 +632,6 @@ func TestCreateInstance(t *testing.T) {
 							},
 						},
 					}, nil)
-
-				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(nil)
 				m.
 					DescribeNetworkInterfaces(gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
@@ -773,9 +765,6 @@ func TestCreateInstance(t *testing.T) {
 							},
 						},
 					}, nil)
-
-				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(nil)
 				m.
 					DescribeNetworkInterfaces(gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
@@ -910,9 +899,6 @@ func TestCreateInstance(t *testing.T) {
 							},
 						},
 					}, nil)
-
-				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(nil)
 				m.
 					DescribeNetworkInterfaces(gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
@@ -1024,8 +1010,6 @@ func TestCreateInstance(t *testing.T) {
 							},
 						},
 					}, nil)
-				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(nil)
 				m.
 					DescribeNetworkInterfaces(gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
@@ -1136,8 +1120,6 @@ func TestCreateInstance(t *testing.T) {
 							},
 						},
 					}, nil)
-				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(nil)
 				m.
 					DescribeNetworkInterfaces(gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
@@ -1323,8 +1305,6 @@ func TestCreateInstance(t *testing.T) {
 							},
 						},
 					}, nil)
-				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(nil)
 				m.
 					DescribeNetworkInterfaces(gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
@@ -1585,8 +1565,6 @@ func TestCreateInstance(t *testing.T) {
 							},
 						},
 					}, nil)
-				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(nil)
 				m.
 					DescribeNetworkInterfaces(gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
@@ -1790,8 +1768,6 @@ func TestCreateInstance(t *testing.T) {
 							},
 						},
 					}, nil)
-				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(nil)
 				m.
 					DescribeNetworkInterfaces(gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
@@ -1893,8 +1869,6 @@ func TestCreateInstance(t *testing.T) {
 							},
 						},
 					}, nil)
-				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(nil)
 				m.
 					DescribeNetworkInterfaces(gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
@@ -2067,8 +2041,6 @@ func TestCreateInstance(t *testing.T) {
 							},
 						},
 					}, nil)
-				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(nil)
 				m.
 					DescribeNetworkInterfaces(gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
@@ -2208,8 +2180,6 @@ func TestCreateInstance(t *testing.T) {
 							},
 						},
 					}, nil)
-				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(nil)
 				m.
 					DescribeNetworkInterfaces(gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
@@ -2351,8 +2321,6 @@ func TestCreateInstance(t *testing.T) {
 							},
 						},
 					}, nil)
-				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(nil)
 				m.
 					DescribeNetworkInterfaces(gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
@@ -2465,8 +2433,6 @@ func TestCreateInstance(t *testing.T) {
 							},
 						}, nil
 					})
-				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(nil)
 				m.
 					DescribeNetworkInterfaces(gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
@@ -2580,8 +2546,6 @@ func TestCreateInstance(t *testing.T) {
 							},
 						}, nil
 					})
-				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(nil)
 				m.
 					DescribeNetworkInterfaces(gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
@@ -2696,8 +2660,6 @@ func TestCreateInstance(t *testing.T) {
 							},
 						}, nil
 					})
-				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(nil)
 				m.
 					DescribeNetworkInterfaces(gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
@@ -2809,8 +2771,6 @@ func TestCreateInstance(t *testing.T) {
 							},
 						}, nil
 					})
-				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(nil)
 				m.
 					DescribeNetworkInterfaces(gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
@@ -2922,8 +2882,6 @@ func TestCreateInstance(t *testing.T) {
 							},
 						}, nil
 					})
-				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(nil)
 				m.
 					DescribeNetworkInterfaces(gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
@@ -3035,8 +2993,6 @@ func TestCreateInstance(t *testing.T) {
 							},
 						}, nil
 					})
-				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(nil)
 				m.
 					DescribeNetworkInterfaces(gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
