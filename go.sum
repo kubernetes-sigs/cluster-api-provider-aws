@@ -128,8 +128,8 @@ github.com/cncf/xds/go v0.0.0-20211001041855-01bcc9b48dfe/go.mod h1:eXthEFrGJvWH
 github.com/cncf/xds/go v0.0.0-20211011173535-cb28da3451f1/go.mod h1:eXthEFrGJvWHgFFCl3hGmgk+/aYT6PnTQLykKQRLhEs=
 github.com/coredns/caddy v1.1.0 h1:ezvsPrT/tA/7pYDBZxu0cT0VmWk75AfIaf6GSYCNMf0=
 github.com/coredns/caddy v1.1.0/go.mod h1:A6ntJQlAWuQfFlsd9hvigKbo2WS0VUs2l1e2F+BawD4=
-github.com/coredns/corefile-migration v1.0.18 h1:zs5PJm/VGZVje1ESRj6ZqyUuVsVfagExkbLU2QKV5mI=
-github.com/coredns/corefile-migration v1.0.18/go.mod h1:XnhgULOEouimnzgn0t4WPuFDN2/PJQcTxdWKC5eXNGE=
+github.com/coredns/corefile-migration v1.0.20 h1:MdOkT6F3ehju/n9tgxlGct8XAajOX2vN+wG7To4BWSI=
+github.com/coredns/corefile-migration v1.0.20/go.mod h1:XnhgULOEouimnzgn0t4WPuFDN2/PJQcTxdWKC5eXNGE=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-semver v0.1.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
@@ -1167,8 +1167,8 @@ sigs.k8s.io/aws-iam-authenticator v0.6.4 h1:OLB+aZuT+GeggTr0fCtnqjNIvA/2RmvRwaxb
 sigs.k8s.io/aws-iam-authenticator v0.6.4/go.mod h1:1cl1kCN0UQX7XEMJ33E0qJqBtLXz04XT92x4h0shNus=
 sigs.k8s.io/cluster-api v1.3.3 h1:sHRAbuev6+bz3OAySmdmT62md/D/UUIy0EYwvP38H/4=
 sigs.k8s.io/cluster-api v1.3.3/go.mod h1:nnXmR51rHshpMEXmB4LZIwdiXWKXV6yaooB1KzrL0Qs=
-sigs.k8s.io/cluster-api/test v1.3.3 h1:AzX6zWneNOv3umK9PnhON5kjt2MJaw0jvFl39ReWL28=
-sigs.k8s.io/cluster-api/test v1.3.3/go.mod h1:HKkh1O4lALo51GsXVIJ1rQNyLRE+CbEVcA+f/1gU5Rw=
+sigs.k8s.io/cluster-api/test v1.3.4 h1:T2ZThmIB/EZusMlHPdQ4g9VWiFwB6sIk8w65mMjcvkU=
+sigs.k8s.io/cluster-api/test v1.3.4/go.mod h1:oRc0fAaj3ZPMuV0GTRQbseZ6IrNyDUB8ReKil5lkAtw=
 sigs.k8s.io/controller-runtime v0.13.1 h1:tUsRCSJVM1QQOOeViGeX3GMT3dQF1eePPw6sEE3xSlg=
 sigs.k8s.io/controller-runtime v0.13.1/go.mod h1:Zbz+el8Yg31jubvAEyglRZGdLAjplZl+PgtYNI6WNTI=
 sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 h1:iXTIw73aPyC+oRdyqqvVJuloN1p0AC/kzH07hu3NE+k=
