@@ -186,6 +186,7 @@ Thank you to all contributors and a special thanks to our current maintainers & 
 | [@Skarlso](https://github.com/Skarlso) (from 2022-10-19)         | [@dthorsen](https://github.com/dthorsen) (from 2020-12-04)           |
 | [@Ankitasw](https://github.com/Ankitasw) (from 2022-10-19)       | [@pydctw](https://github.com/pydctw) (from 2021-12-09)               |
 | [@dlipovetsky](https://github.com/dlipovetsky) (from 2021-10-31) | [@AverageMarcus](https://github.com/AverageMarcus) (from 2022-10-19) |
+|                                                                  | [@luthermonson](https://github.com/luthermonson ) (from 2023-03-08)  |
 
 and the previous/emeritus maintainers & reviewers:
 
