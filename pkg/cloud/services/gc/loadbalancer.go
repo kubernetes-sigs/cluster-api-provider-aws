@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elbv2"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
 )
 
 func (s *Service) deleteLoadBalancers(ctx context.Context, resources []*AWSResource) error {
@@ -147,8 +148,8 @@ func (s *Service) describeTargetgroups() ([]string, error) {
 	return targetGroups, nil
 }
 
-// getAllLoadBalancers gets all elastic LBs.
-func (s *Service) getAllLoadBalancers() ([]string, error) {
+// describeLoadBalancers gets all elastic LBs.
+func (s *Service) describeLoadBalancers() ([]string, error) {
 	var names []string
 	err := s.elbClient.DescribeLoadBalancersPages(&elb.DescribeLoadBalancersInput{}, func(r *elb.DescribeLoadBalancersOutput, last bool) bool {
 		for _, lb := range r.LoadBalancerDescriptions {
@@ -163,8 +164,8 @@ func (s *Service) getAllLoadBalancers() ([]string, error) {
 	return names, nil
 }
 
-// getAllLoadBalancersV2 gets all network and application LBs.
-func (s *Service) getAllLoadBalancersV2() ([]string, error) {
+// describeLoadBalancersV2 gets all network and application LBs.
+func (s *Service) describeLoadBalancersV2() ([]string, error) {
 	var arns []string
 	err := s.elbv2Client.DescribeLoadBalancersPages(&elbv2.DescribeLoadBalancersInput{}, func(r *elbv2.DescribeLoadBalancersOutput, last bool) bool {
 		for _, lb := range r.LoadBalancers {
@@ -181,69 +182,22 @@ func (s *Service) getAllLoadBalancersV2() ([]string, error) {
 
 // getProviderOwnedLoadBalancers gets cloud provider created LB(ELB) for this cluster, filtering by tag: kubernetes.io/cluster/<cluster-name>:owned.
 func (s *Service) getProviderOwnedLoadBalancers() ([]*AWSResource, error) {
-	names, err := s.getAllLoadBalancers()
+	names, err := s.describeLoadBalancers()
 	if err != nil {
 		return nil, err
 	}
 
-	resources := []*AWSResource{}
-	lbChunks := chunkResources(names)
-	for _, chunk := range lbChunks {
-		output, err := s.elbClient.DescribeTags(&elb.DescribeTagsInput{LoadBalancerNames: aws.StringSlice(chunk)})
-		if err != nil {
-			return nil, err
-		}
-
-		serviceTag := infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())
-		for _, tagDesc := range output.TagDescriptions {
-			for _, tag := range tagDesc.Tags {
-				if *tag.Key == serviceTag && *tag.Value == string(infrav1.ResourceLifecycleOwned) {
-					arn := composeArn(elbService, elbResourcePrefix+*tagDesc.LoadBalancerName)
-					resource, err := composeAWSResource(aws.String(arn), tagDesc.Tags)
-					if err != nil {
-						return nil, err
-					}
-					resources = append(resources, resource)
-					break
-				}
-			}
-		}
-	}
-
-	return resources, nil
+	return s.filterProviderOwnedLB(names)
 }
 
 // getProviderOwnedLoadBalancersV2 gets cloud provider created LBv2(NLB and ALB) for this cluster, filtering by tag: kubernetes.io/cluster/<cluster-name>:owned.
 func (s *Service) getProviderOwnedLoadBalancersV2() ([]*AWSResource, error) {
-	arns, err := s.getAllLoadBalancersV2()
+	arns, err := s.describeLoadBalancersV2()
 	if err != nil {
 		return nil, err
 	}
 
-	resources := []*AWSResource{}
-	lbChunks := chunkResources(arns)
-	for _, chunk := range lbChunks {
-		output, err := s.elbv2Client.DescribeTags(&elbv2.DescribeTagsInput{ResourceArns: aws.StringSlice(chunk)})
-		if err != nil {
-			return nil, err
-		}
-
-		serviceTag := infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())
-		for _, tagDesc := range output.TagDescriptions {
-			for _, tag := range tagDesc.Tags {
-				if *tag.Key == serviceTag && *tag.Value == string(infrav1.ResourceLifecycleOwned) {
-					resource, err := composeAWSResource(tagDesc.ResourceArn, tagDesc.Tags)
-					if err != nil {
-						return nil, err
-					}
-					resources = append(resources, resource)
-					break
-				}
-			}
-		}
-	}
-
-	return resources, nil
+	return s.filterProviderOwnedLBV2(arns)
 }
 
 // getProviderOwnedTargetgroups gets cloud provider created target groups of v2 LBs(NLB and ALB) for this cluster, filtering by tag: kubernetes.io/cluster/<cluster-name>:owned.
@@ -253,19 +207,25 @@ func (s *Service) getProviderOwnedTargetgroups() ([]*AWSResource, error) {
 		return nil, err
 	}
 
+	return s.filterProviderOwnedLBV2(targetGroups)
+}
+
+// filterProviderOwnedLB filters LB resource tags by tag: kubernetes.io/cluster/<cluster-name>:owned.
+func (s *Service) filterProviderOwnedLB(names []string) ([]*AWSResource, error) {
 	resources := []*AWSResource{}
-	groupChunks := chunkResources(targetGroups)
-	serviceTag := infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())
-	for _, chunk := range groupChunks {
-		output, err := s.elbv2Client.DescribeTags(&elbv2.DescribeTagsInput{ResourceArns: aws.StringSlice(chunk)})
+	lbChunks := chunkResources(names)
+	for _, chunk := range lbChunks {
+		output, err := s.elbClient.DescribeTags(&elb.DescribeTagsInput{LoadBalancerNames: aws.StringSlice(chunk)})
 		if err != nil {
 			return nil, err
 		}
 
 		for _, tagDesc := range output.TagDescriptions {
 			for _, tag := range tagDesc.Tags {
+				serviceTag := infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())
 				if *tag.Key == serviceTag && *tag.Value == string(infrav1.ResourceLifecycleOwned) {
-					resource, err := composeAWSResource(tagDesc.ResourceArn, tagDesc.Tags)
+					arn := composeArn(elbService, elbResourcePrefix+*tagDesc.LoadBalancerName)
+					resource, err := composeAWSResource(aws.String(arn), converters.ELBTagsToMap(tagDesc.Tags))
 					if err != nil {
 						return nil, err
 					}
@@ -275,5 +235,34 @@ func (s *Service) getProviderOwnedTargetgroups() ([]*AWSResource, error) {
 			}
 		}
 	}
+
+	return resources, nil
+}
+
+// filterProviderOwnedLBV2 filters LBv2 resource tags by tag: kubernetes.io/cluster/<cluster-name>:owned.
+func (s *Service) filterProviderOwnedLBV2(arns []string) ([]*AWSResource, error) {
+	resources := []*AWSResource{}
+	lbChunks := chunkResources(arns)
+	for _, chunk := range lbChunks {
+		output, err := s.elbv2Client.DescribeTags(&elbv2.DescribeTagsInput{ResourceArns: aws.StringSlice(chunk)})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, tagDesc := range output.TagDescriptions {
+			for _, tag := range tagDesc.Tags {
+				serviceTag := infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())
+				if *tag.Key == serviceTag && *tag.Value == string(infrav1.ResourceLifecycleOwned) {
+					resource, err := composeAWSResource(tagDesc.ResourceArn, converters.V2TagsToMap(tagDesc.Tags))
+					if err != nil {
+						return nil, err
+					}
+					resources = append(resources, resource)
+					break
+				}
+			}
+		}
+	}
+
 	return resources, nil
 }

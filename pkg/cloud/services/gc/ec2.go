@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
 )
 
@@ -82,8 +83,8 @@ func (s *Service) getProviderOwnedSecurityGroups() ([]*AWSResource, error) {
 	err := s.ec2Client.DescribeSecurityGroupsPages(input, func(out *ec2.DescribeSecurityGroupsOutput, last bool) bool {
 		for _, group := range out.SecurityGroups {
 			if group != nil {
-				grouparn := composeArn(sgService, sgResourcePrefix+*group.GroupId)
-				resource, err := composeAWSResource(aws.String(grouparn), group.Tags)
+				arn := composeArn(sgService, sgResourcePrefix+*group.GroupId)
+				resource, err := composeAWSResource(aws.String(arn), converters.TagsToMap(group.Tags))
 				if err != nil {
 					s.scope.Error(err, "compose aws resource error: %v")
 					return false

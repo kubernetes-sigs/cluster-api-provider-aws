@@ -135,7 +135,7 @@ func (s *Service) deleteResourcesWithoutTagging(ctx context.Context) error {
 	return nil
 }
 
-// getProviderOwnedResources gets cloud provider created LB, security groups, LBv2(NLB and ALB), target groups for this cluster, filtering by tag: kubernetes.io/cluster/<cluster-name>:owned.
+// getProviderOwnedResources gets cloud provider created LB, LBv2(NLB and ALB), target groups，security groups for this cluster, filtering by tag: kubernetes.io/cluster/<cluster-name>:owned.
 func (s *Service) getProviderOwnedResources() ([]*AWSResource, error) {
 	resources := []*AWSResource{}
 
@@ -145,13 +145,6 @@ func (s *Service) getProviderOwnedResources() ([]*AWSResource, error) {
 		return nil, err
 	}
 	resources = append(resources, lbs...)
-
-	// cloud provider created security groups for LB
-	sg, err := s.getProviderOwnedSecurityGroups()
-	if err != nil {
-		return nil, err
-	}
-	resources = append(resources, sg...)
 
 	// cloud provider created LB v2
 	lbsv2, err := s.getProviderOwnedLoadBalancersV2()
@@ -166,6 +159,13 @@ func (s *Service) getProviderOwnedResources() ([]*AWSResource, error) {
 		return nil, err
 	}
 	resources = append(resources, tgs...)
+
+	// cloud provider created security groups for LB
+	sg, err := s.getProviderOwnedSecurityGroups()
+	if err != nil {
+		return nil, err
+	}
+	resources = append(resources, sg...)
 
 	for _, r := range resources {
 		s.scope.Info("Resource found:", "resource", r)

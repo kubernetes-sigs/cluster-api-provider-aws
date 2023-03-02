@@ -4,9 +4,8 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/elb"
-	"github.com/aws/aws-sdk-go/service/elbv2"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
 
 const (
@@ -29,33 +28,15 @@ func composeArn(service, resource string) string {
 }
 
 // composeAWSResource composes *AWSResource object for an aws resource.
-func composeAWSResource(resourceARN *string, resourceTags interface{}) (*AWSResource, error) {
+func composeAWSResource(resourceARN *string, resourceTags infrav1.Tags) (*AWSResource, error) {
 	parsedArn, err := arn.Parse(*resourceARN)
 	if err != nil {
 		return nil, fmt.Errorf("parsing resource arn %s: %w", *resourceARN, err)
 	}
 
-	tags := map[string]string{}
-	switch v := resourceTags.(type) {
-	case []*elb.Tag:
-		for _, tag := range v {
-			tags[*tag.Key] = *tag.Value
-		}
-	case []*elbv2.Tag:
-		for _, tag := range v {
-			tags[*tag.Key] = *tag.Value
-		}
-	case []*ec2.Tag:
-		for _, tag := range v {
-			tags[*tag.Key] = *tag.Value
-		}
-	default:
-		return nil, fmt.Errorf("unknown tag type")
-	}
-
 	resource := &AWSResource{
 		ARN:  &parsedArn,
-		Tags: tags,
+		Tags: resourceTags,
 	}
 
 	return resource, nil
