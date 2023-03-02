@@ -37,6 +37,7 @@ func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.Ignition = restored.Spec.Ignition
 	dst.Spec.InstanceMetadataOptions = restored.Spec.InstanceMetadataOptions
+	dst.Spec.InstanceDetails = restored.Spec.InstanceDetails
 
 	return nil
 }
@@ -83,6 +84,7 @@ func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
 	dst.Spec.Template.Spec.Ignition = restored.Spec.Template.Spec.Ignition
 	dst.Spec.Template.Spec.InstanceMetadataOptions = restored.Spec.Template.Spec.InstanceMetadataOptions
+	dst.Spec.Template.Spec.InstanceDetails = restored.Spec.Template.Spec.InstanceDetails
 
 	return nil
 }

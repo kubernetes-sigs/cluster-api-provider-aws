@@ -107,12 +107,11 @@ func (s *Service) InstanceIfExists(id *string) (*infrav1.Instance, error) {
 
 // CreateInstance runs an ec2 instance.
 //
-//nolint:gocyclo // this function has multiple processes to perform
-func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, userDataFormat string) (*infrav1.Instance, error) {
+//nolint:gocyclo,maintidx // this function has multiple processes to perform
+func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, userDataFormat string) (out *infrav1.Instance, err error) {
 	s.scope.Debug("Creating an instance for a machine")
 
 	input := &infrav1.Instance{
-		Type:              scope.AWSMachine.Spec.InstanceType,
 		IAMProfile:        scope.AWSMachine.Spec.IAMInstanceProfile,
 		RootVolume:        scope.AWSMachine.Spec.RootVolume.DeepCopy(),
 		NonRootVolumes:    scope.AWSMachine.Spec.NonRootVolumes,
@@ -128,52 +127,6 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 		Role:        aws.String(scope.Role()),
 		Additional:  additionalTags,
 	}.WithCloudProvider(s.scope.KubernetesClusterName()).WithMachineName(scope.Machine))
-
-	var err error
-
-	imageArchitecture, err := s.pickArchitectureForInstanceType(input.Type)
-	if err != nil {
-		return nil, err
-	}
-
-	// Pick image from the machine configuration, or use a default one.
-	if scope.AWSMachine.Spec.AMI.ID != nil { //nolint:nestif
-		input.ImageID = *scope.AWSMachine.Spec.AMI.ID
-	} else {
-		if scope.Machine.Spec.Version == nil {
-			err := errors.New("Either AWSMachine's spec.ami.id or Machine's spec.version must be defined")
-			scope.SetFailureReason(capierrors.CreateMachineError)
-			scope.SetFailureMessage(err)
-			return nil, err
-		}
-
-		imageLookupFormat := scope.AWSMachine.Spec.ImageLookupFormat
-		if imageLookupFormat == "" {
-			imageLookupFormat = scope.InfraCluster.ImageLookupFormat()
-		}
-
-		imageLookupOrg := scope.AWSMachine.Spec.ImageLookupOrg
-		if imageLookupOrg == "" {
-			imageLookupOrg = scope.InfraCluster.ImageLookupOrg()
-		}
-
-		imageLookupBaseOS := scope.AWSMachine.Spec.ImageLookupBaseOS
-		if imageLookupBaseOS == "" {
-			imageLookupBaseOS = scope.InfraCluster.ImageLookupBaseOS()
-		}
-
-		if scope.IsEKSManaged() && imageLookupFormat == "" && imageLookupOrg == "" && imageLookupBaseOS == "" {
-			input.ImageID, err = s.eksAMILookup(*scope.Machine.Spec.Version, imageArchitecture, scope.AWSMachine.Spec.AMI.EKSOptimizedLookupType)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			input.ImageID, err = s.defaultAMIIDLookup(imageLookupFormat, imageLookupOrg, imageLookupBaseOS, imageArchitecture, *scope.Machine.Spec.Version)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
 
 	subnetID, err := s.findSubnet(scope)
 	if err != nil {
@@ -229,21 +182,79 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 		input.SSHKeyName = aws.String(prioritizedSSHKeyName)
 	}
 
-	input.SpotMarketOptions = scope.AWSMachine.Spec.SpotMarketOptions
-
 	input.InstanceMetadataOptions = scope.AWSMachine.Spec.InstanceMetadataOptions
-
 	input.Tenancy = scope.AWSMachine.Spec.Tenancy
 
-	s.scope.Debug("Running instance", "machine-role", scope.Role())
-	out, err := s.runInstance(scope.Role(), input)
-	if err != nil {
+	for _, details := range scope.AWSMachine.Spec.InstanceDetails {
+		input.SpotMarketOptions = details.SpotMarketOptions
+		input.Type = details.InstanceType
+
+		// Pick image from the machine configuration, or use a default one.
+		if scope.AWSMachine.Spec.AMI.ID != nil { //nolint:nestif
+			input.ImageID = *scope.AWSMachine.Spec.AMI.ID
+		} else {
+			if scope.Machine.Spec.Version == nil {
+				err := errors.New("Either AWSMachine's spec.ami.id or Machine's spec.version must be defined")
+				scope.SetFailureReason(capierrors.CreateMachineError)
+				scope.SetFailureMessage(err)
+				return nil, err
+			}
+
+			imageLookupFormat := scope.AWSMachine.Spec.ImageLookupFormat
+			if imageLookupFormat == "" {
+				imageLookupFormat = scope.InfraCluster.ImageLookupFormat()
+			}
+
+			imageLookupOrg := scope.AWSMachine.Spec.ImageLookupOrg
+			if imageLookupOrg == "" {
+				imageLookupOrg = scope.InfraCluster.ImageLookupOrg()
+			}
+
+			imageLookupBaseOS := scope.AWSMachine.Spec.ImageLookupBaseOS
+			if imageLookupBaseOS == "" {
+				imageLookupBaseOS = scope.InfraCluster.ImageLookupBaseOS()
+			}
+
+			imageArchitecture, err := s.pickArchitectureForInstanceType(input.Type)
+			if err != nil {
+				return nil, err
+			}
+
+			if scope.IsEKSManaged() && imageLookupFormat == "" && imageLookupOrg == "" && imageLookupBaseOS == "" {
+				input.ImageID, err = s.eksAMILookup(*scope.Machine.Spec.Version, imageArchitecture, scope.AWSMachine.Spec.AMI.EKSOptimizedLookupType)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				input.ImageID, err = s.defaultAMIIDLookup(imageLookupFormat, imageLookupOrg, imageLookupBaseOS, imageArchitecture, *scope.Machine.Spec.Version)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+
+		s.scope.Debug("Running instance", "machine-role", scope.Role(), "instance-type", input.Type, "spot-options", input.SpotMarketOptions)
+		out, err = s.runInstance(scope.Role(), input)
+		// if we succeed, break out of the loop and set up the ec2 instance
+		if err == nil {
+			break
+		}
+
+		// try another instance detail if we have one
+		if awserrors.IsInsufficientInstanceCapacity(errors.Unwrap(err)) || awserrors.IsInsufficientSpotInstanceCapacity(errors.Unwrap(err)) {
+			s.scope.Debug("Insufficient instance capacity to launch instance: "+awserrors.Message(err), "machine-role", scope.Role(), "instance-type", input.Type, "spot-options", input.SpotMarketOptions)
+			continue
+		}
 		// Only record the failure event if the error is not related to failed dependencies.
 		// This is to avoid spamming failure events since the machine will be requeued by the actuator.
 		if !awserrors.IsFailedDependency(errors.Cause(err)) {
 			record.Warnf(scope.AWSMachine, "FailedCreate", "Failed to create instance: %v", err)
 		}
 		return nil, err
+	}
+	// if we failed to launch any instance successfully
+	if out == nil {
+		return nil, fmt.Errorf("failed to launch instance: %w", err)
 	}
 
 	if len(input.NetworkInterfaces) > 0 {
@@ -589,7 +600,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 
 	out, err := s.EC2Client.RunInstances(input)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to run instance")
+		return nil, fmt.Errorf("failed to run instance: %w", err)
 	}
 
 	if len(out.Instances) == 0 {

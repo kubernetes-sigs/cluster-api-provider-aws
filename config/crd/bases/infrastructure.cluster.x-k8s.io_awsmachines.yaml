@@ -662,6 +662,35 @@ spec:
                 description: ImageLookupOrg is the AWS Organization ID to use for
                   image lookup if AMI is not set.
                 type: string
+              instanceDetails:
+                description: InstanceDetails is a list of instance details which are
+                  used to create AWSMachines. When InstanceDetails is supplied, AWSMachines
+                  are created using the instance type and spot options of the first
+                  item in the list instead of using values provided in the spec. If
+                  the instance request can not be satisfied due to a lack of capacity,
+                  the next instance detail is used to create the ec2 instance.
+                items:
+                  description: AWSInstanceDetails describes an instance details for
+                    creating a AWSMachine.
+                  properties:
+                    instanceType:
+                      description: 'InstanceType is the type of instance to create.
+                        Example: m4.xlarge'
+                      minLength: 2
+                      type: string
+                    spotMarketOptions:
+                      description: SpotMarketOptions allows users to configure instances
+                        to be run using AWS Spot instances.
+                      properties:
+                        maxPrice:
+                          description: MaxPrice defines the maximum price the user
+                            is willing to pay for Spot VM instances
+                          type: string
+                      type: object
+                  required:
+                  - instanceType
+                  type: object
+                type: array
               instanceID:
                 description: InstanceID is the EC2 instance ID for this machine.
                 type: string

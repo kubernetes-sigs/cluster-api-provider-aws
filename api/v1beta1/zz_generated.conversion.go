@@ -1391,6 +1391,7 @@ func autoConvert_v1beta2_AWSMachineSpec_To_v1beta1_AWSMachineSpec(in *v1beta2.AW
 	out.Ignition = (*Ignition)(unsafe.Pointer(in.Ignition))
 	out.SpotMarketOptions = (*SpotMarketOptions)(unsafe.Pointer(in.SpotMarketOptions))
 	out.Tenancy = in.Tenancy
+	// WARNING: in.InstanceDetails requires manual conversion: does not exist in peer-type
 	return nil
 }
 

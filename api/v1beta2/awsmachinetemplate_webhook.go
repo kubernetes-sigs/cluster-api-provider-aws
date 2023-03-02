@@ -45,8 +45,12 @@ func (r *AWSMachineTemplateWebhook) SetupWebhookWithManager(mgr ctrl.Manager) er
 type AWSMachineTemplateWebhook struct{}
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-awsmachinetemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,versions=v1beta2,name=validation.awsmachinetemplate.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-awsmachinetemplate,mutating=true,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplate,versions=v1beta2,name=mawsmachinetemplate.kb.io,name=mutation.awsmachinetemplate.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.CustomValidator = &AWSMachineTemplateWebhook{}
+var (
+	_ webhook.CustomValidator = &AWSMachineTemplateWebhook{}
+	_ webhook.Defaulter       = &AWSMachineTemplate{}
+)
 
 func (r *AWSMachineTemplate) validateRootVolume() field.ErrorList {
 	var allErrs field.ErrorList
@@ -226,6 +230,12 @@ func (r *AWSMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw r
 
 	var allErrs field.ErrorList
 
+	// allow limited changes to instanceDetails if we are defaulting and the field was missing
+	// because we know what the field should contain
+	if len(oldAWSMachineTemplate.Spec.Template.Spec.InstanceDetails) == 0 && len(newAWSMachineTemplate.Spec.Template.Spec.InstanceDetails) == 1 {
+		oldAWSMachineTemplate.Default()
+	}
+
 	if !topology.ShouldSkipImmutabilityChecks(req, newAWSMachineTemplate) && !cmp.Equal(newAWSMachineTemplate.Spec, oldAWSMachineTemplate.Spec) {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec"), newAWSMachineTemplate, "AWSMachineTemplate.Spec is immutable"))
 	}
@@ -236,4 +246,17 @@ func (r *AWSMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw r
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSMachineTemplateWebhook) ValidateDelete(_ context.Context, _ runtime.Object) error {
 	return nil
+}
+
+// Default implements webhook.Defaulter so that a mutating webhook will be registered for the type.
+func (r *AWSMachineTemplate) Default() {
+	// always encode the instance type and spot market options into instance details if unset
+	if len(r.Spec.Template.Spec.InstanceDetails) == 0 {
+		r.Spec.Template.Spec.InstanceDetails = []AWSInstanceDetails{
+			{
+				InstanceType:      r.Spec.Template.Spec.InstanceType,
+				SpotMarketOptions: r.Spec.Template.Spec.SpotMarketOptions,
+			},
+		}
+	}
 }

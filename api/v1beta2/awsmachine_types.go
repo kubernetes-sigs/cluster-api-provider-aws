@@ -156,6 +156,14 @@ type AWSMachineSpec struct {
 	// +optional
 	// +kubebuilder:validation:Enum:=default;dedicated;host
 	Tenancy string `json:"tenancy,omitempty"`
+
+	// InstanceDetails is a list of instance details which are used to create AWSMachines.
+	// When InstanceDetails is supplied, AWSMachines are created using the instance type and spot options
+	// of the first item in the list instead of using values provided in the spec.
+	// If the instance request can not be satisfied due to a lack of capacity, the next instance detail is
+	// used to create the ec2 instance.
+	// +optional
+	InstanceDetails []AWSInstanceDetails `json:"instanceDetails,omitempty"`
 }
 
 // CloudInit defines options related to the bootstrapping systems where
@@ -183,6 +191,18 @@ type CloudInit struct {
 	// +optional
 	// +kubebuilder:validation:Enum=secrets-manager;ssm-parameter-store
 	SecureSecretsBackend SecretBackend `json:"secureSecretsBackend,omitempty"`
+}
+
+// AWSInstanceDetails describes an instance details for creating a AWSMachine.
+type AWSInstanceDetails struct {
+	// InstanceType is the type of instance to create. Example: m4.xlarge
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength:=2
+	InstanceType string `json:"instanceType"`
+
+	// SpotMarketOptions allows users to configure instances to be run using AWS Spot instances.
+	// +optional
+	SpotMarketOptions *SpotMarketOptions `json:"spotMarketOptions,omitempty"`
 }
 
 // Ignition defines options related to the bootstrapping systems where Ignition is used.

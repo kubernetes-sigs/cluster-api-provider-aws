@@ -113,6 +113,20 @@ func (r *AWSMachine) ValidateUpdate(old runtime.Object) error {
 		delete(cloudInit, "secureSecretsBackend")
 	}
 
+	// allow limited changes to instanceDetails if we are defaulting and the field was missing
+	if newInstanceDetails, ok := newAWSMachineSpec["instanceDetails"].(map[string]interface{}); ok {
+		_, oldOk := oldAWSMachineSpec["instanceDetails"]
+		if !oldOk && len(newInstanceDetails) == 1 {
+			instanceDetails := map[string]interface{}{
+				"instanceType": oldAWSMachineSpec["instanceType"],
+			}
+			if spotMarketOptions, ok := oldAWSMachineSpec["spotMarketOptions"]; ok {
+				instanceDetails["spotMarketOptions"] = spotMarketOptions
+			}
+			oldAWSMachineSpec["instanceDetails"] = []interface{}{instanceDetails}
+		}
+	}
+
 	if !cmp.Equal(oldAWSMachineSpec, newAWSMachineSpec) {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "cannot be modified"))
 	}
@@ -243,6 +257,16 @@ func (r *AWSMachine) Default() {
 		}
 
 		r.Spec.Ignition.Version = DefaultIgnitionVersion
+	}
+
+	// always encode the instance type and spot market options into instance details if unset
+	if len(r.Spec.InstanceDetails) == 0 {
+		r.Spec.InstanceDetails = []AWSInstanceDetails{
+			{
+				InstanceType:      r.Spec.InstanceType,
+				SpotMarketOptions: r.Spec.SpotMarketOptions,
+			},
+		}
 	}
 }
 

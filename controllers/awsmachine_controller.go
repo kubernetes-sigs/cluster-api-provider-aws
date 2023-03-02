@@ -189,6 +189,11 @@ func (r *AWSMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
+	// TODO: Remove this after v1beta2, this is needed for instanceDetails to be set if it was missing
+	// The defaulting must happen before `NewMachineScope` is called since otherwise we keep detecting
+	// differences that result in patch operations.
+	awsMachine.Default()
+
 	// Create the machine scope
 	machineScope, err := scope.NewMachineScope(scope.MachineScopeParams{
 		Client:       r.Client,

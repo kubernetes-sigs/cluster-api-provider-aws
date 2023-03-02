@@ -356,6 +356,44 @@ func TestAWSMachineUpdate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "changing the instance details to match the instance type is allowed",
+			oldMachine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+				},
+			},
+			newMachine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceDetails: []AWSInstanceDetails{
+						{
+							InstanceType: "test",
+						},
+					},
+					InstanceType: "test",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "changing the instance details to a new type is not allowed",
+			oldMachine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+				},
+			},
+			newMachine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceDetails: []AWSInstanceDetails{
+						{
+							InstanceType: "test2",
+						},
+					},
+					InstanceType: "test",
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		ctx := context.TODO()
@@ -365,9 +403,11 @@ func TestAWSMachineUpdate(t *testing.T) {
 				GenerateName: "machine-",
 				Namespace:    "default",
 			}
+
 			if err := testEnv.Create(ctx, machine); err != nil {
 				t.Errorf("failed to create machine: %v", err)
 			}
+
 			machine.Spec = tt.newMachine.Spec
 			if err := testEnv.Update(ctx, machine); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
