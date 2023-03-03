@@ -43,7 +43,8 @@ func (r *AWSMachineTemplateWebhook) SetupWebhookWithManager(mgr ctrl.Manager) er
 // +kubebuilder:object:generate=false
 type AWSMachineTemplateWebhook struct{}
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-awsmachinetemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,versions=v1beta2,name=validation.awsmachinetemplate.infrastructure.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-awsmachinetemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,versions=v1beta2,name=validation.awsmachinetemplate.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
+
 var _ webhook.CustomValidator = &AWSMachineTemplateWebhook{}
 
 func (r *AWSMachineTemplate) validateRootVolume() field.ErrorList {
@@ -224,8 +225,8 @@ func (r *AWSMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw r
 
 	var allErrs field.ErrorList
 
-	// Allow setting of cloudInit.secureSecretsBackend to "secrets-manager" only to handle v1beta2 upgrade
-	if oldAWSMachineTemplate.Spec.Template.Spec.CloudInit.SecureSecretsBackend == "" && newAWSMachineTemplate.Spec.Template.Spec.CloudInit.SecureSecretsBackend == SecretBackendSSMParameterStore {
+	// Allow setting of cloudInit.secureSecretsBackend to "secrets-manager" only to handle v1alpha3 upgrade
+	if oldAWSMachineTemplate.Spec.Template.Spec.CloudInit.SecureSecretsBackend == "" && newAWSMachineTemplate.Spec.Template.Spec.CloudInit.SecureSecretsBackend == SecretBackendSecretsManager {
 		newAWSMachineTemplate.Spec.Template.Spec.CloudInit.SecureSecretsBackend = ""
 	}
 
