@@ -1167,8 +1167,8 @@ sigs.k8s.io/aws-iam-authenticator v0.6.4 h1:OLB+aZuT+GeggTr0fCtnqjNIvA/2RmvRwaxb
 sigs.k8s.io/aws-iam-authenticator v0.6.4/go.mod h1:1cl1kCN0UQX7XEMJ33E0qJqBtLXz04XT92x4h0shNus=
 sigs.k8s.io/cluster-api v1.3.4 h1:YXxcXu+mhzvOPLHfF+OQ27jYzks3zMH3AxbFckER0Ug=
 sigs.k8s.io/cluster-api v1.3.4/go.mod h1:9FNHNItE5c+klfDLNG3+ApSTX0H4yGAumdbFJMnk6Vc=
-sigs.k8s.io/cluster-api/test v1.3.4 h1:T2ZThmIB/EZusMlHPdQ4g9VWiFwB6sIk8w65mMjcvkU=
-sigs.k8s.io/cluster-api/test v1.3.4/go.mod h1:oRc0fAaj3ZPMuV0GTRQbseZ6IrNyDUB8ReKil5lkAtw=
+sigs.k8s.io/cluster-api/test v1.3.5 h1:+uY+oMwIK5NOH1S/VPCl5gl9TuUBRRdr/qiji4r1B7I=
+sigs.k8s.io/cluster-api/test v1.3.5/go.mod h1:oRc0fAaj3ZPMuV0GTRQbseZ6IrNyDUB8ReKil5lkAtw=
 sigs.k8s.io/controller-runtime v0.13.1 h1:tUsRCSJVM1QQOOeViGeX3GMT3dQF1eePPw6sEE3xSlg=
 sigs.k8s.io/controller-runtime v0.13.1/go.mod h1:Zbz+el8Yg31jubvAEyglRZGdLAjplZl+PgtYNI6WNTI=
 sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 h1:iXTIw73aPyC+oRdyqqvVJuloN1p0AC/kzH07hu3NE+k=
