@@ -117,7 +117,7 @@ func TestAWSMachineTemplateValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantError: false,
+			wantError: true,
 		},
 		{
 			name: "allow secrets manager",
@@ -135,6 +135,20 @@ func TestAWSMachineTemplateValidateUpdate(t *testing.T) {
 				},
 			},
 			wantError: false,
+		},
+		{
+			name: "don't allow updates",
+			modifiedTemplate: &AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: AWSMachineTemplateSpec{
+					Template: AWSMachineTemplateResource{
+						Spec: AWSMachineSpec{
+							InstanceType: "test2",
+						},
+					},
+				},
+			},
+			wantError: true,
 		},
 	}
 	for _, tt := range tests {
