@@ -194,14 +194,38 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			Expect(awsCluster.Status.Bastion.State).To(Equal(infrav1.InstanceStateRunning))
 			expectAWSClusterConditions(awsCluster, []conditionAssertion{{infrav1.BastionHostReadyCondition, corev1.ConditionTrue, "", ""}})
 
-			controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
-				Lister:      e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-				ClusterName: clusterName,
-				Namespace:   namespace.Name,
+			mdName := clusterName + "-md01"
+			machineTempalte := makeAWSMachineTemplate(namespace.Name, mdName, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), nil)
+			machineTempalte.Spec.Template.Spec.InstanceMetadataOptions = &infrav1.InstanceMetadataOptions{
+				HTTPEndpoint:            infrav1.InstanceMetadataEndpointStateEnabled,
+				HTTPPutResponseHopLimit: 1,
+				HTTPTokens:              infrav1.HTTPTokensStateRequired, // IMDSv2
+				InstanceMetadataTags:    infrav1.InstanceMetadataEndpointStateDisabled,
+			}
+
+			machineDeployment := makeMachineDeployment(namespace.Name, mdName, clusterName, nil, int32(1))
+			framework.CreateMachineDeployment(ctx, framework.CreateMachineDeploymentInput{
+				Creator:                 e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				MachineDeployment:       machineDeployment,
+				BootstrapConfigTemplate: makeJoinBootstrapConfigTemplate(namespace.Name, mdName),
+				InfraMachineTemplate:    machineTempalte,
 			})
 
-			Expect(len(controlPlaneMachines)).To(Equal(1))
-			assertInstanceMetadataOptions(*controlPlaneMachines[0].Spec.ProviderID)
+			framework.WaitForMachineDeploymentNodesToExist(ctx, framework.WaitForMachineDeploymentNodesToExistInput{
+				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				Cluster:           result.Cluster,
+				MachineDeployment: machineDeployment,
+			}, e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes")...)
+
+			workerMachines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
+				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				ClusterName:       clusterName,
+				Namespace:         namespace.Name,
+				MachineDeployment: *machineDeployment,
+			})
+			Expect(len(workerMachines)).To(Equal(1))
+
+			assertInstanceMetadataOptions(*workerMachines[0].Spec.ProviderID, *machineTempalte.Spec.Template.Spec.InstanceMetadataOptions)
 			ginkgo.By("PASSED!")
 		})
 	})
