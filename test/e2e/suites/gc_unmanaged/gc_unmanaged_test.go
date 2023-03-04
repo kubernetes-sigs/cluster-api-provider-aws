@@ -68,7 +68,7 @@ var _ = ginkgo.Context("[unmanaged] [gc]", func() {
 
 		configCluster := defaultConfigCluster(clusterName, namespace.Name)
 		configCluster.KubernetesVersion = e2eCtx.E2EConfig.GetVariable(shared.PreCSIKubernetesVer)
-		configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+		configCluster.WorkerMachineCount = pointer.Int64(1)
 		createCluster(ctx, configCluster, result)
 
 		ginkgo.By(fmt.Sprintf("getting cluster with name %s", clusterName))
@@ -152,8 +152,8 @@ func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigCluste
 		Namespace:                namespace,
 		ClusterName:              clusterName,
 		KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
-		ControlPlaneMachineCount: pointer.Int64Ptr(1),
-		WorkerMachineCount:       pointer.Int64Ptr(0),
+		ControlPlaneMachineCount: pointer.Int64(1),
+		WorkerMachineCount:       pointer.Int64(0),
 	}
 }
 

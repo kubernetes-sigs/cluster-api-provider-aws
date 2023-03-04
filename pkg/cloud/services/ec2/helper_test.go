@@ -176,7 +176,7 @@ func newMachinePool() *v1beta1.MachinePool {
 		Spec: v1beta1.MachinePoolSpec{
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					Version: pointer.StringPtr("v1.23.3"),
+					Version: pointer.String("v1.23.3"),
 				},
 			},
 		},

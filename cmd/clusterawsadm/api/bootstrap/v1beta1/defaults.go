@@ -58,7 +58,7 @@ func SetDefaults_BootstrapUser(obj *BootstrapUser) { //nolint:golint,stylecheck
 // SetDefaults_AWSIAMConfigurationSpec is used by defaulter-gen.
 func SetDefaults_AWSIAMConfigurationSpec(obj *AWSIAMConfigurationSpec) { //nolint:golint,stylecheck
 	if obj.NameSuffix == nil {
-		obj.NameSuffix = pointer.StringPtr(iamv1.DefaultNameSuffix)
+		obj.NameSuffix = pointer.String(iamv1.DefaultNameSuffix)
 	}
 	if obj.Partition == "" {
 		obj.Partition = DefaultPartitionName
@@ -111,7 +111,7 @@ func SetDefaults_AWSIAMConfiguration(obj *AWSIAMConfiguration) { //nolint:golint
 	obj.APIVersion = SchemeGroupVersion.String()
 	obj.Kind = "AWSIAMConfiguration"
 	if obj.Spec.NameSuffix == nil {
-		obj.Spec.NameSuffix = pointer.StringPtr(iamv1.DefaultNameSuffix)
+		obj.Spec.NameSuffix = pointer.String(iamv1.DefaultNameSuffix)
 	}
 	if obj.Spec.StackName == "" {
 		obj.Spec.StackName = DefaultStackName

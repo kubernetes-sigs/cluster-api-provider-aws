@@ -59,8 +59,8 @@ func (s *Service) ReconcileBootstrapStack(stackName string, t go_cfn.Template, t
 	stackTags := []*cfn.Tag{}
 	for k, v := range tags {
 		stackTags = append(stackTags, &cfn.Tag{
-			Key:   pointer.StringPtr(k),
-			Value: pointer.StringPtr(v),
+			Key:   pointer.String(k),
+			Value: pointer.String(v),
 		})
 	}
 	//nolint:nestif

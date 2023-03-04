@@ -188,7 +188,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 		}
 	}
 
-	input.UserData = pointer.StringPtr(base64.StdEncoding.EncodeToString(userData))
+	input.UserData = pointer.String(base64.StdEncoding.EncodeToString(userData))
 
 	// Set security groups.
 	ids, err := s.GetCoreSecurityGroups(scope)
