@@ -38,7 +38,7 @@ func TestAWSMachineTemplateValidateCreate(t *testing.T) {
 				Spec: AWSMachineTemplateSpec{
 					Template: AWSMachineTemplateResource{
 						Spec: AWSMachineSpec{
-							ProviderID: pointer.StringPtr("something"),
+							ProviderID: pointer.String("something"),
 						},
 					},
 				},

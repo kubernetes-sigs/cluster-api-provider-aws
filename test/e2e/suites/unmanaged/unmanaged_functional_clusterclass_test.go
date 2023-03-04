@@ -74,8 +74,8 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 					Namespace:                namespace.Name,
 					ClusterName:              clusterName,
 					KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
-					ControlPlaneMachineCount: pointer.Int64Ptr(1),
-					WorkerMachineCount:       pointer.Int64Ptr(0),
+					ControlPlaneMachineCount: pointer.Int64(1),
+					WorkerMachineCount:       pointer.Int64(0),
 				},
 				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster"),
 				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
@@ -104,8 +104,8 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 			ginkgo.By("Creating a cluster")
 			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
-			configCluster.ControlPlaneMachineCount = pointer.Int64Ptr(1)
-			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+			configCluster.ControlPlaneMachineCount = pointer.Int64(1)
+			configCluster.WorkerMachineCount = pointer.Int64(1)
 			configCluster.Flavor = shared.TopologyFlavor
 			_, md, _ := createCluster(ctx, configCluster, result)
 
@@ -177,7 +177,7 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 
 			ginkgo.By("Creating a management cluster in a peered VPC")
 			mgmtConfigCluster := defaultConfigCluster(mgmtClusterName, namespace.Name)
-			mgmtConfigCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+			mgmtConfigCluster.WorkerMachineCount = pointer.Int64(1)
 			mgmtConfigCluster.Flavor = "external-vpc-clusterclass"
 			mgmtCluster, mgmtMD, _ := createCluster(ctx, mgmtConfigCluster, result)
 

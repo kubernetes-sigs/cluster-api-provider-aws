@@ -425,7 +425,7 @@ func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc se
 	} else {
 		// If the ProviderID is populated, describe the instance using the ID.
 		// InstanceIfExists() returns error (ErrInstanceNotFoundByID or ErrDescribeInstance) if the instance could not be found.
-		instance, err = ec2svc.InstanceIfExists(pointer.StringPtr(pid.ID()))
+		instance, err = ec2svc.InstanceIfExists(pointer.String(pid.ID()))
 		if err != nil {
 			return nil, err
 		}

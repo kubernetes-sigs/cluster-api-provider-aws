@@ -73,7 +73,7 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInpu
 	ginkgo.By(fmt.Sprintf("creating an applying the %s template", input.Flavor))
 	configCluster := input.ConfigClusterFn(input.ClusterName, input.Namespace.Name)
 	configCluster.Flavor = input.Flavor
-	configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+	configCluster.WorkerMachineCount = pointer.Int64(1)
 	workloadClusterTemplate := shared.GetTemplate(ctx, configCluster)
 	if input.UsesLaunchTemplate {
 		userDataTemplate := `#!/bin/bash
