@@ -22,7 +22,6 @@ package managed
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -119,9 +118,9 @@ func verifySecretExists(ctx context.Context, secretName, namespace string, k8scl
 
 func verifyConfigMapExists(ctx context.Context, name, namespace string, k8sclient crclient.Client) {
 	cm := &corev1.ConfigMap{}
-	Eventually(func() error {
-		return k8sclient.Get(ctx, apimachinerytypes.NamespacedName{Name: name, Namespace: namespace}, cm)
-	}, 2*time.Minute, 5*time.Second).Should(Succeed())
+	err := k8sclient.Get(ctx, apimachinerytypes.NamespacedName{Name: name, Namespace: namespace}, cm)
+
+	Expect(err).ShouldNot(HaveOccurred())
 }
 
 func VerifyRoleExistsAndOwned(roleName string, eksClusterName string, checkOwned bool, sess client.ConfigProvider) {

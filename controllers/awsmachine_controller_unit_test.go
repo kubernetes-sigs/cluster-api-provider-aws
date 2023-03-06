@@ -139,13 +139,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 			},
 		)
 		g.Expect(err).To(BeNil())
-		cs.AWSCluster = &infrav1.AWSCluster{
-			Spec: infrav1.AWSClusterSpec{
-				ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
-					LoadBalancerType: infrav1.LoadBalancerTypeClassic,
-				},
-			},
-		}
+
 		ms, err = scope.NewMachineScope(
 			scope.MachineScopeParams{
 				Client: client,

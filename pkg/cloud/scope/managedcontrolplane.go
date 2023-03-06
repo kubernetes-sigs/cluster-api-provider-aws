@@ -396,8 +396,3 @@ func (s *ManagedControlPlaneScope) ServiceCidrs() *clusterv1.NetworkRanges {
 
 	return nil
 }
-
-// ControlPlaneLoadBalancer returns the AWSLoadBalancerSpec.
-func (s *ManagedControlPlaneScope) ControlPlaneLoadBalancer() *infrav1.AWSLoadBalancerSpec {
-	return nil
-}

@@ -36,8 +36,8 @@ import (
 // EKS cluster upgrade tests.
 var _ = ginkgo.Describe("EKS Cluster upgrade test", func() {
 	const (
-		initialVersion   = "v1.22.4"
-		upgradeToVersion = "v1.24.4"
+		initialVersion   = "v1.21.0"
+		upgradeToVersion = "v1.22.0"
 	)
 	var (
 		namespace   *corev1.Namespace

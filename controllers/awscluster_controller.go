@@ -325,12 +325,10 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
 	}
 
-	clusterScope.Debug("looking up IP address for DNS", "dns", awsCluster.Status.Network.APIServerELB.DNSName)
 	if _, err := net.LookupIP(awsCluster.Status.Network.APIServerELB.DNSName); err != nil {
-		clusterScope.Error(err, "failed to get IP address for dns name", "dns", awsCluster.Status.Network.APIServerELB.DNSName)
 		conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.WaitForDNSNameResolveReason, clusterv1.ConditionSeverityInfo, "")
 		clusterScope.Info("Waiting on API server ELB DNS name to resolve")
-		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
+		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil //nolint:nilerr
 	}
 	conditions.MarkTrue(awsCluster, infrav1.LoadBalancerReadyCondition)
 

@@ -84,14 +84,14 @@ providers:
   - name: aws
     type: InfrastructureProvider
     versions:
-      - name: v1.5.2 # latest published release in the v1beta1 series; this is used for v1beta1 --> v1beta2 clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/download/v1.5.2/infrastructure-components.yaml"
+      - name: v1.5.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> v1beta2 clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/download/v1.5.0/infrastructure-components.yaml"
         type: "url"
         contract: v1beta1
         files:
           - sourcePath: "./shared/v1beta1_provider/metadata.yaml"
           - sourcePath: "./infrastructure-aws/capi-upgrades/v1beta1/cluster-template.yaml"
-      - name: v2.0.99
+      - name: v1.6.99
         # Use manifest from source files
         value: ../../../config/default
         # Do not add contract field for v1beta1 --> v1beta2 clusterctl upgrades test to work.
@@ -142,9 +142,9 @@ variables:
   # allowing the same e2e config file to be re-used in different Prow jobs e.g. each one with a K8s version permutation.
   # The following Kubernetes versions should be the latest versions with already published kindest/node images.
   # This avoids building node images in the default case which improves the test duration significantly.
-  KUBERNETES_VERSION_MANAGEMENT: "v1.24.4"
-  KUBERNETES_VERSION: "v1.24.4"
-  KUBERNETES_VERSION_UPGRADE_TO: "v1.24.4"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.24.0"
+  KUBERNETES_VERSION: "v1.24.0"
+  KUBERNETES_VERSION_UPGRADE_TO: "v1.24.0"
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.23.6"
   # Pre and post 1.23 Kubernetes versions are being used for CSI upgrade tests
   PRE_1_23_KUBERNETES_VERSION: "v1.22.4"
@@ -156,9 +156,9 @@ variables:
   AWS_NODE_MACHINE_TYPE: t3.large
   AWS_MACHINE_TYPE_VCPU_USAGE: 2
   AWS_SSH_KEY_NAME: "cluster-api-provider-aws-sigs-k8s-io"
-  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.24.4"
+  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.24.0"
   CONFORMANCE_WORKER_MACHINE_COUNT: "5"
-  CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT: "3"
+  CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT: "1"
   ETCD_VERSION_UPGRADE_TO: "3.5.3-0"
   COREDNS_VERSION_UPGRADE_TO: "v1.8.6"
   MULTI_TENANCY_ROLE_NAME: "multi-tenancy-role"
@@ -180,7 +180,7 @@ intervals:
   default/wait-cluster: ["30m", "10s"]
   default/wait-control-plane: ["25m", "10s"]
   default/wait-worker-nodes: ["20m", "10s"]
-  conformance/wait-control-plane: ["35m", "10s"]
+  conformance/wait-control-plane: ["30m", "10s"]
   conformance/wait-worker-nodes: ["35m", "10s"]
   default/wait-controllers: ["5m", "10s"]
   default/wait-delete-cluster: ["20m", "10s"]

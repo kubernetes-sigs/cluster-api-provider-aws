@@ -41,20 +41,10 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 		}
 		restoreControlPlaneLoadBalancer(restored.Spec.ControlPlaneLoadBalancer, dst.Spec.ControlPlaneLoadBalancer)
 	}
-	restoreControlPlaneLoadBalancerStatus(&restored.Status.Network.APIServerELB, &dst.Status.Network.APIServerELB)
 
 	dst.Spec.S3Bucket = restored.Spec.S3Bucket
 
 	return nil
-}
-
-// restoreControlPlaneLoadBalancerStatus manually restores the control plane loadbalancer status data.
-// Assumes restored and dst are non-nil.
-func restoreControlPlaneLoadBalancerStatus(restored, dst *infrav1.LoadBalancer) {
-	dst.ARN = restored.ARN
-	dst.LoadBalancerType = restored.LoadBalancerType
-	dst.ELBAttributes = restored.ELBAttributes
-	dst.ELBListeners = restored.ELBListeners
 }
 
 // restoreControlPlaneLoadBalancer manually restores the control plane loadbalancer data.
@@ -62,9 +52,6 @@ func restoreControlPlaneLoadBalancerStatus(restored, dst *infrav1.LoadBalancer) 
 func restoreControlPlaneLoadBalancer(restored, dst *infrav1.AWSLoadBalancerSpec) {
 	dst.Name = restored.Name
 	dst.HealthCheckProtocol = restored.HealthCheckProtocol
-	dst.LoadBalancerType = restored.LoadBalancerType
-	dst.DisableHostsRewrite = restored.DisableHostsRewrite
-	dst.PreserveClientIP = restored.PreserveClientIP
 }
 
 // ConvertFrom converts the v1beta1 AWSCluster receiver to a v1beta1 AWSCluster.
