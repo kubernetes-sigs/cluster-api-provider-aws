@@ -2151,7 +2151,7 @@ func TestDescribeLoadbalancers(t *testing.T) {
 			DescribeElbAPIMocks: func(m *mocks.MockELBAPIMockRecorder) {
 				m.DescribeLoadBalancers(gomock.Eq(&elb.DescribeLoadBalancersInput{
 					LoadBalancerNames: aws.StringSlice([]string{"bar-apiserver"}),
-				})).Return(&elb.DescribeLoadBalancersOutput{LoadBalancerDescriptions: []*elb.LoadBalancerDescription{{Scheme: pointer.StringPtr(string(infrav1.ELBSchemeInternal))}}}, nil)
+				})).Return(&elb.DescribeLoadBalancersOutput{LoadBalancerDescriptions: []*elb.LoadBalancerDescription{{Scheme: pointer.String(string(infrav1.ELBSchemeInternal))}}}, nil)
 			},
 		},
 	}
@@ -2226,7 +2226,7 @@ func TestDescribeV2Loadbalancers(t *testing.T) {
 			DescribeElbV2APIMocks: func(m *mocks.MockELBV2APIMockRecorder) {
 				m.DescribeLoadBalancers(gomock.Eq(&elbv2.DescribeLoadBalancersInput{
 					Names: aws.StringSlice([]string{"bar-apiserver"}),
-				})).Return(&elbv2.DescribeLoadBalancersOutput{LoadBalancers: []*elbv2.LoadBalancer{{Scheme: pointer.StringPtr(string(infrav1.ELBSchemeInternal))}}}, nil)
+				})).Return(&elbv2.DescribeLoadBalancersOutput{LoadBalancers: []*elbv2.LoadBalancer{{Scheme: pointer.String(string(infrav1.ELBSchemeInternal))}}}, nil)
 			},
 		},
 	}

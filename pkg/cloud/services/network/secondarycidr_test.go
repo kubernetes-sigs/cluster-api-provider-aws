@@ -42,7 +42,7 @@ func setupNewManagedControlPlaneScope(cl client.Client) (*scope.ManagedControlPl
 		Cluster: &v1beta1.Cluster{},
 		ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
 			Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
-				SecondaryCidrBlock: pointer.StringPtr("secondary-cidr"),
+				SecondaryCidrBlock: pointer.String("secondary-cidr"),
 				NetworkSpec: infrav1.NetworkSpec{
 					VPC: infrav1.VPCSpec{ID: "vpc-id"},
 				},

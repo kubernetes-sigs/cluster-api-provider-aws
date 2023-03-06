@@ -56,7 +56,7 @@ func newMachine(clusterName, machineName string) *clusterv1.Machine {
 		},
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{
-				DataSecretName: pointer.StringPtr(machineName),
+				DataSecretName: pointer.String(machineName),
 			},
 		},
 	}

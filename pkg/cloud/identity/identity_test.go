@@ -107,7 +107,7 @@ func TestAWSStaticPrincipalTypeProvider(t *testing.T) {
 				m.AssumeRoleWithContext(gomock.Any(), &sts.AssumeRoleInput{
 					RoleArn:         aws.String(roleIdentity.Spec.RoleArn),
 					RoleSessionName: aws.String(roleIdentity.Spec.SessionName),
-					DurationSeconds: pointer.Int64Ptr(int64(roleIdentity.Spec.DurationSeconds)),
+					DurationSeconds: pointer.Int64(int64(roleIdentity.Spec.DurationSeconds)),
 				}).Return(&sts.AssumeRoleOutput{
 					Credentials: &sts.Credentials{
 						AccessKeyId:     aws.String("assumedAccessKeyId"),
@@ -132,7 +132,7 @@ func TestAWSStaticPrincipalTypeProvider(t *testing.T) {
 				m.AssumeRoleWithContext(gomock.Any(), &sts.AssumeRoleInput{
 					RoleArn:         aws.String(roleIdentity.Spec.RoleArn),
 					RoleSessionName: aws.String(roleIdentity.Spec.SessionName),
-					DurationSeconds: pointer.Int64Ptr(int64(roleIdentity.Spec.DurationSeconds)),
+					DurationSeconds: pointer.Int64(int64(roleIdentity.Spec.DurationSeconds)),
 				}).Return(&sts.AssumeRoleOutput{
 					Credentials: &sts.Credentials{
 						AccessKeyId:     aws.String("assumedAccessKeyId"),
@@ -145,7 +145,7 @@ func TestAWSStaticPrincipalTypeProvider(t *testing.T) {
 				m.AssumeRoleWithContext(gomock.Any(), &sts.AssumeRoleInput{
 					RoleArn:         aws.String(roleIdentity2.Spec.RoleArn),
 					RoleSessionName: aws.String(roleIdentity2.Spec.SessionName),
-					DurationSeconds: pointer.Int64Ptr(int64(roleIdentity2.Spec.DurationSeconds)),
+					DurationSeconds: pointer.Int64(int64(roleIdentity2.Spec.DurationSeconds)),
 				}).Return(&sts.AssumeRoleOutput{
 					Credentials: &sts.Credentials{
 						AccessKeyId:     aws.String("assumedAccessKeyId2"),
@@ -173,7 +173,7 @@ func TestAWSStaticPrincipalTypeProvider(t *testing.T) {
 				m.AssumeRoleWithContext(gomock.Any(), &sts.AssumeRoleInput{
 					RoleArn:         aws.String(roleIdentity.Spec.RoleArn),
 					RoleSessionName: aws.String(roleIdentity.Spec.SessionName),
-					DurationSeconds: pointer.Int64Ptr(int64(roleIdentity.Spec.DurationSeconds)),
+					DurationSeconds: pointer.Int64(int64(roleIdentity.Spec.DurationSeconds)),
 				}).Return(&sts.AssumeRoleOutput{}, errors.New("Not authorized to assume role"))
 			},
 			expectErr: true,

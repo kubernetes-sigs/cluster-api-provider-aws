@@ -125,7 +125,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					Spec: clusterv1.MachineSpec{
 						ClusterName: "capi-test",
 						Bootstrap: clusterv1.Bootstrap{
-							DataSecretName: pointer.StringPtr("bootstrap-data"),
+							DataSecretName: pointer.String("bootstrap-data"),
 						},
 					},
 				},
@@ -162,7 +162,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					Spec: clusterv1.MachineSpec{
 						ClusterName: "capi-test",
 						Bootstrap: clusterv1.Bootstrap{
-							DataSecretName: pointer.StringPtr("bootstrap-data"),
+							DataSecretName: pointer.String("bootstrap-data"),
 						},
 					},
 				},
@@ -217,7 +217,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				runningInstance(t, g)
 				er := capierrors.CreateMachineError
 				ms.AWSMachine.Status.FailureReason = &er
-				ms.AWSMachine.Status.FailureMessage = pointer.StringPtr("Couldn't create machine")
+				ms.AWSMachine.Status.FailureMessage = pointer.String("Couldn't create machine")
 
 				buf := new(bytes.Buffer)
 				klog.SetOutput(buf)
@@ -460,7 +460,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 					ms.AWSMachine.Spec.AdditionalSecurityGroups = []infrav1.AWSResourceReference{
 						{
-							ID: pointer.StringPtr("sg-2345"),
+							ID: pointer.String("sg-2345"),
 						},
 					}
 					ec2Svc.EXPECT().UpdateInstanceSecurityGroups(instance.ID, []string{"sg-2345"})
@@ -1250,7 +1250,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 			useIgnition := func(t *testing.T, g *WithT) {
 				t.Helper()
 
-				ms.Machine.Spec.Bootstrap.DataSecretName = pointer.StringPtr("bootstrap-data-ignition")
+				ms.Machine.Spec.Bootstrap.DataSecretName = pointer.String("bootstrap-data-ignition")
 				ms.AWSMachine.Spec.CloudInit.SecretCount = 0
 				ms.AWSMachine.Spec.CloudInit.SecretPrefix = ""
 			}
@@ -1304,7 +1304,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 			useIgnition := func(t *testing.T, g *WithT) {
 				t.Helper()
 
-				ms.Machine.Spec.Bootstrap.DataSecretName = pointer.StringPtr("bootstrap-data-ignition")
+				ms.Machine.Spec.Bootstrap.DataSecretName = pointer.String("bootstrap-data-ignition")
 				ms.AWSMachine.Spec.CloudInit.SecretCount = 0
 				ms.AWSMachine.Spec.CloudInit.SecretPrefix = ""
 			}
@@ -1388,7 +1388,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 			useIgnition := func(t *testing.T, g *WithT) {
 				t.Helper()
 
-				ms.Machine.Spec.Bootstrap.DataSecretName = pointer.StringPtr("bootstrap-data-ignition")
+				ms.Machine.Spec.Bootstrap.DataSecretName = pointer.String("bootstrap-data-ignition")
 				ms.AWSMachine.Spec.CloudInit.SecretCount = 0
 				ms.AWSMachine.Spec.CloudInit.SecretPrefix = ""
 			}
@@ -1455,7 +1455,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 			useIgnition := func(t *testing.T, g *WithT) {
 				t.Helper()
 
-				ms.Machine.Spec.Bootstrap.DataSecretName = pointer.StringPtr("bootstrap-data-ignition")
+				ms.Machine.Spec.Bootstrap.DataSecretName = pointer.String("bootstrap-data-ignition")
 				ms.AWSMachine.Spec.CloudInit.SecretCount = 0
 				ms.AWSMachine.Spec.CloudInit.SecretPrefix = ""
 			}

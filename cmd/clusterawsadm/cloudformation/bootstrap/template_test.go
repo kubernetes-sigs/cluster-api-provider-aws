@@ -73,7 +73,7 @@ func TestRenderCloudformation(t *testing.T) {
 			fixture: "customsuffix",
 			template: func() Template {
 				t := NewTemplate()
-				t.Spec.NameSuffix = pointer.StringPtr(".custom-suffix.com")
+				t.Spec.NameSuffix = pointer.String(".custom-suffix.com")
 				return t
 			},
 		},

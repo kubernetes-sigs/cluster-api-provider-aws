@@ -65,8 +65,8 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 	ginkgo.By(fmt.Sprintf("creating an applying the %s template", input.Flavour))
 	configCluster := input.ConfigClusterFn(input.ClusterName, input.Namespace.Name)
 	configCluster.Flavor = input.Flavour
-	configCluster.ControlPlaneMachineCount = pointer.Int64Ptr(input.ControlPlaneMachineCount)
-	configCluster.WorkerMachineCount = pointer.Int64Ptr(input.WorkerMachineCount)
+	configCluster.ControlPlaneMachineCount = pointer.Int64(input.ControlPlaneMachineCount)
+	configCluster.WorkerMachineCount = pointer.Int64(input.WorkerMachineCount)
 	if input.KubernetesVersion != "" {
 		configCluster.KubernetesVersion = input.KubernetesVersion
 	}

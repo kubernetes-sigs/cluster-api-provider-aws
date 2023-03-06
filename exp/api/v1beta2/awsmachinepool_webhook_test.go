@@ -99,7 +99,7 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					},
 					Subnets: []infrav1.AWSResourceReference{
 						{
-							ID:      pointer.StringPtr("subnet-id"),
+							ID:      pointer.String("subnet-id"),
 							Filters: []infrav1.Filter{{Name: "filter_name", Values: []string{"filter_value"}}},
 						},
 					},
@@ -117,7 +117,7 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					},
 					Subnets: []infrav1.AWSResourceReference{
 						{
-							ID: pointer.StringPtr("subnet-id"),
+							ID: pointer.String("subnet-id"),
 						},
 					},
 				},
@@ -218,7 +218,7 @@ func TestAWSMachinePoolValidateUpdate(t *testing.T) {
 					},
 					Subnets: []infrav1.AWSResourceReference{
 						{
-							ID:      pointer.StringPtr("subnet-id"),
+							ID:      pointer.String("subnet-id"),
 							Filters: []infrav1.Filter{{Name: "filter_name", Values: []string{"filter_value"}}},
 						},
 					},
@@ -243,7 +243,7 @@ func TestAWSMachinePoolValidateUpdate(t *testing.T) {
 					},
 					Subnets: []infrav1.AWSResourceReference{
 						{
-							ID: pointer.StringPtr("subnet-id"),
+							ID: pointer.String("subnet-id"),
 						},
 					},
 				},
