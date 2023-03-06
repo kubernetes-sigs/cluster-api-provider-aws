@@ -68,7 +68,7 @@ func MachineDeploymentSpec(ctx context.Context, inputGetter func() MachineDeploy
 	By(fmt.Sprintf("creating an applying the %s template", EKSMachineDeployOnlyFlavor))
 	configCluster := input.ConfigClusterFn(input.ClusterName, input.Namespace.Name)
 	configCluster.Flavor = EKSMachineDeployOnlyFlavor
-	configCluster.WorkerMachineCount = pointer.Int64Ptr(input.Replicas)
+	configCluster.WorkerMachineCount = pointer.Int64(input.Replicas)
 	err := shared.ApplyTemplate(ctx, configCluster, input.BootstrapClusterProxy)
 	Expect(err).ShouldNot(HaveOccurred())
 

@@ -453,7 +453,7 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 	data := &ec2.RequestLaunchTemplateData{
 		InstanceType: aws.String(lt.InstanceType),
 		KeyName:      sshKeyNamePtr,
-		UserData:     pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
+		UserData:     pointer.String(base64.StdEncoding.EncodeToString(userData)),
 	}
 
 	if len(lt.IamInstanceProfile) > 0 {

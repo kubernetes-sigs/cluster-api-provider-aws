@@ -309,7 +309,7 @@ func (r *EKSConfigReconciler) storeBootstrapData(ctx context.Context, cluster *c
 		}
 	}
 
-	config.Status.DataSecretName = pointer.StringPtr(secret.Name)
+	config.Status.DataSecretName = pointer.String(secret.Name)
 	config.Status.Ready = true
 	conditions.MarkTrue(config, eksbootstrapv1.DataSecretAvailableCondition)
 	return nil
@@ -397,7 +397,7 @@ func (r *EKSConfigReconciler) createBootstrapSecret(ctx context.Context, cluster
 					Kind:       "EKSConfig",
 					Name:       config.Name,
 					UID:        config.UID,
-					Controller: pointer.BoolPtr(true),
+					Controller: pointer.Bool(true),
 				},
 			},
 		},
