@@ -8,7 +8,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/golangci/golangci-lint v1.50.1
 	github.com/itchyny/gojq v0.12.11
-	github.com/joelanford/go-apidiff v0.5.0
+	github.com/joelanford/go-apidiff v0.6.0
 	github.com/spf13/pflag v1.0.5
 	k8s.io/apimachinery v0.26.1
 	k8s.io/code-generator v0.26.1
