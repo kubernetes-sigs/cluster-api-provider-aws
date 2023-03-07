@@ -501,56 +501,7 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 				Subnets: []infrav1.SubnetSpec{},
 			}),
-			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
-					Filters: []*ec2.Filter{
-						{
-							Name:   aws.String("state"),
-							Values: []*string{aws.String("pending"), aws.String("available")},
-						},
-						{
-							Name:   aws.String("vpc-id"),
-							Values: []*string{aws.String(subnetsVPCID)},
-						},
-					},
-				})).
-					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{
-							{
-								VpcId:               aws.String(subnetsVPCID),
-								SubnetId:            aws.String("subnet-1"),
-								AvailabilityZone:    aws.String("us-east-1a"),
-								CidrBlock:           aws.String("10.0.10.0/24"),
-								MapPublicIpOnLaunch: aws.Bool(false),
-							},
-							{
-								VpcId:               aws.String(subnetsVPCID),
-								SubnetId:            aws.String("subnet-2"),
-								AvailabilityZone:    aws.String("us-east-1a"),
-								CidrBlock:           aws.String("10.0.20.0/24"),
-								MapPublicIpOnLaunch: aws.Bool(false),
-							},
-						},
-					}, nil)
-
-				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
-					Return(&ec2.DescribeRouteTablesOutput{}, nil)
-
-				m.DescribeNatGatewaysPages(
-					gomock.Eq(&ec2.DescribeNatGatewaysInput{
-						Filter: []*ec2.Filter{
-							{
-								Name:   aws.String("vpc-id"),
-								Values: []*string{aws.String(subnetsVPCID)},
-							},
-							{
-								Name:   aws.String("state"),
-								Values: []*string{aws.String("pending"), aws.String("available")},
-							},
-						},
-					}),
-					gomock.Any()).Return(nil)
-			},
+			expect:        func(m *mocks.MockEC2APIMockRecorder) {},
 			errorExpected: true,
 		},
 		{

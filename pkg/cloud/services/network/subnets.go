@@ -53,12 +53,6 @@ func (s *Service) reconcileSubnets() error {
 		s.scope.SetSubnets(subnets)
 	}()
 
-	// Describe subnets in the vpc.
-	existing, err := s.describeVpcSubnets()
-	if err != nil {
-		return err
-	}
-
 	unmanagedVPC := s.scope.VPC().IsUnmanaged(s.scope.Name())
 
 	if len(subnets) == 0 {
@@ -70,6 +64,7 @@ func (s *Service) reconcileSubnets() error {
 		}
 		// If we a managed VPC and have no subnets then create subnets. There will be 1 public and 1 private subnet
 		// for each az in a region up to a maximum of 3 azs
+		var err error
 		s.scope.Info("no subnets specified, setting defaults")
 		subnets, err = s.getDefaultSubnets()
 		if err != nil {
@@ -81,6 +76,12 @@ func (s *Service) reconcileSubnets() error {
 			s.scope.Error(err, "failed to patch object to save subnets")
 			return err
 		}
+	}
+
+	// Describe subnets in the vpc.
+	existing, err := s.describeVpcSubnets()
+	if err != nil {
+		return err
 	}
 
 	if s.scope.SecondaryCidrBlock() != nil {
