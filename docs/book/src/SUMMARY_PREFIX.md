@@ -34,3 +34,4 @@
   - [IAM Permissions Used](./topics/iam-permissions.md)
   - [Ignition support](./topics/ignition-support.md)
   - [External Resource Garbage Collection](./topics/external-resource-gc.md)
+  - [Instance Metadata](./topics/instance-metadata.md)

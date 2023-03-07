@@ -310,11 +310,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*apiv1beta2.Instance)(nil), (*apiv1beta1.Instance)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_Instance_To_v1beta1_Instance(a.(*apiv1beta2.Instance), b.(*apiv1beta1.Instance), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddConversionFunc((*v1beta2.RefreshPreferences)(nil), (*RefreshPreferences)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_RefreshPreferences_To_v1beta1_RefreshPreferences(a.(*v1beta2.RefreshPreferences), b.(*RefreshPreferences), scope)
 	}); err != nil {

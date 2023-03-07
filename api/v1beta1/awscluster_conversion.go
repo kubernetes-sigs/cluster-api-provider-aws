@@ -44,6 +44,9 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	restoreControlPlaneLoadBalancerStatus(&restored.Status.Network.APIServerELB, &dst.Status.Network.APIServerELB)
 
 	dst.Spec.S3Bucket = restored.Spec.S3Bucket
+	if restored.Status.Bastion != nil {
+		dst.Status.Bastion.InstanceMetadataOptions = restored.Status.Bastion.InstanceMetadataOptions
+	}
 
 	return nil
 }

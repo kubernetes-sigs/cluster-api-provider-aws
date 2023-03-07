@@ -31,6 +31,8 @@ import (
 func RegisterDefaults(scheme *runtime.Scheme) error {
 	scheme.AddTypeDefaultingFunc(&AWSCluster{}, func(obj interface{}) { SetObjectDefaults_AWSCluster(obj.(*AWSCluster)) })
 	scheme.AddTypeDefaultingFunc(&AWSClusterTemplate{}, func(obj interface{}) { SetObjectDefaults_AWSClusterTemplate(obj.(*AWSClusterTemplate)) })
+	scheme.AddTypeDefaultingFunc(&AWSMachine{}, func(obj interface{}) { SetObjectDefaults_AWSMachine(obj.(*AWSMachine)) })
+	scheme.AddTypeDefaultingFunc(&AWSMachineTemplate{}, func(obj interface{}) { SetObjectDefaults_AWSMachineTemplate(obj.(*AWSMachineTemplate)) })
 	return nil
 }
 
@@ -44,4 +46,12 @@ func SetObjectDefaults_AWSClusterTemplate(in *AWSClusterTemplate) {
 	SetDefaults_AWSClusterSpec(&in.Spec.Template.Spec)
 	SetDefaults_NetworkSpec(&in.Spec.Template.Spec.NetworkSpec)
 	SetDefaults_Bastion(&in.Spec.Template.Spec.Bastion)
+}
+
+func SetObjectDefaults_AWSMachine(in *AWSMachine) {
+	SetDefaults_AWSMachineSpec(&in.Spec)
+}
+
+func SetObjectDefaults_AWSMachineTemplate(in *AWSMachineTemplate) {
+	SetDefaults_AWSMachineSpec(&in.Spec.Template.Spec)
 }
