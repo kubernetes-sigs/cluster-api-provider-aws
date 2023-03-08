@@ -158,7 +158,7 @@ func DumpMachine(ctx context.Context, e2eCtx *E2EContext, machine infrav1.AWSMac
 	if err != nil {
 		return
 	}
-	defer f.Close() //nolint:gosec
+	defer f.Close()
 	fmt.Fprintf(f, "instance found: instance-id=%q\n", instanceID)
 	commandsForMachine(
 		ctx,

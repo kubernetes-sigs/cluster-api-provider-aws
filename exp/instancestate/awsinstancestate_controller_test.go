@@ -142,7 +142,7 @@ func TestAWSInstanceStateController(t *testing.T) {
 		g.Eventually(func() bool {
 			_, ok := instanceStateReconciler.queueURLs.Load("aws-cluster-2")
 			return ok
-		}, 10*time.Second).Should(Equal(false))
+		}, 10*time.Second).Should(BeFalse())
 
 		persistObject(g, createAWSCluster("aws-cluster-3"))
 		t.Log("Ensuring newly created cluster is added to tracked clusters")
