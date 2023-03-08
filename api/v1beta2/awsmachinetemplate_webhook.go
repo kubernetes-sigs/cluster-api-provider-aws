@@ -40,6 +40,7 @@ func (r *AWSMachineTemplateWebhook) SetupWebhookWithManager(mgr ctrl.Manager) er
 }
 
 // AWSMachineTemplateWebhook implements a custom validation webhook for AWSMachineTemplate.
+// Note: we use a custom validator to access the request context for SSA of AWSMachineTemplate.
 // +kubebuilder:object:generate=false
 type AWSMachineTemplateWebhook struct{}
 
@@ -224,11 +225,6 @@ func (r *AWSMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw r
 	}
 
 	var allErrs field.ErrorList
-
-	// Allow setting of cloudInit.secureSecretsBackend to "secrets-manager" only to handle v1alpha3 upgrade
-	if oldAWSMachineTemplate.Spec.Template.Spec.CloudInit.SecureSecretsBackend == "" && newAWSMachineTemplate.Spec.Template.Spec.CloudInit.SecureSecretsBackend == SecretBackendSecretsManager {
-		newAWSMachineTemplate.Spec.Template.Spec.CloudInit.SecureSecretsBackend = ""
-	}
 
 	if !topology.ShouldSkipImmutabilityChecks(req, newAWSMachineTemplate) && !cmp.Equal(newAWSMachineTemplate.Spec, oldAWSMachineTemplate.Spec) {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec"), newAWSMachineTemplate, "AWSMachineTemplate.Spec is immutable"))
