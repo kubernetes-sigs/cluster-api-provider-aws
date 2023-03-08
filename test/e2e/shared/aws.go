@@ -1001,7 +1001,7 @@ func dumpEKSCluster(cluster *eks.Cluster, logPath string) {
 		fmt.Fprintf(GinkgoWriter, "couldn't open log file: name=%s err=%s", clusterLog, err)
 		return
 	}
-	defer f.Close() //nolint:gosec
+	defer f.Close()
 
 	if err := os.WriteFile(f.Name(), clusterYAML, 0600); err != nil {
 		fmt.Fprintf(GinkgoWriter, "couldn't write cluster yaml to file: name=%s file=%s err=%s", *cluster.Name, f.Name(), err)

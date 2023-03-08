@@ -492,7 +492,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			klog.SetOutput(buf)
 			_, err := reconciler.reconcileDelete(ms, cs, cs)
 			g.Expect(err).To(BeNil())
-			g.Expect(ms.AWSMachinePool.Status.Ready).To(Equal(false))
+			g.Expect(ms.AWSMachinePool.Status.Ready).To(BeFalse())
 			g.Eventually(recorder.Events).Should(Receive(ContainSubstring("DeletionInProgress")))
 		})
 	})
