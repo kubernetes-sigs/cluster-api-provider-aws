@@ -103,38 +103,18 @@ func TestAWSMachineTemplateValidateUpdate(t *testing.T) {
 		wantError        bool
 	}{
 		{
-			name: "don't allow ssm parameter store",
+			name: "don't allow updates",
 			modifiedTemplate: &AWSMachineTemplate{
 				ObjectMeta: metav1.ObjectMeta{},
 				Spec: AWSMachineTemplateSpec{
 					Template: AWSMachineTemplateResource{
 						Spec: AWSMachineSpec{
-							CloudInit: CloudInit{
-								SecureSecretsBackend: SecretBackendSSMParameterStore,
-							},
-							InstanceType: "test",
+							InstanceType: "test2",
 						},
 					},
 				},
 			},
-			wantError: false,
-		},
-		{
-			name: "allow secrets manager",
-			modifiedTemplate: &AWSMachineTemplate{
-				ObjectMeta: metav1.ObjectMeta{},
-				Spec: AWSMachineTemplateSpec{
-					Template: AWSMachineTemplateResource{
-						Spec: AWSMachineSpec{
-							CloudInit: CloudInit{
-								SecureSecretsBackend: SecretBackendSecretsManager,
-							},
-							InstanceType: "test",
-						},
-					},
-				},
-			},
-			wantError: false,
+			wantError: true,
 		},
 	}
 	for _, tt := range tests {
