@@ -88,20 +88,26 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
 
-	helper, err := patch.NewHelper(params.ManagedMachinePool, params.Client)
+	ammpHelper, err := patch.NewHelper(params.ManagedMachinePool, params.Client)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to init patch helper")
+		return nil, errors.Wrap(err, "failed to init AWSManagedMachinePool patch helper")
+	}
+	mpHelper, err := patch.NewHelper(params.MachinePool, params.Client)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to init MachinePool patch helper")
 	}
 
 	return &ManagedMachinePoolScope{
-		Logger:               *params.Logger,
-		Client:               params.Client,
+		Logger:                     *params.Logger,
+		Client:                     params.Client,
+		patchHelper:                ammpHelper,
+		capiMachinePoolPatchHelper: mpHelper,
+
 		Cluster:              params.Cluster,
 		ControlPlane:         params.ControlPlane,
 		ManagedMachinePool:   params.ManagedMachinePool,
 		MachinePool:          params.MachinePool,
 		EC2Scope:             params.InfraCluster,
-		patchHelper:          helper,
 		session:              session,
 		serviceLimiters:      serviceLimiters,
 		controllerName:       params.ControllerName,
@@ -114,7 +120,8 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 type ManagedMachinePoolScope struct {
 	logger.Logger
 	client.Client
-	patchHelper *patch.Helper
+	patchHelper                *patch.Helper
+	capiMachinePoolPatchHelper *patch.Helper
 
 	Cluster            *clusterv1.Cluster
 	ControlPlane       *ekscontrolplanev1.AWSManagedControlPlane
@@ -255,6 +262,14 @@ func (s *ManagedMachinePoolScope) PatchObject() error {
 			expinfrav1.EKSNodegroupReadyCondition,
 			expinfrav1.IAMNodegroupRolesReadyCondition,
 		}})
+}
+
+// PatchCAPIMachinePoolObject persists the capi machinepool configuration and status.
+func (s *ManagedMachinePoolScope) PatchCAPIMachinePoolObject(ctx context.Context) error {
+	return s.capiMachinePoolPatchHelper.Patch(
+		ctx,
+		s.MachinePool,
+	)
 }
 
 // Close closes the current scope persisting the control plane configuration and status.
