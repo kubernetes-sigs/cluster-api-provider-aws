@@ -2,7 +2,7 @@ module sigs.k8s.io/cluster-api-provider-aws/v2
 
 go 1.19
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.3.4
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.3.5
 
 require (
 	github.com/alessio/shellescape v1.4.1
@@ -38,8 +38,8 @@ require (
 	k8s.io/klog/v2 v2.90.1
 	k8s.io/utils v0.0.0-20220823124924-e9cbc92d1a73
 	sigs.k8s.io/aws-iam-authenticator v0.6.5
-	sigs.k8s.io/cluster-api v1.3.4
-	sigs.k8s.io/cluster-api/test v1.3.4
+	sigs.k8s.io/cluster-api v1.3.5
+	sigs.k8s.io/cluster-api/test v1.3.5
 	sigs.k8s.io/controller-runtime v0.13.1
 	sigs.k8s.io/kustomize/api v0.13.1
 	sigs.k8s.io/yaml v1.3.0
