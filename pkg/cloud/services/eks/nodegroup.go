@@ -17,6 +17,7 @@ limitations under the License.
 package eks
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -33,6 +34,7 @@ import (
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -499,7 +501,7 @@ func (s *NodegroupService) reconcileNodegroupConfig(ng *eks.Nodegroup) error {
 	return nil
 }
 
-func (s *NodegroupService) reconcileNodegroup() error {
+func (s *NodegroupService) reconcileNodegroup(ctx context.Context) error {
 	ng, err := s.describeNodegroup()
 	if err != nil {
 		return errors.Wrap(err, "failed to describe nodegroup")
@@ -529,6 +531,20 @@ func (s *NodegroupService) reconcileNodegroup() error {
 		ng, err = s.waitForNodegroupActive()
 	default:
 		break
+	}
+
+	if scope.ReplicasExternallyManaged(s.scope.MachinePool) {
+		// Set MachinePool replicas to the node group DesiredCapacity
+		ngDesiredCapacity := int32(aws.Int64Value(ng.ScalingConfig.DesiredSize))
+		if *s.scope.MachinePool.Spec.Replicas != ngDesiredCapacity {
+			s.scope.Info("Setting MachinePool replicas to node group DesiredCapacity",
+				"local", *s.scope.MachinePool.Spec.Replicas,
+				"external", ngDesiredCapacity)
+			s.scope.MachinePool.Spec.Replicas = &ngDesiredCapacity
+			if err := s.scope.PatchCAPIMachinePoolObject(ctx); err != nil {
+				return err
+			}
+		}
 	}
 
 	if err != nil {
