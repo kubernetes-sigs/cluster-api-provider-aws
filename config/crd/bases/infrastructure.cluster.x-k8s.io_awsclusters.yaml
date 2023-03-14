@@ -1024,10 +1024,50 @@ spec:
                     - internet-facing
                     - internal
                     type: string
+                  subnetSpec:
+                    description: SubnetFilter is an array of subnet configurations
+                      that should be applied to the control plane load balancer (defaults
+                      to discovered subnets for managed VPCs or an empty set for unmanaged
+                      VPCs)
+                    items:
+                      description: AWSResourceReference is a reference to a specific
+                        AWS resource by ID or filters. Only one of ID or Filters may
+                        be specified. Specifying more than one will result in a validation
+                        error.
+                      properties:
+                        filters:
+                          description: 'Filters is a set of key/value pairs used to
+                            identify a resource They are applied according to the
+                            rules defined by the AWS API: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html'
+                          items:
+                            description: Filter is a filter used to identify an AWS
+                              resource.
+                            properties:
+                              name:
+                                description: Name of the filter. Filter names are
+                                  case-sensitive.
+                                type: string
+                              values:
+                                description: Values includes one or more filter values.
+                                  Filter values are case-sensitive.
+                                items:
+                                  type: string
+                                type: array
+                            required:
+                            - name
+                            - values
+                            type: object
+                          type: array
+                        id:
+                          description: ID of resource
+                          type: string
+                      type: object
+                    type: array
                   subnets:
-                    description: Subnets sets the subnets that should be applied to
-                      the control plane load balancer (defaults to discovered subnets
-                      for managed VPCs or an empty set for unmanaged VPCs)
+                    description: 'Subnets sets the subnets that should be applied
+                      to the control plane load balancer (defaults to discovered subnets
+                      for managed VPCs or an empty set for unmanaged VPCs) Deprecated:
+                      This field is being replaced by `SubnetSpec`'
                     items:
                       type: string
                     type: array

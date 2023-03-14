@@ -564,6 +564,13 @@ func (in *AWSLoadBalancerSpec) DeepCopyInto(out *AWSLoadBalancerSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.SubnetFilter != nil {
+		in, out := &in.SubnetFilter, &out.SubnetFilter
+		*out = make([]AWSResourceReference, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.HealthCheckProtocol != nil {
 		in, out := &in.HealthCheckProtocol, &out.HealthCheckProtocol
 		*out = new(ELBProtocol)
