@@ -1164,8 +1164,8 @@ k8s.io/utils v0.0.0-20220823124924-e9cbc92d1a73/go.mod h1:jPW/WVKK9YHAvNhRxK0md/
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
-sigs.k8s.io/aws-iam-authenticator v0.6.6 h1:NlWf9ibPYPLkvAwOt+6d2SCyJFjePk8NB6FXrh1FNs8=
-sigs.k8s.io/aws-iam-authenticator v0.6.6/go.mod h1:BUFoRydx/At8vBHgFNxJRQ7Oa5za1fVaMyFcEgG25tM=
+sigs.k8s.io/aws-iam-authenticator v0.6.7 h1:qNTigWqowqGLM9E89loLTL/jWT4PpKiJyGPpJcRTzf4=
+sigs.k8s.io/aws-iam-authenticator v0.6.7/go.mod h1:BUFoRydx/At8vBHgFNxJRQ7Oa5za1fVaMyFcEgG25tM=
 sigs.k8s.io/cluster-api v1.3.5 h1:Chg56Piv5ip0AFRN83H1I8uIn6qsdk+mr9hdq5Cxkf0=
 sigs.k8s.io/cluster-api v1.3.5/go.mod h1:9FNHNItE5c+klfDLNG3+ApSTX0H4yGAumdbFJMnk6Vc=
 sigs.k8s.io/cluster-api/test v1.3.5 h1:+uY+oMwIK5NOH1S/VPCl5gl9TuUBRRdr/qiji4r1B7I=
