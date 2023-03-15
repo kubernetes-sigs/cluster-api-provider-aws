@@ -37,6 +37,7 @@ type Service struct {
 	resourceTaggingClient resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 	ec2Client             ec2iface.EC2API
 	cleanupFuncs          ResourceCleanupFuncs
+	collectFuncs          ResourceCollectFuncs
 }
 
 // NewService creates a new Service.
@@ -48,6 +49,7 @@ func NewService(clusterScope cloud.ClusterScoper, opts ...ServiceOption) *Servic
 		resourceTaggingClient: scope.NewResourgeTaggingClient(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
 		ec2Client:             scope.NewEC2Client(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
 		cleanupFuncs:          ResourceCleanupFuncs{},
+		collectFuncs:          ResourceCollectFuncs{},
 	}
 	addDefaultCleanupFuncs(svc)
 
@@ -66,6 +68,21 @@ func addDefaultCleanupFuncs(s *Service) {
 	}
 }
 
+func addDefaultCollectFuncs(s *Service) {
+	s.collectFuncs = []ResourceCollectFunc{
+		s.defaultGetResources,
+	}
+}
+
+func addAlternativeCollectFuncs(s *Service) {
+	s.collectFuncs = []ResourceCollectFunc{
+		s.getProviderOwnedLoadBalancers,
+		s.getProviderOwnedLoadBalancersV2,
+		s.getProviderOwnedTargetgroups,
+		s.getProviderOwnedSecurityGroups,
+	}
+}
+
 // AWSResource represents a resource in AWS.
 type AWSResource struct {
 	ARN  *arn.ARN
@@ -79,12 +96,33 @@ type ResourceCleanupFunc func(ctx context.Context, resources []*AWSResource) err
 type ResourceCleanupFuncs []ResourceCleanupFunc
 
 // Execute will execute all the defined clean up functions against the aws resources.
-func (fn *ResourceCleanupFuncs) Execute(ctx context.Context, resources []*AWSResource) error {
-	for _, f := range *fn {
+func (fn ResourceCleanupFuncs) Execute(ctx context.Context, resources []*AWSResource) error {
+	for _, f := range fn {
 		if err := f(ctx, resources); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+// ResourceCollectFunc is a function type to collect resources for a specific AWS service type.
+type ResourceCollectFunc func(ctx context.Context) ([]*AWSResource, error)
+
+// ResourceCollectFuncs is a collection of ResourceCollectFunc.
+type ResourceCollectFuncs []ResourceCollectFunc
+
+// Execute will execute all the defined collect functions against the aws resources.
+func (fn ResourceCollectFuncs) Execute(ctx context.Context) ([]*AWSResource, error) {
+	var resources []*AWSResource
+	for _, f := range fn {
+		rs, err := f(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		resources = append(resources, rs...)
+	}
+
+	return resources, nil
 }

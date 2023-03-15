@@ -87,10 +87,11 @@ type AWSManagedControlPlaneReconciler struct {
 	Recorder  record.EventRecorder
 	Endpoints []scope.ServiceEndpoint
 
-	EnableIAM            bool
-	AllowAdditionalRoles bool
-	WatchFilterValue     string
-	ExternalResourceGC   bool
+	EnableIAM             bool
+	AllowAdditionalRoles  bool
+	WatchFilterValue      string
+	ExternalResourceGC    bool
+	AlternativeGCStrategy bool
 }
 
 // SetupWithManager is used to setup the controller.
@@ -343,7 +344,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileDelete(ctx context.Context, 
 	}
 
 	if r.ExternalResourceGC {
-		gcSvc := gc.NewService(managedScope)
+		gcSvc := gc.NewService(managedScope, gc.WithGCStrategy(r.AlternativeGCStrategy))
 		if gcErr := gcSvc.ReconcileDelete(ctx); gcErr != nil {
 			return reconcile.Result{}, fmt.Errorf("failed delete reconcile for gc service: %w", gcErr)
 		}

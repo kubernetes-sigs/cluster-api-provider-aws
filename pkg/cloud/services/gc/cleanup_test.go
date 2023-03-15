@@ -611,6 +611,7 @@ func TestReconcileDelete(t *testing.T) {
 				withELBv2Client(elbv2Mock),
 				withResourceTaggingClient(rgapiMock),
 				withEC2Client(ec2Mock),
+				WithGCStrategy(false),
 			}
 			wkSvc := NewService(tc.clusterScope, opts...)
 			err := wkSvc.ReconcileDelete(ctx)

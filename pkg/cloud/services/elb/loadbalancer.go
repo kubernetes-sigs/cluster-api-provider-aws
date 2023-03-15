@@ -1485,6 +1485,7 @@ func fromSDKTypeToLB(v *elbv2.LoadBalancer, attrs []*elbv2.LoadBalancerAttribute
 	return res
 }
 
+// chunkELBs is similar to chunkResources in package pkg/cloud/services/gc.
 func chunkELBs(names []string) [][]string {
 	var chunked [][]string
 	for i := 0; i < len(names); i += maxELBsDescribeTagsRequest {

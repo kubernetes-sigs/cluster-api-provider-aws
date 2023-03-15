@@ -76,6 +76,7 @@ type AWSClusterReconciler struct {
 	Endpoints             []scope.ServiceEndpoint
 	WatchFilterValue      string
 	ExternalResourceGC    bool
+	AlternativeGCStrategy bool
 }
 
 // getEC2Service factory func is added for testing purpose so that we can inject mocked EC2Service to the AWSClusterReconciler.
@@ -228,7 +229,7 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 	}
 
 	if r.ExternalResourceGC {
-		gcSvc := gc.NewService(clusterScope)
+		gcSvc := gc.NewService(clusterScope, gc.WithGCStrategy(r.AlternativeGCStrategy))
 		if gcErr := gcSvc.ReconcileDelete(ctx); gcErr != nil {
 			return reconcile.Result{}, fmt.Errorf("failed delete reconcile for gc service: %w", gcErr)
 		}
