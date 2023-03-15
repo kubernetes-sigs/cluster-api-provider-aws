@@ -70,6 +70,11 @@ const (
 	// owner: @richardcase
 	// alpha: v1.5
 	ExternalResourceGC featuregate.Feature = "ExternalResourceGC"
+
+	// AlternativeGCStrategy is used to enable garbage collection of external resources to be performed without resource group tagging API. It is usually needed in airgap env when tagging API is not available.
+	// owner: @wyike
+	// alpha: v2.0
+	AlternativeGCStrategy featuregate.Feature = "AlternativeGCStrategy"
 )
 
 func init() {
@@ -89,4 +94,5 @@ var defaultCAPAFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	AutoControllerIdentityCreator: {Default: true, PreRelease: featuregate.Alpha},
 	BootstrapFormatIgnition:       {Default: false, PreRelease: featuregate.Alpha},
 	ExternalResourceGC:            {Default: false, PreRelease: featuregate.Alpha},
+	AlternativeGCStrategy:         {Default: false, PreRelease: featuregate.Alpha},
 }
