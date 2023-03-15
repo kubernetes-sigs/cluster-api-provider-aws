@@ -967,6 +967,10 @@ func (s *Service) checkRootVolume(rootVolume *infrav1.Volume, imageID string) (*
 
 // ModifyInstanceMetadataOptions modifies the metadata options of the given EC2 instance.
 func (s *Service) ModifyInstanceMetadataOptions(instanceID string, options *infrav1.InstanceMetadataOptions) error {
+	if options == nil {
+		return nil
+	}
+
 	input := &ec2.ModifyInstanceMetadataOptionsInput{
 		HttpEndpoint:            aws.String(string(options.HTTPEndpoint)),
 		HttpPutResponseHopLimit: aws.Int64(options.HTTPPutResponseHopLimit),
