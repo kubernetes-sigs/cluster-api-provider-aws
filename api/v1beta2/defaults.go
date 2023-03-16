@@ -83,11 +83,7 @@ func SetDefaults_Labels(obj *metav1.ObjectMeta) { //nolint:golint,stylecheck
 // SetDefaults_AWSMachineSpec is used by defaulter-gen.
 func SetDefaults_AWSMachineSpec(obj *AWSMachineSpec) { //nolint:golint,stylecheck
 	if obj.InstanceMetadataOptions == nil {
-		obj.InstanceMetadataOptions = &InstanceMetadataOptions{
-			HTTPEndpoint:            InstanceMetadataEndpointStateEnabled,
-			HTTPPutResponseHopLimit: 1,
-			HTTPTokens:              HTTPTokensStateRequired, // Defaults to IMDSv2
-			InstanceMetadataTags:    InstanceMetadataEndpointStateDisabled,
-		}
+		obj.InstanceMetadataOptions = &InstanceMetadataOptions{}
 	}
+	obj.InstanceMetadataOptions.SetDefaults()
 }
