@@ -114,6 +114,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"ec2:DescribeAddresses",
 				"ec2:DescribeAvailabilityZones",
 				"ec2:DescribeInstances",
+				"ec2:DescribeInstanceTypes",
 				"ec2:DescribeInternetGateways",
 				"ec2:DescribeEgressOnlyInternetGateways",
 				"ec2:DescribeInstanceTypes",
