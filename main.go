@@ -175,9 +175,14 @@ func main() {
 	setupLog.Info(fmt.Sprintf("feature gates: %+v\n", feature.Gates))
 
 	externalResourceGC := false
+	alternativeGCStrategy := false
 	if feature.Gates.Enabled(feature.ExternalResourceGC) {
 		setupLog.Info("enabling external resource garbage collection")
 		externalResourceGC = true
+		if feature.Gates.Enabled(feature.AlternativeGCStrategy) {
+			setupLog.Info("enabling alternative garbage collection strategy")
+			alternativeGCStrategy = true
+		}
 	}
 
 	if feature.Gates.Enabled(feature.BootstrapFormatIgnition) {
@@ -191,9 +196,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	setupReconcilersAndWebhooks(ctx, mgr, awsServiceEndpoints, externalResourceGC)
+	setupReconcilersAndWebhooks(ctx, mgr, awsServiceEndpoints, externalResourceGC, alternativeGCStrategy)
 	if feature.Gates.Enabled(feature.EKS) {
-		setupEKSReconcilersAndWebhooks(ctx, mgr, awsServiceEndpoints, externalResourceGC)
+		setupEKSReconcilersAndWebhooks(ctx, mgr, awsServiceEndpoints, externalResourceGC, alternativeGCStrategy)
 	}
 
 	// +kubebuilder:scaffold:builder
@@ -216,7 +221,7 @@ func main() {
 }
 
 func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsServiceEndpoints []scope.ServiceEndpoint,
-	externalResourceGC bool,
+	externalResourceGC, alternativeGCStrategy bool,
 ) {
 	if err := (&controllers.AWSMachineReconciler{
 		Client:           mgr.GetClient(),
@@ -230,11 +235,12 @@ func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsServi
 	}
 
 	if err := (&controllers.AWSClusterReconciler{
-		Client:             mgr.GetClient(),
-		Recorder:           mgr.GetEventRecorderFor("awscluster-controller"),
-		Endpoints:          awsServiceEndpoints,
-		WatchFilterValue:   watchFilterValue,
-		ExternalResourceGC: externalResourceGC,
+		Client:                mgr.GetClient(),
+		Recorder:              mgr.GetEventRecorderFor("awscluster-controller"),
+		Endpoints:             awsServiceEndpoints,
+		WatchFilterValue:      watchFilterValue,
+		ExternalResourceGC:    externalResourceGC,
+		AlternativeGCStrategy: alternativeGCStrategy,
 	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: true}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
 		os.Exit(1)
@@ -314,7 +320,7 @@ func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsServi
 }
 
 func setupEKSReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsServiceEndpoints []scope.ServiceEndpoint,
-	externalResourceGC bool,
+	externalResourceGC, alternativeGCStrategy bool,
 ) {
 	setupLog.Info("enabling EKS controllers and webhooks")
 
@@ -334,12 +340,13 @@ func setupEKSReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsSe
 
 	setupLog.Debug("enabling EKS control plane controller")
 	if err := (&ekscontrolplanecontrollers.AWSManagedControlPlaneReconciler{
-		Client:               mgr.GetClient(),
-		EnableIAM:            enableIAM,
-		AllowAdditionalRoles: allowAddRoles,
-		Endpoints:            awsServiceEndpoints,
-		WatchFilterValue:     watchFilterValue,
-		ExternalResourceGC:   externalResourceGC,
+		Client:                mgr.GetClient(),
+		EnableIAM:             enableIAM,
+		AllowAdditionalRoles:  allowAddRoles,
+		Endpoints:             awsServiceEndpoints,
+		WatchFilterValue:      watchFilterValue,
+		ExternalResourceGC:    externalResourceGC,
+		AlternativeGCStrategy: alternativeGCStrategy,
 	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: true}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSManagedControlPlane")
 		os.Exit(1)
