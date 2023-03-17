@@ -525,6 +525,18 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 			},
 		},
 	})).Return(&ec2.DescribeInstancesOutput{}, nil)
+	m.DescribeInstanceTypes(gomock.Any()).
+		Return(&ec2.DescribeInstanceTypesOutput{
+			InstanceTypes: []*ec2.InstanceTypeInfo{
+				{
+					ProcessorInfo: &ec2.ProcessorInfo{
+						SupportedArchitectures: []*string{
+							aws.String("x86_64"),
+						},
+					},
+				},
+			},
+		}, nil)
 	m.DescribeImages(gomock.Eq(&ec2.DescribeImagesInput{
 		Filters: []*ec2.Filter{
 			{

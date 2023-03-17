@@ -725,7 +725,8 @@ func (s *Service) DiscoverLaunchTemplateAMI(scope scope.LaunchTemplateScope) (*s
 		return lt.AMI.ID, nil
 	}
 
-	if scope.GetMachinePool().Spec.Template.Spec.Version == nil {
+	templateVersion := scope.GetMachinePool().Spec.Template.Spec.Version
+	if templateVersion == nil {
 		err := errors.New("Either AWSMachinePool's spec.awslaunchtemplate.ami.id or MachinePool's spec.template.spec.version must be defined")
 		s.scope.Error(err, "")
 		return nil, err
@@ -749,13 +750,37 @@ func (s *Service) DiscoverLaunchTemplateAMI(scope scope.LaunchTemplateScope) (*s
 		imageLookupBaseOS = scope.GetEC2Scope().ImageLookupBaseOS()
 	}
 
+	instanceType := lt.InstanceType
+
+	// If instance type is not specified on a launch template, we can safely assume the instance type will be a `t3.medium`.
+	// As specified in the AWS docs https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html.
+	// We will set the default architecture to `x86_64` as a result.
+	imageArchitecture := Amd64ArchitectureTag
+
+	if instanceType != "" {
+		imageArchitecture, err = s.pickArchitectureForInstanceType(instanceType)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if scope.IsEKSManaged() && imageLookupFormat == "" && imageLookupOrg == "" && imageLookupBaseOS == "" {
-		lookupAMI, err = s.eksAMILookup(*scope.GetMachinePool().Spec.Template.Spec.Version, scope.GetLaunchTemplate().AMI.EKSOptimizedLookupType)
+		lookupAMI, err = s.eksAMILookup(
+			*templateVersion,
+			imageArchitecture,
+			scope.GetLaunchTemplate().AMI.EKSOptimizedLookupType,
+		)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		lookupAMI, err = s.defaultAMIIDLookup(imageLookupFormat, imageLookupOrg, imageLookupBaseOS, *scope.GetMachinePool().Spec.Template.Spec.Version)
+		lookupAMI, err = s.defaultAMIIDLookup(
+			imageLookupFormat,
+			imageLookupOrg,
+			imageLookupBaseOS,
+			imageArchitecture,
+			*templateVersion,
+		)
 		if err != nil {
 			return nil, err
 		}
