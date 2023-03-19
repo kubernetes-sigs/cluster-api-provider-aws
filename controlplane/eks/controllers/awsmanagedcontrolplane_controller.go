@@ -92,6 +92,7 @@ type AWSManagedControlPlaneReconciler struct {
 	WatchFilterValue      string
 	ExternalResourceGC    bool
 	AlternativeGCStrategy bool
+	WaitInfraPeriod       time.Duration
 }
 
 // SetupWithManager is used to setup the controller.
@@ -236,7 +237,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 		// Wait for the cluster infrastructure to be ready before creating machines
 		if !managedScope.Cluster.Status.InfrastructureReady {
 			managedScope.Info("Cluster infrastructure is not ready yet")
-			return ctrl.Result{}, nil
+			return ctrl.Result{RequeueAfter: r.WaitInfraPeriod}, nil
 		}
 	}
 
