@@ -60,7 +60,7 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")
 	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
 	Expect(input.Namespace).NotTo(BeNil(), "Invalid argument. input.Namespace can't be nil")
-	Expect(input.ClusterName).ShouldNot(HaveLen(0), "Invalid argument. input.ClusterName can't be empty")
+	Expect(input.ClusterName).ShouldNot(BeEmpty(), "Invalid argument. input.ClusterName can't be empty")
 
 	ginkgo.By(fmt.Sprintf("creating an applying the %s template", input.Flavour))
 	configCluster := input.ConfigClusterFn(input.ClusterName, input.Namespace.Name)
