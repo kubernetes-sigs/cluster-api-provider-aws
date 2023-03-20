@@ -260,7 +260,7 @@ func newMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 	if cluster != nil {
 		machine.Spec.ClusterName = cluster.Name
 		machine.ObjectMeta.Labels = map[string]string{
-			clusterv1.ClusterLabelName: cluster.Name,
+			clusterv1.ClusterNameLabel: cluster.Name,
 		}
 	}
 	return machine
@@ -294,7 +294,7 @@ func newMachinePool(cluster *clusterv1.Cluster, name string) *v1beta1.MachinePoo
 	if cluster != nil {
 		mp.Spec.ClusterName = cluster.Name
 		mp.ObjectMeta.Labels = map[string]string{
-			clusterv1.ClusterLabelName: cluster.Name,
+			clusterv1.ClusterNameLabel: cluster.Name,
 		}
 	}
 	return mp
