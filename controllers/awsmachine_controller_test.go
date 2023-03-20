@@ -134,7 +134,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		ms.Machine.Spec.Version = aws.String("test")
 		ms.AWSMachine.Spec.Subnet = &infrav1.AWSResourceReference{ID: aws.String("subnet-1")}
 		ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateRunning
-		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
+		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 
 		ec2Svc := ec2Service.NewService(cs)
 		ec2Svc.EC2Client = ec2Mock
@@ -197,7 +197,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 
 		ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateRunning
-		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
+		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 		ms.AWSMachine.Spec.ProviderID = aws.String("aws:////myMachine")
 
 		ec2Svc := ec2Service.NewService(cs)
@@ -291,7 +291,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		ms.Machine.Spec.Version = aws.String("test")
 		ms.AWSMachine.Spec.Subnet = &infrav1.AWSResourceReference{ID: aws.String("subnet-1")}
 		ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateRunning
-		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
+		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 
 		ec2Svc := ec2Service.NewService(cs)
 		ec2Svc.EC2Client = ec2Mock
@@ -357,7 +357,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 
 		ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateRunning
-		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
+		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 		ms.AWSMachine.Spec.ProviderID = aws.String("aws:////myMachine")
 
 		ec2Svc := ec2Service.NewService(cs)

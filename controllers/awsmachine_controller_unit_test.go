@@ -654,7 +654,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				defer teardown(t, g)
 				instanceCreate(t, g)
 
-				ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
+				ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 				ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateStopping
 				reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
 					return elbSvc
@@ -679,7 +679,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				defer teardown(t, g)
 				instanceCreate(t, g)
 
-				ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
+				ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 				ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateStopping
 				reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
 					return elbSvc
@@ -775,7 +775,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				defer teardown(t, g)
 				instanceCreate(t, g)
 
-				ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
+				ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 				ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateStopping
 				reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
 					return elbSvc
@@ -801,7 +801,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				defer teardown(t, g)
 				instanceCreate(t, g)
 
-				ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
+				ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 				ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateStopping
 				reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
 					return elbSvc
@@ -1017,7 +1017,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil)
 
 				ms.AWSMachine.ObjectMeta.Labels = map[string]string{
-					clusterv1.MachineControlPlaneLabelName: "",
+					clusterv1.MachineControlPlaneLabel: "",
 				}
 				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 			})
@@ -1276,7 +1276,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil)
 
 				ms.AWSMachine.ObjectMeta.Labels = map[string]string{
-					clusterv1.MachineControlPlaneLabelName: "",
+					clusterv1.MachineControlPlaneLabel: "",
 				}
 
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
@@ -1672,7 +1672,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					setup(t, g, awsMachine)
 					defer teardown(t, g)
 					finalizer(t, g)
-					ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
+					ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 					ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateStopping
 					reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
 						return elbSvc
@@ -1697,7 +1697,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					setup(t, g, awsMachine)
 					defer teardown(t, g)
 					finalizer(t, g)
-					ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
+					ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 					ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateStopping
 					reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
 						return elbSvc
@@ -1722,7 +1722,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				setup(t, g, awsMachine)
 				defer teardown(t, g)
 				finalizer(t, g)
-				ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
+				ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 				ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateStopping
 				reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
 					return elbSvc
@@ -1745,7 +1745,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				setup(t, g, awsMachine)
 				defer teardown(t, g)
 				finalizer(t, g)
-				ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
+				ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 				ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateStopping
 				reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
 					return elbSvc
@@ -1821,7 +1821,7 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "aws-test-6",
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: "capi-test-6",
+						clusterv1.ClusterNameLabel: "capi-test-6",
 					},
 				},
 				Spec: clusterv1.MachineSpec{
@@ -1860,7 +1860,7 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 			awsMachine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: "aws-test-1",
+						clusterv1.ClusterNameLabel: "aws-test-1",
 					},
 					Name: "aws-test-1",
 				},
@@ -1892,7 +1892,7 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 			awsMachine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: "aws-test-2",
+						clusterv1.ClusterNameLabel: "aws-test-2",
 					},
 					Name: "aws-test-2",
 				},
@@ -1954,7 +1954,7 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 			awsMachine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: "capi-test-4",
+						clusterv1.ClusterNameLabel: "capi-test-4",
 					},
 					Name:      "aws-test-4",
 					Namespace: "default",
@@ -1992,7 +1992,7 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "aws-test-5",
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: "capi-test-5",
+						clusterv1.ClusterNameLabel: "capi-test-5",
 					},
 				},
 				Spec: clusterv1.MachineSpec{
@@ -2198,7 +2198,7 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 			ownerMachine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: "capi-test-1",
+						clusterv1.ClusterNameLabel: "capi-test-1",
 					},
 					Name: "capi-test-machine", Namespace: "default",
 				},
@@ -2226,7 +2226,7 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 			ownerMachine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: "capi-test-1",
+						clusterv1.ClusterNameLabel: "capi-test-1",
 					},
 					Name: "capi-test-machine", Namespace: "default",
 				}, Spec: clusterv1.MachineSpec{
@@ -2258,7 +2258,7 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 			ownerMachine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: "capi-test-1",
+						clusterv1.ClusterNameLabel: "capi-test-1",
 					},
 					Name: "capi-test-machine", Namespace: "default",
 				},
@@ -2291,7 +2291,7 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 			ownerMachine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: "capi-test-1",
+						clusterv1.ClusterNameLabel: "capi-test-1",
 					},
 					Name: "capi-test-machine", Namespace: "default",
 				},
@@ -2447,8 +2447,8 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 	ownerMachine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName:             "capi-test-1",
-				clusterv1.MachineControlPlaneLabelName: "", // control plane node so that controller tries to register it with LB
+				clusterv1.ClusterNameLabel:         "capi-test-1",
+				clusterv1.MachineControlPlaneLabel: "", // control plane node so that controller tries to register it with LB
 			},
 			Name:      "capi-test-machine",
 			Namespace: ns,

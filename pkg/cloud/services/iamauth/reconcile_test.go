@@ -116,7 +116,7 @@ func createEKSCluster(name, namespace string) *ekscontrolplanev1.AWSManagedContr
 			Name:      name,
 			Namespace: namespace,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: name,
+				clusterv1.ClusterNameLabel: name,
 			},
 		},
 		Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{},
@@ -133,7 +133,7 @@ func createAWSMachinePoolForClusterWithInstanceProfile(name, namespace, clusterN
 			Name:      name,
 			Namespace: namespace,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 			},
 		},
 		Spec: expinfrav1.AWSMachinePoolSpec{
@@ -152,7 +152,7 @@ func createMachinepoolForCluster(name, namespace, clusterName string, infrastruc
 			Name:      name,
 			Namespace: namespace,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 			},
 		},
 		Spec: expclusterv1.MachinePoolSpec{
@@ -177,7 +177,7 @@ func createAWSMachineTemplateForClusterWithInstanceProfile(name, namespace, clus
 			Name:      name,
 			Namespace: namespace,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 			},
 		},
 		Spec: infrav1.AWSMachineTemplateSpec{
@@ -198,7 +198,7 @@ func createMachineDeploymentForCluster(name, namespace, clusterName string, infr
 			Name:      name,
 			Namespace: namespace,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 			},
 		},
 		Spec: clusterv1.MachineDeploymentSpec{

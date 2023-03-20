@@ -86,11 +86,12 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 		}, intervals...)
 
 		// Start streaming logs from all controller providers
-		framework.WatchDeploymentLogs(context.TODO(), framework.WatchDeploymentLogsInput{
+		framework.WatchDeploymentLogsByName(context.TODO(), framework.WatchDeploymentLogsByNameInput{
 			GetLister:  client,
 			ClientSet:  input.ClusterProxy.GetClientSet(),
 			Deployment: deployment,
 			LogPath:    filepath.Join(input.LogFolder, "controllers"),
+			Cache:      input.ClusterProxy.GetCache(context.TODO()),
 		})
 
 		if input.DisableMetricsCollection {

@@ -744,7 +744,7 @@ func TestCreateIPv6Cluster(t *testing.T) {
 			},
 		},
 		ResourcesVpcConfig: &eks.VpcConfigRequest{
-			SubnetIds: []*string{pointer.String("sub-1"), pointer.StringPtr("sub-2")},
+			SubnetIds: []*string{pointer.String("sub-1"), pointer.String("sub-2")},
 		},
 		KubernetesNetworkConfig: &eks.KubernetesNetworkConfigRequest{
 			IpFamily: pointer.String("ipv6"),
