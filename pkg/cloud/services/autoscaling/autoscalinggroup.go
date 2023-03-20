@@ -173,8 +173,15 @@ func (s *Service) CreateASG(machinePoolScope *scope.MachinePoolScope) (*expinfra
 		MixedInstancesPolicy: machinePoolScope.AWSMachinePool.Spec.MixedInstancesPolicy,
 	}
 
-	if machinePoolScope.MachinePool.Spec.Replicas != nil {
-		input.DesiredCapacity = machinePoolScope.MachinePool.Spec.Replicas
+	// Default value of MachinePool replicas set by CAPI is 1.
+	mpReplicas := *machinePoolScope.MachinePool.Spec.Replicas
+
+	// Check that MachinePool replicas number is between the minimum and maximum size of the AWSMachinePool.
+	// Ignore the problem for externally managed clusters because MachinePool replicas will be updated to the right value automatically.
+	if mpReplicas >= machinePoolScope.AWSMachinePool.Spec.MinSize && mpReplicas <= machinePoolScope.AWSMachinePool.Spec.MaxSize {
+		input.DesiredCapacity = &mpReplicas
+	} else if !scope.ReplicasExternallyManaged(machinePoolScope.MachinePool) {
+		return nil, fmt.Errorf("incorrect number of replicas %d in MachinePool %v", mpReplicas, machinePoolScope.MachinePool.Name)
 	}
 
 	if machinePoolScope.AWSMachinePool.Status.LaunchTemplateID == "" {
