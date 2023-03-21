@@ -24,7 +24,6 @@ ARTIFACTS ?= $(REPO_ROOT)/_artifacts
 TOOLS_DIR := hack/tools
 TOOLS_DIR_DEPS := $(TOOLS_DIR)/go.sum $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/Makefile
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
-GO_INSTALL := ./scripts/go_install.sh
 
 API_DIRS := cmd/clusterawsadm/api api exp/api controlplane/eks/api bootstrap/eks/api iam/api
 API_FILES := $(foreach dir, $(API_DIRS), $(call rwildcard,../../$(dir),*.go))
@@ -60,6 +59,8 @@ KIND := $(TOOLS_BIN_DIR)/kind
 KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
 MOCKGEN := $(TOOLS_BIN_DIR)/mockgen
 SSM_PLUGIN := $(TOOLS_BIN_DIR)/session-manager-plugin
+YQ := $(TOOLS_BIN_DIR)/yq
+KPROMO := $(TOOLS_BIN_DIR)/kpromo
 CLUSTERAWSADM_SRCS := $(call rwildcard,.,cmd/clusterawsadm/*.*)
 
 PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
@@ -74,6 +75,12 @@ ifneq ($(abspath $(REPO_ROOT)),$(shell go env GOPATH)/src/sigs.k8s.io/cluster-ap
 else
 	export GOPATH := $(shell go env GOPATH)
 endif
+
+USER_FORK ?= $(shell git config --get remote.origin.url | cut -d/ -f4) # only works on https://github.com/<username>/cluster-api.git style URLs
+ifeq ($(USER_FORK),)
+USER_FORK := $(shell git config --get remote.origin.url | cut -d: -f2 | cut -d/ -f1) # for git@github.com:<username>/cluster-api.git style URLs
+endif
+IMAGE_REVIEWERS ?= $(shell ./hack/get-project-maintainers.sh ${YQ})
 
 # Release variables
 
@@ -571,6 +578,10 @@ release-manifests: ## Release manifest files
 .PHONY: release-changelog
 release-changelog: $(GH) ## Generates release notes using Github release notes.
 	./hack/releasechangelog.sh > $(RELEASE_DIR)/CHANGELOG.md
+
+.PHONY: promote-images
+promote-images: $(KPROMO) $(YQ)
+	$(KPROMO) pr --project cluster-api-provider-aws --tag $(RELEASE_TAG) --reviewers "$(IMAGE_REVIEWERS)" --fork $(USER_FORK) --image cluster-api-aws-controller
 
 .PHONY: release-binaries
 release-binaries: ## Builds the binaries to publish with a release

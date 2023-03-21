@@ -26,18 +26,25 @@
     10. `eks-controlplane-components.yaml`
     11. `eks-bootstrap-components.yaml`
     12. `metadata.yaml`
-13. Perform the [image promotion process](https://github.com/kubernetes/k8s.io/tree/main/k8s.gcr.io#image-promoter):
-    1. Clone and pull down the latest from [kubernetes/k8s.io](https://github.com/kubernetes/k8s.io)
-    2. Create a new branch in your fork of `kubernetes/k8s.io`.
-    3. The staging repository is [here](https://console.cloud.google.com/gcr/images/k8s-staging-cluster-api-aws/GLOBAL). 
-    4. Ensure you choose the top level [cluster-api-aws-controller](https://console.cloud.google.com/gcr/images/k8s-staging-cluster-api-aws/GLOBAL/cluster-api-aws-controller?gcrImageListsize=30), which will provide the multi-arch manifest, rather than one for a specific architecture.
-    5. Wait for an image to appear with the tagged release version:
-    ![image promotion](./imagepromo1.png)
-    6. Click on the `Copy full image name` icon
-    7. In your `kubernetes/k8s.io` branch edit `k8s.gcr.io/images/k8s-staging-cluster-api-aws/images.yaml` and add an try for the version using the pasted value from earlier. For example: `"sha256:06ce7b97f9fe116df65c293deef63981dec3e33dec9984b8a6dd0f7dba21bb32": ["v0.6.4"]`
-    8. Repeat for [eks-bootstrap-controller](https://console.cloud.google.com/gcr/images/k8s-staging-cluster-api-aws/GLOBAL/eks-bootstrap-controller?gcrImageListsize=30) and [eks-controlplane-controller](https://console.cloud.google.com/gcr/images/k8s-staging-cluster-api-aws/GLOBAL/eks-controlplane-controller?gcrImageListsize=30)
-    9. You can use [this PR](https://github.com/kubernetes/k8s.io/pull/1565) as example
-    10. Wait for the PR to be approved and merged
+13. Perform the image promotion process to promote the images from the staging to production registry (`registry.k8s.io/cluster-api-provider-aws`):
+    1. Navigate to the the staging repository [dashboard](https://console.cloud.google.com/gcr/images/k8s-staging-cluster-api-aws/GLOBAL).
+    2. Choose the _top level_ [cluster-api-aws-controller](https://console.cloud.google.com/gcr/images/k8s-staging-cluster-api-aws/GLOBAL/cluster-api-aws-controller?gcrImageListsize=30) image. Only the top level image provides the multi-arch manifest, rather than one for a specific architecture.
+    3. Wait for an image to appear with the tagged release version.
+    4. If you don't have a GitHub token, create one by going to your GitHub settings, in [Personal access tokens](https://github.com/settings/tokens). Make sure you give the token the `repo` scope.
+    5. Create a PR to promote the images:
+    ```bash
+    export GITHUB_TOKEN=<your GH token>
+    make promote-images
+    ```
+    **Notes**:
+     * `kpromo` uses `git@github.com:...` as remote to push the branch for the PR. If you don't have `ssh` set up you can configure
+       git to use `https` instead via `git config --global url."https://github.com/".insteadOf git@github.com:`.
+     * This will automatically create a PR in [k8s.io](https://github.com/kubernetes/k8s.io) and assign the CAPA maintainers.
+    6. Wait for the PR to be approved (typically by CAPA maintainers authorized to merge PRs into the k8s.io repository) and merged.
+    7. Verify the images are available in the production registry:
+    ```bash
+    docker pull registry.k8s.io/cluster-api-provider-aws/cluster-api-aws-controller:${RELEASE_TAG}
+    ```
 14. Finalise the release notes. Add image locations `<ADD_IMAGE_HERE>` (e.g., registry.k8s.io/cluster-api-aws/cluster-api-aws-controller:v0.6.4) and replace `<RELEASE_VERSION>` and `<PREVIOUS_VERSION>`.
 15. Make sure image promotion is complete before publishing the release draft. The promotion job logs can be found [here](https://testgrid.k8s.io/sig-k8s-infra-k8sio#post-k8sio-image-promo) and you can also try and pull the images (i.e. ``docker pull registry.k8s.io/cluster-api-aws/cluster-api-aws-controller:v0.6.4`) 
 16. Publish release. Use the pre-release option for release
