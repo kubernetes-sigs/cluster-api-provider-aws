@@ -28,6 +28,8 @@ TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 UID := $(shell id -u)
 GID := $(shell id -g)
 
+GO_INSTALL := $(ROOT_DIR_RELATIVE)/scripts/go_install.sh
+
 rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
 # Hosts running SELinux need :z added to volume mounts
