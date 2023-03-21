@@ -21,27 +21,34 @@
 
 ## Promote container images from staging to production
 
-Promote the container images by following the steps below. (For background information, see [this](https://github.com/kubernetes/k8s.io/tree/main/k8s.gcr.io#image-promoter).)
+Promote the container images from the staging registry to the production registry (`registry.k8s.io/cluster-api-provider-aws`) by following the steps below.
 
-1.  Navigate to the the staging repository [dashboard](https://console.cloud.google.com/gcr/images/k8s-staging-cluster-api-aws/GLOBAL).
-1.  Choose the _top level_ [cluster-api-aws-controller](https://console.cloud.google.com/gcr/images/k8s-staging-cluster-api-aws/GLOBAL/cluster-api-aws-controller?gcrImageListsize=30) image. Only the top level image provides the multi-arch manifest, rather than one for a specific architecture.
-1.  Wait for an image to appear with the tagged release version:
-    ![image promotion](./imagepromo1.png)
-1.  Click on the `Copy full image name` icon.
-1.  Create your own fork of `kubernetes/k8s.io` in GitHub.
-1.  Clone and pull down the latest from [kubernetes/k8s.io](https://github.com/kubernetes/k8s.io).
-1.  Create a new branch in your fork of `kubernetes/k8s.io`.
-1.  In your `kubernetes/k8s.io` branch edit `k8s.gcr.io/images/k8s-staging-cluster-api-aws/images.yaml` and add an try for the version using the pasted value from earlier. For example: `"sha256:06ce7b97f9fe116df65c293deef63981dec3e33dec9984b8a6dd0f7dba21bb32": ["v0.6.4"]`
-1.  Create a PR with your change, following [this PR](https://github.com/kubernetes/k8s.io/pull/1565) as example.
-1.  Wait for the PR to be approved (typically by CAPA maintainers authorized to merge PRs into the k8s.io repository) and merged.
+1. Navigate to the the staging repository [dashboard](https://console.cloud.google.com/gcr/images/k8s-staging-cluster-api-aws/GLOBAL).
+2. Choose the _top level_ [cluster-api-aws-controller](https://console.cloud.google.com/gcr/images/k8s-staging-cluster-api-aws/GLOBAL/cluster-api-aws-controller?gcrImageListsize=30) image. Only the top level image provides the multi-arch manifest, rather than one for a specific architecture.
+3. Wait for an image to appear with the tagged release version.
+4. If you don't have a GitHub token, create one by going to your GitHub settings, in [Personal access tokens](https://github.com/settings/tokens). Make sure you give the token the `repo` scope.
+5. Create a PR to promote the images:
+    ```bash
+    export GITHUB_TOKEN=<your GH token>
+    make promote-images
+    ```
+    **Notes**:
+     * `kpromo` uses `git@github.com:...` as remote to push the branch for the PR. If you don't have `ssh` set up you can configure
+       git to use `https` instead via `git config --global url."https://github.com/".insteadOf git@github.com:`.
+     * This will automatically create a PR in [k8s.io](https://github.com/kubernetes/k8s.io) and assign the CAPA maintainers.
+6. Wait for the PR to be approved (typically by CAPA maintainers authorized to merge PRs into the k8s.io repository) and merged.
+7. Verify the images are available in the production registry:
+    ```bash
+    docker pull registry.k8s.io/cluster-api-provider-aws/cluster-api-aws-controller:${RELEASE_TAG}
+    ```
 
 ## Create release artifacts, and a GitHub draft release
 
-1.  Again, make sure your repo is clean by git standards.
-1.  Export the current branch `export BRANCH=release-1.5` (`export BRANCH=main`)and run `make release`.
-1.  Run `make create-gh-release` to create a draft release on Github, copying the generated release notes from `out/CHANGELOG.md` into the draft.
-1.  Run `make upload-gh-artifacts` to upload artifacts from .out/ directory. You may run into API limit errors, so verify artifacts at next step.
-1.  Verify that all the files below are attached to the drafted release:
+1. Again, make sure your repo is clean by git standards.
+1. Export the current branch `export BRANCH=release-1.5` (`export BRANCH=main`)and run `make release`.
+1. Run `make create-gh-release` to create a draft release on Github, copying the generated release notes from `out/CHANGELOG.md` into the draft.
+1. Run `make upload-gh-artifacts` to upload artifacts from .out/ directory. You may run into API limit errors, so verify artifacts at next step.
+1. Verify that all the files below are attached to the drafted release:
     1. `clusterawsadm-darwin-amd64`
     1. `clusterawsadm-linux-amd64`
     1. `infrastructure-components.yaml`
@@ -54,11 +61,11 @@ Promote the container images by following the steps below. (For background infor
     1. `eks-controlplane-components.yaml`
     1. `eks-bootstrap-components.yaml`
     1. `metadata.yaml`
-1.  Finalise the release notes by editing the draft release.
+1. Finalise the release notes by editing the draft release.
 
 ## Publish the draft release
 
-1.  Make sure image promotion is complete before publishing the release draft. The promotion job logs can be found [here](https://testgrid.k8s.io/sig-k8s-infra-k8sio#post-k8sio-image-promo) and you can also try and pull the images (i.e. ``docker pull registry.k8s.io/cluster-api-aws/cluster-api-aws-controller:v0.6.4`).
-1.  Publish release. Use the pre-release option for release
+1. Make sure image promotion is complete before publishing the release draft. The promotion job logs can be found [here](https://testgrid.k8s.io/sig-k8s-infra-k8sio#post-k8sio-image-promo) and you can also try and pull the images (i.e. ``docker pull registry.k8s.io/cluster-api-aws/cluster-api-aws-controller:v0.6.4`).
+1. Publish release. Use the pre-release option for release
      candidate versions of Cluster API Provider AWS.
-1.  Email `kubernetes-sig-cluster-lifecycle@googlegroups.com` to announce the release.
+1. Email `kubernetes-sig-cluster-lifecycle@googlegroups.com` to announce the release.
