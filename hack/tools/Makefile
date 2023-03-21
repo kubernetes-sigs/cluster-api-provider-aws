@@ -19,6 +19,7 @@ UNAME := $(shell uname -s)
 
 # Directories.
 BIN_DIR := bin
+BIN_DIR_ABS := $(abspath $(BIN_DIR))
 SHARE_DIR := share
 
 OS := $(shell go env GOOS)
@@ -156,6 +157,26 @@ PLANTUML := $(BIN_DIR)/plantuml-sentinal
 $(PLANTUML): plantuml.Dockerfile ../../versions.mk
 	docker build --build-arg PLANTUML_VERSION=$(PLANTUML_VERSION)  . -f plantuml.Dockerfile -t "plantuml-builder"
 	touch $@
+
+KPROMO_BIN := kpromo
+KPROMO :=  $(abspath $(BIN_DIR)/$(KPROMO_BIN)-$(KPROMO_VER))
+KPROMO_PKG := sigs.k8s.io/promo-tools/v3/cmd/kpromo
+
+.PHONY: $(KPROMO_BIN)
+$(KPROMO_BIN): $(KPROMO) ## Build a local copy of kpromo
+
+$(KPROMO):
+	GOBIN=$(BIN_DIR_ABS) $(GO_INSTALL) $(KPROMO_PKG) $(KPROMO_BIN) ${KPROMO_VERSION}
+
+YQ_BIN := yq
+YQ :=  $(abspath $(BIN_DIR)/$(YQ_BIN)-$(YQ_VERSION))
+YQ_PKG := github.com/mikefarah/yq/v4
+
+.PHONY: $(YQ_BIN)
+$(YQ_BIN): $(YQ) ## Build a local copy of yq
+
+$(YQ):
+	GOBIN=$(BIN_DIR_ABS) $(GO_INSTALL) $(YQ_PKG) $(YQ_BIN) ${YQ_VERSION}
 
 ## ------------------------------------------------------------------------------------------------
 ## AWS Session Manager Plugin Installation. Currently support Linux and MacOS AMD64 architectures.
