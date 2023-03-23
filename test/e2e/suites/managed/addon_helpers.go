@@ -40,9 +40,9 @@ type waitForEKSAddonToHaveStatusInput struct {
 func waitForEKSAddonToHaveStatus(input waitForEKSAddonToHaveStatusInput, intervals ...interface{}) {
 	Expect(input.ControlPlane).ToNot(BeNil(), "Invalid argument. input.ControlPlane can't be nil")
 	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
-	Expect(input.AddonName).ShouldNot(HaveLen(0), "Invalid argument. input.AddonName can't be empty")
-	Expect(input.AddonVersion).ShouldNot(HaveLen(0), "Invalid argument. input.AddonVersion can't be empty")
-	Expect(input.AddonStatus).ShouldNot(HaveLen(0), "Invalid argument. input.AddonStatus can't be empty")
+	Expect(input.AddonName).ShouldNot(BeEmpty(), "Invalid argument. input.AddonName can't be empty")
+	Expect(input.AddonVersion).ShouldNot(BeEmpty(), "Invalid argument. input.AddonVersion can't be empty")
+	Expect(input.AddonStatus).ShouldNot(BeEmpty(), "Invalid argument. input.AddonStatus can't be empty")
 
 	ginkgo.By(fmt.Sprintf("Ensuring EKS addon %s has status in %q for EKS cluster %s", input.AddonName, input.AddonStatus, input.ControlPlane.Spec.EKSClusterName))
 
