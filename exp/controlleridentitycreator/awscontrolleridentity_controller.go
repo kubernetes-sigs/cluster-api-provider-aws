@@ -18,7 +18,6 @@ package controlleridentitycreator
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -151,7 +150,7 @@ func (r *AWSControllerIdentityReconciler) SetupWithManager(ctx context.Context, 
 func (r *AWSControllerIdentityReconciler) managedControlPlaneMap(o client.Object) []ctrl.Request {
 	managedControlPlane, ok := o.(*ekscontrolplanev1.AWSManagedControlPlane)
 	if !ok {
-		panic(fmt.Sprintf("Expected a managedControlPlane but got a %T", o))
+		klog.Errorf("Expected a managedControlPlane but got a %T", o)
 	}
 
 	return []ctrl.Request{

@@ -943,7 +943,7 @@ func (r *AWSMachineReconciler) AWSClusterToAWSMachines(log logger.Wrapper) handl
 	return func(o client.Object) []ctrl.Request {
 		c, ok := o.(*infrav1.AWSCluster)
 		if !ok {
-			panic(fmt.Sprintf("Expected a AWSCluster but got a %T", o))
+			klog.Errorf("Expected a AWSCluster but got a %T", o)
 		}
 
 		log := log.WithValues("objectMapper", "awsClusterToAWSMachine", "cluster", klog.KRef(c.Namespace, c.Name))
@@ -972,7 +972,7 @@ func (r *AWSMachineReconciler) requeueAWSMachinesForUnpausedCluster(log logger.W
 	return func(o client.Object) []ctrl.Request {
 		c, ok := o.(*clusterv1.Cluster)
 		if !ok {
-			panic(fmt.Sprintf("Expected a Cluster but got a %T", o))
+			klog.Errorf("Expected a Cluster but got a %T", o)
 		}
 
 		log := log.WithValues("objectMapper", "clusterToAWSMachine", "cluster", klog.KRef(c.Namespace, c.Name))
