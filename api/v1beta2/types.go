@@ -280,6 +280,21 @@ type InstanceMetadataOptions struct {
 	InstanceMetadataTags InstanceMetadataState `json:"instanceMetadataTags,omitempty"`
 }
 
+func (obj *InstanceMetadataOptions) SetDefaults() {
+	if obj.HTTPEndpoint == "" {
+		obj.HTTPEndpoint = InstanceMetadataEndpointStateEnabled
+	}
+	if obj.HTTPPutResponseHopLimit == 0 {
+		obj.HTTPPutResponseHopLimit = 1
+	}
+	if obj.HTTPTokens == "" {
+		obj.HTTPTokens = HTTPTokensStateRequired // Defaults to IMDSv2
+	}
+	if obj.InstanceMetadataTags == "" {
+		obj.InstanceMetadataTags = InstanceMetadataEndpointStateDisabled
+	}
+}
+
 // Volume encapsulates the configuration options for the storage device.
 type Volume struct {
 	// Device name
