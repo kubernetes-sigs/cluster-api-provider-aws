@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -309,7 +308,7 @@ func managedControlPlaneToManagedMachinePoolMapFunc(c client.Client, gvk schema.
 		ctx := context.Background()
 		awsControlPlane, ok := o.(*ekscontrolplanev1.AWSManagedControlPlane)
 		if !ok {
-			panic(fmt.Sprintf("Expected a AWSManagedControlPlane but got a %T", o))
+			klog.Errorf("Expected a AWSManagedControlPlane but got a %T", o)
 		}
 
 		if !awsControlPlane.ObjectMeta.DeletionTimestamp.IsZero() {

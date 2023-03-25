@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -189,7 +188,7 @@ func managedControlPlaneToFargateProfileMapFunc(c client.Client, log logger.Wrap
 
 		awsControlPlane, ok := o.(*ekscontrolplanev1.AWSManagedControlPlane)
 		if !ok {
-			panic(fmt.Sprintf("Expected a AWSManagedControlPlane but got a %T", o))
+			klog.Errorf("Expected a AWSManagedControlPlane but got a %T", o)
 		}
 
 		if !awsControlPlane.ObjectMeta.DeletionTimestamp.IsZero() {
