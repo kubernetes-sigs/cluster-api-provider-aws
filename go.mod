@@ -29,15 +29,15 @@ require (
 	golang.org/x/crypto v0.7.0
 	golang.org/x/text v0.8.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.25.5
+	k8s.io/api v0.26.1
 	k8s.io/apiextensions-apiserver v0.25.2
-	k8s.io/apimachinery v0.25.5
+	k8s.io/apimachinery v0.26.1
 	k8s.io/cli-runtime v0.25.5
-	k8s.io/client-go v0.25.5
-	k8s.io/component-base v0.25.2
+	k8s.io/client-go v0.26.1
+	k8s.io/component-base v0.26.1
 	k8s.io/klog/v2 v2.90.1
-	k8s.io/utils v0.0.0-20220823124924-e9cbc92d1a73
-	sigs.k8s.io/aws-iam-authenticator v0.6.7
+	k8s.io/utils v0.0.0-20221107191617-1a15be271d1d
+	sigs.k8s.io/aws-iam-authenticator v0.6.8
 	sigs.k8s.io/cluster-api v1.3.5
 	sigs.k8s.io/cluster-api/test v1.3.5
 	sigs.k8s.io/controller-runtime v0.13.1
@@ -111,7 +111,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/moby/spdystream v0.2.0 // indirect
-	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
+	github.com/moby/term v0.0.0-20220808134915-39b0c02b01ae // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
