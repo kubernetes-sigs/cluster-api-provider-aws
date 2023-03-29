@@ -187,6 +187,8 @@ variables:
   AUTO_CONTROLLER_IDENTITY_CREATOR: "false"
   IP_FAMILY: "IPv4"
   CAPA_LOGLEVEL: "4"
+  EXP_EXTERNAL_RESOURCE_GC: "true"
+  GC_WORKLOAD: "../../data/gcworkload.yaml"
 
 intervals:
   default/wait-cluster: ["30m", "10s"]
