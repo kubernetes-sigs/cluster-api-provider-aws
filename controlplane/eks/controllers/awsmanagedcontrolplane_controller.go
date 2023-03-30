@@ -366,7 +366,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileDelete(ctx context.Context, 
 func (r *AWSManagedControlPlaneReconciler) ClusterToAWSManagedControlPlane(o client.Object) []ctrl.Request {
 	c, ok := o.(*clusterv1.Cluster)
 	if !ok {
-		panic(fmt.Sprintf("Expected a Cluster but got a %T", o))
+		klog.Errorf("Expected a Cluster but got a %T", o)
 	}
 
 	if !c.ObjectMeta.DeletionTimestamp.IsZero() {
