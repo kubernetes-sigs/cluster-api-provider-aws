@@ -19,7 +19,6 @@ package controllers
 import (
 	"bytes"
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -322,7 +321,7 @@ func (r *EKSConfigReconciler) MachineToBootstrapMapFunc(o client.Object) []ctrl.
 
 	m, ok := o.(*clusterv1.Machine)
 	if !ok {
-		panic(fmt.Sprintf("Expected a Machine but got a %T", o))
+		klog.Errorf("Expected a Machine but got a %T", o)
 	}
 	if m.Spec.Bootstrap.ConfigRef != nil && m.Spec.Bootstrap.ConfigRef.GroupVersionKind() == eksbootstrapv1.GroupVersion.WithKind("EKSConfig") {
 		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
@@ -338,7 +337,7 @@ func (r *EKSConfigReconciler) MachinePoolToBootstrapMapFunc(o client.Object) []c
 
 	m, ok := o.(*expclusterv1.MachinePool)
 	if !ok {
-		panic(fmt.Sprintf("Expected a MachinePool but got a %T", o))
+		klog.Errorf("Expected a MachinePool but got a %T", o)
 	}
 	configRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
 	if configRef != nil && configRef.GroupVersionKind().GroupKind() == eksbootstrapv1.GroupVersion.WithKind("EKSConfig").GroupKind() {
@@ -356,7 +355,7 @@ func (r *EKSConfigReconciler) ClusterToEKSConfigs(o client.Object) []ctrl.Reques
 
 	c, ok := o.(*clusterv1.Cluster)
 	if !ok {
-		panic(fmt.Sprintf("Expected a Cluster but got a %T", o))
+		klog.Errorf("Expected a Cluster but got a %T", o)
 	}
 
 	selectors := []client.ListOption{
