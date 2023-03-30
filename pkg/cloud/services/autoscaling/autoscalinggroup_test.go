@@ -449,8 +449,9 @@ func TestServiceCreateASG(t *testing.T) {
 							},
 						},
 					},
-					MaxSize: aws.Int64(0),
-					MinSize: aws.Int64(0),
+					DesiredCapacity: aws.Int64(1),
+					MaxSize:         aws.Int64(2),
+					MinSize:         aws.Int64(1),
 					Tags: []*autoscaling.Tag{
 						{
 							Key:               aws.String("kubernetes.io/cluster/test"),
@@ -502,6 +503,72 @@ func TestServiceCreateASG(t *testing.T) {
 			},
 		},
 		{
+			name:            "should not fail if MachinePool replicas number is less than AWSMachinePool MinSize for externally managed replicas",
+			machinePoolName: "create-asg-success",
+			setupMachinePoolScope: func(mps *scope.MachinePoolScope) {
+				mps.AWSMachinePool.Spec.MinSize = 2
+				mps.AWSMachinePool.Spec.MaxSize = 5
+				mps.MachinePool.Spec.Replicas = aws.Int32(1)
+				mps.MachinePool.Annotations = map[string]string{
+					scope.ReplicasManagedByAnnotation: scope.ExternalAutoscalerReplicasManagedByAnnotationValue,
+				}
+			},
+			wantErr: false,
+			expect: func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {
+				m.CreateAutoScalingGroup(gomock.AssignableToTypeOf(&autoscaling.CreateAutoScalingGroupInput{})).Do(
+					func(actual *autoscaling.CreateAutoScalingGroupInput) (*autoscaling.CreateAutoScalingGroupOutput, error) {
+						if actual.DesiredCapacity != nil {
+							t.Fatalf("Actual DesiredCapacity did not match expected, Actual: %d, Expected: <nil>", *actual.DesiredCapacity)
+						}
+						return &autoscaling.CreateAutoScalingGroupOutput{}, nil
+					})
+			},
+		},
+		{
+			name:            "should not fail if MachinePool replicas number is greater than AWSMachinePool MaxSize for externally managed replicas",
+			machinePoolName: "create-asg-success",
+			setupMachinePoolScope: func(mps *scope.MachinePoolScope) {
+				mps.AWSMachinePool.Spec.MinSize = 2
+				mps.AWSMachinePool.Spec.MaxSize = 5
+				mps.MachinePool.Spec.Replicas = aws.Int32(6)
+				mps.MachinePool.Annotations = map[string]string{
+					scope.ReplicasManagedByAnnotation: scope.ExternalAutoscalerReplicasManagedByAnnotationValue,
+				}
+			},
+			wantErr: false,
+			expect: func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {
+				m.CreateAutoScalingGroup(gomock.AssignableToTypeOf(&autoscaling.CreateAutoScalingGroupInput{})).Do(
+					func(actual *autoscaling.CreateAutoScalingGroupInput) (*autoscaling.CreateAutoScalingGroupOutput, error) {
+						if actual.DesiredCapacity != nil {
+							t.Fatalf("Actual DesiredCapacity did not match expected, Actual: %d, Expected: <nil>", *actual.DesiredCapacity)
+						}
+						return &autoscaling.CreateAutoScalingGroupOutput{}, nil
+					})
+			},
+		},
+		{
+			name:            "should return error if MachinePool replicas number is less than AWSMachinePool MinSize",
+			machinePoolName: "create-asg-fail",
+			setupMachinePoolScope: func(mps *scope.MachinePoolScope) {
+				mps.AWSMachinePool.Spec.MinSize = 2
+				mps.AWSMachinePool.Spec.MaxSize = 3
+				mps.MachinePool.Spec.Replicas = aws.Int32(1)
+			},
+			wantErr: true,
+			expect:  func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {},
+		},
+		{
+			name:            "should return error if MachinePool replicas number is greater than AWSMachinePool MaxSize",
+			machinePoolName: "create-asg-fail",
+			setupMachinePoolScope: func(mps *scope.MachinePoolScope) {
+				mps.AWSMachinePool.Spec.MinSize = 2
+				mps.AWSMachinePool.Spec.MaxSize = 3
+				mps.MachinePool.Spec.Replicas = aws.Int32(4)
+			},
+			wantErr: true,
+			expect:  func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {},
+		},
+		{
 			name:            "should return error if subnet not found for asg",
 			machinePoolName: "create-asg-fail",
 			setupMachinePoolScope: func(mps *scope.MachinePoolScope) {
@@ -551,6 +618,10 @@ func TestServiceCreateASG(t *testing.T) {
 			mps, err := getMachinePoolScope(fakeClient, clusterScope)
 			g.Expect(err).ToNot(HaveOccurred())
 			mps.AWSMachinePool.Name = tt.machinePoolName
+
+			// Default MachinePool replicas to 1, like it's done in CAPI.
+			mps.MachinePool.Spec.Replicas = aws.Int32(1)
+
 			tt.setupMachinePoolScope(mps)
 			asg, err := s.CreateASG(mps)
 			checkErr(tt.wantErr, err, g)
@@ -1137,6 +1208,8 @@ func getClusterScope(client client.Client) (*scope.ClusterScope, error) {
 func getMachinePoolScope(client client.Client, clusterScope *scope.ClusterScope) (*scope.MachinePoolScope, error) {
 	awsMachinePool := &expinfrav1.AWSMachinePool{
 		Spec: expinfrav1.AWSMachinePoolSpec{
+			MinSize: 1,
+			MaxSize: 2,
 			Subnets: []infrav1.AWSResourceReference{
 				{
 					ID: aws.String("subnet1"),
