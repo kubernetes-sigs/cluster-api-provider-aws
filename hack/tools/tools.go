@@ -28,6 +28,7 @@ import (
 	_ "github.com/golang/mock/mockgen"
 	_ "github.com/itchyny/gojq/cmd/gojq"
 	_ "github.com/joelanford/go-apidiff"
+	_ "github.com/mikefarah/yq/v4"
 	_ "k8s.io/apimachinery/pkg/util/intstr"
 	_ "k8s.io/code-generator"
 	_ "k8s.io/code-generator/cmd/conversion-gen"
@@ -38,5 +39,6 @@ import (
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
 	_ "sigs.k8s.io/kind"
 	_ "sigs.k8s.io/kustomize/kustomize/v4"
+	_ "sigs.k8s.io/promo-tools/v3/cmd/kpromo"
 	_ "sigs.k8s.io/testing_frameworks/integration"
 )
