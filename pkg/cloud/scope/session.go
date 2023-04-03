@@ -162,6 +162,10 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Cl
 		_, err := providers[0].Retrieve()
 		if err != nil {
 			conditions.MarkUnknown(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition, infrav1.CredentialProviderBuildFailedReason, err.Error())
+
+			// delete the existing session from cache. Otherwise, we give back a defective session on next method invocation with same cluster scope
+			sessionCache.Delete(getSessionName(region, clusterScoper))
+
 			return nil, nil, errors.Wrap(err, "Failed to retrieve identity credentials")
 		}
 		awsConfig = awsConfig.WithCredentials(credentials.NewChainCredentials(awsProviders))
