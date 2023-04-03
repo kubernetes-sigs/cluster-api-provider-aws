@@ -19,6 +19,7 @@ package ec2
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -69,6 +70,7 @@ func (s *Service) ReconcileLaunchTemplate(
 		conditions.MarkUnknown(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNotFoundReason, err.Error())
 		return err
 	}
+	log := scope.GetLogger().WithValues("launchTemplate", launchTemplate)
 
 	imageID, err := ec2svc.DiscoverLaunchTemplateAMI(scope)
 	if err != nil {
@@ -77,7 +79,7 @@ func (s *Service) ReconcileLaunchTemplate(
 	}
 
 	if launchTemplate == nil {
-		scope.Info("no existing launch template found, creating")
+		log.Info("no existing launch template found, creating")
 		launchTemplateID, err := ec2svc.CreateLaunchTemplate(scope, imageID, bootstrapData)
 		if err != nil {
 			conditions.MarkFalse(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, err.Error())
@@ -91,6 +93,8 @@ func (s *Service) ReconcileLaunchTemplate(
 	// LaunchTemplateID is set during LaunchTemplate creation, but for a scenario such as `clusterctl move`, status fields become blank.
 	// If launchTemplate already exists but LaunchTemplateID field in the status is empty, get the ID and update the status.
 	if scope.GetLaunchTemplateIDStatus() == "" {
+		log.V(3).Info("launch template status unset, patching")
+
 		launchTemplateID, err := ec2svc.GetLaunchTemplateID(scope.LaunchTemplateName())
 		if err != nil {
 			conditions.MarkUnknown(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNotFoundReason, err.Error())
@@ -101,6 +105,8 @@ func (s *Service) ReconcileLaunchTemplate(
 	}
 
 	if scope.GetLaunchTemplateLatestVersionStatus() == "" {
+		log.V(3).Info("launch template latest version unset, patching")
+
 		launchTemplateVersion, err := ec2svc.GetLaunchTemplateLatestVersion(scope.GetLaunchTemplateIDStatus())
 		if err != nil {
 			conditions.MarkUnknown(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNotFoundReason, err.Error())
@@ -110,6 +116,7 @@ func (s *Service) ReconcileLaunchTemplate(
 		return scope.PatchObject()
 	}
 
+	log.V(3).Info("calculating last applied tags for launch template")
 	annotation, err := MachinePoolAnnotationJSON(scope, TagsLastAppliedAnnotation)
 	if err != nil {
 		return err
@@ -120,13 +127,14 @@ func (s *Service) ReconcileLaunchTemplate(
 
 	needsUpdate, err := ec2svc.LaunchTemplateNeedsUpdate(scope, scope.GetLaunchTemplate(), launchTemplate)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to detect if launch template needs update: %w", err)
 	}
 
+	log.Info("detecting if launch template needs update", "needsUpdate", needsUpdate, "tagsChanged", tagsChanged, "imageID", *imageID, "launchTemplate.AMI.ID", *launchTemplate.AMI.ID, "launchTemplateUserDataHash", launchTemplateUserDataHash, "bootstrapDataHash", bootstrapDataHash)
 	if needsUpdate || tagsChanged || *imageID != *launchTemplate.AMI.ID {
 		canUpdate, err := canUpdateLaunchTemplate()
 		if err != nil {
-			return err
+			return fmt.Errorf("canUpdateLaunchTemplate func failed: %w", err)
 		}
 		if !canUpdate {
 			conditions.MarkFalse(scope.GetSetter(), expinfrav1.PreLaunchTemplateUpdateCheckCondition, expinfrav1.PreLaunchTemplateUpdateCheckFailedReason, clusterv1.ConditionSeverityWarning, "")
@@ -137,23 +145,23 @@ func (s *Service) ReconcileLaunchTemplate(
 	// Create a new launch template version if there's a difference in configuration, tags,
 	// userdata, OR we've discovered a new AMI ID.
 	if needsUpdate || tagsChanged || *imageID != *launchTemplate.AMI.ID || launchTemplateUserDataHash != bootstrapDataHash {
-		scope.Info("creating new version for launch template", "existing", launchTemplate, "incoming", scope.GetLaunchTemplate())
+		log.Info("creating new version for launch template", "existing", launchTemplate, "incoming", scope.GetLaunchTemplate())
 		// There is a limit to the number of Launch Template Versions.
 		// We ensure that the number of versions does not grow without bound by following a simple rule: Before we create a new version, we delete one old version, if there is at least one old version that is not in use.
 		if err := ec2svc.PruneLaunchTemplateVersions(scope.GetLaunchTemplateIDStatus()); err != nil {
-			return err
+			return fmt.Errorf("PruneLaunchTemplateVersions failed: %w", err)
 		}
 		if err := ec2svc.CreateLaunchTemplateVersion(scope.GetLaunchTemplateIDStatus(), scope, imageID, bootstrapData); err != nil {
-			return err
+			return fmt.Errorf("CreateLaunchTemplateVersion failed: %w", err)
 		}
 		version, err := ec2svc.GetLaunchTemplateLatestVersion(scope.GetLaunchTemplateIDStatus())
 		if err != nil {
-			return err
+			return fmt.Errorf("GetLaunchTemplateLatestVersion failed: %w", err)
 		}
 
 		scope.SetLaunchTemplateLatestVersionStatus(version)
 		if err := scope.PatchObject(); err != nil {
-			return err
+			return fmt.Errorf("SetLaunchTemplateLatestVersionStatus failed: %w", err)
 		}
 	}
 

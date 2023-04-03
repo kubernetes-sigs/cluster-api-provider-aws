@@ -19,7 +19,9 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
@@ -227,13 +229,58 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	ec2Svc := r.getEC2Service(ec2Scope)
 	asgsvc := r.getASGService(clusterScope)
 
+	// Find existing ASG
+	asg, err := r.findASG(machinePoolScope, asgsvc)
+	if err != nil {
+		conditions.MarkUnknown(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, expinfrav1.ASGNotFoundReason, err.Error())
+		return ctrl.Result{}, err
+	}
+	if asg == nil {
+		machinePoolScope.Debug("asg not created yet")
+		r.Recorder.Eventf(machinePoolScope.AWSMachinePool, corev1.EventTypeNormal, expinfrav1.ASGNotFoundReason, "Unable to find matching ASG")
+	}
+
 	canUpdateLaunchTemplate := func() (bool, error) {
 		// If there is a change: before changing the template, check if there exist an ongoing instance refresh,
 		// because only 1 instance refresh can be "InProgress". If template is updated when refresh cannot be started,
 		// that change will not trigger a refresh. Do not start an instance refresh if only userdata changed.
 		return asgsvc.CanStartASGInstanceRefresh(machinePoolScope)
 	}
+	if asg == nil {
+		canUpdateLaunchTemplate = func() (bool, error) {
+			return true, nil
+		}
+	}
+
 	runPostLaunchTemplateUpdateOperation := func() error {
+		launchTemplateID := machinePoolScope.GetLaunchTemplateIDStatus()
+		asgName := machinePoolScope.Name()
+		resourceServiceToUpdate := []scope.ResourceServiceToUpdate{
+			{
+				ResourceID:      &launchTemplateID,
+				ResourceService: ec2Svc,
+			},
+			{
+				ResourceID:      &asgName,
+				ResourceService: asgsvc,
+			},
+		}
+		// Update the AWSMachinePool annotation immediately after creating a new template
+		err = ec2Svc.ReconcileTags(machinePoolScope, resourceServiceToUpdate)
+		if err != nil {
+			return errors.Wrap(err, "error updating tags")
+		}
+
+		asg, err := r.findASG(machinePoolScope, asgsvc)
+		if err != nil {
+			return fmt.Errorf("failed to find asg %q for instance refresh: %w", asgName, err)
+		}
+		if asg == nil {
+			machinePoolScope.Debug("asg not created yet, skipping instance refresh")
+			r.Recorder.Eventf(machinePoolScope.AWSMachinePool, corev1.EventTypeNormal, expinfrav1.ASGNotFoundReason, "Unable to find matching ASG")
+			return nil
+		}
+
 		// skip instance refresh if explicitly disabled
 		if machinePoolScope.AWSMachinePool.Spec.RefreshPreferences != nil && machinePoolScope.AWSMachinePool.Spec.RefreshPreferences.Disable {
 			machinePoolScope.Debug("instance refresh disabled, skipping instance refresh")
@@ -260,20 +307,13 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	// set the LaunchTemplateReady condition
 	conditions.MarkTrue(machinePoolScope.AWSMachinePool, expinfrav1.LaunchTemplateReadyCondition)
 
-	// Find existing ASG
-	asg, err := r.findASG(machinePoolScope, asgsvc)
-	if err != nil {
-		conditions.MarkUnknown(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, expinfrav1.ASGNotFoundReason, err.Error())
-		return ctrl.Result{}, err
-	}
-
 	if asg == nil {
 		// Create new ASG
 		if err := r.createPool(machinePoolScope, clusterScope); err != nil {
 			conditions.MarkFalse(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, expinfrav1.ASGProvisionFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{}, nil
+		return ctrl.Result{RequeueAfter: time.Minute}, nil
 	}
 
 	if scope.ReplicasExternallyManaged(machinePoolScope.MachinePool) {
@@ -292,23 +332,6 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	if err := r.updatePool(machinePoolScope, clusterScope, asg); err != nil {
 		machinePoolScope.Error(err, "error updating AWSMachinePool")
 		return ctrl.Result{}, err
-	}
-
-	launchTemplateID := machinePoolScope.GetLaunchTemplateIDStatus()
-	asgName := machinePoolScope.Name()
-	resourceServiceToUpdate := []scope.ResourceServiceToUpdate{
-		{
-			ResourceID:      &launchTemplateID,
-			ResourceService: ec2Svc,
-		},
-		{
-			ResourceID:      &asgName,
-			ResourceService: asgsvc,
-		},
-	}
-	err = ec2Svc.ReconcileTags(machinePoolScope, resourceServiceToUpdate)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "error updating tags")
 	}
 
 	// Make sure Spec.ProviderID is always set.
@@ -347,7 +370,7 @@ func (r *AWSMachinePoolReconciler) reconcileDelete(machinePoolScope *scope.Machi
 
 	if asg == nil {
 		machinePoolScope.Debug("Unable to locate ASG")
-		r.Recorder.Eventf(machinePoolScope.AWSMachinePool, corev1.EventTypeNormal, "NoASGFound", "Unable to find matching ASG")
+		r.Recorder.Eventf(machinePoolScope.AWSMachinePool, corev1.EventTypeNormal, expinfrav1.ASGNotFoundReason, "Unable to find matching ASG")
 	} else {
 		machinePoolScope.SetASGStatus(asg.Status)
 		switch asg.Status {
@@ -374,7 +397,7 @@ func (r *AWSMachinePoolReconciler) reconcileDelete(machinePoolScope *scope.Machi
 
 	if launchTemplate == nil {
 		machinePoolScope.Debug("Unable to locate launch template")
-		r.Recorder.Eventf(machinePoolScope.AWSMachinePool, corev1.EventTypeNormal, "NoASGFound", "Unable to find matching ASG")
+		r.Recorder.Eventf(machinePoolScope.AWSMachinePool, corev1.EventTypeNormal, expinfrav1.ASGNotFoundReason, "Unable to find matching ASG")
 		controllerutil.RemoveFinalizer(machinePoolScope.AWSMachinePool, expinfrav1.MachinePoolFinalizer)
 		return ctrl.Result{}, nil
 	}
@@ -497,29 +520,50 @@ func (r *AWSMachinePoolReconciler) findASG(machinePoolScope *scope.MachinePoolSc
 func asgNeedsUpdates(machinePoolScope *scope.MachinePoolScope, existingASG *expinfrav1.AutoScalingGroup) bool {
 	if !scope.ReplicasExternallyManaged(machinePoolScope.MachinePool) {
 		if machinePoolScope.MachinePool.Spec.Replicas != nil {
-			if existingASG.DesiredCapacity == nil || *machinePoolScope.MachinePool.Spec.Replicas != *existingASG.DesiredCapacity {
+			if existingASG.DesiredCapacity == nil {
+				machinePoolScope.Info("DesiredCapacity unset, diff detected", "incoming", *machinePoolScope.MachinePool.Spec.Replicas, "existing", existingASG.DesiredCapacity)
+				return true
+			}
+			if *machinePoolScope.MachinePool.Spec.Replicas != *existingASG.DesiredCapacity {
+				machinePoolScope.Info("DesiredCapacity diff detected", "incoming", *machinePoolScope.MachinePool.Spec.Replicas, "existing", *existingASG.DesiredCapacity)
 				return true
 			}
 		} else if existingASG.DesiredCapacity != nil {
+			machinePoolScope.Info("Replicas nil, DesiredCapacity diff detected", "incoming", machinePoolScope.MachinePool.Spec.Replicas, "existing", *existingASG.DesiredCapacity)
 			return true
 		}
 	}
 
 	if machinePoolScope.AWSMachinePool.Spec.MaxSize != existingASG.MaxSize {
+		machinePoolScope.Info("MinSize diff detected", "incoming", machinePoolScope.AWSMachinePool.Spec.MaxSize, "existing", existingASG.MaxSize)
 		return true
 	}
 
 	if machinePoolScope.AWSMachinePool.Spec.MinSize != existingASG.MinSize {
+		machinePoolScope.Info("MinSize diff detected", "incoming", machinePoolScope.AWSMachinePool.Spec.MinSize, "existing", existingASG.MinSize)
 		return true
 	}
 
 	if machinePoolScope.AWSMachinePool.Spec.CapacityRebalance != existingASG.CapacityRebalance {
+		machinePoolScope.Info("CapacityRebalance diff detected", "incoming", machinePoolScope.AWSMachinePool.Spec.CapacityRebalance, "existing", existingASG.CapacityRebalance)
 		return true
 	}
 
-	if !cmp.Equal(machinePoolScope.AWSMachinePool.Spec.MixedInstancesPolicy, existingASG.MixedInstancesPolicy) {
-		machinePoolScope.Info("got a mixed diff here", "incoming", machinePoolScope.AWSMachinePool.Spec.MixedInstancesPolicy, "existing", existingASG.MixedInstancesPolicy)
-		return true
+	{
+		mixedInstancesPolicy := machinePoolScope.AWSMachinePool.Spec.MixedInstancesPolicy
+
+		// InstancesDistribution is optional, and the default values come from AWS, so
+		// they are not set by the AWSMachinePool defaulting webhook. If InstancesDistribution is
+		// not set, we use the AWS values for the purpose of comparison.
+		if mixedInstancesPolicy != nil && mixedInstancesPolicy.InstancesDistribution == nil {
+			mixedInstancesPolicy = machinePoolScope.AWSMachinePool.Spec.MixedInstancesPolicy.DeepCopy()
+			mixedInstancesPolicy.InstancesDistribution = existingASG.MixedInstancesPolicy.InstancesDistribution
+		}
+
+		if !cmp.Equal(mixedInstancesPolicy, existingASG.MixedInstancesPolicy) {
+			machinePoolScope.Info("MixedInstancesPolicy diff detected", "incoming", spew.Sprintf("%#v", mixedInstancesPolicy), "existing", spew.Sprintf("%#v", existingASG.MixedInstancesPolicy))
+			return true
+		}
 	}
 
 	return false
