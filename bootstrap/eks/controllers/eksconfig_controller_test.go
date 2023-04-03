@@ -21,9 +21,11 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bsutil "sigs.k8s.io/cluster-api/bootstrap/util"
 )
 
 func TestEKSConfigReconcilerReturnEarlyIfClusterInfraNotReady(t *testing.T) {
@@ -42,7 +44,7 @@ func TestEKSConfigReconcilerReturnEarlyIfClusterInfraNotReady(t *testing.T) {
 	}
 
 	g.Eventually(func(gomega Gomega) {
-		result, err := reconciler.joinWorker(context.Background(), cluster, config)
+		result, err := reconciler.joinWorker(context.Background(), cluster, config, configOwner("Machine"))
 		gomega.Expect(result).To(Equal(reconcile.Result{}))
 		gomega.Expect(err).NotTo(HaveOccurred())
 	}).Should(Succeed())
@@ -64,8 +66,16 @@ func TestEKSConfigReconcilerReturnEarlyIfClusterControlPlaneNotInitialized(t *te
 	}
 
 	g.Eventually(func(gomega Gomega) {
-		result, err := reconciler.joinWorker(context.Background(), cluster, config)
+		result, err := reconciler.joinWorker(context.Background(), cluster, config, configOwner("Machine"))
 		gomega.Expect(result).To(Equal(reconcile.Result{}))
 		gomega.Expect(err).NotTo(HaveOccurred())
 	}).Should(Succeed())
+}
+
+func configOwner(kind string) *bsutil.ConfigOwner {
+	unstructuredOwner := unstructured.Unstructured{
+		Object: map[string]interface{}{"kind": kind},
+	}
+	configOwner := bsutil.ConfigOwner{Unstructured: &unstructuredOwner}
+	return &configOwner
 }
