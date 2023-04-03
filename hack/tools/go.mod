@@ -17,7 +17,7 @@ require (
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20221121093230-b1688621953c
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20211110210527-619e6b92dab9
 	sigs.k8s.io/controller-tools v0.11.3
-	sigs.k8s.io/kind v0.17.0
+	sigs.k8s.io/kind v0.18.0
 	sigs.k8s.io/kustomize/kustomize/v4 v4.5.7
 	sigs.k8s.io/promo-tools/v3 v3.5.1
 	sigs.k8s.io/testing_frameworks v0.1.2
