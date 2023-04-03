@@ -195,6 +195,7 @@ type AWSLoadBalancerSpec struct {
 
 	// HealthCheckProtocol sets the protocol type for ELB health check target
 	// default value is ELBProtocolSSL
+	// +kubebuilder:validation:Enum=TCP;SSL;HTTP;HTTPS;TLS;UDP
 	// +optional
 	HealthCheckProtocol *ELBProtocol `json:"healthCheckProtocol,omitempty"`
 
