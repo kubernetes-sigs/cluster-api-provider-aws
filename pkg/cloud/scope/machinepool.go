@@ -356,6 +356,7 @@ func nodeIsReady(node corev1.Node) bool {
 	}
 	return false
 }
+
 func (m *MachinePoolScope) GetLaunchTemplate() *expinfrav1.AWSLaunchTemplate {
 	return &m.AWSMachinePool.Spec.AWSLaunchTemplate
 }
