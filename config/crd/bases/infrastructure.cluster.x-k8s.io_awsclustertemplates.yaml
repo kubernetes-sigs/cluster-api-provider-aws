@@ -155,11 +155,6 @@ spec:
                             description: HealthCheckProtocol sets the protocol type
                               for classic ELB health check target default value is
                               ClassicELBProtocolSSL
-                            enum:
-                            - TCP
-                            - SSL
-                            - HTTP
-                            - HTTPS
                             type: string
                           name:
                             description: Name sets the name of the classic ELB load
