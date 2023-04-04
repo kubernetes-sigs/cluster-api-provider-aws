@@ -106,6 +106,36 @@ spec:
   ...
 ```
 
+#### Cross Account Role Assumption
+
+CAPA, by default, does not provide the necessary permissions to allow cross-account role assumption, which can be used to manage clusters in other environments. This is documented [here](multitenancy.md#necessary-permissions-for-assuming-a-role). The 'sts:AssumeRole' permissions can be added via the following configuration on the manager account configuration:
+
+```yaml
+apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSIAMConfiguration
+spec:
+  ...
+  allowAssumeRole: true
+  ...
+```
+
+The above will give the controller to have the necessary permissions needed in order for it to manage clusters in other accounts using the AWSClusterRoleIdentity. Please note, the above should only be applied to the account where CAPA is running. To allow CAPA to assume the roles in the managed/target accounts, the following configuration needs to be used:
+```yaml
+apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSIAMConfiguration
+spec:
+  ...
+  clusterAPIControllers:
+    disabled: false
+    trustStatements:
+    - Action:
+      - "sts:AssumeRole"
+      Effect: "Allow"
+      Principal:
+        AWS:
+        - "arn:aws:iam::<manager account>:role/controllers.cluster-api-provider-aws.sigs.k8s.io"
+  ...
+```
 
 
 ### Without `clusterawsadm`
