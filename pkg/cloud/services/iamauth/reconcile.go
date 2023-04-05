@@ -124,7 +124,7 @@ func (s *Service) getRolesForMachineDeployments(ctx context.Context, allRoles ma
 	selectors := []client.ListOption{
 		client.InNamespace(s.scope.Namespace()),
 		client.MatchingLabels{
-			clusterv1.ClusterLabelName: s.scope.Name(),
+			clusterv1.ClusterNameLabel: s.scope.Name(),
 		},
 	}
 	err := s.client.List(ctx, deploymentList, selectors...)
@@ -158,7 +158,7 @@ func (s *Service) getRolesForMachinePools(ctx context.Context, allRoles map[stri
 	selectors := []client.ListOption{
 		client.InNamespace(s.scope.Namespace()),
 		client.MatchingLabels{
-			clusterv1.ClusterLabelName: s.scope.Name(),
+			clusterv1.ClusterNameLabel: s.scope.Name(),
 		},
 	}
 	err := s.client.List(ctx, machinePoolList, selectors...)

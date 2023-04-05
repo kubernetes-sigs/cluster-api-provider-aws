@@ -141,7 +141,7 @@ func TestInstanceIfExists(t *testing.T) {
 					t.Fatalf("expected instance but got nothing")
 				}
 
-				if instance.ID != "id-1" {
+				if instance != nil && instance.ID != "id-1" {
 					t.Fatalf("expected id-1 but got: %v", instance.ID)
 				}
 			},

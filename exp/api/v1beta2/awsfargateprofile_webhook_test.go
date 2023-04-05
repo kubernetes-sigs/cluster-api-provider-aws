@@ -38,7 +38,7 @@ func TestAWSFargateProfileDefault(t *testing.T) {
 	t.Run("for AWSFargateProfile", utildefaulting.DefaultValidateTest(fargate))
 	fargate.Default()
 	g := NewWithT(t)
-	g.Expect(fargate.GetLabels()[clusterv1.ClusterLabelName]).To(BeEquivalentTo(fargate.Spec.ClusterName))
+	g.Expect(fargate.GetLabels()[clusterv1.ClusterNameLabel]).To(BeEquivalentTo(fargate.Spec.ClusterName))
 	name, err := eks.GenerateEKSName(fargate.Name, fargate.Namespace, maxProfileNameLength)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(fargate.Spec.ProfileName).To(BeEquivalentTo(name))
