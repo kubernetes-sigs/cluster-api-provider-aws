@@ -212,6 +212,7 @@ Resources:
           - elasticloadbalancing:DeleteTargetGroup
           - elasticloadbalancing:DescribeLoadBalancers
           - elasticloadbalancing:DescribeLoadBalancerAttributes
+          - elasticloadbalancing:DescribeTargetGroups
           - elasticloadbalancing:ApplySecurityGroupsToLoadBalancer
           - elasticloadbalancing:DescribeTags
           - elasticloadbalancing:ModifyLoadBalancerAttributes
