@@ -992,6 +992,13 @@ spec:
                   healthCheckProtocol:
                     description: HealthCheckProtocol sets the protocol type for ELB
                       health check target default value is ELBProtocolSSL
+                    enum:
+                    - TCP
+                    - SSL
+                    - HTTP
+                    - HTTPS
+                    - TLS
+                    - UDP
                     type: string
                   loadBalancerType:
                     default: classic

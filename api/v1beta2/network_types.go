@@ -73,7 +73,7 @@ var (
 	ELBProtocolHTTPS = ELBProtocol("HTTPS")
 	// ELBProtocolTLS defines the NLB API string representing the TLS protocol.
 	ELBProtocolTLS = ELBProtocol("TLS")
-	// ELBProtocolUDP defines the NLB API string representing the UPD protocol.
+	// ELBProtocolUDP defines the NLB API string representing the UDP protocol.
 	ELBProtocolUDP = ELBProtocol("UDP")
 )
 
