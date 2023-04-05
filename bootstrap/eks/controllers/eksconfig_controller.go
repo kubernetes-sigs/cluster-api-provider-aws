@@ -19,6 +19,7 @@ package controllers
 import (
 	"bytes"
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -74,20 +75,23 @@ func (r *EKSConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		log.Error(err, "Failed to get config")
 		return ctrl.Result{}, err
 	}
+	log = log.WithValues("EKSConfig", config.GetName())
 
 	// check owner references and look up owning Machine object
 	configOwner, err := bsutil.GetConfigOwner(ctx, r.Client, config)
 	if apierrors.IsNotFound(err) {
 		// no error here, requeue until we find an owner
-		return ctrl.Result{}, nil
+		log.Debug("eksconfig failed to look up owner reference, re-queueing")
+		return ctrl.Result{RequeueAfter: time.Minute}, nil
 	}
 	if err != nil {
-		log.Error(err, "Failed to get owner")
+		log.Error(err, "eksconfig failed to get owner")
 		return ctrl.Result{}, err
 	}
 	if configOwner == nil {
 		// no error, requeue until we find an owner
-		return ctrl.Result{}, nil
+		log.Debug("eksconfig has no owner reference set, re-queueing")
+		return ctrl.Result{RequeueAfter: time.Minute}, nil
 	}
 
 	log = log.WithValues(configOwner.GetKind(), configOwner.GetName())
@@ -95,12 +99,12 @@ func (r *EKSConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	cluster, err := util.GetClusterByName(ctx, r.Client, configOwner.GetNamespace(), configOwner.ClusterName())
 	if err != nil {
 		if errors.Is(err, util.ErrNoCluster) {
-			log.Info("EKSConfig does not belong to a cluster yet, re-queuing until it's partof a cluster")
-			return ctrl.Result{}, nil
+			log.Info("EKSConfig does not belong to a cluster yet, re-queuing until it's part of a cluster")
+			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
 		if apierrors.IsNotFound(err) {
 			log.Info("Cluster does not exist yet, re-queueing until it is created")
-			return ctrl.Result{}, nil
+			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
 		log.Error(err, "Could not get cluster with metadata")
 		return ctrl.Result{}, err
@@ -138,13 +142,14 @@ func (r *EKSConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}()
 
-	return r.joinWorker(ctx, cluster, config)
+	return r.joinWorker(ctx, cluster, config, configOwner)
 }
 
-func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1.Cluster, config *eksbootstrapv1.EKSConfig) (ctrl.Result, error) {
+func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1.Cluster, config *eksbootstrapv1.EKSConfig, configOwner *bsutil.ConfigOwner) (ctrl.Result, error) {
 	log := logger.FromContext(ctx)
 
-	if config.Status.DataSecretName != nil {
+	// only need to reconcile the secret for Machine kinds once, but MachinePools need updates for new launch templates
+	if config.Status.DataSecretName != nil && configOwner.GetKind() == "Machine" {
 		secretKey := client.ObjectKey{Namespace: config.Namespace, Name: *config.Status.DataSecretName}
 		log = log.WithValues("data-secret-name", secretKey.Name)
 		existingSecret := &corev1.Secret{}
@@ -289,7 +294,7 @@ func (r *EKSConfigReconciler) storeBootstrapData(ctx context.Context, cluster *c
 		Namespace: config.Namespace,
 	}, secret); err != nil {
 		if apierrors.IsNotFound(err) {
-			if err := r.createBootstrapSecret(ctx, cluster, config, data); err != nil {
+			if secret, err = r.createBootstrapSecret(ctx, cluster, config, data); err != nil {
 				return errors.Wrap(err, "failed to create bootstrap data secret for EKSConfig")
 			}
 			log.Info("created bootstrap data secret for EKSConfig", "secret", klog.KObj(secret))
@@ -382,7 +387,7 @@ func (r *EKSConfigReconciler) ClusterToEKSConfigs(o client.Object) []ctrl.Reques
 }
 
 // Create the Secret containing bootstrap userdata.
-func (r *EKSConfigReconciler) createBootstrapSecret(ctx context.Context, cluster *clusterv1.Cluster, config *eksbootstrapv1.EKSConfig, data []byte) error {
+func (r *EKSConfigReconciler) createBootstrapSecret(ctx context.Context, cluster *clusterv1.Cluster, config *eksbootstrapv1.EKSConfig, data []byte) (*corev1.Secret, error) {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      config.Name,
@@ -405,11 +410,14 @@ func (r *EKSConfigReconciler) createBootstrapSecret(ctx context.Context, cluster
 		},
 		Type: clusterv1.ClusterSecretType,
 	}
-	return r.Client.Create(ctx, secret)
+	return secret, r.Client.Create(ctx, secret)
 }
 
 // Update the userdata in the bootstrap Secret.
 func (r *EKSConfigReconciler) updateBootstrapSecret(ctx context.Context, secret *corev1.Secret, data []byte) (bool, error) {
+	if secret.Data == nil {
+		secret.Data = make(map[string][]byte)
+	}
 	if !bytes.Equal(secret.Data["value"], data) {
 		secret.Data["value"] = data
 		return true, r.Client.Update(ctx, secret)
