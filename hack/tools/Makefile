@@ -158,16 +158,6 @@ $(PLANTUML): plantuml.Dockerfile ../../versions.mk
 	docker build --build-arg PLANTUML_VERSION=$(PLANTUML_VERSION)  . -f plantuml.Dockerfile -t "plantuml-builder"
 	touch $@
 
-KPROMO_BIN := kpromo
-KPROMO :=  $(BIN_DIR)/$(KPROMO_BIN)
-$(KPROMO):
-	CGO_ENABLED=0 go build -o $@ sigs.k8s.io/promo-tools/v3/cmd/kpromo
-
-YQ_BIN := yq
-YQ :=  $(BIN_DIR)/$(YQ_BIN)
-$(YQ):
-	CGO_ENABLED=0 go build -tags=tools -o $@ github.com/mikefarah/yq/v4
-
 ## ------------------------------------------------------------------------------------------------
 ## AWS Session Manager Plugin Installation. Currently support Linux and MacOS AMD64 architectures.
 ## ------------------------------------------------------------------------------------------------
