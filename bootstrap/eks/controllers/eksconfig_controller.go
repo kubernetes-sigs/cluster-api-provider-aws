@@ -366,7 +366,7 @@ func (r *EKSConfigReconciler) ClusterToEKSConfigs(o client.Object) []ctrl.Reques
 	selectors := []client.ListOption{
 		client.InNamespace(c.Namespace),
 		client.MatchingLabels{
-			clusterv1.ClusterLabelName: c.Name,
+			clusterv1.ClusterNameLabel: c.Name,
 		},
 	}
 
@@ -393,7 +393,7 @@ func (r *EKSConfigReconciler) createBootstrapSecret(ctx context.Context, cluster
 			Name:      config.Name,
 			Namespace: config.Namespace,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: cluster.Name,
+				clusterv1.ClusterNameLabel: cluster.Name,
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{

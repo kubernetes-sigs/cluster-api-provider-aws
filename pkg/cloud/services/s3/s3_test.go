@@ -583,7 +583,7 @@ func TestDeleteObject(t *testing.T) {
 			Machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabelName: "",
+						clusterv1.MachineControlPlaneLabel: "",
 					},
 				},
 			},

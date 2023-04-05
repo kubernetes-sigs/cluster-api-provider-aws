@@ -221,7 +221,7 @@ func (s *ManagedControlPlaneScope) Region() string {
 // ListOptionsLabelSelector returns a ListOptions with a label selector for clusterName.
 func (s *ManagedControlPlaneScope) ListOptionsLabelSelector() client.ListOption {
 	return client.MatchingLabels(map[string]string{
-		clusterv1.ClusterLabelName: s.Cluster.Name,
+		clusterv1.ClusterNameLabel: s.Cluster.Name,
 	})
 }
 

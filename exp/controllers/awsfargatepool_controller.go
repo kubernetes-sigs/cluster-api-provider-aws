@@ -206,7 +206,7 @@ func managedControlPlaneToFargateProfileMapFunc(c client.Client, log logger.Wrap
 
 		fargateProfileForClusterList := expinfrav1.AWSFargateProfileList{}
 		if err := c.List(
-			ctx, &fargateProfileForClusterList, client.InNamespace(clusterKey.Namespace), client.MatchingLabels{clusterv1.ClusterLabelName: clusterKey.Name},
+			ctx, &fargateProfileForClusterList, client.InNamespace(clusterKey.Namespace), client.MatchingLabels{clusterv1.ClusterNameLabel: clusterKey.Name},
 		); err != nil {
 			log.Error(err, "couldn't list fargate profiles for cluster")
 			return nil
