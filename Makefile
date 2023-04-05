@@ -80,6 +80,7 @@ USER_FORK ?= $(shell git config --get remote.origin.url | cut -d/ -f4) # only wo
 ifeq ($(USER_FORK),)
 USER_FORK := $(shell git config --get remote.origin.url | cut -d: -f2 | cut -d/ -f1) # for git@github.com:<username>/cluster-api.git style URLs
 endif
+IMAGE_REVIEWERS ?= $(shell ./hack/get-project-maintainers.sh ${YQ})
 
 # Release variables
 
@@ -580,7 +581,6 @@ release-changelog: $(GH) ## Generates release notes using Github release notes.
 
 .PHONY: promote-images
 promote-images: $(KPROMO) $(YQ)
-	IMAGE_REVIEWERS="$(shell ./hack/get-project-maintainers.sh ${YQ})"
 	$(KPROMO) pr --project cluster-api-provider-aws --tag $(RELEASE_TAG) --reviewers "$(IMAGE_REVIEWERS)" --fork $(USER_FORK) --image cluster-api-aws-controller
 
 .PHONY: release-binaries

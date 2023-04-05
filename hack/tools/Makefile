@@ -159,14 +159,24 @@ $(PLANTUML): plantuml.Dockerfile ../../versions.mk
 	touch $@
 
 KPROMO_BIN := kpromo
-KPROMO :=  $(BIN_DIR)/$(KPROMO_BIN)
+KPROMO :=  $(abspath $(BIN_DIR)/$(KPROMO_BIN)-$(KPROMO_VER))
+KPROMO_PKG := sigs.k8s.io/promo-tools/v3/cmd/kpromo
+
+.PHONY: $(KPROMO_BIN)
+$(KPROMO_BIN): $(KPROMO) ## Build a local copy of kpromo
+
 $(KPROMO):
-	CGO_ENABLED=0 go build -o $@ sigs.k8s.io/promo-tools/v3/cmd/kpromo
+	GOBIN=$(BIN_DIR_ABS) $(GO_INSTALL) $(KPROMO_PKG) $(KPROMO_BIN) ${KPROMO_VERSION}
 
 YQ_BIN := yq
-YQ :=  $(BIN_DIR)/$(YQ_BIN)
+YQ :=  $(abspath $(BIN_DIR)/$(YQ_BIN)-$(YQ_VERSION))
+YQ_PKG := github.com/mikefarah/yq/v4
+
+.PHONY: $(YQ_BIN)
+$(YQ_BIN): $(YQ) ## Build a local copy of yq
+
 $(YQ):
-	CGO_ENABLED=0 go build -tags=tools -o $@ github.com/mikefarah/yq/v4
+	GOBIN=$(BIN_DIR_ABS) $(GO_INSTALL) $(YQ_PKG) $(YQ_BIN) ${YQ_VERSION}
 
 ## ------------------------------------------------------------------------------------------------
 ## AWS Session Manager Plugin Installation. Currently support Linux and MacOS AMD64 architectures.
