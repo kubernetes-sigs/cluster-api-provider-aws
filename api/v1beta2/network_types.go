@@ -77,6 +77,12 @@ var (
 	ELBProtocolUDP = ELBProtocol("UDP")
 )
 
+type ELBHealthCheckTarget string
+
+func (e ELBHealthCheckTarget) String() string {
+	return string(e)
+}
+
 // TargetGroupHealthCheck defines health check settings for the target group.
 type TargetGroupHealthCheck struct {
 	Protocol        *string `json:"protocol,omitempty"`

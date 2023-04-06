@@ -569,6 +569,11 @@ func (in *AWSLoadBalancerSpec) DeepCopyInto(out *AWSLoadBalancerSpec) {
 		*out = new(ELBProtocol)
 		**out = **in
 	}
+	if in.HealthCheckTarget != nil {
+		in, out := &in.HealthCheckTarget, &out.HealthCheckTarget
+		*out = new(ELBHealthCheckTarget)
+		**out = **in
+	}
 	if in.AdditionalSecurityGroups != nil {
 		in, out := &in.AdditionalSecurityGroups, &out.AdditionalSecurityGroups
 		*out = make([]string, len(*in))

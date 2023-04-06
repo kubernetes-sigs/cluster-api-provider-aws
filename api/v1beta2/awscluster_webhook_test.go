@@ -26,11 +26,16 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+)
+
+var (
+	tcpHealthCheck = ELBHealthCheckTarget("TCP:6443/healthz")
 )
 
 func TestAWSClusterDefault(t *testing.T) {
@@ -246,6 +251,18 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 								IPv6CidrBlock: "2022:1234:5678:9101::/64",
 							},
 						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "incorrect ELB HealthCheck",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						Name:              pointer.String("load balancer"),
+						HealthCheckTarget: &tcpHealthCheck,
 					},
 				},
 			},

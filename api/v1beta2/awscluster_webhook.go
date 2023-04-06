@@ -56,6 +56,7 @@ func (r *AWSCluster) ValidateCreate() error {
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 	allErrs = append(allErrs, r.Spec.S3Bucket.Validate()...)
 	allErrs = append(allErrs, r.validateNetwork()...)
+	allErrs = append(allErrs, r.Spec.ControlPlaneLoadBalancer.HealthCheckTarget.ValidateELBHealthCheck()...)
 
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
