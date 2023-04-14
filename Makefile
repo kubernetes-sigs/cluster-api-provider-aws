@@ -92,7 +92,7 @@ BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 # image name used to build the cmd/clusterawsadm
 TOOLCHAIN_IMAGE := toolchain
 
-TAG ?= spectro-v1.5.0-$(shell date +%Y%m%d)
+TAG ?= spectro-v1.5.2-$(shell date +%Y%m%d)
 #ARCH ?= $(shell go env GOARCH)
 ARCH ?= amd64
 ALL_ARCH ?= amd64 arm arm64 ppc64le s390x
