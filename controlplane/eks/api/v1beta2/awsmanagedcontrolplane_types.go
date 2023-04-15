@@ -55,6 +55,10 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// The AWS Region the cluster lives in.
 	Region string `json:"region,omitempty"`
 
+	// Partition is the AWS security partition being used. Defaults to "aws"
+	// +optional
+	Partition string `json:"partition,omitempty"`
+
 	// SSHKeyName is the name of the ssh key to attach to the bastion host. Valid values are empty string (do not use SSH keys), a valid SSH key name, or omitted (use the default SSH key name)
 	// +optional
 	SSHKeyName *string `json:"sshKeyName,omitempty"`
