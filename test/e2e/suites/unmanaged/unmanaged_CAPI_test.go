@@ -42,28 +42,6 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 		Expect(e2eCtx.Environment.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil")
 	})
 
-	ginkgo.Describe("MachineDeployment Remediation Spec", func() {
-		ginkgo.BeforeEach(func() {
-			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
-			requiredResources = &shared.TestResource{EC2Normal: 4 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3, EventBridgeRules: 50}
-			requiredResources.WriteRequestedResources(e2eCtx, "capi-md-remediation-test")
-			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
-		})
-
-		capi_e2e.MachineDeploymentRemediationSpec(ctx, func() capi_e2e.MachineDeploymentRemediationSpecInput {
-			return capi_e2e.MachineDeploymentRemediationSpecInput{
-				E2EConfig:             e2eCtx.E2EConfig,
-				ClusterctlConfigPath:  e2eCtx.Environment.ClusterctlConfigPath,
-				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-				ArtifactFolder:        e2eCtx.Settings.ArtifactFolder,
-				SkipCleanup:           e2eCtx.Settings.SkipCleanup,
-			}
-		})
-		ginkgo.AfterEach(func() {
-			shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
-		})
-	})
-
 	ginkgo.Describe("Machine Pool Spec", func() {
 		ginkgo.BeforeEach(func() {
 			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
