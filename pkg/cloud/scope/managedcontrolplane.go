@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -400,4 +401,12 @@ func (s *ManagedControlPlaneScope) ServiceCidrs() *clusterv1.NetworkRanges {
 // ControlPlaneLoadBalancer returns the AWSLoadBalancerSpec.
 func (s *ManagedControlPlaneScope) ControlPlaneLoadBalancer() *infrav1.AWSLoadBalancerSpec {
 	return nil
+}
+
+// Partition returns the cluster partition.
+func (s *ManagedControlPlaneScope) Partition() string {
+	if s.ControlPlane.Spec.Partition == "" {
+		s.ControlPlane.Spec.Partition = system.GetPartitionFromRegion(s.Region())
+	}
+	return s.ControlPlane.Spec.Partition
 }

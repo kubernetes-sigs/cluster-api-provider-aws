@@ -17,12 +17,18 @@ limitations under the License.
 package bootstrap
 
 import (
+	"strings"
+
 	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/bootstrap/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks"
 )
 
-func fargateProfilePolicies(roleSpec *bootstrapv1.AWSIAMRoleSpec) []string {
-	policies := eks.FargateRolePolicies()
+func (t Template) fargateProfilePolicies(roleSpec *bootstrapv1.AWSIAMRoleSpec) []string {
+	var policies []string
+	policies = eks.FargateRolePolicies()
+	if strings.Contains(t.Spec.Partition, bootstrapv1.PartitionNameUSGov) {
+		policies = eks.FargateRolePoliciesUSGov()
+	}
 	if roleSpec.ExtraPolicyAttachments != nil {
 		policies = append(policies, roleSpec.ExtraPolicyAttachments...)
 	}
