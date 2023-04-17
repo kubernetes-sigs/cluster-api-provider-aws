@@ -22,12 +22,15 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
+var (
+	re = regexp.MustCompile(`^(TCP|SSL|HTTP|HTTPS|TLS|UDP):(\d+)\/?(\w*)$`)
+)
+
 func (e *ELBHealthCheckTarget) ValidateELBHealthCheck() []*field.Error {
 	if e == nil {
 		return nil
 	}
 	var errs field.ErrorList
-	re := regexp.MustCompile(`^(TCP|SSL|HTTP|HTTPS|TLS|UDP):(\d+)\/?(\w*)$`)
 	healthCheck := e.String()
 	val := re.MatchString(healthCheck)
 	if !val {
