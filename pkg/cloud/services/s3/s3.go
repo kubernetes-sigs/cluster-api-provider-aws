@@ -244,7 +244,7 @@ func (s *Service) bucketPolicy(bucketName string) (string, error) {
 			Sid:    "control-plane",
 			Effect: iam.EffectAllow,
 			Principal: map[iam.PrincipalType]iam.PrincipalID{
-				iam.PrincipalAWS: []string{fmt.Sprintf("arn:%s:iam::%s:role/%s", s.scope, *accountID.Account, bucket.ControlPlaneIAMInstanceProfile)},
+				iam.PrincipalAWS: []string{fmt.Sprintf("arn:%s:iam::%s:role/%s", partition, *accountID.Account, bucket.ControlPlaneIAMInstanceProfile)},
 			},
 			Action:   []string{"s3:GetObject"},
 			Resource: []string{fmt.Sprintf("arn:%s:s3:::%s/control-plane/*", partition, bucketName)},
