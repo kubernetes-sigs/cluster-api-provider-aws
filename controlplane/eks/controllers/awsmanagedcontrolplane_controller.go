@@ -125,6 +125,7 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context,
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclusterroleidentities;awsclusterstaticidentities;awsclustercontrolleridentities,verbs=get;list;watch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedclusters;awsmanagedclusters/status,verbs=get;list;watch
 
 // Reconcile will reconcile AWSManagedControlPlane Resources.
 func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
