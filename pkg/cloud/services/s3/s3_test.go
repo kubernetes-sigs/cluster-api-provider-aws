@@ -172,6 +172,10 @@ func TestReconcileBucket(t *testing.T) {
 			if !strings.Contains(policy, fmt.Sprintf("%s/node/*", bucketName)) {
 				t.Errorf("At least one policy should apply for all objects with %q prefix, got: %v", "node", policy)
 			}
+
+			if !strings.Contains(policy, "arn:aws:iam::foo:role/control-plane.cluster-api-provider-aws.sigs.k8s.io") {
+				t.Errorf("Expected arn to contain the right principal; got: %v", policy)
+			}
 		}).Return(nil, nil).Times(1)
 
 		if err := svc.ReconcileBucket(); err != nil {
