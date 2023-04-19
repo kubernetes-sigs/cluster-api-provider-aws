@@ -198,13 +198,13 @@ type AWSLoadBalancerSpec struct {
 	Subnets []string `json:"subnets,omitempty"`
 
 	// HealthCheckProtocol sets the protocol type for ELB health check target
-	// This field will be deprecated in a future API use HealthCheck
+	// Deprecated: This field will be deprecated in a future API use HealthCheck
 	// default value is ELBProtocolSSL
 	// +kubebuilder:validation:Enum=TCP;SSL;HTTP;HTTPS;TLS;UDP
 	// +optional
 	HealthCheckProtocol *ELBProtocol `json:"healthCheckProtocol,omitempty"`
 
-	// HealthCheckTarget sets a ELB health check target
+	// HealthCheckTarget sets an ELB health check target
 	// if HealthCheckTarget is present HealthCheckProtocol will be ignored
 	// +optional
 	HealthCheckTarget *ELBHealthCheckTarget `json:"healthCheckTarget,omitempty"`

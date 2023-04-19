@@ -585,9 +585,10 @@ spec:
                               false.
                             type: boolean
                           healthCheckProtocol:
-                            description: HealthCheckProtocol sets the protocol type
-                              for ELB health check target This field will be deprecated
-                              in a future API use HealthCheck default value is ELBProtocolSSL
+                            description: 'HealthCheckProtocol sets the protocol type
+                              for ELB health check target Deprecated: This field will
+                              be deprecated in a future API use HealthCheck default
+                              value is ELBProtocolSSL'
                             enum:
                             - TCP
                             - SSL
@@ -597,7 +598,7 @@ spec:
                             - UDP
                             type: string
                           healthCheckTarget:
-                            description: HealthCheckTarget sets a ELB health check
+                            description: HealthCheckTarget sets an ELB health check
                               target if HealthCheckTarget is present HealthCheckProtocol
                               will be ignored
                             type: string
