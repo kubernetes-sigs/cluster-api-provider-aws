@@ -53,6 +53,19 @@ func (s *Service) reconcileSubnets() error {
 		s.scope.SetSubnets(subnets)
 	}()
 
+	var (
+		err      error
+		existing infrav1.Subnets
+	)
+
+	// Describing the VPC Subnets tags the resources.
+	if s.scope.TagUnmanagedNetworkResources() {
+		// Describe subnets in the vpc.
+		if existing, err = s.describeVpcSubnets(); err != nil {
+			return err
+		}
+	}
+
 	unmanagedVPC := s.scope.VPC().IsUnmanaged(s.scope.Name())
 
 	if len(subnets) == 0 {
@@ -62,15 +75,17 @@ func (s *Service) reconcileSubnets() error {
 			record.Warnf(s.scope.InfraCluster(), "FailedNoSubnets", errMsg)
 			return errors.New(errMsg)
 		}
+
 		// If we a managed VPC and have no subnets then create subnets. There will be 1 public and 1 private subnet
 		// for each az in a region up to a maximum of 3 azs
-		var err error
 		s.scope.Info("no subnets specified, setting defaults")
+
 		subnets, err = s.getDefaultSubnets()
 		if err != nil {
 			record.Warnf(s.scope.InfraCluster(), "FailedDefaultSubnets", "Failed getting default subnets: %v", err)
 			return errors.Wrap(err, "failed getting default subnets")
 		}
+
 		// Persist the new default subnets to AWSCluster
 		if err := s.scope.PatchObject(); err != nil {
 			s.scope.Error(err, "failed to patch object to save subnets")
@@ -78,10 +93,12 @@ func (s *Service) reconcileSubnets() error {
 		}
 	}
 
-	// Describe subnets in the vpc.
-	existing, err := s.describeVpcSubnets()
-	if err != nil {
-		return err
+	// Describing the VPC Subnets tags the resources.
+	if !s.scope.TagUnmanagedNetworkResources() {
+		// Describe subnets in the vpc.
+		if existing, err = s.describeVpcSubnets(); err != nil {
+			return err
+		}
 	}
 
 	if s.scope.SecondaryCidrBlock() != nil {

@@ -63,8 +63,9 @@ type ManagedControlPlaneScopeParams struct {
 	Endpoints      []ServiceEndpoint
 	Session        awsclient.ConfigProvider
 
-	EnableIAM            bool
-	AllowAdditionalRoles bool
+	EnableIAM                    bool
+	AllowAdditionalRoles         bool
+	TagUnmanagedNetworkResources bool
 }
 
 // NewManagedControlPlaneScope creates a new Scope from the supplied parameters.
@@ -82,16 +83,17 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 	}
 
 	managedScope := &ManagedControlPlaneScope{
-		Logger:               *params.Logger,
-		Client:               params.Client,
-		Cluster:              params.Cluster,
-		ControlPlane:         params.ControlPlane,
-		patchHelper:          nil,
-		session:              nil,
-		serviceLimiters:      nil,
-		controllerName:       params.ControllerName,
-		allowAdditionalRoles: params.AllowAdditionalRoles,
-		enableIAM:            params.EnableIAM,
+		Logger:                       *params.Logger,
+		Client:                       params.Client,
+		Cluster:                      params.Cluster,
+		ControlPlane:                 params.ControlPlane,
+		patchHelper:                  nil,
+		session:                      nil,
+		serviceLimiters:              nil,
+		controllerName:               params.ControllerName,
+		allowAdditionalRoles:         params.AllowAdditionalRoles,
+		enableIAM:                    params.EnableIAM,
+		tagUnmanagedNetworkResources: params.TagUnmanagedNetworkResources,
 	}
 	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
@@ -123,8 +125,9 @@ type ManagedControlPlaneScope struct {
 	serviceLimiters throttle.ServiceLimiters
 	controllerName  string
 
-	enableIAM            bool
-	allowAdditionalRoles bool
+	enableIAM                    bool
+	allowAdditionalRoles         bool
+	tagUnmanagedNetworkResources bool
 }
 
 // RemoteClient returns the Kubernetes client for connecting to the workload cluster.
@@ -292,6 +295,11 @@ func (s *ManagedControlPlaneScope) Session() awsclient.ConfigProvider {
 // Bastion returns the bastion details.
 func (s *ManagedControlPlaneScope) Bastion() *infrav1.Bastion {
 	return &s.ControlPlane.Spec.Bastion
+}
+
+// TagUnmanagedNetworkResources returns if the feature flag tag unmanaged network resources is set.
+func (s *ManagedControlPlaneScope) TagUnmanagedNetworkResources() bool {
+	return s.tagUnmanagedNetworkResources
 }
 
 // SetBastionInstance sets the bastion instance in the status of the cluster.

@@ -75,6 +75,11 @@ const (
 	// owner: @wyike
 	// alpha: v2.0
 	AlternativeGCStrategy featuregate.Feature = "AlternativeGCStrategy"
+
+	// TagUnmanagedNetworkResources is used to disable tagging unmanaged networking resources.
+	// owner: @skarlso
+	// alpha: v2.0
+	TagUnmanagedNetworkResources featuregate.Feature = "TagUnmanagedNetworkResources"
 )
 
 func init() {
@@ -95,4 +100,5 @@ var defaultCAPAFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	BootstrapFormatIgnition:       {Default: false, PreRelease: featuregate.Alpha},
 	ExternalResourceGC:            {Default: false, PreRelease: featuregate.Alpha},
 	AlternativeGCStrategy:         {Default: false, PreRelease: featuregate.Alpha},
+	TagUnmanagedNetworkResources:  {Default: false, PreRelease: featuregate.Alpha},
 }
