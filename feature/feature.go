@@ -100,5 +100,5 @@ var defaultCAPAFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	BootstrapFormatIgnition:       {Default: false, PreRelease: featuregate.Alpha},
 	ExternalResourceGC:            {Default: false, PreRelease: featuregate.Alpha},
 	AlternativeGCStrategy:         {Default: false, PreRelease: featuregate.Alpha},
-	TagUnmanagedNetworkResources:  {Default: false, PreRelease: featuregate.Alpha},
+	TagUnmanagedNetworkResources:  {Default: true, PreRelease: featuregate.Alpha},
 }
