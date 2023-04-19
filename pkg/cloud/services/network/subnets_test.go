@@ -42,10 +42,11 @@ const (
 
 func TestReconcileSubnets(t *testing.T) {
 	testCases := []struct {
-		name          string
-		input         ScopeBuilder
-		expect        func(m *mocks.MockEC2APIMockRecorder)
-		errorExpected bool
+		name                         string
+		input                        ScopeBuilder
+		expect                       func(m *mocks.MockEC2APIMockRecorder)
+		errorExpected                bool
+		tagUnmanagedNetworkResources bool
 	}{
 		{
 			name: "Unmanaged VPC, 2 existing subnets in vpc, 2 subnet in spec, subnets match, with routes, should succeed",
@@ -500,9 +501,59 @@ func TestReconcileSubnets(t *testing.T) {
 					ID: subnetsVPCID,
 				},
 				Subnets: []infrav1.SubnetSpec{},
-			}),
-			expect:        func(m *mocks.MockEC2APIMockRecorder) {},
-			errorExpected: true,
+			}).WithTagUnmanagedNetworkResources(true),
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: []*string{aws.String("pending"), aws.String("available")},
+						},
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []*string{aws.String(subnetsVPCID)},
+						},
+					},
+				})).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{
+							{
+								VpcId:               aws.String(subnetsVPCID),
+								SubnetId:            aws.String("subnet-1"),
+								AvailabilityZone:    aws.String("us-east-1a"),
+								CidrBlock:           aws.String("10.0.10.0/24"),
+								MapPublicIpOnLaunch: aws.Bool(false),
+							},
+							{
+								VpcId:               aws.String(subnetsVPCID),
+								SubnetId:            aws.String("subnet-2"),
+								AvailabilityZone:    aws.String("us-east-1a"),
+								CidrBlock:           aws.String("10.0.20.0/24"),
+								MapPublicIpOnLaunch: aws.Bool(false),
+							},
+						},
+					}, nil)
+
+				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+					Return(&ec2.DescribeRouteTablesOutput{}, nil)
+
+				m.DescribeNatGatewaysPages(
+					gomock.Eq(&ec2.DescribeNatGatewaysInput{
+						Filter: []*ec2.Filter{
+							{
+								Name:   aws.String("vpc-id"),
+								Values: []*string{aws.String(subnetsVPCID)},
+							},
+							{
+								Name:   aws.String("state"),
+								Values: []*string{aws.String("pending"), aws.String("available")},
+							},
+						},
+					}),
+					gomock.Any()).Return(nil)
+			},
+			errorExpected:                true,
+			tagUnmanagedNetworkResources: true,
 		},
 		{
 			name: "Unmanaged VPC, 0 existing subnets in vpc, 2 subnets in spec, should fail",
@@ -2552,6 +2603,14 @@ type ClusterScopeBuilder struct {
 func (b *ClusterScopeBuilder) WithNetwork(n *infrav1.NetworkSpec) *ClusterScopeBuilder {
 	b.customizers = append(b.customizers, func(p *scope.ClusterScopeParams) {
 		p.AWSCluster.Spec.NetworkSpec = *n
+	})
+
+	return b
+}
+
+func (b *ClusterScopeBuilder) WithTagUnmanagedNetworkResources(value bool) *ClusterScopeBuilder {
+	b.customizers = append(b.customizers, func(p *scope.ClusterScopeParams) {
+		p.TagUnmanagedNetworkResources = value
 	})
 
 	return b
