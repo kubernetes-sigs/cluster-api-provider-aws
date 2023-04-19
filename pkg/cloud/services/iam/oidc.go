@@ -95,12 +95,12 @@ func certificateSecret(ctx context.Context, name, namespace, issuer string, dnsN
 	}, certSecret)
 }
 
-func deleteBucketContents(s3 *s3.Service) error {
-	if err := s3.Delete(jwksKey); err != nil {
+func (s *Service) deleteBucketContents(s3 *s3.Service) error {
+	if err := s3.Delete("/" + path.Join(s.scope.Name(), jwksKey)); err != nil {
 		return err
 	}
 
-	return s3.Delete(opendIDConfigurationKey)
+	return s3.Delete("/" + path.Join(s.scope.Name(), opendIDConfigurationKey))
 }
 
 func deleteCertificatesAndIssuer(ctx context.Context, name, namespace string, client client.Client) error {
@@ -157,7 +157,7 @@ func (s *Service) reconcileBucketContents(ctx context.Context) error {
 		return err
 	}
 
-	if _, err := s3scope.CreatePublic(opendIDConfigurationKey, []byte(conf)); err != nil {
+	if _, err := s3scope.CreatePublic("/"+path.Join(s.scope.Name(), opendIDConfigurationKey), []byte(conf)); err != nil {
 		return err
 	}
 
@@ -166,7 +166,7 @@ func (s *Service) reconcileBucketContents(ctx context.Context) error {
 		return err
 	}
 
-	if _, err := s3scope.CreatePublic(jwksKey, []byte(jwks)); err != nil {
+	if _, err := s3scope.CreatePublic("/"+path.Join(s.scope.Name(), jwksKey), []byte(jwks)); err != nil {
 		return err
 	}
 
@@ -299,7 +299,7 @@ func (s *Service) reconcileKubeAPIParameters(ctx context.Context) error {
 	namespace := s.scope.Namespace()
 
 	s3Host := fmt.Sprintf(S3HostFormat, s.scope.Region())
-	accountIssuer := "https://" + path.Join(s3Host, s.scope.Bucket().Name)
+	accountIssuer := "https://" + path.Join(s3Host, s.scope.Bucket().Name, s.scope.Name())
 
 	listOptions := []client.ListOption{
 		client.InNamespace(namespace),

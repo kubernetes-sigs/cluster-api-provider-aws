@@ -84,6 +84,10 @@ func (s *Service) ReconcileBucket() error {
 		return errors.Wrap(err, "ensuring bucket exists")
 	}
 
+	if err := s.ensureBucketAccess(bucketName); err != nil {
+		return errors.Wrap(err, "ensuring bucket ACL ")
+	}
+
 	if err := s.ensureBucketPolicy(bucketName); err != nil {
 		return errors.Wrap(err, "ensuring bucket policy")
 	}
@@ -223,7 +227,8 @@ func (s *Service) Delete(key string) error {
 
 func (s *Service) createBucketIfNotExist(bucketName string) error {
 	input := &s3.CreateBucketInput{
-		Bucket: aws.String(bucketName),
+		Bucket:          aws.String(bucketName),
+		ObjectOwnership: aws.String(s3.ObjectOwnershipBucketOwnerPreferred),
 	}
 
 	_, err := s.S3Client.CreateBucket(input)
@@ -249,6 +254,24 @@ func (s *Service) createBucketIfNotExist(bucketName string) error {
 	}
 }
 
+func (s *Service) ensureBucketAccess(bucketName string) error {
+	f := false
+	input := &s3.PutPublicAccessBlockInput{
+		Bucket: aws.String(bucketName),
+		PublicAccessBlockConfiguration: &s3.PublicAccessBlockConfiguration{
+			BlockPublicAcls: aws.Bool(f),
+		},
+	}
+
+	if _, err := s.S3Client.PutPublicAccessBlock(input); err != nil {
+		return errors.Wrap(err, "enabling bucket public access")
+	}
+
+	s.scope.V(4).Info("Updated bucket ACL to allow public access", "bucket_name", bucketName)
+
+	return nil
+}
+
 func (s *Service) ensureBucketPolicy(bucketName string) error {
 	bucketPolicy, err := s.bucketPolicy(bucketName)
 	if err != nil {
@@ -269,6 +292,10 @@ func (s *Service) ensureBucketPolicy(bucketName string) error {
 	return nil
 }
 
+// bucketPolicy grants access to get/put objects the cluster needs including a per cluster subdir in case two clusters share the same bucket.
+// /<clustername> contains cluster wide object e.g. oidc configs for irsa.
+// /control-plane contains ignite configs for control-plane nodes stored per node id.
+// /node contains ignite configs for worker nodes stored per node id.
 func (s *Service) bucketPolicy(bucketName string) (string, error) {
 	accountID, err := s.STSClient.GetCallerIdentity(&sts.GetCallerIdentityInput{})
 	if err != nil {
@@ -278,6 +305,16 @@ func (s *Service) bucketPolicy(bucketName string) (string, error) {
 	bucket := s.scope.Bucket()
 
 	statements := []iam.StatementEntry{
+		{
+			// grant access to the /<clustername> folder to the control plane nodes
+			Sid:    s.scope.Name(),
+			Effect: iam.EffectAllow,
+			Principal: map[iam.PrincipalType]iam.PrincipalID{
+				iam.PrincipalAWS: []string{fmt.Sprintf("arn:aws:iam::%s:role/%s", *accountID.Account, bucket.ControlPlaneIAMInstanceProfile)},
+			},
+			Action:   []string{"s3:GetObject", "s3:PutObject"},
+			Resource: []string{fmt.Sprintf("arn:aws:s3:::%s/%s/*", bucketName, s.scope.Name())},
+		},
 		{
 			Sid:    "control-plane",
 			Effect: iam.EffectAllow,
