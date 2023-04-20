@@ -462,6 +462,7 @@ type RouteTable struct {
 }
 
 // SecurityGroupRole defines the unique role of a security group.
+// +kubebuilder:validation:Enum=bastion;node;controlplane;apiserver-lb;lb;node-eks-additional
 type SecurityGroupRole string
 
 var (
@@ -530,10 +531,15 @@ var (
 
 // IngressRule defines an AWS ingress rule for security groups.
 type IngressRule struct {
-	Description string                `json:"description"`
-	Protocol    SecurityGroupProtocol `json:"protocol"`
-	FromPort    int64                 `json:"fromPort"`
-	ToPort      int64                 `json:"toPort"`
+	// Description provides extended information about the ingress rule.
+	Description string `json:"description"`
+	// Protocol is the protocol for the ingress rule. Accepted values are "-1" (all), "4" (IP in IP),"tcp", "udp", "icmp", and "58" (ICMPv6).
+	// +kubebuilder:validation:Enum="-1";"4";tcp;udp;icmp;"58"
+	Protocol SecurityGroupProtocol `json:"protocol"`
+	// FromPort is the start of port range.
+	FromPort int64 `json:"fromPort"`
+	// ToPort is the end of port range.
+	ToPort int64 `json:"toPort"`
 
 	// List of CIDR blocks to allow access from. Cannot be specified with SourceSecurityGroupID.
 	// +optional
@@ -546,6 +552,11 @@ type IngressRule struct {
 	// The security group id to allow access from. Cannot be specified with CidrBlocks.
 	// +optional
 	SourceSecurityGroupIDs []string `json:"sourceSecurityGroupIds,omitempty"`
+
+	// The security group role to allow access from. Cannot be specified with CidrBlocks.
+	// The field will be combined with source security group IDs if specified.
+	// +optional
+	SourceSecurityGroupRoles []SecurityGroupRole `json:"sourceSecurityGroupRoles,omitempty"`
 }
 
 // String returns a string representation of the ingress rule.
