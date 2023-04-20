@@ -78,3 +78,7 @@ func Convert_v1beta2_LoadBalancer_To_v1beta1_ClassicELB(in *v1beta2.LoadBalancer
 	out.SubnetIDs = in.SubnetIDs
 	return nil
 }
+
+func Convert_v1beta2_IngressRule_To_v1beta1_IngressRule(in *v1beta2.IngressRule, out *IngressRule, s conversion.Scope) error {
+	return autoConvert_v1beta2_IngressRule_To_v1beta1_IngressRule(in, out, s)
+}
