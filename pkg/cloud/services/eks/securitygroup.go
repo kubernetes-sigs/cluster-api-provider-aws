@@ -29,7 +29,7 @@ import (
 )
 
 func (s *Service) reconcileSecurityGroups(cluster *eks.Cluster) error {
-	s.scope.Info("Reconciling EKS security groups", "cluster-name", cluster.Name)
+	s.scope.Info("Reconciling EKS security groups", "cluster-name", *cluster.Name)
 
 	if s.scope.Network().SecurityGroups == nil {
 		s.scope.Network().SecurityGroups = make(map[infrav1.SecurityGroupRole]infrav1.SecurityGroup)
