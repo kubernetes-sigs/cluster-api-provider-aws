@@ -122,7 +122,7 @@ func (s *Service) DeleteOIDCProvider(ctx context.Context) error {
 	log.Info("Deleting OIDC Provider")
 
 	if s.scope.Bucket() != nil {
-		if err := deleteBucketContents(s3.NewService(s.scope)); err != nil {
+		if err := s.deleteBucketContents(s3.NewService(s.scope)); err != nil {
 			return err
 		}
 	}

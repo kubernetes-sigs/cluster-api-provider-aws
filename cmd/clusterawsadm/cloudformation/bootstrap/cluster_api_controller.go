@@ -150,6 +150,11 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"ec2:DeleteLaunchTemplate",
 				"ec2:DeleteLaunchTemplateVersions",
 				"ec2:DescribeKeyPairs",
+				"iam:CreateOpenIDConnectProvider",
+				"iam:DeleteOpenIDConnectProvider",
+				"iam:ListOpenIDConnectProviders",
+				"iam:GetOpenIDConnectProvider",
+				"iam:TagOpenIDConnectProvider",
 			},
 		},
 		{
@@ -250,6 +255,9 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"s3:PutObject",
 				"s3:DeleteObject",
 				"s3:PutBucketPolicy",
+				"s3:PutBucketOwnershipControls",
+				"s3:PutObjectAcl",
+				"s3:PutBucketPublicAccessBlock",
 			},
 		})
 	}

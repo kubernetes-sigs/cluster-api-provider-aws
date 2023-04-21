@@ -95,7 +95,8 @@ func (s *Service) reconcileIdentityProvider(_ context.Context) error {
 		return err
 	}
 
-	oidcURL := "https://" + path.Join(s3Host, s.scope.Bucket().Name)
+	// e.g. s3-us-west-2.amazonaws.com/<bucketname>/<clustername>
+	oidcURL := "https://" + path.Join(s3Host, s.scope.Bucket().Name, s.scope.Name())
 	arn, err := findAndVerifyOIDCProvider(oidcURL, thumbprint, s.IAMClient)
 	if err != nil {
 		return err
