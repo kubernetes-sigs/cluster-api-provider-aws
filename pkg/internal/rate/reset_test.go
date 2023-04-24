@@ -21,15 +21,16 @@ import (
 	"testing"
 )
 
-func TestResetTokens(t *testing.T) {
-	lim := NewLimiter(1, 3)
-
-	lim.tokens = 1.1
-	lim.ResetTokens()
+func TestLimiter_ResetTokens(t *testing.T) {
+	lim := NewLimiter(1, 1)
+	if lim.tokens != 0.0 {
+		t.Errorf("Expected tokens to be 0 after Wait, got %v", lim.tokens)
+	}
 	ctx := context.Background()
 	lim.Wait(ctx)
-
+	lim.tokens = 1.1
+	lim.ResetTokens()
 	if lim.tokens != 0.0 {
-		t.Errorf("Expected tokens to be 0.0 but got %f", lim.tokens)
+		t.Errorf("Expected tokens to be 0 after ResetTokens, got %v", lim.tokens)
 	}
 }
