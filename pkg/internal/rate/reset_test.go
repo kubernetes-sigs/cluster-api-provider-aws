@@ -17,14 +17,17 @@ limitations under the License.
 package rate
 
 import (
+	"context"
 	"testing"
 )
 
 func TestResetTokens(t *testing.T) {
 	lim := NewLimiter(1, 3)
-	lim.tokens = 1.1
 
+	lim.tokens = 1.1
 	lim.ResetTokens()
+	ctx := context.Background()
+	lim.Wait(ctx)
 
 	if lim.tokens != 0.0 {
 		t.Errorf("Expected tokens to be 0.0 but got %f", lim.tokens)
