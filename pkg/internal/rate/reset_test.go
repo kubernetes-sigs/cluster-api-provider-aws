@@ -17,19 +17,16 @@ limitations under the License.
 package rate
 
 import (
-	"context"
 	"testing"
 )
 
-func TestLimiter_ResetTokens(t *testing.T) {
-	lim := NewLimiter(1, 1)
-	ctx := context.Background()
-	lim.Wait(ctx)
-	if lim.tokens != 0 {
-		t.Errorf("Expected tokens to be 0 after Wait, got %v", lim.tokens)
-	}
+func TestResetTokens(t *testing.T) {
+	lim := NewLimiter(1, 3)
+	lim.tokens = 1.1
+
 	lim.ResetTokens()
-	if lim.tokens != 0 {
-		t.Errorf("Expected tokens to be 0 after ResetTokens, got %v", lim.tokens)
+
+	if lim.tokens != 0.0 {
+		t.Errorf("Expected tokens to be 0.0 but got %f", lim.tokens)
 	}
 }
