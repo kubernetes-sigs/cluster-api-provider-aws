@@ -21,8 +21,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
@@ -30,6 +32,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
@@ -40,6 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
+	ec2Service "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/mock_services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -50,17 +54,38 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
+const (
+	clusterApiTestUserData string = `
+---
+-   path: /run/kubeadm/kubeadm-join-config.yaml
+    owner: root:root
+    permissions: '0640'
+    content: |
+      ---
+      apiVersion: kubeadm.k8s.io/v1beta3
+      discovery:
+        bootstrapToken:
+          apiServerEndpoint: my-apiserver-123.eu-west-2.elb.amazonaws.com:6443
+          caCertHashes:
+          - sha256:45d45ge54dc2ea64cd30b133713371337133771ac2cffc43932f984f3e76babc
+          token: 31o123.abcd4lsoz1ruwxyz
+
+...some other stuff that is not valid YAML, since it should not matter...
+`
+)
+
 func TestAWSMachinePoolReconciler(t *testing.T) {
 	var (
-		reconciler     AWSMachinePoolReconciler
-		cs             *scope.ClusterScope
-		ms             *scope.MachinePoolScope
-		mockCtrl       *gomock.Controller
-		ec2Svc         *mock_services.MockEC2Interface
-		asgSvc         *mock_services.MockASGInterface
-		recorder       *record.FakeRecorder
-		awsMachinePool *expinfrav1.AWSMachinePool
-		secret         *corev1.Secret
+		reconciler            AWSMachinePoolReconciler
+		cs                    *scope.ClusterScope
+		ms                    *scope.MachinePoolScope
+		mockCtrl              *gomock.Controller
+		ec2Svc                *mock_services.MockEC2Interface
+		asgSvc                *mock_services.MockASGInterface
+		recorder              *record.FakeRecorder
+		awsMachinePool        *expinfrav1.AWSMachinePool
+		secret                *corev1.Secret
+		bootstrapDataToCreate = []byte("shell-script")
 	)
 	setup := func(t *testing.T, g *WithT) {
 		t.Helper()
@@ -75,10 +100,12 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 		}
 		ctx := context.TODO()
 
+		ns := string(uuid.NewUUID())
+
 		awsMachinePool = &expinfrav1.AWSMachinePool{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test",
-				Namespace: "default",
+				Namespace: ns,
 			},
 			Spec: expinfrav1.AWSMachinePoolSpec{
 				MinSize: int32(0),
@@ -89,15 +116,23 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 		secret = &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "bootstrap-data",
-				Namespace: "default",
+				Namespace: ns,
 			},
 			Data: map[string][]byte{
-				"value": []byte("shell-script"),
+				"value": bootstrapDataToCreate,
 			},
 		}
 
+		g.Expect(testEnv.Create(ctx, &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: ns,
+			},
+		})).To(Succeed())
 		g.Expect(testEnv.Create(ctx, awsMachinePool)).To(Succeed())
 		g.Expect(testEnv.Create(ctx, secret)).To(Succeed())
+
+		cs, err = setupCluster("test-cluster")
+		g.Expect(err).To(BeNil())
 
 		ms, err = scope.NewMachinePoolScope(
 			scope.MachinePoolScopeParams{
@@ -110,7 +145,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				MachinePool: &expclusterv1.MachinePool{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "mp",
-						Namespace: "default",
+						Namespace: ns,
 					},
 					Spec: expclusterv1.MachinePoolSpec{
 						ClusterName: "test",
@@ -128,9 +163,6 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				AWSMachinePool: awsMachinePool,
 			},
 		)
-		g.Expect(err).To(BeNil())
-
-		cs, err = setupCluster("test-cluster")
 		g.Expect(err).To(BeNil())
 
 		mockCtrl = gomock.NewController(t)
@@ -170,7 +202,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			getASG := func(t *testing.T, g *WithT) {
 				t.Helper()
 
-				ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, "", expectedErr).AnyTimes()
+				ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, nil, expectedErr).AnyTimes()
 				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(nil, expectedErr).AnyTimes()
 			}
 			t.Run("should exit immediately on an error state", func(t *testing.T) {
@@ -364,7 +396,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(&asg, nil).AnyTimes()
 			asgSvc.EXPECT().SubnetIDs(gomock.Any()).Return([]string{}, nil).Times(1)
 			asgSvc.EXPECT().UpdateASG(gomock.Any()).Return(nil).AnyTimes()
-			ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, "", nil).AnyTimes()
+			ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, nil, nil).AnyTimes()
 			ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any()).Return(nil, nil).AnyTimes()
 			ec2Svc.EXPECT().CreateLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
 			ec2Svc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -464,7 +496,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			finalizer(t, g)
 
 			asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(nil, nil)
-			ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, "", nil).AnyTimes()
+			ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, nil, nil).AnyTimes()
 
 			buf := new(bytes.Buffer)
 			klog.SetOutput(buf)
@@ -486,7 +518,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				Status: expinfrav1.ASGStatusDeleteInProgress,
 			}
 			asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(&inProgressASG, nil)
-			ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, "", nil).AnyTimes()
+			ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, nil, nil).AnyTimes()
 
 			buf := new(bytes.Buffer)
 			klog.SetOutput(buf)
@@ -494,6 +526,149 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			g.Expect(err).To(BeNil())
 			g.Expect(ms.AWSMachinePool.Status.Ready).To(BeFalse())
 			g.Eventually(recorder.Events).Should(Receive(ContainSubstring("DeletionInProgress")))
+		})
+	})
+
+	t.Run("Reconciling the launch template", func(t *testing.T) {
+		// Test `ReconcileLaunchTemplate` which is called by reconciliation
+
+		t.Run("should create launch template if none exists", func(t *testing.T) {
+			g := NewWithT(t)
+			setup(t, g)
+			defer teardown(t, g)
+
+			ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(nil, nil, nil)
+			ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any()).Return(aws.String("ami-123456"), nil)
+			ec2Svc.EXPECT().CreateLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Eq([]byte("shell-script"))).Return("lt-456789", nil)
+
+			instanceRefreshTriggered := false
+			ec2Service.ReconcileLaunchTemplate(ms, func() (bool, error) { return true, nil }, func() error {
+				instanceRefreshTriggered = true
+				return nil
+			}, ec2Svc)
+			// First launch template, so no instance refresh needed
+			g.Expect(instanceRefreshTriggered).To(BeFalse())
+		})
+
+		t.Run("should not update launch template with unchanged AMI and user data", func(t *testing.T) {
+			g := NewWithT(t)
+			setup(t, g)
+			defer teardown(t, g)
+
+			ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(&expinfrav1.AWSLaunchTemplate{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("ami-123456"),
+				},
+			}, []byte("shell-script"), nil)
+			ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any()).Return(aws.String("ami-123456"), nil)
+			ec2Svc.EXPECT().LaunchTemplateNeedsUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
+
+			ms.AWSMachinePool.Status.LaunchTemplateID = "lt-foo123"
+			ms.AWSMachinePool.Status.LaunchTemplateVersion = aws.String("1")
+
+			instanceRefreshTriggered := false
+			ec2Service.ReconcileLaunchTemplate(ms, func() (bool, error) { return true, nil }, func() error {
+				instanceRefreshTriggered = true
+				return nil
+			}, ec2Svc)
+			// No changes, so no instance refresh needed
+			g.Expect(instanceRefreshTriggered).To(BeFalse())
+		})
+
+		t.Run("should trigger instance refresh if user data change is more than only the bootstrap token", func(t *testing.T) {
+			g := NewWithT(t)
+			bootstrapDataToCreate = []byte(clusterApiTestUserData + "this has changed")
+			setup(t, g)
+			defer teardown(t, g)
+
+			ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(&expinfrav1.AWSLaunchTemplate{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("ami-123456"),
+				},
+			}, []byte(clusterApiTestUserData), nil)
+			ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any()).Return(aws.String("ami-123456"), nil)
+			ec2Svc.EXPECT().LaunchTemplateNeedsUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
+
+			ms.AWSMachinePool.Status.LaunchTemplateID = "lt-foo123"
+			ms.AWSMachinePool.Status.LaunchTemplateVersion = aws.String("1")
+
+			// User data changed, so a new launch template version should be created
+			ec2Svc.EXPECT().PruneLaunchTemplateVersions(gomock.Eq("lt-foo123")).Return(nil)
+			ec2Svc.EXPECT().CreateLaunchTemplateVersion(gomock.Eq("lt-foo123"), gomock.Any(), gomock.Eq(aws.String("ami-123456")), gomock.Eq([]byte(clusterApiTestUserData+"this has changed"))).Return(nil)
+			ec2Svc.EXPECT().GetLaunchTemplateLatestVersion(gomock.Eq("lt-foo123")).Return("2", nil)
+
+			instanceRefreshTriggered := false
+			ec2Service.ReconcileLaunchTemplate(ms, func() (bool, error) { return true, nil }, func() error {
+				instanceRefreshTriggered = true
+				return nil
+			}, ec2Svc)
+			// User data changed (more than just the bootstrap token), so an instance refresh is desired
+			g.Expect(instanceRefreshTriggered).To(BeTrue())
+		})
+
+		t.Run("should not trigger instance refresh if only bootstrap token changed in user data", func(t *testing.T) {
+			g := NewWithT(t)
+			bootstrapDataToCreate = []byte(strings.Replace(clusterApiTestUserData, "31o123.abcd4lsoz1ruwxyz", "some-refreshed-token", 1))
+			setup(t, g)
+			defer teardown(t, g)
+
+			ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(&expinfrav1.AWSLaunchTemplate{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("ami-123456"),
+				},
+			}, []byte(clusterApiTestUserData), nil)
+			ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any()).Return(aws.String("ami-123456"), nil)
+			ec2Svc.EXPECT().LaunchTemplateNeedsUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
+
+			ms.AWSMachinePool.Status.LaunchTemplateID = "lt-foo123"
+			ms.AWSMachinePool.Status.LaunchTemplateVersion = aws.String("1")
+
+			// User data changed, so a new launch template version should be created
+			ec2Svc.EXPECT().PruneLaunchTemplateVersions(gomock.Eq("lt-foo123")).Return(nil)
+			ec2Svc.EXPECT().CreateLaunchTemplateVersion(gomock.Eq("lt-foo123"), gomock.Any(), gomock.Eq(aws.String("ami-123456")), gomock.Eq([]byte(strings.Replace(clusterApiTestUserData, "31o123.abcd4lsoz1ruwxyz", "some-refreshed-token", 1)))).Return(nil)
+			ec2Svc.EXPECT().GetLaunchTemplateLatestVersion(gomock.Eq("lt-foo123")).Return("2", nil)
+
+			instanceRefreshTriggered := false
+			ec2Service.ReconcileLaunchTemplate(ms, func() (bool, error) { return true, nil }, func() error {
+				instanceRefreshTriggered = true
+				return nil
+			}, ec2Svc)
+			// Only the bootstrap token changed within the user data. This should not trigger an instance
+			// refresh because the token is refreshed regularly.
+			g.Expect(instanceRefreshTriggered).To(BeFalse())
+		})
+
+		t.Run("should not trigger instance refresh if the bootstrap token cannot be parsed in user data", func(t *testing.T) {
+			g := NewWithT(t)
+			bootstrapDataToCreate = []byte(strings.Replace(clusterApiTestUserData, "token: 31o123.abcd4lsoz1ruwxyz", "--unparseable--", 1))
+			setup(t, g)
+			defer teardown(t, g)
+
+			ec2Svc.EXPECT().GetLaunchTemplate(gomock.Any()).Return(&expinfrav1.AWSLaunchTemplate{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("ami-123456"),
+				},
+			}, []byte(clusterApiTestUserData), nil)
+			ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any()).Return(aws.String("ami-123456"), nil)
+			ec2Svc.EXPECT().LaunchTemplateNeedsUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
+
+			ms.AWSMachinePool.Status.LaunchTemplateID = "lt-foo123"
+			ms.AWSMachinePool.Status.LaunchTemplateVersion = aws.String("1")
+
+			// User data changed, so a new launch template version should be created
+			ec2Svc.EXPECT().PruneLaunchTemplateVersions(gomock.Eq("lt-foo123")).Return(nil)
+			ec2Svc.EXPECT().CreateLaunchTemplateVersion(gomock.Eq("lt-foo123"), gomock.Any(), gomock.Eq(aws.String("ami-123456")), gomock.Eq([]byte(strings.Replace(clusterApiTestUserData, "token: 31o123.abcd4lsoz1ruwxyz", "--unparseable--", 1)))).Return(nil)
+			ec2Svc.EXPECT().GetLaunchTemplateLatestVersion(gomock.Eq("lt-foo123")).Return("2", nil)
+
+			instanceRefreshTriggered := false
+			ec2Service.ReconcileLaunchTemplate(ms, func() (bool, error) { return true, nil }, func() error {
+				instanceRefreshTriggered = true
+				return nil
+			}, ec2Svc)
+			// If we cannot parse the bootstrap token out of the user data, we should go the safe route and
+			// not trigger an instance refresh (since that may lead to re-creating nodes all the time, meaning
+			// workload application downtime).
+			g.Expect(instanceRefreshTriggered).To(BeFalse())
 		})
 	})
 }

@@ -69,7 +69,7 @@ type EC2Interface interface {
 	ReconcileTags(scope scope.LaunchTemplateScope, resourceServicesToUpdate []scope.ResourceServiceToUpdate) error
 
 	DiscoverLaunchTemplateAMI(scope scope.LaunchTemplateScope) (*string, error)
-	GetLaunchTemplate(id string) (lt *expinfrav1.AWSLaunchTemplate, userDataHash string, err error)
+	GetLaunchTemplate(id string) (lt *expinfrav1.AWSLaunchTemplate, userData []byte, err error)
 	GetLaunchTemplateID(id string) (string, error)
 	GetLaunchTemplateLatestVersion(id string) (string, error)
 	CreateLaunchTemplate(scope scope.LaunchTemplateScope, imageID *string, userData []byte) (string, error)

@@ -229,7 +229,7 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	canUpdateLaunchTemplate := func() (bool, error) {
 		// If there is a change: before changing the template, check if there exist an ongoing instance refresh,
 		// because only 1 instance refresh can be "InProgress". If template is updated when refresh cannot be started,
-		// that change will not trigger a refresh. Do not start an instance refresh if only userdata changed.
+		// that change will not trigger a refresh.
 		return asgsvc.CanStartASGInstanceRefresh(machinePoolScope)
 	}
 	runPostLaunchTemplateUpdateOperation := func() error {
@@ -238,15 +238,14 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 			machinePoolScope.Debug("instance refresh disabled, skipping instance refresh")
 			return nil
 		}
+
 		// After creating a new version of launch template, instance refresh is required
 		// to trigger a rolling replacement of all previously launched instances.
-		// If ONLY the userdata changed, previously launched instances continue to use the old launch
-		// template.
+		// If ONLY the the bootstrap token in userdata changed, previously launched instances continue
+		// using the old launch template.
 		//
 		// FIXME(dlipovetsky,sedefsavas): If the controller terminates, or the StartASGInstanceRefresh returns an error,
-		// this conditional will not evaluate to true the next reconcile. If any machines use an older
-		// Launch Template version, and the difference between the older and current versions is _more_
-		// than userdata, we should start an Instance Refresh.
+		// this conditional will not evaluate to true the next reconcile.
 		machinePoolScope.Info("starting instance refresh", "number of instances", machinePoolScope.MachinePool.Spec.Replicas)
 		return asgsvc.StartASGInstanceRefresh(machinePoolScope)
 	}

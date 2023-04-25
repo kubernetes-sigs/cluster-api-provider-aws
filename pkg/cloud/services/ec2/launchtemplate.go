@@ -17,8 +17,10 @@ limitations under the License.
 package ec2
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -34,6 +36,7 @@ import (
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -50,10 +53,17 @@ const (
 	TagsLastAppliedAnnotation = "sigs.k8s.io/cluster-api-provider-aws-last-applied-tags"
 )
 
-func (s *Service) ReconcileLaunchTemplate(
+var (
+	// Matches bootstrap token and value as found in cluster-api's node join configuration
+	// (see `cluster-api/bootstrap/kubeadm/internal/cloudinit/`)
+	clusterApiCloudInitUserDataBootstrapTokenRegex = regexp.MustCompile(`(?m)\btoken: \S+$`)
+)
+
+func ReconcileLaunchTemplate(
 	scope scope.LaunchTemplateScope,
 	canUpdateLaunchTemplate func() (bool, error),
 	runPostLaunchTemplateUpdateOperation func() error,
+	ec2svc services.EC2Interface,
 ) error {
 	bootstrapData, err := scope.GetRawBootstrapData()
 	if err != nil {
@@ -61,13 +71,30 @@ func (s *Service) ReconcileLaunchTemplate(
 	}
 	bootstrapDataHash := userdata.ComputeHash(bootstrapData)
 
-	ec2svc := NewService(scope.GetEC2Scope())
-
 	scope.Info("checking for existing launch template")
-	launchTemplate, launchTemplateUserDataHash, err := ec2svc.GetLaunchTemplate(scope.LaunchTemplateName())
+	launchTemplate, launchTemplateUserData, err := ec2svc.GetLaunchTemplate(scope.LaunchTemplateName())
 	if err != nil {
 		conditions.MarkUnknown(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNotFoundReason, err.Error())
 		return err
+	}
+	launchTemplateUserDataHash := userdata.ComputeHash(launchTemplateUserData)
+
+	userDataHasRelevantChanges := false
+	bootstrapDataWithoutToken := clusterApiCloudInitUserDataBootstrapTokenRegex.ReplaceAllLiteral(bootstrapData, []byte("<bootstrap token not considered in diff>"))
+	launchTemplateUserDataWithoutToken := clusterApiCloudInitUserDataBootstrapTokenRegex.ReplaceAllLiteral(launchTemplateUserData, []byte("<bootstrap token not considered in diff>"))
+
+	// Only consider instance refresh if the token could be parsed in the old and new user data.
+	// In other words: if this diffing feature breaks, we don't want to roll nodes every few minutes
+	// and cause application downtime.
+	if !bytes.Equal(bootstrapData, bootstrapDataWithoutToken) {
+		if !bytes.Equal(bootstrapDataWithoutToken, launchTemplateUserDataWithoutToken) {
+			// More than the bootstrap token changed, so consider instance refresh
+			userDataHasRelevantChanges = true
+		}
+	} else {
+		// Since we make assumptions about the user data content above, we should notice when the feature
+		// breaks, so log this case
+		scope.Warn("could not parse bootstrap token from userdata, not considering instance refresh if the user data changed")
 	}
 
 	imageID, err := ec2svc.DiscoverLaunchTemplateAMI(scope)
@@ -123,7 +150,7 @@ func (s *Service) ReconcileLaunchTemplate(
 		return err
 	}
 
-	if needsUpdate || tagsChanged || *imageID != *launchTemplate.AMI.ID {
+	if needsUpdate || tagsChanged || *imageID != *launchTemplate.AMI.ID || userDataHasRelevantChanges {
 		canUpdate, err := canUpdateLaunchTemplate()
 		if err != nil {
 			return err
@@ -157,7 +184,7 @@ func (s *Service) ReconcileLaunchTemplate(
 		}
 	}
 
-	if needsUpdate || tagsChanged || *imageID != *launchTemplate.AMI.ID {
+	if needsUpdate || tagsChanged || *imageID != *launchTemplate.AMI.ID || userDataHasRelevantChanges {
 		if err := runPostLaunchTemplateUpdateOperation(); err != nil {
 			conditions.MarkFalse(scope.GetSetter(), expinfrav1.PostLaunchTemplateUpdateOperationCondition, expinfrav1.PostLaunchTemplateUpdateOperationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return err
@@ -166,6 +193,15 @@ func (s *Service) ReconcileLaunchTemplate(
 	}
 
 	return nil
+}
+
+func (s *Service) ReconcileLaunchTemplate(
+	scope scope.LaunchTemplateScope,
+	canUpdateLaunchTemplate func() (bool, error),
+	runPostLaunchTemplateUpdateOperation func() error,
+) error {
+	ec2svc := NewService(scope.GetEC2Scope())
+	return ReconcileLaunchTemplate(scope, canUpdateLaunchTemplate, runPostLaunchTemplateUpdateOperation, ec2svc)
 }
 
 func (s *Service) ReconcileTags(scope scope.LaunchTemplateScope, resourceServicesToUpdate []scope.ResourceServiceToUpdate) error {
@@ -321,9 +357,9 @@ func tagsChanged(annotation map[string]interface{}, src map[string]string) (bool
 
 // GetLaunchTemplate returns the existing LaunchTemplate or nothing if it doesn't exist.
 // For now by name until we need the input to be something different.
-func (s *Service) GetLaunchTemplate(launchTemplateName string) (*expinfrav1.AWSLaunchTemplate, string, error) {
+func (s *Service) GetLaunchTemplate(launchTemplateName string) (*expinfrav1.AWSLaunchTemplate, []byte, error) {
 	if launchTemplateName == "" {
-		return nil, "", nil
+		return nil, nil, nil
 	}
 
 	s.scope.Debug("Looking for existing LaunchTemplates")
@@ -336,13 +372,13 @@ func (s *Service) GetLaunchTemplate(launchTemplateName string) (*expinfrav1.AWSL
 	out, err := s.EC2Client.DescribeLaunchTemplateVersions(input)
 	switch {
 	case awserrors.IsNotFound(err):
-		return nil, "", nil
+		return nil, nil, nil
 	case err != nil:
-		return nil, "", err
+		return nil, nil, err
 	}
 
 	if out == nil || out.LaunchTemplateVersions == nil || len(out.LaunchTemplateVersions) == 0 {
-		return nil, "", nil
+		return nil, nil, nil
 	}
 
 	return s.SDKToLaunchTemplate(out.LaunchTemplateVersions[0])
@@ -637,7 +673,7 @@ func (s *Service) deleteLaunchTemplateVersion(id string, version *int64) error {
 }
 
 // SDKToLaunchTemplate converts an AWS EC2 SDK instance to the CAPA instance type.
-func (s *Service) SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1.AWSLaunchTemplate, string, error) {
+func (s *Service) SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1.AWSLaunchTemplate, []byte, error) {
 	v := d.LaunchTemplateData
 	i := &expinfrav1.AWSLaunchTemplate{
 		Name: aws.StringValue(d.LaunchTemplateName),
@@ -669,20 +705,20 @@ func (s *Service) SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1
 	}
 
 	if v.UserData == nil {
-		return i, userdata.ComputeHash(nil), nil
+		return i, nil, nil
 	}
 	decodedUserData, err := base64.StdEncoding.DecodeString(*v.UserData)
 	if err != nil {
-		return nil, "", errors.Wrap(err, "unable to decode UserData")
+		return nil, nil, errors.Wrap(err, "unable to decode UserData")
 	}
 
-	return i, userdata.ComputeHash(decodedUserData), nil
+	return i, decodedUserData, nil
 }
 
 // LaunchTemplateNeedsUpdate checks if a new launch template version is needed.
 //
-// FIXME(dlipovetsky): This check should account for changed userdata, but does not yet do so.
-// Although userdata is stored in an EC2 Launch Template, it is not a field of AWSLaunchTemplate.
+// It does not compare user data since that is not a field of AWSLaunchTemplate.
+// See `ReconcileLaunchTemplate` for that logic.
 func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, incoming *expinfrav1.AWSLaunchTemplate, existing *expinfrav1.AWSLaunchTemplate) (bool, error) {
 	if incoming.IamInstanceProfile != existing.IamInstanceProfile {
 		return true, nil

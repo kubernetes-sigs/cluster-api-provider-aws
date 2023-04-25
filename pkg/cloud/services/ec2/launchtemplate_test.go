@@ -87,13 +87,13 @@ func TestGetLaunchTemplate(t *testing.T) {
 		name               string
 		launchTemplateName string
 		expect             func(m *mocks.MockEC2APIMockRecorder)
-		check              func(g *WithT, launchTemplate *expinfrav1.AWSLaunchTemplate, userDataHash string, err error)
+		check              func(g *WithT, launchTemplate *expinfrav1.AWSLaunchTemplate, userData []byte, err error)
 	}{
 		{
 			name: "Should not return launch template if empty launch template name passed",
-			check: func(g *WithT, launchTemplate *expinfrav1.AWSLaunchTemplate, userDataHash string, err error) {
+			check: func(g *WithT, launchTemplate *expinfrav1.AWSLaunchTemplate, userData []byte, err error) {
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(userDataHash).Should(BeEmpty())
+				g.Expect(userData).Should(BeNil())
 				g.Expect(launchTemplate).Should(BeNil())
 			},
 		},
@@ -111,9 +111,9 @@ func TestGetLaunchTemplate(t *testing.T) {
 						nil,
 					))
 			},
-			check: func(g *WithT, launchTemplate *expinfrav1.AWSLaunchTemplate, userDataHash string, err error) {
+			check: func(g *WithT, launchTemplate *expinfrav1.AWSLaunchTemplate, userData []byte, err error) {
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(userDataHash).Should(BeEmpty())
+				g.Expect(userData).Should(BeNil())
 				g.Expect(launchTemplate).Should(BeNil())
 			},
 		},
@@ -126,9 +126,9 @@ func TestGetLaunchTemplate(t *testing.T) {
 					Versions:           []*string{aws.String("$Latest")},
 				})).Return(nil, awserrors.NewFailedDependency("dependency failure"))
 			},
-			check: func(g *WithT, launchTemplate *expinfrav1.AWSLaunchTemplate, userDataHash string, err error) {
+			check: func(g *WithT, launchTemplate *expinfrav1.AWSLaunchTemplate, userData []byte, err error) {
 				g.Expect(err).To(HaveOccurred())
-				g.Expect(userDataHash).Should(BeEmpty())
+				g.Expect(userData).Should(BeNil())
 				g.Expect(launchTemplate).Should(BeNil())
 			},
 		},
@@ -141,9 +141,9 @@ func TestGetLaunchTemplate(t *testing.T) {
 					Versions:           []*string{aws.String("$Latest")},
 				})).Return(nil, nil)
 			},
-			check: func(g *WithT, launchTemplate *expinfrav1.AWSLaunchTemplate, userDataHash string, err error) {
+			check: func(g *WithT, launchTemplate *expinfrav1.AWSLaunchTemplate, userData []byte, err error) {
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(userDataHash).Should(BeEmpty())
+				g.Expect(userData).Should(BeNil())
 				g.Expect(launchTemplate).Should(BeNil())
 			},
 		},
@@ -189,7 +189,7 @@ func TestGetLaunchTemplate(t *testing.T) {
 					},
 				}, nil)
 			},
-			check: func(g *WithT, launchTemplate *expinfrav1.AWSLaunchTemplate, userDataHash string, err error) {
+			check: func(g *WithT, launchTemplate *expinfrav1.AWSLaunchTemplate, userData []byte, err error) {
 				wantLT := &expinfrav1.AWSLaunchTemplate{
 					Name: "foo",
 					AMI: infrav1.AMIReference{
@@ -202,7 +202,7 @@ func TestGetLaunchTemplate(t *testing.T) {
 				}
 
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(userDataHash).Should(Equal(testUserDataHash))
+				g.Expect(userdata.ComputeHash(userData)).Should(Equal(testUserDataHash))
 				g.Expect(launchTemplate).Should(Equal(wantLT))
 			},
 		},
@@ -247,7 +247,7 @@ func TestGetLaunchTemplate(t *testing.T) {
 					},
 				}, nil)
 			},
-			check: func(g *WithT, launchTemplate *expinfrav1.AWSLaunchTemplate, userDataHash string, err error) {
+			check: func(g *WithT, launchTemplate *expinfrav1.AWSLaunchTemplate, userData []byte, err error) {
 				wantLT := &expinfrav1.AWSLaunchTemplate{
 					Name: "foo",
 					AMI: infrav1.AMIReference{
@@ -260,7 +260,7 @@ func TestGetLaunchTemplate(t *testing.T) {
 				}
 
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(userDataHash).Should(Equal(userdata.ComputeHash(nil)))
+				g.Expect(userData).Should(BeNil())
 				g.Expect(launchTemplate).Should(Equal(wantLT))
 			},
 		},
@@ -344,7 +344,8 @@ func TestServiceSDKToLaunchTemplate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Service{}
-			gotLT, gotHash, err := s.SDKToLaunchTemplate(tt.input)
+			gotLT, gotUserData, err := s.SDKToLaunchTemplate(tt.input)
+			gotHash := userdata.ComputeHash(gotUserData)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("error mismatch: got %v, wantErr %v", err, tt.wantErr)
 			}

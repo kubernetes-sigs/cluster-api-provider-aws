@@ -199,11 +199,11 @@ func (mr *MockEC2InterfaceMockRecorder) GetInstanceSecurityGroups(arg0 interface
 }
 
 // GetLaunchTemplate mocks base method.
-func (m *MockEC2Interface) GetLaunchTemplate(arg0 string) (*v1beta20.AWSLaunchTemplate, string, error) {
+func (m *MockEC2Interface) GetLaunchTemplate(arg0 string) (*v1beta20.AWSLaunchTemplate, []byte, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetLaunchTemplate", arg0)
 	ret0, _ := ret[0].(*v1beta20.AWSLaunchTemplate)
-	ret1, _ := ret[1].(string)
+	ret1, _ := ret[1].([]byte)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
