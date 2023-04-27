@@ -1435,8 +1435,7 @@ func (s *Service) reconcileV2LBTags(lb *infrav1.LoadBalancer, desiredTags map[st
 
 func (s *Service) getHealthCheckTarget() string {
 	controlPlaneELB := s.scope.ControlPlaneLoadBalancer()
-	var protocol *infrav1.ELBProtocol
-	protocol = &infrav1.ELBProtocolSSL
+	protocol := &infrav1.ELBProtocolSSL
 	if controlPlaneELB != nil && controlPlaneELB.HealthCheckProtocol != nil {
 		protocol = controlPlaneELB.HealthCheckProtocol
 		if protocol == &infrav1.ELBProtocolHTTP || protocol == &infrav1.ELBProtocolHTTPS {
