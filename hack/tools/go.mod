@@ -8,7 +8,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/itchyny/gojq v0.12.12
 	github.com/joelanford/go-apidiff v0.6.0
-	github.com/mikefarah/yq/v4 v4.33.2
+	github.com/mikefarah/yq/v4 v4.33.3
 	github.com/spf13/pflag v1.0.5
 	k8s.io/apimachinery v0.26.3
 	k8s.io/code-generator v0.26.1
@@ -149,7 +149,7 @@ require (
 	github.com/gobuffalo/flect v0.3.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
-	github.com/goccy/go-yaml v1.10.1 // indirect
+	github.com/goccy/go-yaml v1.11.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang-jwt/jwt/v4 v4.4.2 // indirect
