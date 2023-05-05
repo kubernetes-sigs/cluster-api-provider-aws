@@ -64,6 +64,10 @@ func printPolicyCmd() *cobra.Command {
 				return err
 			}
 
+			if policyName == "" {
+				return template.PrintPolicyDocs()
+			}
+
 			policyDocument := template.GetPolicyDocFromPolicyName(policyName)
 			str, err := converters.IAMPolicyDocumentToJSON(*policyDocument)
 			if err != nil {
@@ -81,6 +85,11 @@ func printPolicyCmd() *cobra.Command {
 
 func getDocumentName(cmd *cobra.Command) (bootstrap.PolicyName, error) {
 	val := bootstrap.PolicyName(cmd.Flags().Lookup("document").Value.String())
+
+	if val == "" {
+		return "", nil
+	}
+
 	if !val.IsValid() {
 		return "", errInvalidDocumentName
 	}
