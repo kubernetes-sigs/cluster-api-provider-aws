@@ -116,6 +116,27 @@ func TestAWSMachineTemplateValidateUpdate(t *testing.T) {
 			},
 			wantError: true,
 		},
+		{
+			name: "allow defaulted values to update",
+			modifiedTemplate: &AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: AWSMachineTemplateSpec{
+					Template: AWSMachineTemplateResource{
+						Spec: AWSMachineSpec{
+							CloudInit:    CloudInit{},
+							InstanceType: "test",
+							InstanceMetadataOptions: &InstanceMetadataOptions{
+								HTTPEndpoint:            InstanceMetadataEndpointStateEnabled,
+								HTTPPutResponseHopLimit: 1,
+								HTTPTokens:              HTTPTokensStateRequired,
+								InstanceMetadataTags:    InstanceMetadataEndpointStateDisabled,
+							},
+						},
+					},
+				},
+			},
+			wantError: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
