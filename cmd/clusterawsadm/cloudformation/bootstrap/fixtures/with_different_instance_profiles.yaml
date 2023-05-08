@@ -222,6 +222,7 @@ Resources:
           - ec2:DeleteLaunchTemplate
           - ec2:DeleteLaunchTemplateVersions
           - ec2:DescribeKeyPairs
+          - ec2:ModifyInstanceMetadataOptions
           Effect: Allow
           Resource:
           - '*'
