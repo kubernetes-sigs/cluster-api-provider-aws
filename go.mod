@@ -41,7 +41,7 @@ require (
 	sigs.k8s.io/cluster-api v1.4.1
 	sigs.k8s.io/cluster-api/test v1.4.1
 	sigs.k8s.io/controller-runtime v0.14.5
-	sigs.k8s.io/kustomize/api v0.13.2
+	sigs.k8s.io/kustomize/api v0.13.3
 	sigs.k8s.io/yaml v1.3.0
 )
 
@@ -161,6 +161,6 @@ require (
 	k8s.io/kubectl v0.25.2 // indirect
 	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
 	sigs.k8s.io/kind v0.17.0 // indirect
-	sigs.k8s.io/kustomize/kyaml v0.14.1 // indirect
+	sigs.k8s.io/kustomize/kyaml v0.14.2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 )
