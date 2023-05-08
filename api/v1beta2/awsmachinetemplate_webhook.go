@@ -227,7 +227,15 @@ func (r *AWSMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw r
 	var allErrs field.ErrorList
 
 	if !topology.ShouldSkipImmutabilityChecks(req, newAWSMachineTemplate) && !cmp.Equal(newAWSMachineTemplate.Spec, oldAWSMachineTemplate.Spec) {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec"), newAWSMachineTemplate, "AWSMachineTemplate.Spec is immutable"))
+		if oldAWSMachineTemplate.Spec.Template.Spec.InstanceMetadataOptions == nil {
+			oldAWSMachineTemplate.Spec.Template.Spec.InstanceMetadataOptions = newAWSMachineTemplate.Spec.Template.Spec.InstanceMetadataOptions
+		}
+
+		if !cmp.Equal(newAWSMachineTemplate.Spec.Template.Spec, oldAWSMachineTemplate.Spec.Template.Spec) {
+			allErrs = append(allErrs,
+				field.Invalid(field.NewPath("AWSMachineTemplate", "spec", "template", "spec"), newAWSMachineTemplate, "AWSMachineTemplate.Spec is immutable"),
+			)
+		}
 	}
 
 	return aggregateObjErrors(newAWSMachineTemplate.GroupVersionKind().GroupKind(), newAWSMachineTemplate.Name, allErrs)
