@@ -163,6 +163,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"ec2:DeleteLaunchTemplate",
 				"ec2:DeleteLaunchTemplateVersions",
 				"ec2:DescribeKeyPairs",
+				"ec2:ModifyInstanceMetadataOptions",
 			},
 		},
 		{
