@@ -233,7 +233,7 @@ func (r *AWSMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw r
 
 		if !cmp.Equal(newAWSMachineTemplate.Spec.Template.Spec, oldAWSMachineTemplate.Spec.Template.Spec) {
 			allErrs = append(allErrs,
-				field.Invalid(field.NewPath("AWSMachineTemplate", "spec", "template", "spec"), newAWSMachineTemplate, "AWSMachineTemplate.Spec is immutable"),
+				field.Invalid(field.NewPath("spec", "template", "spec"), newAWSMachineTemplate, "AWSMachineTemplate.Spec is immutable"),
 			)
 		}
 	}
