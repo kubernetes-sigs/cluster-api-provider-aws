@@ -285,7 +285,7 @@ func (obj *InstanceMetadataOptions) SetDefaults() {
 		obj.HTTPEndpoint = InstanceMetadataEndpointStateEnabled
 	}
 	if obj.HTTPPutResponseHopLimit == 0 {
-		obj.HTTPPutResponseHopLimit = 1
+		obj.HTTPPutResponseHopLimit = 2 // Defaults to 2 in container environment
 	}
 	if obj.HTTPTokens == "" {
 		obj.HTTPTokens = HTTPTokensStateRequired // Defaults to IMDSv2
