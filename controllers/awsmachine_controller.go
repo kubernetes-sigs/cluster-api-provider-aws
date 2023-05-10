@@ -79,6 +79,7 @@ type AWSMachineReconciler struct {
 	objectStoreServiceFactory    func(cloud.ClusterScoper) services.ObjectStoreInterface
 	Endpoints                    []scope.ServiceEndpoint
 	WatchFilterValue             string
+	TagUnmanagedNetworkResources bool
 }
 
 const (
@@ -1032,12 +1033,13 @@ func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log *logger.
 		}
 
 		managedControlPlaneScope, err = scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
-			Client:         r.Client,
-			Logger:         log,
-			Cluster:        cluster,
-			ControlPlane:   controlPlane,
-			ControllerName: "awsManagedControlPlane",
-			Endpoints:      r.Endpoints,
+			Client:                       r.Client,
+			Logger:                       log,
+			Cluster:                      cluster,
+			ControlPlane:                 controlPlane,
+			ControllerName:               "awsManagedControlPlane",
+			Endpoints:                    r.Endpoints,
+			TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
 		})
 		if err != nil {
 			return nil, err
@@ -1060,11 +1062,12 @@ func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log *logger.
 
 	// Create the cluster scope
 	clusterScope, err = scope.NewClusterScope(scope.ClusterScopeParams{
-		Client:         r.Client,
-		Logger:         log,
-		Cluster:        cluster,
-		AWSCluster:     awsCluster,
-		ControllerName: "awsmachine",
+		Client:                       r.Client,
+		Logger:                       log,
+		Cluster:                      cluster,
+		AWSCluster:                   awsCluster,
+		ControllerName:               "awsmachine",
+		TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
 	})
 	if err != nil {
 		return nil, err

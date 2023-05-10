@@ -42,10 +42,11 @@ const (
 
 func TestReconcileSubnets(t *testing.T) {
 	testCases := []struct {
-		name          string
-		input         ScopeBuilder
-		expect        func(m *mocks.MockEC2APIMockRecorder)
-		errorExpected bool
+		name                         string
+		input                        ScopeBuilder
+		expect                       func(m *mocks.MockEC2APIMockRecorder)
+		errorExpected                bool
+		tagUnmanagedNetworkResources bool
 	}{
 		{
 			name: "Unmanaged VPC, 2 existing subnets in vpc, 2 subnet in spec, subnets match, with routes, should succeed",
@@ -500,7 +501,7 @@ func TestReconcileSubnets(t *testing.T) {
 					ID: subnetsVPCID,
 				},
 				Subnets: []infrav1.SubnetSpec{},
-			}),
+			}).WithTagUnmanagedNetworkResources(true),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
@@ -551,7 +552,8 @@ func TestReconcileSubnets(t *testing.T) {
 					}),
 					gomock.Any()).Return(nil)
 			},
-			errorExpected: true,
+			errorExpected:                true,
+			tagUnmanagedNetworkResources: true,
 		},
 		{
 			name: "Unmanaged VPC, 0 existing subnets in vpc, 2 subnets in spec, should fail",
@@ -2601,6 +2603,14 @@ type ClusterScopeBuilder struct {
 func (b *ClusterScopeBuilder) WithNetwork(n *infrav1.NetworkSpec) *ClusterScopeBuilder {
 	b.customizers = append(b.customizers, func(p *scope.ClusterScopeParams) {
 		p.AWSCluster.Spec.NetworkSpec = *n
+	})
+
+	return b
+}
+
+func (b *ClusterScopeBuilder) WithTagUnmanagedNetworkResources(value bool) *ClusterScopeBuilder {
+	b.customizers = append(b.customizers, func(p *scope.ClusterScopeParams) {
+		p.TagUnmanagedNetworkResources = value
 	})
 
 	return b

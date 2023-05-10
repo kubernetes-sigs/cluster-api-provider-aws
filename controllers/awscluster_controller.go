@@ -68,15 +68,16 @@ var defaultAWSSecurityGroupRoles = []infrav1.SecurityGroupRole{
 // AWSClusterReconciler reconciles a AwsCluster object.
 type AWSClusterReconciler struct {
 	client.Client
-	Recorder              record.EventRecorder
-	ec2ServiceFactory     func(scope.EC2Scope) services.EC2Interface
-	networkServiceFactory func(scope.ClusterScope) services.NetworkInterface
-	elbServiceFactory     func(scope.ELBScope) services.ELBInterface
-	securityGroupFactory  func(scope.ClusterScope) services.SecurityGroupInterface
-	Endpoints             []scope.ServiceEndpoint
-	WatchFilterValue      string
-	ExternalResourceGC    bool
-	AlternativeGCStrategy bool
+	Recorder                     record.EventRecorder
+	ec2ServiceFactory            func(scope.EC2Scope) services.EC2Interface
+	networkServiceFactory        func(scope.ClusterScope) services.NetworkInterface
+	elbServiceFactory            func(scope.ELBScope) services.ELBInterface
+	securityGroupFactory         func(scope.ClusterScope) services.SecurityGroupInterface
+	Endpoints                    []scope.ServiceEndpoint
+	WatchFilterValue             string
+	ExternalResourceGC           bool
+	AlternativeGCStrategy        bool
+	TagUnmanagedNetworkResources bool
 }
 
 // getEC2Service factory func is added for testing purpose so that we can inject mocked EC2Service to the AWSClusterReconciler.
@@ -169,12 +170,13 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Create the scope.
 	clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
-		Client:         r.Client,
-		Logger:         log,
-		Cluster:        cluster,
-		AWSCluster:     awsCluster,
-		ControllerName: "awscluster",
-		Endpoints:      r.Endpoints,
+		Client:                       r.Client,
+		Logger:                       log,
+		Cluster:                      cluster,
+		AWSCluster:                   awsCluster,
+		ControllerName:               "awscluster",
+		Endpoints:                    r.Endpoints,
+		TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
 	})
 	if err != nil {
 		return reconcile.Result{}, errors.Errorf("failed to create scope: %+v", err)

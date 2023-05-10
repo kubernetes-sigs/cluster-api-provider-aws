@@ -87,12 +87,13 @@ type AWSManagedControlPlaneReconciler struct {
 	Recorder  record.EventRecorder
 	Endpoints []scope.ServiceEndpoint
 
-	EnableIAM             bool
-	AllowAdditionalRoles  bool
-	WatchFilterValue      string
-	ExternalResourceGC    bool
-	AlternativeGCStrategy bool
-	WaitInfraPeriod       time.Duration
+	EnableIAM                    bool
+	AllowAdditionalRoles         bool
+	WatchFilterValue             string
+	ExternalResourceGC           bool
+	AlternativeGCStrategy        bool
+	WaitInfraPeriod              time.Duration
+	TagUnmanagedNetworkResources bool
 }
 
 // SetupWithManager is used to setup the controller.
@@ -173,13 +174,14 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 	}
 
 	managedScope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
-		Client:               r.Client,
-		Cluster:              cluster,
-		ControlPlane:         awsControlPlane,
-		ControllerName:       strings.ToLower(awsManagedControlPlaneKind),
-		EnableIAM:            r.EnableIAM,
-		AllowAdditionalRoles: r.AllowAdditionalRoles,
-		Endpoints:            r.Endpoints,
+		Client:                       r.Client,
+		Cluster:                      cluster,
+		ControlPlane:                 awsControlPlane,
+		ControllerName:               strings.ToLower(awsManagedControlPlaneKind),
+		EnableIAM:                    r.EnableIAM,
+		AllowAdditionalRoles:         r.AllowAdditionalRoles,
+		Endpoints:                    r.Endpoints,
+		TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
 	})
 	if err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to create scope: %w", err)

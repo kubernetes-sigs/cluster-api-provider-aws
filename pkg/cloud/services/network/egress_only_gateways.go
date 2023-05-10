@@ -40,6 +40,11 @@ func (s *Service) reconcileEgressOnlyInternetGateways() error {
 		return nil
 	}
 
+	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
+		s.scope.Trace("Skipping egress only internet gateway reconcile in unmanaged mode")
+		return nil
+	}
+
 	s.scope.Debug("Reconciling egress only internet gateways")
 
 	eigws, err := s.describeEgressOnlyVpcInternetGateways()

@@ -51,9 +51,11 @@ func (s *Service) reconcileVPC() error {
 		}
 
 		s.scope.VPC().CidrBlock = vpc.CidrBlock
-		s.scope.VPC().Tags = vpc.Tags
 		if s.scope.VPC().IsIPv6Enabled() {
 			s.scope.VPC().IPv6 = vpc.IPv6
+		}
+		if s.scope.TagUnmanagedNetworkResources() {
+			s.scope.VPC().Tags = vpc.Tags
 		}
 
 		// If VPC is unmanaged, return early.
@@ -64,6 +66,10 @@ func (s *Service) reconcileVPC() error {
 			}
 			record.Eventf(s.scope.InfraCluster(), "SuccessfulSetVPCAttributes", "Set managed VPC attributes for %q", vpc.ID)
 			return nil
+		}
+
+		if !s.scope.TagUnmanagedNetworkResources() {
+			s.scope.VPC().Tags = vpc.Tags
 		}
 
 		// Make sure tags are up-to-date.
