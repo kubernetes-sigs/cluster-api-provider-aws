@@ -37,13 +37,14 @@ import (
 
 // ClusterScopeParams defines the input parameters used to create a new Scope.
 type ClusterScopeParams struct {
-	Client         client.Client
-	Logger         *logger.Logger
-	Cluster        *clusterv1.Cluster
-	AWSCluster     *infrav1.AWSCluster
-	ControllerName string
-	Endpoints      []ServiceEndpoint
-	Session        awsclient.ConfigProvider
+	Client                       client.Client
+	Logger                       *logger.Logger
+	Cluster                      *clusterv1.Cluster
+	AWSCluster                   *infrav1.AWSCluster
+	ControllerName               string
+	Endpoints                    []ServiceEndpoint
+	Session                      awsclient.ConfigProvider
+	TagUnmanagedNetworkResources bool
 }
 
 // NewClusterScope creates a new Scope from the supplied parameters.
@@ -62,11 +63,12 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	}
 
 	clusterScope := &ClusterScope{
-		Logger:         *params.Logger,
-		client:         params.Client,
-		Cluster:        params.Cluster,
-		AWSCluster:     params.AWSCluster,
-		controllerName: params.ControllerName,
+		Logger:                       *params.Logger,
+		client:                       params.Client,
+		Cluster:                      params.Cluster,
+		AWSCluster:                   params.AWSCluster,
+		controllerName:               params.ControllerName,
+		tagUnmanagedNetworkResources: params.TagUnmanagedNetworkResources,
 	}
 
 	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, clusterScope, params.AWSCluster.Spec.Region, params.Endpoints, params.Logger)
@@ -98,6 +100,8 @@ type ClusterScope struct {
 	session         awsclient.ConfigProvider
 	serviceLimiters throttle.ServiceLimiters
 	controllerName  string
+
+	tagUnmanagedNetworkResources bool
 }
 
 // Network returns the cluster network object.
@@ -321,6 +325,11 @@ func (s *ClusterScope) ServiceLimiter(service string) *throttle.ServiceLimiter {
 // Bastion returns the bastion details.
 func (s *ClusterScope) Bastion() *infrav1.Bastion {
 	return &s.AWSCluster.Spec.Bastion
+}
+
+// TagUnmanagedNetworkResources returns if the feature flag tag unmanaged network resources is set.
+func (s *ClusterScope) TagUnmanagedNetworkResources() bool {
+	return s.tagUnmanagedNetworkResources
 }
 
 // SetBastionInstance sets the bastion instance in the status of the cluster.

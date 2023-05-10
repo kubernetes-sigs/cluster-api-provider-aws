@@ -53,11 +53,12 @@ import (
 // AWSManagedMachinePoolReconciler reconciles a AWSManagedMachinePool object.
 type AWSManagedMachinePoolReconciler struct {
 	client.Client
-	Recorder             record.EventRecorder
-	Endpoints            []scope.ServiceEndpoint
-	EnableIAM            bool
-	AllowAdditionalRoles bool
-	WatchFilterValue     string
+	Recorder                     record.EventRecorder
+	Endpoints                    []scope.ServiceEndpoint
+	EnableIAM                    bool
+	AllowAdditionalRoles         bool
+	WatchFilterValue             string
+	TagUnmanagedNetworkResources bool
 }
 
 // SetupWithManager is used to setup the controller.
@@ -138,11 +139,12 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	managedControlPlaneScope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
-		Client:         r.Client,
-		Logger:         log,
-		Cluster:        cluster,
-		ControlPlane:   controlPlane,
-		ControllerName: "awsManagedControlPlane",
+		Client:                       r.Client,
+		Logger:                       log,
+		Cluster:                      cluster,
+		ControlPlane:                 controlPlane,
+		ControllerName:               "awsManagedControlPlane",
+		TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
 	})
 	if err != nil {
 		return ctrl.Result{}, errors.New("error getting managed control plane scope")

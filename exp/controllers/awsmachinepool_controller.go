@@ -57,10 +57,11 @@ import (
 // AWSMachinePoolReconciler reconciles a AWSMachinePool object.
 type AWSMachinePoolReconciler struct {
 	client.Client
-	Recorder          record.EventRecorder
-	WatchFilterValue  string
-	asgServiceFactory func(cloud.ClusterScoper) services.ASGInterface
-	ec2ServiceFactory func(scope.EC2Scope) services.EC2Interface
+	Recorder                     record.EventRecorder
+	WatchFilterValue             string
+	asgServiceFactory            func(cloud.ClusterScoper) services.ASGInterface
+	ec2ServiceFactory            func(scope.EC2Scope) services.EC2Interface
+	TagUnmanagedNetworkResources bool
 }
 
 func (r *AWSMachinePoolReconciler) getASGService(scope cloud.ClusterScoper) services.ASGInterface {
@@ -594,11 +595,12 @@ func (r *AWSMachinePoolReconciler) getInfraCluster(ctx context.Context, log *log
 		}
 
 		managedControlPlaneScope, err = scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
-			Client:         r.Client,
-			Logger:         log,
-			Cluster:        cluster,
-			ControlPlane:   controlPlane,
-			ControllerName: "awsManagedControlPlane",
+			Client:                       r.Client,
+			Logger:                       log,
+			Cluster:                      cluster,
+			ControlPlane:                 controlPlane,
+			ControllerName:               "awsManagedControlPlane",
+			TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
 		})
 		if err != nil {
 			return nil, err
@@ -621,11 +623,12 @@ func (r *AWSMachinePoolReconciler) getInfraCluster(ctx context.Context, log *log
 
 	// Create the cluster scope
 	clusterScope, err = scope.NewClusterScope(scope.ClusterScopeParams{
-		Client:         r.Client,
-		Logger:         log,
-		Cluster:        cluster,
-		AWSCluster:     awsCluster,
-		ControllerName: "awsmachine",
+		Client:                       r.Client,
+		Logger:                       log,
+		Cluster:                      cluster,
+		AWSCluster:                   awsCluster,
+		ControllerName:               "awsmachine",
+		TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
 	})
 	if err != nil {
 		return nil, err
