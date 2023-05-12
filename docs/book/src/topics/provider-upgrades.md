@@ -17,6 +17,7 @@ export AWS_REGION=us-east-1 # This is used to help encode your environment varia
 export AWS_ACCESS_KEY_ID=<your-static-access-key>
 export AWS_SECRET_ACCESS_KEY=<your-static-secret-access-key>
 export AWS_CONTROLLER_IAM_ROLE=<your-admin-iam-role>
+export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)
 
 export EXP_EKS=true
 export EXP_EKS_IAM=true
