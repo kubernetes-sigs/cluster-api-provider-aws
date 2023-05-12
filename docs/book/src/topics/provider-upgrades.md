@@ -21,7 +21,6 @@ export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-a
 
 export EXP_EKS=true
 export EXP_EKS_IAM=true
-export EXP_EKS_ADD_ROLES=true
 export EXP_MACHINE_POOL=true
 export CAPA_EKS_ADD_ROLES=true
 ```
