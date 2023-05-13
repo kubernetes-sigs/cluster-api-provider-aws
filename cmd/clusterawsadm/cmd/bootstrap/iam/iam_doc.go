@@ -37,6 +37,9 @@ func printPolicyCmd() *cobra.Command {
 			Kubernetes Cluster API Provider AWS.
 		`),
 		Example: cmd.Examples(`
+		# Print out all the IAM policies for the Kubernetes CLuster API Provider AWS.
+		clusterawsadm bootstrap iam print-policy
+
 		# Print out the IAM policy for the Kubernetes Cluster API Provider AWS Controller.
 		clusterawsadm bootstrap iam print-policy --document AWSIAMManagedPolicyControllers
 
