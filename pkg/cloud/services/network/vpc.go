@@ -59,7 +59,6 @@ func (s *Service) reconcileVPC() error {
 			if err := s.scope.PatchObject(); err != nil {
 				return errors.Wrap(err, "failed to patch unmanaged VPC fields")
 			}
-			record.Eventf(s.scope.InfraCluster(), "SuccessfulSetVPCAttributes", "Set managed VPC attributes for %q", vpc.ID)
 			return nil
 		}
 
