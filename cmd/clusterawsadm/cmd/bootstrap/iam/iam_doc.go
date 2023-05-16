@@ -37,6 +37,9 @@ func printPolicyCmd() *cobra.Command {
 			Kubernetes Cluster API Provider AWS.
 		`),
 		Example: cmd.Examples(`
+		# Print out all the IAM policies for the Kubernetes CLuster API Provider AWS.
+		clusterawsadm bootstrap iam print-policy
+
 		# Print out the IAM policy for the Kubernetes Cluster API Provider AWS Controller.
 		clusterawsadm bootstrap iam print-policy --document AWSIAMManagedPolicyControllers
 
@@ -64,6 +67,10 @@ func printPolicyCmd() *cobra.Command {
 				return err
 			}
 
+			if policyName == "" {
+				return template.PrintPolicyDocs()
+			}
+
 			policyDocument := template.GetPolicyDocFromPolicyName(policyName)
 			str, err := converters.IAMPolicyDocumentToJSON(*policyDocument)
 			if err != nil {
@@ -81,6 +88,11 @@ func printPolicyCmd() *cobra.Command {
 
 func getDocumentName(cmd *cobra.Command) (bootstrap.PolicyName, error) {
 	val := bootstrap.PolicyName(cmd.Flags().Lookup("document").Value.String())
+
+	if val == "" {
+		return "", nil
+	}
+
 	if !val.IsValid() {
 		return "", errInvalidDocumentName
 	}
