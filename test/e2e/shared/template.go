@@ -133,6 +133,7 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 				"elasticfilesystem:DescribeAccessPoints",
 				"elasticfilesystem:DescribeFileSystems",
 				"elasticfilesystem:CreateAccessPoint",
+				"elasticfilesystem:TagResource",
 				"ec2:DescribeAvailabilityZones",
 			},
 		},
