@@ -921,7 +921,8 @@ func TestASGNeedsUpdates(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			g.Expect(asgNeedsUpdates(tt.args.machinePoolScope, tt.args.existingASG)).To(Equal(tt.want))
+			diff := diffASG(tt.args.machinePoolScope, tt.args.existingASG)
+			g.Expect(diff != "").To(Equal(tt.want))
 		})
 	}
 }
