@@ -772,6 +772,10 @@ spec:
                   - size
                   type: object
                 type: array
+              placementGroupName:
+                description: PlacementGroupName specifies the name of the placement
+                  group in which to launch the instance.
+                type: string
               providerID:
                 description: ProviderID is the unique identifier as specified by the
                   cloud provider.
