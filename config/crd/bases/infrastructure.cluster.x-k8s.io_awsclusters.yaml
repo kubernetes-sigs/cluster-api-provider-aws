@@ -1358,7 +1358,7 @@ spec:
                         minimum: 1
                         type: integer
                       httpTokens:
-                        default: required
+                        default: optional
                         description: "The state of token usage for your instance metadata
                           requests. \n If the state is optional, you can choose to
                           retrieve instance metadata with or without a session token
@@ -1370,7 +1370,7 @@ spec:
                           with any instance metadata retrieval requests. In this state,
                           retrieving the IAM role credentials always returns the version
                           2.0 credentials; the version 1.0 credentials are not available.
-                          \n Default: required"
+                          \n Default: optional"
                         enum:
                         - optional
                         - required

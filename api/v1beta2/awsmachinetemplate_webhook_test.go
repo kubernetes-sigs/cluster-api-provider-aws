@@ -127,8 +127,8 @@ func TestAWSMachineTemplateValidateUpdate(t *testing.T) {
 							InstanceType: "test",
 							InstanceMetadataOptions: &InstanceMetadataOptions{
 								HTTPEndpoint:            InstanceMetadataEndpointStateEnabled,
-								HTTPPutResponseHopLimit: 2,
-								HTTPTokens:              HTTPTokensStateRequired,
+								HTTPPutResponseHopLimit: 1,
+								HTTPTokens:              HTTPTokensStateOptional,
 								InstanceMetadataTags:    InstanceMetadataEndpointStateDisabled,
 							},
 						},

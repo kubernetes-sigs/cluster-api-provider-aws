@@ -236,6 +236,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 	input.Tenancy = scope.AWSMachine.Spec.Tenancy
 
 	s.scope.Debug("Running instance", "machine-role", scope.Role())
+	s.scope.Debug("Running instance with instance metadata options", "metadata options", input.InstanceMetadataOptions)
 	out, err := s.runInstance(scope.Role(), input)
 	if err != nil {
 		// Only record the failure event if the error is not related to failed dependencies.
@@ -981,6 +982,7 @@ func (s *Service) ModifyInstanceMetadataOptions(instanceID string, options *infr
 		InstanceId:              aws.String(instanceID),
 	}
 
+	s.scope.Info("Updating instance metadata options", "instance id", instanceID, "options", input)
 	if _, err := s.EC2Client.ModifyInstanceMetadataOptions(input); err != nil {
 		return err
 	}
