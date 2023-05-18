@@ -594,7 +594,7 @@ func assertInstanceMetadataOptions(instanceID string, expected infrav1.InstanceM
 	metadataOptions := result.Reservations[0].Instances[0].MetadataOptions
 	Expect(metadataOptions).ToNot(BeNil())
 
-	Expect(metadataOptions.HttpTokens).To(HaveValue(Equal(string(expected.HTTPTokens)))) // IMDSv2 enabled
+	Expect(metadataOptions.HttpTokens).To(HaveValue(Equal(string(expected.HTTPTokens))))
 	Expect(metadataOptions.HttpEndpoint).To(HaveValue(Equal(string(expected.HTTPEndpoint))))
 	Expect(metadataOptions.InstanceMetadataTags).To(HaveValue(Equal(string(expected.InstanceMetadataTags))))
 	Expect(metadataOptions.HttpPutResponseHopLimit).To(HaveValue(Equal(expected.HTTPPutResponseHopLimit)))
