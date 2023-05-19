@@ -196,9 +196,10 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 
 			mdName := clusterName + "-md01"
 			machineTempalte := makeAWSMachineTemplate(namespace.Name, mdName, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), nil)
+			// A test to set IMDSv2 explicitly
 			machineTempalte.Spec.Template.Spec.InstanceMetadataOptions = &infrav1.InstanceMetadataOptions{
 				HTTPEndpoint:            infrav1.InstanceMetadataEndpointStateEnabled,
-				HTTPPutResponseHopLimit: 1,
+				HTTPPutResponseHopLimit: 2,
 				HTTPTokens:              infrav1.HTTPTokensStateRequired, // IMDSv2
 				InstanceMetadataTags:    infrav1.InstanceMetadataEndpointStateDisabled,
 			}
