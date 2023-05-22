@@ -4,8 +4,8 @@ metadata:
   name: aws-secret
   namespace: kube-system
 stringData:
-  key_id: ${AWS_ACCESS_KEY_ID}
-  access_key: ${AWS_SECRET_ACCESS_KEY}
+  key_id: ""
+  access_key: ""
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -381,6 +381,14 @@ spec:
     spec:
       affinity:
         nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: Exists
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/master
+                    operator: Exists
           preferredDuringSchedulingIgnoredDuringExecution:
             - preference:
                 matchExpressions:
@@ -590,6 +598,10 @@ spec:
         - effect: NoExecute
           operator: Exists
           tolerationSeconds: 300
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
       volumes:
         - emptyDir: {}
           name: socket-dir
