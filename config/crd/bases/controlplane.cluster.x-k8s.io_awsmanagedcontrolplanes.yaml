@@ -949,6 +949,10 @@ spec:
                       - size
                       type: object
                     type: array
+                  placementGroupName:
+                    description: PlacementGroupName specifies the name of the placement
+                      group in which to launch the instance.
+                    type: string
                   privateIp:
                     description: The private IPv4 address assigned to the instance.
                     type: string
@@ -2371,6 +2375,10 @@ spec:
                       - size
                       type: object
                     type: array
+                  placementGroupName:
+                    description: PlacementGroupName specifies the name of the placement
+                      group in which to launch the instance.
+                    type: string
                   privateIp:
                     description: The private IPv4 address assigned to the instance.
                     type: string
