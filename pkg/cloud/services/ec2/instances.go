@@ -235,6 +235,8 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 
 	input.Tenancy = scope.AWSMachine.Spec.Tenancy
 
+	input.PlacementGroupName = scope.AWSMachine.Spec.PlacementGroupName
+
 	s.scope.Debug("Running instance", "machine-role", scope.Role())
 	s.scope.Debug("Running instance with instance metadata options", "metadata options", input.InstanceMetadataOptions)
 	out, err := s.runInstance(scope.Role(), input)
@@ -586,6 +588,13 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		input.Placement = &ec2.Placement{
 			Tenancy: &i.Tenancy,
 		}
+	}
+
+	if i.PlacementGroupName != "" {
+		if input.Placement == nil {
+			input.Placement = &ec2.Placement{}
+		}
+		input.Placement.GroupName = &i.PlacementGroupName
 	}
 
 	out, err := s.EC2Client.RunInstances(input)
