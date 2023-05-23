@@ -229,9 +229,9 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 	log.Info("Generating userdata")
 	files, err := r.resolveFiles(ctx, config)
 	if err != nil {
-		log.Info("Control Plane has not yet been initialized")
+		log.Info("Failed to resolve files for user data")
 		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
 	nodeInput := &userdata.NodeInput{
