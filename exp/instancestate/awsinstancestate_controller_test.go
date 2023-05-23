@@ -64,7 +64,12 @@ func TestAWSInstanceStateController(t *testing.T) {
 			Return(&sqs.GetQueueUrlOutput{QueueUrl: aws.String("aws-cluster-2-url")}, nil)
 		sqsSvs.EXPECT().GetQueueUrl(&sqs.GetQueueUrlInput{QueueName: aws.String("aws-cluster-3-queue")}).AnyTimes().
 			Return(&sqs.GetQueueUrlOutput{QueueUrl: aws.String("aws-cluster-3-url")}, nil)
-		sqsSvs.EXPECT().ReceiveMessage(&sqs.ReceiveMessageInput{QueueUrl: aws.String("aws-cluster-1-url")}).AnyTimes().
+		sqsSvs.EXPECT().ReceiveMessage(&sqs.ReceiveMessageInput{
+			MaxNumberOfMessages: aws.Int64(10),
+			QueueUrl:            aws.String("aws-cluster-1-url"),
+			VisibilityTimeout:   aws.Int64(20),
+			WaitTimeSeconds:     aws.Int64(10),
+		}).AnyTimes().
 			DoAndReturn(func(arg *sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error) {
 				m := &infrav1.AWSMachine{}
 				lookupKey := types.NamespacedName{
@@ -85,9 +90,19 @@ func TestAWSInstanceStateController(t *testing.T) {
 				return &sqs.ReceiveMessageOutput{Messages: []*sqs.Message{}}, nil
 			})
 
-		sqsSvs.EXPECT().ReceiveMessage(&sqs.ReceiveMessageInput{QueueUrl: aws.String("aws-cluster-2-url")}).AnyTimes().
+		sqsSvs.EXPECT().ReceiveMessage(&sqs.ReceiveMessageInput{
+			MaxNumberOfMessages: aws.Int64(10),
+			QueueUrl:            aws.String("aws-cluster-2-url"),
+			VisibilityTimeout:   aws.Int64(20),
+			WaitTimeSeconds:     aws.Int64(10),
+		}).AnyTimes().
 			Return(&sqs.ReceiveMessageOutput{Messages: []*sqs.Message{}}, nil)
-		sqsSvs.EXPECT().ReceiveMessage(&sqs.ReceiveMessageInput{QueueUrl: aws.String("aws-cluster-3-url")}).AnyTimes().
+		sqsSvs.EXPECT().ReceiveMessage(&sqs.ReceiveMessageInput{
+			MaxNumberOfMessages: aws.Int64(10),
+			QueueUrl:            aws.String("aws-cluster-3-url"),
+			VisibilityTimeout:   aws.Int64(20),
+			WaitTimeSeconds:     aws.Int64(10),
+		}).AnyTimes().
 			Return(&sqs.ReceiveMessageOutput{Messages: []*sqs.Message{}}, nil)
 		sqsSvs.EXPECT().DeleteMessage(&sqs.DeleteMessageInput{QueueUrl: aws.String("aws-cluster-1-url"), ReceiptHandle: aws.String("message-receipt-handle")}).AnyTimes().
 			Return(nil, nil)

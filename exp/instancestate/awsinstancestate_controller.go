@@ -19,6 +19,7 @@ package instancestate
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sync"
 	"time"
 
@@ -45,6 +46,12 @@ import (
 
 // Ec2InstanceStateLabelKey defines an ec2 instance state label.
 const Ec2InstanceStateLabelKey = "ec2-instance-state"
+
+// ASGInstanceStateLabelKey defines an ASG EC2 instance state label.
+const ASGInstanceStateLabelKey = "asg-instance-state"
+
+// EC2InstanceHealthStateLabelKey defines an EC2 instance health state label.
+const EC2InstanceHealthStateLabelKey = "ec2-instance-health-state"
 
 // AwsInstanceStateReconciler reconciles a AwsInstanceState object.
 type AwsInstanceStateReconciler struct {
@@ -134,82 +141,99 @@ func (r *AwsInstanceStateReconciler) watchQueuesForInstanceEvents() {
 	for range time.Tick(1 * time.Second) {
 		// go through each cluster and check for messages on its queue
 		r.queueURLs.Range(func(key, val interface{}) bool {
-			go func() {
-				qp := val.(queueParams)
-				sqsSvs, err := r.getSQSService(qp.region)
-				if err != nil {
-					r.Log.Error(err, "unable to create SQS client")
-					return
-				}
-				resp, err := sqsSvs.ReceiveMessage(&sqs.ReceiveMessageInput{QueueUrl: aws.String(qp.URL)})
-				if err != nil {
-					r.Log.Error(err, "failed to receive messages")
-					return
-				}
-				for _, msg := range resp.Messages {
-					m := message{}
-					err := json.Unmarshal([]byte(*msg.Body), &m)
-
-					if err != nil {
-						r.Log.Error(err, "unable to marshall")
-						return
-					}
-					// TODO: handle errors during process message. We currently deletes the message regardless.
-					r.processMessage(ctx, m)
-
-					_, err = sqsSvs.DeleteMessage(&sqs.DeleteMessageInput{
-						QueueUrl:      aws.String(qp.URL),
-						ReceiptHandle: msg.ReceiptHandle,
-					})
-
-					if err != nil {
-						r.Log.Error(err, "error deleting message", "queueURL", qp.URL, "messageReceiptHandle", msg.ReceiptHandle)
-					}
-				}
-			}()
-
+			qp := val.(queueParams)
+			go r.processQueue(ctx, qp)
 			return true
 		})
 	}
 }
 
-// processMessage triggers a reconcile on an AWSMachine if its EC2 instance state changed.
-func (r *AwsInstanceStateReconciler) processMessage(ctx context.Context, msg message) {
-	if msg.Source != "aws.ec2" || msg.DetailType != instancestate.Ec2StateChangeNotification || msg.MessageDetail == nil {
+func (r *AwsInstanceStateReconciler) processQueue(ctx context.Context, qp queueParams) {
+	sqsSvs, err := r.getSQSService(qp.region)
+	if err != nil {
+		r.Log.Error(err, "unable to create SQS client")
+		return
+	}
+	resp, err := receiveMessageFromQueue(sqsSvs, qp)
+	if err != nil {
+		r.Log.Error(err, "unable to receive message from queue")
 		return
 	}
 
+	queueEvents := make([]instancestate.EventDetails, 10)
+	for _, msg := range resp.Messages {
+		event := instancestate.EventBridgeEvent{}
+		err := json.Unmarshal([]byte(*msg.Body), &event)
+
+		if err != nil {
+			r.Log.Error(err, "unable to marshall")
+			return
+		}
+
+		err = r.processMessage(ctx, event)
+		if err != nil {
+			r.Log.Error(err, "unable to process the message from queue")
+			return
+		}
+		message := msg
+		queueEvents = append(queueEvents, instancestate.EventDetails{
+			Message:          message,
+			EventBridgeEvent: event,
+		})
+	}
+	instancestate.QueueEventMapping.Store(qp.URL, queueEvents)
+}
+
+func receiveMessageFromQueue(sqsSvs sqsiface.SQSAPI, qp queueParams) (*sqs.ReceiveMessageOutput, error) {
+	resp, err := sqsSvs.ReceiveMessage(&sqs.ReceiveMessageInput{
+		QueueUrl:            aws.String(qp.URL),
+		MaxNumberOfMessages: aws.Int64(10),
+		VisibilityTimeout:   aws.Int64(20),
+		WaitTimeSeconds:     aws.Int64(10),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// processMessage triggers reconcile on an AWSMachine if its EC2 instance state changed.
+func (r *AwsInstanceStateReconciler) processMessage(ctx context.Context, event instancestate.EventBridgeEvent) error {
+	instanceID := event.Detail.InstanceID
+	if event.Source == "aws.health" {
+		instanceID = event.Detail.AffectedEntities[0].EntityValue
+	}
 	// Fetch the awsMachine instance by InstanceID
 	awsMachines := &infrav1.AWSMachineList{}
-	err := r.List(ctx, awsMachines, client.MatchingFields{controllers.InstanceIDIndex: msg.MessageDetail.InstanceID})
+	err := r.List(ctx, awsMachines, client.MatchingFields{controllers.InstanceIDIndex: instanceID})
 
 	if err != nil {
-		r.Log.Error(err, "unable to list machines by instance ID", "instanceID", msg.MessageDetail.InstanceID)
+		r.Log.Error(err, "unable to list machines by instance ID", "instanceID", instanceID)
 	}
 
 	if len(awsMachines.Items) > 0 {
 		machine := awsMachines.Items[0]
 		if !machine.ObjectMeta.DeletionTimestamp.IsZero() {
-			return
+			return nil
 		}
 		patchHelper, err := patch.NewHelper(&machine, r.Client)
 		if err != nil {
 			r.Log.Error(err, "unable to create patch helper")
 		}
-		// Trigger an update on the machine
-		labels := machine.GetLabels()
-		if labels == nil {
-			labels = make(map[string]string)
+
+		labels, err := r.getMachineLabelOnEventType(machine, event)
+		if err != nil {
+			return err
 		}
 
-		labels[Ec2InstanceStateLabelKey] = string(msg.MessageDetail.State)
+		// Trigger an update on the machine
 		machine.SetLabels(labels)
-
 		err = patchHelper.Patch(ctx, &machine)
 		if err != nil {
 			r.Log.Error(err, "unable to patch AWS machine")
 		}
 	}
+	return nil
 }
 
 // getQueueURL retrieves the SQS queue URL for a given cluster.
@@ -228,6 +252,31 @@ func (r *AwsInstanceStateReconciler) getQueueURL(cluster *infrav1.AWSCluster) (s
 	return *resp.QueueUrl, nil
 }
 
+func (r *AwsInstanceStateReconciler) getMachineLabelOnEventType(machine infrav1.AWSMachine, event instancestate.EventBridgeEvent) (map[string]string, error) {
+	labels := machine.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+
+	switch event.Source {
+	case "aws.autoscaling":
+		labels[ASGInstanceStateLabelKey] = string(event.Detail.State)
+	case "aws.ec2":
+		labels[Ec2InstanceStateLabelKey] = string(event.Detail.State)
+	case "aws.health":
+		if event.Detail.Service != "EC2" {
+			return nil, fmt.Errorf("events from Amazon EventBridge for service (%s) are not supported", event.Detail.Service)
+		}
+		if event.Detail.EventTypeCategory != "scheduledChange" {
+			return nil, fmt.Errorf("events from Amazon EventBridge with EventTypeCategory (%s) are not supported", event.Detail.EventTypeCategory)
+		}
+		labels[EC2InstanceHealthStateLabelKey] = event.Detail.EventTypeCategory
+	default:
+		r.Log.V(4).Info("event type from Amazon EventBridge is not supported", "event", event.Source)
+	}
+	return labels, nil
+}
+
 func queueNotFoundError(err error) bool {
 	if aerr, ok := err.(awserr.Error); ok {
 		if aerr.Code() == sqs.ErrCodeQueueDoesNotExist {
@@ -240,15 +289,4 @@ func queueNotFoundError(err error) bool {
 type queueParams struct {
 	region string
 	URL    string
-}
-
-type message struct {
-	Source        string         `json:"source"`
-	DetailType    string         `json:"detail-type,omitempty"`
-	MessageDetail *messageDetail `json:"detail,omitempty"`
-}
-
-type messageDetail struct {
-	InstanceID string                `json:"instance-id,omitempty"`
-	State      infrav1.InstanceState `json:"state,omitempty"`
 }
