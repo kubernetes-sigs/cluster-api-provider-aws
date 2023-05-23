@@ -1677,7 +1677,10 @@ spec:
                                   enum:
                                   - tcp
                                   - tls
-                                  - upd
+                                  - udp
+                                  - TCP
+                                  - TLS
+                                  - UDP
                                   type: string
                                 targetGroupHealthCheck:
                                   description: HealthCheck is the elb health check

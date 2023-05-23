@@ -94,7 +94,7 @@ var (
 	TargetGroupAttributeEnablePreserveClientIP = "preserve_client_ip.enabled"
 )
 
-// LoadBalancerAttribute defines a set of attributes for a V2 load balancer
+// LoadBalancerAttribute defines a set of attributes for a V2 load balancer.
 type LoadBalancerAttribute string
 
 var (
@@ -110,7 +110,7 @@ type TargetGroupSpec struct {
 	Name string `json:"name"`
 	// Port is the exposed port
 	Port int64 `json:"port"`
-	// +kubebuilder:validation:Enum=tcp;tls;upd
+	// +kubebuilder:validation:Enum=tcp;tls;udp;TCP;TLS;UDP
 	Protocol ELBProtocol `json:"protocol"`
 	VpcID    string      `json:"vpcId"`
 	// HealthCheck is the elb health check associated with the load balancer.
