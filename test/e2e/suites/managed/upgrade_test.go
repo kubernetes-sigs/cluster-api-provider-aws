@@ -70,7 +70,7 @@ var _ = ginkgo.Describe("EKS Cluster upgrade test", func() {
 				ClusterName:              clusterName,
 				Flavour:                  EKSControlPlaneOnlyFlavor, // TODO (richardcase) - change in the future when upgrades to machinepools work
 				ControlPlaneMachineCount: 1,                         // NOTE: this cannot be zero as clusterctl returns an error
-				WorkerMachineCount:       1,
+				WorkerMachineCount:       0,
 				KubernetesVersion:        initialVersion,
 			}
 		})
