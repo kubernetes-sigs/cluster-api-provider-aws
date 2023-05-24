@@ -224,6 +224,9 @@ type AWSIAMConfigurationSpec struct {
 	// TODO: This field could be a pointer, but it seems it breaks setting default values?
 	// +optional
 	S3Buckets S3Buckets `json:"s3Buckets,omitempty"`
+
+	// AllowAssumeRole enables the sts:AssumeRole permission within the CAPA policies
+	AllowAssumeRole bool `json:"allowAssumeRole,omitempty"`
 }
 
 // GetObjectKind returns the AAWSIAMConfiguration's TypeMeta.
