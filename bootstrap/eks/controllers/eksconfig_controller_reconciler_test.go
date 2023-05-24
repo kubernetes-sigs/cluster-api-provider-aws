@@ -141,6 +141,128 @@ func TestEKSConfigReconciler(t *testing.T) {
 			gomega.Expect(string(secret.Data["value"])).To(Equal(string(expectedUserData)))
 		}).Should(Succeed())
 	})
+	t.Run("Should reconcile an EKSConfig and not update data if secret exists and config owner is Machine kind", func(t *testing.T) {
+		g := NewWithT(t)
+		amcp := newAMCP("test-cluster")
+		cluster := newCluster(amcp.Name)
+		machine := newMachine(cluster, "test-machine")
+		config := newEKSConfig(machine)
+		t.Logf(dump("amcp", amcp))
+		t.Logf(dump("config", config))
+		t.Logf(dump("machine", machine))
+		t.Logf(dump("cluster", cluster))
+		expectedUserData, err := newUserData(cluster.Name, map[string]string{"test-arg": "test-value"})
+		g.Expect(err).To(BeNil())
+		g.Expect(testEnv.Client.Create(ctx, amcp)).To(Succeed())
+
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      machine.Name,
+			},
+		}
+		g.Expect(testEnv.Client.Create(ctx, secret)).To(Succeed())
+
+		amcpList := &ekscontrolplanev1.AWSManagedControlPlaneList{}
+		testEnv.Client.List(ctx, amcpList)
+		t.Logf(dump("stored-amcps", amcpList))
+
+		reconciler := EKSConfigReconciler{
+			Client: testEnv.Client,
+		}
+		t.Logf(fmt.Sprintf("Calling reconcile on cluster '%s' and config '%s' should requeue", cluster.Name, config.Name))
+		g.Eventually(func(gomega Gomega) {
+			result, err := reconciler.joinWorker(ctx, cluster, config, configOwner("Machine"))
+			gomega.Expect(err).NotTo(HaveOccurred())
+			gomega.Expect(result.Requeue).To(BeFalse())
+		}).Should(Succeed())
+
+		t.Logf(fmt.Sprintf("Secret '%s' should exist and be out of date", config.Name))
+		secretList := &corev1.SecretList{}
+		testEnv.Client.List(ctx, secretList)
+		t.Logf(dump("secrets", secretList))
+
+		secret = &corev1.Secret{}
+		g.Eventually(func(gomega Gomega) {
+			gomega.Expect(testEnv.Client.Get(ctx, client.ObjectKey{
+				Name:      config.Name,
+				Namespace: "default",
+			}, secret)).To(Succeed())
+			gomega.Expect(string(secret.Data["value"])).To(Not(Equal(string(expectedUserData))))
+		}).Should(Succeed())
+	})
+	t.Run("Should Reconcile an EKSConfig with a secret file reference", func(t *testing.T) {
+		g := NewWithT(t)
+		amcp := newAMCP("test-cluster")
+		//nolint: gosec // these are not credentials
+		secretPath := "/etc/secret.txt"
+		secretContent := "secretValue"
+		cluster := newCluster(amcp.Name)
+		machine := newMachine(cluster, "test-machine")
+		config := newEKSConfig(machine)
+		config.Spec.Files = append(config.Spec.Files, eksbootstrapv1.File{
+			ContentFrom: &eksbootstrapv1.FileSource{
+				Secret: eksbootstrapv1.SecretFileSource{
+					Name: "my-secret",
+					Key:  "secretKey",
+				},
+			},
+			Path: secretPath,
+		})
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "my-secret",
+			},
+			Data: map[string][]byte{
+				"secretKey": []byte(secretContent),
+			},
+		}
+		t.Logf(dump("amcp", amcp))
+		t.Logf(dump("config", config))
+		t.Logf(dump("machine", machine))
+		t.Logf(dump("cluster", cluster))
+		t.Logf(dump("secret", secret))
+		g.Expect(testEnv.Client.Create(ctx, secret)).To(Succeed())
+		g.Expect(testEnv.Client.Create(ctx, amcp)).To(Succeed())
+
+		// create a userData with the secret content and check if reconile.joinWorker
+		// resolves the userdata properly
+		expectedUserData, err := userdata.NewNode(&userdata.NodeInput{
+			ClusterName: amcp.Name,
+			Files: []eksbootstrapv1.File{
+				{
+					Content: secretContent,
+					Path:    secretPath,
+				},
+			},
+			KubeletExtraArgs: map[string]string{
+				"test-arg": "test-value",
+			},
+		})
+		g.Expect(err).To(BeNil())
+		reconciler := EKSConfigReconciler{
+			Client: testEnv.Client,
+		}
+		t.Logf(fmt.Sprintf("Calling reconcile on cluster '%s' and config '%s' should requeue", cluster.Name, config.Name))
+		g.Eventually(func(gomega Gomega) {
+			result, err := reconciler.joinWorker(ctx, cluster, config, configOwner("Machine"))
+			gomega.Expect(err).NotTo(HaveOccurred())
+			gomega.Expect(result.Requeue).To(BeFalse())
+		}).Should(Succeed())
+
+		secretList := &corev1.SecretList{}
+		testEnv.Client.List(ctx, secretList)
+		t.Logf(dump("secrets", secretList))
+		gotSecret := &corev1.Secret{}
+		g.Eventually(func(gomega Gomega) {
+			gomega.Expect(testEnv.Client.Get(ctx, client.ObjectKey{
+				Name:      config.Name,
+				Namespace: "default",
+			}, gotSecret)).To(Succeed())
+		}).Should(Succeed())
+		g.Expect(string(gotSecret.Data["value"])).To(Equal(string(expectedUserData)))
+	})
 }
 
 // newCluster return a CAPI cluster object.
