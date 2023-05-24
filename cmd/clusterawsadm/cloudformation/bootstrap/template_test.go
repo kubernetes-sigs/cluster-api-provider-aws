@@ -174,6 +174,14 @@ func TestRenderCloudformation(t *testing.T) {
 				return t
 			},
 		},
+		{
+			fixture: "with_allow_assume_role",
+			template: func() Template {
+				t := NewTemplate()
+				t.Spec.AllowAssumeRole = true
+				return t
+			},
+		},
 	}
 
 	for _, c := range cases {

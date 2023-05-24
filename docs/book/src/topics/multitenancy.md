@@ -213,6 +213,9 @@ There are multiple AWS assume role permissions that need to be configured in ord
   }
   ```
 
+Both of these permissions can be enabled via clusterawsadm as documented [here](using-clusterawsadm-to-fulfill-prerequisites.md#cross-account-role-assumption).
+
+
 ### Examples
 
 This is a deployable example which uses the `AWSClusterRoleIdentity` "test-account-role" to assume into the `arn:aws:iam::123456789:role/CAPARole` role in the target account.
