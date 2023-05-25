@@ -50,6 +50,10 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	}
 	dst.Spec.Partition = restored.Spec.Partition
 
+	for role, sg := range restored.Status.Network.SecurityGroups {
+		dst.Status.Network.SecurityGroups[role] = sg
+	}
+
 	return nil
 }
 
@@ -70,6 +74,7 @@ func restoreControlPlaneLoadBalancer(restored, dst *infrav2.AWSLoadBalancerSpec)
 	dst.LoadBalancerType = restored.LoadBalancerType
 	dst.DisableHostsRewrite = restored.DisableHostsRewrite
 	dst.PreserveClientIP = restored.PreserveClientIP
+	dst.AdditionalIngressRules = restored.AdditionalIngressRules
 }
 
 // ConvertFrom converts the v1beta1 AWSCluster receiver to a v1beta1 AWSCluster.
