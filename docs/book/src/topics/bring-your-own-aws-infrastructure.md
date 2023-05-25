@@ -159,6 +159,17 @@ spec:
 
 As control plane instances are added or removed, Cluster API will register and deregister them, respectively, with the Classic ELB.
 
+It's also possible to specify custom ingress rules for the control plane load balancer. To do so, add this to the AWSCluster specification:
+
+```yaml
+spec:
+  additionalIngressRules:
+    - description: "example ingress rule"
+      protocol: "-1" # all
+      fromPort: 7777
+      toPort: 7777
+```
+
 > **WARNING:** Using an existing Classic ELB is an advanced feature. **If you use an existing Classic ELB, you must correctly configure it, and attach subnets to it.**
 > 
 >An incorrectly configured Classic ELB can easily lead to a non-functional cluster. We strongly recommend you let Cluster API create the Classic ELB.

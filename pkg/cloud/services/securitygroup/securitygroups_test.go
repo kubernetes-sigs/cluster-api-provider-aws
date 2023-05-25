@@ -17,6 +17,7 @@ limitations under the License.
 package securitygroup
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -609,6 +610,166 @@ func TestControlPlaneSecurityGroupNotOpenToAnyCIDR(t *testing.T) {
 		if sets.NewString(r.CidrBlocks...).Has(services.AnyIPv4CidrBlock) {
 			t.Fatal("Ingress rule allows any CIDR block")
 		}
+	}
+}
+
+func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = infrav1.AddToScheme(scheme)
+
+	testCases := []struct {
+		name                         string
+		controlPlaneLBSpec           *infrav1.AWSLoadBalancerSpec
+		expectedAdditionalIngresRule infrav1.IngressRule
+	}{
+		{
+			name: "default control plane security group is used",
+			controlPlaneLBSpec: &infrav1.AWSLoadBalancerSpec{
+				AdditionalIngressRules: []infrav1.IngressRule{
+					{
+						Description: "test",
+						Protocol:    infrav1.SecurityGroupProtocolTCP,
+						FromPort:    9345,
+						ToPort:      9345,
+					},
+				},
+			},
+			expectedAdditionalIngresRule: infrav1.IngressRule{
+				Description:            "test",
+				Protocol:               infrav1.SecurityGroupProtocolTCP,
+				FromPort:               9345,
+				ToPort:                 9345,
+				SourceSecurityGroupIDs: []string{"cp-sg-id"},
+			},
+		},
+		{
+			name: "custom security group id is used",
+			controlPlaneLBSpec: &infrav1.AWSLoadBalancerSpec{
+				AdditionalIngressRules: []infrav1.IngressRule{
+					{
+						Description:            "test",
+						Protocol:               infrav1.SecurityGroupProtocolTCP,
+						FromPort:               9345,
+						ToPort:                 9345,
+						SourceSecurityGroupIDs: []string{"test"},
+					},
+				},
+			},
+			expectedAdditionalIngresRule: infrav1.IngressRule{
+				Description:            "test",
+				Protocol:               infrav1.SecurityGroupProtocolTCP,
+				FromPort:               9345,
+				ToPort:                 9345,
+				SourceSecurityGroupIDs: []string{"test"},
+			},
+		},
+		{
+			name: "another security group role is used",
+			controlPlaneLBSpec: &infrav1.AWSLoadBalancerSpec{
+				AdditionalIngressRules: []infrav1.IngressRule{
+					{
+						Description:              "test",
+						Protocol:                 infrav1.SecurityGroupProtocolTCP,
+						FromPort:                 9345,
+						ToPort:                   9345,
+						SourceSecurityGroupRoles: []infrav1.SecurityGroupRole{infrav1.SecurityGroupNode},
+					},
+				},
+			},
+			expectedAdditionalIngresRule: infrav1.IngressRule{
+				Description:            "test",
+				Protocol:               infrav1.SecurityGroupProtocolTCP,
+				FromPort:               9345,
+				ToPort:                 9345,
+				SourceSecurityGroupIDs: []string{"node-sg-id"},
+			},
+		},
+		{
+			name: "another security group role and a custom security group id is used",
+			controlPlaneLBSpec: &infrav1.AWSLoadBalancerSpec{
+				AdditionalIngressRules: []infrav1.IngressRule{
+					{
+						Description:              "test",
+						Protocol:                 infrav1.SecurityGroupProtocolTCP,
+						FromPort:                 9345,
+						ToPort:                   9345,
+						SourceSecurityGroupIDs:   []string{"test"},
+						SourceSecurityGroupRoles: []infrav1.SecurityGroupRole{infrav1.SecurityGroupNode},
+					},
+				},
+			},
+			expectedAdditionalIngresRule: infrav1.IngressRule{
+				Description:            "test",
+				Protocol:               infrav1.SecurityGroupProtocolTCP,
+				FromPort:               9345,
+				ToPort:                 9345,
+				SourceSecurityGroupIDs: []string{"test", "node-sg-id"},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cs, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client: fake.NewClientBuilder().WithScheme(scheme).Build(),
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
+				},
+				AWSCluster: &infrav1.AWSCluster{
+					Spec: infrav1.AWSClusterSpec{
+						ControlPlaneLoadBalancer: tc.controlPlaneLBSpec,
+					},
+					Status: infrav1.AWSClusterStatus{
+						Network: infrav1.NetworkStatus{
+							SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+								infrav1.SecurityGroupControlPlane: {
+									ID: "cp-sg-id",
+								},
+								infrav1.SecurityGroupNode: {
+									ID: "node-sg-id",
+								},
+							},
+						},
+					},
+				},
+			})
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+
+			s := NewService(cs, testSecurityGroupRoles)
+			rules, err := s.getSecurityGroupIngressRules(infrav1.SecurityGroupControlPlane)
+			if err != nil {
+				t.Fatalf("Failed to lookup controlplane security group ingress rules: %v", err)
+			}
+
+			found := false
+			for _, r := range rules {
+				if r.Description == "test" {
+					found = true
+
+					if r.Protocol != tc.expectedAdditionalIngresRule.Protocol {
+						t.Fatalf("Expected protocol %s, got %s", tc.expectedAdditionalIngresRule.Protocol, r.Protocol)
+					}
+
+					if r.FromPort != tc.expectedAdditionalIngresRule.FromPort {
+						t.Fatalf("Expected from port %d, got %d", tc.expectedAdditionalIngresRule.FromPort, r.FromPort)
+					}
+
+					if r.ToPort != tc.expectedAdditionalIngresRule.ToPort {
+						t.Fatalf("Expected to port %d, got %d", tc.expectedAdditionalIngresRule.ToPort, r.ToPort)
+					}
+
+					if !reflect.DeepEqual(r.SourceSecurityGroupIDs, tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs) {
+						t.Fatalf("Expected source security group IDs %v, got %v", tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs, r.SourceSecurityGroupIDs)
+					}
+				}
+			}
+
+			if !found {
+				t.Fatal("Additional ingress rule was not found")
+			}
+		})
 	}
 }
 
