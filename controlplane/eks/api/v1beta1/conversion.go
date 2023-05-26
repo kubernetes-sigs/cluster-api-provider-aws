@@ -126,3 +126,17 @@ func Convert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControlPlan
 func Convert_v1beta2_AWSManagedControlPlaneStatus_To_v1beta1_AWSManagedControlPlaneStatus(in *v1beta2.AWSManagedControlPlaneStatus, out *AWSManagedControlPlaneStatus, s apiconversion.Scope) error {
 	return autoConvert_v1beta2_AWSManagedControlPlaneStatus_To_v1beta1_AWSManagedControlPlaneStatus(in, out, s)
 }
+
+func Convert_v1beta1_OIDCProviderStatus_To_v1beta2_OIDCProviderStatus(in *OIDCProviderStatus, out *infrav1beta2.OIDCProviderStatus, _ apiconversion.Scope) error {
+	out.ARN = in.ARN
+	out.IssuerURL = in.IssuerURL
+	out.TrustPolicy = in.TrustPolicy
+	return nil
+}
+
+func Convert_v1beta2_OIDCProviderStatus_To_v1beta1_OIDCProviderStatus(in *infrav1beta2.OIDCProviderStatus, out *OIDCProviderStatus, scope apiconversion.Scope) error {
+	out.ARN = in.ARN
+	out.IssuerURL = in.IssuerURL
+	out.TrustPolicy = in.TrustPolicy
+	return nil
+}

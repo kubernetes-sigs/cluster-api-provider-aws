@@ -32,6 +32,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -309,7 +310,7 @@ func (r *AWSMachineReconciler) reconcileDelete(ctx context.Context, machineScope
 	}
 
 	instance, err := r.findInstance(machineScope, ec2Service)
-	if err != nil && err != ec2.ErrInstanceNotFoundByID {
+	if err != nil && !errors.Is(err, ec2.ErrInstanceNotFoundByID) {
 		machineScope.Error(err, "query to find instance failed")
 		return ctrl.Result{}, err
 	}
@@ -655,12 +656,11 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 
 	// tasks that can only take place during operational instance states
 	if machineScope.InstanceIsOperational() {
-		err := r.reconcileOperationalState(ec2svc, machineScope, instance)
+		err := r.reconcileOperationalState(ctx, ec2svc, machineScope, instance)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 	}
-
 	machineScope.Debug("done reconciling instance", "instance", instance)
 	if shouldRequeue {
 		machineScope.Debug("but find the instance is pending, requeue", "instance", instance.ID)
@@ -669,7 +669,7 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 	return ctrl.Result{}, nil
 }
 
-func (r *AWSMachineReconciler) reconcileOperationalState(ec2svc services.EC2Interface, machineScope *scope.MachineScope, instance *infrav1.Instance) error {
+func (r *AWSMachineReconciler) reconcileOperationalState(ctx context.Context, ec2svc services.EC2Interface, machineScope *scope.MachineScope, instance *infrav1.Instance) error {
 	machineScope.SetAddresses(instance.Addresses)
 
 	existingSecurityGroups, err := ec2svc.GetInstanceSecurityGroups(*machineScope.GetInstanceID())
@@ -691,6 +691,50 @@ func (r *AWSMachineReconciler) reconcileOperationalState(ec2svc services.EC2Inte
 	if err != nil {
 		machineScope.Error(err, "failed to ensure instance metadata options")
 		return err
+	}
+
+	// check if the remote kubeconfig works and annotate the cluster
+	if _, ok := machineScope.InfraCluster.InfraCluster().GetAnnotations()[scope.KubeconfigReadyAnnotation]; !ok && machineScope.IsControlPlane() {
+		// if a control plane node is operational check for a kubeconfig and a working control plane node
+		// and set the annotation so any reconciliation which requires workload api access can complete
+		remoteClient, err := machineScope.InfraCluster.RemoteClient()
+		if err != nil {
+			return err
+		}
+
+		var nodes corev1.NodeList
+		if err := remoteClient.List(ctx, &nodes, client.MatchingLabels(map[string]string{"node-role.kubernetes.io/control-plane": ""})); err != nil {
+			return err
+		}
+
+		oneReady := false
+		for i := range nodes.Items {
+			if util.IsNodeReady(&nodes.Items[i]) {
+				oneReady = true // if one control plane is ready return true
+				break
+			}
+		}
+
+		if !oneReady {
+			r.Log.Info("waiting for a control plane node to be ready before annotating the cluster, do you need to deploy a CNI?")
+
+			return nil
+		}
+
+		awsCluster := &infrav1.AWSCluster{}
+		key := apimachinerytypes.NamespacedName{
+			Namespace: machineScope.InfraCluster.Namespace(),
+			Name:      machineScope.InfraCluster.Name(),
+		}
+		if err := r.Client.Get(ctx, key, awsCluster); err != nil {
+			return fmt.Errorf("failed to get aws cluster: %w", err)
+		}
+
+		awsCluster.Annotations[scope.KubeconfigReadyAnnotation] = "true"
+
+		if err := r.Client.Update(ctx, awsCluster); err != nil {
+			return fmt.Errorf("failed to update aws cluster with new annotation: %w", err)
+		}
 	}
 
 	return nil
@@ -906,7 +950,7 @@ func (r *AWSMachineReconciler) deleteBootstrapData(ctx context.Context, machineS
 	}
 
 	if machineScope.UseSecretsManager(userDataFormat) {
-		if err := r.deleteEncryptedBootstrapDataSecret(machineScope, clusterScope); err != nil {
+		if err := r.deleteEncryptedBootstrapDataSecret(machineScope, clusterScope); err != nil && !apierrors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -944,6 +988,8 @@ func (r *AWSMachineReconciler) deleteIgnitionBootstrapDataFromS3(ctx context.Con
 			machineScope.AWSMachine.Spec.Ignition.StorageType != infrav1.IgnitionStorageTypeOptionClusterObjectStore) {
 		return nil
 	}
+
+	machineScope.Info("Deleting unneeded entry from AWS S3", "secretPrefix", machineScope.GetSecretPrefix())
 
 	if err := objectStoreSvc.Delete(ctx, machineScope); err != nil {
 		return errors.Wrap(err, "deleting bootstrap data object")

@@ -163,6 +163,7 @@ rules:
   - rosaclusters
   - rosamachinepools
   verbs:
+  - create
   - delete
   - get
   - list
@@ -180,6 +181,23 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - awsfargateprofiles
+  - awsmachinepools
+  - awsmachines
+  - awsmanagedclusters
+  - awsmanagedmachinepools
+  - rosaclusters
+  - rosamachinepools
+  verbs:
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:

@@ -73,6 +73,9 @@ const (
 	// BootstrapFormatIgnition will allow an user to enable alternate machine bootstrap format, viz. Ignition.
 	BootstrapFormatIgnition featuregate.Feature = "BootstrapFormatIgnition"
 
+	// OIDCProviderSupport will allow a user to enable OIDC provider support for kubeadm clusters.
+	OIDCProviderSupport featuregate.Feature = "OIDCProviderSupport"
+
 	// ExternalResourceGC is used to enable the garbage collection of external resources like NLB/ALB on deletion
 	// owner: @richardcase
 	// alpha: v1.5
@@ -113,6 +116,7 @@ var defaultCAPAFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	BootstrapFormatIgnition:       {Default: false, PreRelease: featuregate.Alpha},
 	ExternalResourceGC:            {Default: true, PreRelease: featuregate.Beta},
 	AlternativeGCStrategy:         {Default: false, PreRelease: featuregate.Beta},
+	OIDCProviderSupport:           {Default: false, PreRelease: featuregate.Alpha},
 	TagUnmanagedNetworkResources:  {Default: true, PreRelease: featuregate.Alpha},
 	ROSA:                          {Default: false, PreRelease: featuregate.Alpha},
 }
