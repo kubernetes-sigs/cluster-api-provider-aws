@@ -407,3 +407,11 @@ const (
 	// AmazonLinuxGPU is the AmazonLinux GPU AMI type.
 	AmazonLinuxGPU EKSAMILookupType = "AmazonLinuxGPU"
 )
+
+// OIDCProviderStatus holds the status of the AWS OIDC identity provider.
+type OIDCProviderStatus struct {
+	// ARN holds the ARN of the provider
+	ARN string `json:"arn,omitempty"`
+	// TrustPolicy contains the boilerplate IAM trust policy to use for IRSA
+	TrustPolicy string `json:"trustPolicy,omitempty"`
+}

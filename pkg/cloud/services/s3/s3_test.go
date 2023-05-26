@@ -71,7 +71,8 @@ func TestReconcileBucket(t *testing.T) {
 		})
 
 		input := &s3svc.CreateBucketInput{
-			Bucket: aws.String(expectedBucketName),
+			Bucket:          aws.String(expectedBucketName),
+			ObjectOwnership: aws.String(s3svc.ObjectOwnershipBucketOwnerPreferred),
 		}
 
 		s3Mock.EXPECT().CreateBucket(gomock.Eq(input)).Return(nil, nil).Times(1)
@@ -95,6 +96,7 @@ func TestReconcileBucket(t *testing.T) {
 		s3Mock.EXPECT().PutBucketTagging(gomock.Eq(taggingInput)).Return(nil, nil).Times(1)
 
 		s3Mock.EXPECT().PutBucketPolicy(gomock.Any()).Return(nil, nil).Times(1)
+		s3Mock.EXPECT().PutPublicAccessBlock(gomock.Any()).Return(nil, nil).Times(1)
 
 		if err := svc.ReconcileBucket(); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
@@ -116,7 +118,7 @@ func TestReconcileBucket(t *testing.T) {
 		client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 		longName := strings.Repeat("a", 40)
-		scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+		clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 			Client: client,
 			Cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -134,7 +136,7 @@ func TestReconcileBucket(t *testing.T) {
 			t.Fatalf("Failed to create test context: %v", err)
 		}
 
-		svc := s3.NewService(scope)
+		svc := s3.NewService(clusterScope)
 		svc.S3Client = s3Mock
 		svc.STSClient = stsMock
 
@@ -150,6 +152,7 @@ func TestReconcileBucket(t *testing.T) {
 
 		s3Mock.EXPECT().PutBucketTagging(gomock.Any()).Return(nil, nil).Times(1)
 		s3Mock.EXPECT().PutBucketPolicy(gomock.Any()).Return(nil, nil).Times(1)
+		s3Mock.EXPECT().PutPublicAccessBlock(gomock.Any()).Return(nil, nil).Times(1)
 
 		if err := svc.ReconcileBucket(); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
@@ -171,6 +174,7 @@ func TestReconcileBucket(t *testing.T) {
 
 		s3Mock.EXPECT().CreateBucket(gomock.Any()).Return(nil, nil).Times(1)
 		s3Mock.EXPECT().PutBucketTagging(gomock.Any()).Return(nil, nil).Times(1)
+		s3Mock.EXPECT().PutPublicAccessBlock(gomock.Any()).Return(nil, nil).Times(1)
 		s3Mock.EXPECT().PutBucketPolicy(gomock.Any()).Do(func(input *s3svc.PutBucketPolicyInput) {
 			if input.Policy == nil {
 				t.Fatalf("Policy must be defined")
@@ -207,11 +211,14 @@ func TestReconcileBucket(t *testing.T) {
 	t.Run("is_idempotent", func(t *testing.T) {
 		t.Parallel()
 
-		svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+		svc, s3Mock := testService(t, &infrav1.S3Bucket{
+			Name: "doesnt-exist",
+		})
 
 		s3Mock.EXPECT().CreateBucket(gomock.Any()).Return(nil, nil).Times(2)
 		s3Mock.EXPECT().PutBucketTagging(gomock.Any()).Return(nil, nil).Times(2)
 		s3Mock.EXPECT().PutBucketPolicy(gomock.Any()).Return(nil, nil).Times(2)
+		s3Mock.EXPECT().PutPublicAccessBlock(gomock.Any()).Return(nil, nil).Times(2)
 
 		if err := svc.ReconcileBucket(); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
@@ -232,6 +239,7 @@ func TestReconcileBucket(t *testing.T) {
 		s3Mock.EXPECT().CreateBucket(gomock.Any()).Return(nil, err).Times(1)
 		s3Mock.EXPECT().PutBucketTagging(gomock.Any()).Return(nil, nil).Times(1)
 		s3Mock.EXPECT().PutBucketPolicy(gomock.Any()).Return(nil, nil).Times(1)
+		s3Mock.EXPECT().PutPublicAccessBlock(gomock.Any()).Return(nil, nil).Times(1)
 
 		if err := svc.ReconcileBucket(); err != nil {
 			t.Fatalf("Unexpected error, got: %v", err)
@@ -276,6 +284,7 @@ func TestReconcileBucket(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
 			stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Return(nil, fmt.Errorf(t.Name())).AnyTimes()
+			s3Mock.EXPECT().PutPublicAccessBlock(gomock.Any()).Return(nil, errors.New("error")).Times(1)
 			svc.STSClient = stsMock
 
 			if err := svc.ReconcileBucket(); err == nil {
@@ -291,6 +300,7 @@ func TestReconcileBucket(t *testing.T) {
 			s3Mock.EXPECT().CreateBucket(gomock.Any()).Return(nil, nil).Times(1)
 			s3Mock.EXPECT().PutBucketTagging(gomock.Any()).Return(nil, nil).Times(1)
 			s3Mock.EXPECT().PutBucketPolicy(gomock.Any()).Return(nil, errors.New("error")).Times(1)
+			s3Mock.EXPECT().PutPublicAccessBlock(gomock.Any()).Return(nil, errors.New("error")).Times(1)
 
 			if err := svc.ReconcileBucket(); err == nil {
 				t.Fatalf("Expected error")
@@ -337,7 +347,9 @@ func TestDeleteBucket(t *testing.T) {
 		t.Run("unexpected_error", func(t *testing.T) {
 			t.Parallel()
 
-			svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+			svc, s3Mock := testService(t, &infrav1.S3Bucket{
+				Name: "doesnt-exist",
+			})
 
 			s3Mock.EXPECT().DeleteBucket(gomock.Any()).Return(nil, errors.New("err")).Times(1)
 
@@ -349,7 +361,9 @@ func TestDeleteBucket(t *testing.T) {
 		t.Run("unexpected_AWS_error", func(t *testing.T) {
 			t.Parallel()
 
-			svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+			svc, s3Mock := testService(t, &infrav1.S3Bucket{
+				Name: "doesnt-exist",
+			})
 
 			s3Mock.EXPECT().DeleteBucket(gomock.Any()).Return(nil, awserr.New("foo", "", nil)).Times(1)
 
@@ -362,7 +376,9 @@ func TestDeleteBucket(t *testing.T) {
 	t.Run("ignores_when_bucket_has_already_been_removed", func(t *testing.T) {
 		t.Parallel()
 
-		svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+		svc, s3Mock := testService(t, &infrav1.S3Bucket{
+			Name: "doesnt-exist",
+		})
 
 		s3Mock.EXPECT().DeleteBucket(gomock.Any()).Return(nil, awserr.New(s3svc.ErrCodeNoSuchBucket, "", nil)).Times(1)
 
@@ -374,7 +390,9 @@ func TestDeleteBucket(t *testing.T) {
 	t.Run("skips_bucket_removal_when_bucket_is_not_empty", func(t *testing.T) {
 		t.Parallel()
 
-		svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+		svc, s3Mock := testService(t, &infrav1.S3Bucket{
+			Name: "doesnt-exist",
+		})
 
 		s3Mock.EXPECT().DeleteBucket(gomock.Any()).Return(nil, awserr.New("BucketNotEmpty", "", nil)).Times(1)
 
@@ -445,7 +463,7 @@ func TestCreateObject(t *testing.T) {
 			})
 		}).Return(nil, nil).Times(1)
 
-		bootstrapDataURL, err := svc.Create(machineScope, bootstrapData)
+		bootstrapDataURL, err := svc.Create(machineScope.GetBootstrapDataKey(), bootstrapData)
 		if err != nil {
 			t.Fatalf("Unexpected error, got: %v", err)
 		}
@@ -476,7 +494,9 @@ func TestCreateObject(t *testing.T) {
 	t.Run("is_idempotent", func(t *testing.T) {
 		t.Parallel()
 
-		svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+		svc, s3Mock := testService(t, &infrav1.S3Bucket{
+			Name: "doesnt-exist",
+		})
 
 		machineScope := &scope.MachineScope{
 			Machine: &clusterv1.Machine{},
@@ -491,10 +511,10 @@ func TestCreateObject(t *testing.T) {
 
 		boostrapData := []byte("foo")
 
-		if _, err := svc.Create(machineScope, boostrapData); err != nil {
+		if _, err := svc.Create(machineScope.GetBootstrapDataKey(), boostrapData); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
-		if _, err := svc.Create(machineScope, boostrapData); err != nil {
+		if _, err := svc.Create(machineScope.GetBootstrapDataKey(), boostrapData); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 	})
@@ -505,7 +525,9 @@ func TestCreateObject(t *testing.T) {
 		t.Run("object_creation_fails", func(t *testing.T) {
 			t.Parallel()
 
-			svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+			svc, s3Mock := testService(t, &infrav1.S3Bucket{
+				Name: "doesnt-exist",
+			})
 
 			machineScope := &scope.MachineScope{
 				Machine: &clusterv1.Machine{},
@@ -518,7 +540,7 @@ func TestCreateObject(t *testing.T) {
 
 			s3Mock.EXPECT().PutObject(gomock.Any()).Return(nil, errors.New("foo")).Times(1)
 
-			bootstrapDataURL, err := svc.Create(machineScope, []byte("foo"))
+			bootstrapDataURL, err := svc.Create(machineScope.GetBootstrapDataKey(), []byte("foo"))
 			if err == nil {
 				t.Fatalf("Expected error")
 			}
@@ -533,7 +555,7 @@ func TestCreateObject(t *testing.T) {
 
 			svc, _ := testService(t, &infrav1.S3Bucket{})
 
-			bootstrapDataURL, err := svc.Create(nil, []byte("foo"))
+			bootstrapDataURL, err := svc.Create("", []byte("foo"))
 			if err == nil {
 				t.Fatalf("Expected error")
 			}
@@ -544,7 +566,7 @@ func TestCreateObject(t *testing.T) {
 		})
 
 		// If one tries to put empty bootstrap data into S3, most likely something is wrong.
-		t.Run("given_empty_bootstrap_data", func(t *testing.T) {
+		t.Run("given_empty_bucket_name", func(t *testing.T) {
 			t.Parallel()
 
 			svc, _ := testService(t, &infrav1.S3Bucket{})
@@ -558,9 +580,9 @@ func TestCreateObject(t *testing.T) {
 				},
 			}
 
-			bootstrapDataURL, err := svc.Create(machineScope, []byte{})
-			if err == nil {
-				t.Fatalf("Expected error")
+			bootstrapDataURL, err := svc.Create(machineScope.GetBootstrapDataKey(), []byte{})
+			if !s3.IsEmptyBucketError(err) {
+				t.Fatalf("Unexpected error: %v", err)
 			}
 
 			if bootstrapDataURL != "" {
@@ -582,9 +604,9 @@ func TestCreateObject(t *testing.T) {
 				},
 			}
 
-			bootstrapDataURL, err := svc.Create(machineScope, []byte("foo"))
-			if err == nil {
-				t.Fatalf("Expected error")
+			bootstrapDataURL, err := svc.Create(machineScope.GetBootstrapDataKey(), []byte("foo"))
+			if !s3.IsDisabledError(err) {
+				t.Fatalf("Unexpected error: %v", err)
 			}
 
 			if bootstrapDataURL != "" {
@@ -645,7 +667,7 @@ func TestDeleteObject(t *testing.T) {
 			})
 		}).Return(nil, nil).Times(1)
 
-		if err := svc.Delete(machineScope); err != nil {
+		if err := svc.Delete(machineScope.GetBootstrapDataKey()); err != nil {
 			t.Fatalf("Unexpected error, got: %v", err)
 		}
 	})
@@ -653,7 +675,9 @@ func TestDeleteObject(t *testing.T) {
 	t.Run("succeeds_when_bucket_has_already_been_removed", func(t *testing.T) {
 		t.Parallel()
 
-		svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+		svc, s3Mock := testService(t, &infrav1.S3Bucket{
+			Name: "doesnt-exist",
+		})
 
 		machineScope := &scope.MachineScope{
 			Machine: &clusterv1.Machine{},
@@ -666,7 +690,7 @@ func TestDeleteObject(t *testing.T) {
 
 		s3Mock.EXPECT().DeleteObject(gomock.Any()).Return(nil, awserr.New(s3svc.ErrCodeNoSuchBucket, "", nil)).Times(1)
 
-		if err := svc.Delete(machineScope); err != nil {
+		if err := svc.Delete(machineScope.GetBootstrapDataKey()); err != nil {
 			t.Fatalf("Unexpected error, got: %v", err)
 		}
 	})
@@ -677,7 +701,9 @@ func TestDeleteObject(t *testing.T) {
 		t.Run("object_deletion_fails", func(t *testing.T) {
 			t.Parallel()
 
-			svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+			svc, s3Mock := testService(t, &infrav1.S3Bucket{
+				Name: "doesnt-exist",
+			})
 
 			machineScope := &scope.MachineScope{
 				Machine: &clusterv1.Machine{},
@@ -690,7 +716,7 @@ func TestDeleteObject(t *testing.T) {
 
 			s3Mock.EXPECT().DeleteObject(gomock.Any()).Return(nil, errors.New("foo")).Times(1)
 
-			if err := svc.Delete(machineScope); err == nil {
+			if err := svc.Delete(machineScope.GetBootstrapDataKey()); err == nil {
 				t.Fatalf("Expected error")
 			}
 		})
@@ -700,7 +726,7 @@ func TestDeleteObject(t *testing.T) {
 
 			svc, _ := testService(t, &infrav1.S3Bucket{})
 
-			if err := svc.Delete(nil); err == nil {
+			if err := svc.Delete(""); err == nil {
 				t.Fatalf("Expected error")
 			}
 		})
@@ -719,8 +745,8 @@ func TestDeleteObject(t *testing.T) {
 				},
 			}
 
-			if err := svc.Delete(machineScope); err == nil {
-				t.Fatalf("Expected error")
+			if err := svc.Delete(machineScope.GetBootstrapDataKey()); !s3.IsDisabledError(err) {
+				t.Fatalf("Unexpected error, got: %v", err)
 			}
 		})
 	})
@@ -728,7 +754,9 @@ func TestDeleteObject(t *testing.T) {
 	t.Run("is_idempotent", func(t *testing.T) {
 		t.Parallel()
 
-		svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+		svc, s3Mock := testService(t, &infrav1.S3Bucket{
+			Name: "doesnt-exist",
+		})
 
 		machineScope := &scope.MachineScope{
 			Machine: &clusterv1.Machine{},
@@ -741,11 +769,11 @@ func TestDeleteObject(t *testing.T) {
 
 		s3Mock.EXPECT().DeleteObject(gomock.Any()).Return(nil, nil).Times(2)
 
-		if err := svc.Delete(machineScope); err != nil {
+		if err := svc.Delete(machineScope.GetBootstrapDataKey()); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 
-		if err := svc.Delete(machineScope); err != nil {
+		if err := svc.Delete(machineScope.GetBootstrapDataKey()); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 	})
@@ -765,7 +793,7 @@ func testService(t *testing.T, bucket *infrav1.S3Bucket) (*s3.Service, *mock_s3i
 	_ = infrav1.AddToScheme(scheme)
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
-	scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+	clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 		Client: client,
 		Cluster: &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
@@ -783,7 +811,7 @@ func testService(t *testing.T, bucket *infrav1.S3Bucket) (*s3.Service, *mock_s3i
 		t.Fatalf("Failed to create test context: %v", err)
 	}
 
-	svc := s3.NewService(scope)
+	svc := s3.NewService(clusterScope)
 	svc.S3Client = s3Mock
 	svc.STSClient = stsMock
 

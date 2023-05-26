@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"path"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -252,6 +253,11 @@ func (m *MachineScope) SetSecretCount(i int32) {
 // SetAddresses sets the AWSMachine address status.
 func (m *MachineScope) SetAddresses(addrs []clusterv1.MachineAddress) {
 	m.AWSMachine.Status.Addresses = addrs
+}
+
+// GetBootstrapDataKey returns the bootstrap data key to use in the s3 bucket when storing ignition bootstrap data.
+func (m *MachineScope) GetBootstrapDataKey() string {
+	return path.Join(m.Role(), m.Name())
 }
 
 // GetBootstrapData returns the bootstrap data from the secret in the Machine's bootstrap.dataSecretName as base64.

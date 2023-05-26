@@ -32,6 +32,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
@@ -242,7 +243,7 @@ func (r *AWSMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	log := logger.FromContext(ctx)
 	AWSClusterToAWSMachines := r.AWSClusterToAWSMachines(log)
 
-	controller, err := ctrl.NewControllerManagedBy(mgr).
+	managedController, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&infrav1.AWSMachine{}).
 		Watches(
@@ -290,7 +291,7 @@ func (r *AWSMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	}
 
 	requeueAWSMachinesForUnpausedCluster := r.requeueAWSMachinesForUnpausedCluster(log)
-	return controller.Watch(
+	return managedController.Watch(
 		source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
 		handler.EnqueueRequestsFromMapFunc(requeueAWSMachinesForUnpausedCluster),
 		predicates.ClusterUnpausedAndInfrastructureReady(log.GetLogger()),
@@ -451,7 +452,7 @@ func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc se
 	return instance, nil
 }
 
-func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope, elbScope scope.ELBScope, objectStoreScope scope.S3Scope) (ctrl.Result, error) {
+func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope, elbScope scope.ELBScope, objectStoreScope scope.S3Scope) (ctrl.Result, error) {
 	machineScope.Trace("Reconciling AWSMachine")
 
 	// If the AWSMachine is in an error state, return early.
@@ -585,30 +586,19 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 
 	// tasks that can take place during all known instance states
 	if machineScope.InstanceIsInKnownState() {
-		_, err = r.ensureTags(ec2svc, machineScope.AWSMachine, machineScope.GetInstanceID(), machineScope.AdditionalTags())
-		if err != nil {
-			machineScope.Error(err, "failed to ensure tags")
-			return ctrl.Result{}, err
-		}
-
-		if instance != nil {
-			r.ensureStorageTags(ec2svc, instance, machineScope.AWSMachine, machineScope.AdditionalTags())
-		}
-
-		if err := r.reconcileLBAttachment(machineScope, elbScope, instance); err != nil {
-			machineScope.Error(err, "failed to reconcile LB attachment")
+		machineScope.Debug("running known state tasks", "instance", instance)
+		if err := r.reconcileKnownStateTasks(ctx, machineScope, ec2svc, elbScope, instance); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
 	// tasks that can only take place during operational instance states
 	if machineScope.InstanceIsOperational() {
-		err := r.reconcileOperationalState(ec2svc, machineScope, instance)
+		err := r.reconcileOperationalState(ctx, ec2svc, machineScope, instance)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 	}
-
 	machineScope.Debug("done reconciling instance", "instance", instance)
 	if shouldRequeue {
 		machineScope.Debug("but find the instance is pending, requeue", "instance", instance.ID)
@@ -617,7 +607,26 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	return ctrl.Result{}, nil
 }
 
-func (r *AWSMachineReconciler) reconcileOperationalState(ec2svc services.EC2Interface, machineScope *scope.MachineScope, instance *infrav1.Instance) error {
+func (r *AWSMachineReconciler) reconcileKnownStateTasks(_ context.Context, machineScope *scope.MachineScope, ec2svc services.EC2Interface, elbScope scope.ELBScope, instance *infrav1.Instance) error {
+	_, err := r.ensureTags(ec2svc, machineScope.AWSMachine, machineScope.GetInstanceID(), machineScope.AdditionalTags())
+	if err != nil {
+		machineScope.Error(err, "failed to ensure tags")
+		return err
+	}
+
+	if instance != nil {
+		r.ensureStorageTags(ec2svc, instance, machineScope.AWSMachine, machineScope.AdditionalTags())
+	}
+
+	if err := r.reconcileLBAttachment(machineScope, elbScope, instance); err != nil {
+		machineScope.Error(err, "failed to reconcile LB attachment")
+		return err
+	}
+
+	return nil
+}
+
+func (r *AWSMachineReconciler) reconcileOperationalState(ctx context.Context, ec2svc services.EC2Interface, machineScope *scope.MachineScope, instance *infrav1.Instance) error {
 	machineScope.SetAddresses(instance.Addresses)
 
 	existingSecurityGroups, err := ec2svc.GetInstanceSecurityGroups(*machineScope.GetInstanceID())
@@ -639,6 +648,45 @@ func (r *AWSMachineReconciler) reconcileOperationalState(ec2svc services.EC2Inte
 	if err != nil {
 		machineScope.Error(err, "failed to ensure instance metadata options")
 		return err
+	}
+
+	// check if the remote kubeconfig works and annotate the cluster
+	_, ok := machineScope.InfraCluster.InfraCluster().GetAnnotations()[scope.KubeconfigReadyAnnotation]
+	if !ok && machineScope.IsControlPlane() {
+		// if a control plane node is operational check for a kubeconfig and a working control plane node
+		// and set the annotation so any reconciliation which requires workload api access can complete
+		remoteClient, err := machineScope.InfraCluster.RemoteClient()
+		if err != nil {
+			return err
+		}
+
+		var nodes corev1.NodeList
+		if err := remoteClient.List(ctx, &nodes, client.MatchingLabels(map[string]string{"node-role.kubernetes.io/control-plane": ""})); err != nil {
+			return err
+		}
+
+		oneReady := false
+		for i := range nodes.Items {
+			if util.IsNodeReady(&nodes.Items[i]) {
+				oneReady = true // if one control plane is ready return true
+			}
+		}
+
+		if oneReady {
+			awsCluster := &infrav1.AWSCluster{}
+			key := types.NamespacedName{Namespace: machineScope.InfraCluster.Namespace(), Name: machineScope.InfraCluster.Name()}
+			if err := r.Client.Get(ctx, key, awsCluster); err != nil {
+				return err
+			}
+			anno := awsCluster.GetAnnotations()
+			anno[scope.KubeconfigReadyAnnotation] = "true"
+			awsCluster.SetAnnotations(anno)
+			if err := r.Client.Update(ctx, awsCluster); err != nil {
+				return err
+			}
+		} else {
+			r.Log.Info("waiting for a control plane node to be ready before annotating the cluster, do you need to deploy a CNI?")
+		}
 	}
 
 	return nil
@@ -750,7 +798,7 @@ func (r *AWSMachineReconciler) ignitionUserData(scope *scope.MachineScope, objec
 		return nil, errors.New("object store service not available")
 	}
 
-	objectURL, err := objectStoreSvc.Create(scope, userData)
+	objectURL, err := objectStoreSvc.Create(scope.GetBootstrapDataKey(), userData)
 	if err != nil {
 		return nil, errors.Wrap(err, "creating userdata object")
 	}
@@ -814,7 +862,7 @@ func (r *AWSMachineReconciler) deleteBootstrapData(machineScope *scope.MachineSc
 	}
 
 	if machineScope.UseSecretsManager(userDataFormat) {
-		if err := r.deleteEncryptedBootstrapDataSecret(machineScope, clusterScope); err != nil {
+		if err := r.deleteEncryptedBootstrapDataSecret(machineScope, clusterScope); err != nil && !apierrors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -852,7 +900,7 @@ func (r *AWSMachineReconciler) deleteIgnitionBootstrapDataFromS3(machineScope *s
 
 	machineScope.Info("Deleting unneeded entry from AWS S3", "secretPrefix", machineScope.GetSecretPrefix())
 
-	if err := objectStoreSvc.Delete(machineScope); err != nil {
+	if err := objectStoreSvc.Delete(machineScope.GetBootstrapDataKey()); err != nil {
 		return errors.Wrap(err, "deleting bootstrap data object")
 	}
 
@@ -1158,19 +1206,19 @@ func (r *AWSMachineReconciler) ensureStorageTags(ec2svc services.EC2Interface, i
 			if err != nil {
 				r.Log.Error(err, "Failed to fetch the changed volume tags in EC2 instance")
 			}
-			annotations[volumeID] = newAnnotation
+			prevAnnotations[volumeID] = newAnnotation
 		} else {
 			newAnnotation, err := r.ensureVolumeTags(ec2svc, aws.String(volumeID), make(map[string]interface{}), additionalTags)
 			if err != nil {
 				r.Log.Error(err, "Failed to fetch the changed volume tags in EC2 instance")
 			}
-			annotations[volumeID] = newAnnotation
+			prevAnnotations[volumeID] = newAnnotation
 		}
 	}
 
 	if !cmp.Equal(prevAnnotations, annotations, cmpopts.EquateEmpty()) {
 		// We also need to update the annotation if anything changed.
-		err = r.updateMachineAnnotationJSON(machine, VolumeTagsLastAppliedAnnotation, annotations)
+		err = r.updateMachineAnnotationJSON(machine, VolumeTagsLastAppliedAnnotation, prevAnnotations)
 		if err != nil {
 			r.Log.Error(err, "Failed to fetch the changed volume tags in EC2 instance")
 		}

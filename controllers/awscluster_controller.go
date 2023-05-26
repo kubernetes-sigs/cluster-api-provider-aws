@@ -46,6 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/elb"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/gc"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/iam"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/instancestate"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/network"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3"
@@ -74,6 +75,7 @@ type AWSClusterReconciler struct {
 	networkServiceFactory        func(scope.ClusterScope) services.NetworkInterface
 	elbServiceFactory            func(scope.ELBScope) services.ELBInterface
 	securityGroupFactory         func(scope.ClusterScope) services.SecurityGroupInterface
+	iamServiceFactory            func(scope.EC2Scope) services.IAMInterface
 	Endpoints                    []scope.ServiceEndpoint
 	WatchFilterValue             string
 	ExternalResourceGC           bool
@@ -125,7 +127,15 @@ func (r *AWSClusterReconciler) getSecurityGroupService(scope scope.ClusterScope)
 	return securitygroup.NewService(&scope, securityGroupRolesForCluster(scope))
 }
 
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclusters,verbs=get;list;watch;update;patch;delete
+// getIAMService factory func is added for testing purpose so that we can inject mocked EC2Service to the AWSClusterReconciler.
+func (r *AWSClusterReconciler) getIAMService(scope scope.EC2Scope) services.IAMInterface {
+	if r.iamServiceFactory != nil {
+		return r.iamServiceFactory(scope)
+	}
+	return iam.NewService(scope)
+}
+
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclusters/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclusterroleidentities;awsclusterstaticidentities,verbs=get;list;watch
@@ -196,7 +206,7 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Handle non-deleted clusters
-	return r.reconcileNormal(clusterScope)
+	return r.reconcileNormal(ctx, clusterScope)
 }
 
 func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) error {
@@ -207,6 +217,7 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 	networkSvc := r.getNetworkService(*clusterScope)
 	sgService := r.getSecurityGroupService(*clusterScope)
 	s3Service := s3.NewService(clusterScope)
+	iamService := r.getIAMService(clusterScope)
 
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 		instancestateSvc := instancestate.NewService(clusterScope)
@@ -252,6 +263,14 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 		allErrs = append(allErrs, errors.Wrap(err, "error deleting network"))
 	}
 
+	if err := iamService.DeleteOIDCProvider(ctx); err != nil {
+		allErrs = append(allErrs, errors.Wrapf(err, "error deleting OIDC Provider"))
+	}
+
+	if err := s3Service.DeleteBucket(); err != nil {
+		allErrs = append(allErrs, errors.Wrapf(err, "error deleting S3 Bucket"))
+	}
+
 	if len(allErrs) > 0 {
 		return kerrors.NewAggregate(allErrs)
 	}
@@ -261,7 +280,7 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 	return nil
 }
 
-func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	clusterScope.Info("Reconciling AWSCluster")
 
 	awsCluster := clusterScope.AWSCluster
@@ -279,6 +298,7 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 	networkSvc := r.getNetworkService(*clusterScope)
 	sgService := r.getSecurityGroupService(*clusterScope)
 	s3Service := s3.NewService(clusterScope)
+	iamService := r.getIAMService(clusterScope)
 
 	if err := networkSvc.ReconcileNetwork(); err != nil {
 		clusterScope.Error(err, "failed to reconcile network")
@@ -314,6 +334,11 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 	if err := s3Service.ReconcileBucket(); err != nil {
 		conditions.MarkFalse(awsCluster, infrav1.S3BucketReadyCondition, infrav1.S3BucketFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile S3 Bucket for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
+	}
+
+	if err := iamService.ReconcileOIDCProvider(ctx); err != nil {
+		clusterScope.Error(err, "failed to reconcile OIDC provider")
+		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
 	}
 
 	if awsCluster.Status.Network.APIServerELB.DNSName == "" {

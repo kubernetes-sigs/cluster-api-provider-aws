@@ -24,7 +24,6 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	scope "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 )
 
 // MockObjectStoreInterface is a mock of ObjectStoreInterface interface.
@@ -51,7 +50,7 @@ func (m *MockObjectStoreInterface) EXPECT() *MockObjectStoreInterfaceMockRecorde
 }
 
 // Create mocks base method.
-func (m *MockObjectStoreInterface) Create(arg0 *scope.MachineScope, arg1 []byte) (string, error) {
+func (m *MockObjectStoreInterface) Create(arg0 string, arg1 []byte) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", arg0, arg1)
 	ret0, _ := ret[0].(string)
@@ -65,8 +64,23 @@ func (mr *MockObjectStoreInterfaceMockRecorder) Create(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockObjectStoreInterface)(nil).Create), arg0, arg1)
 }
 
+// CreatePublic mocks base method.
+func (m *MockObjectStoreInterface) CreatePublic(arg0 string, arg1 []byte) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreatePublic", arg0, arg1)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreatePublic indicates an expected call of CreatePublic.
+func (mr *MockObjectStoreInterfaceMockRecorder) CreatePublic(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePublic", reflect.TypeOf((*MockObjectStoreInterface)(nil).CreatePublic), arg0, arg1)
+}
+
 // Delete mocks base method.
-func (m *MockObjectStoreInterface) Delete(arg0 *scope.MachineScope) error {
+func (m *MockObjectStoreInterface) Delete(arg0 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", arg0)
 	ret0, _ := ret[0].(error)

@@ -18,6 +18,7 @@ package scope
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -34,6 +35,8 @@ var (
 	ErrLoggerRequired = errors.New("logger is required")
 	// ErrNotPlaced is an error if there is no placement determined.
 	ErrNotPlaced = errors.New("placement not determined")
+
+	DefaultKubeClientTimeout = 1 * time.Minute
 )
 
 type placementInput struct {

@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"path"
 	"sort"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -45,6 +44,24 @@ type Service struct {
 	scope     scope.S3Scope
 	S3Client  s3iface.S3API
 	STSClient stsiface.STSAPI
+}
+
+var DisabledError = errors.New("s3 management disabled")
+
+func IsDisabledError(err error) bool {
+	return err == DisabledError
+}
+
+var EmptyBucketError = errors.New("empty bucket name")
+
+func IsEmptyBucketError(err error) bool {
+	return err == EmptyBucketError
+}
+
+var EmptyKeyError = errors.New("empty key")
+
+func IsEmptyKeyError(err error) bool {
+	return err == EmptyKeyError
 }
 
 // NewService returns a new service given the api clients.
@@ -74,6 +91,10 @@ func (s *Service) ReconcileBucket() error {
 		return errors.Wrap(err, "tagging bucket")
 	}
 
+	if err := s.ensureBucketAccess(bucketName); err != nil {
+		return errors.Wrap(err, "ensuring bucket ACL ")
+	}
+
 	if err := s.ensureBucketPolicy(bucketName); err != nil {
 		return errors.Wrap(err, "ensuring bucket policy")
 	}
@@ -87,6 +108,9 @@ func (s *Service) DeleteBucket() error {
 	}
 
 	bucketName := s.bucketName()
+	if bucketName == "" {
+		return EmptyBucketError
+	}
 
 	log := s.scope.WithValues("name", bucketName)
 
@@ -116,30 +140,48 @@ func (s *Service) DeleteBucket() error {
 	return nil
 }
 
-func (s *Service) Create(m *scope.MachineScope, data []byte) (string, error) {
+// Create will add a file to the s3 bucket which is private and server side encrypted.
+func (s *Service) Create(key string, data []byte) (string, error) {
 	if !s.bucketManagementEnabled() {
-		return "", errors.New("requested object creation but bucket management is not enabled")
+		return "", DisabledError
 	}
 
-	if m == nil {
-		return "", errors.New("machine scope can't be nil")
-	}
-
-	if len(data) == 0 {
-		return "", errors.New("got empty data")
-	}
-
-	bucket := s.bucketName()
-	key := s.bootstrapDataKey(m)
-
-	s.scope.Info("Creating object", "bucket_name", bucket, "key", key)
-
-	if _, err := s.S3Client.PutObject(&s3.PutObjectInput{
+	// server side encryption, acl defaults to private
+	return s.create(&s3.PutObjectInput{
 		Body:                 aws.ReadSeekCloser(bytes.NewReader(data)),
-		Bucket:               aws.String(bucket),
+		Bucket:               aws.String(s.scope.Bucket().Name),
 		Key:                  aws.String(key),
 		ServerSideEncryption: aws.String("aws:kms"),
-	}); err != nil {
+	})
+}
+
+// CreatePublic will add file to the s3 bucket which is public and open to the world to access.
+func (s *Service) CreatePublic(key string, data []byte) (string, error) {
+	// acl public-read
+	if !s.bucketManagementEnabled() {
+		return "", DisabledError
+	}
+
+	return s.create(&s3.PutObjectInput{
+		Body:   aws.ReadSeekCloser(bytes.NewReader(data)),
+		Bucket: aws.String(s.scope.Bucket().Name),
+		Key:    aws.String(key),
+		ACL:    aws.String("public-read"),
+	})
+}
+
+func (s *Service) create(putInput *s3.PutObjectInput) (string, error) {
+	if aws.StringValue(putInput.Bucket) == "" {
+		return "", EmptyBucketError
+	}
+
+	if aws.StringValue(putInput.Key) == "" {
+		return "", EmptyKeyError
+	}
+
+	s.scope.Info("Creating public object", "bucket_name", aws.StringValue(putInput.Bucket), "key", aws.StringValue(putInput.Key))
+
+	if _, err := s.S3Client.PutObject(putInput); err != nil {
 		return "", errors.Wrap(err, "putting object")
 	}
 
@@ -154,29 +196,32 @@ func (s *Service) Create(m *scope.MachineScope, data []byte) (string, error) {
 
 	objectURL := &url.URL{
 		Scheme: "s3",
-		Host:   bucket,
-		Path:   key,
+		Host:   aws.StringValue(putInput.Bucket),
+		Path:   aws.StringValue(putInput.Key),
 	}
 
 	return objectURL.String(), nil
 }
 
-func (s *Service) Delete(m *scope.MachineScope) error {
+// Delete takes a key which is a s3 path to an object e.g. /path/file.ext.
+func (s *Service) Delete(key string) error {
 	if !s.bucketManagementEnabled() {
-		return errors.New("requested object creation but bucket management is not enabled")
+		return DisabledError
 	}
 
-	if m == nil {
-		return errors.New("machine scope can't be nil")
+	if key == "" {
+		return EmptyKeyError
 	}
 
-	bucket := s.bucketName()
-	key := s.bootstrapDataKey(m)
+	bucketName := s.bucketName()
+	if bucketName == "" {
+		return EmptyBucketError
+	}
 
-	s.scope.Info("Deleting object", "bucket_name", bucket, "key", key)
+	s.scope.Info("Deleting object", "bucket_name", bucketName, "key", key)
 
 	_, err := s.S3Client.DeleteObject(&s3.DeleteObjectInput{
-		Bucket: aws.String(bucket),
+		Bucket: aws.String(bucketName),
 		Key:    aws.String(key),
 	})
 	if err == nil {
@@ -199,7 +244,8 @@ func (s *Service) Delete(m *scope.MachineScope) error {
 
 func (s *Service) createBucketIfNotExist(bucketName string) error {
 	input := &s3.CreateBucketInput{
-		Bucket: aws.String(bucketName),
+		Bucket:          aws.String(bucketName),
+		ObjectOwnership: aws.String(s3.ObjectOwnershipBucketOwnerPreferred),
 	}
 
 	_, err := s.S3Client.CreateBucket(input)
@@ -223,6 +269,24 @@ func (s *Service) createBucketIfNotExist(bucketName string) error {
 	default:
 		return errors.Wrap(aerr, "creating S3 bucket")
 	}
+}
+
+func (s *Service) ensureBucketAccess(bucketName string) error {
+	f := false
+	input := &s3.PutPublicAccessBlockInput{
+		Bucket: aws.String(bucketName),
+		PublicAccessBlockConfiguration: &s3.PublicAccessBlockConfiguration{
+			BlockPublicAcls: aws.Bool(f),
+		},
+	}
+
+	if _, err := s.S3Client.PutPublicAccessBlock(input); err != nil {
+		return errors.Wrap(err, "enabling bucket public access")
+	}
+
+	s.scope.GetLogger().Info("Updated bucket ACL to allow public access", "bucket_name", bucketName)
+
+	return nil
 }
 
 func (s *Service) ensureBucketPolicy(bucketName string) error {
@@ -287,6 +351,10 @@ func (s *Service) tagBucket(bucketName string) error {
 	return nil
 }
 
+// bucketPolicy grants access to get/put objects the cluster needs including a per cluster subdir in case two clusters share the same bucket.
+// /<clustername> contains cluster wide object e.g. oidc configs for irsa.
+// /control-plane contains ignite configs for control-plane nodes stored per node id.
+// /node contains ignite configs for worker nodes stored per node id.
 func (s *Service) bucketPolicy(bucketName string) (string, error) {
 	accountID, err := s.STSClient.GetCallerIdentity(&sts.GetCallerIdentityInput{})
 	if err != nil {
@@ -297,6 +365,16 @@ func (s *Service) bucketPolicy(bucketName string) (string, error) {
 	partition := system.GetPartitionFromRegion(s.scope.Region())
 
 	statements := []iam.StatementEntry{
+		{
+			// grant access to the /<clustername> folder to the control plane nodes
+			Sid:    s.scope.Name(),
+			Effect: iam.EffectAllow,
+			Principal: map[iam.PrincipalType]iam.PrincipalID{
+				iam.PrincipalAWS: []string{fmt.Sprintf("arn:aws:iam::%s:role/%s", *accountID.Account, bucket.ControlPlaneIAMInstanceProfile)},
+			},
+			Action:   []string{"s3:GetObject", "s3:PutObject"},
+			Resource: []string{fmt.Sprintf("arn:aws:s3:::%s/%s/*", bucketName, s.scope.Name())},
+		},
 		{
 			Sid:    "control-plane",
 			Effect: iam.EffectAllow,
@@ -339,9 +417,4 @@ func (s *Service) bucketManagementEnabled() bool {
 
 func (s *Service) bucketName() string {
 	return s.scope.Bucket().Name
-}
-
-func (s *Service) bootstrapDataKey(m *scope.MachineScope) string {
-	// Use machine name as object key.
-	return path.Join(m.Role(), m.Name())
 }
