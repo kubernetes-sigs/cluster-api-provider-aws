@@ -21,8 +21,6 @@ import (
 	"net"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
-
-	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 )
 
 // Validate validates S3Bucket fields.
@@ -35,12 +33,6 @@ func (b *S3Bucket) Validate() []*field.Error {
 
 	if b.Name == "" {
 		errs = append(errs, field.Required(field.NewPath("spec", "s3Bucket", "name"), "can't be empty"))
-	}
-
-	// Feature gate is not enabled but ignition is enabled then send a forbidden error.
-	if !feature.Gates.Enabled(feature.BootstrapFormatIgnition) {
-		errs = append(errs, field.Forbidden(field.NewPath("spec", "s3Bucket"),
-			"can be set only if the BootstrapFormatIgnition feature gate is enabled"))
 	}
 
 	if b.ControlPlaneIAMInstanceProfile == "" {
