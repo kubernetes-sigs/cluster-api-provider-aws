@@ -19,6 +19,7 @@ package scope
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -39,6 +40,9 @@ var (
 	ErrLoggerRequired = errors.New("logger is required")
 	// ErrNotPlaced is an error if there is no placement determined.
 	ErrNotPlaced = errors.New("placement not determined")
+
+	// DefaultKubeClientTimeout defines default timeout configured on Kubernetes client.
+	DefaultKubeClientTimeout = 1 * time.Minute
 )
 
 type placementInput struct {

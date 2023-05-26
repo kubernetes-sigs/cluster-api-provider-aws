@@ -96,6 +96,17 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		}
 		g.Expect(testEnv.Create(ctx, secret)).To(Succeed())
 
+		kubeconfig := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-cluster-kubeconfig",
+				Namespace: ns.Name,
+			},
+			Data: map[string][]byte{
+				"value": []byte(fakeKubeconfig),
+			},
+		}
+		g.Expect(testEnv.Create(ctx, kubeconfig)).To(Succeed())
+
 		setup(t, g)
 		awsMachine := getAWSMachine()
 		awsMachine.Namespace = ns.Name
@@ -103,7 +114,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 
 		defer teardown(g)
 		defer t.Cleanup(func() {
-			g.Expect(testEnv.Cleanup(ctx, awsMachine, ns, secret)).To(Succeed())
+			g.Expect(testEnv.Cleanup(ctx, awsMachine, ns, secret, kubeconfig)).To(Succeed())
 		})
 
 		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: infrav1.AWSClusterSpec{NetworkSpec: infrav1.NetworkSpec{Subnets: []infrav1.SubnetSpec{
@@ -117,6 +128,11 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		cs.AWSCluster.Spec.NetworkSpec.VPC = infrav1.VPCSpec{
 			ID:        "vpc-exists",
 			CidrBlock: "10.0.0.0/16",
+		}
+		cs.AWSCluster.ObjectMeta = metav1.ObjectMeta{
+			Annotations: map[string]string{
+				scope.KubeconfigReadyAnnotation: "true", // skip call to workload cluster to prove working control plane node
+			},
 		}
 		cs.AWSCluster.Status.Network.APIServerELB.DNSName = DNSName
 		cs.AWSCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
@@ -423,7 +439,8 @@ func getMachineScope(cs *scope.ClusterScope, awsMachine *infrav1.AWSMachine) (*s
 			Client: testEnv,
 			Cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "test",
+					Name:      "test",
+					Namespace: awsMachine.Namespace,
 				},
 				Status: clusterv1.ClusterStatus{
 					InfrastructureReady: true,
