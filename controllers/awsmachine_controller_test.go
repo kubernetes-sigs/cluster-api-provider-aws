@@ -593,6 +593,8 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 			},
 		},
 	}, nil)
+	m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil)
 	m.DescribeNetworkInterfaces(gomock.Eq(&ec2.DescribeNetworkInterfacesInput{Filters: []*ec2.Filter{
 		{
 			Name:   aws.String("attachment.instance-id"),

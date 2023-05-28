@@ -366,6 +366,8 @@ func TestServiceReconcileBastion(t *testing.T) {
 							},
 						},
 					}, nil)
+				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
 			},
 			bastionEnabled: true,
 			expectError:    false,
@@ -600,6 +602,8 @@ func TestServiceReconcileBastionUSGOV(t *testing.T) {
 							},
 						},
 					}, nil)
+				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
 			},
 			bastionEnabled: true,
 			expectError:    false,
