@@ -64,8 +64,13 @@ import (
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
-// InstanceIDIndex defines the aws machine controller's instance ID index.
-const InstanceIDIndex = ".spec.instanceID"
+const (
+	// InstanceIDIndex defines the aws machine controller's instance ID index.
+	InstanceIDIndex = ".spec.instanceID"
+
+	// DefaultReconcilerRequeue is the default value for the reconcile retry.
+	DefaultReconcilerRequeue = 30 * time.Second
+)
 
 // AWSMachineReconciler reconciles a AwsMachine object.
 type AWSMachineReconciler struct {
@@ -533,9 +538,11 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		machineScope.Info("EC2 instance state changed", "state", instance.State, "instance-id", *machineScope.GetInstanceID())
 	}
 
+	shouldRequeue := false
 	switch instance.State {
 	case infrav1.InstanceStatePending:
 		machineScope.SetNotReady()
+		shouldRequeue = true
 		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceNotReadyReason, clusterv1.ConditionSeverityWarning, "")
 	case infrav1.InstanceStateStopping, infrav1.InstanceStateStopped:
 		machineScope.SetNotReady()
@@ -595,6 +602,10 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	}
 
 	machineScope.Debug("done reconciling instance", "instance", instance)
+	if shouldRequeue {
+		machineScope.Debug("but find the instance is pending, requeue", "instance", instance.ID)
+		return ctrl.Result{RequeueAfter: DefaultReconcilerRequeue}, nil
+	}
 	return ctrl.Result{}, nil
 }
 
