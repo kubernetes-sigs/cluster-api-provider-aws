@@ -40,19 +40,19 @@ spec:
       nodeRegistration:
         name: '{{ ds.meta_data.local_hostname }}'
         kubeletExtraArgs:
-          cloud-provider: aws
+          cloud-provider: external
     clusterConfiguration:
       apiServer:
         extraArgs:
-          cloud-provider: aws
+          cloud-provider: external
       controllerManager:
         extraArgs:
-          cloud-provider: aws
+          cloud-provider: external
     joinConfiguration:
       nodeRegistration:
         name: '{{ ds.meta_data.local_hostname }}'
         kubeletExtraArgs:
-          cloud-provider: aws
+          cloud-provider: external
   version: "${KUBERNETES_VERSION}"
 ---
 kind: AWSMachineTemplate
@@ -111,4 +111,4 @@ spec:
         nodeRegistration:
           name: '{{ ds.meta_data.local_hostname }}'
           kubeletExtraArgs:
-            cloud-provider: aws
+            cloud-provider: external
