@@ -39,18 +39,15 @@ spec:
       controllerManager:
         extraArgs:
           cloud-provider: aws
-          feature-gates: CSIMigrationAWS=false
     initConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
           cloud-provider: aws
-          feature-gates: CSIMigrationAWS=false
         name: '{{ ds.meta_data.local_hostname }}'
     joinConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
           cloud-provider: aws
-          feature-gates: CSIMigrationAWS=false
         name: '{{ ds.meta_data.local_hostname }}'
   machineTemplate:
     infrastructureRef:
@@ -116,7 +113,6 @@ spec:
         nodeRegistration:
           kubeletExtraArgs:
             cloud-provider: aws
-            feature-gates: CSIMigrationAWS=false
           name: '{{ ds.meta_data.local_hostname }}'
 ---
 apiVersion: v1
