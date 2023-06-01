@@ -208,10 +208,9 @@ type AWSLoadBalancerSpec struct {
 	// +optional
 	AdditionalSecurityGroups []string `json:"additionalSecurityGroups,omitempty"`
 
-	// AdditionalIngressRules sets the additional ingress rules for the control plane load balancer. If no source security group ids are specified, the
-	// default control plane security group will be used.
+	// IngressRules sets the ingress rules for the control plane load balancer.
 	// +optional
-	AdditionalIngressRules []IngressRule `json:"additionalIngressRules,omitempty"`
+	IngressRules []IngressRule `json:"ingressRules,omitempty"`
 
 	// LoadBalancerType sets the type for a load balancer. The default type is classic.
 	// +kubebuilder:default=classic
