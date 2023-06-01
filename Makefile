@@ -591,6 +591,7 @@ release-binary: $(RELEASE_DIR) versions.mk build-toolchain ## Release binary
 		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
 		-w /workspace \
 		$(TOOLCHAIN_IMAGE) \
+		git config --global --add safe.directory /workspace; \
 		go build -ldflags '$(LDFLAGS) -extldflags "-static"' \
 		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))-$(GOOS)-$(GOARCH)$(EXT) $(RELEASE_BINARY)
 
