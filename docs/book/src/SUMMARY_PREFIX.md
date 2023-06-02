@@ -29,6 +29,7 @@
   - [Failure domains](./topics/failure-domains/index.md)
     - [Control planes](./topics/failure-domains/control-planes.md)
     - [Worker nodes](./topics/failure-domains/worker-nodes.md)
+  - [Upgrading Cluster API and the AWS Provider](./topics/provider-upgrades.md)
   - [Userdata Privacy](./topics/userdata-privacy.md)
   - [Troubleshooting](./topics/troubleshooting.md)
   - [IAM Permissions Used](./topics/iam-permissions.md)
