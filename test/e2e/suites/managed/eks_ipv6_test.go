@@ -72,7 +72,7 @@ var _ = ginkgo.Describe("[managed] [general] [ipv6] EKS cluster tests", func() {
 				ClusterName:              clusterName,
 				Flavour:                  EKSIPv6ClusterFlavor,
 				ControlPlaneMachineCount: 1, //NOTE: this cannot be zero as clusterctl returns an error
-				WorkerMachineCount:       1,
+				WorkerMachineCount:       0,
 			}
 		})
 

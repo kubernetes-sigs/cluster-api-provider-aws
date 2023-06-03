@@ -30,7 +30,6 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
@@ -105,11 +104,7 @@ func (s *Service) getARNForRole(role string) (string, error) {
 }
 
 func (s *Service) getRolesForWorkers(ctx context.Context) (map[string]struct{}, error) {
-	// previously this was the default role always added to the IAM authenticator config
-	// we'll keep this to not break existing behavior for users
-	allRoles := map[string]struct{}{
-		fmt.Sprintf("nodes%s", iamv1.DefaultNameSuffix): {},
-	}
+	allRoles := map[string]struct{}{}
 	if err := s.getRolesForMachineDeployments(ctx, allRoles); err != nil {
 		return nil, fmt.Errorf("failed to get roles from machine deployments %w", err)
 	}
