@@ -41,7 +41,7 @@ jobs:
       -
         name: Build Image
         env:
-          DEV_REGISTRY: gcr.io/spectro-images-public/release/cluster-api-aws
+          REGISTRY: gcr.io/spectro-images-public/release/cluster-api-aws
         run: |
           make docker-build-all
           make docker-push-all
@@ -49,7 +49,7 @@ jobs:
         name: Build Image - FIPS Mode
         env:
           FIPS_ENABLE: yes
-          DEV_REGISTRY: gcr.io/spectro-images-public/release-fips/cluster-api-aws
+          REGISTRY: gcr.io/spectro-images-public/release-fips/cluster-api-aws
         run: |
           make docker-build
           make docker-push-gcr
