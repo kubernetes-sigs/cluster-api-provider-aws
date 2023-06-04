@@ -21,6 +21,10 @@ FROM golang:1.19.8 as toolchain
 ARG goproxy=https://proxy.golang.org
 ENV GOPROXY=$goproxy
 
+# FIPS
+ARG CRYPTO_LIB
+ENV GOEXPERIMENT=${CRYPTO_LIB:+boringcrypto}
+
 FROM toolchain as builder
 WORKDIR /workspace
 
