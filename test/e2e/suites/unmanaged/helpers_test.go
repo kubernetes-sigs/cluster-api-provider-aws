@@ -118,8 +118,8 @@ func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigCluste
 		Namespace:                namespace,
 		ClusterName:              clusterName,
 		KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
-		ControlPlaneMachineCount: pointer.Int64Ptr(1),
-		WorkerMachineCount:       pointer.Int64Ptr(0),
+		ControlPlaneMachineCount: pointer.Int64(1),
+		WorkerMachineCount:       pointer.Int64(0),
 	}
 }
 
@@ -500,7 +500,7 @@ func makeAWSMachineTemplate(namespace, name, instanceType string, subnetID *stri
 				Spec: infrav1.AWSMachineSpec{
 					InstanceType:       instanceType,
 					IAMInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io",
-					SSHKeyName:         pointer.StringPtr(os.Getenv("AWS_SSH_KEY_NAME")),
+					SSHKeyName:         pointer.String(os.Getenv("AWS_SSH_KEY_NAME")),
 				},
 			},
 		},
@@ -579,7 +579,7 @@ func makeMachineDeployment(namespace, mdName, clusterName string, az *string, re
 						Name:       mdName,
 						Namespace:  namespace,
 					},
-					Version: pointer.StringPtr(e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion)),
+					Version: pointer.String(e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion)),
 				},
 			},
 		},
@@ -604,6 +604,29 @@ func assertSpotInstanceType(instanceID string) {
 	Expect(err).To(BeNil())
 	Expect(len(result.Reservations)).To(Equal(1))
 	Expect(len(result.Reservations[0].Instances)).To(Equal(1))
+}
+
+func assertInstanceMetadataOptions(instanceID string, expected infrav1.InstanceMetadataOptions) {
+	ginkgo.By(fmt.Sprintf("Finding EC2 instance with ID: %s", instanceID))
+	ec2Client := ec2.New(e2eCtx.AWSSession)
+	input := &ec2.DescribeInstancesInput{
+		InstanceIds: []*string{
+			aws.String(instanceID[strings.LastIndex(instanceID, "/")+1:]),
+		},
+	}
+
+	result, err := ec2Client.DescribeInstances(input)
+	Expect(err).To(BeNil())
+	Expect(len(result.Reservations)).To(Equal(1))
+	Expect(len(result.Reservations[0].Instances)).To(Equal(1))
+
+	metadataOptions := result.Reservations[0].Instances[0].MetadataOptions
+	Expect(metadataOptions).ToNot(BeNil())
+
+	Expect(metadataOptions.HttpTokens).To(HaveValue(Equal(string(expected.HTTPTokens))))
+	Expect(metadataOptions.HttpEndpoint).To(HaveValue(Equal(string(expected.HTTPEndpoint))))
+	Expect(metadataOptions.InstanceMetadataTags).To(HaveValue(Equal(string(expected.InstanceMetadataTags))))
+	Expect(metadataOptions.HttpPutResponseHopLimit).To(HaveValue(Equal(expected.HTTPPutResponseHopLimit)))
 }
 
 func terminateInstance(instanceID string) {

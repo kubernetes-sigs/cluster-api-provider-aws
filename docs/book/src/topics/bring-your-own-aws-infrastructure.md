@@ -44,9 +44,10 @@ Cluster API itself does tag AWS resources it creates. The `sigs.k8s.io/cluster-a
 When consuming existing AWS infrastructure, the Cluster API AWS provider does not require any tags to be present. The absence of the tags on an AWS resource indicates to Cluster API that it should not modify the resource or attempt to manage the lifecycle of the resource.
 
 However, the built-in Kubernetes AWS cloud provider _does_ require certain tags in order to function properly. Specifically, all subnets where Kubernetes nodes reside should have the `kubernetes.io/cluster/<cluster-name>` tag present. Private subnets should also have the `kubernetes.io/role/internal-elb` tag with a value of 1, and public subnets should have the `kubernetes.io/role/elb` tag with a value of 1. These latter two tags help the cloud provider understand which subnets to use when creating load balancers.
-> **Note**: The subnet tagging above is taken care by the CAPA controllers but additionalTags provided by users won't be propagated to the unmanaged VPC subnets.
 
 Finally, if the controller manager isn't started with the `--configure-cloud-routes: "false"` parameter, the route table(s) will also need the `kubernetes.io/cluster/<cluster-name>` tag. (This parameter can be added by customizing the `KubeadmConfigSpec` object of the `KubeadmControlPlane` object.)
+
+> **Note**: All the tagging of resources should be the responsibility of the users and are not managed by CAPA controllers.
 
 ### Configuring the AWSCluster Specification
 
@@ -157,6 +158,17 @@ spec:
 ```
 
 As control plane instances are added or removed, Cluster API will register and deregister them, respectively, with the Classic ELB.
+
+It's also possible to specify custom ingress rules for the control plane load balancer. To do so, add this to the AWSCluster specification:
+
+```yaml
+spec:
+  additionalIngressRules:
+    - description: "example ingress rule"
+      protocol: "-1" # all
+      fromPort: 7777
+      toPort: 7777
+```
 
 > **WARNING:** Using an existing Classic ELB is an advanced feature. **If you use an existing Classic ELB, you must correctly configure it, and attach subnets to it.**
 > 

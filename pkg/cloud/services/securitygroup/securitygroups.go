@@ -305,8 +305,8 @@ func (s *Service) deleteSecurityGroup(sg *infrav1.SecurityGroup, typ string) err
 	}
 
 	if _, err := s.EC2Client.DeleteSecurityGroup(input); awserrors.IsIgnorableSecurityGroupError(err) != nil {
-		record.Warnf(s.scope.InfraCluster(), "FailedDeleteSecurityGroup", "Failed to delete %s SecurityGroup %q: %v", typ, sg.ID, err)
-		return errors.Wrapf(err, "failed to delete security group %q", sg.ID)
+		record.Warnf(s.scope.InfraCluster(), "FailedDeleteSecurityGroup", "Failed to delete %s SecurityGroup %q with name %q: %v", typ, sg.ID, sg.Name, err)
+		return errors.Wrapf(err, "failed to delete security group %q with name %q", sg.ID, sg.Name)
 	}
 
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulDeleteSecurityGroup", "Deleted %s SecurityGroup %q", typ, sg.ID)
@@ -518,6 +518,20 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 		}
 		if s.scope.Bastion().Enabled {
 			rules = append(rules, s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID))
+		}
+		if s.scope.ControlPlaneLoadBalancer() != nil {
+			additionalIngressRules := s.scope.ControlPlaneLoadBalancer().AdditionalIngressRules
+			for i := range additionalIngressRules {
+				if additionalIngressRules[i].SourceSecurityGroupIDs == nil && additionalIngressRules[i].SourceSecurityGroupRoles == nil { // if the rule doesn't have a source security group, use the control plane security group
+					additionalIngressRules[i].SourceSecurityGroupIDs = []string{s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID}
+					continue
+				}
+
+				for _, sourceSGRole := range additionalIngressRules[i].SourceSecurityGroupRoles {
+					additionalIngressRules[i].SourceSecurityGroupIDs = append(additionalIngressRules[i].SourceSecurityGroupIDs, s.scope.SecurityGroups()[sourceSGRole].ID)
+				}
+			}
+			rules = append(rules, s.scope.ControlPlaneLoadBalancer().AdditionalIngressRules...)
 		}
 		return append(cniRules, rules...), nil
 

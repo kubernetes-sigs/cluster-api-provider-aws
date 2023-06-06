@@ -60,13 +60,13 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")
 	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
 	Expect(input.Namespace).NotTo(BeNil(), "Invalid argument. input.Namespace can't be nil")
-	Expect(input.ClusterName).ShouldNot(HaveLen(0), "Invalid argument. input.ClusterName can't be empty")
+	Expect(input.ClusterName).ShouldNot(BeEmpty(), "Invalid argument. input.ClusterName can't be empty")
 
 	ginkgo.By(fmt.Sprintf("creating an applying the %s template", input.Flavour))
 	configCluster := input.ConfigClusterFn(input.ClusterName, input.Namespace.Name)
 	configCluster.Flavor = input.Flavour
-	configCluster.ControlPlaneMachineCount = pointer.Int64Ptr(input.ControlPlaneMachineCount)
-	configCluster.WorkerMachineCount = pointer.Int64Ptr(input.WorkerMachineCount)
+	configCluster.ControlPlaneMachineCount = pointer.Int64(input.ControlPlaneMachineCount)
+	configCluster.WorkerMachineCount = pointer.Int64(input.WorkerMachineCount)
 	if input.KubernetesVersion != "" {
 		configCluster.KubernetesVersion = input.KubernetesVersion
 	}
@@ -101,10 +101,13 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 	verifySecretExists(ctx, fmt.Sprintf("%s-kubeconfig", input.ClusterName), input.Namespace.Name, bootstrapClient)
 	verifySecretExists(ctx, fmt.Sprintf("%s-user-kubeconfig", input.ClusterName), input.Namespace.Name, bootstrapClient)
 
-	ginkgo.By("Checking that aws-iam-authenticator config map exists")
-	workloadClusterProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace.Name, input.ClusterName)
-	workloadClient := workloadClusterProxy.GetClient()
-	verifyConfigMapExists(ctx, "aws-auth", metav1.NamespaceSystem, workloadClient)
+	// this will not be created unless there are worker machines or set by IAMAuthenticatorConfig on the managed control plane spec
+	if input.WorkerMachineCount > 0 {
+		ginkgo.By("Checking that aws-iam-authenticator config map exists")
+		workloadClusterProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace.Name, input.ClusterName)
+		workloadClient := workloadClusterProxy.GetClient()
+		verifyConfigMapExists(ctx, "aws-auth", metav1.NamespaceSystem, workloadClient)
+	}
 }
 
 // DeleteClusterSpecInput is the input to DeleteClusterSpec.

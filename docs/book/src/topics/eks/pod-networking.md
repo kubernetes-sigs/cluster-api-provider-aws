@@ -49,6 +49,34 @@ spec:
   disableVPCCNI: false
 ```
 
+### Using Secondary CIDRs
+EKS allows users to assign a [secondary CIDR range](https://www.eksworkshop.com/beginner/160_advanced-networking/secondary_cidr/) for pods to be  assigned. Below are how to get CAPA to generate ENIConfigs in both the managed and unmanaged VPC configurations. 
+
+> Secondary CIDR functionality will not work unless you enable custom network config too.
+
+#### Managed (dynamic) VPC
+Default configuration for CAPA is to manage the VPC and all the subnets for you dynamically. It will create and delete them along with your cluster. In this method all you need to do is set a SecondaryCidrBlock to one of the allowed two IPv4 CIDR blocks: 100.64.0.0/10 and 198.19.0.0/16. CAPA will automatically generate subnets and ENIConfigs for you and the VPC CNI will do the rest.
+
+```yaml
+kind: AWSManagedControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+metadata:
+  name: "capi-managed-test-control-plane"
+spec:
+  secondaryCidrBlock: 100.64.0.0/10
+  vpcCni:
+    env:
+    - name: AWS_VPC_K8S_CNI_CUSTOM_NETWORK_CFG
+      value: "true" 
+  
+```
+
+#### Unmanaged (static) VPC
+In an unmanaged VPC configuration CAPA will create no VPC or subnets and will instead assign the cluster pieces to the IDs you pass. In order to get ENIConfigs to generate you will need to add tags to the subnet you created and want to use as the secondary subnets for your pods. This is done through tagging the subnets with the following tag: `sigs.k8s.io/cluster-api-provider-aws/association=secondary`.
+
+> Setting `SecondaryCidrBlock` in this configuration will be ignored and no subnets are created.
+
+
 ## Using an alternative CNI
 
 There may be scenarios where you do not want to use the Amazon VPC CNI. EKS supports a number of alternative CNIs such as Calico, Cilium, and Weave Net (see [docs](https://docs.aws.amazon.com/eks/latest/userguide/alternate-cni-plugins.html) for full list).

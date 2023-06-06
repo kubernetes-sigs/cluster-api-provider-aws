@@ -18,9 +18,9 @@ package v1beta1
 
 import (
 	"testing"
-	
+
 	. "github.com/onsi/gomega"
-	
+
 	fuzz "github.com/google/gofuzz"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -47,9 +47,9 @@ func TestFuzzyConversion(t *testing.T) {
 	g.Expect(v1beta2.AddToScheme(scheme)).To(Succeed())
 
 	t.Run("for AWSManagedControlPlane", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &v1beta2.AWSManagedControlPlane{},
-		Spoke:  &AWSManagedControlPlane{},
+		Scheme:      scheme,
+		Hub:         &v1beta2.AWSManagedControlPlane{},
+		Spoke:       &AWSManagedControlPlane{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 }

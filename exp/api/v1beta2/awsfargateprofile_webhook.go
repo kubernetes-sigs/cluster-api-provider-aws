@@ -54,7 +54,7 @@ func (r *AWSFargateProfile) Default() {
 	if r.Labels == nil {
 		r.Labels = make(map[string]string)
 	}
-	r.Labels[clusterv1.ClusterLabelName] = r.Spec.ClusterName
+	r.Labels[clusterv1.ClusterNameLabel] = r.Spec.ClusterName
 
 	if r.Spec.ProfileName == "" {
 		name, err := eks.GenerateEKSName(r.Name, r.Namespace, maxProfileNameLength)

@@ -51,6 +51,10 @@ type AWSMachineSpec struct {
 	// InstanceID is the EC2 instance ID for this machine.
 	InstanceID *string `json:"instanceID,omitempty"`
 
+	// InstanceMetadataOptions is the metadata options for the EC2 instance.
+	// +optional
+	InstanceMetadataOptions *InstanceMetadataOptions `json:"instanceMetadataOptions,omitempty"`
+
 	// AMI is the reference to the AMI from which to create the machine instance.
 	AMI AMIReference `json:"ami,omitempty"`
 
@@ -147,6 +151,10 @@ type AWSMachineSpec struct {
 	// SpotMarketOptions allows users to configure instances to be run using AWS Spot instances.
 	// +optional
 	SpotMarketOptions *SpotMarketOptions `json:"spotMarketOptions,omitempty"`
+
+	// PlacementGroupName specifies the name of the placement group in which to launch the instance.
+	// +optional
+	PlacementGroupName string `json:"placementGroupName,omitempty"`
 
 	// Tenancy indicates if instance should run on shared or single-tenant hardware.
 	// +optional

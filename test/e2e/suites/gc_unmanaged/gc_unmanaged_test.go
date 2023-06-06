@@ -57,7 +57,7 @@ var _ = ginkgo.Context("[unmanaged] [gc]", func() {
 		Expect(e2eCtx.E2EConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
 		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.KubernetesVersion))
 
-		requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1}
+		requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, EventBridgeRules: 50}
 		requiredResources.WriteRequestedResources(e2eCtx, specName)
 		Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 		defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
@@ -68,7 +68,7 @@ var _ = ginkgo.Context("[unmanaged] [gc]", func() {
 
 		configCluster := defaultConfigCluster(clusterName, namespace.Name)
 		configCluster.KubernetesVersion = e2eCtx.E2EConfig.GetVariable(shared.PreCSIKubernetesVer)
-		configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+		configCluster.WorkerMachineCount = pointer.Int64(1)
 		createCluster(ctx, configCluster, result)
 
 		ginkgo.By(fmt.Sprintf("getting cluster with name %s", clusterName))
@@ -128,7 +128,7 @@ var _ = ginkgo.Context("[unmanaged] [gc]", func() {
 			Type:             infrav1.LoadBalancerTypeNLB,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(arns).To(HaveLen(0), "there are %d service load balancers (nlb) still", len(arns))
+		Expect(arns).To(BeEmpty(), "there are %d service load balancers (nlb) still", len(arns))
 		arns, err = shared.GetLoadBalancerARNs(shared.GetLoadBalancerARNsInput{
 			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-elb",
@@ -137,7 +137,7 @@ var _ = ginkgo.Context("[unmanaged] [gc]", func() {
 			Type:             infrav1.LoadBalancerTypeELB,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(arns).To(HaveLen(0), "there are %d service load balancers (elb) still", len(arns))
+		Expect(arns).To(BeEmpty(), "there are %d service load balancers (elb) still", len(arns))
 	})
 })
 
@@ -152,8 +152,8 @@ func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigCluste
 		Namespace:                namespace,
 		ClusterName:              clusterName,
 		KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
-		ControlPlaneMachineCount: pointer.Int64Ptr(1),
-		WorkerMachineCount:       pointer.Int64Ptr(0),
+		ControlPlaneMachineCount: pointer.Int64(1),
+		WorkerMachineCount:       pointer.Int64(0),
 	}
 }
 

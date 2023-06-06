@@ -17,40 +17,49 @@ limitations under the License.
 package v1beta1
 
 import (
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	infrav2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
-// ConvertTo converts the v1beta1 AWSCluster receiver to a v1beta1 AWSCluster.
+// ConvertTo converts the v1beta1 AWSCluster receiver to a v1beta2 AWSCluster.
 func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*infrav1.AWSCluster)
+	dst := dstRaw.(*infrav2.AWSCluster)
 
 	if err := Convert_v1beta1_AWSCluster_To_v1beta2_AWSCluster(src, dst, nil); err != nil {
 		return err
 	}
 	// Manually restore data.
-	restored := &infrav1.AWSCluster{}
+	restored := &infrav2.AWSCluster{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
 
 	if restored.Spec.ControlPlaneLoadBalancer != nil {
 		if dst.Spec.ControlPlaneLoadBalancer == nil {
-			dst.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{}
+			dst.Spec.ControlPlaneLoadBalancer = &infrav2.AWSLoadBalancerSpec{}
 		}
 		restoreControlPlaneLoadBalancer(restored.Spec.ControlPlaneLoadBalancer, dst.Spec.ControlPlaneLoadBalancer)
 	}
 	restoreControlPlaneLoadBalancerStatus(&restored.Status.Network.APIServerELB, &dst.Status.Network.APIServerELB)
 
 	dst.Spec.S3Bucket = restored.Spec.S3Bucket
+	if restored.Status.Bastion != nil {
+		dst.Status.Bastion.InstanceMetadataOptions = restored.Status.Bastion.InstanceMetadataOptions
+		dst.Status.Bastion.PlacementGroupName = restored.Status.Bastion.PlacementGroupName
+	}
+	dst.Spec.Partition = restored.Spec.Partition
+
+	for role, sg := range restored.Status.Network.SecurityGroups {
+		dst.Status.Network.SecurityGroups[role] = sg
+	}
 
 	return nil
 }
 
 // restoreControlPlaneLoadBalancerStatus manually restores the control plane loadbalancer status data.
 // Assumes restored and dst are non-nil.
-func restoreControlPlaneLoadBalancerStatus(restored, dst *infrav1.LoadBalancer) {
+func restoreControlPlaneLoadBalancerStatus(restored, dst *infrav2.LoadBalancer) {
 	dst.ARN = restored.ARN
 	dst.LoadBalancerType = restored.LoadBalancerType
 	dst.ELBAttributes = restored.ELBAttributes
@@ -59,17 +68,18 @@ func restoreControlPlaneLoadBalancerStatus(restored, dst *infrav1.LoadBalancer) 
 
 // restoreControlPlaneLoadBalancer manually restores the control plane loadbalancer data.
 // Assumes restored and dst are non-nil.
-func restoreControlPlaneLoadBalancer(restored, dst *infrav1.AWSLoadBalancerSpec) {
+func restoreControlPlaneLoadBalancer(restored, dst *infrav2.AWSLoadBalancerSpec) {
 	dst.Name = restored.Name
 	dst.HealthCheckProtocol = restored.HealthCheckProtocol
 	dst.LoadBalancerType = restored.LoadBalancerType
 	dst.DisableHostsRewrite = restored.DisableHostsRewrite
 	dst.PreserveClientIP = restored.PreserveClientIP
+	dst.AdditionalIngressRules = restored.AdditionalIngressRules
 }
 
 // ConvertFrom converts the v1beta1 AWSCluster receiver to a v1beta1 AWSCluster.
 func (r *AWSCluster) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*infrav1.AWSCluster)
+	src := srcRaw.(*infrav2.AWSCluster)
 
 	if err := Convert_v1beta2_AWSCluster_To_v1beta1_AWSCluster(src, r, nil); err != nil {
 		return err
@@ -85,14 +95,14 @@ func (r *AWSCluster) ConvertFrom(srcRaw conversion.Hub) error {
 
 // ConvertTo converts the v1beta1 AWSClusterList receiver to a v1beta2 AWSClusterList.
 func (src *AWSClusterList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*infrav1.AWSClusterList)
+	dst := dstRaw.(*infrav2.AWSClusterList)
 
 	return Convert_v1beta1_AWSClusterList_To_v1beta2_AWSClusterList(src, dst, nil)
 }
 
 // ConvertFrom converts the v1beta2 AWSClusterList receiver to a v1beta1 AWSClusterList.
 func (r *AWSClusterList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*infrav1.AWSClusterList)
+	src := srcRaw.(*infrav2.AWSClusterList)
 
 	return Convert_v1beta2_AWSClusterList_To_v1beta1_AWSClusterList(src, r, nil)
 }

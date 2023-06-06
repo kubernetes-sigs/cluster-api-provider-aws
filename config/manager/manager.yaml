@@ -19,7 +19,7 @@ spec:
       containers:
       - args:
         - "--leader-elect"
-        - "--feature-gates=EKS=${CAPA_EKS:=true},EKSEnableIAM=${CAPA_EKS_IAM:=false},EKSAllowAddRoles=${CAPA_EKS_ADD_ROLES:=false},EKSFargate=${EXP_EKS_FARGATE:=false},MachinePool=${EXP_MACHINE_POOL:=false},EventBridgeInstanceState=${EVENT_BRIDGE_INSTANCE_STATE:=false},AutoControllerIdentityCreator=${AUTO_CONTROLLER_IDENTITY_CREATOR:=true},BootstrapFormatIgnition=${EXP_BOOTSTRAP_FORMAT_IGNITION:=false},ExternalResourceGC=${EXP_EXTERNAL_RESOURCE_GC:=false}"
+        - "--feature-gates=EKS=${CAPA_EKS:=true},EKSEnableIAM=${CAPA_EKS_IAM:=false},EKSAllowAddRoles=${CAPA_EKS_ADD_ROLES:=false},EKSFargate=${EXP_EKS_FARGATE:=false},MachinePool=${EXP_MACHINE_POOL:=false},EventBridgeInstanceState=${EVENT_BRIDGE_INSTANCE_STATE:=false},AutoControllerIdentityCreator=${AUTO_CONTROLLER_IDENTITY_CREATOR:=true},BootstrapFormatIgnition=${EXP_BOOTSTRAP_FORMAT_IGNITION:=false},ExternalResourceGC=${EXP_EXTERNAL_RESOURCE_GC:=false},AlternativeGCStrategy=${EXP_ALTERNATIVE_GC_STRATEGY:=false},TagUnmanagedNetworkResources=${TAG_UNMANAGED_NETWORK_RESOURCES:=true}"
         - "--v=${CAPA_LOGLEVEL:=0}"
         - "--metrics-bind-addr=0.0.0.0:8080"
         image: controller:latest
@@ -37,6 +37,17 @@ spec:
           httpGet:
             path: /healthz
             port: healthz
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsUser: 65532
+          runAsGroup: 65532
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       terminationGracePeriodSeconds: 10
       tolerations:
         - effect: NoSchedule

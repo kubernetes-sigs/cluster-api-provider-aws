@@ -55,7 +55,6 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	capiannotations "sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -69,14 +68,16 @@ var defaultAWSSecurityGroupRoles = []infrav1.SecurityGroupRole{
 // AWSClusterReconciler reconciles a AwsCluster object.
 type AWSClusterReconciler struct {
 	client.Client
-	Recorder              record.EventRecorder
-	ec2ServiceFactory     func(scope.EC2Scope) services.EC2Interface
-	networkServiceFactory func(scope.ClusterScope) services.NetworkInterface
-	elbServiceFactory     func(scope.ELBScope) services.ELBInterface
-	securityGroupFactory  func(scope.ClusterScope) services.SecurityGroupInterface
-	Endpoints             []scope.ServiceEndpoint
-	WatchFilterValue      string
-	ExternalResourceGC    bool
+	Recorder                     record.EventRecorder
+	ec2ServiceFactory            func(scope.EC2Scope) services.EC2Interface
+	networkServiceFactory        func(scope.ClusterScope) services.NetworkInterface
+	elbServiceFactory            func(scope.ELBScope) services.ELBInterface
+	securityGroupFactory         func(scope.ClusterScope) services.SecurityGroupInterface
+	Endpoints                    []scope.ServiceEndpoint
+	WatchFilterValue             string
+	ExternalResourceGC           bool
+	AlternativeGCStrategy        bool
+	TagUnmanagedNetworkResources bool
 }
 
 // getEC2Service factory func is added for testing purpose so that we can inject mocked EC2Service to the AWSClusterReconciler.
@@ -166,33 +167,16 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	log = log.WithValues("cluster", klog.KObj(cluster))
-	helper, err := patch.NewHelper(awsCluster, r.Client)
-	if err != nil {
-		return reconcile.Result{}, errors.Wrap(err, "failed to init patch helper")
-	}
-
-	defer func() {
-		e := helper.Patch(
-			context.TODO(),
-			awsCluster,
-			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-				infrav1.PrincipalCredentialRetrievedCondition,
-				infrav1.PrincipalUsageAllowedCondition,
-				infrav1.LoadBalancerReadyCondition,
-			}})
-		if e != nil {
-			fmt.Println(e.Error())
-		}
-	}()
 
 	// Create the scope.
 	clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
-		Client:         r.Client,
-		Logger:         log,
-		Cluster:        cluster,
-		AWSCluster:     awsCluster,
-		ControllerName: "awscluster",
-		Endpoints:      r.Endpoints,
+		Client:                       r.Client,
+		Logger:                       log,
+		Cluster:                      cluster,
+		AWSCluster:                   awsCluster,
+		ControllerName:               "awscluster",
+		Endpoints:                    r.Endpoints,
+		TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
 	})
 	if err != nil {
 		return reconcile.Result{}, errors.Errorf("failed to create scope: %+v", err)
@@ -247,7 +231,7 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 	}
 
 	if r.ExternalResourceGC {
-		gcSvc := gc.NewService(clusterScope)
+		gcSvc := gc.NewService(clusterScope, gc.WithGCStrategy(r.AlternativeGCStrategy))
 		if gcErr := gcSvc.ReconcileDelete(ctx); gcErr != nil {
 			return reconcile.Result{}, fmt.Errorf("failed delete reconcile for gc service: %w", gcErr)
 		}
@@ -274,10 +258,11 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 	awsCluster := clusterScope.AWSCluster
 
 	// If the AWSCluster doesn't have our finalizer, add it.
-	controllerutil.AddFinalizer(awsCluster, infrav1.ClusterFinalizer)
-	// Register the finalizer immediately to avoid orphaning AWS resources on delete
-	if err := clusterScope.PatchObject(); err != nil {
-		return reconcile.Result{}, err
+	if controllerutil.AddFinalizer(awsCluster, infrav1.ClusterFinalizer) {
+		// Register the finalizer immediately to avoid orphaning AWS resources on delete
+		if err := clusterScope.PatchObject(); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	ec2Service := r.getEC2Service(clusterScope)
@@ -405,7 +390,7 @@ func (r *AWSClusterReconciler) requeueAWSClusterForUnpausedCluster(ctx context.C
 	return func(o client.Object) []ctrl.Request {
 		c, ok := o.(*clusterv1.Cluster)
 		if !ok {
-			panic(fmt.Sprintf("Expected a Cluster but got a %T", o))
+			klog.Errorf("Expected a Cluster but got a %T", o)
 		}
 
 		log := log.WithValues("objectMapper", "clusterToAWSCluster", "cluster", klog.KRef(c.Namespace, c.Name))

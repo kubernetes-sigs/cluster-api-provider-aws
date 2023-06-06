@@ -43,6 +43,14 @@ func Convert_v1beta2_NetworkStatus_To_v1beta1_NetworkStatus(in *v1beta2.NetworkS
 	return autoConvert_v1beta2_NetworkStatus_To_v1beta1_NetworkStatus(in, out, s)
 }
 
+func Convert_v1beta2_AWSMachineSpec_To_v1beta1_AWSMachineSpec(in *v1beta2.AWSMachineSpec, out *AWSMachineSpec, s conversion.Scope) error {
+	return autoConvert_v1beta2_AWSMachineSpec_To_v1beta1_AWSMachineSpec(in, out, s)
+}
+
+func Convert_v1beta2_Instance_To_v1beta1_Instance(in *v1beta2.Instance, out *Instance, s conversion.Scope) error {
+	return autoConvert_v1beta2_Instance_To_v1beta1_Instance(in, out, s)
+}
+
 func Convert_v1beta1_ClassicELB_To_v1beta2_LoadBalancer(in *ClassicELB, out *v1beta2.LoadBalancer, s conversion.Scope) error {
 	out.Name = in.Name
 	out.DNSName = in.DNSName
@@ -69,4 +77,8 @@ func Convert_v1beta2_LoadBalancer_To_v1beta1_ClassicELB(in *v1beta2.LoadBalancer
 	out.Tags = in.Tags
 	out.SubnetIDs = in.SubnetIDs
 	return nil
+}
+
+func Convert_v1beta2_IngressRule_To_v1beta1_IngressRule(in *v1beta2.IngressRule, out *IngressRule, s conversion.Scope) error {
+	return autoConvert_v1beta2_IngressRule_To_v1beta1_IngressRule(in, out, s)
 }

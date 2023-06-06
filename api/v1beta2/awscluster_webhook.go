@@ -56,6 +56,7 @@ func (r *AWSCluster) ValidateCreate() error {
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 	allErrs = append(allErrs, r.Spec.S3Bucket.Validate()...)
 	allErrs = append(allErrs, r.validateNetwork()...)
+	allErrs = append(allErrs, r.validateAdditionalIngressRules()...)
 
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
@@ -143,7 +144,7 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 			oldC.Spec.NetworkSpec.VPC.ID != r.Spec.NetworkSpec.VPC.ID {
 			allErrs = append(allErrs,
 				field.Invalid(field.NewPath("spec", "network", "vpc", "id"),
-					r.Spec.IdentityRef, "field cannot be modified once set"))
+					r.Spec.NetworkSpec.VPC.ID, "field cannot be modified once set"))
 		}
 	}
 
@@ -188,5 +189,21 @@ func (r *AWSCluster) validateNetwork() field.ErrorList {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("subnets"), r.Spec.NetworkSpec.Subnets, "IPv6 cannot be used with unmanaged clusters at this time."))
 		}
 	}
+	return allErrs
+}
+
+func (r *AWSCluster) validateAdditionalIngressRules() field.ErrorList {
+	var allErrs field.ErrorList
+
+	if r.Spec.ControlPlaneLoadBalancer == nil {
+		return allErrs
+	}
+
+	for _, rule := range r.Spec.ControlPlaneLoadBalancer.AdditionalIngressRules {
+		if (rule.CidrBlocks != nil || rule.IPv6CidrBlocks != nil) && (rule.SourceSecurityGroupIDs != nil || rule.SourceSecurityGroupRoles != nil) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("additionalIngressRules"), r.Spec.ControlPlaneLoadBalancer.AdditionalIngressRules, "CIDR blocks and security group IDs or security group roles cannot be used together"))
+		}
+	}
+
 	return allErrs
 }

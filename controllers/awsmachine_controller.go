@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	ignTypes "github.com/flatcar/ignition/config/v2_3/types"
@@ -63,8 +64,13 @@ import (
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
-// InstanceIDIndex defines the aws machine controller's instance ID index.
-const InstanceIDIndex = ".spec.instanceID"
+const (
+	// InstanceIDIndex defines the aws machine controller's instance ID index.
+	InstanceIDIndex = ".spec.instanceID"
+
+	// DefaultReconcilerRequeue is the default value for the reconcile retry.
+	DefaultReconcilerRequeue = 30 * time.Second
+)
 
 // AWSMachineReconciler reconciles a AwsMachine object.
 type AWSMachineReconciler struct {
@@ -78,6 +84,7 @@ type AWSMachineReconciler struct {
 	objectStoreServiceFactory    func(cloud.ClusterScoper) services.ObjectStoreInterface
 	Endpoints                    []scope.ServiceEndpoint
 	WatchFilterValue             string
+	TagUnmanagedNetworkResources bool
 }
 
 const (
@@ -187,6 +194,8 @@ func (r *AWSMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		log.Info("AWSCluster or AWSManagedControlPlane is not ready yet")
 		return ctrl.Result{}, nil
 	}
+
+	infrav1.SetDefaults_AWSMachineSpec(&awsMachine.Spec)
 
 	// Create the machine scope
 	machineScope, err := scope.NewMachineScope(scope.MachineScopeParams{
@@ -340,8 +349,14 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 	// This decision is based on the ec2-instance-lifecycle graph at
 	// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html
 	switch instance.State {
-	case infrav1.InstanceStateShuttingDown, infrav1.InstanceStateTerminated:
+	case infrav1.InstanceStateShuttingDown:
 		machineScope.Info("EC2 instance is shutting down or already terminated", "instance-id", instance.ID)
+		// requeue reconciliation until we observe termination (or the instance can no longer be looked up)
+		return ctrl.Result{RequeueAfter: time.Minute}, nil
+	case infrav1.InstanceStateTerminated:
+		machineScope.Info("EC2 instance terminated successfully", "instance-id", instance.ID)
+		controllerutil.RemoveFinalizer(machineScope.AWSMachine, infrav1.MachineFinalizer)
+		return ctrl.Result{}, nil
 	default:
 		machineScope.Info("Terminating EC2 instance", "instance-id", instance.ID)
 
@@ -352,7 +367,7 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 			return ctrl.Result{}, err
 		}
 
-		if err := ec2Service.TerminateInstanceAndWait(instance.ID); err != nil {
+		if err := ec2Service.TerminateInstance(instance.ID); err != nil {
 			machineScope.Error(err, "failed to terminate instance")
 			conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
 			r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedTerminate", "Failed to terminate instance %q: %v", instance.ID, err)
@@ -391,12 +406,10 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 
 		machineScope.Info("EC2 instance successfully terminated", "instance-id", instance.ID)
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulTerminate", "Terminated instance %q", instance.ID)
+
+		// requeue reconciliation until we observe termination (or the instance can no longer be looked up)
+		return ctrl.Result{RequeueAfter: time.Minute}, nil
 	}
-
-	// Instance is deleted so remove the finalizer.
-	controllerutil.RemoveFinalizer(machineScope.AWSMachine, infrav1.MachineFinalizer)
-
-	return ctrl.Result{}, nil
 }
 
 // findInstance queries the EC2 apis and retrieves the instance if it exists.
@@ -420,7 +433,7 @@ func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc se
 	} else {
 		// If the ProviderID is populated, describe the instance using the ID.
 		// InstanceIfExists() returns error (ErrInstanceNotFoundByID or ErrDescribeInstance) if the instance could not be found.
-		instance, err = ec2svc.InstanceIfExists(pointer.StringPtr(pid.ID()))
+		instance, err = ec2svc.InstanceIfExists(pointer.String(pid.ID()))
 		if err != nil {
 			return nil, err
 		}
@@ -470,12 +483,14 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	}
 
 	// If the AWSMachine doesn't have our finalizer, add it.
-	controllerutil.AddFinalizer(machineScope.AWSMachine, infrav1.MachineFinalizer)
-	// Register the finalizer after first read operation from AWS to avoid orphaning AWS resources on delete
-	if err := machineScope.PatchObject(); err != nil {
-		machineScope.Error(err, "unable to patch object")
-		return ctrl.Result{}, err
+	if controllerutil.AddFinalizer(machineScope.AWSMachine, infrav1.MachineFinalizer) {
+		// Register the finalizer after first read operation from AWS to avoid orphaning AWS resources on delete
+		if err := machineScope.PatchObject(); err != nil {
+			machineScope.Error(err, "unable to patch object")
+			return ctrl.Result{}, err
+		}
 	}
+
 	// Create new instance since providerId is nil and instance could not be found by tags.
 	if instance == nil {
 		// Avoid a flickering condition between InstanceProvisionStarted and InstanceProvisionFailed if there's a persistent failure with createInstance
@@ -523,9 +538,11 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		machineScope.Info("EC2 instance state changed", "state", instance.State, "instance-id", *machineScope.GetInstanceID())
 	}
 
+	shouldRequeue := false
 	switch instance.State {
 	case infrav1.InstanceStatePending:
 		machineScope.SetNotReady()
+		shouldRequeue = true
 		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceNotReadyReason, clusterv1.ConditionSeverityWarning, "")
 	case infrav1.InstanceStateStopping, infrav1.InstanceStateStopped:
 		machineScope.SetNotReady()
@@ -578,26 +595,45 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 
 	// tasks that can only take place during operational instance states
 	if machineScope.InstanceIsOperational() {
-		machineScope.SetAddresses(instance.Addresses)
-
-		existingSecurityGroups, err := ec2svc.GetInstanceSecurityGroups(*machineScope.GetInstanceID())
+		err := r.reconcileOperationalState(ec2svc, machineScope, instance)
 		if err != nil {
-			machineScope.Error(err, "unable to get instance security groups")
 			return ctrl.Result{}, err
 		}
-
-		// Ensure that the security groups are correct.
-		_, err = r.ensureSecurityGroups(ec2svc, machineScope, machineScope.AWSMachine.Spec.AdditionalSecurityGroups, existingSecurityGroups)
-		if err != nil {
-			conditions.MarkFalse(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition, infrav1.SecurityGroupsFailedReason, clusterv1.ConditionSeverityError, err.Error())
-			machineScope.Error(err, "unable to ensure security groups")
-			return ctrl.Result{}, err
-		}
-		conditions.MarkTrue(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition)
 	}
 
 	machineScope.Debug("done reconciling instance", "instance", instance)
+	if shouldRequeue {
+		machineScope.Debug("but find the instance is pending, requeue", "instance", instance.ID)
+		return ctrl.Result{RequeueAfter: DefaultReconcilerRequeue}, nil
+	}
 	return ctrl.Result{}, nil
+}
+
+func (r *AWSMachineReconciler) reconcileOperationalState(ec2svc services.EC2Interface, machineScope *scope.MachineScope, instance *infrav1.Instance) error {
+	machineScope.SetAddresses(instance.Addresses)
+
+	existingSecurityGroups, err := ec2svc.GetInstanceSecurityGroups(*machineScope.GetInstanceID())
+	if err != nil {
+		machineScope.Error(err, "unable to get instance security groups")
+		return err
+	}
+
+	// Ensure that the security groups are correct.
+	_, err = r.ensureSecurityGroups(ec2svc, machineScope, machineScope.AWSMachine.Spec.AdditionalSecurityGroups, existingSecurityGroups)
+	if err != nil {
+		conditions.MarkFalse(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition, infrav1.SecurityGroupsFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		machineScope.Error(err, "unable to ensure security groups")
+		return err
+	}
+	conditions.MarkTrue(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition)
+
+	err = r.ensureInstanceMetadataOptions(ec2svc, instance, machineScope.AWSMachine)
+	if err != nil {
+		machineScope.Error(err, "failed to ensure instance metadata options")
+		return err
+	}
+
+	return nil
 }
 
 func (r *AWSMachineReconciler) deleteEncryptedBootstrapDataSecret(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper) error {
@@ -919,7 +955,7 @@ func (r *AWSMachineReconciler) AWSClusterToAWSMachines(log logger.Wrapper) handl
 	return func(o client.Object) []ctrl.Request {
 		c, ok := o.(*infrav1.AWSCluster)
 		if !ok {
-			panic(fmt.Sprintf("Expected a AWSCluster but got a %T", o))
+			klog.Errorf("Expected a AWSCluster but got a %T", o)
 		}
 
 		log := log.WithValues("objectMapper", "awsClusterToAWSMachine", "cluster", klog.KRef(c.Namespace, c.Name))
@@ -948,7 +984,7 @@ func (r *AWSMachineReconciler) requeueAWSMachinesForUnpausedCluster(log logger.W
 	return func(o client.Object) []ctrl.Request {
 		c, ok := o.(*clusterv1.Cluster)
 		if !ok {
-			panic(fmt.Sprintf("Expected a Cluster but got a %T", o))
+			klog.Errorf("Expected a Cluster but got a %T", o)
 		}
 
 		log := log.WithValues("objectMapper", "clusterToAWSMachine", "cluster", klog.KRef(c.Namespace, c.Name))
@@ -964,7 +1000,7 @@ func (r *AWSMachineReconciler) requeueAWSMachinesForUnpausedCluster(log logger.W
 }
 
 func (r *AWSMachineReconciler) requestsForCluster(log logger.Wrapper, namespace, name string) []ctrl.Request {
-	labels := map[string]string{clusterv1.ClusterLabelName: name}
+	labels := map[string]string{clusterv1.ClusterNameLabel: name}
 	machineList := &clusterv1.MachineList{}
 	if err := r.Client.List(context.TODO(), machineList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
 		log.Error(err, "Failed to get owned Machines, skipping mapping.")
@@ -1008,12 +1044,13 @@ func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log *logger.
 		}
 
 		managedControlPlaneScope, err = scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
-			Client:         r.Client,
-			Logger:         log,
-			Cluster:        cluster,
-			ControlPlane:   controlPlane,
-			ControllerName: "awsManagedControlPlane",
-			Endpoints:      r.Endpoints,
+			Client:                       r.Client,
+			Logger:                       log,
+			Cluster:                      cluster,
+			ControlPlane:                 controlPlane,
+			ControllerName:               "awsManagedControlPlane",
+			Endpoints:                    r.Endpoints,
+			TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
 		})
 		if err != nil {
 			return nil, err
@@ -1036,11 +1073,12 @@ func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log *logger.
 
 	// Create the cluster scope
 	clusterScope, err = scope.NewClusterScope(scope.ClusterScopeParams{
-		Client:         r.Client,
-		Logger:         log,
-		Cluster:        cluster,
-		AWSCluster:     awsCluster,
-		ControllerName: "awsmachine",
+		Client:                       r.Client,
+		Logger:                       log,
+		Cluster:                      cluster,
+		AWSCluster:                   awsCluster,
+		ControllerName:               "awsmachine",
+		TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
 	})
 	if err != nil {
 		return nil, err
@@ -1089,4 +1127,12 @@ func (r *AWSMachineReconciler) ensureStorageTags(ec2svc services.EC2Interface, i
 			r.Log.Error(err, "Failed to fetch the changed volume tags in EC2 instance")
 		}
 	}
+}
+
+func (r *AWSMachineReconciler) ensureInstanceMetadataOptions(ec2svc services.EC2Interface, instance *infrav1.Instance, machine *infrav1.AWSMachine) error {
+	if cmp.Equal(machine.Spec.InstanceMetadataOptions, instance.InstanceMetadataOptions) {
+		return nil
+	}
+
+	return ec2svc.ModifyInstanceMetadataOptions(instance.ID, machine.Spec.InstanceMetadataOptions)
 }

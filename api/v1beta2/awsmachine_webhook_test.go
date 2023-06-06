@@ -284,14 +284,14 @@ func TestAWSMachineUpdate(t *testing.T) {
 			},
 			newMachine: &AWSMachine{
 				Spec: AWSMachineSpec{
-					ProviderID:   pointer.StringPtr("ID"),
+					ProviderID:   pointer.String("ID"),
 					InstanceType: "test",
 					AdditionalTags: Tags{
 						"key-1": "value-1",
 					},
 					AdditionalSecurityGroups: []AWSResourceReference{
 						{
-							ID: pointer.StringPtr("ID"),
+							ID: pointer.String("ID"),
 						},
 					},
 					CloudInit: CloudInit{
@@ -316,13 +316,13 @@ func TestAWSMachineUpdate(t *testing.T) {
 				Spec: AWSMachineSpec{
 					ImageLookupOrg: "test",
 					InstanceType:   "test",
-					ProviderID:     pointer.StringPtr("ID"),
+					ProviderID:     pointer.String("ID"),
 					AdditionalTags: Tags{
 						"key-1": "value-1",
 					},
 					AdditionalSecurityGroups: []AWSResourceReference{
 						{
-							ID: pointer.StringPtr("ID"),
+							ID: pointer.String("ID"),
 						},
 					},
 				},

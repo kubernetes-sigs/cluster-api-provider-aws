@@ -744,13 +744,13 @@ func TestCreateIPv6Cluster(t *testing.T) {
 			},
 		},
 		ResourcesVpcConfig: &eks.VpcConfigRequest{
-			SubnetIds: []*string{pointer.StringPtr("sub-1"), pointer.StringPtr("sub-2")},
+			SubnetIds: []*string{pointer.String("sub-1"), pointer.String("sub-2")},
 		},
 		KubernetesNetworkConfig: &eks.KubernetesNetworkConfigRequest{
-			IpFamily: pointer.StringPtr("ipv6"),
+			IpFamily: pointer.String("ipv6"),
 		},
 		Tags: map[string]*string{
-			"kubernetes.io/cluster/cluster-name": pointer.StringPtr("owned"),
+			"kubernetes.io/cluster/cluster-name": pointer.String("owned"),
 		},
 	}).Return(&eks.CreateClusterOutput{}, nil)
 	iamMock.EXPECT().GetRole(&iam.GetRoleInput{

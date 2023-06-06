@@ -427,10 +427,7 @@ func TestReconcileVPC(t *testing.T) {
 			want: &infrav1.VPCSpec{
 				ID:        "unmanaged-vpc-exists",
 				CidrBlock: "10.0.0.0/8",
-				Tags: map[string]string{
-					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
-					"Name": "test-cluster-vpc",
-				},
+				Tags:      nil,
 				IPv6: &infrav1.IPv6{
 					PoolID:    "my-pool",
 					CidrBlock: "2001:db8:1234:1a03::/56",
@@ -453,16 +450,6 @@ func TestReconcileVPC(t *testing.T) {
 										State: aws.String(ec2.SubnetCidrBlockStateCodeAssociated),
 									},
 									Ipv6Pool: aws.String("my-pool"),
-								},
-							},
-							Tags: []*ec2.Tag{
-								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-									Value: aws.String("common"),
-								},
-								{
-									Key:   aws.String("Name"),
-									Value: aws.String("test-cluster-vpc"),
 								},
 							},
 						},
@@ -492,12 +479,9 @@ func TestReconcileVPC(t *testing.T) {
 			name:  "Should patch vpc spec successfully, if unmanaged vpc exists",
 			input: &infrav1.VPCSpec{ID: "unmanaged-vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
 			want: &infrav1.VPCSpec{
-				ID:        "unmanaged-vpc-exists",
-				CidrBlock: "10.0.0.0/8",
-				Tags: map[string]string{
-					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
-					"Name": "test-cluster-vpc",
-				},
+				ID:                         "unmanaged-vpc-exists",
+				CidrBlock:                  "10.0.0.0/8",
+				Tags:                       nil,
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
 			},
@@ -508,16 +492,6 @@ func TestReconcileVPC(t *testing.T) {
 							State:     aws.String("available"),
 							VpcId:     aws.String("unmanaged-vpc-exists"),
 							CidrBlock: aws.String("10.0.0.0/8"),
-							Tags: []*ec2.Tag{
-								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-									Value: aws.String("common"),
-								},
-								{
-									Key:   aws.String("Name"),
-									Value: aws.String("test-cluster-vpc"),
-								},
-							},
 						},
 					},
 				}, nil)

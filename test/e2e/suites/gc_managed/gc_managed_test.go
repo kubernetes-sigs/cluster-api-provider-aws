@@ -148,7 +148,7 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 			Type:             infrav1.LoadBalancerTypeNLB,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(arns).To(HaveLen(0), "there are %d service load balancers (nlb) still", len(arns))
+		Expect(arns).To(BeEmpty(), "there are %d service load balancers (nlb) still", len(arns))
 		arns, err = shared.GetLoadBalancerARNs(shared.GetLoadBalancerARNsInput{
 			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-elb",
@@ -157,7 +157,7 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 			Type:             infrav1.LoadBalancerTypeELB,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(arns).To(HaveLen(0), "there are %d service load balancers (elb) still", len(arns))
+		Expect(arns).To(BeEmpty(), "there are %d service load balancers (elb) still", len(arns))
 	})
 })
 
@@ -172,7 +172,7 @@ func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigCluste
 		Namespace:                namespace,
 		ClusterName:              clusterName,
 		KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
-		ControlPlaneMachineCount: pointer.Int64Ptr(1),
-		WorkerMachineCount:       pointer.Int64Ptr(0),
+		ControlPlaneMachineCount: pointer.Int64(1),
+		WorkerMachineCount:       pointer.Int64(0),
 	}
 }

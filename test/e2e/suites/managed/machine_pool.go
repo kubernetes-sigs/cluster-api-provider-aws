@@ -59,8 +59,8 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInpu
 	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")
 	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
 	Expect(input.Namespace).NotTo(BeNil(), "Invalid argument. input.Namespace can't be nil")
-	Expect(input.ClusterName).ShouldNot(HaveLen(0), "Invalid argument. input.ClusterName can't be empty")
-	Expect(input.Flavor).ShouldNot(HaveLen(0), "Invalid argument. input.Flavor can't be empty")
+	Expect(input.ClusterName).ShouldNot(BeEmpty(), "Invalid argument. input.ClusterName can't be empty")
+	Expect(input.Flavor).ShouldNot(BeEmpty(), "Invalid argument. input.Flavor can't be empty")
 
 	ginkgo.By(fmt.Sprintf("getting cluster with name %s", input.ClusterName))
 	cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
@@ -73,7 +73,7 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInpu
 	ginkgo.By(fmt.Sprintf("creating an applying the %s template", input.Flavor))
 	configCluster := input.ConfigClusterFn(input.ClusterName, input.Namespace.Name)
 	configCluster.Flavor = input.Flavor
-	configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+	configCluster.WorkerMachineCount = pointer.Int64(1)
 	workloadClusterTemplate := shared.GetTemplate(ctx, configCluster)
 	if input.UsesLaunchTemplate {
 		userDataTemplate := `#!/bin/bash

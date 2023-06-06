@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -62,8 +63,9 @@ type ManagedControlPlaneScopeParams struct {
 	Endpoints      []ServiceEndpoint
 	Session        awsclient.ConfigProvider
 
-	EnableIAM            bool
-	AllowAdditionalRoles bool
+	EnableIAM                    bool
+	AllowAdditionalRoles         bool
+	TagUnmanagedNetworkResources bool
 }
 
 // NewManagedControlPlaneScope creates a new Scope from the supplied parameters.
@@ -81,16 +83,17 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 	}
 
 	managedScope := &ManagedControlPlaneScope{
-		Logger:               *params.Logger,
-		Client:               params.Client,
-		Cluster:              params.Cluster,
-		ControlPlane:         params.ControlPlane,
-		patchHelper:          nil,
-		session:              nil,
-		serviceLimiters:      nil,
-		controllerName:       params.ControllerName,
-		allowAdditionalRoles: params.AllowAdditionalRoles,
-		enableIAM:            params.EnableIAM,
+		Logger:                       *params.Logger,
+		Client:                       params.Client,
+		Cluster:                      params.Cluster,
+		ControlPlane:                 params.ControlPlane,
+		patchHelper:                  nil,
+		session:                      nil,
+		serviceLimiters:              nil,
+		controllerName:               params.ControllerName,
+		allowAdditionalRoles:         params.AllowAdditionalRoles,
+		enableIAM:                    params.EnableIAM,
+		tagUnmanagedNetworkResources: params.TagUnmanagedNetworkResources,
 	}
 	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
@@ -122,8 +125,9 @@ type ManagedControlPlaneScope struct {
 	serviceLimiters throttle.ServiceLimiters
 	controllerName  string
 
-	enableIAM            bool
-	allowAdditionalRoles bool
+	enableIAM                    bool
+	allowAdditionalRoles         bool
+	tagUnmanagedNetworkResources bool
 }
 
 // RemoteClient returns the Kubernetes client for connecting to the workload cluster.
@@ -221,7 +225,7 @@ func (s *ManagedControlPlaneScope) Region() string {
 // ListOptionsLabelSelector returns a ListOptions with a label selector for clusterName.
 func (s *ManagedControlPlaneScope) ListOptionsLabelSelector() client.ListOption {
 	return client.MatchingLabels(map[string]string{
-		clusterv1.ClusterLabelName: s.Cluster.Name,
+		clusterv1.ClusterNameLabel: s.Cluster.Name,
 	})
 }
 
@@ -291,6 +295,11 @@ func (s *ManagedControlPlaneScope) Session() awsclient.ConfigProvider {
 // Bastion returns the bastion details.
 func (s *ManagedControlPlaneScope) Bastion() *infrav1.Bastion {
 	return &s.ControlPlane.Spec.Bastion
+}
+
+// TagUnmanagedNetworkResources returns if the feature flag tag unmanaged network resources is set.
+func (s *ManagedControlPlaneScope) TagUnmanagedNetworkResources() bool {
+	return s.tagUnmanagedNetworkResources
 }
 
 // SetBastionInstance sets the bastion instance in the status of the cluster.
@@ -400,4 +409,12 @@ func (s *ManagedControlPlaneScope) ServiceCidrs() *clusterv1.NetworkRanges {
 // ControlPlaneLoadBalancer returns the AWSLoadBalancerSpec.
 func (s *ManagedControlPlaneScope) ControlPlaneLoadBalancer() *infrav1.AWSLoadBalancerSpec {
 	return nil
+}
+
+// Partition returns the cluster partition.
+func (s *ManagedControlPlaneScope) Partition() string {
+	if s.ControlPlane.Spec.Partition == "" {
+		s.ControlPlane.Spec.Partition = system.GetPartitionFromRegion(s.Region())
+	}
+	return s.ControlPlane.Spec.Partition
 }

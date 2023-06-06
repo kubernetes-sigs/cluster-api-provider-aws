@@ -114,6 +114,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"ec2:DescribeAddresses",
 				"ec2:DescribeAvailabilityZones",
 				"ec2:DescribeInstances",
+				"ec2:DescribeInstanceTypes",
 				"ec2:DescribeInternetGateways",
 				"ec2:DescribeEgressOnlyInternetGateways",
 				"ec2:DescribeInstanceTypes",
@@ -146,6 +147,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"elasticloadbalancing:DeleteTargetGroup",
 				"elasticloadbalancing:DescribeLoadBalancers",
 				"elasticloadbalancing:DescribeLoadBalancerAttributes",
+				"elasticloadbalancing:DescribeTargetGroups",
 				"elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
 				"elasticloadbalancing:DescribeTags",
 				"elasticloadbalancing:ModifyLoadBalancerAttributes",
@@ -161,6 +163,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"ec2:DeleteLaunchTemplate",
 				"ec2:DeleteLaunchTemplateVersions",
 				"ec2:DescribeKeyPairs",
+				"ec2:ModifyInstanceMetadataOptions",
 			},
 		},
 		{
@@ -248,6 +251,15 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				},
 			})
 		}
+	}
+	if t.Spec.AllowAssumeRole {
+		statement = append(statement, iamv1.StatementEntry{
+			Effect:   iamv1.EffectAllow,
+			Resource: t.allowedEC2InstanceProfiles(),
+			Action: iamv1.Actions{
+				"sts:AssumeRole",
+			},
+		})
 	}
 	if t.Spec.S3Buckets.Enable {
 		statement = append(statement, iamv1.StatementEntry{

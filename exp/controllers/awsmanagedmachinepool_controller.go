@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -54,11 +53,12 @@ import (
 // AWSManagedMachinePoolReconciler reconciles a AWSManagedMachinePool object.
 type AWSManagedMachinePoolReconciler struct {
 	client.Client
-	Recorder             record.EventRecorder
-	Endpoints            []scope.ServiceEndpoint
-	EnableIAM            bool
-	AllowAdditionalRoles bool
-	WatchFilterValue     string
+	Recorder                     record.EventRecorder
+	Endpoints                    []scope.ServiceEndpoint
+	EnableIAM                    bool
+	AllowAdditionalRoles         bool
+	WatchFilterValue             string
+	TagUnmanagedNetworkResources bool
 }
 
 // SetupWithManager is used to setup the controller.
@@ -85,7 +85,7 @@ func (r *AWSManagedMachinePoolReconciler) SetupWithManager(ctx context.Context, 
 		Complete(r)
 }
 
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinepools;machinepools/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinepools;machinepools/status,verbs=get;list;watch;patch
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes;awsmanagedcontrolplanes/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedmachinepools,verbs=get;list;watch;update;patch;delete
@@ -139,11 +139,12 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	managedControlPlaneScope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
-		Client:         r.Client,
-		Logger:         log,
-		Cluster:        cluster,
-		ControlPlane:   controlPlane,
-		ControllerName: "awsManagedControlPlane",
+		Client:                       r.Client,
+		Logger:                       log,
+		Cluster:                      cluster,
+		ControlPlane:                 controlPlane,
+		ControllerName:               "awsManagedControlPlane",
+		TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
 	})
 	if err != nil {
 		return ctrl.Result{}, errors.New("error getting managed control plane scope")
@@ -193,15 +194,16 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 }
 
 func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
-	_ context.Context,
+	ctx context.Context,
 	machinePoolScope *scope.ManagedMachinePoolScope,
 	ec2Scope scope.EC2Scope,
 ) (ctrl.Result, error) {
 	machinePoolScope.Info("Reconciling AWSManagedMachinePool")
 
-	controllerutil.AddFinalizer(machinePoolScope.ManagedMachinePool, expinfrav1.ManagedMachinePoolFinalizer)
-	if err := machinePoolScope.PatchObject(); err != nil {
-		return ctrl.Result{}, err
+	if controllerutil.AddFinalizer(machinePoolScope.ManagedMachinePool, expinfrav1.ManagedMachinePoolFinalizer) {
+		if err := machinePoolScope.PatchObject(); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	ekssvc := eks.NewNodegroupService(machinePoolScope)
@@ -234,7 +236,7 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 		conditions.MarkTrue(machinePoolScope.ManagedMachinePool, expinfrav1.LaunchTemplateReadyCondition)
 	}
 
-	if err := ekssvc.ReconcilePool(); err != nil {
+	if err := ekssvc.ReconcilePool(ctx); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile machine pool for AWSManagedMachinePool %s/%s", machinePoolScope.ManagedMachinePool.Namespace, machinePoolScope.ManagedMachinePool.Name)
 	}
 
@@ -308,7 +310,7 @@ func managedControlPlaneToManagedMachinePoolMapFunc(c client.Client, gvk schema.
 		ctx := context.Background()
 		awsControlPlane, ok := o.(*ekscontrolplanev1.AWSManagedControlPlane)
 		if !ok {
-			panic(fmt.Sprintf("Expected a AWSManagedControlPlane but got a %T", o))
+			klog.Errorf("Expected a AWSManagedControlPlane but got a %T", o)
 		}
 
 		if !awsControlPlane.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -326,7 +328,7 @@ func managedControlPlaneToManagedMachinePoolMapFunc(c client.Client, gvk schema.
 
 		managedPoolForClusterList := expclusterv1.MachinePoolList{}
 		if err := c.List(
-			ctx, &managedPoolForClusterList, client.InNamespace(clusterKey.Namespace), client.MatchingLabels{clusterv1.ClusterLabelName: clusterKey.Name},
+			ctx, &managedPoolForClusterList, client.InNamespace(clusterKey.Namespace), client.MatchingLabels{clusterv1.ClusterNameLabel: clusterKey.Name},
 		); err != nil {
 			log.Error(err, "couldn't list pools for cluster")
 			return nil

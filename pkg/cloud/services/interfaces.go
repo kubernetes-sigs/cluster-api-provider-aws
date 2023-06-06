@@ -60,6 +60,7 @@ type EC2Interface interface {
 	GetInstanceSecurityGroups(instanceID string) (map[string][]string, error)
 	UpdateInstanceSecurityGroups(id string, securityGroups []string) error
 	UpdateResourceTags(resourceID *string, create, remove map[string]string) error
+	ModifyInstanceMetadataOptions(instanceID string, options *infrav1.InstanceMetadataOptions) error
 
 	TerminateInstanceAndWait(instanceID string) error
 	DetachSecurityGroupsFromNetworkInterface(groups []string, interfaceID string) error

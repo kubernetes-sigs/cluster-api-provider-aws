@@ -48,7 +48,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework] [smoke] [PR-Blocking
 	ginkgo.Describe("Running the quick-start spec", func() {
 		ginkgo.BeforeEach(func() {
 			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
-			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
+			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3, EventBridgeRules: 50}
 			requiredResources.WriteRequestedResources(e2eCtx, "capi-quick-start-test")
 			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 		})

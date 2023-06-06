@@ -186,6 +186,13 @@ func getLimitedResources() map[string]*ServiceQuota {
 		DesiredMinimumValue: 50,
 	}
 
+	serviceQuotas["eventBridge-rules"] = &ServiceQuota{
+		ServiceCode:         "events",
+		QuotaName:           "Maximum number of rules an account can have per event bus",
+		QuotaCode:           "L-244521F2",
+		DesiredMinimumValue: 500,
+	}
+
 	return serviceQuotas
 }
 

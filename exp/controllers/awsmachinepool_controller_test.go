@@ -118,7 +118,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 							Spec: clusterv1.MachineSpec{
 								ClusterName: "test",
 								Bootstrap: clusterv1.Bootstrap{
-									DataSecretName: pointer.StringPtr("bootstrap-data"),
+									DataSecretName: pointer.String("bootstrap-data"),
 								},
 							},
 						},
@@ -181,7 +181,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 
 				er := capierrors.CreateMachineError
 				ms.AWSMachinePool.Status.FailureReason = &er
-				ms.AWSMachinePool.Status.FailureMessage = pointer.StringPtr("Couldn't create machine pool")
+				ms.AWSMachinePool.Status.FailureMessage = pointer.String("Couldn't create machine pool")
 
 				buf := new(bytes.Buffer)
 				klog.SetOutput(buf)
@@ -492,7 +492,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			klog.SetOutput(buf)
 			_, err := reconciler.reconcileDelete(ms, cs, cs)
 			g.Expect(err).To(BeNil())
-			g.Expect(ms.AWSMachinePool.Status.Ready).To(Equal(false))
+			g.Expect(ms.AWSMachinePool.Status.Ready).To(BeFalse())
 			g.Eventually(recorder.Events).Should(Receive(ContainSubstring("DeletionInProgress")))
 		})
 	})

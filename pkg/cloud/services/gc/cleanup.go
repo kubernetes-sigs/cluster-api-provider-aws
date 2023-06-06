@@ -40,7 +40,7 @@ const (
 // does then it will perform garbage collection. For example, it will delete the ELB/NLBs that where created
 // as a result of Services of type load balancer.
 func (s *Service) ReconcileDelete(ctx context.Context) error {
-	s.scope.Info("reconciling deletion for garbage collection")
+	s.scope.Info("reconciling deletion for garbage collection", "cluster", s.scope.InfraClusterName())
 
 	val, found := annotations.Get(s.scope.InfraCluster(), expinfrav1.ExternalResourceGCAnnotation)
 	if !found {
@@ -62,9 +62,25 @@ func (s *Service) ReconcileDelete(ctx context.Context) error {
 }
 
 func (s *Service) deleteResources(ctx context.Context) error {
-	s.scope.Info("deleting aws resources created by tenant cluster")
+	s.scope.Info("deleting aws resources created by tenant cluster", "cluster", s.scope.InfraClusterName())
+
+	resources, err := s.collectFuncs.Execute(ctx)
+	if err != nil {
+		return fmt.Errorf("collecting resources: %w", err)
+	}
+
+	if deleteErr := s.cleanupFuncs.Execute(ctx, resources); deleteErr != nil {
+		return fmt.Errorf("deleting resources: %w", deleteErr)
+	}
+
+	return nil
+}
+
+func (s *Service) defaultGetResources(ctx context.Context) ([]*AWSResource, error) {
+	s.scope.Info("get aws resources created by tenant cluster with resource group tagging API", "cluster", s.scope.InfraClusterName())
 
 	serviceTag := infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())
+
 	awsInput := rgapi.GetResourcesInput{
 		ResourceTypeFilters: nil,
 		TagFilters: []*rgapi.TagFilter{
@@ -77,7 +93,7 @@ func (s *Service) deleteResources(ctx context.Context) error {
 
 	awsOutput, err := s.resourceTaggingClient.GetResourcesWithContext(ctx, &awsInput)
 	if err != nil {
-		return fmt.Errorf("getting tagged resources: %w", err)
+		return nil, fmt.Errorf("getting tagged resources: %w", err)
 	}
 
 	resources := []*AWSResource{}
@@ -86,7 +102,7 @@ func (s *Service) deleteResources(ctx context.Context) error {
 		mapping := awsOutput.ResourceTagMappingList[i]
 		parsedArn, err := arn.Parse(*mapping.ResourceARN)
 		if err != nil {
-			return fmt.Errorf("parsing resource arn %s: %w", *mapping.ResourceARN, err)
+			return nil, fmt.Errorf("parsing resource arn %s: %w", *mapping.ResourceARN, err)
 		}
 
 		tags := map[string]string{}
@@ -100,11 +116,7 @@ func (s *Service) deleteResources(ctx context.Context) error {
 		})
 	}
 
-	if deleteErr := s.cleanupFuncs.Execute(ctx, resources); deleteErr != nil {
-		return fmt.Errorf("deleting resources: %w", deleteErr)
-	}
-
-	return nil
+	return resources, nil
 }
 
 func (s *Service) isMatchingResource(resource *AWSResource, serviceName, resourceName string) bool {

@@ -402,7 +402,7 @@ func TestGetAPIServerV2ELBSpecControlPlaneLoadBalancer(t *testing.T) {
 			expect: func(t *testing.T, g *WithT, res *infrav1.LoadBalancer) {
 				t.Helper()
 				if len(res.ELBListeners) != 1 {
-					t.Errorf("Expected 1 listener to be configured by default, got %v listener(s)", len(res.SecurityGroupIDs))
+					t.Errorf("Expected 1 listener to be configured by default, got %v listener(s)", len(res.ELBListeners))
 				}
 			},
 		},
@@ -2151,7 +2151,7 @@ func TestDescribeLoadbalancers(t *testing.T) {
 			DescribeElbAPIMocks: func(m *mocks.MockELBAPIMockRecorder) {
 				m.DescribeLoadBalancers(gomock.Eq(&elb.DescribeLoadBalancersInput{
 					LoadBalancerNames: aws.StringSlice([]string{"bar-apiserver"}),
-				})).Return(&elb.DescribeLoadBalancersOutput{LoadBalancerDescriptions: []*elb.LoadBalancerDescription{{Scheme: pointer.StringPtr(string(infrav1.ELBSchemeInternal))}}}, nil)
+				})).Return(&elb.DescribeLoadBalancersOutput{LoadBalancerDescriptions: []*elb.LoadBalancerDescription{{Scheme: pointer.String(string(infrav1.ELBSchemeInternal))}}}, nil)
 			},
 		},
 	}
@@ -2226,7 +2226,7 @@ func TestDescribeV2Loadbalancers(t *testing.T) {
 			DescribeElbV2APIMocks: func(m *mocks.MockELBV2APIMockRecorder) {
 				m.DescribeLoadBalancers(gomock.Eq(&elbv2.DescribeLoadBalancersInput{
 					Names: aws.StringSlice([]string{"bar-apiserver"}),
-				})).Return(&elbv2.DescribeLoadBalancersOutput{LoadBalancers: []*elbv2.LoadBalancer{{Scheme: pointer.StringPtr(string(infrav1.ELBSchemeInternal))}}}, nil)
+				})).Return(&elbv2.DescribeLoadBalancersOutput{LoadBalancers: []*elbv2.LoadBalancer{{Scheme: pointer.String(string(infrav1.ELBSchemeInternal))}}}, nil)
 			},
 		},
 	}
@@ -2316,6 +2316,72 @@ func TestChunkELBs(t *testing.T) {
 	}
 }
 
+func TestGetHealthCheckProtocol(t *testing.T) {
+	tests := []struct {
+		testName                  string
+		lbSpec                    *infrav1.AWSLoadBalancerSpec
+		expectedHealthCheckTarget string
+	}{
+		{
+			"default case",
+			&infrav1.AWSLoadBalancerSpec{},
+			"SSL:6443",
+		},
+		{
+			"protocol http",
+			&infrav1.AWSLoadBalancerSpec{
+				HealthCheckProtocol: &infrav1.ELBProtocolHTTP,
+			},
+			"HTTP:6443/readyz",
+		},
+		{
+			"protocol https",
+			&infrav1.AWSLoadBalancerSpec{
+				HealthCheckProtocol: &infrav1.ELBProtocolHTTPS,
+			},
+			"HTTPS:6443/readyz",
+		},
+		{
+			"protocol tcp",
+			&infrav1.AWSLoadBalancerSpec{
+				HealthCheckProtocol: &infrav1.ELBProtocolTCP,
+			},
+			"TCP:6443",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.testName, func(t *testing.T) {
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client: client,
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-elb",
+						Namespace: "default",
+					},
+				},
+				AWSCluster: &infrav1.AWSCluster{
+					Spec: infrav1.AWSClusterSpec{
+						ControlPlaneLoadBalancer: tc.lbSpec,
+					},
+				},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			s := &Service{
+				scope: scope,
+			}
+			healthCheck := s.getHealthCheckTarget()
+			if healthCheck != tc.expectedHealthCheckTarget {
+				t.Errorf("got %s, want %s", healthCheck, tc.expectedHealthCheckTarget)
+			}
+		})
+	}
+}
 func setupScheme() (*runtime.Scheme, error) {
 	scheme := runtime.NewScheme()
 	if err := clusterv1.AddToScheme(scheme); err != nil {

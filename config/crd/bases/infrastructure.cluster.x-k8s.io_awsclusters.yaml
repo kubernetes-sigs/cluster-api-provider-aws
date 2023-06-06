@@ -425,8 +425,8 @@ spec:
                           description: The machine address.
                           type: string
                         type:
-                          description: Machine address type, one of Hostname, ExternalIP
-                            or InternalIP.
+                          description: Machine address type, one of Hostname, ExternalIP,
+                            InternalIP, ExternalDNS or InternalDNS.
                           type: string
                       required:
                       - address
@@ -966,6 +966,80 @@ spec:
                 description: ControlPlaneLoadBalancer is optional configuration for
                   customizing control plane behavior.
                 properties:
+                  additionalIngressRules:
+                    description: AdditionalIngressRules sets the additional ingress
+                      rules for the control plane load balancer. If no source security
+                      group ids are specified, the default control plane security
+                      group will be used.
+                    items:
+                      description: IngressRule defines an AWS ingress rule for security
+                        groups.
+                      properties:
+                        cidrBlocks:
+                          description: List of CIDR blocks to allow access from. Cannot
+                            be specified with SourceSecurityGroupID.
+                          items:
+                            type: string
+                          type: array
+                        description:
+                          description: Description provides extended information about
+                            the ingress rule.
+                          type: string
+                        fromPort:
+                          description: FromPort is the start of port range.
+                          format: int64
+                          type: integer
+                        ipv6CidrBlocks:
+                          description: List of IPv6 CIDR blocks to allow access from.
+                            Cannot be specified with SourceSecurityGroupID.
+                          items:
+                            type: string
+                          type: array
+                        protocol:
+                          description: Protocol is the protocol for the ingress rule.
+                            Accepted values are "-1" (all), "4" (IP in IP),"tcp",
+                            "udp", "icmp", and "58" (ICMPv6).
+                          enum:
+                          - "-1"
+                          - "4"
+                          - tcp
+                          - udp
+                          - icmp
+                          - "58"
+                          type: string
+                        sourceSecurityGroupIds:
+                          description: The security group id to allow access from.
+                            Cannot be specified with CidrBlocks.
+                          items:
+                            type: string
+                          type: array
+                        sourceSecurityGroupRoles:
+                          description: The security group role to allow access from.
+                            Cannot be specified with CidrBlocks. The field will be
+                            combined with source security group IDs if specified.
+                          items:
+                            description: SecurityGroupRole defines the unique role
+                              of a security group.
+                            enum:
+                            - bastion
+                            - node
+                            - controlplane
+                            - apiserver-lb
+                            - lb
+                            - node-eks-additional
+                            type: string
+                          type: array
+                        toPort:
+                          description: ToPort is the end of port range.
+                          format: int64
+                          type: integer
+                      required:
+                      - description
+                      - fromPort
+                      - protocol
+                      - toPort
+                      type: object
+                    type: array
                   additionalSecurityGroups:
                     description: AdditionalSecurityGroups sets the security groups
                       used by the load balancer. Expected to be security group IDs
@@ -992,6 +1066,13 @@ spec:
                   healthCheckProtocol:
                     description: HealthCheckProtocol sets the protocol type for ELB
                       health check target default value is ELBProtocolSSL
+                    enum:
+                    - TCP
+                    - SSL
+                    - HTTP
+                    - HTTPS
+                    - TLS
+                    - UDP
                     type: string
                   loadBalancerType:
                     default: classic
@@ -1237,6 +1318,10 @@ spec:
                         type: object
                     type: object
                 type: object
+              partition:
+                description: Partition is the AWS security partition being used. Defaults
+                  to "aws"
+                type: string
               region:
                 description: The AWS Region the cluster lives in.
                 type: string
@@ -1291,8 +1376,8 @@ spec:
                           description: The machine address.
                           type: string
                         type:
-                          description: Machine address type, one of Hostname, ExternalIP
-                            or InternalIP.
+                          description: Machine address type, one of Hostname, ExternalIP,
+                            InternalIP, ExternalDNS or InternalDNS.
                           type: string
                       required:
                       - address
@@ -1319,6 +1404,59 @@ spec:
                   imageId:
                     description: The ID of the AMI used to launch the instance.
                     type: string
+                  instanceMetadataOptions:
+                    description: InstanceMetadataOptions is the metadata options for
+                      the EC2 instance.
+                    properties:
+                      httpEndpoint:
+                        default: enabled
+                        description: "Enables or disables the HTTP metadata endpoint
+                          on your instances. \n If you specify a value of disabled,
+                          you cannot access your instance metadata. \n Default: enabled"
+                        enum:
+                        - enabled
+                        - disabled
+                        type: string
+                      httpPutResponseHopLimit:
+                        default: 1
+                        description: "The desired HTTP PUT response hop limit for
+                          instance metadata requests. The larger the number, the further
+                          instance metadata requests can travel. \n Default: 1"
+                        format: int64
+                        maximum: 64
+                        minimum: 1
+                        type: integer
+                      httpTokens:
+                        default: optional
+                        description: "The state of token usage for your instance metadata
+                          requests. \n If the state is optional, you can choose to
+                          retrieve instance metadata with or without a session token
+                          on your request. If you retrieve the IAM role credentials
+                          without a token, the version 1.0 role credentials are returned.
+                          If you retrieve the IAM role credentials using a valid session
+                          token, the version 2.0 role credentials are returned. \n
+                          If the state is required, you must send a session token
+                          with any instance metadata retrieval requests. In this state,
+                          retrieving the IAM role credentials always returns the version
+                          2.0 credentials; the version 1.0 credentials are not available.
+                          \n Default: optional"
+                        enum:
+                        - optional
+                        - required
+                        type: string
+                      instanceMetadataTags:
+                        default: disabled
+                        description: "Set to enabled to allow access to instance tags
+                          from the instance metadata. Set to disabled to turn off
+                          access to instance tags from the instance metadata. For
+                          more information, see Work with instance tags using the
+                          instance metadata (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#work-with-tags-in-IMDS).
+                          \n Default: disabled"
+                        enum:
+                        - enabled
+                        - disabled
+                        type: string
+                    type: object
                   instanceState:
                     description: The current state of the instance.
                     type: string
@@ -1372,6 +1510,10 @@ spec:
                       - size
                       type: object
                     type: array
+                  placementGroupName:
+                    description: PlacementGroupName specifies the name of the placement
+                      group in which to launch the instance.
+                    type: string
                   privateIp:
                     description: The private IPv4 address assigned to the instance.
                     type: string
@@ -1604,7 +1746,10 @@ spec:
                                   enum:
                                   - tcp
                                   - tls
-                                  - upd
+                                  - udp
+                                  - TCP
+                                  - TLS
+                                  - UDP
                                   type: string
                                 targetGroupHealthCheck:
                                   description: HealthCheck is the elb health check
@@ -1760,8 +1905,11 @@ spec:
                                   type: string
                                 type: array
                               description:
+                                description: Description provides extended information
+                                  about the ingress rule.
                                 type: string
                               fromPort:
+                                description: FromPort is the start of port range.
                                 format: int64
                                 type: integer
                               ipv6CidrBlocks:
@@ -1771,8 +1919,16 @@ spec:
                                   type: string
                                 type: array
                               protocol:
-                                description: SecurityGroupProtocol defines the protocol
-                                  type for a security group rule.
+                                description: Protocol is the protocol for the ingress
+                                  rule. Accepted values are "-1" (all), "4" (IP in
+                                  IP),"tcp", "udp", "icmp", and "58" (ICMPv6).
+                                enum:
+                                - "-1"
+                                - "4"
+                                - tcp
+                                - udp
+                                - icmp
+                                - "58"
                                 type: string
                               sourceSecurityGroupIds:
                                 description: The security group id to allow access
@@ -1780,7 +1936,25 @@ spec:
                                 items:
                                   type: string
                                 type: array
+                              sourceSecurityGroupRoles:
+                                description: The security group role to allow access
+                                  from. Cannot be specified with CidrBlocks. The field
+                                  will be combined with source security group IDs
+                                  if specified.
+                                items:
+                                  description: SecurityGroupRole defines the unique
+                                    role of a security group.
+                                  enum:
+                                  - bastion
+                                  - node
+                                  - controlplane
+                                  - apiserver-lb
+                                  - lb
+                                  - node-eks-additional
+                                  type: string
+                                type: array
                               toPort:
+                                description: ToPort is the end of port range.
                                 format: int64
                                 type: integer
                             required:

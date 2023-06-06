@@ -130,12 +130,17 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	e2eCtx.CloudFormationTemplate = renderCustomCloudFormation(bootstrapTemplate)
 
 	if !e2eCtx.Settings.SkipCloudFormationCreation {
-		err = createCloudFormationStack(e2eCtx.AWSSession, bootstrapTemplate, bootstrapTags)
-		if err != nil {
-			deleteCloudFormationStack(e2eCtx.AWSSession, bootstrapTemplate)
-			err = createCloudFormationStack(e2eCtx.AWSSession, bootstrapTemplate, bootstrapTags)
-			Expect(err).NotTo(HaveOccurred())
-		}
+		count := 0
+		Eventually(func(gomega Gomega) bool {
+			count++
+			By(fmt.Sprintf("Trying to create CloudFormation stack... attempt %d", count))
+			success := true
+			if err := createCloudFormationStack(e2eCtx.AWSSession, bootstrapTemplate, bootstrapTags); err != nil {
+				deleteCloudFormationStack(e2eCtx.AWSSession, bootstrapTemplate)
+				success = false
+			}
+			return success
+		}, 10*time.Minute, 5*time.Second).Should(BeTrue())
 	}
 
 	ensureStackTags(e2eCtx.AWSSession, bootstrapTemplate.Spec.StackName, bootstrapTags)
