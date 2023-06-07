@@ -252,11 +252,11 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "rejects additional ingress rules with cidr block and source security group id",
+			name: "rejects ingress rules with cidr block and source security group id",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						AdditionalIngressRules: []IngressRule{
+						IngressRules: []IngressRule{
 							{
 								Protocol:               SecurityGroupProtocolTCP,
 								CidrBlocks:             []string{"test"},
@@ -269,11 +269,11 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "rejects additional ingress rules with cidr block and source security group id and role",
+			name: "rejects ingress rules with cidr block and source security group id and role",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						AdditionalIngressRules: []IngressRule{
+						IngressRules: []IngressRule{
 							{
 								Protocol:                 SecurityGroupProtocolTCP,
 								IPv6CidrBlocks:           []string{"test"},
@@ -287,11 +287,11 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "accepts additional ingress rules with cidr block",
+			name: "accepts ingress rules with cidr block",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						AdditionalIngressRules: []IngressRule{
+						IngressRules: []IngressRule{
 							{
 								Protocol:   SecurityGroupProtocolTCP,
 								CidrBlocks: []string{"test"},
@@ -303,11 +303,11 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "accepts additional ingress rules with source security group role",
+			name: "accepts ingress rules with source security group role",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						AdditionalIngressRules: []IngressRule{
+						IngressRules: []IngressRule{
 							{
 								Protocol:                 SecurityGroupProtocolTCP,
 								SourceSecurityGroupRoles: []SecurityGroupRole{SecurityGroupBastion},
@@ -319,11 +319,11 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "accepts additional ingress rules with source security group id and role",
+			name: "accepts ingress rules with source security group id and role",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						AdditionalIngressRules: []IngressRule{
+						IngressRules: []IngressRule{
 							{
 								Protocol:                 SecurityGroupProtocolTCP,
 								SourceSecurityGroupIDs:   []string{"test"},

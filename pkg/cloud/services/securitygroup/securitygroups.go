@@ -520,18 +520,18 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 			rules = append(rules, s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID))
 		}
 		if s.scope.ControlPlaneLoadBalancer() != nil {
-			additionalIngressRules := s.scope.ControlPlaneLoadBalancer().AdditionalIngressRules
-			for i := range additionalIngressRules {
-				if additionalIngressRules[i].SourceSecurityGroupIDs == nil && additionalIngressRules[i].SourceSecurityGroupRoles == nil { // if the rule doesn't have a source security group, use the control plane security group
-					additionalIngressRules[i].SourceSecurityGroupIDs = []string{s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID}
+			ingressRules := s.scope.ControlPlaneLoadBalancer().IngressRules
+			for i := range ingressRules {
+				if ingressRules[i].SourceSecurityGroupIDs == nil && ingressRules[i].SourceSecurityGroupRoles == nil { // if the rule doesn't have a source security group, use the control plane security group
+					ingressRules[i].SourceSecurityGroupIDs = []string{s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID}
 					continue
 				}
 
-				for _, sourceSGRole := range additionalIngressRules[i].SourceSecurityGroupRoles {
-					additionalIngressRules[i].SourceSecurityGroupIDs = append(additionalIngressRules[i].SourceSecurityGroupIDs, s.scope.SecurityGroups()[sourceSGRole].ID)
+				for _, sourceSGRole := range ingressRules[i].SourceSecurityGroupRoles {
+					ingressRules[i].SourceSecurityGroupIDs = append(ingressRules[i].SourceSecurityGroupIDs, s.scope.SecurityGroups()[sourceSGRole].ID)
 				}
 			}
-			rules = append(rules, s.scope.ControlPlaneLoadBalancer().AdditionalIngressRules...)
+			rules = append(rules, s.scope.ControlPlaneLoadBalancer().IngressRules...)
 		}
 		return append(cniRules, rules...), nil
 
@@ -577,23 +577,9 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 		}
 		return infrav1.IngressRules{}, nil
 	case infrav1.SecurityGroupAPIServerLB:
-		rules := infrav1.IngressRules{
-			{
-				Description: "Kubernetes API",
-				Protocol:    infrav1.SecurityGroupProtocolTCP,
-				FromPort:    int64(s.scope.APIServerPort()),
-				ToPort:      int64(s.scope.APIServerPort()),
-				CidrBlocks:  cidrBlocks,
-			},
-		}
-		if s.scope.VPC().IsIPv6Enabled() {
-			rules = append(rules, infrav1.IngressRule{
-				Description:    "Kubernetes API IPv6",
-				Protocol:       infrav1.SecurityGroupProtocolTCP,
-				FromPort:       int64(s.scope.APIServerPort()),
-				ToPort:         int64(s.scope.APIServerPort()),
-				IPv6CidrBlocks: []string{services.AnyIPv6CidrBlock},
-			})
+		rules := s.getDefaultIngressRulesForControlPlaneLB()
+		if s.scope.ControlPlaneLoadBalancer() != nil && len(s.scope.ControlPlaneLoadBalancer().IngressRules) > 0 {
+			rules = s.scope.ControlPlaneLoadBalancer().IngressRules
 		}
 		return rules, nil
 	case infrav1.SecurityGroupLB:
@@ -798,4 +784,28 @@ func ingressRulesFromSDKType(v *ec2.IpPermission) (res infrav1.IngressRules) {
 	}
 
 	return res
+}
+
+func (s *Service) getDefaultIngressRulesForControlPlaneLB() infrav1.IngressRules {
+	if s.scope.VPC().IsIPv6Enabled() {
+		return infrav1.IngressRules{
+			{
+				Description:    "Kubernetes API IPv6",
+				Protocol:       infrav1.SecurityGroupProtocolTCP,
+				FromPort:       int64(s.scope.APIServerPort()),
+				ToPort:         int64(s.scope.APIServerPort()),
+				IPv6CidrBlocks: []string{services.AnyIPv6CidrBlock},
+			},
+		}
+	}
+
+	return infrav1.IngressRules{
+		{
+			Description: "Kubernetes API",
+			Protocol:    infrav1.SecurityGroupProtocolTCP,
+			FromPort:    int64(s.scope.APIServerPort()),
+			ToPort:      int64(s.scope.APIServerPort()),
+			CidrBlocks:  []string{services.AnyIPv4CidrBlock},
+		},
+	}
 }

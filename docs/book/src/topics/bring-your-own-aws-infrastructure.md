@@ -163,11 +163,12 @@ It's also possible to specify custom ingress rules for the control plane load ba
 
 ```yaml
 spec:
-  additionalIngressRules:
-    - description: "example ingress rule"
-      protocol: "-1" # all
-      fromPort: 7777
-      toPort: 7777
+  controlPlaneLoadBalancer:
+    ingressRules:
+      - description: "example ingress rule"
+        protocol: "-1" # all
+        fromPort: 7777
+        toPort: 7777
 ```
 
 > **WARNING:** Using an existing Classic ELB is an advanced feature. **If you use an existing Classic ELB, you must correctly configure it, and attach subnets to it.**

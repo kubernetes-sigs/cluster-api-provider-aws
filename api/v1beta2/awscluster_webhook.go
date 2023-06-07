@@ -199,9 +199,9 @@ func (r *AWSCluster) validateAdditionalIngressRules() field.ErrorList {
 		return allErrs
 	}
 
-	for _, rule := range r.Spec.ControlPlaneLoadBalancer.AdditionalIngressRules {
+	for _, rule := range r.Spec.ControlPlaneLoadBalancer.IngressRules {
 		if (rule.CidrBlocks != nil || rule.IPv6CidrBlocks != nil) && (rule.SourceSecurityGroupIDs != nil || rule.SourceSecurityGroupRoles != nil) {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("additionalIngressRules"), r.Spec.ControlPlaneLoadBalancer.AdditionalIngressRules, "CIDR blocks and security group IDs or security group roles cannot be used together"))
+			allErrs = append(allErrs, field.Invalid(field.NewPath("additionalIngressRules"), r.Spec.ControlPlaneLoadBalancer.IngressRules, "CIDR blocks and security group IDs or security group roles cannot be used together"))
 		}
 	}
 
