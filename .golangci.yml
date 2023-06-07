@@ -4,6 +4,7 @@ linters:
     - bidichk
     - contextcheck
     - cyclop
+    - depguard
     - dupl
     - durationcheck
     - errname
@@ -87,8 +88,6 @@ linters-settings:
         alias: apiextensionsv1
       - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
         alias: metav1
-      - pkg: k8s.io/apimachinery/pkg/api/errors
-        alias: apierrors
       - pkg: k8s.io/apimachinery/pkg/util/errors
         alias: kerrors
       - pkg: sigs.k8s.io/controller-runtime/pkg/conversion

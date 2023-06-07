@@ -419,7 +419,7 @@ func createAWSMachine(g *WithT, awsMachine *infrav1.AWSMachine) {
 			Namespace: awsMachine.Namespace,
 		}
 		return testEnv.Get(ctx, key, machine) == nil
-	}, 10*time.Second).Should(Equal(true))
+	}, 10*time.Second).Should(BeTrue())
 }
 
 func getAWSMachine() *infrav1.AWSMachine {

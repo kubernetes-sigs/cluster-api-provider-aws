@@ -280,7 +280,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			g.Eventually(func() bool {
 				err := testEnv.Get(ctx, key, c)
 				return err == nil
-			}, 10*time.Second).Should(Equal(true))
+			}, 10*time.Second).Should(BeTrue())
 
 			if tt.expect != nil {
 				tt.expect(g, c.Spec.ControlPlaneLoadBalancer)
