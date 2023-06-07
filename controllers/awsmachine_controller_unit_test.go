@@ -52,7 +52,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -287,9 +286,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 			id := providerID
 			providerID := func(t *testing.T, g *WithT) {
 				t.Helper()
-				_, err := noderefutil.NewProviderID(id)
-				g.Expect(err).To(BeNil())
-
 				ms.AWSMachine.Spec.ProviderID = &id
 			}
 

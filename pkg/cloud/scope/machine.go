@@ -127,10 +127,13 @@ func (m *MachineScope) Role() string {
 
 // GetInstanceID returns the AWSMachine instance id by parsing Spec.ProviderID.
 func (m *MachineScope) GetInstanceID() *string {
+	//nolint:staticcheck
+	// Usage of noderefutil pkg would be removed in a future release.
 	parsed, err := noderefutil.NewProviderID(m.GetProviderID())
 	if err != nil {
 		return nil
 	}
+	//nolint:staticcheck
 	return pointer.String(parsed.ID())
 }
 
