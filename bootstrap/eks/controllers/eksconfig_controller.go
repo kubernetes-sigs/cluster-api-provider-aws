@@ -218,7 +218,7 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 	if !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 		log.Info("Control Plane has not yet been initialized")
 		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.WaitingForControlPlaneInitializationReason, clusterv1.ConditionSeverityInfo, "")
-		return ctrl.Result{}, nil
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}

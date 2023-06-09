@@ -412,7 +412,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					},
 				)
 				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileDelete(ctx, cs)
+				err = reconciler.reconcileDelete(ctx, cs)
 				g.Expect(err).To(BeNil())
 				g.Expect(awsCluster.GetFinalizers()).ToNot(ContainElement(infrav1.ClusterFinalizer))
 			})
@@ -438,7 +438,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					},
 				)
 				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileDelete(ctx, cs)
+				err = reconciler.reconcileDelete(ctx, cs)
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(awsCluster.GetFinalizers()).To(ContainElement(infrav1.ClusterFinalizer))
 			})
@@ -461,7 +461,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					},
 				)
 				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileDelete(ctx, cs)
+				err = reconciler.reconcileDelete(ctx, cs)
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(awsCluster.GetFinalizers()).To(ContainElement(infrav1.ClusterFinalizer))
 			})
@@ -485,7 +485,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					},
 				)
 				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileDelete(ctx, cs)
+				err = reconciler.reconcileDelete(ctx, cs)
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(awsCluster.GetFinalizers()).To(ContainElement(infrav1.ClusterFinalizer))
 			})
@@ -510,7 +510,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					},
 				)
 				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileDelete(ctx, cs)
+				err = reconciler.reconcileDelete(ctx, cs)
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(awsCluster.GetFinalizers()).To(ContainElement(infrav1.ClusterFinalizer))
 			})
@@ -621,7 +621,7 @@ func createCluster(g *WithT, awsCluster *infrav1.AWSCluster, namespace string) {
 			}
 			err := testEnv.Get(ctx, key, cluster)
 			return err == nil
-		}, 10*time.Second).Should(Equal(true))
+		}, 10*time.Second).Should(BeTrue())
 	}
 }
 

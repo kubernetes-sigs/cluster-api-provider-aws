@@ -22,6 +22,7 @@ import (
 	"regexp"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/pointer"
 )
 
 var (
@@ -51,12 +52,13 @@ func (b *Bastion) Validate() []*field.Error {
 
 func validateSSHKeyName(sshKeyName *string) field.ErrorList {
 	var allErrs field.ErrorList
+	sshKey := pointer.StringDeref(sshKeyName, "")
 	switch {
 	case sshKeyName == nil:
 	// nil is accepted
 	case sshKeyName != nil && *sshKeyName == "":
 	// empty string is accepted
-	case sshKeyName != nil && !sshKeyValidNameRegex.Match([]byte(*sshKeyName)):
+	case sshKeyName != nil && !sshKeyValidNameRegex.MatchString(sshKey):
 		allErrs = append(allErrs, field.Invalid(field.NewPath("sshKeyName"), sshKeyName, "Name is invalid. Must be specified in ASCII and must not start or end in whitespace"))
 	}
 	return allErrs

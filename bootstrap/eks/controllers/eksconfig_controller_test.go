@@ -67,7 +67,7 @@ func TestEKSConfigReconcilerReturnEarlyIfClusterControlPlaneNotInitialized(t *te
 
 	g.Eventually(func(gomega Gomega) {
 		result, err := reconciler.joinWorker(context.Background(), cluster, config, configOwner("Machine"))
-		gomega.Expect(result).To(Equal(reconcile.Result{}))
+		gomega.Expect(result).To(Equal(reconcile.Result{RequeueAfter: 0, Requeue: true}))
 		gomega.Expect(err).NotTo(HaveOccurred())
 	}).Should(Succeed())
 }
