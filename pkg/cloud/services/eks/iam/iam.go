@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
@@ -461,7 +462,7 @@ func (s *IAMService) FindAndVerifyOIDCProvider(cluster *eks.Cluster) (string, er
 			return "", errors.Wrap(err, "error getting provider")
 		}
 		// URL should always contain `https`.
-		if *provider.Url != issuerURL.String() {
+		if *provider.Url != issuerURL.String() && *provider.Url != strings.Replace(issuerURL.String(), "https://", "", 1) {
 			continue
 		}
 		if len(provider.ThumbprintList) != 1 || *provider.ThumbprintList[0] != thumbprint {
