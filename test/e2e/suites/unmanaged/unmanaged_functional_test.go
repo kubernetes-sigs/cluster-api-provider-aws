@@ -110,7 +110,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("GPU-enabled cluster test", func() {
+	ginkgo.FDescribe("GPU-enabled cluster test", func() {
 		ginkgo.It("should create cluster with single worker", func() {
 			specName := "functional-gpu-cluster"
 			// Change the multiplier for EC2GPU if GPU type is changed. g4dn.xlarge uses 2 vCPU

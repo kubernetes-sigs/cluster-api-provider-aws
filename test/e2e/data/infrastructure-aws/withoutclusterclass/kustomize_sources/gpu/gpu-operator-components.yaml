@@ -15,10 +15,10 @@ metadata:
   name: gpu-operator-node-feature-discovery
   namespace: gpu-operator-resources
   labels:
-    helm.sh/chart: node-feature-discovery-0.10.1
+    helm.sh/chart: node-feature-discovery-0.12.1
     app.kubernetes.io/name: node-feature-discovery
     app.kubernetes.io/instance: gpu-operator
-    app.kubernetes.io/version: "v0.10.1"
+    app.kubernetes.io/version: "v0.12.1"
     app.kubernetes.io/managed-by: Helm
 rules:
 - apiGroups:
@@ -40,10 +40,10 @@ kind: ClusterRoleBinding
 metadata:
   name: gpu-operator-node-feature-discovery
   labels:
-    helm.sh/chart: node-feature-discovery-0.10.1
+    helm.sh/chart: node-feature-discovery-0.12.1
     app.kubernetes.io/name: node-feature-discovery
     app.kubernetes.io/instance: gpu-operator
-    app.kubernetes.io/version: "v0.10.1"
+    app.kubernetes.io/version: "v0.12.1"
     app.kubernetes.io/managed-by: Helm
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -61,10 +61,10 @@ metadata:
   name:  gpu-operator-node-feature-discovery-master
   namespace: gpu-operator-resources
   labels:
-    helm.sh/chart: node-feature-discovery-0.10.1
+    helm.sh/chart: node-feature-discovery-0.12.1
     app.kubernetes.io/name: node-feature-discovery
     app.kubernetes.io/instance: gpu-operator
-    app.kubernetes.io/version: "v0.10.1"
+    app.kubernetes.io/version: "v0.12.1"
     app.kubernetes.io/managed-by: Helm
     role: master
 spec:
@@ -95,7 +95,7 @@ spec:
               - ALL
             readOnlyRootFilesystem: true
             runAsNonRoot: true
-          image: "registry.k8s.io/nfd/node-feature-discovery:v0.10.1"
+          image: "registry.k8s.io/nfd/node-feature-discovery:v0.12.1"
           imagePullPolicy: IfNotPresent
           ports:
           - containerPort: 8080
@@ -135,10 +135,10 @@ metadata:
   name: nfd-worker-conf
   namespace: gpu-operator-resources
   labels:
-    helm.sh/chart: node-feature-discovery-0.10.1
+    helm.sh/chart: node-feature-discovery-0.12.1
     app.kubernetes.io/name: node-feature-discovery
     app.kubernetes.io/instance: gpu-operator
-    app.kubernetes.io/version: "v0.10.1"
+    app.kubernetes.io/version: "v0.12.1"
     app.kubernetes.io/managed-by: Helm
 data:
   nfd-worker.conf: |-
@@ -160,10 +160,10 @@ metadata:
   name: gpu-operator-node-feature-discovery-master
   namespace: gpu-operator-resources
   labels:
-    helm.sh/chart: node-feature-discovery-0.10.1
+    helm.sh/chart: node-feature-discovery-0.12.1
     app.kubernetes.io/name: node-feature-discovery
     app.kubernetes.io/instance: gpu-operator
-    app.kubernetes.io/version: "v0.10.1"
+    app.kubernetes.io/version: "v0.12.1"
     app.kubernetes.io/managed-by: Helm
     role: master
 spec:
@@ -185,10 +185,10 @@ metadata:
   name: node-feature-discovery
   namespace: gpu-operator-resources
   labels:
-    helm.sh/chart: node-feature-discovery-0.10.1
+    helm.sh/chart: node-feature-discovery-0.12.1
     app.kubernetes.io/name: node-feature-discovery
     app.kubernetes.io/instance: gpu-operator
-    app.kubernetes.io/version: "v0.10.1"
+    app.kubernetes.io/version: "v0.12.1"
     app.kubernetes.io/managed-by: Helm
 ---
 # Source: gpu-operator/charts/node-feature-discovery/templates/worker.yaml
@@ -198,10 +198,10 @@ metadata:
   name:  gpu-operator-node-feature-discovery-worker
   namespace: gpu-operator-resources
   labels:
-    helm.sh/chart: node-feature-discovery-0.10.1
+    helm.sh/chart: node-feature-discovery-0.12.1
     app.kubernetes.io/name: node-feature-discovery
     app.kubernetes.io/instance: gpu-operator
-    app.kubernetes.io/version: "v0.10.1"
+    app.kubernetes.io/version: "v0.12.1"
     app.kubernetes.io/managed-by: Helm
     role: worker
 spec:
@@ -231,7 +231,7 @@ spec:
               - ALL
             readOnlyRootFilesystem: true
             runAsNonRoot: true
-        image: "registry.k8s.io/nfd/node-feature-discovery:v0.10.1"
+        image: "registry.k8s.io/nfd/node-feature-discovery:v0.12.1"
         imagePullPolicy: IfNotPresent
         env:
         - name: NODE_NAME
@@ -319,18 +319,32 @@ spec:
     initContainer:
       repository: nvcr.io/nvidia
       image: cuda
-      version: 11.6.1-base-ubi8
+      version: 12.1.1-base-ubi8
       imagePullPolicy: IfNotPresent
   daemonsets:
     tolerations:
-      - effect: NoSchedule
-        key: nvidia.com/gpu
-        operator: Exists
+      - key: "node-role.kubernetes.io/master"
+        operator: "Equal"
+        value: ""
+        effect: "NoSchedule"
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Equal"
+        value: ""
+        effect: "NoSchedule"
     priorityClassName: system-node-critical
+    affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              preference:
+                matchExpressions:
+                  - key: "node-role.kubernetes.io/master"
+                    operator: In
+                    values: [""]
   validator:
     repository: nvcr.io/nvidia/cloud-native
     image: gpu-operator-validator
-    version: v22.9.1
+    version: v23.3.2
     imagePullPolicy: IfNotPresent
     securityContext:
       privileged: true
@@ -342,33 +356,57 @@ spec:
           value: "false"
   mig:
     strategy: single
-  psp:
+  psa:
     enabled: false
   driver:
     enabled: true
     repository: nvcr.io/nvidia
     image: driver
-    version: 525.60.13
+    version: 525.105.17
     imagePullPolicy: IfNotPresent
+    startupProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 60
+    failureThreshold: 120
+    upgradePolicy:
+    autoUpgrade: true
+    maxParallelUpgrades: 1
+    maxUnavailable: 25%
+    waitForCompletion:
+      timeoutSeconds: 0
+      podSelector: ""
+    gpuPodDeletion:
+      force: false
+      timeoutSeconds: 300
+      deleteEmptyDir: false
+    drain:
+      enable: false
+      force: false
+      podSelector: ""
+      timeoutSeconds: 300
+      deleteEmptyDir: false
     rdma:
       enabled: false
       useHostMofed: false
-    manager:
-      repository: nvcr.io/nvidia/cloud-native
-      image: k8s-driver-manager
-      version: v0.5.1
-      imagePullPolicy: IfNotPresent
-      env:
-        - name: ENABLE_AUTO_DRAIN
-          value: "true"
-        - name: DRAIN_USE_FORCE
-          value: "false"
-        - name: DRAIN_POD_SELECTOR_LABEL
-          value: ""
-        - name: DRAIN_TIMEOUT_SECONDS
-          value: 0s
-        - name: DRAIN_DELETE_EMPTYDIR_DATA
-          value: "false"
+  manager:
+    repository: nvcr.io/nvidia/cloud-native
+    image: k8s-driver-manager
+    version: v0.6.1
+    imagePullPolicy: IfNotPresent
+    env:
+      - name: ENABLE_GPU_POD_EVICTION
+        value: "true"
+      - name: ENABLE_AUTO_DRAIN
+        value: "false"
+      - name: DRAIN_USE_FORCE
+        value: "false"
+      - name: DRAIN_POD_SELECTOR_LABEL
+        value: ""
+      - name: DRAIN_TIMEOUT_SECONDS
+        value: "0s"
+      - name: DRAIN_DELETE_EMPTYDIR_DATA
+        value: "false"
     repoConfig:
       configMapName: ""
     certConfig:
@@ -386,16 +424,17 @@ spec:
     enabled: true
     repository: nvcr.io/nvidia/k8s
     image: container-toolkit
-    version: v1.11.0
+    version: v1.13.0-ubuntu20.04
     imagePullPolicy: IfNotPresent
     securityContext:
       privileged: true
       seLinuxOptions:
         level: s0
+    installDir: "/usr/local/nvidia"
   devicePlugin:
     repository: nvcr.io/nvidia
     image: k8s-device-plugin
-    version: v0.13.0
+    version: v0.14.0-ubi8
     imagePullPolicy: IfNotPresent
     securityContext:
       privileged: true
@@ -416,13 +455,14 @@ spec:
     enabled: false
     repository: nvcr.io/nvidia/cloud-native
     image: dcgm
-    version: 3.1.3-1-ubuntu20.04
+    version: 3.1.7-1-ubuntu20.04
     imagePullPolicy: IfNotPresent
     hostPort: 5555
   dcgmExporter:
+    enabled: true
     repository: nvcr.io/nvidia/k8s
     image: dcgm-exporter
-    version: 3.1.3-3.1.2-ubuntu20.04
+    version: 3.1.7-3.1.4-ubuntu20.04
     imagePullPolicy: IfNotPresent
     env:
       - name: DCGM_EXPORTER_LISTEN
@@ -431,10 +471,15 @@ spec:
         value: "true"
       - name: DCGM_EXPORTER_COLLECTORS
         value: /etc/dcgm-exporter/dcp-metrics-included.csv
+    serviceMonitor:
+      enabled: false
+      interval: 15s
+      honorLabels: false
   gfd:
+    enabled: true
     repository: nvcr.io/nvidia
     image: gpu-feature-discovery
-    version: v0.7.0
+    version: v0.8.0-ubi8
     imagePullPolicy: IfNotPresent
     env:
       - name: GFD_SLEEP_INTERVAL
@@ -445,7 +490,7 @@ spec:
     enabled: true
     repository: nvcr.io/nvidia/cloud-native
     image: k8s-mig-manager
-    version: v0.5.0
+    version: v0.5.2-ubuntu20.04
     imagePullPolicy: IfNotPresent
     securityContext:
       privileged: true
@@ -453,14 +498,68 @@ spec:
       - name: WITH_REBOOT
         value: "false"
     config:
-      name: ""
+      name: "default-mig-parted-config"
+      default: "all-disabled"
     gpuClientsConfig:
       name: ""
   nodeStatusExporter:
     enabled: false
     repository: nvcr.io/nvidia/cloud-native
     image: gpu-operator-validator
-    version: v22.9.1
+    version: v23.3.2
+    imagePullPolicy: IfNotPresent
+  gds:
+    enabled: false
+    repository: nvcr.io/nvidia/cloud-native
+    image: nvidia-fs
+    version: "2.15.1"
+    imagePullPolicy: IfNotPresent
+  vgpuManager:
+    enabled: false
+    repository: ""
+    image: vgpu-manager
+    version: ""
+    imagePullPolicy: IfNotPresent
+    driverManager:
+      image: k8s-driver-manager
+      repository: nvcr.io/nvidia/cloud-native
+      version: v0.6.1
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: ENABLE_GPU_POD_EVICTION
+          value: "false"
+        - name: ENABLE_AUTO_DRAIN
+          value: "false"
+  vgpuDeviceManager:
+    enabled: true
+    repository: nvcr.io/nvidia/cloud-native
+    image: vgpu-device-manager
+    version: "v0.2.1"
+    imagePullPolicy: IfNotPresent
+    config:
+      name: ""
+      default: "default"
+  vfioManager:
+    enabled: true
+    repository: nvcr.io/nvidia
+    image: cuda
+    version: 12.1.1-base-ubi8
+    imagePullPolicy: IfNotPresent
+    driverManager:
+      image: k8s-driver-manager
+      repository: nvcr.io/nvidia/cloud-native
+      version: v0.6.1
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: ENABLE_GPU_POD_EVICTION
+          value: "false"
+        - name: ENABLE_AUTO_DRAIN
+          value: "false"
+  sandboxDevicePlugin:
+    enabled: true
+    repository: nvcr.io/nvidia
+    image: kubevirt-gpu-device-plugin
+    version: v1.2.1
     imagePullPolicy: IfNotPresent
 ---
 # Source: gpu-operator/templates/operator.yaml
@@ -492,7 +591,7 @@ spec:
       priorityClassName: system-node-critical
       containers:
       - name: gpu-operator
-        image: nvcr.io/nvidia/gpu-operator:v22.9.1
+        image: nvcr.io/nvidia/gpu-operator:v23.3.2
         imagePullPolicy: IfNotPresent
         command: ["gpu-operator"]
         args:
