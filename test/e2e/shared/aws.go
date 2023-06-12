@@ -813,7 +813,12 @@ func newUserAccessKey(prov client.ConfigProvider, userName string) *iam.AccessKe
 }
 
 func DumpCloudTrailEvents(e2eCtx *E2EContext) {
-	client := cloudtrail.New(e2eCtx.BootstrapUserAWSSession)
+	var client *cloudtrail.CloudTrail
+	if e2eCtx.BootstrapUserAWSSession == nil {
+		client = cloudtrail.New(e2eCtx.AWSSession)
+	} else {
+		client = cloudtrail.New(e2eCtx.BootstrapUserAWSSession)
+	}
 	events := []*cloudtrail.Event{}
 	err := client.LookupEventsPages(
 		&cloudtrail.LookupEventsInput{
