@@ -43,7 +43,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/mock_services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -238,10 +237,6 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			id := "<cloudProvider>://<optional>/<segments>/<providerid>"
 			setProviderID := func(t *testing.T, g *WithT) {
 				t.Helper()
-
-				_, err := noderefutil.NewProviderID(id)
-				g.Expect(err).To(BeNil())
-
 				ms.AWSMachinePool.Spec.ProviderID = id
 			}
 			t.Run("should look up by provider ID when one exists", func(t *testing.T) {
