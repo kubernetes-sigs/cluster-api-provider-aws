@@ -174,7 +174,8 @@ func getClusterScope(awsCluster infrav1.AWSCluster) (*scope.ClusterScope, error)
 					Name: "test-cluster",
 				},
 			},
-			AWSCluster: &awsCluster,
+			AWSCluster:                   &awsCluster,
+			TagUnmanagedNetworkResources: true,
 		},
 	)
 }
