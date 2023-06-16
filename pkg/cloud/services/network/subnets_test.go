@@ -49,6 +49,90 @@ func TestReconcileSubnets(t *testing.T) {
 		tagUnmanagedNetworkResources bool
 	}{
 		{
+			name: "Unmanaged VPC, disable TagUnmanagedNetworkResources, 2 existing subnets in vpc, 2 subnet in spec, subnets match, with routes, should succeed",
+			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID: subnetsVPCID,
+				},
+				Subnets: []infrav1.SubnetSpec{
+					{
+						ID: "subnet-1",
+					},
+					{
+						ID: "subnet-2",
+					},
+				},
+			}).WithTagUnmanagedNetworkResources(false),
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: []*string{aws.String("pending"), aws.String("available")},
+						},
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []*string{aws.String(subnetsVPCID)},
+						},
+					},
+				})).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{
+							{
+								VpcId:               aws.String(subnetsVPCID),
+								SubnetId:            aws.String("subnet-1"),
+								AvailabilityZone:    aws.String("us-east-1a"),
+								CidrBlock:           aws.String("10.0.10.0/24"),
+								MapPublicIpOnLaunch: aws.Bool(false),
+							},
+							{
+								VpcId:               aws.String(subnetsVPCID),
+								SubnetId:            aws.String("subnet-2"),
+								AvailabilityZone:    aws.String("us-east-1a"),
+								CidrBlock:           aws.String("10.0.20.0/24"),
+								MapPublicIpOnLaunch: aws.Bool(false),
+							},
+						},
+					}, nil)
+
+				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+					Return(&ec2.DescribeRouteTablesOutput{
+						RouteTables: []*ec2.RouteTable{
+							{
+								VpcId: aws.String(subnetsVPCID),
+								Associations: []*ec2.RouteTableAssociation{
+									{
+										SubnetId:     aws.String("subnet-1"),
+										RouteTableId: aws.String("rt-12345"),
+									},
+								},
+								Routes: []*ec2.Route{
+									{
+										GatewayId: aws.String("igw-12345"),
+									},
+								},
+							},
+						},
+					}, nil)
+
+				m.DescribeNatGatewaysPages(
+					gomock.Eq(&ec2.DescribeNatGatewaysInput{
+						Filter: []*ec2.Filter{
+							{
+								Name:   aws.String("vpc-id"),
+								Values: []*string{aws.String(subnetsVPCID)},
+							},
+							{
+								Name:   aws.String("state"),
+								Values: []*string{aws.String("pending"), aws.String("available")},
+							},
+						},
+					}),
+					gomock.Any()).Return(nil)
+			},
+			tagUnmanagedNetworkResources: false,
+		},
+		{
 			name: "Unmanaged VPC, 2 existing subnets in vpc, 2 subnet in spec, subnets match, with routes, should succeed",
 			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
@@ -62,7 +146,7 @@ func TestReconcileSubnets(t *testing.T) {
 						ID: "subnet-2",
 					},
 				},
-			}),
+			}).WithTagUnmanagedNetworkResources(true),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
@@ -160,6 +244,7 @@ func TestReconcileSubnets(t *testing.T) {
 				})).
 					Return(&ec2.CreateTagsOutput{}, nil)
 			},
+			tagUnmanagedNetworkResources: true,
 		},
 		{
 			name: "IPv6 enabled vpc with default subnets should succeed",
@@ -179,7 +264,7 @@ func TestReconcileSubnets(t *testing.T) {
 						IPv6CidrBlock: "2001:db8:1234:1a02::/64",
 					},
 				},
-			}),
+			}).WithTagUnmanagedNetworkResources(true),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
@@ -297,6 +382,7 @@ func TestReconcileSubnets(t *testing.T) {
 				})).
 					Return(&ec2.CreateTagsOutput{}, nil)
 			},
+			tagUnmanagedNetworkResources: true,
 		},
 		{
 			name: "Unmanaged VPC, 2 existing subnets in vpc, 2 subnet in spec, subnets match, no routes, should succeed",
@@ -313,7 +399,7 @@ func TestReconcileSubnets(t *testing.T) {
 						ID: "subnet-2",
 					},
 				},
-			}),
+			}).WithTagUnmanagedNetworkResources(true),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
@@ -394,7 +480,8 @@ func TestReconcileSubnets(t *testing.T) {
 				})).
 					Return(&ec2.CreateTagsOutput{}, nil)
 			},
-			errorExpected: false,
+			errorExpected:                false,
+			tagUnmanagedNetworkResources: true,
 		},
 		{
 			name: "Unmanaged VPC, 2 existing matching subnets, subnet tagging fails, should succeed",
@@ -410,7 +497,7 @@ func TestReconcileSubnets(t *testing.T) {
 						ID: "subnet-2",
 					},
 				},
-			}),
+			}).WithTagUnmanagedNetworkResources(true),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
@@ -493,6 +580,7 @@ func TestReconcileSubnets(t *testing.T) {
 				})).
 					Return(&ec2.CreateTagsOutput{}, fmt.Errorf("tagging failed"))
 			},
+			tagUnmanagedNetworkResources: true,
 		},
 		{
 			name: "Unmanaged VPC, 2 existing subnets in vpc, 0 subnet in spec, should fail",
@@ -573,7 +661,7 @@ func TestReconcileSubnets(t *testing.T) {
 						IsPublic:         true,
 					},
 				},
-			}),
+			}).WithTagUnmanagedNetworkResources(true),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
@@ -607,7 +695,8 @@ func TestReconcileSubnets(t *testing.T) {
 					}),
 					gomock.Any()).Return(nil)
 			},
-			errorExpected: true,
+			errorExpected:                true,
+			tagUnmanagedNetworkResources: true,
 		},
 		{
 			name: "Unmanaged VPC, 2 subnets exist, 2 private subnet in spec, should succeed",
@@ -627,7 +716,7 @@ func TestReconcileSubnets(t *testing.T) {
 						IsPublic:         false,
 					},
 				},
-			}),
+			}).WithTagUnmanagedNetworkResources(true),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
@@ -708,7 +797,8 @@ func TestReconcileSubnets(t *testing.T) {
 				})).
 					Return(&ec2.CreateTagsOutput{}, nil)
 			},
-			errorExpected: false,
+			errorExpected:                false,
+			tagUnmanagedNetworkResources: true,
 		},
 		{
 			name: "Managed VPC, no subnets exist, 1 private and 1 public subnet in spec, create both",
