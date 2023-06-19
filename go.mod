@@ -7,7 +7,7 @@ replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.4.3
 require (
 	github.com/alessio/shellescape v1.4.1
 	github.com/apparentlymart/go-cidr v1.1.0
-	github.com/aws/amazon-vpc-cni-k8s v1.13.0
+	github.com/aws/amazon-vpc-cni-k8s v1.13.2
 	github.com/aws/aws-lambda-go v1.41.0
 	github.com/aws/aws-sdk-go v1.44.213
 	github.com/awslabs/goformation/v4 v4.19.5
@@ -29,18 +29,18 @@ require (
 	golang.org/x/crypto v0.10.0
 	golang.org/x/text v0.10.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.26.1
+	k8s.io/api v0.26.5
 	k8s.io/apiextensions-apiserver v0.26.1
-	k8s.io/apimachinery v0.26.1
-	k8s.io/cli-runtime v0.26.0
-	k8s.io/client-go v0.26.1
+	k8s.io/apimachinery v0.26.5
+	k8s.io/cli-runtime v0.26.5
+	k8s.io/client-go v0.26.5
 	k8s.io/component-base v0.26.1
 	k8s.io/klog/v2 v2.100.1
 	k8s.io/utils v0.0.0-20221128185143-99ec85e7a448
 	sigs.k8s.io/aws-iam-authenticator v0.6.10
 	sigs.k8s.io/cluster-api v1.4.3
 	sigs.k8s.io/cluster-api/test v1.4.3
-	sigs.k8s.io/controller-runtime v0.14.5
+	sigs.k8s.io/controller-runtime v0.14.6
 	sigs.k8s.io/kustomize/api v0.13.4
 	sigs.k8s.io/yaml v1.3.0
 )
