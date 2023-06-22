@@ -154,6 +154,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"elasticloadbalancing:RegisterInstancesWithLoadBalancer",
 				"elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
 				"elasticloadbalancing:RemoveTags",
+				"elasticloadbalancing:SetSubnets",
 				"autoscaling:DescribeAutoScalingGroups",
 				"autoscaling:DescribeInstanceRefreshes",
 				"ec2:CreateLaunchTemplate",
