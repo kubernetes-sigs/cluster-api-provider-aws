@@ -43,6 +43,7 @@ type CheckAddonExistsSpecInput struct {
 	ClusterName           string
 	AddonName             string
 	AddonVersion          string
+	AddonConfiguration    string
 }
 
 // CheckAddonExistsSpec implements a test for a cluster having an addon.
@@ -72,4 +73,15 @@ func CheckAddonExistsSpec(ctx context.Context, inputGetter func() CheckAddonExis
 		AddonVersion: input.AddonVersion,
 		AddonStatus:  []string{eks.AddonStatusActive, eks.AddonStatusDegraded},
 	}, input.E2EConfig.GetIntervals("", "wait-addon-status")...)
+
+	if input.AddonConfiguration != "" {
+		By(fmt.Sprintf("Checking EKS addon %s has the correct configuration", input.AddonName))
+		checkEKSAddonConfiguration(checkEKSAddonConfigurationInput{
+			ControlPlane:       controlPlane,
+			AWSSession:         input.AWSSession,
+			AddonName:          input.AddonName,
+			AddonVersion:       input.AddonVersion,
+			AddonConfiguration: input.AddonConfiguration,
+		}, input.E2EConfig.GetIntervals("", "wait-addon-status")...)
+	}
 }

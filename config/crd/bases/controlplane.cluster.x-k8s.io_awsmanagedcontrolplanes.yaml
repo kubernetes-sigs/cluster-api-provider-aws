@@ -76,6 +76,9 @@ spec:
                 items:
                   description: Addon represents a EKS addon.
                   properties:
+                    configuration:
+                      description: Configuration of the EKS addon
+                      type: string
                     conflictResolution:
                       default: none
                       description: ConflictResolution is used to declare what should
@@ -1530,6 +1533,9 @@ spec:
                 items:
                   description: Addon represents a EKS addon.
                   properties:
+                    configuration:
+                      description: Configuration of the EKS addon
+                      type: string
                     conflictResolution:
                       default: overwrite
                       description: ConflictResolution is used to declare what should
