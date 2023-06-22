@@ -219,6 +219,7 @@ Resources:
           - elasticloadbalancing:RegisterInstancesWithLoadBalancer
           - elasticloadbalancing:DeregisterInstancesFromLoadBalancer
           - elasticloadbalancing:RemoveTags
+          - elasticloadbalancing:SetSubnets
           - autoscaling:DescribeAutoScalingGroups
           - autoscaling:DescribeInstanceRefreshes
           - ec2:CreateLaunchTemplate
