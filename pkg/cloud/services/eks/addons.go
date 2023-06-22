@@ -125,6 +125,7 @@ func (s *Service) getClusterAddonsInstalled(eksClusterName string, addonNames []
 			Name:                  describeOutput.Addon.AddonName,
 			Version:               describeOutput.Addon.AddonVersion,
 			ARN:                   describeOutput.Addon.AddonArn,
+			Configuration:         describeOutput.Addon.ConfigurationValues,
 			Tags:                  infrav1.Tags{},
 			Status:                describeOutput.Addon.Status,
 			ServiceAccountRoleARN: describeOutput.Addon.ServiceAccountRoleArn,
@@ -196,6 +197,7 @@ func (s *Service) translateAPIToAddon(addons []ekscontrolplanev1.Addon) []*eksad
 		convertedAddon := &eksaddons.EKSAddon{
 			Name:                  &addon.Name,
 			Version:               &addon.Version,
+			Configuration:         &addon.Configuration,
 			Tags:                  ngTags(s.scope.Cluster.Name, s.scope.AdditionalTags()),
 			ResolveConflict:       convertConflictResolution(*addon.ConflictResolution),
 			ServiceAccountRoleARN: addon.ServiceAccountRoleArn,

@@ -43,6 +43,7 @@ spec:
     - name: "coredns"
       version: "${COREDNS_ADDON_VERSION}"
       conflictResolution: "overwrite"
+      configuration: '${COREDNS_ADDON_CONFIGURATION}'
   identityRef:
     kind: AWSClusterStaticIdentity
     name: e2e-account
