@@ -79,6 +79,7 @@ func (p *UpdateAddonProcedure) Do(ctx context.Context) error {
 		AddonName:             desired.Name,
 		AddonVersion:          desired.Version,
 		ClusterName:           &p.plan.clusterName,
+		ConfigurationValues:   desired.Configuration,
 		ResolveConflicts:      desired.ResolveConflict,
 		ServiceAccountRoleArn: desired.ServiceAccountRoleARN,
 	}
@@ -147,6 +148,7 @@ func (p *CreateAddonProcedure) Do(ctx context.Context) error {
 		AddonName:             desired.Name,
 		AddonVersion:          desired.Version,
 		ClusterName:           &p.plan.clusterName,
+		ConfigurationValues:   desired.Configuration,
 		ServiceAccountRoleArn: desired.ServiceAccountRoleARN,
 		ResolveConflicts:      desired.ResolveConflict,
 		Tags:                  convertTags(desired.Tags),

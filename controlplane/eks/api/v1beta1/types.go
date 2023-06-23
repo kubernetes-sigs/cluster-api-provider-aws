@@ -130,6 +130,9 @@ type Addon struct {
 	Name string `json:"name"`
 	// Version is the version of the addon to use
 	Version string `json:"version"`
+	// Configuration of the EKS addon
+	// +optional
+	Configuration string `json:"configuration,omitempty"`
 	// ConflictResolution is used to declare what should happen if there
 	// are parameter conflicts. Defaults to none
 	// +kubebuilder:default=none

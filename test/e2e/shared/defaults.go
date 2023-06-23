@@ -44,6 +44,7 @@ const (
 	CNIResources                         = "CNI_RESOURCES"
 	CNIAddonVersion                      = "VPC_ADDON_VERSION"
 	CorednsAddonVersion                  = "COREDNS_ADDON_VERSION"
+	CorednsAddonConfiguration            = "COREDNS_ADDON_CONFIGURATION"
 	GcWorkloadPath                       = "GC_WORKLOAD"
 	KubeproxyAddonVersion                = "KUBE_PROXY_ADDON_VERSION"
 	AwsNodeMachineType                   = "AWS_NODE_MACHINE_TYPE"
