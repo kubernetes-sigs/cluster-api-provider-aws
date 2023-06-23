@@ -109,6 +109,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				ClusterName:           clusterName,
 				AddonName:             corednsAddonName,
 				AddonVersion:          e2eCtx.E2EConfig.GetVariable(shared.CorednsAddonVersion),
+				AddonConfiguration:    e2eCtx.E2EConfig.GetVariable(shared.CorednsAddonConfiguration),
 			}
 		})
 

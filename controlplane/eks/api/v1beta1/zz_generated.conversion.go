@@ -455,6 +455,7 @@ func Convert_v1beta2_AWSManagedControlPlaneStatus_To_v1beta1_AWSManagedControlPl
 func autoConvert_v1beta1_Addon_To_v1beta2_Addon(in *Addon, out *v1beta2.Addon, s conversion.Scope) error {
 	out.Name = in.Name
 	out.Version = in.Version
+	out.Configuration = in.Configuration
 	out.ConflictResolution = (*v1beta2.AddonResolution)(unsafe.Pointer(in.ConflictResolution))
 	out.ServiceAccountRoleArn = (*string)(unsafe.Pointer(in.ServiceAccountRoleArn))
 	return nil
@@ -468,6 +469,7 @@ func Convert_v1beta1_Addon_To_v1beta2_Addon(in *Addon, out *v1beta2.Addon, s con
 func autoConvert_v1beta2_Addon_To_v1beta1_Addon(in *v1beta2.Addon, out *Addon, s conversion.Scope) error {
 	out.Name = in.Name
 	out.Version = in.Version
+	out.Configuration = in.Configuration
 	out.ConflictResolution = (*AddonResolution)(unsafe.Pointer(in.ConflictResolution))
 	out.ServiceAccountRoleArn = (*string)(unsafe.Pointer(in.ServiceAccountRoleArn))
 	return nil
