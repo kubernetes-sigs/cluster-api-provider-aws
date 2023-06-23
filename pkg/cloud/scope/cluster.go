@@ -380,3 +380,8 @@ func (s *ClusterScope) Partition() string {
 	}
 	return s.AWSCluster.Spec.Partition
 }
+
+// AdditionalControlPlaneIngressRules returns the additional ingress rules for control plane security group.
+func (s *ClusterScope) AdditionalControlPlaneIngressRules() []infrav1.IngressRule {
+	return s.AWSCluster.Spec.NetworkSpec.DeepCopy().AdditionalControlPlaneIngressRules
+}

@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
@@ -519,20 +520,26 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 		if s.scope.Bastion().Enabled {
 			rules = append(rules, s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID))
 		}
-		if s.scope.ControlPlaneLoadBalancer() != nil {
-			ingressRules := s.scope.ControlPlaneLoadBalancer().IngressRules
-			for i := range ingressRules {
-				if ingressRules[i].SourceSecurityGroupIDs == nil && ingressRules[i].SourceSecurityGroupRoles == nil { // if the rule doesn't have a source security group, use the control plane security group
-					ingressRules[i].SourceSecurityGroupIDs = []string{s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID}
-					continue
-				}
 
-				for _, sourceSGRole := range ingressRules[i].SourceSecurityGroupRoles {
-					ingressRules[i].SourceSecurityGroupIDs = append(ingressRules[i].SourceSecurityGroupIDs, s.scope.SecurityGroups()[sourceSGRole].ID)
-				}
+		ingressRules := s.scope.AdditionalControlPlaneIngressRules()
+		for i := range ingressRules {
+			if len(ingressRules[i].CidrBlocks) != 0 || len(ingressRules[i].IPv6CidrBlocks) != 0 { // don't set source security group if cidr blocks are set
+				continue
 			}
-			rules = append(rules, s.scope.ControlPlaneLoadBalancer().IngressRules...)
+
+			if len(ingressRules[i].SourceSecurityGroupIDs) == 0 && len(ingressRules[i].SourceSecurityGroupRoles) == 0 { // if the rule doesn't have a source security group, use the control plane security group
+				ingressRules[i].SourceSecurityGroupIDs = []string{s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID}
+				continue
+			}
+
+			securityGroupIDs := sets.New[string](ingressRules[i].SourceSecurityGroupIDs...)
+			for _, sourceSGRole := range ingressRules[i].SourceSecurityGroupRoles {
+				securityGroupIDs.Insert(s.scope.SecurityGroups()[sourceSGRole].ID)
+			}
+			ingressRules[i].SourceSecurityGroupIDs = sets.List[string](securityGroupIDs)
 		}
+		rules = append(rules, ingressRules...)
+
 		return append(cniRules, rules...), nil
 
 	case infrav1.SecurityGroupNode:
