@@ -56,7 +56,7 @@ func (r *AWSCluster) ValidateCreate() error {
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 	allErrs = append(allErrs, r.Spec.S3Bucket.Validate()...)
 	allErrs = append(allErrs, r.validateNetwork()...)
-	allErrs = append(allErrs, r.validateAdditionalIngressRules()...)
+	allErrs = append(allErrs, r.validateControlPlaneLBIngressRules()...)
 
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
@@ -189,10 +189,16 @@ func (r *AWSCluster) validateNetwork() field.ErrorList {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("subnets"), r.Spec.NetworkSpec.Subnets, "IPv6 cannot be used with unmanaged clusters at this time."))
 		}
 	}
+
+	for _, rule := range r.Spec.NetworkSpec.AdditionalControlPlaneIngressRules {
+		if (rule.CidrBlocks != nil || rule.IPv6CidrBlocks != nil) && (rule.SourceSecurityGroupIDs != nil || rule.SourceSecurityGroupRoles != nil) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("additionalControlPlaneIngressRules"), r.Spec.NetworkSpec.AdditionalControlPlaneIngressRules, "CIDR blocks and security group IDs or security group roles cannot be used together"))
+		}
+	}
 	return allErrs
 }
 
-func (r *AWSCluster) validateAdditionalIngressRules() field.ErrorList {
+func (r *AWSCluster) validateControlPlaneLBIngressRules() field.ErrorList {
 	var allErrs field.ErrorList
 
 	if r.Spec.ControlPlaneLoadBalancer == nil {
@@ -201,7 +207,7 @@ func (r *AWSCluster) validateAdditionalIngressRules() field.ErrorList {
 
 	for _, rule := range r.Spec.ControlPlaneLoadBalancer.IngressRules {
 		if (rule.CidrBlocks != nil || rule.IPv6CidrBlocks != nil) && (rule.SourceSecurityGroupIDs != nil || rule.SourceSecurityGroupRoles != nil) {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("additionalIngressRules"), r.Spec.ControlPlaneLoadBalancer.IngressRules, "CIDR blocks and security group IDs or security group roles cannot be used together"))
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "ingressRules"), r.Spec.ControlPlaneLoadBalancer.IngressRules, "CIDR blocks and security group IDs or security group roles cannot be used together"))
 		}
 	}
 

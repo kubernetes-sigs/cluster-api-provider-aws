@@ -142,7 +142,7 @@ To specify additional security groups for the control plane load balancer for a 
 ```yaml
 spec:
   controlPlaneLoadBalancer:
-    AdditionalsecurityGroups:
+    additionalSecurityGroups:
     - sg-0200a3507a5ad2c5c8c3
     - ...
 ```
@@ -175,6 +175,19 @@ spec:
 > 
 >An incorrectly configured Classic ELB can easily lead to a non-functional cluster. We strongly recommend you let Cluster API create the Classic ELB.
 
+### Control Plane ingress rules
+
+It's possible to specify custom ingress rules for the control plane itself. To do so, add this to the AWSCluster specification:
+
+```yaml
+spec:
+  network:
+    additionalControlPlaneIngressRules:
+    - description: "example ingress rule"
+      protocol: "-1" # all
+      fromPort: 7777
+      toPort: 7777
+```
 ### Caveats/Notes
 
 * When both public and private subnets are available in an AZ, CAPI will choose the private subnet in the AZ over the public subnet for placing EC2 instances.
