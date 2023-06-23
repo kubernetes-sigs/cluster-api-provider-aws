@@ -71,6 +71,8 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 		restoreIPAMPool(restored.Spec.NetworkSpec.VPC.IPv6.IPAMPool, dst.Spec.NetworkSpec.VPC.IPv6.IPAMPool)
 	}
 
+	dst.Spec.NetworkSpec.AdditionalControlPlaneIngressRules = restored.Spec.NetworkSpec.AdditionalControlPlaneIngressRules
+
 	return nil
 }
 
