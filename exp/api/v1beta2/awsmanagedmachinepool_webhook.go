@@ -123,6 +123,10 @@ func (r *AWSManagedMachinePool) validateLaunchTemplate() field.ErrorList {
 		return allErrs
 	}
 
+	if r.Spec.InstanceTypes != nil {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "InstanceTypes"), r.Spec.InstanceTypes, "InstanceTypes cannot be specified when LaunchTemplate is specified"))
+	}
+
 	if r.Spec.InstanceType != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "InstanceType"), r.Spec.InstanceType, "InstanceType cannot be specified when LaunchTemplate is specified"))
 	}
@@ -158,11 +162,18 @@ func (r *AWSManagedMachinePool) ValidateCreate() error {
 	if errs := r.validateLaunchTemplate(); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
+	if errs := r.validateInstanceConfig(); len(errs) > 0 {
+		allErrs = append(allErrs, errs...)
+	}
 
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
 	if len(allErrs) == 0 {
 		return nil
+	}
+
+	if r.Spec.InstanceType != nil {
+		mmpLog.Info("AWSManagedMachine pool spec.instanceType is deprecated", "managed-machine-pool", klog.KObj(r))
 	}
 
 	return apierrors.NewInvalid(
@@ -195,6 +206,9 @@ func (r *AWSManagedMachinePool) ValidateUpdate(old runtime.Object) error {
 	if errs := r.validateLaunchTemplate(); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
+	if errs := r.validateInstanceConfig(); len(errs) > 0 {
+		allErrs = append(allErrs, errs...)
+	}
 
 	if len(allErrs) == 0 {
 		return nil
@@ -212,6 +226,14 @@ func (r *AWSManagedMachinePool) ValidateDelete() error {
 	mmpLog.Info("AWSManagedMachinePool validate delete", "managed-machine-pool", klog.KObj(r))
 
 	return nil
+}
+
+func (r *AWSManagedMachinePool) validateInstanceConfig() field.ErrorList {
+	var allErrs field.ErrorList
+	if r.Spec.InstanceType != nil && r.Spec.InstanceTypes != nil {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "InstanceTypes"), "InstanceTypes cannot be specified when InstanceType is set"))
+	}
+	return allErrs
 }
 
 func (r *AWSManagedMachinePool) validateImmutable(old *AWSManagedMachinePool) field.ErrorList {

@@ -18,11 +18,16 @@ package v1beta1
 
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/util/json"
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
+)
+
+const (
+	instanceTypesAnnotationKey = "awsmanagedmachinepools.infrastructure.cluster.x-k8s.io/instance-types"
 )
 
 // ConvertTo converts the v1beta1 AWSMachinePool receiver to a v1beta2 AWSMachinePool.
@@ -79,6 +84,22 @@ func (src *AWSManagedMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	// set instance types from the annotation
+	if instanceTypes, ok := src.Annotations[instanceTypesAnnotationKey]; ok {
+		var deserializedInstanceTypes []string
+		err := json.Unmarshal([]byte(instanceTypes), &deserializedInstanceTypes)
+		if err != nil {
+			return err
+		}
+		dst.Spec.InstanceTypes = deserializedInstanceTypes
+	}
+
+	// drop instance types annotation from target
+	delete(dst.Annotations, instanceTypesAnnotationKey)
+	if len(dst.Annotations) == 0 {
+		dst.Annotations = nil
+	}
+
 	return nil
 }
 
@@ -88,6 +109,17 @@ func (r *AWSManagedMachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 
 	if err := Convert_v1beta2_AWSManagedMachinePool_To_v1beta1_AWSManagedMachinePool(src, r, nil); err != nil {
 		return err
+	}
+
+	if len(src.Spec.InstanceTypes) != 0 {
+		if r.Annotations == nil {
+			r.Annotations = make(map[string]string)
+		}
+		serializedInstances, err := json.Marshal(src.Spec.InstanceTypes)
+		if err != nil {
+			return err
+		}
+		r.Annotations[instanceTypesAnnotationKey] = string(serializedInstances)
 	}
 
 	return nil

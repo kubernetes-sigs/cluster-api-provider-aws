@@ -139,6 +139,17 @@ func TestAWSManagedMachinePoolValidateCreate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "both instanceType and instanceTypes are specified",
+			pool: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-3",
+					InstanceTypes:    []string{"m5.xlarge", "m5.2xlarge"},
+					InstanceType:     pointer.String("m5.xlarge"),
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -252,6 +263,23 @@ func TestAWSManagedMachinePoolValidateUpdate(t *testing.T) {
 				},
 			},
 			wantErr: false,
+		},
+		{
+			name: "adding both instanceType and instanceTypes is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					InstanceType:     pointer.String("m5.xlarge"),
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					InstanceType:     pointer.String("m5.xlarge"),
+					InstanceTypes:    []string{"m5.xlarge", "m6.xlarge"},
+				},
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
