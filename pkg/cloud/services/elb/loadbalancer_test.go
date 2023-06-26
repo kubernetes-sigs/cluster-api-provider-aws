@@ -2317,6 +2317,10 @@ func TestChunkELBs(t *testing.T) {
 }
 
 func TestGetHealthCheckProtocol(t *testing.T) {
+	testHTTP := infrav1.ELBProtocol("HTTP")
+	testHTTPS := infrav1.ELBProtocol("HTTPS")
+	testTCP := infrav1.ELBProtocol("TCP")
+
 	tests := []struct {
 		testName                  string
 		lbSpec                    *infrav1.AWSLoadBalancerSpec
@@ -2330,21 +2334,21 @@ func TestGetHealthCheckProtocol(t *testing.T) {
 		{
 			"protocol http",
 			&infrav1.AWSLoadBalancerSpec{
-				HealthCheckProtocol: &infrav1.ELBProtocolHTTP,
+				HealthCheckProtocol: &testHTTP,
 			},
 			"HTTP:6443/readyz",
 		},
 		{
 			"protocol https",
 			&infrav1.AWSLoadBalancerSpec{
-				HealthCheckProtocol: &infrav1.ELBProtocolHTTPS,
+				HealthCheckProtocol: &testHTTPS,
 			},
 			"HTTPS:6443/readyz",
 		},
 		{
 			"protocol tcp",
 			&infrav1.AWSLoadBalancerSpec{
-				HealthCheckProtocol: &infrav1.ELBProtocolTCP,
+				HealthCheckProtocol: &testTCP,
 			},
 			"TCP:6443",
 		},
