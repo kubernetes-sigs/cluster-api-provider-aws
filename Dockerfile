@@ -15,7 +15,7 @@
 # limitations under the License.
 
 # Build the manager binary
-FROM golang:1.19.8 as toolchain
+FROM golang:1.19.10-alpine3.18 as toolchain
 
 # Run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
 ARG goproxy=https://proxy.golang.org
@@ -27,6 +27,9 @@ ENV GOEXPERIMENT=${CRYPTO_LIB:+boringcrypto}
 
 FROM toolchain as builder
 WORKDIR /workspace
+
+RUN apk update
+RUN apk add git gcc g++ curl
 
 # Copy the Go Modules manifests
 COPY go.mod go.mod
@@ -44,10 +47,15 @@ COPY ./ ./
 ARG package=.
 ARG ARCH
 ARG LDFLAGS
-RUN --mount=type=cache,target=/root/.cache/go-build \
+RUN  --mount=type=cache,target=/root/.cache/go-build \ 
     --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.local/share/golang \
-    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags "${LDFLAGS} -extldflags '-static'"  -o manager ${package}
+    if [ ${CRYPTO_LIB} ]; \
+    then \
+    CGO_ENABLED=1 GOOS=linux GOARCH=${ARCH} go build -ldflags "${LDFLAGS} -linkmode=external  -extldflags '-static'"  -o manager ${package}; \
+    else \
+    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags "${LDFLAGS} -extldflags '-static'"  -o manager ${package}; \
+    fi
 ENTRYPOINT [ "/start.sh", "/workspace/manager" ]
 
 # Copy the controller-manager into a thin image
