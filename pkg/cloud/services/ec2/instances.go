@@ -371,7 +371,14 @@ func (s *Service) getFilteredSubnets(criteria ...*ec2.Filter) ([]*ec2.Subnet, er
 // They are considered "core" to its proper functioning.
 func (s *Service) GetCoreSecurityGroups(scope *scope.MachineScope) ([]string, error) {
 	if scope.IsExternallyManaged() {
-		return nil, nil
+		ids := make([]string, 0)
+		for _, sg := range scope.AWSMachine.Spec.AdditionalSecurityGroups {
+			if sg.ID == nil {
+				continue
+			}
+			ids = append(ids, *sg.ID)
+		}
+		return ids, nil
 	}
 
 	// These are common across both controlplane and node machines
