@@ -328,7 +328,7 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 
 	err = machinePoolScope.UpdateInstanceStatuses(ctx, asg.Instances)
 	if err != nil {
-		machinePoolScope.Info("Failed updating instances", "instances", asg.Instances)
+		machinePoolScope.Error(err, "failed updating instances", "instances", asg.Instances)
 	}
 
 	return ctrl.Result{}, nil
