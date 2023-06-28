@@ -744,6 +744,11 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, inc
 func (s *Service) DiscoverLaunchTemplateAMI(scope scope.LaunchTemplateScope) (*string, error) {
 	lt := scope.GetLaunchTemplate()
 
+	// If the AMI ID is set, we don't need to do any discovery
+	if scope.IsEKSManaged() && lt.AMI.ID == nil && lt.AMI.EKSOptimizedLookupType == nil {
+		return nil, nil
+	}
+
 	if lt.AMI.ID != nil {
 		return lt.AMI.ID, nil
 	}
