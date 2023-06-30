@@ -50,6 +50,7 @@ const (
 	RouteTableNotFound                      = "InvalidRouteTableID.NotFound"
 	SubnetNotFound                          = "InvalidSubnetID.NotFound"
 	UnrecognizedClientException             = "UnrecognizedClientException"
+	UnauthorizedOperation                   = "UnauthorizedOperation"
 	VPCNotFound                             = "InvalidVpcID.NotFound"
 	VPCMissingParameter                     = "MissingParameter"
 	ErrCodeRepositoryAlreadyExistsException = "RepositoryAlreadyExistsException"
@@ -169,6 +170,15 @@ func IsInvalidNotFoundError(err error) bool {
 		case LaunchTemplateNameNotFound:
 			return true
 		}
+	}
+
+	return false
+}
+
+// IsPermissionsError tests for common aws permission errors.
+func IsPermissionsError(err error) bool {
+	if code, ok := Code(err); ok {
+		return code == AuthFailure || code == UnauthorizedOperation
 	}
 
 	return false
