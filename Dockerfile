@@ -15,7 +15,7 @@
 # limitations under the License.
 
 # Build the manager binary
-FROM public.ecr.aws/docker/library/golang:1.19.5 as toolchain
+FROM public.ecr.aws/docker/library/golang:1.20.5 as toolchain
 
 # Run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
 ARG goproxy=https://proxy.golang.org
