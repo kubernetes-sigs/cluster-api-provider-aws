@@ -912,34 +912,15 @@ func (s *Service) getNetworkInterfaceSecurityGroups(interfaceID string) ([]strin
 }
 
 func (s *Service) attachSecurityGroupsToNetworkInterface(groups []string, interfaceID string) error {
-	existingGroups, err := s.getNetworkInterfaceSecurityGroups(interfaceID)
-	if err != nil {
-		return errors.Wrapf(err, "failed to look up network interface security groups: %+v", err)
-	}
-
-	totalGroups := make([]string, len(existingGroups))
-	copy(totalGroups, existingGroups)
-
-	for _, group := range groups {
-		if !containsGroup(existingGroups, group) {
-			totalGroups = append(totalGroups, group)
-		}
-	}
-
-	// no new groups to attach
-	if len(existingGroups) == len(totalGroups) {
-		return nil
-	}
-
-	s.scope.Info("Updating security groups", "groups", totalGroups)
+	s.scope.Info("Updating security groups", "groups", groups)
 
 	input := &ec2.ModifyNetworkInterfaceAttributeInput{
 		NetworkInterfaceId: aws.String(interfaceID),
-		Groups:             aws.StringSlice(totalGroups),
+		Groups:             aws.StringSlice(groups),
 	}
 
 	if _, err := s.EC2Client.ModifyNetworkInterfaceAttribute(input); err != nil {
-		return errors.Wrapf(err, "failed to modify interface %q to have security groups %v", interfaceID, totalGroups)
+		return errors.Wrapf(err, "failed to modify interface %q to have security groups %v", interfaceID, groups)
 	}
 	return nil
 }
@@ -1014,16 +995,6 @@ func filterGroups(list []string, strToFilter string) (newList []string) {
 		}
 	}
 	return
-}
-
-// containsGroup returns true if a list contains a string.
-func containsGroup(list []string, strToSearch string) bool {
-	for _, item := range list {
-		if item == strToSearch {
-			return true
-		}
-	}
-	return false
 }
 
 func getInstanceMarketOptionsRequest(spotMarketOptions *infrav1.SpotMarketOptions) *ec2.InstanceMarketOptionsRequest {
