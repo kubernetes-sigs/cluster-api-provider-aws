@@ -803,7 +803,7 @@ func (r *AWSMachineReconciler) deleteIgnitionBootstrapDataFromS3(machineScope *s
 	}
 
 	_, userDataFormat, err := machineScope.GetRawBootstrapDataWithFormat()
-	if err != nil {
+	if err != nil && !apierrors.IsNotFound(err) {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedGetBootstrapData", err.Error())
 		return err
 	}
