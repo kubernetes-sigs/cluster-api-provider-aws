@@ -446,13 +446,14 @@ func (s *Service) GetCoreSecurityGroups(scope *scope.MachineScope) ([]string, er
 // They are considered "core" to its proper functioning.
 func (s *Service) GetCoreNodeSecurityGroups(scope scope.LaunchTemplateScope) ([]string, error) {
 	// These are common across both controlplane and node machines
-	sgRoles := []infrav1.SecurityGroupRole{
-		infrav1.SecurityGroupNode,
-	}
+	var sgRoles []infrav1.SecurityGroupRole
 
 	if !scope.IsEKSManaged() {
+		sgRoles = append(sgRoles, infrav1.SecurityGroupNode)
 		sgRoles = append(sgRoles, infrav1.SecurityGroupLB)
 	} else {
+		/// clarify: unknow reason why SecurityGroupControlPlane and SecurityGroupNode info is missing in local test
+		//sgRoles = append(sgRoles, infrav1.SecurityGroupControlPlane)
 		sgRoles = append(sgRoles, infrav1.SecurityGroupEKSNodeAdditional)
 	}
 

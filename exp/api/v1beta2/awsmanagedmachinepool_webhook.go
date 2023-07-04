@@ -124,6 +124,7 @@ func (r *AWSManagedMachinePool) validateLaunchTemplate() field.ErrorList {
 		return allErrs
 	}
 
+	// clarify: InstanceType and DiskSize should be supported in EKS managed node group
 	if r.Spec.InstanceType != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "InstanceType"), r.Spec.InstanceType, "InstanceType cannot be specified when LaunchTemplate is specified"))
 	}
