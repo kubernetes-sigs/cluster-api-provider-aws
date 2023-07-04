@@ -744,7 +744,8 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, inc
 func (s *Service) DiscoverLaunchTemplateAMI(scope scope.LaunchTemplateScope) (*string, error) {
 	lt := scope.GetLaunchTemplate()
 
-	// If the AMI ID is set, we don't need to do any discovery
+	// If the AMI ID is not set when EKS managed node group, we don't need to do any discovery
+	// todo: webhook validation: AMI type should be set to in AWSManagedMachinePool if AMI ID/EKS optimized lookup type is not set
 	if scope.IsEKSManaged() && lt.AMI.ID == nil && lt.AMI.EKSOptimizedLookupType == nil {
 		return nil, nil
 	}
@@ -778,6 +779,7 @@ func (s *Service) DiscoverLaunchTemplateAMI(scope scope.LaunchTemplateScope) (*s
 		imageLookupBaseOS = scope.GetEC2Scope().ImageLookupBaseOS()
 	}
 
+	// clarify: instance type could be empty in launch template if it is specified in AWSManagedMachinePool
 	instanceType := lt.InstanceType
 
 	// If instance type is not specified on a launch template, we can safely assume the instance type will be a `t3.medium`.
