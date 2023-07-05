@@ -468,7 +468,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			g.Expect(err).To(BeNil())
 			g.Expect(buf.String()).To(ContainSubstring("Unable to locate ASG"))
 			g.Expect(ms.AWSMachinePool.Finalizers).To(ConsistOf(metav1.FinalizerDeleteDependents))
-			g.Eventually(recorder.Events).Should(Receive(ContainSubstring("NoASGFound")))
+			g.Eventually(recorder.Events).Should(Receive(ContainSubstring(expinfrav1.ASGNotFoundReason)))
 		})
 		t.Run("should cause AWSMachinePool to go into NotReady", func(t *testing.T) {
 			g := NewWithT(t)
