@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -233,7 +234,44 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 		// that change will not trigger a refresh. Do not start an instance refresh if only userdata changed.
 		return asgsvc.CanStartASGInstanceRefresh(machinePoolScope)
 	}
+
+	// Find existing ASG
+	asg, err := r.findASG(machinePoolScope, asgsvc)
+	if err != nil {
+		conditions.MarkFalse(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, expinfrav1.ASGNotFoundReason, clusterv1.ConditionSeverityError, err.Error())
+		return ctrl.Result{}, err
+	}
+	if asg == nil {
+		// updating the launch template is safe without an asg
+		canUpdateLaunchTemplate = func() (bool, error) {
+			return true, nil
+		}
+	}
+
 	runPostLaunchTemplateUpdateOperation := func() error {
+		asgName := machinePoolScope.Name()
+		launchTemplateID := machinePoolScope.GetLaunchTemplateIDStatus()
+		resourceServiceToUpdate := []scope.ResourceServiceToUpdate{
+			{
+				ResourceID:      &launchTemplateID,
+				ResourceService: ec2Svc,
+			},
+			{
+				ResourceID:      &asgName,
+				ResourceService: asgsvc,
+			},
+		}
+		// Update the AWSMachinePool annotation immediately after updating launch template
+		// to ensure the latest aws tags are persisted for comparing the expected AWSMachinePool tags.
+		err = ec2Svc.ReconcileTags(machinePoolScope, resourceServiceToUpdate)
+		if err != nil {
+			return errors.Wrap(err, "error updating tags")
+		}
+		if asg == nil {
+			machinePoolScope.Debug("asg not created yet, skipping instance refresh")
+			return nil
+		}
+
 		// skip instance refresh if explicitly disabled
 		if machinePoolScope.AWSMachinePool.Spec.RefreshPreferences != nil && machinePoolScope.AWSMachinePool.Spec.RefreshPreferences.Disable {
 			machinePoolScope.Debug("instance refresh disabled, skipping instance refresh")
@@ -260,20 +298,13 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	// set the LaunchTemplateReady condition
 	conditions.MarkTrue(machinePoolScope.AWSMachinePool, expinfrav1.LaunchTemplateReadyCondition)
 
-	// Find existing ASG
-	asg, err := r.findASG(machinePoolScope, asgsvc)
-	if err != nil {
-		conditions.MarkUnknown(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, expinfrav1.ASGNotFoundReason, err.Error())
-		return ctrl.Result{}, err
-	}
-
 	if asg == nil {
 		// Create new ASG
 		if err := r.createPool(machinePoolScope, clusterScope); err != nil {
 			conditions.MarkFalse(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, expinfrav1.ASGProvisionFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{}, nil
+		return ctrl.Result{RequeueAfter: time.Minute}, nil
 	}
 
 	if scope.ReplicasExternallyManaged(machinePoolScope.MachinePool) {
@@ -292,23 +323,6 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	if err := r.updatePool(machinePoolScope, clusterScope, asg); err != nil {
 		machinePoolScope.Error(err, "error updating AWSMachinePool")
 		return ctrl.Result{}, err
-	}
-
-	launchTemplateID := machinePoolScope.GetLaunchTemplateIDStatus()
-	asgName := machinePoolScope.Name()
-	resourceServiceToUpdate := []scope.ResourceServiceToUpdate{
-		{
-			ResourceID:      &launchTemplateID,
-			ResourceService: ec2Svc,
-		},
-		{
-			ResourceID:      &asgName,
-			ResourceService: asgsvc,
-		},
-	}
-	err = ec2Svc.ReconcileTags(machinePoolScope, resourceServiceToUpdate)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "error updating tags")
 	}
 
 	// Make sure Spec.ProviderID is always set.
