@@ -51,6 +51,23 @@ const (
 	TagsLastAppliedAnnotation = "sigs.k8s.io/cluster-api-provider-aws-last-applied-tags"
 )
 
+func isEKSManagedAMI(launchTemplateScope scope.LaunchTemplateScope) bool {
+	if !launchTemplateScope.IsEKSManaged() {
+		return false
+	}
+
+	poolScope, ok := launchTemplateScope.(*scope.ManagedMachinePoolScope)
+	if !ok {
+		return false
+	}
+
+	amiType := poolScope.ManagedMachinePool.Spec.AMIType
+	if amiType == nil || *amiType == expinfrav1.CUSTOM {
+		return false
+	}
+	return true
+}
+
 func (s *Service) ReconcileLaunchTemplate(
 	scope scope.LaunchTemplateScope,
 	canUpdateLaunchTemplate func() (bool, error),
@@ -72,10 +89,20 @@ func (s *Service) ReconcileLaunchTemplate(
 		return err
 	}
 
-	imageID, err := ec2svc.DiscoverLaunchTemplateAMI(scope)
-	if err != nil {
-		conditions.MarkFalse(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, err.Error())
-		return err
+	// If the AMI ID is not set when EKS managed node group, we don't need to do any discovery
+	var imageID *string
+	if isEKSManagedAMI(scope) {
+		// todo: webhook validation: AMI type should be set to in AWSManagedMachinePool if AMI ID/EKS optimized lookup type is not set
+		lt := scope.GetLaunchTemplate()
+		if lt.AMI.ID != nil || lt.AMI.EKSOptimizedLookupType != nil {
+			return errors.New("AMI ID or EKS optimized lookup type cannot be set when EKS manage AMI for you")
+		}
+	} else {
+		imageID, err = ec2svc.DiscoverLaunchTemplateAMI(scope)
+		if err != nil {
+			conditions.MarkFalse(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, err.Error())
+			return err
+		}
 	}
 
 	if launchTemplate == nil {
@@ -125,7 +152,9 @@ func (s *Service) ReconcileLaunchTemplate(
 		return err
 	}
 
-	if needsUpdate || tagsChanged || *imageID != *launchTemplate.AMI.ID {
+	// Skip ami check when EKS manages  AMI for us
+	amiChanged := !isEKSManagedAMI(scope) && *imageID != *launchTemplate.AMI.ID
+	if needsUpdate || tagsChanged || amiChanged {
 		canUpdate, err := canUpdateLaunchTemplate()
 		if err != nil {
 			return err
@@ -138,7 +167,7 @@ func (s *Service) ReconcileLaunchTemplate(
 
 	// Create a new launch template version if there's a difference in configuration, tags,
 	// userdata, OR we've discovered a new AMI ID.
-	if needsUpdate || tagsChanged || *imageID != *launchTemplate.AMI.ID || launchTemplateUserDataHash != bootstrapDataHash {
+	if needsUpdate || tagsChanged || amiChanged || launchTemplateUserDataHash != bootstrapDataHash {
 		scope.Info("creating new version for launch template", "existing", launchTemplate, "incoming", scope.GetLaunchTemplate())
 		// There is a limit to the number of Launch Template Versions.
 		// We ensure that the number of versions does not grow without bound by following a simple rule: Before we create a new version, we delete one old version, if there is at least one old version that is not in use.
@@ -159,7 +188,7 @@ func (s *Service) ReconcileLaunchTemplate(
 		}
 	}
 
-	if needsUpdate || tagsChanged || *imageID != *launchTemplate.AMI.ID {
+	if needsUpdate || tagsChanged || amiChanged {
 		if err := runPostLaunchTemplateUpdateOperation(); err != nil {
 			conditions.MarkFalse(scope.GetSetter(), expinfrav1.PostLaunchTemplateUpdateOperationCondition, expinfrav1.PostLaunchTemplateUpdateOperationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return err
@@ -743,12 +772,6 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, inc
 // DiscoverLaunchTemplateAMI will discover the AMI launch template.
 func (s *Service) DiscoverLaunchTemplateAMI(scope scope.LaunchTemplateScope) (*string, error) {
 	lt := scope.GetLaunchTemplate()
-
-	// If the AMI ID is not set when EKS managed node group, we don't need to do any discovery
-	// todo: webhook validation: AMI type should be set to in AWSManagedMachinePool if AMI ID/EKS optimized lookup type is not set
-	if scope.IsEKSManaged() && lt.AMI.ID == nil && lt.AMI.EKSOptimizedLookupType == nil {
-		return nil, nil
-	}
 
 	if lt.AMI.ID != nil {
 		return lt.AMI.ID, nil
