@@ -530,12 +530,14 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 
 	// Set up root volume
 	if lt.RootVolume != nil {
-		rootDeviceName, err := s.checkRootVolume(lt.RootVolume, *data.ImageId)
-		if err != nil {
-			return nil, err
-		}
+		if lt.RootVolume.DeviceName == "" {
+			rootDeviceName, err := s.checkRootVolume(lt.RootVolume, *data.ImageId)
+			if err != nil {
+				return nil, err
+			}
 
-		lt.RootVolume.DeviceName = aws.StringValue(rootDeviceName)
+			lt.RootVolume.DeviceName = aws.StringValue(rootDeviceName)
+		}
 
 		req := volumeToLaunchTemplateBlockDeviceMappingRequest(lt.RootVolume)
 		data.BlockDeviceMappings = []*ec2.LaunchTemplateBlockDeviceMappingRequest{
