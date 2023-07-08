@@ -27,6 +27,7 @@ type EKSAddon struct {
 	Name                  *string
 	Version               *string
 	ServiceAccountRoleARN *string
+	Configuration         *string
 	Tags                  infrav1.Tags
 	ResolveConflict       *string
 	ARN                   *string

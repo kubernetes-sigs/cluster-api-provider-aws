@@ -78,6 +78,20 @@ func (mr *MockELBInterfaceMockRecorder) DeregisterInstanceFromAPIServerELB(arg0 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterInstanceFromAPIServerELB", reflect.TypeOf((*MockELBInterface)(nil).DeregisterInstanceFromAPIServerELB), arg0)
 }
 
+// DeregisterInstanceFromAPIServerLB mocks base method.
+func (m *MockELBInterface) DeregisterInstanceFromAPIServerLB(arg0 string, arg1 *v1beta2.Instance) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeregisterInstanceFromAPIServerLB", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeregisterInstanceFromAPIServerLB indicates an expected call of DeregisterInstanceFromAPIServerLB.
+func (mr *MockELBInterfaceMockRecorder) DeregisterInstanceFromAPIServerLB(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterInstanceFromAPIServerLB", reflect.TypeOf((*MockELBInterface)(nil).DeregisterInstanceFromAPIServerLB), arg0, arg1)
+}
+
 // IsInstanceRegisteredWithAPIServerELB mocks base method.
 func (m *MockELBInterface) IsInstanceRegisteredWithAPIServerELB(arg0 *v1beta2.Instance) (bool, error) {
 	m.ctrl.T.Helper()
@@ -91,6 +105,22 @@ func (m *MockELBInterface) IsInstanceRegisteredWithAPIServerELB(arg0 *v1beta2.In
 func (mr *MockELBInterfaceMockRecorder) IsInstanceRegisteredWithAPIServerELB(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsInstanceRegisteredWithAPIServerELB", reflect.TypeOf((*MockELBInterface)(nil).IsInstanceRegisteredWithAPIServerELB), arg0)
+}
+
+// IsInstanceRegisteredWithAPIServerLB mocks base method.
+func (m *MockELBInterface) IsInstanceRegisteredWithAPIServerLB(arg0 *v1beta2.Instance) (string, bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsInstanceRegisteredWithAPIServerLB", arg0)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(bool)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// IsInstanceRegisteredWithAPIServerLB indicates an expected call of IsInstanceRegisteredWithAPIServerLB.
+func (mr *MockELBInterfaceMockRecorder) IsInstanceRegisteredWithAPIServerLB(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsInstanceRegisteredWithAPIServerLB", reflect.TypeOf((*MockELBInterface)(nil).IsInstanceRegisteredWithAPIServerLB), arg0)
 }
 
 // ReconcileLoadbalancers mocks base method.
@@ -119,4 +149,18 @@ func (m *MockELBInterface) RegisterInstanceWithAPIServerELB(arg0 *v1beta2.Instan
 func (mr *MockELBInterfaceMockRecorder) RegisterInstanceWithAPIServerELB(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterInstanceWithAPIServerELB", reflect.TypeOf((*MockELBInterface)(nil).RegisterInstanceWithAPIServerELB), arg0)
+}
+
+// RegisterInstanceWithAPIServerLB mocks base method.
+func (m *MockELBInterface) RegisterInstanceWithAPIServerLB(arg0 *v1beta2.Instance) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterInstanceWithAPIServerLB", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RegisterInstanceWithAPIServerLB indicates an expected call of RegisterInstanceWithAPIServerLB.
+func (mr *MockELBInterfaceMockRecorder) RegisterInstanceWithAPIServerLB(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterInstanceWithAPIServerLB", reflect.TypeOf((*MockELBInterface)(nil).RegisterInstanceWithAPIServerLB), arg0)
 }

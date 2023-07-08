@@ -7,12 +7,12 @@ spec:
     initConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
-          cloud-provider: aws
+          cloud-provider: external
         name: $${COREOS_EC2_HOSTNAME}
     joinConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
-          cloud-provider: aws
+          cloud-provider: external
         name: $${COREOS_EC2_HOSTNAME}
     format: ignition
     ignition:

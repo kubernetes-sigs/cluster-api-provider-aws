@@ -44,6 +44,7 @@ type ASGInterface interface {
 	DeleteASGAndWait(id string) error
 	SuspendProcesses(name string, processes []string) error
 	ResumeProcesses(name string, processes []string) error
+	SubnetIDs(scope *scope.MachinePoolScope) ([]string, error)
 }
 
 // EC2Interface encapsulates the methods exposed to the machine
@@ -59,6 +60,7 @@ type EC2Interface interface {
 	GetInstanceSecurityGroups(instanceID string) (map[string][]string, error)
 	UpdateInstanceSecurityGroups(id string, securityGroups []string) error
 	UpdateResourceTags(resourceID *string, create, remove map[string]string) error
+	ModifyInstanceMetadataOptions(instanceID string, options *infrav1.InstanceMetadataOptions) error
 
 	TerminateInstanceAndWait(instanceID string) error
 	DetachSecurityGroupsFromNetworkInterface(groups []string, interfaceID string) error
@@ -93,8 +95,11 @@ type ELBInterface interface {
 	DeleteLoadbalancers() error
 	ReconcileLoadbalancers() error
 	IsInstanceRegisteredWithAPIServerELB(i *infrav1.Instance) (bool, error)
+	IsInstanceRegisteredWithAPIServerLB(i *infrav1.Instance) (string, bool, error)
 	DeregisterInstanceFromAPIServerELB(i *infrav1.Instance) error
+	DeregisterInstanceFromAPIServerLB(targetGroupArn string, i *infrav1.Instance) error
 	RegisterInstanceWithAPIServerELB(i *infrav1.Instance) error
+	RegisterInstanceWithAPIServerLB(i *infrav1.Instance) error
 }
 
 // NetworkInterface encapsulates the methods exposed to the cluster

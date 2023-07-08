@@ -38,7 +38,7 @@ func TestAWSMachineTemplateValidateCreate(t *testing.T) {
 				Spec: AWSMachineTemplateSpec{
 					Template: AWSMachineTemplateResource{
 						Spec: AWSMachineSpec{
-							ProviderID: pointer.StringPtr("something"),
+							ProviderID: pointer.String("something"),
 						},
 					},
 				},
@@ -103,33 +103,34 @@ func TestAWSMachineTemplateValidateUpdate(t *testing.T) {
 		wantError        bool
 	}{
 		{
-			name: "don't allow ssm parameter store",
+			name: "don't allow updates",
 			modifiedTemplate: &AWSMachineTemplate{
 				ObjectMeta: metav1.ObjectMeta{},
 				Spec: AWSMachineTemplateSpec{
 					Template: AWSMachineTemplateResource{
 						Spec: AWSMachineSpec{
-							CloudInit: CloudInit{
-								SecureSecretsBackend: SecretBackendSSMParameterStore,
-							},
-							InstanceType: "test",
+							InstanceType: "test2",
 						},
 					},
 				},
 			},
-			wantError: false,
+			wantError: true,
 		},
 		{
-			name: "allow secrets manager",
+			name: "allow defaulted values to update",
 			modifiedTemplate: &AWSMachineTemplate{
 				ObjectMeta: metav1.ObjectMeta{},
 				Spec: AWSMachineTemplateSpec{
 					Template: AWSMachineTemplateResource{
 						Spec: AWSMachineSpec{
-							CloudInit: CloudInit{
-								SecureSecretsBackend: SecretBackendSecretsManager,
-							},
+							CloudInit:    CloudInit{},
 							InstanceType: "test",
+							InstanceMetadataOptions: &InstanceMetadataOptions{
+								HTTPEndpoint:            InstanceMetadataEndpointStateEnabled,
+								HTTPPutResponseHopLimit: 1,
+								HTTPTokens:              HTTPTokensStateOptional,
+								InstanceMetadataTags:    InstanceMetadataEndpointStateDisabled,
+							},
 						},
 					},
 				},

@@ -46,7 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
-func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
+func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 	var (
 		reconciler AWSMachineReconciler
 		mockCtrl   *gomock.Controller
@@ -114,6 +114,9 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
 		cs.AWSCluster.Status.Network.APIServerELB.DNSName = DNSName
+		cs.AWSCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
+			LoadBalancerType: infrav1.LoadBalancerTypeClassic,
+		}
 		cs.AWSCluster.Status.Network.SecurityGroups = map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 			infrav1.SecurityGroupNode: {
 				ID: "1",
@@ -131,7 +134,7 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		ms.Machine.Spec.Version = aws.String("test")
 		ms.AWSMachine.Spec.Subnet = &infrav1.AWSResourceReference{ID: aws.String("subnet-1")}
 		ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateRunning
-		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
+		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 
 		ec2Svc := ec2Service.NewService(cs)
 		ec2Svc.EC2Client = ec2Mock
@@ -162,13 +165,14 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		mockCtrl = gomock.NewController(t)
 		ec2Mock := mocks.NewMockEC2API(mockCtrl)
 		elbMock := mocks.NewMockELBAPI(mockCtrl)
+		elbv2Mock := mocks.NewMockELBV2API(mockCtrl)
 
-		expect := func(m *mocks.MockEC2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
+		expect := func(m *mocks.MockEC2APIMockRecorder, ev2 *mocks.MockELBV2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedDescribeInstanceCalls(m)
-			mockedDeleteLBCalls(e)
+			mockedDeleteLBCalls(false, ev2, e)
 			mockedDeleteInstanceCalls(m)
 		}
-		expect(ec2Mock.EXPECT(), elbMock.EXPECT())
+		expect(ec2Mock.EXPECT(), elbv2Mock.EXPECT(), elbMock.EXPECT())
 
 		ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("integ-test-%s", util.RandomString(5)))
 		g.Expect(err).To(BeNil())
@@ -186,11 +190,14 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}})
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
+		cs.AWSCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
+			LoadBalancerType: infrav1.LoadBalancerTypeClassic,
+		}
 		ms, err := getMachineScope(cs, awsMachine)
 		g.Expect(err).To(BeNil())
 
 		ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateRunning
-		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
+		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 		ms.AWSMachine.Spec.ProviderID = aws.String("aws:////myMachine")
 
 		ec2Svc := ec2Service.NewService(cs)
@@ -202,6 +209,7 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		elbSvc := elbService.NewService(cs)
 		elbSvc.EC2Client = ec2Mock
 		elbSvc.ELBClient = elbMock
+		elbSvc.ELBV2Client = elbv2Mock
 		reconciler.elbServiceFactory = func(scope scope.ELBScope) services.ELBInterface {
 			return elbSvc
 		}
@@ -263,6 +271,9 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
 		cs.AWSCluster.Status.Network.APIServerELB.DNSName = DNSName
+		cs.AWSCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
+			LoadBalancerType: infrav1.LoadBalancerTypeClassic,
+		}
 		cs.AWSCluster.Status.Network.SecurityGroups = map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 			infrav1.SecurityGroupNode: {
 				ID: "1",
@@ -280,7 +291,7 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		ms.Machine.Spec.Version = aws.String("test")
 		ms.AWSMachine.Spec.Subnet = &infrav1.AWSResourceReference{ID: aws.String("subnet-1")}
 		ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateRunning
-		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
+		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 
 		ec2Svc := ec2Service.NewService(cs)
 		ec2Svc.EC2Client = ec2Mock
@@ -309,10 +320,11 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		mockCtrl = gomock.NewController(t)
 		ec2Mock := mocks.NewMockEC2API(mockCtrl)
 		elbMock := mocks.NewMockELBAPI(mockCtrl)
+		elbv2Mock := mocks.NewMockELBV2API(mockCtrl)
 
-		expect := func(m *mocks.MockEC2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
+		expect := func(m *mocks.MockEC2APIMockRecorder, ev2 *mocks.MockELBV2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedDescribeInstanceCalls(m)
-			mockedDeleteLBCalls(e)
+			mockedDeleteLBCalls(false, ev2, e)
 			m.TerminateInstances(
 				gomock.Eq(&ec2.TerminateInstancesInput{
 					InstanceIds: aws.StringSlice([]string{"id-1"}),
@@ -320,7 +332,7 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 			).
 				Return(nil, errors.New("Failed to delete instance"))
 		}
-		expect(ec2Mock.EXPECT(), elbMock.EXPECT())
+		expect(ec2Mock.EXPECT(), elbv2Mock.EXPECT(), elbMock.EXPECT())
 
 		ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("integ-test-%s", util.RandomString(5)))
 		g.Expect(err).To(BeNil())
@@ -338,11 +350,14 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}})
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
+		cs.AWSCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
+			LoadBalancerType: infrav1.LoadBalancerTypeClassic,
+		}
 		ms, err := getMachineScope(cs, awsMachine)
 		g.Expect(err).To(BeNil())
 
 		ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateRunning
-		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
+		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 		ms.AWSMachine.Spec.ProviderID = aws.String("aws:////myMachine")
 
 		ec2Svc := ec2Service.NewService(cs)
@@ -354,6 +369,7 @@ func TestAWSMachineReconciler_IntegrationTests(t *testing.T) {
 		elbSvc := elbService.NewService(cs)
 		elbSvc.EC2Client = ec2Mock
 		elbSvc.ELBClient = elbMock
+		elbSvc.ELBV2Client = elbv2Mock
 		reconciler.elbServiceFactory = func(scope scope.ELBScope) services.ELBInterface {
 			return elbSvc
 		}
@@ -384,7 +400,7 @@ func getMachineScope(cs *scope.ClusterScope, awsMachine *infrav1.AWSMachine) (*s
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.StringPtr("bootstrap-data"),
+						DataSecretName: pointer.String("bootstrap-data"),
 					},
 				},
 			},
@@ -509,6 +525,18 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 			},
 		},
 	})).Return(&ec2.DescribeInstancesOutput{}, nil)
+	m.DescribeInstanceTypes(gomock.Any()).
+		Return(&ec2.DescribeInstanceTypesOutput{
+			InstanceTypes: []*ec2.InstanceTypeInfo{
+				{
+					ProcessorInfo: &ec2.ProcessorInfo{
+						SupportedArchitectures: []*string{
+							aws.String("x86_64"),
+						},
+					},
+				},
+			},
+		}, nil)
 	m.DescribeImages(gomock.Eq(&ec2.DescribeImagesInput{
 		Filters: []*ec2.Filter{
 			{
@@ -565,8 +593,6 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 			},
 		},
 	}, nil)
-	m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-		Return(nil)
 	m.DescribeNetworkInterfaces(gomock.Eq(&ec2.DescribeNetworkInterfacesInput{Filters: []*ec2.Filter{
 		{
 			Name:   aws.String("attachment.instance-id"),
@@ -582,7 +608,7 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 					},
 				},
 			},
-		}}, nil).MaxTimes(2)
+		}}, nil).MaxTimes(3)
 	m.DescribeNetworkInterfaceAttribute(gomock.Eq(&ec2.DescribeNetworkInterfaceAttributeInput{
 		NetworkInterfaceId: aws.String("eni-1"),
 		Attribute:          aws.String("groupSet"),

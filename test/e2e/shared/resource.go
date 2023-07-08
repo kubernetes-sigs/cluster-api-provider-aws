@@ -27,20 +27,23 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/servicequotas"
 	"github.com/gofrs/flock"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/yaml"
 )
 
 type TestResource struct {
-	EC2Normal int `json:"ec2-normal"`
-	VPC       int `json:"vpc"`
-	EIP       int `json:"eip"`
-	IGW       int `json:"igw"`
-	NGW       int `json:"ngw"`
-	ClassicLB int `json:"classiclb"`
-	EC2GPU    int `json:"ec2-GPU"`
-	VolumeGP2 int `json:"volume-GP2"`
+	EC2Normal        int `json:"ec2-normal"`
+	VPC              int `json:"vpc"`
+	EIP              int `json:"eip"`
+	IGW              int `json:"igw"`
+	NGW              int `json:"ngw"`
+	ClassicLB        int `json:"classiclb"`
+	EC2GPU           int `json:"ec2-GPU"`
+	VolumeGP2        int `json:"volume-GP2"`
+	EventBridgeRules int `json:"eventBridge-rules"`
 }
 
 func WriteResourceQuotesToFile(logPath string, serviceQuotas map[string]*ServiceQuota) {
@@ -50,14 +53,15 @@ func WriteResourceQuotesToFile(logPath string, serviceQuotas map[string]*Service
 	}
 
 	resources := TestResource{
-		EC2Normal: serviceQuotas["ec2-normal"].Value,
-		VPC:       serviceQuotas["vpc"].Value,
-		EIP:       serviceQuotas["eip"].Value,
-		IGW:       serviceQuotas["igw"].Value,
-		NGW:       serviceQuotas["ngw"].Value,
-		ClassicLB: serviceQuotas["classiclb"].Value,
-		EC2GPU:    serviceQuotas["ec2-GPU"].Value,
-		VolumeGP2: serviceQuotas["volume-GP2"].Value,
+		EC2Normal:        serviceQuotas["ec2-normal"].Value,
+		VPC:              serviceQuotas["vpc"].Value,
+		EIP:              serviceQuotas["eip"].Value,
+		IGW:              serviceQuotas["igw"].Value,
+		NGW:              serviceQuotas["ngw"].Value,
+		ClassicLB:        serviceQuotas["classiclb"].Value,
+		EC2GPU:           serviceQuotas["ec2-GPU"].Value,
+		VolumeGP2:        serviceQuotas["volume-GP2"].Value,
+		EventBridgeRules: serviceQuotas["eventBridge-rules"].Value,
 	}
 	data, err := yaml.Marshal(resources)
 	Expect(err).NotTo(HaveOccurred())
@@ -66,8 +70,21 @@ func WriteResourceQuotesToFile(logPath string, serviceQuotas map[string]*Service
 	Expect(err).NotTo(HaveOccurred())
 }
 
+func WriteAWSResourceQuotesToFile(logPath string, serviceQuotas map[string]*servicequotas.ServiceQuota) {
+	if _, err := os.Stat(logPath); err == nil {
+		// If resource-quotas file exists, remove it. Should not fail on error, another ginkgo node might have already deleted it.
+		os.Remove(logPath)
+	}
+
+	data, err := yaml.Marshal(serviceQuotas)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = os.WriteFile(logPath, data, 0644) //nolint:gosec
+	Expect(err).NotTo(HaveOccurred())
+}
+
 func (r *TestResource) String() string {
-	return fmt.Sprintf("{ec2-normal:%v, vpc:%v, eip:%v, ngw:%v, igw:%v, classiclb:%v, ec2-GPU:%v, volume-gp2:%v}", r.EC2Normal, r.VPC, r.EIP, r.NGW, r.IGW, r.ClassicLB, r.EC2GPU, r.VolumeGP2)
+	return fmt.Sprintf("{ec2-normal:%v, vpc:%v, eip:%v, ngw:%v, igw:%v, classiclb:%v, ec2-GPU:%v, volume-gp2:%v, eventBridge-rules:%v}", r.EC2Normal, r.VPC, r.EIP, r.NGW, r.IGW, r.ClassicLB, r.EC2GPU, r.VolumeGP2, r.EventBridgeRules)
 }
 
 func (r *TestResource) WriteRequestedResources(e2eCtx *E2EContext, testName string) {
@@ -91,7 +108,7 @@ func (r *TestResource) WriteRequestedResources(e2eCtx *E2EContext, testName stri
 	err := fileLock.Lock()
 	Expect(err).NotTo(HaveOccurred())
 
-	requestedResources, err := os.ReadFile(requestedResourceFilePath) //nolint:gosec
+	requestedResources, err := os.ReadFile(requestedResourceFilePath)
 	Expect(err).NotTo(HaveOccurred())
 
 	resources := struct {
@@ -134,6 +151,9 @@ func (r *TestResource) doesSatisfy(request *TestResource) bool {
 	if request.VolumeGP2 != 0 && r.VolumeGP2 < request.VolumeGP2 {
 		return false
 	}
+	if request.EventBridgeRules != 0 && r.EventBridgeRules < request.EventBridgeRules {
+		return false
+	}
 	return true
 }
 
@@ -146,6 +166,7 @@ func (r *TestResource) acquire(request *TestResource) {
 	r.ClassicLB -= request.ClassicLB
 	r.EC2GPU -= request.EC2GPU
 	r.VolumeGP2 -= request.VolumeGP2
+	r.EventBridgeRules -= request.EventBridgeRules
 }
 
 func (r *TestResource) release(request *TestResource) {
@@ -157,6 +178,7 @@ func (r *TestResource) release(request *TestResource) {
 	r.ClassicLB += request.ClassicLB
 	r.EC2GPU += request.EC2GPU
 	r.VolumeGP2 += request.VolumeGP2
+	r.EventBridgeRules += request.EventBridgeRules
 }
 
 func AcquireResources(request *TestResource, nodeNum int, fileLock *flock.Flock) error {
@@ -169,10 +191,10 @@ func AcquireResources(request *TestResource, nodeNum int, fileLock *flock.Flock)
 		}
 	}()
 
-	Byf("Node %d acquiring resources: %s", nodeNum, request.String())
+	By(fmt.Sprintf("Node %d acquiring resources: %s", nodeNum, request.String()))
 	for range time.Tick(time.Second) { //nolint:staticcheck
 		if time.Now().After(timeoutAfter) {
-			Byf("Timeout reached for node %d", nodeNum)
+			By(fmt.Sprintf("Timeout reached for node %d", nodeNum))
 			break
 		}
 		err := fileLock.Lock()
@@ -198,7 +220,7 @@ func AcquireResources(request *TestResource, nodeNum int, fileLock *flock.Flock)
 			if err := os.WriteFile(ResourceQuotaFilePath, data, 0644); err != nil { //nolint:gosec
 				return err
 			}
-			Byf("Node %d acquired resources: %s", nodeNum, request.String())
+			By(fmt.Sprintf("Node %d acquired resources: %s", nodeNum, request.String()))
 			return nil
 		}
 		e2eDebugBy("Insufficient resources, retrying")
@@ -211,7 +233,7 @@ func AcquireResources(request *TestResource, nodeNum int, fileLock *flock.Flock)
 
 func e2eDebugBy(msg string) {
 	if os.Getenv("E2E_DEBUG") != "" {
-		Byf(msg)
+		By(msg)
 	}
 }
 
@@ -251,7 +273,7 @@ func ReleaseResources(request *TestResource, nodeNum int, fileLock *flock.Flock)
 		if err := os.WriteFile(ResourceQuotaFilePath, data, 0644); err != nil { //nolint:gosec
 			return err
 		}
-		Byf("Node %d released resources: %s", nodeNum, request.String())
+		By(fmt.Sprintf("Node %d released resources: %s", nodeNum, request.String()))
 		return nil
 	}
 	return errors.New("giving up on releasing resource due to timeout")

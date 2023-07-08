@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,28 +60,31 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")
 	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
 	Expect(input.Namespace).NotTo(BeNil(), "Invalid argument. input.Namespace can't be nil")
-	Expect(input.ClusterName).ShouldNot(HaveLen(0), "Invalid argument. input.ClusterName can't be empty")
+	Expect(input.ClusterName).ShouldNot(BeEmpty(), "Invalid argument. input.ClusterName can't be empty")
 
-	shared.Byf("creating an applying the %s template", input.Flavour)
+	ginkgo.By(fmt.Sprintf("creating an applying the %s template", input.Flavour))
 	configCluster := input.ConfigClusterFn(input.ClusterName, input.Namespace.Name)
 	configCluster.Flavor = input.Flavour
-	configCluster.ControlPlaneMachineCount = pointer.Int64Ptr(input.ControlPlaneMachineCount)
-	configCluster.WorkerMachineCount = pointer.Int64Ptr(input.WorkerMachineCount)
+	configCluster.ControlPlaneMachineCount = pointer.Int64(input.ControlPlaneMachineCount)
+	configCluster.WorkerMachineCount = pointer.Int64(input.WorkerMachineCount)
 	if input.KubernetesVersion != "" {
 		configCluster.KubernetesVersion = input.KubernetesVersion
 	}
 	err := shared.ApplyTemplate(ctx, configCluster, input.BootstrapClusterProxy)
 	Expect(err).ShouldNot(HaveOccurred())
 
-	shared.Byf("Waiting for the cluster to be provisioned")
+	ginkgo.By("Waiting for the cluster to be provisioned")
+	start := time.Now()
 	cluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 		Getter:    input.BootstrapClusterProxy.GetClient(),
 		Namespace: configCluster.Namespace,
 		Name:      configCluster.ClusterName,
 	}, input.E2EConfig.GetIntervals("", "wait-cluster")...)
+	duration := time.Since(start)
+	ginkgo.By(fmt.Sprintf("Finished waiting for cluster after: %s", duration))
 	Expect(cluster).NotTo(BeNil())
 
-	shared.Byf("Checking EKS cluster is active")
+	ginkgo.By("Checking EKS cluster is active")
 	eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName)
 	verifyClusterActiveAndOwned(eksClusterName, input.AWSSession)
 
@@ -93,17 +96,18 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 		VerifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, eksClusterName, false, input.AWSSession)
 	}
 
-	shared.Byf("Checking kubeconfig secrets exist")
+	ginkgo.By("Checking kubeconfig secrets exist")
 	bootstrapClient := input.BootstrapClusterProxy.GetClient()
 	verifySecretExists(ctx, fmt.Sprintf("%s-kubeconfig", input.ClusterName), input.Namespace.Name, bootstrapClient)
 	verifySecretExists(ctx, fmt.Sprintf("%s-user-kubeconfig", input.ClusterName), input.Namespace.Name, bootstrapClient)
 
-	time.Sleep(2 * time.Minute) //TODO: replace with an eventually on the aws-iam-auth check
-
-	shared.Byf("Checking that aws-iam-authenticator config map exists")
-	workloadClusterProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace.Name, input.ClusterName)
-	workloadClient := workloadClusterProxy.GetClient()
-	verifyConfigMapExists(ctx, "aws-auth", metav1.NamespaceSystem, workloadClient)
+	// this will not be created unless there are worker machines or set by IAMAuthenticatorConfig on the managed control plane spec
+	if input.WorkerMachineCount > 0 {
+		ginkgo.By("Checking that aws-iam-authenticator config map exists")
+		workloadClusterProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace.Name, input.ClusterName)
+		workloadClient := workloadClusterProxy.GetClient()
+		verifyConfigMapExists(ctx, "aws-auth", metav1.NamespaceSystem, workloadClient)
+	}
 }
 
 // DeleteClusterSpecInput is the input to DeleteClusterSpec.

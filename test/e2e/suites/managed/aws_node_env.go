@@ -21,15 +21,16 @@ package managed
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws/client"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
@@ -49,21 +50,21 @@ func CheckAwsNodeEnvVarsSet(ctx context.Context, inputGetter func() UpdateAwsNod
 	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")
 	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
 	Expect(input.Namespace).NotTo(BeNil(), "Invalid argument. input.Namespace can't be nil")
-	Expect(input.ClusterName).ShouldNot(HaveLen(0), "Invalid argument. input.ClusterName can't be empty")
+	Expect(input.ClusterName).ShouldNot(BeEmpty(), "Invalid argument. input.ClusterName can't be empty")
 
 	mgmtClient := input.BootstrapClusterProxy.GetClient()
 	controlPlaneName := getControlPlaneName(input.ClusterName)
 
-	shared.Byf("Getting control plane: %s", controlPlaneName)
+	By(fmt.Sprintf("Getting control plane: %s", controlPlaneName))
 	controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 	err := mgmtClient.Get(ctx, crclient.ObjectKey{Namespace: input.Namespace.Name, Name: controlPlaneName}, controlPlane)
 	Expect(err).ToNot(HaveOccurred())
 
-	shared.Byf("Checking environment variables are set on AWSManagedControlPlane: %s", controlPlaneName)
+	By(fmt.Sprintf("Checking environment variables are set on AWSManagedControlPlane: %s", controlPlaneName))
 	Expect(controlPlane.Spec.VpcCni.Env).NotTo(BeNil())
 	Expect(len(controlPlane.Spec.VpcCni.Env)).Should(BeNumerically(">", 1))
 
-	shared.Byf("Checking if aws-node has been updated with the defined environment variables on the workload cluster")
+	By("Checking if aws-node has been updated with the defined environment variables on the workload cluster")
 	daemonSet := &appsv1.DaemonSet{}
 
 	clusterClient := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace.Name, input.ClusterName).GetClient()

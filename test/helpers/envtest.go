@@ -30,7 +30,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/pkg/errors"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -184,6 +184,7 @@ func (t *TestEnvironmentConfiguration) Build() (*TestEnvironment, error) {
 		PollInterval:       time.Second,
 		ValidatingWebhooks: validatingWebhooks,
 		MutatingWebhooks:   mutatingWebhooks,
+		LocalServingHost:   "localhost",
 	}
 
 	if _, err := t.env.Start(); err != nil {
@@ -194,6 +195,7 @@ func (t *TestEnvironmentConfiguration) Build() (*TestEnvironment, error) {
 		Scheme:             scheme.Scheme,
 		MetricsBindAddress: "0",
 		CertDir:            t.env.WebhookInstallOptions.LocalServingCertDir,
+		Host:               t.env.WebhookInstallOptions.LocalServingHost,
 		Port:               t.env.WebhookInstallOptions.LocalServingPort,
 	}
 

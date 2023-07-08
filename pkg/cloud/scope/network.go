@@ -42,4 +42,7 @@ type NetworkScope interface {
 
 	// Bastion returns the bastion details for the cluster.
 	Bastion() *infrav1.Bastion
+
+	// TagUnmanagedNetworkResources returns is tagging unmanaged network resources is set.
+	TagUnmanagedNetworkResources() bool
 }

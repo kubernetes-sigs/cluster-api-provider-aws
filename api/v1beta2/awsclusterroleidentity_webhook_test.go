@@ -225,7 +225,7 @@ func TestAWSClusterRoleIdentityUpdateValidation(t *testing.T) {
 	}
 }
 
-func TestAWSClusterRoleIdentity_Default(t *testing.T) {
+func TestAWSClusterRoleIdentityDefault(t *testing.T) {
 	g := NewWithT(t)
 	tests := []struct {
 		name                         string
@@ -249,7 +249,7 @@ func TestAWSClusterRoleIdentity_Default(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "default",
 					Labels: map[string]string{
-						clusterv1.ClusterctlMoveHierarchyLabelName: "",
+						clusterv1.ClusterctlMoveHierarchyLabel: "",
 					},
 				},
 				Spec: AWSClusterRoleIdentitySpec{
@@ -266,7 +266,7 @@ func TestAWSClusterRoleIdentity_Default(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "default",
 					Labels: map[string]string{
-						clusterv1.ClusterctlMoveHierarchyLabelName: "abc",
+						clusterv1.ClusterctlMoveHierarchyLabel: "abc",
 					},
 				},
 				Spec: AWSClusterRoleIdentitySpec{
@@ -280,7 +280,7 @@ func TestAWSClusterRoleIdentity_Default(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "default",
 					Labels: map[string]string{
-						clusterv1.ClusterctlMoveHierarchyLabelName: "abc",
+						clusterv1.ClusterctlMoveHierarchyLabel: "abc",
 					},
 				},
 				Spec: AWSClusterRoleIdentitySpec{
@@ -299,7 +299,7 @@ func TestAWSClusterRoleIdentity_Default(t *testing.T) {
 			awsClusterRoleIdentity := tt.beforeAWSClusterRoleIdentity.DeepCopy()
 			g.Expect(testEnv.Create(ctx, awsClusterRoleIdentity)).To(Succeed())
 			g.Expect(len(awsClusterRoleIdentity.ObjectMeta.Labels)).To(Not(Equal(0)))
-			g.Expect(awsClusterRoleIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabelName]).To(Equal(tt.afterAWSClusterRoleIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabelName]))
+			g.Expect(awsClusterRoleIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabel]).To(Equal(tt.afterAWSClusterRoleIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabel]))
 			g.Expect(testEnv.Delete(ctx, awsClusterRoleIdentity)).To(Succeed())
 		})
 	}

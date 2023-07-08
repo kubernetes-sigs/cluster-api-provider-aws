@@ -17,7 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
-	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -27,10 +27,14 @@ import (
 const (
 	// DefaultBootstrapUserName is the default bootstrap user name.
 	DefaultBootstrapUserName = "bootstrapper.cluster-api-provider-aws.sigs.k8s.io"
+	// DefaultBootstrapGroupName is the default bootstrap user name.
+	DefaultBootstrapGroupName = "bootstrapper.cluster-api-provider-aws.sigs.k8s.io"
 	// DefaultStackName is the default CloudFormation stack name.
 	DefaultStackName = "cluster-api-provider-aws-sigs-k8s-io"
 	// DefaultPartitionName is the default security partition for AWS ARNs.
 	DefaultPartitionName = "aws"
+	// PartitionNameUSGov is the default security partition for AWS ARNs.
+	PartitionNameUSGov = "aws-us-gov"
 	// DefaultKMSAliasPattern is the default KMS alias.
 	DefaultKMSAliasPattern = "cluster-api-provider-aws-*"
 	// DefaultS3BucketPrefix is the default S3 bucket prefix.
@@ -43,15 +47,20 @@ func addDefaultingFuncs(scheme *runtime.Scheme) error {
 
 // SetDefaults_BootstrapUser is used by defaulter-gen.
 func SetDefaults_BootstrapUser(obj *BootstrapUser) { //nolint:golint,stylecheck
-	if obj != nil && obj.UserName == "" {
-		obj.UserName = DefaultBootstrapUserName
+	if obj != nil {
+		if obj.UserName == "" {
+			obj.UserName = DefaultBootstrapUserName
+		}
+		if obj.GroupName == "" {
+			obj.GroupName = DefaultBootstrapGroupName
+		}
 	}
 }
 
 // SetDefaults_AWSIAMConfigurationSpec is used by defaulter-gen.
 func SetDefaults_AWSIAMConfigurationSpec(obj *AWSIAMConfigurationSpec) { //nolint:golint,stylecheck
 	if obj.NameSuffix == nil {
-		obj.NameSuffix = pointer.StringPtr(iamv1.DefaultNameSuffix)
+		obj.NameSuffix = pointer.String(iamv1.DefaultNameSuffix)
 	}
 	if obj.Partition == "" {
 		obj.Partition = DefaultPartitionName
@@ -104,7 +113,7 @@ func SetDefaults_AWSIAMConfiguration(obj *AWSIAMConfiguration) { //nolint:golint
 	obj.APIVersion = SchemeGroupVersion.String()
 	obj.Kind = "AWSIAMConfiguration"
 	if obj.Spec.NameSuffix == nil {
-		obj.Spec.NameSuffix = pointer.StringPtr(iamv1.DefaultNameSuffix)
+		obj.Spec.NameSuffix = pointer.String(iamv1.DefaultNameSuffix)
 	}
 	if obj.Spec.StackName == "" {
 		obj.Spec.StackName = DefaultStackName

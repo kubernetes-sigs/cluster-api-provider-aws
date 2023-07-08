@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.10.0
+    controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
   name: awsclusters.infrastructure.cluster.x-k8s.io
 spec:
@@ -425,8 +425,8 @@ spec:
                           description: The machine address.
                           type: string
                         type:
-                          description: Machine address type, one of Hostname, ExternalIP
-                            or InternalIP.
+                          description: Machine address type, one of Hostname, ExternalIP,
+                            InternalIP, ExternalDNS or InternalDNS.
                           type: string
                       required:
                       - address
@@ -984,9 +984,103 @@ spec:
                       registered instances in its Availability Zone only. \n Defaults
                       to false."
                     type: boolean
+                  disableHostsRewrite:
+                    description: DisableHostsRewrite disabled the hair pinning issue
+                      solution that adds the NLB's address as 127.0.0.1 to the hosts
+                      file of each instance. This is by default, false.
+                    type: boolean
                   healthCheckProtocol:
-                    description: HealthCheckProtocol sets the protocol type for classic
-                      ELB health check target default value is ClassicELBProtocolSSL
+                    description: HealthCheckProtocol sets the protocol type for ELB
+                      health check target default value is ELBProtocolSSL
+                    enum:
+                    - TCP
+                    - SSL
+                    - HTTP
+                    - HTTPS
+                    - TLS
+                    - UDP
+                    type: string
+                  ingressRules:
+                    description: IngressRules sets the ingress rules for the control
+                      plane load balancer.
+                    items:
+                      description: IngressRule defines an AWS ingress rule for security
+                        groups.
+                      properties:
+                        cidrBlocks:
+                          description: List of CIDR blocks to allow access from. Cannot
+                            be specified with SourceSecurityGroupID.
+                          items:
+                            type: string
+                          type: array
+                        description:
+                          description: Description provides extended information about
+                            the ingress rule.
+                          type: string
+                        fromPort:
+                          description: FromPort is the start of port range.
+                          format: int64
+                          type: integer
+                        ipv6CidrBlocks:
+                          description: List of IPv6 CIDR blocks to allow access from.
+                            Cannot be specified with SourceSecurityGroupID.
+                          items:
+                            type: string
+                          type: array
+                        protocol:
+                          description: Protocol is the protocol for the ingress rule.
+                            Accepted values are "-1" (all), "4" (IP in IP),"tcp",
+                            "udp", "icmp", and "58" (ICMPv6).
+                          enum:
+                          - "-1"
+                          - "4"
+                          - tcp
+                          - udp
+                          - icmp
+                          - "58"
+                          type: string
+                        sourceSecurityGroupIds:
+                          description: The security group id to allow access from.
+                            Cannot be specified with CidrBlocks.
+                          items:
+                            type: string
+                          type: array
+                        sourceSecurityGroupRoles:
+                          description: The security group role to allow access from.
+                            Cannot be specified with CidrBlocks. The field will be
+                            combined with source security group IDs if specified.
+                          items:
+                            description: SecurityGroupRole defines the unique role
+                              of a security group.
+                            enum:
+                            - bastion
+                            - node
+                            - controlplane
+                            - apiserver-lb
+                            - lb
+                            - node-eks-additional
+                            type: string
+                          type: array
+                        toPort:
+                          description: ToPort is the end of port range.
+                          format: int64
+                          type: integer
+                      required:
+                      - description
+                      - fromPort
+                      - protocol
+                      - toPort
+                      type: object
+                    type: array
+                  loadBalancerType:
+                    default: classic
+                    description: LoadBalancerType sets the type for a load balancer.
+                      The default type is classic.
+                    enum:
+                    - classic
+                    - elb
+                    - alb
+                    - nlb
                     type: string
                   name:
                     description: Name sets the name of the classic ELB load balancer.
@@ -997,6 +1091,11 @@ spec:
                     maxLength: 32
                     pattern: ^[A-Za-z0-9]([A-Za-z0-9]{0,31}|[-A-Za-z0-9]{0,30}[A-Za-z0-9])$
                     type: string
+                  preserveClientIP:
+                    description: PreserveClientIP lets the user control if preservation
+                      of client ips must be retained or not. If this is enabled 6443
+                      will be opened to 0.0.0.0/0.
+                    type: boolean
                   scheme:
                     default: internet-facing
                     description: Scheme sets the scheme of the load balancer (defaults
@@ -1222,6 +1321,10 @@ spec:
                         type: object
                     type: object
                 type: object
+              partition:
+                description: Partition is the AWS security partition being used. Defaults
+                  to "aws"
+                type: string
               region:
                 description: The AWS Region the cluster lives in.
                 type: string
@@ -1276,8 +1379,8 @@ spec:
                           description: The machine address.
                           type: string
                         type:
-                          description: Machine address type, one of Hostname, ExternalIP
-                            or InternalIP.
+                          description: Machine address type, one of Hostname, ExternalIP,
+                            InternalIP, ExternalDNS or InternalDNS.
                           type: string
                       required:
                       - address
@@ -1304,6 +1407,59 @@ spec:
                   imageId:
                     description: The ID of the AMI used to launch the instance.
                     type: string
+                  instanceMetadataOptions:
+                    description: InstanceMetadataOptions is the metadata options for
+                      the EC2 instance.
+                    properties:
+                      httpEndpoint:
+                        default: enabled
+                        description: "Enables or disables the HTTP metadata endpoint
+                          on your instances. \n If you specify a value of disabled,
+                          you cannot access your instance metadata. \n Default: enabled"
+                        enum:
+                        - enabled
+                        - disabled
+                        type: string
+                      httpPutResponseHopLimit:
+                        default: 1
+                        description: "The desired HTTP PUT response hop limit for
+                          instance metadata requests. The larger the number, the further
+                          instance metadata requests can travel. \n Default: 1"
+                        format: int64
+                        maximum: 64
+                        minimum: 1
+                        type: integer
+                      httpTokens:
+                        default: optional
+                        description: "The state of token usage for your instance metadata
+                          requests. \n If the state is optional, you can choose to
+                          retrieve instance metadata with or without a session token
+                          on your request. If you retrieve the IAM role credentials
+                          without a token, the version 1.0 role credentials are returned.
+                          If you retrieve the IAM role credentials using a valid session
+                          token, the version 2.0 role credentials are returned. \n
+                          If the state is required, you must send a session token
+                          with any instance metadata retrieval requests. In this state,
+                          retrieving the IAM role credentials always returns the version
+                          2.0 credentials; the version 1.0 credentials are not available.
+                          \n Default: optional"
+                        enum:
+                        - optional
+                        - required
+                        type: string
+                      instanceMetadataTags:
+                        default: disabled
+                        description: "Set to enabled to allow access to instance tags
+                          from the instance metadata. Set to disabled to turn off
+                          access to instance tags from the instance metadata. For
+                          more information, see Work with instance tags using the
+                          instance metadata (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#work-with-tags-in-IMDS).
+                          \n Default: disabled"
+                        enum:
+                        - enabled
+                        - disabled
+                        type: string
+                    type: object
                   instanceState:
                     description: The current state of the instance.
                     type: string
@@ -1357,6 +1513,10 @@ spec:
                       - size
                       type: object
                     type: array
+                  placementGroupName:
+                    description: PlacementGroupName specifies the name of the placement
+                      group in which to launch the instance.
+                    type: string
                   privateIp:
                     description: The private IPv4 address assigned to the instance.
                     type: string
@@ -1520,12 +1680,15 @@ spec:
                 description: NetworkStatus encapsulates AWS networking resources.
                 properties:
                   apiServerElb:
-                    description: APIServerELB is the Kubernetes api server classic
-                      load balancer.
+                    description: APIServerELB is the Kubernetes api server load balancer.
                     properties:
+                      arn:
+                        description: ARN of the load balancer. Unlike the ClassicLB,
+                          ARN is used mostly to define and get it.
+                        type: string
                       attributes:
-                        description: Attributes defines extra attributes associated
-                          with the load balancer.
+                        description: ClassicElbAttributes defines extra attributes
+                          associated with the load balancer.
                         properties:
                           crossZoneLoadBalancing:
                             description: CrossZoneLoadBalancing enables the classic
@@ -1547,6 +1710,84 @@ spec:
                       dnsName:
                         description: DNSName is the dns name of the load balancer.
                         type: string
+                      elbAttributes:
+                        additionalProperties:
+                          type: string
+                        description: ELBAttributes defines extra attributes associated
+                          with v2 load balancers.
+                        type: object
+                      elbListeners:
+                        description: ELBListeners is an array of listeners associated
+                          with the load balancer. There must be at least one.
+                        items:
+                          description: Listener defines an AWS network load balancer
+                            listener.
+                          properties:
+                            port:
+                              format: int64
+                              type: integer
+                            protocol:
+                              description: ELBProtocol defines listener protocols
+                                for a load balancer.
+                              type: string
+                            targetGroup:
+                              description: TargetGroupSpec specifies target group
+                                settings for a given listener. This is created first,
+                                and the ARN is then passed to the listener.
+                              properties:
+                                name:
+                                  description: Name of the TargetGroup. Must be unique
+                                    over the same group of listeners.
+                                  type: string
+                                port:
+                                  description: Port is the exposed port
+                                  format: int64
+                                  type: integer
+                                protocol:
+                                  description: ELBProtocol defines listener protocols
+                                    for a load balancer.
+                                  enum:
+                                  - tcp
+                                  - tls
+                                  - udp
+                                  - TCP
+                                  - TLS
+                                  - UDP
+                                  type: string
+                                targetGroupHealthCheck:
+                                  description: HealthCheck is the elb health check
+                                    associated with the load balancer.
+                                  properties:
+                                    intervalSeconds:
+                                      format: int64
+                                      type: integer
+                                    path:
+                                      type: string
+                                    port:
+                                      type: string
+                                    protocol:
+                                      type: string
+                                    thresholdCount:
+                                      format: int64
+                                      type: integer
+                                    timeoutSeconds:
+                                      format: int64
+                                      type: integer
+                                  type: object
+                                vpcId:
+                                  type: string
+                              required:
+                              - name
+                              - port
+                              - protocol
+                              - vpcId
+                              type: object
+                          required:
+                          - port
+                          - protocol
+                          - targetGroup
+                          type: object
+                        type: array
                       healthChecks:
                         description: HealthCheck is the classic elb health check associated
                           with the load balancer.
@@ -1581,9 +1822,9 @@ spec:
                         - unhealthyThreshold
                         type: object
                       listeners:
-                        description: Listeners is an array of classic elb listeners
-                          associated with the load balancer. There must be at least
-                          one.
+                        description: ClassicELBListeners is an array of classic elb
+                          listeners associated with the load balancer. There must
+                          be at least one.
                         items:
                           description: ClassicELBListener defines an AWS classic load
                             balancer listener.
@@ -1592,15 +1833,15 @@ spec:
                               format: int64
                               type: integer
                             instanceProtocol:
-                              description: ClassicELBProtocol defines listener protocols
-                                for a classic load balancer.
+                              description: ELBProtocol defines listener protocols
+                                for a load balancer.
                               type: string
                             port:
                               format: int64
                               type: integer
                             protocol:
-                              description: ClassicELBProtocol defines listener protocols
-                                for a classic load balancer.
+                              description: ELBProtocol defines listener protocols
+                                for a load balancer.
                               type: string
                           required:
                           - instancePort
@@ -1609,6 +1850,15 @@ spec:
                           - protocol
                           type: object
                         type: array
+                      loadBalancerType:
+                        description: LoadBalancerType sets the type for a load balancer.
+                          The default type is classic.
+                        enum:
+                        - classic
+                        - elb
+                        - alb
+                        - nlb
+                        type: string
                       name:
                         description: The name of the load balancer. It must be unique
                           within the set of load balancers defined in the region.
@@ -1658,8 +1908,11 @@ spec:
                                   type: string
                                 type: array
                               description:
+                                description: Description provides extended information
+                                  about the ingress rule.
                                 type: string
                               fromPort:
+                                description: FromPort is the start of port range.
                                 format: int64
                                 type: integer
                               ipv6CidrBlocks:
@@ -1669,8 +1922,16 @@ spec:
                                   type: string
                                 type: array
                               protocol:
-                                description: SecurityGroupProtocol defines the protocol
-                                  type for a security group rule.
+                                description: Protocol is the protocol for the ingress
+                                  rule. Accepted values are "-1" (all), "4" (IP in
+                                  IP),"tcp", "udp", "icmp", and "58" (ICMPv6).
+                                enum:
+                                - "-1"
+                                - "4"
+                                - tcp
+                                - udp
+                                - icmp
+                                - "58"
                                 type: string
                               sourceSecurityGroupIds:
                                 description: The security group id to allow access
@@ -1678,7 +1939,25 @@ spec:
                                 items:
                                   type: string
                                 type: array
+                              sourceSecurityGroupRoles:
+                                description: The security group role to allow access
+                                  from. Cannot be specified with CidrBlocks. The field
+                                  will be combined with source security group IDs
+                                  if specified.
+                                items:
+                                  description: SecurityGroupRole defines the unique
+                                    role of a security group.
+                                  enum:
+                                  - bastion
+                                  - node
+                                  - controlplane
+                                  - apiserver-lb
+                                  - lb
+                                  - node-eks-additional
+                                  type: string
+                                type: array
                               toPort:
+                                description: ToPort is the end of port range.
                                 format: int64
                                 type: integer
                             required:

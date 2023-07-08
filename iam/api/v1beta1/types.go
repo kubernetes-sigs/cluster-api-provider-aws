@@ -82,9 +82,9 @@ const (
 // PolicyDocument represents an AWS IAM policy document, and can be
 // converted into JSON using "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/converters".
 type PolicyDocument struct {
-	Version   string
-	Statement Statements
-	ID        string `json:"Id,omitempty"`
+	Version   string     `json:"Version,omitempty"`
+	Statement Statements `json:"Statement,omitempty"`
+	ID        string     `json:"Id,omitempty"`
 }
 
 // StatementEntry represents each "statement" block in an AWS IAM policy document.

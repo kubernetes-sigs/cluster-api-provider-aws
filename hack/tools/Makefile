@@ -19,6 +19,7 @@ UNAME := $(shell uname -s)
 
 # Directories.
 BIN_DIR := bin
+BIN_DIR_ABS := $(abspath $(BIN_DIR))
 SHARE_DIR := share
 
 OS := $(shell go env GOOS)
@@ -44,6 +45,7 @@ ifeq ($(OS), windows)
 	MDBOOK_EXTRACT_COMMAND := unzip -d /tmp
 endif
 
+GOLANGCI_LINT_VERSION := v1.52.2
 ## --------------------------------------
 ## Tooling Binaries
 ## --------------------------------------
@@ -106,17 +108,9 @@ $(GH): $(GTAR) $(GH_SHARE)/gh.tar.gz
 	chmod +x $@
 	touch -m $@
 
-GINKGO := $(BIN_DIR)/ginkgo
-$(GINKGO): $(BIN_DIR) go.mod go.sum
-	go build -tags=tools -o $@ github.com/onsi/ginkgo/ginkgo
-
 GOJQ := $(BIN_DIR)/gojq
 $(GOJQ): $(BIN_DIR) go.mod go.sum
 	go build -tags=tools -o $@ github.com/itchyny/gojq/cmd/gojq
-
-GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
-$(GOLANGCI_LINT): $(BIN_DIR) go.mod go.sum # Build golangci-lint from tools folder.
-	go build -tags=tools -o $@ github.com/golangci/golangci-lint/cmd/golangci-lint
 
 KIND := $(BIN_DIR)/kind
 $(KIND): $(BIN_DIR) go.mod go.sum
@@ -156,6 +150,26 @@ PLANTUML := $(BIN_DIR)/plantuml-sentinal
 $(PLANTUML): plantuml.Dockerfile ../../versions.mk
 	docker build --build-arg PLANTUML_VERSION=$(PLANTUML_VERSION)  . -f plantuml.Dockerfile -t "plantuml-builder"
 	touch $@
+
+KPROMO_BIN := kpromo
+KPROMO :=  $(BIN_DIR)/$(KPROMO_BIN)
+$(KPROMO):
+	CGO_ENABLED=0 go build -o $@ sigs.k8s.io/promo-tools/v3/cmd/kpromo
+
+YQ_BIN := yq
+YQ :=  $(BIN_DIR)/$(YQ_BIN)
+$(YQ):
+	CGO_ENABLED=0 go build -tags=tools -o $@ github.com/mikefarah/yq/v4
+
+GOLANGCI_LINT_BIN := golangci-lint
+GOLANGCI_LINT := $(BIN_DIR)/$(GOLANGCI_LINT_BIN)
+GOLANGCI_LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint
+.PHONY: $(GOLANGCI_LINT_BIN)
+$(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint.
+
+$(GOLANGCI_LINT): # Build golangci-lint from tools folder.
+	GOBIN=$(abspath $(BIN_DIR)) go install $(GOLANGCI_LINT_PKG)@$(GOLANGCI_LINT_VERSION)
+
 
 ## ------------------------------------------------------------------------------------------------
 ## AWS Session Manager Plugin Installation. Currently support Linux and MacOS AMD64 architectures.

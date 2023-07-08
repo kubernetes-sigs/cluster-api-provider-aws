@@ -153,6 +153,21 @@ func (mr *MockASGInterfaceMockRecorder) StartASGInstanceRefresh(arg0 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartASGInstanceRefresh", reflect.TypeOf((*MockASGInterface)(nil).StartASGInstanceRefresh), arg0)
 }
 
+// SubnetIDs mocks base method.
+func (m *MockASGInterface) SubnetIDs(arg0 *scope.MachinePoolScope) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SubnetIDs", arg0)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SubnetIDs indicates an expected call of SubnetIDs.
+func (mr *MockASGInterfaceMockRecorder) SubnetIDs(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubnetIDs", reflect.TypeOf((*MockASGInterface)(nil).SubnetIDs), arg0)
+}
+
 // SuspendProcesses mocks base method.
 func (m *MockASGInterface) SuspendProcesses(arg0 string, arg1 []string) error {
 	m.ctrl.T.Helper()

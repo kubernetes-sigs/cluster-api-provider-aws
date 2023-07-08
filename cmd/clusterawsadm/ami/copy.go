@@ -57,7 +57,7 @@ func Copy(input CopyInput) (*amiv1.AWSAMI, error) {
 	}
 	ec2Client := ec2.New(sourceSession)
 
-	image, err := ec2service.DefaultAMILookup(ec2Client, input.OwnerID, input.OperatingSystem, input.KubernetesVersion, "")
+	image, err := ec2service.DefaultAMILookup(ec2Client, input.OwnerID, input.OperatingSystem, input.KubernetesVersion, ec2service.Amd64ArchitectureTag, "")
 	if err != nil {
 		return nil, err
 	}

@@ -23,7 +23,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 
@@ -109,6 +109,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				ClusterName:           clusterName,
 				AddonName:             corednsAddonName,
 				AddonVersion:          e2eCtx.E2EConfig.GetVariable(shared.CorednsAddonVersion),
+				AddonConfiguration:    e2eCtx.E2EConfig.GetVariable(shared.CorednsAddonConfiguration),
 			}
 		})
 
@@ -176,7 +177,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 			}
 		})
 
-		shared.Byf("getting cluster with name %s", clusterName)
+		ginkgo.By(fmt.Sprintf("getting cluster with name %s", clusterName))
 		cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
 			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Namespace: namespace.Name,

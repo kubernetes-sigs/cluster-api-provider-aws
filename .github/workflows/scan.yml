@@ -1,0 +1,23 @@
+name: scan-images
+
+on:
+  schedule:
+    # every Monday at 12:00AM
+    - cron: "0 12 * * 1"
+
+# Remove all permissions from GITHUB_TOKEN except metadata.
+permissions: {}
+
+jobs:
+  scan:
+    name: Trivy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3.5.3
+      - name: Setup go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.19
+      - name: Run verify container script
+        run: make verify-container-images

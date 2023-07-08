@@ -289,6 +289,20 @@ func (mr *MockEC2InterfaceMockRecorder) LaunchTemplateNeedsUpdate(arg0, arg1, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LaunchTemplateNeedsUpdate", reflect.TypeOf((*MockEC2Interface)(nil).LaunchTemplateNeedsUpdate), arg0, arg1, arg2)
 }
 
+// ModifyInstanceMetadataOptions mocks base method.
+func (m *MockEC2Interface) ModifyInstanceMetadataOptions(arg0 string, arg1 *v1beta2.InstanceMetadataOptions) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ModifyInstanceMetadataOptions", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ModifyInstanceMetadataOptions indicates an expected call of ModifyInstanceMetadataOptions.
+func (mr *MockEC2InterfaceMockRecorder) ModifyInstanceMetadataOptions(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyInstanceMetadataOptions", reflect.TypeOf((*MockEC2Interface)(nil).ModifyInstanceMetadataOptions), arg0, arg1)
+}
+
 // PruneLaunchTemplateVersions mocks base method.
 func (m *MockEC2Interface) PruneLaunchTemplateVersions(arg0 string) error {
 	m.ctrl.T.Helper()

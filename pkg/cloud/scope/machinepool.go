@@ -225,7 +225,7 @@ func (m *MachinePoolScope) SetAnnotation(key, value string) {
 
 // SetFailureMessage sets the AWSMachine status failure message.
 func (m *MachinePoolScope) SetFailureMessage(v error) {
-	m.AWSMachinePool.Status.FailureMessage = pointer.StringPtr(v.Error())
+	m.AWSMachinePool.Status.FailureMessage = pointer.String(v.Error())
 }
 
 // SetFailureReason sets the AWSMachine status failure reason.

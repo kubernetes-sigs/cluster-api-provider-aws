@@ -85,11 +85,12 @@ func TestReconcileVPC(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name    string
-		input   *infrav1.VPCSpec
-		want    *infrav1.VPCSpec
-		expect  func(m *mocks.MockEC2APIMockRecorder)
-		wantErr bool
+		name           string
+		input          *infrav1.VPCSpec
+		want           *infrav1.VPCSpec
+		additionalTags map[string]string
+		expect         func(m *mocks.MockEC2APIMockRecorder)
+		wantErr        bool
 	}{
 		{
 			name:  "Should update tags with aws VPC resource tags, if managed vpc exists",
@@ -128,6 +129,71 @@ func TestReconcileVPC(t *testing.T) {
 					},
 				}, nil)
 
+				m.DescribeVpcAttribute(gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
+					DoAndReturn(describeVpcAttributeTrue).AnyTimes()
+			},
+		},
+		{
+			// I need additional tags in scope and make sure they are applied
+			name:  "Should ensure tags after creation remain the same",
+			input: &infrav1.VPCSpec{ID: "vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
+			additionalTags: map[string]string{
+				"additional": "tags",
+			},
+			want: &infrav1.VPCSpec{
+				ID:        "vpc-exists",
+				CidrBlock: "10.0.0.0/8",
+				Tags: map[string]string{
+					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
+					"Name": "test-cluster-vpc",
+					"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster": "owned",
+				},
+				AvailabilityZoneUsageLimit: &usageLimit,
+				AvailabilityZoneSelection:  &selection,
+			},
+			wantErr: false,
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
+					VpcIds: []*string{
+						aws.String("vpc-exists"),
+					},
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: aws.StringSlice([]string{ec2.VpcStatePending, ec2.VpcStateAvailable}),
+						},
+					},
+				})).Return(&ec2.DescribeVpcsOutput{
+					Vpcs: []*ec2.Vpc{
+						{
+							State:     aws.String("available"),
+							VpcId:     aws.String("vpc-exists"),
+							CidrBlock: aws.String("10.0.0.0/8"),
+							Tags:      tags,
+						},
+					},
+				}, nil)
+				m.CreateTags(&ec2.CreateTagsInput{
+					Resources: aws.StringSlice([]string{"vpc-exists"}),
+					Tags: []*ec2.Tag{
+						{
+							Key:   aws.String("Name"),
+							Value: aws.String("test-cluster-vpc"),
+						},
+						{
+							Key:   aws.String("additional"),
+							Value: aws.String("tags"),
+						},
+						{
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+							Value: aws.String("owned"),
+						},
+						{
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+							Value: aws.String("common"),
+						},
+					},
+				})
 				m.DescribeVpcAttribute(gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
 					DoAndReturn(describeVpcAttributeTrue).AnyTimes()
 			},
@@ -351,15 +417,17 @@ func TestReconcileVPC(t *testing.T) {
 			},
 		},
 		{
-			name:  "should set up IPv6 associations if found VPC is IPv6 enabled",
-			input: &infrav1.VPCSpec{ID: "unmanaged-vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
+			name: "should set up IPv6 associations if found VPC is IPv6 enabled",
+			input: &infrav1.VPCSpec{
+				ID:                         "unmanaged-vpc-exists",
+				IPv6:                       &infrav1.IPv6{},
+				AvailabilityZoneUsageLimit: &usageLimit,
+				AvailabilityZoneSelection:  &selection,
+			},
 			want: &infrav1.VPCSpec{
 				ID:        "unmanaged-vpc-exists",
 				CidrBlock: "10.0.0.0/8",
-				Tags: map[string]string{
-					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
-					"Name": "test-cluster-vpc",
-				},
+				Tags:      nil,
 				IPv6: &infrav1.IPv6{
 					PoolID:    "my-pool",
 					CidrBlock: "2001:db8:1234:1a03::/56",
@@ -382,16 +450,6 @@ func TestReconcileVPC(t *testing.T) {
 										State: aws.String(ec2.SubnetCidrBlockStateCodeAssociated),
 									},
 									Ipv6Pool: aws.String("my-pool"),
-								},
-							},
-							Tags: []*ec2.Tag{
-								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-									Value: aws.String("common"),
-								},
-								{
-									Key:   aws.String("Name"),
-									Value: aws.String("test-cluster-vpc"),
 								},
 							},
 						},
@@ -421,12 +479,9 @@ func TestReconcileVPC(t *testing.T) {
 			name:  "Should patch vpc spec successfully, if unmanaged vpc exists",
 			input: &infrav1.VPCSpec{ID: "unmanaged-vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
 			want: &infrav1.VPCSpec{
-				ID:        "unmanaged-vpc-exists",
-				CidrBlock: "10.0.0.0/8",
-				Tags: map[string]string{
-					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
-					"Name": "test-cluster-vpc",
-				},
+				ID:                         "unmanaged-vpc-exists",
+				CidrBlock:                  "10.0.0.0/8",
+				Tags:                       nil,
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
 			},
@@ -437,16 +492,6 @@ func TestReconcileVPC(t *testing.T) {
 							State:     aws.String("available"),
 							VpcId:     aws.String("unmanaged-vpc-exists"),
 							CidrBlock: aws.String("10.0.0.0/8"),
-							Tags: []*ec2.Tag{
-								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-									Value: aws.String("common"),
-								},
-								{
-									Key:   aws.String("Name"),
-									Value: aws.String("test-cluster-vpc"),
-								},
-							},
 						},
 					},
 				}, nil)
@@ -564,7 +609,7 @@ func TestReconcileVPC(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			clusterScope, err := getClusterScope(tc.input)
+			clusterScope, err := getClusterScope(tc.input, tc.additionalTags)
 			g.Expect(err).NotTo(HaveOccurred())
 			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock.EXPECT())
@@ -592,10 +637,11 @@ func TestDeleteVPC(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name    string
-		input   *infrav1.VPCSpec
-		wantErr bool
-		expect  func(m *mocks.MockEC2APIMockRecorder)
+		name           string
+		input          *infrav1.VPCSpec
+		additionalTags map[string]string
+		wantErr        bool
+		expect         func(m *mocks.MockEC2APIMockRecorder)
 	}{
 		{
 			name:  "Should not delete vpc if vpc is unmanaged",
@@ -643,7 +689,7 @@ func TestDeleteVPC(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 			ec2Mock := mocks.NewMockEC2API(mockCtrl)
-			clusterScope, err := getClusterScope(tc.input)
+			clusterScope, err := getClusterScope(tc.input, tc.additionalTags)
 			g.Expect(err).NotTo(HaveOccurred())
 			if tc.expect != nil {
 				tc.expect(ec2Mock.EXPECT())
@@ -661,7 +707,7 @@ func TestDeleteVPC(t *testing.T) {
 	}
 }
 
-func getClusterScope(vpcSpec *infrav1.VPCSpec) (*scope.ClusterScope, error) {
+func getClusterScope(vpcSpec *infrav1.VPCSpec, additionalTags map[string]string) (*scope.ClusterScope, error) {
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
@@ -671,6 +717,7 @@ func getClusterScope(vpcSpec *infrav1.VPCSpec) (*scope.ClusterScope, error) {
 			NetworkSpec: infrav1.NetworkSpec{
 				VPC: *vpcSpec,
 			},
+			AdditionalTags: additionalTags,
 		},
 	}
 	client.Create(context.TODO(), awsCluster)

@@ -41,8 +41,8 @@ func TestAWSClusterDefault(t *testing.T) {
 	g.Expect(cluster.Spec.IdentityRef).NotTo(BeNil())
 }
 
-func TestAWSCluster_ValidateCreate(t *testing.T) {
-	unsupportedIncorrectScheme := ClassicELBScheme("any-other-scheme")
+func TestAWSClusterValidateCreate(t *testing.T) {
+	unsupportedIncorrectScheme := ELBScheme("any-other-scheme")
 
 	tests := []struct {
 		name    string
@@ -52,7 +52,7 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 	}{
 		// The SSHKeyName tests were moved to sshkeyname_test.go
 		{
-			name: "Supported schemes are 'internet-facing, internal, or nil', rest will be rejected",
+			name: "Supported schemes are 'internet-facing, Internet-facing, internal, or nil', rest will be rejected",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{Scheme: &unsupportedIncorrectScheme},
@@ -251,6 +251,90 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "rejects ingress rules with cidr block and source security group id",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						IngressRules: []IngressRule{
+							{
+								Protocol:               SecurityGroupProtocolTCP,
+								CidrBlocks:             []string{"test"},
+								SourceSecurityGroupIDs: []string{"test"},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects ingress rules with cidr block and source security group id and role",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						IngressRules: []IngressRule{
+							{
+								Protocol:                 SecurityGroupProtocolTCP,
+								IPv6CidrBlocks:           []string{"test"},
+								SourceSecurityGroupIDs:   []string{"test"},
+								SourceSecurityGroupRoles: []SecurityGroupRole{SecurityGroupBastion},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "accepts ingress rules with cidr block",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						IngressRules: []IngressRule{
+							{
+								Protocol:   SecurityGroupProtocolTCP,
+								CidrBlocks: []string{"test"},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "accepts ingress rules with source security group role",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						IngressRules: []IngressRule{
+							{
+								Protocol:                 SecurityGroupProtocolTCP,
+								SourceSecurityGroupRoles: []SecurityGroupRole{SecurityGroupBastion},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "accepts ingress rules with source security group id and role",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						IngressRules: []IngressRule{
+							{
+								Protocol:                 SecurityGroupProtocolTCP,
+								SourceSecurityGroupIDs:   []string{"test"},
+								SourceSecurityGroupRoles: []SecurityGroupRole{SecurityGroupBastion},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -289,7 +373,7 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 	}
 }
 
-func TestAWSCluster_ValidateUpdate(t *testing.T) {
+func TestAWSClusterValidateUpdate(t *testing.T) {
 	tests := []struct {
 		name       string
 		oldCluster *AWSCluster
@@ -351,14 +435,14 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			oldCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						Scheme: &ClassicELBSchemeInternal,
+						Scheme: &ELBSchemeInternal,
 					},
 				},
 			},
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						Scheme: &ClassicELBSchemeInternetFacing,
+						Scheme: &ELBSchemeInternetFacing,
 					},
 				},
 			},
@@ -372,7 +456,7 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						Scheme: &ClassicELBSchemeInternal,
+						Scheme: &ELBSchemeInternal,
 					},
 				},
 			},
@@ -386,7 +470,7 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						Scheme: &ClassicELBSchemeInternetFacing,
+						Scheme: &ELBSchemeInternetFacing,
 					},
 				},
 			},
@@ -526,14 +610,14 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			oldCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						HealthCheckProtocol: &ClassicELBProtocolTCP,
+						HealthCheckProtocol: &ELBProtocolTCP,
 					},
 				},
 			},
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						HealthCheckProtocol: &ClassicELBProtocolSSL,
+						HealthCheckProtocol: &ELBProtocolSSL,
 					},
 				},
 			},
@@ -544,14 +628,14 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			oldCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						HealthCheckProtocol: &ClassicELBProtocolTCP,
+						HealthCheckProtocol: &ELBProtocolTCP,
 					},
 				},
 			},
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						HealthCheckProtocol: &ClassicELBProtocolTCP,
+						HealthCheckProtocol: &ELBProtocolTCP,
 					},
 				},
 			},
@@ -565,7 +649,7 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						HealthCheckProtocol: &ClassicELBProtocolTCP,
+						HealthCheckProtocol: &ELBProtocolTCP,
 					},
 				},
 			},
@@ -592,7 +676,7 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func TestAWSCluster_DefaultCNIIngressRules(t *testing.T) {
+func TestAWSClusterDefaultCNIIngressRules(t *testing.T) {
 	AZUsageLimit := 3
 	defaultVPCSpec := VPCSpec{
 		AvailabilityZoneUsageLimit: &AZUsageLimit,
@@ -705,7 +789,7 @@ func TestAWSCluster_DefaultCNIIngressRules(t *testing.T) {
 	}
 }
 
-func TestAWSCluster_ValidateAllowedCIDRBlocks(t *testing.T) {
+func TestAWSClusterValidateAllowedCIDRBlocks(t *testing.T) {
 	tests := []struct {
 		name    string
 		awsc    *AWSCluster
@@ -794,7 +878,7 @@ func TestAWSCluster_ValidateAllowedCIDRBlocks(t *testing.T) {
 	}
 }
 
-func TestAWSCluster_DefaultAllowedCIDRBlocks(t *testing.T) {
+func TestAWSClusterDefaultAllowedCIDRBlocks(t *testing.T) {
 	g := NewWithT(t)
 	tests := []struct {
 		name          string

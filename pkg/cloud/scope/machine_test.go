@@ -49,14 +49,14 @@ func newMachine(clusterName, machineName string) *clusterv1.Machine {
 	return &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 			},
 			Name:      machineName,
 			Namespace: "default",
 		},
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{
-				DataSecretName: pointer.StringPtr(machineName),
+				DataSecretName: pointer.String(machineName),
 			},
 		},
 	}
@@ -84,7 +84,7 @@ func newAWSMachine(clusterName, machineName string) *infrav1.AWSMachine {
 	return &infrav1.AWSMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 			},
 			Name:      machineName,
 			Namespace: "default",
@@ -96,7 +96,7 @@ func newBootstrapSecret(clusterName, machineName string) *corev1.Secret {
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 			},
 			Name:      machineName,
 			Namespace: "default",
@@ -204,7 +204,7 @@ func TestGetRawBootstrapDataWithFormat(t *testing.T) {
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: map[string]string{
-					clusterv1.ClusterLabelName: clusterName,
+					clusterv1.ClusterNameLabel: clusterName,
 				},
 				Name:      machineName,
 				Namespace: "default",

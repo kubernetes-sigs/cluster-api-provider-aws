@@ -9,9 +9,8 @@ Below is a collection of conventions, guidlines and general tips for writing cod
 When adding new or modifying API types don't expose 3rd party package types/enums via the CAPA API definitions. Instead create our own versions and where provide mapping functions.
 
 For example:
-
-    - AWS SDK [InstaneState](https://docs.aws.amazon.com/sdk-for-go/api/service/ec2/)
-    - CAPA [InstanceState](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/api/v1beta1/types.go#L560:L581)
+* AWS SDK [InstanceState](https://docs.aws.amazon.com/sdk-for-go/api/service/ec2/)
+* CAPA [InstanceState](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/api/v1beta1/types.go#L560:L581)
 
 ### Don't use struct pointer slices
 
@@ -40,7 +39,7 @@ And then within the code you can check the length or range over the slice.
 ## Tests
 
 There are three types of tests written for CAPA controllers in this repo:
-* Unit tests  
+* Unit tests
 * Integration tests
 * E2E tests
 

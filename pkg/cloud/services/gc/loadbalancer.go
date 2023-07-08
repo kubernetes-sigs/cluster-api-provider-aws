@@ -24,6 +24,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/elbv2"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
 )
 
 func (s *Service) deleteLoadBalancers(ctx context.Context, resources []*AWSResource) error {
@@ -127,4 +130,152 @@ func (s *Service) deleteTargetGroup(ctx context.Context, targetGroupARN string) 
 	}
 
 	return nil
+}
+
+// describeLoadBalancers gets all elastic LBs.
+func (s *Service) describeLoadBalancers(ctx context.Context) ([]string, error) {
+	var names []string
+	err := s.elbClient.DescribeLoadBalancersPagesWithContext(ctx, &elb.DescribeLoadBalancersInput{}, func(r *elb.DescribeLoadBalancersOutput, last bool) bool {
+		for _, lb := range r.LoadBalancerDescriptions {
+			names = append(names, *lb.LoadBalancerName)
+		}
+		return true
+	})
+	if err != nil {
+		return nil, fmt.Errorf("describe load balancer error: %w", err)
+	}
+
+	return names, nil
+}
+
+// describeLoadBalancersV2 gets all network and application LBs.
+func (s *Service) describeLoadBalancersV2(ctx context.Context) ([]string, error) {
+	var arns []string
+	err := s.elbv2Client.DescribeLoadBalancersPagesWithContext(ctx, &elbv2.DescribeLoadBalancersInput{}, func(r *elbv2.DescribeLoadBalancersOutput, last bool) bool {
+		for _, lb := range r.LoadBalancers {
+			arns = append(arns, *lb.LoadBalancerArn)
+		}
+		return true
+	})
+	if err != nil {
+		return nil, fmt.Errorf("describe load balancer v2 error: %w", err)
+	}
+
+	return arns, nil
+}
+
+func (s *Service) describeTargetgroups(ctx context.Context) ([]string, error) {
+	groups, err := s.elbv2Client.DescribeTargetGroupsWithContext(ctx, &elbv2.DescribeTargetGroupsInput{})
+	if err != nil {
+		return nil, fmt.Errorf("describe target groups error: %w", err)
+	}
+
+	targetGroups := make([]string, 0, len(groups.TargetGroups))
+	if groups.TargetGroups != nil {
+		for _, group := range groups.TargetGroups {
+			targetGroups = append(targetGroups, *group.TargetGroupArn)
+		}
+	}
+
+	return targetGroups, nil
+}
+
+// / getProviderOwnedLoadBalancers gets cloud provider created LB(ELB) for this cluster, filtering by tag: kubernetes.io/cluster/<cluster-name>:owned.
+func (s *Service) getProviderOwnedLoadBalancers(ctx context.Context) ([]*AWSResource, error) {
+	names, err := s.describeLoadBalancers(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get load balancers: %w", err)
+	}
+
+	return s.filterProviderOwnedLB(ctx, names)
+}
+
+// getProviderOwnedLoadBalancersV2 gets cloud provider created LBv2(NLB and ALB) for this cluster, filtering by tag: kubernetes.io/cluster/<cluster-name>:owned.
+func (s *Service) getProviderOwnedLoadBalancersV2(ctx context.Context) ([]*AWSResource, error) {
+	arns, err := s.describeLoadBalancersV2(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get v2 load balancers: %w", err)
+	}
+
+	return s.filterProviderOwnedLBV2(ctx, arns)
+}
+
+// getProviderOwnedTargetgroups gets cloud provider created target groups of v2 LBs(NLB and ALB) for this cluster, filtering by tag: kubernetes.io/cluster/<cluster-name>:owned.
+func (s *Service) getProviderOwnedTargetgroups(ctx context.Context) ([]*AWSResource, error) {
+	targetGroups, err := s.describeTargetgroups(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get target groups: %w", err)
+	}
+
+	return s.filterProviderOwnedLBV2(ctx, targetGroups)
+}
+
+// filterProviderOwnedLB filters LB resource tags by tag: kubernetes.io/cluster/<cluster-name>:owned.
+func (s *Service) filterProviderOwnedLB(ctx context.Context, names []string) ([]*AWSResource, error) {
+	var resources []*AWSResource
+	lbChunks := chunkResources(names)
+	for _, chunk := range lbChunks {
+		output, err := s.elbClient.DescribeTagsWithContext(ctx, &elb.DescribeTagsInput{LoadBalancerNames: aws.StringSlice(chunk)})
+		if err != nil {
+			return nil, fmt.Errorf("describe tags of loadbalancers: %w", err)
+		}
+
+		for _, tagDesc := range output.TagDescriptions {
+			for _, tag := range tagDesc.Tags {
+				serviceTag := infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())
+				if *tag.Key == serviceTag && *tag.Value == string(infrav1.ResourceLifecycleOwned) {
+					arn := composeFakeArn(elbService, elbResourcePrefix+*tagDesc.LoadBalancerName)
+					resource, err := composeAWSResource(arn, converters.ELBTagsToMap(tagDesc.Tags))
+					if err != nil {
+						return nil, fmt.Errorf("error compose aws elb resource %s: %w", arn, err)
+					}
+					resources = append(resources, resource)
+					break
+				}
+			}
+		}
+	}
+
+	return resources, nil
+}
+
+// filterProviderOwnedLBV2 filters LBv2 resource tags by tag: kubernetes.io/cluster/<cluster-name>:owned.
+func (s *Service) filterProviderOwnedLBV2(ctx context.Context, arns []string) ([]*AWSResource, error) {
+	var resources []*AWSResource
+	lbChunks := chunkResources(arns)
+	for _, chunk := range lbChunks {
+		output, err := s.elbv2Client.DescribeTagsWithContext(ctx, &elbv2.DescribeTagsInput{ResourceArns: aws.StringSlice(chunk)})
+		if err != nil {
+			return nil, fmt.Errorf("describe tags of v2 loadbalancers: %w", err)
+		}
+
+		for _, tagDesc := range output.TagDescriptions {
+			for _, tag := range tagDesc.Tags {
+				serviceTag := infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())
+				if *tag.Key == serviceTag && *tag.Value == string(infrav1.ResourceLifecycleOwned) {
+					resource, err := composeAWSResource(*tagDesc.ResourceArn, converters.V2TagsToMap(tagDesc.Tags))
+					if err != nil {
+						return nil, fmt.Errorf("error compose aws elbv2 resource %s: %w", *tagDesc.ResourceArn, err)
+					}
+					resources = append(resources, resource)
+					break
+				}
+			}
+		}
+	}
+
+	return resources, nil
+}
+
+// chunkResources is similar to chunkELBs in package pkg/cloud/services/elb.
+func chunkResources(names []string) [][]string {
+	var chunked [][]string
+	for i := 0; i < len(names); i += maxDescribeTagsRequest {
+		end := i + maxDescribeTagsRequest
+		if end > len(names) {
+			end = len(names)
+		}
+		chunked = append(chunked, names[i:end])
+	}
+	return chunked
 }

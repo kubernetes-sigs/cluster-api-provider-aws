@@ -29,6 +29,7 @@ linters:
     - lll
     - makezero
     - maligned
+    - musttag
     - nestif
     - nilnil
     - nlreturn
@@ -66,6 +67,17 @@ linters-settings:
       - standard
       - default
       - prefix(sigs.k8s.io/cluster-api)
+  ginkgolinter:
+    # Suppress the wrong length assertion warning.
+    suppress-len-assertion: true
+    # Suppress the wrong nil assertion warning.
+    suppress-nil-assertion: false
+    # Suppress the wrong error assertion warning.
+    suppress-err-assertion: true
+  gosec:
+    excludes:
+      - G307 # Deferring unsafe method "Close" on type "\*os.File"
+      - G108 # Profiling endpoint is automatically exposed on /debug/pprof
   importas:
     no-unaliased: false
     alias:
@@ -150,9 +162,9 @@ linters-settings:
       - pkg: "sigs.k8s.io/cluster-api/exp/api/v1beta1"
         alias: expclusterv1
   staticcheck:
-    go: "1.18"
+    go: "1.19"
   stylecheck:
-    go: "1.18"
+    go: "1.19"
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0

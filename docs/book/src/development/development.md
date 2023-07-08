@@ -5,7 +5,7 @@
 ### Install prerequisites
 
 1. Install [go][go]
-    - Get the latest patch version for go v1.18.
+    - Get the latest patch version for go v1.19.
 2. Install [jq][jq]
     - `brew install jq` on macOS.
     - `chocolatey install jq` on Windows.
@@ -18,6 +18,12 @@
 6. Install make.
 7. Install direnv
     - `brew install direnv` on macOS.
+8. Set AWS Environment variable for an IAM Admin user
+    - ```bash
+      export AWS_ACCESS_KEY_ID=ADMID
+      export AWS_SECRET_ACCESS_KEY=ADMKEY
+      export AWS_REGION=eu-west-1
+      ```
 
 ### Get the source
 
@@ -38,9 +44,9 @@ git fetch upstream
 Build `clusterawsadm` in `cluster-api-provider-aws`:
 
 ```bash
-cd "$(go env GOPATH)"/src/sigs.k8s.io/cluster-api-provider-aws/v2
+cd "$(go env GOPATH)"/src/sigs.k8s.io/cluster-api-provider-aws/
 make clusterawsadm
-mv ./bin/clusterawsadm /usr/local/bin/clusterawsadm
+sudo mv ./bin/clusterawsadm /usr/local/bin/clusterawsadm
 ```
 
 ### Setup AWS Environment
@@ -80,7 +86,7 @@ spec:
 Use the configuration file to create the additional IAM role:
 
 ```bash
-$ ./bin/clusterawsadm bootstrap iam create-cloudformation-stack --config=config-bootstrap.yaml
+$ clusterawsadm bootstrap iam create-cloudformation-stack --config=config-bootstrap.yaml
 Attempting to create AWS CloudFormation stack cluster-api-provider-aws-sigs-k8s-io
 ```
 

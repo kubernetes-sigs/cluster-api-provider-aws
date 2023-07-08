@@ -59,8 +59,8 @@ func (s *Service) ReconcileBootstrapStack(stackName string, t go_cfn.Template, t
 	stackTags := []*cfn.Tag{}
 	for k, v := range tags {
 		stackTags = append(stackTags, &cfn.Tag{
-			Key:   pointer.StringPtr(k),
-			Value: pointer.StringPtr(v),
+			Key:   pointer.String(k),
+			Value: pointer.String(v),
 		})
 	}
 	//nolint:nestif
@@ -82,6 +82,34 @@ func (s *Service) ReconcileBootstrapStack(stackName string, t go_cfn.Template, t
 	return nil
 }
 
+func (s *Service) ReconcileBootstrapNoUpdate(stackName string, t go_cfn.Template, tags map[string]string) error {
+	yaml, err := t.YAML()
+	processedYaml := string(yaml)
+	if err != nil {
+		return errors.Wrap(err, "failed to generate AWS CloudFormation YAML")
+	}
+
+	stackTags := []*cfn.Tag{}
+	for k, v := range tags {
+		stackTags = append(stackTags, &cfn.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v),
+		})
+	}
+	//nolint:nestif
+	if err := s.createStack(stackName, processedYaml, stackTags); err != nil {
+		if code, _ := awserrors.Code(errors.Cause(err)); code == "AlreadyExistsException" {
+			desInput := &cfn.DescribeStacksInput{StackName: aws.String(stackName)}
+			if err := s.CFN.WaitUntilStackCreateComplete(desInput); err != nil {
+				return errors.Wrap(err, "failed to wait for AWS CloudFormation stack to be CreateComplete")
+			}
+			return nil
+		}
+		return fmt.Errorf("failed to create CF stack: %w", err)
+	}
+	return nil
+}
+
 func (s *Service) createStack(stackName, yaml string, tags []*cfn.Tag) error {
 	input := &cfn.CreateStackInput{
 		Capabilities: aws.StringSlice([]string{cfn.CapabilityCapabilityIam, cfn.CapabilityCapabilityNamedIam}),
@@ -97,7 +125,7 @@ func (s *Service) createStack(stackName, yaml string, tags []*cfn.Tag) error {
 	desInput := &cfn.DescribeStacksInput{StackName: aws.String(stackName)}
 	klog.V(2).Infof("waiting for stack %q to create", stackName)
 	if err := s.CFN.WaitUntilStackCreateComplete(desInput); err != nil {
-		return errors.Wrap(err, "failed to create AWS CloudFormation stack")
+		return errors.Wrap(err, "failed to wait for AWS CloudFormation stack to be CreateComplete")
 	}
 
 	klog.V(2).Infof("stack %q created", stackName)

@@ -87,10 +87,13 @@ type AWSManagedControlPlaneReconciler struct {
 	Recorder  record.EventRecorder
 	Endpoints []scope.ServiceEndpoint
 
-	EnableIAM            bool
-	AllowAdditionalRoles bool
-	WatchFilterValue     string
-	ExternalResourceGC   bool
+	EnableIAM                    bool
+	AllowAdditionalRoles         bool
+	WatchFilterValue             string
+	ExternalResourceGC           bool
+	AlternativeGCStrategy        bool
+	WaitInfraPeriod              time.Duration
+	TagUnmanagedNetworkResources bool
 }
 
 // SetupWithManager is used to setup the controller.
@@ -130,10 +133,13 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context,
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;delete;patch
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinepools,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachines;awsmachines/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedmachinepools;awsmanagedmachinepools/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools;awsmachinepools/status,verbs=get;list;watch
-// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes,verbs=get;list;watch;update;patch;delete
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclusterroleidentities;awsclusterstaticidentities;awsclustercontrolleridentities,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedclusters;awsmanagedclusters/status,verbs=get;list;watch
@@ -168,13 +174,14 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 	}
 
 	managedScope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
-		Client:               r.Client,
-		Cluster:              cluster,
-		ControlPlane:         awsControlPlane,
-		ControllerName:       strings.ToLower(awsManagedControlPlaneKind),
-		EnableIAM:            r.EnableIAM,
-		AllowAdditionalRoles: r.AllowAdditionalRoles,
-		Endpoints:            r.Endpoints,
+		Client:                       r.Client,
+		Cluster:                      cluster,
+		ControlPlane:                 awsControlPlane,
+		ControllerName:               strings.ToLower(awsManagedControlPlaneKind),
+		EnableIAM:                    r.EnableIAM,
+		AllowAdditionalRoles:         r.AllowAdditionalRoles,
+		Endpoints:                    r.Endpoints,
+		TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
 	})
 	if err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to create scope: %w", err)
@@ -232,15 +239,16 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 		// Wait for the cluster infrastructure to be ready before creating machines
 		if !managedScope.Cluster.Status.InfrastructureReady {
 			managedScope.Info("Cluster infrastructure is not ready yet")
-			return ctrl.Result{}, nil
+			return ctrl.Result{RequeueAfter: r.WaitInfraPeriod}, nil
 		}
 	}
 
 	awsManagedControlPlane := managedScope.ControlPlane
 
-	controllerutil.AddFinalizer(managedScope.ControlPlane, ekscontrolplanev1.ManagedControlPlaneFinalizer)
-	if err := managedScope.PatchObject(); err != nil {
-		return ctrl.Result{}, err
+	if controllerutil.AddFinalizer(managedScope.ControlPlane, ekscontrolplanev1.ManagedControlPlaneFinalizer) {
+		if err := managedScope.PatchObject(); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	ec2Service := ec2.NewService(managedScope)
@@ -285,7 +293,6 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 			managedScope.Error(err, "non-fatal: failed to set up EventBridge")
 		}
 	}
-
 	if err := authService.ReconcileIAMAuthenticator(ctx); err != nil {
 		conditions.MarkFalse(awsManagedControlPlane, ekscontrolplanev1.IAMAuthenticatorConfiguredCondition, ekscontrolplanev1.IAMAuthenticatorConfigurationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile aws-iam-authenticator config for AWSManagedControlPlane %s/%s", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name)
@@ -340,7 +347,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileDelete(ctx context.Context, 
 	}
 
 	if r.ExternalResourceGC {
-		gcSvc := gc.NewService(managedScope)
+		gcSvc := gc.NewService(managedScope, gc.WithGCStrategy(r.AlternativeGCStrategy))
 		if gcErr := gcSvc.ReconcileDelete(ctx); gcErr != nil {
 			return reconcile.Result{}, fmt.Errorf("failed delete reconcile for gc service: %w", gcErr)
 		}
@@ -361,7 +368,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileDelete(ctx context.Context, 
 func (r *AWSManagedControlPlaneReconciler) ClusterToAWSManagedControlPlane(o client.Object) []ctrl.Request {
 	c, ok := o.(*clusterv1.Cluster)
 	if !ok {
-		panic(fmt.Sprintf("Expected a Cluster but got a %T", o))
+		klog.Errorf("Expected a Cluster but got a %T", o)
 	}
 
 	if !c.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -385,7 +392,7 @@ func (r *AWSManagedControlPlaneReconciler) dependencyCount(ctx context.Context, 
 
 	listOptions := []client.ListOption{
 		client.InNamespace(namespace),
-		client.MatchingLabels(map[string]string{clusterv1.ClusterLabelName: clusterName}),
+		client.MatchingLabels(map[string]string{clusterv1.ClusterNameLabel: clusterName}),
 	}
 
 	dependencies := 0
