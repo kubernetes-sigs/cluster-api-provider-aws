@@ -35,6 +35,7 @@ import (
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	services "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -80,7 +81,8 @@ func (s *Service) ReconcileLaunchTemplate(
 	}
 	bootstrapDataHash := userdata.ComputeHash(bootstrapData)
 
-	ec2svc := NewService(scope.GetEC2Scope())
+	// Clarify: can we  reuse the s as the ec2svc?
+	ec2svc := s.getEC2Service(scope)
 
 	scope.Info("checking for existing launch template")
 	launchTemplate, launchTemplateUserDataHash, err := ec2svc.GetLaunchTemplate(scope.LaunchTemplateName())
@@ -95,7 +97,7 @@ func (s *Service) ReconcileLaunchTemplate(
 		// todo: webhook validation: AMI type should be set to in AWSManagedMachinePool if AMI ID/EKS optimized lookup type is not set
 		lt := scope.GetLaunchTemplate()
 		if lt.AMI.ID != nil || lt.AMI.EKSOptimizedLookupType != nil {
-			return errors.New("AMI ID or EKS optimized lookup type cannot be set when EKS manage AMI for you")
+			return errors.New("AMI ID or EKS optimized lookup type cannot be set when EKS manages AMI for you")
 		}
 	} else {
 		imageID, err = ec2svc.DiscoverLaunchTemplateAMI(scope)
@@ -197,6 +199,13 @@ func (s *Service) ReconcileLaunchTemplate(
 	}
 
 	return nil
+}
+
+func (s *Service) getEC2Service(scope scope.LaunchTemplateScope) services.EC2Interface {
+	if s.mock {
+		return s
+	}
+	return NewService(scope.GetEC2Scope())
 }
 
 func (s *Service) ReconcileTags(scope scope.LaunchTemplateScope, resourceServicesToUpdate []scope.ResourceServiceToUpdate) error {

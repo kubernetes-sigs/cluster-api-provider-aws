@@ -31,7 +31,10 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
+	ctlruntime "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
@@ -40,7 +43,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ssm/mock_ssmiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const (
@@ -1587,5 +1589,92 @@ func TestDeleteLaunchTemplateVersion(t *testing.T) {
 			}
 			g.Expect(s.deleteLaunchTemplateVersion(tc.args.id, tc.args.version)).NotTo(HaveOccurred())
 		})
+	}
+}
+
+func TestService_ReconcileLaunchTemplate(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	t.Run("Skip ami discovery and check when EKS managed node grooup without custom AMI", func(t *testing.T) {
+		g := NewWithT(t)
+
+		scheme, err := setupScheme()
+		g.Expect(err).NotTo(HaveOccurred())
+		client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+		mcps, err := setupNewManagedControlPlaneScope(client)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		ec2Mock := mocks.NewMockEC2API(mockCtrl)
+		ec2Mock.EXPECT().DescribeLaunchTemplateVersions(gomock.Any()).Return(nil, nil).Times(1)
+		launchTemplateId := "test-lt-id"
+		ec2Mock.EXPECT().CreateLaunchTemplate(gomock.Any()).Return(&ec2.CreateLaunchTemplateOutput{
+			LaunchTemplate: &ec2.LaunchTemplate{
+				LaunchTemplateId: aws.String(launchTemplateId),
+			},
+		}, nil).Times(1)
+
+		s := NewService(mcps)
+		s.EC2Client = ec2Mock
+		s.mock = true
+		machinePool := newMachinePool()
+		machinePool.Spec.Template.Spec.Bootstrap = clusterv1.Bootstrap{}
+		awsManagedMachinePool := newManagedMachinePool()
+
+		// create a new managed machine pool in fake client, because in ReconcileLaunchTemplate we need to patch the status
+		err = client.Create(context.Background(), awsManagedMachinePool)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		params := scope.ManagedMachinePoolScopeParams{
+			MachinePool:        machinePool,
+			Cluster:            newCluster(), // ?
+			ControlPlane:       newAWSManagedControlPlane(),
+			ManagedMachinePool: awsManagedMachinePool,
+			Client:             client,
+			InfraCluster:       mcps,
+		}
+		mmps, err := scope.NewManagedMachinePoolScope(params)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		amitype := expinfrav1.Al2x86_64
+		mmps.ManagedMachinePool.Spec.AMIType = &amitype
+		mmps.ManagedMachinePool.Spec.AWSLaunchTemplate = &expinfrav1.AWSLaunchTemplate{
+			Name: "test",
+			AMI:  infrav1.AMIReference{},
+		}
+		err = s.ReconcileLaunchTemplate(
+			mmps,
+			func() (bool, error) {
+				return true, nil
+			},
+			func() error {
+				return nil
+			},
+		)
+
+		g.Expect(err).NotTo(HaveOccurred())
+		obj := &expinfrav1.AWSManagedMachinePool{}
+		key := ctlruntime.ObjectKey{
+			Name:      "aws-mmp-name",
+			Namespace: "aws-mmp-ns",
+		}
+		err = client.Get(context.Background(), key, obj)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(aws.StringValue(obj.Status.LaunchTemplateID)).To(Equal(launchTemplateId))
+	})
+}
+
+func newManagedMachinePool() *expinfrav1.AWSManagedMachinePool {
+	return &expinfrav1.AWSManagedMachinePool{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "AWSManagedMachinePool",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "aws-mmp-name",
+			Namespace: "aws-mmp-ns",
+		},
+		Spec:   expinfrav1.AWSManagedMachinePoolSpec{},
+		Status: expinfrav1.AWSManagedMachinePoolStatus{},
 	}
 }

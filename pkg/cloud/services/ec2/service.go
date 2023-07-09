@@ -32,6 +32,8 @@ type Service struct {
 
 	// SSMClient is used to look up the official EKS AMI ID
 	SSMClient ssmiface.SSMAPI
+	// mock is used to create new EC2 services, this is used for mocking
+	mock bool
 }
 
 // NewService returns a new service given the ec2 api client.
