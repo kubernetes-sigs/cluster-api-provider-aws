@@ -161,6 +161,14 @@ func newAWSManagedControlPlane() *ekscontrolplanev1.AWSManagedControlPlane {
 			Name:      "aws-cluster-name",
 			Namespace: "aws-cluster-ns",
 		},
+		Status: ekscontrolplanev1.AWSManagedControlPlaneStatus{
+			Network: infrav1.NetworkStatus{
+				SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+					infrav1.SecurityGroupNode:              {ID: "nodeSG"},
+					infrav1.SecurityGroupEKSNodeAdditional: {ID: "eksAdditonalSG"},
+				},
+			},
+		},
 	}
 }
 
