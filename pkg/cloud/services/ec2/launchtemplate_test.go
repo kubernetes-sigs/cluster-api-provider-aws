@@ -1595,7 +1595,7 @@ func TestDeleteLaunchTemplateVersion(t *testing.T) {
 func TestService_ReconcileLaunchTemplate(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	t.Run("Skip ami discovery and check when EKS managed node grooup without custom AMI", func(t *testing.T) {
+	t.Run("EKS managed AMI", func(t *testing.T) {
 		g := NewWithT(t)
 
 		scheme, err := setupScheme()
@@ -1606,17 +1606,10 @@ func TestService_ReconcileLaunchTemplate(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 
 		ec2Mock := mocks.NewMockEC2API(mockCtrl)
-		ec2Mock.EXPECT().DescribeLaunchTemplateVersions(gomock.Any()).Return(nil, nil).Times(1)
-		launchTemplateId := "test-lt-id"
-		ec2Mock.EXPECT().CreateLaunchTemplate(gomock.Any()).Return(&ec2.CreateLaunchTemplateOutput{
-			LaunchTemplate: &ec2.LaunchTemplate{
-				LaunchTemplateId: aws.String(launchTemplateId),
-			},
-		}, nil).Times(1)
-
 		s := NewService(mcps)
 		s.EC2Client = ec2Mock
 		s.mock = true
+
 		machinePool := newMachinePool()
 		machinePool.Spec.Template.Spec.Bootstrap = clusterv1.Bootstrap{}
 		awsManagedMachinePool := newManagedMachinePool()
@@ -1625,42 +1618,141 @@ func TestService_ReconcileLaunchTemplate(t *testing.T) {
 		err = client.Create(context.Background(), awsManagedMachinePool)
 		g.Expect(err).NotTo(HaveOccurred())
 
-		params := scope.ManagedMachinePoolScopeParams{
-			MachinePool:        machinePool,
-			Cluster:            newCluster(), // ?
-			ControlPlane:       newAWSManagedControlPlane(),
-			ManagedMachinePool: awsManagedMachinePool,
-			Client:             client,
-			InfraCluster:       mcps,
-		}
-		mmps, err := scope.NewManagedMachinePoolScope(params)
-		g.Expect(err).NotTo(HaveOccurred())
+		t.Run("Create launch template with ami id, should fail", func(t *testing.T) {
+			ec2Mock.EXPECT().DescribeLaunchTemplateVersions(gomock.Any()).Return(nil, nil).Times(1)
+			params := scope.ManagedMachinePoolScopeParams{
+				MachinePool:        machinePool,
+				Cluster:            newCluster(), // ?
+				ControlPlane:       newAWSManagedControlPlane(),
+				ManagedMachinePool: awsManagedMachinePool,
+				Client:             client,
+				InfraCluster:       mcps,
+			}
+			mmps, err := scope.NewManagedMachinePoolScope(params)
+			g.Expect(err).NotTo(HaveOccurred())
 
-		amitype := expinfrav1.Al2x86_64
-		mmps.ManagedMachinePool.Spec.AMIType = &amitype
-		mmps.ManagedMachinePool.Spec.AWSLaunchTemplate = &expinfrav1.AWSLaunchTemplate{
-			Name: "test",
-			AMI:  infrav1.AMIReference{},
-		}
-		err = s.ReconcileLaunchTemplate(
-			mmps,
-			func() (bool, error) {
-				return true, nil
-			},
-			func() error {
-				return nil
-			},
-		)
+			amitype := expinfrav1.Al2x86_64
+			mmps.ManagedMachinePool.Spec.AMIType = &amitype
+			mmps.ManagedMachinePool.Spec.AWSLaunchTemplate = &expinfrav1.AWSLaunchTemplate{
+				Name: "test",
+				AMI: infrav1.AMIReference{
+					ID: aws.String("ami-1234567890"),
+				},
+			}
+			err = s.ReconcileLaunchTemplate(
+				mmps,
+				func() (bool, error) {
+					return true, nil
+				},
+				func() error {
+					return nil
+				},
+			)
 
-		g.Expect(err).NotTo(HaveOccurred())
-		obj := &expinfrav1.AWSManagedMachinePool{}
-		key := ctlruntime.ObjectKey{
-			Name:      "aws-mmp-name",
-			Namespace: "aws-mmp-ns",
-		}
-		err = client.Get(context.Background(), key, obj)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(aws.StringValue(obj.Status.LaunchTemplateID)).To(Equal(launchTemplateId))
+			g.Expect(err).To(HaveOccurred())
+		})
+
+		launchTemplateId := "test-lt-id"
+
+		t.Run("Skip ami discovery when EKS managed AMI", func(t *testing.T) {
+			ec2Mock.EXPECT().DescribeLaunchTemplateVersions(gomock.Any()).Return(nil, nil).Times(1)
+			ec2Mock.EXPECT().CreateLaunchTemplate(gomock.Any()).Return(&ec2.CreateLaunchTemplateOutput{
+				LaunchTemplate: &ec2.LaunchTemplate{
+					LaunchTemplateId: aws.String(launchTemplateId),
+				},
+			}, nil).Times(1)
+
+			machinePool := newMachinePool()
+			machinePool.Spec.Template.Spec.Bootstrap = clusterv1.Bootstrap{}
+			awsManagedMachinePool := newManagedMachinePool()
+
+			params := scope.ManagedMachinePoolScopeParams{
+				MachinePool:        machinePool,
+				Cluster:            newCluster(), // ?
+				ControlPlane:       newAWSManagedControlPlane(),
+				ManagedMachinePool: awsManagedMachinePool,
+				Client:             client,
+				InfraCluster:       mcps,
+			}
+			mmps, err := scope.NewManagedMachinePoolScope(params)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			amitype := expinfrav1.Al2x86_64
+			mmps.ManagedMachinePool.Spec.AMIType = &amitype
+			mmps.ManagedMachinePool.Spec.AWSLaunchTemplate = &expinfrav1.AWSLaunchTemplate{
+				Name: "test",
+				AMI:  infrav1.AMIReference{},
+			}
+			err = s.ReconcileLaunchTemplate(
+				mmps,
+				func() (bool, error) {
+					return true, nil
+				},
+				func() error {
+					return nil
+				},
+			)
+
+			g.Expect(err).NotTo(HaveOccurred())
+			obj := &expinfrav1.AWSManagedMachinePool{}
+			key := ctlruntime.ObjectKey{
+				Name:      "aws-mmp-name",
+				Namespace: "aws-mmp-ns",
+			}
+			err = client.Get(context.Background(), key, obj)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(aws.StringValue(obj.Status.LaunchTemplateID)).To(Equal(launchTemplateId))
+		})
+
+		t.Run("Skip ami change check when EKS managed AMI", func(t *testing.T) {
+			ec2Mock.EXPECT().DescribeLaunchTemplateVersions(gomock.Any()).Return(nil, nil).Times(1)
+			ec2Mock.EXPECT().CreateLaunchTemplate(gomock.Any()).Return(&ec2.CreateLaunchTemplateOutput{
+				LaunchTemplate: &ec2.LaunchTemplate{
+					LaunchTemplateId: aws.String(launchTemplateId),
+				},
+			}, nil).Times(1)
+
+			machinePool := newMachinePool()
+			machinePool.Spec.Template.Spec.Bootstrap = clusterv1.Bootstrap{}
+			awsManagedMachinePool := newManagedMachinePool()
+
+			params := scope.ManagedMachinePoolScopeParams{
+				MachinePool:        machinePool,
+				Cluster:            newCluster(), // ?
+				ControlPlane:       newAWSManagedControlPlane(),
+				ManagedMachinePool: awsManagedMachinePool,
+				Client:             client,
+				InfraCluster:       mcps,
+			}
+			mmps, err := scope.NewManagedMachinePoolScope(params)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			amitype := expinfrav1.Al2x86_64
+			mmps.ManagedMachinePool.Spec.AMIType = &amitype
+			mmps.ManagedMachinePool.Spec.AWSLaunchTemplate = &expinfrav1.AWSLaunchTemplate{
+				Name: "test",
+				AMI:  infrav1.AMIReference{},
+			}
+			err = s.ReconcileLaunchTemplate(
+				mmps,
+				func() (bool, error) {
+					return true, nil
+				},
+				func() error {
+					return nil
+				},
+			)
+
+			g.Expect(err).NotTo(HaveOccurred())
+			obj := &expinfrav1.AWSManagedMachinePool{}
+			key := ctlruntime.ObjectKey{
+				Name:      "aws-mmp-name",
+				Namespace: "aws-mmp-ns",
+			}
+			err = client.Get(context.Background(), key, obj)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(aws.StringValue(obj.Status.LaunchTemplateID)).To(Equal(launchTemplateId))
+		})
 	})
 }
 

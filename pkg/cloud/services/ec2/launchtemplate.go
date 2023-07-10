@@ -97,7 +97,9 @@ func (s *Service) ReconcileLaunchTemplate(
 		// todo: webhook validation: AMI type should be set to in AWSManagedMachinePool if AMI ID/EKS optimized lookup type is not set
 		lt := scope.GetLaunchTemplate()
 		if lt.AMI.ID != nil || lt.AMI.EKSOptimizedLookupType != nil {
-			return errors.New("AMI ID or EKS optimized lookup type cannot be set when EKS manages AMI for you")
+			err := errors.New("AMI ID or EKS optimized lookup type cannot be set when EKS manages AMI for you")
+			conditions.MarkFalse(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, err.Error())
+			return err
 		}
 	} else {
 		imageID, err = ec2svc.DiscoverLaunchTemplateAMI(scope)
@@ -154,7 +156,7 @@ func (s *Service) ReconcileLaunchTemplate(
 		return err
 	}
 
-	// Skip ami check when EKS manages  AMI for us
+	// Skip ami check when EKS manages AMI for us
 	amiChanged := !isEKSManagedAMI(scope) && *imageID != *launchTemplate.AMI.ID
 	if needsUpdate || tagsChanged || amiChanged {
 		canUpdate, err := canUpdateLaunchTemplate()
