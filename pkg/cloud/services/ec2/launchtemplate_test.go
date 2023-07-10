@@ -1740,7 +1740,7 @@ func newEKSManagedAMITestSuite(g *WithT, mockCtrl *gomock.Controller) *eksManage
 
 	s := NewService(mcps)
 	s.EC2Client = ec2Mock
-	s.mock = true
+	s.isMock = true
 	machinePool := newMachinePool()
 	machinePool.Spec.Template.Spec.Bootstrap = clusterv1.Bootstrap{}
 
