@@ -144,12 +144,12 @@ func NewTemplate(input TemplateInput) (Template, error) {
 
 // MergeTemplates merges the provided Templates into one Template.
 // Notes on the merge operation:
-// - The merge operation returns an error if all the templates do not have the same TargetNamespace.
-// - The Variables of the resulting template is a union of all Variables in the templates.
-// - The default value is picked from the first template that defines it.
-//    The defaults of the same variable in the subsequent templates will be ignored.
-//    (e.g when merging a cluster template and its ClusterClass, the default value from the template takes precedence)
-// - The Objs of the final template will be a union of all the Objs in the templates.
+//   - The merge operation returns an error if all the templates do not have the same TargetNamespace.
+//   - The Variables of the resulting template is a union of all Variables in the templates.
+//   - The default value is picked from the first template that defines it.
+//     The defaults of the same variable in the subsequent templates will be ignored.
+//     (e.g when merging a cluster template and its ClusterClass, the default value from the template takes precedence)
+//   - The Objs of the final template will be a union of all the Objs in the templates.
 func MergeTemplates(templates ...Template) (Template, error) {
 	templates = filterNilTemplates(templates...)
 	if len(templates) == 0 {
@@ -164,7 +164,7 @@ func MergeTemplates(templates ...Template) (Template, error) {
 	}
 
 	for _, tmpl := range templates {
-		merged.variables = sets.NewString(merged.variables...).Union(sets.NewString(tmpl.Variables()...)).List()
+		merged.variables = sets.List(sets.Set[string]{}.Insert(merged.variables...).Union(sets.Set[string]{}.Insert(tmpl.Variables()...)))
 
 		for key, val := range tmpl.VariableMap() {
 			if v, ok := merged.variableMap[key]; !ok || v == nil {

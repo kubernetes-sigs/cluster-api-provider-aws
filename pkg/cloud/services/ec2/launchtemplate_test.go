@@ -735,7 +735,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 							Name: aws.String("instance-profile"),
 						},
 						KeyName:          aws.String("default"),
-						UserData:         pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
+						UserData:         pointer.String(base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "1"}),
 						ImageId:          aws.String("imageID"),
 						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
@@ -795,7 +795,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 							Name: aws.String("instance-profile"),
 						},
 						KeyName:          aws.String("default"),
-						UserData:         pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
+						UserData:         pointer.String(base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "sg-1"}),
 						ImageId:          aws.String("imageID"),
 						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
@@ -857,7 +857,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 							Name: aws.String("instance-profile"),
 						},
 						KeyName:          aws.String("default"),
-						UserData:         pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
+						UserData:         pointer.String(base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "1"}),
 						ImageId:          aws.String("imageID"),
 						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
@@ -986,7 +986,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 							Name: aws.String("instance-profile"),
 						},
 						KeyName:          aws.String("default"),
-						UserData:         pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
+						UserData:         pointer.String(base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "1"}),
 						ImageId:          aws.String("imageID"),
 						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
@@ -1037,7 +1037,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 							Name: aws.String("instance-profile"),
 						},
 						KeyName:          aws.String("default"),
-						UserData:         pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
+						UserData:         pointer.String(base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "1"}),
 						ImageId:          aws.String("imageID"),
 						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
@@ -1171,6 +1171,7 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 				ImageLookupFormat: "ilf",
 				ImageLookupOrg:    "ilo",
 				ImageLookupBaseOS: "ilbo",
+				InstanceType:      "m5.large",
 			},
 			machineTemplate: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
@@ -1195,6 +1196,22 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 							},
 						},
 					}, nil)
+				m.DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					InstanceTypes: []*string{
+						aws.String("m5.large"),
+					},
+				})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("x86_64"),
+									},
+								},
+							},
+						},
+					}, nil)
 			},
 			check: func(g *WithT, res *string, err error) {
 				g.Expect(res).Should(Equal(aws.String("latest")))
@@ -1204,7 +1221,8 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 		{
 			name: "Should return AMI and use infra cluster image details, if not passed in aws launchtemplate",
 			awsLaunchTemplate: expinfrav1.AWSLaunchTemplate{
-				Name: "aws-launch-tmpl",
+				Name:         "aws-launch-tmpl",
+				InstanceType: "m5.large",
 			},
 			machineTemplate: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
@@ -1226,6 +1244,73 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 							{
 								ImageId:      aws.String("oldest"),
 								CreationDate: aws.String("2014-02-08T17:02:31.000Z"),
+							},
+						},
+					}, nil)
+				m.DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					InstanceTypes: []*string{
+						aws.String("m5.large"),
+					},
+				})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("x86_64"),
+									},
+								},
+							},
+						},
+					}, nil)
+			},
+			check: func(g *WithT, res *string, err error) {
+				g.Expect(res).Should(Equal(aws.String("latest")))
+				g.Expect(err).NotTo(HaveOccurred())
+			},
+		},
+		{
+			name: "Should return arm64 AMI and use infra cluster image details, if not passed in aws launchtemplate",
+			awsLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+				Name:         "aws-launch-tmpl",
+				InstanceType: "t4g.large",
+			},
+			machineTemplate: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					Version: aws.String(DefaultAmiNameFormat),
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []*ec2.Image{
+							{
+								ImageId:      aws.String("ancient"),
+								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
+							},
+							{
+								ImageId:      aws.String("latest"),
+								CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
+							},
+							{
+								ImageId:      aws.String("oldest"),
+								CreationDate: aws.String("2014-02-08T17:02:31.000Z"),
+							},
+						},
+					}, nil)
+				m.DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					InstanceTypes: []*string{
+						aws.String("t4g.large"),
+					},
+				})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("arm64"),
+									},
+								},
 							},
 						},
 					}, nil)
@@ -1259,7 +1344,8 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 		{
 			name: "Should return error if AWS failed while describing images",
 			awsLaunchTemplate: expinfrav1.AWSLaunchTemplate{
-				Name: "aws-launch-tmpl",
+				Name:         "aws-launch-tmpl",
+				InstanceType: "m5.large",
 			},
 			machineTemplate: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
@@ -1269,6 +1355,22 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(nil, awserrors.NewFailedDependency("dependency-failure"))
+				m.DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					InstanceTypes: []*string{
+						aws.String("m5.large"),
+					},
+				})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("x86_64"),
+									},
+								},
+							},
+						},
+					}, nil)
 			},
 			check: func(g *WithT, res *string, err error) {
 				g.Expect(res).To(BeNil())
@@ -1308,7 +1410,7 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 	}
 }
 
-func TestDiscoverLaunchTemplateAMI_ForEKS(t *testing.T) {
+func TestDiscoverLaunchTemplateAMIForEKS(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -1316,12 +1418,27 @@ func TestDiscoverLaunchTemplateAMI_ForEKS(t *testing.T) {
 		name              string
 		awsLaunchTemplate expinfrav1.AWSLaunchTemplate
 		machineTemplate   clusterv1.MachineTemplateSpec
-		expect            func(m *mock_ssmiface.MockSSMAPIMockRecorder)
+		expectEC2         func(m *mocks.MockEC2APIMockRecorder)
+		expectSSM         func(m *mock_ssmiface.MockSSMAPIMockRecorder)
 		check             func(*WithT, *string, error)
 	}{
 		{
 			name: "Should return AMI and use EKS infra cluster image details, if not passed in aws launch template",
-			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
+			expectEC2: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeInstanceTypes(gomock.Any()).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("x86_64"),
+									},
+								},
+							},
+						},
+					}, nil)
+			},
+			expectSSM: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
 				m.GetParameter(gomock.AssignableToTypeOf(&ssm.GetParameterInput{})).
 					Return(&ssm.GetParameterOutput{
 						Parameter: &ssm.Parameter{
@@ -1340,6 +1457,7 @@ func TestDiscoverLaunchTemplateAMI_ForEKS(t *testing.T) {
 			g := NewWithT(t)
 
 			ssmMock := mock_ssmiface.NewMockSSMAPI(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scheme, err := setupScheme()
 			g.Expect(err).NotTo(HaveOccurred())
@@ -1351,11 +1469,16 @@ func TestDiscoverLaunchTemplateAMI_ForEKS(t *testing.T) {
 			ms, err := setupMachinePoolScope(client, mcps)
 			g.Expect(err).NotTo(HaveOccurred())
 
-			if tc.expect != nil {
-				tc.expect(ssmMock.EXPECT())
+			if tc.expectEC2 != nil {
+				tc.expectEC2(ec2Mock.EXPECT())
+			}
+
+			if tc.expectSSM != nil {
+				tc.expectSSM(ssmMock.EXPECT())
 			}
 
 			s := NewService(mcps)
+			s.EC2Client = ec2Mock
 			s.SSMClient = ssmMock
 
 			id, err := s.DiscoverLaunchTemplateAMI(ms)

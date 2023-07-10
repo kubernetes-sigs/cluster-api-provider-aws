@@ -15,7 +15,7 @@
 # limitations under the License.
 
 
-FROM golang:1.18.3  as builder
+FROM golang:1.19.4  as builder
 
 RUN go get github.com/google/triage-party/cmd/server
 RUN go install github.com/google/triage-party/cmd/server@latest

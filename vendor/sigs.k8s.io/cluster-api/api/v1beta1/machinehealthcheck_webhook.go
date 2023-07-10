@@ -67,7 +67,7 @@ func (m *MachineHealthCheck) Default() {
 	if m.Labels == nil {
 		m.Labels = make(map[string]string)
 	}
-	m.Labels[ClusterLabelName] = m.Spec.ClusterName
+	m.Labels[ClusterNameLabel] = m.Spec.ClusterName
 
 	if m.Spec.MaxUnhealthy == nil {
 		defaultMaxUnhealthy := intstr.FromString("100%")
@@ -123,7 +123,7 @@ func (m *MachineHealthCheck) validate(old *MachineHealthCheck) error {
 		)
 	}
 
-	if clusterName, ok := m.Spec.Selector.MatchLabels[ClusterLabelName]; ok && clusterName != m.Spec.ClusterName {
+	if clusterName, ok := m.Spec.Selector.MatchLabels[ClusterNameLabel]; ok && clusterName != m.Spec.ClusterName {
 		allErrs = append(
 			allErrs,
 			field.Invalid(specPath.Child("selector"), m.Spec.Selector, "cannot specify a cluster selector other than the one specified by ClusterName"))
@@ -136,37 +136,52 @@ func (m *MachineHealthCheck) validate(old *MachineHealthCheck) error {
 		)
 	}
 
+	allErrs = append(allErrs, m.ValidateCommonFields(specPath)...)
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return apierrors.NewInvalid(GroupVersion.WithKind("MachineHealthCheck").GroupKind(), m.Name, allErrs)
+}
+
+// ValidateCommonFields validates UnhealthyConditions NodeStartupTimeout, MaxUnhealthy, and RemediationTemplate of the MHC.
+// These are the fields in common with other types which define MachineHealthChecks such as MachineHealthCheckClass and MachineHealthCheckTopology.
+func (m *MachineHealthCheck) ValidateCommonFields(fldPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
 	if m.Spec.NodeStartupTimeout != nil &&
 		m.Spec.NodeStartupTimeout.Seconds() != disabledNodeStartupTimeout.Seconds() &&
 		m.Spec.NodeStartupTimeout.Seconds() < minNodeStartupTimeout.Seconds() {
 		allErrs = append(
 			allErrs,
-			field.Invalid(specPath.Child("nodeStartupTimeout"), m.Spec.NodeStartupTimeout.Seconds(), "must be at least 30s"),
+			field.Invalid(fldPath.Child("nodeStartupTimeout"), m.Spec.NodeStartupTimeout.String(), "must be at least 30s"),
 		)
 	}
-
 	if m.Spec.MaxUnhealthy != nil {
 		if _, err := intstr.GetScaledValueFromIntOrPercent(m.Spec.MaxUnhealthy, 0, false); err != nil {
 			allErrs = append(
 				allErrs,
-				field.Invalid(specPath.Child("maxUnhealthy"), m.Spec.MaxUnhealthy, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
+				field.Invalid(fldPath.Child("maxUnhealthy"), m.Spec.MaxUnhealthy, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
 			)
 		}
 	}
-
 	if m.Spec.RemediationTemplate != nil && m.Spec.RemediationTemplate.Namespace != m.Namespace {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
-				specPath.Child("remediationTemplate", "namespace"),
+				fldPath.Child("remediationTemplate", "namespace"),
 				m.Spec.RemediationTemplate.Namespace,
 				"must match metadata.namespace",
 			),
 		)
 	}
 
-	if len(allErrs) == 0 {
-		return nil
+	if len(m.Spec.UnhealthyConditions) == 0 {
+		allErrs = append(allErrs, field.Forbidden(
+			fldPath.Child("unhealthyConditions"),
+			"must have at least one entry",
+		))
 	}
-	return apierrors.NewInvalid(GroupVersion.WithKind("MachineHealthCheck").GroupKind(), m.Name, allErrs)
+
+	return allErrs
 }

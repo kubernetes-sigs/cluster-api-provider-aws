@@ -61,21 +61,24 @@ const (
 	KubeKeyProviderName        = "kubekey"
 	VclusterProviderName       = "vcluster"
 	VirtinkProviderName        = "virtink"
+	CoxEdgeProviderName        = "coxedge"
 )
 
 // Bootstrap providers.
 const (
 	KubeadmBootstrapProviderName    = "kubeadm"
-	KubeKeyK3sBootstrapProviderName = "kubekey-k3s"
 	TalosBootstrapProviderName      = "talos"
+	MicroK8sBootstrapProviderName   = "microk8s"
+	KubeKeyK3sBootstrapProviderName = "kubekey-k3s"
 )
 
 // ControlPlane providers.
 const (
 	KubeadmControlPlaneProviderName    = "kubeadm"
-	KubeKeyK3sControlPlaneProviderName = "kubekey-k3s"
 	TalosControlPlaneProviderName      = "talos"
+	MicroK8sControlPlaneProviderName   = "microk8s"
 	NestedControlPlaneProviderName     = "nested"
+	KubeKeyK3sControlPlaneProviderName = "kubekey-k3s"
 )
 
 // Other.
@@ -202,6 +205,11 @@ func (p *providersClient) defaults() []Provider {
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
+			name:         CoxEdgeProviderName,
+			url:          "https://github.com/coxedge/cluster-api-provider-coxedge/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
 			name:         BYOHProviderName,
 			url:          "https://github.com/vmware-tanzu/cluster-api-provider-bringyourownhost/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
@@ -213,7 +221,7 @@ func (p *providersClient) defaults() []Provider {
 		},
 		&provider{
 			name:         OutscaleProviderName,
-			url:          "https://github.com/outscale-dev/cluster-api-provider-outscale/releases/latest/infrastructure-components.yaml",
+			url:          "https://github.com/outscale/cluster-api-provider-outscale/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
@@ -263,6 +271,11 @@ func (p *providersClient) defaults() []Provider {
 			url:          "https://github.com/siderolabs/cluster-api-bootstrap-provider-talos/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
+		&provider{
+			name:         MicroK8sBootstrapProviderName,
+			url:          "https://github.com/canonical/cluster-api-bootstrap-provider-microk8s/releases/latest/bootstrap-components.yaml",
+			providerType: clusterctlv1.BootstrapProviderType,
+		},
 		// ControlPlane providers
 		&provider{
 			name:         KubeadmControlPlaneProviderName,
@@ -277,6 +290,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         TalosControlPlaneProviderName,
 			url:          "https://github.com/siderolabs/cluster-api-control-plane-provider-talos/releases/latest/control-plane-components.yaml",
+			providerType: clusterctlv1.ControlPlaneProviderType,
+		},
+		&provider{
+			name:         MicroK8sControlPlaneProviderName,
+			url:          "https://github.com/canonical/cluster-api-control-plane-provider-microk8s/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 		&provider{
@@ -381,14 +399,18 @@ func validateProvider(r Provider) error {
 	case clusterctlv1.CoreProviderType,
 		clusterctlv1.BootstrapProviderType,
 		clusterctlv1.InfrastructureProviderType,
-		clusterctlv1.ControlPlaneProviderType:
+		clusterctlv1.ControlPlaneProviderType,
+		clusterctlv1.IPAMProviderType,
+		clusterctlv1.RuntimeExtensionProviderType:
 		break
 	default:
-		return errors.Errorf("invalid provider type. Allowed values are [%s, %s, %s, %s]",
+		return errors.Errorf("invalid provider type. Allowed values are [%s, %s, %s, %s, %s, %s]",
 			clusterctlv1.CoreProviderType,
 			clusterctlv1.BootstrapProviderType,
 			clusterctlv1.InfrastructureProviderType,
-			clusterctlv1.ControlPlaneProviderType)
+			clusterctlv1.ControlPlaneProviderType,
+			clusterctlv1.IPAMProviderType,
+			clusterctlv1.RuntimeExtensionProviderType)
 	}
 	return nil
 }

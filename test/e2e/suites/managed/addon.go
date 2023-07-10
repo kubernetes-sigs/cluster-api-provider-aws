@@ -21,15 +21,16 @@ package managed
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/eks"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
@@ -42,6 +43,7 @@ type CheckAddonExistsSpecInput struct {
 	ClusterName           string
 	AddonName             string
 	AddonVersion          string
+	AddonConfiguration    string
 }
 
 // CheckAddonExistsSpec implements a test for a cluster having an addon.
@@ -51,19 +53,19 @@ func CheckAddonExistsSpec(ctx context.Context, inputGetter func() CheckAddonExis
 	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")
 	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
 	Expect(input.Namespace).NotTo(BeNil(), "Invalid argument. input.Namespace can't be nil")
-	Expect(input.ClusterName).ShouldNot(HaveLen(0), "Invalid argument. input.ClusterName can't be empty")
-	Expect(input.AddonName).ShouldNot(HaveLen(0), "Invalid argument. input.AddonName can't be empty")
-	Expect(input.AddonVersion).ShouldNot(HaveLen(0), "Invalid argument. input.AddonVersion can't be empty")
+	Expect(input.ClusterName).ShouldNot(BeEmpty(), "Invalid argument. input.ClusterName can't be empty")
+	Expect(input.AddonName).ShouldNot(BeEmpty(), "Invalid argument. input.AddonName can't be empty")
+	Expect(input.AddonVersion).ShouldNot(BeEmpty(), "Invalid argument. input.AddonVersion can't be empty")
 
 	mgmtClient := input.BootstrapClusterProxy.GetClient()
 	controlPlaneName := getControlPlaneName(input.ClusterName)
 
-	shared.Byf("Getting control plane: %s", controlPlaneName)
+	By(fmt.Sprintf("Getting control plane: %s", controlPlaneName))
 	controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 	err := mgmtClient.Get(ctx, crclient.ObjectKey{Namespace: input.Namespace.Name, Name: controlPlaneName}, controlPlane)
 	Expect(err).ToNot(HaveOccurred())
 
-	shared.Byf("Checking EKS addon %s is installed on cluster %s and is active", input.AddonName, input.ClusterName)
+	By(fmt.Sprintf("Checking EKS addon %s is installed on cluster %s and is active", input.AddonName, input.ClusterName))
 	waitForEKSAddonToHaveStatus(waitForEKSAddonToHaveStatusInput{
 		ControlPlane: controlPlane,
 		AWSSession:   input.AWSSession,
@@ -71,4 +73,15 @@ func CheckAddonExistsSpec(ctx context.Context, inputGetter func() CheckAddonExis
 		AddonVersion: input.AddonVersion,
 		AddonStatus:  []string{eks.AddonStatusActive, eks.AddonStatusDegraded},
 	}, input.E2EConfig.GetIntervals("", "wait-addon-status")...)
+
+	if input.AddonConfiguration != "" {
+		By(fmt.Sprintf("Checking EKS addon %s has the correct configuration", input.AddonName))
+		checkEKSAddonConfiguration(checkEKSAddonConfigurationInput{
+			ControlPlane:       controlPlane,
+			AWSSession:         input.AWSSession,
+			AddonName:          input.AddonName,
+			AddonVersion:       input.AddonVersion,
+			AddonConfiguration: input.AddonConfiguration,
+		}, input.E2EConfig.GetIntervals("", "wait-addon-status")...)
+	}
 }

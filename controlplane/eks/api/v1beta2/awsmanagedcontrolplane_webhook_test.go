@@ -360,7 +360,7 @@ func TestWebhookCreate(t *testing.T) {
 	}
 }
 
-func TestWebhookCreate_IPv6Details(t *testing.T) {
+func TestWebhookCreateIPv6Details(t *testing.T) {
 	tests := []struct {
 		name        string
 		addons      []Addon
@@ -688,7 +688,7 @@ func TestWebhookUpdate(t *testing.T) {
 	}
 }
 
-func TestValidatingWebhookCreate_SecondaryCidr(t *testing.T) {
+func TestValidatingWebhookCreateSecondaryCidr(t *testing.T) {
 	tests := []struct {
 		name        string
 		expectError bool
@@ -754,7 +754,7 @@ func TestValidatingWebhookCreate_SecondaryCidr(t *testing.T) {
 	}
 }
 
-func TestValidatingWebhookUpdate_SecondaryCidr(t *testing.T) {
+func TestValidatingWebhookUpdateSecondaryCidr(t *testing.T) {
 	tests := []struct {
 		name        string
 		cidrRange   string

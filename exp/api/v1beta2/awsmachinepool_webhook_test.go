@@ -37,7 +37,7 @@ func TestAWSMachinePoolDefault(t *testing.T) {
 	g.Expect(m.Spec.DefaultCoolDown.Duration).To(BeNumerically(">=", 0))
 }
 
-func TestAWSMachinePool_ValidateCreate(t *testing.T) {
+func TestAWSMachinePoolValidateCreate(t *testing.T) {
 	g := NewWithT(t)
 
 	tests := []struct {
@@ -99,7 +99,7 @@ func TestAWSMachinePool_ValidateCreate(t *testing.T) {
 					},
 					Subnets: []infrav1.AWSResourceReference{
 						{
-							ID:      pointer.StringPtr("subnet-id"),
+							ID:      pointer.String("subnet-id"),
 							Filters: []infrav1.Filter{{Name: "filter_name", Values: []string{"filter_value"}}},
 						},
 					},
@@ -117,7 +117,7 @@ func TestAWSMachinePool_ValidateCreate(t *testing.T) {
 					},
 					Subnets: []infrav1.AWSResourceReference{
 						{
-							ID: pointer.StringPtr("subnet-id"),
+							ID: pointer.String("subnet-id"),
 						},
 					},
 				},
@@ -152,7 +152,7 @@ func TestAWSMachinePool_ValidateCreate(t *testing.T) {
 	}
 }
 
-func TestAWSMachinePool_ValidateUpdate(t *testing.T) {
+func TestAWSMachinePoolValidateUpdate(t *testing.T) {
 	g := NewWithT(t)
 
 	tests := []struct {
@@ -218,7 +218,7 @@ func TestAWSMachinePool_ValidateUpdate(t *testing.T) {
 					},
 					Subnets: []infrav1.AWSResourceReference{
 						{
-							ID:      pointer.StringPtr("subnet-id"),
+							ID:      pointer.String("subnet-id"),
 							Filters: []infrav1.Filter{{Name: "filter_name", Values: []string{"filter_value"}}},
 						},
 					},
@@ -243,7 +243,7 @@ func TestAWSMachinePool_ValidateUpdate(t *testing.T) {
 					},
 					Subnets: []infrav1.AWSResourceReference{
 						{
-							ID: pointer.StringPtr("subnet-id"),
+							ID: pointer.String("subnet-id"),
 						},
 					},
 				},

@@ -87,7 +87,7 @@ func (r *Reconciler) getCurrentInfrastructureClusterState(ctx context.Context, b
 	// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
 	// owned by the topology.
 	if !labels.IsTopologyOwned(infra) {
-		return nil, fmt.Errorf("referenced infra cluster object %s is not topology owned", tlog.KObj{Obj: infra})
+		return nil, fmt.Errorf("infra cluster object %s referenced from cluster %s is not topology owned", tlog.KObj{Obj: infra}, tlog.KObj{Obj: cluster})
 	}
 	return infra, nil
 }
@@ -112,7 +112,7 @@ func (r *Reconciler) getCurrentControlPlaneState(ctx context.Context, blueprintC
 	// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
 	// owned by the topology.
 	if !labels.IsTopologyOwned(res.Object) {
-		return nil, fmt.Errorf("referenced control plane object %s is not topology owned", tlog.KObj{Obj: res.Object})
+		return nil, fmt.Errorf("control plane object %s referenced from cluster %s is not topology owned", tlog.KObj{Obj: res.Object}, tlog.KObj{Obj: cluster})
 	}
 
 	// If the clusterClass does not mandate the controlPlane has infrastructureMachines, return.
@@ -132,6 +132,12 @@ func (r *Reconciler) getCurrentControlPlaneState(ctx context.Context, blueprintC
 	res.InfrastructureMachineTemplate, err = r.getReference(ctx, ref)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate for %s", tlog.KObj{Obj: res.Object})
+	}
+	// check that the referenced object has the ClusterTopologyOwnedLabel label.
+	// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
+	// owned by the topology.
+	if !labels.IsTopologyOwned(res.InfrastructureMachineTemplate) {
+		return nil, fmt.Errorf("control plane InfrastructureMachineTemplate object %s referenced from cluster %s is not topology owned", tlog.KObj{Obj: res.InfrastructureMachineTemplate}, tlog.KObj{Obj: cluster})
 	}
 
 	mhc := &clusterv1.MachineHealthCheck{}
@@ -158,7 +164,7 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, bluep
 	md := &clusterv1.MachineDeploymentList{}
 	err := r.APIReader.List(ctx, md,
 		client.MatchingLabels{
-			clusterv1.ClusterLabelName:          cluster.Name,
+			clusterv1.ClusterNameLabel:          cluster.Name,
 			clusterv1.ClusterTopologyOwnedLabel: "",
 		},
 		client.InNamespace(cluster.Namespace),
@@ -174,16 +180,16 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, bluep
 
 		// Retrieve the name which is assigned in Cluster's topology
 		// from a well-defined label.
-		mdTopologyName, ok := m.ObjectMeta.Labels[clusterv1.ClusterTopologyMachineDeploymentLabelName]
+		mdTopologyName, ok := m.ObjectMeta.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel]
 		if !ok || mdTopologyName == "" {
-			return nil, fmt.Errorf("failed to find label %s in %s", clusterv1.ClusterTopologyMachineDeploymentLabelName, tlog.KObj{Obj: m})
+			return nil, fmt.Errorf("failed to find label %s in %s", clusterv1.ClusterTopologyMachineDeploymentNameLabel, tlog.KObj{Obj: m})
 		}
 
 		// Make sure that the name of the MachineDeployment stays unique.
 		// If we've already seen a MachineDeployment with the same name
 		// this is an error, probably caused from manual modifications or a race condition.
 		if _, ok := state[mdTopologyName]; ok {
-			return nil, fmt.Errorf("duplicate %s found for label %s: %s", tlog.KObj{Obj: m}, clusterv1.ClusterTopologyMachineDeploymentLabelName, mdTopologyName)
+			return nil, fmt.Errorf("duplicate %s found for label %s: %s", tlog.KObj{Obj: m}, clusterv1.ClusterTopologyMachineDeploymentNameLabel, mdTopologyName)
 		}
 
 		// Gets the bootstrapRef.
@@ -221,11 +227,23 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, bluep
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("%s Bootstrap reference could not be retrieved", tlog.KObj{Obj: m}))
 		}
+		// check that the referenced object has the ClusterTopologyOwnedLabel label.
+		// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
+		// owned by the topology.
+		if !labels.IsTopologyOwned(bootstrapTemplate) {
+			return nil, fmt.Errorf("BootstrapTemplate object %s referenced from MD %s is not topology owned", tlog.KObj{Obj: bootstrapTemplate}, tlog.KObj{Obj: m})
+		}
 
 		// Get the InfraMachineTemplate.
 		infraMachineTemplate, err := r.getReference(ctx, infraRef)
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("%s Infrastructure reference could not be retrieved", tlog.KObj{Obj: m}))
+		}
+		// check that the referenced object has the ClusterTopologyOwnedLabel label.
+		// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
+		// owned by the topology.
+		if !labels.IsTopologyOwned(infraMachineTemplate) {
+			return nil, fmt.Errorf("InfrastructureMachineTemplate object %s referenced from MD %s is not topology owned", tlog.KObj{Obj: infraMachineTemplate}, tlog.KObj{Obj: m})
 		}
 
 		// Gets the MachineHealthCheck.

@@ -47,9 +47,10 @@ type Provider struct {
 	// +optional
 	Version string `json:"version,omitempty"`
 
-	// WatchedNamespace indicates the namespace where the provider controller is is watching.
-	// if empty the provider controller is watching for objects in all namespaces.
-	// Deprecated: in clusterctl v1alpha4 all the providers watch all the namespaces; this field will be removed in a future version of this API
+	// WatchedNamespace indicates the namespace where the provider controller is watching.
+	// If empty the provider controller is watching for objects in all namespaces.
+	//
+	// Deprecated: providers complying with the Cluster API v1alpha4 contract or above must watch all namespaces; this field will be removed in a future version of this API
 	// +optional
 	WatchedNamespace string `json:"watchedNamespace,omitempty"`
 }
@@ -92,7 +93,9 @@ func (p *Provider) GetProviderType() ProviderType {
 		CoreProviderType,
 		BootstrapProviderType,
 		InfrastructureProviderType,
-		ControlPlaneProviderType:
+		ControlPlaneProviderType,
+		IPAMProviderType,
+		RuntimeExtensionProviderType:
 		return t
 	default:
 		return ProviderTypeUnknown
@@ -118,6 +121,14 @@ const (
 	// control-plane capabilities.
 	ControlPlaneProviderType = ProviderType("ControlPlaneProvider")
 
+	// IPAMProviderType is the type associated with codebases that provide
+	// IPAM capabilities.
+	IPAMProviderType = ProviderType("IPAMProvider")
+
+	// RuntimeExtensionProviderType is the type associated with codebases that provide
+	// runtime extensions.
+	RuntimeExtensionProviderType = ProviderType("RuntimeExtensionProvider")
+
 	// ProviderTypeUnknown is used when the type is unknown.
 	ProviderTypeUnknown = ProviderType("")
 )
@@ -133,8 +144,12 @@ func (p ProviderType) Order() int {
 		return 2
 	case InfrastructureProviderType:
 		return 3
-	default:
+	case IPAMProviderType:
 		return 4
+	case RuntimeExtensionProviderType:
+		return 5
+	default:
+		return 99
 	}
 }
 

@@ -25,8 +25,9 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,7 +40,7 @@ import (
 )
 
 func SetupNamespace(ctx context.Context, specName string, e2eCtx *E2EContext) *corev1.Namespace {
-	Byf("Creating a namespace for hosting the %q test spec", specName)
+	By(fmt.Sprintf("Creating a namespace for hosting the %q test spec", specName))
 	namespace := framework.CreateNamespace(ctx, framework.CreateNamespaceInput{
 		Creator: e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 		Name:    fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
@@ -48,7 +49,7 @@ func SetupNamespace(ctx context.Context, specName string, e2eCtx *E2EContext) *c
 }
 
 func SetupSpecNamespace(ctx context.Context, specName string, e2eCtx *E2EContext) *corev1.Namespace {
-	Byf("Creating a namespace for hosting the %q test spec", specName)
+	By(fmt.Sprintf("Creating a namespace for hosting the %q test spec", specName))
 	namespace, cancelWatches := framework.CreateNamespaceAndWatchEvents(ctx, framework.CreateNamespaceAndWatchEventsInput{
 		Creator:   e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 		ClientSet: e2eCtx.Environment.BootstrapClusterProxy.GetClientSet(),
@@ -64,21 +65,21 @@ func SetupSpecNamespace(ctx context.Context, specName string, e2eCtx *E2EContext
 }
 
 func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, namespace *corev1.Namespace, e2eCtx *E2EContext) {
-	Byf("Dumping all the Cluster API resources in the %q namespace", namespace.Name)
+	By(fmt.Sprintf("Dumping all the Cluster API resources in the %q namespace", namespace.Name))
 	// Dump all Cluster API related resources to artifacts before deleting them.
 	cancelWatches := e2eCtx.Environment.Namespaces[namespace]
 	DumpSpecResources(ctx, e2eCtx, namespace)
-	Byf("Dumping all EC2 instances in the %q namespace", namespace.Name)
+	By(fmt.Sprintf("Dumping all EC2 instances in the %q namespace", namespace.Name))
 	DumpMachines(ctx, e2eCtx, namespace)
 	if !e2eCtx.Settings.SkipCleanup {
 		intervals := e2eCtx.E2EConfig.GetIntervals(specName, "wait-delete-cluster")
-		Byf("Deleting all clusters in the %q namespace with intervals %q", namespace.Name, intervals)
+		By(fmt.Sprintf("Deleting all clusters in the %q namespace with intervals %q", namespace.Name, intervals))
 		framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
 			Client:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Namespace: namespace.Name,
 		}, intervals...)
 
-		Byf("Deleting namespace used for hosting the %q test spec", specName)
+		By(fmt.Sprintf("Deleting namespace used for hosting the %q test spec", specName))
 		framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
 			Deleter: e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Name:    namespace.Name,
@@ -157,7 +158,7 @@ func DumpMachine(ctx context.Context, e2eCtx *E2EContext, machine infrav1.AWSMac
 	if err != nil {
 		return
 	}
-	defer f.Close() //nolint:gosec
+	defer f.Close()
 	fmt.Fprintf(f, "instance found: instance-id=%q\n", instanceID)
 	commandsForMachine(
 		ctx,
@@ -209,10 +210,6 @@ func DumpSpecResourcesFromProxy(ctx context.Context, e2eCtx *E2EContext, namespa
 	})
 }
 
-func Byf(format string, a ...interface{}) {
-	By(fmt.Sprintf(format, a...))
-}
-
 // ConditionFn returns true if a condition exists.
 type ConditionFn func() bool
 
@@ -248,7 +245,7 @@ func SetEnvVar(key, value string, private bool) {
 		printableValue = value
 	}
 
-	Byf("Setting environment variable: key=%s, value=%s", key, printableValue)
+	fmt.Fprintf(GinkgoWriter, time.Now().Format(time.StampMilli)+": "+"INFO"+": "+"Setting environment variable: key=%s, value=%s"+"\n", key, printableValue)
 	os.Setenv(key, value)
 }
 

@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.10.0
+    controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
   name: awsclustertemplates.infrastructure.cluster.x-k8s.io
 spec:
@@ -578,10 +578,105 @@ spec:
                               registered instances in its Availability Zone only.
                               \n Defaults to false."
                             type: boolean
+                          disableHostsRewrite:
+                            description: DisableHostsRewrite disabled the hair pinning
+                              issue solution that adds the NLB's address as 127.0.0.1
+                              to the hosts file of each instance. This is by default,
+                              false.
+                            type: boolean
                           healthCheckProtocol:
                             description: HealthCheckProtocol sets the protocol type
-                              for classic ELB health check target default value is
-                              ClassicELBProtocolSSL
+                              for ELB health check target default value is ELBProtocolSSL
+                            enum:
+                            - TCP
+                            - SSL
+                            - HTTP
+                            - HTTPS
+                            - TLS
+                            - UDP
+                            type: string
+                          ingressRules:
+                            description: IngressRules sets the ingress rules for the
+                              control plane load balancer.
+                            items:
+                              description: IngressRule defines an AWS ingress rule
+                                for security groups.
+                              properties:
+                                cidrBlocks:
+                                  description: List of CIDR blocks to allow access
+                                    from. Cannot be specified with SourceSecurityGroupID.
+                                  items:
+                                    type: string
+                                  type: array
+                                description:
+                                  description: Description provides extended information
+                                    about the ingress rule.
+                                  type: string
+                                fromPort:
+                                  description: FromPort is the start of port range.
+                                  format: int64
+                                  type: integer
+                                ipv6CidrBlocks:
+                                  description: List of IPv6 CIDR blocks to allow access
+                                    from. Cannot be specified with SourceSecurityGroupID.
+                                  items:
+                                    type: string
+                                  type: array
+                                protocol:
+                                  description: Protocol is the protocol for the ingress
+                                    rule. Accepted values are "-1" (all), "4" (IP
+                                    in IP),"tcp", "udp", "icmp", and "58" (ICMPv6).
+                                  enum:
+                                  - "-1"
+                                  - "4"
+                                  - tcp
+                                  - udp
+                                  - icmp
+                                  - "58"
+                                  type: string
+                                sourceSecurityGroupIds:
+                                  description: The security group id to allow access
+                                    from. Cannot be specified with CidrBlocks.
+                                  items:
+                                    type: string
+                                  type: array
+                                sourceSecurityGroupRoles:
+                                  description: The security group role to allow access
+                                    from. Cannot be specified with CidrBlocks. The
+                                    field will be combined with source security group
+                                    IDs if specified.
+                                  items:
+                                    description: SecurityGroupRole defines the unique
+                                      role of a security group.
+                                    enum:
+                                    - bastion
+                                    - node
+                                    - controlplane
+                                    - apiserver-lb
+                                    - lb
+                                    - node-eks-additional
+                                    type: string
+                                  type: array
+                                toPort:
+                                  description: ToPort is the end of port range.
+                                  format: int64
+                                  type: integer
+                              required:
+                              - description
+                              - fromPort
+                              - protocol
+                              - toPort
+                              type: object
+                            type: array
+                          loadBalancerType:
+                            default: classic
+                            description: LoadBalancerType sets the type for a load
+                              balancer. The default type is classic.
+                            enum:
+                            - classic
+                            - elb
+                            - alb
+                            - nlb
                             type: string
                           name:
                             description: Name sets the name of the classic ELB load
@@ -593,6 +688,11 @@ spec:
                             maxLength: 32
                             pattern: ^[A-Za-z0-9]([A-Za-z0-9]{0,31}|[-A-Za-z0-9]{0,30}[A-Za-z0-9])$
                             type: string
+                          preserveClientIP:
+                            description: PreserveClientIP lets the user control if
+                              preservation of client ips must be retained or not.
+                              If this is enabled 6443 will be opened to 0.0.0.0/0.
+                            type: boolean
                           scheme:
                             default: internet-facing
                             description: Scheme sets the scheme of the load balancer
@@ -829,6 +929,10 @@ spec:
                                 type: object
                             type: object
                         type: object
+                      partition:
+                        description: Partition is the AWS security partition being
+                          used. Defaults to "aws"
+                        type: string
                       region:
                         description: The AWS Region the cluster lives in.
                         type: string

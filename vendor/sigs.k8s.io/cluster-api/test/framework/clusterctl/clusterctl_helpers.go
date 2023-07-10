@@ -23,6 +23,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -34,15 +35,17 @@ import (
 
 // InitManagementClusterAndWatchControllerLogsInput is the input type for InitManagementClusterAndWatchControllerLogs.
 type InitManagementClusterAndWatchControllerLogsInput struct {
-	ClusterProxy             framework.ClusterProxy
-	ClusterctlConfigPath     string
-	CoreProvider             string
-	BootstrapProviders       []string
-	ControlPlaneProviders    []string
-	InfrastructureProviders  []string
-	LogFolder                string
-	DisableMetricsCollection bool
-	ClusterctlBinaryPath     string
+	ClusterProxy              framework.ClusterProxy
+	ClusterctlConfigPath      string
+	CoreProvider              string
+	BootstrapProviders        []string
+	ControlPlaneProviders     []string
+	InfrastructureProviders   []string
+	IPAMProviders             []string
+	RuntimeExtensionProviders []string
+	LogFolder                 string
+	DisableMetricsCollection  bool
+	ClusterctlBinaryPath      string
 }
 
 // InitManagementClusterAndWatchControllerLogs initializes a management using clusterctl and setup watches for controller logs.
@@ -76,10 +79,12 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 			// pass the clusterctl config file that points to the local provider repository created for this test
 			ClusterctlConfigPath: input.ClusterctlConfigPath,
 			// setup the desired list of providers for a single-tenant management cluster
-			CoreProvider:            input.CoreProvider,
-			BootstrapProviders:      input.BootstrapProviders,
-			ControlPlaneProviders:   input.ControlPlaneProviders,
-			InfrastructureProviders: input.InfrastructureProviders,
+			CoreProvider:              input.CoreProvider,
+			BootstrapProviders:        input.BootstrapProviders,
+			ControlPlaneProviders:     input.ControlPlaneProviders,
+			InfrastructureProviders:   input.InfrastructureProviders,
+			IPAMProviders:             input.IPAMProviders,
+			RuntimeExtensionProviders: input.RuntimeExtensionProviders,
 			// setup clusterctl logs folder
 			LogFolder: input.LogFolder,
 		}
@@ -103,11 +108,12 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 		}, intervals...)
 
 		// Start streaming logs from all controller providers
-		framework.WatchDeploymentLogs(ctx, framework.WatchDeploymentLogsInput{
+		framework.WatchDeploymentLogsByName(ctx, framework.WatchDeploymentLogsByNameInput{
 			GetLister:  client,
+			Cache:      input.ClusterProxy.GetCache(ctx),
 			ClientSet:  input.ClusterProxy.GetClientSet(),
 			Deployment: deployment,
-			LogPath:    filepath.Join(input.LogFolder, "controllers"),
+			LogPath:    filepath.Join(input.LogFolder, "logs", deployment.GetNamespace()),
 		})
 
 		if !input.DisableMetricsCollection {
@@ -115,7 +121,7 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 				GetLister:   client,
 				ClientSet:   input.ClusterProxy.GetClientSet(),
 				Deployment:  deployment,
-				MetricsPath: filepath.Join(input.LogFolder, "controllers"),
+				MetricsPath: filepath.Join(input.LogFolder, "metrics", deployment.GetNamespace()),
 			})
 		}
 	}
@@ -123,14 +129,17 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 
 // UpgradeManagementClusterAndWaitInput is the input type for UpgradeManagementClusterAndWait.
 type UpgradeManagementClusterAndWaitInput struct {
-	ClusterProxy            framework.ClusterProxy
-	ClusterctlConfigPath    string
-	Contract                string
-	CoreProvider            string
-	BootstrapProviders      []string
-	ControlPlaneProviders   []string
-	InfrastructureProviders []string
-	LogFolder               string
+	ClusterProxy              framework.ClusterProxy
+	ClusterctlConfigPath      string
+	ClusterctlVariables       map[string]string
+	Contract                  string
+	CoreProvider              string
+	BootstrapProviders        []string
+	ControlPlaneProviders     []string
+	InfrastructureProviders   []string
+	IPAMProviders             []string
+	RuntimeExtensionProviders []string
+	LogFolder                 string
 }
 
 // UpgradeManagementClusterAndWait upgrades provider a management cluster using clusterctl, and waits for the cluster to be ready.
@@ -142,7 +151,9 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 	isCustomUpgrade := input.CoreProvider != "" ||
 		len(input.BootstrapProviders) > 0 ||
 		len(input.ControlPlaneProviders) > 0 ||
-		len(input.InfrastructureProviders) > 0
+		len(input.InfrastructureProviders) > 0 ||
+		len(input.IPAMProviders) > 0 ||
+		len(input.RuntimeExtensionProviders) > 0
 
 	Expect((input.Contract != "" && !isCustomUpgrade) || (input.Contract == "" && isCustomUpgrade)).To(BeTrue(), `Invalid argument. Either the input.Contract parameter or at least one of the following providers has to be set:
 		input.CoreProvider, input.BootstrapProviders, input.ControlPlaneProviders, input.InfrastructureProviders, input.IPAMProviders, input.RuntimeExtensionProviders`)
@@ -150,15 +161,18 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 	Expect(os.MkdirAll(input.LogFolder, 0750)).To(Succeed(), "Invalid argument. input.LogFolder can't be created for UpgradeManagementClusterAndWait")
 
 	Upgrade(ctx, UpgradeInput{
-		ClusterctlConfigPath:    input.ClusterctlConfigPath,
-		ClusterName:             input.ClusterProxy.GetName(),
-		KubeconfigPath:          input.ClusterProxy.GetKubeconfigPath(),
-		Contract:                input.Contract,
-		CoreProvider:            input.CoreProvider,
-		BootstrapProviders:      input.BootstrapProviders,
-		ControlPlaneProviders:   input.ControlPlaneProviders,
-		InfrastructureProviders: input.InfrastructureProviders,
-		LogFolder:               input.LogFolder,
+		ClusterctlConfigPath:      input.ClusterctlConfigPath,
+		ClusterctlVariables:       input.ClusterctlVariables,
+		ClusterName:               input.ClusterProxy.GetName(),
+		KubeconfigPath:            input.ClusterProxy.GetKubeconfigPath(),
+		Contract:                  input.Contract,
+		CoreProvider:              input.CoreProvider,
+		BootstrapProviders:        input.BootstrapProviders,
+		ControlPlaneProviders:     input.ControlPlaneProviders,
+		InfrastructureProviders:   input.InfrastructureProviders,
+		IPAMProviders:             input.IPAMProviders,
+		RuntimeExtensionProviders: input.RuntimeExtensionProviders,
+		LogFolder:                 input.LogFolder,
 	})
 
 	client := input.ClusterProxy.GetClient()
@@ -175,19 +189,11 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 			Deployment: deployment,
 		}, intervals...)
 
-		// Start streaming logs from all controller providers
-		framework.WatchDeploymentLogs(ctx, framework.WatchDeploymentLogsInput{
-			GetLister:  client,
-			ClientSet:  input.ClusterProxy.GetClientSet(),
-			Deployment: deployment,
-			LogPath:    filepath.Join(input.LogFolder, "controllers"),
-		})
-
 		framework.WatchPodMetrics(ctx, framework.WatchPodMetricsInput{
 			GetLister:   client,
 			ClientSet:   input.ClusterProxy.GetClientSet(),
 			Deployment:  deployment,
-			MetricsPath: filepath.Join(input.LogFolder, "controllers"),
+			MetricsPath: filepath.Join(input.LogFolder, "metrics", deployment.GetNamespace()),
 		})
 	}
 }
@@ -269,6 +275,14 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 	log.Logf("Creating the workload cluster with name %q using the %q template (Kubernetes %s, %d control-plane machines, %d worker machines)",
 		input.ConfigCluster.ClusterName, valueOrDefault(input.ConfigCluster.Flavor), input.ConfigCluster.KubernetesVersion, *input.ConfigCluster.ControlPlaneMachineCount, *input.ConfigCluster.WorkerMachineCount)
 
+	// Ensure we have a Cluster for dump and cleanup steps in AfterEach even if ApplyClusterTemplateAndWait fails.
+	result.Cluster = &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      input.ConfigCluster.ClusterName,
+			Namespace: input.ConfigCluster.Namespace,
+		},
+	}
+
 	log.Logf("Getting the cluster template yaml")
 	workloadClusterTemplate := ConfigCluster(ctx, ConfigClusterInput{
 		// pass reference to the management cluster hosting this test
@@ -285,7 +299,8 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 		WorkerMachineCount:       input.ConfigCluster.WorkerMachineCount,
 		InfrastructureProvider:   input.ConfigCluster.InfrastructureProvider,
 		// setup clusterctl logs folder
-		LogFolder: input.ConfigCluster.LogFolder,
+		LogFolder:           input.ConfigCluster.LogFolder,
+		ClusterctlVariables: input.ConfigCluster.ClusterctlVariables,
 	})
 	Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
 

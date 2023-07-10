@@ -78,6 +78,7 @@ func (r *AWSMachine) ValidateUpdate(old runtime.Object) error {
 	var allErrs field.ErrorList
 
 	allErrs = append(allErrs, r.validateCloudInitSecret()...)
+	allErrs = append(allErrs, r.validateAdditionalSecurityGroups()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
 	newAWSMachineSpec := newAWSMachine["spec"].(map[string]interface{})
@@ -203,7 +204,7 @@ func (r *AWSMachine) validateNonRootVolumes() field.ErrorList {
 	var allErrs field.ErrorList
 
 	for _, volume := range r.Spec.NonRootVolumes {
-		if VolumeTypesProvisioned.Has(string(r.Spec.RootVolume.Type)) && volume.IOPS == 0 {
+		if VolumeTypesProvisioned.Has(string(volume.Type)) && volume.IOPS == 0 {
 			allErrs = append(allErrs, field.Required(field.NewPath("spec.nonRootVolumes.iops"), "iops required if type is 'io1' or 'io2'"))
 		}
 

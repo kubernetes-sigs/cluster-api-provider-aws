@@ -28,12 +28,13 @@ import (
 	"regexp"
 	"strings"
 
-	. "github.com/onsi/ginkgo"
+	"github.com/blang/semver"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework/exec"
+	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 )
 
 const (
@@ -58,7 +59,7 @@ type CreateRepositoryInput struct {
 //
 // NOTE: this transformation is specifically designed for replacing "data: ${envSubstVar}".
 func (i *CreateRepositoryInput) RegisterClusterResourceSetConfigMapTransformation(manifestPath, envSubstVar string) {
-	By(fmt.Sprintf("Reading the ClusterResourceSet manifest %s", manifestPath))
+	Byf("Reading the ClusterResourceSet manifest %s", manifestPath)
 	manifestData, err := os.ReadFile(manifestPath) //nolint:gosec
 	Expect(err).ToNot(HaveOccurred(), "Failed to read the ClusterResourceSet manifest file")
 	Expect(manifestData).ToNot(BeEmpty(), "ClusterResourceSet manifest file should not be empty")
@@ -74,6 +75,9 @@ func (i *CreateRepositoryInput) RegisterClusterResourceSetConfigMapTransformatio
 	})
 }
 
+const clusterctlConfigFileName = "clusterctl-config.yaml"
+const clusterctlConfigV1_2FileName = "clusterctl-config.v1.2.yaml"
+
 // CreateRepository creates a clusterctl local repository based on the e2e test config, and the returns the path
 // to a clusterctl config file to be used for working with such repository.
 func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
@@ -81,6 +85,7 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 	Expect(os.MkdirAll(input.RepositoryFolder, 0750)).To(Succeed(), "Failed to create the clusterctl local repository folder %s", input.RepositoryFolder)
 
 	providers := []providerConfig{}
+	providersV1_2 := []providerConfig{}
 	for _, provider := range input.E2EConfig.Providers {
 		providerLabel := clusterctlv1.ManifestLabel(provider.Name, clusterctlv1.ProviderType(provider.Type))
 		providerURL := filepath.Join(input.RepositoryFolder, providerLabel, "latest", "components.yaml")
@@ -110,11 +115,15 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 				Expect(os.WriteFile(destinationFile, data, 0600)).To(Succeed(), "Failed to write clusterctl local repository file %q / %q", provider.Name, file.TargetName)
 			}
 		}
-		providers = append(providers, providerConfig{
+		p := providerConfig{
 			Name: provider.Name,
 			URL:  providerURL,
 			Type: provider.Type,
-		})
+		}
+		providers = append(providers, p)
+		if !(clusterctlv1.ProviderType(provider.Type) == clusterctlv1.IPAMProviderType || clusterctlv1.ProviderType(provider.Type) == clusterctlv1.RuntimeExtensionProviderType) {
+			providersV1_2 = append(providersV1_2, p)
+		}
 	}
 
 	// set this path to an empty file under the repository path, so test can run in isolation without user's overrides kicking in
@@ -123,7 +132,7 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 
 	// creates a clusterctl config file to be used for working with such repository
 	clusterctlConfigFile := &clusterctlConfig{
-		Path: filepath.Join(input.RepositoryFolder, "clusterctl-config.yaml"),
+		Path: filepath.Join(input.RepositoryFolder, clusterctlConfigFileName),
 		Values: map[string]interface{}{
 			"providers":       providers,
 			"overridesFolder": overridePath,
@@ -134,7 +143,71 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 	}
 	clusterctlConfigFile.write()
 
+	// creates a clusterctl config file to be used for working with such repository with only the providers supported in clusterctl < v1.3
+	clusterctlConfigFileV1_2 := &clusterctlConfig{
+		Path: filepath.Join(input.RepositoryFolder, clusterctlConfigV1_2FileName),
+		Values: map[string]interface{}{
+			"providers":       providersV1_2,
+			"overridesFolder": overridePath,
+		},
+	}
+	for key := range input.E2EConfig.Variables {
+		clusterctlConfigFileV1_2.Values[key] = input.E2EConfig.GetVariable(key)
+	}
+	clusterctlConfigFileV1_2.write()
+
 	return clusterctlConfigFile.Path
+}
+
+// copyAndAmendClusterctlConfigInput is the input for copyAndAmendClusterctlConfig.
+type copyAndAmendClusterctlConfigInput struct {
+	ClusterctlConfigPath string
+	OutputPath           string
+	Variables            map[string]string
+}
+
+// copyAndAmendClusterctlConfig copies the clusterctl-config from ClusterctlConfigPath to
+// OutputPath and adds the given Variables.
+func copyAndAmendClusterctlConfig(_ context.Context, input copyAndAmendClusterctlConfigInput) {
+	// Read clusterctl config from ClusterctlConfigPath.
+	clusterctlConfigFile := &clusterctlConfig{
+		Path: input.ClusterctlConfigPath,
+	}
+	clusterctlConfigFile.read()
+
+	// Overwrite variables.
+	if clusterctlConfigFile.Values == nil {
+		clusterctlConfigFile.Values = map[string]interface{}{}
+	}
+	for key, value := range input.Variables {
+		clusterctlConfigFile.Values[key] = value
+	}
+
+	// Write clusterctl config to OutputPath.
+	clusterctlConfigFile.Path = input.OutputPath
+	clusterctlConfigFile.write()
+}
+
+// AdjustConfigPathForBinary adjusts the clusterctlConfigPath in case the clusterctl version v1.3.
+func AdjustConfigPathForBinary(clusterctPath, clusterctlConfigPath string) string {
+	clusterctl := exec.NewCommand(
+		exec.WithCommand(clusterctPath),
+		exec.WithArgs("version", "--output", "short"),
+	)
+	stdout, stderr, err := clusterctl.Run(context.Background())
+	if err != nil {
+		Expect(err).ToNot(HaveOccurred(), "failed to run clusterctl version:\nstdout:\n%s\nstderr:\n%s", string(stdout), string(stderr))
+	}
+	data := stdout
+	version, err := semver.ParseTolerant(string(data))
+	if err != nil {
+		Expect(err).ToNot(HaveOccurred(), "clusterctl version returned an invalid version: %s", string(data))
+	}
+
+	if version.LT(semver.MustParse("1.3.0")) {
+		return strings.Replace(clusterctlConfigPath, clusterctlConfigFileName, clusterctlConfigV1_2FileName, -1)
+	}
+	return clusterctlConfigPath
 }
 
 // YAMLForComponentSource returns the YAML for the provided component source.
@@ -201,6 +274,9 @@ func getComponentSourceFromURL(ctx context.Context, source ProviderVersionSource
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get %s", source.Value)
+		}
+		if resp.StatusCode != http.StatusOK {
+			return nil, errors.Errorf("failed to get %s: got status code %d", source.Value, resp.StatusCode)
 		}
 		defer resp.Body.Close()
 		buf, err = io.ReadAll(resp.Body)

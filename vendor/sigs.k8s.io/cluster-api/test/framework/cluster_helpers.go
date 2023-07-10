@@ -18,15 +18,16 @@ package framework
 
 import (
 	"context"
-	"fmt"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -43,7 +44,7 @@ func CreateCluster(ctx context.Context, input CreateClusterInput, intervals ...i
 	By("creating an InfrastructureCluster resource")
 	Eventually(func() error {
 		return input.Creator.Create(ctx, input.InfraCluster)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to create InfrastructureCluster %s", klog.KObj(input.InfraCluster))
 
 	// This call happens in an eventually because of a race condition with the
 	// webhook server. If the latter isn't fully online then this call will
@@ -55,7 +56,7 @@ func CreateCluster(ctx context.Context, input CreateClusterInput, intervals ...i
 			return err
 		}
 		return nil
-	}, intervals...).Should(Succeed())
+	}, intervals...).Should(Succeed(), "Failed to create Cluster %s", klog.KObj(input.Cluster))
 }
 
 // GetAllClustersByNamespaceInput is the input for GetAllClustersByNamespace.
@@ -94,7 +95,7 @@ func GetClusterByName(ctx context.Context, input GetClusterByNameInput) *cluster
 	}
 	Eventually(func() error {
 		return input.Getter.Get(ctx, key, cluster)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get Cluster object %s/%s", input.Namespace, input.Name)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get Cluster object %s", klog.KRef(input.Namespace, input.Name))
 	return cluster
 }
 
@@ -118,7 +119,7 @@ func PatchClusterLabel(ctx context.Context, input PatchClusterLabelInput) {
 	input.Cluster.SetLabels(input.Labels)
 	Eventually(func() error {
 		return patchHelper.Patch(ctx, input.Cluster)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch label to cluster %s", klog.KObj(input.Cluster))
 }
 
 // WaitForClusterToProvisionInput is the input for WaitForClusterToProvision.
@@ -140,7 +141,7 @@ func WaitForClusterToProvision(ctx context.Context, input WaitForClusterToProvis
 			return "", err
 		}
 		return cluster.Status.Phase, nil
-	}, intervals...).Should(Equal(string(clusterv1.ClusterPhaseProvisioned)))
+	}, intervals...).Should(Equal(string(clusterv1.ClusterPhaseProvisioned)), "Timed out waiting for Cluster %s to provision", klog.KObj(input.Cluster))
 	return cluster
 }
 
@@ -152,7 +153,7 @@ type DeleteClusterInput struct {
 
 // DeleteCluster deletes the cluster.
 func DeleteCluster(ctx context.Context, input DeleteClusterInput) {
-	By(fmt.Sprintf("Deleting cluster %s", input.Cluster.GetName()))
+	Byf("Deleting cluster %s", input.Cluster.GetName())
 	Expect(input.Deleter.Delete(ctx, input.Cluster)).To(Succeed())
 }
 
@@ -164,7 +165,7 @@ type WaitForClusterDeletedInput struct {
 
 // WaitForClusterDeleted waits until the cluster object has been deleted.
 func WaitForClusterDeleted(ctx context.Context, input WaitForClusterDeletedInput, intervals ...interface{}) {
-	By(fmt.Sprintf("Waiting for cluster %s to be deleted", input.Cluster.GetName()))
+	Byf("Waiting for cluster %s to be deleted", input.Cluster.GetName())
 	Eventually(func() bool {
 		cluster := &clusterv1.Cluster{}
 		key := client.ObjectKey{
@@ -197,7 +198,7 @@ func DiscoveryAndWaitForCluster(ctx context.Context, input DiscoveryAndWaitForCl
 			Namespace: input.Namespace,
 		})
 		return cluster != nil
-	}, retryableOperationTimeout, retryableOperationInterval).Should(BeTrue(), "Failed to get Cluster object %s/%s", input.Namespace, input.Name)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(BeTrue(), "Failed to get Cluster object %s", klog.KRef(input.Namespace, input.Name))
 
 	// NOTE: We intentionally return the provisioned Cluster because it also contains
 	// the reconciled ControlPlane ref and InfrastructureCluster ref when using a ClusterClass.
@@ -267,7 +268,7 @@ func DeleteAllClustersAndWait(ctx context.Context, input DeleteAllClustersAndWai
 	}
 
 	for _, c := range clusters {
-		log.Logf("Waiting for the Cluster %s/%s to be deleted", c.Namespace, c.Name)
+		log.Logf("Waiting for the Cluster %s to be deleted", klog.KObj(c))
 		WaitForClusterDeleted(ctx, WaitForClusterDeletedInput{
 			Getter:  input.Client,
 			Cluster: c,
@@ -280,7 +281,7 @@ func byClusterOptions(name, namespace string) []client.ListOption {
 	return []client.ListOption{
 		client.InNamespace(namespace),
 		client.MatchingLabels{
-			clusterv1.ClusterLabelName: name,
+			clusterv1.ClusterNameLabel: name,
 		},
 	}
 }

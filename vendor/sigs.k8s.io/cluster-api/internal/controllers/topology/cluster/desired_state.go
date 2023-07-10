@@ -70,12 +70,12 @@ func (r *Reconciler) computeDesiredState(ctx context.Context, s *scope.Scope) (*
 
 	// Compute the desired state of the ControlPlane MachineHealthCheck if defined.
 	// The MachineHealthCheck will have the same name as the ControlPlane Object and a selector for the ControlPlane InfrastructureMachines.
-	if s.Blueprint.HasControlPlaneMachineHealthCheck() {
+	if s.Blueprint.IsControlPlaneMachineHealthCheckEnabled() {
 		desiredState.ControlPlane.MachineHealthCheck = computeMachineHealthCheck(
 			desiredState.ControlPlane.Object,
 			selectorForControlPlaneMHC(),
 			s.Current.Cluster.Name,
-			s.Blueprint.ControlPlane.MachineHealthCheck)
+			s.Blueprint.ControlPlaneMachineHealthCheckClass())
 	}
 
 	// Compute the desired state for the Cluster object adding a reference to the
@@ -88,7 +88,7 @@ func (r *Reconciler) computeDesiredState(ctx context.Context, s *scope.Scope) (*
 	// If required, compute the desired state of the MachineDeployments from the list of MachineDeploymentTopologies
 	// defined in the cluster.
 	if s.Blueprint.HasMachineDeployments() {
-		desiredState.MachineDeployments, err = computeMachineDeployments(ctx, s, desiredState.ControlPlane)
+		desiredState.MachineDeployments, err = r.computeMachineDeployments(ctx, s, desiredState.ControlPlane)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to compute MachineDeployments")
 		}
@@ -179,12 +179,29 @@ func (r *Reconciler) computeControlPlane(ctx context.Context, s *scope.Scope, in
 	cluster := s.Current.Cluster
 	currentRef := cluster.Spec.ControlPlaneRef
 
+	// Compute the labels and annotations to be applied to ControlPlane metadata and ControlPlane machines.
+	// We merge the labels and annotations from topology and ClusterClass.
+	// We also add the cluster-name and the topology owned labels, so they are propagated down.
+	topologyMetadata := s.Blueprint.Topology.ControlPlane.Metadata
+	clusterClassMetadata := s.Blueprint.ClusterClass.Spec.ControlPlane.Metadata
+
+	controlPlaneLabels := mergeMap(topologyMetadata.Labels, clusterClassMetadata.Labels)
+	if controlPlaneLabels == nil {
+		controlPlaneLabels = map[string]string{}
+	}
+	controlPlaneLabels[clusterv1.ClusterNameLabel] = cluster.Name
+	controlPlaneLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
+
+	controlPlaneAnnotations := mergeMap(topologyMetadata.Annotations, clusterClassMetadata.Annotations)
+
 	controlPlane, err := templateToObject(templateToInput{
 		template:              template,
 		templateClonedFromRef: templateClonedFromRef,
 		cluster:               cluster,
 		namePrefix:            fmt.Sprintf("%s-", cluster.Name),
 		currentObjectRef:      currentRef,
+		labels:                controlPlaneLabels,
+		annotations:           controlPlaneAnnotations,
 		// Note: It is not possible to add an ownerRef to Cluster at this stage, otherwise the provisioning
 		// of the ControlPlane starts no matter of the object being actually referenced by the Cluster itself.
 	})
@@ -224,22 +241,20 @@ func (r *Reconciler) computeControlPlane(ctx context.Context, s *scope.Scope, in
 			return nil, errors.Wrap(err, "failed to spec.machineTemplate.infrastructureRef in the ControlPlane object")
 		}
 
-		// Compute the labels and annotations to be applied to ControlPlane machines.
-		// We merge the labels and annotations from topology and ClusterClass.
-		// We also add the cluster-name and the topology owned labels, so they are propagated down to Machines.
-		topologyMetadata := s.Blueprint.Topology.ControlPlane.Metadata
-		clusterClassMetadata := s.Blueprint.ClusterClass.Spec.ControlPlane.Metadata
-
-		machineLabels := mergeMap(topologyMetadata.Labels, clusterClassMetadata.Labels)
-		if machineLabels == nil {
-			machineLabels = map[string]string{}
+		// Add the ControlPlane labels and annotations to the ControlPlane machines as well.
+		// Note: We have to ensure the machine template metadata copied from the control plane template is not overwritten.
+		controlPlaneMachineTemplateMetadata, err := contract.ControlPlane().MachineTemplate().Metadata().Get(controlPlane)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get spec.machineTemplate.metadata from the ControlPlane object")
 		}
-		machineLabels[clusterv1.ClusterLabelName] = cluster.Name
-		machineLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
+
+		controlPlaneMachineTemplateMetadata.Labels = mergeMap(controlPlaneLabels, controlPlaneMachineTemplateMetadata.Labels)
+		controlPlaneMachineTemplateMetadata.Annotations = mergeMap(controlPlaneAnnotations, controlPlaneMachineTemplateMetadata.Annotations)
+
 		if err := contract.ControlPlane().MachineTemplate().Metadata().Set(controlPlane,
 			&clusterv1.ObjectMeta{
-				Labels:      machineLabels,
-				Annotations: mergeMap(topologyMetadata.Annotations, clusterClassMetadata.Annotations),
+				Labels:      controlPlaneMachineTemplateMetadata.Labels,
+				Annotations: controlPlaneMachineTemplateMetadata.Annotations,
 			}); err != nil {
 			return nil, errors.Wrap(err, "failed to set spec.machineTemplate.metadata in the ControlPlane object")
 		}
@@ -255,9 +270,35 @@ func (r *Reconciler) computeControlPlane(ctx context.Context, s *scope.Scope, in
 	}
 
 	// If it is required to manage the NodeDrainTimeout for the control plane, set the corresponding field.
+	nodeDrainTimeout := s.Blueprint.ClusterClass.Spec.ControlPlane.NodeDrainTimeout
 	if s.Blueprint.Topology.ControlPlane.NodeDrainTimeout != nil {
-		if err := contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Set(controlPlane, *s.Blueprint.Topology.ControlPlane.NodeDrainTimeout); err != nil {
+		nodeDrainTimeout = s.Blueprint.Topology.ControlPlane.NodeDrainTimeout
+	}
+	if nodeDrainTimeout != nil {
+		if err := contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Set(controlPlane, *nodeDrainTimeout); err != nil {
 			return nil, errors.Wrap(err, "failed to set spec.machineTemplate.nodeDrainTimeout in the ControlPlane object")
+		}
+	}
+
+	// If it is required to manage the NodeVolumeDetachTimeout for the control plane, set the corresponding field.
+	nodeVolumeDetachTimeout := s.Blueprint.ClusterClass.Spec.ControlPlane.NodeVolumeDetachTimeout
+	if s.Blueprint.Topology.ControlPlane.NodeVolumeDetachTimeout != nil {
+		nodeVolumeDetachTimeout = s.Blueprint.Topology.ControlPlane.NodeVolumeDetachTimeout
+	}
+	if nodeVolumeDetachTimeout != nil {
+		if err := contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Set(controlPlane, *nodeVolumeDetachTimeout); err != nil {
+			return nil, errors.Wrap(err, "failed to set spec.machineTemplate.nodeVolumeDetachTimeout in the ControlPlane object")
+		}
+	}
+
+	// If it is required to manage the NodeDeletionTimeout for the control plane, set the corresponding field.
+	nodeDeletionTimeout := s.Blueprint.ClusterClass.Spec.ControlPlane.NodeDeletionTimeout
+	if s.Blueprint.Topology.ControlPlane.NodeDeletionTimeout != nil {
+		nodeDeletionTimeout = s.Blueprint.Topology.ControlPlane.NodeDeletionTimeout
+	}
+	if nodeDeletionTimeout != nil {
+		if err := contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Set(controlPlane, *nodeDeletionTimeout); err != nil {
+			return nil, errors.Wrap(err, "failed to set spec.machineTemplate.nodeDeletionTimeout in the ControlPlane object")
 		}
 	}
 
@@ -434,7 +475,7 @@ func computeCluster(_ context.Context, s *scope.Scope, infrastructureCluster, co
 	if cluster.Labels == nil {
 		cluster.Labels = map[string]string{}
 	}
-	cluster.Labels[clusterv1.ClusterLabelName] = cluster.Name
+	cluster.Labels[clusterv1.ClusterNameLabel] = cluster.Name
 	cluster.Labels[clusterv1.ClusterTopologyOwnedLabel] = ""
 
 	// Set the references to the infrastructureCluster and controlPlane objects.
@@ -481,12 +522,22 @@ func calculateRefDesiredAPIVersion(currentRef *corev1.ObjectReference, desiredRe
 }
 
 // computeMachineDeployments computes the desired state of the list of MachineDeployments.
-func computeMachineDeployments(ctx context.Context, s *scope.Scope, desiredControlPlaneState *scope.ControlPlaneState) (scope.MachineDeploymentsStateMap, error) {
-	// Mark all the machine deployments that are currently rolling out.
-	// This captured information will be used for
-	//   - Building the TopologyReconciled condition.
-	//   - Making upgrade decisions on machine deployments.
+func (r *Reconciler) computeMachineDeployments(ctx context.Context, s *scope.Scope, desiredControlPlaneState *scope.ControlPlaneState) (scope.MachineDeploymentsStateMap, error) {
+	// Mark all the MachineDeployments that are currently upgrading.
+	// This captured information is used for:
+	// - Building the TopologyReconciled condition.
+	// - Making upgrade decisions on machine deployments.
+	upgradingMDs, err := s.Current.MachineDeployments.Upgrading(ctx, r.Client)
+	if err != nil {
+		return nil, err
+	}
+	s.UpgradeTracker.MachineDeployments.MarkUpgradingAndRollingOut(upgradingMDs...)
+
+	// Mark all MachineDeployments that are currently rolling out.
+	// This captured information is used for:
+	// - Building the TopologyReconciled condition (when control plane upgrade is pending)
 	s.UpgradeTracker.MachineDeployments.MarkRollingOut(s.Current.MachineDeployments.RollingOut()...)
+
 	machineDeploymentsStateMap := make(scope.MachineDeploymentsStateMap)
 	for _, mdTopology := range s.Blueprint.Topology.Workers.MachineDeployments {
 		desiredMachineDeployment, err := computeMachineDeployment(ctx, s, desiredControlPlaneState, mdTopology)
@@ -511,7 +562,19 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 		return nil, errors.Errorf("MachineDeployment class %s not found in %s", className, tlog.KObj{Obj: s.Blueprint.ClusterClass})
 	}
 
-	// Compute the boostrap template.
+	var machineDeploymentClass *clusterv1.MachineDeploymentClass
+	for _, mdClass := range s.Blueprint.ClusterClass.Spec.Workers.MachineDeployments {
+		mdClass := mdClass
+		if mdClass.Class == className {
+			machineDeploymentClass = &mdClass
+			break
+		}
+	}
+	if machineDeploymentClass == nil {
+		return nil, errors.Errorf("MachineDeployment class %s not found in %s", className, tlog.KObj{Obj: s.Blueprint.ClusterClass})
+	}
+
+	// Compute the bootstrap template.
 	currentMachineDeployment := s.Current.MachineDeployments[machineDeploymentTopology.Name]
 	var currentBootstrapTemplateRef *corev1.ObjectReference
 	if currentMachineDeployment != nil && currentMachineDeployment.BootstrapTemplate != nil {
@@ -534,7 +597,7 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 		bootstrapTemplateLabels = map[string]string{}
 	}
 	// Add ClusterTopologyMachineDeploymentLabel to the generated Bootstrap template
-	bootstrapTemplateLabels[clusterv1.ClusterTopologyMachineDeploymentLabelName] = machineDeploymentTopology.Name
+	bootstrapTemplateLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = machineDeploymentTopology.Name
 	desiredMachineDeployment.BootstrapTemplate.SetLabels(bootstrapTemplateLabels)
 
 	// Compute the Infrastructure template.
@@ -559,11 +622,42 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 		infraMachineTemplateLabels = map[string]string{}
 	}
 	// Add ClusterTopologyMachineDeploymentLabel to the generated InfrastructureMachine template
-	infraMachineTemplateLabels[clusterv1.ClusterTopologyMachineDeploymentLabelName] = machineDeploymentTopology.Name
+	infraMachineTemplateLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = machineDeploymentTopology.Name
 	desiredMachineDeployment.InfrastructureMachineTemplate.SetLabels(infraMachineTemplateLabels)
-	version, err := computeMachineDeploymentVersion(s, desiredControlPlaneState, currentMachineDeployment)
+	version, err := computeMachineDeploymentVersion(s, machineDeploymentTopology, desiredControlPlaneState, currentMachineDeployment)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to compute version for %s", machineDeploymentTopology.Name)
+	}
+
+	// Compute values that can be set both in the MachineDeploymentClass and in the MachineDeploymentTopology
+	minReadySeconds := machineDeploymentClass.MinReadySeconds
+	if machineDeploymentTopology.MinReadySeconds != nil {
+		minReadySeconds = machineDeploymentTopology.MinReadySeconds
+	}
+
+	strategy := machineDeploymentClass.Strategy
+	if machineDeploymentTopology.Strategy != nil {
+		strategy = machineDeploymentTopology.Strategy
+	}
+
+	failureDomain := machineDeploymentClass.FailureDomain
+	if machineDeploymentTopology.FailureDomain != nil {
+		failureDomain = machineDeploymentTopology.FailureDomain
+	}
+
+	nodeDrainTimeout := machineDeploymentClass.NodeDrainTimeout
+	if machineDeploymentTopology.NodeDrainTimeout != nil {
+		nodeDrainTimeout = machineDeploymentTopology.NodeDrainTimeout
+	}
+
+	nodeVolumeDetachTimeout := machineDeploymentClass.NodeVolumeDetachTimeout
+	if machineDeploymentTopology.NodeVolumeDetachTimeout != nil {
+		nodeVolumeDetachTimeout = machineDeploymentTopology.NodeVolumeDetachTimeout
+	}
+
+	nodeDeletionTimeout := machineDeploymentClass.NodeDeletionTimeout
+	if machineDeploymentTopology.NodeDeletionTimeout != nil {
+		nodeDeletionTimeout = machineDeploymentTopology.NodeDeletionTimeout
 	}
 
 	// Compute the MachineDeployment object.
@@ -586,19 +680,19 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 			Namespace: s.Current.Cluster.Namespace,
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
-			ClusterName: s.Current.Cluster.Name,
+			ClusterName:     s.Current.Cluster.Name,
+			MinReadySeconds: minReadySeconds,
+			Strategy:        strategy,
 			Template: clusterv1.MachineTemplateSpec{
-				ObjectMeta: clusterv1.ObjectMeta{
-					Labels:      mergeMap(machineDeploymentTopology.Metadata.Labels, machineDeploymentBlueprint.Metadata.Labels),
-					Annotations: mergeMap(machineDeploymentTopology.Metadata.Annotations, machineDeploymentBlueprint.Metadata.Annotations),
-				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:       s.Current.Cluster.Name,
-					Version:           pointer.String(version),
-					Bootstrap:         clusterv1.Bootstrap{ConfigRef: desiredBootstrapTemplateRef},
-					InfrastructureRef: *desiredInfraMachineTemplateRef,
-					FailureDomain:     machineDeploymentTopology.FailureDomain,
-					NodeDrainTimeout:  machineDeploymentTopology.NodeDrainTimeout,
+					ClusterName:             s.Current.Cluster.Name,
+					Version:                 pointer.String(version),
+					Bootstrap:               clusterv1.Bootstrap{ConfigRef: desiredBootstrapTemplateRef},
+					InfrastructureRef:       *desiredInfraMachineTemplateRef,
+					FailureDomain:           failureDomain,
+					NodeDrainTimeout:        nodeDrainTimeout,
+					NodeVolumeDetachTimeout: nodeVolumeDetachTimeout,
+					NodeDeletionTimeout:     nodeDeletionTimeout,
 				},
 			},
 		},
@@ -610,32 +704,38 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 		desiredMachineDeploymentObj.SetName(currentMachineDeployment.Object.Name)
 	}
 
+	// Apply annotations
+	machineDeploymentAnnotations := mergeMap(machineDeploymentTopology.Metadata.Annotations, machineDeploymentBlueprint.Metadata.Annotations)
+	// Ensure the annotations used to control the upgrade sequence are never propagated.
+	delete(machineDeploymentAnnotations, clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation)
+	delete(machineDeploymentAnnotations, clusterv1.ClusterTopologyDeferUpgradeAnnotation)
+	desiredMachineDeploymentObj.SetAnnotations(machineDeploymentAnnotations)
+	desiredMachineDeploymentObj.Spec.Template.Annotations = machineDeploymentAnnotations
+
 	// Apply Labels
 	// NOTE: On top of all the labels applied to managed objects we are applying the ClusterTopologyMachineDeploymentLabel
 	// keeping track of the MachineDeployment name from the Topology; this will be used to identify the object in next reconcile loops.
-	labels := map[string]string{}
-	labels[clusterv1.ClusterLabelName] = s.Current.Cluster.Name
-	labels[clusterv1.ClusterTopologyOwnedLabel] = ""
-	labels[clusterv1.ClusterTopologyMachineDeploymentLabelName] = machineDeploymentTopology.Name
-	desiredMachineDeploymentObj.SetLabels(labels)
+	machineDeploymentLabels := mergeMap(machineDeploymentTopology.Metadata.Labels, machineDeploymentBlueprint.Metadata.Labels)
+	if machineDeploymentLabels == nil {
+		machineDeploymentLabels = map[string]string{}
+	}
+	machineDeploymentLabels[clusterv1.ClusterNameLabel] = s.Current.Cluster.Name
+	machineDeploymentLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
+	machineDeploymentLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = machineDeploymentTopology.Name
+	desiredMachineDeploymentObj.SetLabels(machineDeploymentLabels)
+
+	// Also set the labels in .spec.template.labels so that they are propagated to
+	// MachineSet.labels and MachineSet.spec.template.labels and thus to Machine.labels.
+	// Note: the labels in MachineSet are used to properly cleanup templates when the MachineSet is deleted.
+	desiredMachineDeploymentObj.Spec.Template.Labels = machineDeploymentLabels
 
 	// Set the selector with the subset of labels identifying controlled machines.
 	// NOTE: this prevents the web hook to add cluster.x-k8s.io/deployment-name label, that is
 	// redundant for managed MachineDeployments given that we already have topology.cluster.x-k8s.io/deployment-name.
 	desiredMachineDeploymentObj.Spec.Selector.MatchLabels = map[string]string{}
-	desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterLabelName] = s.Current.Cluster.Name
+	desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterNameLabel] = s.Current.Cluster.Name
 	desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
-	desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyMachineDeploymentLabelName] = machineDeploymentTopology.Name
-
-	// Also set the labels in .spec.template.labels so that they are propagated to
-	// MachineSet.labels and MachineSet.spec.template.labels and thus to Machine.labels.
-	// Note: the labels in MachineSet are used to properly cleanup templates when the MachineSet is deleted.
-	if desiredMachineDeploymentObj.Spec.Template.Labels == nil {
-		desiredMachineDeploymentObj.Spec.Template.Labels = map[string]string{}
-	}
-	desiredMachineDeploymentObj.Spec.Template.Labels[clusterv1.ClusterLabelName] = s.Current.Cluster.Name
-	desiredMachineDeploymentObj.Spec.Template.Labels[clusterv1.ClusterTopologyOwnedLabel] = ""
-	desiredMachineDeploymentObj.Spec.Template.Labels[clusterv1.ClusterTopologyMachineDeploymentLabelName] = machineDeploymentTopology.Name
+	desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = machineDeploymentTopology.Name
 
 	// Set the desired replicas.
 	desiredMachineDeploymentObj.Spec.Replicas = machineDeploymentTopology.Replicas
@@ -643,13 +743,13 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 	desiredMachineDeployment.Object = desiredMachineDeploymentObj
 
 	// If the ClusterClass defines a MachineHealthCheck for the MachineDeployment add it to the desired state.
-	if machineDeploymentBlueprint.MachineHealthCheck != nil {
+	if s.Blueprint.IsMachineDeploymentMachineHealthCheckEnabled(&machineDeploymentTopology) {
 		// Note: The MHC is going to use a selector that provides a minimal set of labels which are common to all MachineSets belonging to the MachineDeployment.
 		desiredMachineDeployment.MachineHealthCheck = computeMachineHealthCheck(
 			desiredMachineDeploymentObj,
 			selectorForMachineDeploymentMHC(desiredMachineDeploymentObj),
 			s.Current.Cluster.Name,
-			machineDeploymentBlueprint.MachineHealthCheck)
+			s.Blueprint.MachineDeploymentMachineHealthCheckClass(&machineDeploymentTopology))
 	}
 	return desiredMachineDeployment, nil
 }
@@ -660,7 +760,7 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 // Nb: No MachineDeployment upgrades will be triggered while any MachineDeployment is in the middle
 // of an upgrade. Even if the number of MachineDeployments that are being upgraded is less
 // than the number of allowed concurrent upgrades.
-func computeMachineDeploymentVersion(s *scope.Scope, desiredControlPlaneState *scope.ControlPlaneState, currentMDState *scope.MachineDeploymentState) (string, error) {
+func computeMachineDeploymentVersion(s *scope.Scope, machineDeploymentTopology clusterv1.MachineDeploymentTopology, desiredControlPlaneState *scope.ControlPlaneState, currentMDState *scope.MachineDeploymentState) (string, error) {
 	desiredVersion := s.Blueprint.Topology.Version
 	// If creating a new machine deployment, we can pick up the desired version
 	// Note: We are not blocking the creation of new machine deployments when
@@ -675,6 +775,12 @@ func computeMachineDeploymentVersion(s *scope.Scope, desiredControlPlaneState *s
 	// Return early if the currentVersion is already equal to the desiredVersion
 	// no further checks required.
 	if currentVersion == desiredVersion {
+		return currentVersion, nil
+	}
+
+	// Return early if the upgrade for the MachineDeployment is deferred.
+	if isMachineDeploymentDeferred(s.Blueprint.Topology, machineDeploymentTopology) {
+		s.UpgradeTracker.MachineDeployments.MarkDeferredUpgrade(currentMDState.Object.Name)
 		return currentVersion, nil
 	}
 
@@ -745,18 +851,45 @@ func computeMachineDeploymentVersion(s *scope.Scope, desiredControlPlaneState *s
 		return currentVersion, nil
 	}
 
-	// At this point the control plane is stable (not scaling, not upgrading, not being upgraded).
-	// Checking to see if the machine deployments are also stable.
-	// If any of the MachineDeployments is rolling out, do not upgrade the machine deployment yet.
-	if s.Current.MachineDeployments.IsAnyRollingOut() {
-		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
-		return currentVersion, nil
-	}
-
 	// Control plane and machine deployments are stable.
 	// Ready to pick up the topology version.
-	s.UpgradeTracker.MachineDeployments.MarkRollingOut(currentMDState.Object.Name)
+	s.UpgradeTracker.MachineDeployments.MarkUpgradingAndRollingOut(currentMDState.Object.Name)
 	return desiredVersion, nil
+}
+
+// isMachineDeploymentDeferred returns true if the upgrade for the mdTopology is deferred.
+// This is the case when either:
+//   - the mdTopology has the ClusterTopologyDeferUpgradeAnnotation annotation.
+//   - the mdTopology has the ClusterTopologyHoldUpgradeSequenceAnnotation annotation.
+//   - another md topology which is before mdTopology in the workers.machineDeployments list has the
+//     ClusterTopologyHoldUpgradeSequenceAnnotation annotation.
+func isMachineDeploymentDeferred(clusterTopology *clusterv1.Topology, mdTopology clusterv1.MachineDeploymentTopology) bool {
+	// If mdTopology has the ClusterTopologyDeferUpgradeAnnotation annotation => md is deferred.
+	if _, ok := mdTopology.Metadata.Annotations[clusterv1.ClusterTopologyDeferUpgradeAnnotation]; ok {
+		return true
+	}
+
+	// If mdTopology has the ClusterTopologyHoldUpgradeSequenceAnnotation annotation => md is deferred.
+	if _, ok := mdTopology.Metadata.Annotations[clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation]; ok {
+		return true
+	}
+
+	for _, md := range clusterTopology.Workers.MachineDeployments {
+		// If another md topology with the ClusterTopologyHoldUpgradeSequenceAnnotation annotation
+		// is found before the mdTopology => md is deferred.
+		if _, ok := md.Metadata.Annotations[clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation]; ok {
+			return true
+		}
+
+		// If mdTopology is found before a md topology with the ClusterTopologyHoldUpgradeSequenceAnnotation
+		// annotation => md is not deferred.
+		if md.Name == mdTopology.Name {
+			return false
+		}
+	}
+
+	// This case should be impossible as mdTopology should have been found in workers.machineDeployments.
+	return false
 }
 
 type templateToInput struct {
@@ -765,6 +898,8 @@ type templateToInput struct {
 	cluster               *clusterv1.Cluster
 	namePrefix            string
 	currentObjectRef      *corev1.ObjectReference
+	labels                map[string]string
+	annotations           map[string]string
 	// OwnerRef is an optional OwnerReference to attach to the cloned object.
 	ownerRef *metav1.OwnerReference
 }
@@ -776,7 +911,10 @@ func templateToObject(in templateToInput) (*unstructured.Unstructured, error) {
 	// NOTE: The cluster label is added at creation time so this object could be read by the ClusterTopology
 	// controller immediately after creation, even before other controllers are going to add the label (if missing).
 	labels := map[string]string{}
-	labels[clusterv1.ClusterLabelName] = in.cluster.Name
+	for k, v := range in.labels {
+		labels[k] = v
+	}
+	labels[clusterv1.ClusterNameLabel] = in.cluster.Name
 	labels[clusterv1.ClusterTopologyOwnedLabel] = ""
 
 	// Generate the object from the template.
@@ -787,6 +925,7 @@ func templateToObject(in templateToInput) (*unstructured.Unstructured, error) {
 		TemplateRef: in.templateClonedFromRef,
 		Namespace:   in.cluster.Namespace,
 		Labels:      labels,
+		Annotations: in.annotations,
 		ClusterName: in.cluster.Name,
 		OwnerRef:    in.ownerRef,
 	})
@@ -828,7 +967,10 @@ func templateToTemplate(in templateToInput) *unstructured.Unstructured {
 	if labels == nil {
 		labels = map[string]string{}
 	}
-	labels[clusterv1.ClusterLabelName] = in.cluster.Name
+	for k, v := range in.labels {
+		labels[k] = v
+	}
+	labels[clusterv1.ClusterNameLabel] = in.cluster.Name
 	labels[clusterv1.ClusterTopologyOwnedLabel] = ""
 	template.SetLabels(labels)
 
@@ -837,6 +979,9 @@ func templateToTemplate(in templateToInput) *unstructured.Unstructured {
 	annotations := template.GetAnnotations()
 	if annotations == nil {
 		annotations = map[string]string{}
+	}
+	for k, v := range in.annotations {
+		annotations[k] = v
 	}
 	annotations[clusterv1.TemplateClonedFromNameAnnotation] = in.templateClonedFromRef.Name
 	annotations[clusterv1.TemplateClonedFromGroupKindAnnotation] = in.templateClonedFromRef.GroupVersionKind().GroupKind().String()
@@ -859,15 +1004,14 @@ func templateToTemplate(in templateToInput) *unstructured.Unstructured {
 	return template
 }
 
-// mergeMap merges two maps into another one.
-// NOTE: In case a key exists in both maps, the value in the first map is preserved.
-func mergeMap(a, b map[string]string) map[string]string {
+// mergeMap merges maps.
+// NOTE: In case a key exists in multiple maps, the value of the first map is preserved.
+func mergeMap(maps ...map[string]string) map[string]string {
 	m := make(map[string]string)
-	for k, v := range b {
-		m[k] = v
-	}
-	for k, v := range a {
-		m[k] = v
+	for i := len(maps) - 1; i >= 0; i-- {
+		for k, v := range maps[i] {
+			m[k] = v
+		}
 	}
 
 	// Nil the result if the map is empty, thus avoiding triggering infinite reconcile
@@ -922,8 +1066,8 @@ func selectorForControlPlaneMHC() *metav1.LabelSelector {
 	// It does not include any labels set in ClusterClass, Cluster Topology or elsewhere.
 	return &metav1.LabelSelector{
 		MatchLabels: map[string]string{
-			clusterv1.ClusterTopologyOwnedLabel:    "",
-			clusterv1.MachineControlPlaneLabelName: "",
+			clusterv1.ClusterTopologyOwnedLabel: "",
+			clusterv1.MachineControlPlaneLabel:  "",
 		},
 	}
 }
@@ -933,7 +1077,7 @@ func selectorForMachineDeploymentMHC(md *clusterv1.MachineDeployment) *metav1.La
 	// It does not include any labels set in ClusterClass, Cluster Topology or elsewhere.
 	return &metav1.LabelSelector{MatchLabels: map[string]string{
 		clusterv1.ClusterTopologyOwnedLabel:                 "",
-		clusterv1.ClusterTopologyMachineDeploymentLabelName: md.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyMachineDeploymentLabelName],
+		clusterv1.ClusterTopologyMachineDeploymentNameLabel: md.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel],
 	},
 	}
 }

@@ -22,6 +22,7 @@ package shared
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 	"os/exec"
 	"path"
@@ -31,7 +32,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/gofrs/flock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/yaml"
 
@@ -60,7 +61,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	flag.Parse()
 	Expect(e2eCtx.Settings.ConfigPath).To(BeAnExistingFile(), "Invalid test suite argument. configPath should be an existing file.")
 	Expect(os.MkdirAll(e2eCtx.Settings.ArtifactFolder, 0o750)).To(Succeed(), "Invalid test suite argument. Can't create artifacts-folder %q", e2eCtx.Settings.ArtifactFolder)
-	Byf("Loading the e2e test configuration from %q", e2eCtx.Settings.ConfigPath)
+	By(fmt.Sprintf("Loading the e2e test configuration from %q", e2eCtx.Settings.ConfigPath))
 	e2eCtx.E2EConfig = LoadE2EConfig(e2eCtx.Settings.ConfigPath)
 	sourceTemplate, err := os.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, e2eCtx.Settings.SourceTemplate))
 	Expect(err).NotTo(HaveOccurred())
@@ -124,21 +125,28 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 
 	Expect(err).NotTo(HaveOccurred())
 	e2eCtx.AWSSession = NewAWSSession()
-	boostrapTemplate := getBootstrapTemplate(e2eCtx)
+	bootstrapTemplate := getBootstrapTemplate(e2eCtx)
 	bootstrapTags := map[string]string{"capa-e2e-test": "true"}
-	e2eCtx.CloudFormationTemplate = renderCustomCloudFormation(boostrapTemplate)
+	e2eCtx.CloudFormationTemplate = renderCustomCloudFormation(bootstrapTemplate)
+
 	if !e2eCtx.Settings.SkipCloudFormationCreation {
-		err = createCloudFormationStack(e2eCtx.AWSSession, boostrapTemplate, bootstrapTags)
-		if err != nil {
-			deleteCloudFormationStack(e2eCtx.AWSSession, boostrapTemplate)
-			err = createCloudFormationStack(e2eCtx.AWSSession, boostrapTemplate, bootstrapTags)
-			Expect(err).NotTo(HaveOccurred())
-		}
+		count := 0
+		Eventually(func(gomega Gomega) bool {
+			count++
+			By(fmt.Sprintf("Trying to create CloudFormation stack... attempt %d", count))
+			success := true
+			if err := createCloudFormationStack(e2eCtx.AWSSession, bootstrapTemplate, bootstrapTags); err != nil {
+				deleteCloudFormationStack(e2eCtx.AWSSession, bootstrapTemplate)
+				success = false
+			}
+			return success
+		}, 10*time.Minute, 5*time.Second).Should(BeTrue())
 	}
-	ensureStackTags(e2eCtx.AWSSession, boostrapTemplate.Spec.StackName, bootstrapTags)
+
+	ensureStackTags(e2eCtx.AWSSession, bootstrapTemplate.Spec.StackName, bootstrapTags)
 	ensureNoServiceLinkedRoles(e2eCtx.AWSSession)
 	ensureSSHKeyPair(e2eCtx.AWSSession, DefaultSSHKeyPairName)
-	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(e2eCtx.AWSSession, boostrapTemplate.Spec.BootstrapUser.UserName)
+	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(e2eCtx.AWSSession, bootstrapTemplate.Spec.BootstrapUser.UserName)
 	e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(e2eCtx.Environment.BootstrapAccessKey)
 	Expect(ensureTestImageUploaded(e2eCtx)).NotTo(HaveOccurred())
 
@@ -147,20 +155,21 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 		e2eCtx.E2EConfig.Variables["IMAGE_ID"] = conformanceImageID(e2eCtx)
 	}
 
-	Byf("Creating a clusterctl local repository into %q", e2eCtx.Settings.ArtifactFolder)
+	By(fmt.Sprintf("Creating a clusterctl local repository into %q", e2eCtx.Settings.ArtifactFolder))
 	e2eCtx.Environment.ClusterctlConfigPath = createClusterctlLocalRepository(e2eCtx, filepath.Join(e2eCtx.Settings.ArtifactFolder, "repository"))
 
 	By("Setting up the bootstrap cluster")
 	e2eCtx.Environment.BootstrapClusterProvider, e2eCtx.Environment.BootstrapClusterProxy = setupBootstrapCluster(e2eCtx.E2EConfig, e2eCtx.Environment.Scheme, e2eCtx.Settings.UseExistingCluster)
 
-	base64EncodedCredentials := encodeCredentials(e2eCtx.Environment.BootstrapAccessKey, boostrapTemplate.Spec.Region)
+	base64EncodedCredentials := encodeCredentials(e2eCtx.Environment.BootstrapAccessKey, bootstrapTemplate.Spec.Region)
 	SetEnvVar("AWS_B64ENCODED_CREDENTIALS", base64EncodedCredentials, true)
 
 	if !e2eCtx.Settings.SkipQuotas {
 		By("Writing AWS service quotas to a file for parallel tests")
-		quotas := EnsureServiceQuotas(e2eCtx.BootstrapUserAWSSession)
+		quotas, originalQuotas := EnsureServiceQuotas(e2eCtx.BootstrapUserAWSSession)
 		WriteResourceQuotesToFile(ResourceQuotaFilePath, quotas)
 		WriteResourceQuotesToFile(path.Join(e2eCtx.Settings.ArtifactFolder, "initial-resource-quotas.yaml"), quotas)
+		WriteAWSResourceQuotesToFile(path.Join(e2eCtx.Settings.ArtifactFolder, "initial-aws-resource-quotas.yaml"), originalQuotas)
 	}
 
 	e2eCtx.Settings.InstanceVCPU, err = strconv.Atoi(e2eCtx.E2EConfig.GetVariable(InstanceVcpu))

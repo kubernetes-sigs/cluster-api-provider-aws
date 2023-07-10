@@ -37,6 +37,12 @@ type stackTracer interface {
 	StackTrace() errors.StackTrace
 }
 
+const (
+	groupDebug      = "group-debug"
+	groupManagement = "group-management"
+	groupOther      = "group-other"
+)
+
 var (
 	cfgFile   string
 	verbosity *int
@@ -46,7 +52,7 @@ var (
 var RootCmd = &cobra.Command{
 	Use:          "clusterctl",
 	SilenceUsage: true,
-	Short:        "clusterctl controls the lifecyle of a Cluster API management cluster",
+	Short:        "clusterctl controls the lifecycle of a Cluster API management cluster",
 	Long: LongDesc(`
 		Get started with Cluster API using clusterctl to create a management cluster,
 		install providers, and create templates for your workload cluster.`),
@@ -117,6 +123,23 @@ func init() {
 	RootCmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "",
 		"Path to clusterctl configuration (default is `$HOME/.cluster-api/clusterctl.yaml`) or to a remote location (i.e. https://example.com/clusterctl.yaml)")
+
+	RootCmd.AddGroup(
+		&cobra.Group{
+			ID:    groupManagement,
+			Title: "Cluster Management Commands:",
+		},
+		&cobra.Group{
+			ID:    groupDebug,
+			Title: "Troubleshooting and Debugging Commands:",
+		},
+		&cobra.Group{
+			ID:    groupOther,
+			Title: "Other Commands:",
+		})
+
+	RootCmd.SetHelpCommandGroupID(groupOther)
+	RootCmd.SetCompletionCommandGroupID(groupOther)
 
 	cobra.OnInitialize(initConfig, registerCompletionFuncForCommonFlags)
 }

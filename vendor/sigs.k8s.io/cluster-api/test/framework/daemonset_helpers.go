@@ -20,12 +20,13 @@ import (
 	"context"
 
 	"github.com/blang/semver"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"sigs.k8s.io/cluster-api/internal/util/kubeadm"
 	containerutil "sigs.k8s.io/cluster-api/util/container"
 )
 
@@ -42,15 +43,9 @@ func WaitForKubeProxyUpgrade(ctx context.Context, input WaitForKubeProxyUpgradeI
 	parsedVersion, err := semver.ParseTolerant(input.KubernetesVersion)
 	Expect(err).ToNot(HaveOccurred())
 
-	// Beginning with kubernetes v1.25, kubernetes images including kube-proxy get published to registry.k8s.io instead of k8s.gcr.io.
-	// This ensures that the imageRepository setting gets patched to registry.k8s.io when upgrading from v1.24 or lower,
-	// but only if there was no imageRespository explicitly set at the KubeadmControlPlanes ClusterConfiguration.
-	// This follows the behavior of `kubeadm upgrade`.
-	wantKubeProxyRegistry := "registry.k8s.io"
-	if parsedVersion.LT(semver.Version{Major: 1, Minor: 25, Patch: 0, Pre: []semver.PRVersion{{VersionStr: "alpha"}}}) {
-		wantKubeProxyRegistry = "k8s.gcr.io"
-	}
-	wantKubeProxyImage := wantKubeProxyRegistry + "/kube-proxy:" + containerutil.SemverToOCIImageTag(input.KubernetesVersion)
+	// Validate the kube-proxy image according to how KCP sets the image in the kube-proxy DaemonSet.
+	// KCP does this based on the default registry of the Kubernetes/kubeadm version.
+	wantKubeProxyImage := kubeadm.GetDefaultRegistry(parsedVersion) + "/kube-proxy:" + containerutil.SemverToOCIImageTag(input.KubernetesVersion)
 
 	Eventually(func() (bool, error) {
 		ds := &appsv1.DaemonSet{}

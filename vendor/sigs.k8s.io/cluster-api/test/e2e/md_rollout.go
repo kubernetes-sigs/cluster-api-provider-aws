@@ -22,7 +22,7 @@ import (
 	"os"
 	"path/filepath"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
@@ -81,14 +81,22 @@ func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() Machin
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
-				ControlPlaneMachineCount: pointer.Int64Ptr(1),
-				WorkerMachineCount:       pointer.Int64Ptr(1),
+				ControlPlaneMachineCount: pointer.Int64(1),
+				WorkerMachineCount:       pointer.Int64(1),
 			},
 			ControlPlaneWaiters:          input.ControlPlaneWaiters,
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
+
+		By("Upgrade MachineDeployment in-place mutable fields and wait for in-place propagation")
+		framework.UpgradeMachineDeploymentInPlaceMutableFieldsAndWait(ctx, framework.UpgradeMachineDeploymentInPlaceMutableFieldsAndWaitInput{
+			ClusterProxy:                input.BootstrapClusterProxy,
+			Cluster:                     clusterResources.Cluster,
+			WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+			MachineDeployments:          clusterResources.MachineDeployments,
+		})
 
 		By("Upgrading MachineDeployment Infrastructure ref and wait for rolling upgrade")
 		framework.UpgradeMachineDeploymentInfrastructureRefAndWait(ctx, framework.UpgradeMachineDeploymentInfrastructureRefAndWaitInput{

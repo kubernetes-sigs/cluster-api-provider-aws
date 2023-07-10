@@ -22,6 +22,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/utils/pointer"
 
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -49,7 +50,7 @@ func (c *ControlPlaneContract) MachineTemplate() *ControlPlaneMachineTemplate {
 	return &ControlPlaneMachineTemplate{}
 }
 
-// Version provide access to version field  in a ControlPlane object, if any.
+// Version provide access to version field in a ControlPlane object, if any.
 // NOTE: When working with unstructured there is no way to understand if the ControlPlane provider
 // do support a field in the type definition from the fact that a field is not set in a given instance.
 // This is why in we are deriving if version is required from the ClusterClass in the topology reconciler code.
@@ -59,14 +60,28 @@ func (c *ControlPlaneContract) Version() *String {
 	}
 }
 
-// StatusVersion provide access to version field  in a ControlPlane object status, if any.
+// StatusVersion provide access to the version field in a ControlPlane object status, if any.
 func (c *ControlPlaneContract) StatusVersion() *String {
 	return &String{
 		path: []string{"status", "version"},
 	}
 }
 
-// Replicas provide access to replicas field  in a ControlPlane object, if any.
+// Ready provide access to the status.ready field in a ControlPlane object.
+func (c *ControlPlaneContract) Ready() *Bool {
+	return &Bool{
+		path: []string{"status", "ready"},
+	}
+}
+
+// Initialized provide access to status.initialized field in a ControlPlane object.
+func (c *ControlPlaneContract) Initialized() *Bool {
+	return &Bool{
+		path: []string{"status", "initialized"},
+	}
+}
+
+// Replicas provide access to replicas field in a ControlPlane object, if any.
 // NOTE: When working with unstructured there is no way to understand if the ControlPlane provider
 // do support a field in the type definition from the fact that a field is not set in a given instance.
 // This is why in we are deriving if replicas is required from the ClusterClass in the topology reconciler code.
@@ -76,24 +91,60 @@ func (c *ControlPlaneContract) Replicas() *Int64 {
 	}
 }
 
-// StatusReplicas provide access to status.replicas field  in a ControlPlane object, if any.
+// StatusReplicas provide access to the status.replicas field in a ControlPlane object, if any. Applies to implementations using replicas.
 func (c *ControlPlaneContract) StatusReplicas() *Int64 {
 	return &Int64{
 		path: []string{"status", "replicas"},
 	}
 }
 
-// UpdatedReplicas provide access to status.updatedReplicas field  in a ControlPlane object, if any.
+// UpdatedReplicas provide access to the status.updatedReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
 func (c *ControlPlaneContract) UpdatedReplicas() *Int64 {
 	return &Int64{
 		path: []string{"status", "updatedReplicas"},
 	}
 }
 
-// ReadyReplicas provide access to status.readyReplicas field  in a ControlPlane object, if any.
+// ReadyReplicas provide access to the status.readyReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
 func (c *ControlPlaneContract) ReadyReplicas() *Int64 {
 	return &Int64{
 		path: []string{"status", "readyReplicas"},
+	}
+}
+
+// UnavailableReplicas provide access to the status.unavailableReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
+func (c *ControlPlaneContract) UnavailableReplicas() *Int64 {
+	return &Int64{
+		path: []string{"status", "unavailableReplicas"},
+	}
+}
+
+// Selector provide access to the status.selector field in a ControlPlane object, if any. Applies to implementations using replicas.
+func (c *ControlPlaneContract) Selector() *String {
+	return &String{
+		path: []string{"status", "selector"},
+	}
+}
+
+// FailureReason provides access to the status.failureReason field in an ControlPlane object. Note that this field is optional.
+func (c *ControlPlaneContract) FailureReason() *String {
+	return &String{
+		path: []string{"status", "failureReason"},
+	}
+}
+
+// FailureMessage provides access to the status.failureMessage field in an ControlPlane object. Note that this field is optional.
+func (c *ControlPlaneContract) FailureMessage() *String {
+	return &String{
+		path: []string{"status", "failureMessage"},
+	}
+}
+
+// ExternalManagedControlPlane provides access to the status.externalManagedControlPlane field in an ControlPlane object.
+// Note that this field is optional.
+func (c *ControlPlaneContract) ExternalManagedControlPlane() *Bool {
+	return &Bool{
+		path: []string{"status", "externalManagedControlPlane"},
 	}
 }
 
@@ -156,6 +207,7 @@ func (c *ControlPlaneContract) IsUpgrading(obj *unstructured.Unstructured) (bool
 // - spec.replicas != status.replicas.
 // - spec.replicas != status.updatedReplicas.
 // - spec.replicas != status.readyReplicas.
+// - status.unavailableReplicas > 0.
 func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured) (bool, error) {
 	desiredReplicas, err := c.Replicas().Get(obj)
 	if err != nil {
@@ -195,9 +247,29 @@ func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured) (bool, 
 		return false, errors.Wrap(err, "failed to get control plane status readyReplicas")
 	}
 
+	unavailableReplicas, err := c.UnavailableReplicas().Get(obj)
+	if err != nil {
+		if !errors.Is(err, errNotFound) {
+			return false, errors.Wrap(err, "failed to get control plane status unavailableReplicas")
+		}
+		// If unavailableReplicas is not set on the control plane we assume it is 0.
+		// We have to do this as the following happens after clusterctl move with KCP:
+		// * clusterctl move creates the KCP object without status
+		// * the KCP controller won't patch the field to 0 if it doesn't exist
+		//   * This is because the patchHelper marshals before/after object to JSON to calculate a diff
+		//     and as the unavailableReplicas field is not a pointer, not set and 0 are both rendered as 0.
+		//     If before/after of the field is the same (i.e. 0), there is no diff and thus also no patch to set it to 0.
+		unavailableReplicas = pointer.Int64(0)
+	}
+
+	// Control plane is still scaling if:
+	// * .spec.replicas, .status.replicas, .status.updatedReplicas,
+	//   .status.readyReplicas are not equal and
+	// * unavailableReplicas > 0
 	if *statusReplicas != *desiredReplicas ||
 		*updatedReplicas != *desiredReplicas ||
-		*readyReplicas != *desiredReplicas {
+		*readyReplicas != *desiredReplicas ||
+		*unavailableReplicas > 0 {
 		return true, nil
 	}
 	return false, nil
@@ -224,5 +296,19 @@ func (c *ControlPlaneMachineTemplate) Metadata() *Metadata {
 func (c *ControlPlaneMachineTemplate) NodeDrainTimeout() *Duration {
 	return &Duration{
 		path: Path{"spec", "machineTemplate", "nodeDrainTimeout"},
+	}
+}
+
+// NodeVolumeDetachTimeout provides access to the nodeVolumeDetachTimeout of a MachineTemplate.
+func (c *ControlPlaneMachineTemplate) NodeVolumeDetachTimeout() *Duration {
+	return &Duration{
+		path: Path{"spec", "machineTemplate", "nodeVolumeDetachTimeout"},
+	}
+}
+
+// NodeDeletionTimeout provides access to the nodeDeletionTimeout of a MachineTemplate.
+func (c *ControlPlaneMachineTemplate) NodeDeletionTimeout() *Duration {
+	return &Duration{
+		path: Path{"spec", "machineTemplate", "nodeDeletionTimeout"},
 	}
 }

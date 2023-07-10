@@ -37,7 +37,7 @@ func TestMachineDefault(t *testing.T) {
 	g.Expect(machine.Spec.CloudInit.SecureSecretsBackend).To(Equal(SecretBackendSecretsManager))
 }
 
-func TestAWSMachine_Create(t *testing.T) {
+func TestAWSMachineCreate(t *testing.T) {
 	tests := []struct {
 		name    string
 		machine *AWSMachine
@@ -265,7 +265,7 @@ func TestAWSMachine_Create(t *testing.T) {
 	}
 }
 
-func TestAWSMachine_Update(t *testing.T) {
+func TestAWSMachineUpdate(t *testing.T) {
 	tests := []struct {
 		name       string
 		oldMachine *AWSMachine
@@ -284,14 +284,14 @@ func TestAWSMachine_Update(t *testing.T) {
 			},
 			newMachine: &AWSMachine{
 				Spec: AWSMachineSpec{
-					ProviderID:   pointer.StringPtr("ID"),
+					ProviderID:   pointer.String("ID"),
 					InstanceType: "test",
 					AdditionalTags: Tags{
 						"key-1": "value-1",
 					},
 					AdditionalSecurityGroups: []AWSResourceReference{
 						{
-							ID: pointer.StringPtr("ID"),
+							ID: pointer.String("ID"),
 						},
 					},
 					CloudInit: CloudInit{
@@ -316,13 +316,13 @@ func TestAWSMachine_Update(t *testing.T) {
 				Spec: AWSMachineSpec{
 					ImageLookupOrg: "test",
 					InstanceType:   "test",
-					ProviderID:     pointer.StringPtr("ID"),
+					ProviderID:     pointer.String("ID"),
 					AdditionalTags: Tags{
 						"key-1": "value-1",
 					},
 					AdditionalSecurityGroups: []AWSResourceReference{
 						{
-							ID: pointer.StringPtr("ID"),
+							ID: pointer.String("ID"),
 						},
 					},
 				},
@@ -376,7 +376,7 @@ func TestAWSMachine_Update(t *testing.T) {
 	}
 }
 
-func TestAWSMachine_SecretsBackend(t *testing.T) {
+func TestAWSMachineSecretsBackend(t *testing.T) {
 	baseMachine := &AWSMachine{
 		Spec: AWSMachineSpec{
 			ProviderID:               nil,

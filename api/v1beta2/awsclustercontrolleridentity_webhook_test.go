@@ -248,7 +248,7 @@ func TestAWSClusterControllerIdentityUpdateValidation(t *testing.T) {
 	}
 }
 
-func TestAWSClusterControllerIdentity_Default(t *testing.T) {
+func TestAWSClusterControllerIdentityDefault(t *testing.T) {
 	g := NewWithT(t)
 	tests := []struct {
 		name                               string
@@ -266,7 +266,7 @@ func TestAWSClusterControllerIdentity_Default(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "default",
 					Labels: map[string]string{
-						clusterv1.ClusterctlMoveHierarchyLabelName: "",
+						clusterv1.ClusterctlMoveHierarchyLabel: "",
 					},
 				},
 			},
@@ -277,7 +277,7 @@ func TestAWSClusterControllerIdentity_Default(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "default",
 					Labels: map[string]string{
-						clusterv1.ClusterctlMoveHierarchyLabelName: "abc",
+						clusterv1.ClusterctlMoveHierarchyLabel: "abc",
 					},
 				},
 			},
@@ -285,7 +285,7 @@ func TestAWSClusterControllerIdentity_Default(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "default",
 					Labels: map[string]string{
-						clusterv1.ClusterctlMoveHierarchyLabelName: "abc",
+						clusterv1.ClusterctlMoveHierarchyLabel: "abc",
 					},
 				},
 			},
@@ -298,7 +298,7 @@ func TestAWSClusterControllerIdentity_Default(t *testing.T) {
 			awsClusterControllerIdentity := tt.beforeAWSClusterControllerIdentity.DeepCopy()
 			g.Expect(testEnv.Create(ctx, awsClusterControllerIdentity)).To(Succeed())
 			g.Expect(len(awsClusterControllerIdentity.ObjectMeta.Labels)).To(Not(Equal(0)))
-			g.Expect(awsClusterControllerIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabelName]).To(Equal(tt.afterAWSClusterControllerIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabelName]))
+			g.Expect(awsClusterControllerIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabel]).To(Equal(tt.afterAWSClusterControllerIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabel]))
 			g.Expect(testEnv.Delete(ctx, awsClusterControllerIdentity)).To(Succeed())
 		})
 	}

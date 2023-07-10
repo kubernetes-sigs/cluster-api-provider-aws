@@ -21,8 +21,10 @@ package managed
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws/client"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
@@ -53,9 +55,9 @@ func MachineDeploymentSpec(ctx context.Context, inputGetter func() MachineDeploy
 	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")
 	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
 	Expect(input.Namespace).NotTo(BeNil(), "Invalid argument. input.Namespace can't be nil")
-	Expect(input.ClusterName).ShouldNot(HaveLen(0), "Invalid argument. input.ClusterName can't be empty")
+	Expect(input.ClusterName).ShouldNot(BeEmpty(), "Invalid argument. input.ClusterName can't be empty")
 
-	shared.Byf("getting cluster with name %s", input.ClusterName)
+	By(fmt.Sprintf("getting cluster with name %s", input.ClusterName))
 	cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
 		Getter:    input.BootstrapClusterProxy.GetClient(),
 		Namespace: input.Namespace.Name,
@@ -63,14 +65,14 @@ func MachineDeploymentSpec(ctx context.Context, inputGetter func() MachineDeploy
 	})
 	Expect(cluster).NotTo(BeNil(), "couldn't find CAPI cluster")
 
-	shared.Byf("creating an applying the %s template", EKSMachineDeployOnlyFlavor)
+	By(fmt.Sprintf("creating an applying the %s template", EKSMachineDeployOnlyFlavor))
 	configCluster := input.ConfigClusterFn(input.ClusterName, input.Namespace.Name)
 	configCluster.Flavor = EKSMachineDeployOnlyFlavor
-	configCluster.WorkerMachineCount = pointer.Int64Ptr(input.Replicas)
+	configCluster.WorkerMachineCount = pointer.Int64(input.Replicas)
 	err := shared.ApplyTemplate(ctx, configCluster, input.BootstrapClusterProxy)
 	Expect(err).ShouldNot(HaveOccurred())
 
-	shared.Byf("Waiting for the worker node to be running")
+	By("Waiting for the worker node to be running")
 	md := framework.DiscoveryAndWaitForMachineDeployments(ctx, framework.DiscoveryAndWaitForMachineDeploymentsInput{
 		Lister:  input.BootstrapClusterProxy.GetClient(),
 		Cluster: cluster,

@@ -40,10 +40,10 @@ kind: ClusterRoleBinding
 metadata:
   name: gpu-operator-node-feature-discovery
   labels:
-    helm.sh/chart: node-feature-discovery-0.8.2
+    helm.sh/chart: node-feature-discovery-0.10.1
     app.kubernetes.io/name: node-feature-discovery
     app.kubernetes.io/instance: gpu-operator
-    app.kubernetes.io/version: "v0.8.2"
+    app.kubernetes.io/version: "v0.10.1"
     app.kubernetes.io/managed-by: Helm
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -95,7 +95,7 @@ spec:
               - ALL
             readOnlyRootFilesystem: true
             runAsNonRoot: true
-          image: "k8s.gcr.io/nfd/node-feature-discovery:v0.10.1"
+          image: "registry.k8s.io/nfd/node-feature-discovery:v0.10.1"
           imagePullPolicy: IfNotPresent
           ports:
           - containerPort: 8080
@@ -163,7 +163,7 @@ metadata:
     helm.sh/chart: node-feature-discovery-0.10.1
     app.kubernetes.io/name: node-feature-discovery
     app.kubernetes.io/instance: gpu-operator
-    app.kubernetes.io/version: "v0.8.2"
+    app.kubernetes.io/version: "v0.10.1"
     app.kubernetes.io/managed-by: Helm
     role: master
 spec:
@@ -231,7 +231,7 @@ spec:
               - ALL
             readOnlyRootFilesystem: true
             runAsNonRoot: true
-        image: "k8s.gcr.io/nfd/node-feature-discovery:v0.8.2"
+        image: "registry.k8s.io/nfd/node-feature-discovery:v0.10.1"
         imagePullPolicy: IfNotPresent
         env:
         - name: NODE_NAME
@@ -255,6 +255,9 @@ spec:
         - name: host-sys
           mountPath: "/host-sys"
           readOnly: true
+        - name: host-usr-lib
+          mountPath: "/host-usr/lib"
+          readOnly: true
         - name: source-d
           mountPath: "/etc/kubernetes/node-feature-discovery/source.d/"
           readOnly: true
@@ -274,6 +277,9 @@ spec:
         - name: host-sys
           hostPath:
             path: "/sys"
+        - name: host-usr-lib
+          hostPath:
+            path: "/usr/lib"
         - name: source-d
           hostPath:
             path: "/etc/kubernetes/node-feature-discovery/source.d/"
@@ -313,7 +319,7 @@ spec:
     initContainer:
       repository: nvcr.io/nvidia
       image: cuda
-      version: 11.4.2-base-ubi8
+      version: 11.6.1-base-ubi8
       imagePullPolicy: IfNotPresent
   daemonsets:
     tolerations:
@@ -324,7 +330,7 @@ spec:
   validator:
     repository: nvcr.io/nvidia/cloud-native
     image: gpu-operator-validator
-    version: v1.11.1
+    version: v22.9.1
     imagePullPolicy: IfNotPresent
     securityContext:
       privileged: true
@@ -342,7 +348,7 @@ spec:
     enabled: true
     repository: nvcr.io/nvidia
     image: driver
-    version: 515.48.07
+    version: 525.60.13
     imagePullPolicy: IfNotPresent
     rdma:
       enabled: false
@@ -350,7 +356,7 @@ spec:
     manager:
       repository: nvcr.io/nvidia/cloud-native
       image: k8s-driver-manager
-      version: v0.4.1
+      version: v0.5.1
       imagePullPolicy: IfNotPresent
       env:
         - name: ENABLE_AUTO_DRAIN
@@ -380,7 +386,7 @@ spec:
     enabled: true
     repository: nvcr.io/nvidia/k8s
     image: container-toolkit
-    version: v1.10.0-ubuntu20.04
+    version: v1.11.0
     imagePullPolicy: IfNotPresent
     securityContext:
       privileged: true
@@ -389,7 +395,7 @@ spec:
   devicePlugin:
     repository: nvcr.io/nvidia
     image: k8s-device-plugin
-    version: v0.12.2-ubi8
+    version: v0.13.0
     imagePullPolicy: IfNotPresent
     securityContext:
       privileged: true
@@ -410,13 +416,13 @@ spec:
     enabled: false
     repository: nvcr.io/nvidia/cloud-native
     image: dcgm
-    version: 2.4.5-1-ubuntu20.04
+    version: 3.1.3-1-ubuntu20.04
     imagePullPolicy: IfNotPresent
     hostPort: 5555
   dcgmExporter:
     repository: nvcr.io/nvidia/k8s
     image: dcgm-exporter
-    version: 2.4.5-2.6.7-ubuntu20.04
+    version: 3.1.3-3.1.2-ubuntu20.04
     imagePullPolicy: IfNotPresent
     env:
       - name: DCGM_EXPORTER_LISTEN
@@ -428,7 +434,7 @@ spec:
   gfd:
     repository: nvcr.io/nvidia
     image: gpu-feature-discovery
-    version: v0.6.1-ubi8
+    version: v0.7.0
     imagePullPolicy: IfNotPresent
     env:
       - name: GFD_SLEEP_INTERVAL
@@ -439,7 +445,7 @@ spec:
     enabled: true
     repository: nvcr.io/nvidia/cloud-native
     image: k8s-mig-manager
-    version: v0.4.2-ubuntu20.04
+    version: v0.5.0
     imagePullPolicy: IfNotPresent
     securityContext:
       privileged: true
@@ -454,7 +460,7 @@ spec:
     enabled: false
     repository: nvcr.io/nvidia/cloud-native
     image: gpu-operator-validator
-    version: v1.11.1
+    version: v22.9.1
     imagePullPolicy: IfNotPresent
 ---
 # Source: gpu-operator/templates/operator.yaml
@@ -486,7 +492,7 @@ spec:
       priorityClassName: system-node-critical
       containers:
       - name: gpu-operator
-        image: nvcr.io/nvidia/gpu-operator:v1.11.1
+        image: nvcr.io/nvidia/gpu-operator:v22.9.1
         imagePullPolicy: IfNotPresent
         command: ["gpu-operator"]
         args:
@@ -594,6 +600,7 @@ rules:
   - create
   - watch
   - update
+  - patch
 - apiGroups:
   - apps
   resources:
@@ -614,6 +621,7 @@ rules:
   - create
   - watch
   - update
+  - delete
 - apiGroups:
   - nvidia.com
   resources:
@@ -652,6 +660,7 @@ rules:
   - get
   - update
   - list
+  - delete
 - apiGroups:
   - config.openshift.io
   resources:
@@ -688,6 +697,14 @@ rules:
   - image.openshift.io
   resources:
   - imagestreams
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
   verbs:
   - get
   - list

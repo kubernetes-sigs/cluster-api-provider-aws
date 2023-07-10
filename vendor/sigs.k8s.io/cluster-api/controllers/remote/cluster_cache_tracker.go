@@ -18,6 +18,7 @@ package remote
 
 import (
 	"context"
+	"crypto/rsa"
 	"fmt"
 	"os"
 	"sync"
@@ -47,6 +48,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -165,12 +168,23 @@ func (t *ClusterCacheTracker) GetRESTConfig(ctc context.Context, cluster client.
 	return accessor.config, nil
 }
 
+// GetEtcdClientCertificateKey returns a cached certificate key to be used for generating certificates for accessing etcd in the given cluster.
+func (t *ClusterCacheTracker) GetEtcdClientCertificateKey(ctx context.Context, cluster client.ObjectKey) (*rsa.PrivateKey, error) {
+	accessor, err := t.getClusterAccessor(ctx, cluster, t.indexes...)
+	if err != nil {
+		return nil, err
+	}
+
+	return accessor.etcdClientCertificateKey, nil
+}
+
 // clusterAccessor represents the combination of a delegating client, cache, and watches for a remote cluster.
 type clusterAccessor struct {
-	cache   *stoppableCache
-	client  client.Client
-	watches sets.String
-	config  *rest.Config
+	cache                    *stoppableCache
+	client                   client.Client
+	watches                  sets.Set[string]
+	config                   *rest.Config
+	etcdClientCertificateKey *rsa.PrivateKey
 }
 
 // clusterAccessorExists returns true if a clusterAccessor exists for cluster.
@@ -334,11 +348,20 @@ func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster cl
 		return nil, err
 	}
 
+	// Generating a new private key to be used for generating temporary certificates to connect to
+	// etcd on the target cluster.
+	// NOTE: Generating a private key is an expensive operation, so we store it in the cluster accessor.
+	etcdKey, err := certs.NewPrivateKey()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating etcd client key for remote cluster %q", cluster.String())
+	}
+
 	return &clusterAccessor{
-		cache:   cache,
-		config:  config,
-		client:  delegatingClient,
-		watches: sets.NewString(),
+		cache:                    cache,
+		config:                   config,
+		client:                   delegatingClient,
+		watches:                  sets.Set[string]{},
+		etcdClientCertificateKey: etcdKey,
 	}, nil
 }
 
@@ -370,8 +393,15 @@ func (t *ClusterCacheTracker) runningOnWorkloadCluster(ctx context.Context, c cl
 
 // createClient creates a client and a mapper based on a rest.Config.
 func (t *ClusterCacheTracker) createClient(config *rest.Config, cluster client.ObjectKey) (client.Client, meta.RESTMapper, error) {
+	var mapper meta.RESTMapper
+	var err error
+
 	// Create a mapper for it
-	mapper, err := apiutil.NewDynamicRESTMapper(config)
+	if !feature.Gates.Enabled(feature.LazyRestmapper) {
+		mapper, err = apiutil.NewDynamicRESTMapper(config)
+	} else {
+		mapper, err = apiutil.NewDynamicRESTMapper(config, apiutil.WithExperimentalLazyMapper)
+	}
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "error creating dynamic rest mapper for remote cluster %q", cluster.String())
 	}
@@ -443,8 +473,9 @@ func (t *ClusterCacheTracker) Watch(ctx context.Context, input WatchInput) error
 	}
 
 	// We have to lock the cluster, so that the watch is not created multiple times in parallel.
-	if ok := t.clusterLock.TryLock(input.Cluster); !ok {
-		return errors.Wrapf(ErrClusterLocked, "failed to add %s watch on cluster %s: failed to get lock for cluster", input.Kind, klog.KRef(input.Cluster.Namespace, input.Cluster.Name))
+	ok := t.clusterLock.TryLock(input.Cluster)
+	if !ok {
+		return errors.Wrapf(ErrClusterLocked, "failed to add %T watch on cluster %s: failed to get lock for cluster", input.Kind, klog.KRef(input.Cluster.Namespace, input.Cluster.Name))
 	}
 	defer t.clusterLock.Unlock(input.Cluster)
 
@@ -527,6 +558,13 @@ func (t *ClusterCacheTracker) healthCheckCluster(ctx context.Context, in *health
 		}
 
 		if _, ok := t.loadAccessor(in.cluster); !ok {
+			// If there is no accessor but the cluster is locked, we're probably in the middle of the cluster accessor
+			// creation and we should requeue the health check until it's done.
+			if ok := t.clusterLock.TryLock(in.cluster); !ok {
+				t.log.V(4).Info("Waiting for cluster to be unlocked. Requeuing health check")
+				return false, nil
+			}
+			t.clusterLock.Unlock(in.cluster)
 			// Cache for this cluster has already been cleaned up.
 			// Nothing to do, so return true.
 			return true, nil

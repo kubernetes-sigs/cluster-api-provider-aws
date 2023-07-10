@@ -24,7 +24,7 @@ import (
 	"path"
 	"path/filepath"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 )
 
 // GetCAPIResourcesInput is the input for GetCAPIResources.
@@ -75,7 +76,7 @@ func GetCAPIResources(ctx context.Context, input GetCAPIResourcesInput) []*unstr
 	return objList
 }
 
-// getClusterAPITypes returns the list of TypeMeta to be considered for the the move discovery phase.
+// getClusterAPITypes returns the list of TypeMeta to be considered for the move discovery phase.
 // This list includes all the types belonging to CAPI providers.
 func getClusterAPITypes(ctx context.Context, lister Lister) []metav1.TypeMeta {
 	discoveredTypes := []metav1.TypeMeta{}
@@ -152,7 +153,7 @@ func dumpObject(resource runtime.Object, logPath string) {
 // capiProviderOptions returns a set of ListOptions that allows to identify all the objects belonging to Cluster API providers.
 func capiProviderOptions() []client.ListOption {
 	return []client.ListOption{
-		client.HasLabels{clusterv1.ProviderLabelName},
+		client.HasLabels{clusterv1.ProviderNameLabel},
 	}
 }
 
@@ -167,10 +168,10 @@ func CreateRelatedResources(ctx context.Context, input CreateRelatedResourcesInp
 	By("creating related resources")
 	for i := range input.RelatedResources {
 		obj := input.RelatedResources[i]
-		By(fmt.Sprintf("creating a/an %s resource", obj.GetObjectKind().GroupVersionKind()))
+		Byf("creating a/an %s resource", obj.GetObjectKind().GroupVersionKind())
 		Eventually(func() error {
 			return input.Creator.Create(ctx, obj)
-		}, intervals...).Should(Succeed())
+		}, intervals...).Should(Succeed(), "failed to create %s", obj.GetObjectKind().GroupVersionKind())
 	}
 }
 

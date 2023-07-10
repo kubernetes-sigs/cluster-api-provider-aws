@@ -199,7 +199,7 @@ func TestAWSClusterStaticIdentityUpdateLabelSelectorValidation(t *testing.T) {
 	}
 }
 
-func TestAWSClusterStaticIdentity_Default(t *testing.T) {
+func TestAWSClusterStaticIdentityDefault(t *testing.T) {
 	g := NewWithT(t)
 	tests := []struct {
 		name                           string
@@ -222,7 +222,7 @@ func TestAWSClusterStaticIdentity_Default(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "default",
 					Labels: map[string]string{
-						clusterv1.ClusterctlMoveHierarchyLabelName: "",
+						clusterv1.ClusterctlMoveHierarchyLabel: "",
 					},
 				},
 				Spec: AWSClusterStaticIdentitySpec{
@@ -238,7 +238,7 @@ func TestAWSClusterStaticIdentity_Default(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "default",
 					Labels: map[string]string{
-						clusterv1.ClusterctlMoveHierarchyLabelName: "abc",
+						clusterv1.ClusterctlMoveHierarchyLabel: "abc",
 					},
 				},
 				Spec: AWSClusterStaticIdentitySpec{
@@ -251,7 +251,7 @@ func TestAWSClusterStaticIdentity_Default(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "default",
 					Labels: map[string]string{
-						clusterv1.ClusterctlMoveHierarchyLabelName: "abc",
+						clusterv1.ClusterctlMoveHierarchyLabel: "abc",
 					},
 				},
 				Spec: AWSClusterStaticIdentitySpec{
@@ -269,7 +269,7 @@ func TestAWSClusterStaticIdentity_Default(t *testing.T) {
 			awsClusterStaticIdentity := tt.beforeAWSClusterStaticIdentity.DeepCopy()
 			g.Expect(testEnv.Create(ctx, awsClusterStaticIdentity)).To(Succeed())
 			g.Expect(len(awsClusterStaticIdentity.ObjectMeta.Labels)).To(Not(Equal(0)))
-			g.Expect(awsClusterStaticIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabelName]).To(Equal(tt.afterAWSClusterStaticIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabelName]))
+			g.Expect(awsClusterStaticIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabel]).To(Equal(tt.afterAWSClusterStaticIdentity.ObjectMeta.Labels[clusterv1.ClusterctlMoveHierarchyLabel]))
 			g.Expect(testEnv.Delete(ctx, awsClusterStaticIdentity)).To(Succeed())
 		})
 	}

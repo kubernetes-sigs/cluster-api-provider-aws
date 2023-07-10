@@ -17,15 +17,12 @@ limitations under the License.
 package ec2
 
 import (
-	"context"
 	"encoding/base64"
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	"k8s.io/utils/pointer"
@@ -34,7 +31,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
-	awslogs "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/logs"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
@@ -110,6 +106,8 @@ func (s *Service) InstanceIfExists(id *string) (*infrav1.Instance, error) {
 }
 
 // CreateInstance runs an ec2 instance.
+//
+//nolint:gocyclo // this function has multiple processes to perform
 func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, userDataFormat string) (*infrav1.Instance, error) {
 	s.scope.Debug("Creating an instance for a machine")
 
@@ -132,6 +130,12 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 	}.WithCloudProvider(s.scope.KubernetesClusterName()).WithMachineName(scope.Machine))
 
 	var err error
+
+	imageArchitecture, err := s.pickArchitectureForInstanceType(input.Type)
+	if err != nil {
+		return nil, err
+	}
+
 	// Pick image from the machine configuration, or use a default one.
 	if scope.AWSMachine.Spec.AMI.ID != nil { //nolint:nestif
 		input.ImageID = *scope.AWSMachine.Spec.AMI.ID
@@ -159,12 +163,12 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 		}
 
 		if scope.IsEKSManaged() && imageLookupFormat == "" && imageLookupOrg == "" && imageLookupBaseOS == "" {
-			input.ImageID, err = s.eksAMILookup(*scope.Machine.Spec.Version, scope.AWSMachine.Spec.AMI.EKSOptimizedLookupType)
+			input.ImageID, err = s.eksAMILookup(*scope.Machine.Spec.Version, imageArchitecture, scope.AWSMachine.Spec.AMI.EKSOptimizedLookupType)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			input.ImageID, err = s.defaultAMIIDLookup(imageLookupFormat, imageLookupOrg, imageLookupBaseOS, *scope.Machine.Spec.Version)
+			input.ImageID, err = s.defaultAMIIDLookup(imageLookupFormat, imageLookupOrg, imageLookupBaseOS, imageArchitecture, *scope.Machine.Spec.Version)
 			if err != nil {
 				return nil, err
 			}
@@ -190,7 +194,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 		}
 	}
 
-	input.UserData = pointer.StringPtr(base64.StdEncoding.EncodeToString(userData))
+	input.UserData = pointer.String(base64.StdEncoding.EncodeToString(userData))
 
 	// Set security groups.
 	ids, err := s.GetCoreSecurityGroups(scope)
@@ -227,9 +231,14 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 
 	input.SpotMarketOptions = scope.AWSMachine.Spec.SpotMarketOptions
 
+	input.InstanceMetadataOptions = scope.AWSMachine.Spec.InstanceMetadataOptions
+
 	input.Tenancy = scope.AWSMachine.Spec.Tenancy
 
+	input.PlacementGroupName = scope.AWSMachine.Spec.PlacementGroupName
+
 	s.scope.Debug("Running instance", "machine-role", scope.Role())
+	s.scope.Debug("Running instance with instance metadata options", "metadata options", input.InstanceMetadataOptions)
 	out, err := s.runInstance(scope.Role(), input)
 	if err != nil {
 		// Only record the failure event if the error is not related to failed dependencies.
@@ -245,6 +254,27 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 			s.scope.Debug("Attaching security groups to provided network interface", "groups", input.SecurityGroupIDs, "interface", id)
 			if err := s.attachSecurityGroupsToNetworkInterface(input.SecurityGroupIDs, id); err != nil {
 				return nil, err
+			}
+		}
+	}
+
+	s.scope.Debug("Adding tags on each network interface from resource", "resource-id", out.ID)
+
+	// Fetching the network interfaces attached to the specific instanace
+	networkInterfaces, err := s.getInstanceENIs(out.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	s.scope.Debug("Fetched the network interfaces")
+
+	// Once all the network interfaces attached to the specific instanace are found, the similar tags of instance are created for network interfaces too
+	if len(networkInterfaces) > 0 {
+		s.scope.Debug("Attempting to create tags from resource", "resource-id", out.ID)
+		for _, networkInterface := range networkInterfaces {
+			// Create/Update tags in AWS.
+			if err := s.UpdateResourceTags(networkInterface.NetworkInterfaceId, out.Tags, nil); err != nil {
+				return nil, errors.Wrapf(err, "failed to create tags for resource %q: ", *networkInterface.NetworkInterfaceId)
 			}
 		}
 	}
@@ -559,11 +589,19 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 	}
 
 	input.InstanceMarketOptions = getInstanceMarketOptionsRequest(i.SpotMarketOptions)
+	input.MetadataOptions = getInstanceMetadataOptionsRequest(i.InstanceMetadataOptions)
 
 	if i.Tenancy != "" {
 		input.Placement = &ec2.Placement{
 			Tenancy: &i.Tenancy,
 		}
+	}
+
+	if i.PlacementGroupName != "" {
+		if input.Placement == nil {
+			input.Placement = &ec2.Placement{}
+		}
+		input.Placement.GroupName = &i.PlacementGroupName
 	}
 
 	out, err := s.EC2Client.RunInstances(input)
@@ -573,19 +611,6 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 
 	if len(out.Instances) == 0 {
 		return nil, errors.Errorf("no instance returned for reservation %v", out.GoString())
-	}
-
-	waitTimeout := 1 * time.Minute
-	s.scope.Debug("Waiting for instance to be in running state", "instance-id", *out.Instances[0].InstanceId, "timeout", waitTimeout.String())
-	ctx, cancel := context.WithTimeout(aws.BackgroundContext(), waitTimeout)
-	defer cancel()
-
-	if err := s.EC2Client.WaitUntilInstanceRunningWithContext(
-		ctx,
-		&ec2.DescribeInstancesInput{InstanceIds: []*string{out.Instances[0].InstanceId}},
-		request.WithWaiterLogger(awslogs.NewWrapLogr(s.scope.GetLogger())),
-	); err != nil {
-		s.scope.Debug("Could not determine if Machine is running. Machine state might be unavailable until next renconciliation.")
 	}
 
 	return s.SDKToInstance(out.Instances[0])
@@ -817,6 +842,24 @@ func (s *Service) SDKToInstance(v *ec2.Instance) (*infrav1.Instance, error) {
 		i.VolumeIDs = append(i.VolumeIDs, *volume.Ebs.VolumeId)
 	}
 
+	if v.MetadataOptions != nil {
+		metadataOptions := &infrav1.InstanceMetadataOptions{}
+		if v.MetadataOptions.HttpEndpoint != nil {
+			metadataOptions.HTTPEndpoint = infrav1.InstanceMetadataState(*v.MetadataOptions.HttpEndpoint)
+		}
+		if v.MetadataOptions.HttpPutResponseHopLimit != nil {
+			metadataOptions.HTTPPutResponseHopLimit = *v.MetadataOptions.HttpPutResponseHopLimit
+		}
+		if v.MetadataOptions.HttpTokens != nil {
+			metadataOptions.HTTPTokens = infrav1.HTTPTokensState(*v.MetadataOptions.HttpTokens)
+		}
+		if v.MetadataOptions.InstanceMetadataTags != nil {
+			metadataOptions.InstanceMetadataTags = infrav1.InstanceMetadataState(*v.MetadataOptions.InstanceMetadataTags)
+		}
+
+		i.InstanceMetadataOptions = metadataOptions
+	}
+
 	return i, nil
 }
 
@@ -869,34 +912,15 @@ func (s *Service) getNetworkInterfaceSecurityGroups(interfaceID string) ([]strin
 }
 
 func (s *Service) attachSecurityGroupsToNetworkInterface(groups []string, interfaceID string) error {
-	existingGroups, err := s.getNetworkInterfaceSecurityGroups(interfaceID)
-	if err != nil {
-		return errors.Wrapf(err, "failed to look up network interface security groups: %+v", err)
-	}
-
-	totalGroups := make([]string, len(existingGroups))
-	copy(totalGroups, existingGroups)
-
-	for _, group := range groups {
-		if !containsGroup(existingGroups, group) {
-			totalGroups = append(totalGroups, group)
-		}
-	}
-
-	// no new groups to attach
-	if len(existingGroups) == len(totalGroups) {
-		return nil
-	}
-
-	s.scope.Info("Updating security groups", "groups", totalGroups)
+	s.scope.Info("Updating security groups", "groups", groups)
 
 	input := &ec2.ModifyNetworkInterfaceAttributeInput{
 		NetworkInterfaceId: aws.String(interfaceID),
-		Groups:             aws.StringSlice(totalGroups),
+		Groups:             aws.StringSlice(groups),
 	}
 
 	if _, err := s.EC2Client.ModifyNetworkInterfaceAttribute(input); err != nil {
-		return errors.Wrapf(err, "failed to modify interface %q to have security groups %v", interfaceID, totalGroups)
+		return errors.Wrapf(err, "failed to modify interface %q to have security groups %v", interfaceID, groups)
 	}
 	return nil
 }
@@ -945,6 +969,24 @@ func (s *Service) checkRootVolume(rootVolume *infrav1.Volume, imageID string) (*
 	return rootDeviceName, nil
 }
 
+// ModifyInstanceMetadataOptions modifies the metadata options of the given EC2 instance.
+func (s *Service) ModifyInstanceMetadataOptions(instanceID string, options *infrav1.InstanceMetadataOptions) error {
+	input := &ec2.ModifyInstanceMetadataOptionsInput{
+		HttpEndpoint:            aws.String(string(options.HTTPEndpoint)),
+		HttpPutResponseHopLimit: aws.Int64(options.HTTPPutResponseHopLimit),
+		HttpTokens:              aws.String(string(options.HTTPTokens)),
+		InstanceMetadataTags:    aws.String(string(options.InstanceMetadataTags)),
+		InstanceId:              aws.String(instanceID),
+	}
+
+	s.scope.Info("Updating instance metadata options", "instance id", instanceID, "options", input)
+	if _, err := s.EC2Client.ModifyInstanceMetadataOptions(input); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // filterGroups filters a list for a string.
 func filterGroups(list []string, strToFilter string) (newList []string) {
 	for _, item := range list {
@@ -953,16 +995,6 @@ func filterGroups(list []string, strToFilter string) (newList []string) {
 		}
 	}
 	return
-}
-
-// containsGroup returns true if a list contains a string.
-func containsGroup(list []string, strToSearch string) bool {
-	for _, item := range list {
-		if item == strToSearch {
-			return true
-		}
-	}
-	return false
 }
 
 func getInstanceMarketOptionsRequest(spotMarketOptions *infrav1.SpotMarketOptions) *ec2.InstanceMarketOptionsRequest {
@@ -993,4 +1025,26 @@ func getInstanceMarketOptionsRequest(spotMarketOptions *infrav1.SpotMarketOption
 	instanceMarketOptionsRequest.SetSpotOptions(spotOptions)
 
 	return instanceMarketOptionsRequest
+}
+
+func getInstanceMetadataOptionsRequest(metadataOptions *infrav1.InstanceMetadataOptions) *ec2.InstanceMetadataOptionsRequest {
+	if metadataOptions == nil {
+		return nil
+	}
+
+	request := &ec2.InstanceMetadataOptionsRequest{}
+	if metadataOptions.HTTPEndpoint != "" {
+		request.SetHttpEndpoint(string(metadataOptions.HTTPEndpoint))
+	}
+	if metadataOptions.HTTPPutResponseHopLimit != 0 {
+		request.SetHttpPutResponseHopLimit(metadataOptions.HTTPPutResponseHopLimit)
+	}
+	if metadataOptions.HTTPTokens != "" {
+		request.SetHttpTokens(string(metadataOptions.HTTPTokens))
+	}
+	if metadataOptions.InstanceMetadataTags != "" {
+		request.SetInstanceMetadataTags(string(metadataOptions.InstanceMetadataTags))
+	}
+
+	return request
 }

@@ -84,6 +84,17 @@ See [amis] for the list of most recently published AMIs.
 
 `clusterawsadm` binaries are released with each release, can be found under [assets](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/latest) section.
 
+`clusterawsadm` could also be installed via Homebrew on macOS and linux OS.
+Install the latest release using homebrew:
+```shell
+brew install clusterawsadm
+```
+
+Test to ensure the version you installed is up-to-date:
+```shell
+clusterawsadm version
+```
+
 ------
 
 ## Getting involved and contributing
@@ -169,24 +180,25 @@ and/or other countries."
 
 Thank you to all contributors and a special thanks to our current maintainers & reviewers:
 
-| Maintainers                                                          | Reviewers                                                            |
-| -------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| [@richardcase](https://github.com/richardcase) (from 2020-12-04)     | [@shivi28](https://github.com/shivi28) (from 2021-08-27)             |
-| [@sedefsavas](https://github.com/sedefsavas) (from 2021-03-21)       | [@dthorsen](https://github.com/dthorsen) (from 2020-12-04)           |
-| [@Skarlso](https://github.com/Skarlso) (from 2022-10-19)             | [@pydctw](https://github.com/pydctw) (from 2021-12-09)               |
-| [@Ankitasw](https://github.com/Ankitasw) (from 2022-10-19)           | [@AverageMarcus](https://github.com/AverageMarcus) (from 2022-10-19) |
-| [@dlipovetsky](https://github.com/dlipovetsky) (from 2021-10-31)     |                                                                      |
+| Maintainers                                                      | Reviewers                                                            |
+|------------------------------------------------------------------| -------------------------------------------------------------------- |
+| [@richardcase](https://github.com/richardcase) (from 2020-12-04) | [@shivi28](https://github.com/shivi28) (from 2021-08-27)             |
+| [@Skarlso](https://github.com/Skarlso) (from 2022-10-19)         | [@dthorsen](https://github.com/dthorsen) (from 2020-12-04)           |
+| [@Ankitasw](https://github.com/Ankitasw) (from 2022-10-19)       | [@pydctw](https://github.com/pydctw) (from 2021-12-09)               |
+| [@dlipovetsky](https://github.com/dlipovetsky) (from 2021-10-31) | [@AverageMarcus](https://github.com/AverageMarcus) (from 2022-10-19) |
+|                                                                  | [@luthermonson](https://github.com/luthermonson ) (from 2023-03-08)  |
 
 and the previous/emeritus maintainers & reviewers:
 
 | Emeritus Maintainers                                 | Emeritus Reviewers                                     |
-| ---------------------------------------------------- | ------------------------------------------------------ |
+|------------------------------------------------------|--------------------------------------------------------|
 | [@chuckha](https://github.com/chuckha)               | [@ashish-amarnath](https://github.com/ashish-amarnath) |
 | [@detiber](https://github.com/detiber)               | [@davidewatson](https://github.com/davidewatson)       |
 | [@ncdc](https://github.com/ncdc)                     | [@enxebre](https://github.com/enxebre)                 |
 | [@randomvariable](https://github.com/randomvariable) | [@ingvagabund](https://github.com/ingvagabund)         |
 | [@rudoi](https://github.com/rudoi)                   | [@michaelbeaumont](https://github.com/michaelbeaumont) |
-| [@vincepri](https://github.com/vincepri)             | [@sethp-nr](https://github.com/sethp-nr)               |
+| [@sedefsavas](https://github.com/sedefsavas)         | [@sethp-nr](https://github.com/sethp-nr)               |
+| [@vincepri](https://github.com/vincepri)             |                                                        | 
 
 All the CAPA contributors:
 

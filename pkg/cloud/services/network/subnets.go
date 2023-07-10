@@ -53,10 +53,17 @@ func (s *Service) reconcileSubnets() error {
 		s.scope.SetSubnets(subnets)
 	}()
 
-	// Describe subnets in the vpc.
-	existing, err := s.describeVpcSubnets()
-	if err != nil {
-		return err
+	var (
+		err      error
+		existing infrav1.Subnets
+	)
+
+	// Describing the VPC Subnets tags the resources.
+	if s.scope.TagUnmanagedNetworkResources() {
+		// Describe subnets in the vpc.
+		if existing, err = s.describeVpcSubnets(); err != nil {
+			return err
+		}
 	}
 
 	unmanagedVPC := s.scope.VPC().IsUnmanaged(s.scope.Name())
@@ -68,17 +75,28 @@ func (s *Service) reconcileSubnets() error {
 			record.Warnf(s.scope.InfraCluster(), "FailedNoSubnets", errMsg)
 			return errors.New(errMsg)
 		}
+
 		// If we a managed VPC and have no subnets then create subnets. There will be 1 public and 1 private subnet
 		// for each az in a region up to a maximum of 3 azs
 		s.scope.Info("no subnets specified, setting defaults")
+
 		subnets, err = s.getDefaultSubnets()
 		if err != nil {
 			record.Warnf(s.scope.InfraCluster(), "FailedDefaultSubnets", "Failed getting default subnets: %v", err)
 			return errors.Wrap(err, "failed getting default subnets")
 		}
+
 		// Persist the new default subnets to AWSCluster
 		if err := s.scope.PatchObject(); err != nil {
 			s.scope.Error(err, "failed to patch object to save subnets")
+			return err
+		}
+	}
+
+	// Describing the VPC Subnets tags the resources.
+	if !s.scope.TagUnmanagedNetworkResources() {
+		// Describe subnets in the vpc.
+		if existing, err = s.describeVpcSubnets(); err != nil {
 			return err
 		}
 	}
@@ -490,32 +508,37 @@ func (s *Service) getSubnetTagParams(unmanagedVPC bool, id string, public bool, 
 	var role string
 	additionalTags := make(map[string]string)
 
-	if !unmanagedVPC {
+	if !unmanagedVPC || s.scope.TagUnmanagedNetworkResources() {
 		additionalTags = s.scope.AdditionalTags()
-	}
 
-	if public {
-		role = infrav1.PublicRoleTagValue
-		additionalTags[externalLoadBalancerTag] = "1"
-	} else {
-		role = infrav1.PrivateRoleTagValue
-		additionalTags[internalLoadBalancerTag] = "1"
-	}
+		if public {
+			role = infrav1.PublicRoleTagValue
+			additionalTags[externalLoadBalancerTag] = "1"
+		} else {
+			role = infrav1.PrivateRoleTagValue
+			additionalTags[internalLoadBalancerTag] = "1"
+		}
 
-	// Add tag needed for Service type=LoadBalancer
-	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())] = string(infrav1.ResourceLifecycleShared)
+		// Add tag needed for Service type=LoadBalancer
+		additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())] = string(infrav1.ResourceLifecycleShared)
+	}
 
 	if !unmanagedVPC {
 		for k, v := range manualTags {
 			additionalTags[k] = v
 		}
 
+		// Prefer `Name` tag if given, else generate a name
 		var name strings.Builder
-		name.WriteString(s.scope.Name())
-		name.WriteString("-subnet-")
-		name.WriteString(role)
-		name.WriteString("-")
-		name.WriteString(zone)
+		if manualTagName, ok := manualTags["Name"]; ok {
+			name.WriteString(manualTagName)
+		} else {
+			name.WriteString(s.scope.Name())
+			name.WriteString("-subnet-")
+			name.WriteString(role)
+			name.WriteString("-")
+			name.WriteString(zone)
+		}
 
 		return infrav1.BuildParams{
 			ClusterName: s.scope.Name(),

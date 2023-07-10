@@ -75,7 +75,7 @@ func (c *ConfigService) BatchGetAggregateResourceConfigRequest(input *BatchGetAg
 // Returned Error Types:
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -173,7 +173,7 @@ func (c *ConfigService) BatchGetResourceConfigRequest(input *BatchGetResourceCon
 // Returned Error Types:
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -352,7 +352,7 @@ func (c *ConfigService) DeleteConfigRuleRequest(input *DeleteConfigRuleInput) (r
 // Returned Error Types:
 //
 //   - NoSuchConfigRuleException
-//     The Config rule in the request is not valid. Verify that the rule is an Config
+//     The Config rule in the request is invalid. Verify that the rule is an Config
 //     Custom Policy rule, that the rule name is correct, and that valid Amazon
 //     Resouce Names (ARNs) are used before trying again.
 //
@@ -828,7 +828,7 @@ func (c *ConfigService) DeleteEvaluationResultsRequest(input *DeleteEvaluationRe
 // Returned Error Types:
 //
 //   - NoSuchConfigRuleException
-//     The Config rule in the request is not valid. Verify that the rule is an Config
+//     The Config rule in the request is invalid. Verify that the rule is an Config
 //     Custom Policy rule, that the rule name is correct, and that valid Amazon
 //     Resouce Names (ARNs) are used before trying again.
 //
@@ -927,8 +927,8 @@ func (c *ConfigService) DeleteOrganizationConfigRuleRequest(input *DeleteOrganiz
 // Deletes the specified organization Config rule and all of its evaluation
 // results from all member accounts in that organization.
 //
-// Only a master account and a delegated administrator account can delete an
-// organization Config rule. When calling this API with a delegated administrator,
+// Only a management account and a delegated administrator account can delete
+// an organization Config rule. When calling this API with a delegated administrator,
 // you must ensure Organizations ListDelegatedAdministrator permissions are
 // added.
 //
@@ -945,7 +945,7 @@ func (c *ConfigService) DeleteOrganizationConfigRuleRequest(input *DeleteOrganiz
 // Returned Error Types:
 //
 //   - NoSuchOrganizationConfigRuleException
-//     The Config rule in the request is not valid. Verify that the rule is an organization
+//     The Config rule in the request is invalid. Verify that the rule is an organization
 //     Config Custom Policy rule, that the rule name is correct, and that valid
 //     Amazon Resouce Names (ARNs) are used before trying again.
 //
@@ -998,7 +998,7 @@ func (c *ConfigService) DeleteOrganizationConfigRuleRequest(input *DeleteOrganiz
 //
 //     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
 //     throws an exception if APIs are called from member accounts. All APIs must
-//     be called from organization master account.
+//     be called from organization management account.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteOrganizationConfigRule
 func (c *ConfigService) DeleteOrganizationConfigRule(input *DeleteOrganizationConfigRuleInput) (*DeleteOrganizationConfigRuleOutput, error) {
@@ -1069,10 +1069,10 @@ func (c *ConfigService) DeleteOrganizationConformancePackRequest(input *DeleteOr
 // Deletes the specified organization conformance pack and all of the Config
 // rules and remediation actions from all member accounts in that organization.
 //
-// Only a master account or a delegated administrator account can delete an
-// organization conformance pack. When calling this API with a delegated administrator,
-// you must ensure Organizations ListDelegatedAdministrator permissions are
-// added.
+// Only a management account or a delegated administrator account can delete
+// an organization conformance pack. When calling this API with a delegated
+// administrator, you must ensure Organizations ListDelegatedAdministrator permissions
+// are added.
 //
 // Config sets the state of a conformance pack to DELETE_IN_PROGRESS until the
 // deletion is complete. You cannot update a conformance pack while it is in
@@ -1143,7 +1143,7 @@ func (c *ConfigService) DeleteOrganizationConformancePackRequest(input *DeleteOr
 //
 //     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
 //     throws an exception if APIs are called from member accounts. All APIs must
-//     be called from organization master account.
+//     be called from organization management account.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteOrganizationConformancePack
 func (c *ConfigService) DeleteOrganizationConformancePack(input *DeleteOrganizationConformancePackInput) (*DeleteOrganizationConformancePackOutput, error) {
@@ -1324,9 +1324,9 @@ func (c *ConfigService) DeleteRemediationConfigurationRequest(input *DeleteRemed
 //     a service-linked role.
 //
 //   - For PutConformancePack and PutOrganizationConformancePack, a conformance
-//     pack cannot be created because you do not have permissions: To call IAM
-//     GetRole action or create a service-linked role. To read Amazon S3 bucket
-//     or call SSM:GetDocument.
+//     pack cannot be created because you do not have the following permissions:
+//     You do not have permission to call IAM GetRole action or create a service-linked
+//     role. You do not have permission to read Amazon S3 bucket or call SSM:GetDocument.
 //
 //   - InvalidParameterValueException
 //     One or more of the specified parameters are invalid. Verify that your parameters
@@ -1495,7 +1495,7 @@ func (c *ConfigService) DeleteResourceConfigRequest(input *DeleteResourceConfigI
 // Returned Error Types:
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -1671,7 +1671,7 @@ func (c *ConfigService) DeleteStoredQueryRequest(input *DeleteStoredQueryInput) 
 // Returned Error Types:
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -1867,7 +1867,7 @@ func (c *ConfigService) DescribeAggregateComplianceByConfigRulesRequest(input *D
 // Returned Error Types:
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -2027,7 +2027,7 @@ func (c *ConfigService) DescribeAggregateComplianceByConformancePacksRequest(inp
 // Returned Error Types:
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -2352,7 +2352,7 @@ func (c *ConfigService) DescribeComplianceByConfigRuleRequest(input *DescribeCom
 //     are valid and try again.
 //
 //   - NoSuchConfigRuleException
-//     The Config rule in the request is not valid. Verify that the rule is an Config
+//     The Config rule in the request is invalid. Verify that the rule is an Config
 //     Custom Policy rule, that the rule name is correct, and that valid Amazon
 //     Resouce Names (ARNs) are used before trying again.
 //
@@ -2661,7 +2661,7 @@ func (c *ConfigService) DescribeConfigRuleEvaluationStatusRequest(input *Describ
 // Returned Error Types:
 //
 //   - NoSuchConfigRuleException
-//     The Config rule in the request is not valid. Verify that the rule is an Config
+//     The Config rule in the request is invalid. Verify that the rule is an Config
 //     Custom Policy rule, that the rule name is correct, and that valid Amazon
 //     Resouce Names (ARNs) are used before trying again.
 //
@@ -2807,13 +2807,17 @@ func (c *ConfigService) DescribeConfigRulesRequest(input *DescribeConfigRulesInp
 // Returned Error Types:
 //
 //   - NoSuchConfigRuleException
-//     The Config rule in the request is not valid. Verify that the rule is an Config
+//     The Config rule in the request is invalid. Verify that the rule is an Config
 //     Custom Policy rule, that the rule name is correct, and that valid Amazon
 //     Resouce Names (ARNs) are used before trying again.
 //
 //   - InvalidNextTokenException
 //     The specified next token is invalid. Specify the nextToken string that was
 //     returned in the previous response to get the next page of results.
+//
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigRules
 func (c *ConfigService) DescribeConfigRules(input *DescribeConfigRulesInput) (*DescribeConfigRulesOutput, error) {
@@ -4032,7 +4036,7 @@ func (c *ConfigService) DescribeOrganizationConfigRuleStatusesRequest(input *Des
 // Returned Error Types:
 //
 //   - NoSuchOrganizationConfigRuleException
-//     The Config rule in the request is not valid. Verify that the rule is an organization
+//     The Config rule in the request is invalid. Verify that the rule is an organization
 //     Config Custom Policy rule, that the rule name is correct, and that valid
 //     Amazon Resouce Names (ARNs) are used before trying again.
 //
@@ -4066,7 +4070,7 @@ func (c *ConfigService) DescribeOrganizationConfigRuleStatusesRequest(input *Des
 //
 //     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
 //     throws an exception if APIs are called from member accounts. All APIs must
-//     be called from organization master account.
+//     be called from organization management account.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeOrganizationConfigRuleStatuses
 func (c *ConfigService) DescribeOrganizationConfigRuleStatuses(input *DescribeOrganizationConfigRuleStatusesInput) (*DescribeOrganizationConfigRuleStatusesOutput, error) {
@@ -4221,7 +4225,7 @@ func (c *ConfigService) DescribeOrganizationConfigRulesRequest(input *DescribeOr
 // Returned Error Types:
 //
 //   - NoSuchOrganizationConfigRuleException
-//     The Config rule in the request is not valid. Verify that the rule is an organization
+//     The Config rule in the request is invalid. Verify that the rule is an organization
 //     Config Custom Policy rule, that the rule name is correct, and that valid
 //     Amazon Resouce Names (ARNs) are used before trying again.
 //
@@ -4255,7 +4259,7 @@ func (c *ConfigService) DescribeOrganizationConfigRulesRequest(input *DescribeOr
 //
 //     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
 //     throws an exception if APIs are called from member accounts. All APIs must
-//     be called from organization master account.
+//     be called from organization management account.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeOrganizationConfigRules
 func (c *ConfigService) DescribeOrganizationConfigRules(input *DescribeOrganizationConfigRulesInput) (*DescribeOrganizationConfigRulesOutput, error) {
@@ -4436,7 +4440,7 @@ func (c *ConfigService) DescribeOrganizationConformancePackStatusesRequest(input
 //
 //     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
 //     throws an exception if APIs are called from member accounts. All APIs must
-//     be called from organization master account.
+//     be called from organization management account.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeOrganizationConformancePackStatuses
 func (c *ConfigService) DescribeOrganizationConformancePackStatuses(input *DescribeOrganizationConformancePackStatusesInput) (*DescribeOrganizationConformancePackStatusesOutput, error) {
@@ -4627,7 +4631,7 @@ func (c *ConfigService) DescribeOrganizationConformancePacksRequest(input *Descr
 //
 //     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
 //     throws an exception if APIs are called from member accounts. All APIs must
-//     be called from organization master account.
+//     be called from organization management account.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeOrganizationConformancePacks
 func (c *ConfigService) DescribeOrganizationConformancePacks(input *DescribeOrganizationConformancePacksInput) (*DescribeOrganizationConformancePacksOutput, error) {
@@ -5435,7 +5439,7 @@ func (c *ConfigService) GetAggregateComplianceDetailsByConfigRuleRequest(input *
 // Returned Error Types:
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -5593,7 +5597,7 @@ func (c *ConfigService) GetAggregateConfigRuleComplianceSummaryRequest(input *Ge
 // Returned Error Types:
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -5753,7 +5757,7 @@ func (c *ConfigService) GetAggregateConformancePackComplianceSummaryRequest(inpu
 // Returned Error Types:
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -5915,7 +5919,7 @@ func (c *ConfigService) GetAggregateDiscoveredResourceCountsRequest(input *GetAg
 // Returned Error Types:
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -6064,7 +6068,7 @@ func (c *ConfigService) GetAggregateResourceConfigRequest(input *GetAggregateRes
 // Returned Error Types:
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -6177,7 +6181,7 @@ func (c *ConfigService) GetComplianceDetailsByConfigRuleRequest(input *GetCompli
 //     returned in the previous response to get the next page of results.
 //
 //   - NoSuchConfigRuleException
-//     The Config rule in the request is not valid. Verify that the rule is an Config
+//     The Config rule in the request is invalid. Verify that the rule is an Config
 //     Custom Policy rule, that the rule name is correct, and that valid Amazon
 //     Resouce Names (ARNs) are used before trying again.
 //
@@ -6305,7 +6309,7 @@ func (c *ConfigService) GetComplianceDetailsByResourceRequest(input *GetComplian
 //
 // Returns the evaluation results for the specified Amazon Web Services resource.
 // The results indicate which Config rules were used to evaluate the resource,
-// when each rule was last used, and whether the resource complies with each
+// when each rule was last invoked, and whether the resource complies with each
 // rule.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -6898,7 +6902,7 @@ func (c *ConfigService) GetCustomRulePolicyRequest(input *GetCustomRulePolicyInp
 //
 // Returned Error Types:
 //   - NoSuchConfigRuleException
-//     The Config rule in the request is not valid. Verify that the rule is an Config
+//     The Config rule in the request is invalid. Verify that the rule is an Config
 //     Custom Policy rule, that the rule name is correct, and that valid Amazon
 //     Resouce Names (ARNs) are used before trying again.
 //
@@ -7018,7 +7022,7 @@ func (c *ConfigService) GetDiscoveredResourceCountsRequest(input *GetDiscoveredR
 // Returned Error Types:
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -7170,7 +7174,7 @@ func (c *ConfigService) GetOrganizationConfigRuleDetailedStatusRequest(input *Ge
 // Returned Error Types:
 //
 //   - NoSuchOrganizationConfigRuleException
-//     The Config rule in the request is not valid. Verify that the rule is an organization
+//     The Config rule in the request is invalid. Verify that the rule is an organization
 //     Config Custom Policy rule, that the rule name is correct, and that valid
 //     Amazon Resouce Names (ARNs) are used before trying again.
 //
@@ -7204,7 +7208,7 @@ func (c *ConfigService) GetOrganizationConfigRuleDetailedStatusRequest(input *Ge
 //
 //     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
 //     throws an exception if APIs are called from member accounts. All APIs must
-//     be called from organization master account.
+//     be called from organization management account.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetOrganizationConfigRuleDetailedStatus
 func (c *ConfigService) GetOrganizationConfigRuleDetailedStatus(input *GetOrganizationConfigRuleDetailedStatusInput) (*GetOrganizationConfigRuleDetailedStatusOutput, error) {
@@ -7377,7 +7381,7 @@ func (c *ConfigService) GetOrganizationConformancePackDetailedStatusRequest(inpu
 //
 //     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
 //     throws an exception if APIs are called from member accounts. All APIs must
-//     be called from organization master account.
+//     be called from organization management account.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetOrganizationConformancePackDetailedStatus
 func (c *ConfigService) GetOrganizationConformancePackDetailedStatus(input *GetOrganizationConformancePackDetailedStatusInput) (*GetOrganizationConformancePackDetailedStatusOutput, error) {
@@ -7508,7 +7512,7 @@ func (c *ConfigService) GetOrganizationCustomRulePolicyRequest(input *GetOrganiz
 // Returned Error Types:
 //
 //   - NoSuchOrganizationConfigRuleException
-//     The Config rule in the request is not valid. Verify that the rule is an organization
+//     The Config rule in the request is invalid. Verify that the rule is an organization
 //     Config Custom Policy rule, that the rule name is correct, and that valid
 //     Amazon Resouce Names (ARNs) are used before trying again.
 //
@@ -7535,7 +7539,7 @@ func (c *ConfigService) GetOrganizationCustomRulePolicyRequest(input *GetOrganiz
 //
 //     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
 //     throws an exception if APIs are called from member accounts. All APIs must
-//     be called from organization master account.
+//     be called from organization management account.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetOrganizationCustomRulePolicy
 func (c *ConfigService) GetOrganizationCustomRulePolicy(input *GetOrganizationCustomRulePolicyInput) (*GetOrganizationCustomRulePolicyOutput, error) {
@@ -7633,7 +7637,7 @@ func (c *ConfigService) GetResourceConfigHistoryRequest(input *GetResourceConfig
 // Returned Error Types:
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -7644,7 +7648,7 @@ func (c *ConfigService) GetResourceConfigHistoryRequest(input *GetResourceConfig
 //     the validation.
 //
 //   - InvalidTimeRangeException
-//     The specified time range is not valid. The earlier time is not chronologically
+//     The specified time range is invalid. The earlier time is not chronologically
 //     before the later time.
 //
 //   - InvalidLimitException
@@ -7734,6 +7738,88 @@ func (c *ConfigService) GetResourceConfigHistoryPagesWithContext(ctx aws.Context
 	return p.Err()
 }
 
+const opGetResourceEvaluationSummary = "GetResourceEvaluationSummary"
+
+// GetResourceEvaluationSummaryRequest generates a "aws/request.Request" representing the
+// client's request for the GetResourceEvaluationSummary operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetResourceEvaluationSummary for more information on using the GetResourceEvaluationSummary
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the GetResourceEvaluationSummaryRequest method.
+//	req, resp := client.GetResourceEvaluationSummaryRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetResourceEvaluationSummary
+func (c *ConfigService) GetResourceEvaluationSummaryRequest(input *GetResourceEvaluationSummaryInput) (req *request.Request, output *GetResourceEvaluationSummaryOutput) {
+	op := &request.Operation{
+		Name:       opGetResourceEvaluationSummary,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetResourceEvaluationSummaryInput{}
+	}
+
+	output = &GetResourceEvaluationSummaryOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetResourceEvaluationSummary API operation for AWS Config.
+//
+// Returns a summary of resource evaluation for the specified resource evaluation
+// ID from the proactive rules that were run. The results indicate which evaluation
+// context was used to evaluate the rules, which resource details were evaluated,
+// the evaluation mode that was run, and whether the resource details comply
+// with the configuration of the proactive rules.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation GetResourceEvaluationSummary for usage and error information.
+//
+// Returned Error Types:
+//   - ResourceNotFoundException
+//     You have specified a resource that does not exist.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetResourceEvaluationSummary
+func (c *ConfigService) GetResourceEvaluationSummary(input *GetResourceEvaluationSummaryInput) (*GetResourceEvaluationSummaryOutput, error) {
+	req, out := c.GetResourceEvaluationSummaryRequest(input)
+	return out, req.Send()
+}
+
+// GetResourceEvaluationSummaryWithContext is the same as GetResourceEvaluationSummary with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetResourceEvaluationSummary for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) GetResourceEvaluationSummaryWithContext(ctx aws.Context, input *GetResourceEvaluationSummaryInput, opts ...request.Option) (*GetResourceEvaluationSummaryOutput, error) {
+	req, out := c.GetResourceEvaluationSummaryRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opGetStoredQuery = "GetStoredQuery"
 
 // GetStoredQueryRequest generates a "aws/request.Request" representing the
@@ -7789,7 +7875,7 @@ func (c *ConfigService) GetStoredQueryRequest(input *GetStoredQueryInput) (req *
 // Returned Error Types:
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -7894,7 +7980,7 @@ func (c *ConfigService) ListAggregateDiscoveredResourcesRequest(input *ListAggre
 // Returned Error Types:
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -8040,7 +8126,7 @@ func (c *ConfigService) ListConformancePackComplianceScoresRequest(input *ListCo
 // is the percentage of the number of compliant rule-resource combinations in
 // a conformance pack compared to the number of total possible rule-resource
 // combinations in the conformance pack. This metric provides you with a high-level
-// view of the compliance state of your conformance packs, and can be used to
+// view of the compliance state of your conformance packs. You can use it to
 // identify, investigate, and understand the level of compliance in your conformance
 // packs.
 //
@@ -8214,7 +8300,7 @@ func (c *ConfigService) ListDiscoveredResourcesRequest(input *ListDiscoveredReso
 // Returned Error Types:
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -8308,6 +8394,151 @@ func (c *ConfigService) ListDiscoveredResourcesPagesWithContext(ctx aws.Context,
 	return p.Err()
 }
 
+const opListResourceEvaluations = "ListResourceEvaluations"
+
+// ListResourceEvaluationsRequest generates a "aws/request.Request" representing the
+// client's request for the ListResourceEvaluations operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListResourceEvaluations for more information on using the ListResourceEvaluations
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the ListResourceEvaluationsRequest method.
+//	req, resp := client.ListResourceEvaluationsRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ListResourceEvaluations
+func (c *ConfigService) ListResourceEvaluationsRequest(input *ListResourceEvaluationsInput) (req *request.Request, output *ListResourceEvaluationsOutput) {
+	op := &request.Operation{
+		Name:       opListResourceEvaluations,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "Limit",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &ListResourceEvaluationsInput{}
+	}
+
+	output = &ListResourceEvaluationsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListResourceEvaluations API operation for AWS Config.
+//
+// Returns a list of proactive resource evaluations.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation ListResourceEvaluations for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidNextTokenException
+//     The specified next token is invalid. Specify the nextToken string that was
+//     returned in the previous response to get the next page of results.
+//
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
+//
+//   - InvalidTimeRangeException
+//     The specified time range is invalid. The earlier time is not chronologically
+//     before the later time.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/ListResourceEvaluations
+func (c *ConfigService) ListResourceEvaluations(input *ListResourceEvaluationsInput) (*ListResourceEvaluationsOutput, error) {
+	req, out := c.ListResourceEvaluationsRequest(input)
+	return out, req.Send()
+}
+
+// ListResourceEvaluationsWithContext is the same as ListResourceEvaluations with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListResourceEvaluations for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) ListResourceEvaluationsWithContext(ctx aws.Context, input *ListResourceEvaluationsInput, opts ...request.Option) (*ListResourceEvaluationsOutput, error) {
+	req, out := c.ListResourceEvaluationsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// ListResourceEvaluationsPages iterates over the pages of a ListResourceEvaluations operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListResourceEvaluations method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//	// Example iterating over at most 3 pages of a ListResourceEvaluations operation.
+//	pageNum := 0
+//	err := client.ListResourceEvaluationsPages(params,
+//	    func(page *configservice.ListResourceEvaluationsOutput, lastPage bool) bool {
+//	        pageNum++
+//	        fmt.Println(page)
+//	        return pageNum <= 3
+//	    })
+func (c *ConfigService) ListResourceEvaluationsPages(input *ListResourceEvaluationsInput, fn func(*ListResourceEvaluationsOutput, bool) bool) error {
+	return c.ListResourceEvaluationsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListResourceEvaluationsPagesWithContext same as ListResourceEvaluationsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) ListResourceEvaluationsPagesWithContext(ctx aws.Context, input *ListResourceEvaluationsInput, fn func(*ListResourceEvaluationsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListResourceEvaluationsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListResourceEvaluationsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*ListResourceEvaluationsOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
 const opListStoredQueries = "ListStoredQueries"
 
 // ListStoredQueriesRequest generates a "aws/request.Request" representing the
@@ -8370,7 +8601,7 @@ func (c *ConfigService) ListStoredQueriesRequest(input *ListStoredQueriesInput) 
 // Returned Error Types:
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -8521,7 +8752,7 @@ func (c *ConfigService) ListTagsForResourceRequest(input *ListTagsForResourceInp
 //     You have specified a resource that does not exist.
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -8830,9 +9061,9 @@ func (c *ConfigService) PutConfigRuleRequest(input *PutConfigRuleInput) (req *re
 //     a service-linked role.
 //
 //   - For PutConformancePack and PutOrganizationConformancePack, a conformance
-//     pack cannot be created because you do not have permissions: To call IAM
-//     GetRole action or create a service-linked role. To read Amazon S3 bucket
-//     or call SSM:GetDocument.
+//     pack cannot be created because you do not have the following permissions:
+//     You do not have permission to call IAM GetRole action or create a service-linked
+//     role. You do not have permission to read Amazon S3 bucket or call SSM:GetDocument.
 //
 //   - NoAvailableConfigurationRecorderException
 //     There are no configuration recorders available to provide the role needed
@@ -8972,7 +9203,7 @@ func (c *ConfigService) PutConfigurationAggregatorRequest(input *PutConfiguratio
 //
 //     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
 //     throws an exception if APIs are called from member accounts. All APIs must
-//     be called from organization master account.
+//     be called from organization management account.
 //
 //   - NoAvailableOrganizationException
 //     Organization is no longer available.
@@ -9148,16 +9379,16 @@ func (c *ConfigService) PutConformancePackRequest(input *PutConformancePackInput
 //
 // Creates or updates a conformance pack. A conformance pack is a collection
 // of Config rules that can be easily deployed in an account and a region and
-// across Amazon Web Services Organization. For information on how many conformance
-// packs you can have per account, see Service Limits (https://docs.aws.amazon.com/config/latest/developerguide/configlimits.html)
+// across an organization. For information on how many conformance packs you
+// can have per account, see Service Limits (https://docs.aws.amazon.com/config/latest/developerguide/configlimits.html)
 // in the Config Developer Guide.
 //
 // This API creates a service-linked role AWSServiceRoleForConfigConforms in
 // your account. The service-linked role is created only when the role does
 // not exist in your account.
 //
-// You must specify one and only one of theTemplateS3Uri, TemplateBody or TemplateSSMDocumentDetails
-// parameters.
+// You must specify only one of the follow parameters: TemplateS3Uri, TemplateBody
+// or TemplateSSMDocumentDetails.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -9182,12 +9413,12 @@ func (c *ConfigService) PutConformancePackRequest(input *PutConformancePackInput
 //     a service-linked role.
 //
 //   - For PutConformancePack and PutOrganizationConformancePack, a conformance
-//     pack cannot be created because you do not have permissions: To call IAM
-//     GetRole action or create a service-linked role. To read Amazon S3 bucket
-//     or call SSM:GetDocument.
+//     pack cannot be created because you do not have the following permissions:
+//     You do not have permission to call IAM GetRole action or create a service-linked
+//     role. You do not have permission to read Amazon S3 bucket or call SSM:GetDocument.
 //
 //   - ConformancePackTemplateValidationException
-//     You have specified a template that is not valid or supported.
+//     You have specified a template that is invalid or supported.
 //
 //   - ResourceInUseException
 //     You see this exception in the following cases:
@@ -9220,8 +9451,9 @@ func (c *ConfigService) PutConformancePackRequest(input *PutConformancePackInput
 //     are valid and try again.
 //
 //   - MaxNumberOfConformancePacksExceededException
-//     You have reached the limit (6) of the number of conformance packs in an account
-//     (6 conformance pack with 25 Config rules per pack).
+//     You have reached the limit of the number of conformance packs you can create
+//     in an account. For more information, see Service Limits (https://docs.aws.amazon.com/config/latest/developerguide/configlimits.html)
+//     in the Config Developer Guide.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutConformancePack
 func (c *ConfigService) PutConformancePack(input *PutConformancePackInput) (*PutConformancePackOutput, error) {
@@ -9321,16 +9553,16 @@ func (c *ConfigService) PutDeliveryChannelRequest(input *PutDeliveryChannelInput
 //     to describe your resources. Create a configuration recorder.
 //
 //   - InvalidDeliveryChannelNameException
-//     The specified delivery channel name is not valid.
+//     The specified delivery channel name is invalid.
 //
 //   - NoSuchBucketException
 //     The specified Amazon S3 bucket does not exist.
 //
 //   - InvalidS3KeyPrefixException
-//     The specified Amazon S3 key prefix is not valid.
+//     The specified Amazon S3 key prefix is invalid.
 //
 //   - InvalidS3KmsKeyArnException
-//     The specified Amazon KMS Key ARN is not valid.
+//     The specified Amazon KMS Key ARN is invalid.
 //
 //   - InvalidSNSTopicARNException
 //     The specified Amazon SNS topic does not exist.
@@ -9424,7 +9656,7 @@ func (c *ConfigService) PutEvaluationsRequest(input *PutEvaluationsInput) (req *
 //     The specified ResultToken is invalid.
 //
 //   - NoSuchConfigRuleException
-//     The Config rule in the request is not valid. Verify that the rule is an Config
+//     The Config rule in the request is invalid. Verify that the rule is an Config
 //     Custom Policy rule, that the rule name is correct, and that valid Amazon
 //     Resouce Names (ARNs) are used before trying again.
 //
@@ -9507,7 +9739,7 @@ func (c *ConfigService) PutExternalEvaluationRequest(input *PutExternalEvaluatio
 // Returned Error Types:
 //
 //   - NoSuchConfigRuleException
-//     The Config rule in the request is not valid. Verify that the rule is an Config
+//     The Config rule in the request is invalid. Verify that the rule is an Config
 //     Custom Policy rule, that the rule name is correct, and that valid Amazon
 //     Resouce Names (ARNs) are used before trying again.
 //
@@ -9586,16 +9818,16 @@ func (c *ConfigService) PutOrganizationConfigRuleRequest(input *PutOrganizationC
 // see Service Limits (https://docs.aws.amazon.com/config/latest/developerguide/configlimits.html)
 // in the Config Developer Guide.
 //
-// Only a master account and a delegated administrator can create or update
+// Only a management account and a delegated administrator can create or update
 // an organization Config rule. When calling this API with a delegated administrator,
 // you must ensure Organizations ListDelegatedAdministrator permissions are
 // added. An organization can have up to 3 delegated administrators.
 //
 // This API enables organization service access through the EnableAWSServiceAccess
 // action and creates a service-linked role AWSServiceRoleForConfigMultiAccountSetup
-// in the master or delegated administrator account of your organization. The
-// service-linked role is created only when the role does not exist in the caller
-// account. Config verifies the existence of role with GetRole action.
+// in the management or delegated administrator account of your organization.
+// The service-linked role is created only when the role does not exist in the
+// caller account. Config verifies the existence of role with GetRole action.
 //
 // To use this API with delegated administrator, register a delegated administrator
 // by calling Amazon Web Services Organization register-delegated-administrator
@@ -9610,12 +9842,12 @@ func (c *ConfigService) PutOrganizationConfigRuleRequest(input *PutOrganizationC
 // is a policy-as-code language that allows you to write policies that are enforced
 // by Config Custom Policy rules. Lambda uses custom code that you upload to
 // evaluate a custom rule. If you are adding a new Custom Lambda rule, you first
-// need to create an Lambda function in the master account or a delegated administrator
-// that the rule invokes to evaluate your resources. You also need to create
-// an IAM role in the managed account that can be assumed by the Lambda function.
-// When you use PutOrganizationConfigRule to add a Custom Lambda rule to Config,
-// you must specify the Amazon Resource Name (ARN) that Lambda assigns to the
-// function.
+// need to create an Lambda function in the management account or a delegated
+// administrator that the rule invokes to evaluate your resources. You also
+// need to create an IAM role in the managed account that can be assumed by
+// the Lambda function. When you use PutOrganizationConfigRule to add a Custom
+// Lambda rule to Config, you must specify the Amazon Resource Name (ARN) that
+// Lambda assigns to the function.
 //
 // Managed rules are predefined, customizable rules created by Config. For a
 // list of managed rules, see List of Config Managed Rules (https://docs.aws.amazon.com/config/latest/developerguide/managed-rules-by-aws-config.html).
@@ -9640,7 +9872,8 @@ func (c *ConfigService) PutOrganizationConfigRuleRequest(input *PutOrganizationC
 //
 //   - MaxNumberOfOrganizationConfigRulesExceededException
 //     You have reached the limit of the number of organization Config rules you
-//     can create.
+//     can create. For more information, see see Service Limits (https://docs.aws.amazon.com/config/latest/developerguide/configlimits.html)
+//     in the Config Developer Guide.
 //
 //   - ResourceInUseException
 //     You see this exception in the following cases:
@@ -9673,7 +9906,7 @@ func (c *ConfigService) PutOrganizationConfigRuleRequest(input *PutOrganizationC
 //     are valid and try again.
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -9706,7 +9939,7 @@ func (c *ConfigService) PutOrganizationConfigRuleRequest(input *PutOrganizationC
 //
 //     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
 //     throws an exception if APIs are called from member accounts. All APIs must
-//     be called from organization master account.
+//     be called from organization management account.
 //
 //   - NoAvailableOrganizationException
 //     Organization is no longer available.
@@ -9729,9 +9962,9 @@ func (c *ConfigService) PutOrganizationConfigRuleRequest(input *PutOrganizationC
 //     a service-linked role.
 //
 //   - For PutConformancePack and PutOrganizationConformancePack, a conformance
-//     pack cannot be created because you do not have permissions: To call IAM
-//     GetRole action or create a service-linked role. To read Amazon S3 bucket
-//     or call SSM:GetDocument.
+//     pack cannot be created because you do not have the following permissions:
+//     You do not have permission to call IAM GetRole action or create a service-linked
+//     role. You do not have permission to read Amazon S3 bucket or call SSM:GetDocument.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutOrganizationConfigRule
 func (c *ConfigService) PutOrganizationConfigRule(input *PutOrganizationConfigRuleInput) (*PutOrganizationConfigRuleOutput, error) {
@@ -9803,14 +10036,14 @@ func (c *ConfigService) PutOrganizationConformancePackRequest(input *PutOrganiza
 // and how many Config rules you can have per account, see Service Limits (https://docs.aws.amazon.com/config/latest/developerguide/configlimits.html)
 // in the Config Developer Guide.
 //
-// Only a master account and a delegated administrator can call this API. When
-// calling this API with a delegated administrator, you must ensure Organizations
+// Only a management account and a delegated administrator can call this API.
+// When calling this API with a delegated administrator, you must ensure Organizations
 // ListDelegatedAdministrator permissions are added. An organization can have
 // up to 3 delegated administrators.
 //
 // This API enables organization service access for config-multiaccountsetup.amazonaws.com
 // through the EnableAWSServiceAccess action and creates a service-linked role
-// AWSServiceRoleForConfigMultiAccountSetup in the master or delegated administrator
+// AWSServiceRoleForConfigMultiAccountSetup in the management or delegated administrator
 // account of your organization. The service-linked role is created only when
 // the role does not exist in the caller account. To use this API with delegated
 // administrator, register a delegated administrator by calling Amazon Web Services
@@ -9837,9 +10070,9 @@ func (c *ConfigService) PutOrganizationConformancePackRequest(input *PutOrganiza
 // Returned Error Types:
 //
 //   - MaxNumberOfOrganizationConformancePacksExceededException
-//     You have reached the limit (6) of the number of organization conformance
-//     packs in an account (6 conformance pack with 25 Config rules per pack per
-//     account).
+//     You have reached the limit of the number of organization conformance packs
+//     you can create in an account. For more information, see Service Limits (https://docs.aws.amazon.com/config/latest/developerguide/configlimits.html)
+//     in the Config Developer Guide.
 //
 //   - ResourceInUseException
 //     You see this exception in the following cases:
@@ -9868,7 +10101,7 @@ func (c *ConfigService) PutOrganizationConformancePackRequest(input *PutOrganiza
 //     deletion is in progress. Try your request again later.
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -9901,7 +10134,7 @@ func (c *ConfigService) PutOrganizationConformancePackRequest(input *PutOrganiza
 //
 //     For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
 //     throws an exception if APIs are called from member accounts. All APIs must
-//     be called from organization master account.
+//     be called from organization management account.
 //
 //   - InsufficientPermissionsException
 //     Indicates one of the following errors:
@@ -9917,12 +10150,12 @@ func (c *ConfigService) PutOrganizationConformancePackRequest(input *PutOrganiza
 //     a service-linked role.
 //
 //   - For PutConformancePack and PutOrganizationConformancePack, a conformance
-//     pack cannot be created because you do not have permissions: To call IAM
-//     GetRole action or create a service-linked role. To read Amazon S3 bucket
-//     or call SSM:GetDocument.
+//     pack cannot be created because you do not have the following permissions:
+//     You do not have permission to call IAM GetRole action or create a service-linked
+//     role. You do not have permission to read Amazon S3 bucket or call SSM:GetDocument.
 //
 //   - OrganizationConformancePackTemplateValidationException
-//     You have specified a template that is not valid or supported.
+//     You have specified a template that is invalid or supported.
 //
 //   - OrganizationAllFeaturesNotEnabledException
 //     Config resource cannot be created because your organization does not have
@@ -10040,9 +10273,9 @@ func (c *ConfigService) PutRemediationConfigurationsRequest(input *PutRemediatio
 //     a service-linked role.
 //
 //   - For PutConformancePack and PutOrganizationConformancePack, a conformance
-//     pack cannot be created because you do not have permissions: To call IAM
-//     GetRole action or create a service-linked role. To read Amazon S3 bucket
-//     or call SSM:GetDocument.
+//     pack cannot be created because you do not have the following permissions:
+//     You do not have permission to call IAM GetRole action or create a service-linked
+//     role. You do not have permission to read Amazon S3 bucket or call SSM:GetDocument.
 //
 //   - InvalidParameterValueException
 //     One or more of the specified parameters are invalid. Verify that your parameters
@@ -10121,6 +10354,9 @@ func (c *ConfigService) PutRemediationExceptionsRequest(input *PutRemediationExc
 // a remediation action to a specific resource. Remediation exceptions blocks
 // auto-remediation until the exception is cleared.
 //
+// To place an exception on an Amazon Web Services resource, ensure remediation
+// is set as manual remediation.
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -10148,9 +10384,9 @@ func (c *ConfigService) PutRemediationExceptionsRequest(input *PutRemediationExc
 //     a service-linked role.
 //
 //   - For PutConformancePack and PutOrganizationConformancePack, a conformance
-//     pack cannot be created because you do not have permissions: To call IAM
-//     GetRole action or create a service-linked role. To read Amazon S3 bucket
-//     or call SSM:GetDocument.
+//     pack cannot be created because you do not have the following permissions:
+//     You do not have permission to call IAM GetRole action or create a service-linked
+//     role. You do not have permission to read Amazon S3 bucket or call SSM:GetDocument.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutRemediationExceptions
 func (c *ConfigService) PutRemediationExceptions(input *PutRemediationExceptionsInput) (*PutRemediationExceptionsOutput, error) {
@@ -10244,7 +10480,7 @@ func (c *ConfigService) PutResourceConfigRequest(input *PutResourceConfigInput) 
 // Returned Error Types:
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -10268,16 +10504,17 @@ func (c *ConfigService) PutResourceConfigRequest(input *PutResourceConfigInput) 
 //     a service-linked role.
 //
 //   - For PutConformancePack and PutOrganizationConformancePack, a conformance
-//     pack cannot be created because you do not have permissions: To call IAM
-//     GetRole action or create a service-linked role. To read Amazon S3 bucket
-//     or call SSM:GetDocument.
+//     pack cannot be created because you do not have the following permissions:
+//     You do not have permission to call IAM GetRole action or create a service-linked
+//     role. You do not have permission to read Amazon S3 bucket or call SSM:GetDocument.
 //
 //   - NoRunningConfigurationRecorderException
 //     There is no configuration recorder running.
 //
 //   - MaxActiveResourcesExceededException
-//     You have reached the limit (100,000) of active custom resource types in your
-//     account. Delete unused resources using DeleteResourceConfig.
+//     You have reached the limit of active custom resource types in your account.
+//     There is a limit of 100,000. Delete unused resources using DeleteResourceConfig
+//     (https://docs.aws.amazon.com/config/latest/APIReference/API_DeleteResourceConfig.html) .
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutResourceConfig
 func (c *ConfigService) PutResourceConfig(input *PutResourceConfigInput) (*PutResourceConfigOutput, error) {
@@ -10450,7 +10687,7 @@ func (c *ConfigService) PutStoredQueryRequest(input *PutStoredQueryInput) (req *
 // Returned Error Types:
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -10461,8 +10698,9 @@ func (c *ConfigService) PutStoredQueryRequest(input *PutStoredQueryInput) (req *
 //     the validation.
 //
 //   - TooManyTagsException
-//     You have reached the limit of the number of tags you can use. You have more
-//     than 50 tags.
+//     You have reached the limit of the number of tags you can use. For more information,
+//     see Service Limits (https://docs.aws.amazon.com/config/latest/developerguide/configlimits.html)
+//     in the Config Developer Guide.
 //
 //   - ResourceConcurrentModificationException
 //     Two users are trying to modify the same query at the same time. Wait for
@@ -10884,7 +11122,7 @@ func (c *ConfigService) StartConfigRulesEvaluationRequest(input *StartConfigRule
 // Returned Error Types:
 //
 //   - NoSuchConfigRuleException
-//     The Config rule in the request is not valid. Verify that the rule is an Config
+//     The Config rule in the request is invalid. Verify that the rule is an Config
 //     Custom Policy rule, that the rule name is correct, and that valid Amazon
 //     Resouce Names (ARNs) are used before trying again.
 //
@@ -11113,9 +11351,9 @@ func (c *ConfigService) StartRemediationExecutionRequest(input *StartRemediation
 //     a service-linked role.
 //
 //   - For PutConformancePack and PutOrganizationConformancePack, a conformance
-//     pack cannot be created because you do not have permissions: To call IAM
-//     GetRole action or create a service-linked role. To read Amazon S3 bucket
-//     or call SSM:GetDocument.
+//     pack cannot be created because you do not have the following permissions:
+//     You do not have permission to call IAM GetRole action or create a service-linked
+//     role. You do not have permission to read Amazon S3 bucket or call SSM:GetDocument.
 //
 //   - NoSuchRemediationConfigurationException
 //     You specified an Config rule without a remediation configuration.
@@ -11137,6 +11375,98 @@ func (c *ConfigService) StartRemediationExecution(input *StartRemediationExecuti
 // for more information on using Contexts.
 func (c *ConfigService) StartRemediationExecutionWithContext(ctx aws.Context, input *StartRemediationExecutionInput, opts ...request.Option) (*StartRemediationExecutionOutput, error) {
 	req, out := c.StartRemediationExecutionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opStartResourceEvaluation = "StartResourceEvaluation"
+
+// StartResourceEvaluationRequest generates a "aws/request.Request" representing the
+// client's request for the StartResourceEvaluation operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartResourceEvaluation for more information on using the StartResourceEvaluation
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//	// Example sending a request using the StartResourceEvaluationRequest method.
+//	req, resp := client.StartResourceEvaluationRequest(params)
+//
+//	err := req.Send()
+//	if err == nil { // resp is now filled
+//	    fmt.Println(resp)
+//	}
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StartResourceEvaluation
+func (c *ConfigService) StartResourceEvaluationRequest(input *StartResourceEvaluationInput) (req *request.Request, output *StartResourceEvaluationOutput) {
+	op := &request.Operation{
+		Name:       opStartResourceEvaluation,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartResourceEvaluationInput{}
+	}
+
+	output = &StartResourceEvaluationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StartResourceEvaluation API operation for AWS Config.
+//
+// Runs an on-demand evaluation for the specified resource to determine whether
+// the resource details will comply with configured Config rules. You can also
+// use it for evaluation purposes. Config recommends using an evaluation context.
+// It runs an execution against the resource details with all of the Config
+// rules in your account that match with the specified proactive mode and resource
+// type.
+//
+// Ensure you have the cloudformation:DescribeType role setup to validate the
+// resource type schema.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Config's
+// API operation StartResourceEvaluation for usage and error information.
+//
+// Returned Error Types:
+//
+//   - InvalidParameterValueException
+//     One or more of the specified parameters are invalid. Verify that your parameters
+//     are valid and try again.
+//
+//   - IdempotentParameterMismatch
+//     Using the same client token with one or more different parameters. Specify
+//     a new client token with the parameter changes and try again.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StartResourceEvaluation
+func (c *ConfigService) StartResourceEvaluation(input *StartResourceEvaluationInput) (*StartResourceEvaluationOutput, error) {
+	req, out := c.StartResourceEvaluationRequest(input)
+	return out, req.Send()
+}
+
+// StartResourceEvaluationWithContext is the same as StartResourceEvaluation with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartResourceEvaluation for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ConfigService) StartResourceEvaluationWithContext(ctx aws.Context, input *StartResourceEvaluationInput, opts ...request.Option) (*StartResourceEvaluationOutput, error) {
+	req, out := c.StartResourceEvaluationRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -11281,7 +11611,7 @@ func (c *ConfigService) TagResourceRequest(input *TagResourceInput) (req *reques
 // Returned Error Types:
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -11295,8 +11625,9 @@ func (c *ConfigService) TagResourceRequest(input *TagResourceInput) (req *reques
 //     You have specified a resource that does not exist.
 //
 //   - TooManyTagsException
-//     You have reached the limit of the number of tags you can use. You have more
-//     than 50 tags.
+//     You have reached the limit of the number of tags you can use. For more information,
+//     see Service Limits (https://docs.aws.amazon.com/config/latest/developerguide/configlimits.html)
+//     in the Config Developer Guide.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/TagResource
 func (c *ConfigService) TagResource(input *TagResourceInput) (*TagResourceOutput, error) {
@@ -11376,7 +11707,7 @@ func (c *ConfigService) UntagResourceRequest(input *UntagResourceInput) (req *re
 // Returned Error Types:
 //
 //   - ValidationException
-//     The requested action is not valid.
+//     The requested action is invalid.
 //
 //     For PutStoredQuery, you will see this exception if there are missing required
 //     fields or if the input value fails the validation, or if you are trying to
@@ -13115,6 +13446,10 @@ type ConfigRule struct {
 	// The description that you provide for the Config rule.
 	Description *string `type:"string"`
 
+	// The modes the Config rule can be evaluated in. The valid values are distinct
+	// objects. By default, the value is Detective evaluation mode only.
+	EvaluationModes []*EvaluationModeConfiguration `type:"list"`
+
 	// A string, in JSON format, that is passed to the Config rule Lambda function.
 	InputParameters *string `min:"1" type:"string"`
 
@@ -13239,6 +13574,12 @@ func (s *ConfigRule) SetCreatedBy(v string) *ConfigRule {
 // SetDescription sets the Description field's value.
 func (s *ConfigRule) SetDescription(v string) *ConfigRule {
 	s.Description = &v
+	return s
+}
+
+// SetEvaluationModes sets the EvaluationModes field's value.
+func (s *ConfigRule) SetEvaluationModes(v []*EvaluationModeConfiguration) *ConfigRule {
+	s.EvaluationModes = v
 	return s
 }
 
@@ -14222,8 +14563,8 @@ func (s *ConformancePackComplianceFilters) SetConfigRuleNames(v []*string) *Conf
 // A compliance score is the percentage of the number of compliant rule-resource
 // combinations in a conformance pack compared to the number of total possible
 // rule-resource combinations in the conformance pack. This metric provides
-// you with a high-level view of the compliance state of your conformance packs,
-// and can be used to identify, investigate, and understand the level of compliance
+// you with a high-level view of the compliance state of your conformance packs.
+// You can use it to identify, investigate, and understand the level of compliance
 // in your conformance packs.
 type ConformancePackComplianceScore struct {
 	_ struct{} `type:"structure"`
@@ -14890,7 +15231,7 @@ func (s *ConformancePackStatusDetail) SetStackArn(v string) *ConformancePackStat
 	return s
 }
 
-// You have specified a template that is not valid or supported.
+// You have specified a template that is invalid or supported.
 type ConformancePackTemplateValidationException struct {
 	_            struct{}                  `type:"structure"`
 	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
@@ -17115,12 +17456,49 @@ func (s *DescribeConfigRuleEvaluationStatusOutput) SetNextToken(v string) *Descr
 	return s
 }
 
+// Returns a filtered list of Detective or Proactive Config rules. By default,
+// if the filter is not defined, this API returns an unfiltered list.
+type DescribeConfigRulesFilters struct {
+	_ struct{} `type:"structure"`
+
+	// The mode of an evaluation. The valid values are Detective or Proactive.
+	EvaluationMode *string `type:"string" enum:"EvaluationMode"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeConfigRulesFilters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s DescribeConfigRulesFilters) GoString() string {
+	return s.String()
+}
+
+// SetEvaluationMode sets the EvaluationMode field's value.
+func (s *DescribeConfigRulesFilters) SetEvaluationMode(v string) *DescribeConfigRulesFilters {
+	s.EvaluationMode = &v
+	return s
+}
+
 type DescribeConfigRulesInput struct {
 	_ struct{} `type:"structure"`
 
 	// The names of the Config rules for which you want details. If you do not specify
 	// any names, Config returns details for all your rules.
 	ConfigRuleNames []*string `type:"list"`
+
+	// Returns a list of Detecive or Proactive Config rules. By default, this API
+	// returns an unfiltered list.
+	Filters *DescribeConfigRulesFilters `type:"structure"`
 
 	// The nextToken string returned on a previous page that you use to get the
 	// next page of results in a paginated response.
@@ -17148,6 +17526,12 @@ func (s DescribeConfigRulesInput) GoString() string {
 // SetConfigRuleNames sets the ConfigRuleNames field's value.
 func (s *DescribeConfigRulesInput) SetConfigRuleNames(v []*string) *DescribeConfigRulesInput {
 	s.ConfigRuleNames = v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeConfigRulesInput) SetFilters(v *DescribeConfigRulesFilters) *DescribeConfigRulesInput {
+	s.Filters = v
 	return s
 }
 
@@ -19003,6 +19387,86 @@ func (s *Evaluation) SetOrderingTimestamp(v time.Time) *Evaluation {
 	return s
 }
 
+// Use EvaluationContext to group independently initiated proactive resource
+// evaluations. For example, CFN Stack. If you want to check just a resource
+// definition, you do not need to provide evaluation context.
+type EvaluationContext struct {
+	_ struct{} `type:"structure"`
+
+	// A unique EvaluationContextIdentifier ID for an EvaluationContext.
+	EvaluationContextIdentifier *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s EvaluationContext) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s EvaluationContext) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EvaluationContext) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EvaluationContext"}
+	if s.EvaluationContextIdentifier != nil && len(*s.EvaluationContextIdentifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("EvaluationContextIdentifier", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetEvaluationContextIdentifier sets the EvaluationContextIdentifier field's value.
+func (s *EvaluationContext) SetEvaluationContextIdentifier(v string) *EvaluationContext {
+	s.EvaluationContextIdentifier = &v
+	return s
+}
+
+// The configuration object for Config rule evaluation mode. The Supported valid
+// values are Detective or Proactive.
+type EvaluationModeConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// The mode of an evaluation. The valid values are Detective or Proactive.
+	Mode *string `type:"string" enum:"EvaluationMode"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s EvaluationModeConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s EvaluationModeConfiguration) GoString() string {
+	return s.String()
+}
+
+// SetMode sets the Mode field's value.
+func (s *EvaluationModeConfiguration) SetMode(v string) *EvaluationModeConfiguration {
+	s.Mode = &v
+	return s
+}
+
 // The details of an Config evaluation. Provides the Amazon Web Services resource
 // that was evaluated, the compliance of the resource, related time stamps,
 // and supplementary information.
@@ -19102,6 +19566,9 @@ type EvaluationResultIdentifier struct {
 	// change notification, or it can indicate when Config delivered the configuration
 	// snapshot, depending on which event triggered the evaluation.
 	OrderingTimestamp *time.Time `type:"timestamp"`
+
+	// A Unique ID for an evaluation result.
+	ResourceEvaluationId *string `min:"1" type:"string"`
 }
 
 // String returns the string representation.
@@ -19134,6 +19601,12 @@ func (s *EvaluationResultIdentifier) SetOrderingTimestamp(v time.Time) *Evaluati
 	return s
 }
 
+// SetResourceEvaluationId sets the ResourceEvaluationId field's value.
+func (s *EvaluationResultIdentifier) SetResourceEvaluationId(v string) *EvaluationResultIdentifier {
+	s.ResourceEvaluationId = &v
+	return s
+}
+
 // Identifies an Config rule that evaluated an Amazon Web Services resource,
 // and provides the type and ID of the resource that the rule evaluated.
 type EvaluationResultQualifier struct {
@@ -19141,6 +19614,9 @@ type EvaluationResultQualifier struct {
 
 	// The name of the Config rule that was used in the evaluation.
 	ConfigRuleName *string `min:"1" type:"string"`
+
+	// The mode of an evaluation. The valid values are Detective or Proactive.
+	EvaluationMode *string `type:"string" enum:"EvaluationMode"`
 
 	// The ID of the evaluated Amazon Web Services resource.
 	ResourceId *string `min:"1" type:"string"`
@@ -19173,6 +19649,12 @@ func (s *EvaluationResultQualifier) SetConfigRuleName(v string) *EvaluationResul
 	return s
 }
 
+// SetEvaluationMode sets the EvaluationMode field's value.
+func (s *EvaluationResultQualifier) SetEvaluationMode(v string) *EvaluationResultQualifier {
+	s.EvaluationMode = &v
+	return s
+}
+
 // SetResourceId sets the ResourceId field's value.
 func (s *EvaluationResultQualifier) SetResourceId(v string) *EvaluationResultQualifier {
 	s.ResourceId = &v
@@ -19182,6 +19664,50 @@ func (s *EvaluationResultQualifier) SetResourceId(v string) *EvaluationResultQua
 // SetResourceType sets the ResourceType field's value.
 func (s *EvaluationResultQualifier) SetResourceType(v string) *EvaluationResultQualifier {
 	s.ResourceType = &v
+	return s
+}
+
+// Returns status details of an evaluation.
+type EvaluationStatus struct {
+	_ struct{} `type:"structure"`
+
+	// An explanation for failed execution status.
+	FailureReason *string `min:"1" type:"string"`
+
+	// The status of an execution. The valid values are In_Progress, Succeeded or
+	// Failed.
+	//
+	// Status is a required field
+	Status *string `type:"string" required:"true" enum:"ResourceEvaluationStatus"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s EvaluationStatus) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s EvaluationStatus) GoString() string {
+	return s.String()
+}
+
+// SetFailureReason sets the FailureReason field's value.
+func (s *EvaluationStatus) SetFailureReason(v string) *EvaluationStatus {
+	s.FailureReason = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *EvaluationStatus) SetStatus(v string) *EvaluationStatus {
+	s.Status = &v
 	return s
 }
 
@@ -20350,17 +20876,20 @@ type GetComplianceDetailsByResourceInput struct {
 	// next page of results in a paginated response.
 	NextToken *string `type:"string"`
 
+	// The unique ID of Amazon Web Services resource execution for which you want
+	// to retrieve evaluation results.
+	//
+	// You need to only provide either a ResourceEvaluationID or a ResourceID and
+	// ResourceType.
+	ResourceEvaluationId *string `min:"1" type:"string"`
+
 	// The ID of the Amazon Web Services resource for which you want compliance
 	// information.
-	//
-	// ResourceId is a required field
-	ResourceId *string `min:"1" type:"string" required:"true"`
+	ResourceId *string `min:"1" type:"string"`
 
 	// The type of the Amazon Web Services resource for which you want compliance
 	// information.
-	//
-	// ResourceType is a required field
-	ResourceType *string `min:"1" type:"string" required:"true"`
+	ResourceType *string `min:"1" type:"string"`
 }
 
 // String returns the string representation.
@@ -20384,14 +20913,11 @@ func (s GetComplianceDetailsByResourceInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *GetComplianceDetailsByResourceInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetComplianceDetailsByResourceInput"}
-	if s.ResourceId == nil {
-		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	if s.ResourceEvaluationId != nil && len(*s.ResourceEvaluationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceEvaluationId", 1))
 	}
 	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
-	}
-	if s.ResourceType == nil {
-		invalidParams.Add(request.NewErrParamRequired("ResourceType"))
 	}
 	if s.ResourceType != nil && len(*s.ResourceType) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ResourceType", 1))
@@ -20412,6 +20938,12 @@ func (s *GetComplianceDetailsByResourceInput) SetComplianceTypes(v []*string) *G
 // SetNextToken sets the NextToken field's value.
 func (s *GetComplianceDetailsByResourceInput) SetNextToken(v string) *GetComplianceDetailsByResourceInput {
 	s.NextToken = &v
+	return s
+}
+
+// SetResourceEvaluationId sets the ResourceEvaluationId field's value.
+func (s *GetComplianceDetailsByResourceInput) SetResourceEvaluationId(v string) *GetComplianceDetailsByResourceInput {
+	s.ResourceEvaluationId = &v
 	return s
 }
 
@@ -21518,6 +22050,144 @@ func (s *GetResourceConfigHistoryOutput) SetNextToken(v string) *GetResourceConf
 	return s
 }
 
+type GetResourceEvaluationSummaryInput struct {
+	_ struct{} `type:"structure"`
+
+	// The unique ResourceEvaluationId of Amazon Web Services resource execution
+	// for which you want to retrieve the evaluation summary.
+	//
+	// ResourceEvaluationId is a required field
+	ResourceEvaluationId *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetResourceEvaluationSummaryInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetResourceEvaluationSummaryInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetResourceEvaluationSummaryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetResourceEvaluationSummaryInput"}
+	if s.ResourceEvaluationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceEvaluationId"))
+	}
+	if s.ResourceEvaluationId != nil && len(*s.ResourceEvaluationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceEvaluationId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceEvaluationId sets the ResourceEvaluationId field's value.
+func (s *GetResourceEvaluationSummaryInput) SetResourceEvaluationId(v string) *GetResourceEvaluationSummaryInput {
+	s.ResourceEvaluationId = &v
+	return s
+}
+
+type GetResourceEvaluationSummaryOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The compliance status of the resource evaluation summary.
+	Compliance *string `type:"string" enum:"ComplianceType"`
+
+	// Returns an EvaluationContext object.
+	EvaluationContext *EvaluationContext `type:"structure"`
+
+	// Lists results of the mode that you requested to retrieve the resource evaluation
+	// summary. The valid values are Detective or Proactive.
+	EvaluationMode *string `type:"string" enum:"EvaluationMode"`
+
+	// The start timestamp when Config rule starts evaluating compliance for the
+	// provided resource details.
+	EvaluationStartTimestamp *time.Time `type:"timestamp"`
+
+	// Returns an EvaluationStatus object.
+	EvaluationStatus *EvaluationStatus `type:"structure"`
+
+	// Returns a ResourceDetails object.
+	ResourceDetails *ResourceDetails `type:"structure"`
+
+	// The unique ResourceEvaluationId of Amazon Web Services resource execution
+	// for which you want to retrieve the evaluation summary.
+	ResourceEvaluationId *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetResourceEvaluationSummaryOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s GetResourceEvaluationSummaryOutput) GoString() string {
+	return s.String()
+}
+
+// SetCompliance sets the Compliance field's value.
+func (s *GetResourceEvaluationSummaryOutput) SetCompliance(v string) *GetResourceEvaluationSummaryOutput {
+	s.Compliance = &v
+	return s
+}
+
+// SetEvaluationContext sets the EvaluationContext field's value.
+func (s *GetResourceEvaluationSummaryOutput) SetEvaluationContext(v *EvaluationContext) *GetResourceEvaluationSummaryOutput {
+	s.EvaluationContext = v
+	return s
+}
+
+// SetEvaluationMode sets the EvaluationMode field's value.
+func (s *GetResourceEvaluationSummaryOutput) SetEvaluationMode(v string) *GetResourceEvaluationSummaryOutput {
+	s.EvaluationMode = &v
+	return s
+}
+
+// SetEvaluationStartTimestamp sets the EvaluationStartTimestamp field's value.
+func (s *GetResourceEvaluationSummaryOutput) SetEvaluationStartTimestamp(v time.Time) *GetResourceEvaluationSummaryOutput {
+	s.EvaluationStartTimestamp = &v
+	return s
+}
+
+// SetEvaluationStatus sets the EvaluationStatus field's value.
+func (s *GetResourceEvaluationSummaryOutput) SetEvaluationStatus(v *EvaluationStatus) *GetResourceEvaluationSummaryOutput {
+	s.EvaluationStatus = v
+	return s
+}
+
+// SetResourceDetails sets the ResourceDetails field's value.
+func (s *GetResourceEvaluationSummaryOutput) SetResourceDetails(v *ResourceDetails) *GetResourceEvaluationSummaryOutput {
+	s.ResourceDetails = v
+	return s
+}
+
+// SetResourceEvaluationId sets the ResourceEvaluationId field's value.
+func (s *GetResourceEvaluationSummaryOutput) SetResourceEvaluationId(v string) *GetResourceEvaluationSummaryOutput {
+	s.ResourceEvaluationId = &v
+	return s
+}
+
 type GetStoredQueryInput struct {
 	_ struct{} `type:"structure"`
 
@@ -21644,6 +22314,71 @@ func (s *GroupedResourceCount) SetResourceCount(v int64) *GroupedResourceCount {
 	return s
 }
 
+// Using the same client token with one or more different parameters. Specify
+// a new client token with the parameter changes and try again.
+type IdempotentParameterMismatch struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s IdempotentParameterMismatch) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s IdempotentParameterMismatch) GoString() string {
+	return s.String()
+}
+
+func newErrorIdempotentParameterMismatch(v protocol.ResponseMetadata) error {
+	return &IdempotentParameterMismatch{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *IdempotentParameterMismatch) Code() string {
+	return "IdempotentParameterMismatch"
+}
+
+// Message returns the exception's message.
+func (s *IdempotentParameterMismatch) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *IdempotentParameterMismatch) OrigErr() error {
+	return nil
+}
+
+func (s *IdempotentParameterMismatch) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *IdempotentParameterMismatch) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *IdempotentParameterMismatch) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // Your Amazon S3 bucket policy does not permit Config to write to it.
 type InsufficientDeliveryPolicyException struct {
 	_            struct{}                  `type:"structure"`
@@ -21721,9 +22456,9 @@ func (s *InsufficientDeliveryPolicyException) RequestID() string {
 //     a service-linked role.
 //
 //   - For PutConformancePack and PutOrganizationConformancePack, a conformance
-//     pack cannot be created because you do not have permissions: To call IAM
-//     GetRole action or create a service-linked role. To read Amazon S3 bucket
-//     or call SSM:GetDocument.
+//     pack cannot be created because you do not have the following permissions:
+//     You do not have permission to call IAM GetRole action or create a service-linked
+//     role. You do not have permission to read Amazon S3 bucket or call SSM:GetDocument.
 type InsufficientPermissionsException struct {
 	_            struct{}                  `type:"structure"`
 	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
@@ -21851,7 +22586,7 @@ func (s *InvalidConfigurationRecorderNameException) RequestID() string {
 	return s.RespMetadata.RequestID
 }
 
-// The specified delivery channel name is not valid.
+// The specified delivery channel name is invalid.
 type InvalidDeliveryChannelNameException struct {
 	_            struct{}                  `type:"structure"`
 	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
@@ -22366,7 +23101,7 @@ func (s *InvalidRoleException) RequestID() string {
 	return s.RespMetadata.RequestID
 }
 
-// The specified Amazon S3 key prefix is not valid.
+// The specified Amazon S3 key prefix is invalid.
 type InvalidS3KeyPrefixException struct {
 	_            struct{}                  `type:"structure"`
 	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
@@ -22430,7 +23165,7 @@ func (s *InvalidS3KeyPrefixException) RequestID() string {
 	return s.RespMetadata.RequestID
 }
 
-// The specified Amazon KMS Key ARN is not valid.
+// The specified Amazon KMS Key ARN is invalid.
 type InvalidS3KmsKeyArnException struct {
 	_            struct{}                  `type:"structure"`
 	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
@@ -22558,7 +23293,7 @@ func (s *InvalidSNSTopicARNException) RequestID() string {
 	return s.RespMetadata.RequestID
 }
 
-// The specified time range is not valid. The earlier time is not chronologically
+// The specified time range is invalid. The earlier time is not chronologically
 // before the later time.
 type InvalidTimeRangeException struct {
 	_            struct{}                  `type:"structure"`
@@ -22912,16 +23647,23 @@ type ListConformancePackComplianceScoresInput struct {
 	// Sorts your conformance pack compliance scores in either ascending or descending
 	// order, depending on SortOrder.
 	//
-	// By default, conformance pack compliance scores are sorted in ascending order
-	// by compliance score and alphabetically by name of the conformance pack if
-	// there is more than one conformance pack with the same compliance score.
+	// By default, conformance pack compliance scores are sorted in alphabetical
+	// order by name of the conformance pack. Enter SCORE, to sort conformance pack
+	// compliance scores by the numerical value of the compliance score.
 	SortBy *string `type:"string" enum:"SortBy"`
 
 	// Determines the order in which conformance pack compliance scores are sorted.
 	// Either in ascending or descending order.
 	//
-	// Conformance packs with a compliance score of INSUFFICIENT_DATA will be first
-	// when sorting by ascending order and last when sorting by descending order.
+	// By default, conformance pack compliance scores are sorted in alphabetical
+	// order by name of the conformance pack. Conformance pack compliance scores
+	// are sorted in reverse alphabetical order if you enter DESCENDING.
+	//
+	// You can sort conformance pack compliance scores by the numerical value of
+	// the compliance score by entering SCORE in the SortBy action. When compliance
+	// scores are sorted by SCORE, conformance packs with a compliance score of
+	// INSUFFICIENT_DATA will be last when sorting by ascending order and first
+	// when sorting by descending order.
 	SortOrder *string `type:"string" enum:"SortOrder"`
 }
 
@@ -23172,6 +23914,114 @@ func (s *ListDiscoveredResourcesOutput) SetResourceIdentifiers(v []*ResourceIden
 	return s
 }
 
+type ListResourceEvaluationsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Returns a ResourceEvaluationFilters object.
+	Filters *ResourceEvaluationFilters `type:"structure"`
+
+	// The maximum number of evaluations returned on each page. The default is 10.
+	// You cannot specify a number greater than 100. If you specify 0, Config uses
+	// the default.
+	Limit *int64 `type:"integer"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListResourceEvaluationsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListResourceEvaluationsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListResourceEvaluationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListResourceEvaluationsInput"}
+	if s.Filters != nil {
+		if err := s.Filters.Validate(); err != nil {
+			invalidParams.AddNested("Filters", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetFilters sets the Filters field's value.
+func (s *ListResourceEvaluationsInput) SetFilters(v *ResourceEvaluationFilters) *ListResourceEvaluationsInput {
+	s.Filters = v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *ListResourceEvaluationsInput) SetLimit(v int64) *ListResourceEvaluationsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListResourceEvaluationsInput) SetNextToken(v string) *ListResourceEvaluationsInput {
+	s.NextToken = &v
+	return s
+}
+
+type ListResourceEvaluationsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The nextToken string returned on a previous page that you use to get the
+	// next page of results in a paginated response.
+	NextToken *string `type:"string"`
+
+	// Returns a ResourceEvaluations object.
+	ResourceEvaluations []*ResourceEvaluation `type:"list"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListResourceEvaluationsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ListResourceEvaluationsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListResourceEvaluationsOutput) SetNextToken(v string) *ListResourceEvaluationsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetResourceEvaluations sets the ResourceEvaluations field's value.
+func (s *ListResourceEvaluationsOutput) SetResourceEvaluations(v []*ResourceEvaluation) *ListResourceEvaluationsOutput {
+	s.ResourceEvaluations = v
+	return s
+}
+
 type ListStoredQueriesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -23370,8 +24220,9 @@ func (s *ListTagsForResourceOutput) SetTags(v []*Tag) *ListTagsForResourceOutput
 	return s
 }
 
-// You have reached the limit (100,000) of active custom resource types in your
-// account. Delete unused resources using DeleteResourceConfig.
+// You have reached the limit of active custom resource types in your account.
+// There is a limit of 100,000. Delete unused resources using DeleteResourceConfig
+// (https://docs.aws.amazon.com/config/latest/APIReference/API_DeleteResourceConfig.html) .
 type MaxActiveResourcesExceededException struct {
 	_            struct{}                  `type:"structure"`
 	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
@@ -23565,8 +24416,9 @@ func (s *MaxNumberOfConfigurationRecordersExceededException) RequestID() string 
 	return s.RespMetadata.RequestID
 }
 
-// You have reached the limit (6) of the number of conformance packs in an account
-// (6 conformance pack with 25 Config rules per pack).
+// You have reached the limit of the number of conformance packs you can create
+// in an account. For more information, see Service Limits (https://docs.aws.amazon.com/config/latest/developerguide/configlimits.html)
+// in the Config Developer Guide.
 type MaxNumberOfConformancePacksExceededException struct {
 	_            struct{}                  `type:"structure"`
 	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
@@ -23695,7 +24547,8 @@ func (s *MaxNumberOfDeliveryChannelsExceededException) RequestID() string {
 }
 
 // You have reached the limit of the number of organization Config rules you
-// can create.
+// can create. For more information, see see Service Limits (https://docs.aws.amazon.com/config/latest/developerguide/configlimits.html)
+// in the Config Developer Guide.
 type MaxNumberOfOrganizationConfigRulesExceededException struct {
 	_            struct{}                  `type:"structure"`
 	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
@@ -23759,9 +24612,9 @@ func (s *MaxNumberOfOrganizationConfigRulesExceededException) RequestID() string
 	return s.RespMetadata.RequestID
 }
 
-// You have reached the limit (6) of the number of organization conformance
-// packs in an account (6 conformance pack with 25 Config rules per pack per
-// account).
+// You have reached the limit of the number of organization conformance packs
+// you can create in an account. For more information, see Service Limits (https://docs.aws.amazon.com/config/latest/developerguide/configlimits.html)
+// in the Config Developer Guide.
 type MaxNumberOfOrganizationConformancePacksExceededException struct {
 	_            struct{}                  `type:"structure"`
 	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
@@ -23917,12 +24770,13 @@ type MemberAccountStatus struct {
 	// The timestamp of the last status update.
 	LastUpdateTime *time.Time `type:"timestamp"`
 
-	// Indicates deployment status for Config rule in the member account. When master
+	// Indicates deployment status for Config rule in the member account. When management
 	// account calls PutOrganizationConfigRule action for the first time, Config
-	// rule status is created in the member account. When master account calls PutOrganizationConfigRule
-	// action for the second time, Config rule status is updated in the member account.
-	// Config rule status is deleted when the master account deletes OrganizationConfigRule
-	// and disables service access for config-multiaccountsetup.amazonaws.com.
+	// rule status is created in the member account. When management account calls
+	// PutOrganizationConfigRule action for the second time, Config rule status
+	// is updated in the member account. Config rule status is deleted when the
+	// management account deletes OrganizationConfigRule and disables service access
+	// for config-multiaccountsetup.amazonaws.com.
 	//
 	// Config sets the state of the rule to:
 	//
@@ -24323,7 +25177,7 @@ func (s *NoSuchBucketException) RequestID() string {
 	return s.RespMetadata.RequestID
 }
 
-// The Config rule in the request is not valid. Verify that the rule is an Config
+// The Config rule in the request is invalid. Verify that the rule is an Config
 // Custom Policy rule, that the rule name is correct, and that valid Amazon
 // Resouce Names (ARNs) are used before trying again.
 type NoSuchConfigRuleException struct {
@@ -24709,7 +25563,7 @@ func (s *NoSuchDeliveryChannelException) RequestID() string {
 	return s.RespMetadata.RequestID
 }
 
-// The Config rule in the request is not valid. Verify that the rule is an organization
+// The Config rule in the request is invalid. Verify that the rule is an organization
 // Config Custom Policy rule, that the rule name is correct, and that valid
 // Amazon Resouce Names (ARNs) are used before trying again.
 type NoSuchOrganizationConfigRuleException struct {
@@ -25057,7 +25911,7 @@ func (s *NoSuchRetentionConfigurationException) RequestID() string {
 //
 // For all OrganizationConfigRule and OrganizationConformancePack APIs, Config
 // throws an exception if APIs are called from member accounts. All APIs must
-// be called from organization master account.
+// be called from organization management account.
 type OrganizationAccessDeniedException struct {
 	_            struct{}                  `type:"structure"`
 	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
@@ -25372,14 +26226,14 @@ type OrganizationConfigRuleStatus struct {
 	// OrganizationConfigRuleName is a required field
 	OrganizationConfigRuleName *string `min:"1" type:"string" required:"true"`
 
-	// Indicates deployment status of an organization Config rule. When master account
-	// calls PutOrganizationConfigRule action for the first time, Config rule status
-	// is created in all the member accounts. When master account calls PutOrganizationConfigRule
-	// action for the second time, Config rule status is updated in all the member
-	// accounts. Additionally, Config rule status is updated when one or more member
-	// accounts join or leave an organization. Config rule status is deleted when
-	// the master account deletes OrganizationConfigRule in all the member accounts
-	// and disables service access for config-multiaccountsetup.amazonaws.com.
+	// Indicates deployment status of an organization Config rule. When management
+	// account calls PutOrganizationConfigRule action for the first time, Config
+	// rule status is created in all the member accounts. When management account
+	// calls PutOrganizationConfigRule action for the second time, Config rule status
+	// is updated in all the member accounts. Additionally, Config rule status is
+	// updated when one or more member accounts join or leave an organization. Config
+	// rule status is deleted when the management account deletes OrganizationConfigRule
+	// in all the member accounts and disables service access for config-multiaccountsetup.amazonaws.com.
 	//
 	// Config sets the state of the rule to:
 	//
@@ -25585,11 +26439,11 @@ type OrganizationConformancePackDetailedStatus struct {
 	LastUpdateTime *time.Time `type:"timestamp"`
 
 	// Indicates deployment status for conformance pack in a member account. When
-	// master account calls PutOrganizationConformancePack action for the first
-	// time, conformance pack status is created in the member account. When master
+	// management account calls PutOrganizationConformancePack action for the first
+	// time, conformance pack status is created in the member account. When management
 	// account calls PutOrganizationConformancePack action for the second time,
 	// conformance pack status is updated in the member account. Conformance pack
-	// status is deleted when the master account deletes OrganizationConformancePack
+	// status is deleted when the management account deletes OrganizationConformancePack
 	// and disables service access for config-multiaccountsetup.amazonaws.com.
 	//
 	// Config sets the state of the conformance pack to:
@@ -25699,13 +26553,13 @@ type OrganizationConformancePackStatus struct {
 	// OrganizationConformancePackName is a required field
 	OrganizationConformancePackName *string `min:"1" type:"string" required:"true"`
 
-	// Indicates deployment status of an organization conformance pack. When master
+	// Indicates deployment status of an organization conformance pack. When management
 	// account calls PutOrganizationConformancePack for the first time, conformance
-	// pack status is created in all the member accounts. When master account calls
-	// PutOrganizationConformancePack for the second time, conformance pack status
-	// is updated in all the member accounts. Additionally, conformance pack status
-	// is updated when one or more member accounts join or leave an organization.
-	// Conformance pack status is deleted when the master account deletes OrganizationConformancePack
+	// pack status is created in all the member accounts. When management account
+	// calls PutOrganizationConformancePack for the second time, conformance pack
+	// status is updated in all the member accounts. Additionally, conformance pack
+	// status is updated when one or more member accounts join or leave an organization.
+	// Conformance pack status is deleted when the management account deletes OrganizationConformancePack
 	// in all the member accounts and disables service access for config-multiaccountsetup.amazonaws.com.
 	//
 	// Config sets the state of the conformance pack to:
@@ -25789,7 +26643,7 @@ func (s *OrganizationConformancePackStatus) SetStatus(v string) *OrganizationCon
 	return s
 }
 
-// You have specified a template that is not valid or supported.
+// You have specified a template that is invalid or supported.
 type OrganizationConformancePackTemplateValidationException struct {
 	_            struct{}                  `type:"structure"`
 	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
@@ -26486,11 +27340,11 @@ type OrganizationResourceDetailedStatusFilters struct {
 	AccountId *string `type:"string"`
 
 	// Indicates deployment status for conformance pack in a member account. When
-	// master account calls PutOrganizationConformancePack action for the first
-	// time, conformance pack status is created in the member account. When master
+	// management account calls PutOrganizationConformancePack action for the first
+	// time, conformance pack status is created in the member account. When management
 	// account calls PutOrganizationConformancePack action for the second time,
 	// conformance pack status is updated in the member account. Conformance pack
-	// status is deleted when the master account deletes OrganizationConformancePack
+	// status is deleted when the management account deletes OrganizationConformancePack
 	// and disables service access for config-multiaccountsetup.amazonaws.com.
 	//
 	// Config sets the state of the conformance pack to:
@@ -27097,13 +27951,13 @@ type PutConformancePackInput struct {
 	// containing the template body has a minimum length of 1 byte and a maximum
 	// length of 51,200 bytes.
 	//
-	// You can only use a YAML template with two resource types: Config rule (AWS::Config::ConfigRule)
+	// You can use a YAML template with two resource types: Config rule (AWS::Config::ConfigRule)
 	// and remediation action (AWS::Config::RemediationConfiguration).
 	TemplateBody *string `min:"1" type:"string"`
 
 	// The location of the file containing the template body (s3://bucketname/prefix).
 	// The uri must point to a conformance pack template (max size: 300 KB) that
-	// is located in an Amazon S3 bucket in the same region as the conformance pack.
+	// is located in an Amazon S3 bucket in the same Region as the conformance pack.
 	//
 	// You must have access to read Amazon S3 bucket.
 	TemplateS3Uri *string `min:"1" type:"string"`
@@ -28414,35 +29268,44 @@ func (s *QueryInfo) SetSelectFields(v []*FieldInfo) *QueryInfo {
 	return s
 }
 
-// Specifies the types of Amazon Web Services resource for which Config records
-// configuration changes.
+// Specifies which Amazon Web Services resource types Config records for configuration
+// changes. In the recording group, you specify whether you want to record all
+// supported resource types or only specific types of resources.
 //
-// In the recording group, you specify whether all supported types or specific
-// types of resources are recorded.
-//
-// By default, Config records configuration changes for all supported types
+// By default, Config records the configuration changes for all supported types
 // of regional resources that Config discovers in the region in which it is
 // running. Regional resources are tied to a region and can be used only in
 // that region. Examples of regional resources are EC2 instances and EBS volumes.
 //
-// You can also have Config record configuration changes for supported types
-// of global resources (for example, IAM resources). Global resources are not
-// tied to an individual region and can be used in all regions.
+// You can also have Config record supported types of global resources. Global
+// resources are not tied to a specific region and can be used in all regions.
+// The global resource types that Config supports include IAM users, groups,
+// roles, and customer managed policies.
 //
-// The configuration details for any global resource are the same in all regions.
-// If you customize Config in multiple regions to record global resources, it
-// will create multiple configuration items each time a global resource changes:
-// one configuration item for each region. These configuration items will contain
-// identical data. To prevent duplicate configuration items, you should consider
-// customizing Config in only one region to record global resources, unless
-// you want the configuration items to be available in multiple regions.
+// Global resource types onboarded to Config recording after February 2022 will
+// only be recorded in the service's home region for the commercial partition
+// and Amazon Web Services GovCloud (US) West for the GovCloud partition. You
+// can view the Configuration Items for these new global resource types only
+// in their home region and Amazon Web Services GovCloud (US) West.
+//
+// Supported global resource types onboarded before February 2022 such as AWS::IAM::Group,
+// AWS::IAM::Policy, AWS::IAM::Role, AWS::IAM::User remain unchanged, and they
+// will continue to deliver Configuration Items in all supported regions in
+// Config. The change will only affect new global resource types onboarded after
+// February 2022.
+//
+// To record global resource types onboarded after February 2022, enable All
+// Supported Resource Types in the home region of the global resource type you
+// want to record.
 //
 // If you don't want Config to record all resources, you can specify which types
 // of resources it will record with the resourceTypes parameter.
 //
 // For a list of supported resource types, see Supported Resource Types (https://docs.aws.amazon.com/config/latest/developerguide/resource-config-reference.html#supported-resources).
 //
-// For more information, see Selecting Which Resources Config Records (https://docs.aws.amazon.com/config/latest/developerguide/select-resources.html).
+// For more information and a table of the Home Regions for Global Resource
+// Types Onboarded after February 2022, see Selecting Which Resources Config
+// Records (https://docs.aws.amazon.com/config/latest/developerguide/select-resources.html).
 type RecordingGroup struct {
 	_ struct{} `type:"structure"`
 
@@ -29349,6 +30212,215 @@ func (s *ResourceCountFilters) SetRegion(v string) *ResourceCountFilters {
 // SetResourceType sets the ResourceType field's value.
 func (s *ResourceCountFilters) SetResourceType(v string) *ResourceCountFilters {
 	s.ResourceType = &v
+	return s
+}
+
+// Returns information about the resource being evaluated.
+type ResourceDetails struct {
+	_ struct{} `type:"structure"`
+
+	// The resource definition to be evaluated as per the resource configuration
+	// schema type.
+	//
+	// ResourceConfiguration is a required field
+	ResourceConfiguration *string `min:"1" type:"string" required:"true"`
+
+	// The schema type of the resource configuration.
+	ResourceConfigurationSchemaType *string `type:"string" enum:"ResourceConfigurationSchemaType"`
+
+	// A unique resource ID for an evaluation.
+	//
+	// ResourceId is a required field
+	ResourceId *string `min:"1" type:"string" required:"true"`
+
+	// The type of resource being evaluated.
+	//
+	// ResourceType is a required field
+	ResourceType *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ResourceDetails) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ResourceDetails) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResourceDetails) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResourceDetails"}
+	if s.ResourceConfiguration == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceConfiguration"))
+	}
+	if s.ResourceConfiguration != nil && len(*s.ResourceConfiguration) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceConfiguration", 1))
+	}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.ResourceId != nil && len(*s.ResourceId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceId", 1))
+	}
+	if s.ResourceType == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceType"))
+	}
+	if s.ResourceType != nil && len(*s.ResourceType) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceType", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceConfiguration sets the ResourceConfiguration field's value.
+func (s *ResourceDetails) SetResourceConfiguration(v string) *ResourceDetails {
+	s.ResourceConfiguration = &v
+	return s
+}
+
+// SetResourceConfigurationSchemaType sets the ResourceConfigurationSchemaType field's value.
+func (s *ResourceDetails) SetResourceConfigurationSchemaType(v string) *ResourceDetails {
+	s.ResourceConfigurationSchemaType = &v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *ResourceDetails) SetResourceId(v string) *ResourceDetails {
+	s.ResourceId = &v
+	return s
+}
+
+// SetResourceType sets the ResourceType field's value.
+func (s *ResourceDetails) SetResourceType(v string) *ResourceDetails {
+	s.ResourceType = &v
+	return s
+}
+
+// Returns details of a resource evaluation.
+type ResourceEvaluation struct {
+	_ struct{} `type:"structure"`
+
+	// The mode of an evaluation. The valid values are Detective or Proactive.
+	EvaluationMode *string `type:"string" enum:"EvaluationMode"`
+
+	// The starting time of an execution.
+	EvaluationStartTimestamp *time.Time `type:"timestamp"`
+
+	// The ResourceEvaluationId of a evaluation.
+	ResourceEvaluationId *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ResourceEvaluation) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ResourceEvaluation) GoString() string {
+	return s.String()
+}
+
+// SetEvaluationMode sets the EvaluationMode field's value.
+func (s *ResourceEvaluation) SetEvaluationMode(v string) *ResourceEvaluation {
+	s.EvaluationMode = &v
+	return s
+}
+
+// SetEvaluationStartTimestamp sets the EvaluationStartTimestamp field's value.
+func (s *ResourceEvaluation) SetEvaluationStartTimestamp(v time.Time) *ResourceEvaluation {
+	s.EvaluationStartTimestamp = &v
+	return s
+}
+
+// SetResourceEvaluationId sets the ResourceEvaluationId field's value.
+func (s *ResourceEvaluation) SetResourceEvaluationId(v string) *ResourceEvaluation {
+	s.ResourceEvaluationId = &v
+	return s
+}
+
+// Returns details of a resource evaluation based on the selected filter.
+type ResourceEvaluationFilters struct {
+	_ struct{} `type:"structure"`
+
+	// Filters evaluations for a given infrastructure deployment. For example: CFN
+	// Stack.
+	EvaluationContextIdentifier *string `min:"1" type:"string"`
+
+	// Filters all resource evaluations results based on an evaluation mode. the
+	// valid value for this API is Proactive.
+	EvaluationMode *string `type:"string" enum:"EvaluationMode"`
+
+	// Returns a TimeWindow object.
+	TimeWindow *TimeWindow `type:"structure"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ResourceEvaluationFilters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s ResourceEvaluationFilters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResourceEvaluationFilters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResourceEvaluationFilters"}
+	if s.EvaluationContextIdentifier != nil && len(*s.EvaluationContextIdentifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("EvaluationContextIdentifier", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetEvaluationContextIdentifier sets the EvaluationContextIdentifier field's value.
+func (s *ResourceEvaluationFilters) SetEvaluationContextIdentifier(v string) *ResourceEvaluationFilters {
+	s.EvaluationContextIdentifier = &v
+	return s
+}
+
+// SetEvaluationMode sets the EvaluationMode field's value.
+func (s *ResourceEvaluationFilters) SetEvaluationMode(v string) *ResourceEvaluationFilters {
+	s.EvaluationMode = &v
+	return s
+}
+
+// SetTimeWindow sets the TimeWindow field's value.
+func (s *ResourceEvaluationFilters) SetTimeWindow(v *TimeWindow) *ResourceEvaluationFilters {
+	s.TimeWindow = v
 	return s
 }
 
@@ -30735,6 +31807,147 @@ func (s *StartRemediationExecutionOutput) SetFailureMessage(v string) *StartReme
 	return s
 }
 
+type StartResourceEvaluationInput struct {
+	_ struct{} `type:"structure"`
+
+	// A client token is a unique, case-sensitive string of up to 64 ASCII characters.
+	// To make an idempotent API request using one of these actions, specify a client
+	// token in the request.
+	//
+	// Avoid reusing the same client token for other API requests. If you retry
+	// a request that completed successfully using the same client token and the
+	// same parameters, the retry succeeds without performing any further actions.
+	// If you retry a successful request using the same client token, but one or
+	// more of the parameters are different, other than the Region or Availability
+	// Zone, the retry fails with an IdempotentParameterMismatch error.
+	ClientToken *string `min:"64" type:"string"`
+
+	// Returns an EvaluationContext object.
+	EvaluationContext *EvaluationContext `type:"structure"`
+
+	// The mode of an evaluation. The valid value for this API is Proactive.
+	//
+	// EvaluationMode is a required field
+	EvaluationMode *string `type:"string" required:"true" enum:"EvaluationMode"`
+
+	// The timeout for an evaluation. The default is 900 seconds. You cannot specify
+	// a number greater than 3600. If you specify 0, Config uses the default.
+	EvaluationTimeout *int64 `type:"integer"`
+
+	// Returns a ResourceDetails object.
+	//
+	// ResourceDetails is a required field
+	ResourceDetails *ResourceDetails `type:"structure" required:"true"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s StartResourceEvaluationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s StartResourceEvaluationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartResourceEvaluationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartResourceEvaluationInput"}
+	if s.ClientToken != nil && len(*s.ClientToken) < 64 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientToken", 64))
+	}
+	if s.EvaluationMode == nil {
+		invalidParams.Add(request.NewErrParamRequired("EvaluationMode"))
+	}
+	if s.ResourceDetails == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceDetails"))
+	}
+	if s.EvaluationContext != nil {
+		if err := s.EvaluationContext.Validate(); err != nil {
+			invalidParams.AddNested("EvaluationContext", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.ResourceDetails != nil {
+		if err := s.ResourceDetails.Validate(); err != nil {
+			invalidParams.AddNested("ResourceDetails", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientToken sets the ClientToken field's value.
+func (s *StartResourceEvaluationInput) SetClientToken(v string) *StartResourceEvaluationInput {
+	s.ClientToken = &v
+	return s
+}
+
+// SetEvaluationContext sets the EvaluationContext field's value.
+func (s *StartResourceEvaluationInput) SetEvaluationContext(v *EvaluationContext) *StartResourceEvaluationInput {
+	s.EvaluationContext = v
+	return s
+}
+
+// SetEvaluationMode sets the EvaluationMode field's value.
+func (s *StartResourceEvaluationInput) SetEvaluationMode(v string) *StartResourceEvaluationInput {
+	s.EvaluationMode = &v
+	return s
+}
+
+// SetEvaluationTimeout sets the EvaluationTimeout field's value.
+func (s *StartResourceEvaluationInput) SetEvaluationTimeout(v int64) *StartResourceEvaluationInput {
+	s.EvaluationTimeout = &v
+	return s
+}
+
+// SetResourceDetails sets the ResourceDetails field's value.
+func (s *StartResourceEvaluationInput) SetResourceDetails(v *ResourceDetails) *StartResourceEvaluationInput {
+	s.ResourceDetails = v
+	return s
+}
+
+type StartResourceEvaluationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A unique ResourceEvaluationId that is associated with a single execution.
+	ResourceEvaluationId *string `min:"1" type:"string"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s StartResourceEvaluationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s StartResourceEvaluationOutput) GoString() string {
+	return s.String()
+}
+
+// SetResourceEvaluationId sets the ResourceEvaluationId field's value.
+func (s *StartResourceEvaluationOutput) SetResourceEvaluationId(v string) *StartResourceEvaluationOutput {
+	s.ResourceEvaluationId = &v
+	return s
+}
+
 // The static value of the resource.
 type StaticValue struct {
 	_ struct{} `type:"structure"`
@@ -30790,12 +32003,13 @@ type StatusDetailFilters struct {
 	// The 12-digit account ID of the member account within an organization.
 	AccountId *string `type:"string"`
 
-	// Indicates deployment status for Config rule in the member account. When master
+	// Indicates deployment status for Config rule in the member account. When management
 	// account calls PutOrganizationConfigRule action for the first time, Config
-	// rule status is created in the member account. When master account calls PutOrganizationConfigRule
-	// action for the second time, Config rule status is updated in the member account.
-	// Config rule status is deleted when the master account deletes OrganizationConfigRule
-	// and disables service access for config-multiaccountsetup.amazonaws.com.
+	// rule status is created in the member account. When management account calls
+	// PutOrganizationConfigRule action for the second time, Config rule status
+	// is updated in the member account. Config rule status is deleted when the
+	// management account deletes OrganizationConfigRule and disables service access
+	// for config-multiaccountsetup.amazonaws.com.
 	//
 	// Config sets the state of the rule to:
 	//
@@ -31246,9 +32460,10 @@ func (s TagResourceOutput) GoString() string {
 
 // This API allows you to create a conformance pack template with an Amazon
 // Web Services Systems Manager document (SSM document). To deploy a conformance
-// pack using an SSM document, you first create an SSM document with conformance
-// pack content, and then provide the DocumentName (and optionally DocumentVersion)
-// in the PutConformancePack API (https://docs.aws.amazon.com/config/latest/APIReference/API_PutConformancePack.html).
+// pack using an SSM document, first create an SSM document with conformance
+// pack content, and then provide the DocumentName in the PutConformancePack
+// API (https://docs.aws.amazon.com/config/latest/APIReference/API_PutConformancePack.html).
+// You can also provide the DocumentVersion.
 //
 // The TemplateSSMDocumentDetails object contains the name of the SSM document
 // and the version of the SSM document.
@@ -31256,9 +32471,10 @@ type TemplateSSMDocumentDetails struct {
 	_ struct{} `type:"structure"`
 
 	// The name or Amazon Resource Name (ARN) of the SSM document to use to create
-	// a conformance pack. If you use the Document Name, Config checks only your
-	// account and region for the SSM document. If you want to use an SSM document
-	// from another region or account, you must provide the ARN.
+	// a conformance pack. If you use the document name, Config checks only your
+	// account and Amazon Web Services Region for the SSM document. If you want
+	// to use an SSM document from another Region or account, you must provide the
+	// ARN.
 	//
 	// DocumentName is a required field
 	DocumentName *string `type:"string" required:"true"`
@@ -31313,8 +32529,50 @@ func (s *TemplateSSMDocumentDetails) SetDocumentVersion(v string) *TemplateSSMDo
 	return s
 }
 
-// You have reached the limit of the number of tags you can use. You have more
-// than 50 tags.
+// Filters evaluation results based on start and end times.
+type TimeWindow struct {
+	_ struct{} `type:"structure"`
+
+	// The end time of an execution. The end time must be after the start date.
+	EndTime *time.Time `type:"timestamp"`
+
+	// The start time of an execution.
+	StartTime *time.Time `type:"timestamp"`
+}
+
+// String returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TimeWindow) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation.
+//
+// API parameter values that are decorated as "sensitive" in the API will not
+// be included in the string output. The member name will be present, but the
+// value will be replaced with "sensitive".
+func (s TimeWindow) GoString() string {
+	return s.String()
+}
+
+// SetEndTime sets the EndTime field's value.
+func (s *TimeWindow) SetEndTime(v time.Time) *TimeWindow {
+	s.EndTime = &v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *TimeWindow) SetStartTime(v time.Time) *TimeWindow {
+	s.StartTime = &v
+	return s
+}
+
+// You have reached the limit of the number of tags you can use. For more information,
+// see Service Limits (https://docs.aws.amazon.com/config/latest/developerguide/configlimits.html)
+// in the Config Developer Guide.
 type TooManyTagsException struct {
 	_            struct{}                  `type:"structure"`
 	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
@@ -31468,7 +32726,7 @@ func (s UntagResourceOutput) GoString() string {
 	return s.String()
 }
 
-// The requested action is not valid.
+// The requested action is invalid.
 //
 // For PutStoredQuery, you will see this exception if there are missing required
 // fields or if the input value fails the validation, or if you are trying to
@@ -31765,6 +33023,22 @@ func DeliveryStatus_Values() []string {
 		DeliveryStatusSuccess,
 		DeliveryStatusFailure,
 		DeliveryStatusNotApplicable,
+	}
+}
+
+const (
+	// EvaluationModeDetective is a EvaluationMode enum value
+	EvaluationModeDetective = "DETECTIVE"
+
+	// EvaluationModeProactive is a EvaluationMode enum value
+	EvaluationModeProactive = "PROACTIVE"
+)
+
+// EvaluationMode_Values returns all elements of the EvaluationMode enum
+func EvaluationMode_Values() []string {
+	return []string{
+		EvaluationModeDetective,
+		EvaluationModeProactive,
 	}
 }
 
@@ -32141,6 +33415,18 @@ func RemediationTargetType_Values() []string {
 }
 
 const (
+	// ResourceConfigurationSchemaTypeCfnResourceSchema is a ResourceConfigurationSchemaType enum value
+	ResourceConfigurationSchemaTypeCfnResourceSchema = "CFN_RESOURCE_SCHEMA"
+)
+
+// ResourceConfigurationSchemaType_Values returns all elements of the ResourceConfigurationSchemaType enum
+func ResourceConfigurationSchemaType_Values() []string {
+	return []string{
+		ResourceConfigurationSchemaTypeCfnResourceSchema,
+	}
+}
+
+const (
 	// ResourceCountGroupKeyResourceType is a ResourceCountGroupKey enum value
 	ResourceCountGroupKeyResourceType = "RESOURCE_TYPE"
 
@@ -32157,6 +33443,26 @@ func ResourceCountGroupKey_Values() []string {
 		ResourceCountGroupKeyResourceType,
 		ResourceCountGroupKeyAccountId,
 		ResourceCountGroupKeyAwsRegion,
+	}
+}
+
+const (
+	// ResourceEvaluationStatusInProgress is a ResourceEvaluationStatus enum value
+	ResourceEvaluationStatusInProgress = "IN_PROGRESS"
+
+	// ResourceEvaluationStatusFailed is a ResourceEvaluationStatus enum value
+	ResourceEvaluationStatusFailed = "FAILED"
+
+	// ResourceEvaluationStatusSucceeded is a ResourceEvaluationStatus enum value
+	ResourceEvaluationStatusSucceeded = "SUCCEEDED"
+)
+
+// ResourceEvaluationStatus_Values returns all elements of the ResourceEvaluationStatus enum
+func ResourceEvaluationStatus_Values() []string {
+	return []string{
+		ResourceEvaluationStatusInProgress,
+		ResourceEvaluationStatusFailed,
+		ResourceEvaluationStatusSucceeded,
 	}
 }
 
@@ -32592,6 +33898,66 @@ const (
 
 	// ResourceTypeAwsDmsCertificate is a ResourceType enum value
 	ResourceTypeAwsDmsCertificate = "AWS::DMS::Certificate"
+
+	// ResourceTypeAwsAppConfigApplication is a ResourceType enum value
+	ResourceTypeAwsAppConfigApplication = "AWS::AppConfig::Application"
+
+	// ResourceTypeAwsAppSyncGraphQlapi is a ResourceType enum value
+	ResourceTypeAwsAppSyncGraphQlapi = "AWS::AppSync::GraphQLApi"
+
+	// ResourceTypeAwsDataSyncLocationSmb is a ResourceType enum value
+	ResourceTypeAwsDataSyncLocationSmb = "AWS::DataSync::LocationSMB"
+
+	// ResourceTypeAwsDataSyncLocationFsxLustre is a ResourceType enum value
+	ResourceTypeAwsDataSyncLocationFsxLustre = "AWS::DataSync::LocationFSxLustre"
+
+	// ResourceTypeAwsDataSyncLocationS3 is a ResourceType enum value
+	ResourceTypeAwsDataSyncLocationS3 = "AWS::DataSync::LocationS3"
+
+	// ResourceTypeAwsDataSyncLocationEfs is a ResourceType enum value
+	ResourceTypeAwsDataSyncLocationEfs = "AWS::DataSync::LocationEFS"
+
+	// ResourceTypeAwsDataSyncTask is a ResourceType enum value
+	ResourceTypeAwsDataSyncTask = "AWS::DataSync::Task"
+
+	// ResourceTypeAwsDataSyncLocationNfs is a ResourceType enum value
+	ResourceTypeAwsDataSyncLocationNfs = "AWS::DataSync::LocationNFS"
+
+	// ResourceTypeAwsEc2NetworkInsightsAccessScopeAnalysis is a ResourceType enum value
+	ResourceTypeAwsEc2NetworkInsightsAccessScopeAnalysis = "AWS::EC2::NetworkInsightsAccessScopeAnalysis"
+
+	// ResourceTypeAwsEksFargateProfile is a ResourceType enum value
+	ResourceTypeAwsEksFargateProfile = "AWS::EKS::FargateProfile"
+
+	// ResourceTypeAwsGlueJob is a ResourceType enum value
+	ResourceTypeAwsGlueJob = "AWS::Glue::Job"
+
+	// ResourceTypeAwsGuardDutyThreatIntelSet is a ResourceType enum value
+	ResourceTypeAwsGuardDutyThreatIntelSet = "AWS::GuardDuty::ThreatIntelSet"
+
+	// ResourceTypeAwsGuardDutyIpset is a ResourceType enum value
+	ResourceTypeAwsGuardDutyIpset = "AWS::GuardDuty::IPSet"
+
+	// ResourceTypeAwsSageMakerWorkteam is a ResourceType enum value
+	ResourceTypeAwsSageMakerWorkteam = "AWS::SageMaker::Workteam"
+
+	// ResourceTypeAwsSageMakerNotebookInstanceLifecycleConfig is a ResourceType enum value
+	ResourceTypeAwsSageMakerNotebookInstanceLifecycleConfig = "AWS::SageMaker::NotebookInstanceLifecycleConfig"
+
+	// ResourceTypeAwsServiceDiscoveryService is a ResourceType enum value
+	ResourceTypeAwsServiceDiscoveryService = "AWS::ServiceDiscovery::Service"
+
+	// ResourceTypeAwsServiceDiscoveryPublicDnsNamespace is a ResourceType enum value
+	ResourceTypeAwsServiceDiscoveryPublicDnsNamespace = "AWS::ServiceDiscovery::PublicDnsNamespace"
+
+	// ResourceTypeAwsSesContactList is a ResourceType enum value
+	ResourceTypeAwsSesContactList = "AWS::SES::ContactList"
+
+	// ResourceTypeAwsSesConfigurationSet is a ResourceType enum value
+	ResourceTypeAwsSesConfigurationSet = "AWS::SES::ConfigurationSet"
+
+	// ResourceTypeAwsRoute53HostedZone is a ResourceType enum value
+	ResourceTypeAwsRoute53HostedZone = "AWS::Route53::HostedZone"
 )
 
 // ResourceType_Values returns all elements of the ResourceType enum
@@ -32741,6 +34107,26 @@ func ResourceType_Values() []string {
 		ResourceTypeAwsEc2TransitGatewayAttachment,
 		ResourceTypeAwsEc2TransitGatewayRouteTable,
 		ResourceTypeAwsDmsCertificate,
+		ResourceTypeAwsAppConfigApplication,
+		ResourceTypeAwsAppSyncGraphQlapi,
+		ResourceTypeAwsDataSyncLocationSmb,
+		ResourceTypeAwsDataSyncLocationFsxLustre,
+		ResourceTypeAwsDataSyncLocationS3,
+		ResourceTypeAwsDataSyncLocationEfs,
+		ResourceTypeAwsDataSyncTask,
+		ResourceTypeAwsDataSyncLocationNfs,
+		ResourceTypeAwsEc2NetworkInsightsAccessScopeAnalysis,
+		ResourceTypeAwsEksFargateProfile,
+		ResourceTypeAwsGlueJob,
+		ResourceTypeAwsGuardDutyThreatIntelSet,
+		ResourceTypeAwsGuardDutyIpset,
+		ResourceTypeAwsSageMakerWorkteam,
+		ResourceTypeAwsSageMakerNotebookInstanceLifecycleConfig,
+		ResourceTypeAwsServiceDiscoveryService,
+		ResourceTypeAwsServiceDiscoveryPublicDnsNamespace,
+		ResourceTypeAwsSesContactList,
+		ResourceTypeAwsSesConfigurationSet,
+		ResourceTypeAwsRoute53HostedZone,
 	}
 }
 

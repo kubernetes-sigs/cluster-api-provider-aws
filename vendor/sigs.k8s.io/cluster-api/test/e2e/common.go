@@ -22,9 +22,10 @@ import (
 	"path/filepath"
 
 	"github.com/blang/semver"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega/types"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -78,7 +79,7 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 	})
 
 	if !skipCleanup {
-		Byf("Deleting cluster %s/%s", cluster.Namespace, cluster.Name)
+		Byf("Deleting cluster %s", klog.KObj(cluster))
 		// While https://github.com/kubernetes-sigs/cluster-api/issues/2955 is addressed in future iterations, there is a chance
 		// that cluster variable is not set even if the cluster exists, so we are calling DeleteAllClustersAndWait
 		// instead of DeleteClusterAndWait
@@ -103,17 +104,17 @@ func HaveValidVersion(version string) types.GomegaMatcher {
 
 type validVersionMatcher struct{ version string }
 
-func (m *validVersionMatcher) Match(actual interface{}) (success bool, err error) {
+func (m *validVersionMatcher) Match(_ interface{}) (success bool, err error) {
 	if _, err := semver.ParseTolerant(m.version); err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
-func (m *validVersionMatcher) FailureMessage(actual interface{}) (message string) {
+func (m *validVersionMatcher) FailureMessage(_ interface{}) (message string) {
 	return fmt.Sprintf("Expected\n%s\n%s", m.version, " to be a valid version ")
 }
 
-func (m *validVersionMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+func (m *validVersionMatcher) NegatedFailureMessage(_ interface{}) (message string) {
 	return fmt.Sprintf("Expected\n%s\n%s", m.version, " not to be a valid version ")
 }

@@ -20,6 +20,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aws/amazon-vpc-cni-k8s/pkg/apis/crd/v1alpha1"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
@@ -225,13 +226,30 @@ func TestReconcileCniVpcCniValues(t *testing.T) {
 						Name: "node",
 					},
 				},
+				subnets: infrav1.Subnets{
+					{
+						// we aren't testing reconcileSubnets where this extra conf is added so putting it in by hand
+						ID:        "sn-1234",
+						CidrBlock: "100.0.0.1/20",
+						Tags: infrav1.Tags{
+							infrav1.NameAWSSubnetAssociation: infrav1.SecondarySubnetTagValue,
+						},
+					},
+				},
 			}
 			s := NewService(m)
 
 			err := s.ReconcileCNI(context.Background())
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(mockClient.updateChain).NotTo(BeEmpty())
-			ds, ok := mockClient.updateChain[0].(*v1.DaemonSet)
+
+			g.Expect(mockClient.updateChain).NotTo(BeEmpty()) // 0: eniconfig 1: daemonset
+			eniconf, ok := mockClient.updateChain[0].(*v1alpha1.ENIConfig)
+			g.Expect(ok).To(BeTrue())
+			g.Expect(len(eniconf.Spec.SecurityGroups)).To(Equal(1))
+			g.Expect(eniconf.Spec.SecurityGroups[0]).To(Equal(m.securityGroups["node"].ID))
+			g.Expect(eniconf.Spec.Subnet).To(Equal(m.subnets[0].ID))
+
+			ds, ok := mockClient.updateChain[1].(*v1.DaemonSet)
 			g.Expect(ok).To(BeTrue())
 			g.Expect(ds.Spec.Template.Spec.Containers).NotTo(BeEmpty())
 			g.Expect(ds.Spec.Template.Spec.Containers[0].Env).To(ConsistOf(tc.consistsOf))
@@ -245,7 +263,7 @@ type cachingClient struct {
 	updateChain []client.Object
 }
 
-func (c *cachingClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+func (c *cachingClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	if _, ok := obj.(*v1.DaemonSet); ok {
 		daemonset, _ := obj.(*v1.DaemonSet)
 		*daemonset = *c.getValue.(*v1.DaemonSet)

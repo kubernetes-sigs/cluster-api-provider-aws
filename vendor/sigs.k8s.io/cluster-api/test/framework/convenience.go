@@ -29,6 +29,7 @@ import (
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -36,11 +37,12 @@ import (
 )
 
 // TryAddDefaultSchemes tries to add the following schemes:
-//   * Kubernetes corev1
-//   * Kubernetes appsv1
-//   * CAPI core
-//   * Kubeadm Bootstrapper
-//   * Kubeadm ControlPlane
+//   - Kubernetes corev1
+//   - Kubernetes appsv1
+//   - CAPI core
+//   - Kubeadm Bootstrapper
+//   - Kubeadm ControlPlane
+//
 // Any error that occurs when trying to add the schemes is ignored.
 func TryAddDefaultSchemes(scheme *runtime.Scheme) {
 	// Add the core schemes.
@@ -55,6 +57,9 @@ func TryAddDefaultSchemes(scheme *runtime.Scheme) {
 	// Add the CAPI experiments scheme.
 	_ = expv1.AddToScheme(scheme)
 	_ = addonsv1.AddToScheme(scheme)
+
+	// Add the CAPI clusterctl scheme.
+	_ = clusterctlv1.AddToScheme(scheme)
 
 	// Add the core CAPI v1alpha3 scheme.
 	_ = clusterv1alpha3.AddToScheme(scheme)

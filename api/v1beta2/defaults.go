@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package v1beta2
 
 import (
@@ -61,7 +62,12 @@ func SetDefaults_AWSClusterSpec(s *AWSClusterSpec) { //nolint:golint,stylecheck
 		}
 	}
 	if s.ControlPlaneLoadBalancer == nil {
-		s.ControlPlaneLoadBalancer = &AWSLoadBalancerSpec{Scheme: &ClassicELBSchemeInternetFacing}
+		s.ControlPlaneLoadBalancer = &AWSLoadBalancerSpec{
+			Scheme: &ELBSchemeInternetFacing,
+		}
+	}
+	if s.ControlPlaneLoadBalancer.LoadBalancerType == "" {
+		s.ControlPlaneLoadBalancer.LoadBalancerType = LoadBalancerTypeClassic
 	}
 }
 
@@ -70,6 +76,14 @@ func SetDefaults_Labels(obj *metav1.ObjectMeta) { //nolint:golint,stylecheck
 	// Defaults to set label if no labels have been set
 	if obj.Labels == nil {
 		obj.Labels = map[string]string{
-			clusterv1.ClusterctlMoveHierarchyLabelName: ""}
+			clusterv1.ClusterctlMoveHierarchyLabel: ""}
 	}
+}
+
+// SetDefaults_AWSMachineSpec is used by defaulter-gen.
+func SetDefaults_AWSMachineSpec(obj *AWSMachineSpec) { //nolint:golint,stylecheck
+	if obj.InstanceMetadataOptions == nil {
+		obj.InstanceMetadataOptions = &InstanceMetadataOptions{}
+	}
+	obj.InstanceMetadataOptions.SetDefaults()
 }

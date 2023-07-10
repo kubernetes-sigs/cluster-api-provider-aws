@@ -19,6 +19,7 @@ package v1beta1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 )
 
@@ -55,6 +56,11 @@ func init() {
 
 // KubeadmControlPlaneTemplateResource describes the data needed to create a KubeadmControlPlane from a template.
 type KubeadmControlPlaneTemplateResource struct {
+	// Standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
+	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
+
 	Spec KubeadmControlPlaneTemplateResourceSpec `json:"spec"`
 }
 
@@ -73,6 +79,12 @@ type KubeadmControlPlaneTemplateResourceSpec struct {
 	// to use for initializing and joining machines to the control plane.
 	KubeadmConfigSpec bootstrapv1.KubeadmConfigSpec `json:"kubeadmConfigSpec"`
 
+	// RolloutBefore is a field to indicate a rollout should be performed
+	// if the specified criteria is met.
+	//
+	// +optional
+	RolloutBefore *RolloutBefore `json:"rolloutBefore,omitempty"`
+
 	// RolloutAfter is a field to indicate a rollout should be performed
 	// after the specified time even if no changes have been made to the
 	// KubeadmControlPlane.
@@ -85,6 +97,10 @@ type KubeadmControlPlaneTemplateResourceSpec struct {
 	// +optional
 	// +kubebuilder:default={type: "RollingUpdate", rollingUpdate: {maxSurge: 1}}
 	RolloutStrategy *RolloutStrategy `json:"rolloutStrategy,omitempty"`
+
+	// The RemediationStrategy that controls how control plane machine remediation happens.
+	// +optional
+	RemediationStrategy *RemediationStrategy `json:"remediationStrategy,omitempty"`
 }
 
 // KubeadmControlPlaneTemplateMachineTemplate defines the template for Machines
@@ -94,11 +110,21 @@ type KubeadmControlPlaneTemplateResourceSpec struct {
 // because they are calculated by the Cluster topology reconciler during reconciliation and thus cannot
 // be configured on the KubeadmControlPlaneTemplate.
 type KubeadmControlPlaneTemplateMachineTemplate struct {
+	// Standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
+	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
+
 	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a controlplane node
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
 	// +optional
 	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
+
+	// NodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+	// to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
+	// +optional
+	NodeVolumeDetachTimeout *metav1.Duration `json:"nodeVolumeDetachTimeout,omitempty"`
 
 	// NodeDeletionTimeout defines how long the machine controller will attempt to delete the Node that the Machine
 	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.

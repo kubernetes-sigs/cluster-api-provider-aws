@@ -33,6 +33,9 @@ type Client interface {
 	// GetProviderComponents returns the provider components for a given provider with options including targetNamespace.
 	GetProviderComponents(provider string, providerType clusterctlv1.ProviderType, options ComponentsOptions) (Components, error)
 
+	// GenerateProvider returns the provider components for a given provider with options including targetNamespace.
+	GenerateProvider(provider string, providerType clusterctlv1.ProviderType, options ComponentsOptions) (Components, error)
+
 	// Init initializes a management cluster by adding the requested list of providers.
 	Init(options InitOptions) ([]Components, error)
 
@@ -51,15 +54,7 @@ type Client interface {
 	// Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster.
 	Move(options MoveOptions) error
 
-	// Backup saves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster.
-	Backup(options BackupOptions) error
-
-	// Restore restores all the Cluster API objects existing in a configured directory based on a glob to a target management cluster.
-	Restore(options RestoreOptions) error
-
-	// PlanUpgrade returns a set of suggested Upgrade plans for the cluster, and more specifically:
-	// - Upgrade to the latest version in the the v1alpha3 series: ....
-	// - Upgrade to the latest version in the the v1alpha4 series: ....
+	// PlanUpgrade returns a set of suggested Upgrade plans for the cluster.
 	PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePlan, error)
 
 	// PlanCertManagerUpgrade returns a CertManagerUpgradePlan.
@@ -82,13 +77,13 @@ type Client interface {
 // AlphaClient exposes the alpha features in clusterctl high-level client library.
 type AlphaClient interface {
 	// RolloutRestart provides rollout restart of cluster-api resources
-	RolloutRestart(options RolloutOptions) error
+	RolloutRestart(options RolloutRestartOptions) error
 	// RolloutPause provides rollout pause of cluster-api resources
-	RolloutPause(options RolloutOptions) error
+	RolloutPause(options RolloutPauseOptions) error
 	// RolloutResume provides rollout resume of paused cluster-api resources
-	RolloutResume(options RolloutOptions) error
+	RolloutResume(options RolloutResumeOptions) error
 	// RolloutUndo provides rollout rollback of cluster-api resources
-	RolloutUndo(options RolloutOptions) error
+	RolloutUndo(options RolloutUndoOptions) error
 	// TopologyPlan dry runs the topology reconciler
 	TopologyPlan(options TopologyPlanOptions) (*TopologyPlanOutput, error)
 }
@@ -120,7 +115,7 @@ type RepositoryClientFactoryInput struct {
 // RepositoryClientFactory is a factory of repository.Client from a given input.
 type RepositoryClientFactory func(RepositoryClientFactoryInput) (repository.Client, error)
 
-// ClusterClientFactoryInput reporesents the inputs required by the factory.
+// ClusterClientFactoryInput represents the inputs required by the factory.
 type ClusterClientFactoryInput struct {
 	Kubeconfig Kubeconfig
 	Processor  Processor

@@ -38,20 +38,26 @@ type InitOptions struct {
 	// default rules for kubeconfig discovery will be used.
 	Kubeconfig Kubeconfig
 
-	// CoreProvider version (e.g. cluster-api:v0.3.0) to add to the management cluster. If unspecified, the
+	// CoreProvider version (e.g. cluster-api:v1.1.5) to add to the management cluster. If unspecified, the
 	// cluster-api core provider's latest release is used.
 	CoreProvider string
 
-	// BootstrapProviders and versions (e.g. kubeadm:v0.3.0) to add to the management cluster.
+	// BootstrapProviders and versions (e.g. kubeadm:v1.1.5) to add to the management cluster.
 	// If unspecified, the kubeadm bootstrap provider's latest release is used.
 	BootstrapProviders []string
 
 	// InfrastructureProviders and versions (e.g. aws:v0.5.0) to add to the management cluster.
 	InfrastructureProviders []string
 
-	// ControlPlaneProviders and versions (e.g. kubeadm:v0.3.0) to add to the management cluster.
+	// ControlPlaneProviders and versions (e.g. kubeadm:v1.1.5) to add to the management cluster.
 	// If unspecified, the kubeadm control plane provider latest release is used.
 	ControlPlaneProviders []string
+
+	// IPAMProviders and versions (e.g. infoblox:v0.0.1) to add to the management cluster.
+	IPAMProviders []string
+
+	// RuntimeExtensionProviders and versions (e.g. test:v0.0.1) to add to the management cluster.
+	RuntimeExtensionProviders []string
 
 	// TargetNamespace defines the namespace where the providers should be deployed. If unspecified, each provider
 	// will be installed in a provider's default namespace.
@@ -69,6 +75,14 @@ type InitOptions struct {
 	// SkipTemplateProcess allows for skipping the call to the template processor, including also variable replacement in the component YAML.
 	// NOTE this works only if the rawYaml is a valid yaml by itself, like e.g when using envsubst/the simple processor.
 	skipTemplateProcess bool
+
+	// IgnoreValidationErrors allows for skipping the validation of provider installs.
+	// NOTE this should only be used for development
+	IgnoreValidationErrors bool
+
+	// allowMissingProviderCRD is used to allow for a missing provider CRD when listing images.
+	// It is set to false to enforce that provider CRD is available when performing the standard init operation.
+	allowMissingProviderCRD bool
 }
 
 // Init initializes a management cluster by adding the requested list of providers.
@@ -86,7 +100,7 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 		return nil, err
 	}
 
-	// Ensure this command only runs against v1alpha4 management clusters
+	// Ensure this command only runs against v1beta1 management clusters
 	if err := clusterClient.ProviderInventory().CheckCAPIContract(cluster.AllowCAPINotInstalled{}); err != nil {
 		return nil, err
 	}
@@ -107,8 +121,13 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 	// Before installing the providers, validates the management cluster resulting by the planned installation. The following checks are performed:
 	// - There should be only one instance of the same provider.
 	// - All the providers must support the same API Version of Cluster API (contract)
+	// - All provider CRDs that are referenced in core Cluster API CRDs must comply with the CRD naming scheme,
+	//   otherwise a warning is logged.
 	if err := installer.Validate(); err != nil {
-		return nil, err
+		if !options.IgnoreValidationErrors {
+			return nil, err
+		}
+		log.Error(err, "Ignoring validation errors")
 	}
 
 	// Before installing the providers, ensure the cert-manager Webhook is in place.
@@ -153,7 +172,7 @@ func (c *clusterctlClient) InitImages(options InitOptions) ([]string, error) {
 		return nil, err
 	}
 
-	// Ensure this command only runs against empty management clusters or v1alpha4 management clusters.
+	// Ensure this command only runs against empty management clusters or v1beta1 management clusters.
 	if err := clusterClient.ProviderInventory().CheckCAPIContract(cluster.AllowCAPINotInstalled{}); err != nil {
 		return nil, err
 	}
@@ -165,6 +184,8 @@ func (c *clusterctlClient) InitImages(options InitOptions) ([]string, error) {
 
 	// skip variable parsing when listing images
 	options.skipTemplateProcess = true
+
+	options.allowMissingProviderCRD = true
 
 	// create an installer service, add the requested providers to the install queue and then perform validation
 	// of the target state of the management cluster before starting the installation.
@@ -190,16 +211,22 @@ func (c *clusterctlClient) InitImages(options InitOptions) ([]string, error) {
 func (c *clusterctlClient) setupInstaller(cluster cluster.Client, options InitOptions) (cluster.ProviderInstaller, error) {
 	installer := cluster.ProviderInstaller()
 
-	providerList, err := cluster.ProviderInventory().List()
-	if err != nil {
-		return nil, err
-	}
+	providerList := &clusterctlv1.ProviderList{}
 
 	addOptions := addToInstallerOptions{
 		installer:           installer,
 		targetNamespace:     options.TargetNamespace,
 		skipTemplateProcess: options.skipTemplateProcess,
 		providerList:        providerList,
+	}
+
+	if !options.allowMissingProviderCRD {
+		providerList, err := cluster.ProviderInventory().List()
+		if err != nil {
+			return nil, err
+		}
+
+		addOptions.providerList = providerList
 	}
 
 	if options.CoreProvider != "" {
@@ -217,6 +244,14 @@ func (c *clusterctlClient) setupInstaller(cluster cluster.Client, options InitOp
 	}
 
 	if err := c.addToInstaller(addOptions, clusterctlv1.InfrastructureProviderType, options.InfrastructureProviders...); err != nil {
+		return nil, err
+	}
+
+	if err := c.addToInstaller(addOptions, clusterctlv1.IPAMProviderType, options.IPAMProviders...); err != nil {
+		return nil, err
+	}
+
+	if err := c.addToInstaller(addOptions, clusterctlv1.RuntimeExtensionProviderType, options.RuntimeExtensionProviders...); err != nil {
 		return nil, err
 	}
 

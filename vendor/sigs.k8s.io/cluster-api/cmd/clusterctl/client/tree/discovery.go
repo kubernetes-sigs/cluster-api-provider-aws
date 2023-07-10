@@ -19,6 +19,7 @@ package tree
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	unstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -83,9 +84,11 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 	tree := NewObjectTree(cluster, options.toObjectTreeOptions())
 
 	// Adds cluster infra
-	if clusterInfra, err := external.Get(ctx, c, cluster.Spec.InfrastructureRef, cluster.Namespace); err == nil {
-		tree.Add(cluster, clusterInfra, ObjectMetaName("ClusterInfrastructure"))
+	clusterInfra, err := external.Get(ctx, c, cluster.Spec.InfrastructureRef, cluster.Namespace)
+	if err != nil {
+		return nil, errors.Wrap(err, "get InfraCluster reference from Cluster")
 	}
+	tree.Add(cluster, clusterInfra, ObjectMetaName("ClusterInfrastructure"))
 
 	if options.ShowClusterResourceSets {
 		addClusterResourceSetsToObjectTree(ctx, c, cluster, tree)
@@ -119,9 +122,11 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 	}
 
 	controlPlaneMachines := selectControlPlaneMachines(machinesList)
-	for i := range controlPlaneMachines {
-		cp := controlPlaneMachines[i]
-		addMachineFunc(controlPlane, cp)
+	if controlPlane != nil {
+		for i := range controlPlaneMachines {
+			cp := controlPlaneMachines[i]
+			addMachineFunc(controlPlane, cp)
+		}
 	}
 
 	machinePoolList, err := getMachinePoolsInCluster(ctx, c, cluster.Namespace, cluster.Name)
@@ -304,7 +309,7 @@ func getMachinesInCluster(ctx context.Context, c client.Client, namespace, name 
 	}
 
 	machineList := &clusterv1.MachineList{}
-	labels := map[string]string{clusterv1.ClusterLabelName: name}
+	labels := map[string]string{clusterv1.ClusterNameLabel: name}
 
 	if err := c.List(ctx, machineList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
 		return nil, err
@@ -319,7 +324,7 @@ func getMachineDeploymentsInCluster(ctx context.Context, c client.Client, namesp
 	}
 
 	machineDeploymentList := &clusterv1.MachineDeploymentList{}
-	labels := map[string]string{clusterv1.ClusterLabelName: name}
+	labels := map[string]string{clusterv1.ClusterNameLabel: name}
 
 	if err := c.List(ctx, machineDeploymentList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
 		return nil, err
@@ -334,7 +339,7 @@ func getMachineSetsInCluster(ctx context.Context, c client.Client, namespace, na
 	}
 
 	machineSetList := &clusterv1.MachineSetList{}
-	labels := map[string]string{clusterv1.ClusterLabelName: name}
+	labels := map[string]string{clusterv1.ClusterNameLabel: name}
 
 	if err := c.List(ctx, machineSetList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
 		return nil, err
@@ -349,7 +354,7 @@ func getMachinePoolsInCluster(ctx context.Context, c client.Client, namespace, n
 	}
 
 	machinePoolList := &expv1.MachinePoolList{}
-	labels := map[string]string{clusterv1.ClusterLabelName: name}
+	labels := map[string]string{clusterv1.ClusterNameLabel: name}
 
 	if err := c.List(ctx, machinePoolList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
 		return nil, err

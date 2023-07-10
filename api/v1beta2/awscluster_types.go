@@ -39,6 +39,10 @@ type AWSClusterSpec struct {
 	// The AWS Region the cluster lives in.
 	Region string `json:"region,omitempty"`
 
+	// Partition is the AWS security partition being used. Defaults to "aws"
+	// +optional
+	Partition string `json:"partition,omitempty"`
+
 	// SSHKeyName is the name of the ssh key to attach to the bastion host. Valid values are empty string (do not use SSH keys), a valid SSH key name, or omitted (use the default SSH key name)
 	// +optional
 	SSHKeyName *string `json:"sshKeyName,omitempty"`
@@ -152,6 +156,15 @@ type Bastion struct {
 	AMI string `json:"ami,omitempty"`
 }
 
+type LoadBalancerType string
+
+var (
+	LoadBalancerTypeClassic = LoadBalancerType("classic")
+	LoadBalancerTypeELB     = LoadBalancerType("elb")
+	LoadBalancerTypeALB     = LoadBalancerType("alb")
+	LoadBalancerTypeNLB     = LoadBalancerType("nlb")
+)
+
 // AWSLoadBalancerSpec defines the desired state of an AWS load balancer.
 type AWSLoadBalancerSpec struct {
 	// Name sets the name of the classic ELB load balancer. As per AWS, the name must be unique
@@ -167,7 +180,7 @@ type AWSLoadBalancerSpec struct {
 	// +kubebuilder:default=internet-facing
 	// +kubebuilder:validation:Enum=internet-facing;internal
 	// +optional
-	Scheme *ClassicELBScheme `json:"scheme,omitempty"`
+	Scheme *ELBScheme `json:"scheme,omitempty"`
 
 	// CrossZoneLoadBalancing enables the classic ELB cross availability zone balancing.
 	//
@@ -184,15 +197,33 @@ type AWSLoadBalancerSpec struct {
 	// +optional
 	Subnets []string `json:"subnets,omitempty"`
 
-	// HealthCheckProtocol sets the protocol type for classic ELB health check target
-	// default value is ClassicELBProtocolSSL
+	// HealthCheckProtocol sets the protocol type for ELB health check target
+	// default value is ELBProtocolSSL
+	// +kubebuilder:validation:Enum=TCP;SSL;HTTP;HTTPS;TLS;UDP
 	// +optional
-	HealthCheckProtocol *ClassicELBProtocol `json:"healthCheckProtocol,omitempty"`
+	HealthCheckProtocol *ELBProtocol `json:"healthCheckProtocol,omitempty"`
 
 	// AdditionalSecurityGroups sets the security groups used by the load balancer. Expected to be security group IDs
 	// This is optional - if not provided new security groups will be created for the load balancer
 	// +optional
 	AdditionalSecurityGroups []string `json:"additionalSecurityGroups,omitempty"`
+
+	// IngressRules sets the ingress rules for the control plane load balancer.
+	// +optional
+	IngressRules []IngressRule `json:"ingressRules,omitempty"`
+
+	// LoadBalancerType sets the type for a load balancer. The default type is classic.
+	// +kubebuilder:default=classic
+	// +kubebuilder:validation:Enum:=classic;elb;alb;nlb
+	LoadBalancerType LoadBalancerType `json:"loadBalancerType,omitempty"`
+
+	// DisableHostsRewrite disabled the hair pinning issue solution that adds the NLB's address as 127.0.0.1 to the hosts
+	// file of each instance. This is by default, false.
+	DisableHostsRewrite bool `json:"disableHostsRewrite,omitempty"`
+
+	// PreserveClientIP lets the user control if preservation of client ips must be retained or not.
+	// If this is enabled 6443 will be opened to 0.0.0.0/0.
+	PreserveClientIP bool `json:"preserveClientIP,omitempty"`
 }
 
 // AWSClusterStatus defines the observed state of AWSCluster.

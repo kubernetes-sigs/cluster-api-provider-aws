@@ -35,7 +35,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/blang/semver"
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -118,13 +118,13 @@ func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigCluste
 		Namespace:                namespace,
 		ClusterName:              clusterName,
 		KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
-		ControlPlaneMachineCount: pointer.Int64Ptr(1),
-		WorkerMachineCount:       pointer.Int64Ptr(0),
+		ControlPlaneMachineCount: pointer.Int64(1),
+		WorkerMachineCount:       pointer.Int64(0),
 	}
 }
 
 func createLBService(svcNamespace string, svcName string, k8sclient crclient.Client) string {
-	shared.Byf("Creating service of type Load Balancer with name: %s under namespace: %s", svcName, svcNamespace)
+	ginkgo.By(fmt.Sprintf("Creating service of type Load Balancer with name: %s under namespace: %s", svcName, svcNamespace))
 	svcSpec := corev1.ServiceSpec{
 		Type: corev1.ServiceTypeLoadBalancer,
 		Ports: []corev1.ServicePort{
@@ -148,7 +148,7 @@ func createLBService(svcNamespace string, svcName string, k8sclient crclient.Cli
 		ingressHostname := svcCreated.Status.LoadBalancer.Ingress[0].Hostname
 		elbName = strings.Split(ingressHostname, "-")[0]
 	}
-	shared.Byf("Created Load Balancer service and ELB name is: %s", elbName)
+	ginkgo.By(fmt.Sprintf("Created Load Balancer service and ELB name is: %s", elbName))
 
 	return elbName
 }
@@ -269,7 +269,7 @@ func createStatefulSet(statefulsetinfo statefulSetInfo, k8sclient crclient.Clien
 }
 
 func createStorageClass(isIntree bool, storageClassName string, k8sclient crclient.Client) {
-	shared.Byf("Creating StorageClass object with name: %s", storageClassName)
+	ginkgo.By(fmt.Sprintf("Creating StorageClass object with name: %s", storageClassName))
 	volExpansion := true
 	bindingMode := storagev1.VolumeBindingWaitForFirstConsumer
 	azs := shared.GetAvailabilityZones(e2eCtx.AWSSession)
@@ -359,12 +359,12 @@ func deleteRetainedVolumes(awsVolIDs []*string) {
 		}
 		_, err := ec2Client.DeleteVolume(input)
 		Expect(err).NotTo(HaveOccurred())
-		shared.Byf("Deleted dynamically provisioned volume with ID: %s", *volumeID)
+		ginkgo.By(fmt.Sprintf("Deleted dynamically provisioned volume with ID: %s", *volumeID))
 	}
 }
 
 func deployStatefulSet(statefulsetinfo statefulSetInfo, volClaimTemp corev1.PersistentVolumeClaim, podTemplate corev1.PodTemplateSpec, k8sclient crclient.Client) {
-	shared.Byf("Deploying Statefulset with name: %s under namespace: %s", statefulsetinfo.name, statefulsetinfo.namespace)
+	ginkgo.By(fmt.Sprintf("Deploying Statefulset with name: %s under namespace: %s", statefulsetinfo.name, statefulsetinfo.namespace))
 	statefulset := appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{Name: statefulsetinfo.name, Namespace: statefulsetinfo.namespace},
 		Spec: appsv1.StatefulSetSpec{
@@ -471,7 +471,7 @@ func makeAWSMachineTemplate(namespace, name, instanceType string, subnetID *stri
 				Spec: infrav1.AWSMachineSpec{
 					InstanceType:       instanceType,
 					IAMInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io",
-					SSHKeyName:         pointer.StringPtr(os.Getenv("AWS_SSH_KEY_NAME")),
+					SSHKeyName:         pointer.String(os.Getenv("AWS_SSH_KEY_NAME")),
 				},
 			},
 		},
@@ -550,7 +550,7 @@ func makeMachineDeployment(namespace, mdName, clusterName string, az *string, re
 						Name:       mdName,
 						Namespace:  namespace,
 					},
-					Version: pointer.StringPtr(e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion)),
+					Version: pointer.String(e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion)),
 				},
 			},
 		},
@@ -562,7 +562,7 @@ func makeMachineDeployment(namespace, mdName, clusterName string, az *string, re
 }
 
 func assertSpotInstanceType(instanceID string) {
-	shared.Byf("Finding EC2 spot instance with ID: %s", instanceID)
+	ginkgo.By(fmt.Sprintf("Finding EC2 spot instance with ID: %s", instanceID))
 	ec2Client := ec2.New(e2eCtx.AWSSession)
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{
@@ -577,8 +577,31 @@ func assertSpotInstanceType(instanceID string) {
 	Expect(len(result.Reservations[0].Instances)).To(Equal(1))
 }
 
+func assertInstanceMetadataOptions(instanceID string, expected infrav1.InstanceMetadataOptions) {
+	ginkgo.By(fmt.Sprintf("Finding EC2 instance with ID: %s", instanceID))
+	ec2Client := ec2.New(e2eCtx.AWSSession)
+	input := &ec2.DescribeInstancesInput{
+		InstanceIds: []*string{
+			aws.String(instanceID[strings.LastIndex(instanceID, "/")+1:]),
+		},
+	}
+
+	result, err := ec2Client.DescribeInstances(input)
+	Expect(err).To(BeNil())
+	Expect(len(result.Reservations)).To(Equal(1))
+	Expect(len(result.Reservations[0].Instances)).To(Equal(1))
+
+	metadataOptions := result.Reservations[0].Instances[0].MetadataOptions
+	Expect(metadataOptions).ToNot(BeNil())
+
+	Expect(metadataOptions.HttpTokens).To(HaveValue(Equal(string(expected.HTTPTokens))))
+	Expect(metadataOptions.HttpEndpoint).To(HaveValue(Equal(string(expected.HTTPEndpoint))))
+	Expect(metadataOptions.InstanceMetadataTags).To(HaveValue(Equal(string(expected.InstanceMetadataTags))))
+	Expect(metadataOptions.HttpPutResponseHopLimit).To(HaveValue(Equal(expected.HTTPPutResponseHopLimit)))
+}
+
 func terminateInstance(instanceID string) {
-	shared.Byf("Terminating EC2 instance with ID: %s", instanceID)
+	ginkgo.By(fmt.Sprintf("Terminating EC2 instance with ID: %s", instanceID))
 	ec2Client := ec2.New(e2eCtx.AWSSession)
 	input := &ec2.TerminateInstancesInput{
 		InstanceIds: []*string{
@@ -594,7 +617,7 @@ func terminateInstance(instanceID string) {
 }
 
 func verifyElbExists(elbName string, exists bool) {
-	shared.Byf("Verifying ELB with name %s present", elbName)
+	ginkgo.By(fmt.Sprintf("Verifying ELB with name %s present", elbName))
 	elbClient := elb.New(e2eCtx.AWSSession)
 	input := &elb.DescribeLoadBalancersInput{
 		LoadBalancerNames: []*string{
@@ -605,12 +628,12 @@ func verifyElbExists(elbName string, exists bool) {
 	if exists {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(elbsOutput.LoadBalancerDescriptions)).To(Equal(1))
-		shared.Byf("ELB with name %s exists", elbName)
+		ginkgo.By(fmt.Sprintf("ELB with name %s exists", elbName))
 	} else {
 		aerr, ok := err.(awserr.Error)
 		Expect(ok).To(BeTrue())
 		Expect(aerr.Code()).To(Equal(elb.ErrCodeAccessPointNotFoundException))
-		shared.Byf("ELB with name %s doesn't exists", elbName)
+		ginkgo.By(fmt.Sprintf("ELB with name %s doesn't exists", elbName))
 	}
 }
 
@@ -625,7 +648,7 @@ func verifyVolumesExists(awsVolumeIds []*string) {
 }
 
 func waitForStatefulSetRunning(info statefulSetInfo, k8sclient crclient.Client) {
-	shared.Byf("Ensuring Statefulset(%s) is running", info.name)
+	ginkgo.By(fmt.Sprintf("Ensuring Statefulset(%s) is running", info.name))
 	statefulset := &appsv1.StatefulSet{}
 	Eventually(
 		func() (bool, error) {

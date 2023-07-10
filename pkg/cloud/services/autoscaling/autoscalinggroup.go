@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -45,6 +46,10 @@ func (s *Service) SDKToAutoScalingGroup(v *autoscaling.Group) (*expinfrav1.AutoS
 		MinSize:           int32(aws.Int64Value(v.MinSize)),
 		CapacityRebalance: aws.BoolValue(v.CapacityRebalance),
 		//TODO: determine what additional values go here and what else should be in the struct
+	}
+
+	if v.VPCZoneIdentifier != nil {
+		i.Subnets = strings.Split(*v.VPCZoneIdentifier, ",")
 	}
 
 	if v.MixedInstancesPolicy != nil {
@@ -122,76 +127,66 @@ func (s *Service) ASGIfExists(name *string) (*expinfrav1.AutoScalingGroup, error
 	case err != nil:
 		record.Eventf(s.scope.InfraCluster(), "FailedDescribeAutoScalingGroups", "failed to describe ASG %q: %v", *name, err)
 		return nil, errors.Wrapf(err, "failed to describe AutoScaling Group: %q", *name)
+	case len(out.AutoScalingGroups) == 0:
+		record.Eventf(s.scope.InfraCluster(), corev1.EventTypeNormal, expinfrav1.ASGNotFoundReason, "Unable to find ASG matching %q", *name)
+		return nil, nil
 	}
-	//TODO: double check if you're handling nil vals
 	return s.SDKToAutoScalingGroup(out.AutoScalingGroups[0])
 }
 
 // GetASGByName returns the existing ASG or nothing if it doesn't exist.
 func (s *Service) GetASGByName(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
-	s.scope.Debug("Looking for existing AutoScalingGroup by name")
-
-	input := &autoscaling.DescribeAutoScalingGroupsInput{
-		AutoScalingGroupNames: []*string{
-			aws.String(scope.Name()),
-		},
-	}
-
-	out, err := s.ASGClient.DescribeAutoScalingGroups(input)
-	switch {
-	case awserrors.IsNotFound(err):
-		return nil, nil
-	case err != nil:
-		record.Eventf(s.scope.InfraCluster(), "FailedDescribeInstances", "Failed to describe instances by tags: %v", err)
-		return nil, errors.Wrap(err, "failed to describe instances by tags")
-	case len(out.AutoScalingGroups) == 0:
-		record.Eventf(scope.AWSMachinePool, "FailedDescribeInstances", "No Auto Scaling Groups with %s found", scope.Name())
-		return nil, nil
-	}
-
-	return s.SDKToAutoScalingGroup(out.AutoScalingGroups[0])
+	name := scope.Name()
+	return s.ASGIfExists(&name)
 }
 
 // CreateASG runs an autoscaling group.
-func (s *Service) CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
-	subnets, err := s.SubnetIDs(scope)
+func (s *Service) CreateASG(machinePoolScope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
+	subnets, err := s.SubnetIDs(machinePoolScope)
 	if err != nil {
 		return nil, fmt.Errorf("getting subnets for ASG: %w", err)
 	}
 
 	input := &expinfrav1.AutoScalingGroup{
-		Name:                 scope.Name(),
-		MaxSize:              scope.AWSMachinePool.Spec.MaxSize,
-		MinSize:              scope.AWSMachinePool.Spec.MinSize,
+		Name:                 machinePoolScope.Name(),
+		MaxSize:              machinePoolScope.AWSMachinePool.Spec.MaxSize,
+		MinSize:              machinePoolScope.AWSMachinePool.Spec.MinSize,
 		Subnets:              subnets,
-		DefaultCoolDown:      scope.AWSMachinePool.Spec.DefaultCoolDown,
-		CapacityRebalance:    scope.AWSMachinePool.Spec.CapacityRebalance,
-		MixedInstancesPolicy: scope.AWSMachinePool.Spec.MixedInstancesPolicy,
+		DefaultCoolDown:      machinePoolScope.AWSMachinePool.Spec.DefaultCoolDown,
+		CapacityRebalance:    machinePoolScope.AWSMachinePool.Spec.CapacityRebalance,
+		MixedInstancesPolicy: machinePoolScope.AWSMachinePool.Spec.MixedInstancesPolicy,
 	}
 
-	if scope.MachinePool.Spec.Replicas != nil {
-		input.DesiredCapacity = scope.MachinePool.Spec.Replicas
+	// Default value of MachinePool replicas set by CAPI is 1.
+	mpReplicas := *machinePoolScope.MachinePool.Spec.Replicas
+
+	// Check that MachinePool replicas number is between the minimum and maximum size of the AWSMachinePool.
+	// Ignore the problem for externally managed clusters because MachinePool replicas will be updated to the right value automatically.
+	if mpReplicas >= machinePoolScope.AWSMachinePool.Spec.MinSize && mpReplicas <= machinePoolScope.AWSMachinePool.Spec.MaxSize {
+		input.DesiredCapacity = &mpReplicas
+	} else if !scope.ReplicasExternallyManaged(machinePoolScope.MachinePool) {
+		return nil, fmt.Errorf("incorrect number of replicas %d in MachinePool %v", mpReplicas, machinePoolScope.MachinePool.Name)
 	}
 
-	if scope.AWSMachinePool.Status.LaunchTemplateID == "" {
+	if machinePoolScope.AWSMachinePool.Status.LaunchTemplateID == "" {
 		return nil, errors.New("AWSMachinePool has no LaunchTemplateID for some reason")
 	}
 
 	// Make sure to use the MachinePoolScope here to get the merger of AWSCluster and AWSMachinePool tags
-	additionalTags := scope.AdditionalTags()
+	additionalTags := machinePoolScope.AdditionalTags()
 	// Set the cloud provider tag
 	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())] = string(infrav1.ResourceLifecycleOwned)
 
 	input.Tags = infrav1.Build(infrav1.BuildParams{
 		ClusterName: s.scope.KubernetesClusterName(),
 		Lifecycle:   infrav1.ResourceLifecycleOwned,
-		Name:        aws.String(scope.Name()),
+		Name:        aws.String(machinePoolScope.Name()),
 		Role:        aws.String("node"),
 		Additional:  additionalTags,
 	})
 
 	s.scope.Info("Running instance")
-	if err := s.runPool(input, scope.AWSMachinePool.Status.LaunchTemplateID); err != nil {
+	if err := s.runPool(input, machinePoolScope.AWSMachinePool.Status.LaunchTemplateID); err != nil {
 		// Only record the failure event if the error is not related to failed dependencies.
 		// This is to avoid spamming failure events since the machine will be requeued by the actuator.
 		// if !awserrors.IsFailedDependency(errors.Cause(err)) {
@@ -200,7 +195,7 @@ func (s *Service) CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScal
 		s.scope.Error(err, "unable to create AutoScalingGroup")
 		return nil, err
 	}
-	record.Eventf(scope.AWSMachinePool, "SuccessfulCreate", "Created new ASG: %s", scope.Name())
+	record.Eventf(machinePoolScope.AWSMachinePool, "SuccessfulCreate", "Created new ASG: %s", machinePoolScope.Name())
 
 	return nil, nil
 }
@@ -286,7 +281,7 @@ func (s *Service) UpdateASG(scope *scope.MachinePoolScope) error {
 		AutoScalingGroupName: aws.String(scope.Name()), //TODO: define dynamically - borrow logic from ec2
 		MaxSize:              aws.Int64(int64(scope.AWSMachinePool.Spec.MaxSize)),
 		MinSize:              aws.Int64(int64(scope.AWSMachinePool.Spec.MinSize)),
-		VPCZoneIdentifier:    aws.String(strings.Join(subnetIDs, ", ")),
+		VPCZoneIdentifier:    aws.String(strings.Join(subnetIDs, ",")),
 		CapacityRebalance:    aws.Bool(scope.AWSMachinePool.Spec.CapacityRebalance),
 	}
 
@@ -335,7 +330,7 @@ func (s *Service) CanStartASGInstanceRefresh(scope *scope.MachinePoolScope) (boo
 
 // StartASGInstanceRefresh will start an ASG instance with refresh.
 func (s *Service) StartASGInstanceRefresh(scope *scope.MachinePoolScope) error {
-	strategy := pointer.StringPtr(autoscaling.RefreshStrategyRolling)
+	strategy := pointer.String(autoscaling.RefreshStrategyRolling)
 	var minHealthyPercentage, instanceWarmup *int64
 	if scope.AWSMachinePool.Spec.RefreshPreferences != nil {
 		if scope.AWSMachinePool.Spec.RefreshPreferences.Strategy != nil {
@@ -521,6 +516,12 @@ func (s *Service) SubnetIDs(scope *scope.MachinePoolScope) ([]string, error) {
 
 		for _, subnet := range out.Subnets {
 			subnetIDs = append(subnetIDs, *subnet.SubnetId)
+		}
+
+		if len(subnetIDs) == 0 {
+			errMessage := fmt.Sprintf("failed to create ASG %q, no subnets available matching criteria %q", scope.Name(), inputFilters)
+			record.Warnf(scope.AWSMachinePool, "FailedCreate", errMessage)
+			return subnetIDs, awserrors.NewFailedDependency(errMessage)
 		}
 	}
 

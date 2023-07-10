@@ -17,6 +17,7 @@ limitations under the License.
 package framework
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -46,7 +47,7 @@ func machineContainerName(cluster, machine string) string {
 	return fmt.Sprintf("%s-%s", cluster, machine)
 }
 
-func (k DockerLogCollector) CollectMachineLog(ctx context.Context, managementClusterClient client.Client, m *clusterv1.Machine, outputPath string) error {
+func (k DockerLogCollector) CollectMachineLog(ctx context.Context, _ client.Client, m *clusterv1.Machine, outputPath string) error {
 	containerName := machineContainerName(m.Spec.ClusterName, m.Name)
 	containerRuntime, err := container.NewDockerClient()
 	if err != nil {
@@ -56,7 +57,7 @@ func (k DockerLogCollector) CollectMachineLog(ctx context.Context, managementClu
 	return k.collectLogsFromNode(ctx, outputPath, containerName)
 }
 
-func (k DockerLogCollector) CollectMachinePoolLog(ctx context.Context, managementClusterClient client.Client, m *expv1.MachinePool, outputPath string) error {
+func (k DockerLogCollector) CollectMachinePoolLog(ctx context.Context, _ client.Client, m *expv1.MachinePool, outputPath string) error {
 	containerRuntime, err := container.NewDockerClient()
 	if err != nil {
 		return err
@@ -106,8 +107,10 @@ func (k DockerLogCollector) collectLogsFromNode(ctx context.Context, outputPath 
 
 			defer os.Remove(tempfileName)
 
+			var execErr string
 			execConfig := container.ExecContainerInput{
 				OutputBuffer: f,
+				ErrorBuffer:  bytes.NewBufferString(execErr),
 			}
 			err = containerRuntime.ExecContainer(
 				ctx,
@@ -116,7 +119,7 @@ func (k DockerLogCollector) collectLogsFromNode(ctx context.Context, outputPath 
 				"tar", "--hard-dereference", "--dereference", "--directory", containerDir, "--create", "--file", "-", ".",
 			)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, execErr)
 			}
 
 			err = os.MkdirAll(outputDir, os.ModePerm)

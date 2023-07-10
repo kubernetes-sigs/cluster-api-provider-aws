@@ -25,11 +25,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	ms "sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/suites/managed"
@@ -75,7 +76,7 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 			}
 		})
 
-		shared.Byf("getting cluster with name %s", clusterName)
+		ginkgo.By(fmt.Sprintf("getting cluster with name %s", clusterName))
 		cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
 			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Namespace: namespace.Name,
@@ -87,10 +88,10 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 		cp := ms.GetControlPlaneByName(ctx, ms.GetControlPlaneByNameInput{
 			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Namespace: cluster.Spec.InfrastructureRef.Namespace,
-			Name:      cluster.Spec.InfrastructureRef.Name,
+			Name:      cluster.Spec.ControlPlaneRef.Name,
 		})
 
-		shared.Byf("Waiting for the machine pool to be running")
+		ginkgo.By("Waiting for the machine pool to be running")
 		mp := framework.DiscoveryAndWaitForMachinePools(ctx, framework.DiscoveryAndWaitForMachinePoolsInput{
 			Lister:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Getter:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
@@ -100,35 +101,35 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 
 		workloadClusterProxy := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name)
 		workloadYamlPath := e2eCtx.E2EConfig.GetVariable(shared.GcWorkloadPath)
-		shared.Byf("Installing sample workload with load balancer services: %s", workloadYamlPath)
+		ginkgo.By(fmt.Sprintf("Installing sample workload with load balancer services: %s", workloadYamlPath))
 		workloadYaml, err := os.ReadFile(workloadYamlPath) //nolint:gosec
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(workloadClusterProxy.Apply(ctx, workloadYaml)).ShouldNot(HaveOccurred())
 
-		shared.Byf("Waiting for the Deployment to be available")
+		ginkgo.By("Waiting for the Deployment to be available")
 		shared.WaitForDeploymentsAvailable(ctx, shared.WaitForDeploymentsAvailableInput{
 			Getter:    workloadClusterProxy.GetClient(),
 			Name:      "podinfo",
 			Namespace: "default",
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-deployment-ready")...)
 
-		shared.Byf("Checking we have the load balancers in AWS")
+		ginkgo.By("Checking we have the load balancers in AWS")
 		shared.WaitForLoadBalancerToExistForService(shared.WaitForLoadBalancerToExistForServiceInput{
 			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-nlb",
 			ServiceNamespace: "default",
 			ClusterName:      cp.Spec.EKSClusterName,
-			Type:             shared.LoadBalancerTypeNLB,
+			Type:             infrav1.LoadBalancerTypeNLB,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-loadbalancer-ready")...)
 		shared.WaitForLoadBalancerToExistForService(shared.WaitForLoadBalancerToExistForServiceInput{
 			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-elb",
 			ServiceNamespace: "default",
 			ClusterName:      cp.Spec.EKSClusterName,
-			Type:             shared.LoadBalancerTypeELB,
+			Type:             infrav1.LoadBalancerTypeELB,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-loadbalancer-ready")...)
 
-		shared.Byf("Deleting workload/tenant cluster %s", clusterName)
+		ginkgo.By(fmt.Sprintf("Deleting workload/tenant cluster %s", clusterName))
 		framework.DeleteCluster(ctx, framework.DeleteClusterInput{
 			Deleter: e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Cluster: cluster,
@@ -138,25 +139,154 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 			Cluster: cluster,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
 
-		shared.Byf("Getting counts of service load balancers")
+		ginkgo.By("Getting counts of service load balancers")
 		arns, err := shared.GetLoadBalancerARNs(shared.GetLoadBalancerARNsInput{
 			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-nlb",
 			ServiceNamespace: "default",
 			ClusterName:      cp.Spec.EKSClusterName,
-			Type:             shared.LoadBalancerTypeNLB,
+			Type:             infrav1.LoadBalancerTypeNLB,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(arns).To(HaveLen(0), "there are %d service load balancers (nlb) still", len(arns))
+		Expect(arns).To(BeEmpty(), "there are %d service load balancers (nlb) still", len(arns))
 		arns, err = shared.GetLoadBalancerARNs(shared.GetLoadBalancerARNsInput{
 			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-elb",
 			ServiceNamespace: "default",
 			ClusterName:      cp.Spec.EKSClusterName,
-			Type:             shared.LoadBalancerTypeELB,
+			Type:             infrav1.LoadBalancerTypeELB,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(arns).To(HaveLen(0), "there are %d service load balancers (elb) still", len(arns))
+		Expect(arns).To(BeEmpty(), "there are %d service load balancers (elb) still", len(arns))
+	})
+
+	ginkgo.It("[managed] [gc] should cleanup a cluster that has ELB/NLB load balancers using AlternativeGCStrategy", func() {
+		ginkgo.By("should have a valid test configuration")
+		Expect(e2eCtx.Environment.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil")
+		Expect(e2eCtx.E2EConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
+		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.KubernetesVersion))
+
+		ctx = context.TODO()
+		shared.ReconfigureDeployment(ctx, shared.ReconfigureDeploymentInput{
+			Getter:       e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			ClientSet:    e2eCtx.Environment.BootstrapClusterProxy.GetClientSet(),
+			Name:         "capa-controller-manager",
+			Namespace:    "capa-system",
+			WaitInterval: e2eCtx.E2EConfig.GetIntervals("", "wait-deployment-ready"),
+		}, shared.EnableAlternativeGCStrategy, shared.ValidateAlternativeGCStrategyEnabled)
+
+		specName += "-alterstrategy"
+		namespace = shared.SetupSpecNamespace(ctx, specName, e2eCtx)
+		clusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
+
+		ginkgo.By("default iam role should exist")
+		ms.VerifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, clusterName, false, e2eCtx.BootstrapUserAWSSession)
+
+		ginkgo.By("should create an EKS control plane")
+		ms.ManagedClusterSpec(ctx, func() ms.ManagedClusterSpecInput {
+			return ms.ManagedClusterSpecInput{
+				E2EConfig:                e2eCtx.E2EConfig,
+				ConfigClusterFn:          defaultConfigCluster,
+				BootstrapClusterProxy:    e2eCtx.Environment.BootstrapClusterProxy,
+				AWSSession:               e2eCtx.BootstrapUserAWSSession,
+				Namespace:                namespace,
+				ClusterName:              clusterName,
+				Flavour:                  ms.EKSManagedPoolFlavor,
+				ControlPlaneMachineCount: 1, // NOTE: this cannot be zero as clusterctl returns an error
+				WorkerMachineCount:       1,
+			}
+		})
+
+		ginkgo.By(fmt.Sprintf("getting cluster with name %s", clusterName))
+		cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
+			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			Namespace: namespace.Name,
+			Name:      clusterName,
+		})
+		Expect(cluster).NotTo(BeNil(), "couldn't find cluster")
+
+		ginkgo.By("getting AWSManagedControlPlane")
+		cp := ms.GetControlPlaneByName(ctx, ms.GetControlPlaneByNameInput{
+			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			Namespace: cluster.Spec.InfrastructureRef.Namespace,
+			Name:      cluster.Spec.ControlPlaneRef.Name,
+		})
+
+		ginkgo.By("Waiting for the machine pool to be running")
+		mp := framework.DiscoveryAndWaitForMachinePools(ctx, framework.DiscoveryAndWaitForMachinePoolsInput{
+			Lister:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			Getter:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			Cluster: cluster,
+		}, e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes")...)
+		Expect(len(mp)).To(Equal(1))
+
+		workloadClusterProxy := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name)
+		workloadYamlPath := e2eCtx.E2EConfig.GetVariable(shared.GcWorkloadPath)
+		ginkgo.By(fmt.Sprintf("Installing sample workload with load balancer services: %s", workloadYamlPath))
+		workloadYaml, err := os.ReadFile(workloadYamlPath) //nolint:gosec
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(workloadClusterProxy.Apply(ctx, workloadYaml)).ShouldNot(HaveOccurred())
+
+		ginkgo.By("Waiting for the Deployment to be available")
+		shared.WaitForDeploymentsAvailable(ctx, shared.WaitForDeploymentsAvailableInput{
+			Getter:    workloadClusterProxy.GetClient(),
+			Name:      "podinfo",
+			Namespace: "default",
+		}, e2eCtx.E2EConfig.GetIntervals("", "wait-deployment-ready")...)
+
+		ginkgo.By("Checking we have the load balancers in AWS")
+		shared.WaitForLoadBalancerToExistForService(shared.WaitForLoadBalancerToExistForServiceInput{
+			AWSSession:       e2eCtx.BootstrapUserAWSSession,
+			ServiceName:      "podinfo-nlb",
+			ServiceNamespace: "default",
+			ClusterName:      cp.Spec.EKSClusterName,
+			Type:             infrav1.LoadBalancerTypeNLB,
+		}, e2eCtx.E2EConfig.GetIntervals("", "wait-loadbalancer-ready")...)
+		shared.WaitForLoadBalancerToExistForService(shared.WaitForLoadBalancerToExistForServiceInput{
+			AWSSession:       e2eCtx.BootstrapUserAWSSession,
+			ServiceName:      "podinfo-elb",
+			ServiceNamespace: "default",
+			ClusterName:      cp.Spec.EKSClusterName,
+			Type:             infrav1.LoadBalancerTypeELB,
+		}, e2eCtx.E2EConfig.GetIntervals("", "wait-loadbalancer-ready")...)
+
+		ginkgo.By(fmt.Sprintf("Deleting workload/tenant cluster %s", clusterName))
+		framework.DeleteCluster(ctx, framework.DeleteClusterInput{
+			Deleter: e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			Cluster: cluster,
+		})
+		framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
+			Getter:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			Cluster: cluster,
+		}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
+
+		ginkgo.By("Getting counts of service load balancers")
+		arns, err := shared.GetLoadBalancerARNs(shared.GetLoadBalancerARNsInput{
+			AWSSession:       e2eCtx.BootstrapUserAWSSession,
+			ServiceName:      "podinfo-nlb",
+			ServiceNamespace: "default",
+			ClusterName:      cp.Spec.EKSClusterName,
+			Type:             infrav1.LoadBalancerTypeNLB,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(arns).To(BeEmpty(), "there are %d service load balancers (nlb) still", len(arns))
+		arns, err = shared.GetLoadBalancerARNs(shared.GetLoadBalancerARNsInput{
+			AWSSession:       e2eCtx.BootstrapUserAWSSession,
+			ServiceName:      "podinfo-elb",
+			ServiceNamespace: "default",
+			ClusterName:      cp.Spec.EKSClusterName,
+			Type:             infrav1.LoadBalancerTypeELB,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(arns).To(BeEmpty(), "there are %d service load balancers (elb) still", len(arns))
+
+		shared.ReconfigureDeployment(ctx, shared.ReconfigureDeploymentInput{
+			Getter:       e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			ClientSet:    e2eCtx.Environment.BootstrapClusterProxy.GetClientSet(),
+			Name:         "capa-controller-manager",
+			Namespace:    "capa-system",
+			WaitInterval: e2eCtx.E2EConfig.GetIntervals("", "wait-deployment-ready"),
+		}, shared.DisableAlternativeGCStrategy, shared.ValidateAlternativeGCStrategyDisabled)
 	})
 })
 
@@ -171,7 +301,7 @@ func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigCluste
 		Namespace:                namespace,
 		ClusterName:              clusterName,
 		KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
-		ControlPlaneMachineCount: pointer.Int64Ptr(1),
-		WorkerMachineCount:       pointer.Int64Ptr(0),
+		ControlPlaneMachineCount: pointer.Int64(1),
+		WorkerMachineCount:       pointer.Int64(0),
 	}
 }

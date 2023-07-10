@@ -48,7 +48,7 @@ const (
 	testClusterNamespace = "test-namespace"
 )
 
-func TestReconcile_bucket(t *testing.T) {
+func TestReconcileBucket(t *testing.T) {
 	t.Parallel()
 
 	t.Run("does_nothing_when_bucket_management_is_disabled", func(t *testing.T) {
@@ -172,6 +172,10 @@ func TestReconcile_bucket(t *testing.T) {
 			if !strings.Contains(policy, fmt.Sprintf("%s/node/*", bucketName)) {
 				t.Errorf("At least one policy should apply for all objects with %q prefix, got: %v", "node", policy)
 			}
+
+			if !strings.Contains(policy, "arn:aws:iam::foo:role/control-plane.cluster-api-provider-aws.sigs.k8s.io") {
+				t.Errorf("Expected arn to contain the right principal; got: %v", policy)
+			}
 		}).Return(nil, nil).Times(1)
 
 		if err := svc.ReconcileBucket(); err != nil {
@@ -270,7 +274,7 @@ func TestReconcile_bucket(t *testing.T) {
 	})
 }
 
-func TestDelete_bucket(t *testing.T) {
+func TestDeleteBucket(t *testing.T) {
 	t.Parallel()
 
 	const bucketName = "foo"
@@ -355,7 +359,7 @@ func TestDelete_bucket(t *testing.T) {
 	})
 }
 
-func TestCreate_object(t *testing.T) {
+func TestCreateObject(t *testing.T) {
 	t.Parallel()
 
 	const (
@@ -565,7 +569,7 @@ func TestCreate_object(t *testing.T) {
 	})
 }
 
-func TestDelete_object(t *testing.T) {
+func TestDeleteObject(t *testing.T) {
 	t.Parallel()
 
 	const nodeName = "aws-test1"
@@ -583,7 +587,7 @@ func TestDelete_object(t *testing.T) {
 			Machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabelName: "",
+						clusterv1.MachineControlPlaneLabel: "",
 					},
 				},
 			},

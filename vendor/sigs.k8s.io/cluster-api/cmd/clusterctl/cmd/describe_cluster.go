@@ -26,6 +26,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/gobuffalo/flect"
 	"github.com/olekukonko/tablewriter"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/duration"
@@ -61,16 +62,16 @@ type describeClusterOptions struct {
 	showClusterResourceSets bool
 	showTemplates           bool
 	echo                    bool
-	disableNoEcho           bool
 	grouping                bool
 	disableGrouping         bool
+	color                   bool
 }
 
 var dc = &describeClusterOptions{}
 
 var describeClusterClusterCmd = &cobra.Command{
-	Use:   "cluster",
-	Short: "Describe workload clusters.",
+	Use:   "cluster NAME",
+	Short: "Describe workload clusters",
 	Long: LongDesc(`
 		Provide an "at glance" view of a Cluster API cluster designed to help the user in quickly
 		understanding if there are problems and where.
@@ -90,13 +91,18 @@ var describeClusterClusterCmd = &cobra.Command{
 		# e.g. un-group all the machines with Ready=true instead of showing a single group node.
 		clusterctl describe cluster test-1 --grouping=false
 
-		# Describe the cluster named test-1 disabling automatic echo suppression
-        # e.g. show the infrastructure machine objects, no matter if the current state is already reported by the machine's Ready condition.
-		clusterctl describe cluster test-1 --disable-no-echo`),
+		# Describe the cluster named test-1 showing the MachineInfrastructure and BootstrapConfig objects
+		# also when their status is the same as the status of the corresponding machine object.
+		clusterctl describe cluster test-1 --echo`),
 
-	Args: cobra.ExactArgs(1),
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) != 1 {
+			return errors.New("please specify a cluster name")
+		}
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runDescribeCluster(args[0])
+		return runDescribeCluster(cmd, args[0])
 	},
 }
 
@@ -119,16 +125,13 @@ func init() {
 
 	describeClusterClusterCmd.Flags().BoolVar(&dc.echo, "echo", false, ""+
 		"Show MachineInfrastructure and BootstrapConfig when ready condition is true or it has the Status, Severity and Reason of the machine's object.")
-	describeClusterClusterCmd.Flags().BoolVar(&dc.disableNoEcho, "disable-no-echo", false, ""+
-		"Disable hiding of a MachineInfrastructure and BootstrapConfig when ready condition is true or it has the Status, Severity and Reason of the machine's object.")
-	_ = describeClusterClusterCmd.Flags().MarkDeprecated("disable-no-echo",
-		"use --echo instead.")
 	describeClusterClusterCmd.Flags().BoolVar(&dc.grouping, "grouping", true,
 		"Groups machines when ready condition has the same Status, Severity and Reason.")
 	describeClusterClusterCmd.Flags().BoolVar(&dc.disableGrouping, "disable-grouping", false,
 		"Disable grouping machines when ready condition has the same Status, Severity and Reason.")
 	_ = describeClusterClusterCmd.Flags().MarkDeprecated("disable-grouping",
 		"use --grouping instead.")
+	describeClusterClusterCmd.Flags().BoolVarP(&dc.color, "color", "c", false, "Enable or disable color output; if not set color is enabled by default only if using tty. The flag is overridden by the NO_COLOR env variable if set.")
 
 	// completions
 	describeClusterClusterCmd.ValidArgsFunction = resourceNameCompletionFunc(
@@ -142,7 +145,7 @@ func init() {
 	describeCmd.AddCommand(describeClusterClusterCmd)
 }
 
-func runDescribeCluster(name string) error {
+func runDescribeCluster(cmd *cobra.Command, name string) error {
 	c, err := client.New(cfgFile)
 	if err != nil {
 		return err
@@ -157,11 +160,15 @@ func runDescribeCluster(name string) error {
 		ShowTemplates:           dc.showTemplates,
 		ShowMachineSets:         dc.showMachineSets,
 		AddTemplateVirtualNode:  true,
-		Echo:                    dc.echo || dc.disableNoEcho,
+		Echo:                    dc.echo,
 		Grouping:                dc.grouping && !dc.disableGrouping,
 	})
 	if err != nil {
 		return err
+	}
+
+	if cmd.Flags().Changed("color") {
+		color.NoColor = !dc.color
 	}
 
 	printObjectTree(tree)

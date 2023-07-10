@@ -43,7 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-func TestAWSClusterReconciler_Reconcile(t *testing.T) {
+func TestAWSClusterReconcilerReconcile(t *testing.T) {
 	testCases := []struct {
 		name         string
 		awsCluster   *infrav1.AWSCluster
@@ -518,7 +518,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 	})
 }
 
-func TestAWSClusterReconciler_RequeueAWSClusterForUnpausedCluster(t *testing.T) {
+func TestAWSClusterReconcilerRequeueAWSClusterForUnpausedCluster(t *testing.T) {
 	testCases := []struct {
 		name         string
 		awsCluster   *infrav1.AWSCluster

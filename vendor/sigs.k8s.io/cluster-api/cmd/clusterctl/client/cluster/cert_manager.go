@@ -43,8 +43,9 @@ const (
 
 	certManagerNamespace = "cert-manager"
 
-	// Deprecated: Use clusterctlv1.CertManagerVersionAnnotation instead.
 	// This is maintained only for supporting upgrades from cluster created with clusterctl v1alpha3.
+	//
+	// Deprecated: Use clusterctlv1.CertManagerVersionAnnotation instead.
 	// TODO: Remove once upgrades from v1alpha3 are no longer supported.
 	certManagerVersionAnnotation = "certmanager.clusterctl.cluster.x-k8s.io/version"
 )
@@ -202,7 +203,7 @@ func (cm *certManagerClient) install() error {
 func (cm *certManagerClient) PlanUpgrade() (CertManagerUpgradePlan, error) {
 	log := logf.Log
 
-	objs, err := cm.proxy.ListResources(map[string]string{clusterctlv1.ClusterctlCoreLabelName: clusterctlv1.ClusterctlCoreLabelCertManagerValue}, certManagerNamespace)
+	objs, err := cm.proxy.ListResources(map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue}, certManagerNamespace)
 	if err != nil {
 		return CertManagerUpgradePlan{}, errors.Wrap(err, "failed get cert manager components")
 	}
@@ -231,7 +232,7 @@ func (cm *certManagerClient) PlanUpgrade() (CertManagerUpgradePlan, error) {
 func (cm *certManagerClient) EnsureLatestVersion() error {
 	log := logf.Log
 
-	objs, err := cm.proxy.ListResources(map[string]string{clusterctlv1.ClusterctlCoreLabelName: clusterctlv1.ClusterctlCoreLabelCertManagerValue}, certManagerNamespace)
+	objs, err := cm.proxy.ListResources(map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue}, certManagerNamespace)
 	if err != nil {
 		return errors.Wrap(err, "failed get cert manager components")
 	}
@@ -288,11 +289,7 @@ func (cm *certManagerClient) migrateCRDs() error {
 		return err
 	}
 
-	if err := newCRDMigrator(c).Run(ctx, objs); err != nil {
-		return err
-	}
-
-	return nil
+	return newCRDMigrator(c).Run(ctx, objs)
 }
 
 func (cm *certManagerClient) deleteObjs(objs []unstructured.Unstructured) error {
@@ -442,8 +439,8 @@ func addCerManagerLabel(objs []unstructured.Unstructured) []unstructured.Unstruc
 		if labels == nil {
 			labels = map[string]string{}
 		}
-		labels[clusterctlv1.ClusterctlLabelName] = ""
-		labels[clusterctlv1.ClusterctlCoreLabelName] = clusterctlv1.ClusterctlCoreLabelCertManagerValue
+		labels[clusterctlv1.ClusterctlLabel] = ""
+		labels[clusterctlv1.ClusterctlCoreLabel] = clusterctlv1.ClusterctlCoreLabelCertManagerValue
 		o.SetLabels(labels)
 	}
 	return objs
@@ -531,7 +528,7 @@ func (cm *certManagerClient) deleteObj(obj unstructured.Unstructured) error {
 // 'create' operations will only be attempted once.
 func (cm *certManagerClient) waitForAPIReady(_ context.Context, retry bool) error {
 	log := logf.Log
-	// Waits for for the cert-manager to be available.
+	// Waits for the cert-manager to be available.
 	if retry {
 		log.Info("Waiting for cert-manager to be available...")
 	}

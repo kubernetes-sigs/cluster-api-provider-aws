@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -75,7 +75,7 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 		namespace     *corev1.Namespace
 		cancelWatches context.CancelFunc
 		cluster       *clusterv1.Cluster
-		replicas      = pointer.Int64Ptr(1)
+		replicas      = pointer.Int64(1)
 	)
 
 	SetDefaultEventuallyTimeout(15 * time.Minute)
@@ -115,7 +115,7 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 			KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
 			InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
 			ControlPlaneMachineCount: replicas,
-			WorkerMachineCount:       pointer.Int64Ptr(0),
+			WorkerMachineCount:       pointer.Int64(0),
 			// setup clusterctl logs folder
 			LogFolder: filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
 		})
@@ -172,8 +172,8 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 			ctrlclient.InNamespace(namespace.Name),
 			ctrlclient.MatchingLabelsSelector{
 				Selector: labels.NewSelector().
-					Add(must(labels.NewRequirement(clusterv1.MachineControlPlaneLabelName, selection.Exists, []string{}))).
-					Add(must(labels.NewRequirement(clusterv1.ClusterLabelName, selection.Equals, []string{clusterName}))),
+					Add(must(labels.NewRequirement(clusterv1.MachineControlPlaneLabel, selection.Exists, []string{}))).
+					Add(must(labels.NewRequirement(clusterv1.ClusterNameLabel, selection.Equals, []string{clusterName}))),
 			},
 		)).To(Succeed())
 
@@ -196,13 +196,13 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 		Expect(client.List(ctx, &bootstrap,
 			ctrlclient.InNamespace(namespace.Name),
 			ctrlclient.MatchingLabels{
-				clusterv1.ClusterLabelName: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 			})).To(Succeed())
 
 		By("Taking ownership of the cluster's PKI material")
 		secrets := corev1.SecretList{}
 		Expect(client.List(ctx, &secrets, ctrlclient.InNamespace(namespace.Name), ctrlclient.MatchingLabels{
-			clusterv1.ClusterLabelName: cluster.Name,
+			clusterv1.ClusterNameLabel: cluster.Name,
 		})).To(Succeed())
 
 		bootstrapSecrets := map[string]bootstrapv1.KubeadmConfig{}

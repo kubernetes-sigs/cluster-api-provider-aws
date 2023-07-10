@@ -18,8 +18,6 @@ package scope
 
 import "k8s.io/apimachinery/pkg/util/sets"
 
-const maxMachineDeploymentUpgradeConcurrency = 1
-
 // UpgradeTracker is a helper to capture the upgrade status and make upgrade decisions.
 type UpgradeTracker struct {
 	ControlPlane       ControlPlaneUpgradeTracker
@@ -46,17 +44,50 @@ type ControlPlaneUpgradeTracker struct {
 // MachineDeploymentUpgradeTracker holds the current upgrade status and makes upgrade
 // decisions for MachineDeployments.
 type MachineDeploymentUpgradeTracker struct {
-	pendingNames    sets.String
-	rollingOutNames sets.String
-	holdUpgrades    bool
+	pendingNames                           sets.Set[string]
+	deferredNames                          sets.Set[string]
+	upgradingNames                         sets.Set[string]
+	rollingOutNames                        sets.Set[string]
+	holdUpgrades                           bool
+	maxMachineDeploymentUpgradeConcurrency int
+}
+
+// UpgradeTrackerOptions contains the options for NewUpgradeTracker.
+type UpgradeTrackerOptions struct {
+	maxMDUpgradeConcurrency int
+}
+
+// UpgradeTrackerOption returns an option for the NewUpgradeTracker function.
+type UpgradeTrackerOption interface {
+	ApplyToUpgradeTracker(options *UpgradeTrackerOptions)
+}
+
+// MaxMDUpgradeConcurrency sets the upper limit for the number of Machine Deployments that can upgrade
+// concurrently.
+type MaxMDUpgradeConcurrency int
+
+// ApplyToUpgradeTracker applies the given UpgradeTrackerOptions.
+func (m MaxMDUpgradeConcurrency) ApplyToUpgradeTracker(options *UpgradeTrackerOptions) {
+	options.maxMDUpgradeConcurrency = int(m)
 }
 
 // NewUpgradeTracker returns an upgrade tracker with empty tracking information.
-func NewUpgradeTracker() *UpgradeTracker {
+func NewUpgradeTracker(opts ...UpgradeTrackerOption) *UpgradeTracker {
+	options := &UpgradeTrackerOptions{}
+	for _, o := range opts {
+		o.ApplyToUpgradeTracker(options)
+	}
+	if options.maxMDUpgradeConcurrency < 1 {
+		// The concurrency should be at least 1.
+		options.maxMDUpgradeConcurrency = 1
+	}
 	return &UpgradeTracker{
 		MachineDeployments: MachineDeploymentUpgradeTracker{
-			pendingNames:    sets.NewString(),
-			rollingOutNames: sets.NewString(),
+			pendingNames:                           sets.Set[string]{},
+			deferredNames:                          sets.Set[string]{},
+			rollingOutNames:                        sets.Set[string]{},
+			upgradingNames:                         sets.Set[string]{},
+			maxMachineDeploymentUpgradeConcurrency: options.maxMDUpgradeConcurrency,
 		},
 	}
 }
@@ -72,10 +103,27 @@ func (m *MachineDeploymentUpgradeTracker) MarkRollingOut(names ...string) {
 	}
 }
 
+// MarkUpgradingAndRollingOut marks a MachineDeployment as currently upgrading or about to upgrade.
+// NOTE: Marking a MachineDeployment as upgrading also marks it as RollingOut.
+func (m *MachineDeploymentUpgradeTracker) MarkUpgradingAndRollingOut(names ...string) {
+	for _, name := range names {
+		m.upgradingNames.Insert(name)
+		m.rollingOutNames.Insert(name)
+	}
+}
+
 // RolloutNames returns the list of machine deployments that are rolling out or
 // are about to rollout.
+// Note: This also includes the names of MachineDeployments that are upgrading
+// MachineDeployments are also considered rolling out.
 func (m *MachineDeploymentUpgradeTracker) RolloutNames() []string {
-	return m.rollingOutNames.List()
+	return sets.List(m.rollingOutNames)
+}
+
+// UpgradingNames returns the list of machine deployments that are upgrading or
+// are about to upgrade.
+func (m *MachineDeploymentUpgradeTracker) UpgradingNames() []string {
+	return sets.List(m.upgradingNames)
 }
 
 // HoldUpgrades is used to set if any subsequent upgrade operations should be paused,
@@ -94,7 +142,7 @@ func (m *MachineDeploymentUpgradeTracker) AllowUpgrade() bool {
 	if m.holdUpgrades {
 		return false
 	}
-	return m.rollingOutNames.Len() < maxMachineDeploymentUpgradeConcurrency
+	return m.upgradingNames.Len() < m.maxMachineDeploymentUpgradeConcurrency
 }
 
 // MarkPendingUpgrade marks a machine deployment as in need of an upgrade.
@@ -107,11 +155,29 @@ func (m *MachineDeploymentUpgradeTracker) MarkPendingUpgrade(name string) {
 // PendingUpgradeNames returns the list of machine deployment names that
 // are pending an upgrade.
 func (m *MachineDeploymentUpgradeTracker) PendingUpgradeNames() []string {
-	return m.pendingNames.List()
+	return sets.List(m.pendingNames)
 }
 
 // PendingUpgrade returns true if any of the machine deployments are pending
 // an upgrade. Returns false, otherwise.
 func (m *MachineDeploymentUpgradeTracker) PendingUpgrade() bool {
 	return len(m.pendingNames) != 0
+}
+
+// MarkDeferredUpgrade marks that the upgrade for a MachineDeployment
+// has been deferred.
+func (m *MachineDeploymentUpgradeTracker) MarkDeferredUpgrade(name string) {
+	m.deferredNames.Insert(name)
+}
+
+// DeferredUpgradeNames returns the list of MachineDeployment names for
+// which the upgrade has been deferred.
+func (m *MachineDeploymentUpgradeTracker) DeferredUpgradeNames() []string {
+	return sets.List(m.deferredNames)
+}
+
+// DeferredUpgrade returns true if the upgrade has been deferred for any of the
+// MachineDeployments. Returns false, otherwise.
+func (m *MachineDeploymentUpgradeTracker) DeferredUpgrade() bool {
+	return len(m.deferredNames) != 0
 }

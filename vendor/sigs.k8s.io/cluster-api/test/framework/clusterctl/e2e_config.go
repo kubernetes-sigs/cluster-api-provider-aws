@@ -49,7 +49,7 @@ type LoadE2EConfigInput struct {
 }
 
 // LoadE2EConfig loads the configuration for the e2e test environment.
-func LoadE2EConfig(ctx context.Context, input LoadE2EConfigInput) *E2EConfig {
+func LoadE2EConfig(_ context.Context, input LoadE2EConfigInput) *E2EConfig {
 	configData, err := os.ReadFile(input.ConfigPath)
 	Expect(err).ToNot(HaveOccurred(), "Failed to read the e2e test config file")
 	Expect(configData).ToNot(BeEmpty(), "The e2e test config file should not be empty")
@@ -101,7 +101,7 @@ type ProviderConfig struct {
 	Type string `json:"type"`
 
 	// Versions is a list of component YAML to be added to the local repository, one for each release.
-	// Please note that the first source will be used a a default release for this provider.
+	// Please note that the first source will be used a default release for this provider.
 	Versions []ProviderVersionSource `json:"versions,omitempty"`
 
 	// Files is a list of files to be copied into the local repository for all the releases.
@@ -395,20 +395,22 @@ func (c *E2EConfig) Validate() error {
 // - Providers files should be an existing file and have a target name.
 func (c *E2EConfig) validateProviders() error {
 	providersByType := map[clusterctlv1.ProviderType][]string{
-		clusterctlv1.CoreProviderType:           nil,
-		clusterctlv1.BootstrapProviderType:      nil,
-		clusterctlv1.ControlPlaneProviderType:   nil,
-		clusterctlv1.InfrastructureProviderType: nil,
+		clusterctlv1.CoreProviderType:             nil,
+		clusterctlv1.BootstrapProviderType:        nil,
+		clusterctlv1.ControlPlaneProviderType:     nil,
+		clusterctlv1.InfrastructureProviderType:   nil,
+		clusterctlv1.IPAMProviderType:             nil,
+		clusterctlv1.RuntimeExtensionProviderType: nil,
 	}
 	for i, providerConfig := range c.Providers {
 		// Providers name should not be empty.
 		if providerConfig.Name == "" {
 			return errEmptyArg(fmt.Sprintf("Providers[%d].Name", i))
 		}
-		// Providers type should be one of [CoreProvider, BootstrapProvider, ControlPlaneProvider, InfrastructureProvider].
+		// Providers type should be one of the know types.
 		providerType := clusterctlv1.ProviderType(providerConfig.Type)
 		switch providerType {
-		case clusterctlv1.CoreProviderType, clusterctlv1.BootstrapProviderType, clusterctlv1.ControlPlaneProviderType, clusterctlv1.InfrastructureProviderType:
+		case clusterctlv1.CoreProviderType, clusterctlv1.BootstrapProviderType, clusterctlv1.ControlPlaneProviderType, clusterctlv1.InfrastructureProviderType, clusterctlv1.IPAMProviderType, clusterctlv1.RuntimeExtensionProviderType:
 			providersByType[providerType] = append(providersByType[providerType], providerConfig.Name)
 		default:
 			return errInvalidArg("Providers[%d].Type=%q", i, providerConfig.Type)
@@ -504,9 +506,23 @@ func fileExists(filename string) bool {
 
 // InfrastructureProviders returns the infrastructure provider selected for running this E2E test.
 func (c *E2EConfig) InfrastructureProviders() []string {
+	return c.getProviders(clusterctlv1.InfrastructureProviderType)
+}
+
+// IPAMProviders returns the IPAM provider selected for running this E2E test.
+func (c *E2EConfig) IPAMProviders() []string {
+	return c.getProviders(clusterctlv1.IPAMProviderType)
+}
+
+// RuntimeExtensionProviders returns the runtime extension provider selected for running this E2E test.
+func (c *E2EConfig) RuntimeExtensionProviders() []string {
+	return c.getProviders(clusterctlv1.RuntimeExtensionProviderType)
+}
+
+func (c *E2EConfig) getProviders(t clusterctlv1.ProviderType) []string {
 	InfraProviders := []string{}
 	for _, provider := range c.Providers {
-		if provider.Type == string(clusterctlv1.InfrastructureProviderType) {
+		if provider.Type == string(t) {
 			InfraProviders = append(InfraProviders, provider.Name)
 		}
 	}
@@ -569,7 +585,7 @@ func (c *E2EConfig) GetInt64PtrVariable(varName string) *int64 {
 
 	wCount, err := strconv.ParseInt(wCountStr, 10, 64)
 	Expect(err).NotTo(HaveOccurred())
-	return pointer.Int64Ptr(wCount)
+	return pointer.Int64(wCount)
 }
 
 // GetInt32PtrVariable returns an Int32Ptr variable from the e2e config file.
@@ -581,7 +597,7 @@ func (c *E2EConfig) GetInt32PtrVariable(varName string) *int32 {
 
 	wCount, err := strconv.ParseUint(wCountStr, 10, 32)
 	Expect(err).NotTo(HaveOccurred())
-	return pointer.Int32Ptr(int32(wCount))
+	return pointer.Int32(int32(wCount))
 }
 
 // GetProviderVersions returns the sorted list of versions defined for a provider.

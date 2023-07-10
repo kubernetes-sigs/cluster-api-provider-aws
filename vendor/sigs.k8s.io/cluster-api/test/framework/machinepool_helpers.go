@@ -20,13 +20,15 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/blang/semver"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -54,7 +56,7 @@ func GetMachinePoolsByCluster(ctx context.Context, input GetMachinePoolsByCluste
 	mpList := &expv1.MachinePoolList{}
 	Eventually(func() error {
 		return input.Lister.List(ctx, mpList, byClusterOptions(input.ClusterName, input.Namespace)...)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachinePools object for Cluster %s/%s", input.Namespace, input.ClusterName)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachinePools object for Cluster %s", klog.KRef(input.Namespace, input.ClusterName))
 
 	mps := make([]*expv1.MachinePool, len(mpList.Items))
 	for i := range mpList.Items {
@@ -87,7 +89,7 @@ func WaitForMachinePoolNodesToExist(ctx context.Context, input WaitForMachinePoo
 		}
 
 		return int(input.MachinePool.Status.ReadyReplicas), nil
-	}, intervals...).Should(Equal(int(*input.MachinePool.Spec.Replicas)))
+	}, intervals...).Should(Equal(int(*input.MachinePool.Spec.Replicas)), "Timed out waiting for %v ready replicas for MachinePool %s", *input.MachinePool.Spec.Replicas, klog.KObj(input.MachinePool))
 }
 
 // DiscoveryAndWaitForMachinePoolsInput is the input type for DiscoveryAndWaitForMachinePools.
@@ -139,7 +141,7 @@ func UpgradeMachinePoolAndWait(ctx context.Context, input UpgradeMachinePoolAndW
 	mgmtClient := input.ClusterProxy.GetClient()
 	for i := range input.MachinePools {
 		mp := input.MachinePools[i]
-		log.Logf("Patching the new Kubernetes version to Machine Pool %s/%s", mp.Namespace, mp.Name)
+		log.Logf("Patching the new Kubernetes version to Machine Pool %s", klog.KObj(mp))
 		patchHelper, err := patch.NewHelper(mp, mgmtClient)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -168,10 +170,10 @@ func UpgradeMachinePoolAndWait(ctx context.Context, input UpgradeMachinePoolAndW
 
 		Eventually(func() error {
 			return patchHelper.Patch(ctx, mp)
-		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch the new Kubernetes version to Machine Pool %s", klog.KObj(mp))
 
-		log.Logf("Waiting for Kubernetes versions of machines in MachinePool %s/%s to be upgraded from %s to %s",
-			mp.Namespace, mp.Name, *oldVersion, input.UpgradeVersion)
+		log.Logf("Waiting for Kubernetes versions of machines in MachinePool %s to be upgraded from %s to %s",
+			klog.KObj(mp), *oldVersion, input.UpgradeVersion)
 		WaitForMachinePoolInstancesToBeUpgraded(ctx, WaitForMachinePoolInstancesToBeUpgradedInput{
 			Getter:                   mgmtClient,
 			WorkloadClusterGetter:    input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient(),
@@ -200,14 +202,14 @@ func ScaleMachinePoolAndWait(ctx context.Context, input ScaleMachinePoolAndWaitI
 
 	mgmtClient := input.ClusterProxy.GetClient()
 	for _, mp := range input.MachinePools {
-		log.Logf("Patching the replica count in Machine Pool %s/%s", mp.Namespace, mp.Name)
+		log.Logf("Patching the replica count in Machine Pool %s", klog.KObj(mp))
 		patchHelper, err := patch.NewHelper(mp, mgmtClient)
 		Expect(err).ToNot(HaveOccurred())
 
 		mp.Spec.Replicas = &input.Replicas
 		Eventually(func() error {
 			return patchHelper.Patch(ctx, mp)
-		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch MachinePool %s", klog.KObj(mp))
 	}
 
 	for _, mp := range input.MachinePools {
@@ -239,11 +241,11 @@ func WaitForMachinePoolInstancesToBeUpgraded(ctx context.Context, input WaitForM
 
 	log.Logf("Ensuring all MachinePool Instances have upgraded kubernetes version %s", input.KubernetesUpgradeVersion)
 	Eventually(func() (int, error) {
-		nn := client.ObjectKey{
+		mpKey := client.ObjectKey{
 			Namespace: input.MachinePool.Namespace,
 			Name:      input.MachinePool.Name,
 		}
-		if err := input.Getter.Get(ctx, nn, input.MachinePool); err != nil {
+		if err := input.Getter.Get(ctx, mpKey, input.MachinePool); err != nil {
 			return 0, err
 		}
 		versions := getMachinePoolInstanceVersions(ctx, GetMachinesPoolInstancesInput{
@@ -260,11 +262,11 @@ func WaitForMachinePoolInstancesToBeUpgraded(ctx context.Context, input WaitForM
 		}
 
 		if matches != len(versions) {
-			return 0, errors.New("old version instances remain")
+			return 0, errors.Errorf("old version instances remain. Expected %d instances at version %v. Got version list: %v", len(versions), input.KubernetesUpgradeVersion, versions)
 		}
 
 		return matches, nil
-	}, intervals...).Should(Equal(input.MachineCount))
+	}, intervals...).Should(Equal(input.MachineCount), "Timed out waiting for all MachinePool %s instances to be upgraded to Kubernetes version %s", klog.KObj(input.MachinePool), input.KubernetesUpgradeVersion)
 }
 
 // GetMachinesPoolInstancesInput is the input for GetMachinesPoolInstances.
@@ -285,15 +287,20 @@ func getMachinePoolInstanceVersions(ctx context.Context, input GetMachinesPoolIn
 	versions := make([]string, len(instances))
 	for i, instance := range instances {
 		node := &corev1.Node{}
-		err := wait.PollImmediate(retryableOperationInterval, retryableOperationTimeout, func() (bool, error) {
-			err := input.WorkloadClusterGetter.Get(ctx, client.ObjectKey{Name: instance.Name}, node)
-			if err != nil {
+		var nodeGetError error
+		err := wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
+			nodeGetError = input.WorkloadClusterGetter.Get(ctx, client.ObjectKey{Name: instance.Name}, node)
+			if nodeGetError != nil {
 				return false, nil //nolint:nilerr
 			}
 			return true, nil
 		})
 		if err != nil {
 			versions[i] = "unknown"
+			if nodeGetError != nil {
+				// Dump the instance name and error here so that we can log it as part of the version array later on.
+				versions[i] = fmt.Sprintf("%s error: %s", instance.Name, errors.Wrap(err, nodeGetError.Error()))
+			}
 		} else {
 			versions[i] = node.Status.NodeInfo.KubeletVersion
 		}

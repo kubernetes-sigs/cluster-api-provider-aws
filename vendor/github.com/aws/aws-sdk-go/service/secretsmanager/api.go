@@ -69,6 +69,11 @@ func (c *SecretsManager) CancelRotateSecretRequest(input *CancelRotateSecretInpu
 //
 // To turn on automatic rotation again, call RotateSecret.
 //
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters because it might
+// be logged. For more information, see Logging Secrets Manager events with
+// CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
+//
 // Required permissions: secretsmanager:CancelRotateSecret. For more information,
 // see IAM policy actions for Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions)
 // and Authentication and access control in Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html).
@@ -179,6 +184,10 @@ func (c *SecretsManager) CreateSecretRequest(input *CreateSecretInput) (req *req
 // protected secret data and the important information needed to manage the
 // secret.
 //
+// For secrets that use managed rotation, you need to create the secret through
+// the managing service. For more information, see Secrets Manager secrets managed
+// by other Amazon Web Services services (https://docs.aws.amazon.com/secretsmanager/latest/userguide/service-linked-secrets.html).
+//
 // For information about creating a secret in the console, see Create a secret
 // (https://docs.aws.amazon.com/secretsmanager/latest/userguide/manage_create-basic-secret.html).
 //
@@ -202,6 +211,11 @@ func (c *SecretsManager) CreateSecretRequest(input *CreateSecretInput) (req *req
 // If the secret is in a different Amazon Web Services account from the credentials
 // calling the API, then you can't use aws/secretsmanager to encrypt the secret,
 // and you must create and use a customer managed KMS key.
+//
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters except SecretBinary
+// or SecretString because it might be logged. For more information, see Logging
+// Secrets Manager events with CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
 //
 // Required permissions: secretsmanager:CreateSecret. If you include tags in
 // the secret, you also need secretsmanager:TagResource. For more information,
@@ -332,6 +346,11 @@ func (c *SecretsManager) DeleteResourcePolicyRequest(input *DeleteResourcePolicy
 //
 // Deletes the resource-based permission policy attached to the secret. To attach
 // a policy to a secret, use PutResourcePolicy.
+//
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters because it might
+// be logged. For more information, see Logging Secrets Manager events with
+// CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
 //
 // Required permissions: secretsmanager:DeleteResourcePolicy. For more information,
 // see IAM policy actions for Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions)
@@ -467,6 +486,11 @@ func (c *SecretsManager) DeleteSecretRequest(input *DeleteSecretInput) (req *req
 // You must first cancel the deletion with RestoreSecret and then you can retrieve
 // the secret.
 //
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters because it might
+// be logged. For more information, see Logging Secrets Manager events with
+// CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
+//
 // Required permissions: secretsmanager:DeleteSecret. For more information,
 // see IAM policy actions for Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions)
 // and Authentication and access control in Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html).
@@ -572,6 +596,11 @@ func (c *SecretsManager) DescribeSecretRequest(input *DescribeSecretInput) (req 
 // Retrieves the details of a secret. It does not include the encrypted secret
 // value. Secrets Manager only returns fields that have a value in the response.
 //
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters because it might
+// be logged. For more information, see Logging Secrets Manager events with
+// CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
+//
 // Required permissions: secretsmanager:DescribeSecret. For more information,
 // see IAM policy actions for Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions)
 // and Authentication and access control in Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html).
@@ -662,6 +691,11 @@ func (c *SecretsManager) GetRandomPasswordRequest(input *GetRandomPasswordInput)
 // Generates a random password. We recommend that you specify the maximum length
 // and include every character type that the system you are generating a password
 // for can support.
+//
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters because it might
+// be logged. For more information, see Logging Secrets Manager events with
+// CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
 //
 // Required permissions: secretsmanager:GetRandomPassword. For more information,
 // see IAM policy actions for Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions)
@@ -765,6 +799,11 @@ func (c *SecretsManager) GetResourcePolicyRequest(input *GetResourcePolicyInput)
 // Retrieves the JSON text of the resource-based policy document attached to
 // the secret. For more information about permissions policies attached to a
 // secret, see Permissions policies attached to a secret (https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access_resource-policies.html).
+//
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters because it might
+// be logged. For more information, see Logging Secrets Manager events with
+// CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
 //
 // Required permissions: secretsmanager:GetResourcePolicy. For more information,
 // see IAM policy actions for Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions)
@@ -878,6 +917,11 @@ func (c *SecretsManager) GetSecretValueRequest(input *GetSecretValueInput) (req 
 // To retrieve the previous version of a secret, use VersionStage and specify
 // AWSPREVIOUS. To revert to the previous version of a secret, call UpdateSecretVersionStage
 // (https://docs.aws.amazon.com/cli/latest/reference/secretsmanager/update-secret-version-stage.html).
+//
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters because it might
+// be logged. For more information, see Logging Secrets Manager events with
+// CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
 //
 // Required permissions: secretsmanager:GetSecretValue. If the secret is encrypted
 // using a customer-managed key instead of the Amazon Web Services managed key
@@ -998,6 +1042,11 @@ func (c *SecretsManager) ListSecretVersionIdsRequest(input *ListSecretVersionIds
 // concepts: Versions (https://docs.aws.amazon.com/secretsmanager/latest/userguide/getting-started.html#term_version).
 //
 // To list the secrets in the account, use ListSecrets.
+//
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters because it might
+// be logged. For more information, see Logging Secrets Manager events with
+// CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
 //
 // Required permissions: secretsmanager:ListSecretVersionIds. For more information,
 // see IAM policy actions for Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions)
@@ -1161,6 +1210,11 @@ func (c *SecretsManager) ListSecretsRequest(input *ListSecretsInput) (req *reque
 // For information about finding secrets in the console, see Find secrets in
 // Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/manage_search-secret.html).
 //
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters because it might
+// be logged. For more information, see Logging Secrets Manager events with
+// CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
+//
 // Required permissions: secretsmanager:ListSecrets. For more information, see
 // IAM policy actions for Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions)
 // and Authentication and access control in Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html).
@@ -1306,6 +1360,11 @@ func (c *SecretsManager) PutResourcePolicyRequest(input *PutResourcePolicyInput)
 // For information about attaching a policy in the console, see Attach a permissions
 // policy to a secret (https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access_resource-based-policies.html).
 //
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters because it might
+// be logged. For more information, see Logging Secrets Manager events with
+// CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
+//
 // Required permissions: secretsmanager:PutResourcePolicy. For more information,
 // see IAM policy actions for Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions)
 // and Authentication and access control in Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html).
@@ -1431,17 +1490,21 @@ func (c *SecretsManager) PutSecretValueRequest(input *PutSecretValueInput) (req 
 // If you don't include VersionStages, then Secrets Manager automatically moves
 // the staging label AWSCURRENT to this version. If this operation creates the
 // first version for the secret, then Secrets Manager automatically attaches
-// the staging label AWSCURRENT to it .
-//
-// If this operation moves the staging label AWSCURRENT from another version
-// to this version, then Secrets Manager also automatically moves the staging
-// label AWSPREVIOUS to the version that AWSCURRENT was removed from.
+// the staging label AWSCURRENT to it. If this operation moves the staging label
+// AWSCURRENT from another version to this version, then Secrets Manager also
+// automatically moves the staging label AWSPREVIOUS to the version that AWSCURRENT
+// was removed from.
 //
 // This operation is idempotent. If you call this operation with a ClientRequestToken
 // that matches an existing version's VersionId, and you specify the same secret
 // data, the operation succeeds but does nothing. However, if the secret data
 // is different, then the operation fails because you can't modify an existing
 // version; you can only create new ones.
+//
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters except SecretBinary
+// or SecretString because it might be logged. For more information, see Logging
+// Secrets Manager events with CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
 //
 // Required permissions: secretsmanager:PutSecretValue. For more information,
 // see IAM policy actions for Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions)
@@ -1563,6 +1626,11 @@ func (c *SecretsManager) RemoveRegionsFromReplicationRequest(input *RemoveRegion
 // For a secret that is replicated to other Regions, deletes the secret replicas
 // from the Regions you specify.
 //
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters because it might
+// be logged. For more information, see Logging Secrets Manager events with
+// CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
+//
 // Required permissions: secretsmanager:RemoveRegionsFromReplication. For more
 // information, see IAM policy actions for Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions)
 // and Authentication and access control in Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html).
@@ -1666,6 +1734,11 @@ func (c *SecretsManager) ReplicateSecretToRegionsRequest(input *ReplicateSecretT
 // ReplicateSecretToRegions API operation for AWS Secrets Manager.
 //
 // Replicates the secret to a new Regions. See Multi-Region secrets (https://docs.aws.amazon.com/secretsmanager/latest/userguide/create-manage-multi-region-secrets.html).
+//
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters because it might
+// be logged. For more information, see Logging Secrets Manager events with
+// CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
 //
 // Required permissions: secretsmanager:ReplicateSecretToRegions. For more information,
 // see IAM policy actions for Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions)
@@ -1772,6 +1845,11 @@ func (c *SecretsManager) RestoreSecretRequest(input *RestoreSecretInput) (req *r
 // Cancels the scheduled deletion of a secret by removing the DeletedDate time
 // stamp. You can access a secret again after it has been restored.
 //
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters because it might
+// be logged. For more information, see Logging Secrets Manager events with
+// CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
+//
 // Required permissions: secretsmanager:RestoreSecret. For more information,
 // see IAM policy actions for Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions)
 // and Authentication and access control in Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html).
@@ -1875,38 +1953,26 @@ func (c *SecretsManager) RotateSecretRequest(input *RotateSecretInput) (req *req
 // RotateSecret API operation for AWS Secrets Manager.
 //
 // Configures and starts the asynchronous process of rotating the secret. For
-// more information about rotation, see Rotate secrets (https://docs.aws.amazon.com/secretsmanager/latest/userguide/rotating-secrets.html).
-//
-// If you include the configuration parameters, the operation sets the values
-// for the secret and then immediately starts a rotation. If you don't include
-// the configuration parameters, the operation starts a rotation with the values
-// already stored in the secret.
-//
-// For database credentials you want to rotate, for Secrets Manager to be able
-// to rotate the secret, you must make sure the secret value is in the JSON
-// structure of a database secret (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_secret_json_structure.html).
-// In particular, if you want to use the alternating users strategy (https://docs.aws.amazon.com/secretsmanager/latest/userguide/rotating-secrets_strategies.html#rotating-secrets-two-users),
-// your secret must contain the ARN of a superuser secret.
-//
-// To configure rotation, you also need the ARN of an Amazon Web Services Lambda
-// function and the schedule for the rotation. The Lambda rotation function
-// creates a new version of the secret and creates or updates the credentials
-// on the database or service to match. After testing the new credentials, the
-// function marks the new secret version with the staging label AWSCURRENT.
-// Then anyone who retrieves the secret gets the new version. For more information,
-// see How rotation works (https://docs.aws.amazon.com/secretsmanager/latest/userguide/rotate-secrets_how.html).
-//
-// You can create the Lambda rotation function based on the rotation function
-// templates (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_available-rotation-templates.html)
-// that Secrets Manager provides. Choose a template that matches your Rotation
-// strategy (https://docs.aws.amazon.com/secretsmanager/latest/userguide/rotating-secrets_strategies.html).
+// information about rotation, see Rotate secrets (https://docs.aws.amazon.com/secretsmanager/latest/userguide/rotating-secrets.html)
+// in the Secrets Manager User Guide. If you include the configuration parameters,
+// the operation sets the values for the secret and then immediately starts
+// a rotation. If you don't include the configuration parameters, the operation
+// starts a rotation with the values already stored in the secret.
 //
 // When rotation is successful, the AWSPENDING staging label might be attached
 // to the same version as the AWSCURRENT version, or it might not be attached
 // to any version. If the AWSPENDING staging label is present but not attached
 // to the same version as AWSCURRENT, then any later invocation of RotateSecret
 // assumes that a previous rotation request is still in progress and returns
-// an error.
+// an error. When rotation is unsuccessful, the AWSPENDING staging label might
+// be attached to an empty secret version. For more information, see Troubleshoot
+// rotation (https://docs.aws.amazon.com/secretsmanager/latest/userguide/troubleshoot_rotation.html)
+// in the Secrets Manager User Guide.
+//
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters because it might
+// be logged. For more information, see Logging Secrets Manager events with
+// CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
 //
 // Required permissions: secretsmanager:RotateSecret. For more information,
 // see IAM policy actions for Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions)
@@ -2017,6 +2083,11 @@ func (c *SecretsManager) StopReplicationToReplicaRequest(input *StopReplicationT
 //
 // You must call this operation from the Region in which you want to promote
 // the replica to a primary secret.
+//
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters because it might
+// be logged. For more information, see Logging Secrets Manager events with
+// CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
 //
 // Required permissions: secretsmanager:StopReplicationToReplica. For more information,
 // see IAM policy actions for Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions)
@@ -2150,6 +2221,11 @@ func (c *SecretsManager) TagResourceRequest(input *TagResourceInput) (req *reque
 // result in you losing your permissions for this secret, then the operation
 // is blocked and returns an Access Denied error.
 //
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters because it might
+// be logged. For more information, see Logging Secrets Manager events with
+// CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
+//
 // Required permissions: secretsmanager:TagResource. For more information, see
 // IAM policy actions for Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions)
 // and Authentication and access control in Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html).
@@ -2263,6 +2339,11 @@ func (c *SecretsManager) UntagResourceRequest(input *UntagResourceInput) (req *r
 // in you losing your permissions for this secret, then the operation is blocked
 // and returns an Access Denied error.
 //
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters because it might
+// be logged. For more information, see Logging Secrets Manager events with
+// CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
+//
 // Required permissions: secretsmanager:UntagResource. For more information,
 // see IAM policy actions for Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions)
 // and Authentication and access control in Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html).
@@ -2370,6 +2451,10 @@ func (c *SecretsManager) UpdateSecretRequest(input *UpdateSecretInput) (req *req
 //
 // To change the rotation configuration of a secret, use RotateSecret instead.
 //
+// To change a secret so that it is managed by another service, you need to
+// recreate the secret in that service. See Secrets Manager secrets managed
+// by other Amazon Web Services services (https://docs.aws.amazon.com/secretsmanager/latest/userguide/service-linked-secrets.html).
+//
 // We recommend you avoid calling UpdateSecret at a sustained rate of more than
 // once every 10 minutes. When you call UpdateSecret to update the secret value,
 // Secrets Manager creates a new version of the secret. Secrets Manager removes
@@ -2379,13 +2464,19 @@ func (c *SecretsManager) UpdateSecretRequest(input *UpdateSecretInput) (req *req
 // and you will reach the quota for secret versions.
 //
 // If you include SecretString or SecretBinary to create a new secret version,
-// Secrets Manager automatically attaches the staging label AWSCURRENT to the
-// new version.
+// Secrets Manager automatically moves the staging label AWSCURRENT to the new
+// version. Then it attaches the label AWSPREVIOUS to the version that AWSCURRENT
+// was removed from.
 //
 // If you call this operation with a ClientRequestToken that matches an existing
 // version's VersionId, the operation results in an error. You can't modify
 // an existing version, you can only create a new version. To remove a version,
 // remove all staging labels from it. See UpdateSecretVersionStage.
+//
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters except SecretBinary
+// or SecretString because it might be logged. For more information, see Logging
+// Secrets Manager events with CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
 //
 // Required permissions: secretsmanager:UpdateSecret. For more information,
 // see IAM policy actions for Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions)
@@ -2534,6 +2625,11 @@ func (c *SecretsManager) UpdateSecretVersionStageRequest(input *UpdateSecretVers
 // the version is considered to be 'deprecated' and can be deleted by Secrets
 // Manager.
 //
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters because it might
+// be logged. For more information, see Logging Secrets Manager events with
+// CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
+//
 // Required permissions: secretsmanager:UpdateSecretVersionStage. For more information,
 // see IAM policy actions for Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions)
 // and Authentication and access control in Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html).
@@ -2652,6 +2748,11 @@ func (c *SecretsManager) ValidateResourcePolicyRequest(input *ValidateResourcePo
 //   - Checks for correct syntax in a policy.
 //
 //   - Verifies the policy does not lock out a caller.
+//
+// Secrets Manager generates a CloudTrail log entry when you call this action.
+// Do not include sensitive information in request parameters because it might
+// be logged. For more information, see Logging Secrets Manager events with
+// CloudTrail (https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html).
 //
 // Required permissions: secretsmanager:ValidateResourcePolicy. For more information,
 // see IAM policy actions for Secrets Manager (https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions)
@@ -3322,8 +3423,8 @@ type DeleteSecretInput struct {
 	// Use this parameter with caution. This parameter causes the operation to skip
 	// the normal recovery window before the permanent deletion that Secrets Manager
 	// would normally impose with the RecoveryWindowInDays parameter. If you delete
-	// a secret with the ForceDeleteWithouRecovery parameter, then you have no opportunity
-	// to recover the secret. You lose the secret permanently.
+	// a secret with the ForceDeleteWithoutRecovery parameter, then you have no
+	// opportunity to recover the secret. You lose the secret permanently.
 	ForceDeleteWithoutRecovery *bool `type:"boolean"`
 
 	// The number of days from 7 to 30 that Secrets Manager waits before permanently
@@ -3539,6 +3640,11 @@ type DescribeSecretOutput struct {
 	// The name of the secret.
 	Name *string `min:"1" type:"string"`
 
+	// The next date and time that Secrets Manager will rotate the secret, rounded
+	// to the nearest hour. If the secret isn't configured for rotation, Secrets
+	// Manager returns null.
+	NextRotationDate *time.Time `type:"timestamp"`
+
 	// The ID of the service that created this secret. For more information, see
 	// Secrets managed by other Amazon Web Services services (https://docs.aws.amazon.com/secretsmanager/latest/userguide/service-linked-secrets.html).
 	OwningService *string `min:"1" type:"string"`
@@ -3668,6 +3774,12 @@ func (s *DescribeSecretOutput) SetLastRotatedDate(v time.Time) *DescribeSecretOu
 // SetName sets the Name field's value.
 func (s *DescribeSecretOutput) SetName(v string) *DescribeSecretOutput {
 	s.Name = &v
+	return s
+}
+
+// SetNextRotationDate sets the NextRotationDate field's value.
+func (s *DescribeSecretOutput) SetNextRotationDate(v time.Time) *DescribeSecretOutput {
+	s.NextRotationDate = &v
 	return s
 }
 
@@ -3801,6 +3913,8 @@ type Filter struct {
 	//    * tag-value: Prefix match, case-sensitive.
 	//
 	//    * primary-region: Prefix match, case-sensitive.
+	//
+	//    * owning-service: Prefix match, case-sensitive.
 	//
 	//    * all: Breaks the filter value string into words and then searches all
 	//    attributes for matches. Not case-sensitive.
@@ -4801,6 +4915,9 @@ type ListSecretsInput struct {
 	// The filters to apply to the list of secrets.
 	Filters []*Filter `type:"list"`
 
+	// Specifies whether to include secrets scheduled for deletion.
+	IncludePlannedDeletion *bool `type:"boolean"`
+
 	// The number of results to include in the response.
 	//
 	// If there are more results available, in the response, Secrets Manager includes
@@ -4813,7 +4930,7 @@ type ListSecretsInput struct {
 	// again with this value.
 	NextToken *string `min:"1" type:"string"`
 
-	// Lists secrets in the requested order.
+	// Secrets are listed by CreatedDate.
 	SortOrder *string `type:"string" enum:"SortOrderType"`
 }
 
@@ -4864,6 +4981,12 @@ func (s *ListSecretsInput) Validate() error {
 // SetFilters sets the Filters field's value.
 func (s *ListSecretsInput) SetFilters(v []*Filter) *ListSecretsInput {
 	s.Filters = v
+	return s
+}
+
+// SetIncludePlannedDeletion sets the IncludePlannedDeletion field's value.
+func (s *ListSecretsInput) SetIncludePlannedDeletion(v bool) *ListSecretsInput {
+	s.IncludePlannedDeletion = &v
 	return s
 }
 
@@ -6059,8 +6182,9 @@ type RotateSecretInput struct {
 	// Specifies whether to rotate the secret immediately or wait until the next
 	// scheduled rotation window. The rotation schedule is defined in RotateSecretRequest$RotationRules.
 	//
-	// If you don't immediately rotate the secret, Secrets Manager tests the rotation
-	// configuration by running the testSecret step (https://docs.aws.amazon.com/secretsmanager/latest/userguide/rotate-secrets_how.html)
+	// For secrets that use a Lambda rotation function to rotate, if you don't immediately
+	// rotate the secret, Secrets Manager tests the rotation configuration by running
+	// the testSecret step (https://docs.aws.amazon.com/secretsmanager/latest/userguide/rotate-secrets_how.html)
 	// of the Lambda rotation function. The test creates an AWSPENDING version of
 	// the secret and then removes it.
 	//
@@ -6068,7 +6192,12 @@ type RotateSecretInput struct {
 	// the secret immediately.
 	RotateImmediately *bool `type:"boolean"`
 
-	// The ARN of the Lambda rotation function that can rotate the secret.
+	// For secrets that use a Lambda rotation function to rotate, the ARN of the
+	// Lambda rotation function.
+	//
+	// For secrets that use managed rotation, omit this field. For more information,
+	// see Managed rotation (https://docs.aws.amazon.com/secretsmanager/latest/userguide/rotate-secrets_managed.html)
+	// in the Secrets Manager User Guide.
 	RotationLambdaARN *string `type:"string"`
 
 	// A structure that defines the rotation configuration for this secret.
@@ -6208,41 +6337,52 @@ func (s *RotateSecretOutput) SetVersionId(v string) *RotateSecretOutput {
 type RotationRulesType struct {
 	_ struct{} `type:"structure"`
 
-	// The number of days between automatic scheduled rotations of the secret. You
-	// can use this value to check that your secret meets your compliance guidelines
-	// for how often secrets must be rotated.
+	// The number of days between rotations of the secret. You can use this value
+	// to check that your secret meets your compliance guidelines for how often
+	// secrets must be rotated. If you use this field to set the rotation schedule,
+	// Secrets Manager calculates the next rotation date based on the previous rotation.
+	// Manually updating the secret value by calling PutSecretValue or UpdateSecret
+	// is considered a valid rotation.
 	//
 	// In DescribeSecret and ListSecrets, this value is calculated from the rotation
 	// schedule after every successful rotation. In RotateSecret, you can set the
 	// rotation schedule in RotationRules with AutomaticallyAfterDays or ScheduleExpression,
-	// but not both.
+	// but not both. To set a rotation schedule in hours, use ScheduleExpression.
 	AutomaticallyAfterDays *int64 `min:"1" type:"long"`
 
 	// The length of the rotation window in hours, for example 3h for a three hour
 	// window. Secrets Manager rotates your secret at any time during this window.
-	// The window must not go into the next UTC day. If you don't specify this value,
-	// the window automatically ends at the end of the UTC day. The window begins
-	// according to the ScheduleExpression. For more information, including examples,
-	// see Schedule expressions in Secrets Manager rotation (https://docs.aws.amazon.com/secretsmanager/latest/userguide/rotate-secrets_schedule.html).
+	// The window must not extend into the next rotation window or the next UTC
+	// day. The window starts according to the ScheduleExpression. If you don't
+	// specify a Duration, for a ScheduleExpression in hours, the window automatically
+	// closes after one hour. For a ScheduleExpression in days, the window automatically
+	// closes at the end of the UTC day. For more information, including examples,
+	// see Schedule expressions in Secrets Manager rotation (https://docs.aws.amazon.com/secretsmanager/latest/userguide/rotate-secrets_schedule.html)
+	// in the Secrets Manager Users Guide.
 	Duration *string `min:"2" type:"string"`
 
 	// A cron() or rate() expression that defines the schedule for rotating your
-	// secret. Secrets Manager rotation schedules use UTC time zone.
+	// secret. Secrets Manager rotation schedules use UTC time zone. Secrets Manager
+	// rotates your secret any time during a rotation window.
 	//
-	// Secrets Manager rate() expressions represent the interval in days that you
-	// want to rotate your secret, for example rate(10 days). If you use a rate()
-	// expression, the rotation window opens at midnight, and Secrets Manager rotates
-	// your secret any time that day after midnight. You can set a Duration to shorten
-	// the rotation window.
+	// Secrets Manager rate() expressions represent the interval in hours or days
+	// that you want to rotate your secret, for example rate(12 hours) or rate(10
+	// days). You can rotate a secret as often as every four hours. If you use a
+	// rate() expression, the rotation window starts at midnight. For a rate in
+	// hours, the default rotation window closes after one hour. For a rate in days,
+	// the default rotation window closes at the end of the day. You can set the
+	// Duration to change the rotation window. The rotation window must not extend
+	// into the next UTC day or into the next rotation window.
 	//
-	// You can use a cron() expression to create rotation schedules that are more
+	// You can use a cron() expression to create a rotation schedule that is more
 	// detailed than a rotation interval. For more information, including examples,
-	// see Schedule expressions in Secrets Manager rotation (https://docs.aws.amazon.com/secretsmanager/latest/userguide/rotate-secrets_schedule.html).
-	// If you use a cron() expression, Secrets Manager rotates your secret any time
-	// during that day after the window opens. For example, cron(0 8 1 * ? *) represents
-	// a rotation window that occurs on the first day of every month beginning at
-	// 8:00 AM UTC. Secrets Manager rotates the secret any time that day after 8:00
-	// AM. You can set a Duration to shorten the rotation window.
+	// see Schedule expressions in Secrets Manager rotation (https://docs.aws.amazon.com/secretsmanager/latest/userguide/rotate-secrets_schedule.html)
+	// in the Secrets Manager Users Guide. For a cron expression that represents
+	// a schedule in hours, the default rotation window closes after one hour. For
+	// a cron expression that represents a schedule in days, the default rotation
+	// window closes at the end of the day. You can set the Duration to change the
+	// rotation window. The rotation window must not extend into the next UTC day
+	// or into the next rotation window.
 	ScheduleExpression *string `min:"1" type:"string"`
 }
 
@@ -6345,6 +6485,11 @@ type SecretListEntry struct {
 	// in the folder prod.
 	Name *string `min:"1" type:"string"`
 
+	// The next date and time that Secrets Manager will attempt to rotate the secret,
+	// rounded to the nearest hour. This value is null if the secret is not set
+	// up for rotation.
+	NextRotationDate *time.Time `type:"timestamp"`
+
 	// Returns the name of the service that created the secret.
 	OwningService *string `min:"1" type:"string"`
 
@@ -6445,6 +6590,12 @@ func (s *SecretListEntry) SetLastRotatedDate(v time.Time) *SecretListEntry {
 // SetName sets the Name field's value.
 func (s *SecretListEntry) SetName(v string) *SecretListEntry {
 	s.Name = &v
+	return s
+}
+
+// SetNextRotationDate sets the NextRotationDate field's value.
+func (s *SecretListEntry) SetNextRotationDate(v time.Time) *SecretListEntry {
+	s.NextRotationDate = &v
 	return s
 }
 
@@ -7401,6 +7552,9 @@ const (
 	// FilterNameStringTypePrimaryRegion is a FilterNameStringType enum value
 	FilterNameStringTypePrimaryRegion = "primary-region"
 
+	// FilterNameStringTypeOwningService is a FilterNameStringType enum value
+	FilterNameStringTypeOwningService = "owning-service"
+
 	// FilterNameStringTypeAll is a FilterNameStringType enum value
 	FilterNameStringTypeAll = "all"
 )
@@ -7413,6 +7567,7 @@ func FilterNameStringType_Values() []string {
 		FilterNameStringTypeTagKey,
 		FilterNameStringTypeTagValue,
 		FilterNameStringTypePrimaryRegion,
+		FilterNameStringTypeOwningService,
 		FilterNameStringTypeAll,
 	}
 }
