@@ -188,7 +188,7 @@ func (r *AWSMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	infraCluster, err := r.getInfraCluster(ctx, log, cluster, awsMachine)
 	if err != nil {
-		return ctrl.Result{}, errors.New("error getting infra provider cluster or control plane object")
+		return ctrl.Result{}, errors.Errorf("error getting infra provider cluster or control plane object: %v", err)
 	}
 	if infraCluster == nil {
 		log.Info("AWSCluster or AWSManagedControlPlane is not ready yet")
@@ -797,7 +797,7 @@ func (r *AWSMachineReconciler) deleteIgnitionBootstrapDataFromS3(machineScope *s
 		return nil
 	}
 
-	// If bootstrap data has not been populated yet, we cannot determine it's format, so there is probably nothing to do.
+	// If bootstrap data has not been populated yet, we cannot determine its format, so there is probably nothing to do.
 	if machineScope.Machine.Spec.Bootstrap.DataSecretName == nil {
 		return nil
 	}
