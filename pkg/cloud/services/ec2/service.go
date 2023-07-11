@@ -32,7 +32,7 @@ type Service struct {
 
 	// SSMClient is used to look up the official EKS AMI ID
 	SSMClient ssmiface.SSMAPI
-	// isMock is used to create new EC2 services, this is used for mocking
+	// isMock is used to return current mock service instead of creating new one, for testing
 	isMock bool
 }
 
