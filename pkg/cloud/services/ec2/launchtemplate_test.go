@@ -1788,21 +1788,48 @@ func newEKSManagedAMITestSuite(g *WithT, mockCtrl *gomock.Controller) *eksManage
 func TestService_createLaunchTemplateData(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-
 	g := NewWithT(t)
 
 	ts := newEKSManagedAMITestSuite(g, mockCtrl)
 	s := ts.Service
 	launchTemplateScope := ts.ManagedMachinePoolScope
-	//ec2Mock:= ts.EC2Mock
+	ec2Mock := ts.EC2Mock
 
-	t.Run("use DeviceName if not empty, ", func(t *testing.T) {
+	t.Run("use DeviceName if not empty", func(t *testing.T) {
+		deviceName := "test"
 		launchTemplateScope.ManagedMachinePool.Spec.AWSLaunchTemplate.RootVolume = &infrav1.Volume{
-			DeviceName: "test",
+			DeviceName: deviceName,
 		}
 
 		data, err := s.createLaunchTemplateData(launchTemplateScope, nil, nil)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(aws.StringValue(data.BlockDeviceMappings[0].DeviceName)).To(BeEquivalentTo("test"))
+		g.Expect(aws.StringValue(data.BlockDeviceMappings[0].DeviceName)).To(BeEquivalentTo(deviceName))
+	})
+
+	t.Run("assign DeviceName if empty", func(t *testing.T) {
+		deviceName := "auto"
+		var volumeSize int64 = 512
+		ec2Mock.EXPECT().DescribeImages(gomock.Any()).Return(&ec2.DescribeImagesOutput{
+			Images: []*ec2.Image{
+				{
+					RootDeviceName: aws.String(deviceName),
+					BlockDeviceMappings: []*ec2.BlockDeviceMapping{
+						{
+							Ebs: &ec2.EbsBlockDevice{
+								VolumeSize: aws.Int64(volumeSize),
+							},
+						},
+					},
+				},
+			},
+		}, nil).Times(2)
+
+		launchTemplateScope.ManagedMachinePool.Spec.AWSLaunchTemplate.RootVolume = &infrav1.Volume{
+			Size: volumeSize,
+		}
+
+		data, err := s.createLaunchTemplateData(launchTemplateScope, aws.String("test-ami-id"), nil)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(aws.StringValue(data.BlockDeviceMappings[0].DeviceName)).To(BeEquivalentTo(deviceName))
 	})
 }
