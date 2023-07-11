@@ -1784,3 +1784,25 @@ func newEKSManagedAMITestSuite(g *WithT, mockCtrl *gomock.Controller) *eksManage
 		Service:                 s,
 	}
 }
+
+func TestService_createLaunchTemplateData(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	g := NewWithT(t)
+
+	ts := newEKSManagedAMITestSuite(g, mockCtrl)
+	s := ts.Service
+	launchTemplateScope := ts.ManagedMachinePoolScope
+	//ec2Mock:= ts.EC2Mock
+
+	t.Run("use DeviceName if not empty, ", func(t *testing.T) {
+		launchTemplateScope.ManagedMachinePool.Spec.AWSLaunchTemplate.RootVolume = &infrav1.Volume{
+			DeviceName: "test",
+		}
+
+		data, err := s.createLaunchTemplateData(launchTemplateScope, nil, nil)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(aws.StringValue(data.BlockDeviceMappings[0].DeviceName)).To(BeEquivalentTo("test"))
+	})
+}
