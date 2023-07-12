@@ -155,7 +155,10 @@ func (s *Service) ReconcileLaunchTemplate(
 
 	// Skip ami check when EKS manages AMI for us
 	amiChanged := !isEKSManagedAMI(scope) && *imageID != *launchTemplate.AMI.ID
-	if needsUpdate || tagsChanged || amiChanged {
+
+	// Create a new launch template version if there's a difference in configuration, tags,
+	// userdata, OR we've discovered a new AMI ID.
+	if needsUpdate || tagsChanged || amiChanged || launchTemplateUserDataHash != bootstrapDataHash {
 		canUpdate, err := canUpdateLaunchTemplate()
 		if err != nil {
 			return err
@@ -164,11 +167,7 @@ func (s *Service) ReconcileLaunchTemplate(
 			conditions.MarkFalse(scope.GetSetter(), expinfrav1.PreLaunchTemplateUpdateCheckCondition, expinfrav1.PreLaunchTemplateUpdateCheckFailedReason, clusterv1.ConditionSeverityWarning, "")
 			return errors.New("Cannot update the launch template, prerequisite not met")
 		}
-	}
 
-	// Create a new launch template version if there's a difference in configuration, tags,
-	// userdata, OR we've discovered a new AMI ID.
-	if needsUpdate || tagsChanged || amiChanged || launchTemplateUserDataHash != bootstrapDataHash {
 		scope.Info("creating new version for launch template", "existing", launchTemplate, "incoming", scope.GetLaunchTemplate())
 		// There is a limit to the number of Launch Template Versions.
 		// We ensure that the number of versions does not grow without bound by following a simple rule: Before we create a new version, we delete one old version, if there is at least one old version that is not in use.
@@ -187,9 +186,7 @@ func (s *Service) ReconcileLaunchTemplate(
 		if err := scope.PatchObject(); err != nil {
 			return err
 		}
-	}
 
-	if needsUpdate || tagsChanged || amiChanged {
 		if err := runPostLaunchTemplateUpdateOperation(); err != nil {
 			conditions.MarkFalse(scope.GetSetter(), expinfrav1.PostLaunchTemplateUpdateOperationCondition, expinfrav1.PostLaunchTemplateUpdateOperationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return err
