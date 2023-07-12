@@ -25,8 +25,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
 
 var (
@@ -149,6 +150,90 @@ func TestAWSManagedMachinePoolValidateCreate(t *testing.T) {
 				},
 			},
 			wantErr: false,
+		},
+		{
+			name: "With Launch Template/AMI type and ami id noth are not specific",
+			pool: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-3",
+					AMIType:          nil,
+					AWSLaunchTemplate: &AWSLaunchTemplate{
+						AMI: infrav1.AMIReference{},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "With Launch Template/AMI type not specific, ami id specific",
+			pool: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-3",
+					AMIType:          nil,
+					AWSLaunchTemplate: &AWSLaunchTemplate{
+						AMI: infrav1.AMIReference{
+							ID: aws.String("test-ami-id"),
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "With Launch Template/AMI type not specific, ami EKSAMILookupType specific",
+			pool: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-3",
+					AMIType:          nil,
+					AWSLaunchTemplate: &AWSLaunchTemplate{
+						AMI: infrav1.AMIReference{
+							EKSOptimizedLookupType: infrav1.AmazonLinux.GetPtr(),
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "With Launch Template/AMI type specific, ami not specific",
+			pool: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName:  "eks-node-group-3",
+					AMIType:           Al2x86_64.GetPtr(),
+					AWSLaunchTemplate: &AWSLaunchTemplate{},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "With Launch Template/AMI type and ami id are specific",
+			pool: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-3",
+					AMIType:          Al2x86_64.GetPtr(),
+					AWSLaunchTemplate: &AWSLaunchTemplate{
+						AMI: infrav1.AMIReference{
+							ID: aws.String("test-ami-id"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "With Launch Template/AMI type and ami EKSAMILookupType are specific",
+			pool: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-3",
+					AMIType:          Al2x86_64.GetPtr(),
+					AWSLaunchTemplate: &AWSLaunchTemplate{
+						AMI: infrav1.AMIReference{
+							EKSOptimizedLookupType: infrav1.AmazonLinux.GetPtr(),
+						},
+					},
+				},
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

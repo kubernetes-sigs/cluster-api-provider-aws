@@ -124,6 +124,28 @@ func (r *AWSManagedMachinePool) validateLaunchTemplate() field.ErrorList {
 		return allErrs
 	}
 
+	// ref: https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html
+	if r.Spec.AMIType == nil || *r.Spec.AMIType == CUSTOM {
+		if r.Spec.AWSLaunchTemplate.AMI.ID == nil && r.Spec.AWSLaunchTemplate.AMI.EKSOptimizedLookupType == nil {
+			allErrs = append(allErrs, field.Invalid(
+				field.NewPath("spec", "AMIType"),
+				r.Spec.AMIType,
+				"AMI ID/EKSOptimizedLookupType in launch template should be specified when AMIType is nil or CUSTOM",
+			))
+		}
+	} else {
+		if r.Spec.AWSLaunchTemplate.AMI.ID != nil || r.Spec.AWSLaunchTemplate.AMI.EKSOptimizedLookupType != nil {
+			allErrs = append(allErrs, field.Invalid(
+				field.NewPath("spec", "AMIType"),
+				r.Spec.AMIType,
+				"AMI ID/EKSOptimizedLookupType in launch template should not be specified when AMIType is not nil or CUSTOM",
+			))
+		}
+	}
+
+	// ref: https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html
+	// If you deploy a node group using a launch template, specify zero or one Instance type under Launch template contents in a launch template.
+	// Alternatively, you can specify 0–20 instance types for Instance types on the Set compute and scaling configuration page in the console.
 	if r.Spec.InstanceType != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "InstanceType"), r.Spec.InstanceType, "InstanceType cannot be specified when LaunchTemplate is specified"))
 	}
