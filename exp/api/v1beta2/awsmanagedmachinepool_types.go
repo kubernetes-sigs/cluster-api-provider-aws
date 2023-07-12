@@ -41,7 +41,8 @@ const (
 	Al2x86_64GPU ManagedMachineAMIType = "AL2_x86_64_GPU"
 	// Al2Arm64 is the Arm AMI type.
 	Al2Arm64 ManagedMachineAMIType = "AL2_ARM_64"
-	CUSTOM   ManagedMachineAMIType = "CUSTOM"
+	// CUSTOM means the AMI should be specific in the launch template
+	CUSTOM ManagedMachineAMIType = "CUSTOM"
 )
 
 // ManagedMachinePoolCapacityType specifies the capacity type to be used for the managed MachinePool.

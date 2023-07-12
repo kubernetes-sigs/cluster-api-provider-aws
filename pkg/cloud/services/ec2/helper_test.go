@@ -39,6 +39,7 @@ const (
 	securityGroupNode          = "nodeSG"
 	securityGroupEksAdditional = "eksAdditionalSG"
 )
+
 func setupClusterScope(cl client.Client) (*scope.ClusterScope, error) {
 	return scope.NewClusterScope(scope.ClusterScopeParams{
 		Client:     cl,

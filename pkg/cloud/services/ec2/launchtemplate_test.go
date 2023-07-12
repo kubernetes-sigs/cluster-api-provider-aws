@@ -31,10 +31,8 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-	ctlruntime "sigs.k8s.io/controller-runtime/pkg/client"
+	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
@@ -43,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ssm/mock_ssmiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const (
@@ -1629,7 +1628,7 @@ func TestService_ReconcileLaunchTemplate(t *testing.T) {
 			g.Expect(err).To(HaveOccurred())
 		})
 
-		launchTemplateId := "test-lt-id"
+		launchTemplateID := "test-lt-id"
 
 		t.Run("Skip ami discovery when EKS managed AMI", func(t *testing.T) {
 			suite := newEKSManagedAMITestSuite(g, mockCtrl)
@@ -1642,7 +1641,7 @@ func TestService_ReconcileLaunchTemplate(t *testing.T) {
 			ec2Mock.EXPECT().DescribeLaunchTemplateVersions(gomock.Any()).Return(nil, nil).Times(1)
 			ec2Mock.EXPECT().CreateLaunchTemplate(gomock.Any()).Return(&ec2.CreateLaunchTemplateOutput{
 				LaunchTemplate: &ec2.LaunchTemplate{
-					LaunchTemplateId: aws.String(launchTemplateId),
+					LaunchTemplateId: aws.String(launchTemplateID),
 				},
 			}, nil).Times(1)
 
@@ -1661,13 +1660,13 @@ func TestService_ReconcileLaunchTemplate(t *testing.T) {
 
 			g.Expect(err).NotTo(HaveOccurred())
 			obj := &expinfrav1.AWSManagedMachinePool{}
-			key := ctlruntime.ObjectKey{
+			key := crclient.ObjectKey{
 				Name:      "aws-mmp-name",
 				Namespace: "aws-mmp-ns",
 			}
 			err = client.Get(context.Background(), key, obj)
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(aws.StringValue(obj.Status.LaunchTemplateID)).To(Equal(launchTemplateId))
+			g.Expect(aws.StringValue(obj.Status.LaunchTemplateID)).To(Equal(launchTemplateID))
 		})
 
 		t.Run("Skip ami change check when EKS managed AMI", func(t *testing.T) {
@@ -1688,7 +1687,7 @@ func TestService_ReconcileLaunchTemplate(t *testing.T) {
 								aws.String(securityGroupEksAdditional),
 							},
 						},
-						LaunchTemplateId:   aws.String(launchTemplateId),
+						LaunchTemplateId:   aws.String(launchTemplateID),
 						LaunchTemplateName: aws.String(launchTemplateName),
 						VersionNumber:      aws.Int64(1),
 					},
@@ -1699,7 +1698,7 @@ func TestService_ReconcileLaunchTemplate(t *testing.T) {
 			err := client.Create(context.Background(), awsManagedMachinePool.DeepCopy())
 			g.Expect(err).NotTo(HaveOccurred())
 
-			managedMachinePoolScope.ManagedMachinePool.Status.LaunchTemplateID = aws.String(launchTemplateId)
+			managedMachinePoolScope.ManagedMachinePool.Status.LaunchTemplateID = aws.String(launchTemplateID)
 			managedMachinePoolScope.ManagedMachinePool.Status.LaunchTemplateVersion = aws.String("1")
 
 			err = service.ReconcileLaunchTemplate(
@@ -1720,7 +1719,7 @@ func TestService_ReconcileLaunchTemplate(t *testing.T) {
 type eksManagedAMITestSuite struct {
 	AWSManagedMachinePool   *expinfrav1.AWSManagedMachinePool
 	ManagedMachinePoolScope *scope.ManagedMachinePoolScope
-	Client                  ctlruntime.WithWatch
+	Client                  crclient.WithWatch
 	EC2Mock                 *mocks.MockEC2API
 	Service                 *Service
 }

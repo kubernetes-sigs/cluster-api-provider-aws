@@ -31,9 +31,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/conditions"
-
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
@@ -41,6 +38,8 @@ import (
 	services "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 const (
@@ -124,23 +123,20 @@ func (s *Service) ReconcileLaunchTemplate(
 
 	// LaunchTemplateID is set during LaunchTemplate creation, but for a scenario such as `clusterctl move`, status fields become blank.
 	// If launchTemplate already exists but LaunchTemplateID field in the status is empty, get the ID and update the status.
-	if scope.GetLaunchTemplateIDStatus() == "" {
+	if scope.GetLaunchTemplateIDStatus() == "" || scope.GetLaunchTemplateLatestVersionStatus() == "" {
 		launchTemplateID, err := ec2svc.GetLaunchTemplateID(scope.LaunchTemplateName())
 		if err != nil {
 			conditions.MarkUnknown(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNotFoundReason, err.Error())
 			return err
 		}
-		scope.SetLaunchTemplateIDStatus(launchTemplateID)
-		return scope.PatchObject()
-	}
-
-	if scope.GetLaunchTemplateLatestVersionStatus() == "" {
 		launchTemplateVersion, err := ec2svc.GetLaunchTemplateLatestVersion(scope.GetLaunchTemplateIDStatus())
 		if err != nil {
 			conditions.MarkUnknown(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNotFoundReason, err.Error())
 			return err
 		}
+
 		scope.SetLaunchTemplateLatestVersionStatus(launchTemplateVersion)
+		scope.SetLaunchTemplateIDStatus(launchTemplateID)
 		return scope.PatchObject()
 	}
 
