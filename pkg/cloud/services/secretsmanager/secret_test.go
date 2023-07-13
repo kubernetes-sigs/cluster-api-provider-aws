@@ -17,7 +17,7 @@ limitations under the License.
 package secretsmanager
 
 import (
-	"math/rand"
+	"crypto/rand"
 	"sort"
 	"testing"
 
