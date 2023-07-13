@@ -17,7 +17,7 @@ limitations under the License.
 package ssm
 
 import (
-	"math/rand"
+	"crypto/rand"
 	"sort"
 	"strings"
 	"testing"
