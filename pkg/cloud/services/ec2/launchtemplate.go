@@ -94,7 +94,6 @@ func (s *Service) ReconcileLaunchTemplate(
 	// If the AMI ID is not set when EKS managed node group, we don't need to do any discovery
 	var imageID *string
 	if isEKSManagedAMI(scope) {
-		// todo: webhook validation: AMI type should be set to in AWSManagedMachinePool if AMI ID/EKS optimized lookup type is not set
 		lt := scope.GetLaunchTemplate()
 		if lt.AMI.ID != nil || lt.AMI.EKSOptimizedLookupType != nil {
 			err := errors.New("AMI ID or EKS optimized lookup type cannot be set when EKS manages AMI for you")
@@ -123,12 +122,17 @@ func (s *Service) ReconcileLaunchTemplate(
 
 	// LaunchTemplateID is set during LaunchTemplate creation, but for a scenario such as `clusterctl move`, status fields become blank.
 	// If launchTemplate already exists but LaunchTemplateID field in the status is empty, get the ID and update the status.
-	if scope.GetLaunchTemplateIDStatus() == "" || scope.GetLaunchTemplateLatestVersionStatus() == "" {
+	if scope.GetLaunchTemplateIDStatus() == "" {
 		launchTemplateID, err := ec2svc.GetLaunchTemplateID(scope.LaunchTemplateName())
 		if err != nil {
 			conditions.MarkUnknown(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNotFoundReason, err.Error())
 			return err
 		}
+		scope.SetLaunchTemplateIDStatus(launchTemplateID)
+		return scope.PatchObject()
+	}
+
+	if scope.GetLaunchTemplateLatestVersionStatus() == "" {
 		launchTemplateVersion, err := ec2svc.GetLaunchTemplateLatestVersion(scope.GetLaunchTemplateIDStatus())
 		if err != nil {
 			conditions.MarkUnknown(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNotFoundReason, err.Error())
@@ -136,7 +140,6 @@ func (s *Service) ReconcileLaunchTemplate(
 		}
 
 		scope.SetLaunchTemplateLatestVersionStatus(launchTemplateVersion)
-		scope.SetLaunchTemplateIDStatus(launchTemplateID)
 		return scope.PatchObject()
 	}
 
@@ -809,7 +812,6 @@ func (s *Service) DiscoverLaunchTemplateAMI(scope scope.LaunchTemplateScope) (*s
 		imageLookupBaseOS = scope.GetEC2Scope().ImageLookupBaseOS()
 	}
 
-	// clarify: instance type could be empty in launch template if it is specified in AWSManagedMachinePool
 	instanceType := lt.InstanceType
 
 	// If instance type is not specified on a launch template, we can safely assume the instance type will be a `t3.medium`.
