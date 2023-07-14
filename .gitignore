@@ -39,6 +39,10 @@ kubeconfig
 # vscode
 .vscode
 
+# go.work files
+go.work
+go.work.sum
+
 # goland
 .idea
 

@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -49,7 +50,7 @@ var (
 )
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (r *AWSCluster) ValidateCreate() error {
+func (r *AWSCluster) ValidateCreate() (admission.Warnings, error) {
 	var allErrs field.ErrorList
 
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
@@ -59,23 +60,23 @@ func (r *AWSCluster) ValidateCreate() error {
 	allErrs = append(allErrs, r.validateNetwork()...)
 	allErrs = append(allErrs, r.validateControlPlaneLBIngressRules()...)
 
-	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
+	return nil, aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (r *AWSCluster) ValidateDelete() error {
-	return nil
+func (r *AWSCluster) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
+func (r *AWSCluster) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 
 	allErrs = append(allErrs, r.validateGCTasksAnnotation()...)
 
 	oldC, ok := old.(*AWSCluster)
 	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected an AWSCluster but got a %T", old))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected an AWSCluster but got a %T", old))
 	}
 
 	if r.Spec.Region != oldC.Spec.Region {
@@ -170,7 +171,7 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 	allErrs = append(allErrs, r.Spec.S3Bucket.Validate()...)
 
-	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
+	return nil, aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 
 // Default satisfies the defaulting webhook interface.
