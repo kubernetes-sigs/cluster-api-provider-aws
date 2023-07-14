@@ -781,13 +781,15 @@ func TestValidatingWebhookCreateSecondaryCidr(t *testing.T) {
 			if tc.cidrRange != "" {
 				mcp.Spec.SecondaryCidrBlock = &tc.cidrRange
 			}
-			err := mcp.ValidateCreate()
+			warn, err := mcp.ValidateCreate()
 
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())
 			} else {
 				g.Expect(err).To(BeNil())
 			}
+			// Nothing emits warnings yet
+			g.Expect(warn).To(BeEmpty())
 		})
 	}
 }
@@ -852,13 +854,15 @@ func TestValidatingWebhookUpdateSecondaryCidr(t *testing.T) {
 				},
 			}
 
-			err := newMCP.ValidateUpdate(oldMCP)
+			warn, err := newMCP.ValidateUpdate(oldMCP)
 
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())
 			} else {
 				g.Expect(err).To(BeNil())
 			}
+			// Nothing emits warnings yet
+			g.Expect(warn).To(BeEmpty())
 		})
 	}
 }

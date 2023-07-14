@@ -118,12 +118,14 @@ func TestAWSFargateProfileValidateRoleNameUpdate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.fargateProfile.ValidateUpdate(tt.before.DeepCopy())
+			warn, err := tt.fargateProfile.ValidateUpdate(tt.before.DeepCopy())
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).To(Succeed())
 			}
+			// Nothing emits warnings yet
+			g.Expect(warn).To(BeEmpty())
 		})
 	}
 }
@@ -178,12 +180,14 @@ func TestAWSFargateProfileValidateCreate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.profile.ValidateCreate()
+			warn, err := tt.profile.ValidateCreate()
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).To(Succeed())
 			}
+			// Nothing emits warnings yet
+			g.Expect(warn).To(BeEmpty())
 		})
 	}
 }

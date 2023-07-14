@@ -79,7 +79,7 @@ func (r *EKSConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	log = log.WithValues("EKSConfig", config.GetName())
 
 	// check owner references and look up owning Machine object
-	configOwner, err := bsutil.GetConfigOwner(ctx, r.Client, config)
+	configOwner, err := bsutil.GetTypedConfigOwner(ctx, r.Client, config)
 	if apierrors.IsNotFound(err) {
 		// no error here, requeue until we find an owner
 		log.Debug("eksconfig failed to look up owner reference, re-queueing")
@@ -295,13 +295,13 @@ func (r *EKSConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 		WithOptions(option).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(logger.FromContext(ctx).GetLogger(), r.WatchFilterValue)).
 		Watches(
-			&source.Kind{Type: &clusterv1.Machine{}},
+			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(r.MachineToBootstrapMapFunc),
 		)
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		b = b.Watches(
-			&source.Kind{Type: &expclusterv1.MachinePool{}},
+			&expclusterv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(r.MachinePoolToBootstrapMapFunc),
 		)
 	}
@@ -312,7 +312,7 @@ func (r *EKSConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 	}
 
 	err = c.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
+		source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
 		handler.EnqueueRequestsFromMapFunc((r.ClusterToEKSConfigs)),
 		predicates.ClusterUnpausedAndInfrastructureReady(logger.FromContext(ctx).GetLogger()),
 	)
@@ -363,7 +363,7 @@ func (r *EKSConfigReconciler) storeBootstrapData(ctx context.Context, cluster *c
 
 // MachineToBootstrapMapFunc is a handler.ToRequestsFunc to be used to enqueue requests
 // for EKSConfig reconciliation.
-func (r *EKSConfigReconciler) MachineToBootstrapMapFunc(o client.Object) []ctrl.Request {
+func (r *EKSConfigReconciler) MachineToBootstrapMapFunc(_ context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
 	m, ok := o.(*clusterv1.Machine)
@@ -379,7 +379,7 @@ func (r *EKSConfigReconciler) MachineToBootstrapMapFunc(o client.Object) []ctrl.
 
 // MachinePoolToBootstrapMapFunc is a handler.ToRequestsFunc to be uses to enqueue requests
 // for EKSConfig reconciliation.
-func (r *EKSConfigReconciler) MachinePoolToBootstrapMapFunc(o client.Object) []ctrl.Request {
+func (r *EKSConfigReconciler) MachinePoolToBootstrapMapFunc(_ context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
 	m, ok := o.(*expclusterv1.MachinePool)
@@ -397,7 +397,7 @@ func (r *EKSConfigReconciler) MachinePoolToBootstrapMapFunc(o client.Object) []c
 
 // ClusterToEKSConfigs is a handler.ToRequestsFunc to be used to enqueue requests for
 // EKSConfig reconciliation.
-func (r *EKSConfigReconciler) ClusterToEKSConfigs(o client.Object) []ctrl.Request {
+func (r *EKSConfigReconciler) ClusterToEKSConfigs(_ context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
 	c, ok := o.(*clusterv1.Cluster)

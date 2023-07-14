@@ -380,14 +380,14 @@ func (r *AWSClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	}
 
 	return controller.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
+		source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
 		handler.EnqueueRequestsFromMapFunc(r.requeueAWSClusterForUnpausedCluster(ctx, log)),
 		predicates.ClusterUnpaused(log.GetLogger()),
 	)
 }
 
-func (r *AWSClusterReconciler) requeueAWSClusterForUnpausedCluster(ctx context.Context, log logger.Wrapper) handler.MapFunc {
-	return func(o client.Object) []ctrl.Request {
+func (r *AWSClusterReconciler) requeueAWSClusterForUnpausedCluster(_ context.Context, log logger.Wrapper) handler.MapFunc {
+	return func(ctx context.Context, o client.Object) []ctrl.Request {
 		c, ok := o.(*clusterv1.Cluster)
 		if !ok {
 			klog.Errorf("Expected a Cluster but got a %T", o)

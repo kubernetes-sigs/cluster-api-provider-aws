@@ -21,7 +21,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -113,7 +112,6 @@ var (
 )
 
 func main() {
-	rand.NewSource(time.Now().UnixNano())
 	initFlags(pflag.CommandLine)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()

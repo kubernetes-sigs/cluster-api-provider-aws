@@ -594,7 +594,7 @@ func TestAWSClusterReconcilerRequeueAWSClusterForUnpausedCluster(t *testing.T) {
 				tc.ownerCluster.Namespace = ns.Name
 			}
 			handlerFunc := reconciler.requeueAWSClusterForUnpausedCluster(ctx, log)
-			result := handlerFunc(tc.ownerCluster)
+			result := handlerFunc(ctx, tc.ownerCluster)
 			if tc.requeue {
 				g.Expect(result).To(ContainElement(reconcile.Request{
 					NamespacedName: types.NamespacedName{
