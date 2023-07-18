@@ -1354,6 +1354,12 @@ spec:
                           balancer.
                         type: object
                     type: object
+                  natGatewaysIPs:
+                    description: NatGatewaysIPs contains the public IPs of the NAT
+                      Gateways
+                    items:
+                      type: string
+                    type: array
                   securityGroups:
                     additionalProperties:
                       description: SecurityGroup defines an AWS security group.
@@ -2815,6 +2821,12 @@ spec:
                           balancer.
                         type: object
                     type: object
+                  natGatewaysIPs:
+                    description: NatGatewaysIPs contains the public IPs of the NAT
+                      Gateways
+                    items:
+                      type: string
+                    type: array
                   securityGroups:
                     additionalProperties:
                       description: SecurityGroup defines an AWS security group.
