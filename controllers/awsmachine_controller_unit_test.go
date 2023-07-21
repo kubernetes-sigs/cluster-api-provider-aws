@@ -2338,7 +2338,7 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 					}
 					err = testEnv.Get(ctx, key, machine)
 					return err == nil
-				}, 10*time.Second).Should(Equal(true))
+				}, 10*time.Second).Should(BeTrue())
 
 				result, err := reconciler.Reconcile(ctx, ctrl.Request{
 					NamespacedName: client.ObjectKey{
