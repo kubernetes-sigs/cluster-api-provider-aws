@@ -1025,17 +1025,13 @@ func TestDeleteSecurityGroups(t *testing.T) {
 			g.Expect(infrav1.AddToScheme(scheme)).NotTo(HaveOccurred())
 
 			awsCluster := &infrav1.AWSCluster{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: infrav1.GroupVersion.String(),
-					Kind:       "AWSCluster",
-				},
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: *tc.input,
 				},
 			}
 
-			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).Build()
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).WithStatusSubresource(awsCluster).Build()
 
 			cs, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Client: client,
