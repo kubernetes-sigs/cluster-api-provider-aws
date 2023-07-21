@@ -87,8 +87,6 @@ linters-settings:
         alias: apiextensionsv1
       - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
         alias: metav1
-      - pkg: k8s.io/apimachinery/pkg/api/errors
-        alias: apierrors
       - pkg: k8s.io/apimachinery/pkg/util/errors
         alias: kerrors
       - pkg: sigs.k8s.io/controller-runtime/pkg/conversion
@@ -165,6 +163,12 @@ linters-settings:
     go: "1.20"
   stylecheck:
     go: "1.20"
+  depguard:
+    rules:
+      main:
+        deny:
+          - pkg: "io/ioutil"
+            desc: "ioutil is deprecated starting with Go 1.16"
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0

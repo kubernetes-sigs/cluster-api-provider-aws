@@ -238,7 +238,7 @@ func TestGetAPIServerClassicELBSpecControlPlaneLoadBalancer(t *testing.T) {
 			expect: func(t *testing.T, g *WithT, res *infrav1.LoadBalancer) {
 				t.Helper()
 				expectedTarget := fmt.Sprintf("%v:%d", infrav1.ELBProtocolTCP, infrav1.DefaultAPIServerPort)
-				g.Expect(expectedTarget, res.HealthCheck.Target)
+				g.Expect(expectedTarget).To(Equal(res.HealthCheck.Target))
 			},
 		},
 		{
@@ -248,7 +248,7 @@ func TestGetAPIServerClassicELBSpecControlPlaneLoadBalancer(t *testing.T) {
 			expect: func(t *testing.T, g *WithT, res *infrav1.LoadBalancer) {
 				t.Helper()
 				expectedTarget := fmt.Sprintf("%v:%d", infrav1.ELBProtocolTCP, infrav1.DefaultAPIServerPort)
-				g.Expect(expectedTarget, res.HealthCheck.Target)
+				g.Expect(expectedTarget).NotTo(Equal(res.HealthCheck.Target))
 			},
 		},
 	}

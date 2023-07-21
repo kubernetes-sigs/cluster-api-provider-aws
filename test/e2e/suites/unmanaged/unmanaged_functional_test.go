@@ -646,7 +646,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 					machineList := getAWSMachinesForDeployment(ns2.Name, *md2[0])
 					labels := machineList.Items[0].GetLabels()
 					return labels[instancestate.Ec2InstanceStateLabelKey] == string(infrav1.InstanceStateTerminated)
-				}, e2eCtx.E2EConfig.GetIntervals("", "wait-machine-status")...).Should(Equal(true))
+				}, e2eCtx.E2EConfig.GetIntervals("", "wait-machine-status")...).Should(BeTrue())
 
 				ginkgo.By("Waiting for machine to reach Failed state")
 				statusChecks := []framework.MachineStatusCheck{framework.MachinePhaseCheck(string(clusterv1.MachinePhaseFailed))}

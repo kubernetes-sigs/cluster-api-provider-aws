@@ -191,14 +191,14 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Handle deleted clusters
 	if !awsCluster.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, clusterScope)
+		return ctrl.Result{}, r.reconcileDelete(ctx, clusterScope)
 	}
 
 	// Handle non-deleted clusters
 	return r.reconcileNormal(clusterScope)
 }
 
-func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) error {
 	clusterScope.Info("Reconciling AWSCluster delete")
 
 	ec2svc := r.getEC2Service(clusterScope)
@@ -217,39 +217,39 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 
 	if err := elbsvc.DeleteLoadbalancers(); err != nil {
 		clusterScope.Error(err, "error deleting load balancer")
-		return reconcile.Result{}, err
+		return err
 	}
 
 	if err := ec2svc.DeleteBastion(); err != nil {
 		clusterScope.Error(err, "error deleting bastion")
-		return reconcile.Result{}, err
+		return err
 	}
 
 	if err := sgService.DeleteSecurityGroups(); err != nil {
 		clusterScope.Error(err, "error deleting security groups")
-		return reconcile.Result{}, err
+		return err
 	}
 
 	if r.ExternalResourceGC {
 		gcSvc := gc.NewService(clusterScope, gc.WithGCStrategy(r.AlternativeGCStrategy))
 		if gcErr := gcSvc.ReconcileDelete(ctx); gcErr != nil {
-			return reconcile.Result{}, fmt.Errorf("failed delete reconcile for gc service: %w", gcErr)
+			return fmt.Errorf("failed delete reconcile for gc service: %w", gcErr)
 		}
 	}
 
 	if err := networkSvc.DeleteNetwork(); err != nil {
 		clusterScope.Error(err, "error deleting network")
-		return reconcile.Result{}, err
+		return err
 	}
 
 	if err := s3Service.DeleteBucket(); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "error deleting S3 Bucket")
+		return errors.Wrapf(err, "error deleting S3 Bucket")
 	}
 
 	// Cluster is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(clusterScope.AWSCluster, infrav1.ClusterFinalizer)
 
-	return reconcile.Result{}, nil
+	return nil
 }
 
 func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
