@@ -17,7 +17,6 @@ limitations under the License.
 package network
 
 import (
-	"context"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -711,7 +710,7 @@ func TestDeleteVPC(t *testing.T) {
 func getClusterScope(vpcSpec *infrav1.VPCSpec, additionalTags map[string]string) (*scope.ClusterScope, error) {
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
 	awsCluster := &infrav1.AWSCluster{
 		ObjectMeta: metav1.ObjectMeta{Name: "test"},
 		Spec: infrav1.AWSClusterSpec{
@@ -721,7 +720,8 @@ func getClusterScope(vpcSpec *infrav1.VPCSpec, additionalTags map[string]string)
 			AdditionalTags: additionalTags,
 		},
 	}
-	client.Create(context.TODO(), awsCluster)
+	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).WithStatusSubresource(awsCluster).Build()
+
 	return scope.NewClusterScope(scope.ClusterScopeParams{
 		Cluster: &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},

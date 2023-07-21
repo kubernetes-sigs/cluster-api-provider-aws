@@ -1879,9 +1879,7 @@ func TestDeleteAPIServerELB(t *testing.T) {
 				},
 			}
 
-			client := fake.NewClientBuilder().WithScheme(scheme).Build()
-			ctx := context.TODO()
-			client.Create(ctx, awsCluster)
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).WithStatusSubresource(awsCluster).Build()
 
 			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{
@@ -2070,9 +2068,7 @@ func TestDeleteNLB(t *testing.T) {
 				},
 			}
 
-			client := fake.NewClientBuilder().WithScheme(scheme).Build()
-			ctx := context.TODO()
-			client.Create(ctx, awsCluster)
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).WithStatusSubresource(awsCluster).Build()
 
 			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{

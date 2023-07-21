@@ -17,7 +17,6 @@ limitations under the License.
 package network
 
 import (
-	"context"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -382,9 +381,8 @@ func TestReconcileNatGateways(t *testing.T) {
 					},
 				},
 			}
-			client := fake.NewClientBuilder().WithScheme(scheme).Build()
-			ctx := context.TODO()
-			client.Create(ctx, awsCluster)
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).WithStatusSubresource(awsCluster).Build()
+
 			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
