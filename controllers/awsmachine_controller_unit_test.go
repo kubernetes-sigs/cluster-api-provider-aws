@@ -105,7 +105,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 			},
 		}
 
-		client := fake.NewClientBuilder().WithObjects(awsMachine, secret, secretIgnition).Build()
+		client := fake.NewClientBuilder().WithObjects(awsMachine, secret, secretIgnition).WithStatusSubresource(awsMachine).Build()
 		ms, err = scope.NewMachineScope(
 			scope.MachineScopeParams{
 				Client: client,
@@ -136,7 +136,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 		cs, err = scope.NewClusterScope(
 			scope.ClusterScopeParams{
-				Client:     fake.NewClientBuilder().WithObjects(awsMachine, secret).Build(),
+				Client:     fake.NewClientBuilder().WithObjects(awsMachine, secret).WithStatusSubresource(awsMachine).Build(),
 				Cluster:    &clusterv1.Cluster{},
 				AWSCluster: &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}},
 			},
@@ -2527,7 +2527,7 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 		},
 	}
 
-	fakeClient := fake.NewClientBuilder().WithObjects(ownerCluster, awsCluster, ownerMachine, awsMachine, controllerIdentity, secret).Build()
+	fakeClient := fake.NewClientBuilder().WithObjects(ownerCluster, awsCluster, ownerMachine, awsMachine, controllerIdentity, secret).WithStatusSubresource(awsCluster, awsMachine).Build()
 
 	recorder := record.NewFakeRecorder(10)
 	reconciler := &AWSMachineReconciler{

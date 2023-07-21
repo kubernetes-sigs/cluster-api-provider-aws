@@ -151,7 +151,7 @@ func TestOIDCReconcile(t *testing.T) {
 					"value": kubeConfig,
 				},
 			}
-			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(controlPlane, secret).Build()
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(controlPlane, secret).WithStatusSubresource(controlPlane).Build()
 			scope, _ := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
 				Client: client,
 				Cluster: &clusterv1.Cluster{
