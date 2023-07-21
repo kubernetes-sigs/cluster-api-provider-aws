@@ -119,14 +119,19 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 
 		capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
 			return capi_e2e.ClusterctlUpgradeSpecInput{
-				E2EConfig:                 e2eCtx.E2EConfig,
-				ClusterctlConfigPath:      e2eCtx.Environment.ClusterctlConfigPath,
-				BootstrapClusterProxy:     e2eCtx.Environment.BootstrapClusterProxy,
-				ArtifactFolder:            e2eCtx.Settings.ArtifactFolder,
-				SkipCleanup:               e2eCtx.Settings.SkipCleanup,
-				MgmtFlavor:                "remote-management-cluster",
-				InitWithBinary:            e2eCtx.E2EConfig.GetVariable("INIT_WITH_BINARY_V1BETA1"),
-				InitWithProvidersContract: "v1beta1",
+				E2EConfig:                       e2eCtx.E2EConfig,
+				ClusterctlConfigPath:            e2eCtx.Environment.ClusterctlConfigPath,
+				BootstrapClusterProxy:           e2eCtx.Environment.BootstrapClusterProxy,
+				ArtifactFolder:                  e2eCtx.Settings.ArtifactFolder,
+				SkipCleanup:                     e2eCtx.Settings.SkipCleanup,
+				MgmtFlavor:                      "remote-management-cluster",
+				InitWithBinary:                  e2eCtx.E2EConfig.GetVariable("INIT_WITH_BINARY_V1BETA1"),
+				InitWithKubernetesVersion:       e2eCtx.E2EConfig.GetVariable("INIT_WITH_KUBERNETES_VERSION"),
+				InitWithProvidersContract:       "v1beta1",
+				InitWithCoreProvider:            "cluster-api:v1.2.0",
+				InitWithBootstrapProviders:      []string{"kubeadm:v1.2.0"},
+				InitWithControlPlaneProviders:   []string{"kubeadm:v1.2.0"},
+				InitWithInfrastructureProviders: []string{"aws:v1.5.2"},
 			}
 		})
 		ginkgo.AfterEach(func() {

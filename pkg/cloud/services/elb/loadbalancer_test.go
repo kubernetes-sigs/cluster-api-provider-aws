@@ -247,8 +247,8 @@ func TestGetAPIServerClassicELBSpecControlPlaneLoadBalancer(t *testing.T) {
 			mocks: func(m *mocks.MockEC2APIMockRecorder) {},
 			expect: func(t *testing.T, g *WithT, res *infrav1.LoadBalancer) {
 				t.Helper()
-				expectedTarget := fmt.Sprintf("%v:%d", infrav1.ELBProtocolTCP, infrav1.DefaultAPIServerPort)
-				g.Expect(expectedTarget).NotTo(Equal(res.HealthCheck.Target))
+				expectedTarget := fmt.Sprintf("%v:%d", infrav1.ELBProtocolSSL, infrav1.DefaultAPIServerPort)
+				g.Expect(expectedTarget).To(Equal(res.HealthCheck.Target))
 			},
 		},
 	}

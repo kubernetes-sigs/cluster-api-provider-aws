@@ -37,6 +37,17 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
+      - name: v1.2.0 # earliest published release in the v1beta1 series; this is used for v1beta1 old --> v1beta1 latest clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.0/core-components.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "./shared/v1beta1/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
       - name: v1.5.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.0/core-components.yaml"
         type: "url"
@@ -53,6 +64,17 @@ providers:
     files:
       - sourcePath: "./shared/v1beta1/metadata.yaml"
     versions:
+      - name: v1.2.0 # earliest published release in the v1beta1 series; this is used for v1beta1 old --> v1beta1 latest clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.0/bootstrap-components.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "./shared/v1beta1/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
       - name: v1.5.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.0/bootstrap-components.yaml"
         type: "url"
@@ -69,7 +91,18 @@ providers:
     files:
       - sourcePath: "./shared/v1beta1/metadata.yaml"
     versions:
-      - name: v1.5.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+      - name: v1.2.0 # earliest published release in the v1beta1 series; this is used for v1beta1 old --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.0/control-plane-components.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "./shared/v1beta1/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
+      - name: v1.5.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> v1beta1 latest clusterctl upgrades test only.
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.0/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
