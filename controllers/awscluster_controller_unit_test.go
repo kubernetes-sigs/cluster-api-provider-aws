@@ -157,7 +157,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 				"SessionToken":    []byte("session-token"),
 			},
 		}
-		csClient := fake.NewClientBuilder().WithObjects(awsCluster, secret).Build()
+		csClient := fake.NewClientBuilder().WithObjects(awsCluster, secret).WithStatusSubresource(awsCluster).Build()
 
 		mockCtrl = gomock.NewController(t)
 		ec2Svc = mock_services.NewMockEC2Interface(mockCtrl)
