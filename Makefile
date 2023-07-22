@@ -318,6 +318,10 @@ verify-gen: generate ## Verify generated files
 		echo "generated files are out of date, run make generate"; exit 1; \
 	fi
 
+.PHONY: verify-container-images
+verify-container-images: ## Verify container images
+	TRACE=$(TRACE) ./hack/verify-container-images.sh
+
 .PHONY: apidiff
 apidiff: APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 apidiff: $(GO_APIDIFF) ## Check for API differences
