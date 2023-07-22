@@ -70,10 +70,17 @@ func (s *Service) SDKToAutoScalingGroup(v *autoscaling.Group) (*expinfrav1.AutoS
 		}
 
 		spotAllocationStrategy := aws.StringValue(v.MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy)
-		if spotAllocationStrategy == string(expinfrav1.SpotAllocationStrategyLowestPrice) {
+		switch spotAllocationStrategy {
+		case string(expinfrav1.SpotAllocationStrategyLowestPrice):
 			i.MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy = expinfrav1.SpotAllocationStrategyLowestPrice
-		} else {
+		case string(expinfrav1.SpotAllocationStrategyCapacityOptimized):
 			i.MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy = expinfrav1.SpotAllocationStrategyCapacityOptimized
+		case string(expinfrav1.SpotAllocationStrategyCapacityOptimizedPrioritized):
+			i.MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy = expinfrav1.SpotAllocationStrategyCapacityOptimizedPrioritized
+		case string(expinfrav1.SpotAllocationStrategyPriceCapacityOptimized):
+			i.MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy = expinfrav1.SpotAllocationStrategyPriceCapacityOptimized
+		default:
+			return nil, fmt.Errorf("unsupported spot allocation strategy: %s", spotAllocationStrategy)
 		}
 	}
 
