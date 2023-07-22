@@ -151,6 +151,16 @@ var (
 	// SpotAllocationStrategyCapacityOptimized will make the Auto Scaling group launch
 	// instances using Spot pools that are optimally chosen based on the available Spot capacity.
 	SpotAllocationStrategyCapacityOptimized = SpotAllocationStrategy("capacity-optimized")
+
+	// SpotAllocationStrategyCapacityOptimizedPrioritized will make the Auto Scaling group launch
+	// instances using Spot pools that are optimally chosen based on the available Spot capacity
+	// while also taking into account the priority order specified by the user for Instance Types.
+	SpotAllocationStrategyCapacityOptimizedPrioritized = SpotAllocationStrategy("capacity-optimized-prioritized")
+
+	// SpotAllocationStrategyPriceCapacityOptimized will make the Auto Scaling group launch
+	// instances using Spot pools that consider both price and available Spot capacity to
+	// provide a balance between cost savings and allocation reliability.
+	SpotAllocationStrategyPriceCapacityOptimized = SpotAllocationStrategy("price-capacity-optimized")
 )
 
 // InstancesDistribution to configure distribution of On-Demand Instances and Spot Instances.
@@ -159,7 +169,7 @@ type InstancesDistribution struct {
 	// +kubebuilder:default=prioritized
 	OnDemandAllocationStrategy OnDemandAllocationStrategy `json:"onDemandAllocationStrategy,omitempty"`
 
-	// +kubebuilder:validation:Enum=lowest-price;capacity-optimized
+	// +kubebuilder:validation:Enum=lowest-price;capacity-optimized;capacity-optimized-prioritized;price-capacity-optimized
 	// +kubebuilder:default=lowest-price
 	SpotAllocationStrategy SpotAllocationStrategy `json:"spotAllocationStrategy,omitempty"`
 

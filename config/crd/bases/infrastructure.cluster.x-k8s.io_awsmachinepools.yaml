@@ -747,6 +747,8 @@ spec:
                         enum:
                         - lowest-price
                         - capacity-optimized
+                        - capacity-optimized-prioritized
+                        - price-capacity-optimized
                         type: string
                     type: object
                   overrides:
