@@ -303,6 +303,34 @@ func TestServiceSDKToAutoScalingGroup(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "invalid input - incorrect on-demand allocation strategy",
+			input: &autoscaling.Group{
+				AutoScalingGroupARN:  aws.String("test-id"),
+				AutoScalingGroupName: aws.String("test-name"),
+				DesiredCapacity:      aws.Int64(1234),
+				MaxSize:              aws.Int64(1234),
+				MinSize:              aws.Int64(1234),
+				CapacityRebalance:    aws.Bool(true),
+				MixedInstancesPolicy: &autoscaling.MixedInstancesPolicy{
+					InstancesDistribution: &autoscaling.InstancesDistribution{
+						OnDemandAllocationStrategy:          aws.String("prioritized"),
+						OnDemandBaseCapacity:                aws.Int64(1234),
+						OnDemandPercentageAboveBaseCapacity: aws.Int64(1234),
+						SpotAllocationStrategy:              aws.String("INVALIDONDEMANDALLOCATIONSTRATEGY"),
+					},
+					LaunchTemplate: &autoscaling.LaunchTemplate{
+						Overrides: []*autoscaling.LaunchTemplateOverrides{
+							{
+								InstanceType:     aws.String("t2.medium"),
+								WeightedCapacity: aws.String("test-weighted-cap"),
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "invalid input - incorrect spot allocation strategy",
 			input: &autoscaling.Group{
 				AutoScalingGroupARN:  aws.String("test-id"),
