@@ -137,6 +137,11 @@ var (
 	// OnDemandAllocationStrategyPrioritized uses the order of instance type overrides
 	// for the LaunchTemplate to define the launch priority of each instance type.
 	OnDemandAllocationStrategyPrioritized = OnDemandAllocationStrategy("prioritized")
+
+	// OnDemandAllocationStrategyLowestPrice will make the Auto Scaling group launch
+	// instances using the On-Demand pools with the lowest price, and evenly allocates
+	// your instances across the On-Demand pools that you specify.
+	OnDemandAllocationStrategyLowestPrice = OnDemandAllocationStrategy("lowest-price")
 )
 
 // SpotAllocationStrategy indicates how to allocate instances across Spot Instance pools.
@@ -165,7 +170,7 @@ var (
 
 // InstancesDistribution to configure distribution of On-Demand Instances and Spot Instances.
 type InstancesDistribution struct {
-	// +kubebuilder:validation:Enum=prioritized
+	// +kubebuilder:validation:Enum=prioritized;lowest-price
 	// +kubebuilder:default=prioritized
 	OnDemandAllocationStrategy OnDemandAllocationStrategy `json:"onDemandAllocationStrategy,omitempty"`
 
