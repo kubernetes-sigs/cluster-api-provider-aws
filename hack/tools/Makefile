@@ -154,7 +154,7 @@ $(PLANTUML): plantuml.Dockerfile ../../versions.mk
 KPROMO_BIN := kpromo
 KPROMO :=  $(BIN_DIR)/$(KPROMO_BIN)
 $(KPROMO):
-	CGO_ENABLED=0 go build -o $@ sigs.k8s.io/promo-tools/v3/cmd/kpromo
+	CGO_ENABLED=0 go build -o $@ sigs.k8s.io/promo-tools/v4/cmd/kpromo
 
 YQ_BIN := yq
 YQ :=  $(BIN_DIR)/$(YQ_BIN)
