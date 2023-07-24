@@ -102,6 +102,12 @@ func newAWSMachinePool() *expinfrav1.AWSMachinePool {
 				InstanceType:       "t3.large",
 				SSHKeyName:         aws.String("default"),
 				SpotMarketOptions:  &infrav1.SpotMarketOptions{MaxPrice: aws.String("0.9")},
+				InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+					HTTPEndpoint:            "enabled",
+					HTTPPutResponseHopLimit: 1,
+					HTTPTokens:              "optional",
+					InstanceMetadataTags:    "disabled",
+				},
 			},
 		},
 		Status: expinfrav1.AWSMachinePoolStatus{

@@ -500,7 +500,31 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 
 	data.TagSpecifications = s.buildLaunchTemplateTagSpecificationRequest(scope)
 
+	data.MetadataOptions = getLaunchTemplateInstanceMetadataOptionsRequest(lt.InstanceMetadataOptions)
+
 	return data, nil
+}
+
+func getLaunchTemplateInstanceMetadataOptionsRequest(metadataOptions *infrav1.InstanceMetadataOptions) *ec2.LaunchTemplateInstanceMetadataOptionsRequest {
+	if metadataOptions == nil {
+		return nil
+	}
+
+	request := &ec2.LaunchTemplateInstanceMetadataOptionsRequest{}
+	if metadataOptions.HTTPEndpoint != "" {
+		request.SetHttpEndpoint(string(metadataOptions.HTTPEndpoint))
+	}
+	if metadataOptions.HTTPPutResponseHopLimit != 0 {
+		request.SetHttpPutResponseHopLimit(metadataOptions.HTTPPutResponseHopLimit)
+	}
+	if metadataOptions.HTTPTokens != "" {
+		request.SetHttpTokens(string(metadataOptions.HTTPTokens))
+	}
+	if metadataOptions.InstanceMetadataTags != "" {
+		request.SetInstanceMetadataTags(string(metadataOptions.InstanceMetadataTags))
+	}
+
+	return request
 }
 
 func volumeToLaunchTemplateBlockDeviceMappingRequest(v *infrav1.Volume) *ec2.LaunchTemplateBlockDeviceMappingRequest {

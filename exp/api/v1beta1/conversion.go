@@ -44,6 +44,9 @@ func (src *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	if dst.Spec.RefreshPreferences != nil && restored.Spec.RefreshPreferences != nil {
 		dst.Spec.RefreshPreferences.Disable = restored.Spec.RefreshPreferences.Disable
 	}
+	if restored.Spec.AWSLaunchTemplate.InstanceMetadataOptions != nil {
+		dst.Spec.AWSLaunchTemplate.InstanceMetadataOptions = restored.Spec.AWSLaunchTemplate.InstanceMetadataOptions
+	}
 
 	return nil
 }
@@ -79,6 +82,16 @@ func (src *AWSManagedMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	// Manually restore data.
+	restored := &infrav1exp.AWSMachinePool{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	if restored.Spec.AWSLaunchTemplate.InstanceMetadataOptions != nil {
+		dst.Spec.AWSLaunchTemplate.InstanceMetadataOptions = restored.Spec.AWSLaunchTemplate.InstanceMetadataOptions
+	}
+
 	return nil
 }
 
@@ -90,7 +103,7 @@ func (r *AWSManagedMachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	return nil
+	return utilconversion.MarshalData(src, r)
 }
 
 // Convert_v1beta2_AWSManagedMachinePoolSpec_To_v1beta1_AWSManagedMachinePoolSpec is a conversion function.

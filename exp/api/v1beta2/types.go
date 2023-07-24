@@ -95,6 +95,10 @@ type AWSLaunchTemplate struct {
 	// image lookup the AMI is not set.
 	ImageLookupBaseOS string `json:"imageLookupBaseOS,omitempty"`
 
+	// InstanceMetadataOptions is the metadata options for the EC2 instance.
+	// +optional
+	InstanceMetadataOptions *infrav1.InstanceMetadataOptions `json:"instanceMetadataOptions,omitempty"`
+
 	// InstanceType is the type of instance to create. Example: m4.xlarge
 	InstanceType string `json:"instanceType,omitempty"`
 

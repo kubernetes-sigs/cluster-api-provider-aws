@@ -400,6 +400,7 @@ func autoConvert_v1beta2_AWSLaunchTemplate_To_v1beta1_AWSLaunchTemplate(in *v1be
 	out.ImageLookupFormat = in.ImageLookupFormat
 	out.ImageLookupOrg = in.ImageLookupOrg
 	out.ImageLookupBaseOS = in.ImageLookupBaseOS
+	// WARNING: in.InstanceMetadataOptions requires manual conversion: does not exist in peer-type
 	out.InstanceType = in.InstanceType
 	out.RootVolume = (*apiv1beta2.Volume)(unsafe.Pointer(in.RootVolume))
 	out.SSHKeyName = (*string)(unsafe.Pointer(in.SSHKeyName))
