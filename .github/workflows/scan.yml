@@ -10,14 +10,20 @@ permissions: {}
 
 jobs:
   scan:
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: [ main, release-2.2, release-2.1, release-2.0 ]
     name: Trivy
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
         uses: actions/checkout@v3.5.3
+        with:
+          ref: ${{ matrix.branch }}
       - name: Setup go
         uses: actions/setup-go@v4
         with:
-          go-version: 1.20
+          go-version-file: '${{ github.workspace }}/go.mod'
       - name: Run verify container script
         run: make verify-container-images
