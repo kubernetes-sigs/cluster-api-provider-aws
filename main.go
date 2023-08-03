@@ -26,6 +26,8 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"time"
+	"crypto/tls"
+	"strings"
 
 	v1certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/spf13/pflag"
@@ -66,12 +68,18 @@ import (
 	bootstrapv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	cliflag "k8s.io/component-base/cli/flag"
 )
 
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
 )
+
+type TLSOptions struct {
+	TLSMinVersion   string
+	TLSCipherSuites []string
+}
 
 func init() {
 	_ = eksbootstrapv1.AddToScheme(scheme)
@@ -117,6 +125,7 @@ var (
 	maxEKSSyncPeriod         = time.Minute * 10
 	errMaxSyncPeriodExceeded = errors.New("sync period greater than maximum allowed")
 	errEKSInvalidFlags       = errors.New("invalid EKS flag combination")
+	tlsOptions               = TLSOptions{}
 )
 
 func main() {
@@ -150,6 +159,13 @@ func main() {
 
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.UserAgent = "cluster-api-provider-aws-controller"
+
+	tlsOptionOverrides, err := GetTLSOptionOverrideFuncs(tlsOptions)
+	if err != nil {
+		setupLog.Error(err, "unable to add TLS settings to the webhook server")
+		os.Exit(1)
+	}
+
 	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme:                     scheme,
 		MetricsBindAddress:         metricsBindAddr,
@@ -163,6 +179,7 @@ func main() {
 		Port:                       webhookPort,
 		CertDir:                    webhookCertDir,
 		HealthProbeBindAddress:     healthAddr,
+		TLSOpts: 					tlsOptionOverrides,	
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -284,6 +301,47 @@ func main() {
 	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
+	}
+}
+
+// AddTLSOptions adds the webhook server TLS configuration flags
+// to the flag set.
+func AddTLSOptions(fs *pflag.FlagSet, options *TLSOptions) {
+	fs.StringVar(&options.TLSMinVersion, "tls-min-version", "VersionTLS12",
+		"The minimum TLS version in use by the webhook server.\n"+
+			fmt.Sprintf("Possible values are %s.", strings.Join(cliflag.TLSPossibleVersions(), ", ")),
+	)
+
+	tlsCipherPreferredValues := cliflag.PreferredTLSCipherNames()
+	tlsCipherInsecureValues := cliflag.InsecureTLSCipherNames()
+	fs.StringSliceVar(&options.TLSCipherSuites, "tls-cipher-suites", []string{},
+		"Comma-separated list of cipher suites for the webhook server. "+
+			"If omitted, the default Go cipher suites will be used. \n"+
+			"Preferred values: "+strings.Join(tlsCipherPreferredValues, ", ")+". \n"+
+			"Insecure values: "+strings.Join(tlsCipherInsecureValues, ", ")+".")
+}
+
+// GetTLSOptionOverrideFuncs returns a list of TLS configuration overrides to be used
+// by the webhook server.
+func GetTLSOptionOverrideFuncs(options TLSOptions) ([]func(*tls.Config), error) {
+	var tlsOptions []func(config *tls.Config)
+	tlsVersion, err := cliflag.TLSVersion(options.TLSMinVersion)
+	if err != nil {
+		return nil, err
+	}
+	tlsOptions = append(tlsOptions, func(cfg *tls.Config) {
+		cfg.MinVersion = tlsVersion
+		cfg.CipherSuites = GetDefaultTLSCipherSuits()
+	})
+
+	return tlsOptions, nil
+}
+
+func GetDefaultTLSCipherSuits() []uint16 {
+	return []uint16{
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
 	}
 }
 
@@ -482,6 +540,8 @@ func initFlags(fs *pflag.FlagSet) {
 		"",
 		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1.WatchLabel),
 	)
+
+	AddTLSOptions(fs, &tlsOptions)
 
 	feature.MutableGates.AddFlag(fs)
 }
