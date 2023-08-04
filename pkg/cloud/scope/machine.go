@@ -23,6 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -43,6 +44,7 @@ import (
 type MachineScopeParams struct {
 	Client       client.Client
 	Logger       *logger.Logger
+	ControlPlane *unstructured.Unstructured
 	Cluster      *clusterv1.Cluster
 	Machine      *clusterv1.Machine
 	InfraCluster EC2Scope
@@ -67,6 +69,9 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 	if params.InfraCluster == nil {
 		return nil, errors.New("aws cluster is required when creating a MachineScope")
 	}
+	if params.ControlPlane == nil {
+		return nil, errors.New("cluster control plane is required when creating a MachineScope")
+	}
 
 	if params.Logger == nil {
 		log := klog.Background()
@@ -78,10 +83,10 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
 	return &MachineScope{
-		Logger:      *params.Logger,
-		client:      params.Client,
-		patchHelper: helper,
-
+		Logger:       *params.Logger,
+		client:       params.Client,
+		patchHelper:  helper,
+		ControlPlane: params.ControlPlane,
 		Cluster:      params.Cluster,
 		Machine:      params.Machine,
 		InfraCluster: params.InfraCluster,
@@ -97,6 +102,7 @@ type MachineScope struct {
 
 	Cluster      *clusterv1.Cluster
 	Machine      *clusterv1.Machine
+	ControlPlane *unstructured.Unstructured
 	InfraCluster EC2Scope
 	AWSMachine   *infrav1.AWSMachine
 }
@@ -369,6 +375,10 @@ func (m *MachineScope) MachineIsDeleted() bool {
 // IsEKSManaged checks if the machine is EKS managed.
 func (m *MachineScope) IsEKSManaged() bool {
 	return m.InfraCluster.InfraCluster().GetObjectKind().GroupVersionKind().Kind == ekscontrolplanev1.AWSManagedControlPlaneKind
+}
+
+func (m *MachineScope) IsControlPlaneExternallyManaged() bool {
+	return util.IsExternalManagedControlPlane(m.ControlPlane)
 }
 
 // IsExternallyManaged checks if the machine is externally managed.
