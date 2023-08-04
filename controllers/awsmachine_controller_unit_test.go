@@ -33,6 +33,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -52,6 +53,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	kubeadmv1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -129,6 +131,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					},
 				},
 				InfraCluster: cs,
+				ControlPlane: &unstructured.Unstructured{},
 				AWSMachine:   awsMachine,
 			},
 		)
@@ -157,6 +160,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 						InfrastructureReady: true,
 					},
 				},
+				ControlPlane: &unstructured.Unstructured{},
 				Machine: &clusterv1.Machine{
 					Spec: clusterv1.MachineSpec{
 						ClusterName: "capi-test",
@@ -390,7 +394,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 					g.Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStatePending)))
 					g.Expect(ms.AWSMachine.Status.Ready).To(BeFalse())
-					g.Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
+					g.Expect(buf.String()).To(ContainSubstring("EC2 instance state changed"))
 
 					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 				})
@@ -410,7 +414,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 					g.Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStateRunning)))
 					g.Expect(ms.AWSMachine.Status.Ready).To(BeTrue())
-					g.Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
+					g.Expect(buf.String()).To(ContainSubstring("EC2 instance state changed"))
 					expectConditions(g, ms.AWSMachine, []conditionAssertion{
 						{conditionType: infrav1.InstanceReadyCondition, status: corev1.ConditionTrue},
 					})
@@ -431,7 +435,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil).Times(1)
 				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(ms.AWSMachine.Status.Ready).To(BeFalse())
-				g.Expect(buf.String()).To(ContainSubstring(("EC2 instance state is undefined")))
+				g.Expect(buf.String()).To(ContainSubstring("EC2 instance state is undefined"))
 				g.Eventually(recorder.Events).Should(Receive(ContainSubstring("InstanceUnhandledState")))
 				g.Expect(ms.AWSMachine.Status.FailureMessage).To(PointTo(Equal("EC2 instance state \"NewAWSMachineState\" is undefined")))
 				expectConditions(g, ms.AWSMachine, []conditionAssertion{{conditionType: infrav1.InstanceReadyCondition, status: corev1.ConditionUnknown}})
@@ -572,7 +576,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStateStopping)))
 					g.Expect(ms.AWSMachine.Status.Ready).To(BeFalse())
-					g.Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
+					g.Expect(buf.String()).To(ContainSubstring("EC2 instance state changed"))
 					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.InstanceStoppedReason}})
 				})
 
@@ -588,7 +592,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStateStopped)))
 					g.Expect(ms.AWSMachine.Status.Ready).To(BeFalse())
-					g.Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
+					g.Expect(buf.String()).To(ContainSubstring("EC2 instance state changed"))
 					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.InstanceStoppedReason}})
 				})
 
@@ -604,7 +608,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStateRunning)))
 					g.Expect(ms.AWSMachine.Status.Ready).To(BeTrue())
-					g.Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
+					g.Expect(buf.String()).To(ContainSubstring("EC2 instance state changed"))
 				})
 			})
 			t.Run("deleting the AWSMachine manually", func(t *testing.T) {
@@ -629,7 +633,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					instance.State = infrav1.InstanceStateShuttingDown
 					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(ms.AWSMachine.Status.Ready).To(BeFalse())
-					g.Expect(buf.String()).To(ContainSubstring(("Unexpected EC2 instance termination")))
+					g.Expect(buf.String()).To(ContainSubstring("Unexpected EC2 instance termination"))
 					g.Eventually(recorder.Events).Should(Receive(ContainSubstring("UnexpectedTermination")))
 				})
 
@@ -644,7 +648,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					instance.State = infrav1.InstanceStateTerminated
 					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(ms.AWSMachine.Status.Ready).To(BeFalse())
-					g.Expect(buf.String()).To(ContainSubstring(("Unexpected EC2 instance termination")))
+					g.Expect(buf.String()).To(ContainSubstring("Unexpected EC2 instance termination"))
 					g.Eventually(recorder.Events).Should(Receive(ContainSubstring("UnexpectedTermination")))
 					g.Expect(ms.AWSMachine.Status.FailureMessage).To(PointTo(Equal("EC2 instance state \"terminated\" is unexpected")))
 					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.InstanceTerminatedReason}})
@@ -2440,6 +2444,10 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 
 	ns := "testns"
 
+	cp := &kubeadmv1beta1.KubeadmControlPlane{}
+	cp.SetName("capi-cp-test-1")
+	cp.SetNamespace(ns)
+
 	ownerCluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1", Namespace: ns},
 		Spec: clusterv1.ClusterSpec{
@@ -2448,6 +2456,12 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 				Name:       "capi-test-1", // assuming same name
 				Namespace:  ns,
 				APIVersion: infrav1.GroupVersion.String(),
+			},
+			ControlPlaneRef: &corev1.ObjectReference{
+				Kind:       "KubeadmControlPlane",
+				Namespace:  cp.Namespace,
+				Name:       cp.Name,
+				APIVersion: kubeadmv1beta1.GroupVersion.String(),
 			},
 		},
 		Status: clusterv1.ClusterStatus{
@@ -2568,7 +2582,7 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 		},
 	}
 
-	fakeClient := fake.NewClientBuilder().WithObjects(ownerCluster, awsCluster, ownerMachine, awsMachine, controllerIdentity, secret).WithStatusSubresource(awsCluster, awsMachine).Build()
+	fakeClient := fake.NewClientBuilder().WithObjects(ownerCluster, awsCluster, ownerMachine, awsMachine, controllerIdentity, secret, cp).WithStatusSubresource(awsCluster, awsMachine).Build()
 
 	recorder := record.NewFakeRecorder(10)
 	reconciler := &AWSMachineReconciler{
