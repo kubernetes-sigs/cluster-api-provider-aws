@@ -32,6 +32,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -60,6 +61,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -200,10 +202,16 @@ func (r *AWSMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	infrav1.SetDefaults_AWSMachineSpec(&awsMachine.Spec)
 
+	cp, err := r.getControlPlane(ctx, log, cluster)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// Create the machine scope
 	machineScope, err := scope.NewMachineScope(scope.MachineScopeParams{
 		Client:       r.Client,
 		Cluster:      cluster,
+		ControlPlane: cp,
 		Machine:      machine,
 		InfraCluster: infraCluster,
 		AWSMachine:   awsMachine,
@@ -1196,4 +1204,23 @@ func (r *AWSMachineReconciler) ensureInstanceMetadataOptions(ec2svc services.EC2
 	}
 
 	return ec2svc.ModifyInstanceMetadataOptions(instance.ID, machine.Spec.InstanceMetadataOptions)
+}
+
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=*,verbs=get;list;watch
+
+func (r *AWSMachineReconciler) getControlPlane(ctx context.Context, log *logger.Logger, cluster *clusterv1.Cluster) (*unstructured.Unstructured, error) {
+	var ns string
+
+	if ns = cluster.Spec.ControlPlaneRef.Namespace; ns == "" {
+		ns = cluster.Namespace
+	}
+
+	controlPlane, err := external.Get(ctx, r.Client, cluster.Spec.ControlPlaneRef, ns)
+	if err != nil {
+		log.Error(err, "unable to get ControlPlane referenced in the given cluster", "cluster", fmt.Sprintf("%s/%s", cluster.Namespace, cluster.Name))
+
+		return nil, err
+	}
+
+	return controlPlane, nil
 }
