@@ -125,6 +125,9 @@ const (
 	LoadBalancerReadyCondition clusterv1.ConditionType = "LoadBalancerReady"
 	// WaitForDNSNameReason used while waiting for a DNS name for the API server to be populated.
 	WaitForDNSNameReason = "WaitForDNSName"
+	// WaitForExternalControlPlaneEndpointReason is available when the AWS Cluster is waiting for an externally managed
+	// Load Balancer, such as an external Control Plane provider.
+	WaitForExternalControlPlaneEndpointReason = "WaitForExternalControlPlaneEndpoint"
 	// WaitForDNSNameResolveReason used while waiting for DNS name to resolve.
 	WaitForDNSNameResolveReason = "WaitForDNSNameResolve"
 	// LoadBalancerFailedReason used when an error occurs during load balancer reconciliation.

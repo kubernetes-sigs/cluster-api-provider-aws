@@ -707,6 +707,7 @@ spec:
                             - elb
                             - alb
                             - nlb
+                            - disabled
                             type: string
                           name:
                             description: Name sets the name of the classic ELB load
@@ -1316,6 +1317,7 @@ spec:
                             - elb
                             - alb
                             - nlb
+                            - disabled
                             type: string
                           name:
                             description: Name sets the name of the classic ELB load
