@@ -82,3 +82,7 @@ func Convert_v1beta2_LoadBalancer_To_v1beta1_ClassicELB(in *v1beta2.LoadBalancer
 func Convert_v1beta2_IngressRule_To_v1beta1_IngressRule(in *v1beta2.IngressRule, out *IngressRule, s conversion.Scope) error {
 	return autoConvert_v1beta2_IngressRule_To_v1beta1_IngressRule(in, out, s)
 }
+
+func Convert_v1beta2_VPCSpec_To_v1beta1_VPCSpec(in *v1beta2.VPCSpec, out *VPCSpec, s conversion.Scope) error {
+	return autoConvert_v1beta2_VPCSpec_To_v1beta1_VPCSpec(in, out, s)
+}
