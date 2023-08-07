@@ -245,6 +245,18 @@ type IPv6 struct {
 	EgressOnlyInternetGatewayID *string `json:"egressOnlyInternetGatewayId,omitempty"`
 }
 
+// IPAMPool defines the IPAM pool to be used for VPC.
+type IPAMPool struct {
+	// ID is the ID of the IPAM pool this provider should use to create VPC.
+	ID string `json:"id,omitempty"`
+	// Name is the name of the IPAM pool this provider should use to create VPC.
+	Name string `json:"name,omitempty"`
+	// The netmask length of the IPv4 CIDR you want to allocate to VPC from
+	// an Amazon VPC IP Address Manager (IPAM) pool.
+	// Defaults to /16 for IPv4 if not specified.
+	NetmaskLength int64 `json:"netmaskLength,omitempty"`
+}
+
 // VPCSpec configures an AWS VPC.
 type VPCSpec struct {
 	// ID is the vpc-id of the VPC this provider should use to create resources.
@@ -253,6 +265,9 @@ type VPCSpec struct {
 	// CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
 	// Defaults to 10.0.0.0/16.
 	CidrBlock string `json:"cidrBlock,omitempty"`
+
+	// IPAMPool defines the IPAM pool to be used for VPC.
+	IPAMPool *IPAMPool `json:"ipamPool,omitempty"`
 
 	// IPv6 contains ipv6 specific settings for the network. Supported only in managed clusters.
 	// This field cannot be set on AWSCluster object.
