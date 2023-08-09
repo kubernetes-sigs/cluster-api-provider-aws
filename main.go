@@ -345,14 +345,15 @@ func setupEKSReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsSe
 
 	setupLog.Debug("enabling EKS control plane controller")
 	if err := (&ekscontrolplanecontrollers.AWSManagedControlPlaneReconciler{
-		Client:                mgr.GetClient(),
-		EnableIAM:             enableIAM,
-		AllowAdditionalRoles:  allowAddRoles,
-		Endpoints:             awsServiceEndpoints,
-		WatchFilterValue:      watchFilterValue,
-		ExternalResourceGC:    externalResourceGC,
-		AlternativeGCStrategy: alternativeGCStrategy,
-		WaitInfraPeriod:       waitInfraPeriod,
+		Client:                       mgr.GetClient(),
+		EnableIAM:                    enableIAM,
+		AllowAdditionalRoles:         allowAddRoles,
+		Endpoints:                    awsServiceEndpoints,
+		WatchFilterValue:             watchFilterValue,
+		ExternalResourceGC:           externalResourceGC,
+		AlternativeGCStrategy:        alternativeGCStrategy,
+		WaitInfraPeriod:              waitInfraPeriod,
+		TagUnmanagedNetworkResources: feature.Gates.Enabled(feature.TagUnmanagedNetworkResources),
 	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: pointer.Bool(true)}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSManagedControlPlane")
 		os.Exit(1)
