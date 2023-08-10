@@ -82,7 +82,20 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			},
 			Spec: expinfrav1.AWSMachinePoolSpec{
 				MinSize: int32(0),
-				MaxSize: int32(1),
+				MaxSize: int32(100),
+				MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
+					InstancesDistribution: &expinfrav1.InstancesDistribution{
+						OnDemandAllocationStrategy:          expinfrav1.OnDemandAllocationStrategyPrioritized,
+						SpotAllocationStrategy:              expinfrav1.SpotAllocationStrategyCapacityOptimized,
+						OnDemandBaseCapacity:                aws.Int64(0),
+						OnDemandPercentageAboveBaseCapacity: aws.Int64(100),
+					},
+					Overrides: []expinfrav1.Overrides{
+						{
+							InstanceType: "m6a.32xlarge",
+						},
+					},
+				},
 			},
 		}
 
@@ -383,7 +396,20 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 
 			asg := expinfrav1.AutoScalingGroup{
 				MinSize: int32(0),
-				MaxSize: int32(1),
+				MaxSize: int32(100),
+				MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
+					InstancesDistribution: &expinfrav1.InstancesDistribution{
+						OnDemandAllocationStrategy:          expinfrav1.OnDemandAllocationStrategyPrioritized,
+						SpotAllocationStrategy:              expinfrav1.SpotAllocationStrategyCapacityOptimized,
+						OnDemandBaseCapacity:                aws.Int64(0),
+						OnDemandPercentageAboveBaseCapacity: aws.Int64(100),
+					},
+					Overrides: []expinfrav1.Overrides{
+						{
+							InstanceType: "m6a.32xlarge",
+						},
+					},
+				},
 				Subnets: []string{"subnet1", "subnet2"}}
 			ec2Svc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			ec2Svc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil)
@@ -401,7 +427,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 
 			asg := expinfrav1.AutoScalingGroup{
 				MinSize: int32(0),
-				MaxSize: int32(1),
+				MaxSize: int32(100),
 				Subnets: []string{"subnet1", "subnet2"}}
 			ec2Svc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			ec2Svc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil)
