@@ -65,15 +65,27 @@ func (s *Service) SDKToAutoScalingGroup(v *autoscaling.Group) (*expinfrav1.AutoS
 		}
 
 		onDemandAllocationStrategy := aws.StringValue(v.MixedInstancesPolicy.InstancesDistribution.OnDemandAllocationStrategy)
-		if onDemandAllocationStrategy == string(expinfrav1.OnDemandAllocationStrategyPrioritized) {
+		switch onDemandAllocationStrategy {
+		case string(expinfrav1.OnDemandAllocationStrategyPrioritized):
 			i.MixedInstancesPolicy.InstancesDistribution.OnDemandAllocationStrategy = expinfrav1.OnDemandAllocationStrategyPrioritized
+		case string(expinfrav1.OnDemandAllocationStrategyLowestPrice):
+			i.MixedInstancesPolicy.InstancesDistribution.OnDemandAllocationStrategy = expinfrav1.OnDemandAllocationStrategyLowestPrice
+		default:
+			return nil, fmt.Errorf("unsupported on-demand allocation strategy: %s", onDemandAllocationStrategy)
 		}
 
 		spotAllocationStrategy := aws.StringValue(v.MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy)
-		if spotAllocationStrategy == string(expinfrav1.SpotAllocationStrategyLowestPrice) {
+		switch spotAllocationStrategy {
+		case string(expinfrav1.SpotAllocationStrategyLowestPrice):
 			i.MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy = expinfrav1.SpotAllocationStrategyLowestPrice
-		} else {
+		case string(expinfrav1.SpotAllocationStrategyCapacityOptimized):
 			i.MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy = expinfrav1.SpotAllocationStrategyCapacityOptimized
+		case string(expinfrav1.SpotAllocationStrategyCapacityOptimizedPrioritized):
+			i.MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy = expinfrav1.SpotAllocationStrategyCapacityOptimizedPrioritized
+		case string(expinfrav1.SpotAllocationStrategyPriceCapacityOptimized):
+			i.MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy = expinfrav1.SpotAllocationStrategyPriceCapacityOptimized
+		default:
+			return nil, fmt.Errorf("unsupported spot allocation strategy: %s", spotAllocationStrategy)
 		}
 	}
 
