@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"flag"
 	"fmt"
@@ -25,9 +26,8 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"time"
-	"crypto/tls"
 	"strings"
+	"time"
 
 	v1certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/spf13/pflag"
@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	// +kubebuilder:scaffold:imports
+	cliflag "k8s.io/component-base/cli/flag"
 	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	infrav1alpha4 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha4"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
@@ -63,12 +64,12 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	"sigs.k8s.io/cluster-api-provider-aws/util/flags"
 	"sigs.k8s.io/cluster-api-provider-aws/version"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	cliflag "k8s.io/component-base/cli/flag"
 )
 
 var (
@@ -179,7 +180,7 @@ func main() {
 		Port:                       webhookPort,
 		CertDir:                    webhookCertDir,
 		HealthProbeBindAddress:     healthAddr,
-		TLSOpts: 					tlsOptionOverrides,	
+		TLSOpts:                    tlsOptionOverrides,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -325,6 +326,7 @@ func AddTLSOptions(fs *pflag.FlagSet, options *TLSOptions) {
 // by the webhook server.
 func GetTLSOptionOverrideFuncs(options TLSOptions) ([]func(*tls.Config), error) {
 	var tlsOptions []func(config *tls.Config)
+	var insecureSkipverify bool
 	tlsVersion, err := cliflag.TLSVersion(options.TLSMinVersion)
 	if err != nil {
 		return nil, err
@@ -332,6 +334,8 @@ func GetTLSOptionOverrideFuncs(options TLSOptions) ([]func(*tls.Config), error) 
 	tlsOptions = append(tlsOptions, func(cfg *tls.Config) {
 		cfg.MinVersion = tlsVersion
 		cfg.CipherSuites = GetDefaultTLSCipherSuits()
+		cfg.MaxVersion = flags.GetTlsMaxVersion()
+		cfg.InsecureSkipVerify = flags.InsecureSkipVerify(insecureSkipverify)
 	})
 
 	return tlsOptions, nil
@@ -340,9 +344,9 @@ func GetTLSOptionOverrideFuncs(options TLSOptions) ([]func(*tls.Config), error) 
 func GetDefaultTLSCipherSuits() []uint16 {
 	return []uint16{
 		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
- 		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
- 		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
- 		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 	}
 }
 
