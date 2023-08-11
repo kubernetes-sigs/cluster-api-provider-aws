@@ -1584,6 +1584,141 @@ func TestCreateNLB(t *testing.T) {
 	}
 }
 
+func TestReconcileV2LB(t *testing.T) {
+	const (
+		namespace       = "foo"
+		clusterName     = "bar"
+		clusterSubnetID = "subnet-1"
+		elbName         = "bar-apiserver"
+		elbArn          = "arn::apiserver"
+		vpcID           = "vpc-id"
+		az              = "us-west-1a"
+	)
+
+	tests := []struct {
+		name          string
+		elbV2APIMocks func(m *mocks.MockELBV2APIMockRecorder)
+		check         func(t *testing.T, lb *infrav1.LoadBalancer, err error)
+		awsCluster    func(acl infrav1.AWSCluster) infrav1.AWSCluster
+		spec          func(spec infrav1.LoadBalancer) infrav1.LoadBalancer
+	}{
+		{
+			name: "ensure status populated with BYO NLB",
+			spec: func(spec infrav1.LoadBalancer) infrav1.LoadBalancer {
+				return spec
+			},
+			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
+				acl.Spec.ControlPlaneLoadBalancer.Name = aws.String(elbName)
+				return acl
+			},
+			elbV2APIMocks: func(m *mocks.MockELBV2APIMockRecorder) {
+				m.DescribeLoadBalancers(gomock.Eq(&elbv2.DescribeLoadBalancersInput{
+					Names: aws.StringSlice([]string{elbName}),
+				})).
+					Return(&elbv2.DescribeLoadBalancersOutput{
+						LoadBalancers: []*elbv2.LoadBalancer{
+							{
+								LoadBalancerArn:  aws.String(elbArn),
+								LoadBalancerName: aws.String(elbName),
+								Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
+								AvailabilityZones: []*elbv2.AvailabilityZone{
+									{
+										SubnetId: aws.String(clusterSubnetID),
+										ZoneName: aws.String(az),
+									},
+								},
+								VpcId: aws.String(vpcID),
+							},
+						},
+					}, nil)
+				m.DescribeLoadBalancerAttributes(&elbv2.DescribeLoadBalancerAttributesInput{LoadBalancerArn: aws.String(elbArn)}).Return(
+					&elbv2.DescribeLoadBalancerAttributesOutput{
+						Attributes: []*elbv2.LoadBalancerAttribute{
+							{
+								Key:   aws.String("load_balancing.cross_zone.enabled"),
+								Value: aws.String("false"),
+							},
+						},
+					},
+					nil,
+				)
+				m.DescribeTags(&elbv2.DescribeTagsInput{ResourceArns: []*string{aws.String(elbArn)}}).Return(
+					&elbv2.DescribeTagsOutput{
+						TagDescriptions: []*elbv2.TagDescription{
+							{
+								ResourceArn: aws.String(elbArn),
+								Tags:        []*elbv2.Tag{},
+							},
+						},
+					},
+					nil,
+				)
+			},
+			check: func(t *testing.T, lb *infrav1.LoadBalancer, err error) {
+				t.Helper()
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+				if len(lb.AvailabilityZones) != 1 {
+					t.Errorf("Expected LB to contain 1 availability zone, got %v", len(lb.AvailabilityZones))
+				}
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			elbV2APIMocks := mocks.NewMockELBV2API(mockCtrl)
+
+			scheme, err := setupScheme()
+			if err != nil {
+				t.Fatal(err)
+			}
+			awsCluster := &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: clusterName},
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+						Name:             aws.String(elbName),
+						LoadBalancerType: infrav1.LoadBalancerTypeNLB,
+					},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: vpcID,
+						},
+					},
+				},
+			}
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+			cluster := tc.awsCluster(*awsCluster)
+			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client: client,
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: namespace,
+						Name:      clusterName,
+					},
+				},
+				AWSCluster: &cluster,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			tc.elbV2APIMocks(elbV2APIMocks.EXPECT())
+
+			s := &Service{
+				scope:       clusterScope,
+				ELBV2Client: elbV2APIMocks,
+			}
+			err = s.reconcileV2LB()
+			lb := s.scope.Network().APIServerELB
+			tc.check(t, &lb, err)
+		})
+	}
+}
+
 func TestDeleteAPIServerELB(t *testing.T) {
 	clusterName := "bar" //nolint:goconst // does not need to be a package-level const
 	elbName := "bar-apiserver"
