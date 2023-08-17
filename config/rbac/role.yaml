@@ -110,15 +110,6 @@ rules:
 - apiGroups:
   - controlplane.cluster.x-k8s.io
   resources:
-  - ROSAcontrolplanes
-  - ROSAcontrolplanes/status
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - controlplane.cluster.x-k8s.io
-  resources:
   - awsmanagedcontrolplanes
   verbs:
   - delete
@@ -144,6 +135,15 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
+  - rosacontrolplanes
+  - rosacontrolplanes/status
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -154,25 +154,6 @@ rules:
   - list
   - patch
   - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - ROSAclusters
-  verbs:
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - ROSAclusters/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
@@ -355,6 +336,25 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - awsmanagedmachinepools/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - rosaclusters
+  verbs:
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - rosaclusters/status
   verbs:
   - get
   - patch
