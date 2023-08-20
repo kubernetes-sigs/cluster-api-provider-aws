@@ -55,6 +55,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ssm"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/tele"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -148,7 +149,14 @@ func (r *AWSMachineReconciler) getObjectStoreService(scope scope.S3Scope) servic
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 
 func (r *AWSMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
-	log := logger.FromContext(ctx)
+	ctx, log, done := tele.StartSpanWithLogger(
+		ctx,
+		"controllers.awsmachine.Reconcile",
+		tele.KVP("namespace", req.Namespace),
+		tele.KVP("name", req.Name),
+		tele.KVP("reconcileID", string(controller.ReconcileIDFromContext(ctx))),
+	)
+	defer done()
 
 	// Fetch the AWSMachine instance.
 	awsMachine := &infrav1.AWSMachine{}
@@ -236,7 +244,12 @@ func (r *AWSMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 }
 
 func (r *AWSMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	log := logger.FromContext(ctx)
+	ctx, log, done := tele.StartSpanWithLogger(ctx,
+		"controllers.AWSMachineReconciler.SetupWithManager",
+		tele.KVP("controller", "AWSMachine"),
+	)
+	defer done()
+
 	AWSClusterToAWSMachines := r.AWSClusterToAWSMachines(log)
 
 	controller, err := ctrl.NewControllerManagedBy(mgr).

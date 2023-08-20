@@ -35,6 +35,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/tele"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -56,7 +57,14 @@ type AWSManagedClusterReconciler struct {
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
 func (r *AWSManagedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
-	log := ctrl.LoggerFrom(ctx)
+	ctx, log, done := tele.StartSpanWithLogger(
+		ctx,
+		"controllers.awsmanagedcluster.Reconcile",
+		tele.KVP("namespace", req.Namespace),
+		tele.KVP("name", req.Name),
+		tele.KVP("reconcileID", string(controller.ReconcileIDFromContext(ctx))),
+	)
+	defer done()
 
 	// Fetch the AWSManagedCluster instance
 	awsManagedCluster := &infrav1.AWSManagedCluster{}
@@ -117,14 +125,18 @@ func (r *AWSManagedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Re
 }
 
 func (r *AWSManagedClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	log := logger.FromContext(ctx)
+	ctx, log, done := tele.StartSpanWithLogger(ctx,
+		"controllers.AWSManagedClusterReconciler.SetupWithManager",
+		tele.KVP("controller", "AWSManagedCluster"),
+	)
+	defer done()
 
 	awsManagedCluster := &infrav1.AWSManagedCluster{}
 
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(awsManagedCluster).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log.GetLogger(), r.WatchFilterValue)).
 		Build(r)
 
 	if err != nil {

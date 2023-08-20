@@ -35,7 +35,7 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/tele"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -50,7 +50,14 @@ type AWSControllerIdentityReconciler struct {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclustercontrolleridentities,verbs=get;list;watch;create
 
 func (r *AWSControllerIdentityReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := logger.FromContext(ctx)
+	ctx, log, done := tele.StartSpanWithLogger(
+		ctx,
+		"exp.controlleridentity.awscontrolleridentity.Reconcile",
+		tele.KVP("namespace", req.Namespace),
+		tele.KVP("name", req.Name),
+		tele.KVP("reconcileID", string(controller.ReconcileIDFromContext(ctx))),
+	)
+	defer done()
 
 	var identityRef *infrav1.AWSIdentityReference
 
@@ -132,10 +139,16 @@ func (r *AWSControllerIdentityReconciler) Reconcile(ctx context.Context, req ctr
 }
 
 func (r *AWSControllerIdentityReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	_, log, done := tele.StartSpanWithLogger(ctx,
+		"controllers.AWSControllerIdentityReconciler.SetupWithManager",
+		tele.KVP("controller", "AWSControllerIdentity"),
+	)
+	defer done()
+
 	controller := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.AWSCluster{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(logger.FromContext(ctx).GetLogger(), r.WatchFilterValue))
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log.GetLogger(), r.WatchFilterValue))
 
 	if feature.Gates.Enabled(feature.EKS) {
 		controller.Watches(

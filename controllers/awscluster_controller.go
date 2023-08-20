@@ -51,6 +51,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/securitygroup"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/v2/util/conditions"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/tele"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	capiannotations "sigs.k8s.io/cluster-api/util/annotations"
@@ -131,7 +132,14 @@ func (r *AWSClusterReconciler) getSecurityGroupService(scope scope.ClusterScope)
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclustercontrolleridentities,verbs=get;list;watch;create
 
 func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
-	log := logger.FromContext(ctx)
+	ctx, log, done := tele.StartSpanWithLogger(
+		ctx,
+		"controllers.awscluster.Reconcile",
+		tele.KVP("namespace", req.Namespace),
+		tele.KVP("name", req.Name),
+		tele.KVP("reconcileID", string(controller.ReconcileIDFromContext(ctx))),
+	)
+	defer done()
 
 	// Fetch the AWSCluster instance
 	awsCluster := &infrav1.AWSCluster{}
@@ -346,7 +354,12 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 }
 
 func (r *AWSClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	log := logger.FromContext(ctx)
+	ctx, log, done := tele.StartSpanWithLogger(ctx,
+		"controllers.AWSClusterReconciler.SetupWithManager",
+		tele.KVP("controller", "AWSCluster"),
+	)
+	defer done()
+
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&infrav1.AWSCluster{}).

@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/tele"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
@@ -63,7 +64,11 @@ type AWSManagedMachinePoolReconciler struct {
 
 // SetupWithManager is used to setup the controller.
 func (r *AWSManagedMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	log := logger.FromContext(ctx)
+	_, log, done := tele.StartSpanWithLogger(ctx,
+		"exp.controllers.AWSManagedMachinePoolReconciler.SetupWithManager",
+		tele.KVP("controller", "AWSManagedMachinePool"),
+	)
+	defer done()
 
 	gvk, err := apiutil.GVKForObject(new(expinfrav1.AWSManagedMachinePool), mgr.GetScheme())
 	if err != nil {
@@ -93,7 +98,14 @@ func (r *AWSManagedMachinePoolReconciler) SetupWithManager(ctx context.Context, 
 
 // Reconcile reconciles AWSManagedMachinePools.
 func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
-	log := logger.FromContext(ctx)
+	ctx, log, done := tele.StartSpanWithLogger(
+		ctx,
+		"exp.controllers.awsmanagedmachinepool.Reconcile",
+		tele.KVP("namespace", req.Namespace),
+		tele.KVP("name", req.Name),
+		tele.KVP("reconcileID", string(controller.ReconcileIDFromContext(ctx))),
+	)
+	defer done()
 
 	awsPool := &expinfrav1.AWSManagedMachinePool{}
 	if err := r.Get(ctx, req.NamespacedName, awsPool); err != nil {

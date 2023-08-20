@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/controllers"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/instancestate"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/tele"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -77,12 +77,21 @@ func (r *AwsInstanceStateReconciler) getSQSService(region string) (sqsiface.SQSA
 }
 
 func (r *AwsInstanceStateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	ctx, log, done := tele.StartSpanWithLogger(
+		ctx,
+		"exp.instancestate.awsinstancestate.Reconcile",
+		tele.KVP("namespace", req.Namespace),
+		tele.KVP("name", req.Name),
+		tele.KVP("reconcileID", string(controller.ReconcileIDFromContext(ctx))),
+	)
+	defer done()
+
 	// Fetch the AWSCluster instance
 	awsCluster := &infrav1.AWSCluster{}
 	err := r.Get(ctx, req.NamespacedName, awsCluster)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			r.Log.Info("cluster not found, removing queue URL", "cluster", klog.KRef(req.Namespace, req.Name))
+			log.Info("cluster not found, removing queue URL", "cluster", klog.KRef(req.Namespace, req.Name))
 			r.queueURLs.Delete(req.Name)
 			return reconcile.Result{}, nil
 		}
@@ -111,13 +120,19 @@ func (r *AwsInstanceStateReconciler) Reconcile(ctx context.Context, req ctrl.Req
 }
 
 func (r *AwsInstanceStateReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	_, log, done := tele.StartSpanWithLogger(ctx,
+		"exp.controllers.AwsInstanceStateReconciler.SetupWithManager",
+		tele.KVP("controller", "AwsInstanceState"),
+	)
+	defer done()
+
 	go func() {
 		r.watchQueuesForInstanceEvents()
 	}()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.AWSCluster{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(logger.FromContext(ctx).GetLogger(), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log.GetLogger(), r.WatchFilterValue)).
 		Complete(r)
 }
 

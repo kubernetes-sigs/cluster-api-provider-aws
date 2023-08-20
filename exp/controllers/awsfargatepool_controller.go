@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/tele"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -53,11 +54,17 @@ type AWSFargateProfileReconciler struct {
 
 // SetupWithManager is used to setup the controller.
 func (r *AWSFargateProfileReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	ctx, log, done := tele.StartSpanWithLogger(ctx,
+		"exp.controllers.AWSFargateProfileReconciler.SetupWithManager",
+		tele.KVP("controller", "AWSFargateProfile"),
+	)
+	defer done()
+
 	managedControlPlaneToFargateProfileMap := managedControlPlaneToFargateProfileMapFunc(r.Client, logger.FromContext(ctx))
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&expinfrav1.AWSFargateProfile{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(logger.FromContext(ctx).GetLogger(), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log.GetLogger(), r.WatchFilterValue)).
 		Watches(
 			&source.Kind{Type: &ekscontrolplanev1.AWSManagedControlPlane{}},
 			handler.EnqueueRequestsFromMapFunc(managedControlPlaneToFargateProfileMap),
@@ -73,7 +80,14 @@ func (r *AWSFargateProfileReconciler) SetupWithManager(ctx context.Context, mgr 
 
 // Reconcile reconciles AWSFargateProfiles.
 func (r *AWSFargateProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
-	log := logger.FromContext(ctx)
+	ctx, log, done := tele.StartSpanWithLogger(
+		ctx,
+		"exp.controllers.awsfargatepool.Reconcile",
+		tele.KVP("namespace", req.Namespace),
+		tele.KVP("name", req.Name),
+		tele.KVP("reconcileID", string(controller.ReconcileIDFromContext(ctx))),
+	)
+	defer done()
 
 	fargateProfile := &expinfrav1.AWSFargateProfile{}
 	if err := r.Get(ctx, req.NamespacedName, fargateProfile); err != nil {
