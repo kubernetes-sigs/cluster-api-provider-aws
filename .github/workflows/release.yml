@@ -1,0 +1,70 @@
+# As opposed to https://github.com/kubernetes-sigs/cluster-api (CAPI), the CAPA upstream project does not offer
+# a GitHub action to automatically create releases from tags (as of 2023-08-21). Therefore, this is a Giant Swarm
+# fork-specific addition. We require a GitHub release containing the YAML manifests which we use in
+# cluster-api-provider-aws-app. Since doing this manually is very error-prone (see
+# `docs/book/src/development/releasing.md`), we run the needed commands here.
+
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write # allow creating a release
+
+jobs:
+  build:
+    name: Create draft release
+    runs-on: ubuntu-latest
+    env:
+      GH_ORG_NAME: giantswarm
+    steps:
+      - name: Set env
+        run: |
+          if echo "${GITHUB_REF}" | grep -qF "vX.Y"; then
+            >&2 echo "ERROR: Oops, you copy-pasted verbatim from the README.md - please ensure to replace 'vX.Y.Z' with an actual tag"
+            exit 1
+          fi
+
+          echo "RELEASE_TAG=${GITHUB_REF:10}" >> $GITHUB_ENV # strip off `refs/tags/` prefix
+
+      - name: Check out code
+        uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3 # tag=v3.5.0
+        with:
+          fetch-depth: 0
+
+      # - name: Calculate Go version
+      #   run: echo "go_version=$(make go-version)" >> $GITHUB_ENV
+
+      # - name: Set up Go
+      #   uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # tag=v3.5.0
+      #   with:
+      #     go-version: ${{ env.go_version }}
+
+      - name: Generate release artifacts
+        run: |
+          # Dealing with changelogs isn't that easy since Giant Swarm releases can jump from `v2.2.0` to `v2.3.1`
+          # as we skip intermediate releases. Therefore, finding the required value for `PREVIOUS_VERSION` would be
+          # a manual task. Better not deal with the changelog right now since it's unlikely that someone will look
+          # at those in our fork (as compared to upstream's releases).
+          printf '#!/bin/sh\necho "Changelogs are not filled in this fork"\n' > hack/releasechangelog.sh
+
+          # We don't need the binaries and other stuff in the release, either. Really only the YAML manifests.
+          sed -i -E -e '/\$\(MAKE\) (release-binaries|release-templates|release-policies)/d' Makefile
+
+          # To allow the above changes since normally the Makefile wouldn't allow a dirty Git repo
+          sed -i -e '/Your local git repository contains uncommitted changes/d' Makefile
+
+          (set -x; make RELEASE_TAG="${RELEASE_TAG}" release)
+
+      # Instead of `make VERSION="${RELEASE_TAG}" create-gh-release upload-gh-artifacts`, which requires GitHub CLI
+      # authentication, use an action which does the same.
+      - name: Release
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # tag=v1
+        with:
+          draft: true
+          files: out/*
+          body: "This fork does not provide release changelogs."
+          # `name` not needed since this takes the tag by default (which we also use above as ${RELEASE_TAG})
