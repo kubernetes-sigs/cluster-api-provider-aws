@@ -19,6 +19,7 @@ package scope
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/utils"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -86,7 +87,7 @@ func sessionForRegion(region string, endpoint []ServiceEndpoint) (*session.Sessi
 				}, nil
 			}
 		}
-		return endpoints.DefaultResolver().EndpointFor(service, region, optFns...)
+		return utils.CustomEndpointResolverForAWS().EndpointFor(service, region, optFns...)
 	}
 	ns, err := session.NewSession(&aws.Config{
 		Region:           aws.String(region),
@@ -108,6 +109,11 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 	log = log.WithName("identity")
 	log.Trace("Creating an AWS Session")
 
+	err := utils.ResetFipsEndpointEnv(region)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "Failed to reset fips endpoint env")
+	}
+
 	resolver := func(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
 		for _, s := range endpoint {
 			if service == s.ServiceID {
@@ -117,7 +123,8 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 				}, nil
 			}
 		}
-		return endpoints.DefaultResolver().EndpointFor(service, region, optFns...)
+
+		return utils.CustomEndpointResolverForAWS().EndpointFor(service, region, optFns...)
 	}
 
 	providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScoper, region, log)
