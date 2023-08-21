@@ -18,20 +18,22 @@ package s3
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
-	"net/url"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"github.com/pkg/errors"
-
+	"net/url"
 	iam "sigs.k8s.io/cluster-api-provider-aws/iam/api/v1beta1"
+	awslogs "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/logs"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/utils"
 )
 
 // Service holds a collection of interfaces.
@@ -48,6 +50,8 @@ var DisabledError = errors.New("s3 management disabled")
 func IsDisabledError(err error) bool {
 	return err == DisabledError
 }
+
+var ExternalBucketError = errors.New("external bucket")
 
 var EmptyBucketError = errors.New("empty bucket name")
 
@@ -74,6 +78,7 @@ func NewService(s3Scope scope.S3Scope) *Service {
 }
 
 func (s *Service) ReconcileBucket() error {
+
 	if !s.bucketManagementEnabled() {
 		return nil
 	}
@@ -103,6 +108,10 @@ func (s *Service) DeleteBucket() error {
 	bucketName := s.bucketName()
 	if bucketName == "" {
 		return EmptyBucketError
+	}
+
+	if !s.isBucketDeleteRequired() {
+		return nil
 	}
 
 	log := s.scope.WithValues("name", bucketName)
@@ -216,6 +225,28 @@ func (s *Service) Delete(key string) error {
 		return errors.Wrap(err, "deleting S3 object")
 	}
 
+	if aerr.Code() == "BucketRegionError" {
+		// TODO: retry object delete with correct region
+		s.scope.V(1).Info("retry delete with correct region BucketRegionError")
+		s3Client, err := s.accessBucketFromDifferentRegion()
+		if err != nil {
+			return errors.Wrap(err, "deleting S3 object")
+		}
+
+		_, err = s3Client.DeleteObject(&s3.DeleteObjectInput{
+			Bucket: aws.String(bucketName),
+			Key:    aws.String(key),
+		})
+		if err == nil {
+			return nil
+		}
+	}
+
+	aerr, ok = err.(awserr.Error)
+	if !ok {
+		return errors.Wrap(err, "deleting S3 object")
+	}
+
 	switch aerr.Code() {
 	case s3.ErrCodeNoSuchBucket:
 	default:
@@ -225,7 +256,42 @@ func (s *Service) Delete(key string) error {
 	return nil
 }
 
+func (s *Service) accessBucketFromDifferentRegion() (s3Client *s3.S3, err error) {
+	s3region, err := s3manager.GetBucketRegion(context.Background(), s.scope.Session(), s.scope.Bucket().Name, s.scope.Region())
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == "NotFound" {
+			s.scope.Info("unable to find bucket", "bucket", s.scope.Bucket().Name, "region not found")
+		}
+		return nil, err
+	}
+	s.scope.Info("accessBucketFromDifferentRegion ", "bucket: ", s.scope.Bucket().Name, "region: ", s3region)
+	s3Client = s3.New(s.scope.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(s.scope)).WithLogger(awslogs.NewWrapLogr(s.scope)).WithEndpointResolver(utils.CustomEndpointResolverForAWSIRSA(s3region)))
+	return s3Client, nil
+}
+
+func (s *Service) isBucketDeleteRequired() bool {
+	bucketTagging, _ := s.S3Client.GetBucketTagging(&s3.GetBucketTaggingInput{
+		Bucket: aws.String(s.scope.Bucket().Name),
+	})
+
+	if len(bucketTagging.TagSet) == 0 {
+		s.scope.Info("Skipping deletion for external bucket")
+		return false
+	}
+
+	for _, t := range bucketTagging.TagSet {
+		k := "sigs.k8s.io/cluster-api-provider-aws/cluster/" + s.scope.InfraClusterName()
+		if *t.Key == k && *t.Value == "owned" {
+			s.scope.Info("found self owned bucket. Proceed for deletion")
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Service) createBucketIfNotExist(bucketName string) error {
+
+	// TODO: Add tag for CAPA created bucket and for external bucket
 	input := &s3.CreateBucketInput{
 		Bucket:          aws.String(bucketName),
 		ObjectOwnership: aws.String(s3.ObjectOwnershipBucketOwnerPreferred),
@@ -235,6 +301,24 @@ func (s *Service) createBucketIfNotExist(bucketName string) error {
 	if err == nil {
 		s.scope.Info("Created bucket", "bucket_name", bucketName)
 
+		s.scope.Info("Add bucket tagging to", "bucket_name", bucketName)
+		k := "sigs.k8s.io/cluster-api-provider-aws/cluster/" + s.scope.InfraClusterName()
+		tag := s3.Tag{
+			Key:   aws.String(k),
+			Value: aws.String("owned"),
+		}
+
+		tagSet := make([]*s3.Tag, 0)
+		tagSet = append(tagSet, &tag)
+		tInput := s3.PutBucketTaggingInput{
+			Bucket:  aws.String(bucketName),
+			Tagging: &s3.Tagging{TagSet: tagSet},
+		}
+
+		_, err = s.S3Client.PutBucketTagging(&tInput)
+		if err != nil {
+			return errors.Wrap(err, "updating S3 bucket with tag")
+		}
 		return nil
 	}
 
@@ -264,11 +348,28 @@ func (s *Service) ensureBucketAccess(bucketName string) error {
 	}
 
 	if _, err := s.S3Client.PutPublicAccessBlock(input); err != nil {
+		aerr, ok := err.(awserr.Error)
+		if !ok {
+			return errors.Wrap(err, "enabling bucket public access in different region")
+		}
+		if aerr.Code() == "BucketRegionError" {
+			// TODO: Should we try to modify access and policy for bucket or just avoid doing modification without errors
+			s.scope.Info("accessBucketFromDifferentRegion BucketRegionError")
+			s3Client, err := s.accessBucketFromDifferentRegion()
+			if err != nil {
+				s.scope.Info("Error while accessing bucket from different region ", "bucket: ", s.scope.Bucket().Name, err)
+				return errors.Wrap(err, "enabling bucket public access in different region")
+			}
+			_, err = s3Client.PutPublicAccessBlock(input)
+			if err == nil {
+				s.scope.V(1).Info("Accessing bucket from different region, PutPublicAccessBlock")
+				return nil
+			}
+			return nil
+		}
 		return errors.Wrap(err, "enabling bucket public access")
 	}
-
 	s.scope.V(4).Info("Updated bucket ACL to allow public access", "bucket_name", bucketName)
-
 	return nil
 }
 
@@ -284,6 +385,26 @@ func (s *Service) ensureBucketPolicy(bucketName string) error {
 	}
 
 	if _, err := s.S3Client.PutBucketPolicy(input); err != nil {
+		aerr, ok := err.(awserr.Error)
+		if !ok {
+			return errors.Wrap(err, "enabling bucket public access in different region")
+		}
+		if aerr.Code() == "BucketRegionError" {
+
+			// TODO: Should we try to modify access and policy for bucket or just avoid doing modification without errors
+			s.scope.Info("Access bucket from different region")
+			s3Client, err := s.accessBucketFromDifferentRegion()
+			if err != nil {
+				s.scope.Info("Error while accessing bucket from different region ", "bucket: ", s.scope.Bucket().Name, err)
+				return errors.Wrap(err, "enabling bucket public access in different region")
+			}
+			_, err = s3Client.PutBucketPolicy(input)
+			if err == nil {
+				s.scope.V(1).Info("Accessing bucket from different region PutBucketPolicy")
+				return nil
+			}
+			return nil
+		}
 		return errors.Wrap(err, "creating S3 bucket policy")
 	}
 

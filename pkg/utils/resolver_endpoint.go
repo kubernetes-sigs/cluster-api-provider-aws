@@ -110,7 +110,7 @@ func CustomEndpointResolverForAWS() endpoints.ResolverFunc {
 			}
 		}
 
-		log.V(0).Info("CustomEndpointResolverForAWS", "resolve: ", resolve)
+		log.V(1).Info("CustomEndpointResolverForAWS", "resolve: ", resolve)
 		return resolve, nil
 	}
 
@@ -146,4 +146,21 @@ func init() {
 	if isEnabled == "true" {
 		isFIPSEndpointEnabled = true
 	}
+}
+
+func CustomEndpointResolverForAWSIRSA(s3region string) endpoints.ResolverFunc {
+
+	log := klogr.New()
+	resolver := func(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
+
+		resolve, err := endpoints.DefaultResolver().EndpointFor(service, s3region, optFns...)
+		if err != nil {
+			return resolve, err
+		}
+
+		log.V(1).Info("CustomEndpointResolverForAWSIRSA", "resolve: ", resolve)
+		return resolve, nil
+	}
+
+	return resolver
 }
