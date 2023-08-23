@@ -95,7 +95,7 @@ func init() {
 // To add a new feature, define a key for it above and add it here.
 var defaultCAPAFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	// Every feature should be initiated here:
-	ROSA:                          {Default: false, PreRelease: featuregate.Beta},
+	ROSA:                          {Default: false, PreRelease: featuregate.Alpha},
 	EKS:                           {Default: true, PreRelease: featuregate.Beta},
 	EKSEnableIAM:                  {Default: false, PreRelease: featuregate.Beta},
 	EKSAllowAddRoles:              {Default: false, PreRelease: featuregate.Beta},

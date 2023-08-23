@@ -1,5 +1,5 @@
 /*
-Copyright 2022 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,30 +22,29 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-const (
-	// ManagedControlPlaneFinalizer allows the controller to clean up resources on delete.
-	ManagedControlPlaneFinalizer = "awsmanagedcontrolplane.controlplane.cluster.x-k8s.io"
-
-	// AWSManagedControlPlaneKind is the Kind of AWSManagedControlPlane.
-	AWSManagedControlPlaneKind = "AWSManagedControlPlane"
-)
-
 type RosaControlPlaneSpec struct { //nolint: maligned
+	// The Subnet IDs to use when installing the cluster.
+	// SubnetIDs should come in pairs; two per availability zone, one private and one public.
 	Subnets []string `json:"subnets"`
 
+	// Block of IP addresses used by OpenShift while installing the cluster, for example "10.0.0.0/16".
 	MachineCIDR *string `json:"machineCIDR"`
 
 	// The AWS Region the cluster lives in.
 	Region *string `json:"region"`
 
+	// Openshift version, for example "openshift-v4.12.15".
 	Version *string `json:"version"`
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
 
+	// AWS IAM roles used to perform credential requests by the openshift operators.
 	RolesRef AWSRolesRef `json:"rolesRef"`
-	OIDCID   *string     `json:"oidcID"`
+
+	// The ID of the OpenID Connect Provider.
+	OIDCID *string `json:"oidcID"`
 
 	// TODO: these are to satisfy ocm sdk. Explore how to drop them.
 	AccountID        *string `json:"accountID"`

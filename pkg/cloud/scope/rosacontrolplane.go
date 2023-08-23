@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,8 +18,6 @@ package scope
 
 import (
 	"context"
-	"fmt"
-	"time"
 
 	amazoncni "github.com/aws/amazon-vpc-cni-k8s/pkg/apis/crd/v1alpha1"
 	"github.com/pkg/errors"
@@ -29,12 +27,9 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -92,22 +87,6 @@ type ROSAControlPlaneScope struct {
 	ControlPlane *rosacontrolplanev1.ROSAControlPlane
 }
 
-// RemoteClient returns the Kubernetes client for connecting to the workload cluster.
-func (s *ROSAControlPlaneScope) RemoteClient() (client.Client, error) {
-	clusterKey := client.ObjectKey{
-		Name:      s.Name(),
-		Namespace: s.Namespace(),
-	}
-
-	restConfig, err := remote.RESTConfig(context.Background(), s.ControlPlane.Name, s.Client, clusterKey)
-	if err != nil {
-		return nil, fmt.Errorf("getting remote rest config for %s/%s: %w", s.Namespace(), s.Name(), err)
-	}
-	restConfig.Timeout = 1 * time.Minute
-
-	return client.New(restConfig, client.Options{Scheme: scheme})
-}
-
 // Name returns the CAPI cluster name.
 func (s *ROSAControlPlaneScope) Name() string {
 	return s.Cluster.Name
@@ -129,20 +108,7 @@ func (s *ROSAControlPlaneScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.ControlPlane,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-			infrav1.VpcReadyCondition,
-			infrav1.SubnetsReadyCondition,
-			infrav1.ClusterSecurityGroupsReadyCondition,
-			infrav1.InternetGatewayReadyCondition,
-			infrav1.NatGatewaysReadyCondition,
-			infrav1.RouteTablesReadyCondition,
-			infrav1.BastionHostReadyCondition,
-			infrav1.EgressOnlyInternetGatewayReadyCondition,
-			ekscontrolplanev1.EKSControlPlaneCreatingCondition,
-			ekscontrolplanev1.EKSControlPlaneReadyCondition,
-			ekscontrolplanev1.EKSControlPlaneUpdatingCondition,
-			ekscontrolplanev1.IAMControlPlaneRolesReadyCondition,
-		}})
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{}})
 }
 
 // Close closes the current scope persisting the control plane configuration and status.
