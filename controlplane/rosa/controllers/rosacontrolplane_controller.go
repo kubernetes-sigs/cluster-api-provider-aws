@@ -35,8 +35,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -74,14 +74,14 @@ func (r *ROSAControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr c
 
 	if err = c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, rosaControlPlane.GroupVersionKind(), mgr.GetClient(), &infrav1.ROSACluster{})),
+		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, rosaControlPlane.GroupVersionKind(), mgr.GetClient(), &expinfrav1.ROSACluster{})),
 		predicates.ClusterUnpausedAndInfrastructureReady(log.GetLogger()),
 	); err != nil {
 		return fmt.Errorf("failed adding a watch for ready clusters: %w", err)
 	}
 
 	if err = c.Watch(
-		&source.Kind{Type: &infrav1.ROSACluster{}},
+		&source.Kind{Type: &expinfrav1.ROSACluster{}},
 		handler.EnqueueRequestsFromMapFunc(r.rosaClusterToROSAControlPlane(ctx, log)),
 	); err != nil {
 		return fmt.Errorf("failed adding a watch for ROSACluster")
@@ -334,7 +334,7 @@ func (r *ROSAControlPlaneReconciler) reconcileDelete(_ context.Context, rosaScop
 
 func (r *ROSAControlPlaneReconciler) rosaClusterToROSAControlPlane(ctx context.Context, log *logger.Logger) handler.MapFunc {
 	return func(o client.Object) []ctrl.Request {
-		rosaCluster, ok := o.(*infrav1.ROSACluster)
+		rosaCluster, ok := o.(*expinfrav1.ROSACluster)
 		if !ok {
 			log.Error(fmt.Errorf("expected a ROSACluster but got a %T", o), "Expected ROSACluster")
 			return nil

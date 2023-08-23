@@ -34,6 +34,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
@@ -60,7 +61,7 @@ func (r *ROSAClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	log.Info("Reconciling ROSACluster")
 
 	// Fetch the ROSACluster instance
-	rosaCluster := &infrav1.ROSACluster{}
+	rosaCluster := &expinfrav1.ROSACluster{}
 	err := r.Get(ctx, req.NamespacedName, rosaCluster)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -120,7 +121,7 @@ func (r *ROSAClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 func (r *ROSAClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := logger.FromContext(ctx)
 
-	rosaCluster := &infrav1.ROSACluster{}
+	rosaCluster := &expinfrav1.ROSACluster{}
 
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
@@ -135,7 +136,7 @@ func (r *ROSAClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 	// Add a watch for clusterv1.Cluster unpaise
 	if err = controller.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("ROSACluster"), mgr.GetClient(), &infrav1.ROSACluster{})),
+		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("ROSACluster"), mgr.GetClient(), &expinfrav1.ROSACluster{})),
 		predicates.ClusterUnpaused(log.GetLogger()),
 	); err != nil {
 		return fmt.Errorf("failed adding a watch for ready clusters: %w", err)
