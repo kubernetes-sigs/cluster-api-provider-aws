@@ -50,6 +50,12 @@ spec:
                 description: 'TODO: these are to satisfy ocm sdk. Explore how to drop
                   them.'
                 type: string
+              availabilityZones:
+                description: AWS AvailabilityZones of the worker nodes should match
+                  the AvailabilityZones of the Subnets.
+                items:
+                  type: string
+                type: array
               controlPlaneEndpoint:
                 description: ControlPlaneEndpoint represents the endpoint used to
                   communicate with the control plane.
@@ -70,15 +76,18 @@ spec:
               installerRoleARN:
                 type: string
               machineCIDR:
+                description: Block of IP addresses used by OpenShift while installing
+                  the cluster, for example "10.0.0.0/16".
                 type: string
               oidcID:
+                description: The ID of the OpenID Connect Provider.
                 type: string
               region:
                 description: The AWS Region the cluster lives in.
                 type: string
               rolesRef:
-                description: AWSRolesRef contains references to various AWS IAM roles
-                  required for operators to make calls against the AWS API.
+                description: AWS IAM roles used to perform credential requests by
+                  the openshift operators.
                 properties:
                   controlPlaneOperatorARN:
                     description: "ControlPlaneOperatorARN  is an ARN value referencing
@@ -230,15 +239,20 @@ spec:
                 - storageARN
                 type: object
               subnets:
+                description: The Subnet IDs to use when installing the cluster. SubnetIDs
+                  should come in pairs; two per availability zone, one private and
+                  one public.
                 items:
                   type: string
                 type: array
               supportRoleARN:
                 type: string
               version:
+                description: Openshift version, for example "openshift-v4.12.15".
                 type: string
             required:
             - accountID
+            - availabilityZones
             - creatorARN
             - installerRoleARN
             - machineCIDR

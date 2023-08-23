@@ -108,6 +108,11 @@ func (in *RosaControlPlaneSpec) DeepCopyInto(out *RosaControlPlaneSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.AvailabilityZones != nil {
+		in, out := &in.AvailabilityZones, &out.AvailabilityZones
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.MachineCIDR != nil {
 		in, out := &in.MachineCIDR, &out.MachineCIDR
 		*out = new(string)

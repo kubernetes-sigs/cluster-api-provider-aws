@@ -266,7 +266,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	clusterBuilder = clusterBuilder.AWS(awsBuilder)
 
 	clusterNodesBuilder := cmv1.NewClusterNodes()
-	clusterNodesBuilder = clusterNodesBuilder.AvailabilityZones("us-west-2a")
+	clusterNodesBuilder = clusterNodesBuilder.AvailabilityZones(rosaScope.ControlPlane.Spec.AvailabilityZones...)
 	clusterBuilder = clusterBuilder.Nodes(clusterNodesBuilder)
 
 	clusterProperties := map[string]string{}

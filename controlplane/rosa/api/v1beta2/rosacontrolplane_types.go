@@ -27,6 +27,10 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// SubnetIDs should come in pairs; two per availability zone, one private and one public.
 	Subnets []string `json:"subnets"`
 
+	// AWS AvailabilityZones of the worker nodes
+	// should match the AvailabilityZones of the Subnets.
+	AvailabilityZones []string `json:"availabilityZones"`
+
 	// Block of IP addresses used by OpenShift while installing the cluster, for example "10.0.0.0/16".
 	MachineCIDR *string `json:"machineCIDR"`
 
