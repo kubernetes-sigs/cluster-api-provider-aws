@@ -39,6 +39,7 @@ import (
 const (
 	defaultVPCCidr             = "10.0.0.0/16"
 	defaultIpamV4NetmaskLength = 16
+	defaultIpamV6NetmaskLength = 56
 )
 
 func (s *Service) reconcileVPC() error {
@@ -232,15 +233,31 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 		},
 	}
 
-	// setup BYOIP
-	if s.scope.VPC().IsIPv6Enabled() && s.scope.VPC().IPv6.CidrBlock != "" {
-		input.Ipv6CidrBlock = aws.String(s.scope.VPC().IPv6.CidrBlock)
-		input.Ipv6Pool = aws.String(s.scope.VPC().IPv6.PoolID)
-		input.AmazonProvidedIpv6CidrBlock = aws.Bool(false)
-	} else {
-		input.AmazonProvidedIpv6CidrBlock = aws.Bool(s.scope.VPC().IsIPv6Enabled())
+	// IPv6-specific configuration
+	if s.scope.VPC().IsIPv6Enabled() {
+		switch {
+		case s.scope.VPC().IPv6.CidrBlock != "":
+			input.Ipv6CidrBlock = aws.String(s.scope.VPC().IPv6.CidrBlock)
+			input.Ipv6Pool = aws.String(s.scope.VPC().IPv6.PoolID)
+			input.AmazonProvidedIpv6CidrBlock = aws.Bool(false)
+		case s.scope.VPC().IPv6.IPAMPool != nil:
+			ipamPoolID, err := s.getIPAMPoolID()
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to get IPAM Pool ID")
+			}
+
+			if s.scope.VPC().IPv6.IPAMPool.NetmaskLength == 0 {
+				s.scope.VPC().IPv6.IPAMPool.NetmaskLength = defaultIpamV6NetmaskLength
+			}
+
+			input.Ipv6IpamPoolId = ipamPoolID
+			input.Ipv6NetmaskLength = aws.Int64(s.scope.VPC().IPv6.IPAMPool.NetmaskLength)
+		default:
+			input.AmazonProvidedIpv6CidrBlock = aws.Bool(s.scope.VPC().IsIPv6Enabled())
+		}
 	}
 
+	// IPv4-specific configuration
 	if s.scope.VPC().IPAMPool != nil {
 		ipamPoolID, err := s.getIPAMPoolID()
 		if err != nil {
