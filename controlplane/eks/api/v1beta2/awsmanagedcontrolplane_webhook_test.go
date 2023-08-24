@@ -432,6 +432,44 @@ func TestWebhookCreateIPv6Details(t *testing.T) {
 			},
 			err: "poolId cannot be empty if cidrBlock is set",
 		},
+		{
+			name:        "both ipv6 poolId and ipamPool are set",
+			kubeVersion: "v1.22",
+			networkSpec: infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					IPv6: &infrav1.IPv6{
+						PoolID:   "not-empty",
+						IPAMPool: &infrav1.IPAMPool{},
+					},
+				},
+			},
+			err: "poolId and ipamPool cannot be used together",
+		},
+		{
+			name:        "both ipv6 cidrBlock and ipamPool are set",
+			kubeVersion: "v1.22",
+			networkSpec: infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					IPv6: &infrav1.IPv6{
+						CidrBlock: "not-empty",
+						IPAMPool:  &infrav1.IPAMPool{},
+					},
+				},
+			},
+			err: "cidrBlock and ipamPool cannot be used together",
+		},
+		{
+			name:        "Id or name are not set for IPAMPool",
+			kubeVersion: "v1.22",
+			networkSpec: infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					IPv6: &infrav1.IPv6{
+						IPAMPool: &infrav1.IPAMPool{},
+					},
+				},
+			},
+			err: "ipamPool must have either id or name",
+		},
 	}
 
 	for _, tc := range tests {

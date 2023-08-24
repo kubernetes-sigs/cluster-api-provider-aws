@@ -86,3 +86,7 @@ func Convert_v1beta2_IngressRule_To_v1beta1_IngressRule(in *v1beta2.IngressRule,
 func Convert_v1beta2_VPCSpec_To_v1beta1_VPCSpec(in *v1beta2.VPCSpec, out *VPCSpec, s conversion.Scope) error {
 	return autoConvert_v1beta2_VPCSpec_To_v1beta1_VPCSpec(in, out, s)
 }
+
+func Convert_v1beta2_IPv6_To_v1beta1_IPv6(in *v1beta2.IPv6, out *IPv6, s conversion.Scope) error {
+	return autoConvert_v1beta2_IPv6_To_v1beta1_IPv6(in, out, s)
+}

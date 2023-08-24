@@ -62,6 +62,14 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 		restoreIPAMPool(restored.Spec.NetworkSpec.VPC.IPAMPool, dst.Spec.NetworkSpec.VPC.IPAMPool)
 	}
 
+	if restored.Spec.NetworkSpec.VPC.IsIPv6Enabled() && restored.Spec.NetworkSpec.VPC.IPv6.IPAMPool != nil {
+		if dst.Spec.NetworkSpec.VPC.IPv6.IPAMPool == nil {
+			dst.Spec.NetworkSpec.VPC.IPv6.IPAMPool = &infrav2.IPAMPool{}
+		}
+
+		restoreIPAMPool(restored.Spec.NetworkSpec.VPC.IPv6.IPAMPool, dst.Spec.NetworkSpec.VPC.IPv6.IPAMPool)
+	}
+
 	return nil
 }
 

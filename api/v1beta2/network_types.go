@@ -233,16 +233,24 @@ type NetworkSpec struct {
 // IPv6 contains ipv6 specific settings for the network.
 type IPv6 struct {
 	// CidrBlock is the CIDR block provided by Amazon when VPC has enabled IPv6.
+	// Mutually exclusive with IPAMPool.
 	// +optional
 	CidrBlock string `json:"cidrBlock,omitempty"`
 
 	// PoolID is the IP pool which must be defined in case of BYO IP is defined.
+	// Must be specified if CidrBlock is set.
+	// Mutually exclusive with IPAMPool.
 	// +optional
 	PoolID string `json:"poolId,omitempty"`
 
 	// EgressOnlyInternetGatewayID is the id of the egress only internet gateway associated with an IPv6 enabled VPC.
 	// +optional
 	EgressOnlyInternetGatewayID *string `json:"egressOnlyInternetGatewayId,omitempty"`
+
+	// IPAMPool defines the IPAMv6 pool to be used for VPC.
+	// Mutually exclusive with CidrBlock.
+	// +optional
+	IPAMPool *IPAMPool `json:"ipamPool,omitempty"`
 }
 
 // IPAMPool defines the IPAM pool to be used for VPC.
@@ -264,9 +272,11 @@ type VPCSpec struct {
 
 	// CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
 	// Defaults to 10.0.0.0/16.
+	// Mutually exclusive with IPAMPool.
 	CidrBlock string `json:"cidrBlock,omitempty"`
 
-	// IPAMPool defines the IPAM pool to be used for VPC.
+	// IPAMPool defines the IPAMv4 pool to be used for VPC.
+	// Mutually exclusive with CidrBlock.
 	IPAMPool *IPAMPool `json:"ipamPool,omitempty"`
 
 	// IPv6 contains ipv6 specific settings for the network. Supported only in managed clusters.
