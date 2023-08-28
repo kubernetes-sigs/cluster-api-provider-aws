@@ -69,7 +69,27 @@ func (s *Service) deleteResources(ctx context.Context) error {
 		return fmt.Errorf("collecting resources: %w", err)
 	}
 
-	if deleteErr := s.cleanupFuncs.Execute(ctx, resources); deleteErr != nil {
+	cleanupFuncs := s.cleanupFuncs
+
+	if val, found := annotations.Get(s.scope.InfraCluster(), expinfrav1.ExternalResourceGCTasksAnnotation); found {
+		var gcTaskToFunc = map[string]ResourceCleanupFunc{
+			"load-balancer":  s.deleteLoadBalancers,
+			"target-group":   s.deleteTargetGroups,
+			"security-group": s.deleteSecurityGroups,
+		}
+
+		cleanupFuncs = ResourceCleanupFuncs{}
+
+		tasks := strings.Split(val, ",")
+
+		// TODO: add some validation here.
+
+		for _, task := range tasks {
+			cleanupFuncs = append(cleanupFuncs, gcTaskToFunc[task])
+		}
+	}
+
+	if deleteErr := cleanupFuncs.Execute(ctx, resources); deleteErr != nil {
 		return fmt.Errorf("deleting resources: %w", deleteErr)
 	}
 
