@@ -240,11 +240,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*apiv1beta1.NetworkStatus)(nil), (*apiv1alpha4.NetworkStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_NetworkStatus_To_v1alpha4_NetworkStatus(a.(*apiv1beta1.NetworkStatus), b.(*apiv1alpha4.NetworkStatus), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddConversionFunc((*apiv1beta1.OIDCProviderStatus)(nil), (*OIDCProviderStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_OIDCProviderStatus_To_v1alpha4_OIDCProviderStatus(a.(*apiv1beta1.OIDCProviderStatus), b.(*OIDCProviderStatus), scope)
 	}); err != nil {
@@ -463,7 +458,7 @@ func Convert_v1alpha4_AWSManagedControlPlaneStatus_To_v1beta1_AWSManagedControlP
 }
 
 func autoConvert_v1beta1_AWSManagedControlPlaneStatus_To_v1alpha4_AWSManagedControlPlaneStatus(in *v1beta1.AWSManagedControlPlaneStatus, out *AWSManagedControlPlaneStatus, s conversion.Scope) error {
-	if err := Convert_v1beta1_NetworkStatus_To_v1alpha4_NetworkStatus(&in.Network, &out.Network, s); err != nil {
+	if err := apiv1alpha4.Convert_v1beta1_NetworkStatus_To_v1alpha4_NetworkStatus(&in.Network, &out.Network, s); err != nil {
 		return err
 	}
 	if in.FailureDomains != nil {

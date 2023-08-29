@@ -56,6 +56,7 @@ func (r *AWSCluster) ValidateCreate() error {
 	allErrs = append(allErrs, r.validateSSHKeyName()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 	allErrs = append(allErrs, r.Spec.S3Bucket.Validate()...)
+	allErrs = append(allErrs, r.validateIngressRules()...)
 
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
@@ -177,4 +178,20 @@ func (r *AWSCluster) Default() {
 
 func (r *AWSCluster) validateSSHKeyName() field.ErrorList {
 	return validateSSHKeyName(r.Spec.SSHKeyName)
+}
+
+func (r *AWSCluster) validateIngressRules() field.ErrorList {
+	var allErrs field.ErrorList
+
+	if r.Spec.ControlPlaneLoadBalancer != nil {
+		return allErrs
+	}
+
+	for _, rule := range r.Spec.ControlPlaneLoadBalancer.IngressRules {
+		if rule.CidrBlocks != nil && (rule.SourceSecurityGroupIDs != nil || rule.SourceSecurityGroupRoles != nil) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("ingressRules"), r.Spec.ControlPlaneLoadBalancer.IngressRules, "CIDR blocks and security group IDs or security group roles cannot be used together"))
+		}
+	}
+
+	return allErrs
 }

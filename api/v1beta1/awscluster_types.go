@@ -200,6 +200,11 @@ type AWSLoadBalancerSpec struct {
 	// This is optional - if not provided new security groups will be created for the load balancer
 	// +optional
 	AdditionalSecurityGroups []string `json:"additionalSecurityGroups,omitempty"`
+
+	// IngressRules sets the additional ingress rules for the control plane load balancer. If no source security group ids are specified, the
+	// default control plane security group will be used.
+	// +optional
+	IngressRules []IngressRule `json:"ingressRules,omitempty"`
 }
 
 // AWSClusterStatus defines the observed state of AWSCluster.

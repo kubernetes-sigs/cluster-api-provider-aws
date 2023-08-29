@@ -17,6 +17,7 @@ limitations under the License.
 package securitygroup
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -401,6 +402,444 @@ func TestControlPlaneSecurityGroupNotOpenToAnyCIDR(t *testing.T) {
 	}
 }
 
+func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = infrav1.AddToScheme(scheme)
+
+	testCases := []struct {
+		name                         string
+		controlPlaneLBSpec           *infrav1.AWSLoadBalancerSpec
+		expectedAdditionalIngresRule infrav1.IngressRule
+	}{
+		{
+			name: "default control plane security group is used",
+			controlPlaneLBSpec: &infrav1.AWSLoadBalancerSpec{
+				IngressRules: []infrav1.IngressRule{
+					{
+						Description: "test",
+						Protocol:    infrav1.SecurityGroupProtocolTCP,
+						FromPort:    9345,
+						ToPort:      9345,
+					},
+				},
+			},
+			expectedAdditionalIngresRule: infrav1.IngressRule{
+				Description:            "test",
+				Protocol:               infrav1.SecurityGroupProtocolTCP,
+				FromPort:               9345,
+				ToPort:                 9345,
+				SourceSecurityGroupIDs: []string{"cp-sg-id"},
+			},
+		},
+		{
+			name: "custom security group id is used",
+			controlPlaneLBSpec: &infrav1.AWSLoadBalancerSpec{
+				IngressRules: []infrav1.IngressRule{
+					{
+						Description:            "test",
+						Protocol:               infrav1.SecurityGroupProtocolTCP,
+						FromPort:               9345,
+						ToPort:                 9345,
+						SourceSecurityGroupIDs: []string{"test"},
+					},
+				},
+			},
+			expectedAdditionalIngresRule: infrav1.IngressRule{
+				Description:            "test",
+				Protocol:               infrav1.SecurityGroupProtocolTCP,
+				FromPort:               9345,
+				ToPort:                 9345,
+				SourceSecurityGroupIDs: []string{"test"},
+			},
+		},
+		{
+			name: "another security group role is used",
+			controlPlaneLBSpec: &infrav1.AWSLoadBalancerSpec{
+				IngressRules: []infrav1.IngressRule{
+					{
+						Description:              "test",
+						Protocol:                 infrav1.SecurityGroupProtocolTCP,
+						FromPort:                 9345,
+						ToPort:                   9345,
+						SourceSecurityGroupRoles: []infrav1.SecurityGroupRole{infrav1.SecurityGroupNode},
+					},
+				},
+			},
+			expectedAdditionalIngresRule: infrav1.IngressRule{
+				Description:            "test",
+				Protocol:               infrav1.SecurityGroupProtocolTCP,
+				FromPort:               9345,
+				ToPort:                 9345,
+				SourceSecurityGroupIDs: []string{"node-sg-id"},
+			},
+		},
+		{
+			name: "another security group role and a custom security group id is used",
+			controlPlaneLBSpec: &infrav1.AWSLoadBalancerSpec{
+				IngressRules: []infrav1.IngressRule{
+					{
+						Description:              "test",
+						Protocol:                 infrav1.SecurityGroupProtocolTCP,
+						FromPort:                 9345,
+						ToPort:                   9345,
+						SourceSecurityGroupIDs:   []string{"test"},
+						SourceSecurityGroupRoles: []infrav1.SecurityGroupRole{infrav1.SecurityGroupNode},
+					},
+				},
+			},
+			expectedAdditionalIngresRule: infrav1.IngressRule{
+				Description:            "test",
+				Protocol:               infrav1.SecurityGroupProtocolTCP,
+				FromPort:               9345,
+				ToPort:                 9345,
+				SourceSecurityGroupIDs: []string{"test", "node-sg-id"},
+			},
+		},
+		{
+			name: "only ingressRules are specified",
+			controlPlaneLBSpec: &infrav1.AWSLoadBalancerSpec{
+				IngressRules: []infrav1.IngressRule{
+					{
+						Description: "test",
+						Protocol:    infrav1.SecurityGroupProtocolTCP,
+						FromPort:    22,
+						ToPort:      22,
+						CidrBlocks:  []string{"1.2.3.4"},
+					},
+				},
+			},
+			expectedAdditionalIngresRule: infrav1.IngressRule{
+				Description:            "test",
+				Protocol:               infrav1.SecurityGroupProtocolTCP,
+				FromPort:               22,
+				ToPort:                 22,
+				SourceSecurityGroupIDs: []string{"cp-sg-id"},
+				CidrBlocks:             []string{"1.2.3.4"},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cs, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client: fake.NewClientBuilder().WithScheme(scheme).Build(),
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
+				},
+				AWSCluster: &infrav1.AWSCluster{
+					Spec: infrav1.AWSClusterSpec{
+						ControlPlaneLoadBalancer: tc.controlPlaneLBSpec,
+					},
+					Status: infrav1.AWSClusterStatus{
+						Network: infrav1.NetworkStatus{
+							SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+								infrav1.SecurityGroupControlPlane: {
+									ID: "cp-sg-id",
+								},
+								infrav1.SecurityGroupNode: {
+									ID: "node-sg-id",
+								},
+							},
+						},
+					},
+				},
+			})
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+
+			s := NewService(cs, testSecurityGroupRoles)
+			rules, err := s.getSecurityGroupIngressRules(infrav1.SecurityGroupControlPlane)
+			if err != nil {
+				t.Fatalf("Failed to lookup controlplane security group ingress rules: %v", err)
+			}
+
+			found := false
+			for _, r := range rules {
+				if r.Description == "test" {
+					found = true
+
+					if r.Protocol != tc.expectedAdditionalIngresRule.Protocol {
+						t.Fatalf("Expected protocol %s, got %s", tc.expectedAdditionalIngresRule.Protocol, r.Protocol)
+					}
+
+					if r.FromPort != tc.expectedAdditionalIngresRule.FromPort {
+						t.Fatalf("Expected from port %d, got %d", tc.expectedAdditionalIngresRule.FromPort, r.FromPort)
+					}
+
+					if r.ToPort != tc.expectedAdditionalIngresRule.ToPort {
+						t.Fatalf("Expected to port %d, got %d", tc.expectedAdditionalIngresRule.ToPort, r.ToPort)
+					}
+
+					if !reflect.DeepEqual(r.SourceSecurityGroupIDs, tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs) {
+						t.Fatalf("Expected source security group IDs %v, got %v", tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs, r.SourceSecurityGroupIDs)
+					}
+
+					if !reflect.DeepEqual(r.CidrBlocks, tc.expectedAdditionalIngresRule.CidrBlocks) {
+						t.Fatalf("Expected cidrBlocks %v, got %v", tc.expectedAdditionalIngresRule.CidrBlocks, r.CidrBlocks)
+					}
+				}
+			}
+
+			if !found {
+				t.Fatal("Additional ingress rule was not found")
+			}
+		})
+	}
+}
+
+func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = infrav1.AddToScheme(scheme)
+
+	testCases := []struct {
+		name                string
+		awsCluster          *infrav1.AWSCluster
+		expectedIngresRules infrav1.IngressRules
+	}{
+		{
+			name: "when no ingress rules are passed and nat gateway IPs are not available, the default is set",
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{},
+			},
+			expectedIngresRules: infrav1.IngressRules{
+				infrav1.IngressRule{
+					Description: "Kubernetes API",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{services.AnyIPv4CidrBlock},
+				},
+			},
+		},
+		{
+			name: "when no ingress rules are passed, allow the Nat Gateway IPs and default to allow all",
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						NatGatewaysIPs: []string{"1.2.3.4"},
+					},
+				},
+			},
+			expectedIngresRules: infrav1.IngressRules{
+				infrav1.IngressRule{
+					Description: "Kubernetes API",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"1.2.3.4"},
+				},
+				infrav1.IngressRule{
+					Description: "Kubernetes API",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{services.AnyIPv4CidrBlock},
+				},
+			},
+		},
+		{
+			name: "defined rules are used",
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+						IngressRules: infrav1.IngressRules{
+							{
+								Description: "My custom ingress rule",
+								Protocol:    infrav1.SecurityGroupProtocolTCP,
+								FromPort:    1234,
+								ToPort:      1234,
+								CidrBlocks:  []string{"172.126.1.1/0"},
+							},
+						},
+					},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						NatGatewaysIPs: []string{"1.2.3.4"},
+					},
+				},
+			},
+			expectedIngresRules: infrav1.IngressRules{
+				infrav1.IngressRule{
+					Description: "Kubernetes API",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"1.2.3.4"},
+				},
+				infrav1.IngressRule{
+					Description: "My custom ingress rule",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    1234,
+					ToPort:      1234,
+					CidrBlocks:  []string{"172.126.1.1/0"},
+				},
+			},
+		},
+		{
+			name: "when no ingress rules are passed while using internal LB",
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+						Scheme: &infrav1.ClassicELBSchemeInternal,
+					},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+						},
+					},
+				},
+			},
+			expectedIngresRules: infrav1.IngressRules{
+				infrav1.IngressRule{
+					Description: "Kubernetes API",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"10.0.0.0/16"},
+				},
+				infrav1.IngressRule{
+					Description: "Kubernetes API",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{services.AnyIPv4CidrBlock},
+				},
+			},
+		},
+		{
+			name: "defined rules are used while using internal LB",
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+						IngressRules: infrav1.IngressRules{
+							{
+								Description: "My custom ingress rule",
+								Protocol:    infrav1.SecurityGroupProtocolTCP,
+								FromPort:    1234,
+								ToPort:      1234,
+								CidrBlocks:  []string{"172.126.1.1/0"},
+							},
+						},
+						Scheme: &infrav1.ClassicELBSchemeInternal,
+					},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+						},
+					},
+				},
+			},
+			expectedIngresRules: infrav1.IngressRules{
+				infrav1.IngressRule{
+					Description: "Kubernetes API",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"10.0.0.0/16"},
+				},
+				infrav1.IngressRule{
+					Description: "My custom ingress rule",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    1234,
+					ToPort:      1234,
+					CidrBlocks:  []string{"172.126.1.1/0"},
+				},
+			},
+		},
+		{
+			name: "defined cidrBlock with port 6443 is used",
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+						IngressRules: infrav1.IngressRules{
+							{
+								Description: "My custom ingress rule",
+								Protocol:    infrav1.SecurityGroupProtocolTCP,
+								FromPort:    6443,
+								ToPort:      6443,
+								CidrBlocks:  []string{"172.126.1.1/0"},
+							},
+						},
+					},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						NatGatewaysIPs: []string{"1.2.3.4"},
+					},
+				},
+			},
+			expectedIngresRules: infrav1.IngressRules{
+				infrav1.IngressRule{
+					Description: "Kubernetes API",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"1.2.3.4"},
+				},
+				infrav1.IngressRule{
+					Description: "My custom ingress rule",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"172.126.1.1/0"},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cs, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client: fake.NewClientBuilder().WithScheme(scheme).Build(),
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
+				},
+				AWSCluster: tc.awsCluster,
+			})
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+
+			s := NewService(cs, testSecurityGroupRoles)
+			rules, err := s.getSecurityGroupIngressRules(infrav1.SecurityGroupAPIServerLB)
+			if err != nil {
+				t.Fatalf("Failed to lookup controlplane load balancer security group ingress rules: %v", err)
+			}
+
+			g := NewGomegaWithT(t)
+			g.Expect(rules).To(Equal(tc.expectedIngresRules))
+		})
+	}
+}
+
 func TestDeleteSecurityGroups(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -660,12 +1099,217 @@ func TestIngressRulesFromSDKType(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Intermixed rules for same port and protocol",
+			input: &ec2.IpPermission{
+				IpProtocol: aws.String("tcp"),
+				FromPort:   aws.Int64(6443),
+				ToPort:     aws.Int64(6443),
+				IpRanges: []*ec2.IpRange{
+					{
+						CidrIp:      aws.String("0.0.0.0/0"),
+						Description: aws.String("Allow all"),
+					},
+					{
+						CidrIp:      aws.String("18.222.40.247/32"),
+						Description: aws.String("K8s-natRule"),
+					},
+				},
+				UserIdGroupPairs: []*ec2.UserIdGroupPair{
+					{
+						UserId:      aws.String("aws-user-id-1"),
+						GroupId:     aws.String("sg-source-1"),
+						Description: aws.String("sg-cp-1"),
+					},
+				},
+			},
+			expected: infrav1.IngressRules{
+				{
+					Description: "Allow all",
+					Protocol:    "tcp",
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"0.0.0.0/0"},
+				},
+				{
+					Description: "K8s-natRule",
+					Protocol:    "tcp",
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"18.222.40.247/32"},
+				},
+				{
+					Description:            "sg-cp-1",
+					Protocol:               "tcp",
+					FromPort:               6443,
+					ToPort:                 6443,
+					CidrBlocks:             nil,
+					SourceSecurityGroupIDs: []string{"sg-source-1"},
+				},
+			},
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewGomegaWithT(t)
 			output := ingressRulesFromSDKType(tc.input)
+
+			g.Expect(output).To(Equal(tc.expected))
+		})
+	}
+}
+
+func TestIngressRulesToSDKType(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    infrav1.IngressRules
+		expected []*ec2.IpPermission
+	}{
+		{
+			name: "Intermixed rules for same port and protocol",
+			input: infrav1.IngressRules{
+				{
+					Description: "Allow all",
+					Protocol:    "tcp",
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"0.0.0.0/0"},
+				},
+				{
+					Description: "K8s-natRule",
+					Protocol:    "tcp",
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"18.222.40.247/32"},
+				},
+				{
+					Description:            "sg-cp-1",
+					Protocol:               "tcp",
+					FromPort:               6443,
+					ToPort:                 6443,
+					CidrBlocks:             nil,
+					SourceSecurityGroupIDs: []string{"sg-source-1"},
+				},
+			},
+			expected: []*ec2.IpPermission{
+				{
+					IpProtocol: aws.String("tcp"),
+					FromPort:   aws.Int64(6443),
+					ToPort:     aws.Int64(6443),
+					IpRanges: []*ec2.IpRange{
+						{
+							CidrIp:      aws.String("0.0.0.0/0"),
+							Description: aws.String("Allow all"),
+						},
+						{
+							CidrIp:      aws.String("18.222.40.247/32"),
+							Description: aws.String("K8s-natRule"),
+						},
+					},
+					UserIdGroupPairs: []*ec2.UserIdGroupPair{
+						{
+							//UserId:      aws.String("aws-user-id-1"),
+							GroupId:     aws.String("sg-source-1"),
+							Description: aws.String("sg-cp-1"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Intermixed rules for different port and protocol",
+			input: infrav1.IngressRules{
+				{
+					Description: "Allow all",
+					Protocol:    "tcp",
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"0.0.0.0/0"},
+				},
+				{
+					Description: "K8s-natRule",
+					Protocol:    "tcp",
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"18.222.40.247/32"},
+				},
+				{
+					Description: "K8s-natRule",
+					Protocol:    "tcp",
+					FromPort:    1234,
+					ToPort:      1234,
+					CidrBlocks:  []string{"18.222.40.247/32"},
+				},
+				{
+					Description:            "sg-cp-1",
+					Protocol:               "tcp",
+					FromPort:               445,
+					ToPort:                 445,
+					CidrBlocks:             nil,
+					SourceSecurityGroupIDs: []string{"sg-source-1"},
+				},
+				{
+					Description:            "sg-cp-2",
+					Protocol:               "tcp",
+					FromPort:               6443,
+					ToPort:                 6443,
+					CidrBlocks:             nil,
+					SourceSecurityGroupIDs: []string{"sg-source-1"},
+				},
+			},
+			expected: []*ec2.IpPermission{
+				{
+					IpProtocol: aws.String("tcp"),
+					FromPort:   aws.Int64(6443),
+					ToPort:     aws.Int64(6443),
+					IpRanges: []*ec2.IpRange{
+						{
+							CidrIp:      aws.String("0.0.0.0/0"),
+							Description: aws.String("Allow all"),
+						},
+						{
+							CidrIp:      aws.String("18.222.40.247/32"),
+							Description: aws.String("K8s-natRule"),
+						},
+					},
+					UserIdGroupPairs: []*ec2.UserIdGroupPair{
+						{
+							//UserId:      aws.String("aws-user-id-1"),
+							GroupId:     aws.String("sg-source-1"),
+							Description: aws.String("sg-cp-2"),
+						},
+					},
+				},
+				{
+					IpProtocol: aws.String("tcp"),
+					FromPort:   aws.Int64(1234),
+					ToPort:     aws.Int64(1234),
+					IpRanges: []*ec2.IpRange{
+						{
+							CidrIp:      aws.String("18.222.40.247/32"),
+							Description: aws.String("K8s-natRule"),
+						},
+					},
+				},
+				{
+					IpProtocol: aws.String("tcp"),
+					FromPort:   aws.Int64(445),
+					ToPort:     aws.Int64(445),
+					UserIdGroupPairs: []*ec2.UserIdGroupPair{
+						{
+							GroupId:     aws.String("sg-source-1"),
+							Description: aws.String("sg-cp-1"),
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewGomegaWithT(t)
+			output := ingressRulesToSDKType(tc.input)
 
 			g.Expect(output).To(Equal(tc.expected))
 		})
