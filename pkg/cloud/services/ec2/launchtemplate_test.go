@@ -75,9 +75,7 @@ users:
 `
 )
 
-var (
-	testUserDataHash = userdata.ComputeHash([]byte(testUserData))
-)
+var testUserDataHash = userdata.ComputeHash([]byte(testUserData))
 
 func TestGetLaunchTemplate(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
@@ -462,6 +460,30 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 			want:    true,
 			wantErr: false,
 		},
+		{
+			name: "new launch template instance metadata options, requiring IMDSv2",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+					HTTPPutResponseHopLimit: 1,
+					HTTPTokens:              infrav1.HTTPTokensStateRequired,
+				},
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{},
+			want:     true,
+			wantErr:  false,
+		},
+		{
+			name:     "new launch template instance metadata options, removing IMDSv2 requirement",
+			incoming: &expinfrav1.AWSLaunchTemplate{},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+					HTTPPutResponseHopLimit: 1,
+					HTTPTokens:              infrav1.HTTPTokensStateRequired,
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -705,7 +727,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	var formatTagsInput = func(arg *ec2.CreateLaunchTemplateInput) {
+	formatTagsInput := func(arg *ec2.CreateLaunchTemplateInput) {
 		sortTags(arg.TagSpecifications[0].Tags)
 
 		for index := range arg.LaunchTemplateData.TagSpecifications {
@@ -713,7 +735,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 		}
 	}
 
-	var userData = []byte{1, 0, 0}
+	userData := []byte{1, 0, 0}
 	testCases := []struct {
 		name                 string
 		awsResourceReference []infrav1.AWSResourceReference
@@ -728,7 +750,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
 				sgMap[infrav1.SecurityGroupLB] = infrav1.SecurityGroup{ID: "2"}
 
-				var expectedInput = &ec2.CreateLaunchTemplateInput{
+				expectedInput := &ec2.CreateLaunchTemplateInput{
 					LaunchTemplateData: &ec2.RequestLaunchTemplateData{
 						InstanceType: aws.String("t3.large"),
 						IamInstanceProfile: &ec2.LaunchTemplateIamInstanceProfileSpecificationRequest{
@@ -788,7 +810,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
 				sgMap[infrav1.SecurityGroupLB] = infrav1.SecurityGroup{ID: "2"}
 
-				var expectedInput = &ec2.CreateLaunchTemplateInput{
+				expectedInput := &ec2.CreateLaunchTemplateInput{
 					LaunchTemplateData: &ec2.RequestLaunchTemplateData{
 						InstanceType: aws.String("t3.large"),
 						IamInstanceProfile: &ec2.LaunchTemplateIamInstanceProfileSpecificationRequest{
@@ -850,7 +872,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
 				sgMap[infrav1.SecurityGroupLB] = infrav1.SecurityGroup{ID: "2"}
 
-				var expectedInput = &ec2.CreateLaunchTemplateInput{
+				expectedInput := &ec2.CreateLaunchTemplateInput{
 					LaunchTemplateData: &ec2.RequestLaunchTemplateData{
 						InstanceType: aws.String("t3.large"),
 						IamInstanceProfile: &ec2.LaunchTemplateIamInstanceProfileSpecificationRequest{
@@ -958,12 +980,12 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	var formatTagsInput = func(arg *ec2.CreateLaunchTemplateVersionInput) {
+	formatTagsInput := func(arg *ec2.CreateLaunchTemplateVersionInput) {
 		for index := range arg.LaunchTemplateData.TagSpecifications {
 			sortTags(arg.LaunchTemplateData.TagSpecifications[index].Tags)
 		}
 	}
-	var userData = []byte{1, 0, 0}
+	userData := []byte{1, 0, 0}
 	testCases := []struct {
 		name                 string
 		imageID              *string
@@ -979,7 +1001,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
 				sgMap[infrav1.SecurityGroupLB] = infrav1.SecurityGroup{ID: "2"}
 
-				var expectedInput = &ec2.CreateLaunchTemplateVersionInput{
+				expectedInput := &ec2.CreateLaunchTemplateVersionInput{
 					LaunchTemplateData: &ec2.RequestLaunchTemplateData{
 						InstanceType: aws.String("t3.large"),
 						IamInstanceProfile: &ec2.LaunchTemplateIamInstanceProfileSpecificationRequest{
@@ -1030,7 +1052,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
 				sgMap[infrav1.SecurityGroupLB] = infrav1.SecurityGroup{ID: "2"}
 
-				var expectedInput = &ec2.CreateLaunchTemplateVersionInput{
+				expectedInput := &ec2.CreateLaunchTemplateVersionInput{
 					LaunchTemplateData: &ec2.RequestLaunchTemplateData{
 						InstanceType: aws.String("t3.large"),
 						IamInstanceProfile: &ec2.LaunchTemplateIamInstanceProfileSpecificationRequest{
