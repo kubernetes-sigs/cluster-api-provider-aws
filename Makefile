@@ -65,6 +65,8 @@ MOCKGEN := $(TOOLS_BIN_DIR)/mockgen
 SSM_PLUGIN := $(TOOLS_BIN_DIR)/session-manager-plugin
 YQ := $(TOOLS_BIN_DIR)/yq
 KPROMO := $(TOOLS_BIN_DIR)/kpromo
+RELEASE_NOTES := $(TOOLS_BIN_DIR)/release-notes
+
 CLUSTERAWSADM_SRCS := $(call rwildcard,.,cmd/clusterawsadm/*.*)
 
 PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
@@ -577,8 +579,8 @@ release-manifests: ## Release manifest files
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
 
 .PHONY: release-changelog
-release-changelog: $(GH) ## Generates release notes using Github release notes.
-	./hack/releasechangelog.sh -v $(VERSION) -p $(PREVIOUS_VERSION) -o $(GH_ORG_NAME) -r $(GH_REPO_NAME) -c $(CORE_CONTROLLER_PROMOTED_IMG) > $(RELEASE_DIR)/CHANGELOG.md
+release-changelog: $(RELEASE_NOTES) check-release-tag check-previous-release-tag check-github-token $(RELEASE_DIR)
+	$(RELEASE_NOTES) --debug --org $(GH_ORG_NAME) --repo $(GH_REPO_NAME) --start-sha $(shell git rev-list -n 1 ${PREVIOUS_VERSION}) --end-sha $(shell git rev-list -n 1 ${RELEASE_TAG}) --output $(RELEASE_DIR)/CHANGELOG.md --go-template go-template:$(REPO_ROOT)/hack/changelog.tpl --dependencies=true
 
 .PHONY: promote-images
 promote-images: $(KPROMO) $(YQ)
