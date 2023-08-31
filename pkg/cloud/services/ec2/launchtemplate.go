@@ -456,6 +456,20 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 		UserData:     pointer.String(base64.StdEncoding.EncodeToString(userData)),
 	}
 
+	if lt.InstanceMetadataOptions != nil {
+		data.MetadataOptions = &ec2.LaunchTemplateInstanceMetadataOptionsRequest{
+			HttpEndpoint:         aws.String(string(lt.InstanceMetadataOptions.HTTPEndpoint)),
+			InstanceMetadataTags: aws.String(string(lt.InstanceMetadataOptions.InstanceMetadataTags)),
+		}
+
+		if lt.InstanceMetadataOptions.HTTPTokens != "" {
+			data.MetadataOptions.HttpTokens = aws.String(string(lt.InstanceMetadataOptions.HTTPTokens))
+		}
+		if lt.InstanceMetadataOptions.HTTPPutResponseHopLimit != 0 {
+			data.MetadataOptions.HttpPutResponseHopLimit = aws.Int64(lt.InstanceMetadataOptions.HTTPPutResponseHopLimit)
+		}
+	}
+
 	if len(lt.IamInstanceProfile) > 0 {
 		data.IamInstanceProfile = &ec2.LaunchTemplateIamInstanceProfileSpecificationRequest{
 			Name: aws.String(lt.IamInstanceProfile),
@@ -638,6 +652,21 @@ func (s *Service) SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1
 		VersionNumber: d.VersionNumber,
 	}
 
+	if v.MetadataOptions != nil {
+		i.InstanceMetadataOptions = &infrav1.InstanceMetadataOptions{
+			HTTPPutResponseHopLimit: aws.Int64Value(v.MetadataOptions.HttpPutResponseHopLimit),
+			HTTPTokens:              infrav1.HTTPTokensState(aws.StringValue(v.MetadataOptions.HttpTokens)),
+			HTTPEndpoint:            infrav1.InstanceMetadataEndpointStateEnabled,
+			InstanceMetadataTags:    infrav1.InstanceMetadataEndpointStateDisabled,
+		}
+		if v.MetadataOptions.HttpEndpoint != nil && aws.StringValue(v.MetadataOptions.HttpEndpoint) == "disabled" {
+			i.InstanceMetadataOptions.HTTPEndpoint = infrav1.InstanceMetadataEndpointStateDisabled
+		}
+		if v.MetadataOptions.InstanceMetadataTags != nil && aws.StringValue(v.MetadataOptions.InstanceMetadataTags) == "enabled" {
+			i.InstanceMetadataOptions.InstanceMetadataTags = infrav1.InstanceMetadataEndpointStateEnabled
+		}
+	}
+
 	if v.IamInstanceProfile != nil {
 		i.IamInstanceProfile = aws.StringValue(v.IamInstanceProfile.Name)
 	}
@@ -678,6 +707,9 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, inc
 	}
 
 	if incoming.InstanceType != existing.InstanceType {
+		return true, nil
+	}
+	if !cmp.Equal(incoming.InstanceMetadataOptions, existing.InstanceMetadataOptions) {
 		return true, nil
 	}
 
