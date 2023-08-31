@@ -170,6 +170,15 @@ $(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint.
 $(GOLANGCI_LINT): # Build golangci-lint from tools folder.
 	GOBIN=$(abspath $(BIN_DIR)) go install $(GOLANGCI_LINT_PKG)@$(GOLANGCI_LINT_VERSION)
 
+RELEASE_NOTES_BIN := release-notes
+RELEASE_NOTES := $(BIN_DIR)/$(RELEASE_NOTES_BIN)
+RELEASE_NOTES_PKG := k8s.io/release/cmd/release-notes
+.PHONY: $(RELEASE_NOTES_BIN)
+$(RELEASE_NOTES_BIN): $(RELEASE_NOTES)
+
+$(RELEASE_NOTES): ## Build release notes from tools folders.
+	GOBIN=$(abspath $(BIN_DIR)) go install $(RELEASE_NOTES_PKG)@$(RELEASE_NOTES_VERSION)
+
 
 ## ------------------------------------------------------------------------------------------------
 ## AWS Session Manager Plugin Installation. Currently support Linux and MacOS AMD64 architectures.
