@@ -41,39 +41,39 @@ func TestSubnetPlacement(t *testing.T) {
 	}{
 		{
 			name:                "spec subnets expected",
-			specSubnetIDs:       []string{"az1"},
+			specSubnetIDs:       []string{"subnet-az1"},
 			specAZs:             []string{"eu-west-1b"},
 			parentAZs:           []string{"eu-west-1c"},
 			subnetPlacementType: nil,
 			controlPlaneSubnets: infrav1.Subnets{
 				infrav1.SubnetSpec{
-					ID:               "az1",
+					ID:               "subnet-az1",
 					AvailabilityZone: "eu-west-1a",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az2",
+					ID:               "subnet-az2",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az3",
+					ID:               "subnet-az3",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az4",
+					ID:               "subnet-az4",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az5",
+					ID:               "subnet-az5",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         false,
 				},
 			},
 			logger:            logger.NewLogger(klog.Background()),
-			expectedSubnetIDs: []string{"az1"},
+			expectedSubnetIDs: []string{"subnet-az1"},
 			expectError:       false,
 		},
 		{
@@ -84,33 +84,33 @@ func TestSubnetPlacement(t *testing.T) {
 			subnetPlacementType: nil,
 			controlPlaneSubnets: infrav1.Subnets{
 				infrav1.SubnetSpec{
-					ID:               "az1",
+					ID:               "subnet-az1",
 					AvailabilityZone: "eu-west-1a",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az2",
+					ID:               "subnet-az2",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az3",
+					ID:               "subnet-az3",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az4",
+					ID:               "subnet-az4",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az5",
+					ID:               "subnet-az5",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         false,
 				},
 			},
 			logger:            logger.NewLogger(klog.Background()),
-			expectedSubnetIDs: []string{"az2", "az3"},
+			expectedSubnetIDs: []string{"subnet-az2", "subnet-az3"},
 			expectError:       false,
 		},
 		{
@@ -121,33 +121,33 @@ func TestSubnetPlacement(t *testing.T) {
 			subnetPlacementType: nil,
 			controlPlaneSubnets: infrav1.Subnets{
 				infrav1.SubnetSpec{
-					ID:               "az1",
+					ID:               "subnet-az1",
 					AvailabilityZone: "eu-west-1a",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az2",
+					ID:               "subnet-az2",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az3",
+					ID:               "subnet-az3",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az4",
+					ID:               "subnet-az4",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az5",
+					ID:               "subnet-az5",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         false,
 				},
 			},
 			logger:            logger.NewLogger(klog.Background()),
-			expectedSubnetIDs: []string{"az4", "az5"},
+			expectedSubnetIDs: []string{"subnet-az4", "subnet-az5"},
 			expectError:       false,
 		},
 		{
@@ -158,33 +158,33 @@ func TestSubnetPlacement(t *testing.T) {
 			subnetPlacementType: expinfrav1.NewAZSubnetType(expinfrav1.AZSubnetTypePrivate),
 			controlPlaneSubnets: infrav1.Subnets{
 				infrav1.SubnetSpec{
-					ID:               "az1",
+					ID:               "subnet-az1",
 					AvailabilityZone: "eu-west-1a",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az2",
+					ID:               "subnet-az2",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az3",
+					ID:               "subnet-az3",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az4",
+					ID:               "subnet-az4",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az5",
+					ID:               "subnet-az5",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         false,
 				},
 			},
 			logger:            logger.NewLogger(klog.Background()),
-			expectedSubnetIDs: []string{"az3"},
+			expectedSubnetIDs: []string{"subnet-az3"},
 			expectError:       false,
 		},
 		{
@@ -195,33 +195,33 @@ func TestSubnetPlacement(t *testing.T) {
 			subnetPlacementType: expinfrav1.NewAZSubnetType(expinfrav1.AZSubnetTypePublic),
 			controlPlaneSubnets: infrav1.Subnets{
 				infrav1.SubnetSpec{
-					ID:               "az1",
+					ID:               "subnet-az1",
 					AvailabilityZone: "eu-west-1a",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az2",
+					ID:               "subnet-az2",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az3",
+					ID:               "subnet-az3",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az4",
+					ID:               "subnet-az4",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az5",
+					ID:               "subnet-az5",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         false,
 				},
 			},
 			logger:            logger.NewLogger(klog.Background()),
-			expectedSubnetIDs: []string{"az2"},
+			expectedSubnetIDs: []string{"subnet-az2"},
 			expectError:       false,
 		},
 		{
@@ -232,33 +232,33 @@ func TestSubnetPlacement(t *testing.T) {
 			subnetPlacementType: expinfrav1.NewAZSubnetType(expinfrav1.AZSubnetTypeAll),
 			controlPlaneSubnets: infrav1.Subnets{
 				infrav1.SubnetSpec{
-					ID:               "az1",
+					ID:               "subnet-az1",
 					AvailabilityZone: "eu-west-1a",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az2",
+					ID:               "subnet-az2",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az3",
+					ID:               "subnet-az3",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az4",
+					ID:               "subnet-az4",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az5",
+					ID:               "subnet-az5",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         false,
 				},
 			},
 			logger:            logger.NewLogger(klog.Background()),
-			expectedSubnetIDs: []string{"az2", "az3"},
+			expectedSubnetIDs: []string{"subnet-az2", "subnet-az3"},
 			expectError:       false,
 		},
 		{
@@ -269,27 +269,27 @@ func TestSubnetPlacement(t *testing.T) {
 			subnetPlacementType: expinfrav1.NewAZSubnetType(expinfrav1.AZSubnetTypePublic),
 			controlPlaneSubnets: infrav1.Subnets{
 				infrav1.SubnetSpec{
-					ID:               "az1",
+					ID:               "subnet-az1",
 					AvailabilityZone: "eu-west-1a",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az2",
+					ID:               "subnet-az2",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az3",
+					ID:               "subnet-az3",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az4",
+					ID:               "subnet-az4",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az5",
+					ID:               "subnet-az5",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         false,
 				},
@@ -306,33 +306,33 @@ func TestSubnetPlacement(t *testing.T) {
 			subnetPlacementType: expinfrav1.NewAZSubnetType(expinfrav1.AZSubnetTypePrivate),
 			controlPlaneSubnets: infrav1.Subnets{
 				infrav1.SubnetSpec{
-					ID:               "az1",
+					ID:               "subnet-az1",
 					AvailabilityZone: "eu-west-1a",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az2",
+					ID:               "subnet-az2",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az3",
+					ID:               "subnet-az3",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az4",
+					ID:               "subnet-az4",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az5",
+					ID:               "subnet-az5",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         false,
 				},
 			},
 			logger:            logger.NewLogger(klog.Background()),
-			expectedSubnetIDs: []string{"az5"},
+			expectedSubnetIDs: []string{"subnet-az5"},
 			expectError:       false,
 		},
 		{
@@ -343,33 +343,33 @@ func TestSubnetPlacement(t *testing.T) {
 			subnetPlacementType: expinfrav1.NewAZSubnetType(expinfrav1.AZSubnetTypePublic),
 			controlPlaneSubnets: infrav1.Subnets{
 				infrav1.SubnetSpec{
-					ID:               "az1",
+					ID:               "subnet-az1",
 					AvailabilityZone: "eu-west-1a",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az2",
+					ID:               "subnet-az2",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az3",
+					ID:               "subnet-az3",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az4",
+					ID:               "subnet-az4",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az5",
+					ID:               "subnet-az5",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         false,
 				},
 			},
 			logger:            logger.NewLogger(klog.Background()),
-			expectedSubnetIDs: []string{"az4"},
+			expectedSubnetIDs: []string{"subnet-az4"},
 			expectError:       false,
 		},
 		{
@@ -380,33 +380,33 @@ func TestSubnetPlacement(t *testing.T) {
 			subnetPlacementType: expinfrav1.NewAZSubnetType(expinfrav1.AZSubnetTypeAll),
 			controlPlaneSubnets: infrav1.Subnets{
 				infrav1.SubnetSpec{
-					ID:               "az1",
+					ID:               "subnet-az1",
 					AvailabilityZone: "eu-west-1a",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az2",
+					ID:               "subnet-az2",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az3",
+					ID:               "subnet-az3",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az4",
+					ID:               "subnet-az4",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az5",
+					ID:               "subnet-az5",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         false,
 				},
 			},
 			logger:            logger.NewLogger(klog.Background()),
-			expectedSubnetIDs: []string{"az4", "az5"},
+			expectedSubnetIDs: []string{"subnet-az4", "subnet-az5"},
 			expectError:       false,
 		},
 		{
@@ -416,33 +416,33 @@ func TestSubnetPlacement(t *testing.T) {
 			parentAZs:     []string{},
 			controlPlaneSubnets: infrav1.Subnets{
 				infrav1.SubnetSpec{
-					ID:               "az1",
+					ID:               "subnet-az1",
 					AvailabilityZone: "eu-west-1a",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az2",
+					ID:               "subnet-az2",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az3",
+					ID:               "subnet-az3",
 					AvailabilityZone: "eu-west-1b",
 					IsPublic:         false,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az4",
+					ID:               "subnet-az4",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         true,
 				},
 				infrav1.SubnetSpec{
-					ID:               "az5",
+					ID:               "subnet-az5",
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         false,
 				},
 			},
 			logger:            logger.NewLogger(klog.Background()),
-			expectedSubnetIDs: []string{"az1", "az3", "az5"},
+			expectedSubnetIDs: []string{"subnet-az1", "subnet-az3", "subnet-az5"},
 			expectError:       false,
 		},
 		{

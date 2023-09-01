@@ -600,6 +600,14 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			configCluster.Flavor = shared.MultiAzFlavor
 			cluster, _, _ := createCluster(ctx, configCluster, result)
 
+			ginkgo.By("Validating that the subnet were created")
+			awsCluster, err := GetAWSClusterByName(ctx, namespace.Name, clusterName)
+			Expect(err).To(BeNil())
+			for _, subnet := range awsCluster.Spec.NetworkSpec.Subnets {
+				Expect(subnet.GetResourceID()).To(HavePrefix("subnet-"))
+				Expect(subnet.ResourceID).ToNot(BeEmpty())
+			}
+
 			ginkgo.By("Adding worker nodes to additional subnets")
 			mdName1 := clusterName + "-md-1"
 			mdName2 := clusterName + "-md-2"
