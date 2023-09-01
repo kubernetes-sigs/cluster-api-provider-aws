@@ -348,7 +348,19 @@ func (v *VPCSpec) IsIPv6Enabled() bool {
 // SubnetSpec configures an AWS Subnet.
 type SubnetSpec struct {
 	// ID defines a unique identifier to reference this resource.
-	ID string `json:"id,omitempty"`
+	// If you're bringing your subnet, set the AWS subnet-id here, it must start with `subnet-`.
+	//
+	// When the VPC is managed by CAPA, and you'd like the provider to create a subnet for you,
+	// the id can be set to any placeholder value that does not start with `subnet-`;
+	// upon creation, the subnet AWS identifier will be populated in the `ResourceID` field and
+	// the `id` field is going to be used as the subnet name. If you specify a tag
+	// called `Name`, it takes precedence.
+	ID string `json:"id"`
+
+	// ResourceID is the subnet identifier from AWS, READ ONLY.
+	// This field is populated when the provider manages the subnet.
+	// +optional
+	ResourceID string `json:"resourceID,omitempty"`
 
 	// CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
 	CidrBlock string `json:"cidrBlock,omitempty"`
@@ -384,12 +396,23 @@ type SubnetSpec struct {
 	Tags Tags `json:"tags,omitempty"`
 }
 
+// GetResourceID returns the identifier for this subnet,
+// if the subnet was not created or reconciled, it returns the subnet ID.
+func (s *SubnetSpec) GetResourceID() string {
+	if s.ResourceID != "" {
+		return s.ResourceID
+	}
+	return s.ID
+}
+
 // String returns a string representation of the subnet.
 func (s *SubnetSpec) String() string {
-	return fmt.Sprintf("id=%s/az=%s/public=%v", s.ID, s.AvailabilityZone, s.IsPublic)
+	return fmt.Sprintf("id=%s/az=%s/public=%v", s.GetResourceID(), s.AvailabilityZone, s.IsPublic)
 }
 
 // Subnets is a slice of Subnet.
+// +listType=map
+// +listMapKey=id
 type Subnets []SubnetSpec
 
 // ToMap returns a map from id to subnet.
@@ -397,7 +420,7 @@ func (s Subnets) ToMap() map[string]*SubnetSpec {
 	res := make(map[string]*SubnetSpec)
 	for i := range s {
 		x := s[i]
-		res[x.ID] = &x
+		res[x.GetResourceID()] = &x
 	}
 	return res
 }
@@ -406,7 +429,7 @@ func (s Subnets) ToMap() map[string]*SubnetSpec {
 func (s Subnets) IDs() []string {
 	res := []string{}
 	for _, subnet := range s {
-		res = append(res, subnet.ID)
+		res = append(res, subnet.GetResourceID())
 	}
 	return res
 }
@@ -414,11 +437,10 @@ func (s Subnets) IDs() []string {
 // FindByID returns a single subnet matching the given id or nil.
 func (s Subnets) FindByID(id string) *SubnetSpec {
 	for _, x := range s {
-		if x.ID == id {
+		if x.GetResourceID() == id {
 			return &x
 		}
 	}
-
 	return nil
 }
 
@@ -427,7 +449,9 @@ func (s Subnets) FindByID(id string) *SubnetSpec {
 // or if they are in the same vpc and the cidr block is the same.
 func (s Subnets) FindEqual(spec *SubnetSpec) *SubnetSpec {
 	for _, x := range s {
-		if (spec.ID != "" && x.ID == spec.ID) || (spec.CidrBlock == x.CidrBlock) || (spec.IPv6CidrBlock != "" && spec.IPv6CidrBlock == x.IPv6CidrBlock) {
+		if (spec.GetResourceID() != "" && x.GetResourceID() == spec.GetResourceID()) ||
+			(spec.CidrBlock == x.CidrBlock) ||
+			(spec.IPv6CidrBlock != "" && spec.IPv6CidrBlock == x.IPv6CidrBlock) {
 			return &x
 		}
 	}
