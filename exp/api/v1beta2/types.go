@@ -305,6 +305,8 @@ const (
 	AZSubnetTypePublic AZSubnetType = "public"
 	// AZSubnetTypePrivate is a private subnet.
 	AZSubnetTypePrivate AZSubnetType = "private"
+	// AZSubnetTypeAll is all subnets in an availability zone.
+	AZSubnetTypeAll AZSubnetType = "all"
 )
 
 // NewAZSubnetType returns a pointer to an AZSubnetType.

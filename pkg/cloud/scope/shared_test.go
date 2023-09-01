@@ -225,6 +225,43 @@ func TestSubnetPlacement(t *testing.T) {
 			expectError:       false,
 		},
 		{
+			name:                "spec all azs expected",
+			specSubnetIDs:       []string{},
+			specAZs:             []string{"eu-west-1b"},
+			parentAZs:           []string{"eu-west-1c"},
+			subnetPlacementType: expinfrav1.NewAZSubnetType(expinfrav1.AZSubnetTypeAll),
+			controlPlaneSubnets: infrav1.Subnets{
+				infrav1.SubnetSpec{
+					ID:               "az1",
+					AvailabilityZone: "eu-west-1a",
+					IsPublic:         false,
+				},
+				infrav1.SubnetSpec{
+					ID:               "az2",
+					AvailabilityZone: "eu-west-1b",
+					IsPublic:         true,
+				},
+				infrav1.SubnetSpec{
+					ID:               "az3",
+					AvailabilityZone: "eu-west-1b",
+					IsPublic:         false,
+				},
+				infrav1.SubnetSpec{
+					ID:               "az4",
+					AvailabilityZone: "eu-west-1c",
+					IsPublic:         true,
+				},
+				infrav1.SubnetSpec{
+					ID:               "az5",
+					AvailabilityZone: "eu-west-1c",
+					IsPublic:         false,
+				},
+			},
+			logger:            logger.NewLogger(klog.Background()),
+			expectedSubnetIDs: []string{"az2", "az3"},
+			expectError:       false,
+		},
+		{
 			name:                "spec public no azs found",
 			specSubnetIDs:       []string{},
 			specAZs:             []string{"eu-west-1a"},
@@ -333,6 +370,43 @@ func TestSubnetPlacement(t *testing.T) {
 			},
 			logger:            logger.NewLogger(klog.Background()),
 			expectedSubnetIDs: []string{"az4"},
+			expectError:       false,
+		},
+		{
+			name:                "parent all azs expected",
+			specSubnetIDs:       []string{},
+			specAZs:             []string{},
+			parentAZs:           []string{"eu-west-1c"},
+			subnetPlacementType: expinfrav1.NewAZSubnetType(expinfrav1.AZSubnetTypeAll),
+			controlPlaneSubnets: infrav1.Subnets{
+				infrav1.SubnetSpec{
+					ID:               "az1",
+					AvailabilityZone: "eu-west-1a",
+					IsPublic:         false,
+				},
+				infrav1.SubnetSpec{
+					ID:               "az2",
+					AvailabilityZone: "eu-west-1b",
+					IsPublic:         true,
+				},
+				infrav1.SubnetSpec{
+					ID:               "az3",
+					AvailabilityZone: "eu-west-1b",
+					IsPublic:         false,
+				},
+				infrav1.SubnetSpec{
+					ID:               "az4",
+					AvailabilityZone: "eu-west-1c",
+					IsPublic:         true,
+				},
+				infrav1.SubnetSpec{
+					ID:               "az5",
+					AvailabilityZone: "eu-west-1c",
+					IsPublic:         false,
+				},
+			},
+			logger:            logger.NewLogger(klog.Background()),
+			expectedSubnetIDs: []string{"az4", "az5"},
 			expectError:       false,
 		},
 		{

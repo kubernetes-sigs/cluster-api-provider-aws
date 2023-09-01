@@ -69,7 +69,7 @@ type AWSManagedMachinePoolSpec struct {
 	AvailabilityZones []string `json:"availabilityZones,omitempty"`
 
 	// AvailabilityZoneSubnetType specifies which type of subnets to use when an availability zone is specified.
-	// +kubebuilder:validation:Enum:=public;private
+	// +kubebuilder:validation:Enum:=public;private;all
 	// +optional
 	AvailabilityZoneSubnetType *AZSubnetType `json:"availabilityZoneSubnetType,omitempty"`
 

@@ -111,6 +111,8 @@ func (p *defaultSubnetPlacementStrategy) getSubnetsForAZs(azs []string, controlP
 		subnets := controlPlaneSubnets.FilterByZone(zone)
 		if placementType != nil {
 			switch *placementType {
+			case expinfrav1.AZSubnetTypeAll:
+				// no-op
 			case expinfrav1.AZSubnetTypePublic:
 				subnets = subnets.FilterPublic()
 			case expinfrav1.AZSubnetTypePrivate:

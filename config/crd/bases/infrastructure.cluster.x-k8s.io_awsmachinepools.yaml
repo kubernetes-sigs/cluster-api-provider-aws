@@ -539,6 +539,7 @@ spec:
                 enum:
                 - public
                 - private
+                - all
                 type: string
               availabilityZones:
                 description: AvailabilityZones is an array of availability zones instances
