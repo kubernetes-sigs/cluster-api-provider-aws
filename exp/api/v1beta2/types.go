@@ -296,3 +296,18 @@ type UpdateConfig struct {
 	// +kubebuilder:validation:Minimum=1
 	MaxUnavailablePercentage *int `json:"maxUnavailablePercentage,omitempty"`
 }
+
+// AZSubnetType is the type of subnet to use when an availability zone is specified.
+type AZSubnetType string
+
+const (
+	// AZSubnetTypePublic is a public subnet.
+	AZSubnetTypePublic AZSubnetType = "public"
+	// AZSubnetTypePrivate is a private subnet.
+	AZSubnetTypePrivate AZSubnetType = "private"
+)
+
+// NewAZSubnetType returns a pointer to an AZSubnetType.
+func NewAZSubnetType(t AZSubnetType) *AZSubnetType {
+	return &t
+}
