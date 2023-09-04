@@ -153,8 +153,12 @@ $(PLANTUML): plantuml.Dockerfile ../../versions.mk
 
 KPROMO_BIN := kpromo
 KPROMO :=  $(BIN_DIR)/$(KPROMO_BIN)
-$(KPROMO):
-	CGO_ENABLED=0 go build -o $@ sigs.k8s.io/promo-tools/v4/cmd/kpromo
+KPROMO_PKG := sigs.k8s.io/promo-tools/v4/cmd/kpromo
+.PHONY: $(KPROMO_BIN)
+$(KPROMO_BIN): $(KPROMO) ## Build a local copy of kpromo.
+
+$(KPROMO): # Build kpromo into the tools folder
+	GOBIN=$(abspath $(BIN_DIR)) go install $(KPROMO_PKG)@$(KPROMO_VERSION)
 
 YQ_BIN := yq
 YQ :=  $(BIN_DIR)/$(YQ_BIN)
