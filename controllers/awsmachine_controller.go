@@ -188,7 +188,7 @@ func (r *AWSMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	infraCluster, err := r.getInfraCluster(ctx, log, cluster, awsMachine)
 	if err != nil {
-		return ctrl.Result{}, errors.New("error getting infra provider cluster or control plane object")
+		return ctrl.Result{}, errors.Errorf("error getting infra provider cluster or control plane object: %v", err)
 	}
 	if infraCluster == nil {
 		log.Info("AWSCluster or AWSManagedControlPlane is not ready yet")
@@ -419,8 +419,12 @@ func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc se
 	var instance *infrav1.Instance
 
 	// Parse the ProviderID.
+	//nolint:staticcheck
+	// Usage of noderefutil pkg would be removed in a future release.
 	pid, err := noderefutil.NewProviderID(scope.GetProviderID())
 	if err != nil {
+		//nolint:staticcheck
+		// Usage of noderefutil pkg would be removed in a future release.
 		if !errors.Is(err, noderefutil.ErrEmptyProviderID) {
 			return nil, errors.Wrapf(err, "failed to parse Spec.ProviderID")
 		}
@@ -433,6 +437,7 @@ func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc se
 	} else {
 		// If the ProviderID is populated, describe the instance using the ID.
 		// InstanceIfExists() returns error (ErrInstanceNotFoundByID or ErrDescribeInstance) if the instance could not be found.
+		//nolint:staticcheck
 		instance, err = ec2svc.InstanceIfExists(pointer.String(pid.ID()))
 		if err != nil {
 			return nil, err
@@ -792,13 +797,13 @@ func (r *AWSMachineReconciler) deleteIgnitionBootstrapDataFromS3(machineScope *s
 		return nil
 	}
 
-	// If bootstrap data has not been populated yet, we cannot determine it's format, so there is probably nothing to do.
+	// If bootstrap data has not been populated yet, we cannot determine its format, so there is probably nothing to do.
 	if machineScope.Machine.Spec.Bootstrap.DataSecretName == nil {
 		return nil
 	}
 
 	_, userDataFormat, err := machineScope.GetRawBootstrapDataWithFormat()
-	if err != nil {
+	if err != nil && !apierrors.IsNotFound(err) {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedGetBootstrapData", err.Error())
 		return err
 	}

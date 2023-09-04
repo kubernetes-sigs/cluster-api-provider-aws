@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -65,15 +66,27 @@ func (s *Service) SDKToAutoScalingGroup(v *autoscaling.Group) (*expinfrav1.AutoS
 		}
 
 		onDemandAllocationStrategy := aws.StringValue(v.MixedInstancesPolicy.InstancesDistribution.OnDemandAllocationStrategy)
-		if onDemandAllocationStrategy == string(expinfrav1.OnDemandAllocationStrategyPrioritized) {
+		switch onDemandAllocationStrategy {
+		case string(expinfrav1.OnDemandAllocationStrategyPrioritized):
 			i.MixedInstancesPolicy.InstancesDistribution.OnDemandAllocationStrategy = expinfrav1.OnDemandAllocationStrategyPrioritized
+		case string(expinfrav1.OnDemandAllocationStrategyLowestPrice):
+			i.MixedInstancesPolicy.InstancesDistribution.OnDemandAllocationStrategy = expinfrav1.OnDemandAllocationStrategyLowestPrice
+		default:
+			return nil, fmt.Errorf("unsupported on-demand allocation strategy: %s", onDemandAllocationStrategy)
 		}
 
 		spotAllocationStrategy := aws.StringValue(v.MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy)
-		if spotAllocationStrategy == string(expinfrav1.SpotAllocationStrategyLowestPrice) {
+		switch spotAllocationStrategy {
+		case string(expinfrav1.SpotAllocationStrategyLowestPrice):
 			i.MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy = expinfrav1.SpotAllocationStrategyLowestPrice
-		} else {
+		case string(expinfrav1.SpotAllocationStrategyCapacityOptimized):
 			i.MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy = expinfrav1.SpotAllocationStrategyCapacityOptimized
+		case string(expinfrav1.SpotAllocationStrategyCapacityOptimizedPrioritized):
+			i.MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy = expinfrav1.SpotAllocationStrategyCapacityOptimizedPrioritized
+		case string(expinfrav1.SpotAllocationStrategyPriceCapacityOptimized):
+			i.MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy = expinfrav1.SpotAllocationStrategyPriceCapacityOptimized
+		default:
+			return nil, fmt.Errorf("unsupported spot allocation strategy: %s", spotAllocationStrategy)
 		}
 	}
 
@@ -127,34 +140,17 @@ func (s *Service) ASGIfExists(name *string) (*expinfrav1.AutoScalingGroup, error
 	case err != nil:
 		record.Eventf(s.scope.InfraCluster(), "FailedDescribeAutoScalingGroups", "failed to describe ASG %q: %v", *name, err)
 		return nil, errors.Wrapf(err, "failed to describe AutoScaling Group: %q", *name)
+	case len(out.AutoScalingGroups) == 0:
+		record.Eventf(s.scope.InfraCluster(), corev1.EventTypeNormal, expinfrav1.ASGNotFoundReason, "Unable to find ASG matching %q", *name)
+		return nil, nil
 	}
-	//TODO: double check if you're handling nil vals
 	return s.SDKToAutoScalingGroup(out.AutoScalingGroups[0])
 }
 
 // GetASGByName returns the existing ASG or nothing if it doesn't exist.
 func (s *Service) GetASGByName(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
-	s.scope.Debug("Looking for existing AutoScalingGroup by name")
-
-	input := &autoscaling.DescribeAutoScalingGroupsInput{
-		AutoScalingGroupNames: []*string{
-			aws.String(scope.Name()),
-		},
-	}
-
-	out, err := s.ASGClient.DescribeAutoScalingGroups(input)
-	switch {
-	case awserrors.IsNotFound(err):
-		return nil, nil
-	case err != nil:
-		record.Eventf(s.scope.InfraCluster(), "FailedDescribeInstances", "Failed to describe instances by tags: %v", err)
-		return nil, errors.Wrap(err, "failed to describe instances by tags")
-	case len(out.AutoScalingGroups) == 0:
-		record.Eventf(scope.AWSMachinePool, "FailedDescribeInstances", "No Auto Scaling Groups with %s found", scope.Name())
-		return nil, nil
-	}
-
-	return s.SDKToAutoScalingGroup(out.AutoScalingGroups[0])
+	name := scope.Name()
+	return s.ASGIfExists(&name)
 }
 
 // CreateASG runs an autoscaling group.

@@ -1436,7 +1436,7 @@ func (s *Service) getHealthCheckTarget() string {
 	protocol := &infrav1.ELBProtocolSSL
 	if controlPlaneELB != nil && controlPlaneELB.HealthCheckProtocol != nil {
 		protocol = controlPlaneELB.HealthCheckProtocol
-		if protocol == &infrav1.ELBProtocolHTTP || protocol == &infrav1.ELBProtocolHTTPS {
+		if protocol.String() == infrav1.ELBProtocolHTTP.String() || protocol.String() == infrav1.ELBProtocolHTTPS.String() {
 			return fmt.Sprintf("%v:%d/readyz", protocol, infrav1.DefaultAPIServerPort)
 		}
 	}

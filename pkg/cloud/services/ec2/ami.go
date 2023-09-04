@@ -33,11 +33,15 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/bootstrap/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 )
 
 const (
+	// DefaultArchitectureTag is the default architecture used when the architcture can't be determined from instance type.
+	DefaultArchitectureTag = Amd64ArchitectureTag
+
 	// Amd64ArchitectureTag is the reference AWS uses for amd64 architecture images.
 	Amd64ArchitectureTag = "x86_64"
 
@@ -114,7 +118,13 @@ func (s *Service) pickArchitectureForInstanceType(instanceType string) (string, 
 	}
 	describeInstanceTypeResult, err := s.EC2Client.DescribeInstanceTypes(descInstanceTypeInput)
 	if err != nil {
-		return "", err
+		// if call to DescribeInstanceTypes fails due to permissions error, log a warning and return the default architecture.
+		if awserrors.IsPermissionsError(err) {
+			record.Warnf(s.scope.InfraCluster(), "FailedDescribeInstanceTypes", "insufficient permissions to describe instance types for instance type %q, falling back to the default architecture of %q: %v", instanceType, DefaultArchitectureTag, err)
+
+			return DefaultArchitectureTag, nil
+		}
+		return "", errors.Wrapf(err, "failed to describe instance types for instance type %q", instanceType)
 	}
 
 	if len(describeInstanceTypeResult.InstanceTypes) == 0 {

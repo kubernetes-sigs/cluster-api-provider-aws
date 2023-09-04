@@ -19,6 +19,10 @@ include $(ROOT_DIR_RELATIVE)/common.mk
 # If you update this file, please follow
 # https://suva.sh/posts/well-documented-makefiles
 
+# Go
+GO_VERSION ?=1.20.6
+GO_CONTAINER_IMAGE ?= public.ecr.aws/docker/library/golang:$(GO_VERSION)
+
 # Directories.
 ARTIFACTS ?= $(REPO_ROOT)/_artifacts
 TOOLS_DIR := hack/tools
@@ -61,6 +65,8 @@ MOCKGEN := $(TOOLS_BIN_DIR)/mockgen
 SSM_PLUGIN := $(TOOLS_BIN_DIR)/session-manager-plugin
 YQ := $(TOOLS_BIN_DIR)/yq
 KPROMO := $(TOOLS_BIN_DIR)/kpromo
+RELEASE_NOTES := $(TOOLS_BIN_DIR)/release-notes
+
 CLUSTERAWSADM_SRCS := $(call rwildcard,.,cmd/clusterawsadm/*.*)
 
 PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
@@ -350,7 +356,7 @@ clusterawsadm: ## Build clusterawsadm binary
 
 .PHONY: docker-build
 docker-build: docker-pull-prerequisites ## Build the docker image for controller-manager
-	docker build --build-arg ARCH=$(ARCH) --build-arg LDFLAGS="$(LDFLAGS)" . -t $(CORE_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker build --build-arg ARCH=$(ARCH) --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg LDFLAGS="$(LDFLAGS)" . -t $(CORE_CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 .PHONY: docker-build-all ## Build all the architecture docker images
 docker-build-all: $(addprefix docker-build-,$(ALL_ARCH))
@@ -383,7 +389,7 @@ generate-test-flavors: $(KUSTOMIZE)  ## Generate test template flavors
 
 .PHONY: e2e-image
 e2e-image: docker-pull-prerequisites $(TOOLS_BIN_DIR)/start.sh $(TOOLS_BIN_DIR)/restart.sh ## Build an e2e test image
-	docker build -f Dockerfile --tag="gcr.io/k8s-staging-cluster-api/capa-manager:e2e" .
+	docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) -f Dockerfile --tag="gcr.io/k8s-staging-cluster-api/capa-manager:e2e" .
 
 .PHONY: install-setup-envtest
 install-setup-envtest: # Install setup-envtest so that setup-envtest's eval is executed after the tool has been installed.
@@ -462,7 +468,7 @@ $(RELEASE_DIR):
 
 .PHONY: build-toolchain
 build-toolchain: ## Build the toolchain
-	docker build --target toolchain -t $(TOOLCHAIN_IMAGE) .
+	docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --target toolchain -t $(TOOLCHAIN_IMAGE) .
 
 .PHONY: check-github-token
 check-github-token: ## Check if the github token is set
@@ -573,8 +579,8 @@ release-manifests: ## Release manifest files
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
 
 .PHONY: release-changelog
-release-changelog: $(GH) ## Generates release notes using Github release notes.
-	./hack/releasechangelog.sh -v $(VERSION) -p $(PREVIOUS_VERSION) -o $(GH_ORG_NAME) -r $(GH_REPO_NAME) -c $(CORE_CONTROLLER_PROMOTED_IMG) > $(RELEASE_DIR)/CHANGELOG.md
+release-changelog: $(RELEASE_NOTES) check-release-tag check-previous-release-tag check-github-token $(RELEASE_DIR)
+	$(RELEASE_NOTES) --debug --org $(GH_ORG_NAME) --repo $(GH_REPO_NAME) --start-sha $(shell git rev-list -n 1 ${PREVIOUS_VERSION}) --end-sha $(shell git rev-list -n 1 ${RELEASE_TAG}) --output $(RELEASE_DIR)/CHANGELOG.md --go-template go-template:$(REPO_ROOT)/hack/changelog.tpl --dependencies=true
 
 .PHONY: promote-images
 promote-images: $(KPROMO) $(YQ)
@@ -690,3 +696,8 @@ clean-temporary: ## Remove all temporary files and folders
 	rm -rf test/e2e/capi-kubeadm-control-plane-controller-manager
 	rm -rf test/e2e/logs
 	rm -rf test/e2e/resources
+
+##@ helpers:
+
+go-version: ## Print the go version we use to compile our binaries and images
+	@echo $(GO_VERSION)

@@ -112,10 +112,6 @@ GOJQ := $(BIN_DIR)/gojq
 $(GOJQ): $(BIN_DIR) go.mod go.sum
 	go build -tags=tools -o $@ github.com/itchyny/gojq/cmd/gojq
 
-GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
-$(GOLANGCI_LINT): $(BIN_DIR) # Install golangci-lint in tools folder.
-	${REPO_ROOT}/hack/ensure-golangci-lint.sh -b $(BIN_DIR) ${GOLANGCI_LINT_VERSION}
-
 KIND := $(BIN_DIR)/kind
 $(KIND): $(BIN_DIR) go.mod go.sum
 	go build -tags tools -o $@ sigs.k8s.io/kind
@@ -157,13 +153,36 @@ $(PLANTUML): plantuml.Dockerfile ../../versions.mk
 
 KPROMO_BIN := kpromo
 KPROMO :=  $(BIN_DIR)/$(KPROMO_BIN)
-$(KPROMO):
-	CGO_ENABLED=0 go build -o $@ sigs.k8s.io/promo-tools/v3/cmd/kpromo
+KPROMO_PKG := sigs.k8s.io/promo-tools/v4/cmd/kpromo
+.PHONY: $(KPROMO_BIN)
+$(KPROMO_BIN): $(KPROMO) ## Build a local copy of kpromo.
+
+$(KPROMO): # Build kpromo into the tools folder
+	GOBIN=$(abspath $(BIN_DIR)) go install $(KPROMO_PKG)@$(KPROMO_VERSION)
 
 YQ_BIN := yq
 YQ :=  $(BIN_DIR)/$(YQ_BIN)
 $(YQ):
 	CGO_ENABLED=0 go build -tags=tools -o $@ github.com/mikefarah/yq/v4
+
+GOLANGCI_LINT_BIN := golangci-lint
+GOLANGCI_LINT := $(BIN_DIR)/$(GOLANGCI_LINT_BIN)
+GOLANGCI_LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint
+.PHONY: $(GOLANGCI_LINT_BIN)
+$(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint.
+
+$(GOLANGCI_LINT): # Build golangci-lint from tools folder.
+	GOBIN=$(abspath $(BIN_DIR)) go install $(GOLANGCI_LINT_PKG)@$(GOLANGCI_LINT_VERSION)
+
+RELEASE_NOTES_BIN := release-notes
+RELEASE_NOTES := $(BIN_DIR)/$(RELEASE_NOTES_BIN)
+RELEASE_NOTES_PKG := k8s.io/release/cmd/release-notes
+.PHONY: $(RELEASE_NOTES_BIN)
+$(RELEASE_NOTES_BIN): $(RELEASE_NOTES)
+
+$(RELEASE_NOTES): ## Build release notes from tools folders.
+	GOBIN=$(abspath $(BIN_DIR)) go install $(RELEASE_NOTES_PKG)@$(RELEASE_NOTES_VERSION)
+
 
 ## ------------------------------------------------------------------------------------------------
 ## AWS Session Manager Plugin Installation. Currently support Linux and MacOS AMD64 architectures.

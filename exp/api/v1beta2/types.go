@@ -26,6 +26,10 @@ const (
 	// ExternalResourceGCAnnotation is the name of an annotation that indicates if
 	// external resources should be garbage collected for the cluster.
 	ExternalResourceGCAnnotation = "aws.cluster.x-k8s.io/external-resource-gc"
+
+	// ExternalResourceGCTasksAnnotation is the name of an annotation that indicates what
+	// external resources tasks should be executed by garbage collector for the cluster.
+	ExternalResourceGCTasksAnnotation = "aws.cluster.x-k8s.io/external-resource-tasks-gc"
 )
 
 // EBS can be used to automatically set up EBS volumes when an instance is launched.
@@ -122,6 +126,10 @@ type AWSLaunchTemplate struct {
 
 	// SpotMarketOptions are options for configuring AWSMachinePool instances to be run using AWS Spot instances.
 	SpotMarketOptions *infrav1.SpotMarketOptions `json:"spotMarketOptions,omitempty"`
+
+	// InstanceMetadataOptions defines the behavior for applying metadata to instances.
+	// +optional
+	InstanceMetadataOptions *infrav1.InstanceMetadataOptions `json:"instanceMetadataOptions,omitempty"`
 }
 
 // Overrides are used to override the instance type specified by the launch template with multiple
@@ -137,6 +145,11 @@ var (
 	// OnDemandAllocationStrategyPrioritized uses the order of instance type overrides
 	// for the LaunchTemplate to define the launch priority of each instance type.
 	OnDemandAllocationStrategyPrioritized = OnDemandAllocationStrategy("prioritized")
+
+	// OnDemandAllocationStrategyLowestPrice will make the Auto Scaling group launch
+	// instances using the On-Demand pools with the lowest price, and evenly allocates
+	// your instances across the On-Demand pools that you specify.
+	OnDemandAllocationStrategyLowestPrice = OnDemandAllocationStrategy("lowest-price")
 )
 
 // SpotAllocationStrategy indicates how to allocate instances across Spot Instance pools.
@@ -151,15 +164,25 @@ var (
 	// SpotAllocationStrategyCapacityOptimized will make the Auto Scaling group launch
 	// instances using Spot pools that are optimally chosen based on the available Spot capacity.
 	SpotAllocationStrategyCapacityOptimized = SpotAllocationStrategy("capacity-optimized")
+
+	// SpotAllocationStrategyCapacityOptimizedPrioritized will make the Auto Scaling group launch
+	// instances using Spot pools that are optimally chosen based on the available Spot capacity
+	// while also taking into account the priority order specified by the user for Instance Types.
+	SpotAllocationStrategyCapacityOptimizedPrioritized = SpotAllocationStrategy("capacity-optimized-prioritized")
+
+	// SpotAllocationStrategyPriceCapacityOptimized will make the Auto Scaling group launch
+	// instances using Spot pools that consider both price and available Spot capacity to
+	// provide a balance between cost savings and allocation reliability.
+	SpotAllocationStrategyPriceCapacityOptimized = SpotAllocationStrategy("price-capacity-optimized")
 )
 
 // InstancesDistribution to configure distribution of On-Demand Instances and Spot Instances.
 type InstancesDistribution struct {
-	// +kubebuilder:validation:Enum=prioritized
+	// +kubebuilder:validation:Enum=prioritized;lowest-price
 	// +kubebuilder:default=prioritized
 	OnDemandAllocationStrategy OnDemandAllocationStrategy `json:"onDemandAllocationStrategy,omitempty"`
 
-	// +kubebuilder:validation:Enum=lowest-price;capacity-optimized
+	// +kubebuilder:validation:Enum=lowest-price;capacity-optimized;capacity-optimized-prioritized;price-capacity-optimized
 	// +kubebuilder:default=lowest-price
 	SpotAllocationStrategy SpotAllocationStrategy `json:"spotAllocationStrategy,omitempty"`
 
@@ -202,10 +225,8 @@ type AutoScalingGroup struct {
 // ASGStatus is a status string returned by the autoscaling API.
 type ASGStatus string
 
-var (
-	// ASGStatusDeleteInProgress is the string representing an ASG that is currently deleting.
-	ASGStatusDeleteInProgress = ASGStatus("Delete in progress")
-)
+// ASGStatusDeleteInProgress is the string representing an ASG that is currently deleting.
+var ASGStatusDeleteInProgress = ASGStatus("Delete in progress")
 
 // TaintEffect is the effect for a Kubernetes taint.
 type TaintEffect string

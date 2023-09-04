@@ -28,6 +28,8 @@ import (
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -38,6 +40,22 @@ type WaitForDeploymentsAvailableInput struct {
 	Getter    framework.Getter
 	Name      string
 	Namespace string
+}
+
+// GetDeploymentInput is the input for GetDeployment.
+type GetDeploymentInput struct {
+	Getter    framework.Getter
+	Name      string
+	Namespace string
+}
+
+// ReconfigureDeploymentInput is the input for ReconfigureDeployment.
+type ReconfigureDeploymentInput struct {
+	Getter       framework.Getter
+	ClientSet    *kubernetes.Clientset
+	Name         string
+	Namespace    string
+	WaitInterval []interface{}
 }
 
 // WaitForDeploymentsAvailable will wait for the specified intervel for a Deployment to have status.Available = True.
@@ -73,4 +91,99 @@ func DescribeFailedDeployment(input WaitForDeploymentsAvailableInput, deployment
 		b.WriteString(fmt.Sprintf("\nDeployment:\n%s\n", framework.PrettyPrint(deployment)))
 	}
 	return b.String()
+}
+
+// GetDeployment gets the deployment object.
+func GetDeployment(ctx context.Context, input GetDeploymentInput) (*appsv1.Deployment, error) {
+	deployment := &appsv1.Deployment{}
+	key := client.ObjectKey{
+		Namespace: input.Namespace,
+		Name:      input.Name,
+	}
+	getErr := input.Getter.Get(ctx, key, deployment)
+	if getErr != nil {
+		return nil, getErr
+	}
+	return deployment, nil
+}
+
+// ReconfigureDeployment updates the deployment object.
+func ReconfigureDeployment(ctx context.Context, input ReconfigureDeploymentInput, updateBy func(dep *appsv1.Deployment) (*appsv1.Deployment, error), validateBy func(dep *appsv1.Deployment) error) {
+	By(fmt.Sprintf("Get %s deployment object", input.Name))
+	deployment, getErr := GetDeployment(ctx, GetDeploymentInput{
+		Getter:    input.Getter,
+		Name:      input.Name,
+		Namespace: input.Namespace,
+	})
+	Expect(getErr).To(BeNil())
+
+	By(fmt.Sprintf("Update %s deployment object spec", input.Name))
+	_, specErr := updateBy(deployment)
+	Expect(specErr).To(BeNil())
+
+	By(fmt.Sprintf("Update %s deployment object", input.Name))
+	_, updateErr := input.ClientSet.AppsV1().Deployments(input.Namespace).Update(ctx, deployment, metav1.UpdateOptions{})
+	Expect(updateErr).To(BeNil())
+
+	By(fmt.Sprintf("Wait for %s deployment to be available after reconfiguring", input.Name))
+	WaitForDeploymentsAvailable(ctx, WaitForDeploymentsAvailableInput{
+		Getter:    input.Getter,
+		Name:      input.Name,
+		Namespace: input.Namespace,
+	}, input.WaitInterval...)
+
+	if validateBy != nil {
+		By(fmt.Sprintf("Validate %s deployment updated as expected", input.Name))
+		updatedDeployment, err := GetDeployment(ctx, GetDeploymentInput{
+			Getter:    input.Getter,
+			Name:      input.Name,
+			Namespace: input.Namespace,
+		})
+		Expect(err).To(BeNil())
+
+		vaErr := validateBy(updatedDeployment)
+		Expect(vaErr).To(BeNil())
+	}
+}
+
+// EnableAlternativeGCStrategy enables AlternativeGCStrategy in CAPA controller manager args field.
+func EnableAlternativeGCStrategy(dep *appsv1.Deployment) (*appsv1.Deployment, error) {
+	for i, arg := range dep.Spec.Template.Spec.Containers[0].Args {
+		if strings.Contains(arg, "feature-gates") && strings.Contains(arg, "AlternativeGCStrategy") {
+			dep.Spec.Template.Spec.Containers[0].Args[i] = strings.Replace(arg, "AlternativeGCStrategy=false", "AlternativeGCStrategy=true", 1)
+			return dep, nil
+		}
+	}
+	return nil, fmt.Errorf("fail to find AlternativeGCStrategy to enable")
+}
+
+// DisableAlternativeGCStrategy disables AlternativeGCStrategy in CAPA controller manager args field.
+func DisableAlternativeGCStrategy(dep *appsv1.Deployment) (*appsv1.Deployment, error) {
+	for i, arg := range dep.Spec.Template.Spec.Containers[0].Args {
+		if strings.Contains(arg, "feature-gates") && strings.Contains(arg, "AlternativeGCStrategy") {
+			dep.Spec.Template.Spec.Containers[0].Args[i] = strings.Replace(arg, "AlternativeGCStrategy=true", "AlternativeGCStrategy=false", 1)
+			return dep, nil
+		}
+	}
+	return nil, fmt.Errorf("fail to find AlternativeGCStrategy to disable")
+}
+
+// ValidateAlternativeGCStrategyEnabled validates AlternativeGCStrategy in CAPA controller manager args field is set to true.
+func ValidateAlternativeGCStrategyEnabled(dep *appsv1.Deployment) error {
+	for _, arg := range dep.Spec.Template.Spec.Containers[0].Args {
+		if strings.Contains(arg, "feature-gates") && strings.Contains(arg, "AlternativeGCStrategy=true") {
+			return nil
+		}
+	}
+	return fmt.Errorf("fail to validate AlternativeGCStrategy set to true")
+}
+
+// ValidateAlternativeGCStrategyDisabled validates AlternativeGCStrategy in CAPA controller manager args field is set to false.
+func ValidateAlternativeGCStrategyDisabled(dep *appsv1.Deployment) error {
+	for _, arg := range dep.Spec.Template.Spec.Containers[0].Args {
+		if strings.Contains(arg, "feature-gates") && strings.Contains(arg, "AlternativeGCStrategy=false") {
+			return nil
+		}
+	}
+	return fmt.Errorf("fail to validate AlternativeGCStrategy set to false")
 }

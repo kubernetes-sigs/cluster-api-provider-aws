@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
@@ -43,7 +44,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/mock_services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -82,7 +82,20 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			},
 			Spec: expinfrav1.AWSMachinePoolSpec{
 				MinSize: int32(0),
-				MaxSize: int32(1),
+				MaxSize: int32(100),
+				MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
+					InstancesDistribution: &expinfrav1.InstancesDistribution{
+						OnDemandAllocationStrategy:          expinfrav1.OnDemandAllocationStrategyPrioritized,
+						SpotAllocationStrategy:              expinfrav1.SpotAllocationStrategyCapacityOptimized,
+						OnDemandBaseCapacity:                aws.Int64(0),
+						OnDemandPercentageAboveBaseCapacity: aws.Int64(100),
+					},
+					Overrides: []expinfrav1.Overrides{
+						{
+							InstanceType: "m6a.32xlarge",
+						},
+					},
+				},
 			},
 		}
 
@@ -238,10 +251,6 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			id := "<cloudProvider>://<optional>/<segments>/<providerid>"
 			setProviderID := func(t *testing.T, g *WithT) {
 				t.Helper()
-
-				_, err := noderefutil.NewProviderID(id)
-				g.Expect(err).To(BeNil())
-
 				ms.AWSMachinePool.Spec.ProviderID = id
 			}
 			t.Run("should look up by provider ID when one exists", func(t *testing.T) {
@@ -387,7 +396,20 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 
 			asg := expinfrav1.AutoScalingGroup{
 				MinSize: int32(0),
-				MaxSize: int32(1),
+				MaxSize: int32(100),
+				MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
+					InstancesDistribution: &expinfrav1.InstancesDistribution{
+						OnDemandAllocationStrategy:          expinfrav1.OnDemandAllocationStrategyPrioritized,
+						SpotAllocationStrategy:              expinfrav1.SpotAllocationStrategyCapacityOptimized,
+						OnDemandBaseCapacity:                aws.Int64(0),
+						OnDemandPercentageAboveBaseCapacity: aws.Int64(100),
+					},
+					Overrides: []expinfrav1.Overrides{
+						{
+							InstanceType: "m6a.32xlarge",
+						},
+					},
+				},
 				Subnets: []string{"subnet1", "subnet2"}}
 			ec2Svc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			ec2Svc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil)
@@ -405,7 +427,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 
 			asg := expinfrav1.AutoScalingGroup{
 				MinSize: int32(0),
-				MaxSize: int32(1),
+				MaxSize: int32(100),
 				Subnets: []string{"subnet1", "subnet2"}}
 			ec2Svc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			ec2Svc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil)
@@ -473,7 +495,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			g.Expect(err).To(BeNil())
 			g.Expect(buf.String()).To(ContainSubstring("Unable to locate ASG"))
 			g.Expect(ms.AWSMachinePool.Finalizers).To(ConsistOf(metav1.FinalizerDeleteDependents))
-			g.Eventually(recorder.Events).Should(Receive(ContainSubstring("NoASGFound")))
+			g.Eventually(recorder.Events).Should(Receive(ContainSubstring(expinfrav1.ASGNotFoundReason)))
 		})
 		t.Run("should cause AWSMachinePool to go into NotReady", func(t *testing.T) {
 			g := NewWithT(t)
@@ -536,7 +558,7 @@ func setupCluster(clusterName string) (*scope.ClusterScope, error) {
 	})
 }
 
-func TestASGNeedsUpdates(t *testing.T) {
+func TestDiffASG(t *testing.T) {
 	type args struct {
 		machinePoolScope *scope.MachinePoolScope
 		existingASG      *expinfrav1.AutoScalingGroup
@@ -701,6 +723,106 @@ func TestASGNeedsUpdates(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "MixedInstancesPolicy.InstancesDistribution != asg.MixedInstancesPolicy.InstancesDistribution",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: pointer.Int32(1),
+						},
+					},
+					AWSMachinePool: &expinfrav1.AWSMachinePool{
+						Spec: expinfrav1.AWSMachinePoolSpec{
+							MaxSize:           2,
+							MinSize:           0,
+							CapacityRebalance: true,
+							MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
+								InstancesDistribution: &expinfrav1.InstancesDistribution{
+									OnDemandAllocationStrategy:          expinfrav1.OnDemandAllocationStrategyPrioritized,
+									SpotAllocationStrategy:              expinfrav1.SpotAllocationStrategyCapacityOptimized,
+									OnDemandBaseCapacity:                aws.Int64(0),
+									OnDemandPercentageAboveBaseCapacity: aws.Int64(100),
+								},
+								Overrides: []expinfrav1.Overrides{
+									{
+										InstanceType: "m6a.32xlarge",
+									},
+								},
+							},
+						},
+					},
+					Logger: *logger.NewLogger(logr.Discard()),
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity:   pointer.Int32(1),
+					MaxSize:           2,
+					MinSize:           0,
+					CapacityRebalance: true,
+					MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
+						InstancesDistribution: &expinfrav1.InstancesDistribution{
+							OnDemandAllocationStrategy:          expinfrav1.OnDemandAllocationStrategyPrioritized,
+							SpotAllocationStrategy:              expinfrav1.SpotAllocationStrategyLowestPrice,
+							OnDemandBaseCapacity:                aws.Int64(0),
+							OnDemandPercentageAboveBaseCapacity: aws.Int64(100),
+						},
+						Overrides: []expinfrav1.Overrides{
+							{
+								InstanceType: "m6a.32xlarge",
+							},
+						},
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "MixedInstancesPolicy.InstancesDistribution unset",
+			args: args{
+				machinePoolScope: &scope.MachinePoolScope{
+					MachinePool: &expclusterv1.MachinePool{
+						Spec: expclusterv1.MachinePoolSpec{
+							Replicas: pointer.Int32(1),
+						},
+					},
+					AWSMachinePool: &expinfrav1.AWSMachinePool{
+						Spec: expinfrav1.AWSMachinePoolSpec{
+							MaxSize:           2,
+							MinSize:           0,
+							CapacityRebalance: true,
+							MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
+								Overrides: []expinfrav1.Overrides{
+									{
+										InstanceType: "m6a.32xlarge",
+									},
+								},
+							},
+						},
+					},
+					Logger: *logger.NewLogger(logr.Discard()),
+				},
+				existingASG: &expinfrav1.AutoScalingGroup{
+					DesiredCapacity:   pointer.Int32(1),
+					MaxSize:           2,
+					MinSize:           0,
+					CapacityRebalance: true,
+					MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
+						InstancesDistribution: &expinfrav1.InstancesDistribution{
+							OnDemandAllocationStrategy:          expinfrav1.OnDemandAllocationStrategyPrioritized,
+							SpotAllocationStrategy:              expinfrav1.SpotAllocationStrategyLowestPrice,
+							OnDemandBaseCapacity:                aws.Int64(0),
+							OnDemandPercentageAboveBaseCapacity: aws.Int64(100),
+						},
+						Overrides: []expinfrav1.Overrides{
+							{
+								InstanceType: "m6a.32xlarge",
+							},
+						},
+					},
+				},
+			},
+			want: false,
+		},
+		{
 			name: "SuspendProcesses != asg.SuspendProcesses",
 			args: args{
 				machinePoolScope: &scope.MachinePoolScope{
@@ -826,7 +948,7 @@ func TestASGNeedsUpdates(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			g.Expect(asgNeedsUpdates(tt.args.machinePoolScope, tt.args.existingASG)).To(Equal(tt.want))
+			g.Expect(diffASG(tt.args.machinePoolScope, tt.args.existingASG) != "").To(Equal(tt.want))
 		})
 	}
 }
