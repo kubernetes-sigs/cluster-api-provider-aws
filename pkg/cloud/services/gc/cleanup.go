@@ -71,20 +71,18 @@ func (s *Service) deleteResources(ctx context.Context) error {
 	cleanupFuncs := s.cleanupFuncs
 
 	if val, found := annotations.Get(s.scope.InfraCluster(), infrav1.ExternalResourceGCTasksAnnotation); found {
-		var gcTaskToFunc = map[string]ResourceCleanupFunc{
-			"load-balancer":  s.deleteLoadBalancers,
-			"target-group":   s.deleteTargetGroups,
-			"security-group": s.deleteSecurityGroups,
+		var gcTaskToFunc = map[infrav1.GCTask]ResourceCleanupFunc{
+			infrav1.GCTaskLoadBalancer:  s.deleteLoadBalancers,
+			infrav1.GCTaskTargetGroup:   s.deleteTargetGroups,
+			infrav1.GCTaskSecurityGroup: s.deleteSecurityGroups,
 		}
 
 		cleanupFuncs = ResourceCleanupFuncs{}
 
 		tasks := strings.Split(val, ",")
 
-		// TODO: add some validation here.
-
 		for _, task := range tasks {
-			cleanupFuncs = append(cleanupFuncs, gcTaskToFunc[task])
+			cleanupFuncs = append(cleanupFuncs, gcTaskToFunc[infrav1.GCTask(task)])
 		}
 	}
 

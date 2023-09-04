@@ -80,6 +80,19 @@ const (
 	ExternalResourceGCTasksAnnotation = "aws.cluster.x-k8s.io/external-resource-tasks-gc"
 )
 
+type GCTask string
+
+var (
+	// GCTaskLoadBalancer defines a task to cleaning up resources for AWS load balancers.
+	GCTaskLoadBalancer = GCTask("load-balancer")
+
+	// GCTaskTargetGroup defines a task to cleaning up resources for AWS target groups.
+	GCTaskTargetGroup = GCTask("target-group")
+
+	// GCTaskSecurityGroup defines a task to cleaning up resources for AWS security groups.
+	GCTaskSecurityGroup = GCTask("security-group")
+)
+
 // AZSelectionScheme defines the scheme of selecting AZs.
 type AZSelectionScheme string
 
