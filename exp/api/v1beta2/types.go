@@ -26,6 +26,10 @@ const (
 	// ExternalResourceGCAnnotation is the name of an annotation that indicates if
 	// external resources should be garbage collected for the cluster.
 	ExternalResourceGCAnnotation = "aws.cluster.x-k8s.io/external-resource-gc"
+
+	// ExternalResourceGCTasksAnnotation is the name of an annotation that indicates what
+	// external resources tasks should be executed by garbage collector for the cluster.
+	ExternalResourceGCTasksAnnotation = "aws.cluster.x-k8s.io/external-resource-tasks-gc"
 )
 
 // EBS can be used to automatically set up EBS volumes when an instance is launched.
