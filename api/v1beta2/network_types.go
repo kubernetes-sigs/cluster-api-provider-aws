@@ -36,6 +36,9 @@ type NetworkStatus struct {
 
 	// APIServerELB is the Kubernetes api server load balancer.
 	APIServerELB LoadBalancer `json:"apiServerElb,omitempty"`
+
+	// NatGatewaysIPs contains the public IPs of the NAT Gateways
+	NatGatewaysIPs []string `json:"natGatewaysIPs,omitempty"`
 }
 
 // ELBScheme defines the scheme of a load balancer.
@@ -53,6 +56,15 @@ var (
 
 func (e ELBScheme) String() string {
 	return string(e)
+}
+
+// Equals returns true if two ELBScheme are equal.
+func (e ELBScheme) Equals(other *ELBScheme) bool {
+	if other == nil {
+		return false
+	}
+
+	return e == *other
 }
 
 // ELBProtocol defines listener protocols for a load balancer.

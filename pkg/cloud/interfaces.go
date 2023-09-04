@@ -79,7 +79,6 @@ type ClusterScoper interface {
 	AdditionalTags() infrav1.Tags
 	// SetFailureDomain sets the infrastructure provider failure domain key to the spec given as input.
 	SetFailureDomain(id string, spec clusterv1.FailureDomainSpec)
-
 	// PatchObject persists the cluster configuration and status.
 	PatchObject() error
 	// Close closes the current scope persisting the cluster configuration and status.
