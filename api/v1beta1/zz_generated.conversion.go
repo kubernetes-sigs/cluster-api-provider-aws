@@ -2072,6 +2072,7 @@ func autoConvert_v1beta2_NetworkStatus_To_v1beta1_NetworkStatus(in *v1beta2.Netw
 	if err := Convert_v1beta2_LoadBalancer_To_v1beta1_ClassicELB(&in.APIServerELB, &out.APIServerELB, s); err != nil {
 		return err
 	}
+	// WARNING: in.NatGatewaysIPs requires manual conversion: does not exist in peer-type
 	return nil
 }
 

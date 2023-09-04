@@ -53,6 +53,7 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	for role, sg := range restored.Status.Network.SecurityGroups {
 		dst.Status.Network.SecurityGroups[role] = sg
 	}
+	dst.Status.Network.NatGatewaysIPs = restored.Status.Network.NatGatewaysIPs
 
 	return nil
 }

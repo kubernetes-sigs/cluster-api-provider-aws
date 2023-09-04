@@ -45,4 +45,9 @@ type NetworkScope interface {
 
 	// TagUnmanagedNetworkResources returns is tagging unmanaged network resources is set.
 	TagUnmanagedNetworkResources() bool
+
+	// SetNatGatewaysIPs sets the Nat Gateways Public IPs.
+	SetNatGatewaysIPs(ips []string)
+	// GetNatGatewaysIPs gets the Nat Gateways Public IPs.
+	GetNatGatewaysIPs() []string
 }
