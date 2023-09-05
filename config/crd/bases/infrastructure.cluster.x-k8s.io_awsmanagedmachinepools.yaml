@@ -570,6 +570,10 @@ spec:
                         be specified. Specifying more than one will result in a validation
                         error.
                       properties:
+                        arn:
+                          description: 'ARN of resource. Deprecated: This field has
+                            no function and is going to be removed in the next release.'
+                          type: string
                         filters:
                           description: 'Filters is a set of key/value pairs used to
                             identify a resource They are applied according to the
@@ -687,15 +691,6 @@ spec:
                         type: string
                     required:
                     - size
-                    type: object
-                  spotMarketOptions:
-                    description: SpotMarketOptions are options for configuring AWSMachinePool
-                      instances to be run using AWS Spot instances.
-                    properties:
-                      maxPrice:
-                        description: MaxPrice defines the maximum price the user is
-                          willing to pay for Spot VM instances
-                        type: string
                     type: object
                   sshKeyName:
                     description: SSHKeyName is the name of the ssh key to attach to
@@ -919,6 +914,12 @@ spec:
                   occur during the reconciliation of MachinePools can be added as
                   events to the MachinePool object and/or logged in the controller's
                   output."
+                type: string
+              launchTemplateID:
+                description: The ID of the launch template
+                type: string
+              launchTemplateVersion:
+                description: The version of the launch template
                 type: string
               ready:
                 default: false

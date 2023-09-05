@@ -70,7 +70,7 @@ func (s *Service) reconcileNatGateways() error {
 	}
 
 	subnetIDs := []string{}
-
+	var natGatewaysIPs []string
 	for _, sn := range s.scope.Subnets().FilterPublic() {
 		if sn.ID == "" {
 			continue
@@ -89,12 +89,17 @@ func (s *Service) reconcileNatGateways() error {
 				record.Warnf(s.scope.InfraCluster(), "FailedTagNATGateway", "Failed to tag managed NAT Gateway %q: %v", *ngw.NatGatewayId, err)
 				return errors.Wrapf(err, "failed to tag nat gateway %q", *ngw.NatGatewayId)
 			}
-
+			subnet := s.scope.Subnets().FindByID(*ngw.SubnetId)
+			subnet.NatGatewayID = ngw.NatGatewayId
+			if len(ngw.NatGatewayAddresses) > 0 && ngw.NatGatewayAddresses[0].PublicIp != nil {
+				natGatewaysIPs = append(natGatewaysIPs, *ngw.NatGatewayAddresses[0].PublicIp)
+			}
 			continue
 		}
 
 		subnetIDs = append(subnetIDs, sn.ID)
 	}
+	s.scope.SetNatGatewaysIPs(natGatewaysIPs)
 
 	// Batch the creation of NAT gateways
 	if len(subnetIDs) > 0 {

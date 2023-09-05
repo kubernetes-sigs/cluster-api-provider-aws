@@ -1404,6 +1404,9 @@ spec:
               launchTemplateID:
                 description: The ID of the launch template
                 type: string
+              launchTemplateVersion:
+                description: The version of the launch template
+                type: string
               ready:
                 description: Ready is true when the provider resource is ready.
                 type: boolean

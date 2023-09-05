@@ -2,5 +2,5 @@
 
 rm ./generated/*
 
-kustomize build --load_restrictor none global > ./generated/core-global.yaml
-kustomize build --load_restrictor none base > ./generated/core-base.yaml
+kustomize build --load-restrictor LoadRestrictionsNone global > ./generated/core-global.yaml
+kustomize build --load-restrictor LoadRestrictionsNone base > ./generated/core-base.yaml
