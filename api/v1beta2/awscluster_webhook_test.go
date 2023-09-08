@@ -655,6 +655,48 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "correct GC tasks annotation",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{},
+			},
+			newCluster: &AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						ExternalResourceGCTasksAnnotation: "load-balancer,target-group,security-group",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "empty GC tasks annotation",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{},
+			},
+			newCluster: &AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						ExternalResourceGCTasksAnnotation: "",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "incorrect GC tasks annotation",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{},
+			},
+			newCluster: &AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						ExternalResourceGCTasksAnnotation: "load-balancer,INVALID,security-group",
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -36,7 +36,6 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
@@ -924,16 +923,16 @@ func createManagedControlPlane(gcAnnotationValue, gcTasksAnnotationValue string)
 
 	if gcAnnotationValue != "" {
 		cp.ObjectMeta.Annotations = map[string]string{
-			expinfrav1.ExternalResourceGCAnnotation: gcAnnotationValue,
+			infrav1.ExternalResourceGCAnnotation: gcAnnotationValue,
 		}
 	}
 
 	if gcTasksAnnotationValue != "" {
 		if cp.ObjectMeta.Annotations != nil {
-			cp.ObjectMeta.Annotations[expinfrav1.ExternalResourceGCTasksAnnotation] = gcTasksAnnotationValue
+			cp.ObjectMeta.Annotations[infrav1.ExternalResourceGCTasksAnnotation] = gcTasksAnnotationValue
 		} else {
 			cp.ObjectMeta.Annotations = map[string]string{
-				expinfrav1.ExternalResourceGCTasksAnnotation: gcTasksAnnotationValue,
+				infrav1.ExternalResourceGCTasksAnnotation: gcTasksAnnotationValue,
 			}
 		}
 	}
@@ -956,16 +955,16 @@ func createAWSCluser(gcAnnotationValue, gcTasksAnnotationValue string) *infrav1.
 
 	if gcAnnotationValue != "" {
 		awsc.ObjectMeta.Annotations = map[string]string{
-			expinfrav1.ExternalResourceGCAnnotation: gcAnnotationValue,
+			infrav1.ExternalResourceGCAnnotation: gcAnnotationValue,
 		}
 	}
 
 	if gcTasksAnnotationValue != "" {
 		if awsc.ObjectMeta.Annotations != nil {
-			awsc.ObjectMeta.Annotations[expinfrav1.ExternalResourceGCTasksAnnotation] = gcTasksAnnotationValue
+			awsc.ObjectMeta.Annotations[infrav1.ExternalResourceGCTasksAnnotation] = gcTasksAnnotationValue
 		} else {
 			awsc.ObjectMeta.Annotations = map[string]string{
-				expinfrav1.ExternalResourceGCTasksAnnotation: gcTasksAnnotationValue,
+				infrav1.ExternalResourceGCTasksAnnotation: gcTasksAnnotationValue,
 			}
 		}
 	}

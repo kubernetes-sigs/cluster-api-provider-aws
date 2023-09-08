@@ -29,7 +29,6 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/annotations"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -132,7 +131,7 @@ func (c *CmdProcessor) setAnnotationAndPatch(ctx context.Context, annotationValu
 		return fmt.Errorf("creating patch helper: %w", err)
 	}
 
-	annotations.Set(infraObj, expinfrav1.ExternalResourceGCAnnotation, annotationValue)
+	annotations.Set(infraObj, infrav1.ExternalResourceGCAnnotation, annotationValue)
 
 	if err := patchHelper.Patch(ctx, infraObj); err != nil {
 		return fmt.Errorf("patching infra cluster with gc annotation: %w", err)
