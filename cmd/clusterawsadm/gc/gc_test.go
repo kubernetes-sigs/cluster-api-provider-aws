@@ -29,7 +29,6 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/annotations"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -73,7 +72,7 @@ func TestEnableGC(t *testing.T) {
 		{
 			name:         "with managed control plane and existing annotation",
 			clusterName:  testClusterName,
-			existingObjs: newManagedClusterWithAnnotations(testClusterName, map[string]string{expinfrav1.ExternalResourceGCAnnotation: "false"}),
+			existingObjs: newManagedClusterWithAnnotations(testClusterName, map[string]string{infrav1.ExternalResourceGCAnnotation: "false"}),
 			expectError:  false,
 		},
 	}
@@ -107,7 +106,7 @@ func TestEnableGC(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(obj).NotTo(BeNil())
 
-			annotationVal, hasAnnotation := annotations.Get(obj, expinfrav1.ExternalResourceGCAnnotation)
+			annotationVal, hasAnnotation := annotations.Get(obj, infrav1.ExternalResourceGCAnnotation)
 			g.Expect(hasAnnotation).To(BeTrue())
 			g.Expect(annotationVal).To(Equal("true"))
 		})
@@ -140,13 +139,13 @@ func TestDisableGC(t *testing.T) {
 		{
 			name:         "with managed control plane and with annotation",
 			clusterName:  testClusterName,
-			existingObjs: newManagedClusterWithAnnotations(testClusterName, map[string]string{expinfrav1.ExternalResourceGCAnnotation: "true"}),
+			existingObjs: newManagedClusterWithAnnotations(testClusterName, map[string]string{infrav1.ExternalResourceGCAnnotation: "true"}),
 			expectError:  false,
 		},
 		{
 			name:         "with awscluster and with annotation",
 			clusterName:  testClusterName,
-			existingObjs: newUnManagedClusterWithAnnotations(testClusterName, map[string]string{expinfrav1.ExternalResourceGCAnnotation: "true"}),
+			existingObjs: newUnManagedClusterWithAnnotations(testClusterName, map[string]string{infrav1.ExternalResourceGCAnnotation: "true"}),
 			expectError:  false,
 		},
 	}
@@ -180,7 +179,7 @@ func TestDisableGC(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(obj).NotTo(BeNil())
 
-			annotationVal, hasAnnotation := annotations.Get(obj, expinfrav1.ExternalResourceGCAnnotation)
+			annotationVal, hasAnnotation := annotations.Get(obj, infrav1.ExternalResourceGCAnnotation)
 			g.Expect(hasAnnotation).To(BeTrue())
 			g.Expect(annotationVal).To(Equal("false"))
 		})
