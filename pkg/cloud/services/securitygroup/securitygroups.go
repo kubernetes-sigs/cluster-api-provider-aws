@@ -577,11 +577,10 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 		}
 		return infrav1.IngressRules{}, nil
 	case infrav1.SecurityGroupAPIServerLB:
-		rules := s.getDefaultIngressRulesForControlPlaneLB()
-		if s.scope.ControlPlaneLoadBalancer() != nil && len(s.scope.ControlPlaneLoadBalancer().IngressRules) > 0 {
-			rules = s.scope.ControlPlaneLoadBalancer().IngressRules
-		}
-		return rules, nil
+		kubeletRules := s.getIngressRulesToAllowKubeletToAccessTheControlPlaneLB()
+		customIngressRules := s.getControlPlaneLBIngressRules()
+		rulesToApply := customIngressRules.Difference(kubeletRules)
+		return append(kubeletRules, rulesToApply...), nil
 	case infrav1.SecurityGroupLB:
 		// We hand this group off to the in-cluster cloud provider, so these rules aren't used
 		// Except if the load balancer type is NLB, and we have an AWS Cluster in which case we
@@ -786,7 +785,43 @@ func ingressRulesFromSDKType(v *ec2.IpPermission) (res infrav1.IngressRules) {
 	return res
 }
 
-func (s *Service) getDefaultIngressRulesForControlPlaneLB() infrav1.IngressRules {
+// getIngressRulesToAllowKubeletToAccessTheControlPlaneLB returns ingress rules required in the control plane LB.
+// The control plane LB will be accessed by in-cluster components like the kubelet, that means allowing the NatGateway IPs
+// when using an internet-facing LB, or the VPC CIDR when using an internal LB.
+func (s *Service) getIngressRulesToAllowKubeletToAccessTheControlPlaneLB() infrav1.IngressRules {
+	if s.scope.ControlPlaneLoadBalancer() != nil && infrav1.ELBSchemeInternal.Equals(s.scope.ControlPlaneLoadBalancer().Scheme) {
+		return s.getIngressRuleToAllowVPCCidrInTheAPIServer()
+	}
+
+	natGatewaysIPs := s.scope.GetNatGatewaysIPs()
+	if len(natGatewaysIPs) > 0 {
+		return infrav1.IngressRules{
+			{
+				Description: "Kubernetes API",
+				Protocol:    infrav1.SecurityGroupProtocolTCP,
+				FromPort:    int64(s.scope.APIServerPort()),
+				ToPort:      int64(s.scope.APIServerPort()),
+				CidrBlocks:  natGatewaysIPs,
+			},
+		}
+	}
+
+	// If Nat Gateway IPs are not available yet, we allow all traffic for now so that the MC can access the WC API
+	return s.getIngressRuleToAllowAnyIPInTheAPIServer()
+}
+
+// getControlPlaneLBIngressRules returns the ingress rules for the control plane LB.
+// We allow all traffic when no other rules are defined.
+func (s *Service) getControlPlaneLBIngressRules() infrav1.IngressRules {
+	if s.scope.ControlPlaneLoadBalancer() != nil && len(s.scope.ControlPlaneLoadBalancer().IngressRules) > 0 {
+		return s.scope.ControlPlaneLoadBalancer().IngressRules
+	}
+
+	// If no custom ingress rules have been defined we allow all traffic so that the MC can access the WC API
+	return s.getIngressRuleToAllowAnyIPInTheAPIServer()
+}
+
+func (s *Service) getIngressRuleToAllowAnyIPInTheAPIServer() infrav1.IngressRules {
 	if s.scope.VPC().IsIPv6Enabled() {
 		return infrav1.IngressRules{
 			{
@@ -806,6 +841,30 @@ func (s *Service) getDefaultIngressRulesForControlPlaneLB() infrav1.IngressRules
 			FromPort:    int64(s.scope.APIServerPort()),
 			ToPort:      int64(s.scope.APIServerPort()),
 			CidrBlocks:  []string{services.AnyIPv4CidrBlock},
+		},
+	}
+}
+
+func (s *Service) getIngressRuleToAllowVPCCidrInTheAPIServer() infrav1.IngressRules {
+	if s.scope.VPC().IsIPv6Enabled() {
+		return infrav1.IngressRules{
+			{
+				Description:    "Kubernetes API IPv6",
+				Protocol:       infrav1.SecurityGroupProtocolTCP,
+				FromPort:       int64(s.scope.APIServerPort()),
+				ToPort:         int64(s.scope.APIServerPort()),
+				IPv6CidrBlocks: []string{s.scope.VPC().IPv6.CidrBlock},
+			},
+		}
+	}
+
+	return infrav1.IngressRules{
+		{
+			Description: "Kubernetes API",
+			Protocol:    infrav1.SecurityGroupProtocolTCP,
+			FromPort:    int64(s.scope.APIServerPort()),
+			ToPort:      int64(s.scope.APIServerPort()),
+			CidrBlocks:  []string{s.scope.VPC().CidrBlock},
 		},
 	}
 }
