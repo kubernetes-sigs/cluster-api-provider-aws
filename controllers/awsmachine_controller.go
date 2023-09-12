@@ -775,7 +775,12 @@ func (r *AWSMachineReconciler) ignitionUserData(scope *scope.MachineScope, objec
 }
 
 func (r *AWSMachineReconciler) deleteBootstrapData(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, objectStoreScope scope.S3Scope) error {
-	if !machineScope.AWSMachine.Spec.CloudInit.InsecureSkipSecretsManager {
+	_, userDataFormat, err := machineScope.GetRawBootstrapDataWithFormat()
+	if err != nil {
+		return errors.Wrap(err, "failed to get raw userdata")
+	}
+
+	if machineScope.UseSecretsManager(userDataFormat) {
 		if err := r.deleteEncryptedBootstrapDataSecret(machineScope, clusterScope); err != nil {
 			return err
 		}
