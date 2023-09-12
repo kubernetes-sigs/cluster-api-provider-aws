@@ -1467,8 +1467,10 @@ func fromSDKTypeToClassicELB(v *elb.LoadBalancerDescription, attrs *elb.LoadBala
 
 func fromSDKTypeToLB(v *elbv2.LoadBalancer, attrs []*elbv2.LoadBalancerAttribute, tags []*elbv2.Tag) *infrav1.LoadBalancer {
 	subnetIds := make([]*string, len(v.AvailabilityZones))
+	availabilityZones := make([]*string, len(v.AvailabilityZones))
 	for i, az := range v.AvailabilityZones {
 		subnetIds[i] = az.SubnetId
+		availabilityZones[i] = az.ZoneName
 	}
 	res := &infrav1.LoadBalancer{
 		ARN:       aws.StringValue(v.LoadBalancerArn),
@@ -1476,8 +1478,9 @@ func fromSDKTypeToLB(v *elbv2.LoadBalancer, attrs []*elbv2.LoadBalancerAttribute
 		Scheme:    infrav1.ELBScheme(aws.StringValue(v.Scheme)),
 		SubnetIDs: aws.StringValueSlice(subnetIds),
 		// SecurityGroupIDs: aws.StringValueSlice(v.SecurityGroups),
-		DNSName: aws.StringValue(v.DNSName),
-		Tags:    converters.V2TagsToMap(tags),
+		AvailabilityZones: aws.StringValueSlice(availabilityZones),
+		DNSName:           aws.StringValue(v.DNSName),
+		Tags:              converters.V2TagsToMap(tags),
 	}
 
 	infraAttrs := make(map[string]*string, len(attrs))
