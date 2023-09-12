@@ -18,6 +18,7 @@ package gc
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -34,10 +35,12 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 )
 
+const (
+	testClusterName = "test-cluster"
+)
+
 func TestEnableGC(t *testing.T) {
 	RegisterTestingT(t)
-
-	testClusterName := "test-cluster"
 
 	testCases := []struct {
 		name         string
@@ -116,8 +119,6 @@ func TestEnableGC(t *testing.T) {
 func TestDisableGC(t *testing.T) {
 	RegisterTestingT(t)
 
-	testClusterName := "test-cluster"
-
 	testCases := []struct {
 		name         string
 		clusterName  string
@@ -182,6 +183,107 @@ func TestDisableGC(t *testing.T) {
 			annotationVal, hasAnnotation := annotations.Get(obj, infrav1.ExternalResourceGCAnnotation)
 			g.Expect(hasAnnotation).To(BeTrue())
 			g.Expect(annotationVal).To(Equal("false"))
+		})
+	}
+}
+
+func TestConfigureGC(t *testing.T) {
+	RegisterTestingT(t)
+
+	testCases := []struct {
+		name         string
+		clusterName  string
+		gcTasks      []string
+		existingObjs []client.Object
+		expectError  bool
+	}{
+		{
+			name:         "no capi cluster",
+			clusterName:  testClusterName,
+			existingObjs: []client.Object{},
+			expectError:  true,
+		},
+		{
+			name:         "no infra cluster",
+			clusterName:  testClusterName,
+			existingObjs: newManagedCluster(testClusterName, true),
+			expectError:  true,
+		},
+		{
+			name:         "with managed control plane and no annotation",
+			clusterName:  testClusterName,
+			existingObjs: newManagedCluster(testClusterName, false),
+			gcTasks:      []string{"load-balancer", "target-group"},
+			expectError:  false,
+		},
+		{
+			name:         "with awscluster and no annotation",
+			clusterName:  testClusterName,
+			existingObjs: newUnManagedCluster(testClusterName, false),
+			gcTasks:      []string{"load-balancer", "security-group"},
+			expectError:  false,
+		},
+		{
+			name:         "with managed control plane and with annotation",
+			clusterName:  testClusterName,
+			existingObjs: newManagedClusterWithAnnotations(testClusterName, map[string]string{infrav1.ExternalResourceGCTasksAnnotation: "security-group"}),
+			gcTasks:      []string{"load-balancer", "target-group"},
+			expectError:  false,
+		},
+		{
+			name:         "with awscluster and with annotation",
+			clusterName:  testClusterName,
+			existingObjs: newUnManagedClusterWithAnnotations(testClusterName, map[string]string{infrav1.ExternalResourceGCTasksAnnotation: "security-group"}),
+			gcTasks:      []string{"load-balancer", "target-group"},
+			expectError:  false,
+		},
+		{
+			name:         "with awscluster and invalid gc tasks",
+			clusterName:  testClusterName,
+			existingObjs: newUnManagedCluster(testClusterName, false),
+			gcTasks:      []string{"load-balancer", "INVALID"},
+			expectError:  true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			input := GCInput{
+				ClusterName: tc.clusterName,
+				Namespace:   "default",
+			}
+
+			fake := newFakeClient(scheme, tc.existingObjs...)
+			ctx := context.TODO()
+
+			proc, err := New(input, WithClient(fake))
+			g.Expect(err).NotTo(HaveOccurred())
+
+			resErr := proc.Configure(ctx, tc.gcTasks)
+			if tc.expectError {
+				g.Expect(resErr).To(HaveOccurred())
+				return
+			}
+			g.Expect(resErr).NotTo(HaveOccurred())
+
+			cluster := tc.existingObjs[0].(*clusterv1.Cluster)
+			ref := cluster.Spec.InfrastructureRef
+
+			obj, err := external.Get(ctx, fake, ref, "default")
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(obj).NotTo(BeNil())
+
+			expected := strings.Join(tc.gcTasks, ",")
+			annotationVal, hasAnnotation := annotations.Get(obj, infrav1.ExternalResourceGCTasksAnnotation)
+
+			if expected != "" {
+				g.Expect(hasAnnotation).To(BeTrue())
+				g.Expect(annotationVal).To(Equal(expected))
+			} else {
+				g.Expect(hasAnnotation).To(BeFalse())
+			}
 		})
 	}
 }
