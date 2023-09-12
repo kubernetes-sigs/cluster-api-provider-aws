@@ -1109,6 +1109,28 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 			})
+			t.Run("should delete the secret from the S3 bucket", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+				setNodeRef(t, g)
+
+				ms.AWSMachine.Spec.CloudInit = infrav1.CloudInit{}
+				ms.AWSMachine.Spec.Ignition = &infrav1.Ignition{
+					Version: "2.3",
+				}
+
+				buf := new(bytes.Buffer)
+				klog.SetOutput(buf)
+
+				objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+				ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
+
+				_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
+				g.Expect(err).To(BeNil())
+				g.Expect(buf.String()).To(ContainSubstring("Deleting unneeded entry from AWS S3"))
+			})
 		})
 
 		t.Run("Secrets management lifecycle when there's only a secret ARN and no node ref", func(t *testing.T) {
@@ -2495,7 +2517,17 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 		},
 	}
 
-	fakeClient := fake.NewClientBuilder().WithObjects(ownerCluster, awsCluster, ownerMachine, awsMachine, controllerIdentity).Build()
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bootstrap-data",
+			Namespace: ns,
+		},
+		Data: map[string][]byte{
+			"value": []byte("shell-script"),
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithObjects(ownerCluster, awsCluster, ownerMachine, awsMachine, controllerIdentity, secret).Build()
 
 	recorder := record.NewFakeRecorder(10)
 	reconciler := &AWSMachineReconciler{
