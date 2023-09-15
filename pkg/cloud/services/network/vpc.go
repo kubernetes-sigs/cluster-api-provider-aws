@@ -37,7 +37,9 @@ import (
 )
 
 const (
-	defaultVPCCidr = "10.0.0.0/16"
+	defaultVPCCidr             = "10.0.0.0/16"
+	defaultIpamV4NetmaskLength = 16
+	defaultIpamV6NetmaskLength = 56
 )
 
 func (s *Service) reconcileVPC() error {
@@ -195,6 +197,35 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 	return nil
 }
 
+func (s *Service) getIPAMPoolID() (*string, error) {
+	input := &ec2.DescribeIpamPoolsInput{}
+
+	if s.scope.VPC().IPAMPool.ID != "" {
+		input.Filters = append(input.Filters, filter.EC2.IPAM(s.scope.VPC().IPAMPool.ID))
+	}
+
+	if s.scope.VPC().IPAMPool.Name != "" {
+		input.Filters = append(input.Filters, filter.EC2.Name(s.scope.VPC().IPAMPool.Name))
+	}
+
+	output, err := s.EC2Client.DescribeIpamPools(input)
+	if err != nil {
+		record.Warnf(s.scope.InfraCluster(), "FailedCreateVPC", "Failed to describe IPAM Pools: %v", err)
+		return nil, errors.Wrap(err, "failed to describe IPAM Pools")
+	}
+
+	switch len(output.IpamPools) {
+	case 0:
+		record.Warnf(s.scope.InfraCluster(), "FailedCreateVPC", "IPAM not found")
+		return nil, fmt.Errorf("IPAM not found")
+	case 1:
+		return output.IpamPools[0].IpamPoolId, nil
+	default:
+		record.Warnf(s.scope.InfraCluster(), "FailedCreateVPC", "multiple IPAMs found")
+		return nil, fmt.Errorf("multiple IPAMs found")
+	}
+}
+
 func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 	input := &ec2.CreateVpcInput{
 		TagSpecifications: []*ec2.TagSpecification{
@@ -202,19 +233,50 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 		},
 	}
 
-	// setup BYOIP
-	if s.scope.VPC().IsIPv6Enabled() && s.scope.VPC().IPv6.CidrBlock != "" {
-		input.Ipv6CidrBlock = aws.String(s.scope.VPC().IPv6.CidrBlock)
-		input.Ipv6Pool = aws.String(s.scope.VPC().IPv6.PoolID)
-		input.AmazonProvidedIpv6CidrBlock = aws.Bool(false)
-	} else {
-		input.AmazonProvidedIpv6CidrBlock = aws.Bool(s.scope.VPC().IsIPv6Enabled())
+	// IPv6-specific configuration
+	if s.scope.VPC().IsIPv6Enabled() {
+		switch {
+		case s.scope.VPC().IPv6.CidrBlock != "":
+			input.Ipv6CidrBlock = aws.String(s.scope.VPC().IPv6.CidrBlock)
+			input.Ipv6Pool = aws.String(s.scope.VPC().IPv6.PoolID)
+			input.AmazonProvidedIpv6CidrBlock = aws.Bool(false)
+		case s.scope.VPC().IPv6.IPAMPool != nil:
+			ipamPoolID, err := s.getIPAMPoolID()
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to get IPAM Pool ID")
+			}
+
+			if s.scope.VPC().IPv6.IPAMPool.NetmaskLength == 0 {
+				s.scope.VPC().IPv6.IPAMPool.NetmaskLength = defaultIpamV6NetmaskLength
+			}
+
+			input.Ipv6IpamPoolId = ipamPoolID
+			input.Ipv6NetmaskLength = aws.Int64(s.scope.VPC().IPv6.IPAMPool.NetmaskLength)
+		default:
+			input.AmazonProvidedIpv6CidrBlock = aws.Bool(s.scope.VPC().IsIPv6Enabled())
+		}
 	}
 
-	if s.scope.VPC().CidrBlock == "" {
-		s.scope.VPC().CidrBlock = defaultVPCCidr
+	// IPv4-specific configuration
+	if s.scope.VPC().IPAMPool != nil {
+		ipamPoolID, err := s.getIPAMPoolID()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get IPAM Pool ID")
+		}
+
+		if s.scope.VPC().IPAMPool.NetmaskLength == 0 {
+			s.scope.VPC().IPAMPool.NetmaskLength = defaultIpamV4NetmaskLength
+		}
+
+		input.Ipv4IpamPoolId = ipamPoolID
+		input.Ipv4NetmaskLength = aws.Int64(s.scope.VPC().IPAMPool.NetmaskLength)
+	} else {
+		if s.scope.VPC().CidrBlock == "" {
+			s.scope.VPC().CidrBlock = defaultVPCCidr
+		}
+
+		input.CidrBlock = &s.scope.VPC().CidrBlock
 	}
-	input.CidrBlock = &s.scope.VPC().CidrBlock
 
 	out, err := s.EC2Client.CreateVpc(input)
 	if err != nil {

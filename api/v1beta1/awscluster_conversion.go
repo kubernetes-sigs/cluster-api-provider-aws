@@ -55,6 +55,22 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	}
 	dst.Status.Network.NatGatewaysIPs = restored.Status.Network.NatGatewaysIPs
 
+	if restored.Spec.NetworkSpec.VPC.IPAMPool != nil {
+		if dst.Spec.NetworkSpec.VPC.IPAMPool == nil {
+			dst.Spec.NetworkSpec.VPC.IPAMPool = &infrav2.IPAMPool{}
+		}
+
+		restoreIPAMPool(restored.Spec.NetworkSpec.VPC.IPAMPool, dst.Spec.NetworkSpec.VPC.IPAMPool)
+	}
+
+	if restored.Spec.NetworkSpec.VPC.IsIPv6Enabled() && restored.Spec.NetworkSpec.VPC.IPv6.IPAMPool != nil {
+		if dst.Spec.NetworkSpec.VPC.IPv6.IPAMPool == nil {
+			dst.Spec.NetworkSpec.VPC.IPv6.IPAMPool = &infrav2.IPAMPool{}
+		}
+
+		restoreIPAMPool(restored.Spec.NetworkSpec.VPC.IPv6.IPAMPool, dst.Spec.NetworkSpec.VPC.IPv6.IPAMPool)
+	}
+
 	return nil
 }
 
@@ -65,6 +81,14 @@ func restoreControlPlaneLoadBalancerStatus(restored, dst *infrav2.LoadBalancer) 
 	dst.LoadBalancerType = restored.LoadBalancerType
 	dst.ELBAttributes = restored.ELBAttributes
 	dst.ELBListeners = restored.ELBListeners
+}
+
+// restoreIPAMPool manually restores the ipam pool data.
+// Assumes restored and dst are non-nil.
+func restoreIPAMPool(restored, dst *infrav2.IPAMPool) {
+	dst.ID = restored.ID
+	dst.Name = restored.Name
+	dst.NetmaskLength = restored.NetmaskLength
 }
 
 // restoreControlPlaneLoadBalancer manually restores the control plane loadbalancer data.
