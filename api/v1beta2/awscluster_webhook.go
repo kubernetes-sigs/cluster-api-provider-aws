@@ -228,6 +228,15 @@ func (r *AWSCluster) validateNetwork() field.ErrorList {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("subnets"), r.Spec.NetworkSpec.Subnets, "IPv6 cannot be used with unmanaged clusters at this time."))
 		}
 	}
+
+	if r.Spec.NetworkSpec.VPC.CidrBlock != "" && r.Spec.NetworkSpec.VPC.IPAMPool != nil {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("cidrBlock"), r.Spec.NetworkSpec.VPC.CidrBlock, "cidrBlock and ipamPool cannot be used together"))
+	}
+
+	if r.Spec.NetworkSpec.VPC.IPAMPool != nil && r.Spec.NetworkSpec.VPC.IPAMPool.ID == "" && r.Spec.NetworkSpec.VPC.IPAMPool.Name == "" {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("ipamPool"), r.Spec.NetworkSpec.VPC.IPAMPool, "ipamPool must have either id or name"))
+	}
+
 	return allErrs
 }
 

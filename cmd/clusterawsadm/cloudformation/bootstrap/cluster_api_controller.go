@@ -81,6 +81,8 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 			Effect:   iamv1.EffectAllow,
 			Resource: iamv1.Resources{iamv1.Any},
 			Action: iamv1.Actions{
+				"ec2:DescribeIpamPools",
+				"ec2:AllocateIpamPoolCidr",
 				"ec2:AttachNetworkInterface",
 				"ec2:DetachNetworkInterface",
 				"ec2:AllocateAddress",
