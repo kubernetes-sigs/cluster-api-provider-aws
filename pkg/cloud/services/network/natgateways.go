@@ -69,6 +69,7 @@ func (s *Service) reconcileNatGateways() error {
 		return err
 	}
 
+	natGatewaysIPs := []string{}
 	subnetIDs := []string{}
 
 	for _, sn := range s.scope.Subnets().FilterPublic() {
@@ -77,6 +78,9 @@ func (s *Service) reconcileNatGateways() error {
 		}
 
 		if ngw, ok := existing[sn.ID]; ok {
+			if len(ngw.NatGatewayAddresses) > 0 && ngw.NatGatewayAddresses[0].PublicIp != nil {
+				natGatewaysIPs = append(natGatewaysIPs, *ngw.NatGatewayAddresses[0].PublicIp)
+			}
 			// Make sure tags are up to date.
 			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 				buildParams := s.getNatGatewayTagParams(*ngw.NatGatewayId)
@@ -96,6 +100,8 @@ func (s *Service) reconcileNatGateways() error {
 		subnetIDs = append(subnetIDs, sn.ID)
 	}
 
+	s.scope.SetNatGatewaysIPs(natGatewaysIPs)
+
 	// Batch the creation of NAT gateways
 	if len(subnetIDs) > 0 {
 		// set NatGatewayCreationStarted if the condition has never been set before
@@ -106,17 +112,11 @@ func (s *Service) reconcileNatGateways() error {
 			}
 		}
 		ngws, err := s.createNatGateways(subnetIDs)
-		var natGatewaysIPs []string
 
 		for _, ng := range ngws {
 			subnet := s.scope.Subnets().FindByID(*ng.SubnetId)
 			subnet.NatGatewayID = ng.NatGatewayId
-			if len(ng.NatGatewayAddresses) > 0 && ng.NatGatewayAddresses[0].PublicIp != nil {
-				natGatewaysIPs = append(natGatewaysIPs, *ng.NatGatewayAddresses[0].PublicIp)
-			}
 		}
-
-		s.scope.SetNatGatewaysIPs(natGatewaysIPs)
 
 		if err != nil {
 			return err
