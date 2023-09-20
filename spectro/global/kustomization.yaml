@@ -19,6 +19,7 @@ patchesStrategicMerge:
   - ../../config/default/manager_webhook_patch.yaml
   - ../../config/default/webhookcainjection_patch.yaml
   - ../../config/default/manager_image_patch.yaml
+  - patch_cabundle.yaml
 
 configurations:
   - ../../config/default/kustomizeconfig.yaml
