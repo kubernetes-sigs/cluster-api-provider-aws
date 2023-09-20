@@ -140,6 +140,8 @@ Resources:
       PolicyDocument:
         Statement:
         - Action:
+          - ec2:DescribeIpamPools
+          - ec2:AllocateIpamPoolCidr
           - ec2:AttachNetworkInterface
           - ec2:DetachNetworkInterface
           - ec2:AllocateAddress
@@ -214,6 +216,13 @@ Resources:
           - elasticloadbalancing:DeregisterInstancesFromLoadBalancer
           - elasticloadbalancing:RemoveTags
           - elasticloadbalancing:SetSubnets
+          - elasticloadbalancing:ModifyTargetGroupAttributes
+          - elasticloadbalancing:CreateTargetGroup
+          - elasticloadbalancing:DescribeListeners
+          - elasticloadbalancing:CreateListener
+          - elasticloadbalancing:DescribeTargetHealth
+          - elasticloadbalancing:RegisterTargets
+          - elasticloadbalancing:DeleteListener
           - autoscaling:DescribeAutoScalingGroups
           - autoscaling:DescribeInstanceRefreshes
           - ec2:CreateLaunchTemplate

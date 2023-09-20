@@ -36,6 +36,9 @@ type NetworkStatus struct {
 
 	// APIServerELB is the Kubernetes api server load balancer.
 	APIServerELB LoadBalancer `json:"apiServerElb,omitempty"`
+
+	// NatGatewaysIPs contains the public IPs of the NAT Gateways
+	NatGatewaysIPs []string `json:"natGatewaysIPs,omitempty"`
 }
 
 // ELBScheme defines the scheme of a load balancer.
@@ -53,6 +56,15 @@ var (
 
 func (e ELBScheme) String() string {
 	return string(e)
+}
+
+// Equals returns true if two ELBScheme are equal.
+func (e ELBScheme) Equals(other *ELBScheme) bool {
+	if other == nil {
+		return false
+	}
+
+	return e == *other
 }
 
 // ELBProtocol defines listener protocols for a load balancer.
@@ -233,16 +245,36 @@ type NetworkSpec struct {
 // IPv6 contains ipv6 specific settings for the network.
 type IPv6 struct {
 	// CidrBlock is the CIDR block provided by Amazon when VPC has enabled IPv6.
+	// Mutually exclusive with IPAMPool.
 	// +optional
 	CidrBlock string `json:"cidrBlock,omitempty"`
 
 	// PoolID is the IP pool which must be defined in case of BYO IP is defined.
+	// Must be specified if CidrBlock is set.
+	// Mutually exclusive with IPAMPool.
 	// +optional
 	PoolID string `json:"poolId,omitempty"`
 
 	// EgressOnlyInternetGatewayID is the id of the egress only internet gateway associated with an IPv6 enabled VPC.
 	// +optional
 	EgressOnlyInternetGatewayID *string `json:"egressOnlyInternetGatewayId,omitempty"`
+
+	// IPAMPool defines the IPAMv6 pool to be used for VPC.
+	// Mutually exclusive with CidrBlock.
+	// +optional
+	IPAMPool *IPAMPool `json:"ipamPool,omitempty"`
+}
+
+// IPAMPool defines the IPAM pool to be used for VPC.
+type IPAMPool struct {
+	// ID is the ID of the IPAM pool this provider should use to create VPC.
+	ID string `json:"id,omitempty"`
+	// Name is the name of the IPAM pool this provider should use to create VPC.
+	Name string `json:"name,omitempty"`
+	// The netmask length of the IPv4 CIDR you want to allocate to VPC from
+	// an Amazon VPC IP Address Manager (IPAM) pool.
+	// Defaults to /16 for IPv4 if not specified.
+	NetmaskLength int64 `json:"netmaskLength,omitempty"`
 }
 
 // VPCSpec configures an AWS VPC.
@@ -252,7 +284,12 @@ type VPCSpec struct {
 
 	// CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
 	// Defaults to 10.0.0.0/16.
+	// Mutually exclusive with IPAMPool.
 	CidrBlock string `json:"cidrBlock,omitempty"`
+
+	// IPAMPool defines the IPAMv4 pool to be used for VPC.
+	// Mutually exclusive with CidrBlock.
+	IPAMPool *IPAMPool `json:"ipamPool,omitempty"`
 
 	// IPv6 contains ipv6 specific settings for the network. Supported only in managed clusters.
 	// This field cannot be set on AWSCluster object.

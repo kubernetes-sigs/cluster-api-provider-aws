@@ -45,4 +45,10 @@ type SGScope interface {
 
 	// ControlPlaneLoadBalancer returns the load balancer settings that are requested.
 	ControlPlaneLoadBalancer() *infrav1.AWSLoadBalancerSpec
+
+	// SetNatGatewaysIPs sets the Nat Gateways Public IPs.
+	SetNatGatewaysIPs(ips []string)
+
+	// GetNatGatewaysIPs gets the Nat Gateways Public IPs.
+	GetNatGatewaysIPs() []string
 }

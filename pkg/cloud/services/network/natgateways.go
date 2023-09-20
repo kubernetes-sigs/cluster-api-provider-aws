@@ -106,11 +106,17 @@ func (s *Service) reconcileNatGateways() error {
 			}
 		}
 		ngws, err := s.createNatGateways(subnetIDs)
+		var natGatewaysIPs []string
 
 		for _, ng := range ngws {
 			subnet := s.scope.Subnets().FindByID(*ng.SubnetId)
 			subnet.NatGatewayID = ng.NatGatewayId
+			if len(ng.NatGatewayAddresses) > 0 && ng.NatGatewayAddresses[0].PublicIp != nil {
+				natGatewaysIPs = append(natGatewaysIPs, *ng.NatGatewayAddresses[0].PublicIp)
+			}
 		}
+
+		s.scope.SetNatGatewaysIPs(natGatewaysIPs)
 
 		if err != nil {
 			return err

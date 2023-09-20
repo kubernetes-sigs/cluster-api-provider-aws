@@ -22,12 +22,6 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
 
-const (
-	// ExternalResourceGCAnnotation is the name of an annotation that indicates if
-	// external resources should be garbage collected for the cluster.
-	ExternalResourceGCAnnotation = "aws.cluster.x-k8s.io/external-resource-gc"
-)
-
 // EBS can be used to automatically set up EBS volumes when an instance is launched.
 type EBS struct {
 	// Encrypted is whether the volume should be encrypted or not.
@@ -122,6 +116,10 @@ type AWSLaunchTemplate struct {
 
 	// SpotMarketOptions are options for configuring AWSMachinePool instances to be run using AWS Spot instances.
 	SpotMarketOptions *infrav1.SpotMarketOptions `json:"spotMarketOptions,omitempty"`
+
+	// InstanceMetadataOptions defines the behavior for applying metadata to instances.
+	// +optional
+	InstanceMetadataOptions *infrav1.InstanceMetadataOptions `json:"instanceMetadataOptions,omitempty"`
 }
 
 // Overrides are used to override the instance type specified by the launch template with multiple
@@ -217,10 +215,8 @@ type AutoScalingGroup struct {
 // ASGStatus is a status string returned by the autoscaling API.
 type ASGStatus string
 
-var (
-	// ASGStatusDeleteInProgress is the string representing an ASG that is currently deleting.
-	ASGStatusDeleteInProgress = ASGStatus("Delete in progress")
-)
+// ASGStatusDeleteInProgress is the string representing an ASG that is currently deleting.
+var ASGStatusDeleteInProgress = ASGStatus("Delete in progress")
 
 // TaintEffect is the effect for a Kubernetes taint.
 type TaintEffect string
