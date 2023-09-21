@@ -17,6 +17,7 @@ limitations under the License.
 package securitygroup
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -1319,4 +1320,279 @@ var processSecurityGroupsPage = func(_, y interface{}) {
 			},
 		},
 	}, true)
+}
+
+func TestIngressRulesToSDKType(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    infrav1.IngressRules
+		expected []*ec2.IpPermission
+	}{
+		{
+			name: "Multiple rules for same protocol and range",
+			input: infrav1.IngressRules{
+				{
+					Description: "Allow all",
+					Protocol:    "tcp",
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"0.0.0.0/0"},
+				},
+				{
+					Description: "K8s-natRule",
+					Protocol:    "tcp",
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"18.222.40.247/32"},
+				},
+				{
+					Description:            "sg-cp-1",
+					Protocol:               "tcp",
+					FromPort:               6443,
+					ToPort:                 6443,
+					CidrBlocks:             nil,
+					SourceSecurityGroupIDs: []string{"sg-source-1"},
+				},
+			},
+			expected: []*ec2.IpPermission{
+				{
+					IpProtocol: aws.String("tcp"),
+					FromPort:   aws.Int64(6443),
+					ToPort:     aws.Int64(6443),
+					IpRanges: []*ec2.IpRange{
+						{
+							CidrIp:      aws.String("0.0.0.0/0"),
+							Description: aws.String("Allow all"),
+						},
+						{
+							CidrIp:      aws.String("18.222.40.247/32"),
+							Description: aws.String("K8s-natRule"),
+						},
+					},
+					UserIdGroupPairs: []*ec2.UserIdGroupPair{
+						{
+							//UserId:      aws.String("aws-user-id-1"),
+							GroupId:     aws.String("sg-source-1"),
+							Description: aws.String("sg-cp-1"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Multiple rules for protocol and range with securityGroup ID's",
+			input: infrav1.IngressRules{
+				{
+					Description: "Allow all",
+					Protocol:    "tcp",
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"0.0.0.0/0"},
+				},
+				{
+					Description: "K8s-natRule",
+					Protocol:    "tcp",
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"18.222.40.247/32"},
+				},
+				{
+					Description: "K8s-natRule",
+					Protocol:    "tcp",
+					FromPort:    1234,
+					ToPort:      1234,
+					CidrBlocks:  []string{"18.222.40.247/32"},
+				},
+				{
+					Description:            "sg-cp-1",
+					Protocol:               "tcp",
+					FromPort:               445,
+					ToPort:                 445,
+					CidrBlocks:             nil,
+					SourceSecurityGroupIDs: []string{"sg-source-1"},
+				},
+				{
+					Description:            "sg-cp-2",
+					Protocol:               "tcp",
+					FromPort:               6443,
+					ToPort:                 6443,
+					CidrBlocks:             nil,
+					SourceSecurityGroupIDs: []string{"sg-source-1"},
+				},
+			},
+			expected: []*ec2.IpPermission{
+				{
+					IpProtocol: aws.String("tcp"),
+					FromPort:   aws.Int64(6443),
+					ToPort:     aws.Int64(6443),
+					IpRanges: []*ec2.IpRange{
+						{
+							CidrIp:      aws.String("0.0.0.0/0"),
+							Description: aws.String("Allow all"),
+						},
+						{
+							CidrIp:      aws.String("18.222.40.247/32"),
+							Description: aws.String("K8s-natRule"),
+						},
+					},
+					UserIdGroupPairs: []*ec2.UserIdGroupPair{
+						{
+							//UserId:      aws.String("aws-user-id-1"),
+							GroupId:     aws.String("sg-source-1"),
+							Description: aws.String("sg-cp-2"),
+						},
+					},
+				},
+				{
+					IpProtocol: aws.String("tcp"),
+					FromPort:   aws.Int64(1234),
+					ToPort:     aws.Int64(1234),
+					IpRanges: []*ec2.IpRange{
+						{
+							CidrIp:      aws.String("18.222.40.247/32"),
+							Description: aws.String("K8s-natRule"),
+						},
+					},
+				},
+				{
+					IpProtocol: aws.String("tcp"),
+					FromPort:   aws.Int64(445),
+					ToPort:     aws.Int64(445),
+					UserIdGroupPairs: []*ec2.UserIdGroupPair{
+						{
+							GroupId:     aws.String("sg-source-1"),
+							Description: aws.String("sg-cp-1"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Intermixed rules for different port and protocol",
+			input: infrav1.IngressRules{
+				{
+					Description:            "bgp (calico)",
+					Protocol:               "tcp",
+					FromPort:               179,
+					ToPort:                 179,
+					SourceSecurityGroupIDs: []string{"sg-0b5070b9f36b0ed9c", "sg-0c9ac7f7540e4b5ef"},
+				},
+				{
+					Description:            "IP-in-IP (calico)",
+					Protocol:               "4",
+					FromPort:               -1,
+					ToPort:                 65535,
+					SourceSecurityGroupIDs: []string{"sg-0b5070b9f36b0ed9c", "sg-0c9ac7f7540e4b5ef"},
+				},
+				{
+					Description:            "Kubernetes API",
+					Protocol:               "tcp",
+					FromPort:               6443,
+					ToPort:                 6443,
+					SourceSecurityGroupIDs: []string{"sg-0b5070b9f36b0ed9c", "sg-0ba03970d2202099d", "sg-0c9ac7f7540e4b5ef"},
+				},
+				{
+					Description: "ingress-test-1",
+					Protocol:    "tcp",
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"0.0.0.0/0"},
+				},
+				{
+					Description: "ingress-test-2",
+					Protocol:    "tcp",
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"1.2.3.4/24"},
+				},
+				{
+					Description:            "etcd",
+					Protocol:               "tcp",
+					FromPort:               2379,
+					ToPort:                 2379,
+					SourceSecurityGroupIDs: []string{"sg-0c9ac7f7540e4b5ef"},
+				},
+			},
+			expected: []*ec2.IpPermission{
+				{
+					IpProtocol: aws.String("tcp"),
+					FromPort:   aws.Int64(179),
+					ToPort:     aws.Int64(179),
+					UserIdGroupPairs: []*ec2.UserIdGroupPair{
+						{
+							GroupId:     aws.String("sg-0b5070b9f36b0ed9c"),
+							Description: aws.String("bgp (calico)"),
+						},
+						{
+							GroupId:     aws.String("sg-0c9ac7f7540e4b5ef"),
+							Description: aws.String("bgp (calico)"),
+						},
+					},
+				},
+				{
+					IpProtocol: aws.String("4"),
+					//FromPort:   aws.Int64(1234),
+					//ToPort:     aws.Int64(1234),
+					UserIdGroupPairs: []*ec2.UserIdGroupPair{
+						{
+							GroupId:     aws.String("sg-0b5070b9f36b0ed9c"),
+							Description: aws.String("IP-in-IP (calico)"),
+						},
+						{
+							GroupId:     aws.String("sg-0c9ac7f7540e4b5ef"),
+							Description: aws.String("IP-in-IP (calico)"),
+						},
+					},
+				},
+				{
+					IpProtocol: aws.String("tcp"),
+					FromPort:   aws.Int64(6443),
+					ToPort:     aws.Int64(6443),
+					IpRanges: []*ec2.IpRange{
+						{
+							CidrIp:      aws.String("0.0.0.0/0"),
+							Description: aws.String("ingress-test-1"),
+						},
+						{
+							CidrIp:      aws.String("1.2.3.4/24"),
+							Description: aws.String("ingress-test-2"),
+						},
+					},
+					UserIdGroupPairs: []*ec2.UserIdGroupPair{
+						{
+							GroupId:     aws.String("sg-0b5070b9f36b0ed9c"),
+							Description: aws.String("Kubernetes API"),
+						},
+						{
+							GroupId:     aws.String("sg-0ba03970d2202099d"),
+							Description: aws.String("Kubernetes API"),
+						},
+						{
+							GroupId:     aws.String("sg-0c9ac7f7540e4b5ef"),
+							Description: aws.String("Kubernetes API"),
+						},
+					},
+				},
+				{
+					IpProtocol: aws.String("tcp"),
+					FromPort:   aws.Int64(2379),
+					ToPort:     aws.Int64(2379),
+					UserIdGroupPairs: []*ec2.UserIdGroupPair{
+						{
+							GroupId:     aws.String("sg-0c9ac7f7540e4b5ef"),
+							Description: aws.String("etcd"),
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewGomegaWithT(t)
+			output := ingressRulesToSDKType(nil, tc.input)
+			fmt.Println(output)
+			g.Expect(output).To(Equal(tc.expected))
+		})
+	}
 }
