@@ -51,4 +51,7 @@ type SGScope interface {
 
 	// GetNatGatewaysIPs gets the Nat Gateways Public IPs.
 	GetNatGatewaysIPs() []string
+
+	// AdditionalControlPlaneIngressRules returns the additional ingress rules for the control plane security group.
+	AdditionalControlPlaneIngressRules() []infrav1.IngressRule
 }
