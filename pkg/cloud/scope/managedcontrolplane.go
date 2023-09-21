@@ -428,3 +428,8 @@ func (s *ManagedControlPlaneScope) Partition() string {
 	}
 	return s.ControlPlane.Spec.Partition
 }
+
+// AdditionalControlPlaneIngressRules returns the additional ingress rules for the control plane security group.
+func (s *ManagedControlPlaneScope) AdditionalControlPlaneIngressRules() []infrav1.IngressRule {
+	return nil
+}
