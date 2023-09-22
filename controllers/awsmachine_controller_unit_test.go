@@ -489,8 +489,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 					instanceCreate(t, g)
 					getCoreSecurityGroups(t, g)
 
-					ms.AWSMachine.Spec.AdditionalTags = infrav1.Tags{"kind": "alicorn"}
-					cs.AWSCluster.Spec.AdditionalTags = infrav1.Tags{"colour": "lavender"}
+					ms.AWSMachine.Spec.AdditionalTags = infrav1.Tags{"kind": "alicorn", "colour": "pink"} // takes precedence
+					cs.AWSCluster.Spec.AdditionalTags = infrav1.Tags{"colour": "lavender", "shape": "round"}
 
 					ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil)
 
@@ -500,7 +500,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 					ec2Svc.EXPECT().UpdateResourceTags(
 						PointsTo("myMachine"),
 						map[string]string{
-							"colour": "lavender",
+							"colour": "pink",
+							"shape":  "round",
 							"kind":   "alicorn",
 						},
 						map[string]string{},
@@ -508,12 +509,11 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 					ec2Svc.EXPECT().UpdateResourceTags(
 						gomock.Any(),
-						//create
 						map[string]string{
-							"colour": "lavender",
+							"colour": "pink",
+							"shape":  "round",
 							"kind":   "alicorn",
 						},
-						//remove
 						map[string]string{},
 					).Return(nil).Times(2)
 
