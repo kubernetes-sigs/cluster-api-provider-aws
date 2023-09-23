@@ -481,7 +481,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					}
 				})
 
-				t.Run("should tag instances from machine and cluster tags", func(t *testing.T) {
+				t.Run("should tag instances and volumes with machine and cluster tags", func(t *testing.T) {
 					g := NewWithT(t)
 					awsMachine := getAWSMachine()
 					setup(t, g, awsMachine)
@@ -489,26 +489,33 @@ func TestAWSMachineReconciler(t *testing.T) {
 					instanceCreate(t, g)
 					getCoreSecurityGroups(t, g)
 
-					ms.AWSMachine.Spec.AdditionalTags = infrav1.Tags{"kind": "alicorn"}
-					cs.AWSCluster.Spec.AdditionalTags = infrav1.Tags{"colour": "lavender"}
+					ms.AWSMachine.Spec.AdditionalTags = infrav1.Tags{"kind": "alicorn", "colour": "pink"} // takes precedence
+					cs.AWSCluster.Spec.AdditionalTags = infrav1.Tags{"colour": "lavender", "shape": "round"}
 
 					ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil)
-					ec2Svc.EXPECT().UpdateResourceTags(
-						gomock.Any(),
-						map[string]string{
-							"kind": "alicorn",
-						},
-						map[string]string{},
-					).Return(nil).Times(2)
+
+					// expect one call first to tag the instance and two calls for tagging each of two volumes
+					// the volumes get the tags from the AWSCluster _and_ the AWSMachine
 
 					ec2Svc.EXPECT().UpdateResourceTags(
 						PointsTo("myMachine"),
 						map[string]string{
-							"colour": "lavender",
+							"colour": "pink",
+							"shape":  "round",
 							"kind":   "alicorn",
 						},
 						map[string]string{},
 					).Return(nil)
+
+					ec2Svc.EXPECT().UpdateResourceTags(
+						gomock.Any(),
+						map[string]string{
+							"colour": "pink",
+							"shape":  "round",
+							"kind":   "alicorn",
+						},
+						map[string]string{},
+					).Return(nil).Times(2)
 
 					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(err).To(BeNil())
