@@ -589,7 +589,7 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		}
 
 		if instance != nil {
-			r.ensureStorageTags(ec2svc, instance, machineScope.AWSMachine)
+			r.ensureStorageTags(ec2svc, instance, machineScope.AWSMachine, machineScope.AdditionalTags())
 		}
 
 		if err := r.reconcileLBAttachment(machineScope, elbScope, instance); err != nil {
@@ -1111,20 +1111,20 @@ func (r *AWSMachineReconciler) indexAWSMachineByInstanceID(o client.Object) []st
 	return nil
 }
 
-func (r *AWSMachineReconciler) ensureStorageTags(ec2svc services.EC2Interface, instance *infrav1.Instance, machine *infrav1.AWSMachine) {
+func (r *AWSMachineReconciler) ensureStorageTags(ec2svc services.EC2Interface, instance *infrav1.Instance, machine *infrav1.AWSMachine, additionalTags map[string]string) {
 	annotations, err := r.machineAnnotationJSON(machine, VolumeTagsLastAppliedAnnotation)
 	if err != nil {
 		r.Log.Error(err, "Failed to fetch the annotations for volume tags")
 	}
 	for _, volumeID := range instance.VolumeIDs {
 		if subAnnotation, ok := annotations[volumeID].(map[string]interface{}); ok {
-			newAnnotation, err := r.ensureVolumeTags(ec2svc, aws.String(volumeID), subAnnotation, machine.Spec.AdditionalTags)
+			newAnnotation, err := r.ensureVolumeTags(ec2svc, aws.String(volumeID), subAnnotation, additionalTags)
 			if err != nil {
 				r.Log.Error(err, "Failed to fetch the changed volume tags in EC2 instance")
 			}
 			annotations[volumeID] = newAnnotation
 		} else {
-			newAnnotation, err := r.ensureVolumeTags(ec2svc, aws.String(volumeID), make(map[string]interface{}), machine.Spec.AdditionalTags)
+			newAnnotation, err := r.ensureVolumeTags(ec2svc, aws.String(volumeID), make(map[string]interface{}), additionalTags)
 			if err != nil {
 				r.Log.Error(err, "Failed to fetch the changed volume tags in EC2 instance")
 			}
