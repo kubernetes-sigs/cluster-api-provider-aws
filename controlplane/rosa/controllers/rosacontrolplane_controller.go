@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -140,8 +141,8 @@ func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	// Always close the scope
 	defer func() {
-		if err := rosaScope.Close(); err != nil && reterr == nil {
-			reterr = err
+		if err := rosaScope.Close(); err != nil {
+			reterr = errors.Join(reterr, err)
 		}
 	}()
 
@@ -298,7 +299,11 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to build connection: %w", err)
 	}
-	defer connection.Close()
+	defer func() {
+		if err := connection.Close(); err != nil {
+			reterr = errors.Join(reterr, err)
+		}
+	}()
 
 	log := logger.FromContext(ctx)
 	cluster, err := connection.ClustersMgmt().V1().Clusters().
@@ -317,7 +322,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	return ctrl.Result{}, nil
 }
 
-func (r *ROSAControlPlaneReconciler) reconcileDelete(_ context.Context, rosaScope *scope.ROSAControlPlaneScope) (ctrl.Result, error) {
+func (r *ROSAControlPlaneReconciler) reconcileDelete(_ context.Context, rosaScope *scope.ROSAControlPlaneScope) (res ctrl.Result, reterr error) {
 	// log := logger.FromContext(ctx)
 
 	rosaScope.Info("Reconciling ROSAControlPlane delete")
@@ -331,6 +336,7 @@ func (r *ROSAControlPlaneReconciler) reconcileDelete(_ context.Context, rosaScop
 	}
 
 	// Create the connection, and remember to close it:
+	// TODO: token should be read from a secret: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/4460
 	token := os.Getenv("OCM_TOKEN")
 	connection, err := sdk.NewConnectionBuilder().
 		Logger(ocmLogger).
@@ -340,7 +346,11 @@ func (r *ROSAControlPlaneReconciler) reconcileDelete(_ context.Context, rosaScop
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to build connection: %w", err)
 	}
-	defer connection.Close()
+	defer func() {
+		if err := connection.Close(); err != nil {
+			reterr = errors.Join(reterr, err)
+		}
+	}()
 
 	cluster, err := r.getOcmCluster(rosaScope, connection)
 	if err != nil {

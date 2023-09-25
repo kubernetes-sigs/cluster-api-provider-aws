@@ -28,11 +28,6 @@ const (
 	// // alpha: v1.X
 	// MyFeature featuregate.Feature = "MyFeature".
 
-	// ROSA is used to enable ROSA support
-	// owner: @enxebre
-	// alpha: v2.2
-	ROSA featuregate.Feature = "ROSA"
-
 	// EKS is used to enable EKS support
 	// owner: @richardcase
 	// alpha: v0.4
@@ -85,6 +80,11 @@ const (
 	// owner: @skarlso
 	// alpha: v2.0
 	TagUnmanagedNetworkResources featuregate.Feature = "TagUnmanagedNetworkResources"
+
+	// ROSA is used to enable ROSA support
+	// owner: @enxebre
+	// alpha: v2.2
+	ROSA featuregate.Feature = "ROSA"
 )
 
 func init() {
@@ -95,7 +95,6 @@ func init() {
 // To add a new feature, define a key for it above and add it here.
 var defaultCAPAFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	// Every feature should be initiated here:
-	ROSA:                          {Default: false, PreRelease: featuregate.Alpha},
 	EKS:                           {Default: true, PreRelease: featuregate.Beta},
 	EKSEnableIAM:                  {Default: false, PreRelease: featuregate.Beta},
 	EKSAllowAddRoles:              {Default: false, PreRelease: featuregate.Beta},
@@ -107,4 +106,5 @@ var defaultCAPAFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	ExternalResourceGC:            {Default: false, PreRelease: featuregate.Alpha},
 	AlternativeGCStrategy:         {Default: false, PreRelease: featuregate.Alpha},
 	TagUnmanagedNetworkResources:  {Default: true, PreRelease: featuregate.Alpha},
+	ROSA:                          {Default: false, PreRelease: featuregate.Alpha},
 }
