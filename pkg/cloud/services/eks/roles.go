@@ -182,8 +182,8 @@ func (s *NodegroupService) reconcileNodegroupIAMRole() error {
 		} else {
 			s.scope.Info("no EKS nodegroup role specified, using role based on nodegroup name")
 			roleName, err = eks.GenerateEKSName(
+				"nodegroup-iam-service-role",
 				fmt.Sprintf("%s-%s", s.scope.KubernetesClusterName(), s.scope.NodegroupName()),
-				"-nodegroup-iam-service-role",
 				maxIAMRoleNameLength,
 			)
 			if err != nil {
