@@ -223,6 +223,9 @@ type NetworkSpec struct {
 	// This is optional - if not provided new security groups will be created for the cluster
 	// +optional
 	SecurityGroupOverrides map[SecurityGroupRole]string `json:"securityGroupOverrides,omitempty"`
+
+	// NodePortCIDRBlocks is a set of allowedCIDRBlocks to use for cluster instances
+	NodePortCIDRBlocks []string `json:"nodePortCIDRBlocks,omitempty"`
 }
 
 // VPCSpec configures an AWS VPC.

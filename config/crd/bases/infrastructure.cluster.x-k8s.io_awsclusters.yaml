@@ -233,6 +233,12 @@ spec:
                           type: object
                         type: array
                     type: object
+                  nodePortCIDRBlocks:
+                    description: NodePortCIDRBlocks is a set of allowedCIDRBlocks
+                      to use for cluster instances
+                    items:
+                      type: string
+                    type: array
                   securityGroupOverrides:
                     additionalProperties:
                       type: string
@@ -988,6 +994,12 @@ spec:
                           type: object
                         type: array
                     type: object
+                  nodePortCIDRBlocks:
+                    description: NodePortCIDRBlocks is a set of allowedCIDRBlocks
+                      to use for cluster instances
+                    items:
+                      type: string
+                    type: array
                   securityGroupOverrides:
                     additionalProperties:
                       type: string
@@ -1840,6 +1852,12 @@ spec:
                           type: object
                         type: array
                     type: object
+                  nodePortCIDRBlocks:
+                    description: NodePortCIDRBlocks is a set of allowedCIDRBlocks
+                      to use for cluster instances
+                    items:
+                      type: string
+                    type: array
                   securityGroupOverrides:
                     additionalProperties:
                       type: string

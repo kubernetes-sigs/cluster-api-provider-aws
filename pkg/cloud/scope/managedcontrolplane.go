@@ -429,3 +429,7 @@ func (s *ManagedControlPlaneScope) ServiceCidrs() *clusterv1.NetworkRanges {
 
 	return nil
 }
+
+func (s *ManagedControlPlaneScope) NetworkSpec() *infrav1.NetworkSpec {
+	return &s.ControlPlane.Spec.NetworkSpec
+}

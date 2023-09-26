@@ -402,3 +402,8 @@ func (s *ClusterScope) ImageLookupOrg() string {
 func (s *ClusterScope) ImageLookupBaseOS() string {
 	return s.AWSCluster.Spec.ImageLookupBaseOS
 }
+
+// NetworkSpec returns cluster network spec.
+func (s *ClusterScope) NetworkSpec() *infrav1.NetworkSpec {
+	return &s.AWSCluster.Spec.NetworkSpec
+}

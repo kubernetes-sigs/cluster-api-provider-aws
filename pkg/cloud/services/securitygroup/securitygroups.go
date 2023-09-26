@@ -471,6 +471,10 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 		}
 	}
 	cidrBlocks := []string{services.AnyIPv4CidrBlock}
+	// If nodePortCIDRBlocks are available use them instead of 0.0.0.0/0
+	if len(s.scope.NetworkSpec().NodePortCIDRBlocks) != 0 {
+		cidrBlocks = s.scope.NetworkSpec().NodePortCIDRBlocks
+	}
 	switch role {
 	case infrav1.SecurityGroupBastion:
 		return infrav1.IngressRules{
@@ -551,7 +555,7 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 	case infrav1.SecurityGroupNode:
 		rules := infrav1.IngressRules{
 			{
-				Description: "Node Port Services",
+				Description: "Node Port CIDR Blocks",
 				Protocol:    infrav1.SecurityGroupProtocolTCP,
 				FromPort:    30000,
 				ToPort:      32767,

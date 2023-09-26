@@ -2005,6 +2005,7 @@ func autoConvert_v1alpha4_NetworkSpec_To_v1beta1_NetworkSpec(in *NetworkSpec, ou
 	out.Subnets = *(*v1beta1.Subnets)(unsafe.Pointer(&in.Subnets))
 	out.CNI = (*v1beta1.CNISpec)(unsafe.Pointer(in.CNI))
 	out.SecurityGroupOverrides = *(*map[v1beta1.SecurityGroupRole]string)(unsafe.Pointer(&in.SecurityGroupOverrides))
+	out.NodePortCIDRBlocks = *(*[]string)(unsafe.Pointer(&in.NodePortCIDRBlocks))
 	return nil
 }
 
@@ -2020,6 +2021,7 @@ func autoConvert_v1beta1_NetworkSpec_To_v1alpha4_NetworkSpec(in *v1beta1.Network
 	out.Subnets = *(*Subnets)(unsafe.Pointer(&in.Subnets))
 	out.CNI = (*CNISpec)(unsafe.Pointer(in.CNI))
 	out.SecurityGroupOverrides = *(*map[SecurityGroupRole]string)(unsafe.Pointer(&in.SecurityGroupOverrides))
+	out.NodePortCIDRBlocks = *(*[]string)(unsafe.Pointer(&in.NodePortCIDRBlocks))
 	return nil
 }
 

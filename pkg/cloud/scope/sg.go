@@ -51,4 +51,7 @@ type SGScope interface {
 
 	// GetNatGatewaysIPs gets the Nat Gateways Public IPs.
 	GetNatGatewaysIPs() []string
+
+	// NetworkSpec returns cluster network spec.
+	NetworkSpec() *infrav1.NetworkSpec
 }
