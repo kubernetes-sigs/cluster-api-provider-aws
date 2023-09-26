@@ -533,6 +533,14 @@ spec:
                 description: AdditionalTags is an optional set of tags to add to an
                   instance, in addition to the ones added by default by the AWS provider.
                 type: object
+              availabilityZoneSubnetType:
+                description: AvailabilityZoneSubnetType specifies which type of subnets
+                  to use when an availability zone is specified.
+                enum:
+                - public
+                - private
+                - all
+                type: string
               availabilityZones:
                 description: AvailabilityZones is an array of availability zones instances
                   can run in

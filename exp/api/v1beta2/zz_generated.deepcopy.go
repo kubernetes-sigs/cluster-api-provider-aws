@@ -222,6 +222,11 @@ func (in *AWSMachinePoolSpec) DeepCopyInto(out *AWSMachinePoolSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.AvailabilityZoneSubnetType != nil {
+		in, out := &in.AvailabilityZoneSubnetType, &out.AvailabilityZoneSubnetType
+		*out = new(AZSubnetType)
+		**out = **in
+	}
 	if in.Subnets != nil {
 		in, out := &in.Subnets, &out.Subnets
 		*out = make([]apiv1beta2.AWSResourceReference, len(*in))
@@ -385,6 +390,11 @@ func (in *AWSManagedMachinePoolSpec) DeepCopyInto(out *AWSManagedMachinePoolSpec
 		in, out := &in.AvailabilityZones, &out.AvailabilityZones
 		*out = make([]string, len(*in))
 		copy(*out, *in)
+	}
+	if in.AvailabilityZoneSubnetType != nil {
+		in, out := &in.AvailabilityZoneSubnetType, &out.AvailabilityZoneSubnetType
+		*out = new(AZSubnetType)
+		**out = **in
 	}
 	if in.SubnetIDs != nil {
 		in, out := &in.SubnetIDs, &out.SubnetIDs
