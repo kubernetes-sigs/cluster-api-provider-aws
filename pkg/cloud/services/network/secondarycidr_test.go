@@ -17,6 +17,7 @@ limitations under the License.
 package network
 
 import (
+	"context"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -76,7 +77,7 @@ func TestServiceAssociateSecondaryCidr(t *testing.T) {
 			name:              "Should return error if unable to describe VPC",
 			haveSecondaryCIDR: true,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(nil, awserrors.NewFailedDependency("dependency-failure"))
+				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(nil, awserrors.NewFailedDependency("dependency-failure"))
 			},
 			wantErr: true,
 		},
@@ -84,7 +85,7 @@ func TestServiceAssociateSecondaryCidr(t *testing.T) {
 			name:              "Should not associate secondary cidr block if already exist in VPC",
 			haveSecondaryCIDR: true,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
+				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
 						{
 							CidrBlockAssociationSet: []*ec2.VpcCidrBlockAssociation{
@@ -98,7 +99,7 @@ func TestServiceAssociateSecondaryCidr(t *testing.T) {
 			name:              "Should return error if no VPC found",
 			haveSecondaryCIDR: true,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(nil, nil)
+				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(nil, nil)
 			},
 			wantErr: true,
 		},
@@ -106,7 +107,7 @@ func TestServiceAssociateSecondaryCidr(t *testing.T) {
 			name:              "Should return error if failed during associating secondary cidr block",
 			haveSecondaryCIDR: true,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
+				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
 						{
 							CidrBlockAssociationSet: []*ec2.VpcCidrBlockAssociation{
@@ -114,7 +115,7 @@ func TestServiceAssociateSecondaryCidr(t *testing.T) {
 							},
 						},
 					}}, nil)
-				m.AssociateVpcCidrBlock(gomock.AssignableToTypeOf(&ec2.AssociateVpcCidrBlockInput{})).Return(nil, awserrors.NewFailedDependency("dependency-failure"))
+				m.AssociateVpcCidrBlockWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.AssociateVpcCidrBlockInput{})).Return(nil, awserrors.NewFailedDependency("dependency-failure"))
 			},
 			wantErr: true,
 		},
@@ -170,7 +171,7 @@ func TestServiceDiassociateSecondaryCidr(t *testing.T) {
 			name:              "Should return error if unable to describe VPC",
 			haveSecondaryCIDR: true,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(nil, awserrors.NewFailedDependency("dependency-failure"))
+				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(nil, awserrors.NewFailedDependency("dependency-failure"))
 			},
 			wantErr: true,
 		},
@@ -178,7 +179,7 @@ func TestServiceDiassociateSecondaryCidr(t *testing.T) {
 			name:              "Should return error if no VPC found",
 			haveSecondaryCIDR: true,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(nil, nil)
+				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(nil, nil)
 			},
 			wantErr: true,
 		},
@@ -186,7 +187,7 @@ func TestServiceDiassociateSecondaryCidr(t *testing.T) {
 			name:              "Should diassociate secondary cidr block if already exist in VPC",
 			haveSecondaryCIDR: true,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
+				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
 						{
 							CidrBlockAssociationSet: []*ec2.VpcCidrBlockAssociation{
@@ -194,14 +195,14 @@ func TestServiceDiassociateSecondaryCidr(t *testing.T) {
 							},
 						},
 					}}, nil)
-				m.DisassociateVpcCidrBlock(gomock.AssignableToTypeOf(&ec2.DisassociateVpcCidrBlockInput{})).Return(nil, nil)
+				m.DisassociateVpcCidrBlockWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateVpcCidrBlockInput{})).Return(nil, nil)
 			},
 		},
 		{
 			name:              "Should return error if failed to diassociate secondary cidr block",
 			haveSecondaryCIDR: true,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
+				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
 						{
 							CidrBlockAssociationSet: []*ec2.VpcCidrBlockAssociation{
@@ -209,7 +210,7 @@ func TestServiceDiassociateSecondaryCidr(t *testing.T) {
 							},
 						},
 					}}, nil)
-				m.DisassociateVpcCidrBlock(gomock.AssignableToTypeOf(&ec2.DisassociateVpcCidrBlockInput{})).Return(nil, awserrors.NewFailedDependency("dependency-failure"))
+				m.DisassociateVpcCidrBlockWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateVpcCidrBlockInput{})).Return(nil, awserrors.NewFailedDependency("dependency-failure"))
 			},
 			wantErr: true,
 		},

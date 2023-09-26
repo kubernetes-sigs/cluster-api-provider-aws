@@ -17,6 +17,7 @@ limitations under the License.
 package network
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -187,7 +188,7 @@ func (s *Service) describeNatGatewaysBySubnet() (map[string]*ec2.NatGateway, err
 
 	gateways := make(map[string]*ec2.NatGateway)
 
-	err := s.EC2Client.DescribeNatGatewaysPages(describeNatGatewayInput,
+	err := s.EC2Client.DescribeNatGatewaysPagesWithContext(context.TODO(), describeNatGatewayInput,
 		func(page *ec2.DescribeNatGatewaysOutput, lastPage bool) bool {
 			for _, r := range page.NatGateways {
 				gateways[*r.SubnetId] = r
@@ -248,7 +249,7 @@ func (s *Service) createNatGateway(subnetID, ip string) (*ec2.NatGateway, error)
 	var err error
 
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-		if out, err = s.EC2Client.CreateNatGateway(&ec2.CreateNatGatewayInput{
+		if out, err = s.EC2Client.CreateNatGatewayWithContext(context.TODO(), &ec2.CreateNatGatewayInput{
 			SubnetId:          aws.String(subnetID),
 			AllocationId:      aws.String(ip),
 			TagSpecifications: []*ec2.TagSpecification{tags.BuildParamsToTagSpecification(ec2.ResourceTypeNatgateway, s.getNatGatewayTagParams(services.TemporaryResourceID))},
@@ -263,7 +264,7 @@ func (s *Service) createNatGateway(subnetID, ip string) (*ec2.NatGateway, error)
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateNATGateway", "Created new NAT Gateway %q", *out.NatGateway.NatGatewayId)
 
 	wReq := &ec2.DescribeNatGatewaysInput{NatGatewayIds: []*string{out.NatGateway.NatGatewayId}}
-	if err := s.EC2Client.WaitUntilNatGatewayAvailable(wReq); err != nil {
+	if err := s.EC2Client.WaitUntilNatGatewayAvailableWithContext(context.TODO(), wReq); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for nat gateway %q in subnet %q", *out.NatGateway.NatGatewayId, subnetID)
 	}
 
@@ -272,7 +273,7 @@ func (s *Service) createNatGateway(subnetID, ip string) (*ec2.NatGateway, error)
 }
 
 func (s *Service) deleteNatGateway(id string) error {
-	_, err := s.EC2Client.DeleteNatGateway(&ec2.DeleteNatGatewayInput{
+	_, err := s.EC2Client.DeleteNatGatewayWithContext(context.TODO(), &ec2.DeleteNatGatewayInput{
 		NatGatewayId: aws.String(id),
 	})
 	if err != nil {
@@ -287,7 +288,7 @@ func (s *Service) deleteNatGateway(id string) error {
 	}
 
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (done bool, err error) {
-		out, err := s.EC2Client.DescribeNatGateways(describeInput)
+		out, err := s.EC2Client.DescribeNatGatewaysWithContext(context.TODO(), describeInput)
 		if err != nil {
 			return false, err
 		}

@@ -17,6 +17,7 @@ limitations under the License.
 package network
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -143,7 +144,7 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 		VpcId:     aws.String(vpc.ID),
 		Attribute: aws.String("enableDnsHostnames"),
 	}
-	vpcAttr, err := s.EC2Client.DescribeVpcAttribute(descAttrInput)
+	vpcAttr, err := s.EC2Client.DescribeVpcAttributeWithContext(context.TODO(), descAttrInput)
 	if err != nil {
 		// If the returned error is a 'NotFound' error it should trigger retry
 		if code, ok := awserrors.Code(errors.Cause(err)); ok && code == awserrors.VPCNotFound {
@@ -155,7 +156,7 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 			VpcId:              aws.String(vpc.ID),
 			EnableDnsHostnames: &ec2.AttributeBooleanValue{Value: aws.Bool(true)},
 		}
-		if _, err := s.EC2Client.ModifyVpcAttribute(attrInput); err != nil {
+		if _, err := s.EC2Client.ModifyVpcAttributeWithContext(context.TODO(), attrInput); err != nil {
 			errs = append(errs, errors.Wrap(err, "failed to set enableDnsHostnames vpc attribute"))
 		} else {
 			updated = true
@@ -166,7 +167,7 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 		VpcId:     aws.String(vpc.ID),
 		Attribute: aws.String("enableDnsSupport"),
 	}
-	vpcAttr, err = s.EC2Client.DescribeVpcAttribute(descAttrInput)
+	vpcAttr, err = s.EC2Client.DescribeVpcAttributeWithContext(context.TODO(), descAttrInput)
 	if err != nil {
 		// If the returned error is a 'NotFound' error it should trigger retry
 		if code, ok := awserrors.Code(errors.Cause(err)); ok && code == awserrors.VPCNotFound {
@@ -178,7 +179,7 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 			VpcId:            aws.String(vpc.ID),
 			EnableDnsSupport: &ec2.AttributeBooleanValue{Value: aws.Bool(true)},
 		}
-		if _, err := s.EC2Client.ModifyVpcAttribute(attrInput); err != nil {
+		if _, err := s.EC2Client.ModifyVpcAttributeWithContext(context.TODO(), attrInput); err != nil {
 			errs = append(errs, errors.Wrap(err, "failed to set enableDnsSupport vpc attribute"))
 		} else {
 			updated = true
@@ -278,7 +279,7 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 		input.CidrBlock = &s.scope.VPC().CidrBlock
 	}
 
-	out, err := s.EC2Client.CreateVpc(input)
+	out, err := s.EC2Client.CreateVpcWithContext(context.TODO(), input)
 	if err != nil {
 		record.Warnf(s.scope.InfraCluster(), "FailedCreateVPC", "Failed to create new managed VPC: %v", err)
 		return nil, errors.Wrap(err, "failed to create vpc")
@@ -309,7 +310,7 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 	}
 
 	// We have to describe the VPC again because the `create` output will **NOT** contain the associated IPv6 address.
-	vpc, err := s.EC2Client.DescribeVpcs(&ec2.DescribeVpcsInput{
+	vpc, err := s.EC2Client.DescribeVpcsWithContext(context.TODO(), &ec2.DescribeVpcsInput{
 		VpcIds: aws.StringSlice([]string{aws.StringValue(out.Vpc.VpcId)}),
 	})
 	if err != nil {
@@ -349,7 +350,7 @@ func (s *Service) deleteVPC() error {
 		VpcId: aws.String(vpc.ID),
 	}
 
-	if _, err := s.EC2Client.DeleteVpc(input); err != nil {
+	if _, err := s.EC2Client.DeleteVpcWithContext(context.TODO(), input); err != nil {
 		// Ignore if it's already deleted
 		if code, ok := awserrors.Code(err); ok && code == awserrors.VPCNotFound {
 			s.scope.Trace("Skipping VPC deletion, VPC not found")
@@ -384,7 +385,7 @@ func (s *Service) describeVPCByID() (*infrav1.VPCSpec, error) {
 
 	input.VpcIds = []*string{aws.String(s.scope.VPC().ID)}
 
-	out, err := s.EC2Client.DescribeVpcs(input)
+	out, err := s.EC2Client.DescribeVpcsWithContext(context.TODO(), input)
 	if err != nil {
 		if awserrors.IsNotFound(err) {
 			return nil, err

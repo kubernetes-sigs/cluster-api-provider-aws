@@ -187,7 +187,7 @@ func TestGetAPIServerClassicELBSpecControlPlaneLoadBalancer(t *testing.T) {
 				Subnets: []string{"subnet-1", "subnet-2"},
 			},
 			mocks: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					SubnetIds: []*string{
 						aws.String("subnet-1"),
 						aws.String("subnet-2"),
@@ -336,7 +336,7 @@ func TestGetAPIServerV2ELBSpecControlPlaneLoadBalancer(t *testing.T) {
 				Subnets: []string{"subnet-1", "subnet-2"},
 			},
 			mocks: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					SubnetIds: []*string{
 						aws.String("subnet-1"),
 						aws.String("subnet-2"),
@@ -603,7 +603,7 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 					}, nil)
 			},
 			ec2Mocks: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					SubnetIds: []*string{
 						aws.String(elbSubnetID),
 					},
@@ -678,7 +678,7 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 					}, nil)
 			},
 			ec2Mocks: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					SubnetIds: []*string{
 						aws.String(elbSubnetID),
 					},

@@ -80,7 +80,7 @@ func TestServiceDeleteBastion(t *testing.T) {
 			name: "instance not found",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstances(gomock.Eq(describeInput)).
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(&ec2.DescribeInstancesOutput{}, nil)
 			},
 			expectError: false,
@@ -89,7 +89,7 @@ func TestServiceDeleteBastion(t *testing.T) {
 			name: "describe error",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstances(gomock.Eq(describeInput)).
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(nil, errors.New("some error"))
 			},
 			expectError: true,
@@ -98,10 +98,10 @@ func TestServiceDeleteBastion(t *testing.T) {
 			name: "terminate fails",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstances(gomock.Eq(describeInput)).
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(foundOutput, nil)
 				m.
-					TerminateInstances(
+					TerminateInstancesWithContext(context.TODO(),
 						gomock.Eq(&ec2.TerminateInstancesInput{
 							InstanceIds: aws.StringSlice([]string{"id123"}),
 						}),
@@ -114,17 +114,17 @@ func TestServiceDeleteBastion(t *testing.T) {
 			name: "wait after terminate fails",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstances(gomock.Eq(describeInput)).
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(foundOutput, nil)
 				m.
-					TerminateInstances(
+					TerminateInstancesWithContext(context.TODO(),
 						gomock.Eq(&ec2.TerminateInstancesInput{
 							InstanceIds: aws.StringSlice([]string{"id123"}),
 						}),
 					).
 					Return(nil, nil)
 				m.
-					WaitUntilInstanceTerminated(
+					WaitUntilInstanceTerminatedWithContext(context.TODO(),
 						gomock.Eq(&ec2.DescribeInstancesInput{
 							InstanceIds: aws.StringSlice([]string{"id123"}),
 						}),
@@ -137,17 +137,17 @@ func TestServiceDeleteBastion(t *testing.T) {
 			name: "success",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstances(gomock.Eq(describeInput)).
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(foundOutput, nil)
 				m.
-					TerminateInstances(
+					TerminateInstancesWithContext(context.TODO(),
 						gomock.Eq(&ec2.TerminateInstancesInput{
 							InstanceIds: aws.StringSlice([]string{"id123"}),
 						}),
 					).
 					Return(nil, nil)
 				m.
-					WaitUntilInstanceTerminated(
+					WaitUntilInstanceTerminatedWithContext(context.TODO(),
 						gomock.Eq(&ec2.DescribeInstancesInput{
 							InstanceIds: aws.StringSlice([]string{"id123"}),
 						}),
@@ -271,7 +271,7 @@ func TestServiceReconcileBastion(t *testing.T) {
 			name: "Should ignore reconciliation if instance not found",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstances(gomock.Eq(describeInput)).
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(&ec2.DescribeInstancesOutput{}, nil)
 			},
 			expectError: false,
@@ -280,7 +280,7 @@ func TestServiceReconcileBastion(t *testing.T) {
 			name: "Should fail reconcile if describe instance fails",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstances(gomock.Eq(describeInput)).
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(nil, errors.New("some error"))
 			},
 			expectError: true,
@@ -289,10 +289,10 @@ func TestServiceReconcileBastion(t *testing.T) {
 			name: "Should fail reconcile if terminate instance fails",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstances(gomock.Eq(describeInput)).
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(foundOutput, nil).MinTimes(1)
 				m.
-					TerminateInstances(
+					TerminateInstancesWithContext(context.TODO(),
 						gomock.Eq(&ec2.TerminateInstancesInput{
 							InstanceIds: aws.StringSlice([]string{"id123"}),
 						}),
@@ -304,9 +304,9 @@ func TestServiceReconcileBastion(t *testing.T) {
 		{
 			name: "Should create bastion successfully",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeInstances(gomock.Eq(describeInput)).
+				m.DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(&ec2.DescribeInstancesOutput{}, nil).MinTimes(1)
-				m.DescribeImages(gomock.Eq(&ec2.DescribeImagesInput{Filters: []*ec2.Filter{
+				m.DescribeImagesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{Filters: []*ec2.Filter{
 					{
 						Name:   aws.String("architecture"),
 						Values: aws.StringSlice([]string{"x86_64"}),
@@ -337,7 +337,7 @@ func TestServiceReconcileBastion(t *testing.T) {
 						CreationDate: aws.String("2014-02-08T17:02:31.000Z"),
 					},
 				}}, nil)
-				m.RunInstances(gomock.Any()).
+				m.RunInstancesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							{
@@ -505,7 +505,7 @@ func TestServiceReconcileBastionUSGOV(t *testing.T) {
 			name: "Should ignore reconciliation if instance not found",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstances(gomock.Eq(describeInput)).
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(&ec2.DescribeInstancesOutput{}, nil)
 			},
 			expectError: false,
@@ -514,7 +514,7 @@ func TestServiceReconcileBastionUSGOV(t *testing.T) {
 			name: "Should fail reconcile if describe instance fails",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstances(gomock.Eq(describeInput)).
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(nil, errors.New("some error"))
 			},
 			expectError: true,
@@ -523,10 +523,10 @@ func TestServiceReconcileBastionUSGOV(t *testing.T) {
 			name: "Should fail reconcile if terminate instance fails",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstances(gomock.Eq(describeInput)).
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(foundOutput, nil).MinTimes(1)
 				m.
-					TerminateInstances(
+					TerminateInstancesWithContext(context.TODO(),
 						gomock.Eq(&ec2.TerminateInstancesInput{
 							InstanceIds: aws.StringSlice([]string{"id123"}),
 						}),
@@ -538,9 +538,9 @@ func TestServiceReconcileBastionUSGOV(t *testing.T) {
 		{
 			name: "Should create bastion successfully",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeInstances(gomock.Eq(describeInput)).
+				m.DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(&ec2.DescribeInstancesOutput{}, nil).MinTimes(1)
-				m.DescribeImages(gomock.Eq(&ec2.DescribeImagesInput{Filters: []*ec2.Filter{
+				m.DescribeImagesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{Filters: []*ec2.Filter{
 					{
 						Name:   aws.String("architecture"),
 						Values: aws.StringSlice([]string{"x86_64"}),
@@ -571,7 +571,7 @@ func TestServiceReconcileBastionUSGOV(t *testing.T) {
 						CreationDate: aws.String("2014-02-08T17:02:31.000Z"),
 					},
 				}}, nil)
-				m.RunInstances(gomock.Any()).
+				m.RunInstancesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							{
