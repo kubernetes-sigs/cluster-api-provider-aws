@@ -871,7 +871,7 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 					Protocol:    infrav1.SecurityGroupProtocolTCP,
 					FromPort:    6443,
 					ToPort:      6443,
-					CidrBlocks:  []string{"1.2.3.4"},
+					CidrBlocks:  []string{"1.2.3.4/32"},
 				},
 				infrav1.IngressRule{
 					Description: "Kubernetes API",
@@ -915,7 +915,7 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 					Protocol:    infrav1.SecurityGroupProtocolTCP,
 					FromPort:    6443,
 					ToPort:      6443,
-					CidrBlocks:  []string{"1.2.3.4"},
+					CidrBlocks:  []string{"1.2.3.4/32"},
 				},
 				infrav1.IngressRule{
 					Description: "My custom ingress rule",
@@ -1251,6 +1251,40 @@ func TestIngressRulesFromSDKType(t *testing.T) {
 		expected infrav1.IngressRules
 	}{
 		{
+			name: "two ingress rules",
+			input: &ec2.IpPermission{
+				IpProtocol: aws.String("tcp"),
+				FromPort:   aws.Int64(6443),
+				ToPort:     aws.Int64(6443),
+				IpRanges: []*ec2.IpRange{
+					{
+						CidrIp:      aws.String("0.0.0.0/0"),
+						Description: aws.String("Kubernetes API"),
+					},
+					{
+						CidrIp:      aws.String("192.168.1.1/32"),
+						Description: aws.String("My VPN"),
+					},
+				},
+			},
+			expected: infrav1.IngressRules{
+				{
+					Description: "Kubernetes API",
+					Protocol:    "tcp",
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"0.0.0.0/0"},
+				},
+				{
+					Description: "My VPN",
+					Protocol:    "tcp",
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"192.168.1.1/32"},
+				},
+			},
+		},
+		{
 			name: "Two group pairs",
 			input: &ec2.IpPermission{
 				IpProtocol: aws.String("tcp"),
@@ -1275,7 +1309,14 @@ func TestIngressRulesFromSDKType(t *testing.T) {
 					Protocol:               "tcp",
 					FromPort:               10250,
 					ToPort:                 10250,
-					SourceSecurityGroupIDs: []string{"sg-source-1", "sg-source-2"},
+					SourceSecurityGroupIDs: []string{"sg-source-1"},
+				},
+				{
+					Description:            "Kubelet API",
+					Protocol:               "tcp",
+					FromPort:               10250,
+					ToPort:                 10250,
+					SourceSecurityGroupIDs: []string{"sg-source-2"},
 				},
 			},
 		},
