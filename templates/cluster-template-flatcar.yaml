@@ -45,19 +45,19 @@ spec:
       nodeRegistration:
         name: $${COREOS_EC2_HOSTNAME}
         kubeletExtraArgs:
-          cloud-provider: aws
+          cloud-provider: external
     clusterConfiguration:
       apiServer:
         extraArgs:
-          cloud-provider: aws
+          cloud-provider: external
       controllerManager:
         extraArgs:
-          cloud-provider: aws
+          cloud-provider: external
     joinConfiguration:
       nodeRegistration:
         name: $${COREOS_EC2_HOSTNAME}
         kubeletExtraArgs:
-          cloud-provider: aws
+          cloud-provider: external
     format: ignition
     ignition:
       containerLinuxConfig:
@@ -138,7 +138,7 @@ spec:
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            cloud-provider: aws
+            cloud-provider: external
           name: $${COREOS_EC2_HOSTNAME}
       format: ignition
       ignition:
