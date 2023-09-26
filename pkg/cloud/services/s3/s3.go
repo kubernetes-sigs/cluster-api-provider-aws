@@ -31,6 +31,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"github.com/pkg/errors"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	iam "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
@@ -66,6 +67,10 @@ func (s *Service) ReconcileBucket() error {
 
 	if err := s.createBucketIfNotExist(bucketName); err != nil {
 		return errors.Wrap(err, "ensuring bucket exists")
+	}
+
+	if err := s.tagBucket(bucketName); err != nil {
+		return errors.Wrap(err, "tagging bucket")
 	}
 
 	if err := s.ensureBucketPolicy(bucketName); err != nil {
@@ -226,6 +231,39 @@ func (s *Service) ensureBucketPolicy(bucketName string) error {
 	}
 
 	s.scope.Trace("Updated bucket policy", "bucket_name", bucketName)
+
+	return nil
+}
+
+func (s *Service) tagBucket(bucketName string) error {
+	taggingInput := &s3.PutBucketTaggingInput{
+		Bucket: aws.String(bucketName),
+		Tagging: &s3.Tagging{
+			TagSet: nil,
+		},
+	}
+
+	tags := infrav1.Build(infrav1.BuildParams{
+		ClusterName: s.scope.Name(),
+		Lifecycle:   infrav1.ResourceLifecycleOwned,
+		Name:        nil,
+		Role:        aws.String("node"),
+		Additional:  nil,
+	})
+
+	for key, value := range tags {
+		taggingInput.Tagging.TagSet = append(taggingInput.Tagging.TagSet, &s3.Tag{
+			Key:   aws.String(key),
+			Value: aws.String(value),
+		})
+	}
+
+	_, err := s.S3Client.PutBucketTagging(taggingInput)
+	if err != nil {
+		return err
+	}
+
+	s.scope.Trace("Tagged bucket", "bucket_name", bucketName)
 
 	return nil
 }
