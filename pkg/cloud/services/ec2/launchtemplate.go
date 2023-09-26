@@ -17,6 +17,7 @@ limitations under the License.
 package ec2
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"sort"
@@ -333,7 +334,7 @@ func (s *Service) GetLaunchTemplate(launchTemplateName string) (*expinfrav1.AWSL
 		Versions:           aws.StringSlice([]string{expinfrav1.LaunchTemplateLatestVersion}),
 	}
 
-	out, err := s.EC2Client.DescribeLaunchTemplateVersions(input)
+	out, err := s.EC2Client.DescribeLaunchTemplateVersionsWithContext(context.TODO(), input)
 	switch {
 	case awserrors.IsNotFound(err):
 		return nil, "", nil
@@ -359,7 +360,7 @@ func (s *Service) GetLaunchTemplateID(launchTemplateName string) (string, error)
 		Versions:           aws.StringSlice([]string{expinfrav1.LaunchTemplateLatestVersion}),
 	}
 
-	out, err := s.EC2Client.DescribeLaunchTemplateVersions(input)
+	out, err := s.EC2Client.DescribeLaunchTemplateVersionsWithContext(context.TODO(), input)
 	switch {
 	case awserrors.IsNotFound(err):
 		return "", nil
@@ -412,7 +413,7 @@ func (s *Service) CreateLaunchTemplate(scope scope.LaunchTemplateScope, imageID 
 		input.TagSpecifications = append(input.TagSpecifications, spec)
 	}
 
-	result, err := s.EC2Client.CreateLaunchTemplate(input)
+	result, err := s.EC2Client.CreateLaunchTemplateWithContext(context.TODO(), input)
 	if err != nil {
 		return "", err
 	}
@@ -433,7 +434,7 @@ func (s *Service) CreateLaunchTemplateVersion(id string, scope scope.LaunchTempl
 		LaunchTemplateId:   &id,
 	}
 
-	_, err = s.EC2Client.CreateLaunchTemplateVersion(input)
+	_, err = s.EC2Client.CreateLaunchTemplateVersionWithContext(context.TODO(), input)
 	if err != nil {
 		return errors.Wrapf(err, "unable to create launch template version")
 	}
@@ -555,7 +556,7 @@ func (s *Service) DeleteLaunchTemplate(id string) error {
 		LaunchTemplateId: aws.String(id),
 	}
 
-	if _, err := s.EC2Client.DeleteLaunchTemplate(input); err != nil {
+	if _, err := s.EC2Client.DeleteLaunchTemplateWithContext(context.TODO(), input); err != nil {
 		return errors.Wrapf(err, "failed to delete launch template %q", id)
 	}
 
@@ -580,7 +581,7 @@ func (s *Service) PruneLaunchTemplateVersions(id string) error {
 		MaxResults:       aws.Int64(minCountToAllowPrune),
 	}
 
-	out, err := s.EC2Client.DescribeLaunchTemplateVersions(input)
+	out, err := s.EC2Client.DescribeLaunchTemplateVersionsWithContext(context.TODO(), input)
 	if err != nil {
 		s.scope.Info("", "aerr", err.Error())
 		return err
@@ -604,7 +605,7 @@ func (s *Service) GetLaunchTemplateLatestVersion(id string) (string, error) {
 		Versions:         aws.StringSlice([]string{expinfrav1.LaunchTemplateLatestVersion}),
 	}
 
-	out, err := s.EC2Client.DescribeLaunchTemplateVersions(input)
+	out, err := s.EC2Client.DescribeLaunchTemplateVersionsWithContext(context.TODO(), input)
 	if err != nil {
 		s.scope.Info("", "aerr", err.Error())
 		return "", err
@@ -630,7 +631,7 @@ func (s *Service) deleteLaunchTemplateVersion(id string, version *int64) error {
 		Versions:         aws.StringSlice(versions),
 	}
 
-	_, err := s.EC2Client.DeleteLaunchTemplateVersions(input)
+	_, err := s.EC2Client.DeleteLaunchTemplateVersionsWithContext(context.TODO(), input)
 	if err != nil {
 		return err
 	}
@@ -878,7 +879,7 @@ func (s *Service) getFilteredSecurityGroupIDs(securityGroup infrav1.AWSResourceR
 		filters = append(filters, &ec2.Filter{Name: aws.String(f.Name), Values: aws.StringSlice(f.Values)})
 	}
 
-	sgs, err := s.EC2Client.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{Filters: filters})
+	sgs, err := s.EC2Client.DescribeSecurityGroupsWithContext(context.TODO(), &ec2.DescribeSecurityGroupsInput{Filters: filters})
 	if err != nil {
 		return nil, err
 	}

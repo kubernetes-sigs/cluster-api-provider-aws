@@ -2567,7 +2567,7 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 		return secretMock
 	}
 
-	ec2Mock.EXPECT().DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
+	ec2Mock.EXPECT().DescribeInstancesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
 		InstanceIds: aws.StringSlice([]string{"two"}),
 	})).Return(&ec2.DescribeInstancesOutput{
 		Reservations: []*ec2.Reservation{
@@ -2599,7 +2599,7 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 	// Must attach to a classic LB, not another type. Only these mock calls are therefore expected.
 	mockedCreateLBCalls(t, elbMock.EXPECT())
 
-	ec2Mock.EXPECT().DescribeNetworkInterfaces(gomock.Eq(&ec2.DescribeNetworkInterfacesInput{Filters: []*ec2.Filter{
+	ec2Mock.EXPECT().DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfacesInput{Filters: []*ec2.Filter{
 		{
 			Name:   aws.String("attachment.instance-id"),
 			Values: aws.StringSlice([]string{"two"}),
@@ -2615,11 +2615,11 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 				},
 			},
 		}}, nil).MaxTimes(3)
-	ec2Mock.EXPECT().DescribeNetworkInterfaceAttribute(gomock.Eq(&ec2.DescribeNetworkInterfaceAttributeInput{
+	ec2Mock.EXPECT().DescribeNetworkInterfaceAttributeWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfaceAttributeInput{
 		NetworkInterfaceId: aws.String("eni-1"),
 		Attribute:          aws.String("groupSet"),
 	})).Return(&ec2.DescribeNetworkInterfaceAttributeOutput{Groups: []*ec2.GroupIdentifier{{GroupId: aws.String("3")}}}, nil).MaxTimes(1)
-	ec2Mock.EXPECT().ModifyNetworkInterfaceAttribute(gomock.Any()).AnyTimes()
+	ec2Mock.EXPECT().ModifyNetworkInterfaceAttributeWithContext(context.TODO(), gomock.Any()).AnyTimes()
 
 	_, err = reconciler.Reconcile(ctx, ctrl.Request{
 		NamespacedName: client.ObjectKey{

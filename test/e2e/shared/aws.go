@@ -869,7 +869,7 @@ func conformanceImageID(e2eCtx *E2EContext) string {
 
 func GetAvailabilityZones(sess client.ConfigProvider) []*ec2.AvailabilityZone {
 	ec2Client := ec2.New(sess)
-	azs, err := ec2Client.DescribeAvailabilityZones(nil)
+	azs, err := ec2Client.DescribeAvailabilityZonesWithContext(context.TODO(), nil)
 	Expect(err).NotTo(HaveOccurred())
 	return azs.AvailabilityZones
 }

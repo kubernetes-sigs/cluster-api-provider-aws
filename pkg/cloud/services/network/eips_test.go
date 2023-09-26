@@ -17,6 +17,7 @@ limitations under the License.
 package network
 
 import (
+	"context"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -47,20 +48,20 @@ func TestServiceReleaseAddresses(t *testing.T) {
 		{
 			name: "Should return error if failed to describe IP addresses",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAddresses(gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(nil, awserrors.NewFailedDependency("dependency failure"))
+				m.DescribeAddressesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(nil, awserrors.NewFailedDependency("dependency failure"))
 			},
 			wantErr: true,
 		},
 		{
 			name: "Should ignore releasing elastic IP addresses if not found",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAddresses(gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(nil, nil)
+				m.DescribeAddressesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(nil, nil)
 			},
 		},
 		{
 			name: "Should return error if failed to disassociate IP address",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAddresses(gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
+				m.DescribeAddressesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
 					Addresses: []*ec2.Address{
 						{
 							AssociationId: aws.String("association-id-1"),
@@ -69,14 +70,14 @@ func TestServiceReleaseAddresses(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.DisassociateAddress(gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, awserrors.NewFailedDependency("dependency-failure"))
+				m.DisassociateAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, awserrors.NewFailedDependency("dependency-failure"))
 			},
 			wantErr: true,
 		},
 		{
 			name: "Should be able to release the IP address",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAddresses(gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
+				m.DescribeAddressesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
 					Addresses: []*ec2.Address{
 						{
 							AssociationId: aws.String("association-id-1"),
@@ -85,14 +86,14 @@ func TestServiceReleaseAddresses(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.DisassociateAddress(gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, nil)
-				m.ReleaseAddress(gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, nil)
+				m.DisassociateAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, nil)
+				m.ReleaseAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, nil)
 			},
 		},
 		{
 			name: "Should retry if unable to release the IP address because of Auth Failure",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAddresses(gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
+				m.DescribeAddressesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
 					Addresses: []*ec2.Address{
 						{
 							AssociationId: aws.String("association-id-1"),
@@ -101,15 +102,15 @@ func TestServiceReleaseAddresses(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.DisassociateAddress(gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, nil).Times(2)
-				m.ReleaseAddress(gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, awserr.New(awserrors.AuthFailure, awserrors.AuthFailure, errors.Errorf(awserrors.AuthFailure)))
-				m.ReleaseAddress(gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, nil)
+				m.DisassociateAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, nil).Times(2)
+				m.ReleaseAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, awserr.New(awserrors.AuthFailure, awserrors.AuthFailure, errors.Errorf(awserrors.AuthFailure)))
+				m.ReleaseAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, nil)
 			},
 		},
 		{
 			name: "Should retry if unable to release the IP address because IP is already in use",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAddresses(gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
+				m.DescribeAddressesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
 					Addresses: []*ec2.Address{
 						{
 							AssociationId: aws.String("association-id-1"),
@@ -118,15 +119,15 @@ func TestServiceReleaseAddresses(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.DisassociateAddress(gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, nil).Times(2)
-				m.ReleaseAddress(gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, awserr.New(awserrors.InUseIPAddress, awserrors.InUseIPAddress, errors.Errorf(awserrors.InUseIPAddress)))
-				m.ReleaseAddress(gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, nil)
+				m.DisassociateAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, nil).Times(2)
+				m.ReleaseAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, awserr.New(awserrors.InUseIPAddress, awserrors.InUseIPAddress, errors.Errorf(awserrors.InUseIPAddress)))
+				m.ReleaseAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, nil)
 			},
 		},
 		{
 			name: "Should not retry if unable to release the IP address due to dependency failure",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAddresses(gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
+				m.DescribeAddressesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
 					Addresses: []*ec2.Address{
 						{
 							AssociationId: aws.String("association-id-1"),
@@ -135,8 +136,8 @@ func TestServiceReleaseAddresses(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.DisassociateAddress(gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, nil).Times(2)
-				m.ReleaseAddress(gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, awserr.New("dependency-failure", "dependency-failure", errors.Errorf("dependency-failure")))
+				m.DisassociateAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, nil).Times(2)
+				m.ReleaseAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, awserr.New("dependency-failure", "dependency-failure", errors.Errorf("dependency-failure")))
 			},
 			wantErr: true,
 		},

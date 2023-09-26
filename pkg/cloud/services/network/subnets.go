@@ -17,6 +17,7 @@ limitations under the License.
 package network
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"net"
@@ -389,7 +390,7 @@ func (s *Service) describeSubnets() (*ec2.DescribeSubnetsOutput, error) {
 		input.Filters = append(input.Filters, filter.EC2.VPC(s.scope.VPC().ID))
 	}
 
-	out, err := s.EC2Client.DescribeSubnets(input)
+	out, err := s.EC2Client.DescribeSubnetsWithContext(context.TODO(), input)
 	if err != nil {
 		record.Eventf(s.scope.InfraCluster(), "FailedDescribeSubnet", "Failed to describe subnets in vpc %q: %v", s.scope.VPC().ID, err)
 		return nil, errors.Wrapf(err, "failed to describe subnets in vpc %q", s.scope.VPC().ID)
@@ -413,7 +414,7 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 		input.Ipv6CidrBlock = aws.String(sn.IPv6CidrBlock)
 		sn.IsIPv6 = true
 	}
-	out, err := s.EC2Client.CreateSubnet(input)
+	out, err := s.EC2Client.CreateSubnetWithContext(context.TODO(), input)
 	if err != nil {
 		record.Warnf(s.scope.InfraCluster(), "FailedCreateSubnet", "Failed creating new managed Subnet %v", err)
 		return nil, errors.Wrap(err, "failed to create subnet")
@@ -423,7 +424,7 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 	s.scope.Info("Created subnet", "id", *out.Subnet.SubnetId, "public", sn.IsPublic, "az", sn.AvailabilityZone, "cidr", sn.CidrBlock, "ipv6", sn.IsIPv6, "ipv6-cidr", sn.IPv6CidrBlock)
 
 	wReq := &ec2.DescribeSubnetsInput{SubnetIds: []*string{out.Subnet.SubnetId}}
-	if err := s.EC2Client.WaitUntilSubnetAvailable(wReq); err != nil {
+	if err := s.EC2Client.WaitUntilSubnetAvailableWithContext(context.TODO(), wReq); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for subnet %q", *out.Subnet.SubnetId)
 	}
 
@@ -433,7 +434,7 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 		// regardless of the subnet being public or not, ipv6 address needs to be assigned
 		// on creation. There is no such thing as private ipv6 address.
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-			if _, err := s.EC2Client.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
+			if _, err := s.EC2Client.ModifySubnetAttributeWithContext(context.TODO(), &ec2.ModifySubnetAttributeInput{
 				SubnetId: out.Subnet.SubnetId,
 				AssignIpv6AddressOnCreation: &ec2.AttributeBooleanValue{
 					Value: aws.Bool(true),
@@ -451,7 +452,7 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 
 	if sn.IsPublic {
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-			if _, err := s.EC2Client.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
+			if _, err := s.EC2Client.ModifySubnetAttributeWithContext(context.TODO(), &ec2.ModifySubnetAttributeInput{
 				SubnetId: out.Subnet.SubnetId,
 				MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
 					Value: aws.Bool(true),
@@ -491,7 +492,7 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 }
 
 func (s *Service) deleteSubnet(id string) error {
-	_, err := s.EC2Client.DeleteSubnet(&ec2.DeleteSubnetInput{
+	_, err := s.EC2Client.DeleteSubnetWithContext(context.TODO(), &ec2.DeleteSubnetInput{
 		SubnetId: aws.String(id),
 	})
 	if err != nil {

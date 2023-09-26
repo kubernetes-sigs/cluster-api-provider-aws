@@ -17,6 +17,7 @@ limitations under the License.
 package ec2
 
 import (
+	"context"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -60,7 +61,7 @@ func TestDefaultAMILookup(t *testing.T) {
 				amiNameFormat:     "ami-name",
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
 							{
@@ -86,7 +87,7 @@ func TestDefaultAMILookup(t *testing.T) {
 		{
 			name: "Should return with error if AWS DescribeImages call failed with some error",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(nil, awserrors.NewFailedDependency("dependency failure"))
 			},
 			check: func(g *WithT, img *ec2.Image, err error) {
@@ -97,7 +98,7 @@ func TestDefaultAMILookup(t *testing.T) {
 		{
 			name: "Should return with error if empty list of images returned from AWS ",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{}, nil)
 			},
 			check: func(g *WithT, img *ec2.Image, err error) {
@@ -148,7 +149,7 @@ func TestDefaultAMILookupArm64(t *testing.T) {
 				amiNameFormat:     "ami-name",
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
 							{
@@ -174,7 +175,7 @@ func TestDefaultAMILookupArm64(t *testing.T) {
 		{
 			name: "Should return with error if AWS DescribeImages call failed with some error",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(nil, awserrors.NewFailedDependency("dependency failure"))
 			},
 			check: func(g *WithT, img *ec2.Image, err error) {
@@ -185,7 +186,7 @@ func TestDefaultAMILookupArm64(t *testing.T) {
 		{
 			name: "Should return with error if empty list of images returned from AWS ",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{}, nil)
 			},
 			check: func(g *WithT, img *ec2.Image, err error) {
@@ -219,7 +220,7 @@ func TestAMIs(t *testing.T) {
 		{
 			name: "Should return latest AMI in case of valid inputs",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
 							{
@@ -245,7 +246,7 @@ func TestAMIs(t *testing.T) {
 		{
 			name: "Should return error if invalid creation date passed",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
 							{

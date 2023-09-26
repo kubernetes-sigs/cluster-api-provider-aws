@@ -17,6 +17,7 @@ limitations under the License.
 package tags
 
 import (
+	"context"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -142,7 +143,7 @@ func TestTagsEnsureWithEC2(t *testing.T) {
 			name:    "Should return error when create tag fails",
 			builder: Builder{params: &bp},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
 					Resources: aws.StringSlice([]string{""}),
 					Tags:      tags,
 				})).Return(nil, errors.New("failed to create tag"))
@@ -160,7 +161,7 @@ func TestTagsEnsureWithEC2(t *testing.T) {
 			name:    "Should ensure tags successfully",
 			builder: Builder{params: &bp},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
 					Resources: aws.StringSlice([]string{""}),
 					Tags:      tags,
 				})).Return(nil, nil)

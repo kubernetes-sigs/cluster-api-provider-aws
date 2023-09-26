@@ -17,6 +17,7 @@ limitations under the License.
 package elb
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -196,7 +197,7 @@ func (s *Service) getAPIServerLBSpec(elbName string) (*infrav1.LoadBalancer, err
 		input := &ec2.DescribeSubnetsInput{
 			SubnetIds: aws.StringSlice(s.scope.ControlPlaneLoadBalancer().Subnets),
 		}
-		out, err := s.EC2Client.DescribeSubnets(input)
+		out, err := s.EC2Client.DescribeSubnetsWithContext(context.TODO(), input)
 		if err != nil {
 			return nil, err
 		}
@@ -784,7 +785,7 @@ func (s *Service) getControlPlaneLoadBalancerSubnets() (infrav1.Subnets, error) 
 	input := &ec2.DescribeSubnetsInput{
 		SubnetIds: aws.StringSlice(s.scope.ControlPlaneLoadBalancer().Subnets),
 	}
-	res, err := s.EC2Client.DescribeSubnets(input)
+	res, err := s.EC2Client.DescribeSubnetsWithContext(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
@@ -971,7 +972,7 @@ func (s *Service) getAPIServerClassicELBSpec(elbName string) (*infrav1.LoadBalan
 		input := &ec2.DescribeSubnetsInput{
 			SubnetIds: aws.StringSlice(s.scope.ControlPlaneLoadBalancer().Subnets),
 		}
-		out, err := s.EC2Client.DescribeSubnets(input)
+		out, err := s.EC2Client.DescribeSubnetsWithContext(context.TODO(), input)
 		if err != nil {
 			return nil, err
 		}

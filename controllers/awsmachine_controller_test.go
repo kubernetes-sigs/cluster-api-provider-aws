@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -336,7 +337,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		expect := func(m *mocks.MockEC2APIMockRecorder, ev2 *mocks.MockELBV2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedDescribeInstanceCalls(m)
 			mockedDeleteLBCalls(false, ev2, e)
-			m.TerminateInstances(
+			m.TerminateInstancesWithContext(context.TODO(),
 				gomock.Eq(&ec2.TerminateInstancesInput{
 					InstanceIds: aws.StringSlice([]string{"id-1"}),
 				}),
@@ -527,7 +528,7 @@ func mockedCreateSecretCall(s *mock_services.MockSecretInterfaceMockRecorder) {
 }
 
 func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
-	m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
+	m.DescribeInstancesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			{
 				Name:   aws.String("vpc-id"),
@@ -547,7 +548,7 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 			},
 		},
 	})).Return(&ec2.DescribeInstancesOutput{}, nil)
-	m.DescribeInstanceTypes(gomock.Any()).
+	m.DescribeInstanceTypesWithContext(context.TODO(), gomock.Any()).
 		Return(&ec2.DescribeInstanceTypesOutput{
 			InstanceTypes: []*ec2.InstanceTypeInfo{
 				{
@@ -559,7 +560,7 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 				},
 			},
 		}, nil)
-	m.DescribeImages(gomock.Eq(&ec2.DescribeImagesInput{
+	m.DescribeImagesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
 		Filters: []*ec2.Filter{
 			{
 				Name:   aws.String("owner-id"),
@@ -587,7 +588,7 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 			CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
 		},
 	}}, nil)
-	m.RunInstances(gomock.Any()).Return(&ec2.Reservation{
+	m.RunInstancesWithContext(context.TODO(), gomock.Any()).Return(&ec2.Reservation{
 		Instances: []*ec2.Instance{
 			{
 				State: &ec2.InstanceState{
@@ -615,7 +616,7 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 			},
 		},
 	}, nil)
-	m.DescribeNetworkInterfaces(gomock.Eq(&ec2.DescribeNetworkInterfacesInput{Filters: []*ec2.Filter{
+	m.DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfacesInput{Filters: []*ec2.Filter{
 		{
 			Name:   aws.String("attachment.instance-id"),
 			Values: aws.StringSlice([]string{"two"}),
@@ -631,12 +632,12 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 				},
 			},
 		}}, nil).MaxTimes(3)
-	m.DescribeNetworkInterfaceAttribute(gomock.Eq(&ec2.DescribeNetworkInterfaceAttributeInput{
+	m.DescribeNetworkInterfaceAttributeWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfaceAttributeInput{
 		NetworkInterfaceId: aws.String("eni-1"),
 		Attribute:          aws.String("groupSet"),
 	})).Return(&ec2.DescribeNetworkInterfaceAttributeOutput{Groups: []*ec2.GroupIdentifier{{GroupId: aws.String("3")}}}, nil).MaxTimes(1)
-	m.ModifyNetworkInterfaceAttribute(gomock.Any()).AnyTimes()
-	m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{Filters: []*ec2.Filter{
+	m.ModifyNetworkInterfaceAttributeWithContext(context.TODO(), gomock.Any()).AnyTimes()
+	m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{Filters: []*ec2.Filter{
 		{
 			Name:   aws.String("state"),
 			Values: aws.StringSlice([]string{"pending", "available"}),
@@ -657,7 +658,7 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 }
 
 func mockedDescribeInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
-	m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
+	m.DescribeInstancesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
 		InstanceIds: aws.StringSlice([]string{"myMachine"}),
 	})).Return(&ec2.DescribeInstancesOutput{
 		Reservations: []*ec2.Reservation{{Instances: []*ec2.Instance{{Placement: &ec2.Placement{AvailabilityZone: aws.String("us-east-1a")}, InstanceId: aws.String("id-1"), State: &ec2.InstanceState{Name: aws.String("id-1"), Code: aws.Int64(16)}}}}},

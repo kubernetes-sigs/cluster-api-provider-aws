@@ -22,6 +22,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
@@ -37,7 +38,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-func describeVpcAttributeTrue(input *ec2.DescribeVpcAttributeInput) (*ec2.DescribeVpcAttributeOutput, error) {
+func describeVpcAttributeTrue(ctx context.Context, input *ec2.DescribeVpcAttributeInput, requestOptions ...request.Option) (*ec2.DescribeVpcAttributeOutput, error) {
 	result := &ec2.DescribeVpcAttributeOutput{
 		VpcId: input.VpcId,
 	}
@@ -50,7 +51,7 @@ func describeVpcAttributeTrue(input *ec2.DescribeVpcAttributeInput) (*ec2.Descri
 	return result, nil
 }
 
-func describeVpcAttributeFalse(input *ec2.DescribeVpcAttributeInput) (*ec2.DescribeVpcAttributeOutput, error) {
+func describeVpcAttributeFalse(ctx context.Context, input *ec2.DescribeVpcAttributeInput, requestOptions ...request.Option) (*ec2.DescribeVpcAttributeOutput, error) {
 	result := &ec2.DescribeVpcAttributeOutput{
 		VpcId: input.VpcId,
 	}
@@ -108,7 +109,7 @@ func TestReconcileVPC(t *testing.T) {
 			},
 			wantErr: false,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
+				m.DescribeVpcsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeVpcsInput{
 					VpcIds: []*string{
 						aws.String("vpc-exists"),
 					},
@@ -129,7 +130,7 @@ func TestReconcileVPC(t *testing.T) {
 					},
 				}, nil)
 
-				m.DescribeVpcAttribute(gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
+				m.DescribeVpcAttributeWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
 					DoAndReturn(describeVpcAttributeTrue).AnyTimes()
 			},
 		},
@@ -153,7 +154,7 @@ func TestReconcileVPC(t *testing.T) {
 			},
 			wantErr: false,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
+				m.DescribeVpcsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeVpcsInput{
 					VpcIds: []*string{
 						aws.String("vpc-exists"),
 					},
@@ -173,7 +174,7 @@ func TestReconcileVPC(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.CreateTags(&ec2.CreateTagsInput{
+				m.CreateTagsWithContext(context.TODO(), &ec2.CreateTagsInput{
 					Resources: aws.StringSlice([]string{"vpc-exists"}),
 					Tags: []*ec2.Tag{
 						{
@@ -194,7 +195,7 @@ func TestReconcileVPC(t *testing.T) {
 						},
 					},
 				})
-				m.DescribeVpcAttribute(gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
+				m.DescribeVpcAttributeWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
 					DoAndReturn(describeVpcAttributeTrue).AnyTimes()
 			},
 		},
@@ -214,7 +215,7 @@ func TestReconcileVPC(t *testing.T) {
 				AvailabilityZoneSelection:  &selection,
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(&ec2.CreateVpcOutput{
+				m.CreateVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(&ec2.CreateVpcOutput{
 					Vpc: &ec2.Vpc{
 						State:     aws.String("available"),
 						VpcId:     aws.String("vpc-new"),
@@ -223,10 +224,10 @@ func TestReconcileVPC(t *testing.T) {
 					},
 				}, nil)
 
-				m.DescribeVpcAttribute(gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
+				m.DescribeVpcAttributeWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
 					DoAndReturn(describeVpcAttributeFalse).MinTimes(1)
 
-				m.ModifyVpcAttribute(gomock.AssignableToTypeOf(&ec2.ModifyVpcAttributeInput{})).Return(&ec2.ModifyVpcAttributeOutput{}, nil).Times(2)
+				m.ModifyVpcAttributeWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.ModifyVpcAttributeInput{})).Return(&ec2.ModifyVpcAttributeOutput{}, nil).Times(2)
 			},
 		},
 		{
@@ -253,7 +254,7 @@ func TestReconcileVPC(t *testing.T) {
 				AvailabilityZoneSelection:  &selection,
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{
+				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{
 					VpcIds: aws.StringSlice([]string{"vpc-new"}),
 				})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
@@ -275,7 +276,7 @@ func TestReconcileVPC(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{
+				m.CreateVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateVpcInput{
 					AmazonProvidedIpv6CidrBlock: aws.Bool(true),
 				})).Return(&ec2.CreateVpcOutput{
 					Vpc: &ec2.Vpc{
@@ -286,10 +287,10 @@ func TestReconcileVPC(t *testing.T) {
 					},
 				}, nil)
 
-				m.DescribeVpcAttribute(gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
+				m.DescribeVpcAttributeWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
 					DoAndReturn(describeVpcAttributeFalse).MinTimes(1)
 
-				m.ModifyVpcAttribute(gomock.AssignableToTypeOf(&ec2.ModifyVpcAttributeInput{})).Return(&ec2.ModifyVpcAttributeOutput{}, nil).Times(2)
+				m.ModifyVpcAttributeWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.ModifyVpcAttributeInput{})).Return(&ec2.ModifyVpcAttributeOutput{}, nil).Times(2)
 			},
 		},
 		{
@@ -319,7 +320,7 @@ func TestReconcileVPC(t *testing.T) {
 				AvailabilityZoneSelection:  &selection,
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{
+				m.CreateVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateVpcInput{
 					AmazonProvidedIpv6CidrBlock: aws.Bool(false),
 					Ipv6Pool:                    aws.String("my-pool"),
 					Ipv6CidrBlock:               aws.String("2001:db8:1234:1a03::/56"),
@@ -332,10 +333,10 @@ func TestReconcileVPC(t *testing.T) {
 					},
 				}, nil)
 
-				m.DescribeVpcAttribute(gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
+				m.DescribeVpcAttributeWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
 					DoAndReturn(describeVpcAttributeFalse).MinTimes(1)
 
-				m.ModifyVpcAttribute(gomock.AssignableToTypeOf(&ec2.ModifyVpcAttributeInput{})).Return(&ec2.ModifyVpcAttributeOutput{}, nil).Times(2)
+				m.ModifyVpcAttributeWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.ModifyVpcAttributeInput{})).Return(&ec2.ModifyVpcAttributeOutput{}, nil).Times(2)
 			},
 		},
 		{
@@ -348,10 +349,10 @@ func TestReconcileVPC(t *testing.T) {
 			wantErr: true,
 			want:    nil,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{
+				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{
 					VpcIds: aws.StringSlice([]string{"vpc-new"}),
 				})).Return(nil, errors.New("nope"))
-				m.CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(&ec2.CreateVpcOutput{
+				m.CreateVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(&ec2.CreateVpcOutput{
 					Vpc: &ec2.Vpc{
 						State:     aws.String("available"),
 						VpcId:     aws.String("vpc-new"),
@@ -371,10 +372,10 @@ func TestReconcileVPC(t *testing.T) {
 			wantErr: true,
 			want:    nil,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{
+				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{
 					VpcIds: aws.StringSlice([]string{"vpc-new"}),
 				})).Return(&ec2.DescribeVpcsOutput{}, nil)
-				m.CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(&ec2.CreateVpcOutput{
+				m.CreateVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(&ec2.CreateVpcOutput{
 					Vpc: &ec2.Vpc{
 						State:     aws.String("available"),
 						VpcId:     aws.String("vpc-new"),
@@ -394,7 +395,7 @@ func TestReconcileVPC(t *testing.T) {
 			wantErr: true,
 			want:    nil,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{
+				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{
 					VpcIds: aws.StringSlice([]string{"vpc-new"}),
 				})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
@@ -406,7 +407,7 @@ func TestReconcileVPC(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(&ec2.CreateVpcOutput{
+				m.CreateVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(&ec2.CreateVpcOutput{
 					Vpc: &ec2.Vpc{
 						State:     aws.String("available"),
 						VpcId:     aws.String("vpc-new"),
@@ -436,7 +437,7 @@ func TestReconcileVPC(t *testing.T) {
 				AvailabilityZoneSelection:  &selection,
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
+				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
 						{
 							State:     aws.String("available"),
@@ -462,7 +463,7 @@ func TestReconcileVPC(t *testing.T) {
 			input:   &infrav1.VPCSpec{ID: "vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
 			wantErr: true,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
+				m.DescribeVpcsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeVpcsInput{
 					VpcIds: []*string{
 						aws.String("vpc-exists"),
 					},
@@ -486,7 +487,7 @@ func TestReconcileVPC(t *testing.T) {
 				AvailabilityZoneSelection:  &selection,
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
+				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
 						{
 							State:     aws.String("available"),
@@ -512,7 +513,7 @@ func TestReconcileVPC(t *testing.T) {
 				AvailabilityZoneSelection:  &selection,
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
+				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
 						{
 							State:     aws.String("available"),
@@ -522,8 +523,8 @@ func TestReconcileVPC(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.DescribeVpcAttribute(gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).Return(nil, awserr.New("InvalidVpcID.NotFound", "not found", nil))
-				m.DescribeVpcAttribute(gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
+				m.DescribeVpcAttributeWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).Return(nil, awserr.New("InvalidVpcID.NotFound", "not found", nil))
+				m.DescribeVpcAttributeWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
 					DoAndReturn(describeVpcAttributeTrue).AnyTimes()
 			},
 		},
@@ -532,7 +533,7 @@ func TestReconcileVPC(t *testing.T) {
 			input:   &infrav1.VPCSpec{ID: "managed-vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
 			wantErr: true,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
+				m.DescribeVpcsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeVpcsInput{
 					VpcIds: []*string{
 						aws.String("managed-vpc-exists"),
 					},
@@ -552,7 +553,7 @@ func TestReconcileVPC(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.DescribeVpcAttribute(gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).AnyTimes().Return(nil, awserrors.NewFailedDependency("failed dependency"))
+				m.DescribeVpcAttributeWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).AnyTimes().Return(nil, awserrors.NewFailedDependency("failed dependency"))
 			},
 		},
 		{
@@ -560,7 +561,7 @@ func TestReconcileVPC(t *testing.T) {
 			input:   &infrav1.VPCSpec{AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
 			wantErr: true,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(nil, awserrors.NewFailedDependency("failed dependency"))
+				m.CreateVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(nil, awserrors.NewFailedDependency("failed dependency"))
 			},
 		},
 		{
@@ -568,7 +569,7 @@ func TestReconcileVPC(t *testing.T) {
 			input:   &infrav1.VPCSpec{ID: "managed-vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
 			wantErr: true,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
+				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{},
 				}, nil)
 			},
@@ -578,7 +579,7 @@ func TestReconcileVPC(t *testing.T) {
 			input:   &infrav1.VPCSpec{ID: "managed-vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
 			wantErr: true,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
+				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
 						{
 							VpcId: aws.String("vpc_1"),
@@ -595,7 +596,7 @@ func TestReconcileVPC(t *testing.T) {
 			input:   &infrav1.VPCSpec{ID: "managed-vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
 			wantErr: true,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcs(gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
+				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
 						{
 							VpcId: aws.String("vpc"),
@@ -655,7 +656,7 @@ func TestDeleteVPC(t *testing.T) {
 			},
 			wantErr: true,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DeleteVpc(gomock.Eq(&ec2.DeleteVpcInput{
+				m.DeleteVpcWithContext(context.TODO(), gomock.Eq(&ec2.DeleteVpcInput{
 					VpcId: aws.String("managed-vpc"),
 				})).Return(nil, awserrors.NewFailedDependency("failed dependency"))
 			},
@@ -667,7 +668,7 @@ func TestDeleteVPC(t *testing.T) {
 				Tags: tags,
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DeleteVpc(gomock.Eq(&ec2.DeleteVpcInput{
+				m.DeleteVpcWithContext(context.TODO(), gomock.Eq(&ec2.DeleteVpcInput{
 					VpcId: aws.String("managed-vpc"),
 				})).Return(&ec2.DeleteVpcOutput{}, nil)
 			},
@@ -679,7 +680,7 @@ func TestDeleteVPC(t *testing.T) {
 				Tags: tags,
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DeleteVpc(gomock.Eq(&ec2.DeleteVpcInput{
+				m.DeleteVpcWithContext(context.TODO(), gomock.Eq(&ec2.DeleteVpcInput{
 					VpcId: aws.String("managed-vpc"),
 				})).Return(nil, awserr.New("InvalidVpcID.NotFound", "not found", nil))
 			},
