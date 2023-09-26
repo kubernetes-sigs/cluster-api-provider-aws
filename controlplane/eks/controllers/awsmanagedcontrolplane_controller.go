@@ -50,6 +50,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/network"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/securitygroup"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/tele"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	capiannotations "sigs.k8s.io/cluster-api/util/annotations"
@@ -98,7 +99,11 @@ type AWSManagedControlPlaneReconciler struct {
 
 // SetupWithManager is used to setup the controller.
 func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	log := logger.FromContext(ctx)
+	ctx, log, done := tele.StartSpanWithLogger(ctx,
+		"controllers.AWSManagedControlPlaneReconciler.SetupWithManager",
+		tele.KVP("controller", "AWSManagedControlPlane"),
+	)
+	defer done()
 
 	awsManagedControlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 	c, err := ctrl.NewControllerManagedBy(mgr).
@@ -146,7 +151,14 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context,
 
 // Reconcile will reconcile AWSManagedControlPlane Resources.
 func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
-	log := logger.FromContext(ctx)
+	ctx, log, done := tele.StartSpanWithLogger(
+		ctx,
+		"controllers.awsmanagedcontrolplane.Reconcile",
+		tele.KVP("namespace", req.Namespace),
+		tele.KVP("name", req.Name),
+		tele.KVP("reconcileID", string(controller.ReconcileIDFromContext(ctx))),
+	)
+	defer done()
 
 	// Get the control plane instance
 	awsControlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}

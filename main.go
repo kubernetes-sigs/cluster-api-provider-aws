@@ -59,6 +59,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/ot"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/version"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -101,6 +102,8 @@ var (
 	webhookCertDir           string
 	healthAddr               string
 	serviceEndpoints         string
+	enableTracing            bool
+	telemetryServer          string
 
 	// maxEKSSyncPeriod is the maximum allowed duration for the sync-period flag when using EKS. It is set to 10 minutes
 	// because during resync it will create a new AWS auth token which can a maximum life of 15 minutes and this ensures
@@ -195,6 +198,19 @@ func main() {
 	awsServiceEndpoints, err := endpoints.ParseFlag(serviceEndpoints)
 	if err != nil {
 		setupLog.Error(err, "unable to parse service endpoints", "controller", "AWSCluster")
+		os.Exit(1)
+	}
+
+	if enableTracing {
+		setupLog.Info("enabling tracing")
+		if err := ot.RegisterTracing(ctx, setupLog, telemetryServer); err != nil {
+			setupLog.Error(err, "unable to initialize tracing")
+			os.Exit(1)
+		}
+	}
+
+	if err := ot.RegisterMetrics(); err != nil {
+		setupLog.Error(err, "unable to initialize metrics")
 		os.Exit(1)
 	}
 
@@ -515,6 +531,20 @@ func initFlags(fs *pflag.FlagSet) {
 		"watch-filter",
 		"",
 		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1.WatchLabel),
+	)
+
+	fs.BoolVar(
+		&enableTracing,
+		"enable-tracing",
+		false,
+		"Enable tracing to the opentelemetry-collector service in the same namespace.",
+	)
+
+	fs.StringVar(
+		&telemetryServer,
+		"telemetry-server",
+		"opentelemetry-collector:4317",
+		"Custom address for OpenTelemetry Collector Server.",
 	)
 
 	logs.AddFlags(fs, logs.SkipLoggingConfigurationFlags())
