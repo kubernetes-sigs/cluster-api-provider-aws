@@ -112,8 +112,8 @@ github.com/cncf/udpa/go v0.0.0-20201120205902-5459f2c99403/go.mod h1:WmhPx2Nbnht
 github.com/cncf/xds/go v0.0.0-20210312221358-fbca930ec8ed/go.mod h1:eXthEFrGJvWHgFFCl3hGmgk+/aYT6PnTQLykKQRLhEs=
 github.com/coredns/caddy v1.1.0 h1:ezvsPrT/tA/7pYDBZxu0cT0VmWk75AfIaf6GSYCNMf0=
 github.com/coredns/caddy v1.1.0/go.mod h1:A6ntJQlAWuQfFlsd9hvigKbo2WS0VUs2l1e2F+BawD4=
-github.com/coredns/corefile-migration v1.0.20 h1:MdOkT6F3ehju/n9tgxlGct8XAajOX2vN+wG7To4BWSI=
-github.com/coredns/corefile-migration v1.0.20/go.mod h1:XnhgULOEouimnzgn0t4WPuFDN2/PJQcTxdWKC5eXNGE=
+github.com/coredns/corefile-migration v1.0.21 h1:W/DCETrHDiFo0Wj03EyMkaQ9fwsmSgqTCQDHpceaSsE=
+github.com/coredns/corefile-migration v1.0.21/go.mod h1:XnhgULOEouimnzgn0t4WPuFDN2/PJQcTxdWKC5eXNGE=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-semver v0.1.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
@@ -1069,10 +1069,10 @@ sigs.k8s.io/aws-iam-authenticator v0.6.12 h1:XlW7djx+FqvyIysdBN60AIKBvHMr+MWVT87
 sigs.k8s.io/aws-iam-authenticator v0.6.12/go.mod h1:uh/d/yhtzJXBdevntKgTKRaabgD2T/JI/YdV+9IaycE=
 sigs.k8s.io/cluster-api v1.5.0 h1:pwXvzScbAwnrB7EWHTApzW+VQfrj2OSrWAQDC9+bcbU=
 sigs.k8s.io/cluster-api v1.5.0/go.mod h1:ZSEP01t8oT6104gB4ljsOwwp5uJcI8SWy8IFp2HUvrc=
-sigs.k8s.io/cluster-api/test v1.5.0 h1:ePfrh7S+eaVWy+D0ca4AjzhBqrhXxRE9NTr5te4hCa0=
-sigs.k8s.io/cluster-api/test v1.5.0/go.mod h1:Ii5Mh9oVq7QJEtiUkGg9mM2qojjWxvsqmL8TMlwZViM=
-sigs.k8s.io/controller-runtime v0.15.0 h1:ML+5Adt3qZnMSYxZ7gAverBLNPSMQEibtzAgp0UPojU=
-sigs.k8s.io/controller-runtime v0.15.0/go.mod h1:7ngYvp1MLT+9GeZ+6lH3LOlcHkp/+tzA/fmHa4iq9kk=
+sigs.k8s.io/cluster-api/test v1.5.2 h1:Hlorgn4ebGdSxP4IZAT7eMweAowh4n0/vdhc4HAPNF8=
+sigs.k8s.io/cluster-api/test v1.5.2/go.mod h1:mFlsY1y0lApBgQyXbmVprdzCK+9MQNp1C38K+aZdn5A=
+sigs.k8s.io/controller-runtime v0.15.1 h1:9UvgKD4ZJGcj24vefUFgZFP3xej/3igL9BsOUTb/+4c=
+sigs.k8s.io/controller-runtime v0.15.1/go.mod h1:7ngYvp1MLT+9GeZ+6lH3LOlcHkp/+tzA/fmHa4iq9kk=
 sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd h1:EDPBXCAspyGV4jQlpZSudPeMmr1bNJefnuqLsRAsHZo=
 sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd/go.mod h1:B8JuhiUyNFVKdsE8h686QcCxMaH6HrOAZj4vswFpcB0=
 sigs.k8s.io/kind v0.20.0 h1:f0sc3v9mQbGnjBUaqSFST1dwIuiikKVGgoTwpoP33a8=
