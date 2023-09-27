@@ -721,68 +721,63 @@ func ingressRuleToSDKType(scope scope.SGScope, i *infrav1.IngressRule) (res *ec2
 }
 
 func ingressRulesFromSDKType(v *ec2.IpPermission) (res infrav1.IngressRules) {
+	for _, ec2range := range v.IpRanges {
+		rule := ingressRuleFromSDKProtocol(v)
+		if ec2range.Description != nil && *ec2range.Description != "" {
+			rule.Description = *ec2range.Description
+		}
+
+		rule.CidrBlocks = []string{*ec2range.CidrIp}
+		res = append(res, rule)
+	}
+
+	for _, ec2range := range v.Ipv6Ranges {
+		rule := ingressRuleFromSDKProtocol(v)
+		if ec2range.Description != nil && *ec2range.Description != "" {
+			rule.Description = *ec2range.Description
+		}
+
+		rule.IPv6CidrBlocks = []string{*ec2range.CidrIpv6}
+		res = append(res, rule)
+	}
+
+	for _, pair := range v.UserIdGroupPairs {
+		rule := ingressRuleFromSDKProtocol(v)
+		if pair.GroupId == nil {
+			continue
+		}
+
+		if pair.Description != nil && *pair.Description != "" {
+			rule.Description = *pair.Description
+		}
+
+		rule.SourceSecurityGroupIDs = []string{*pair.GroupId}
+		res = append(res, rule)
+	}
+
+	return res
+}
+
+func ingressRuleFromSDKProtocol(v *ec2.IpPermission) infrav1.IngressRule {
 	// Ports are only well-defined for TCP and UDP protocols, but EC2 overloads the port range
 	// in the case of ICMP(v6) traffic to indicate which codes are allowed. For all other protocols,
 	// including the custom "-1" All Traffic protocol, FromPort and ToPort are omitted from the response.
 	// See: https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_IpPermission.html
-	var ir infrav1.IngressRule
 	switch *v.IpProtocol {
 	case IPProtocolTCP,
 		IPProtocolUDP,
 		IPProtocolICMP,
 		IPProtocolICMPv6:
-		ir = infrav1.IngressRule{
+		return infrav1.IngressRule{
 			Protocol: infrav1.SecurityGroupProtocol(*v.IpProtocol),
 			FromPort: *v.FromPort,
 			ToPort:   *v.ToPort,
 		}
 	default:
-		ir = infrav1.IngressRule{
+		return infrav1.IngressRule{
 			Protocol: infrav1.SecurityGroupProtocol(*v.IpProtocol),
 		}
 	}
-
-	if len(v.IpRanges) > 0 {
-		r1 := ir
-		for _, ec2range := range v.IpRanges {
-			if ec2range.Description != nil && *ec2range.Description != "" {
-				r1.Description = *ec2range.Description
-			}
-
-			r1.CidrBlocks = append(r1.CidrBlocks, *ec2range.CidrIp)
-		}
-		res = append(res, r1)
-	}
-
-	if len(v.Ipv6Ranges) > 0 {
-		r1 := ir
-		for _, ec2range := range v.Ipv6Ranges {
-			if ec2range.Description != nil && *ec2range.Description != "" {
-				r1.Description = *ec2range.Description
-			}
-
-			r1.IPv6CidrBlocks = append(r1.IPv6CidrBlocks, *ec2range.CidrIpv6)
-		}
-		res = append(res, r1)
-	}
-
-	if len(v.UserIdGroupPairs) > 0 {
-		r2 := ir
-		for _, pair := range v.UserIdGroupPairs {
-			if pair.GroupId == nil {
-				continue
-			}
-
-			if pair.Description != nil && *pair.Description != "" {
-				r2.Description = *pair.Description
-			}
-
-			r2.SourceSecurityGroupIDs = append(r2.SourceSecurityGroupIDs, *pair.GroupId)
-		}
-		res = append(res, r2)
-	}
-
-	return res
 }
 
 // getIngressRulesToAllowKubeletToAccessTheControlPlaneLB returns ingress rules required in the control plane LB.
@@ -793,7 +788,11 @@ func (s *Service) getIngressRulesToAllowKubeletToAccessTheControlPlaneLB() infra
 		return s.getIngressRuleToAllowVPCCidrInTheAPIServer()
 	}
 
+	natGatewaysCidrs := []string{}
 	natGatewaysIPs := s.scope.GetNatGatewaysIPs()
+	for _, ip := range natGatewaysIPs {
+		natGatewaysCidrs = append(natGatewaysCidrs, fmt.Sprintf("%s/32", ip))
+	}
 	if len(natGatewaysIPs) > 0 {
 		return infrav1.IngressRules{
 			{
@@ -801,7 +800,7 @@ func (s *Service) getIngressRulesToAllowKubeletToAccessTheControlPlaneLB() infra
 				Protocol:    infrav1.SecurityGroupProtocolTCP,
 				FromPort:    int64(s.scope.APIServerPort()),
 				ToPort:      int64(s.scope.APIServerPort()),
-				CidrBlocks:  natGatewaysIPs,
+				CidrBlocks:  natGatewaysCidrs,
 			},
 		}
 	}
