@@ -17,7 +17,6 @@ limitations under the License.
 package securitygroup
 
 import (
-	"reflect"
 	"strings"
 	"testing"
 
@@ -619,13 +618,13 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 
 	testCases := []struct {
 		name                         string
-		controlPlaneLBSpec           *infrav1.AWSLoadBalancerSpec
+		networkSpec                  infrav1.NetworkSpec
 		expectedAdditionalIngresRule infrav1.IngressRule
 	}{
 		{
 			name: "default control plane security group is used",
-			controlPlaneLBSpec: &infrav1.AWSLoadBalancerSpec{
-				IngressRules: []infrav1.IngressRule{
+			networkSpec: infrav1.NetworkSpec{
+				AdditionalControlPlaneIngressRules: []infrav1.IngressRule{
 					{
 						Description: "test",
 						Protocol:    infrav1.SecurityGroupProtocolTCP,
@@ -644,8 +643,8 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 		},
 		{
 			name: "custom security group id is used",
-			controlPlaneLBSpec: &infrav1.AWSLoadBalancerSpec{
-				IngressRules: []infrav1.IngressRule{
+			networkSpec: infrav1.NetworkSpec{
+				AdditionalControlPlaneIngressRules: []infrav1.IngressRule{
 					{
 						Description:            "test",
 						Protocol:               infrav1.SecurityGroupProtocolTCP,
@@ -665,8 +664,8 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 		},
 		{
 			name: "another security group role is used",
-			controlPlaneLBSpec: &infrav1.AWSLoadBalancerSpec{
-				IngressRules: []infrav1.IngressRule{
+			networkSpec: infrav1.NetworkSpec{
+				AdditionalControlPlaneIngressRules: []infrav1.IngressRule{
 					{
 						Description:              "test",
 						Protocol:                 infrav1.SecurityGroupProtocolTCP,
@@ -686,8 +685,8 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 		},
 		{
 			name: "another security group role and a custom security group id is used",
-			controlPlaneLBSpec: &infrav1.AWSLoadBalancerSpec{
-				IngressRules: []infrav1.IngressRule{
+			networkSpec: infrav1.NetworkSpec{
+				AdditionalControlPlaneIngressRules: []infrav1.IngressRule{
 					{
 						Description:              "test",
 						Protocol:                 infrav1.SecurityGroupProtocolTCP,
@@ -706,6 +705,26 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 				SourceSecurityGroupIDs: []string{"test", "node-sg-id"},
 			},
 		},
+		{
+			name: "don't set source security groups if cidr blocks are set",
+			networkSpec: infrav1.NetworkSpec{
+				AdditionalControlPlaneIngressRules: []infrav1.IngressRule{
+					{
+						Description: "test",
+						Protocol:    infrav1.SecurityGroupProtocolTCP,
+						FromPort:    9345,
+						ToPort:      9345,
+						CidrBlocks:  []string{"test-cidr-block"},
+					},
+				},
+			},
+			expectedAdditionalIngresRule: infrav1.IngressRule{
+				Description: "test",
+				Protocol:    infrav1.SecurityGroupProtocolTCP,
+				FromPort:    9345,
+				ToPort:      9345,
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -717,7 +736,7 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 				},
 				AWSCluster: &infrav1.AWSCluster{
 					Spec: infrav1.AWSClusterSpec{
-						ControlPlaneLoadBalancer: tc.controlPlaneLBSpec,
+						NetworkSpec: tc.networkSpec,
 					},
 					Status: infrav1.AWSClusterStatus{
 						Network: infrav1.NetworkStatus{
@@ -760,7 +779,7 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 						t.Fatalf("Expected to port %d, got %d", tc.expectedAdditionalIngresRule.ToPort, r.ToPort)
 					}
 
-					if !reflect.DeepEqual(r.SourceSecurityGroupIDs, tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs) {
+					if !sets.New[string](tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs...).Equal(sets.New[string](tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs...)) {
 						t.Fatalf("Expected source security group IDs %v, got %v", tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs, r.SourceSecurityGroupIDs)
 					}
 				}

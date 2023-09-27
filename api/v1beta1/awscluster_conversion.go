@@ -55,6 +55,8 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	}
 	dst.Status.Network.NatGatewaysIPs = restored.Status.Network.NatGatewaysIPs
 
+	dst.Spec.NetworkSpec.AdditionalControlPlaneIngressRules = restored.Spec.NetworkSpec.AdditionalControlPlaneIngressRules
+
 	return nil
 }
 

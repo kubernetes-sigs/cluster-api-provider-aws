@@ -240,6 +240,10 @@ type NetworkSpec struct {
 	// This is optional - if not provided new security groups will be created for the cluster
 	// +optional
 	SecurityGroupOverrides map[SecurityGroupRole]string `json:"securityGroupOverrides,omitempty"`
+
+	// AdditionalControlPlaneIngressRules is an optional set of ingress rules to add to the control plane
+	// +optional
+	AdditionalControlPlaneIngressRules []IngressRule `json:"additionalControlPlaneIngressRules,omitempty"`
 }
 
 // IPv6 contains ipv6 specific settings for the network.

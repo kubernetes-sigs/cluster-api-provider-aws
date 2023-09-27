@@ -1160,6 +1160,78 @@ spec:
               network:
                 description: NetworkSpec encapsulates all things related to AWS network.
                 properties:
+                  additionalControlPlaneIngressRules:
+                    description: AdditionalControlPlaneIngressRules is an optional
+                      set of ingress rules to add to the control plane
+                    items:
+                      description: IngressRule defines an AWS ingress rule for security
+                        groups.
+                      properties:
+                        cidrBlocks:
+                          description: List of CIDR blocks to allow access from. Cannot
+                            be specified with SourceSecurityGroupID.
+                          items:
+                            type: string
+                          type: array
+                        description:
+                          description: Description provides extended information about
+                            the ingress rule.
+                          type: string
+                        fromPort:
+                          description: FromPort is the start of port range.
+                          format: int64
+                          type: integer
+                        ipv6CidrBlocks:
+                          description: List of IPv6 CIDR blocks to allow access from.
+                            Cannot be specified with SourceSecurityGroupID.
+                          items:
+                            type: string
+                          type: array
+                        protocol:
+                          description: Protocol is the protocol for the ingress rule.
+                            Accepted values are "-1" (all), "4" (IP in IP),"tcp",
+                            "udp", "icmp", and "58" (ICMPv6).
+                          enum:
+                          - "-1"
+                          - "4"
+                          - tcp
+                          - udp
+                          - icmp
+                          - "58"
+                          type: string
+                        sourceSecurityGroupIds:
+                          description: The security group id to allow access from.
+                            Cannot be specified with CidrBlocks.
+                          items:
+                            type: string
+                          type: array
+                        sourceSecurityGroupRoles:
+                          description: The security group role to allow access from.
+                            Cannot be specified with CidrBlocks. The field will be
+                            combined with source security group IDs if specified.
+                          items:
+                            description: SecurityGroupRole defines the unique role
+                              of a security group.
+                            enum:
+                            - bastion
+                            - node
+                            - controlplane
+                            - apiserver-lb
+                            - lb
+                            - node-eks-additional
+                            type: string
+                          type: array
+                        toPort:
+                          description: ToPort is the end of port range.
+                          format: int64
+                          type: integer
+                      required:
+                      - description
+                      - fromPort
+                      - protocol
+                      - toPort
+                      type: object
+                    type: array
                   cni:
                     description: CNI configuration
                     properties:
