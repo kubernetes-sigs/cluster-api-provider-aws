@@ -45,7 +45,7 @@ ifeq ($(OS), windows)
 	MDBOOK_EXTRACT_COMMAND := unzip -d /tmp
 endif
 
-GOLANGCI_LINT_VERSION := v1.52.2
+GOLANGCI_LINT_VERSION := v1.53.3
 ## --------------------------------------
 ## Tooling Binaries
 ## --------------------------------------

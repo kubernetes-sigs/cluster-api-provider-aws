@@ -130,6 +130,10 @@ func expectAWSClusterConditions(g *WithT, m *infrav1.AWSCluster, expected []cond
 
 func getAWSCluster(name, namespace string) infrav1.AWSCluster {
 	return infrav1.AWSCluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "AWSCluster",
+			APIVersion: infrav1.GroupVersion.Identifier(),
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,

@@ -66,7 +66,7 @@ func TestWaitForWithRetryable(t *testing.T) {
 				return false, nil
 			},
 			retryableErrors: retryableErrorCodes,
-			expectedError:   wait.ErrWaitTimeout,
+			expectedError:   wait.ErrorInterrupted(errors.New("timed out waiting for the condition")),
 		},
 		{
 			name:    "error occurred in conditionFunc, returns actual error",
@@ -111,7 +111,7 @@ func TestWaitForWithRetryable(t *testing.T) {
 				return false, nil
 			},
 			retryableErrors: retryableErrorCodes,
-			expectedError:   wait.ErrWaitTimeout,
+			expectedError:   wait.ErrorInterrupted(errors.New("timed out waiting for the condition")),
 		},
 		{
 			name:    "retryable error at first, success after that, returns nil",

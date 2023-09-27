@@ -29,7 +29,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
@@ -59,7 +58,7 @@ func (r *AWSFargateProfileReconciler) SetupWithManager(ctx context.Context, mgr 
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(logger.FromContext(ctx).GetLogger(), r.WatchFilterValue)).
 		Watches(
-			&source.Kind{Type: &ekscontrolplanev1.AWSManagedControlPlane{}},
+			&ekscontrolplanev1.AWSManagedControlPlane{},
 			handler.EnqueueRequestsFromMapFunc(managedControlPlaneToFargateProfileMap),
 		).
 		Complete(r)
@@ -183,9 +182,7 @@ func (r *AWSFargateProfileReconciler) reconcileDelete(
 }
 
 func managedControlPlaneToFargateProfileMapFunc(c client.Client, log logger.Wrapper) handler.MapFunc {
-	return func(o client.Object) []ctrl.Request {
-		ctx := context.Background()
-
+	return func(ctx context.Context, o client.Object) []ctrl.Request {
 		awsControlPlane, ok := o.(*ekscontrolplanev1.AWSManagedControlPlane)
 		if !ok {
 			klog.Errorf("Expected a AWSManagedControlPlane but got a %T", o)

@@ -243,11 +243,11 @@ func (r *AWSMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		WithOptions(options).
 		For(&infrav1.AWSMachine{}).
 		Watches(
-			&source.Kind{Type: &clusterv1.Machine{}},
+			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("AWSMachine"))),
 		).
 		Watches(
-			&source.Kind{Type: &infrav1.AWSCluster{}},
+			&infrav1.AWSCluster{},
 			handler.EnqueueRequestsFromMapFunc(AWSClusterToAWSMachines),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log.GetLogger(), r.WatchFilterValue)).
@@ -288,7 +288,7 @@ func (r *AWSMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 
 	requeueAWSMachinesForUnpausedCluster := r.requeueAWSMachinesForUnpausedCluster(log)
 	return controller.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
+		source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
 		handler.EnqueueRequestsFromMapFunc(requeueAWSMachinesForUnpausedCluster),
 		predicates.ClusterUnpausedAndInfrastructureReady(log.GetLogger()),
 	)
@@ -962,7 +962,7 @@ func (r *AWSMachineReconciler) deregisterInstanceFromV2LB(machineScope *scope.Ma
 // AWSClusterToAWSMachines is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation
 // of AWSMachines.
 func (r *AWSMachineReconciler) AWSClusterToAWSMachines(log logger.Wrapper) handler.MapFunc {
-	return func(o client.Object) []ctrl.Request {
+	return func(ctx context.Context, o client.Object) []ctrl.Request {
 		c, ok := o.(*infrav1.AWSCluster)
 		if !ok {
 			klog.Errorf("Expected a AWSCluster but got a %T", o)
@@ -976,7 +976,7 @@ func (r *AWSMachineReconciler) AWSClusterToAWSMachines(log logger.Wrapper) handl
 			return nil
 		}
 
-		cluster, err := util.GetOwnerCluster(context.TODO(), r.Client, c.ObjectMeta)
+		cluster, err := util.GetOwnerCluster(ctx, r.Client, c.ObjectMeta)
 		switch {
 		case apierrors.IsNotFound(err) || cluster == nil:
 			log.Trace("Cluster for AWSCluster not found, skipping mapping.")
@@ -991,7 +991,7 @@ func (r *AWSMachineReconciler) AWSClusterToAWSMachines(log logger.Wrapper) handl
 }
 
 func (r *AWSMachineReconciler) requeueAWSMachinesForUnpausedCluster(log logger.Wrapper) handler.MapFunc {
-	return func(o client.Object) []ctrl.Request {
+	return func(ctx context.Context, o client.Object) []ctrl.Request {
 		c, ok := o.(*clusterv1.Cluster)
 		if !ok {
 			klog.Errorf("Expected a Cluster but got a %T", o)
