@@ -133,7 +133,7 @@ func (r *AWSManagedClusterReconciler) SetupWithManager(ctx context.Context, mgr 
 
 	// Add a watch for clusterv1.Cluster unpaise
 	if err = controller.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
+		source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
 		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("AWSManagedCluster"), mgr.GetClient(), &infrav1.AWSManagedCluster{})),
 		predicates.ClusterUnpaused(log.GetLogger()),
 	); err != nil {
@@ -142,7 +142,7 @@ func (r *AWSManagedClusterReconciler) SetupWithManager(ctx context.Context, mgr 
 
 	// Add a watch for AWSManagedControlPlane
 	if err = controller.Watch(
-		&source.Kind{Type: &ekscontrolplanev1.AWSManagedControlPlane{}},
+		source.Kind(mgr.GetCache(), &ekscontrolplanev1.AWSManagedControlPlane{}),
 		handler.EnqueueRequestsFromMapFunc(r.managedControlPlaneToManagedCluster(ctx, log)),
 	); err != nil {
 		return fmt.Errorf("failed adding watch on AWSManagedControlPlane: %w", err)
@@ -151,8 +151,8 @@ func (r *AWSManagedClusterReconciler) SetupWithManager(ctx context.Context, mgr 
 	return nil
 }
 
-func (r *AWSManagedClusterReconciler) managedControlPlaneToManagedCluster(ctx context.Context, log *logger.Logger) handler.MapFunc {
-	return func(o client.Object) []ctrl.Request {
+func (r *AWSManagedClusterReconciler) managedControlPlaneToManagedCluster(_ context.Context, log *logger.Logger) handler.MapFunc {
+	return func(ctx context.Context, o client.Object) []ctrl.Request {
 		awsManagedControlPlane, ok := o.(*ekscontrolplanev1.AWSManagedControlPlane)
 		if !ok {
 			log.Error(errors.Errorf("expected an AWSManagedControlPlane, got %T instead", o), "failed to map AWSManagedControlPlane")

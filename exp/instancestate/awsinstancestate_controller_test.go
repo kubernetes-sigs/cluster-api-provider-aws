@@ -135,7 +135,7 @@ func TestAWSInstanceStateController(t *testing.T) {
 				exist = exist && ok
 			}
 			return exist
-		}, 10*time.Second).Should(Equal(true))
+		}, 10*time.Second).Should(BeTrue())
 
 		deleteAWSCluster(g, "aws-cluster-2")
 		t.Log("Ensuring we stop tracking deleted queue")
@@ -153,7 +153,7 @@ func TestAWSInstanceStateController(t *testing.T) {
 				exist = exist && ok
 			}
 			return exist
-		}, 10*time.Second).Should(Equal(true))
+		}, 10*time.Second).Should(BeTrue())
 
 		t.Log("Ensuring machine is labelled with correct instance state")
 		g.Eventually(func() bool {
@@ -166,7 +166,7 @@ func TestAWSInstanceStateController(t *testing.T) {
 			labels := m.GetLabels()
 			val := labels[Ec2InstanceStateLabelKey]
 			return val == "shutting-down"
-		}, 10*time.Second).Should(Equal(true))
+		}, 10*time.Second).Should(BeTrue())
 	})
 }
 

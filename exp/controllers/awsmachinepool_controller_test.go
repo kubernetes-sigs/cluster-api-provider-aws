@@ -199,7 +199,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				buf := new(bytes.Buffer)
 				klog.SetOutput(buf)
 
-				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+				_ = reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 				g.Expect(buf).To(ContainSubstring("Error state detected, skipping reconciliation"))
 			})
 			t.Run("should add our finalizer to the machinepool", func(t *testing.T) {
@@ -210,7 +210,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 
 				ec2Svc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any())
 
-				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+				_ = reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 
 				g.Expect(ms.AWSMachinePool.Finalizers).To(ContainElement(expinfrav1.MachinePoolFinalizer))
 			})
@@ -225,7 +225,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				buf := new(bytes.Buffer)
 				klog.SetOutput(buf)
 
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+				err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 				g.Expect(err).To(BeNil())
 				g.Expect(buf.String()).To(ContainSubstring("Cluster infrastructure is not ready yet"))
 				expectConditions(g, ms.AWSMachinePool, []conditionAssertion{{expinfrav1.ASGReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, infrav1.WaitingForClusterInfrastructureReason}})
@@ -240,7 +240,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				buf := new(bytes.Buffer)
 				klog.SetOutput(buf)
 
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+				err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 
 				g.Expect(err).To(BeNil())
 				g.Expect(buf.String()).To(ContainSubstring("Bootstrap data secret reference is not yet available"))
@@ -261,7 +261,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 
 				expectedErr := errors.New("no connection available ")
 				ec2Svc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any()).Return(expectedErr)
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+				err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 				g.Expect(errors.Cause(err)).To(MatchError(expectedErr))
 			})
 		})
@@ -288,7 +288,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				}, nil)
 				asgSvc.EXPECT().SuspendProcesses("name", []string{"Launch", "Terminate"}).Return(nil).AnyTimes().Times(0)
 
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+				err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 				g.Expect(err).To(Succeed())
 			})
 		})
@@ -324,7 +324,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					"ReplaceUnhealthy",
 				})).Return(nil).AnyTimes().Times(1)
 
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+				err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 				g.Expect(err).To(Succeed())
 			})
 		})
@@ -356,7 +356,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				asgSvc.EXPECT().SuspendProcesses("name", []string{"Terminate"}).Return(nil).AnyTimes().Times(1)
 				asgSvc.EXPECT().ResumeProcesses("name", []string{"process3"}).Return(nil).AnyTimes().Times(1)
 
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+				err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 				g.Expect(err).To(Succeed())
 			})
 		})
@@ -386,7 +386,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 
 			g.Expect(testEnv.Create(ctx, ms.MachinePool)).To(Succeed())
 
-			_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+			_ = reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 			g.Expect(*ms.MachinePool.Spec.Replicas).To(Equal(int32(1)))
 		})
 		t.Run("No need to update Asg because asgNeedsUpdates is false and no subnets change", func(t *testing.T) {
@@ -417,7 +417,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			asgSvc.EXPECT().SubnetIDs(gomock.Any()).Return([]string{"subnet2", "subnet1"}, nil).Times(1)
 			asgSvc.EXPECT().UpdateASG(gomock.Any()).Return(nil).Times(0)
 
-			_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+			err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 			g.Expect(err).To(Succeed())
 		})
 		t.Run("update Asg due to subnet changes", func(t *testing.T) {
@@ -435,7 +435,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			asgSvc.EXPECT().SubnetIDs(gomock.Any()).Return([]string{"subnet1"}, nil).Times(1)
 			asgSvc.EXPECT().UpdateASG(gomock.Any()).Return(nil).Times(1)
 
-			_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+			err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 			g.Expect(err).To(Succeed())
 		})
 		t.Run("update Asg due to asgNeedsUpdates returns true", func(t *testing.T) {
@@ -453,7 +453,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			asgSvc.EXPECT().SubnetIDs(gomock.Any()).Return([]string{}, nil).Times(1)
 			asgSvc.EXPECT().UpdateASG(gomock.Any()).Return(nil).Times(1)
 
-			_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+			err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 			g.Expect(err).To(Succeed())
 		})
 	})
@@ -476,7 +476,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			expectedErr := errors.New("no connection available ")
 			asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(nil, expectedErr).AnyTimes()
 
-			_, err := reconciler.reconcileDelete(ms, cs, cs)
+			err := reconciler.reconcileDelete(ms, cs, cs)
 			g.Expect(errors.Cause(err)).To(MatchError(expectedErr))
 		})
 		t.Run("should log and remove finalizer when no machinepool exists", func(t *testing.T) {
@@ -491,7 +491,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			buf := new(bytes.Buffer)
 			klog.SetOutput(buf)
 
-			_, err := reconciler.reconcileDelete(ms, cs, cs)
+			err := reconciler.reconcileDelete(ms, cs, cs)
 			g.Expect(err).To(BeNil())
 			g.Expect(buf.String()).To(ContainSubstring("Unable to locate ASG"))
 			g.Expect(ms.AWSMachinePool.Finalizers).To(ConsistOf(metav1.FinalizerDeleteDependents))
@@ -512,7 +512,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 
 			buf := new(bytes.Buffer)
 			klog.SetOutput(buf)
-			_, err := reconciler.reconcileDelete(ms, cs, cs)
+			err := reconciler.reconcileDelete(ms, cs, cs)
 			g.Expect(err).To(BeNil())
 			g.Expect(ms.AWSMachinePool.Status.Ready).To(BeFalse())
 			g.Eventually(recorder.Events).Should(Receive(ContainSubstring("DeletionInProgress")))

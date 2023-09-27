@@ -29,6 +29,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/eks"
@@ -73,7 +74,7 @@ func parseEKSVersion(raw string) (*version.Version, error) {
 }
 
 // ValidateCreate will do any extra validation when creating a AWSManagedControlPlane.
-func (r *AWSManagedControlPlane) ValidateCreate() error {
+func (r *AWSManagedControlPlane) ValidateCreate() (admission.Warnings, error) {
 	mcpLog.Info("AWSManagedControlPlane validate create", "control-plane", klog.KObj(r))
 
 	var allErrs field.ErrorList
@@ -94,10 +95,10 @@ func (r *AWSManagedControlPlane) ValidateCreate() error {
 	allErrs = append(allErrs, r.validateNetwork()...)
 
 	if len(allErrs) == 0 {
-		return nil
+		return nil, nil
 	}
 
-	return apierrors.NewInvalid(
+	return nil, apierrors.NewInvalid(
 		r.GroupVersionKind().GroupKind(),
 		r.Name,
 		allErrs,
@@ -105,11 +106,11 @@ func (r *AWSManagedControlPlane) ValidateCreate() error {
 }
 
 // ValidateUpdate will do any extra validation when updating a AWSManagedControlPlane.
-func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) error {
+func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	mcpLog.Info("AWSManagedControlPlane validate update", "control-plane", klog.KObj(r))
 	oldAWSManagedControlplane, ok := old.(*AWSManagedControlPlane)
 	if !ok {
-		return apierrors.NewInvalid(GroupVersion.WithKind("AWSManagedControlPlane").GroupKind(), r.Name, field.ErrorList{
+		return nil, apierrors.NewInvalid(GroupVersion.WithKind("AWSManagedControlPlane").GroupKind(), r.Name, field.ErrorList{
 			field.InternalError(nil, errors.New("failed to convert old AWSManagedControlPlane to object")),
 		})
 	}
@@ -164,10 +165,10 @@ func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) error {
 	}
 
 	if len(allErrs) == 0 {
-		return nil
+		return nil, nil
 	}
 
-	return apierrors.NewInvalid(
+	return nil, apierrors.NewInvalid(
 		r.GroupVersionKind().GroupKind(),
 		r.Name,
 		allErrs,
@@ -175,10 +176,10 @@ func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) error {
 }
 
 // ValidateDelete allows you to add any extra validation when deleting.
-func (r *AWSManagedControlPlane) ValidateDelete() error {
+func (r *AWSManagedControlPlane) ValidateDelete() (admission.Warnings, error) {
 	mcpLog.Info("AWSManagedControlPlane validate delete", "control-plane", klog.KObj(r))
 
-	return nil
+	return nil, nil
 }
 
 func (r *AWSManagedControlPlane) validateEKSClusterName() field.ErrorList {
