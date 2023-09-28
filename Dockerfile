@@ -15,8 +15,7 @@
 # limitations under the License.
 
 # Build the manager binary
-FROM golang:1.19.10-alpine3.18 as toolchain
-
+FROM gcr.io/spectro-images-public/golang:1.21-alpine as toolchain
 # Run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
 ARG goproxy=https://proxy.golang.org
 ENV GOPROXY=$goproxy
@@ -47,17 +46,19 @@ COPY ./ ./
 ARG package=.
 ARG ARCH
 ARG LDFLAGS
-RUN  --mount=type=cache,target=/root/.cache/go-build \ 
+RUN  --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.local/share/golang \
     if [ ${CRYPTO_LIB} ]; \
     then \
-    CGO_ENABLED=1 GOOS=linux GOARCH=${ARCH} go build -ldflags "${LDFLAGS} -linkmode=external  -extldflags '-static'"  -o manager ${package}; \
+      GOARCH=${ARCH} go-build-fips.sh -a -o manager main.go ;\
     else \
-    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags "${LDFLAGS} -extldflags '-static'"  -o manager ${package}; \
+      GOARCH=${ARCH} go-build-static.sh -a -o manager main.go ;\
     fi
+RUN if [ "${CRYPTO_LIB}" ]; then assert-static.sh manager; fi
+RUN if [ "${CRYPTO_LIB}" ]; then assert-fips.sh manager; fi
+RUN scan-govulncheck.sh manager
 ENTRYPOINT [ "/start.sh", "/workspace/manager" ]
-
 # Copy the controller-manager into a thin image
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
