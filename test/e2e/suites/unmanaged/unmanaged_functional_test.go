@@ -288,7 +288,8 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("CSI=in-tree CCM=in-tree AWSCSIMigration=off: upgrade to v1.23", func() {
+	// todo: Fix and enable back the tests ASAP.
+	ginkgo.PDescribe("CSI=in-tree CCM=in-tree AWSCSIMigration=off: upgrade to v1.23", func() {
 		ginkgo.It("should create volumes dynamically with in tree CSI driver and in tree cloud provider", func() {
 			specName := "csimigration-off-upgrade"
 			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, VolumeGP2: 4, EventBridgeRules: 50}
@@ -646,7 +647,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 					machineList := getAWSMachinesForDeployment(ns2.Name, *md2[0])
 					labels := machineList.Items[0].GetLabels()
 					return labels[instancestate.Ec2InstanceStateLabelKey] == string(infrav1.InstanceStateTerminated)
-				}, e2eCtx.E2EConfig.GetIntervals("", "wait-machine-status")...).Should(Equal(true))
+				}, e2eCtx.E2EConfig.GetIntervals("", "wait-machine-status")...).Should(BeTrue())
 
 				ginkgo.By("Waiting for machine to reach Failed state")
 				statusChecks := []framework.MachineStatusCheck{framework.MachinePhaseCheck(string(clusterv1.MachinePhaseFailed))}

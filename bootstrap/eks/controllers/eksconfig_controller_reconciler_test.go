@@ -56,9 +56,8 @@ func TestEKSConfigReconciler(t *testing.T) {
 		}
 		t.Logf(fmt.Sprintf("Calling reconcile on cluster '%s' and config '%s' should requeue", cluster.Name, config.Name))
 		g.Eventually(func(gomega Gomega) {
-			result, err := reconciler.joinWorker(ctx, cluster, config, configOwner("Machine"))
+			err := reconciler.joinWorker(ctx, cluster, config, configOwner("Machine"))
 			gomega.Expect(err).NotTo(HaveOccurred())
-			gomega.Expect(result.Requeue).To(BeFalse())
 		}).Should(Succeed())
 
 		t.Logf(fmt.Sprintf("Secret '%s' should exist and be correct", config.Name))
@@ -111,9 +110,8 @@ func TestEKSConfigReconciler(t *testing.T) {
 		}
 		t.Logf(fmt.Sprintf("Calling reconcile on cluster '%s' and config '%s' should requeue", cluster.Name, config.Name))
 		g.Eventually(func(gomega Gomega) {
-			result, err := reconciler.joinWorker(ctx, cluster, config, configOwner("MachinePool"))
+			err := reconciler.joinWorker(ctx, cluster, config, configOwner("MachinePool"))
 			gomega.Expect(err).NotTo(HaveOccurred())
-			gomega.Expect(result.Requeue).To(BeFalse())
 		}).Should(Succeed())
 
 		t.Logf(fmt.Sprintf("Secret '%s' should exist and be correct", config.Name))
@@ -136,9 +134,8 @@ func TestEKSConfigReconciler(t *testing.T) {
 		}
 		t.Logf(dump("config", config))
 		g.Eventually(func(gomega Gomega) {
-			result, err := reconciler.joinWorker(ctx, cluster, config, configOwner("MachinePool"))
+			err := reconciler.joinWorker(ctx, cluster, config, configOwner("MachinePool"))
 			gomega.Expect(err).NotTo(HaveOccurred())
-			gomega.Expect(result.Requeue).To(BeFalse())
 		}).Should(Succeed())
 		t.Logf(fmt.Sprintf("Secret '%s' should exist and be up to date", config.Name))
 
@@ -184,9 +181,8 @@ func TestEKSConfigReconciler(t *testing.T) {
 		}
 		t.Logf(fmt.Sprintf("Calling reconcile on cluster '%s' and config '%s' should requeue", cluster.Name, config.Name))
 		g.Eventually(func(gomega Gomega) {
-			result, err := reconciler.joinWorker(ctx, cluster, config, configOwner("Machine"))
+			err := reconciler.joinWorker(ctx, cluster, config, configOwner("Machine"))
 			gomega.Expect(err).NotTo(HaveOccurred())
-			gomega.Expect(result.Requeue).To(BeFalse())
 		}).Should(Succeed())
 
 		t.Logf(fmt.Sprintf("Secret '%s' should exist and be out of date", config.Name))
@@ -258,9 +254,8 @@ func TestEKSConfigReconciler(t *testing.T) {
 		}
 		t.Logf(fmt.Sprintf("Calling reconcile on cluster '%s' and config '%s' should requeue", cluster.Name, config.Name))
 		g.Eventually(func(gomega Gomega) {
-			result, err := reconciler.joinWorker(ctx, cluster, config, configOwner("Machine"))
+			err := reconciler.joinWorker(ctx, cluster, config, configOwner("Machine"))
 			gomega.Expect(err).NotTo(HaveOccurred())
-			gomega.Expect(result.Requeue).To(BeFalse())
 		}).Should(Succeed())
 
 		secretList := &corev1.SecretList{}

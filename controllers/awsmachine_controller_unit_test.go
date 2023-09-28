@@ -105,7 +105,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 			},
 		}
 
-		client := fake.NewClientBuilder().WithObjects(awsMachine, secret, secretIgnition).Build()
+		client := fake.NewClientBuilder().WithObjects(awsMachine, secret, secretIgnition).WithStatusSubresource(awsMachine).Build()
 		ms, err = scope.NewMachineScope(
 			scope.MachineScopeParams{
 				Client: client,
@@ -136,7 +136,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 		cs, err = scope.NewClusterScope(
 			scope.ClusterScopeParams{
-				Client:     fake.NewClientBuilder().WithObjects(awsMachine, secret).Build(),
+				Client:     fake.NewClientBuilder().WithObjects(awsMachine, secret).WithStatusSubresource(awsMachine).Build(),
 				Cluster:    &clusterv1.Cluster{},
 				AWSCluster: &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}},
 			},
@@ -2057,7 +2057,7 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 				g.Expect(testEnv.Cleanup(ctx, tc.awsCluster, ns)).To(Succeed())
 			})
 
-			requests := reconciler.AWSClusterToAWSMachines(logger.NewLogger(klog.Background()))(tc.awsCluster)
+			requests := reconciler.AWSClusterToAWSMachines(logger.NewLogger(klog.Background()))(ctx, tc.awsCluster)
 			if tc.requests != nil {
 				if len(tc.requests) > 0 {
 					tc.requests[0].Namespace = ns.Name
@@ -2093,7 +2093,7 @@ func TestAWSMachineReconcilerRequeueAWSMachinesForUnpausedCluster(t *testing.T) 
 				Client: testEnv.Client,
 				Log:    klog.Background(),
 			}
-			requests := reconciler.requeueAWSMachinesForUnpausedCluster(logger.NewLogger(klog.Background()))(tc.ownerCluster)
+			requests := reconciler.requeueAWSMachinesForUnpausedCluster(logger.NewLogger(klog.Background()))(ctx, tc.ownerCluster)
 			if tc.requests != nil {
 				g.Expect(requests).To(ConsistOf(tc.requests))
 			} else {
@@ -2360,7 +2360,7 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 					}
 					err = testEnv.Get(ctx, key, machine)
 					return err == nil
-				}, 10*time.Second).Should(Equal(true))
+				}, 10*time.Second).Should(BeTrue())
 
 				result, err := reconciler.Reconcile(ctx, ctrl.Request{
 					NamespacedName: client.ObjectKey{
@@ -2527,7 +2527,7 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 		},
 	}
 
-	fakeClient := fake.NewClientBuilder().WithObjects(ownerCluster, awsCluster, ownerMachine, awsMachine, controllerIdentity, secret).Build()
+	fakeClient := fake.NewClientBuilder().WithObjects(ownerCluster, awsCluster, ownerMachine, awsMachine, controllerIdentity, secret).WithStatusSubresource(awsCluster, awsMachine).Build()
 
 	recorder := record.NewFakeRecorder(10)
 	reconciler := &AWSMachineReconciler{
