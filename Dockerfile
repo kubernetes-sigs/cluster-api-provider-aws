@@ -15,7 +15,9 @@
 # limitations under the License.
 
 # Build the manager binary
-FROM gcr.io/spectro-images-public/golang:1.21-alpine as toolchain
+ARG BUILDER_GOLANG_VERSION
+# First stage: build the executable.
+FROM gcr.io/spectro-images-public/golang:${BUILDER_GOLANG_VERSION}-alpine as toolchain
 # Run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
 ARG goproxy=https://proxy.golang.org
 ENV GOPROXY=$goproxy
