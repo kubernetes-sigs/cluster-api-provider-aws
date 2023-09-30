@@ -53,3 +53,41 @@ func createServices() *cobra.Command {
 	flags.AddRegionFlag(newCmd)
 	return newCmd
 }
+
+func deleteServices() *cobra.Command {
+	newCmd := &cobra.Command{
+		Use:     "delete",
+		Aliases: []string{"d"},
+		Short:   "Delete AWS IAM resources",
+		Args:    cobra.NoArgs,
+		Long: cmd.LongDesc(`
+		`),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			t, err := getBootstrapTemplate(cmd)
+			if err != nil {
+				return err
+			}
+			if err := resolveTemplateRegion(t, cmd); err != nil {
+				fmt.Println("AWS_REGION env not set and --region flag not provided, default configuration will be used")
+			}
+			fmt.Printf("Attempting to delete AWS Resources %s\n", t.Spec.StackName)
+			sess, err := session.NewSessionWithOptions(session.Options{
+				SharedConfigState: session.SharedConfigEnable,
+				Config:            aws.Config{Region: aws.String(t.Spec.Region)},
+			})
+			if err != nil {
+				return err
+			}
+			iamsvc := iam.New(sess)
+			svc := iamservice.New(iamsvc)
+			err = svc.DeleteServices(*t.RenderCloudFormation(), t.Spec.StackTags)
+			if err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+	addConfigFlag(newCmd)
+	flags.AddRegionFlag(newCmd)
+	return newCmd
+}

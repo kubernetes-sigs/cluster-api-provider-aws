@@ -45,5 +45,6 @@ func RootCmd() *cobra.Command {
 	newCmd.AddCommand(createCloudFormationStackCmd())
 	newCmd.AddCommand(deleteCloudFormationStackCmd())
 	newCmd.AddCommand(createServices())
+	newCmd.AddCommand(deleteServices())
 	return newCmd
 }

@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"strings"
+	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -19,6 +19,7 @@ import (
 
 type Service interface {
 	CreateServices(t go_cfn.Template, tags map[string]string) error
+	DeleteServices(t go_cfn.Template, tags map[string]string) error
 }
 
 type serviceImpl struct {
@@ -285,7 +286,7 @@ func getRoleName(encodedRole string) (string, error) {
 	if err != nil {
 		klog.Warningf("decoding \"%s\": %w", encodedRole, err)
 	}
-	roleRef := strings.Trim(strings.TrimLeft(string(bytes), "{Ref:\\ \""), "\\ \"")
+	roleRef := string(regexp.MustCompile(`(AWSIAMRole[a-zA-Z]+)`).Find(bytes))
 	if roleRef == "AWSIAMRoleControllers" {
 		roleName = fmt.Sprintf("controllers%s", iamv1.DefaultNameSuffix)
 	} else if roleRef == "AWSIAMRoleNodes" {
@@ -313,4 +314,158 @@ func listpolicies(client *iam.IAM) ([]*iam.Policy, error) {
 		return nil, nil
 	}
 	return list.Policies, nil
+}
+
+func (s *serviceImpl) DeleteServices(t go_cfn.Template, tags map[string]string) error {
+	client := CreateClient()
+	rmap, err := prioritySet(t, client)
+	if err != nil {
+		return err
+	}
+	for _, resource := range rmap["instanceProfiles"] {
+		err := DeleteInstanceProfile(resource, client)
+		if err != nil {
+			return err
+		}
+	}
+	for _, resource := range rmap["roles"] {
+		err := DeleteRole(resource, client)
+		if err != nil {
+			return err
+		}
+	}
+	policies, err := listpolicies(client)
+	if err != nil {
+		return err
+	}
+	for _, resource := range rmap["policies"] {
+		err := DeletePolicies(policies, resource, tags, client)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func DeleteRole(resource go_cfn.Resource, client *iam.IAM) error {
+	res := resource.(*cfn_iam.Role)
+	rolePolicies, err := client.ListAttachedRolePolicies(&iam.ListAttachedRolePoliciesInput{
+		RoleName: &res.RoleName,
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case iam.ErrCodeNoSuchEntityException:
+				klog.Warningf("IAM role \"%s\" does not exist", res.RoleName)
+				return nil
+			default:
+				return fmt.Errorf(aerr.Error())
+			}
+		}
+	}
+	if rolePolicies.AttachedPolicies != nil {
+		for _, policy := range rolePolicies.AttachedPolicies {
+			_, err := client.DetachRolePolicy(&iam.DetachRolePolicyInput{
+				RoleName:  &res.RoleName,
+				PolicyArn: policy.PolicyArn,
+			})
+			if err != nil {
+				if aerr, ok := err.(awserr.Error); ok {
+					switch aerr.Code() {
+					// TODO
+					// case iam.ErrCodeNoSuchEntityException:
+					default:
+						return fmt.Errorf(aerr.Error())
+					}
+				}
+			}
+		}
+	}
+	_, err = client.DeleteRole(&iam.DeleteRoleInput{
+		RoleName: &res.RoleName,
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case iam.ErrCodeNoSuchEntityException:
+				klog.Warningf("IAM role \"%s\" does not exist", res.RoleName)
+			default:
+				return fmt.Errorf(aerr.Error())
+			}
+		}
+	}
+	fmt.Printf("Successfully deleted IAM role \"%s\"\n", res.RoleName)
+	return nil
+}
+
+func DeleteInstanceProfile(resource go_cfn.Resource, client *iam.IAM) error {
+	res := resource.(*cfn_iam.InstanceProfile)
+	instanceProfileExists, err := client.GetInstanceProfile(&iam.GetInstanceProfileInput{
+		InstanceProfileName: &res.InstanceProfileName,
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case iam.ErrCodeNoSuchEntityException:
+				klog.Warningf("instance profile \"%s\" does not exist", res.InstanceProfileName)
+				return nil
+			default:
+				return fmt.Errorf(aerr.Error())
+			}
+		}
+	}
+	_, err = client.RemoveRoleFromInstanceProfile(&iam.RemoveRoleFromInstanceProfileInput{
+		InstanceProfileName: instanceProfileExists.InstanceProfile.InstanceProfileName,
+		RoleName:            &res.InstanceProfileName,
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			// TODO
+			// case iam.ErrCodeNoSuchEntityException:
+			default:
+				return fmt.Errorf(aerr.Error())
+			}
+		}
+	}
+	_, err = client.DeleteInstanceProfile(&iam.DeleteInstanceProfileInput{
+		InstanceProfileName: &res.InstanceProfileName,
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case iam.ErrCodeNoSuchEntityException:
+				klog.Warningf("instance profile \"%s\" does not exist", res.InstanceProfileName)
+				return nil
+			default:
+				return fmt.Errorf(aerr.Error())
+			}
+		}
+	}
+	fmt.Printf("Successfully deleted instance profile \"%s\"\n", res.InstanceProfileName)
+	return nil
+}
+
+func DeletePolicies(policies []*iam.Policy, templatePolicy go_cfn.Resource, tags map[string]string, client *iam.IAM) error {
+	p := templatePolicy.(*cfn_iam.ManagedPolicy)
+	for _, policy := range policies {
+		if p.ManagedPolicyName == *policy.PolicyName {
+			_, err := client.DeletePolicy(&iam.DeletePolicyInput{
+				PolicyArn: policy.Arn,
+			})
+			if err != nil {
+				if aerr, ok := err.(awserr.Error); ok {
+					switch aerr.Code() {
+					case iam.ErrCodeNoSuchEntityException:
+						klog.Warningf("policy \"%s\" does not exist", policy.Arn)
+						return nil
+					default:
+						return fmt.Errorf(aerr.Error())
+					}
+				}
+			}
+			fmt.Printf("Successfully deleted CAPA managed policy \"%s\"\n", p.ManagedPolicyName)
+		}
+	}
+	return nil
 }
