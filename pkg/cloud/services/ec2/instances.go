@@ -43,9 +43,13 @@ import (
 func (s *Service) GetRunningInstanceByTags(scope *scope.MachineScope) (*infrav1.Instance, error) {
 	s.scope.Debug("Looking for existing machine instance by tags")
 
+	vpcID, err := s.getVPCID(scope)
+	if err != nil {
+		return nil, err
+	}
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
-			filter.EC2.VPC(s.scope.VPC().ID),
+			filter.EC2.VPC(vpcID),
 			filter.EC2.ClusterOwned(s.scope.Name()),
 			filter.EC2.Name(scope.Name()),
 			filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
@@ -309,7 +313,11 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 			filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
 		}
 		if !scope.IsExternallyManaged() {
-			criteria = append(criteria, filter.EC2.VPC(s.scope.VPC().ID))
+			vpcID, err := s.getVPCID(scope)
+			if err != nil {
+				return "", fmt.Errorf("failed to lookup vpc for subnets: %w", err)
+			}
+			criteria = append(criteria, filter.EC2.VPC(vpcID))
 		}
 		if scope.AWSMachine.Spec.Subnet.ID != nil {
 			criteria = append(criteria, &ec2.Filter{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{*scope.AWSMachine.Spec.Subnet.ID})})
@@ -395,6 +403,30 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 	}
 }
 
+func (s *Service) getVPCID(scope *scope.MachineScope) (string, error) {
+	if scope.AWSMachine.Spec.VPC == nil {
+		return s.scope.VPC().ID, nil
+	}
+	if scope.AWSMachine.Spec.VPC.ID != nil {
+		return *scope.AWSMachine.Spec.VPC.ID, nil
+	}
+	filters := make([]*ec2.Filter, 0, len(scope.AWSMachine.Spec.VPC.Filters))
+	for _, filter := range scope.AWSMachine.Spec.VPC.Filters {
+		filters = append(filters, &ec2.Filter{
+			Name:   aws.String(filter.Name),
+			Values: aws.StringSlice(filter.Values),
+		})
+	}
+	out, err := s.EC2Client.DescribeVpcsWithContext(context.TODO(), &ec2.DescribeVpcsInput{Filters: filters})
+	if err != nil {
+		return "", err
+	}
+	if out != nil && len(out.Vpcs) == 1 {
+		return *out.Vpcs[0].VpcId, nil
+	}
+	return "", fmt.Errorf("ambigious VPC filters, only one VPC expected, got %v", out)
+}
+
 // getFilteredSubnets fetches subnets filtered based on the criteria passed.
 func (s *Service) getFilteredSubnets(criteria ...*ec2.Filter) ([]*ec2.Subnet, error) {
 	out, err := s.EC2Client.DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{Filters: criteria})
@@ -440,10 +472,15 @@ func (s *Service) GetCoreSecurityGroups(scope *scope.MachineScope) ([]string, er
 	}
 	ids := make([]string, 0, len(sgRoles))
 	for _, sg := range sgRoles {
-		if _, ok := s.scope.SecurityGroups()[sg]; !ok {
-			return nil, awserrors.NewFailedDependency(fmt.Sprintf("%s security group not available", sg))
+		if _, ok := scope.AWSMachine.Spec.SecurityGroupOverrides[sg]; ok {
+			ids = append(ids, scope.AWSMachine.Spec.SecurityGroupOverrides[sg])
+			continue
 		}
-		ids = append(ids, s.scope.SecurityGroups()[sg].ID)
+		if _, ok := s.scope.SecurityGroups()[sg]; ok {
+			ids = append(ids, s.scope.SecurityGroups()[sg].ID)
+			continue
+		}
+		return nil, awserrors.NewFailedDependency(fmt.Sprintf("%s security group not available", sg))
 	}
 	return ids, nil
 }

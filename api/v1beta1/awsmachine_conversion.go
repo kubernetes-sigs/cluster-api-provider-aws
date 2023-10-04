@@ -39,6 +39,8 @@ func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.InstanceMetadataOptions = restored.Spec.InstanceMetadataOptions
 	dst.Spec.PlacementGroupName = restored.Spec.PlacementGroupName
 	dst.Spec.PrivateDNSName = restored.Spec.PrivateDNSName
+	dst.Spec.VPC = restored.Spec.VPC
+	dst.Spec.SecurityGroupOverrides = restored.Spec.SecurityGroupOverrides
 
 	return nil
 }
@@ -87,6 +89,8 @@ func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.Template.Spec.InstanceMetadataOptions = restored.Spec.Template.Spec.InstanceMetadataOptions
 	dst.Spec.Template.Spec.PlacementGroupName = restored.Spec.Template.Spec.PlacementGroupName
 	dst.Spec.Template.Spec.PrivateDNSName = restored.Spec.Template.Spec.PrivateDNSName
+	dst.Spec.Template.Spec.VPC = restored.Spec.Template.Spec.VPC
+	dst.Spec.Template.Spec.SecurityGroupOverrides = restored.Spec.Template.Spec.SecurityGroupOverrides
 
 	return nil
 }
