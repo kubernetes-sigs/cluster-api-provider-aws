@@ -341,6 +341,11 @@ type VPCSpec struct {
 	// +kubebuilder:validation:Enum=Ordered;Random
 	AvailabilityZoneSelection *AZSelectionScheme `json:"availabilityZoneSelection,omitempty"`
 
+	// AvailabilityZones defines a list of Availability Zones in which to create network resources in.
+	// If defined, both AvailabilityZoneUsageLimit and AvailabilityZoneSelection are ignored.
+	// +optional
+	AvailabilityZones []string `json:"availabilityZones,omitempty"`
+
 	// EmptyRoutesDefaultVPCSecurityGroup specifies whether the default VPC security group ingress
 	// and egress rules should be removed.
 	//

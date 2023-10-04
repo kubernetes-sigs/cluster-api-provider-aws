@@ -1018,6 +1018,14 @@ spec:
                                   when creating default subnets. Defaults to 3
                                 minimum: 1
                                 type: integer
+                              availabilityZones:
+                                description: AvailabilityZones defines a list of Availability
+                                  Zones in which to create network resources in. If
+                                  defined, both AvailabilityZoneUsageLimit and AvailabilityZoneSelection
+                                  are ignored.
+                                items:
+                                  type: string
+                                type: array
                               cidrBlock:
                                 description: CidrBlock is the CIDR block to be used
                                   when the provider creates a managed VPC. Defaults
