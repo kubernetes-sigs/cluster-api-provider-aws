@@ -19,7 +19,7 @@ require (
 	sigs.k8s.io/controller-tools v0.12.1
 	sigs.k8s.io/kind v0.20.0
 	sigs.k8s.io/kustomize/kustomize/v4 v4.5.7
-	sigs.k8s.io/promo-tools/v3 v4.0.4
+	sigs.k8s.io/promo-tools/v4 v4.0.4
 	sigs.k8s.io/testing_frameworks v0.1.2
 )
 
