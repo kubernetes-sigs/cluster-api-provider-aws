@@ -1390,6 +1390,7 @@ func autoConvert_v1beta2_AWSMachineSpec_To_v1beta1_AWSMachineSpec(in *v1beta2.AW
 	} else {
 		out.AdditionalSecurityGroups = nil
 	}
+	// WARNING: in.VPC requires manual conversion: does not exist in peer-type
 	if in.Subnet != nil {
 		in, out := &in.Subnet, &out.Subnet
 		*out = new(AWSResourceReference)
@@ -1399,6 +1400,7 @@ func autoConvert_v1beta2_AWSMachineSpec_To_v1beta1_AWSMachineSpec(in *v1beta2.AW
 	} else {
 		out.Subnet = nil
 	}
+	// WARNING: in.SecurityGroupOverrides requires manual conversion: does not exist in peer-type
 	out.SSHKeyName = (*string)(unsafe.Pointer(in.SSHKeyName))
 	out.RootVolume = (*Volume)(unsafe.Pointer(in.RootVolume))
 	out.NonRootVolumes = *(*[]Volume)(unsafe.Pointer(&in.NonRootVolumes))
