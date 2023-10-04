@@ -64,7 +64,6 @@ KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
 MOCKGEN := $(TOOLS_BIN_DIR)/mockgen
 SSM_PLUGIN := $(TOOLS_BIN_DIR)/session-manager-plugin
 YQ := $(TOOLS_BIN_DIR)/yq
-KPROMO := $(TOOLS_BIN_DIR)/kpromo
 RELEASE_NOTES := $(TOOLS_BIN_DIR)/release-notes
 
 CLUSTERAWSADM_SRCS := $(call rwildcard,.,cmd/clusterawsadm/*.*)
@@ -581,11 +580,6 @@ release-manifests: ## Release manifest files
 .PHONY: release-changelog
 release-changelog: $(RELEASE_NOTES) check-release-tag check-previous-release-tag check-github-token $(RELEASE_DIR)
 	$(RELEASE_NOTES) --debug --org $(GH_ORG_NAME) --repo $(GH_REPO_NAME) --start-sha $(shell git rev-list -n 1 ${PREVIOUS_VERSION}) --end-sha $(shell git rev-list -n 1 ${RELEASE_TAG}) --output $(RELEASE_DIR)/CHANGELOG.md --go-template go-template:$(REPO_ROOT)/hack/changelog.tpl --dependencies=true
-
-.PHONY: promote-images
-promote-images: $(KPROMO) $(YQ)
-	IMAGE_REVIEWERS="$(shell ./hack/get-project-maintainers.sh ${YQ})"
-	$(KPROMO) pr --project cluster-api-provider-aws --tag $(RELEASE_TAG) --reviewers "$(IMAGE_REVIEWERS)" --fork $(USER_FORK) --image cluster-api-aws-controller
 
 .PHONY: release-binaries
 release-binaries: ## Builds the binaries to publish with a release

@@ -27,21 +27,17 @@ Promote the container images from the staging registry to the production registr
 1. Navigate to the staging repository [dashboard](https://console.cloud.google.com/gcr/images/k8s-staging-cluster-api-aws/GLOBAL).
 2. Choose the _top level_ [cluster-api-aws-controller](https://console.cloud.google.com/gcr/images/k8s-staging-cluster-api-aws/GLOBAL/cluster-api-aws-controller?gcrImageListsize=30) image. Only the top level image provides the multi-arch manifest, rather than one for a specific architecture.
 3. Wait for an image to appear with the tagged release version.
-4. If you don't have a GitHub token, create one by going to your GitHub settings, in [Personal access tokens](https://github.com/settings/tokens). Make sure you give the token the `repo` scope.
-5. Create a PR to promote the images:
-    ```bash
-    export GITHUB_TOKEN=<your GH token>
-    make promote-images
-    ```
-    **Notes**:
-     * `kpromo` uses `git@github.com:...` as remote to push the branch for the PR. If you don't have `ssh` set up you can configure
-       git to use `https` instead via `git config --global url."https://github.com/".insteadOf git@github.com:`.
-     * This will automatically create a PR in [k8s.io](https://github.com/kubernetes/k8s.io) and assign the CAPA maintainers.
-6. Wait for the PR to be approved (typically by CAPA maintainers authorized to merge PRs into the k8s.io repository) and merged.
-7. Verify the images are available in the production registry:
-    ```bash
-    docker pull registry.k8s.io/cluster-api-aws/cluster-api-aws-controller:${VERSION}
-    ```
+4. Click on the `Copy full image name` icon
+5. Ensure you have a fork of <https://github.com/kubernetes/k8s.io>
+6. Create a new branch in your fork
+7. Edit `registry.k8s.io/images/k8s-staging-cluster-api-aws/images.yaml` and add an entry for the version using the pasted value from earlier. For example: `"sha256:863ec7ea01f887b1af3c34e420d595e75da76d536326ac2f5e87010c0e1d49d3": ["v2.2.2"]`
+8. You can use [this PR](https://github.com/kubernetes/k8s.io/pull/5849) as example
+9. Wait for the PR to be approved (typically by CAPA maintainers authorized to merge PRs into the k8s.io repository) and merged.
+10. Verify the images are available in the production registry:
+
+```bash
+docker pull registry.k8s.io/cluster-api-aws/cluster-api-aws-controller:${VERSION}
+```
 
 ## Create release artifacts, and a GitHub draft release
 
@@ -69,6 +65,7 @@ Promote the container images from the staging registry to the production registr
 
 1. Publish release. Use the pre-release option for release candidate versions of Cluster API Provider AWS.
 1. Email `kubernetes-sig-cluster-lifecycle@googlegroups.com` to announce the release. You can use this template for the email:
+
     ```
     Subject: [ANNOUNCE] cluster-api-provider-aws v2.1.0 is released
     Body:
@@ -78,4 +75,5 @@ Promote the container images from the staging registry to the production registr
     If you have any questions about this release or CAPA, please join us on our Slack channel:
     https://kubernetes.slack.com/archives/CD6U2V71N
     ```
+
 1. Update the Title and Description of the Slack channel to point to the new version.
