@@ -34,6 +34,7 @@ import (
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
@@ -89,6 +90,15 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, namespace
 		cancelWatches()
 	}
 	delete(e2eCtx.Environment.Namespaces, namespace)
+}
+
+type AWSStackLogCollector struct {
+	E2EContext *E2EContext
+}
+
+// CollectInfrastructureLogs collects log from the infrastructure.
+func (k AWSStackLogCollector) CollectInfrastructureLogs(ctx context.Context, managementClusterClient crclient.Client, c *clusterv1.Cluster, outputPath string) error {
+	return nil
 }
 
 func DumpMachines(ctx context.Context, e2eCtx *E2EContext, namespace *corev1.Namespace) {

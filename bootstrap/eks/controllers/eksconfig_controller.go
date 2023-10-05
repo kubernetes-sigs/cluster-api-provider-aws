@@ -79,7 +79,7 @@ func (r *EKSConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	log = log.WithValues("EKSConfig", config.GetName())
 
 	// check owner references and look up owning Machine object
-	configOwner, err := bsutil.GetConfigOwner(ctx, r.Client, config)
+	configOwner, err := bsutil.GetTypedConfigOwner(ctx, r.Client, config)
 	if apierrors.IsNotFound(err) {
 		// no error here, requeue until we find an owner
 		log.Debug("eksconfig failed to look up owner reference, re-queueing")
@@ -143,7 +143,7 @@ func (r *EKSConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}()
 
-	return r.joinWorker(ctx, cluster, config, configOwner)
+	return ctrl.Result{}, r.joinWorker(ctx, cluster, config, configOwner)
 }
 
 func (r *EKSConfigReconciler) resolveFiles(ctx context.Context, cfg *eksbootstrapv1.EKSConfig) ([]eksbootstrapv1.File, error) {
@@ -181,7 +181,7 @@ func (r *EKSConfigReconciler) resolveSecretFileContent(ctx context.Context, ns s
 	return data, nil
 }
 
-func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1.Cluster, config *eksbootstrapv1.EKSConfig, configOwner *bsutil.ConfigOwner) (ctrl.Result, error) {
+func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1.Cluster, config *eksbootstrapv1.EKSConfig, configOwner *bsutil.ConfigOwner) error {
 	log := logger.FromContext(ctx)
 
 	// only need to reconcile the secret for Machine kinds once, but MachinePools need updates for new launch templates
@@ -195,15 +195,15 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		err := r.Client.Get(ctx, secretKey, existingSecret)
 		switch {
 		case err == nil:
-			return ctrl.Result{}, nil
+			return nil
 		case !apierrors.IsNotFound(err):
 			log.Error(err, "unable to check for existing bootstrap secret")
-			return ctrl.Result{}, err
+			return err
 		}
 	}
 
 	if cluster.Spec.ControlPlaneRef == nil || cluster.Spec.ControlPlaneRef.Kind != "AWSManagedControlPlane" {
-		return ctrl.Result{}, errors.New("Cluster's controlPlaneRef needs to be an AWSManagedControlPlane in order to use the EKS bootstrap provider")
+		return errors.New("Cluster's controlPlaneRef needs to be an AWSManagedControlPlane in order to use the EKS bootstrap provider")
 	}
 
 	if !cluster.Status.InfrastructureReady {
@@ -212,18 +212,18 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 			eksbootstrapv1.DataSecretAvailableCondition,
 			eksbootstrapv1.WaitingForClusterInfrastructureReason,
 			clusterv1.ConditionSeverityInfo, "")
-		return ctrl.Result{}, nil
+		return nil
 	}
 
 	if !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 		log.Info("Control Plane has not yet been initialized")
 		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.WaitingForControlPlaneInitializationReason, clusterv1.ConditionSeverityInfo, "")
-		return ctrl.Result{}, nil
+		return nil
 	}
 
 	controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 	if err := r.Get(ctx, client.ObjectKey{Name: cluster.Spec.ControlPlaneRef.Name, Namespace: cluster.Spec.ControlPlaneRef.Namespace}, controlPlane); err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
 	log.Info("Generating userdata")
@@ -231,7 +231,7 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 	if err != nil {
 		log.Info("Failed to resolve files for user data")
 		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-		return ctrl.Result{}, err
+		return err
 	}
 
 	nodeInput := &userdata.NodeInput{
@@ -276,17 +276,17 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 	if err != nil {
 		log.Error(err, "Failed to create a worker join configuration")
 		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, "")
-		return ctrl.Result{}, err
+		return err
 	}
 
 	// store userdata as secret
 	if err := r.storeBootstrapData(ctx, cluster, config, userDataScript); err != nil {
 		log.Error(err, "Failed to store bootstrap data")
 		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, "")
-		return ctrl.Result{}, err
+		return err
 	}
 
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *EKSConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, option controller.Options) error {
@@ -295,13 +295,13 @@ func (r *EKSConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 		WithOptions(option).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(logger.FromContext(ctx).GetLogger(), r.WatchFilterValue)).
 		Watches(
-			&source.Kind{Type: &clusterv1.Machine{}},
+			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(r.MachineToBootstrapMapFunc),
 		)
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		b = b.Watches(
-			&source.Kind{Type: &expclusterv1.MachinePool{}},
+			&expclusterv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(r.MachinePoolToBootstrapMapFunc),
 		)
 	}
@@ -312,7 +312,7 @@ func (r *EKSConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 	}
 
 	err = c.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
+		source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
 		handler.EnqueueRequestsFromMapFunc((r.ClusterToEKSConfigs)),
 		predicates.ClusterUnpausedAndInfrastructureReady(logger.FromContext(ctx).GetLogger()),
 	)
@@ -363,7 +363,7 @@ func (r *EKSConfigReconciler) storeBootstrapData(ctx context.Context, cluster *c
 
 // MachineToBootstrapMapFunc is a handler.ToRequestsFunc to be used to enqueue requests
 // for EKSConfig reconciliation.
-func (r *EKSConfigReconciler) MachineToBootstrapMapFunc(o client.Object) []ctrl.Request {
+func (r *EKSConfigReconciler) MachineToBootstrapMapFunc(_ context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
 	m, ok := o.(*clusterv1.Machine)
@@ -379,7 +379,7 @@ func (r *EKSConfigReconciler) MachineToBootstrapMapFunc(o client.Object) []ctrl.
 
 // MachinePoolToBootstrapMapFunc is a handler.ToRequestsFunc to be uses to enqueue requests
 // for EKSConfig reconciliation.
-func (r *EKSConfigReconciler) MachinePoolToBootstrapMapFunc(o client.Object) []ctrl.Request {
+func (r *EKSConfigReconciler) MachinePoolToBootstrapMapFunc(_ context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
 	m, ok := o.(*expclusterv1.MachinePool)
@@ -397,7 +397,7 @@ func (r *EKSConfigReconciler) MachinePoolToBootstrapMapFunc(o client.Object) []c
 
 // ClusterToEKSConfigs is a handler.ToRequestsFunc to be used to enqueue requests for
 // EKSConfig reconciliation.
-func (r *EKSConfigReconciler) ClusterToEKSConfigs(o client.Object) []ctrl.Request {
+func (r *EKSConfigReconciler) ClusterToEKSConfigs(_ context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
 	c, ok := o.(*clusterv1.Cluster)

@@ -17,7 +17,6 @@ limitations under the License.
 package securitygroup
 
 import (
-	"reflect"
 	"strings"
 	"testing"
 
@@ -619,13 +618,13 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 
 	testCases := []struct {
 		name                         string
-		controlPlaneLBSpec           *infrav1.AWSLoadBalancerSpec
+		networkSpec                  infrav1.NetworkSpec
 		expectedAdditionalIngresRule infrav1.IngressRule
 	}{
 		{
 			name: "default control plane security group is used",
-			controlPlaneLBSpec: &infrav1.AWSLoadBalancerSpec{
-				IngressRules: []infrav1.IngressRule{
+			networkSpec: infrav1.NetworkSpec{
+				AdditionalControlPlaneIngressRules: []infrav1.IngressRule{
 					{
 						Description: "test",
 						Protocol:    infrav1.SecurityGroupProtocolTCP,
@@ -644,8 +643,8 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 		},
 		{
 			name: "custom security group id is used",
-			controlPlaneLBSpec: &infrav1.AWSLoadBalancerSpec{
-				IngressRules: []infrav1.IngressRule{
+			networkSpec: infrav1.NetworkSpec{
+				AdditionalControlPlaneIngressRules: []infrav1.IngressRule{
 					{
 						Description:            "test",
 						Protocol:               infrav1.SecurityGroupProtocolTCP,
@@ -665,8 +664,8 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 		},
 		{
 			name: "another security group role is used",
-			controlPlaneLBSpec: &infrav1.AWSLoadBalancerSpec{
-				IngressRules: []infrav1.IngressRule{
+			networkSpec: infrav1.NetworkSpec{
+				AdditionalControlPlaneIngressRules: []infrav1.IngressRule{
 					{
 						Description:              "test",
 						Protocol:                 infrav1.SecurityGroupProtocolTCP,
@@ -686,8 +685,8 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 		},
 		{
 			name: "another security group role and a custom security group id is used",
-			controlPlaneLBSpec: &infrav1.AWSLoadBalancerSpec{
-				IngressRules: []infrav1.IngressRule{
+			networkSpec: infrav1.NetworkSpec{
+				AdditionalControlPlaneIngressRules: []infrav1.IngressRule{
 					{
 						Description:              "test",
 						Protocol:                 infrav1.SecurityGroupProtocolTCP,
@@ -706,6 +705,26 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 				SourceSecurityGroupIDs: []string{"test", "node-sg-id"},
 			},
 		},
+		{
+			name: "don't set source security groups if cidr blocks are set",
+			networkSpec: infrav1.NetworkSpec{
+				AdditionalControlPlaneIngressRules: []infrav1.IngressRule{
+					{
+						Description: "test",
+						Protocol:    infrav1.SecurityGroupProtocolTCP,
+						FromPort:    9345,
+						ToPort:      9345,
+						CidrBlocks:  []string{"test-cidr-block"},
+					},
+				},
+			},
+			expectedAdditionalIngresRule: infrav1.IngressRule{
+				Description: "test",
+				Protocol:    infrav1.SecurityGroupProtocolTCP,
+				FromPort:    9345,
+				ToPort:      9345,
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -717,7 +736,7 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 				},
 				AWSCluster: &infrav1.AWSCluster{
 					Spec: infrav1.AWSClusterSpec{
-						ControlPlaneLoadBalancer: tc.controlPlaneLBSpec,
+						NetworkSpec: tc.networkSpec,
 					},
 					Status: infrav1.AWSClusterStatus{
 						Network: infrav1.NetworkStatus{
@@ -760,7 +779,7 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 						t.Fatalf("Expected to port %d, got %d", tc.expectedAdditionalIngresRule.ToPort, r.ToPort)
 					}
 
-					if !reflect.DeepEqual(r.SourceSecurityGroupIDs, tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs) {
+					if !sets.New[string](tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs...).Equal(sets.New[string](tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs...)) {
 						t.Fatalf("Expected source security group IDs %v, got %v", tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs, r.SourceSecurityGroupIDs)
 					}
 				}
@@ -779,14 +798,22 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 
 	testCases := []struct {
 		name                string
-		controlPlaneLBSpec  *infrav1.AWSLoadBalancerSpec
-		useIPV6             bool
+		awsCluster          *infrav1.AWSCluster
 		expectedIngresRules infrav1.IngressRules
 	}{
 		{
-			name:               "when no ingress rules are passed the default is set",
-			controlPlaneLBSpec: &infrav1.AWSLoadBalancerSpec{},
-			useIPV6:            false,
+			name: "when no ingress rules are passed and nat gateway IPs are not available, the default is set",
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{},
+			},
 			expectedIngresRules: infrav1.IngressRules{
 				infrav1.IngressRule{
 					Description: "Kubernetes API",
@@ -798,9 +825,19 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 			},
 		},
 		{
-			name:               "when no ingress rules are passed and when using ipv6, the default for ipv6 is set",
-			controlPlaneLBSpec: &infrav1.AWSLoadBalancerSpec{},
-			useIPV6:            true,
+			name: "when no ingress rules are passed and nat gateway IPs are not available, the default for IPv6 is set",
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+							IPv6:      &infrav1.IPv6{},
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{},
+			},
 			expectedIngresRules: infrav1.IngressRules{
 				infrav1.IngressRule{
 					Description:    "Kubernetes API IPv6",
@@ -812,20 +849,178 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 			},
 		},
 		{
-			name: "defined rules are used",
-			controlPlaneLBSpec: &infrav1.AWSLoadBalancerSpec{
-				IngressRules: infrav1.IngressRules{
-					{
-						Description: "My custom ingress rule",
-						Protocol:    infrav1.SecurityGroupProtocolTCP,
-						FromPort:    1234,
-						ToPort:      1234,
-						CidrBlocks:  []string{"172.126.1.1/0"},
+			name: "when no ingress rules are passed, allow the Nat Gateway IPs and default to allow all",
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						NatGatewaysIPs: []string{"1.2.3.4"},
 					},
 				},
 			},
-			useIPV6: false,
 			expectedIngresRules: infrav1.IngressRules{
+				infrav1.IngressRule{
+					Description: "Kubernetes API",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"1.2.3.4/32"},
+				},
+				infrav1.IngressRule{
+					Description: "Kubernetes API",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{services.AnyIPv4CidrBlock},
+				},
+			},
+		},
+		{
+			name: "defined rules are used",
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+						IngressRules: infrav1.IngressRules{
+							{
+								Description: "My custom ingress rule",
+								Protocol:    infrav1.SecurityGroupProtocolTCP,
+								FromPort:    1234,
+								ToPort:      1234,
+								CidrBlocks:  []string{"172.126.1.1/0"},
+							},
+						},
+					},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						NatGatewaysIPs: []string{"1.2.3.4"},
+					},
+				},
+			},
+			expectedIngresRules: infrav1.IngressRules{
+				infrav1.IngressRule{
+					Description: "Kubernetes API",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"1.2.3.4/32"},
+				},
+				infrav1.IngressRule{
+					Description: "My custom ingress rule",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    1234,
+					ToPort:      1234,
+					CidrBlocks:  []string{"172.126.1.1/0"},
+				},
+			},
+		},
+		{
+			name: "when no ingress rules are passed while using internal LB",
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+						Scheme: &infrav1.ELBSchemeInternal,
+					},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+						},
+					},
+				},
+			},
+			expectedIngresRules: infrav1.IngressRules{
+				infrav1.IngressRule{
+					Description: "Kubernetes API",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"10.0.0.0/16"},
+				},
+				infrav1.IngressRule{
+					Description: "Kubernetes API",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{services.AnyIPv4CidrBlock},
+				},
+			},
+		},
+		{
+			name: "when no ingress rules are passed while using internal LB and IPv6",
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+						Scheme: &infrav1.ELBSchemeInternal,
+					},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							IPv6: &infrav1.IPv6{
+								CidrBlock: "10.0.0.0/16",
+							},
+						},
+					},
+				},
+			},
+			expectedIngresRules: infrav1.IngressRules{
+				infrav1.IngressRule{
+					Description:    "Kubernetes API IPv6",
+					Protocol:       infrav1.SecurityGroupProtocolTCP,
+					FromPort:       6443,
+					ToPort:         6443,
+					IPv6CidrBlocks: []string{"10.0.0.0/16"},
+				},
+				infrav1.IngressRule{
+					Description:    "Kubernetes API IPv6",
+					Protocol:       infrav1.SecurityGroupProtocolTCP,
+					FromPort:       6443,
+					ToPort:         6443,
+					IPv6CidrBlocks: []string{services.AnyIPv6CidrBlock},
+				},
+			},
+		},
+		{
+			name: "defined rules are used while using internal LB",
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+						IngressRules: infrav1.IngressRules{
+							{
+								Description: "My custom ingress rule",
+								Protocol:    infrav1.SecurityGroupProtocolTCP,
+								FromPort:    1234,
+								ToPort:      1234,
+								CidrBlocks:  []string{"172.126.1.1/0"},
+							},
+						},
+						Scheme: &infrav1.ELBSchemeInternal,
+					},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+						},
+					},
+				},
+			},
+			expectedIngresRules: infrav1.IngressRules{
+				infrav1.IngressRule{
+					Description: "Kubernetes API",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"10.0.0.0/16"},
+				},
 				infrav1.IngressRule{
 					Description: "My custom ingress rule",
 					Protocol:    infrav1.SecurityGroupProtocolTCP,
@@ -839,26 +1034,12 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			vpcSpec := infrav1.VPCSpec{}
-			if tc.useIPV6 {
-				vpcSpec = infrav1.VPCSpec{
-					IPv6: &infrav1.IPv6{},
-				}
-			}
-
 			cs, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Client: fake.NewClientBuilder().WithScheme(scheme).Build(),
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
 				},
-				AWSCluster: &infrav1.AWSCluster{
-					Spec: infrav1.AWSClusterSpec{
-						ControlPlaneLoadBalancer: tc.controlPlaneLBSpec,
-						NetworkSpec: infrav1.NetworkSpec{
-							VPC: vpcSpec,
-						},
-					},
-				},
+				AWSCluster: tc.awsCluster,
 			})
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
@@ -1025,17 +1206,13 @@ func TestDeleteSecurityGroups(t *testing.T) {
 			g.Expect(infrav1.AddToScheme(scheme)).NotTo(HaveOccurred())
 
 			awsCluster := &infrav1.AWSCluster{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: infrav1.GroupVersion.String(),
-					Kind:       "AWSCluster",
-				},
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
 					NetworkSpec: *tc.input,
 				},
 			}
 
-			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).Build()
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).WithStatusSubresource(awsCluster).Build()
 
 			cs, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Client: client,
@@ -1070,6 +1247,40 @@ func TestIngressRulesFromSDKType(t *testing.T) {
 		expected infrav1.IngressRules
 	}{
 		{
+			name: "two ingress rules",
+			input: &ec2.IpPermission{
+				IpProtocol: aws.String("tcp"),
+				FromPort:   aws.Int64(6443),
+				ToPort:     aws.Int64(6443),
+				IpRanges: []*ec2.IpRange{
+					{
+						CidrIp:      aws.String("0.0.0.0/0"),
+						Description: aws.String("Kubernetes API"),
+					},
+					{
+						CidrIp:      aws.String("192.168.1.1/32"),
+						Description: aws.String("My VPN"),
+					},
+				},
+			},
+			expected: infrav1.IngressRules{
+				{
+					Description: "Kubernetes API",
+					Protocol:    "tcp",
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"0.0.0.0/0"},
+				},
+				{
+					Description: "My VPN",
+					Protocol:    "tcp",
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"192.168.1.1/32"},
+				},
+			},
+		},
+		{
 			name: "Two group pairs",
 			input: &ec2.IpPermission{
 				IpProtocol: aws.String("tcp"),
@@ -1094,7 +1305,14 @@ func TestIngressRulesFromSDKType(t *testing.T) {
 					Protocol:               "tcp",
 					FromPort:               10250,
 					ToPort:                 10250,
-					SourceSecurityGroupIDs: []string{"sg-source-1", "sg-source-2"},
+					SourceSecurityGroupIDs: []string{"sg-source-1"},
+				},
+				{
+					Description:            "Kubelet API",
+					Protocol:               "tcp",
+					FromPort:               10250,
+					ToPort:                 10250,
+					SourceSecurityGroupIDs: []string{"sg-source-2"},
 				},
 			},
 		},

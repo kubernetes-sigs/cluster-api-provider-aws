@@ -177,6 +177,17 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("integ-test-%s", util.RandomString(5)))
 		g.Expect(err).To(BeNil())
 
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "bootstrap-data",
+				Namespace: ns.Name,
+			},
+			Data: map[string][]byte{
+				"value": []byte("shell-script"),
+			},
+		}
+		g.Expect(testEnv.Create(ctx, secret)).To(Succeed())
+
 		setup(t, g)
 		awsMachine := getAWSMachine()
 		awsMachine.Namespace = ns.Name
@@ -337,6 +348,17 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("integ-test-%s", util.RandomString(5)))
 		g.Expect(err).To(BeNil())
 
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "bootstrap-data",
+				Namespace: ns.Name,
+			},
+			Data: map[string][]byte{
+				"value": []byte("shell-script"),
+			},
+		}
+		g.Expect(testEnv.Create(ctx, secret)).To(Succeed())
+
 		setup(t, g)
 		awsMachine := getAWSMachine()
 		awsMachine.Namespace = ns.Name
@@ -419,7 +441,7 @@ func createAWSMachine(g *WithT, awsMachine *infrav1.AWSMachine) {
 			Namespace: awsMachine.Namespace,
 		}
 		return testEnv.Get(ctx, key, machine) == nil
-	}, 10*time.Second).Should(Equal(true))
+	}, 10*time.Second).Should(BeTrue())
 }
 
 func getAWSMachine() *infrav1.AWSMachine {

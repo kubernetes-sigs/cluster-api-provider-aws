@@ -26,6 +26,7 @@ import (
 	ignTypes "github.com/flatcar/ignition/config/v2_3/types"
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -243,11 +244,11 @@ func (r *AWSMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		WithOptions(options).
 		For(&infrav1.AWSMachine{}).
 		Watches(
-			&source.Kind{Type: &clusterv1.Machine{}},
+			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("AWSMachine"))),
 		).
 		Watches(
-			&source.Kind{Type: &infrav1.AWSCluster{}},
+			&infrav1.AWSCluster{},
 			handler.EnqueueRequestsFromMapFunc(AWSClusterToAWSMachines),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log.GetLogger(), r.WatchFilterValue)).
@@ -288,7 +289,7 @@ func (r *AWSMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 
 	requeueAWSMachinesForUnpausedCluster := r.requeueAWSMachinesForUnpausedCluster(log)
 	return controller.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
+		source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
 		handler.EnqueueRequestsFromMapFunc(requeueAWSMachinesForUnpausedCluster),
 		predicates.ClusterUnpausedAndInfrastructureReady(log.GetLogger()),
 	)
@@ -589,7 +590,7 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		}
 
 		if instance != nil {
-			r.ensureStorageTags(ec2svc, instance, machineScope.AWSMachine)
+			r.ensureStorageTags(ec2svc, instance, machineScope.AWSMachine, machineScope.AdditionalTags())
 		}
 
 		if err := r.reconcileLBAttachment(machineScope, elbScope, instance); err != nil {
@@ -775,7 +776,12 @@ func (r *AWSMachineReconciler) ignitionUserData(scope *scope.MachineScope, objec
 }
 
 func (r *AWSMachineReconciler) deleteBootstrapData(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, objectStoreScope scope.S3Scope) error {
-	if !machineScope.AWSMachine.Spec.CloudInit.InsecureSkipSecretsManager {
+	_, userDataFormat, err := machineScope.GetRawBootstrapDataWithFormat()
+	if err != nil {
+		return errors.Wrap(err, "failed to get raw userdata")
+	}
+
+	if machineScope.UseSecretsManager(userDataFormat) {
 		if err := r.deleteEncryptedBootstrapDataSecret(machineScope, clusterScope); err != nil {
 			return err
 		}
@@ -797,7 +803,7 @@ func (r *AWSMachineReconciler) deleteIgnitionBootstrapDataFromS3(machineScope *s
 		return nil
 	}
 
-	// If bootstrap data has not been populated yet, we cannot determine it's format, so there is probably nothing to do.
+	// If bootstrap data has not been populated yet, we cannot determine its format, so there is probably nothing to do.
 	if machineScope.Machine.Spec.Bootstrap.DataSecretName == nil {
 		return nil
 	}
@@ -957,7 +963,7 @@ func (r *AWSMachineReconciler) deregisterInstanceFromV2LB(machineScope *scope.Ma
 // AWSClusterToAWSMachines is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation
 // of AWSMachines.
 func (r *AWSMachineReconciler) AWSClusterToAWSMachines(log logger.Wrapper) handler.MapFunc {
-	return func(o client.Object) []ctrl.Request {
+	return func(ctx context.Context, o client.Object) []ctrl.Request {
 		c, ok := o.(*infrav1.AWSCluster)
 		if !ok {
 			klog.Errorf("Expected a AWSCluster but got a %T", o)
@@ -971,7 +977,7 @@ func (r *AWSMachineReconciler) AWSClusterToAWSMachines(log logger.Wrapper) handl
 			return nil
 		}
 
-		cluster, err := util.GetOwnerCluster(context.TODO(), r.Client, c.ObjectMeta)
+		cluster, err := util.GetOwnerCluster(ctx, r.Client, c.ObjectMeta)
 		switch {
 		case apierrors.IsNotFound(err) || cluster == nil:
 			log.Trace("Cluster for AWSCluster not found, skipping mapping.")
@@ -986,7 +992,7 @@ func (r *AWSMachineReconciler) AWSClusterToAWSMachines(log logger.Wrapper) handl
 }
 
 func (r *AWSMachineReconciler) requeueAWSMachinesForUnpausedCluster(log logger.Wrapper) handler.MapFunc {
-	return func(o client.Object) []ctrl.Request {
+	return func(ctx context.Context, o client.Object) []ctrl.Request {
 		c, ok := o.(*clusterv1.Cluster)
 		if !ok {
 			klog.Errorf("Expected a Cluster but got a %T", o)
@@ -1106,14 +1112,15 @@ func (r *AWSMachineReconciler) indexAWSMachineByInstanceID(o client.Object) []st
 	return nil
 }
 
-func (r *AWSMachineReconciler) ensureStorageTags(ec2svc services.EC2Interface, instance *infrav1.Instance, machine *infrav1.AWSMachine) {
-	annotations, err := r.machineAnnotationJSON(machine, VolumeTagsLastAppliedAnnotation)
+func (r *AWSMachineReconciler) ensureStorageTags(ec2svc services.EC2Interface, instance *infrav1.Instance, machine *infrav1.AWSMachine, additionalTags map[string]string) {
+	prevAnnotations, err := r.machineAnnotationJSON(machine, VolumeTagsLastAppliedAnnotation)
 	if err != nil {
 		r.Log.Error(err, "Failed to fetch the annotations for volume tags")
 	}
+	annotations := make(map[string]interface{}, len(instance.VolumeIDs))
 	for _, volumeID := range instance.VolumeIDs {
 		if subAnnotation, ok := annotations[volumeID].(map[string]interface{}); ok {
-			newAnnotation, err := r.ensureVolumeTags(ec2svc, aws.String(volumeID), subAnnotation, machine.Spec.AdditionalTags)
+			newAnnotation, err := r.ensureVolumeTags(ec2svc, aws.String(volumeID), subAnnotation, additionalTags)
 			if err != nil {
 				r.Log.Error(err, "Failed to fetch the changed volume tags in EC2 instance")
 			}
@@ -1125,7 +1132,9 @@ func (r *AWSMachineReconciler) ensureStorageTags(ec2svc services.EC2Interface, i
 			}
 			annotations[volumeID] = newAnnotation
 		}
+	}
 
+	if !cmp.Equal(prevAnnotations, annotations, cmpopts.EquateEmpty()) {
 		// We also need to update the annotation if anything changed.
 		err = r.updateMachineAnnotationJSON(machine, VolumeTagsLastAppliedAnnotation, annotations)
 		if err != nil {
