@@ -21,7 +21,8 @@ jobs:
     # Ensure that the credentials are provided as encrypted secrets
     env:
       SPECTRO_VERSION: ${{ github.event.inputs.release_version }}
-      REGISTRY: gcr.io/spectro-images-public/release/cluster-api-aws
+      LEGACY_REGISTRY: gcr.io/spectro-images-public/release/cluster-api-aws
+      FIPS_REGISTRY: gcr.io/spectro-images-public/release-fips/cluster-api-aws
     steps:
       -
         uses: mukunku/tag-exists-action@v1.2.0
@@ -35,7 +36,9 @@ jobs:
           exit 1
       -
         if: ${{ github.event.inputs.rel_type == 'rc' }}
-        run: echo "REGISTRY=gcr.io/spectro-dev-public/release/cluster-api-aws" >> $GITHUB_ENV
+        run: | 
+          echo "LEGACY_REGISTRY=gcr.io/spectro-dev-public/release/cluster-api-aws" >> $GITHUB_ENV
+          echo "FIPS_REGISTRY=gcr.io/spectro-dev-public/release-fips/cluster-api-aws" >> $GITHUB_ENV
       -
         uses: actions/checkout@v3
       -
@@ -50,6 +53,8 @@ jobs:
           password: ${{ secrets.REGISTRY_PASSWORD }}
       -
         name: Build Image
+        env:
+          REGISTRY: ${{ env.LEGACY_REGISTRY }}
         run: |
           make docker-build-all
           make docker-push-all
@@ -57,6 +62,7 @@ jobs:
         name: Build Image - FIPS Mode
         env:
           FIPS_ENABLE: yes
+          REGISTRY: ${{ env.FIPS_REGISTRY }}
         run: |
           make docker-build-all
           make docker-push-all
