@@ -82,11 +82,6 @@ else
 	export GOPATH := $(shell go env GOPATH)
 endif
 
-USER_FORK ?= $(shell git config --get remote.origin.url | cut -d/ -f4) # only works on https://github.com/<username>/cluster-api.git style URLs
-ifeq ($(USER_FORK),)
-USER_FORK := $(shell git config --get remote.origin.url | cut -d: -f2 | cut -d/ -f1) # for git@github.com:<username>/cluster-api.git style URLs
-endif
-
 # Release variables
 
 STAGING_REGISTRY ?= gcr.io/k8s-staging-cluster-api-aws
@@ -100,6 +95,10 @@ RELEASE_ALIAS_TAG ?= $(PULL_BASE_REF)
 RELEASE_DIR := out
 RELEASE_POLICIES := $(RELEASE_DIR)/AWSIAMManagedPolicyControllers.json $(RELEASE_DIR)/AWSIAMManagedPolicyControllersWithEKS.json $(RELEASE_DIR)/AWSIAMManagedPolicyCloudProviderControlPlane.json $(RELEASE_DIR)/AWSIAMManagedPolicyCloudProviderNodes.json $(RELEASE_DIR)/AWSIAMManagedPolicyControllersWithS3.json
 BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
+USER_FORK ?= $(shell git config --get remote.origin.url | cut -d/ -f4) # only works on https://github.com/<username>/cluster-api-provider-aws.git style URLs
+ifeq ($(strip $(USER_FORK)),)
+USER_FORK := $(shell git config --get remote.origin.url | cut -d: -f2 | cut -d/ -f1) # for git@github.com:<username>/cluster-api-provider-aws.git style URLs
+endif
 
 # image name used to build the cmd/clusterawsadm
 TOOLCHAIN_IMAGE := toolchain
@@ -584,8 +583,7 @@ release-changelog: $(RELEASE_NOTES) check-release-tag check-previous-release-tag
 
 .PHONY: promote-images
 promote-images: $(KPROMO) $(YQ)
-	IMAGE_REVIEWERS="$(shell ./hack/get-project-maintainers.sh ${YQ})"
-	$(KPROMO) pr --project cluster-api-provider-aws --tag $(RELEASE_TAG) --reviewers "$(IMAGE_REVIEWERS)" --fork $(USER_FORK) --image cluster-api-aws-controller
+	$(KPROMO) pr --project cluster-api-aws --tag $(RELEASE_TAG) --reviewers "$(shell ./hack/get-project-maintainers.sh ${YQ})" --fork $(USER_FORK) --image cluster-api-aws-controller
 
 .PHONY: release-binaries
 release-binaries: ## Builds the binaries to publish with a release
