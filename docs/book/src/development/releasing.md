@@ -29,16 +29,22 @@ Promote the container images from the staging registry to the production registr
 3. Wait for an image to appear with the tagged release version.
 4. If you don't have a GitHub token, create one by going to your GitHub settings, in [Personal access tokens](https://github.com/settings/tokens). Make sure you give the token the `repo` scope.
 5. Create a PR to promote the images:
+
     ```bash
     export GITHUB_TOKEN=<your GH token>
     make promote-images
     ```
+
     **Notes**:
+     *`make promote-images` target tries to figure out your Github user handle in order to find the forked [k8s.io](https://github.com/kubernetes/k8s.io) repository.
+          If you have not forked the repo, please do it before running the Makefile target.
+     * if `make promote-images` fails with an error like `FATAL while checking fork of kubernetes/k8s.io` you may be able to solve it by manually setting the USER_FORK variable i.e.  `export USER_FORK=<personal GitHub handle>`
      * `kpromo` uses `git@github.com:...` as remote to push the branch for the PR. If you don't have `ssh` set up you can configure
        git to use `https` instead via `git config --global url."https://github.com/".insteadOf git@github.com:`.
      * This will automatically create a PR in [k8s.io](https://github.com/kubernetes/k8s.io) and assign the CAPA maintainers.
 6. Wait for the PR to be approved (typically by CAPA maintainers authorized to merge PRs into the k8s.io repository) and merged.
 7. Verify the images are available in the production registry:
+
     ```bash
     docker pull registry.k8s.io/cluster-api-aws/cluster-api-aws-controller:${VERSION}
     ```
@@ -69,6 +75,7 @@ Promote the container images from the staging registry to the production registr
 
 1. Publish release. Use the pre-release option for release candidate versions of Cluster API Provider AWS.
 1. Email `kubernetes-sig-cluster-lifecycle@googlegroups.com` to announce the release. You can use this template for the email:
+
     ```
     Subject: [ANNOUNCE] cluster-api-provider-aws v2.1.0 is released
     Body:
@@ -78,4 +85,5 @@ Promote the container images from the staging registry to the production registr
     If you have any questions about this release or CAPA, please join us on our Slack channel:
     https://kubernetes.slack.com/archives/CD6U2V71N
     ```
+
 1. Update the Title and Description of the Slack channel to point to the new version.
