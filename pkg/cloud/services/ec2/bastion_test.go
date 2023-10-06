@@ -17,7 +17,6 @@ limitations under the License.
 package ec2
 
 import (
-	"context"
 	"fmt"
 	"testing"
 

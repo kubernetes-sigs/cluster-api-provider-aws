@@ -17,7 +17,7 @@ limitations under the License.
 package secretsmanager
 
 import (
-	"math/rand"
+	crand "crypto/rand"
 	"sort"
 	"testing"
 
@@ -43,7 +43,7 @@ func TestServiceCreate(t *testing.T) {
 
 	generateBytes := func(g *WithT, count int64) []byte {
 		token := make([]byte, count)
-		_, err := rand.Read(token)
+		_, err := crand.Read(token)
 		g.Expect(err).NotTo(HaveOccurred())
 		return token
 	}
