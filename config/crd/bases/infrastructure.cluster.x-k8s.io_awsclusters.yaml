@@ -1029,7 +1029,7 @@ spec:
                         protocol:
                           description: Protocol is the protocol for the ingress rule.
                             Accepted values are "-1" (all), "4" (IP in IP),"tcp",
-                            "udp", "icmp", and "58" (ICMPv6).
+                            "udp", "icmp", and "58" (ICMPv6), "50" (ESP).
                           enum:
                           - "-1"
                           - "4"
@@ -1037,6 +1037,7 @@ spec:
                           - udp
                           - icmp
                           - "58"
+                          - "50"
                           type: string
                         sourceSecurityGroupIds:
                           description: The security group id to allow access from.
@@ -1189,7 +1190,7 @@ spec:
                         protocol:
                           description: Protocol is the protocol for the ingress rule.
                             Accepted values are "-1" (all), "4" (IP in IP),"tcp",
-                            "udp", "icmp", and "58" (ICMPv6).
+                            "udp", "icmp", and "58" (ICMPv6), "50" (ESP).
                           enum:
                           - "-1"
                           - "4"
@@ -1197,6 +1198,7 @@ spec:
                           - udp
                           - icmp
                           - "58"
+                          - "50"
                           type: string
                         sourceSecurityGroupIds:
                           description: The security group id to allow access from.
@@ -2059,7 +2061,8 @@ spec:
                               protocol:
                                 description: Protocol is the protocol for the ingress
                                   rule. Accepted values are "-1" (all), "4" (IP in
-                                  IP),"tcp", "udp", "icmp", and "58" (ICMPv6).
+                                  IP),"tcp", "udp", "icmp", and "58" (ICMPv6), "50"
+                                  (ESP).
                                 enum:
                                 - "-1"
                                 - "4"
@@ -2067,6 +2070,7 @@ spec:
                                 - udp
                                 - icmp
                                 - "58"
+                                - "50"
                                 type: string
                               sourceSecurityGroupIds:
                                 description: The security group id to allow access

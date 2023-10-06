@@ -28,6 +28,20 @@ spec:
   controlPlaneLoadBalancer:
     scheme: internal
   network:
+    cni:
+      cniIngressRules:
+      - description: Allow ESP traffic from all nodes in the cluster
+        protocol: "50"
+        fromPort: -1
+        toPort: -1
+      - description: bgp (calico)
+        protocol:    tcp
+        fromPort:    179
+        toPort:      179
+      - description: IP-in-IP (calico)
+        protocol:    "4"
+        fromPort:    -1
+        toPort:      65535
     subnets:
     - id: ${WL_PRIVATE_SUBNET_ID}
     vpc:
