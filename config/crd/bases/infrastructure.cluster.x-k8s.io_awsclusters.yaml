@@ -1476,10 +1476,15 @@ spec:
                     items:
                       type: string
                     type: array
+                  presignedURLDuration:
+                    description: "PresignedURLDuration defines the duration for which
+                      presigned URLs are valid. \n This is used to generate presigned
+                      URLs for S3 Bucket objects, which are used by control-plane
+                      and worker nodes to fetch bootstrap data. \n When enabled, the
+                      IAM instance profiles specified are not used."
+                    type: string
                 required:
-                - controlPlaneIAMInstanceProfile
                 - name
-                - nodesIAMInstanceProfiles
                 type: object
               sshKeyName:
                 description: SSHKeyName is the name of the ssh key to attach to the

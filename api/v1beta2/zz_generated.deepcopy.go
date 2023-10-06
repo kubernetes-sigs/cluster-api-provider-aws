@@ -22,7 +22,8 @@ limitations under the License.
 package v1beta2
 
 import (
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/errors"
@@ -884,7 +885,7 @@ func (in *AWSMachineTemplateStatus) DeepCopyInto(out *AWSMachineTemplateStatus) 
 	*out = *in
 	if in.Capacity != nil {
 		in, out := &in.Capacity, &out.Capacity
-		*out = make(v1.ResourceList, len(*in))
+		*out = make(corev1.ResourceList, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val.DeepCopy()
 		}
@@ -1650,6 +1651,11 @@ func (in *S3Bucket) DeepCopyInto(out *S3Bucket) {
 		in, out := &in.NodesIAMInstanceProfiles, &out.NodesIAMInstanceProfiles
 		*out = make([]string, len(*in))
 		copy(*out, *in)
+	}
+	if in.PresignedURLDuration != nil {
+		in, out := &in.PresignedURLDuration, &out.PresignedURLDuration
+		*out = new(v1.Duration)
+		**out = **in
 	}
 }
 
