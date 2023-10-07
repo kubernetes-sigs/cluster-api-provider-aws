@@ -309,7 +309,7 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 	}
 
 	instance, err := r.findInstance(machineScope, ec2Service)
-	if err != nil && err != ec2.ErrInstanceNotFoundByID {
+	if err != nil && !errors.Is(err, ec2.ErrInstanceNotFoundByID) {
 		machineScope.Error(err, "query to find instance failed")
 		return ctrl.Result{}, err
 	}
@@ -651,8 +651,7 @@ func (r *AWSMachineReconciler) reconcileOperationalState(ctx context.Context, ec
 	}
 
 	// check if the remote kubeconfig works and annotate the cluster
-	_, ok := machineScope.InfraCluster.InfraCluster().GetAnnotations()[scope.KubeconfigReadyAnnotation]
-	if !ok && machineScope.IsControlPlane() {
+	if _, ok := machineScope.InfraCluster.InfraCluster().GetAnnotations()[scope.KubeconfigReadyAnnotation]; !ok && machineScope.IsControlPlane() {
 		// if a control plane node is operational check for a kubeconfig and a working control plane node
 		// and set the annotation so any reconciliation which requires workload api access can complete
 		remoteClient, err := machineScope.InfraCluster.RemoteClient()
@@ -669,23 +668,29 @@ func (r *AWSMachineReconciler) reconcileOperationalState(ctx context.Context, ec
 		for i := range nodes.Items {
 			if util.IsNodeReady(&nodes.Items[i]) {
 				oneReady = true // if one control plane is ready return true
+				break
 			}
 		}
 
-		if oneReady {
-			awsCluster := &infrav1.AWSCluster{}
-			key := types.NamespacedName{Namespace: machineScope.InfraCluster.Namespace(), Name: machineScope.InfraCluster.Name()}
-			if err := r.Client.Get(ctx, key, awsCluster); err != nil {
-				return err
-			}
-			anno := awsCluster.GetAnnotations()
-			anno[scope.KubeconfigReadyAnnotation] = "true"
-			awsCluster.SetAnnotations(anno)
-			if err := r.Client.Update(ctx, awsCluster); err != nil {
-				return err
-			}
-		} else {
+		if !oneReady {
 			r.Log.Info("waiting for a control plane node to be ready before annotating the cluster, do you need to deploy a CNI?")
+
+			return nil
+		}
+
+		awsCluster := &infrav1.AWSCluster{}
+		key := types.NamespacedName{
+			Namespace: machineScope.InfraCluster.Namespace(),
+			Name:      machineScope.InfraCluster.Name(),
+		}
+		if err := r.Client.Get(ctx, key, awsCluster); err != nil {
+			return fmt.Errorf("failed to get aws cluster: %w", err)
+		}
+
+		awsCluster.Annotations[scope.KubeconfigReadyAnnotation] = "true"
+
+		if err := r.Client.Update(ctx, awsCluster); err != nil {
+			return fmt.Errorf("failed to update aws cluster with new annotation: %w", err)
 		}
 	}
 
@@ -1206,19 +1211,19 @@ func (r *AWSMachineReconciler) ensureStorageTags(ec2svc services.EC2Interface, i
 			if err != nil {
 				r.Log.Error(err, "Failed to fetch the changed volume tags in EC2 instance")
 			}
-			prevAnnotations[volumeID] = newAnnotation
+			annotations[volumeID] = newAnnotation
 		} else {
 			newAnnotation, err := r.ensureVolumeTags(ec2svc, aws.String(volumeID), make(map[string]interface{}), additionalTags)
 			if err != nil {
 				r.Log.Error(err, "Failed to fetch the changed volume tags in EC2 instance")
 			}
-			prevAnnotations[volumeID] = newAnnotation
+			annotations[volumeID] = newAnnotation
 		}
 	}
 
 	if !cmp.Equal(prevAnnotations, annotations, cmpopts.EquateEmpty()) {
 		// We also need to update the annotation if anything changed.
-		err = r.updateMachineAnnotationJSON(machine, VolumeTagsLastAppliedAnnotation, prevAnnotations)
+		err = r.updateMachineAnnotationJSON(machine, VolumeTagsLastAppliedAnnotation, annotations)
 		if err != nil {
 			r.Log.Error(err, "Failed to fetch the changed volume tags in EC2 instance")
 		}

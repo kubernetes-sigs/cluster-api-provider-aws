@@ -939,7 +939,6 @@ func autoConvert_v1beta2_AWSClusterSpec_To_v1beta1_AWSClusterSpec(in *v1beta2.AW
 		return err
 	}
 	out.IdentityRef = (*AWSIdentityReference)(unsafe.Pointer(in.IdentityRef))
-<<<<<<< HEAD
 	if in.S3Bucket != nil {
 		in, out := &in.S3Bucket, &out.S3Bucket
 		*out = new(S3Bucket)
@@ -949,10 +948,7 @@ func autoConvert_v1beta2_AWSClusterSpec_To_v1beta1_AWSClusterSpec(in *v1beta2.AW
 	} else {
 		out.S3Bucket = nil
 	}
-=======
-	out.S3Bucket = (*S3Bucket)(unsafe.Pointer(in.S3Bucket))
 	// WARNING: in.AssociateOIDCProvider requires manual conversion: does not exist in peer-type
->>>>>>> 17f26c99d (adding IRSA functionality through an OIDC provider using an s3 bucket)
 	return nil
 }
 

@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"crypto/tls"
+	stderr "errors"
 	"fmt"
 	"path"
 	"strings"
@@ -247,29 +248,31 @@ func findAndVerifyOIDCProvider(issuerURL, thumbprint string, iamClient iamiface.
 	return "", nil
 }
 
-func fetchRootCAThumbprint(url string, port int) (ret string, err error) {
+func fetchRootCAThumbprint(url string, port int) (_ string, err error) {
 	// Parse cmdline arguments using flag package
 	conn, err := tls.Dial("tcp", fmt.Sprintf("%s:%d", url, port), &tls.Config{
 		MinVersion: tls.VersionTLS12,
 	})
 	if err != nil {
-		return
+		return "", err
 	}
-	defer func() {
-		err = conn.Close()
-	}()
 
+	defer func() {
+		if cerr := conn.Close(); cerr != nil {
+			err = stderr.Join(err, cerr)
+		}
+	}()
 	// Get the ConnectionState struct as that's the one which gives us x509.Certificate struct
 	cert := conn.ConnectionState().PeerCertificates[0]
 	fingerprint := sha1.Sum(cert.Raw) //nolint:gosec // this is not used for real security
 	var buf bytes.Buffer
 	for _, f := range fingerprint {
-		if _, err = fmt.Fprintf(&buf, "%02X", f); err != nil {
-			return
+		if _, err := fmt.Fprintf(&buf, "%02X", f); err != nil {
+			return "", err
 		}
 	}
-	ret = strings.ToLower(buf.String())
-	return
+
+	return strings.ToLower(buf.String()), nil
 }
 
 // DeleteOIDCProvider will delete an OIDC provider.

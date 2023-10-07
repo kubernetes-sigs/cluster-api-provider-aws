@@ -319,8 +319,8 @@ func objectMeta(name, namespace string) metav1.ObjectMeta {
 	return meta
 }
 
-// reconcileCertifcateSecret takes a secret and moves it to the workload cluster.
-func reconcileCertifcateSecret(ctx context.Context, cert *corev1.Secret, remoteClient client.Client) error {
+// reconcileCertificateSecret takes a secret and moves it to the workload cluster.
+func reconcileCertificateSecret(ctx context.Context, cert *corev1.Secret, remoteClient client.Client) error {
 	// check if the secret was created by cert-manager
 	certCheck := &corev1.Secret{}
 	if err := remoteClient.Get(ctx, types.NamespacedName{

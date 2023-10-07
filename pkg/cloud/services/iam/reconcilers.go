@@ -43,7 +43,7 @@ func (s *Service) reconcilePodIdentityWebhook(ctx context.Context) error {
 	}
 
 	// switch it to kube-system and move it to the remote cluster
-	if err := reconcileCertifcateSecret(ctx, certSecret, remoteClient); err != nil {
+	if err := reconcileCertificateSecret(ctx, certSecret, remoteClient); err != nil {
 		return err
 	}
 

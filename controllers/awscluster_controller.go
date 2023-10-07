@@ -337,6 +337,7 @@ func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 	}
 
 	if err := iamService.ReconcileOIDCProvider(ctx); err != nil {
+		conditions.MarkFalse(awsCluster, infrav1.OIDCProviderReadyCondition, infrav1.OIDCProviderReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		clusterScope.Error(err, "failed to reconcile OIDC provider")
 		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
 	}

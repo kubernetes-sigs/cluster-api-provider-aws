@@ -3,13 +3,16 @@ package iam
 import (
 	"context"
 	"errors"
+	"fmt"
 	"regexp"
 
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 type Service struct {
@@ -57,11 +60,11 @@ var (
 // ReconcileOIDCProvider replicates functionality already built into managed clusters by auto-deploying the
 // modifying kube-apiserver args, deploying the pod identity webhook and setting/configuring an oidc provider
 // for more details see: https://github.com/aws/amazon-eks-pod-identity-webhook/blob/master/SELF_HOSTED_SETUP.md
-// 1. create a self signed issuer for the mutating webhook
+// 1. create a self-signed issuer for the mutating webhook
 // 2. add create a json patch for kube-apiserver and use capi config to add to the kubeadm.yml
 // 3. create an oidc provider in aws which points to the s3 bucket
-// 4. pause until kubeconfig and cluster acccess is ready
-// 5. move openid config and jwks to the s3 bucket
+// 4. pause until kubeconfig and cluster access is ready
+// 5. move openid config and JWKs to the s3 bucket
 // 6. add the pod identity webhook to the workload cluster
 // 7. add the configmap to the workload cluster.
 func (s *Service) ReconcileOIDCProvider(ctx context.Context) error {
@@ -104,7 +107,13 @@ func (s *Service) ReconcileOIDCProvider(ctx context.Context) error {
 		return err
 	}
 
-	return s.reconcileTrustPolicyConfigMap(ctx)
+	if err := s.reconcileTrustPolicyConfigMap(ctx); err != nil {
+		return fmt.Errorf("failed to reconcile trust policy config map: %w", err)
+	}
+
+	conditions.MarkTrue(s.scope.InfraCluster(), infrav1.OIDCProviderReadyCondition)
+
+	return nil
 }
 
 // DeleteOIDCProvider will delete the iam resources note that the bucket is cleaned up in the s3 service

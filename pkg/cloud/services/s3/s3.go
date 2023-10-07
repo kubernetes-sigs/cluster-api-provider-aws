@@ -49,19 +49,19 @@ type Service struct {
 var DisabledError = errors.New("s3 management disabled")
 
 func IsDisabledError(err error) bool {
-	return err == DisabledError
+	return errors.Is(err, DisabledError)
 }
 
 var EmptyBucketError = errors.New("empty bucket name")
 
 func IsEmptyBucketError(err error) bool {
-	return err == EmptyBucketError
+	return errors.Is(err, EmptyBucketError)
 }
 
 var EmptyKeyError = errors.New("empty key")
 
 func IsEmptyKeyError(err error) bool {
-	return err == EmptyKeyError
+	return errors.Is(err, EmptyKeyError)
 }
 
 // NewService returns a new service given the api clients.
@@ -123,7 +123,8 @@ func (s *Service) DeleteBucket() error {
 		return nil
 	}
 
-	aerr, ok := err.(awserr.Error)
+	var aerr awserr.Error
+	ok := errors.As(err, &aerr)
 	if !ok {
 		return errors.Wrap(err, "deleting S3 bucket")
 	}
@@ -186,10 +187,10 @@ func (s *Service) create(putInput *s3.PutObjectInput) (string, error) {
 	}
 
 	if exp := s.scope.Bucket().PresignedURLDuration; exp != nil {
-		s.scope.Info("Generating presigned URL", "bucket_name", bucket, "key", key)
+		s.scope.Info("Generating presigned URL", "bucket_name", aws.StringValue(putInput.Bucket), "key", aws.StringValue(putInput.Key))
 		req, _ := s.S3Client.GetObjectRequest(&s3.GetObjectInput{
-			Bucket: aws.String(bucket),
-			Key:    aws.String(key),
+			Bucket: putInput.Bucket,
+			Key:    putInput.Key,
 		})
 		return req.Presign(exp.Duration)
 	}
@@ -228,7 +229,8 @@ func (s *Service) Delete(key string) error {
 		return nil
 	}
 
-	aerr, ok := err.(awserr.Error)
+	var aerr awserr.Error
+	ok := errors.As(err, &aerr)
 	if !ok {
 		return errors.Wrap(err, "deleting S3 object")
 	}
@@ -255,7 +257,8 @@ func (s *Service) createBucketIfNotExist(bucketName string) error {
 		return nil
 	}
 
-	aerr, ok := err.(awserr.Error)
+	var aerr awserr.Error
+	ok := errors.As(err, &aerr)
 	if !ok {
 		return errors.Wrap(err, "creating S3 bucket")
 	}
@@ -272,11 +275,10 @@ func (s *Service) createBucketIfNotExist(bucketName string) error {
 }
 
 func (s *Service) ensureBucketAccess(bucketName string) error {
-	f := false
 	input := &s3.PutPublicAccessBlockInput{
 		Bucket: aws.String(bucketName),
 		PublicAccessBlockConfiguration: &s3.PublicAccessBlockConfiguration{
-			BlockPublicAcls: aws.Bool(f),
+			BlockPublicAcls: aws.Bool(false),
 		},
 	}
 

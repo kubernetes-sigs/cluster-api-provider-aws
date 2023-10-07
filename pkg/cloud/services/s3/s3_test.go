@@ -299,7 +299,6 @@ func TestReconcileBucket(t *testing.T) {
 
 			s3Mock.EXPECT().CreateBucket(gomock.Any()).Return(nil, nil).Times(1)
 			s3Mock.EXPECT().PutBucketTagging(gomock.Any()).Return(nil, nil).Times(1)
-			s3Mock.EXPECT().PutBucketPolicy(gomock.Any()).Return(nil, errors.New("error")).Times(1)
 			s3Mock.EXPECT().PutPublicAccessBlock(gomock.Any()).Return(nil, errors.New("error")).Times(1)
 
 			if err := svc.ReconcileBucket(); err == nil {
