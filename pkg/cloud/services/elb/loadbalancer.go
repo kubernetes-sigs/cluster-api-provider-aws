@@ -223,7 +223,7 @@ func (s *Service) getAPIServerLBSpec(elbName string) (*infrav1.LoadBalancer, err
 				}
 			}
 			res.AvailabilityZones = append(res.AvailabilityZones, sn.AvailabilityZone)
-			res.SubnetIDs = append(res.SubnetIDs, sn.ID)
+			res.SubnetIDs = append(res.SubnetIDs, sn.GetResourceID())
 		}
 	}
 
@@ -794,6 +794,7 @@ func (s *Service) getControlPlaneLoadBalancerSubnets() (infrav1.Subnets, error) 
 		lbSn := infrav1.SubnetSpec{
 			AvailabilityZone: *sn.AvailabilityZone,
 			ID:               *sn.SubnetId,
+			ResourceID:       *sn.SubnetId,
 		}
 		subnets = append(subnets, lbSn)
 	}
@@ -998,7 +999,7 @@ func (s *Service) getAPIServerClassicELBSpec(elbName string) (*infrav1.LoadBalan
 				}
 			}
 			res.AvailabilityZones = append(res.AvailabilityZones, sn.AvailabilityZone)
-			res.SubnetIDs = append(res.SubnetIDs, sn.ID)
+			res.SubnetIDs = append(res.SubnetIDs, sn.GetResourceID())
 		}
 	}
 

@@ -197,7 +197,7 @@ func (s *Service) getDefaultBastion(instanceType, ami string) (*infrav1.Instance
 
 	i := &infrav1.Instance{
 		Type:       instanceType,
-		SubnetID:   subnet.ID,
+		SubnetID:   subnet.GetResourceID(),
 		ImageID:    ami,
 		SSHKeyName: keyName,
 		UserData:   aws.String(base64.StdEncoding.EncodeToString([]byte(userData))),

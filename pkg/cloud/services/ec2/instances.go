@@ -355,7 +355,7 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 				record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
 				return "", awserrors.NewFailedDependency(errMessage)
 			}
-			return subnets[0].ID, nil
+			return subnets[0].GetResourceID(), nil
 		}
 
 		subnets := s.scope.Subnets().FilterPrivate().FilterByZone(*failureDomain)
@@ -365,7 +365,7 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 			record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
 			return "", awserrors.NewFailedDependency(errMessage)
 		}
-		return subnets[0].ID, nil
+		return subnets[0].GetResourceID(), nil
 	case scope.AWSMachine.Spec.PublicIP != nil && *scope.AWSMachine.Spec.PublicIP:
 		subnets := s.scope.Subnets().FilterPublic()
 		if len(subnets) == 0 {
@@ -373,7 +373,7 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 			record.Eventf(scope.AWSMachine, "FailedCreate", errMessage)
 			return "", awserrors.NewFailedDependency(errMessage)
 		}
-		return subnets[0].ID, nil
+		return subnets[0].GetResourceID(), nil
 
 		// TODO(vincepri): Define a tag that would allow to pick a preferred subnet in an AZ when working
 		// with control plane machines.
@@ -385,7 +385,7 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 			record.Eventf(s.scope.InfraCluster(), "FailedCreateInstance", errMessage)
 			return "", awserrors.NewFailedDependency(errMessage)
 		}
-		return sns[0].ID, nil
+		return sns[0].GetResourceID(), nil
 	}
 }
 
