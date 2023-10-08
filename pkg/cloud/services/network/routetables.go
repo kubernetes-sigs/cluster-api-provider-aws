@@ -82,8 +82,8 @@ func (s *Service) reconcileRouteTables() error {
 			}
 		}
 
-		if rt, ok := subnetRouteMap[sn.ID]; ok {
-			s.scope.Debug("Subnet is already associated with route table", "subnet-id", sn.ID, "route-table-id", *rt.RouteTableId)
+		if rt, ok := subnetRouteMap[sn.GetResourceID()]; ok {
+			s.scope.Debug("Subnet is already associated with route table", "subnet-id", sn.GetResourceID(), "route-table-id", *rt.RouteTableId)
 			// TODO(vincepri): check that everything is in order, e.g. routes match the subnet type.
 
 			// For managed environments we need to reconcile the routes of our tables if there is a mistmatch.
@@ -124,8 +124,8 @@ func (s *Service) reconcileRouteTables() error {
 		}
 
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-			if err := s.associateRouteTable(rt, sn.ID); err != nil {
-				s.scope.Error(err, "trying to associate route table", "subnet_id", sn.ID)
+			if err := s.associateRouteTable(rt, sn.GetResourceID()); err != nil {
+				s.scope.Error(err, "trying to associate route table", "subnet_id", sn.GetResourceID())
 				return false, err
 			}
 			return true, nil
@@ -133,7 +133,7 @@ func (s *Service) reconcileRouteTables() error {
 			return err
 		}
 
-		s.scope.Debug("Subnet has been associated with route table", "subnet-id", sn.ID, "route-table-id", rt.ID)
+		s.scope.Debug("Subnet has been associated with route table", "subnet-id", sn.GetResourceID(), "route-table-id", rt.ID)
 		sn.RouteTableID = aws.String(rt.ID)
 	}
 	conditions.MarkTrue(s.scope.InfraCluster(), infrav1.RouteTablesReadyCondition)

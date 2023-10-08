@@ -1284,8 +1284,15 @@ spec:
                             the provider creates a managed VPC.
                           type: string
                         id:
-                          description: ID defines a unique identifier to reference
-                            this resource.
+                          description: "ID defines a unique identifier to reference
+                            this resource. If you're bringing your subnet, set the
+                            AWS subnet-id here, it must start with `subnet-`. \n When
+                            the VPC is managed by CAPA, and you'd like the provider
+                            to create a subnet for you, the id can be set to any placeholder
+                            value that does not start with `subnet-`; upon creation,
+                            the subnet AWS identifier will be populated in the `ResourceID`
+                            field and the `id` field is going to be used as the subnet
+                            name. If you specify a tag called `Name`, it takes precedence."
                           type: string
                         ipv6CidrBlock:
                           description: IPv6CidrBlock is the IPv6 CIDR block to be
@@ -1312,6 +1319,11 @@ spec:
                             subnet where the NAT gateway resides. It is then used
                             to determine routes for private subnets in the same AZ
                             as the public subnet.
+                          type: string
+                        resourceID:
+                          description: ResourceID is the subnet identifier from AWS,
+                            READ ONLY. This field is populated when the provider manages
+                            the subnet.
                           type: string
                         routeTableId:
                           description: RouteTableID is the routing table id associated

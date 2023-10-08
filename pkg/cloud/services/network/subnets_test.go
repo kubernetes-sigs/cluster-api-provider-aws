@@ -2474,6 +2474,7 @@ func TestDiscoverSubnets(t *testing.T) {
 			expect: []infrav1.SubnetSpec{
 				{
 					ID:               "subnet-1",
+					ResourceID:       "subnet-1",
 					AvailabilityZone: "us-east-1a",
 					CidrBlock:        "10.0.10.0/24",
 					IsPublic:         true,
@@ -2484,6 +2485,7 @@ func TestDiscoverSubnets(t *testing.T) {
 				},
 				{
 					ID:               "subnet-2",
+					ResourceID:       "subnet-2",
 					AvailabilityZone: "us-east-1a",
 					CidrBlock:        "10.0.11.0/24",
 					IsPublic:         false,
