@@ -183,6 +183,13 @@ func (s *ClusterScope) ControlPlaneLoadBalancer() *infrav1.AWSLoadBalancerSpec {
 	return s.AWSCluster.Spec.ControlPlaneLoadBalancer
 }
 
+func (s *ClusterScope) ControlPlaneLoadBalancers() []*infrav1.AWSLoadBalancerSpec {
+	return []*infrav1.AWSLoadBalancerSpec{
+		s.AWSCluster.Spec.ControlPlaneLoadBalancer,
+		s.AWSCluster.Spec.SecondaryControlPlaneLoadBalancer,
+	}
+}
+
 // ControlPlaneLoadBalancerScheme returns the Classic ELB scheme (public or internal facing).
 func (s *ClusterScope) ControlPlaneLoadBalancerScheme() infrav1.ELBScheme {
 	if s.ControlPlaneLoadBalancer() != nil && s.ControlPlaneLoadBalancer().Scheme != nil {

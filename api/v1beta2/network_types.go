@@ -37,6 +37,9 @@ type NetworkStatus struct {
 	// APIServerELB is the Kubernetes api server load balancer.
 	APIServerELB LoadBalancer `json:"apiServerElb,omitempty"`
 
+	// SecondaryAPIServerELB is the secondary Kubernetes api server load balancer.
+	SecondaryAPIServerELB LoadBalancer `json:"secondaryAPIServerELB,omitempty"`
+
 	// NatGatewaysIPs contains the public IPs of the NAT Gateways
 	NatGatewaysIPs []string `json:"natGatewaysIPs,omitempty"`
 }

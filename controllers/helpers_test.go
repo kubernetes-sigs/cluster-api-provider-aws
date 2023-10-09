@@ -285,6 +285,10 @@ func mockedCreateLBV2Calls(t *testing.T, m *mocks.MockELBV2APIMockRecorder) {
 		ResourceArns: []*string{lbArn},
 		TagKeys:      []*string{aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster-apiserver")},
 	})).MaxTimes(1)
+	m.SetSecurityGroups(gomock.Eq(&elbv2.SetSecurityGroupsInput{
+		LoadBalancerArn: lbArn,
+		SecurityGroups:  aws.StringSlice([]string{"sg-apiserver-lb"}),
+	})).MaxTimes(1)
 }
 
 func mockedDeleteLBCalls(expectV2Call bool, mv2 *mocks.MockELBV2APIMockRecorder, m *mocks.MockELBAPIMockRecorder) {

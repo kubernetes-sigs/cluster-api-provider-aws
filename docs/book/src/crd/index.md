@@ -15653,6 +15653,22 @@ AWSLoadBalancerSpec
 </tr>
 <tr>
 <td>
+<code>secondaryControlPlaneLoadBalancer</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLoadBalancerSpec">
+AWSLoadBalancerSpec
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecondaryControlPlaneLoadBalancer is an additional load balancer that can be used for the control plane.</p>
+<p>An example use case is to have a separate internal load balancer for internal traffic,
+and a separate external load balancer for external traffic.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>imageLookupFormat</code><br/>
 <em>
 string
@@ -16197,6 +16213,22 @@ AWSLoadBalancerSpec
 </tr>
 <tr>
 <td>
+<code>secondaryControlPlaneLoadBalancer</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLoadBalancerSpec">
+AWSLoadBalancerSpec
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecondaryControlPlaneLoadBalancer is an additional load balancer that can be used for the control plane.</p>
+<p>An example use case is to have a separate internal load balancer for internal traffic,
+and a separate external load balancer for external traffic.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>imageLookupFormat</code><br/>
 <em>
 string
@@ -16685,6 +16717,22 @@ AWSLoadBalancerSpec
 <td>
 <em>(Optional)</em>
 <p>ControlPlaneLoadBalancer is optional configuration for customizing control plane behavior.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secondaryControlPlaneLoadBalancer</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLoadBalancerSpec">
+AWSLoadBalancerSpec
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecondaryControlPlaneLoadBalancer is an additional load balancer that can be used for the control plane.</p>
+<p>An example use case is to have a separate internal load balancer for internal traffic,
+and a separate external load balancer for external traffic.</p>
 </td>
 </tr>
 <tr>
@@ -20419,6 +20467,19 @@ LoadBalancer
 </tr>
 <tr>
 <td>
+<code>secondaryAPIServerELB</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.LoadBalancer">
+LoadBalancer
+</a>
+</em>
+</td>
+<td>
+<p>SecondaryAPIServerELB is the secondary Kubernetes api server load balancer.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>natGatewaysIPs</code><br/>
 <em>
 []string
@@ -21099,6 +21160,23 @@ in a region than specified by AvailabilityZoneUsageLimit. There are 2 selection 
 Ordered - selects based on alphabetical order
 Random - selects AZs randomly in a region
 Defaults to Ordered</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>emptyRoutesDefaultVPCSecurityGroup</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EmptyRoutesDefaultVPCSecurityGroup specifies whether the default VPC security group ingress
+and egress rules should be removed.</p>
+<p>By default, when creating a VPC, AWS creates a security group called <code>default</code> with ingress and egress
+rules that allow traffic from anywhere. The group could be used as a potential surface attack and
+it&rsquo;s generally suggested that the group rules are removed or modified appropriately.</p>
+<p>NOTE: This only applies when the VPC is managed by the Cluster API AWS controller.</p>
 </td>
 </tr>
 </tbody>
@@ -23982,6 +24060,162 @@ Cluster API api/v1beta1.FailureDomains
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSAMachinePool">ROSAMachinePool
+</h3>
+<p>
+<p>ROSAMachinePool is the Schema for the rosamachinepools API.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolSpec">
+RosaMachinePoolSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>nodePoolName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>NodePoolName specifies the name of the nodepool in Rosa
+must be a valid DNS-1035 label, so it must consist of lower case alphanumeric and have a max length of 15 characters.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availabilityZone</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AvailabilityZone is an optinal field specifying the availability zone where instances of this machine pool should run
+For Multi-AZ clusters, you can create a machine pool in a Single-AZ of your choice.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>subnet</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>labels</code><br/>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Labels specifies labels for the Kubernetes node objects</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>autoRepair</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AutoRepair specifies whether health checks should be enabled for machines
+in the NodePool. The default is false.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>instanceType</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>InstanceType specifies the AWS instance type</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>autoscaling</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolAutoScaling">
+RosaMachinePoolAutoScaling
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Autoscaling specifies auto scaling behaviour for this MachinePool.
+required if Replicas is not configured</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>providerIDList</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProviderIDList contain a ProviderID for each machine instance that&rsquo;s currently managed by this machine pool.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolStatus">
+RosaMachinePoolStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.RefreshPreferences">RefreshPreferences
 </h3>
 <p>
@@ -24050,6 +24284,228 @@ int64
 <em>(Optional)</em>
 <p>The amount of capacity as a percentage in ASG that must remain healthy
 during an instance refresh. The default is 90.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolAutoScaling">RosaMachinePoolAutoScaling
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolSpec">RosaMachinePoolSpec</a>)
+</p>
+<p>
+<p>RosaMachinePoolAutoScaling specifies scaling options.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>minReplicas</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>maxReplicas</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolSpec">RosaMachinePoolSpec
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSAMachinePool">ROSAMachinePool</a>)
+</p>
+<p>
+<p>RosaMachinePoolSpec defines the desired state of RosaMachinePool.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>nodePoolName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>NodePoolName specifies the name of the nodepool in Rosa
+must be a valid DNS-1035 label, so it must consist of lower case alphanumeric and have a max length of 15 characters.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availabilityZone</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AvailabilityZone is an optinal field specifying the availability zone where instances of this machine pool should run
+For Multi-AZ clusters, you can create a machine pool in a Single-AZ of your choice.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>subnet</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>labels</code><br/>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Labels specifies labels for the Kubernetes node objects</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>autoRepair</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AutoRepair specifies whether health checks should be enabled for machines
+in the NodePool. The default is false.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>instanceType</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>InstanceType specifies the AWS instance type</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>autoscaling</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolAutoScaling">
+RosaMachinePoolAutoScaling
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Autoscaling specifies auto scaling behaviour for this MachinePool.
+required if Replicas is not configured</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>providerIDList</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProviderIDList contain a ProviderID for each machine instance that&rsquo;s currently managed by this machine pool.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolStatus">RosaMachinePoolStatus
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSAMachinePool">ROSAMachinePool</a>)
+</p>
+<p>
+<p>RosaMachinePoolStatus defines the observed state of RosaMachinePool.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>ready</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>Ready denotes that the RosaMachinePool nodepool has joined
+the cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>replicas</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Replicas is the most recently observed number of replicas.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
+Cluster API api/v1beta1.Conditions
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Conditions defines current service state of the managed machine pool</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>id</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ID is the ID given by ROSA.</p>
 </td>
 </tr>
 </tbody>
