@@ -37,8 +37,6 @@ aliases:
     - dlipovetsky
     - vincepri
   cluster-api-aws-reviewers:
-    - dthorsen
-    - pydctw
     - AverageMarcus
     - luthermonson
     - cnmcavoy
