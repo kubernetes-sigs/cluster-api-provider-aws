@@ -118,6 +118,7 @@ const (
 	// WaitForDNSNameReason used while waiting for a DNS name for the API server to be populated.
 	WaitForDNSNameReason = "WaitForDNSName"
 	// WaitForDNSNameResolveReason used while waiting for DNS name to resolve.
+	// Deprecated: this condition is no longer used.
 	WaitForDNSNameResolveReason = "WaitForDNSNameResolve"
 	// LoadBalancerFailedReason used when an error occurs during load balancer reconciliation.
 	LoadBalancerFailedReason = "LoadBalancerFailed"
