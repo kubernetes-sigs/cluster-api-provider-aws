@@ -42,7 +42,7 @@ apt install -y python3-pip
 rm -rf /var/lib/apt/lists/*
 
 # Install/upgrade pip and requests module explicitly for HTTP calls.
-python3 -m pip install --upgrade pip requests
+python3 -m pip install --upgrade pip requests --break-system-packages
 
 # If BOSKOS_HOST is set then acquire an AWS account from Boskos.
 if [ -n "${BOSKOS_HOST:-}" ]; then
