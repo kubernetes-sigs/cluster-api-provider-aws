@@ -75,6 +75,25 @@ func TestReconcileBucket(t *testing.T) {
 		}
 
 		s3Mock.EXPECT().CreateBucket(gomock.Eq(input)).Return(nil, nil).Times(1)
+
+		taggingInput := &s3svc.PutBucketTaggingInput{
+			Bucket: aws.String(expectedBucketName),
+			Tagging: &s3svc.Tagging{
+				TagSet: []*s3svc.Tag{
+					{
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+						Value: aws.String("owned"),
+					},
+					{
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+						Value: aws.String("node"),
+					},
+				},
+			},
+		}
+
+		s3Mock.EXPECT().PutBucketTagging(gomock.Eq(taggingInput)).Return(nil, nil).Times(1)
+
 		s3Mock.EXPECT().PutBucketPolicy(gomock.Any()).Return(nil, nil).Times(1)
 
 		if err := svc.ReconcileBucket(); err != nil {
@@ -129,6 +148,7 @@ func TestReconcileBucket(t *testing.T) {
 			}
 		}).Return(nil, nil).Times(1)
 
+		s3Mock.EXPECT().PutBucketTagging(gomock.Any()).Return(nil, nil).Times(1)
 		s3Mock.EXPECT().PutBucketPolicy(gomock.Any()).Return(nil, nil).Times(1)
 
 		if err := svc.ReconcileBucket(); err != nil {
@@ -150,6 +170,7 @@ func TestReconcileBucket(t *testing.T) {
 		})
 
 		s3Mock.EXPECT().CreateBucket(gomock.Any()).Return(nil, nil).Times(1)
+		s3Mock.EXPECT().PutBucketTagging(gomock.Any()).Return(nil, nil).Times(1)
 		s3Mock.EXPECT().PutBucketPolicy(gomock.Any()).Do(func(input *s3svc.PutBucketPolicyInput) {
 			if input.Policy == nil {
 				t.Fatalf("Policy must be defined")
@@ -189,6 +210,7 @@ func TestReconcileBucket(t *testing.T) {
 		svc, s3Mock := testService(t, &infrav1.S3Bucket{})
 
 		s3Mock.EXPECT().CreateBucket(gomock.Any()).Return(nil, nil).Times(2)
+		s3Mock.EXPECT().PutBucketTagging(gomock.Any()).Return(nil, nil).Times(2)
 		s3Mock.EXPECT().PutBucketPolicy(gomock.Any()).Return(nil, nil).Times(2)
 
 		if err := svc.ReconcileBucket(); err != nil {
@@ -208,6 +230,7 @@ func TestReconcileBucket(t *testing.T) {
 		err := awserr.New(s3svc.ErrCodeBucketAlreadyOwnedByYou, "err", errors.New("err"))
 
 		s3Mock.EXPECT().CreateBucket(gomock.Any()).Return(nil, err).Times(1)
+		s3Mock.EXPECT().PutBucketTagging(gomock.Any()).Return(nil, nil).Times(1)
 		s3Mock.EXPECT().PutBucketPolicy(gomock.Any()).Return(nil, nil).Times(1)
 
 		if err := svc.ReconcileBucket(); err != nil {
@@ -248,6 +271,7 @@ func TestReconcileBucket(t *testing.T) {
 			svc, s3Mock := testService(t, &infrav1.S3Bucket{})
 
 			s3Mock.EXPECT().CreateBucket(gomock.Any()).Return(nil, nil).Times(1)
+			s3Mock.EXPECT().PutBucketTagging(gomock.Any()).Return(nil, nil).Times(1)
 
 			mockCtrl := gomock.NewController(t)
 			stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
@@ -265,6 +289,7 @@ func TestReconcileBucket(t *testing.T) {
 			svc, s3Mock := testService(t, &infrav1.S3Bucket{})
 
 			s3Mock.EXPECT().CreateBucket(gomock.Any()).Return(nil, nil).Times(1)
+			s3Mock.EXPECT().PutBucketTagging(gomock.Any()).Return(nil, nil).Times(1)
 			s3Mock.EXPECT().PutBucketPolicy(gomock.Any()).Return(nil, errors.New("error")).Times(1)
 
 			if err := svc.ReconcileBucket(); err == nil {
