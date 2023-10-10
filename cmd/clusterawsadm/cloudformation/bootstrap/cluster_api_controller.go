@@ -283,6 +283,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"s3:PutObject",
 				"s3:DeleteObject",
 				"s3:PutBucketPolicy",
+				"s3:PutBucketTagging",
 			},
 		})
 	}
