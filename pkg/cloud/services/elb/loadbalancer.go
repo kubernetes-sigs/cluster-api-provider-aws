@@ -273,6 +273,7 @@ func (s *Service) createLB(spec *infrav1.LoadBalancer) (*infrav1.LoadBalancer, e
 			Port:     aws.Int64(ln.TargetGroup.Port),
 			Protocol: aws.String(ln.TargetGroup.Protocol.String()),
 			VpcId:    aws.String(ln.TargetGroup.VpcID),
+			Tags:     input.Tags,
 		}
 		if s.scope.VPC().IsIPv6Enabled() {
 			targetGroupInput.IpAddressType = aws.String("ipv6")

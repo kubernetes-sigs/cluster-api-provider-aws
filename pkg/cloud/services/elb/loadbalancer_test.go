@@ -1047,6 +1047,12 @@ func TestCreateNLB(t *testing.T) {
 					Port:                aws.Int64(infrav1.DefaultAPIServerPort),
 					Protocol:            aws.String("TCP"),
 					VpcId:               aws.String(vpcID),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
 				})).Return(&elbv2.CreateTargetGroupOutput{
 					TargetGroups: []*elbv2.TargetGroup{
 						{
@@ -1143,6 +1149,12 @@ func TestCreateNLB(t *testing.T) {
 					Protocol:            aws.String("TCP"),
 					VpcId:               aws.String(vpcID),
 					IpAddressType:       aws.String("ipv6"),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
 				})).Return(&elbv2.CreateTargetGroupOutput{
 					TargetGroups: []*elbv2.TargetGroup{
 						{
@@ -1274,6 +1286,12 @@ func TestCreateNLB(t *testing.T) {
 					Port:     aws.Int64(infrav1.DefaultAPIServerPort),
 					Protocol: aws.String("TCP"),
 					VpcId:    aws.String(vpcID),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
 				})).Return(&elbv2.CreateTargetGroupOutput{
 					TargetGroups: []*elbv2.TargetGroup{
 						{
@@ -1365,6 +1383,12 @@ func TestCreateNLB(t *testing.T) {
 					Port:                aws.Int64(infrav1.DefaultAPIServerPort),
 					Protocol:            aws.String("TCP"),
 					VpcId:               aws.String(vpcID),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
 				})).Return(&elbv2.CreateTargetGroupOutput{
 					TargetGroups: []*elbv2.TargetGroup{
 						{
@@ -1449,6 +1473,12 @@ func TestCreateNLB(t *testing.T) {
 					Port:                aws.Int64(infrav1.DefaultAPIServerPort),
 					Protocol:            aws.String("TCP"),
 					VpcId:               aws.String(vpcID),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
 				})).Return(&elbv2.CreateTargetGroupOutput{
 					TargetGroups: []*elbv2.TargetGroup{
 						{
