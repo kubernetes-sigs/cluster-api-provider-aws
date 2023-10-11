@@ -23,7 +23,9 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	ignTypes "github.com/flatcar/ignition/config/v2_3/types"
+	"github.com/blang/semver"
+	ignTypes "github.com/coreos/ignition/config/v2_3/types"
+	ignV3Types "github.com/coreos/ignition/v2/config/v3_4/types"
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -753,26 +755,56 @@ func (r *AWSMachineReconciler) ignitionUserData(scope *scope.MachineScope, objec
 		return nil, errors.Wrap(err, "creating userdata object")
 	}
 
-	ignData := &ignTypes.Config{
-		Ignition: ignTypes.Ignition{
-			Version: "2.3.0",
-			Config: ignTypes.IgnitionConfig{
-				Append: []ignTypes.ConfigReference{
-					{
-						Source: objectURL,
+	ignVersion := getIgnitionVersion(scope)
+	semver, err := semver.ParseTolerant(ignVersion)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse ignition version %q", ignVersion)
+	}
+
+	switch semver.Major {
+	case 2:
+		ignData := &ignTypes.Config{
+			Ignition: ignTypes.Ignition{
+				Version: semver.String(),
+				Config: ignTypes.IgnitionConfig{
+					Append: []ignTypes.ConfigReference{
+						{
+							Source: objectURL,
+						},
 					},
 				},
 			},
-		},
-	}
+		}
 
-	ignitionUserData, err := json.Marshal(ignData)
-	if err != nil {
-		r.Recorder.Eventf(scope.AWSMachine, corev1.EventTypeWarning, "FailedGenerateIgnition", err.Error())
-		return nil, errors.Wrap(err, "serializing generated data")
-	}
+		return json.Marshal(ignData)
+	case 3:
+		ignData := &ignV3Types.Config{
+			Ignition: ignV3Types.Ignition{
+				Version: semver.String(),
+				Config: ignV3Types.IgnitionConfig{
+					Merge: []ignV3Types.Resource{
+						{
+							Source: aws.String(objectURL),
+						},
+					},
+				},
+			},
+		}
 
-	return ignitionUserData, nil
+		return json.Marshal(ignData)
+	default:
+		return nil, errors.Errorf("unsupported ignition version %q", ignVersion)
+	}
+}
+
+func getIgnitionVersion(scope *scope.MachineScope) string {
+	if scope.AWSMachine.Spec.Ignition == nil {
+		scope.AWSMachine.Spec.Ignition = &infrav1.Ignition{}
+	}
+	if scope.AWSMachine.Spec.Ignition.Version == "" {
+		scope.AWSMachine.Spec.Ignition.Version = infrav1.DefaultIgnitionVersion
+	}
+	return scope.AWSMachine.Spec.Ignition.Version
 }
 
 func (r *AWSMachineReconciler) deleteBootstrapData(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, objectStoreScope scope.S3Scope) error {
