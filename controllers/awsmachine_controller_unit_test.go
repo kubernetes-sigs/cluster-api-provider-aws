@@ -1307,6 +1307,39 @@ func TestAWSMachineReconciler(t *testing.T) {
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(err).To(BeNil())
 			})
+
+			t.Run("should leverage AWS S3 with presigned urls", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+				getInstances(t, g)
+				useIgnition(t, g)
+
+				if cs.AWSCluster.Spec.S3Bucket == nil {
+					cs.AWSCluster.Spec.S3Bucket = &infrav1.S3Bucket{}
+				}
+				cs.AWSCluster.Spec.S3Bucket.PresignedURLDuration = &metav1.Duration{Duration: 1 * time.Hour}
+
+				instance = &infrav1.Instance{
+					ID:    "myMachine",
+					State: infrav1.InstanceStatePending,
+				}
+				presigned := "https://cluster-api-aws.s3.us-west-2.amazonaws.com/bootstrap-data.yaml?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA3SGQVQG7FGA6KKA6%2F20221104%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20221104T140227Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=b228dbec8c1008c80c162e1210e4503dceead1e4d4751b4d9787314fd6da4d55"
+
+				objectStoreSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(presigned, nil).Times(1)
+				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
+				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
+				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
+				ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil)
+
+				ms.AWSMachine.ObjectMeta.Labels = map[string]string{
+					clusterv1.MachineControlPlaneLabel: "",
+				}
+
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+				g.Expect(err).To(BeNil())
+			})
 		})
 
 		t.Run("there's a node ref and a secret ARN", func(t *testing.T) {
