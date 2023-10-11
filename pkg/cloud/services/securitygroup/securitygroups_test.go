@@ -496,6 +496,198 @@ func TestReconcileSecurityGroups(t *testing.T) {
 			},
 		},
 		{
+			name: "additional tags includes cloud provider tag, only tag lb",
+			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
+				acl.Spec.AdditionalTags = infrav1.Tags{
+					infrav1.ClusterAWSCloudProviderTagKey("test-cluster"): "owned",
+				}
+				return acl
+			},
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID:                "vpc-securitygroups",
+					InternetGatewayID: aws.String("igw-01"),
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+				},
+				Subnets: infrav1.Subnets{
+					infrav1.SubnetSpec{
+						ID:               "subnet-securitygroups-private",
+						IsPublic:         false,
+						AvailabilityZone: "us-east-1a",
+					},
+					infrav1.SubnetSpec{
+						ID:               "subnet-securitygroups-public",
+						IsPublic:         true,
+						NatGatewayID:     aws.String("nat-01"),
+						AvailabilityZone: "us-east-1a",
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeSecurityGroupsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).
+					Return(&ec2.DescribeSecurityGroupsOutput{}, nil)
+
+				securityGroupBastion := m.CreateSecurityGroupWithContext(context.TODO(), gomock.Eq(&ec2.CreateSecurityGroupInput{
+					VpcId:       aws.String("vpc-securitygroups"),
+					GroupName:   aws.String("test-cluster-bastion"),
+					Description: aws.String("Kubernetes cluster test-cluster: bastion"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("security-group"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-bastion"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("bastion"),
+								},
+							},
+						},
+					},
+				})).
+					Return(&ec2.CreateSecurityGroupOutput{GroupId: aws.String("sg-bastion")}, nil)
+
+				m.AuthorizeSecurityGroupIngressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.AuthorizeSecurityGroupIngressInput{
+					GroupId: aws.String("sg-bastion"),
+				})).
+					Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil).
+					After(securityGroupBastion)
+
+				securityGroupAPIServerLb := m.CreateSecurityGroupWithContext(context.TODO(), gomock.Eq(&ec2.CreateSecurityGroupInput{
+					VpcId:       aws.String("vpc-securitygroups"),
+					GroupName:   aws.String("test-cluster-apiserver-lb"),
+					Description: aws.String("Kubernetes cluster test-cluster: apiserver-lb"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("security-group"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-apiserver-lb"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("apiserver-lb"),
+								},
+							},
+						},
+					},
+				})).
+					Return(&ec2.CreateSecurityGroupOutput{GroupId: aws.String("sg-apiserver-lb")}, nil)
+
+				m.AuthorizeSecurityGroupIngressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.AuthorizeSecurityGroupIngressInput{
+					GroupId: aws.String("sg-apiserver-lb"),
+				})).
+					Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil).
+					After(securityGroupAPIServerLb)
+
+				lbSecurityGroup := m.CreateSecurityGroupWithContext(context.TODO(), gomock.Eq(&ec2.CreateSecurityGroupInput{
+					VpcId:       aws.String("vpc-securitygroups"),
+					GroupName:   aws.String("test-cluster-lb"),
+					Description: aws.String("Kubernetes cluster test-cluster: lb"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("security-group"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-lb"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("lb"),
+								},
+							},
+						},
+					},
+				})).Return(&ec2.CreateSecurityGroupOutput{GroupId: aws.String("sg-lb")}, nil)
+
+				m.AuthorizeSecurityGroupIngressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.AuthorizeSecurityGroupIngressInput{
+					GroupId: aws.String("sg-lb"),
+				})).
+					Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil).
+					After(lbSecurityGroup)
+
+				securityGroupControl := m.CreateSecurityGroupWithContext(context.TODO(), gomock.Eq(&ec2.CreateSecurityGroupInput{
+					VpcId:       aws.String("vpc-securitygroups"),
+					GroupName:   aws.String("test-cluster-controlplane"),
+					Description: aws.String("Kubernetes cluster test-cluster: controlplane"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("security-group"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-controlplane"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("controlplane"),
+								},
+							},
+						},
+					},
+				})).
+					Return(&ec2.CreateSecurityGroupOutput{GroupId: aws.String("sg-control")}, nil)
+
+				m.AuthorizeSecurityGroupIngressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.AuthorizeSecurityGroupIngressInput{
+					GroupId: aws.String("sg-control"),
+				})).
+					Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil).
+					After(securityGroupControl)
+
+				m.CreateSecurityGroupWithContext(context.TODO(), gomock.Eq(&ec2.CreateSecurityGroupInput{
+					VpcId:       aws.String("vpc-securitygroups"),
+					GroupName:   aws.String("test-cluster-node"),
+					Description: aws.String("Kubernetes cluster test-cluster: node"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("security-group"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-node"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("node"),
+								},
+							},
+						},
+					},
+				})).
+					Return(&ec2.CreateSecurityGroupOutput{GroupId: aws.String("sg-node")}, nil)
+			},
+		},
+		{
 			name: "managed vpc with overrides, returns error",
 			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
 				return acl
