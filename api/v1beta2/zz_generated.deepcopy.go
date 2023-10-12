@@ -695,11 +695,6 @@ func (in *AWSMachineSpec) DeepCopyInto(out *AWSMachineSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.VPC != nil {
-		in, out := &in.VPC, &out.VPC
-		*out = new(AWSResourceReference)
-		(*in).DeepCopyInto(*out)
-	}
 	if in.Subnet != nil {
 		in, out := &in.Subnet, &out.Subnet
 		*out = new(AWSResourceReference)

@@ -109,11 +109,6 @@ type AWSMachineSpec struct {
 	// +optional
 	AdditionalSecurityGroups []AWSResourceReference `json:"additionalSecurityGroups,omitempty"`
 
-	// VPC is a reference to the VPC to use when picking a subnet to use for this
-	// instance. Only valid if the subnet (id or filters) is also specified.
-	// +optional
-	VPC *AWSResourceReference `json:"vpc,omitempty"`
-
 	// Subnet is a reference to the subnet to use for this instance. If not specified,
 	// the cluster subnet will be used.
 	// +optional
