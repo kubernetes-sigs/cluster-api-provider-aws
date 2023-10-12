@@ -278,7 +278,7 @@ func makeVpcConfig(subnets infrav1.Subnets, endpointAccess ekscontrolplanev1.End
 	subnetIds := make([]*string, 0)
 	for i := range subnets {
 		subnet := subnets[i]
-		subnetIds = append(subnetIds, &subnet.ID)
+		subnetIds = append(subnetIds, &subnet.ResourceID)
 	}
 
 	cidrs := make([]*string, 0)
