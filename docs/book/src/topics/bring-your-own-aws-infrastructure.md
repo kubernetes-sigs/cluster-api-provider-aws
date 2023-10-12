@@ -120,6 +120,30 @@ spec:
 
 Users may either specify `failureDomain` on the Machine or MachineDeployment objects, _or_ users may explicitly specify subnet IDs on the AWSMachine or AWSMachineTemplate objects. If both are specified, the subnet ID is used and the `failureDomain` is ignored.
 
+### Placing EC2 Instances in Specific External VPCs
+
+CAPA clusters are deployed within a single VPC, but it's possible to place machines that live in external VPCs. For this kind of configuration, we assume that all the VPCs have the ability to communicate, either through external peering, a transit gateway, or some other mechanism already established outside of CAPA. CAPA will not create a tunnel or manage the network configuration for any secondary VPCs.
+
+The AWSMachineTemplate `subnet` field allows specifying filters or specific subnet ids for worker machine placement. If the filters or subnet id is specified in a secondary VPC, CAPA will place the machine in that VPC and subnet.
+
+```yaml
+spec:
+  template:
+    spec:
+      subnet:
+        filters:
+          name: "vpc-id"
+          values:
+            - "secondary-vpc-id"
+      securityGroupOverrides:
+        node: sg-04e870a3507a5ad2c5c8c2
+        node-eks-additional: sg-04e870a3507a5ad2c5c8c1
+```
+
+#### Caveats/Notes
+
+CAPA helpfully creates security groups for various roles in the cluster and automatically attaches them to workers. However, security groups are tied to a specific VPC, so workers placed in a VPC outside of the cluster will need to have these security groups created by some external process first and set in the `securityGroupOverrides` field, otherwise the ec2 creation will fail.
+
 ### Security Groups
 
 To use existing security groups for instances for a cluster, add this to the AWSCluster specification:
@@ -145,6 +169,15 @@ spec:
     additionalSecurityGroups:
     - sg-0200a3507a5ad2c5c8c3
     - ...
+```
+
+It's also possible to override the cluster security groups for an individual AWSMachine or AWSMachineTemplate:
+
+```yaml
+spec:
+  SecurityGroupOverrides:
+    node: sg-04e870a3507a5ad2c5c8c2
+    node-eks-additional: sg-04e870a3507a5ad2c5c8c1
 ```
 
 ### Control Plane Load Balancer

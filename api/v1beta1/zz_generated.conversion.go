@@ -1390,7 +1390,6 @@ func autoConvert_v1beta2_AWSMachineSpec_To_v1beta1_AWSMachineSpec(in *v1beta2.AW
 	} else {
 		out.AdditionalSecurityGroups = nil
 	}
-	// WARNING: in.VPC requires manual conversion: does not exist in peer-type
 	if in.Subnet != nil {
 		in, out := &in.Subnet, &out.Subnet
 		*out = new(AWSResourceReference)
