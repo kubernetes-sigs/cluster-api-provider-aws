@@ -263,7 +263,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 		})
 	})
 
-	t.Run("Should fail on AWSCluster reconciliation if VPC limit exceeded", func(t *testing.T) {
+	t.Run("Should fail on AWSCluster reconciliation if `VPC limit exceeded`", func(t *testing.T) {
 		// Assuming the max VPC limit is 2 and when two VPCs are created, the creation of 3rd VPC throws mocked error from EC2 API
 		g := NewWithT(t)
 		mockCtrl = gomock.NewController(t)
@@ -416,6 +416,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			{infrav1.BastionHostReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
 			{infrav1.SecondaryCidrsReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletingReason},
 			{infrav1.RouteTablesReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
+			{infrav1.VpcEndpointsReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
 			{infrav1.NatGatewaysReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
 			{infrav1.InternetGatewayReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
 			{infrav1.SubnetsReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
@@ -710,6 +711,24 @@ func mockedDeleteVPCCallsForNonExistentVPC(m *mocks.MockEC2APIMockRecorder) {
 }
 
 func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
+	m.DescribeVpcEndpointsPages(gomock.Eq(&ec2.DescribeVpcEndpointsInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("vpc-id"),
+				Values: aws.StringSlice([]string{"vpc-exists"}),
+			},
+		}}),
+		gomock.Any()).Do(func(_, y interface{}) {
+		funct := y.(func(page *ec2.DescribeVpcEndpointsOutput, lastPage bool) bool)
+		funct(&ec2.DescribeVpcEndpointsOutput{VpcEndpoints: []*ec2.VpcEndpoint{{
+			VpcEndpointId: aws.String("vpce-12345"),
+		}}}, true)
+	}).Return(nil).AnyTimes()
+
+	m.DeleteVpcEndpoints(gomock.Eq(&ec2.DeleteVpcEndpointsInput{
+		VpcEndpointIds: aws.StringSlice([]string{"vpce-12345"}),
+	})).Return(&ec2.DeleteVpcEndpointsOutput{}, nil).AnyTimes()
+
 	m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
 			{
