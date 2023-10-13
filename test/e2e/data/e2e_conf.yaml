@@ -123,7 +123,7 @@ providers:
         files:
           - sourcePath: "./shared/v1beta1_provider/metadata.yaml"
           - sourcePath: "./infrastructure-aws/capi-upgrades/v1beta1/cluster-template.yaml"
-      - name: v2.0.99
+      - name: v2.2.99
         # Use manifest from source files
         value: ../../../config/default
         # Do not add contract field for v1beta1 --> v1beta2 clusterctl upgrades test to work.
