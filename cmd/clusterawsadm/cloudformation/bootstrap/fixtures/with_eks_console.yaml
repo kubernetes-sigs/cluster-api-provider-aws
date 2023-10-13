@@ -161,7 +161,9 @@ Resources:
           - ec2:CreateSubnet
           - ec2:CreateTags
           - ec2:CreateVpc
+          - ec2:CreateVpcEndpoint
           - ec2:ModifyVpcAttribute
+          - ec2:ModifyVpcEndpoint
           - ec2:DeleteInternetGateway
           - ec2:DeleteEgressOnlyInternetGateway
           - ec2:DeleteNatGateway
@@ -171,6 +173,7 @@ Resources:
           - ec2:DeleteSubnet
           - ec2:DeleteTags
           - ec2:DeleteVpc
+          - ec2:DeleteVpcEndpoints
           - ec2:DescribeAccountAttributes
           - ec2:DescribeAddresses
           - ec2:DescribeAvailabilityZones
@@ -188,6 +191,7 @@ Resources:
           - ec2:DescribeSubnets
           - ec2:DescribeVpcs
           - ec2:DescribeVpcAttribute
+          - ec2:DescribeVpcEndpoints
           - ec2:DescribeVolumes
           - ec2:DescribeTags
           - ec2:DetachInternetGateway

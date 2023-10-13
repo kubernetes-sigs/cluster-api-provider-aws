@@ -1207,6 +1207,29 @@ func GetVPCByName(e2eCtx *E2EContext, vpcName string) (*ec2.Vpc, error) {
 	return result.Vpcs[0], nil
 }
 
+func GetVPCEndpointsByID(e2eCtx *E2EContext, vpcID string) ([]*ec2.VpcEndpoint, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DescribeVpcEndpointsInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("vpc-id"),
+				Values: aws.StringSlice([]string{vpcID}),
+			},
+		},
+	}
+
+	res := []*ec2.VpcEndpoint{}
+	if err := ec2Svc.DescribeVpcEndpointsPages(input, func(dveo *ec2.DescribeVpcEndpointsOutput, lastPage bool) bool {
+		res = append(res, dveo.VpcEndpoints...)
+		return true
+	}); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
 func CreateVPC(e2eCtx *E2EContext, vpcName string, cidrBlock string) (*ec2.Vpc, error) {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
