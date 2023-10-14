@@ -108,10 +108,10 @@ func (mr *MockELBInterfaceMockRecorder) IsInstanceRegisteredWithAPIServerELB(arg
 }
 
 // IsInstanceRegisteredWithAPIServerLB mocks base method.
-func (m *MockELBInterface) IsInstanceRegisteredWithAPIServerLB(arg0 *v1beta2.Instance) (string, bool, error) {
+func (m *MockELBInterface) IsInstanceRegisteredWithAPIServerLB(arg0 *v1beta2.Instance) ([]string, bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsInstanceRegisteredWithAPIServerLB", arg0)
-	ret0, _ := ret[0].(string)
+	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(bool)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2

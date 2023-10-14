@@ -558,6 +558,35 @@ spec:
                         description: ControlPlaneLoadBalancer is optional configuration
                           for customizing control plane behavior.
                         properties:
+                          additionalListeners:
+                            description: AdditionalListeners sets the additional listeners
+                              for the control plane load balancer. This is only applicable
+                              to Network Load Balancer (NLB) types for the time being.
+                            items:
+                              description: AdditionalListenerSpec defines the desired
+                                state of an additional listener on an AWS load balancer.
+                              properties:
+                                port:
+                                  description: Port sets the port for the additional
+                                    listener.
+                                  format: int64
+                                  maximum: 65535
+                                  minimum: 1
+                                  type: integer
+                                protocol:
+                                  default: TCP
+                                  description: Protocol sets the protocol for the
+                                    additional listener. Currently only TCP is supported.
+                                  enum:
+                                  - TCP
+                                  type: string
+                              required:
+                              - port
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - port
+                            x-kubernetes-list-type: map
                           additionalSecurityGroups:
                             description: AdditionalSecurityGroups sets the security
                               groups used by the load balancer. Expected to be security
