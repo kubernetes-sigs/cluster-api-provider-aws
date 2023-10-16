@@ -24,7 +24,7 @@ import (
 
 // GroupHook represents a GitLab group hook.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/groups.html#list-group-hooks
+// GitLab API docs: https://docs.gitlab.com/ee/api/groups.html#list-group-hooks
 type GroupHook struct {
 	ID                       int        `json:"id"`
 	URL                      string     `json:"url"`
@@ -44,17 +44,18 @@ type GroupHook struct {
 	ReleasesEvents           bool       `json:"releases_events"`
 	SubGroupEvents           bool       `json:"subgroup_events"`
 	EnableSSLVerification    bool       `json:"enable_ssl_verification"`
+	AlertStatus              string     `json:"alert_status"`
 	CreatedAt                *time.Time `json:"created_at"`
 }
 
 // ListGroupHooksOptions represents the available ListGroupHooks() options.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/groups.html#list-group-hooks
+// GitLab API docs: https://docs.gitlab.com/ee/api/groups.html#list-group-hooks
 type ListGroupHooksOptions ListOptions
 
 // ListGroupHooks gets a list of group hooks.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/groups.html#list-group-hooks
+// GitLab API docs: https://docs.gitlab.com/ee/api/groups.html#list-group-hooks
 func (s *GroupsService) ListGroupHooks(gid interface{}, opt *ListGroupHooksOptions, options ...RequestOptionFunc) ([]*GroupHook, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
@@ -72,13 +73,13 @@ func (s *GroupsService) ListGroupHooks(gid interface{}, opt *ListGroupHooksOptio
 		return nil, resp, err
 	}
 
-	return gh, resp, err
+	return gh, resp, nil
 }
 
 // GetGroupHook gets a specific hook for a group.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/groups.html#get-group-hook
+// https://docs.gitlab.com/ee/api/groups.html#get-group-hook
 func (s *GroupsService) GetGroupHook(pid interface{}, hook int, options ...RequestOptionFunc) (*GroupHook, *Response, error) {
 	group, err := parseID(pid)
 	if err != nil {
@@ -97,7 +98,7 @@ func (s *GroupsService) GetGroupHook(pid interface{}, hook int, options ...Reque
 		return nil, resp, err
 	}
 
-	return gh, resp, err
+	return gh, resp, nil
 }
 
 // AddGroupHookOptions represents the available AddGroupHook() options.
@@ -144,13 +145,13 @@ func (s *GroupsService) AddGroupHook(gid interface{}, opt *AddGroupHookOptions, 
 		return nil, resp, err
 	}
 
-	return gh, resp, err
+	return gh, resp, nil
 }
 
 // EditGroupHookOptions represents the available EditGroupHook() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/groups.html#edit-group-hook
+// https://docs.gitlab.com/ee/api/groups.html#edit-group-hook
 type EditGroupHookOptions struct {
 	URL                      *string `url:"url,omitempty" json:"url,omitempty"`
 	PushEvents               *bool   `url:"push_events,omitempty" json:"push_events,omitempty"`
@@ -174,7 +175,7 @@ type EditGroupHookOptions struct {
 // EditGroupHook edits a hook for a specified group.
 //
 // Gitlab API docs:
-// https://docs.gitlab.com/ce/api/groups.html#edit-group-hook
+// https://docs.gitlab.com/ee/api/groups.html#edit-group-hook
 func (s *GroupsService) EditGroupHook(pid interface{}, hook int, opt *EditGroupHookOptions, options ...RequestOptionFunc) (*GroupHook, *Response, error) {
 	group, err := parseID(pid)
 	if err != nil {
@@ -193,14 +194,14 @@ func (s *GroupsService) EditGroupHook(pid interface{}, hook int, opt *EditGroupH
 		return nil, resp, err
 	}
 
-	return gh, resp, err
+	return gh, resp, nil
 }
 
 // DeleteGroupHook removes a hook from a group. This is an idempotent
 // method and can be called multiple times.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/groups.html#delete-group-hook
+// https://docs.gitlab.com/ee/api/groups.html#delete-group-hook
 func (s *GroupsService) DeleteGroupHook(pid interface{}, hook int, options ...RequestOptionFunc) (*Response, error) {
 	group, err := parseID(pid)
 	if err != nil {

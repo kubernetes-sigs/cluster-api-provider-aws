@@ -46,7 +46,7 @@ func (p ErrorTrackingClientKey) String() string {
 
 // ErrorTrackingSettings represents error tracking settings for a GitLab project.
 //
-// GitLab API docs: https://docs.gitlab.com/ee/api/error_tracking.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/error_tracking.html#error-tracking-project-settings
 type ErrorTrackingSettings struct {
 	Active            bool   `json:"active"`
 	ProjectName       string `json:"project_name"`
@@ -81,7 +81,7 @@ func (s *ErrorTrackingService) GetErrorTrackingSettings(pid interface{}, options
 		return nil, resp, err
 	}
 
-	return ets, resp, err
+	return ets, resp, nil
 }
 
 // EnableDisableErrorTrackingOptions represents the available
@@ -117,7 +117,7 @@ func (s *ErrorTrackingService) EnableDisableErrorTracking(pid interface{}, opt *
 		return nil, resp, err
 	}
 
-	return ets, resp, err
+	return ets, resp, nil
 }
 
 // ListClientKeysOptions represents the available ListClientKeys() options.
@@ -148,7 +148,7 @@ func (s *ErrorTrackingService) ListClientKeys(pid interface{}, opt *ListClientKe
 		return nil, resp, err
 	}
 
-	return cks, resp, err
+	return cks, resp, nil
 }
 
 // CreateClientKey creates a new client key for a project.
@@ -173,7 +173,7 @@ func (s *ErrorTrackingService) CreateClientKey(pid interface{}, options ...Reque
 		return nil, resp, err
 	}
 
-	return ck, resp, err
+	return ck, resp, nil
 }
 
 // DeleteClientKey removes a client key from the project.

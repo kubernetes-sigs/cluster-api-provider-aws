@@ -19,6 +19,7 @@ package gitlab
 import (
 	"fmt"
 	"net/http"
+	"time"
 )
 
 // IssueLinksService handles communication with the issue relations related methods
@@ -38,6 +39,36 @@ type IssueLink struct {
 	LinkType    string `json:"link_type"`
 }
 
+// IssueRelation gets a relation between two issues.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/issue_links.html#list-issue-relations
+type IssueRelation struct {
+	ID             int              `json:"id"`
+	IID            int              `json:"iid"`
+	State          string           `json:"state"`
+	Description    string           `json:"description"`
+	Confidential   bool             `json:"confidential"`
+	Author         *IssueAuthor     `json:"author"`
+	Milestone      *Milestone       `json:"milestone"`
+	ProjectID      int              `json:"project_id"`
+	Assignees      []*IssueAssignee `json:"assignees"`
+	Assignee       *IssueAssignee   `json:"assignee"`
+	UpdatedAt      *time.Time       `json:"updated_at"`
+	Title          string           `json:"title"`
+	CreatedAt      *time.Time       `json:"created_at"`
+	Labels         Labels           `json:"labels"`
+	DueDate        *ISOTime         `json:"due_date"`
+	WebURL         string           `json:"web_url"`
+	References     *IssueReferences `json:"references"`
+	Weight         int              `json:"weight"`
+	UserNotesCount int              `json:"user_notes_count"`
+	IssueLinkID    int              `json:"issue_link_id"`
+	LinkType       string           `json:"link_type"`
+	LinkCreatedAt  *time.Time       `json:"link_created_at"`
+	LinkUpdatedAt  *time.Time       `json:"link_updated_at"`
+}
+
 // ListIssueRelations gets a list of related issues of a given issue,
 // sorted by the relationship creation datetime (ascending).
 //
@@ -45,7 +76,7 @@ type IssueLink struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/issue_links.html#list-issue-relations
-func (s *IssueLinksService) ListIssueRelations(pid interface{}, issue int, options ...RequestOptionFunc) ([]*Issue, *Response, error) {
+func (s *IssueLinksService) ListIssueRelations(pid interface{}, issue int, options ...RequestOptionFunc) ([]*IssueRelation, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -57,13 +88,13 @@ func (s *IssueLinksService) ListIssueRelations(pid interface{}, issue int, optio
 		return nil, nil, err
 	}
 
-	var is []*Issue
+	var is []*IssueRelation
 	resp, err := s.client.Do(req, &is)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return is, resp, err
+	return is, resp, nil
 }
 
 // GetIssueLink gets a specific issue link.
@@ -88,12 +119,12 @@ func (s *IssueLinksService) GetIssueLink(pid interface{}, issue, issueLink int, 
 		return nil, resp, err
 	}
 
-	return il, resp, err
+	return il, resp, nil
 }
 
 // CreateIssueLinkOptions represents the available CreateIssueLink() options.
 //
-// GitLab API docs: https://docs.gitlab.com/ee/api/issue_links.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/issue_links.html#create-an-issue-link
 type CreateIssueLinkOptions struct {
 	TargetProjectID *string `json:"target_project_id"`
 	TargetIssueIID  *string `json:"target_issue_iid"`
@@ -123,7 +154,7 @@ func (s *IssueLinksService) CreateIssueLink(pid interface{}, issue int, opt *Cre
 		return nil, resp, err
 	}
 
-	return i, resp, err
+	return i, resp, nil
 }
 
 // DeleteIssueLink deletes an issue link, thus removes the two-way relationship.
@@ -151,5 +182,5 @@ func (s *IssueLinksService) DeleteIssueLink(pid interface{}, issue, issueLink in
 		return nil, resp, err
 	}
 
-	return il, resp, err
+	return il, resp, nil
 }

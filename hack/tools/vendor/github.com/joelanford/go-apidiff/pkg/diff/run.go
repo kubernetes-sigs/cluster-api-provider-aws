@@ -25,6 +25,7 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 	"golang.org/x/exp/apidiff"
 	"golang.org/x/tools/go/packages"
 
@@ -56,6 +57,23 @@ func Run(opts Options) (*Diff, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to set worktree filesystem interface: %v", err)
 	}
+
+	rootFS, err := osfs.New("/")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create root filesystem interface: %v", err)
+	}
+
+	globalIgnores, err := gitignore.LoadGlobalPatterns(rootFS)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load global gitignore: %v", err)
+	}
+	wt.Excludes = append(wt.Excludes, globalIgnores...)
+
+	systemIgnores, err := gitignore.LoadSystemPatterns(rootFS)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load system gitignore: %v", err)
+	}
+	wt.Excludes = append(wt.Excludes, systemIgnores...)
 
 	if stat, err := wt.Status(); err != nil {
 		return nil, fmt.Errorf("failed to get git status: %w", err)

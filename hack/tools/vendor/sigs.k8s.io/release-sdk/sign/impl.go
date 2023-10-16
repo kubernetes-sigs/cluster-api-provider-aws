@@ -27,14 +27,15 @@ import (
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
-	"github.com/sigstore/cosign/cmd/cosign/cli/options"
-	"github.com/sigstore/cosign/cmd/cosign/cli/rekor"
-	"github.com/sigstore/cosign/cmd/cosign/cli/sign"
-	"github.com/sigstore/cosign/cmd/cosign/cli/verify"
-	"github.com/sigstore/cosign/pkg/blob"
-	"github.com/sigstore/cosign/pkg/cosign"
-	"github.com/sigstore/cosign/pkg/providers"
+	"github.com/sigstore/cosign/v2/cmd/cosign/cli/options"
+	"github.com/sigstore/cosign/v2/cmd/cosign/cli/rekor"
+	"github.com/sigstore/cosign/v2/cmd/cosign/cli/sign"
+	"github.com/sigstore/cosign/v2/cmd/cosign/cli/verify"
+	"github.com/sigstore/cosign/v2/pkg/blob"
+	"github.com/sigstore/cosign/v2/pkg/cosign"
+	"github.com/sigstore/cosign/v2/pkg/providers"
 	"github.com/sigstore/rekor/pkg/generated/client"
+	"github.com/sigstore/rekor/pkg/generated/models"
 	"github.com/sirupsen/logrus"
 
 	"sigs.k8s.io/release-utils/env"
@@ -47,20 +48,17 @@ type defaultImpl struct{}
 //counterfeiter:generate . impl
 //go:generate /usr/bin/env bash -c "cat ../scripts/boilerplate/boilerplate.generatego.txt signfakes/fake_impl.go > signfakes/_fake_impl.go && mv signfakes/_fake_impl.go signfakes/fake_impl.go"
 type impl interface {
-	VerifyFileInternal(ctx context.Context, ko options.KeyOpts, outputSignature, outputCertificate, path string) error
-	VerifyImageInternal(ctx context.Context, keyPath string, images []string) (*SignedObject, error)
-	SignImageInternal(ro options.RootOptions, ko options.KeyOpts, regOpts options.RegistryOptions,
-		annotations map[string]interface{}, imgs []string, certPath string, upload bool,
-		outputSignature string, outputCertificate string, payloadPath string, force bool,
-		recursive bool, attachment string, noTlogUpload bool) error
-	SignFileInternal(ro options.RootOptions, ko options.KeyOpts, regOpts options.RegistryOptions,
-		payloadPath string, b64 bool, outputSignature string, outputCertificate string) error
+	VerifyFileInternal(ctx context.Context, ko options.KeyOpts, certOpts options.CertVerifyOptions, outputSignature, path string) error
+	VerifyImageInternal(ctx context.Context, certOpts options.CertVerifyOptions, keyPath string, images []string, ignoreTLog bool) (*SignedObject, error)
+	SignImageInternal(ro options.RootOptions, ko options.KeyOpts, signOpts options.SignOptions, imgs []string) error
+	SignFileInternal(ro options.RootOptions, ko options.KeyOpts, payloadPath string,
+		b64 bool, outputSignature string, outputCertificate string, tlogUpload bool) error
 	Setenv(string, string) error
 	EnvDefault(string, string) string
 	TokenFromProviders(context.Context, *logrus.Logger) (string, error)
 	FileExists(string) bool
 	ParseReference(string, ...name.Option) (name.Reference, error)
-	FindTLogEntriesByPayload(ctx context.Context, rClient *client.Rekor, blobBytes []byte) ([]string, error)
+	FindTlogEntry(ctx context.Context, rClient *client.Rekor, b64Sig string, blobBytes []byte, pubKey []byte) ([]models.LogEntryAnon, error)
 	Digest(ref string, opt ...crane.Option) (string, error)
 	PayloadBytes(blobRef string) ([]byte, error)
 	NewRekorClient(string) (*client.Rekor, error)
@@ -68,34 +66,60 @@ type impl interface {
 	ImagesSigned(context.Context, *Signer, ...string) (*sync.Map, error)
 }
 
-func (*defaultImpl) VerifyFileInternal(ctx context.Context, ko options.KeyOpts, outputSignature, //nolint: gocritic
-	outputCertificate, path string,
+func (*defaultImpl) VerifyFileInternal(ctx context.Context, ko options.KeyOpts, certOpts options.CertVerifyOptions, outputSignature, //nolint: gocritic
+	path string,
 ) error {
-	return verify.VerifyBlobCmd(ctx, ko, outputCertificate, "", "", "", "", outputSignature, path, "", "", "", "", "", false)
+	verifyBlob := verify.VerifyBlobCmd{
+		KeyOpts:                      ko,
+		CertVerifyOptions:            certOpts,
+		CertRef:                      certOpts.Cert,
+		CertChain:                    certOpts.CertChain,
+		SigRef:                       outputSignature,
+		CertGithubWorkflowTrigger:    certOpts.CertGithubWorkflowTrigger,
+		CertGithubWorkflowSHA:        certOpts.CertGithubWorkflowSha,
+		CertGithubWorkflowName:       certOpts.CertGithubWorkflowName,
+		CertGithubWorkflowRepository: certOpts.CertGithubWorkflowRepository,
+		CertGithubWorkflowRef:        certOpts.CertGithubWorkflowRef,
+		IgnoreSCT:                    certOpts.IgnoreSCT,
+		SCTRef:                       "",
+		Offline:                      false,
+		IgnoreTlog:                   true,
+	}
+
+	return verifyBlob.Exec(ctx, path)
 }
 
-func (*defaultImpl) VerifyImageInternal(ctx context.Context, publickeyPath string, images []string) (*SignedObject, error) {
-	v := verify.VerifyCommand{KeyRef: publickeyPath}
+func (*defaultImpl) VerifyImageInternal(ctx context.Context, certOpts options.CertVerifyOptions, //nolint: gocritic
+	publickeyPath string, images []string, ignoreTLog bool,
+) (*SignedObject, error) {
+	v := verify.VerifyCommand{
+		IgnoreTlog: ignoreTLog,
+		KeyRef:     publickeyPath,
+		CertVerifyOptions: options.CertVerifyOptions{
+			CertIdentity:         certOpts.CertIdentity,
+			CertIdentityRegexp:   certOpts.CertIdentityRegexp,
+			CertOidcIssuer:       certOpts.CertOidcIssuer,
+			CertOidcIssuerRegexp: certOpts.CertOidcIssuerRegexp,
+			IgnoreSCT:            certOpts.IgnoreSCT,
+		},
+		IgnoreSCT: certOpts.IgnoreSCT,
+	}
 	return &SignedObject{}, v.Exec(ctx, images)
 }
 
-func (*defaultImpl) SignImageInternal(ro options.RootOptions, ko options.KeyOpts, regOpts options.RegistryOptions, //nolint: gocritic
-	annotations map[string]interface{}, imgs []string, certPath string, upload bool,
-	outputSignature string, outputCertificate string, payloadPath string, force bool,
-	recursive bool, attachment string, noTlogUpload bool,
+func (*defaultImpl) SignImageInternal(ro options.RootOptions, ko options.KeyOpts, //nolint: gocritic
+	signOpts options.SignOptions, imgs []string, //nolint: gocritic
 ) error {
 	return sign.SignCmd(
-		&ro, ko, regOpts, annotations, imgs, certPath, "", upload, outputSignature,
-		outputCertificate, payloadPath, force, recursive, attachment, noTlogUpload,
-	)
+		&ro, ko, signOpts, imgs)
 }
 
-func (*defaultImpl) SignFileInternal(ro options.RootOptions, ko options.KeyOpts, regOpts options.RegistryOptions, //nolint: gocritic
-	payloadPath string, b64 bool, outputSignature string, outputCertificate string,
+func (*defaultImpl) SignFileInternal(ro options.RootOptions, ko options.KeyOpts, //nolint: gocritic
+	payloadPath string, b64 bool, outputSignature string, outputCertificate string, tlogUpload bool,
 ) error {
 	// Ignoring the signature return value for now as we are setting the outputSignature path and to keep an consistent impl API
 	// Setting timeout as 0 is acceptable here because SignBlobCmd uses the passed context
-	_, err := sign.SignBlobCmd(&ro, ko, regOpts, payloadPath, b64, outputSignature, outputCertificate)
+	_, err := sign.SignBlobCmd(&ro, ko, payloadPath, b64, outputSignature, outputCertificate, tlogUpload)
 	return err
 }
 
@@ -111,7 +135,7 @@ func (*defaultImpl) EnvDefault(key, def string) string {
 // oidc token from them.
 func (d *defaultImpl) TokenFromProviders(ctx context.Context, logger *logrus.Logger) (string, error) {
 	if !d.IdentityProvidersEnabled(ctx) {
-		logger.Warn("No OIDC provider enabled. Token cannot be obtained autmatically.")
+		logger.Warn("No OIDC provider enabled. Token cannot be obtained automatically.")
 		return "", nil
 	}
 
@@ -140,10 +164,10 @@ func (*defaultImpl) ParseReference(
 	return name.ParseReference(s, opts...)
 }
 
-func (d *defaultImpl) FindTLogEntriesByPayload(
-	ctx context.Context, rClient *client.Rekor, blobBytes []byte,
-) ([]string, error) {
-	return cosign.FindTLogEntriesByPayload(ctx, rClient, blobBytes)
+func (d *defaultImpl) FindTlogEntry(
+	ctx context.Context, rClient *client.Rekor, b64Sig string, blobBytes []byte, pubKey []byte,
+) ([]models.LogEntryAnon, error) {
+	return cosign.FindTlogEntry(ctx, rClient, b64Sig, blobBytes, pubKey)
 }
 
 func (*defaultImpl) Digest(

@@ -45,7 +45,7 @@ ifeq ($(OS), windows)
 	MDBOOK_EXTRACT_COMMAND := unzip -d /tmp
 endif
 
-GOLANGCI_LINT_VERSION := v1.52.2
+GOLANGCI_LINT_VERSION := v1.53.3
 ## --------------------------------------
 ## Tooling Binaries
 ## --------------------------------------
@@ -154,7 +154,7 @@ $(PLANTUML): plantuml.Dockerfile ../../versions.mk
 KPROMO_BIN := kpromo
 KPROMO :=  $(BIN_DIR)/$(KPROMO_BIN)
 $(KPROMO):
-	CGO_ENABLED=0 go build -o $@ sigs.k8s.io/promo-tools/v3/cmd/kpromo
+	CGO_ENABLED=0 go build -o $@ sigs.k8s.io/promo-tools/v4/cmd/kpromo
 
 YQ_BIN := yq
 YQ :=  $(BIN_DIR)/$(YQ_BIN)
@@ -169,6 +169,15 @@ $(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint.
 
 $(GOLANGCI_LINT): # Build golangci-lint from tools folder.
 	GOBIN=$(abspath $(BIN_DIR)) go install $(GOLANGCI_LINT_PKG)@$(GOLANGCI_LINT_VERSION)
+
+RELEASE_NOTES_BIN := release-notes
+RELEASE_NOTES := $(BIN_DIR)/$(RELEASE_NOTES_BIN)
+RELEASE_NOTES_PKG := k8s.io/release/cmd/release-notes
+.PHONY: $(RELEASE_NOTES_BIN)
+$(RELEASE_NOTES_BIN): $(RELEASE_NOTES)
+
+$(RELEASE_NOTES): ## Build release notes from tools folders.
+	GOBIN=$(abspath $(BIN_DIR)) go install $(RELEASE_NOTES_PKG)@$(RELEASE_NOTES_VERSION)
 
 
 ## ------------------------------------------------------------------------------------------------

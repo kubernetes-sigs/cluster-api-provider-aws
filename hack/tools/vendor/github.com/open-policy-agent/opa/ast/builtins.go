@@ -164,6 +164,7 @@ var DefaultBuiltins = [...]*Builtin{
 	ObjectRemove,
 	ObjectFilter,
 	ObjectGet,
+	ObjectKeys,
 	ObjectSubset,
 
 	// JSON Object Manipulation
@@ -194,6 +195,7 @@ var DefaultBuiltins = [...]*Builtin{
 	ParseNanos,
 	ParseRFC3339Nanos,
 	ParseDurationNanos,
+	Format,
 	Date,
 	Clock,
 	Weekday,
@@ -212,6 +214,7 @@ var DefaultBuiltins = [...]*Builtin{
 	CryptoHmacSha1,
 	CryptoHmacSha256,
 	CryptoHmacSha512,
+	CryptoHmacEqual,
 
 	// Graphs
 	WalkBuiltin,
@@ -240,6 +243,14 @@ var DefaultBuiltins = [...]*Builtin{
 	GraphQLParseQuery,
 	GraphQLParseSchema,
 	GraphQLIsValid,
+	GraphQLSchemaIsValid,
+
+	// JSON Schema
+	JSONSchemaVerify,
+	JSONMatchSchema,
+
+	// Cloud Provider Helpers
+	ProvidersAWSSignReqObj,
 
 	// Rego
 	RegoParseModule,
@@ -260,6 +271,7 @@ var DefaultBuiltins = [...]*Builtin{
 	NetCIDRExpand,
 	NetCIDRMerge,
 	NetLookupIPAddr,
+	NetCIDRIsValid,
 
 	// Glob
 	GlobMatch,
@@ -1471,7 +1483,9 @@ var JSONRemove = &Builtin{
 var JSONPatch = &Builtin{
 	Name: "json.patch",
 	Description: "Patches an object according to RFC6902. " +
-		"For example: `json.patch({\"a\": {\"foo\": 1}}, [{\"op\": \"add\", \"path\": \"/a/bar\", \"value\": 2}])` results in `{\"a\": {\"foo\": 1, \"bar\": 2}`.  The patches are applied atomically: if any of them fails, the result will be undefined.",
+		"For example: `json.patch({\"a\": {\"foo\": 1}}, [{\"op\": \"add\", \"path\": \"/a/bar\", \"value\": 2}])` results in `{\"a\": {\"foo\": 1, \"bar\": 2}`. " +
+		"The patches are applied atomically: if any of them fails, the result will be undefined. " +
+		"Additionally works on sets, where a value contained in the set is considered to be its path.",
 	Decl: types.NewFunction(
 		types.Args(
 			types.Named("object", types.A), // TODO(sr): types.A?
@@ -1611,6 +1625,18 @@ var ObjectGet = &Builtin{
 			types.Named("default", types.A).Description("default to use when lookup fails"),
 		),
 		types.Named("value", types.A).Description("`object[key]` if present, otherwise `default`"),
+	),
+}
+
+var ObjectKeys = &Builtin{
+	Name: "object.keys",
+	Description: "Returns a set of an object's keys. " +
+		"For example: `object.keys({\"a\": 1, \"b\": true, \"c\": \"d\")` results in `{\"a\", \"b\", \"c\"}`.",
+	Decl: types.NewFunction(
+		types.Args(
+			types.Named("object", types.NewObject(nil, types.NewDynamicProperty(types.A, types.A))).Description("object to get keys from"),
+		),
+		types.Named("value", types.NewSet(types.A)).Description("set of `object`'s keys"),
 	),
 }
 
@@ -2118,9 +2144,24 @@ var ParseDurationNanos = &Builtin{
 	Description: "Returns the duration in nanoseconds represented by a string.",
 	Decl: types.NewFunction(
 		types.Args(
-			types.Named("duration", types.S).Description("a duration like \"3m\"; seethe [Go `time` package documentation](https://golang.org/pkg/time/#ParseDuration) for more details"),
+			types.Named("duration", types.S).Description("a duration like \"3m\"; see the [Go `time` package documentation](https://golang.org/pkg/time/#ParseDuration) for more details"),
 		),
 		types.Named("ns", types.N).Description("the `duration` in nanoseconds"),
+	),
+}
+
+var Format = &Builtin{
+	Name:        "time.format",
+	Description: "Returns the formatted timestamp for the nanoseconds since epoch.",
+	Decl: types.NewFunction(
+		types.Args(
+			types.Named("x", types.NewAny(
+				types.N,
+				types.NewArray([]types.Type{types.N, types.S}, nil),
+				types.NewArray([]types.Type{types.N, types.S, types.S}, nil),
+			)).Description("a number representing the nanoseconds since the epoch (UTC); or a two-element array of the nanoseconds, and a timezone string; or a three-element array of ns, timezone string and a layout string (see golang supported time formats)"),
+		),
+		types.Named("formatted timestamp", types.S).Description("the formatted timestamp represented for the nanoseconds since the epoch in the supplied timezone (or UTC)"),
 	),
 }
 
@@ -2204,8 +2245,12 @@ var Diff = &Builtin{
  */
 
 var CryptoX509ParseCertificates = &Builtin{
-	Name:        "crypto.x509.parse_certificates",
-	Description: "Returns one or more certificates from the given base64 encoded string containing DER encoded certificates that have been concatenated.",
+	Name: "crypto.x509.parse_certificates",
+	Description: `Returns zero or more certificates from the given encoded string containing
+DER certificate data.
+
+If the input is empty, the function will return null. The input string should be a list of one or more
+concatenated PEM blocks. The whole input of concatenated PEM blocks can optionally be Base64 encoded.`,
 	Decl: types.NewFunction(
 		types.Args(
 			types.Named("certs", types.S).Description("base64 encoded DER or PEM data containing one or more certificates or a PEM string of one or more certificates"),
@@ -2333,6 +2378,18 @@ var CryptoHmacSha512 = &Builtin{
 			types.Named("key", types.S).Description("key to use"),
 		),
 		types.Named("y", types.S).Description("SHA512-HMAC of `x`"),
+	),
+}
+
+var CryptoHmacEqual = &Builtin{
+	Name:        "crypto.hmac.equal",
+	Description: "Returns a boolean representing the result of comparing two MACs for equality without leaking timing information.",
+	Decl: types.NewFunction(
+		types.Args(
+			types.Named("mac1", types.S).Description("mac1 to compare"),
+			types.Named("mac2", types.S).Description("mac2 to compare"),
+		),
+		types.Named("result", types.B).Description("`true` if the MACs are equals, `false` otherwise"),
 	),
 }
 
@@ -2600,6 +2657,92 @@ var GraphQLIsValid = &Builtin{
 	),
 }
 
+// GraphQLSchemaIsValid returns true if the input is valid GraphQL schema,
+// and returns false for all other inputs.
+var GraphQLSchemaIsValid = &Builtin{
+	Name:        "graphql.schema_is_valid",
+	Description: "Checks that the input is a valid GraphQL schema. The schema can be either a GraphQL string or an AST object from the other GraphQL builtin functions.",
+	Decl: types.NewFunction(
+		types.Args(
+			types.Named("schema", types.NewAny(types.S, types.NewObject(nil, types.NewDynamicProperty(types.A, types.A)))),
+		),
+		types.Named("output", types.B).Description("`true` if the schema is a valid GraphQL schema. `false` otherwise."),
+	),
+}
+
+/**
+ * JSON Schema
+ */
+
+// JSONSchemaVerify returns empty string if the input is valid JSON schema
+// and returns error string for all other inputs.
+var JSONSchemaVerify = &Builtin{
+	Name:        "json.verify_schema",
+	Description: "Checks that the input is a valid JSON schema object. The schema can be either a JSON string or an JSON object.",
+	Decl: types.NewFunction(
+		types.Args(
+			types.Named("schema", types.NewAny(types.S, types.NewObject(nil, types.NewDynamicProperty(types.A, types.A)))).
+				Description("the schema to verify"),
+		),
+		types.Named("output", types.NewArray([]types.Type{
+			types.B,
+			types.NewAny(types.S, types.Null{}),
+		}, nil)).
+			Description("`output` is of the form `[valid, error]`. If the schema is valid, then `valid` is `true`, and `error` is `null`. Otherwise, `valid` is `false` and `error` is a string describing the error."),
+	),
+	Categories: objectCat,
+}
+
+// JSONMatchSchema returns empty array if the document matches the JSON schema,
+// and returns non-empty array with error objects otherwise.
+var JSONMatchSchema = &Builtin{
+	Name:        "json.match_schema",
+	Description: "Checks that the document matches the JSON schema.",
+	Decl: types.NewFunction(
+		types.Args(
+			types.Named("document", types.NewAny(types.S, types.NewObject(nil, types.NewDynamicProperty(types.A, types.A)))).
+				Description("document to verify by schema"),
+			types.Named("schema", types.NewAny(types.S, types.NewObject(nil, types.NewDynamicProperty(types.A, types.A)))).
+				Description("schema to verify document by"),
+		),
+		types.Named("output", types.NewArray([]types.Type{
+			types.B,
+			types.NewArray(
+				nil, types.NewObject(
+					[]*types.StaticProperty{
+						{Key: "error", Value: types.S},
+						{Key: "type", Value: types.S},
+						{Key: "field", Value: types.S},
+						{Key: "desc", Value: types.S},
+					},
+					nil,
+				),
+			),
+		}, nil)).
+			Description("`output` is of the form `[match, errors]`. If the document is valid given the schema, then `match` is `true`, and `errors` is an empty array. Otherwise, `match` is `false` and `errors` is an array of objects describing the error(s)."),
+	),
+	Categories: objectCat,
+}
+
+/**
+ * Cloud Provider Helper Functions
+ */
+var providersAWSCat = category("providers.aws")
+
+var ProvidersAWSSignReqObj = &Builtin{
+	Name:        "providers.aws.sign_req",
+	Description: "Signs an HTTP request object for Amazon Web Services. Currently implements [AWS Signature Version 4 request signing](https://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-authenticating-requests.html) by the `Authorization` header method.",
+	Decl: types.NewFunction(
+		types.Args(
+			types.Named("request", types.NewObject(nil, types.NewDynamicProperty(types.S, types.A))),
+			types.Named("aws_config", types.NewObject(nil, types.NewDynamicProperty(types.S, types.A))),
+			types.Named("time_ns", types.N),
+		),
+		types.Named("signed_request", types.NewObject(nil, types.NewDynamicProperty(types.A, types.A))),
+	),
+	Categories: providersAWSCat,
+}
+
 /**
  * Rego
  */
@@ -2768,6 +2911,17 @@ Supports both IPv4 and IPv6 notations. IPv6 inputs need a prefix length (e.g. "/
 			)).Description("CIDRs or IP addresses"),
 		),
 		types.Named("output", types.NewSet(types.S)).Description("smallest possible set of CIDRs obtained after merging the provided list of IP addresses and subnets in `addrs`"),
+	),
+}
+
+var NetCIDRIsValid = &Builtin{
+	Name:        "net.cidr_is_valid",
+	Description: "Parses an IPv4/IPv6 CIDR and returns a boolean indicating if the provided CIDR is valid.",
+	Decl: types.NewFunction(
+		types.Args(
+			types.Named("cidr", types.S),
+		),
+		types.Named("result", types.B),
 	),
 }
 

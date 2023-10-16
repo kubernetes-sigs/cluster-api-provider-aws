@@ -18,6 +18,7 @@ package sign
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -34,7 +35,9 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
 	"github.com/jellydator/ttlcache/v3"
 	"github.com/nozzle/throttler"
-	cliOpts "github.com/sigstore/cosign/cmd/cosign/cli/options"
+	cliOpts "github.com/sigstore/cosign/v2/cmd/cosign/cli/options"
+	sigs "github.com/sigstore/cosign/v2/pkg/signature"
+	signatureoptions "github.com/sigstore/sigstore/pkg/signature/options"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/release-utils/hash"
@@ -130,12 +133,6 @@ func (s *Signer) SignImageWithOptions(options *Options, reference string) (objec
 	}
 	s.log().Debugf("Using options: %+v", options)
 
-	resetFn, err := s.enableExperimental()
-	if err != nil {
-		return nil, err
-	}
-	defer resetFn()
-
 	ctx, cancel := options.context()
 	defer cancel()
 
@@ -157,27 +154,36 @@ func (s *Signer) SignImageWithOptions(options *Options, reference string) (objec
 	}
 
 	ko := cliOpts.KeyOpts{
-		KeyRef:     options.PrivateKeyPath,
-		IDToken:    identityToken,
-		PassFunc:   options.PassFunc,
-		FulcioURL:  cliOpts.DefaultFulcioURL,
-		RekorURL:   cliOpts.DefaultRekorURL,
-		OIDCIssuer: cliOpts.DefaultOIDCIssuerURL,
+		KeyRef:           options.PrivateKeyPath,
+		IDToken:          identityToken,
+		PassFunc:         options.PassFunc,
+		FulcioURL:        cliOpts.DefaultFulcioURL,
+		RekorURL:         cliOpts.DefaultRekorURL,
+		OIDCIssuer:       cliOpts.DefaultOIDCIssuerURL,
+		SkipConfirmation: true,
 
 		InsecureSkipFulcioVerify: false,
 	}
 
-	regOpts := cliOpts.RegistryOptions{
-		AllowInsecure: options.AllowInsecure,
+	signOpts := cliOpts.SignOptions{
+		OutputSignature:   options.OutputSignaturePath,
+		OutputCertificate: options.OutputCertificatePath,
+		Upload:            true,
+		Recursive:         options.Recursive,
+		TlogUpload:        true,
+		SkipConfirmation:  true,
+		AnnotationOptions: cliOpts.AnnotationOptions{
+			Annotations: options.Annotations,
+		},
+		Registry: cliOpts.RegistryOptions{
+			AllowInsecure: options.AllowInsecure,
+		},
+		SignContainerIdentity: options.SignContainerIdentity,
 	}
 
 	images := []string{reference}
 
-	if err := s.impl.SignImageInternal(
-		options.ToCosignRootOptions(), ko, regOpts, options.Annotations,
-		images, "", options.AttachSignature, options.OutputSignaturePath,
-		options.OutputCertificatePath, "", true, options.Recursive, "", false,
-	); err != nil {
+	if err := s.impl.SignImageInternal(options.ToCosignRootOptions(), ko, signOpts, images); err != nil {
 		return nil, fmt.Errorf("sign reference: %s: %w", reference, err)
 	}
 
@@ -209,12 +215,6 @@ func (s *Signer) SignImageWithOptions(options *Options, reference string) (objec
 func (s *Signer) SignFile(path string) (*SignedObject, error) {
 	s.log().Infof("Signing file path: %s", path)
 
-	resetFn, err := s.enableExperimental()
-	if err != nil {
-		return nil, err
-	}
-	defer resetFn()
-
 	ctx, cancel := s.options.context()
 	defer cancel()
 
@@ -236,18 +236,15 @@ func (s *Signer) SignFile(path string) (*SignedObject, error) {
 	}
 
 	ko := cliOpts.KeyOpts{
-		KeyRef:     s.options.PrivateKeyPath,
-		IDToken:    identityToken,
-		PassFunc:   s.options.PassFunc,
-		FulcioURL:  cliOpts.DefaultFulcioURL,
-		RekorURL:   cliOpts.DefaultRekorURL,
-		OIDCIssuer: cliOpts.DefaultOIDCIssuerURL,
+		KeyRef:           s.options.PrivateKeyPath,
+		IDToken:          identityToken,
+		PassFunc:         s.options.PassFunc,
+		FulcioURL:        cliOpts.DefaultFulcioURL,
+		RekorURL:         cliOpts.DefaultRekorURL,
+		OIDCIssuer:       cliOpts.DefaultOIDCIssuerURL,
+		SkipConfirmation: true,
 
 		InsecureSkipFulcioVerify: false,
-	}
-
-	regOpts := cliOpts.RegistryOptions{
-		AllowInsecure: s.options.AllowInsecure,
 	}
 
 	if s.options.OutputCertificatePath == "" {
@@ -263,8 +260,8 @@ func (s *Signer) SignFile(path string) (*SignedObject, error) {
 	}
 
 	if err := s.impl.SignFileInternal(
-		s.options.ToCosignRootOptions(), ko, regOpts, path, true,
-		s.options.OutputSignaturePath, s.options.OutputCertificatePath,
+		s.options.ToCosignRootOptions(), ko, path, true,
+		s.options.OutputSignaturePath, s.options.OutputCertificatePath, true,
 	); err != nil {
 		return nil, fmt.Errorf("sign file: %s: %w", path, err)
 	}
@@ -272,7 +269,19 @@ func (s *Signer) SignFile(path string) (*SignedObject, error) {
 	verifyKo := ko
 	verifyKo.KeyRef = s.options.PublicKeyPath
 
-	err = s.impl.VerifyFileInternal(ctx, verifyKo, s.options.OutputSignaturePath, s.options.OutputCertificatePath, path)
+	certOpts := cliOpts.CertVerifyOptions{
+		CertIdentity:         s.options.CertIdentity,
+		CertIdentityRegexp:   s.options.CertIdentityRegexp,
+		CertOidcIssuer:       s.options.CertOidcIssuer,
+		CertOidcIssuerRegexp: s.options.CertOidcIssuerRegexp,
+		IgnoreSCT:            s.options.IgnoreSCT,
+	}
+
+	if s.options.PublicKeyPath == "" {
+		certOpts.Cert = s.options.OutputCertificatePath
+	}
+
+	err = s.impl.VerifyFileInternal(ctx, verifyKo, certOpts, s.options.OutputSignaturePath, path)
 	if err != nil {
 		return nil, fmt.Errorf("verifying signed file: %s: %w", path, err)
 	}
@@ -342,12 +351,6 @@ func (s *Signer) VerifyImages(refs ...string) (*sync.Map, error) {
 
 	s.log().Infof("Verifying %d references", len(unknownRefs))
 
-	resetFn, err := s.enableExperimental()
-	if err != nil {
-		return nil, fmt.Errorf("enable experimental cosign: %w", err)
-	}
-	defer resetFn()
-
 	// checking whether the image being verified has a signature
 	// if there is no signature, we should skip
 	// ref: https://kubernetes.slack.com/archives/CJH2GBF7Y/p1647459428848859?thread_ts=1647428695.280269&cid=CJH2GBF7Y
@@ -383,7 +386,15 @@ func (s *Signer) VerifyImages(refs ...string) (*sync.Map, error) {
 			ctx, cancel := s.options.context()
 			defer cancel()
 
-			_, err = s.impl.VerifyImageInternal(ctx, s.options.PublicKeyPath, []string{ref})
+			certOpts := cliOpts.CertVerifyOptions{
+				CertIdentity:         s.options.CertIdentity,
+				CertIdentityRegexp:   s.options.CertIdentityRegexp,
+				CertOidcIssuer:       s.options.CertOidcIssuer,
+				CertOidcIssuerRegexp: s.options.CertOidcIssuerRegexp,
+				IgnoreSCT:            s.options.IgnoreSCT,
+			}
+
+			_, err = s.impl.VerifyImageInternal(ctx, certOpts, s.options.PublicKeyPath, []string{ref}, s.options.IgnoreTlog)
 			if err != nil {
 				t.Done(fmt.Errorf("verify image reference: %s: %w", ref, err))
 				return
@@ -413,6 +424,7 @@ func (s *Signer) VerifyImages(refs ...string) (*sync.Map, error) {
 					reference: parsedRef.String(),
 					signature: repoDigestToSig(parsedRef.Context(), digest),
 				},
+				file: nil,
 			}
 
 			res.Store(ref, obj)
@@ -436,14 +448,8 @@ func (s *Signer) VerifyImages(refs ...string) (*sync.Map, error) {
 
 // VerifyFile can be used to validate any provided file path.
 // If no signed entry is found we skip the file without errors.
-func (s *Signer) VerifyFile(path string) (*SignedObject, error) {
+func (s *Signer) VerifyFile(path string, ignoreTLog bool) (*SignedObject, error) {
 	s.log().Infof("Verifying file path: %s", path)
-
-	resetFn, err := s.enableExperimental()
-	if err != nil {
-		return nil, err
-	}
-	defer resetFn()
 
 	ko := cliOpts.KeyOpts{
 		KeyRef:   s.options.PublicKeyPath,
@@ -457,12 +463,28 @@ func (s *Signer) VerifyFile(path string) (*SignedObject, error) {
 		s.options.OutputSignaturePath = fmt.Sprintf("%s.sig", path)
 	}
 
+	certOpts := cliOpts.CertVerifyOptions{
+		CertIdentity:         s.options.CertIdentity,
+		CertIdentityRegexp:   s.options.CertIdentityRegexp,
+		CertOidcIssuer:       s.options.CertOidcIssuer,
+		CertOidcIssuerRegexp: s.options.CertOidcIssuerRegexp,
+		IgnoreSCT:            s.options.IgnoreSCT,
+	}
+
+	if s.options.PublicKeyPath == "" {
+		certOpts.Cert = s.options.OutputCertificatePath
+	}
+
 	ctx, cancel := s.options.context()
 	defer cancel()
 
-	isSigned, err := s.IsFileSigned(ctx, path)
-	if err != nil {
-		return nil, fmt.Errorf("checking if file is signed. file: %s, error: %w", path, err)
+	isSigned := false
+	if !ignoreTLog {
+		var err error
+		isSigned, err = s.IsFileSigned(ctx, path)
+		if err != nil {
+			return nil, fmt.Errorf("checking if file is signed. file: %s, error: %w", path, err)
+		}
 	}
 
 	fileSHA, err := hash.SHA256ForFile(path)
@@ -470,12 +492,12 @@ func (s *Signer) VerifyFile(path string) (*SignedObject, error) {
 		return nil, fmt.Errorf("file retrieve sha256 error: %s: %w", path, err)
 	}
 
-	if !isSigned {
+	if !isSigned && !ignoreTLog {
 		s.log().Infof("Skipping unsigned file: %s", path)
 		return nil, nil
 	}
 
-	err = s.impl.VerifyFileInternal(ctx, ko, s.options.OutputSignaturePath, s.options.OutputCertificatePath, path)
+	err = s.impl.VerifyFileInternal(ctx, ko, certOpts, s.options.OutputSignaturePath, path)
 	if err != nil {
 		return nil, fmt.Errorf("verify file reference: %s: %w", path, err)
 	}
@@ -487,21 +509,6 @@ func (s *Signer) VerifyFile(path string) (*SignedObject, error) {
 			signaturePath:   s.options.OutputSignaturePath,
 			certificatePath: s.options.OutputCertificatePath,
 		},
-	}, nil
-}
-
-// enableExperimental sets the cosign experimental mode to true. It also
-// returns a resetFn to recover the original state within the environment.
-func (s *Signer) enableExperimental() (resetFn func(), err error) {
-	const key = "COSIGN_EXPERIMENTAL"
-	previousValue := s.impl.EnvDefault(key, "")
-	if err := s.impl.Setenv(key, "true"); err != nil {
-		return nil, fmt.Errorf("enable cosign experimental mode: %w", err)
-	}
-	return func() {
-		if err := s.impl.Setenv(key, previousValue); err != nil {
-			s.log().Errorf("Unable to reset cosign experimental mode: %v", err)
-		}
 	}, nil
 }
 
@@ -601,7 +608,6 @@ func (s *Signer) ImagesSigned(ctx context.Context, refs ...string) (*sync.Map, e
 				t.Done(fmt.Errorf("get digest for image reference: %w", err))
 				return
 			}
-
 			if _, err := s.impl.Digest(repoDigestToSig(repo, digest), crane.WithTransport(tr)); err != nil {
 				if transportErr, ok := err.(*transport.Error); ok && len(transportErr.Errors) > 0 {
 					if transportErr.Errors[0].Code == transport.ManifestUnknownErrorCode {
@@ -611,7 +617,6 @@ func (s *Signer) ImagesSigned(ctx context.Context, refs ...string) (*sync.Map, e
 						return
 					}
 				}
-
 				t.Done(fmt.Errorf("get digest for signature: %w", err))
 				return
 			}
@@ -699,7 +704,7 @@ func repoDigestToSig(repo name.Repository, digest string) string {
 	return repo.Name() + ":" + strings.Replace(digest, ":", "-", 1) + ".sig"
 }
 
-// IsFileSigned takes an path reference and retrusn true if there is a signature
+// IsFileSigned takes an path reference and return true if there is a signature
 // available for it. It makes no signature verification, only checks to see if
 // there is a TLog to be found on Rekor.
 func (s *Signer) IsFileSigned(ctx context.Context, path string) (bool, error) {
@@ -718,7 +723,24 @@ func (s *Signer) IsFileSigned(ctx context.Context, path string) (bool, error) {
 		return false, err
 	}
 
-	uuids, err := s.impl.FindTLogEntriesByPayload(ctx, rClient, blobBytes)
+	var b64sig string
+	if isb64(blobBytes) {
+		b64sig = string(blobBytes)
+	} else {
+		b64sig = base64.StdEncoding.EncodeToString(blobBytes)
+	}
+
+	pubKey, err := sigs.PublicKeyFromKeyRef(ctx, ko.KeyRef)
+	if err != nil {
+		return false, fmt.Errorf("getting the public key: %w", err)
+	}
+
+	pubBytes, err := sigs.PublicKeyPem(pubKey, signatureoptions.WithContext(ctx))
+	if err != nil {
+		return false, fmt.Errorf("generating the public key pem: %w", err)
+	}
+
+	uuids, err := s.impl.FindTlogEntry(ctx, rClient, b64sig, blobBytes, pubBytes)
 	if err != nil {
 		return false, fmt.Errorf("find rekor tlog entries: %w", err)
 	}
@@ -747,4 +769,9 @@ func (s *Signer) identityToken(ctx context.Context) (string, error) {
 		tok = token
 	}
 	return tok, nil
+}
+
+func isb64(data []byte) bool {
+	_, err := base64.StdEncoding.DecodeString(string(data))
+	return err == nil
 }

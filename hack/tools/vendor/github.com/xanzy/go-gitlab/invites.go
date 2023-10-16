@@ -75,7 +75,7 @@ func (s *InvitesService) ListPendingGroupInvitations(gid interface{}, opt *ListP
 		return nil, resp, err
 	}
 
-	return pis, resp, err
+	return pis, resp, nil
 }
 
 // ListPendingProjectInvitations gets a list of invited project members.
@@ -100,14 +100,14 @@ func (s *InvitesService) ListPendingProjectInvitations(pid interface{}, opt *Lis
 		return nil, resp, err
 	}
 
-	return pis, resp, err
+	return pis, resp, nil
 }
 
 // InvitesOptions represents the available GroupInvites() and ProjectInvites()
 // options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/invitations.html#invite-by-email-to-group-or-project
+// https://docs.gitlab.com/ee/api/invitations.html#add-a-member-to-a-group-or-project
 type InvitesOptions struct {
 	ID          interface{}       `url:"id,omitempty" json:"id,omitempty"`
 	Email       *string           `url:"email,omitempty" json:"email,omitempty"`
@@ -119,7 +119,7 @@ type InvitesOptions struct {
 // InvitesResult represents an invitations result.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/invitations.html#invite-by-email-to-group-or-project
+// https://docs.gitlab.com/ee/api/invitations.html#add-a-member-to-a-group-or-project
 type InvitesResult struct {
 	Status  string            `json:"status"`
 	Message map[string]string `json:"message,omitempty"`
@@ -128,7 +128,7 @@ type InvitesResult struct {
 // GroupInvites invites new users by email to join a group.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/invitations.html#invite-by-email-to-group-or-project
+// https://docs.gitlab.com/ee/api/invitations.html#add-a-member-to-a-group-or-project
 func (s *InvitesService) GroupInvites(gid interface{}, opt *InvitesOptions, options ...RequestOptionFunc) (*InvitesResult, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
@@ -147,13 +147,13 @@ func (s *InvitesService) GroupInvites(gid interface{}, opt *InvitesOptions, opti
 		return nil, resp, err
 	}
 
-	return ir, resp, err
+	return ir, resp, nil
 }
 
 // ProjectInvites invites new users by email to join a project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/invitations.html#invite-by-email-to-group-or-project
+// https://docs.gitlab.com/ee/api/invitations.html#add-a-member-to-a-group-or-project
 func (s *InvitesService) ProjectInvites(pid interface{}, opt *InvitesOptions, options ...RequestOptionFunc) (*InvitesResult, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -172,5 +172,5 @@ func (s *InvitesService) ProjectInvites(pid interface{}, opt *InvitesOptions, op
 		return nil, resp, err
 	}
 
-	return ir, resp, err
+	return ir, resp, nil
 }

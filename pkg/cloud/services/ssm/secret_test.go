@@ -17,7 +17,7 @@ limitations under the License.
 package ssm
 
 import (
-	"math/rand"
+	crand "crypto/rand"
 	"sort"
 	"strings"
 	"testing"
@@ -45,7 +45,7 @@ func TestServiceCreate(t *testing.T) {
 
 	generateBytes := func(count int64) []byte {
 		token := make([]byte, count)
-		_, err := rand.Read(token)
+		_, err := crand.Read(token)
 		if err != nil {
 			t.Fatalf("error while creating data: %v", err)
 		}

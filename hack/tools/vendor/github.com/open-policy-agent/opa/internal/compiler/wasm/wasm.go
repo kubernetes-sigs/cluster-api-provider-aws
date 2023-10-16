@@ -139,8 +139,10 @@ var builtinsFunctions = map[string]string{
 	ast.JSONIsValid.Name:                "opa_json_is_valid",
 	ast.ObjectFilter.Name:               "builtin_object_filter",
 	ast.ObjectGet.Name:                  "builtin_object_get",
+	ast.ObjectKeys.Name:                 "builtin_object_keys",
 	ast.ObjectRemove.Name:               "builtin_object_remove",
 	ast.ObjectUnion.Name:                "builtin_object_union",
+	ast.ObjectUnionN.Name:               "builtin_object_union_n",
 	ast.Concat.Name:                     "opa_strings_concat",
 	ast.FormatInt.Name:                  "opa_strings_format_int",
 	ast.IndexOf.Name:                    "opa_strings_indexof",
@@ -603,7 +605,7 @@ func (c *Compiler) writeExternalFuncNames(buf *bytes.Buffer) {
 
 	for _, decl := range c.policy.Static.BuiltinFuncs {
 		if _, ok := builtinsFunctions[decl.Name]; !ok {
-			addr := int32(buf.Len()) + int32(c.stringOffset)
+			addr := int32(buf.Len()) + c.stringOffset
 			buf.WriteString(decl.Name)
 			buf.WriteByte(0)
 			c.externalFuncNameAddrs[decl.Name] = addr
@@ -615,7 +617,7 @@ func (c *Compiler) writeEntrypointNames(buf *bytes.Buffer) {
 	c.entrypointNameAddrs = make(map[string]int32)
 
 	for _, plan := range c.policy.Plans.Plans {
-		addr := int32(buf.Len()) + int32(c.stringOffset)
+		addr := int32(buf.Len()) + c.stringOffset
 		buf.WriteString(plan.Name)
 		buf.WriteByte(0)
 		c.entrypointNameAddrs[plan.Name] = addr
@@ -886,12 +888,9 @@ func (c *Compiler) compileFunc(fn *ir.Func) error {
 }
 
 func mapFunc(mapping ast.Object, fn *ir.Func, index int) (ast.Object, bool) {
-	curr := ast.NewObject()
-	curr.Insert(ast.StringTerm(fn.Path[len(fn.Path)-1]), ast.IntNumberTerm(index))
+	curr := ast.NewObject(ast.Item(ast.StringTerm(fn.Path[len(fn.Path)-1]), ast.IntNumberTerm(index)))
 	for i := len(fn.Path) - 2; i >= 0; i-- {
-		o := ast.NewObject()
-		o.Insert(ast.StringTerm(fn.Path[i]), ast.NewTerm(curr))
-		curr = o
+		curr = ast.NewObject(ast.Item(ast.StringTerm(fn.Path[i]), ast.NewTerm(curr)))
 	}
 	return mapping.Merge(curr)
 }

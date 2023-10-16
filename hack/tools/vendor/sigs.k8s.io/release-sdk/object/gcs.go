@@ -272,7 +272,7 @@ func (g *GCS) getPath(
 //
 //	like in build.checkBuildExists()?
 func (g *GCS) NormalizePath(gcsPathParts ...string) (string, error) {
-	gcsPath := ""
+	var gcsPath string
 
 	// Ensure there is at least one element in the gcsPathParts slice before
 	// trying to construct a path

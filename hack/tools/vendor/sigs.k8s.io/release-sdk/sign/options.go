@@ -21,8 +21,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/sigstore/cosign/cmd/cosign/cli/options"
-	"github.com/sigstore/cosign/pkg/cosign"
+	"github.com/sigstore/cosign/v2/cmd/cosign/cli/options"
+	"github.com/sigstore/cosign/v2/pkg/cosign"
 	"github.com/sirupsen/logrus"
 )
 
@@ -46,9 +46,15 @@ type Options struct {
 
 	OutputSignaturePath   string
 	OutputCertificatePath string
-	Annotations           map[string]interface{}
+	Annotations           []string
 	PrivateKeyPath        string
 	PublicKeyPath         string
+	IgnoreSCT             bool
+	IgnoreTlog            bool
+	CertIdentity          string
+	CertIdentityRegexp    string
+	CertOidcIssuer        string
+	CertOidcIssuerRegexp  string
 
 	// Identity token for keyless signing
 	IdentityToken string
@@ -82,6 +88,12 @@ type Options struct {
 	// If a multi-arch image is specified, additionally sign each discrete image.
 	// Defaults to false.
 	Recursive bool
+
+	// SignContainerIdentity can be used to manually set the
+	// .critical.docker-reference field for the signed identity, which is
+	// useful when image proxies are being used where the pull reference should
+	// match the signature
+	SignContainerIdentity string
 }
 
 // Default returns a default Options instance.
@@ -95,6 +107,8 @@ func Default() *Options {
 		MaxWorkers:           100,
 		CacheTimeout:         2 * time.Hour,
 		MaxCacheItems:        10000,
+		CertIdentityRegexp:   "(prow-build@k8s-infra-prow-build.iam.gserviceaccount.com)|((krel-trust|krel-staging)@k8s-releng-prod.iam.gserviceaccount.com)",
+		CertOidcIssuer:       "https://accounts.google.com",
 	}
 }
 

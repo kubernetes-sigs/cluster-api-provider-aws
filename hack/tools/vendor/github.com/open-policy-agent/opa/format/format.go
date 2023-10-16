@@ -10,9 +10,11 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strings"
 
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/internal/future"
+	"github.com/open-policy-agent/opa/types"
 )
 
 // Opts lets you control the code formatting via `AstWithOpts()`.
@@ -37,6 +39,7 @@ func Source(filename string, src []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	formatted, err := Ast(module)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %v", filename, err)
@@ -61,6 +64,24 @@ func Ast(x interface{}) ([]byte, error) {
 	return AstWithOpts(x, Opts{})
 }
 
+type fmtOpts struct {
+	// When the future keyword "contains" is imported, all the pretty-printed
+	// modules will use that format for partial sets.
+	// NOTE(sr): For ref-head rules, this will be the default behaviour, since
+	// we need "contains" to disambiguate complete rules from partial sets.
+	contains bool
+
+	// Same logic applies as for "contains": if `future.keywords.if` (or all
+	// future keywords) is imported, we'll render rules that can use `if` with
+	// `if`.
+	ifs bool
+
+	// We check all rule ref heads to see if any of them _requires_ support
+	// for ref heads -- if they do, we'll print all of them in a different way
+	// than if they don't.
+	refHeads bool
+}
+
 func AstWithOpts(x interface{}, opts Opts) ([]byte, error) {
 	// The node has to be deep copied because it may be mutated below. Alternatively,
 	// we could avoid the copy by checking if mutation will occur first. For now,
@@ -75,16 +96,7 @@ func AstWithOpts(x interface{}, opts Opts) ([]byte, error) {
 	// present.
 	extraFutureKeywordImports := map[string]struct{}{}
 
-	// When the future keyword "contains" is imported, all the pretty-printed
-	// modules will use that format for partial sets.
-	// NOTE(sr): For ref-head rules, this will be the default behaviour, since
-	// we need "contains" to disambiguate complete rules from partial sets.
-	useContainsKW := false
-
-	// Same logic applies as for "contains": if `future.keywords.if` (or all
-	// future keywords) is imported, we'll render rules that can use `if` with
-	// `if`.
-	useIf := false
+	o := fmtOpts{}
 
 	// Preprocess the AST. Set any required defaults and calculate
 	// values required for printing the formatted output.
@@ -108,12 +120,20 @@ func AstWithOpts(x interface{}, opts Opts) ([]byte, error) {
 		case *ast.Import:
 			switch {
 			case future.IsAllFutureKeywords(n):
-				useContainsKW = true
-				useIf = true
+				o.contains = true
+				o.ifs = true
 			case future.IsFutureKeyword(n, "contains"):
-				useContainsKW = true
+				o.contains = true
 			case future.IsFutureKeyword(n, "if"):
-				useIf = true
+				o.ifs = true
+			}
+
+		case *ast.Rule:
+			if len(n.Head.Ref()) > 2 {
+				o.refHeads = true
+			}
+			if len(n.Head.Ref()) == 2 && n.Head.Key != nil && n.Head.Value == nil { // p.q contains "x"
+				o.refHeads = true
 			}
 		}
 
@@ -125,6 +145,7 @@ func AstWithOpts(x interface{}, opts Opts) ([]byte, error) {
 
 	w := &writer{
 		indent: "\t",
+		errs:   make([]*ast.Error, 0),
 	}
 
 	switch x := x.(type) {
@@ -132,19 +153,18 @@ func AstWithOpts(x interface{}, opts Opts) ([]byte, error) {
 		for kw := range extraFutureKeywordImports {
 			x.Imports = ensureFutureKeywordImport(x.Imports, kw)
 		}
-		w.writeModule(x, useContainsKW, useIf)
+		w.writeModule(x, o)
 	case *ast.Package:
 		w.writePackage(x, nil)
 	case *ast.Import:
 		w.writeImports([]*ast.Import{x}, nil)
 	case *ast.Rule:
-		w.writeRule(x, false /* isElse */, useContainsKW, useIf, nil)
+		w.writeRule(x, false /* isElse */, o, nil)
 	case *ast.Head:
 		w.writeHead(x,
 			false, // isDefault
 			false, // isExpandedConst
-			useContainsKW,
-			useIf,
+			o,
 			nil)
 	case ast.Body:
 		w.writeBody(x, nil)
@@ -162,6 +182,9 @@ func AstWithOpts(x interface{}, opts Opts) ([]byte, error) {
 		return nil, fmt.Errorf("not an ast element: %v", x)
 	}
 
+	if len(w.errs) > 0 {
+		return nil, w.errs
+	}
 	return squashTrailingNewlines(w.buf.Bytes()), nil
 }
 
@@ -212,9 +235,10 @@ type writer struct {
 	inline    bool
 	beforeEnd *ast.Comment
 	delay     bool
+	errs      ast.Errors
 }
 
-func (w *writer) writeModule(module *ast.Module, useContainsKW, useIf bool) {
+func (w *writer) writeModule(module *ast.Module, o fmtOpts) {
 	var pkg *ast.Package
 	var others []interface{}
 	var comments []*ast.Comment
@@ -253,7 +277,7 @@ func (w *writer) writeModule(module *ast.Module, useContainsKW, useIf bool) {
 		imports, others = gatherImports(others)
 		comments = w.writeImports(imports, comments)
 		rules, others = gatherRules(others)
-		comments = w.writeRules(rules, useContainsKW, useIf, comments)
+		comments = w.writeRules(rules, o, comments)
 	}
 
 	for i, c := range comments {
@@ -283,16 +307,16 @@ func (w *writer) writeComments(comments []*ast.Comment) {
 	}
 }
 
-func (w *writer) writeRules(rules []*ast.Rule, useContainsKW, useIf bool, comments []*ast.Comment) []*ast.Comment {
+func (w *writer) writeRules(rules []*ast.Rule, o fmtOpts, comments []*ast.Comment) []*ast.Comment {
 	for _, rule := range rules {
 		comments = w.insertComments(comments, rule.Location)
-		comments = w.writeRule(rule, false, useContainsKW, useIf, comments)
+		comments = w.writeRule(rule, false, o, comments)
 		w.blankLine()
 	}
 	return comments
 }
 
-func (w *writer) writeRule(rule *ast.Rule, isElse, useContainsKW, useIf bool, comments []*ast.Comment) []*ast.Comment {
+func (w *writer) writeRule(rule *ast.Rule, isElse bool, o fmtOpts, comments []*ast.Comment) []*ast.Comment {
 	if rule == nil {
 		return comments
 	}
@@ -311,17 +335,17 @@ func (w *writer) writeRule(rule *ast.Rule, isElse, useContainsKW, useIf bool, co
 	// pretend that the rule has no body in this case.
 	isExpandedConst := rule.Body.Equal(ast.NewBody(ast.NewExpr(ast.BooleanTerm(true)))) && rule.Else == nil
 
-	comments = w.writeHead(rule.Head, rule.Default, isExpandedConst, useContainsKW, useIf, comments)
+	comments = w.writeHead(rule.Head, rule.Default, isExpandedConst, o, comments)
 
 	// this excludes partial sets UNLESS `contains` is used
-	partialSetException := useContainsKW || rule.Head.Value != nil
+	partialSetException := o.contains || rule.Head.Value != nil
 
-	if (len(rule.Body) == 0 || isExpandedConst) && !isElse {
+	if len(rule.Body) == 0 || isExpandedConst {
 		w.endLine()
 		return comments
 	}
 
-	if useIf && partialSetException {
+	if o.ifs && partialSetException {
 		w.write(" if")
 		if len(rule.Body) == 1 {
 			if rule.Body[0].Location.Row == rule.Head.Location.Row {
@@ -329,7 +353,7 @@ func (w *writer) writeRule(rule *ast.Rule, isElse, useContainsKW, useIf bool, co
 				comments = w.writeExpr(rule.Body[0], comments)
 				w.endLine()
 				if rule.Else != nil {
-					comments = w.writeElse(rule, useContainsKW, useIf, comments)
+					comments = w.writeElse(rule, o, comments)
 				}
 				return comments
 			}
@@ -357,12 +381,12 @@ func (w *writer) writeRule(rule *ast.Rule, isElse, useContainsKW, useIf bool, co
 	w.startLine()
 	w.write("}")
 	if rule.Else != nil {
-		comments = w.writeElse(rule, useContainsKW, useIf, comments)
+		comments = w.writeElse(rule, o, comments)
 	}
 	return comments
 }
 
-func (w *writer) writeElse(rule *ast.Rule, useContainsKW, useIf bool, comments []*ast.Comment) []*ast.Comment {
+func (w *writer) writeElse(rule *ast.Rule, o fmtOpts, comments []*ast.Comment) []*ast.Comment {
 	// If there was nothing else on the line before the "else" starts
 	// then preserve this style of else block, otherwise it will be
 	// started as an "inline" else eg:
@@ -406,7 +430,8 @@ func (w *writer) writeElse(rule *ast.Rule, useContainsKW, useIf bool, comments [
 		w.startLine()
 	}
 
-	rule.Else.Head.Name = "else"
+	rule.Else.Head.Name = "else" // NOTE(sr): whaaat
+	rule.Else.Head.Reference = ast.Ref{ast.VarTerm("else")}
 	rule.Else.Head.Args = nil
 	comments = w.insertComments(comments, rule.Else.Head.Location)
 
@@ -423,11 +448,23 @@ func (w *writer) writeElse(rule *ast.Rule, useContainsKW, useIf bool, comments [
 		rule.Else.Head.Value.Location = rule.Else.Head.Location
 	}
 
-	return w.writeRule(rule.Else, true, useContainsKW, useIf, comments)
+	return w.writeRule(rule.Else, true, o, comments)
 }
 
-func (w *writer) writeHead(head *ast.Head, isDefault, isExpandedConst, useContainsKW, useIf bool, comments []*ast.Comment) []*ast.Comment {
-	w.write(head.Name.String())
+func (w *writer) writeHead(head *ast.Head, isDefault, isExpandedConst bool, o fmtOpts, comments []*ast.Comment) []*ast.Comment {
+	ref := head.Ref()
+	if head.Key != nil && head.Value == nil {
+		ref = ref.GroundPrefix()
+	}
+	if o.refHeads || len(ref) == 1 {
+		w.write(ref.String())
+	} else {
+		w.write(ref[0].String())
+		w.write("[")
+		w.write(ref[1].String())
+		w.write("]")
+	}
+
 	if len(head.Args) > 0 {
 		w.write("(")
 		var args []interface{}
@@ -438,10 +475,10 @@ func (w *writer) writeHead(head *ast.Head, isDefault, isExpandedConst, useContai
 		w.write(")")
 	}
 	if head.Key != nil {
-		if useContainsKW && head.Value == nil {
+		if o.contains && head.Value == nil {
 			w.write(" contains ")
 			comments = w.writeTerm(head.Key, comments)
-		} else { // no `if` for p[x] notation
+		} else if head.Value == nil { // no `if` for p[x] notation
 			w.write("[")
 			comments = w.writeTerm(head.Key, comments)
 			w.write("]")
@@ -558,7 +595,7 @@ func (w *writer) writeSomeDecl(decl *ast.SomeDecl, comments []*ast.Comment) []*a
 				w.write(",")
 			}
 		case ast.Call:
-			comments = w.writeInOperator(false, val[1:], comments)
+			comments = w.writeInOperator(false, val[1:], comments, decl.Location, ast.BuiltinMap[val[0].String()].Decl)
 		}
 	}
 
@@ -593,7 +630,7 @@ func (w *writer) writeFunctionCall(expr *ast.Expr, comments []*ast.Comment) []*a
 
 	switch operator {
 	case ast.Member.Name, ast.MemberWithKey.Name:
-		return w.writeInOperator(false, terms[1:], comments)
+		return w.writeInOperator(false, terms[1:], comments, terms[0].Location, ast.BuiltinMap[terms[0].String()].Decl)
 	}
 
 	bi, ok := ast.BuiltinMap[operator]
@@ -618,6 +655,9 @@ func (w *writer) writeFunctionCall(expr *ast.Expr, comments []*ast.Comment) []*a
 		comments = w.writeTerm(terms[2], comments)
 		return comments
 	}
+	// NOTE(Trolloldem): in this point we are operating with a built-in function with the
+	// wrong arity even when the assignment notation is used
+	w.errs = append(w.errs, ArityFormatMismatchError(terms[1:], terms[0].String(), terms[0].Location, bi.Decl))
 	return w.writeFunctionCallPlain(terms, comments)
 }
 
@@ -679,7 +719,7 @@ func (w *writer) writeTermParens(parens bool, term *ast.Term, comments []*ast.Co
 	case ast.Var:
 		w.write(w.formatVar(x))
 	case ast.Call:
-		comments = w.writeCall(parens, x, comments)
+		comments = w.writeCall(parens, x, term.Location, comments)
 	case fmt.Stringer:
 		w.write(x.String())
 	}
@@ -731,7 +771,7 @@ func (w *writer) formatVar(v ast.Var) string {
 	return v.String()
 }
 
-func (w *writer) writeCall(parens bool, x ast.Call, comments []*ast.Comment) []*ast.Comment {
+func (w *writer) writeCall(parens bool, x ast.Call, loc *ast.Location, comments []*ast.Comment) []*ast.Comment {
 	bi, ok := ast.BuiltinMap[x[0].String()]
 	if !ok || bi.Infix == "" {
 		return w.writeFunctionCallPlain(x, comments)
@@ -740,13 +780,22 @@ func (w *writer) writeCall(parens bool, x ast.Call, comments []*ast.Comment) []*
 	if bi.Infix == "in" {
 		// NOTE(sr): `in` requires special handling, mirroring what happens in the parser,
 		// since there can be one or two lhs arguments.
-		return w.writeInOperator(true, x[1:], comments)
+		return w.writeInOperator(true, x[1:], comments, loc, bi.Decl)
 	}
 
 	// TODO(tsandall): improve to consider precedence?
 	if parens {
 		w.write("(")
 	}
+
+	// NOTE(Trolloldem): writeCall is only invoked when the function call is a term
+	// of another function. The only valid arity is the one of the
+	// built-in function
+	if len(bi.Decl.Args()) != len(x)-1 {
+		w.errs = append(w.errs, ArityFormatMismatchError(x[1:], x[0].String(), loc, bi.Decl))
+		return comments
+	}
+
 	comments = w.writeTermParens(true, x[1], comments)
 	w.write(" " + bi.Infix + " ")
 	comments = w.writeTermParens(true, x[2], comments)
@@ -757,7 +806,16 @@ func (w *writer) writeCall(parens bool, x ast.Call, comments []*ast.Comment) []*
 	return comments
 }
 
-func (w *writer) writeInOperator(parens bool, operands []*ast.Term, comments []*ast.Comment) []*ast.Comment {
+func (w *writer) writeInOperator(parens bool, operands []*ast.Term, comments []*ast.Comment, loc *ast.Location, f *types.Function) []*ast.Comment {
+	if len(operands) != len(f.Args()) {
+		// The number of operands does not math the arity of the `in` operator
+		operator := ast.Member.Name
+		if len(f.Args()) == 3 {
+			operator = ast.MemberWithKey.Name
+		}
+		w.errs = append(w.errs, ArityFormatMismatchError(operands, operator, loc, f))
+		return comments
+	}
 	kw := "in"
 	switch len(operands) {
 	case 2:
@@ -1326,4 +1384,37 @@ func ensureFutureKeywordImport(imps []*ast.Import, kw string) []*ast.Import {
 	}
 	imp.Location = defaultLocation(imp)
 	return append(imps, imp)
+}
+
+// ArgErrDetail but for `fmt` checks since compiler has not run yet.
+type ArityFormatErrDetail struct {
+	Have []string `json:"have"`
+	Want []string `json:"want"`
+}
+
+// arityMismatchError but for `fmt` checks since the compiler has not run yet.
+func ArityFormatMismatchError(operands []*ast.Term, operator string, loc *ast.Location, f *types.Function) *ast.Error {
+	want := make([]string, len(f.Args()))
+	for i := range f.Args() {
+		want[i] = types.Sprint(f.Args()[i])
+	}
+
+	have := make([]string, len(operands))
+	for i := 0; i < len(operands); i++ {
+		have[i] = ast.TypeName(operands[i].Value)
+	}
+	err := ast.NewError(ast.TypeErr, loc, "%s: %s", operator, "arity mismatch")
+	err.Details = &ArityFormatErrDetail{
+		Have: have,
+		Want: want,
+	}
+	return err
+}
+
+// Lines returns the string representation of the detail.
+func (d *ArityFormatErrDetail) Lines() []string {
+	return []string{
+		"have: " + "(" + strings.Join(d.Have, ",") + ")",
+		"want: " + "(" + strings.Join(d.Want, ",") + ")",
+	}
 }

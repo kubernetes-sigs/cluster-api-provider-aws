@@ -29,7 +29,7 @@ import (
 )
 
 func init() {
-	rand.Seed(time.Now().Unix())
+	rand.New(rand.NewSource(time.Now().Unix()))
 }
 
 func TestSplitBytes(t *testing.T) {

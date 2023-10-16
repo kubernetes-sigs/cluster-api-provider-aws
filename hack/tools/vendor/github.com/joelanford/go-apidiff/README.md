@@ -36,7 +36,9 @@ Skip automatic caching of go module directories (default: `false`)
 
 ### Outputs
 
-_(none)_
+#### `semver-type`
+
+Returns the type (patch, minor, major) of the sementic version that would be required if producing a release.
 
 ### Example usage
 
@@ -53,7 +55,7 @@ jobs:
         fetch-depth: 0
     - uses: actions/setup-go@v2
       with:
-        go-version: 1.18
+        go-version: "1.18"
     - uses: joelanford/go-apidiff@main
 ```
 

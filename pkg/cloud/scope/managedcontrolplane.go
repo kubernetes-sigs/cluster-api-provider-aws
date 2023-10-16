@@ -169,6 +169,16 @@ func (s *ManagedControlPlaneScope) Subnets() infrav1.Subnets {
 	return s.ControlPlane.Spec.NetworkSpec.Subnets
 }
 
+// SetNatGatewaysIPs sets the Nat Gateways Public IPs.
+func (s *ManagedControlPlaneScope) SetNatGatewaysIPs(ips []string) {
+	s.ControlPlane.Status.Network.NatGatewaysIPs = ips
+}
+
+// GetNatGatewaysIPs gets the Nat Gateways Public IPs.
+func (s *ManagedControlPlaneScope) GetNatGatewaysIPs() []string {
+	return s.ControlPlane.Status.Network.NatGatewaysIPs
+}
+
 // IdentityRef returns the cluster identityRef.
 func (s *ManagedControlPlaneScope) IdentityRef() *infrav1.AWSIdentityReference {
 	return s.ControlPlane.Spec.IdentityRef
@@ -417,4 +427,9 @@ func (s *ManagedControlPlaneScope) Partition() string {
 		s.ControlPlane.Spec.Partition = system.GetPartitionFromRegion(s.Region())
 	}
 	return s.ControlPlane.Spec.Partition
+}
+
+// AdditionalControlPlaneIngressRules returns the additional ingress rules for the control plane security group.
+func (s *ManagedControlPlaneScope) AdditionalControlPlaneIngressRules() []infrav1.IngressRule {
+	return nil
 }

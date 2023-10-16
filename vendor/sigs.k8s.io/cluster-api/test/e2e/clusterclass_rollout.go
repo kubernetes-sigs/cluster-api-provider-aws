@@ -58,6 +58,13 @@ type ClusterClassRolloutSpecInput struct {
 	SkipCleanup           bool
 	ControlPlaneWaiters   clusterctl.ControlPlaneWaiters
 
+	// InfrastructureProviders specifies the infrastructure to use for clusterctl
+	// operations (Example: get cluster templates).
+	// Note: In most cases this need not be specified. It only needs to be specified when
+	// multiple infrastructure providers (ex: CAPD + in-memory) are installed on the cluster as clusterctl will not be
+	// able to identify the default.
+	InfrastructureProvider *string
+
 	// Flavor is the cluster-template flavor used to create the Cluster for testing.
 	// NOTE: The template must be using ClusterClass, KCP and CABPK as this test is specifically
 	// testing ClusterClass and KCP rollout behavior.
@@ -105,13 +112,17 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 
 	It("Should successfully rollout the managed topology upon changes to the ClusterClass", func() {
 		By("Creating a workload cluster")
+		infrastructureProvider := clusterctl.DefaultInfrastructureProvider
+		if input.InfrastructureProvider != nil {
+			infrastructureProvider = *input.InfrastructureProvider
+		}
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
 			ConfigCluster: clusterctl.ConfigClusterInput{
 				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
-				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+				InfrastructureProvider:   infrastructureProvider,
 				Flavor:                   input.Flavor,
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
@@ -268,7 +279,7 @@ func assertClusterObjects(ctx context.Context, clusterProxy framework.ClusterPro
 		assertMachineSetsMachines(g, clusterObjects, cluster)
 
 		By("All cluster objects have the right labels, annotations and selectors")
-	}, 10*time.Second, 1*time.Second).Should(Succeed())
+	}, 30*time.Second, 1*time.Second).Should(Succeed())
 }
 
 func assertInfrastructureCluster(g Gomega, clusterClassObjects clusterClassObjects, clusterObjects clusterObjects, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) {
@@ -403,7 +414,7 @@ func assertControlPlaneMachines(g Gomega, clusterObjects clusterObjects, cluster
 		// ControlPlane Machine InfrastructureMachine.metadata
 		infrastructureMachine := clusterObjects.InfrastructureMachineByMachine[machine.Name]
 		controlPlaneMachineTemplateInfrastructureRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(clusterObjects.ControlPlane)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(infrastructureMachine.GetLabels()).To(BeEquivalentTo(
 			union(
 				map[string]string{
