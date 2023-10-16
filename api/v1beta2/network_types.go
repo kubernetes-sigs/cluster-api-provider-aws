@@ -590,14 +590,17 @@ var (
 
 	// SecurityGroupProtocolICMPv6 represents the ICMPv6 protocol in ingress rules.
 	SecurityGroupProtocolICMPv6 = SecurityGroupProtocol("58")
+
+	// SecurityGroupProtocolESP represents the ESP protocol in ingress rules.
+	SecurityGroupProtocolESP = SecurityGroupProtocol("50")
 )
 
 // IngressRule defines an AWS ingress rule for security groups.
 type IngressRule struct {
 	// Description provides extended information about the ingress rule.
 	Description string `json:"description"`
-	// Protocol is the protocol for the ingress rule. Accepted values are "-1" (all), "4" (IP in IP),"tcp", "udp", "icmp", and "58" (ICMPv6).
-	// +kubebuilder:validation:Enum="-1";"4";tcp;udp;icmp;"58"
+	// Protocol is the protocol for the ingress rule. Accepted values are "-1" (all), "4" (IP in IP),"tcp", "udp", "icmp", and "58" (ICMPv6), "50" (ESP).
+	// +kubebuilder:validation:Enum="-1";"4";tcp;udp;icmp;"58";"50"
 	Protocol SecurityGroupProtocol `json:"protocol"`
 	// FromPort is the start of port range.
 	FromPort int64 `json:"fromPort"`
@@ -706,7 +709,7 @@ func (i *IngressRule) Equals(o *IngressRule) bool {
 		SecurityGroupProtocolICMP,
 		SecurityGroupProtocolICMPv6:
 		return i.FromPort == o.FromPort && i.ToPort == o.ToPort
-	case SecurityGroupProtocolAll, SecurityGroupProtocolIPinIP:
+	case SecurityGroupProtocolAll, SecurityGroupProtocolIPinIP, SecurityGroupProtocolESP:
 		// FromPort / ToPort are not applicable
 	}
 
