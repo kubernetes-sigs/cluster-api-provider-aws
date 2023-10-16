@@ -201,10 +201,11 @@ func (s *Service) ReconcileLaunchTemplate(
 }
 
 func (s *Service) getEC2Service(scope scope.LaunchTemplateScope) services.EC2Interface {
-	if s.isMock {
-		return s
+	ec2Scope := scope.GetEC2Scope()
+	if s.ec2ServiceFactory != nil {
+		return s.ec2ServiceFactory(ec2Scope)
 	}
-	return NewService(scope.GetEC2Scope())
+	return NewService(ec2Scope)
 }
 
 func (s *Service) ReconcileTags(scope scope.LaunchTemplateScope, resourceServicesToUpdate []scope.ResourceServiceToUpdate) error {

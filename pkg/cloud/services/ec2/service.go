@@ -19,8 +19,8 @@ package ec2
 import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
-
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 )
 
 // Service holds a collection of interfaces.
@@ -32,8 +32,7 @@ type Service struct {
 
 	// SSMClient is used to look up the official EKS AMI ID
 	SSMClient ssmiface.SSMAPI
-	// isMock is used to return current mock service instead of creating new one, for testing
-	isMock bool
+	ec2ServiceFactory func(scope.EC2Scope) services.EC2Interface
 }
 
 // NewService returns a new service given the ec2 api client.

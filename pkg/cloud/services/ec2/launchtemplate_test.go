@@ -34,14 +34,16 @@ import (
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ssm/mock_ssmiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const (
@@ -1737,9 +1739,11 @@ func newEKSManagedAMITestSuite(g *WithT, mockCtrl *gomock.Controller) *eksManage
 	mcps, err := setupNewManagedControlPlaneScope(client)
 	g.Expect(err).NotTo(HaveOccurred())
 
-	s := NewService(mcps)
-	s.EC2Client = ec2Mock
-	s.isMock = true
+	ec2Svc := NewService(mcps)
+	ec2Svc.EC2Client = ec2Mock
+	ec2Svc.ec2ServiceFactory = func(ec2Scope scope.EC2Scope) services.EC2Interface {
+		return ec2Svc
+	}
 	machinePool := newMachinePool()
 	machinePool.Spec.Template.Spec.Bootstrap = clusterv1.Bootstrap{}
 
@@ -1780,7 +1784,7 @@ func newEKSManagedAMITestSuite(g *WithT, mockCtrl *gomock.Controller) *eksManage
 		ManagedMachinePoolScope: mmps,
 		Client:                  client,
 		EC2Mock:                 ec2Mock,
-		Service:                 s,
+		Service: ec2Svc,
 	}
 }
 
