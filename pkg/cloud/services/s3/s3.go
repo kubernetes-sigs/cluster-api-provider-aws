@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"sort"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -271,6 +272,10 @@ func (s *Service) tagBucket(bucketName string) error {
 			Value: aws.String(value),
 		})
 	}
+
+	sort.Slice(taggingInput.Tagging.TagSet, func(i, j int) bool {
+		return *taggingInput.Tagging.TagSet[i].Key < *taggingInput.Tagging.TagSet[j].Key
+	})
 
 	_, err := s.S3Client.PutBucketTagging(taggingInput)
 	if err != nil {
