@@ -54,6 +54,7 @@ const (
 	VPCNotFound                             = "InvalidVpcID.NotFound"
 	VPCMissingParameter                     = "MissingParameter"
 	ErrCodeRepositoryAlreadyExistsException = "RepositoryAlreadyExistsException"
+	ASGNotFound                             = "AutoScalingGroup.NotFound"
 )
 
 var _ error = &EC2Error{}
@@ -168,6 +169,8 @@ func IsInvalidNotFoundError(err error) bool {
 		case ssm.ErrCodeParameterNotFound:
 			return true
 		case LaunchTemplateNameNotFound:
+			return true
+		case ASGNotFound:
 			return true
 		}
 	}

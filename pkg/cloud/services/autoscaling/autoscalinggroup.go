@@ -154,6 +154,11 @@ func (s *Service) GetASGByName(scope *scope.MachinePoolScope) (*expinfrav1.AutoS
 	return s.ASGIfExists(&name)
 }
 
+func (s *Service) GetASGByTags(scope *scope.ManagedMachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
+	name := scope.Name()
+	return s.ASGIfExists(&name)
+}
+
 // CreateASG runs an autoscaling group.
 func (s *Service) CreateASG(machinePoolScope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
 	subnets, err := s.SubnetIDs(machinePoolScope)

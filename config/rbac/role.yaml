@@ -114,6 +114,14 @@ rules:
   - cluster.x-k8s.io
   resources:
   - machines
+  verbs:
+  - delete
+  - get
+  - list
+  - watch
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
   - machines/status
   verbs:
   - get
@@ -284,6 +292,7 @@ rules:
   resources:
   - awsmachines
   verbs:
+  - create
   - delete
   - get
   - list
