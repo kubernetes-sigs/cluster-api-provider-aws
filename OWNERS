@@ -3,14 +3,19 @@
 # to be added to the owners-gen input data.
 approvers:
 - JoelSpeed
+- RadekManak
 - damdo
 - enxebre
+- nrb
+- odvarkadaniel
 reviewers:
 - JoelSpeed
 - RadekManak
 - damdo
 - elmiko
-- lobziik
+- nrb
 - odvarkadaniel
+- racheljpg
+- vincepri
 component: Cloud Compute
 subcomponent: Other Provider
