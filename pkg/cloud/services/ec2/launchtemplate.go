@@ -59,6 +59,7 @@ func (s *Service) ReconcileLaunchTemplate(
 	bootstrapData, err := scope.GetRawBootstrapData()
 	if err != nil {
 		record.Eventf(scope.GetMachinePool(), corev1.EventTypeWarning, "FailedGetBootstrapData", err.Error())
+		return err
 	}
 	bootstrapDataHash := userdata.ComputeHash(bootstrapData)
 
