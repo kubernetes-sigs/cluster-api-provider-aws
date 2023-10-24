@@ -321,7 +321,7 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 		// and AWSMachine
 		// 3. Issue a delete
 		// 4. Scale controller deployment to 1
-		machineScope.Debug("Unable to locate EC2 instance by ID or tags")
+		machineScope.Warn("Unable to locate EC2 instance by ID or tags")
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "NoInstanceFound", "Unable to find matching EC2 instance")
 		controllerutil.RemoveFinalizer(machineScope.AWSMachine, infrav1.MachineFinalizer)
 		return ctrl.Result{}, nil
