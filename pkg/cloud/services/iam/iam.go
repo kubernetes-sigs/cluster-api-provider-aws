@@ -40,7 +40,7 @@ const (
 	SelfsignedIssuerFormat = "%s-selfsigned-issuer"
 
 	// S3HostFormat format for the host format for s3 for the oidc provider.
-	S3HostFormat = "s3-%s.amazonaws.com"
+	S3HostFormat = "s3.%s.amazonaws.com"
 
 	// STSAWSAudience security token service url.
 	STSAWSAudience = "sts.amazonaws.com"
