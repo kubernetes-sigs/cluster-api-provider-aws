@@ -1126,7 +1126,7 @@ func (r *AWSMachineReconciler) ensureStorageTags(ec2svc services.EC2Interface, i
 			}
 			annotations[volumeID] = newAnnotation
 		} else {
-			newAnnotation, err := r.ensureVolumeTags(ec2svc, aws.String(volumeID), make(map[string]interface{}), machine.Spec.AdditionalTags)
+			newAnnotation, err := r.ensureVolumeTags(ec2svc, aws.String(volumeID), make(map[string]interface{}), additionalTags)
 			if err != nil {
 				r.Log.Error(err, "Failed to fetch the changed volume tags in EC2 instance")
 			}
