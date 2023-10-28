@@ -17,6 +17,8 @@ limitations under the License.
 package services
 
 import (
+	"context"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
@@ -109,6 +111,11 @@ type NetworkInterface interface {
 	ReconcileNetwork() error
 }
 
+type IAMInterface interface {
+	ReconcileOIDCProvider(ctx context.Context) error
+	DeleteOIDCProvider(ctx context.Context) error
+}
+
 // SecurityGroupInterface encapsulates the methods exposed to the cluster
 // controller.
 type SecurityGroupInterface interface {
@@ -120,6 +127,7 @@ type SecurityGroupInterface interface {
 type ObjectStoreInterface interface {
 	DeleteBucket() error
 	ReconcileBucket() error
-	Delete(m *scope.MachineScope) error
-	Create(m *scope.MachineScope, data []byte) (objectURL string, err error)
+	Delete(key string) error
+	Create(key string, data []byte) (objectURL string, err error)
+	CreatePublic(key string, data []byte) (objectURL string, err error)
 }

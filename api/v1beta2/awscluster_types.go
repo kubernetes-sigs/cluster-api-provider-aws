@@ -96,11 +96,18 @@ type AWSClusterSpec struct {
 	IdentityRef *AWSIdentityReference `json:"identityRef,omitempty"`
 
 	// S3Bucket contains options to configure a supporting S3 bucket for this
-	// cluster - currently used for nodes requiring Ignition
+	// cluster - Used  for nodes requiring Ignition
 	// (https://coreos.github.io/ignition/) for bootstrapping (requires
-	// BootstrapFormatIgnition feature flag to be enabled).
+	// BootstrapFormatIgnition feature flag to be enabled) and for storing OIDC endpoint
+	// certificates for use with IRSA
 	// +optional
 	S3Bucket *S3Bucket `json:"s3Bucket,omitempty"`
+
+	// AssociateOIDCProvider can be enabled to automatically create an identity
+	// provider and install the pod identity webhook from AWS for use with IRSA.
+	// This will only work if the S3Bucket is configured properly.
+	// +kubebuilder:default=false
+	AssociateOIDCProvider bool `json:"associateOIDCProvider,omitempty"`
 }
 
 // AWSIdentityKind defines allowed AWS identity types.
@@ -255,6 +262,10 @@ type AWSClusterStatus struct {
 	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
 	Bastion        *Instance                `json:"bastion,omitempty"`
 	Conditions     clusterv1.Conditions     `json:"conditions,omitempty"`
+
+	// OIDCProvider holds the status of the identity provider for this cluster
+	// +optional
+	OIDCProvider OIDCProviderStatus `json:"oidcProvider,omitempty"`
 }
 
 type S3Bucket struct {
