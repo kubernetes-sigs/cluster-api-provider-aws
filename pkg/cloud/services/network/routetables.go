@@ -115,6 +115,7 @@ func (s *Service) reconcileRouteTables() error {
 			// Not recording "SuccessfulTagRouteTable" here as we don't know if this was a no-op or an actual change
 			continue
 		}
+		s.scope.Debug("Subnet isn't associated with route table", "subnet-id", sn.GetResourceID())
 
 		// For each subnet that doesn't have a routing table associated with it,
 		// create a new table with the appropriate default routes and associate it to the subnet.
