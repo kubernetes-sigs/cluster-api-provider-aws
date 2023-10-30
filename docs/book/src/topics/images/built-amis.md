@@ -9,7 +9,7 @@ See [clusterawsadm ami list](https://cluster-api-aws.sigs.k8s.io/clusterawsadm/c
 
 ## Supported OS Distributions
 - Amazon Linux 2 (amazon-2)
-- Ubuntu (ubuntu-20.04, ubuntu-18.04)
+- Ubuntu (ubuntu-20.04, ubuntu-22.04)
 - Centos (centos-7)
 - Flatcar (flatcar-stable)
 
@@ -18,7 +18,7 @@ See [clusterawsadm ami list](https://cluster-api-aws.sigs.k8s.io/clusterawsadm/c
 - ap-northeast-2
 - ap-south-1
 - ap-southeast-1
-- ap-northeast-2
+- ap-southeast-2
 - ca-central-1
 - eu-central-1
 - eu-west-1

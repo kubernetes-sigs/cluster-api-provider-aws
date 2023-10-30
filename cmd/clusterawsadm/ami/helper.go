@@ -38,7 +38,7 @@ const (
 )
 
 func getSupportedOsList() []string {
-	return []string{"centos-7", "ubuntu-18.04", "ubuntu-20.04", "amazon-2", "flatcar-stable"}
+	return []string{"centos-7", "ubuntu-22.04", "ubuntu-18.04", "ubuntu-20.04", "amazon-2", "flatcar-stable"}
 }
 
 func getimageRegionList() []string {
