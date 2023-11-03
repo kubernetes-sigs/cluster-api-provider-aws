@@ -47,6 +47,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
+const TestSvc = "test-svc-"
+
 var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	var (
 		ctx               context.Context
@@ -334,7 +336,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-contolplane-upgrade")...)
 
 			ginkgo.By("Creating the LB service")
-			lbServiceName := "test-svc-" + util.RandomString(6)
+			lbServiceName := TestSvc + util.RandomString(6)
 			elbName := createLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
 			verifyElbExists(elbName, true)
 
@@ -404,7 +406,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-contolplane-upgrade")...)
 
 			ginkgo.By("Creating the LB service")
-			lbServiceName := "test-svc-" + util.RandomString(6)
+			lbServiceName := TestSvc + util.RandomString(6)
 			elbName := createLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
 			verifyElbExists(elbName, true)
 
@@ -474,7 +476,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-contolplane-upgrade")...)
 
 			ginkgo.By("Creating the LB service")
-			lbServiceName := "test-svc-" + util.RandomString(6)
+			lbServiceName := TestSvc + util.RandomString(6)
 			elbName := createLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
 			verifyElbExists(elbName, true)
 

@@ -1325,6 +1325,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 					ID:    "myMachine",
 					State: infrav1.InstanceStatePending,
 				}
+
+				//nolint:gosec
 				presigned := "https://cluster-api-aws.s3.us-west-2.amazonaws.com/bootstrap-data.yaml?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA3SGQVQG7FGA6KKA6%2F20221104%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20221104T140227Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=b228dbec8c1008c80c162e1210e4503dceead1e4d4751b4d9787314fd6da4d55"
 
 				objectStoreSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(presigned, nil).Times(1)
