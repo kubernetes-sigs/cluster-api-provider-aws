@@ -22,7 +22,7 @@ require (
 	github.com/google/gofuzz v1.2.0
 	github.com/onsi/ginkgo/v2 v2.13.0
 	github.com/onsi/gomega v1.29.0
-	github.com/openshift-online/ocm-sdk-go v0.1.380
+	github.com/openshift-online/ocm-sdk-go v0.1.381
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.17.0
 	github.com/sergi/go-diff v1.3.1
