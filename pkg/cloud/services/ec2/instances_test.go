@@ -196,7 +196,7 @@ func TestInstanceIfExists(t *testing.T) {
 			s := NewService(scope)
 			s.EC2Client = ec2Mock
 
-			instance, err := s.InstanceIfExists(&tc.instanceID)
+			instance, err := s.InstanceIfExists(aws.String(tc.instanceID))
 			tc.check(instance, err)
 		})
 	}
@@ -298,7 +298,7 @@ func TestCreateInstance(t *testing.T) {
 
 	testcases := []struct {
 		name          string
-		machine       clusterv1.Machine
+		machine       *clusterv1.Machine
 		machineConfig *infrav1.AWSMachineSpec
 		awsCluster    *infrav1.AWSCluster
 		expect        func(m *mocks.MockEC2APIMockRecorder)
@@ -306,7 +306,7 @@ func TestCreateInstance(t *testing.T) {
 	}{
 		{
 			name: "simple",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -419,7 +419,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "with availability zone",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -550,7 +550,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "with ImageLookupOrg specified at the machine level",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -700,7 +700,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "with ImageLookupOrg specified at the cluster-level",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -850,7 +850,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "AWSMachine ImageLookupOrg overrides AWSCluster ImageLookupOrg",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -1001,7 +1001,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "subnet filter and failureDomain defined",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -1129,7 +1129,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "with subnet ID that belongs to Cluster",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -1256,7 +1256,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "with subnet ID that does not exist",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -1349,7 +1349,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "with subnet ID that does not belong to Cluster",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -1475,7 +1475,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "subnet id and failureDomain don't match",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -1573,7 +1573,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "public IP true and failureDomain doesn't have public subnet",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -1656,7 +1656,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "public IP true and public subnet ID given",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -1786,7 +1786,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "public IP true and private subnet ID given",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -1885,7 +1885,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "both public IP and subnet filter defined",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -2023,7 +2023,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "public IP true and public subnet exists",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -2141,7 +2141,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "public IP true and no public subnet exists",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -2224,7 +2224,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "with multiple block device mappings",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -2347,7 +2347,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "with dedicated tenancy cloud-config",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:    map[string]string{"set": "node"},
 					Namespace: "default",
@@ -2503,7 +2503,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "with custom placement group cloud-config",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:    map[string]string{"set": "node"},
 					Namespace: "default",
@@ -2659,7 +2659,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "with dedicated tenancy and placement group ignition",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:    map[string]string{"set": "node"},
 					Namespace: "default",
@@ -2819,7 +2819,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "expect the default SSH key when none is provided",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -2948,7 +2948,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "expect to use the cluster level ssh key name when no machine key name is provided",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -3078,7 +3078,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "expect to use the machine level ssh key name when both cluster and machine key names are provided",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -3209,7 +3209,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "expect ssh key to be unset when cluster key name is empty string and machine key name is nil",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -3337,7 +3337,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "expect ssh key to be unset when cluster key name is empty string and machine key name is empty string",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -3465,7 +3465,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "expect ssh key to be unset when cluster key name is nil and machine key name is empty string",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -3620,7 +3620,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 			}
 
-			machine := &tc.machine
+			machine := tc.machine
 
 			awsMachine := &infrav1.AWSMachine{
 				ObjectMeta: metav1.ObjectMeta{

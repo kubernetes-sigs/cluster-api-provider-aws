@@ -46,12 +46,12 @@ import (
 func TestELBName(t *testing.T) {
 	tests := []struct {
 		name       string
-		awsCluster infrav1.AWSCluster
+		awsCluster *infrav1.AWSCluster
 		expected   string
 	}{
 		{
 			name: "name is not defined by user, so generate the default",
-			awsCluster: infrav1.AWSCluster{
+			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "example",
 					Namespace: metav1.NamespaceDefault,
@@ -61,7 +61,7 @@ func TestELBName(t *testing.T) {
 		},
 		{
 			name: "name is defined by user, so use it",
-			awsCluster: infrav1.AWSCluster{
+			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "example",
 					Namespace: metav1.NamespaceDefault,
@@ -89,7 +89,7 @@ func TestELBName(t *testing.T) {
 						Namespace: tt.awsCluster.Namespace,
 					},
 				},
-				AWSCluster: &tt.awsCluster,
+				AWSCluster: tt.awsCluster,
 			})
 			if err != nil {
 				t.Fatalf("failed to create scope: %s", err)
