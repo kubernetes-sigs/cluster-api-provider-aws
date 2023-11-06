@@ -234,7 +234,9 @@ func (s *ClusterScope) PatchObject() error {
 		applicableConditions = append(applicableConditions,
 			infrav1.InternetGatewayReadyCondition,
 			infrav1.NatGatewaysReadyCondition,
-			infrav1.RouteTablesReadyCondition)
+			infrav1.RouteTablesReadyCondition,
+			infrav1.VpcEndpointsReadyCondition,
+		)
 
 		if s.AWSCluster.Spec.Bastion.Enabled {
 			applicableConditions = append(applicableConditions, infrav1.BastionHostReadyCondition)
@@ -261,6 +263,7 @@ func (s *ClusterScope) PatchObject() error {
 			infrav1.EgressOnlyInternetGatewayReadyCondition,
 			infrav1.NatGatewaysReadyCondition,
 			infrav1.RouteTablesReadyCondition,
+			infrav1.VpcEndpointsReadyCondition,
 			infrav1.ClusterSecurityGroupsReadyCondition,
 			infrav1.BastionHostReadyCondition,
 			infrav1.LoadBalancerReadyCondition,

@@ -204,6 +204,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 				infrav1.InternetGatewayReadyCondition,
 				infrav1.NatGatewaysReadyCondition,
 				infrav1.RouteTablesReadyCondition,
+				infrav1.VpcEndpointsReadyCondition,
 			)
 			if managedScope.Bastion().Enabled {
 				applicableConditions = append(applicableConditions, infrav1.BastionHostReadyCondition)
