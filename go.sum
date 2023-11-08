@@ -494,8 +494,8 @@ github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opencontainers/image-spec v1.1.0-rc2.0.20221005185240-3a7f492d3f1b h1:YWuSjZCQAPM8UUBLkYUk1e+rZcvWHJmFb6i6rM44Xs8=
 github.com/opencontainers/image-spec v1.1.0-rc2.0.20221005185240-3a7f492d3f1b/go.mod h1:3OVijpioIKYWTqjiG0zfF6wvoJ4fAXGbjdZuI2NgsRQ=
-github.com/openshift-online/ocm-sdk-go v0.1.381 h1:MRmMyqs4jSWUrDwSzslq22GjB2Ly/9pz1B1+v72npCs=
-github.com/openshift-online/ocm-sdk-go v0.1.381/go.mod h1:/+VFIw1iW2H0jEkFH4GnbL/liWareyzsL0w7mDIudB4=
+github.com/openshift-online/ocm-sdk-go v0.1.383 h1:DlaJbprOZEGfSGi4yMyARsYdPeIoM0Y5QtPlUv8R4dQ=
+github.com/openshift-online/ocm-sdk-go v0.1.383/go.mod h1:/+VFIw1iW2H0jEkFH4GnbL/liWareyzsL0w7mDIudB4=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/pelletier/go-toml v1.9.4/go.mod h1:u1nR/EPcESfeI/szUZKdtJ0xRNbUoANCkoOuaOx1Y+c=
