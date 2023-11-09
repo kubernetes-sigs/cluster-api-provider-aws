@@ -81,6 +81,10 @@ func TestReconcileBucket(t *testing.T) {
 			Tagging: &s3svc.Tagging{
 				TagSet: []*s3svc.Tag{
 					{
+						Key:   aws.String("additional"),
+						Value: aws.String("from-aws-cluster"),
+					},
+					{
 						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 						Value: aws.String("owned"),
 					},
@@ -776,6 +780,9 @@ func testService(t *testing.T, bucket *infrav1.S3Bucket) (*s3.Service, *mock_s3i
 		AWSCluster: &infrav1.AWSCluster{
 			Spec: infrav1.AWSClusterSpec{
 				S3Bucket: bucket,
+				AdditionalTags: infrav1.Tags{
+					"additional": "from-aws-cluster",
+				},
 			},
 		},
 	})
