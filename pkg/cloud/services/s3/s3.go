@@ -263,7 +263,7 @@ func (s *Service) tagBucket(bucketName string) error {
 		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        nil,
 		Role:        aws.String("node"),
-		Additional:  nil,
+		Additional:  s.scope.AdditionalTags(),
 	})
 
 	for key, value := range tags {
