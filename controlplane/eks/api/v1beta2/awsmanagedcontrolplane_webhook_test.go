@@ -330,7 +330,7 @@ func TestWebhookCreate(t *testing.T) {
 				},
 			}
 			if tc.eksVersion != "" {
-				mcp.Spec.Version = &tc.eksVersion
+				mcp.Spec.Version = aws.String(tc.eksVersion)
 			}
 			if tc.hasAddons {
 				testAddons := []Addon{
@@ -363,7 +363,7 @@ func TestWebhookCreate(t *testing.T) {
 func TestWebhookCreateIPv6Details(t *testing.T) {
 	tests := []struct {
 		name        string
-		addons      []Addon
+		addons      *[]Addon
 		kubeVersion string
 		networkSpec infrav1.NetworkSpec
 		err         string
@@ -391,7 +391,7 @@ func TestWebhookCreateIPv6Details(t *testing.T) {
 		{
 			name:        "ipv6 with addons but cni version is lower than supported version",
 			kubeVersion: "v1.22",
-			addons: []Addon{
+			addons: &[]Addon{
 				{
 					Name:    vpcCniAddon,
 					Version: "1.9.3",
@@ -407,7 +407,7 @@ func TestWebhookCreateIPv6Details(t *testing.T) {
 		{
 			name:        "ipv6 with addons and correct cni and cluster version",
 			kubeVersion: "v1.22",
-			addons: []Addon{
+			addons: &[]Addon{
 				{
 					Name:    vpcCniAddon,
 					Version: "1.11.0",
@@ -484,9 +484,9 @@ func TestWebhookCreateIPv6Details(t *testing.T) {
 				},
 				Spec: AWSManagedControlPlaneSpec{
 					EKSClusterName: "test-cluster",
-					Addons:         &tc.addons,
+					Addons:         tc.addons,
 					NetworkSpec:    tc.networkSpec,
-					Version:        &tc.kubeVersion,
+					Version:        aws.String(tc.kubeVersion),
 				},
 			}
 			err := testEnv.Create(ctx, mcp)
@@ -779,7 +779,7 @@ func TestValidatingWebhookCreateSecondaryCidr(t *testing.T) {
 				},
 			}
 			if tc.cidrRange != "" {
-				mcp.Spec.SecondaryCidrBlock = &tc.cidrRange
+				mcp.Spec.SecondaryCidrBlock = aws.String(tc.cidrRange)
 			}
 			warn, err := mcp.ValidateCreate()
 
@@ -844,7 +844,7 @@ func TestValidatingWebhookUpdateSecondaryCidr(t *testing.T) {
 			newMCP := &AWSManagedControlPlane{
 				Spec: AWSManagedControlPlaneSpec{
 					EKSClusterName:     "default_cluster1",
-					SecondaryCidrBlock: &tc.cidrRange,
+					SecondaryCidrBlock: aws.String(tc.cidrRange),
 				},
 			}
 			oldMCP := &AWSManagedControlPlane{
