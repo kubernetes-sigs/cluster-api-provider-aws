@@ -19,6 +19,7 @@ package elb
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -186,7 +187,7 @@ func (s *Service) getAPIServerLBSpec(elbName string) (*infrav1.LoadBalancer, err
 					VpcID:    s.scope.VPC().ID,
 					HealthCheck: &infrav1.TargetGroupHealthCheck{
 						Protocol: aws.String(string(additionalListeners.Protocol)),
-						Port:     aws.String(fmt.Sprintf("%d", additionalListeners.Port)),
+						Port:     aws.String(strconv.FormatInt(additionalListeners.Port, 10)),
 					},
 				},
 			})
@@ -198,7 +199,8 @@ func (s *Service) getAPIServerLBSpec(elbName string) (*infrav1.LoadBalancer, err
 	}
 
 	if s.scope.ControlPlaneLoadBalancer() != nil {
-		res.ELBAttributes[infrav1.LoadBalancerAttributeEnableLoadBalancingCrossZone] = aws.String(fmt.Sprintf("%t", s.scope.ControlPlaneLoadBalancer().CrossZoneLoadBalancing))
+		isCrossZoneLB := s.scope.ControlPlaneLoadBalancer().CrossZoneLoadBalancing
+		res.ELBAttributes[infrav1.LoadBalancerAttributeEnableLoadBalancingCrossZone] = aws.String(strconv.FormatBool(isCrossZoneLB))
 	}
 
 	res.Tags = infrav1.Build(infrav1.BuildParams{
