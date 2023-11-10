@@ -2,7 +2,7 @@ module sigs.k8s.io/cluster-api-provider-aws/v2
 
 go 1.20
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.5.2
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.5.3
 
 require (
 	github.com/alessio/shellescape v1.4.2
@@ -40,8 +40,8 @@ require (
 	k8s.io/klog/v2 v2.100.1
 	k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5
 	sigs.k8s.io/aws-iam-authenticator v0.6.12
-	sigs.k8s.io/cluster-api v1.5.2
-	sigs.k8s.io/cluster-api/test v1.5.2
+	sigs.k8s.io/cluster-api v1.5.3
+	sigs.k8s.io/cluster-api/test v1.5.3
 	sigs.k8s.io/controller-runtime v0.15.1
 	sigs.k8s.io/kustomize/api v0.13.4
 	sigs.k8s.io/yaml v1.4.0
@@ -61,7 +61,7 @@ require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
-	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
+	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chai2010/gettext-go v1.0.2 // indirect
 	github.com/coredns/caddy v1.1.0 // indirect
@@ -174,9 +174,9 @@ require (
 	golang.org/x/tools v0.14.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.3.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20230530153820-e85fd2cbaebc // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20230629202037-9506855d4529 // indirect
-	google.golang.org/grpc v1.56.3 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20230711160842-782d3b101e98 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20230711160842-782d3b101e98 // indirect
+	google.golang.org/grpc v1.58.2 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
