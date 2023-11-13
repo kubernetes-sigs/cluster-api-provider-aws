@@ -32,6 +32,7 @@ Fixes #
 
 - [ ] squashed commits
 - [ ] includes documentation
+- [ ] includes [emojis](https://github.com/kubernetes-sigs/kubebuilder-release-tools?tab=readme-ov-file#kubebuilder-project-versioning)
 - [ ] adds unit tests
 - [ ] adds or updates e2e tests
 
