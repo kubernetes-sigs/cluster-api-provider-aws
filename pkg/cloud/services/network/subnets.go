@@ -554,17 +554,12 @@ func (s *Service) getSubnetTagParams(unmanagedVPC bool, id string, public bool, 
 			additionalTags[k] = v
 		}
 
-		// Prefer `Name` tag if given, else generate a name
 		var name strings.Builder
-		if manualTagName, ok := manualTags["Name"]; ok {
-			name.WriteString(manualTagName)
-		} else {
-			name.WriteString(s.scope.Name())
-			name.WriteString("-subnet-")
-			name.WriteString(role)
-			name.WriteString("-")
-			name.WriteString(zone)
-		}
+		name.WriteString(s.scope.Name())
+		name.WriteString("-subnet-")
+		name.WriteString(role)
+		name.WriteString("-")
+		name.WriteString(zone)
 
 		return infrav1.BuildParams{
 			ClusterName: s.scope.Name(),
