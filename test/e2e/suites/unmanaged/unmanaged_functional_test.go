@@ -1069,7 +1069,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			awsCluster, err := GetAWSClusterByName(ctx, namespace.Name, clusterName)
 			Expect(err).To(BeNil())
 
-			// Validate that s3 endpoints were created in the vpc.
+			ginkgo.By("Validating the s3 endpoint was created")
 			vpc, err := shared.GetVPCByName(e2eCtx, clusterName+"-vpc")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vpc).NotTo(BeNil())
@@ -1081,6 +1081,9 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			Expect(*endpoints[0].ServiceName).To(Equal("com.amazonaws." + awsCluster.Spec.Region + ".s3"))
 			Expect(*endpoints[0].VpcId).To(Equal(*vpc.VpcId))
 
+			ginkgo.By("Deleting the cluster")
+			deleteCluster(ctx, cluster)
+
 			ginkgo.By("Waiting for AWSCluster to show the VPC endpoint as deleted in conditions")
 			Eventually(func() bool {
 				awsCluster, err := GetAWSClusterByName(ctx, namespace.Name, clusterName)
@@ -1088,9 +1091,6 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				return conditions.IsFalse(awsCluster, infrav1.VpcEndpointsReadyCondition) &&
 					conditions.GetReason(awsCluster, infrav1.VpcEndpointsReadyCondition) == clusterv1.DeletedReason
 			}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...).Should(BeTrue())
-
-			ginkgo.By("Deleting the cluster")
-			deleteCluster(ctx, cluster)
 		})
 	})
 })
