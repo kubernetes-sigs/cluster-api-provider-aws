@@ -33,6 +33,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -1087,6 +1088,10 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			ginkgo.By("Waiting for AWSCluster to show the VPC endpoint as deleted in conditions")
 			Eventually(func() bool {
 				awsCluster, err := GetAWSClusterByName(ctx, namespace.Name, clusterName)
+				// If the cluster was already deleted, we can ignore the error.
+				if apierrors.IsNotFound(err) {
+					return true
+				}
 				Expect(err).To(BeNil())
 				return conditions.IsFalse(awsCluster, infrav1.VpcEndpointsReadyCondition) &&
 					conditions.GetReason(awsCluster, infrav1.VpcEndpointsReadyCondition) == clusterv1.DeletedReason
