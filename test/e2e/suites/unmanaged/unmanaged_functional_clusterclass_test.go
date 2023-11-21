@@ -28,7 +28,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
@@ -74,8 +74,8 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 					Namespace:                namespace.Name,
 					ClusterName:              clusterName,
 					KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
-					ControlPlaneMachineCount: pointer.Int64(1),
-					WorkerMachineCount:       pointer.Int64(0),
+					ControlPlaneMachineCount: ptr.To[int64](1),
+					WorkerMachineCount:       ptr.To[int64](0),
 				},
 				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster"),
 				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
@@ -104,8 +104,8 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 			ginkgo.By("Creating a cluster")
 			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
-			configCluster.ControlPlaneMachineCount = pointer.Int64(1)
-			configCluster.WorkerMachineCount = pointer.Int64(1)
+			configCluster.ControlPlaneMachineCount = ptr.To[int64](1)
+			configCluster.WorkerMachineCount = ptr.To[int64](1)
 			configCluster.Flavor = shared.TopologyFlavor
 			_, md, _ := createCluster(ctx, configCluster, result)
 
@@ -177,7 +177,7 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 
 			ginkgo.By("Creating a management cluster in a peered VPC")
 			mgmtConfigCluster := defaultConfigCluster(mgmtClusterName, namespace.Name)
-			mgmtConfigCluster.WorkerMachineCount = pointer.Int64(1)
+			mgmtConfigCluster.WorkerMachineCount = ptr.To[int64](1)
 			mgmtConfigCluster.Flavor = "external-vpc-clusterclass"
 			mgmtCluster, mgmtMD, _ := createCluster(ctx, mgmtConfigCluster, result)
 
@@ -198,5 +198,4 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 			deleteCluster(ctx, mgmtCluster)
 		})
 	})
-
 })

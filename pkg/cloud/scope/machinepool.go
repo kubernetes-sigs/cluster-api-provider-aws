@@ -27,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -225,7 +225,7 @@ func (m *MachinePoolScope) SetAnnotation(key, value string) {
 
 // SetFailureMessage sets the AWSMachine status failure message.
 func (m *MachinePoolScope) SetFailureMessage(v error) {
-	m.AWSMachinePool.Status.FailureMessage = pointer.String(v.Error())
+	m.AWSMachinePool.Status.FailureMessage = ptr.To[string](v.Error())
 }
 
 // SetFailureReason sets the AWSMachine status failure reason.

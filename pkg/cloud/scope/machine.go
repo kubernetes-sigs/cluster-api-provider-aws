@@ -20,19 +20,20 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -127,14 +128,11 @@ func (m *MachineScope) Role() string {
 
 // GetInstanceID returns the AWSMachine instance id by parsing Spec.ProviderID.
 func (m *MachineScope) GetInstanceID() *string {
-	//nolint:staticcheck
-	// Usage of noderefutil pkg would be removed in a future release.
-	parsed, err := noderefutil.NewProviderID(m.GetProviderID())
+	parsed, err := NewProviderID(m.GetProviderID())
 	if err != nil {
 		return nil
 	}
-	//nolint:staticcheck
-	return pointer.String(parsed.ID())
+	return ptr.To[string](parsed.ID())
 }
 
 // GetProviderID returns the AWSMachine providerID from the spec.
@@ -148,12 +146,12 @@ func (m *MachineScope) GetProviderID() string {
 // SetProviderID sets the AWSMachine providerID in spec.
 func (m *MachineScope) SetProviderID(instanceID, availabilityZone string) {
 	providerID := fmt.Sprintf("aws:///%s/%s", availabilityZone, instanceID)
-	m.AWSMachine.Spec.ProviderID = pointer.String(providerID)
+	m.AWSMachine.Spec.ProviderID = ptr.To[string](providerID)
 }
 
 // SetInstanceID sets the AWSMachine instanceID in spec.
 func (m *MachineScope) SetInstanceID(instanceID string) {
-	m.AWSMachine.Spec.InstanceID = pointer.String(instanceID)
+	m.AWSMachine.Spec.InstanceID = ptr.To[string](instanceID)
 }
 
 // GetInstanceState returns the AWSMachine instance state from the status.
@@ -178,7 +176,7 @@ func (m *MachineScope) SetNotReady() {
 
 // SetFailureMessage sets the AWSMachine status failure message.
 func (m *MachineScope) SetFailureMessage(v error) {
-	m.AWSMachine.Status.FailureMessage = pointer.String(v.Error())
+	m.AWSMachine.Status.FailureMessage = ptr.To[string](v.Error())
 }
 
 // SetFailureReason sets the AWSMachine status failure reason.
@@ -380,4 +378,108 @@ func (m *MachineScope) SetInterruptible() {
 	if m.AWSMachine.Spec.SpotMarketOptions != nil {
 		m.AWSMachine.Status.Interruptible = true
 	}
+}
+
+// Copied from https://github.com/kubernetes-sigs/cluster-api/blob/bda002f52575eeaff68da1ba33c8ef27d5b1014c/controllers/noderefutil/providerid.go
+// As this is removed by https://github.com/kubernetes-sigs/cluster-api/pull/9136
+var (
+	// ErrEmptyProviderID means that the provider id is empty.
+	//
+	// Deprecated: This var is going to be removed in a future release.
+	ErrEmptyProviderID = errors.New("providerID is empty")
+
+	// ErrInvalidProviderID means that the provider id has an invalid form.
+	//
+	// Deprecated: This var is going to be removed in a future release.
+	ErrInvalidProviderID = errors.New("providerID must be of the form <cloudProvider>://<optional>/<segments>/<provider id>")
+)
+
+// ProviderID is a struct representation of a Kubernetes ProviderID.
+// Format: cloudProvider://optional/segments/etc/id
+//
+// Deprecated: This struct is going to be removed in a future release.
+type ProviderID struct {
+	original      string
+	cloudProvider string
+	id            string
+}
+
+/*
+- must start with at least one non-colon
+- followed by ://
+- followed by any number of characters
+- must end with a non-slash.
+*/
+var providerIDRegex = regexp.MustCompile("^[^:]+://.*[^/]$")
+
+// NewProviderID parses the input string and returns a new ProviderID.
+func NewProviderID(id string) (*ProviderID, error) {
+	if id == "" {
+		return nil, ErrEmptyProviderID
+	}
+
+	if !providerIDRegex.MatchString(id) {
+		return nil, ErrInvalidProviderID
+	}
+
+	colonIndex := strings.Index(id, ":")
+	cloudProvider := id[0:colonIndex]
+
+	lastSlashIndex := strings.LastIndex(id, "/")
+	instance := id[lastSlashIndex+1:]
+
+	res := &ProviderID{
+		original:      id,
+		cloudProvider: cloudProvider,
+		id:            instance,
+	}
+
+	if !res.Validate() {
+		return nil, ErrInvalidProviderID
+	}
+
+	return res, nil
+}
+
+// CloudProvider returns the cloud provider portion of the ProviderID.
+//
+// Deprecated: This method is going to be removed in a future release.
+func (p *ProviderID) CloudProvider() string {
+	return p.cloudProvider
+}
+
+// ID returns the identifier portion of the ProviderID.
+//
+// Deprecated: This method is going to be removed in a future release.
+func (p *ProviderID) ID() string {
+	return p.id
+}
+
+// Equals returns true if this ProviderID string matches another ProviderID string.
+//
+// Deprecated: This method is going to be removed in a future release.
+func (p *ProviderID) Equals(o *ProviderID) bool {
+	return p.String() == o.String()
+}
+
+// String returns the string representation of this object.
+//
+// Deprecated: This method is going to be removed in a future release.
+func (p ProviderID) String() string {
+	return p.original
+}
+
+// Validate returns true if the provider id is valid.
+//
+// Deprecated: This method is going to be removed in a future release.
+func (p *ProviderID) Validate() bool {
+	return p.CloudProvider() != "" && p.ID() != ""
+}
+
+// IndexKey returns the required level of uniqueness
+// to represent and index machines uniquely from their node providerID.
+//
+// Deprecated: This method is going to be removed in a future release.
+func (p *ProviderID) IndexKey() string {
+	return p.String()
 }

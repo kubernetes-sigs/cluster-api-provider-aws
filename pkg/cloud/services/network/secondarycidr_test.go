@@ -25,7 +25,7 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -43,7 +43,7 @@ func setupNewManagedControlPlaneScope(cl client.Client) (*scope.ManagedControlPl
 		Cluster: &v1beta1.Cluster{},
 		ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
 			Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
-				SecondaryCidrBlock: pointer.String("secondary-cidr"),
+				SecondaryCidrBlock: ptr.To[string]("secondary-cidr"),
 				NetworkSpec: infrav1.NetworkSpec{
 					VPC: infrav1.VPCSpec{ID: "vpc-id"},
 				},
@@ -92,7 +92,8 @@ func TestServiceAssociateSecondaryCidr(t *testing.T) {
 								{CidrBlock: aws.String("secondary-cidr")},
 							},
 						},
-					}}, nil)
+					},
+				}, nil)
 			},
 		},
 		{
@@ -114,7 +115,8 @@ func TestServiceAssociateSecondaryCidr(t *testing.T) {
 								{CidrBlock: aws.String("secondary-cidr-new")},
 							},
 						},
-					}}, nil)
+					},
+				}, nil)
 				m.AssociateVpcCidrBlockWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.AssociateVpcCidrBlockInput{})).Return(nil, awserrors.NewFailedDependency("dependency-failure"))
 			},
 			wantErr: true,
@@ -194,7 +196,8 @@ func TestServiceDiassociateSecondaryCidr(t *testing.T) {
 								{CidrBlock: aws.String("secondary-cidr")},
 							},
 						},
-					}}, nil)
+					},
+				}, nil)
 				m.DisassociateVpcCidrBlockWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateVpcCidrBlockInput{})).Return(nil, nil)
 			},
 		},
@@ -209,7 +212,8 @@ func TestServiceDiassociateSecondaryCidr(t *testing.T) {
 								{CidrBlock: aws.String("secondary-cidr")},
 							},
 						},
-					}}, nil)
+					},
+				}, nil)
 				m.DisassociateVpcCidrBlockWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateVpcCidrBlockInput{})).Return(nil, awserrors.NewFailedDependency("dependency-failure"))
 			},
 			wantErr: true,

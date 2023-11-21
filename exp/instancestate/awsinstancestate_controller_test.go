@@ -29,7 +29,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -120,7 +120,7 @@ func TestAWSInstanceStateController(t *testing.T) {
 
 		machine1 := &infrav1.AWSMachine{
 			Spec: infrav1.AWSMachineSpec{
-				InstanceID:   pointer.String("i-failing-instance-1"),
+				InstanceID:   ptr.To[string]("i-failing-instance-1"),
 				InstanceType: "test",
 			},
 			ObjectMeta: failingMachineMeta,

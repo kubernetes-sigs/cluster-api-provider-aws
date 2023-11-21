@@ -46,6 +46,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
@@ -192,15 +194,18 @@ func (t *TestEnvironmentConfiguration) Build() (*TestEnvironment, error) {
 	}
 
 	options := manager.Options{
-		Scheme:             scheme.Scheme,
-		MetricsBindAddress: "0",
-		CertDir:            t.env.WebhookInstallOptions.LocalServingCertDir,
-		Host:               t.env.WebhookInstallOptions.LocalServingHost,
-		Port:               t.env.WebhookInstallOptions.LocalServingPort,
+		Scheme: scheme.Scheme,
+		Metrics: metricsserver.Options{
+			BindAddress: "0",
+		},
+		WebhookServer: webhook.NewServer(webhook.Options{
+			Host:    t.env.WebhookInstallOptions.LocalServingHost,
+			Port:    t.env.WebhookInstallOptions.LocalServingPort,
+			CertDir: t.env.WebhookInstallOptions.LocalServingCertDir,
+		}),
 	}
 
 	mgr, err := ctrl.NewManager(t.env.Config, options)
-
 	if err != nil {
 		klog.Fatalf("Failed to start testenv manager: %v", err)
 	}

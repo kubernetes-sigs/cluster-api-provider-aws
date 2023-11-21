@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -51,8 +51,10 @@ func (r *AWSManagedMachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-awsmanagedmachinepool,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedmachinepools,versions=v1beta2,name=validation.awsmanagedmachinepool.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-awsmanagedmachinepool,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedmachinepools,versions=v1beta2,name=default.awsmanagedmachinepool.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Defaulter = &AWSManagedMachinePool{}
-var _ webhook.Validator = &AWSManagedMachinePool{}
+var (
+	_ webhook.Defaulter = &AWSManagedMachinePool{}
+	_ webhook.Validator = &AWSManagedMachinePool{}
+)
 
 func (r *AWSManagedMachinePool) validateScaling() field.ErrorList {
 	var allErrs field.ErrorList
@@ -278,7 +280,7 @@ func (r *AWSManagedMachinePool) Default() {
 
 	if r.Spec.UpdateConfig == nil {
 		r.Spec.UpdateConfig = &UpdateConfig{
-			MaxUnavailable: pointer.Int(1),
+			MaxUnavailable: ptr.To[int](1),
 		}
 	}
 }

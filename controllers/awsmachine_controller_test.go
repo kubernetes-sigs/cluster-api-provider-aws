@@ -31,7 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -106,11 +106,13 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			g.Expect(testEnv.Cleanup(ctx, awsMachine, ns, secret)).To(Succeed())
 		})
 
-		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: infrav1.AWSClusterSpec{NetworkSpec: infrav1.NetworkSpec{Subnets: []infrav1.SubnetSpec{
-			{
-				ID:               "subnet-1",
-				AvailabilityZone: "us-east-1a",
-			}},
+		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: infrav1.AWSClusterSpec{NetworkSpec: infrav1.NetworkSpec{
+			Subnets: []infrav1.SubnetSpec{
+				{
+					ID:               "subnet-1",
+					AvailabilityZone: "us-east-1a",
+				},
+			},
 		}}})
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
@@ -127,7 +129,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			},
 			infrav1.SecurityGroupControlPlane: {
 				ID: "3",
-			}}
+			},
+		}
 		ms, err := getMachineScope(cs, awsMachine)
 		g.Expect(err).To(BeNil())
 
@@ -156,9 +159,11 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 
 		_, err = reconciler.reconcileNormal(ctx, ms, cs, cs, cs, cs)
 		g.Expect(err).To(BeNil())
-		expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionTrue, "", ""},
+		expectConditions(g, ms.AWSMachine, []conditionAssertion{
+			{infrav1.SecurityGroupsReadyCondition, corev1.ConditionTrue, "", ""},
 			{infrav1.InstanceReadyCondition, corev1.ConditionTrue, "", ""},
-			{infrav1.ELBAttachedCondition, corev1.ConditionTrue, "", ""}})
+			{infrav1.ELBAttachedCondition, corev1.ConditionTrue, "", ""},
+		})
 		g.Expect(ms.AWSMachine.Finalizers).Should(ContainElement(infrav1.MachineFinalizer))
 	})
 	t.Run("Should successfully reconcile control plane machine deletion", func(t *testing.T) {
@@ -230,7 +235,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 		expectConditions(g, ms.AWSMachine, []conditionAssertion{
 			{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
-			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason}})
+			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
+		})
 		g.Expect(ms.AWSMachine.Finalizers).ShouldNot(ContainElement(infrav1.MachineFinalizer))
 	})
 	t.Run("Should fail reconciling control-plane machine creation while attaching load balancer", func(t *testing.T) {
@@ -274,11 +280,13 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			g.Expect(testEnv.Cleanup(ctx, awsMachine, ns, secret)).To(Succeed())
 		})
 
-		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: infrav1.AWSClusterSpec{NetworkSpec: infrav1.NetworkSpec{Subnets: []infrav1.SubnetSpec{
-			{
-				ID:               "subnet-1",
-				AvailabilityZone: "us-east-1a",
-			}},
+		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: infrav1.AWSClusterSpec{NetworkSpec: infrav1.NetworkSpec{
+			Subnets: []infrav1.SubnetSpec{
+				{
+					ID:               "subnet-1",
+					AvailabilityZone: "us-east-1a",
+				},
+			},
 		}}})
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
@@ -295,7 +303,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			},
 			infrav1.SecurityGroupControlPlane: {
 				ID: "3",
-			}}
+			},
+		}
 		ms, err := getMachineScope(cs, awsMachine)
 		g.Expect(err).To(BeNil())
 
@@ -399,8 +408,10 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 
 		_, err = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 		g.Expect(err).Should(HaveOccurred())
-		expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, "DeletingFailed"},
-			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason}})
+		expectConditions(g, ms.AWSMachine, []conditionAssertion{
+			{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, "DeletingFailed"},
+			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
+		})
 		g.Expect(ms.AWSMachine.Finalizers).ShouldNot(ContainElement(infrav1.MachineFinalizer))
 	})
 }
@@ -423,7 +434,7 @@ func getMachineScope(cs *scope.ClusterScope, awsMachine *infrav1.AWSMachine) (*s
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -582,7 +593,8 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 				Name:   aws.String("virtualization-type"),
 				Values: aws.StringSlice([]string{"hvm"}),
 			},
-		}})).Return(&ec2.DescribeImagesOutput{Images: []*ec2.Image{
+		},
+	})).Return(&ec2.DescribeImagesOutput{Images: []*ec2.Image{
 		{
 			ImageId:      aws.String("latest"),
 			CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
@@ -631,7 +643,8 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 					},
 				},
 			},
-		}}, nil).MaxTimes(3)
+		},
+	}, nil).MaxTimes(3)
 	m.DescribeNetworkInterfaceAttributeWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfaceAttributeInput{
 		NetworkInterfaceId: aws.String("eni-1"),
 		Attribute:          aws.String("groupSet"),

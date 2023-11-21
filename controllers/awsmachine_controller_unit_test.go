@@ -36,7 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -124,7 +124,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					Spec: clusterv1.MachineSpec{
 						ClusterName: "capi-test",
 						Bootstrap: clusterv1.Bootstrap{
-							DataSecretName: pointer.String("bootstrap-data"),
+							DataSecretName: ptr.To[string]("bootstrap-data"),
 						},
 					},
 				},
@@ -161,7 +161,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					Spec: clusterv1.MachineSpec{
 						ClusterName: "capi-test",
 						Bootstrap: clusterv1.Bootstrap{
-							DataSecretName: pointer.String("bootstrap-data"),
+							DataSecretName: ptr.To[string]("bootstrap-data"),
 						},
 					},
 				},
@@ -216,7 +216,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				runningInstance(t, g)
 				er := capierrors.CreateMachineError
 				ms.AWSMachine.Status.FailureReason = &er
-				ms.AWSMachine.Status.FailureMessage = pointer.String("Couldn't create machine")
+				ms.AWSMachine.Status.FailureMessage = ptr.To[string]("Couldn't create machine")
 
 				buf := new(bytes.Buffer)
 				klog.SetOutput(buf)
@@ -456,7 +456,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 					ms.AWSMachine.Spec.AdditionalSecurityGroups = []infrav1.AWSResourceReference{
 						{
-							ID: pointer.String("sg-2345"),
+							ID: ptr.To[string]("sg-2345"),
 						},
 					}
 					ec2Svc.EXPECT().UpdateInstanceSecurityGroups(instance.ID, []string{"sg-2345"})
@@ -1275,7 +1275,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 			useIgnition := func(t *testing.T, g *WithT) {
 				t.Helper()
 
-				ms.Machine.Spec.Bootstrap.DataSecretName = pointer.String("bootstrap-data-ignition")
+				ms.Machine.Spec.Bootstrap.DataSecretName = ptr.To[string]("bootstrap-data-ignition")
 				ms.AWSMachine.Spec.CloudInit.SecretCount = 0
 				ms.AWSMachine.Spec.CloudInit.SecretPrefix = ""
 			}
@@ -1364,7 +1364,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 			useIgnition := func(t *testing.T, g *WithT) {
 				t.Helper()
 
-				ms.Machine.Spec.Bootstrap.DataSecretName = pointer.String("bootstrap-data-ignition")
+				ms.Machine.Spec.Bootstrap.DataSecretName = ptr.To[string]("bootstrap-data-ignition")
 				ms.AWSMachine.Spec.CloudInit.SecretCount = 0
 				ms.AWSMachine.Spec.CloudInit.SecretPrefix = ""
 			}
@@ -1448,7 +1448,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 			useIgnition := func(t *testing.T, g *WithT) {
 				t.Helper()
 
-				ms.Machine.Spec.Bootstrap.DataSecretName = pointer.String("bootstrap-data-ignition")
+				ms.Machine.Spec.Bootstrap.DataSecretName = ptr.To[string]("bootstrap-data-ignition")
 				ms.AWSMachine.Spec.CloudInit.SecretCount = 0
 				ms.AWSMachine.Spec.CloudInit.SecretPrefix = ""
 			}
@@ -1515,7 +1515,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 			useIgnition := func(t *testing.T, g *WithT) {
 				t.Helper()
 
-				ms.Machine.Spec.Bootstrap.DataSecretName = pointer.String("bootstrap-data-ignition")
+				ms.Machine.Spec.Bootstrap.DataSecretName = ptr.To[string]("bootstrap-data-ignition")
 				ms.AWSMachine.Spec.CloudInit.SecretCount = 0
 				ms.AWSMachine.Spec.CloudInit.SecretPrefix = ""
 			}
@@ -2649,7 +2649,8 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 					},
 				},
 			},
-		}}, nil).MaxTimes(3)
+		},
+	}, nil).MaxTimes(3)
 	ec2Mock.EXPECT().DescribeNetworkInterfaceAttributeWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfaceAttributeInput{
 		NetworkInterfaceId: aws.String("eni-1"),
 		Attribute:          aws.String("groupSet"),

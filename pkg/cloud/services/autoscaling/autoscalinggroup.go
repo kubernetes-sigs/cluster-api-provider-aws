@@ -26,7 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
@@ -46,7 +46,7 @@ func (s *Service) SDKToAutoScalingGroup(v *autoscaling.Group) (*expinfrav1.AutoS
 		MaxSize:           int32(aws.Int64Value(v.MaxSize)),
 		MinSize:           int32(aws.Int64Value(v.MinSize)),
 		CapacityRebalance: aws.BoolValue(v.CapacityRebalance),
-		//TODO: determine what additional values go here and what else should be in the struct
+		// TODO: determine what additional values go here and what else should be in the struct
 	}
 
 	if v.VPCZoneIdentifier != nil {
@@ -291,7 +291,7 @@ func (s *Service) UpdateASG(scope *scope.MachinePoolScope) error {
 	}
 
 	input := &autoscaling.UpdateAutoScalingGroupInput{
-		AutoScalingGroupName: aws.String(scope.Name()), //TODO: define dynamically - borrow logic from ec2
+		AutoScalingGroupName: aws.String(scope.Name()), // TODO: define dynamically - borrow logic from ec2
 		MaxSize:              aws.Int64(int64(scope.AWSMachinePool.Spec.MaxSize)),
 		MinSize:              aws.Int64(int64(scope.AWSMachinePool.Spec.MinSize)),
 		VPCZoneIdentifier:    aws.String(strings.Join(subnetIDs, ",")),
@@ -343,7 +343,7 @@ func (s *Service) CanStartASGInstanceRefresh(scope *scope.MachinePoolScope) (boo
 
 // StartASGInstanceRefresh will start an ASG instance with refresh.
 func (s *Service) StartASGInstanceRefresh(scope *scope.MachinePoolScope) error {
-	strategy := pointer.String(autoscaling.RefreshStrategyRolling)
+	strategy := ptr.To[string](autoscaling.RefreshStrategyRolling)
 	var minHealthyPercentage, instanceWarmup *int64
 	if scope.AWSMachinePool.Spec.RefreshPreferences != nil {
 		if scope.AWSMachinePool.Spec.RefreshPreferences.Strategy != nil {
@@ -503,7 +503,7 @@ func mapToTags(input map[string]string, resourceID *string) []*autoscaling.Tag {
 // SubnetIDs return subnet IDs of a AWSMachinePool based on given subnetIDs and filters.
 func (s *Service) SubnetIDs(scope *scope.MachinePoolScope) ([]string, error) {
 	subnetIDs := make([]string, 0)
-	var inputFilters = make([]*ec2.Filter, 0)
+	inputFilters := make([]*ec2.Filter, 0)
 
 	for _, subnet := range scope.AWSMachinePool.Spec.Subnets {
 		switch {
