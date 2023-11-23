@@ -111,7 +111,7 @@ func (r *AWSMachinePool) validateAdditionalSecurityGroups() field.ErrorList {
 func (r *AWSMachinePool) validateSpotInstances() field.ErrorList {
 	var allErrs field.ErrorList
 	if r.Spec.AWSLaunchTemplate.SpotMarketOptions != nil && r.Spec.MixedInstancesPolicy != nil {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.AdditionalSecurityGroups"), "either spec.awsLaunchTemplate.SpotMarketOptions or spec.MixedInstancesPolicy should be used"))
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.spotMarketOptions"), "either spec.awsLaunchTemplate.spotMarketOptions or spec.mixedInstancesPolicy should be used"))
 	}
 	return allErrs
 }
