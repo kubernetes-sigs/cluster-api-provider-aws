@@ -43,21 +43,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-const (
-	// ReplicasManagedByAnnotation is an annotation that indicates external (non-Cluster API) management of infra scaling.
-	// The practical effect of this is that the capi "replica" count is derived from the number of observed infra machines,
-	// instead of being a source of truth for eventual consistency.
-	//
-	// N.B. this is to be replaced by a direct reference to CAPI once https://github.com/kubernetes-sigs/cluster-api/pull/7107 is meged.
-	ReplicasManagedByAnnotation = "cluster.x-k8s.io/replicas-managed-by"
-
-	// ExternalAutoscalerReplicasManagedByAnnotationValue is used with the "cluster.x-k8s.io/replicas-managed-by" annotation
-	// to indicate an external autoscaler enforces replica count.
-	//
-	// N.B. this is to be replaced by a direct reference to CAPI once https://github.com/kubernetes-sigs/cluster-api/pull/7107 is meged.
-	ExternalAutoscalerReplicasManagedByAnnotationValue = "external-autoscaler"
-)
-
 // MachinePoolScope defines a scope defined around a machine and its cluster.
 type MachinePoolScope struct {
 	logger.Logger
@@ -403,9 +388,4 @@ func (m *MachinePoolScope) LaunchTemplateName() string {
 
 func (m *MachinePoolScope) GetRuntimeObject() runtime.Object {
 	return m.AWSMachinePool
-}
-
-func ReplicasExternallyManaged(mp *expclusterv1.MachinePool) bool {
-	val, ok := mp.Annotations[ReplicasManagedByAnnotation]
-	return ok && val == ExternalAutoscalerReplicasManagedByAnnotationValue
 }
