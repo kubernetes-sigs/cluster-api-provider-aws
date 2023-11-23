@@ -30,6 +30,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -570,7 +571,7 @@ func TestServiceCreateASG(t *testing.T) {
 				mps.AWSMachinePool.Spec.MaxSize = 5
 				mps.MachinePool.Spec.Replicas = aws.Int32(1)
 				mps.MachinePool.Annotations = map[string]string{
-					scope.ReplicasManagedByAnnotation: scope.ExternalAutoscalerReplicasManagedByAnnotationValue,
+					clusterv1.ReplicasManagedByAnnotation: "", // empty value counts as true (= externally managed)
 				}
 			},
 			wantErr: false,
@@ -592,7 +593,7 @@ func TestServiceCreateASG(t *testing.T) {
 				mps.AWSMachinePool.Spec.MaxSize = 5
 				mps.MachinePool.Spec.Replicas = aws.Int32(6)
 				mps.MachinePool.Annotations = map[string]string{
-					scope.ReplicasManagedByAnnotation: scope.ExternalAutoscalerReplicasManagedByAnnotationValue,
+					clusterv1.ReplicasManagedByAnnotation: "truthy",
 				}
 			},
 			wantErr: false,
@@ -699,17 +700,26 @@ func TestServiceUpdateASG(t *testing.T) {
 		machinePoolName       string
 		setupMachinePoolScope func(*scope.MachinePoolScope)
 		wantErr               bool
-		expect                func(e *mocks.MockEC2APIMockRecorder, m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder)
+		expect                func(e *mocks.MockEC2APIMockRecorder, m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder, g *WithT)
 	}{
 		{
 			name:            "should return without error if update ASG is successful",
 			machinePoolName: "update-asg-success",
 			wantErr:         false,
 			setupMachinePoolScope: func(mps *scope.MachinePoolScope) {
-				mps.AWSMachinePool.Spec.Subnets = nil
+				mps.MachinePool.Spec.Replicas = pointer.Int32(3)
+				mps.AWSMachinePool.Spec.MinSize = 2
+				mps.AWSMachinePool.Spec.MaxSize = 5
 			},
-			expect: func(e *mocks.MockEC2APIMockRecorder, m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {
-				m.UpdateAutoScalingGroupWithContext(context.TODO(), gomock.AssignableToTypeOf(&autoscaling.UpdateAutoScalingGroupInput{})).Return(&autoscaling.UpdateAutoScalingGroupOutput{}, nil)
+			expect: func(e *mocks.MockEC2APIMockRecorder, m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder, g *WithT) {
+				m.UpdateAutoScalingGroupWithContext(context.TODO(), gomock.AssignableToTypeOf(&autoscaling.UpdateAutoScalingGroupInput{})).DoAndReturn(func(ctx context.Context, input *autoscaling.UpdateAutoScalingGroupInput, options ...request.Option) (*autoscaling.UpdateAutoScalingGroupOutput, error) {
+					// CAPA should set min/max, and because there's no "externally managed" annotation, also the
+					// "desired" number of instances
+					g.Expect(input.MinSize).To(BeComparableTo(pointer.Int64(2)))
+					g.Expect(input.MaxSize).To(BeComparableTo(pointer.Int64(5)))
+					g.Expect(input.DesiredCapacity).To(BeComparableTo(pointer.Int64(3)))
+					return &autoscaling.UpdateAutoScalingGroupOutput{}, nil
+				})
 			},
 		},
 		{
@@ -719,8 +729,29 @@ func TestServiceUpdateASG(t *testing.T) {
 			setupMachinePoolScope: func(mps *scope.MachinePoolScope) {
 				mps.AWSMachinePool.Spec.MixedInstancesPolicy = nil
 			},
-			expect: func(e *mocks.MockEC2APIMockRecorder, m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {
+			expect: func(e *mocks.MockEC2APIMockRecorder, m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder, g *WithT) {
 				m.UpdateAutoScalingGroupWithContext(context.TODO(), gomock.AssignableToTypeOf(&autoscaling.UpdateAutoScalingGroupInput{})).Return(nil, awserrors.NewFailedDependency("dependency failure"))
+			},
+		},
+		{
+			name:            "externally managed replicas annotation",
+			machinePoolName: "update-asg-externally-managed-replicas-annotation",
+			wantErr:         false,
+			setupMachinePoolScope: func(mps *scope.MachinePoolScope) {
+				mps.MachinePool.SetAnnotations(map[string]string{clusterv1.ReplicasManagedByAnnotation: "anything-that-is-not-false"})
+
+				mps.MachinePool.Spec.Replicas = pointer.Int32(40)
+				mps.AWSMachinePool.Spec.MinSize = 20
+				mps.AWSMachinePool.Spec.MaxSize = 50
+			},
+			expect: func(e *mocks.MockEC2APIMockRecorder, m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder, g *WithT) {
+				m.UpdateAutoScalingGroupWithContext(context.TODO(), gomock.AssignableToTypeOf(&autoscaling.UpdateAutoScalingGroupInput{})).DoAndReturn(func(ctx context.Context, input *autoscaling.UpdateAutoScalingGroupInput, options ...request.Option) (*autoscaling.UpdateAutoScalingGroupOutput, error) {
+					// CAPA should set min/max, but not the externally managed "desired" number of instances
+					g.Expect(input.MinSize).To(BeComparableTo(pointer.Int64(20)))
+					g.Expect(input.MaxSize).To(BeComparableTo(pointer.Int64(50)))
+					g.Expect(input.DesiredCapacity).To(BeNil())
+					return &autoscaling.UpdateAutoScalingGroupOutput{}, nil
+				})
 			},
 		},
 	}
@@ -733,13 +764,14 @@ func TestServiceUpdateASG(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 			asgMock := mock_autoscalingiface.NewMockAutoScalingAPI(mockCtrl)
-			tt.expect(ec2Mock.EXPECT(), asgMock.EXPECT())
+			tt.expect(ec2Mock.EXPECT(), asgMock.EXPECT(), g)
 			s := NewService(clusterScope)
 			s.ASGClient = asgMock
 
 			mps, err := getMachinePoolScope(fakeClient, clusterScope)
 			g.Expect(err).ToNot(HaveOccurred())
 			mps.AWSMachinePool.Name = tt.machinePoolName
+			tt.setupMachinePoolScope(mps)
 
 			err = s.UpdateASG(mps)
 			checkErr(tt.wantErr, err, g)
