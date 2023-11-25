@@ -70,94 +70,96 @@ func isEKSManagedAMI(launchTemplateScope scope.LaunchTemplateScope) bool {
 }
 
 func (s *Service) ReconcileLaunchTemplate(
-	scope scope.LaunchTemplateScope,
+	lts scope.LaunchTemplateScope,
 	canUpdateLaunchTemplate func() (bool, error),
 	runPostLaunchTemplateUpdateOperation func() error,
 ) error {
-	bootstrapData, err := scope.GetRawBootstrapData()
+	bootstrapData, err := lts.GetRawBootstrapData()
 	if err != nil {
-		record.Eventf(scope.GetMachinePool(), corev1.EventTypeWarning, "FailedGetBootstrapData", err.Error())
-		return err
+		// if it's EKS managed AMI, bootstrap data is optional.
+		if !(errors.Is(err, scope.ErrBootstrapDataSecretNameIsNil) && isEKSManagedAMI(lts)) {
+			record.Eventf(lts.GetMachinePool(), corev1.EventTypeWarning, "FailedGetBootstrapData", err.Error())
+			return err
+		}
 	}
 	bootstrapDataHash := userdata.ComputeHash(bootstrapData)
 
-	// Clarify: can we  reuse the s as the ec2svc?
-	ec2svc := s.getEC2Service(scope)
+	ec2svc := s.getEC2Service(lts)
 
-	scope.Info("checking for existing launch template")
-	launchTemplate, launchTemplateUserDataHash, err := ec2svc.GetLaunchTemplate(scope.LaunchTemplateName())
+	lts.Info("checking for existing launch template")
+	launchTemplate, launchTemplateUserDataHash, err := ec2svc.GetLaunchTemplate(lts.LaunchTemplateName())
 	if err != nil {
-		conditions.MarkUnknown(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNotFoundReason, err.Error())
+		conditions.MarkUnknown(lts.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNotFoundReason, err.Error())
 		return err
 	}
 
 	// If the AMI ID is not set when EKS managed node group, we don't need to do any discovery
 	var imageID *string
-	if isEKSManagedAMI(scope) {
-		lt := scope.GetLaunchTemplate()
+	if isEKSManagedAMI(lts) {
+		lt := lts.GetLaunchTemplate()
 		if lt.AMI.ID != nil || lt.AMI.EKSOptimizedLookupType != nil {
 			err := errors.New("AMI ID or EKS optimized lookup type cannot be set when EKS manages AMI for you")
-			conditions.MarkFalse(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, err.Error())
+			conditions.MarkFalse(lts.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return err
 		}
 	} else {
-		imageID, err = ec2svc.DiscoverLaunchTemplateAMI(scope)
+		imageID, err = ec2svc.DiscoverLaunchTemplateAMI(lts)
 		if err != nil {
-			conditions.MarkFalse(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, err.Error())
+			conditions.MarkFalse(lts.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return err
 		}
 	}
 
 	if launchTemplate == nil {
-		scope.Info("no existing launch template found, creating")
-		launchTemplateID, err := ec2svc.CreateLaunchTemplate(scope, imageID, bootstrapData)
+		lts.Info("no existing launch template found, creating")
+		launchTemplateID, err := ec2svc.CreateLaunchTemplate(lts, imageID, bootstrapData)
 		if err != nil {
-			conditions.MarkFalse(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, err.Error())
+			conditions.MarkFalse(lts.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return err
 		}
 
-		scope.SetLaunchTemplateIDStatus(launchTemplateID)
-		return scope.PatchObject()
+		lts.SetLaunchTemplateIDStatus(launchTemplateID)
+		return lts.PatchObject()
 	}
 
 	// LaunchTemplateID is set during LaunchTemplate creation, but for a scenario such as `clusterctl move`, status fields become blank.
 	// If launchTemplate already exists but LaunchTemplateID field in the status is empty, get the ID and update the status.
-	if scope.GetLaunchTemplateIDStatus() == "" {
-		launchTemplateID, err := ec2svc.GetLaunchTemplateID(scope.LaunchTemplateName())
+	if lts.GetLaunchTemplateIDStatus() == "" {
+		launchTemplateID, err := ec2svc.GetLaunchTemplateID(lts.LaunchTemplateName())
 		if err != nil {
-			conditions.MarkUnknown(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNotFoundReason, err.Error())
+			conditions.MarkUnknown(lts.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNotFoundReason, err.Error())
 			return err
 		}
-		scope.SetLaunchTemplateIDStatus(launchTemplateID)
-		return scope.PatchObject()
+		lts.SetLaunchTemplateIDStatus(launchTemplateID)
+		return lts.PatchObject()
 	}
 
-	if scope.GetLaunchTemplateLatestVersionStatus() == "" {
-		launchTemplateVersion, err := ec2svc.GetLaunchTemplateLatestVersion(scope.GetLaunchTemplateIDStatus())
+	if lts.GetLaunchTemplateLatestVersionStatus() == "" {
+		launchTemplateVersion, err := ec2svc.GetLaunchTemplateLatestVersion(lts.GetLaunchTemplateIDStatus())
 		if err != nil {
-			conditions.MarkUnknown(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNotFoundReason, err.Error())
+			conditions.MarkUnknown(lts.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNotFoundReason, err.Error())
 			return err
 		}
 
-		scope.SetLaunchTemplateLatestVersionStatus(launchTemplateVersion)
-		return scope.PatchObject()
+		lts.SetLaunchTemplateLatestVersionStatus(launchTemplateVersion)
+		return lts.PatchObject()
 	}
 
-	annotation, err := MachinePoolAnnotationJSON(scope, TagsLastAppliedAnnotation)
+	annotation, err := MachinePoolAnnotationJSON(lts, TagsLastAppliedAnnotation)
 	if err != nil {
 		return err
 	}
 
 	// Check if the instance tags were changed. If they were, create a new LaunchTemplate.
-	tagsChanged, _, _, _ := tagsChanged(annotation, scope.AdditionalTags()) //nolint:dogsled
+	tagsChanged, _, _, _ := tagsChanged(annotation, lts.AdditionalTags()) //nolint:dogsled
 
-	needsUpdate, err := ec2svc.LaunchTemplateNeedsUpdate(scope, scope.GetLaunchTemplate(), launchTemplate)
+	needsUpdate, err := ec2svc.LaunchTemplateNeedsUpdate(lts, lts.GetLaunchTemplate(), launchTemplate)
 	if err != nil {
 		return err
 	}
 
 	// Skip ami check when EKS manages AMI for us
-	amiChanged := !isEKSManagedAMI(scope) && *imageID != *launchTemplate.AMI.ID
+	amiChanged := !isEKSManagedAMI(lts) && *imageID != *launchTemplate.AMI.ID
 
 	// Create a new launch template version if there's a difference in configuration, tags,
 	// userdata, OR we've discovered a new AMI ID.
@@ -167,34 +169,34 @@ func (s *Service) ReconcileLaunchTemplate(
 			return err
 		}
 		if !canUpdate {
-			conditions.MarkFalse(scope.GetSetter(), expinfrav1.PreLaunchTemplateUpdateCheckCondition, expinfrav1.PreLaunchTemplateUpdateCheckFailedReason, clusterv1.ConditionSeverityWarning, "")
+			conditions.MarkFalse(lts.GetSetter(), expinfrav1.PreLaunchTemplateUpdateCheckCondition, expinfrav1.PreLaunchTemplateUpdateCheckFailedReason, clusterv1.ConditionSeverityWarning, "")
 			return errors.New("Cannot update the launch template, prerequisite not met")
 		}
 
-		scope.Info("creating new version for launch template", "existing", launchTemplate, "incoming", scope.GetLaunchTemplate())
+		lts.Info("creating new version for launch template", "existing", launchTemplate, "incoming", lts.GetLaunchTemplate())
 		// There is a limit to the number of Launch Template Versions.
 		// We ensure that the number of versions does not grow without bound by following a simple rule: Before we create a new version, we delete one old version, if there is at least one old version that is not in use.
-		if err := ec2svc.PruneLaunchTemplateVersions(scope.GetLaunchTemplateIDStatus()); err != nil {
+		if err := ec2svc.PruneLaunchTemplateVersions(lts.GetLaunchTemplateIDStatus()); err != nil {
 			return err
 		}
-		if err := ec2svc.CreateLaunchTemplateVersion(scope.GetLaunchTemplateIDStatus(), scope, imageID, bootstrapData); err != nil {
+		if err := ec2svc.CreateLaunchTemplateVersion(lts.GetLaunchTemplateIDStatus(), lts, imageID, bootstrapData); err != nil {
 			return err
 		}
-		version, err := ec2svc.GetLaunchTemplateLatestVersion(scope.GetLaunchTemplateIDStatus())
+		version, err := ec2svc.GetLaunchTemplateLatestVersion(lts.GetLaunchTemplateIDStatus())
 		if err != nil {
 			return err
 		}
 
-		scope.SetLaunchTemplateLatestVersionStatus(version)
-		if err := scope.PatchObject(); err != nil {
+		lts.SetLaunchTemplateLatestVersionStatus(version)
+		if err := lts.PatchObject(); err != nil {
 			return err
 		}
 
 		if err := runPostLaunchTemplateUpdateOperation(); err != nil {
-			conditions.MarkFalse(scope.GetSetter(), expinfrav1.PostLaunchTemplateUpdateOperationCondition, expinfrav1.PostLaunchTemplateUpdateOperationFailedReason, clusterv1.ConditionSeverityError, err.Error())
+			conditions.MarkFalse(lts.GetSetter(), expinfrav1.PostLaunchTemplateUpdateOperationCondition, expinfrav1.PostLaunchTemplateUpdateOperationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return err
 		}
-		conditions.MarkTrue(scope.GetSetter(), expinfrav1.PostLaunchTemplateUpdateOperationCondition)
+		conditions.MarkTrue(lts.GetSetter(), expinfrav1.PostLaunchTemplateUpdateOperationCondition)
 	}
 
 	return nil

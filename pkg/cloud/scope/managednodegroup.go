@@ -42,6 +42,10 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
+var (
+	ErrBootstrapDataSecretNameIsNil = errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
+)
+
 // ManagedMachinePoolScopeParams defines the input parameters used to create a new Scope.
 type ManagedMachinePoolScopeParams struct {
 	Client             client.Client
@@ -325,7 +329,7 @@ func (s *ManagedMachinePoolScope) Namespace() string {
 
 func (s *ManagedMachinePoolScope) GetRawBootstrapData() ([]byte, error) {
 	if s.MachinePool.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
-		return nil, errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
+		return nil, ErrBootstrapDataSecretNameIsNil
 	}
 
 	secret := &corev1.Secret{}
