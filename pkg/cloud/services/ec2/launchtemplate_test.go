@@ -1606,7 +1606,7 @@ func TestService_ReconcileLaunchTemplate(t *testing.T) {
 			managedMachinePoolScope := suite.ManagedMachinePoolScope
 			service := suite.Service
 
-			ec2Mock.EXPECT().DescribeLaunchTemplateVersions(gomock.Any()).Return(nil, nil).Times(1)
+			ec2Mock.EXPECT().DescribeLaunchTemplateVersionsWithContext(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 
 			err := client.Create(context.Background(), awsManagedMachinePool.DeepCopy())
 			g.Expect(err).NotTo(HaveOccurred())
@@ -1639,8 +1639,8 @@ func TestService_ReconcileLaunchTemplate(t *testing.T) {
 			managedMachinePoolScope := suite.ManagedMachinePoolScope
 			service := suite.Service
 
-			ec2Mock.EXPECT().DescribeLaunchTemplateVersions(gomock.Any()).Return(nil, nil).Times(1)
-			ec2Mock.EXPECT().CreateLaunchTemplate(gomock.Any()).Return(&ec2.CreateLaunchTemplateOutput{
+			ec2Mock.EXPECT().DescribeLaunchTemplateVersionsWithContext(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			ec2Mock.EXPECT().CreateLaunchTemplateWithContext(gomock.Any(), gomock.Any()).Return(&ec2.CreateLaunchTemplateOutput{
 				LaunchTemplate: &ec2.LaunchTemplate{
 					LaunchTemplateId: aws.String(launchTemplateID),
 				},
@@ -1811,7 +1811,7 @@ func TestService_createLaunchTemplateData(t *testing.T) {
 	t.Run("assign DeviceName if empty", func(t *testing.T) {
 		deviceName := "auto"
 		var volumeSize int64 = 512
-		ec2Mock.EXPECT().DescribeImages(gomock.Any()).Return(&ec2.DescribeImagesOutput{
+		ec2Mock.EXPECT().DescribeImagesWithContext(gomock.Any(), gomock.Any()).Return(&ec2.DescribeImagesOutput{
 			Images: []*ec2.Image{
 				{
 					RootDeviceName: aws.String(deviceName),
