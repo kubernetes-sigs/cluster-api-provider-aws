@@ -755,7 +755,7 @@ func TestAWSManagedMachinePoolValidateUpdate(t *testing.T) {
 			old: &AWSManagedMachinePool{
 				Spec: AWSManagedMachinePoolSpec{
 					EKSNodegroupName: "eks-node-group-1",
-					AMIType: Al2x86_64.GetPtr(),
+					AMIType:          Al2x86_64.GetPtr(),
 					AWSLaunchTemplate: &AWSLaunchTemplate{
 						Name:              "test",
 						ImageLookupFormat: "test",
@@ -765,7 +765,7 @@ func TestAWSManagedMachinePoolValidateUpdate(t *testing.T) {
 			new: &AWSManagedMachinePool{
 				Spec: AWSManagedMachinePoolSpec{
 					EKSNodegroupName: "eks-node-group-1",
-					AMIType: Al2x86_64.GetPtr(),
+					AMIType:          Al2x86_64.GetPtr(),
 					AWSLaunchTemplate: &AWSLaunchTemplate{
 						Name:              "test",
 						ImageLookupFormat: "test2",

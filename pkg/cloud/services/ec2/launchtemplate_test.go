@@ -1767,13 +1767,11 @@ func newEKSManagedAMITestSuite(g *WithT, mockCtrl *gomock.Controller) *eksManage
 		return ec2Svc
 	}
 
-
-
 	// create a new managed machine pool in fake client, because in ReconcileLaunchTemplate we need to patch the status
 	params := scope.ManagedMachinePoolScopeParams{
 		MachinePool:        machinePool,
-		Cluster:      mcps.Cluster, // ?
-		ControlPlane: mcps.ControlPlane,
+		Cluster:            mcps.Cluster, // ?
+		ControlPlane:       mcps.ControlPlane,
 		ManagedMachinePool: awsManagedMachinePool,
 		Client:             client,
 		InfraCluster:       mcps,
