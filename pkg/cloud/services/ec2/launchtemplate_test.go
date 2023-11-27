@@ -1694,7 +1694,7 @@ func TestService_ReconcileLaunchTemplate(t *testing.T) {
 					},
 				},
 			}
-			ec2Mock.EXPECT().DescribeLaunchTemplateVersions(gomock.Any()).Return(output, nil).Times(1)
+			ec2Mock.EXPECT().DescribeLaunchTemplateVersionsWithContext(gomock.Any(), gomock.Any()).Return(output, nil).Times(1)
 
 			err := client.Create(context.Background(), awsManagedMachinePool.DeepCopy())
 			g.Expect(err).NotTo(HaveOccurred())
@@ -1731,18 +1731,6 @@ func (s eksManagedAMITestSuite) GetInstanceTypeFromLaunchTemplate() string {
 
 func newEKSManagedAMITestSuite(g *WithT, mockCtrl *gomock.Controller) *eksManagedAMITestSuite {
 	ec2Mock := mocks.NewMockEC2API(mockCtrl)
-	scheme, err := setupScheme()
-	g.Expect(err).NotTo(HaveOccurred())
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
-
-	mcps, err := setupNewManagedControlPlaneScope(client)
-	g.Expect(err).NotTo(HaveOccurred())
-
-	ec2Svc := NewService(mcps)
-	ec2Svc.EC2Client = ec2Mock
-	ec2Svc.ec2ServiceFactory = func(ec2Scope scope.EC2Scope) services.EC2Interface {
-		return ec2Svc
-	}
 	machinePool := newMachinePool()
 	machinePool.Spec.Template.Spec.Bootstrap = clusterv1.Bootstrap{}
 
@@ -1750,7 +1738,7 @@ func newEKSManagedAMITestSuite(g *WithT, mockCtrl *gomock.Controller) *eksManage
 	awsManagedMachinePool := &expinfrav1.AWSManagedMachinePool{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "AWSManagedMachinePool",
-			APIVersion: "v1",
+			APIVersion: "infrastructure.cluster.x-k8s.io/v1beta2",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "aws-mmp-name",
@@ -1766,12 +1754,26 @@ func newEKSManagedAMITestSuite(g *WithT, mockCtrl *gomock.Controller) *eksManage
 		},
 		Status: expinfrav1.AWSManagedMachinePoolStatus{},
 	}
+	scheme, err := setupScheme()
+	g.Expect(err).NotTo(HaveOccurred())
+	client := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(awsManagedMachinePool).Build()
+
+	mcps, err := setupNewManagedControlPlaneScope(client)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	ec2Svc := NewService(mcps)
+	ec2Svc.EC2Client = ec2Mock
+	ec2Svc.ec2ServiceFactory = func(ec2Scope scope.EC2Scope) services.EC2Interface {
+		return ec2Svc
+	}
+
+
 
 	// create a new managed machine pool in fake client, because in ReconcileLaunchTemplate we need to patch the status
 	params := scope.ManagedMachinePoolScopeParams{
 		MachinePool:        machinePool,
-		Cluster:            newCluster(), // ?
-		ControlPlane:       newAWSManagedControlPlane(),
+		Cluster:      mcps.Cluster, // ?
+		ControlPlane: mcps.ControlPlane,
 		ManagedMachinePool: awsManagedMachinePool,
 		Client:             client,
 		InfraCluster:       mcps,
