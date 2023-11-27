@@ -498,6 +498,7 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 	data.ImageId = imageID
 
 	data.InstanceMarketOptions = getLaunchTemplateInstanceMarketOptionsRequest(scope.GetLaunchTemplate().SpotMarketOptions)
+	data.PrivateDnsNameOptions = getLaunchTemplatePrivateDnsNameOptionsRequest(scope.GetLaunchTemplate().PrivateDnsNameOptions)
 
 	// Set up root volume
 	if lt.RootVolume != nil {
@@ -666,6 +667,14 @@ func (s *Service) SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1
 		}
 		if v.MetadataOptions.InstanceMetadataTags != nil && aws.StringValue(v.MetadataOptions.InstanceMetadataTags) == "enabled" {
 			i.InstanceMetadataOptions.InstanceMetadataTags = infrav1.InstanceMetadataEndpointStateEnabled
+		}
+	}
+
+	if v.PrivateDnsNameOptions != nil {
+		i.PrivateDnsNameOptions = &infrav1.PrivateDnsNameOptions{
+			EnableResourceNameDnsAAAARecord: v.PrivateDnsNameOptions.EnableResourceNameDnsAAAARecord,
+			EnableResourceNameDnsARecord:    v.PrivateDnsNameOptions.EnableResourceNameDnsARecord,
+			HostnameType:                    v.PrivateDnsNameOptions.HostnameType,
 		}
 	}
 
@@ -913,4 +922,16 @@ func getLaunchTemplateInstanceMarketOptionsRequest(spotMarketOptions *infrav1.Sp
 	launchTemplateInstanceMarketOptionsRequest.SetSpotOptions(spotOptions)
 
 	return launchTemplateInstanceMarketOptionsRequest
+}
+
+func getLaunchTemplatePrivateDnsNameOptionsRequest(privateDnsNameOptions *infrav1.PrivateDnsNameOptions) *ec2.LaunchTemplatePrivateDnsNameOptionsRequest {
+	if privateDnsNameOptions == nil {
+		return nil
+	}
+
+	return &ec2.LaunchTemplatePrivateDnsNameOptionsRequest{
+		EnableResourceNameDnsAAAARecord: privateDnsNameOptions.EnableResourceNameDnsAAAARecord,
+		EnableResourceNameDnsARecord:    privateDnsNameOptions.EnableResourceNameDnsARecord,
+		HostnameType:                    privateDnsNameOptions.HostnameType,
+	}
 }

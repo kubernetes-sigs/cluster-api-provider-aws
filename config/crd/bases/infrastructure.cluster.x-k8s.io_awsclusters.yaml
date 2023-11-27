@@ -1479,6 +1479,18 @@ spec:
                               is set. Mutually exclusive with IPAMPool.
                             type: string
                         type: object
+                      privateDnsHostnameTypeOnLaunch:
+                        description: PrivateDnsHostnameTypeOnLaunch is the type of
+                          hostname to assign to instances in the subnet at launch.
+                          For IPv4-only and dual-stack (IPv4 and IPv6) subnets, an
+                          instance DNS name can be based on the instance IPv4 address
+                          (ip-name) or the instance ID (resource-name). For IPv6 only
+                          subnets, an instance DNS name must be based on the instance
+                          ID (resource-name).
+                        enum:
+                        - ip-name
+                        - resource-name
+                        type: string
                       tags:
                         additionalProperties:
                           type: string
@@ -1687,6 +1699,27 @@ spec:
                     description: PlacementGroupName specifies the name of the placement
                       group in which to launch the instance.
                     type: string
+                  privateDnsNameOptions:
+                    description: PrivateDnsNameOptions is the options for the instance
+                      hostname.
+                    properties:
+                      enableResourceNameDnsAAAARecord:
+                        description: EnableResourceNameDnsAAAARecord indicates whether
+                          to respond to DNS queries for instance hostnames with DNS
+                          AAAA records.
+                        type: boolean
+                      enableResourceNameDnsARecord:
+                        description: EnableResourceNameDnsARecord indicates whether
+                          to respond to DNS queries for instance hostnames with DNS
+                          A records.
+                        type: boolean
+                      hostnameType:
+                        description: The type of hostname to assign to an instance.
+                        enum:
+                        - ip-name
+                        - resource-name
+                        type: string
+                    type: object
                   privateIp:
                     description: The private IPv4 address assigned to the instance.
                     type: string

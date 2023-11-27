@@ -238,6 +238,8 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 
 	input.PlacementGroupName = scope.AWSMachine.Spec.PlacementGroupName
 
+	input.PrivateDnsNameOptions = scope.AWSMachine.Spec.PrivateDnsNameOptions
+
 	s.scope.Debug("Running instance", "machine-role", scope.Role())
 	s.scope.Debug("Running instance with instance metadata options", "metadata options", input.InstanceMetadataOptions)
 	out, err := s.runInstance(scope.Role(), input)
@@ -595,6 +597,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 
 	input.InstanceMarketOptions = getInstanceMarketOptionsRequest(i.SpotMarketOptions)
 	input.MetadataOptions = getInstanceMetadataOptionsRequest(i.InstanceMetadataOptions)
+	input.PrivateDnsNameOptions = getPrivateDnsNameOptionsRequest(i.PrivateDnsNameOptions)
 
 	if i.Tenancy != "" {
 		input.Placement = &ec2.Placement{
@@ -865,6 +868,14 @@ func (s *Service) SDKToInstance(v *ec2.Instance) (*infrav1.Instance, error) {
 		i.InstanceMetadataOptions = metadataOptions
 	}
 
+	if v.PrivateDnsNameOptions != nil {
+		i.PrivateDnsNameOptions = &infrav1.PrivateDnsNameOptions{
+			EnableResourceNameDnsAAAARecord: v.PrivateDnsNameOptions.EnableResourceNameDnsAAAARecord,
+			EnableResourceNameDnsARecord:    v.PrivateDnsNameOptions.EnableResourceNameDnsARecord,
+			HostnameType:                    v.PrivateDnsNameOptions.HostnameType,
+		}
+	}
+
 	return i, nil
 }
 
@@ -1052,4 +1063,16 @@ func getInstanceMetadataOptionsRequest(metadataOptions *infrav1.InstanceMetadata
 	}
 
 	return request
+}
+
+func getPrivateDnsNameOptionsRequest(privateDnsNameOptions *infrav1.PrivateDnsNameOptions) *ec2.PrivateDnsNameOptionsRequest {
+	if privateDnsNameOptions == nil {
+		return nil
+	}
+
+	return &ec2.PrivateDnsNameOptionsRequest{
+		EnableResourceNameDnsAAAARecord: privateDnsNameOptions.EnableResourceNameDnsAAAARecord,
+		EnableResourceNameDnsARecord:    privateDnsNameOptions.EnableResourceNameDnsARecord,
+		HostnameType:                    privateDnsNameOptions.HostnameType,
+	}
 }
