@@ -139,6 +139,20 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "Should fail if both spot market options or mixed instances policy are set",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					MixedInstancesPolicy: &MixedInstancesPolicy{
+						Overrides: []Overrides{{InstanceType: "t3.medium"}},
+					},
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						SpotMarketOptions: &infrav1.SpotMarketOptions{MaxPrice: aws.String("0.1")},
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -251,6 +265,27 @@ func TestAWSMachinePoolValidateUpdate(t *testing.T) {
 				},
 			},
 			wantErr: false,
+		},
+		{
+			name: "Should fail update if both spec.awsLaunchTemplate.SpotMarketOptions and spec.MixedInstancesPolicy are passed in AWSMachinePool spec",
+			old: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					MixedInstancesPolicy: &MixedInstancesPolicy{
+						Overrides: []Overrides{{InstanceType: "t3.medium"}},
+					},
+				},
+			},
+			new: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					MixedInstancesPolicy: &MixedInstancesPolicy{
+						Overrides: []Overrides{{InstanceType: "t3.medium"}},
+					},
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						SpotMarketOptions: &infrav1.SpotMarketOptions{MaxPrice: pointer.String("0.1")},
+					},
+				},
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
