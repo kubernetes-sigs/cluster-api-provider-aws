@@ -1091,7 +1091,7 @@ func TestServiceCanStartASGInstanceRefresh(t *testing.T) {
 				m.DescribeInstanceRefreshesWithContext(context.TODO(), gomock.Eq(&autoscaling.DescribeInstanceRefreshesInput{
 					AutoScalingGroupName: aws.String("machinePoolName"),
 				})).
-					Return(nil, awserrors.NewNotFound("not found"))
+					Return(nil, awserrors.NewConflict("some error"))
 			},
 		},
 		{
