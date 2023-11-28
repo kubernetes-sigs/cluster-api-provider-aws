@@ -139,11 +139,30 @@ rules:
   - controlplane.cluster.x-k8s.io
   resources:
   - rosacontrolplanes
+  verbs:
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
+  - rosacontrolplanes
   - rosacontrolplanes/status
   verbs:
   - get
   - list
   - watch
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
+  - rosacontrolplanes/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - ""
   resources:
