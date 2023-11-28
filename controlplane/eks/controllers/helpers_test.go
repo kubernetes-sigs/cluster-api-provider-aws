@@ -33,29 +33,31 @@ func getAWSManagedControlPlane(name, namespace string) ekscontrolplanev1.AWSMana
 			Namespace: namespace,
 		},
 		Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
-			Region: "us-east-1",
-			NetworkSpec: infrav1.NetworkSpec{
-				VPC: infrav1.VPCSpec{
-					ID:        "vpc-exists",
-					CidrBlock: "10.0.0.0/8",
-				},
-				Subnets: infrav1.Subnets{
-					{
-						ID:               "subnet-1",
-						AvailabilityZone: "us-east-1a",
-						CidrBlock:        "10.0.10.0/24",
-						IsPublic:         false,
+			AWSManagedControlPlaneClassSpec: ekscontrolplanev1.AWSManagedControlPlaneClassSpec{
+				Region: "us-east-1",
+				NetworkSpec: infrav1.NetworkSpec{
+					VPC: infrav1.VPCSpec{
+						ID:        "vpc-exists",
+						CidrBlock: "10.0.0.0/8",
 					},
-					{
-						ID:               "subnet-2",
-						AvailabilityZone: "us-east-1c",
-						CidrBlock:        "10.0.11.0/24",
-						IsPublic:         true,
+					Subnets: infrav1.Subnets{
+						{
+							ID:               "subnet-1",
+							AvailabilityZone: "us-east-1a",
+							CidrBlock:        "10.0.10.0/24",
+							IsPublic:         false,
+						},
+						{
+							ID:               "subnet-2",
+							AvailabilityZone: "us-east-1c",
+							CidrBlock:        "10.0.11.0/24",
+							IsPublic:         true,
+						},
 					},
+					SecurityGroupOverrides: map[infrav1.SecurityGroupRole]string{},
 				},
-				SecurityGroupOverrides: map[infrav1.SecurityGroupRole]string{},
+				Bastion: infrav1.Bastion{Enabled: true},
 			},
-			Bastion: infrav1.Bastion{Enabled: true},
 		},
 	}
 }

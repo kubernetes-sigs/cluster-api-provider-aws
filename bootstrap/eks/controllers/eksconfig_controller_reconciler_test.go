@@ -423,7 +423,9 @@ func newAMCP(name string) *ekscontrolplanev1.AWSManagedControlPlane {
 			Namespace: "default",
 		},
 		Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
-			EKSClusterName: generatedName,
+			AWSManagedControlPlaneClassSpec: ekscontrolplanev1.AWSManagedControlPlaneClassSpec{
+				EKSClusterName: generatedName,
+			},
 		},
 	}
 }

@@ -438,7 +438,9 @@ func TestReconcileClusterVersion(t *testing.T) {
 				},
 				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
 					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
-						Version: aws.String("1.16"),
+						AWSManagedControlPlaneClassSpec: ekscontrolplanev1.AWSManagedControlPlaneClassSpec{
+							Version: aws.String("1.16"),
+						},
 					},
 				},
 			})
@@ -517,10 +519,12 @@ func TestCreateCluster(t *testing.T) {
 				},
 				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
 					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
-						EKSClusterName: clusterName,
-						Version:        version,
-						RoleName:       tc.role,
-						NetworkSpec:    infrav1.NetworkSpec{Subnets: tc.subnets},
+						AWSManagedControlPlaneClassSpec: ekscontrolplanev1.AWSManagedControlPlaneClassSpec{
+							EKSClusterName: clusterName,
+							Version:        version,
+							RoleName:       tc.role,
+							NetworkSpec:    infrav1.NetworkSpec{Subnets: tc.subnets},
+						},
 					},
 				},
 			})
@@ -650,8 +654,10 @@ func TestReconcileEKSEncryptionConfig(t *testing.T) {
 				},
 				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
 					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
-						Version:          aws.String("1.16"),
-						EncryptionConfig: tc.newEncryptionConfig,
+						AWSManagedControlPlaneClassSpec: ekscontrolplanev1.AWSManagedControlPlaneClassSpec{
+							Version:          aws.String("1.16"),
+							EncryptionConfig: tc.newEncryptionConfig,
+						},
 					},
 				},
 			})
@@ -703,30 +709,32 @@ func TestCreateIPv6Cluster(t *testing.T) {
 		},
 		ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
 			Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
-				RoleName: pointer.String("arn-role"),
-				Version:  aws.String("1.22"),
-				NetworkSpec: infrav1.NetworkSpec{
-					Subnets: []infrav1.SubnetSpec{
-						{
-							ID:               "sub-1",
-							CidrBlock:        "10.0.10.0/24",
-							AvailabilityZone: "us-west-2a",
-							IsPublic:         true,
-							IsIPv6:           true,
-							IPv6CidrBlock:    "2001:db8:85a3:1::/64",
+				AWSManagedControlPlaneClassSpec: ekscontrolplanev1.AWSManagedControlPlaneClassSpec{
+					RoleName: pointer.String("arn-role"),
+					Version:  aws.String("1.22"),
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: []infrav1.SubnetSpec{
+							{
+								ID:               "sub-1",
+								CidrBlock:        "10.0.10.0/24",
+								AvailabilityZone: "us-west-2a",
+								IsPublic:         true,
+								IsIPv6:           true,
+								IPv6CidrBlock:    "2001:db8:85a3:1::/64",
+							},
+							{
+								ID:               "sub-2",
+								CidrBlock:        "10.0.10.0/24",
+								AvailabilityZone: "us-west-2b",
+								IsPublic:         false,
+								IsIPv6:           true,
+								IPv6CidrBlock:    "2001:db8:85a3:2::/64",
+							},
 						},
-						{
-							ID:               "sub-2",
-							CidrBlock:        "10.0.10.0/24",
-							AvailabilityZone: "us-west-2b",
-							IsPublic:         false,
-							IsIPv6:           true,
-							IPv6CidrBlock:    "2001:db8:85a3:2::/64",
-						},
+						VPC: vpcSpec,
 					},
-					VPC: vpcSpec,
+					EncryptionConfig: encryptionConfig,
 				},
-				EncryptionConfig: encryptionConfig,
 			},
 		},
 	})

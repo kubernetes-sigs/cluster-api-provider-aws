@@ -1707,11 +1707,14 @@ spec:
                 description: Bastion contains options to configure the bastion host.
                 properties:
                   allowedCIDRBlocks:
+                    allOf:
+                    - items:
+                        type: string
+                    - items:
+                        type: string
                     description: AllowedCIDRBlocks is a list of CIDR blocks allowed
                       to access the bastion host. They are set as ingress rules for
                       the Bastion host's Security Group (defaults to 0.0.0.0/0).
-                    items:
-                      type: string
                     type: array
                   ami:
                     description: AMI will use the specified AMI to boot the bastion.
@@ -1782,10 +1785,13 @@ spec:
                       publicly accessible
                     type: boolean
                   publicCIDRs:
+                    allOf:
+                    - items:
+                        type: string
+                    - items:
+                        type: string
                     description: PublicCIDRs specifies which blocks can access the
                       public endpoint
-                    items:
-                      type: string
                     type: array
                 type: object
               iamAuthenticatorConfig:
@@ -2302,18 +2308,23 @@ spec:
                 description: The AWS Region the cluster lives in.
                 type: string
               roleAdditionalPolicies:
+                allOf:
+                - items:
+                    type: string
+                - items:
+                    type: string
                 description: RoleAdditionalPolicies allows you to attach additional
                   polices to the control plane role. You must enable the EKSAllowAddRoles
                   feature flag to incorporate these into the created role.
-                items:
-                  type: string
                 type: array
               roleName:
+                allOf:
+                - minLength: 2
+                - minLength: 2
                 description: RoleName specifies the name of IAM role that gives EKS
                   permission to make API calls. If the role is pre-existing we will
                   treat it as unmanaged and not delete it on deletion. If the EKSEnableIAM
                   feature flag is true and no name is supplied then a role is created.
-                minLength: 2
                 type: string
               secondaryCidrBlock:
                 description: SecondaryCidrBlock is the additional CIDR range to use

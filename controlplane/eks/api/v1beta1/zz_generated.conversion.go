@@ -329,73 +329,46 @@ func Convert_v1beta2_AWSManagedControlPlaneList_To_v1beta1_AWSManagedControlPlan
 
 func autoConvert_v1beta1_AWSManagedControlPlaneSpec_To_v1beta2_AWSManagedControlPlaneSpec(in *AWSManagedControlPlaneSpec, out *v1beta2.AWSManagedControlPlaneSpec, s conversion.Scope) error {
 	out.EKSClusterName = in.EKSClusterName
-	out.IdentityRef = (*apiv1beta2.AWSIdentityReference)(unsafe.Pointer(in.IdentityRef))
-	out.NetworkSpec = in.NetworkSpec
-	out.SecondaryCidrBlock = (*string)(unsafe.Pointer(in.SecondaryCidrBlock))
-	out.Region = in.Region
-	out.SSHKeyName = (*string)(unsafe.Pointer(in.SSHKeyName))
-	out.Version = (*string)(unsafe.Pointer(in.Version))
+	// WARNING: in.IdentityRef requires manual conversion: does not exist in peer-type
+	// WARNING: in.NetworkSpec requires manual conversion: does not exist in peer-type
+	// WARNING: in.SecondaryCidrBlock requires manual conversion: does not exist in peer-type
+	// WARNING: in.Region requires manual conversion: does not exist in peer-type
+	// WARNING: in.SSHKeyName requires manual conversion: does not exist in peer-type
+	// WARNING: in.Version requires manual conversion: does not exist in peer-type
 	out.RoleName = (*string)(unsafe.Pointer(in.RoleName))
 	out.RoleAdditionalPolicies = (*[]string)(unsafe.Pointer(in.RoleAdditionalPolicies))
-	out.Logging = (*v1beta2.ControlPlaneLoggingSpec)(unsafe.Pointer(in.Logging))
-	out.EncryptionConfig = (*v1beta2.EncryptionConfig)(unsafe.Pointer(in.EncryptionConfig))
-	out.AdditionalTags = *(*apiv1beta2.Tags)(unsafe.Pointer(&in.AdditionalTags))
-	out.IAMAuthenticatorConfig = (*v1beta2.IAMAuthenticatorConfig)(unsafe.Pointer(in.IAMAuthenticatorConfig))
+	// WARNING: in.Logging requires manual conversion: does not exist in peer-type
+	// WARNING: in.EncryptionConfig requires manual conversion: does not exist in peer-type
+	// WARNING: in.AdditionalTags requires manual conversion: does not exist in peer-type
+	// WARNING: in.IAMAuthenticatorConfig requires manual conversion: does not exist in peer-type
 	if err := Convert_v1beta1_EndpointAccess_To_v1beta2_EndpointAccess(&in.EndpointAccess, &out.EndpointAccess, s); err != nil {
 		return err
 	}
 	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
-	out.ImageLookupFormat = in.ImageLookupFormat
-	out.ImageLookupOrg = in.ImageLookupOrg
-	out.ImageLookupBaseOS = in.ImageLookupBaseOS
+	// WARNING: in.ImageLookupFormat requires manual conversion: does not exist in peer-type
+	// WARNING: in.ImageLookupOrg requires manual conversion: does not exist in peer-type
+	// WARNING: in.ImageLookupBaseOS requires manual conversion: does not exist in peer-type
 	out.Bastion = in.Bastion
-	out.TokenMethod = (*v1beta2.EKSTokenMethod)(unsafe.Pointer(in.TokenMethod))
-	out.AssociateOIDCProvider = in.AssociateOIDCProvider
-	out.Addons = (*[]v1beta2.Addon)(unsafe.Pointer(in.Addons))
-	out.OIDCIdentityProviderConfig = (*v1beta2.OIDCIdentityProviderConfig)(unsafe.Pointer(in.OIDCIdentityProviderConfig))
+	// WARNING: in.TokenMethod requires manual conversion: does not exist in peer-type
+	// WARNING: in.AssociateOIDCProvider requires manual conversion: does not exist in peer-type
+	// WARNING: in.Addons requires manual conversion: does not exist in peer-type
+	// WARNING: in.OIDCIdentityProviderConfig requires manual conversion: does not exist in peer-type
 	// WARNING: in.DisableVPCCNI requires manual conversion: does not exist in peer-type
-	if err := Convert_v1beta1_VpcCni_To_v1beta2_VpcCni(&in.VpcCni, &out.VpcCni, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta1_KubeProxy_To_v1beta2_KubeProxy(&in.KubeProxy, &out.KubeProxy, s); err != nil {
-		return err
-	}
+	// WARNING: in.VpcCni requires manual conversion: does not exist in peer-type
+	// WARNING: in.KubeProxy requires manual conversion: does not exist in peer-type
 	return nil
 }
 
 func autoConvert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControlPlaneSpec(in *v1beta2.AWSManagedControlPlaneSpec, out *AWSManagedControlPlaneSpec, s conversion.Scope) error {
+	// WARNING: in.AWSManagedControlPlaneClassSpec requires manual conversion: does not exist in peer-type
 	out.EKSClusterName = in.EKSClusterName
-	out.IdentityRef = (*apiv1beta2.AWSIdentityReference)(unsafe.Pointer(in.IdentityRef))
-	out.NetworkSpec = in.NetworkSpec
-	out.SecondaryCidrBlock = (*string)(unsafe.Pointer(in.SecondaryCidrBlock))
-	out.Region = in.Region
-	// WARNING: in.Partition requires manual conversion: does not exist in peer-type
-	out.SSHKeyName = (*string)(unsafe.Pointer(in.SSHKeyName))
-	out.Version = (*string)(unsafe.Pointer(in.Version))
 	out.RoleName = (*string)(unsafe.Pointer(in.RoleName))
 	out.RoleAdditionalPolicies = (*[]string)(unsafe.Pointer(in.RoleAdditionalPolicies))
-	out.Logging = (*ControlPlaneLoggingSpec)(unsafe.Pointer(in.Logging))
-	out.EncryptionConfig = (*EncryptionConfig)(unsafe.Pointer(in.EncryptionConfig))
-	out.AdditionalTags = *(*apiv1beta2.Tags)(unsafe.Pointer(&in.AdditionalTags))
-	out.IAMAuthenticatorConfig = (*IAMAuthenticatorConfig)(unsafe.Pointer(in.IAMAuthenticatorConfig))
 	if err := Convert_v1beta2_EndpointAccess_To_v1beta1_EndpointAccess(&in.EndpointAccess, &out.EndpointAccess, s); err != nil {
 		return err
 	}
 	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
-	out.ImageLookupFormat = in.ImageLookupFormat
-	out.ImageLookupOrg = in.ImageLookupOrg
-	out.ImageLookupBaseOS = in.ImageLookupBaseOS
 	out.Bastion = in.Bastion
-	out.TokenMethod = (*EKSTokenMethod)(unsafe.Pointer(in.TokenMethod))
-	out.AssociateOIDCProvider = in.AssociateOIDCProvider
-	out.Addons = (*[]Addon)(unsafe.Pointer(in.Addons))
-	out.OIDCIdentityProviderConfig = (*OIDCIdentityProviderConfig)(unsafe.Pointer(in.OIDCIdentityProviderConfig))
-	if err := Convert_v1beta2_VpcCni_To_v1beta1_VpcCni(&in.VpcCni, &out.VpcCni, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta2_KubeProxy_To_v1beta1_KubeProxy(&in.KubeProxy, &out.KubeProxy, s); err != nil {
-		return err
-	}
 	return nil
 }
 
