@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
+	"sigs.k8s.io/cluster-api/util/annotations"
 )
 
 // SDKToAutoScalingGroup converts an AWS EC2 SDK AutoScalingGroup to the CAPA AutoScalingGroup type.
@@ -46,7 +47,7 @@ func (s *Service) SDKToAutoScalingGroup(v *autoscaling.Group) (*expinfrav1.AutoS
 		MaxSize:           int32(aws.Int64Value(v.MaxSize)),
 		MinSize:           int32(aws.Int64Value(v.MinSize)),
 		CapacityRebalance: aws.BoolValue(v.CapacityRebalance),
-		//TODO: determine what additional values go here and what else should be in the struct
+		// TODO: determine what additional values go here and what else should be in the struct
 	}
 
 	if v.VPCZoneIdentifier != nil {
@@ -177,7 +178,7 @@ func (s *Service) CreateASG(machinePoolScope *scope.MachinePoolScope) (*expinfra
 	// Ignore the problem for externally managed clusters because MachinePool replicas will be updated to the right value automatically.
 	if mpReplicas >= machinePoolScope.AWSMachinePool.Spec.MinSize && mpReplicas <= machinePoolScope.AWSMachinePool.Spec.MaxSize {
 		input.DesiredCapacity = &mpReplicas
-	} else if !scope.ReplicasExternallyManaged(machinePoolScope.MachinePool) {
+	} else if !annotations.ReplicasManagedByExternalAutoscaler(machinePoolScope.MachinePool) {
 		return nil, fmt.Errorf("incorrect number of replicas %d in MachinePool %v", mpReplicas, machinePoolScope.MachinePool.Name)
 	}
 
@@ -284,35 +285,35 @@ func (s *Service) DeleteASG(name string) error {
 }
 
 // UpdateASG will update the ASG of a service.
-func (s *Service) UpdateASG(scope *scope.MachinePoolScope) error {
-	subnetIDs, err := s.SubnetIDs(scope)
+func (s *Service) UpdateASG(machinePoolScope *scope.MachinePoolScope) error {
+	subnetIDs, err := s.SubnetIDs(machinePoolScope)
 	if err != nil {
 		return fmt.Errorf("getting subnets for ASG: %w", err)
 	}
 
 	input := &autoscaling.UpdateAutoScalingGroupInput{
-		AutoScalingGroupName: aws.String(scope.Name()), //TODO: define dynamically - borrow logic from ec2
-		MaxSize:              aws.Int64(int64(scope.AWSMachinePool.Spec.MaxSize)),
-		MinSize:              aws.Int64(int64(scope.AWSMachinePool.Spec.MinSize)),
+		AutoScalingGroupName: aws.String(machinePoolScope.Name()), // TODO: define dynamically - borrow logic from ec2
+		MaxSize:              aws.Int64(int64(machinePoolScope.AWSMachinePool.Spec.MaxSize)),
+		MinSize:              aws.Int64(int64(machinePoolScope.AWSMachinePool.Spec.MinSize)),
 		VPCZoneIdentifier:    aws.String(strings.Join(subnetIDs, ",")),
-		CapacityRebalance:    aws.Bool(scope.AWSMachinePool.Spec.CapacityRebalance),
+		CapacityRebalance:    aws.Bool(machinePoolScope.AWSMachinePool.Spec.CapacityRebalance),
 	}
 
-	if scope.MachinePool.Spec.Replicas != nil {
-		input.DesiredCapacity = aws.Int64(int64(*scope.MachinePool.Spec.Replicas))
+	if machinePoolScope.MachinePool.Spec.Replicas != nil && !annotations.ReplicasManagedByExternalAutoscaler(machinePoolScope.MachinePool) {
+		input.DesiredCapacity = aws.Int64(int64(*machinePoolScope.MachinePool.Spec.Replicas))
 	}
 
-	if scope.AWSMachinePool.Spec.MixedInstancesPolicy != nil {
-		input.MixedInstancesPolicy = createSDKMixedInstancesPolicy(scope.Name(), scope.AWSMachinePool.Spec.MixedInstancesPolicy)
+	if machinePoolScope.AWSMachinePool.Spec.MixedInstancesPolicy != nil {
+		input.MixedInstancesPolicy = createSDKMixedInstancesPolicy(machinePoolScope.Name(), machinePoolScope.AWSMachinePool.Spec.MixedInstancesPolicy)
 	} else {
 		input.LaunchTemplate = &autoscaling.LaunchTemplateSpecification{
-			LaunchTemplateId: aws.String(scope.AWSMachinePool.Status.LaunchTemplateID),
+			LaunchTemplateId: aws.String(machinePoolScope.AWSMachinePool.Status.LaunchTemplateID),
 			Version:          aws.String(expinfrav1.LaunchTemplateLatestVersion),
 		}
 	}
 
 	if _, err := s.ASGClient.UpdateAutoScalingGroupWithContext(context.TODO(), input); err != nil {
-		return errors.Wrapf(err, "failed to update ASG %q", scope.Name())
+		return errors.Wrapf(err, "failed to update ASG %q", machinePoolScope.Name())
 	}
 
 	return nil
