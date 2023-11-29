@@ -850,8 +850,6 @@ func (r *AWSMachineReconciler) deleteIgnitionBootstrapDataFromS3(machineScope *s
 		return nil
 	}
 
-	machineScope.Info("Deleting unneeded entry from AWS S3", "secretPrefix", machineScope.GetSecretPrefix())
-
 	if err := objectStoreSvc.Delete(machineScope); err != nil {
 		return errors.Wrap(err, "deleting bootstrap data object")
 	}

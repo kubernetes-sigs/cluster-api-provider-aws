@@ -1136,7 +1136,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 				g.Expect(err).To(BeNil())
-				g.Expect(buf.String()).To(ContainSubstring("Deleting unneeded entry from AWS S3"))
 			})
 		})
 
