@@ -94,8 +94,8 @@ func powerVSCustomizations(obj *unstructured.Unstructured) {
 			if container.Name == "manager" {
 				for j := range container.Args {
 					arg := &container.Args[j]
-					if *arg == "--powervs-provider-id-fmt=${POWERVS_PROVIDER_ID_FORMAT:=v1}" {
-						container.Args[j] = "--powervs-provider-id-fmt=v2"
+					if *arg == "--provider-id-fmt=${PROVIDER_ID_FORMAT:=v1}" {
+						container.Args[j] = "--provider-id-fmt=v2"
 					}
 				}
 			}

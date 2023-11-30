@@ -26,7 +26,7 @@ const (
 
 type provider struct {
 	Name       string                    `json:"name"`
-	PType      clusterctlv1.ProviderType `json:"type"`
+	Type       clusterctlv1.ProviderType `json:"type"`
 	Version    string                    `json:"version"`
 	components repository.Components
 	metadata   []byte
@@ -37,13 +37,13 @@ func (p *provider) loadComponents() error {
 	// Create new clusterctl config client
 	configClient, err := configclient.New("")
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating clusterctl config client: %w", err)
 	}
 
 	// Create new clusterctl provider client
-	providerConfig, err := configClient.Providers().Get(p.Name, p.PType)
+	providerConfig, err := configClient.Providers().Get(p.Name, p.Type)
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating clusterctl provider client: %w", err)
 	}
 
 	// Set options for yaml processor
@@ -55,7 +55,7 @@ func (p *provider) loadComponents() error {
 	// Compile assets using kustomize.
 	rawComponents, err := fetchAndCompileComponents(path.Join(projDir, kustomizeComponentsPath))
 	if err != nil {
-		return err
+		return fmt.Errorf("error fetching and compiling assets using kustomize: %w", err)
 	}
 
 	// Ininitialize new clusterctl repository components, this should some yaml processing
@@ -67,7 +67,7 @@ func (p *provider) loadComponents() error {
 		Options:      options,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("error initializing new clusterctl components repository: %w", err)
 	}
 
 	content, err := os.ReadFile(path.Join(projDir, metadataFilePath))
@@ -77,20 +77,20 @@ func (p *provider) loadComponents() error {
 
 	p.metadata = content
 
-	return err
+	return nil
 }
 
 func (p *provider) providerTypeName() string {
-	return strings.ReplaceAll(strings.ToLower(string(p.PType)), "provider", "")
+	return strings.ReplaceAll(strings.ToLower(string(p.Type)), "provider", "")
 }
 
 func (p *provider) writeProviderComponentsConfigmap(fileName string, objs []unstructured.Unstructured) error {
 	combined, err := utilyaml.FromUnstructured(objs)
 	if err != nil {
-		return err
+		return fmt.Errorf("error converting unstructure object to YAML: %w", err)
 	}
 
-	annotations := openshifAnnotations
+	annotations := openshiftAnnotations
 	annotations[techPreviewAnnotation] = techPreviewAnnotationValue
 
 	cm := &corev1.ConfigMap{
@@ -116,7 +116,7 @@ func (p *provider) writeProviderComponentsConfigmap(fileName string, objs []unst
 
 	cmYaml, err := yaml.Marshal(cm)
 	if err != nil {
-		return err
+		return fmt.Errorf("error marshaling provider ConfigMap to YAML: %w", err)
 	}
 
 	return os.WriteFile(path.Join(*manifestsPath, fileName), ensureNewLine(cmYaml), 0600)
@@ -136,7 +136,7 @@ func importProvider(p provider) error {
 	}
 
 	if err := p.loadComponents(); err != nil {
-		return err
+		return fmt.Errorf("error loading provider components: %w", err)
 	}
 	if p.Name == powerVSProvider {
 		p.Name = ibmCloudProvider
@@ -155,23 +155,10 @@ func importProvider(p provider) error {
 		p.Name = ibmCloudProvider
 	}
 
-	// rbacFileName := fmt.Sprintf("%s03_rbac-roles.%s-%s.yaml", manifestPrefix, p.providerTypeName(), p.Name)
-	// if err := writeComponentsToManifests(rbacFileName, resourceMap[rbacKey]); err != nil {
-	// 	return err
-	// }
-
-	// // Write CRD components to manifests, they will be managed by CVO
-	// crdFileName := fmt.Sprintf("%s02_crd.%s-%s.yaml", manifestPrefix, p.providerTypeName(), p.Name)
-	// if err := writeComponentsToManifests(crdFileName, resourceMap[crdKey]); err != nil {
-	// 	return err
-	// }
-
-	// Write all other components(deployments, services, secret, etc) to a ConfigMap,
-	// they will be managed by CAPI operator
-	// fName := strings.ToLower(p.providerTypeName() + "-" + p.Name + ".yaml")
+	// Store provider components in the provider ConfigMap.
 	cmFileName := fmt.Sprintf("%s04_cm.%s-%s.yaml", manifestPrefix, strings.ToLower(p.providerTypeName()), p.Name)
 	if err := p.writeProviderComponentsConfigmap(cmFileName, resourceMap[otherKey]); err != nil {
-		return err
+		return fmt.Errorf("error writing provider ConfigMap: %w", err)
 	}
 
 	return nil
