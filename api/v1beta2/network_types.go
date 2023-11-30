@@ -457,10 +457,13 @@ func (s Subnets) IDs() []string {
 }
 
 // FindByID returns a single subnet matching the given id or nil.
+//
+// The returned pointer can be used to write back into the original slice.
 func (s Subnets) FindByID(id string) *SubnetSpec {
-	for _, x := range s {
+	for i := range s {
+		x := &(s[i]) // pointer to original structure
 		if x.GetResourceID() == id {
-			return &x
+			return x
 		}
 	}
 	return nil
@@ -469,12 +472,15 @@ func (s Subnets) FindByID(id string) *SubnetSpec {
 // FindEqual returns a subnet spec that is equal to the one passed in.
 // Two subnets are defined equal to each other if their id is equal
 // or if they are in the same vpc and the cidr block is the same.
+//
+// The returned pointer can be used to write back into the original slice.
 func (s Subnets) FindEqual(spec *SubnetSpec) *SubnetSpec {
-	for _, x := range s {
+	for i := range s {
+		x := &(s[i]) // pointer to original structure
 		if (spec.GetResourceID() != "" && x.GetResourceID() == spec.GetResourceID()) ||
 			(spec.CidrBlock == x.CidrBlock) ||
 			(spec.IPv6CidrBlock != "" && spec.IPv6CidrBlock == x.IPv6CidrBlock) {
-			return &x
+			return x
 		}
 	}
 	return nil
