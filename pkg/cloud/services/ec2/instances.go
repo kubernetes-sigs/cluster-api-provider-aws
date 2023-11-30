@@ -250,6 +250,10 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 		return nil, err
 	}
 
+	// Set the providerID and instanceID as soon as we create an instance so that we keep it in case of errors afterward
+	scope.SetProviderID(out.ID, out.AvailabilityZone)
+	scope.SetInstanceID(out.ID)
+
 	if len(input.NetworkInterfaces) > 0 {
 		for _, id := range input.NetworkInterfaces {
 			s.scope.Debug("Attaching security groups to provided network interface", "groups", input.SecurityGroupIDs, "interface", id)
@@ -261,7 +265,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 
 	s.scope.Debug("Adding tags on each network interface from resource", "resource-id", out.ID)
 
-	// Fetching the network interfaces attached to the specific instanace
+	// Fetching the network interfaces attached to the specific instance
 	networkInterfaces, err := s.getInstanceENIs(out.ID)
 	if err != nil {
 		return nil, err
@@ -269,7 +273,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 
 	s.scope.Debug("Fetched the network interfaces")
 
-	// Once all the network interfaces attached to the specific instanace are found, the similar tags of instance are created for network interfaces too
+	// Once all the network interfaces attached to the specific instance are found, the similar tags of instance are created for network interfaces too
 	if len(networkInterfaces) > 0 {
 		s.scope.Debug("Attempting to create tags from resource", "resource-id", out.ID)
 		for _, networkInterface := range networkInterfaces {
