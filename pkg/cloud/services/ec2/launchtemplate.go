@@ -899,6 +899,8 @@ func (s *Service) buildLaunchTemplateTagSpecificationRequest(scope scope.LaunchT
 				Value: aws.String(value),
 			})
 		}
+		// Sort so that unit tests can expect a stable order
+		sort.Slice(spec.Tags, func(i, j int) bool { return *spec.Tags[i].Key < *spec.Tags[j].Key })
 		tagSpecifications = append(tagSpecifications, spec)
 	}
 
@@ -911,6 +913,8 @@ func (s *Service) buildLaunchTemplateTagSpecificationRequest(scope scope.LaunchT
 				Value: aws.String(value),
 			})
 		}
+		// Sort so that unit tests can expect a stable order
+		sort.Slice(spec.Tags, func(i, j int) bool { return *spec.Tags[i].Key < *spec.Tags[j].Key })
 		tagSpecifications = append(tagSpecifications, spec)
 	}
 
