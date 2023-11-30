@@ -16,14 +16,14 @@ import (
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
 
-var basePath = flag.String("base-path", "", "path to the root of the provider's repository")
-var manifestsPath = flag.String("manifests-path", "", "path to the desired directory where to output the generated manifests")
-var providerName = flag.String("provider-name", "", "name of the provider")
-var providerType = flag.String("provider-type", "", "type of the provider")
-var providerVersion = flag.String("provider-version", "", "version of the provider")
-var projDir string
-
 var (
+	basePath        = flag.String("base-path", "", "path to the root of the provider's repository")
+	manifestsPath   = flag.String("manifests-path", "", "path to the desired directory where to output the generated manifests")
+	providerName    = flag.String("provider-name", "", "name of the provider")
+	providerType    = flag.String("provider-type", "", "type of the provider")
+	providerVersion = flag.String("provider-version", "", "version of the provider")
+	projDir         string
+
 	scheme          = runtime.NewScheme()
 	manifestPrefix  = "0000_30_cluster-api_"
 	targetNamespace = "openshift-cluster-api"
@@ -49,7 +49,7 @@ func main() {
 	p := provider{
 		Name: *providerName,
 		// TODO: improve validation
-		PType:   clusterctlv1.ProviderType(*providerType),
+		Type:    clusterctlv1.ProviderType(*providerType),
 		Version: *providerVersion,
 	}
 
