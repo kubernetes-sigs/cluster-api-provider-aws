@@ -12,9 +12,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -408,8 +407,8 @@ func objectMeta(name, namespace string) metav1.ObjectMeta {
 	return meta
 }
 
-// reconcileCertifcateSecret takes a secret and moves it to the workload cluster.
-func reconcileCertifcateSecret(ctx context.Context, cert *corev1.Secret, remoteClient client.Client) error {
+// reconcileCertificateSecret takes a secret and moves it to the workload cluster.
+func reconcileCertificateSecret(ctx context.Context, cert *corev1.Secret, remoteClient client.Client) error {
 	// check if the secret was created by cert-manager
 	certCheck := &corev1.Secret{}
 	if err := remoteClient.Get(ctx, types.NamespacedName{
