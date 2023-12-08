@@ -17,12 +17,14 @@ limitations under the License.
 package network
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
@@ -37,7 +39,9 @@ import (
 )
 
 const (
-	defaultVPCCidr = "10.0.0.0/16"
+	defaultVPCCidr             = "10.0.0.0/16"
+	defaultIpamV4NetmaskLength = 16
+	defaultIpamV6NetmaskLength = 56
 )
 
 func (s *Service) reconcileVPC() error {
@@ -130,6 +134,155 @@ func (s *Service) reconcileVPC() error {
 	return nil
 }
 
+func (s *Service) describeVPCEndpoints(filters ...*ec2.Filter) ([]*ec2.VpcEndpoint, error) {
+	vpc := s.scope.VPC()
+	if vpc == nil || vpc.ID == "" {
+		return nil, errors.New("vpc is nil or vpc id is not set")
+	}
+	input := &ec2.DescribeVpcEndpointsInput{
+		Filters: append(filters, &ec2.Filter{
+			Name:   aws.String("vpc-id"),
+			Values: []*string{&vpc.ID},
+		}),
+	}
+	endpoints := []*ec2.VpcEndpoint{}
+	if err := s.EC2Client.DescribeVpcEndpointsPages(input, func(dveo *ec2.DescribeVpcEndpointsOutput, lastPage bool) bool {
+		endpoints = append(endpoints, dveo.VpcEndpoints...)
+		return true
+	}); err != nil {
+		return nil, errors.Wrap(err, "failed to describe vpc endpoints")
+	}
+	return endpoints, nil
+}
+
+// reconcileVPCEndpoints registers the AWS endpoints for the services that need to be enabled
+// in the VPC routing tables. If the VPC is unmanaged, this is a no-op.
+// For more information, see: https://docs.aws.amazon.com/vpc/latest/privatelink/gateway-endpoints.html
+func (s *Service) reconcileVPCEndpoints() error {
+	// If the VPC is unmanaged or not yet populated, return early.
+	if s.scope.VPC().IsUnmanaged(s.scope.Name()) || s.scope.VPC().ID == "" {
+		return nil
+	}
+
+	// Gather all services that need to be enabled.
+	services := sets.New[string]()
+	if s.scope.Bucket() != nil {
+		services.Insert(fmt.Sprintf("com.amazonaws.%s.s3", s.scope.Region()))
+	}
+	if services.Len() == 0 {
+		return nil
+	}
+
+	// Gather the current routes.
+	routeTables := sets.New[string]()
+	for _, rt := range s.scope.Subnets() {
+		if rt.RouteTableID != nil && *rt.RouteTableID != "" {
+			routeTables.Insert(*rt.RouteTableID)
+		}
+	}
+	if routeTables.Len() == 0 {
+		return nil
+	}
+
+	// Build the filters based on all the services we need to enable.
+	// A single filter with multiple values functions as an OR.
+	filters := []*ec2.Filter{
+		{
+			Name:   aws.String("service-name"),
+			Values: aws.StringSlice(services.UnsortedList()),
+		},
+	}
+
+	// Get all existing endpoints.
+	endpoints, err := s.describeVPCEndpoints(filters...)
+	if err != nil {
+		return errors.Wrap(err, "failed to describe vpc endpoints")
+	}
+
+	// Iterate over all services and create missing endpoints.
+	for _, service := range services.UnsortedList() {
+		var existing *ec2.VpcEndpoint
+		for _, ep := range endpoints {
+			if aws.StringValue(ep.ServiceName) == service {
+				existing = ep
+				break
+			}
+		}
+
+		// Handle the case where the endpoint already exists.
+		// If the route tables are different, modify the endpoint.
+		if existing != nil {
+			existingRouteTables := sets.New(aws.StringValueSlice(existing.RouteTableIds)...)
+			existingRouteTables.Delete("")
+			additions := routeTables.Difference(existingRouteTables)
+			removals := existingRouteTables.Difference(routeTables)
+			if additions.Len() > 0 || removals.Len() > 0 {
+				modify := &ec2.ModifyVpcEndpointInput{
+					VpcEndpointId: existing.VpcEndpointId,
+				}
+				if additions.Len() > 0 {
+					modify.AddRouteTableIds = aws.StringSlice(additions.UnsortedList())
+				}
+				if removals.Len() > 0 {
+					modify.RemoveRouteTableIds = aws.StringSlice(removals.UnsortedList())
+				}
+				if _, err := s.EC2Client.ModifyVpcEndpoint(modify); err != nil {
+					return errors.Wrapf(err, "failed to modify vpc endpoint for service %q", service)
+				}
+			}
+			continue
+		}
+
+		// Create the endpoint.
+		if _, err := s.EC2Client.CreateVpcEndpoint(&ec2.CreateVpcEndpointInput{
+			VpcId:         aws.String(s.scope.VPC().ID),
+			ServiceName:   aws.String(service),
+			RouteTableIds: aws.StringSlice(routeTables.UnsortedList()),
+			TagSpecifications: []*ec2.TagSpecification{
+				tags.BuildParamsToTagSpecification(ec2.ResourceTypeVpcEndpoint, s.getVPCEndpointTagParams()),
+			},
+		}); err != nil {
+			return errors.Wrapf(err, "failed to create vpc endpoint for service %q", service)
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) deleteVPCEndpoints() error {
+	// If the VPC is unmanaged or not yet populated, return early.
+	if s.scope.VPC().IsUnmanaged(s.scope.Name()) || s.scope.VPC().ID == "" {
+		return nil
+	}
+
+	// Get all existing endpoints.
+	endpoints, err := s.describeVPCEndpoints()
+	if err != nil {
+		return errors.Wrap(err, "failed to describe vpc endpoints")
+	}
+
+	// Gather all endpoint IDs.
+	ids := []*string{}
+	for _, ep := range endpoints {
+		if ep.VpcEndpointId == nil || *ep.VpcEndpointId == "" {
+			continue
+		}
+		ids = append(ids, ep.VpcEndpointId)
+	}
+
+	if len(ids) == 0 {
+		return nil
+	}
+
+	// Iterate over all services and delete endpoints.
+	if _, err := s.EC2Client.DeleteVpcEndpoints(&ec2.DeleteVpcEndpointsInput{
+		VpcEndpointIds: ids,
+	}); err != nil {
+		return errors.Wrapf(err, "failed to delete vpc endpoints %+v", ids)
+	}
+	return nil
+}
+
 func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 	var (
 		errs    []error
@@ -141,7 +294,7 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 		VpcId:     aws.String(vpc.ID),
 		Attribute: aws.String("enableDnsHostnames"),
 	}
-	vpcAttr, err := s.EC2Client.DescribeVpcAttribute(descAttrInput)
+	vpcAttr, err := s.EC2Client.DescribeVpcAttributeWithContext(context.TODO(), descAttrInput)
 	if err != nil {
 		// If the returned error is a 'NotFound' error it should trigger retry
 		if code, ok := awserrors.Code(errors.Cause(err)); ok && code == awserrors.VPCNotFound {
@@ -153,7 +306,7 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 			VpcId:              aws.String(vpc.ID),
 			EnableDnsHostnames: &ec2.AttributeBooleanValue{Value: aws.Bool(true)},
 		}
-		if _, err := s.EC2Client.ModifyVpcAttribute(attrInput); err != nil {
+		if _, err := s.EC2Client.ModifyVpcAttributeWithContext(context.TODO(), attrInput); err != nil {
 			errs = append(errs, errors.Wrap(err, "failed to set enableDnsHostnames vpc attribute"))
 		} else {
 			updated = true
@@ -164,7 +317,7 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 		VpcId:     aws.String(vpc.ID),
 		Attribute: aws.String("enableDnsSupport"),
 	}
-	vpcAttr, err = s.EC2Client.DescribeVpcAttribute(descAttrInput)
+	vpcAttr, err = s.EC2Client.DescribeVpcAttributeWithContext(context.TODO(), descAttrInput)
 	if err != nil {
 		// If the returned error is a 'NotFound' error it should trigger retry
 		if code, ok := awserrors.Code(errors.Cause(err)); ok && code == awserrors.VPCNotFound {
@@ -176,7 +329,7 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 			VpcId:            aws.String(vpc.ID),
 			EnableDnsSupport: &ec2.AttributeBooleanValue{Value: aws.Bool(true)},
 		}
-		if _, err := s.EC2Client.ModifyVpcAttribute(attrInput); err != nil {
+		if _, err := s.EC2Client.ModifyVpcAttributeWithContext(context.TODO(), attrInput); err != nil {
 			errs = append(errs, errors.Wrap(err, "failed to set enableDnsSupport vpc attribute"))
 		} else {
 			updated = true
@@ -195,6 +348,35 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 	return nil
 }
 
+func (s *Service) getIPAMPoolID() (*string, error) {
+	input := &ec2.DescribeIpamPoolsInput{}
+
+	if s.scope.VPC().IPAMPool.ID != "" {
+		input.Filters = append(input.Filters, filter.EC2.IPAM(s.scope.VPC().IPAMPool.ID))
+	}
+
+	if s.scope.VPC().IPAMPool.Name != "" {
+		input.Filters = append(input.Filters, filter.EC2.Name(s.scope.VPC().IPAMPool.Name))
+	}
+
+	output, err := s.EC2Client.DescribeIpamPools(input)
+	if err != nil {
+		record.Warnf(s.scope.InfraCluster(), "FailedCreateVPC", "Failed to describe IPAM Pools: %v", err)
+		return nil, errors.Wrap(err, "failed to describe IPAM Pools")
+	}
+
+	switch len(output.IpamPools) {
+	case 0:
+		record.Warnf(s.scope.InfraCluster(), "FailedCreateVPC", "IPAM not found")
+		return nil, fmt.Errorf("IPAM not found")
+	case 1:
+		return output.IpamPools[0].IpamPoolId, nil
+	default:
+		record.Warnf(s.scope.InfraCluster(), "FailedCreateVPC", "multiple IPAMs found")
+		return nil, fmt.Errorf("multiple IPAMs found")
+	}
+}
+
 func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 	input := &ec2.CreateVpcInput{
 		TagSpecifications: []*ec2.TagSpecification{
@@ -202,21 +384,52 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 		},
 	}
 
-	// setup BYOIP
-	if s.scope.VPC().IsIPv6Enabled() && s.scope.VPC().IPv6.CidrBlock != "" {
-		input.Ipv6CidrBlock = aws.String(s.scope.VPC().IPv6.CidrBlock)
-		input.Ipv6Pool = aws.String(s.scope.VPC().IPv6.PoolID)
-		input.AmazonProvidedIpv6CidrBlock = aws.Bool(false)
+	// IPv6-specific configuration
+	if s.scope.VPC().IsIPv6Enabled() {
+		switch {
+		case s.scope.VPC().IPv6.CidrBlock != "":
+			input.Ipv6CidrBlock = aws.String(s.scope.VPC().IPv6.CidrBlock)
+			input.Ipv6Pool = aws.String(s.scope.VPC().IPv6.PoolID)
+			input.AmazonProvidedIpv6CidrBlock = aws.Bool(false)
+		case s.scope.VPC().IPv6.IPAMPool != nil:
+			ipamPoolID, err := s.getIPAMPoolID()
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to get IPAM Pool ID")
+			}
+
+			if s.scope.VPC().IPv6.IPAMPool.NetmaskLength == 0 {
+				s.scope.VPC().IPv6.IPAMPool.NetmaskLength = defaultIpamV6NetmaskLength
+			}
+
+			input.Ipv6IpamPoolId = ipamPoolID
+			input.Ipv6NetmaskLength = aws.Int64(s.scope.VPC().IPv6.IPAMPool.NetmaskLength)
+		default:
+			input.AmazonProvidedIpv6CidrBlock = aws.Bool(s.scope.VPC().IsIPv6Enabled())
+		}
+	}
+
+	// IPv4-specific configuration
+	if s.scope.VPC().IPAMPool != nil {
+		ipamPoolID, err := s.getIPAMPoolID()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get IPAM Pool ID")
+		}
+
+		if s.scope.VPC().IPAMPool.NetmaskLength == 0 {
+			s.scope.VPC().IPAMPool.NetmaskLength = defaultIpamV4NetmaskLength
+		}
+
+		input.Ipv4IpamPoolId = ipamPoolID
+		input.Ipv4NetmaskLength = aws.Int64(s.scope.VPC().IPAMPool.NetmaskLength)
 	} else {
-		input.AmazonProvidedIpv6CidrBlock = aws.Bool(s.scope.VPC().IsIPv6Enabled())
+		if s.scope.VPC().CidrBlock == "" {
+			s.scope.VPC().CidrBlock = defaultVPCCidr
+		}
+
+		input.CidrBlock = &s.scope.VPC().CidrBlock
 	}
 
-	if s.scope.VPC().CidrBlock == "" {
-		s.scope.VPC().CidrBlock = defaultVPCCidr
-	}
-	input.CidrBlock = &s.scope.VPC().CidrBlock
-
-	out, err := s.EC2Client.CreateVpc(input)
+	out, err := s.EC2Client.CreateVpcWithContext(context.TODO(), input)
 	if err != nil {
 		record.Warnf(s.scope.InfraCluster(), "FailedCreateVPC", "Failed to create new managed VPC: %v", err)
 		return nil, errors.Wrap(err, "failed to create vpc")
@@ -247,7 +460,7 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 	}
 
 	// We have to describe the VPC again because the `create` output will **NOT** contain the associated IPv6 address.
-	vpc, err := s.EC2Client.DescribeVpcs(&ec2.DescribeVpcsInput{
+	vpc, err := s.EC2Client.DescribeVpcsWithContext(context.TODO(), &ec2.DescribeVpcsInput{
 		VpcIds: aws.StringSlice([]string{aws.StringValue(out.Vpc.VpcId)}),
 	})
 	if err != nil {
@@ -287,7 +500,7 @@ func (s *Service) deleteVPC() error {
 		VpcId: aws.String(vpc.ID),
 	}
 
-	if _, err := s.EC2Client.DeleteVpc(input); err != nil {
+	if _, err := s.EC2Client.DeleteVpcWithContext(context.TODO(), input); err != nil {
 		// Ignore if it's already deleted
 		if code, ok := awserrors.Code(err); ok && code == awserrors.VPCNotFound {
 			s.scope.Trace("Skipping VPC deletion, VPC not found")
@@ -322,7 +535,7 @@ func (s *Service) describeVPCByID() (*infrav1.VPCSpec, error) {
 
 	input.VpcIds = []*string{aws.String(s.scope.VPC().ID)}
 
-	out, err := s.EC2Client.DescribeVpcs(input)
+	out, err := s.EC2Client.DescribeVpcsWithContext(context.TODO(), input)
 	if err != nil {
 		if awserrors.IsNotFound(err) {
 			return nil, err
@@ -368,6 +581,15 @@ func (s *Service) getVPCTagParams(id string) infrav1.BuildParams {
 		ResourceID:  id,
 		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(name),
+		Role:        aws.String(infrav1.CommonRoleTagValue),
+		Additional:  s.scope.AdditionalTags(),
+	}
+}
+
+func (s *Service) getVPCEndpointTagParams() infrav1.BuildParams {
+	return infrav1.BuildParams{
+		ClusterName: s.scope.Name(),
+		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Role:        aws.String(infrav1.CommonRoleTagValue),
 		Additional:  s.scope.AdditionalTags(),
 	}

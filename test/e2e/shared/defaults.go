@@ -50,6 +50,7 @@ const (
 	AwsNodeMachineType                   = "AWS_NODE_MACHINE_TYPE"
 	AwsAvailabilityZone1                 = "AWS_AVAILABILITY_ZONE_1"
 	AwsAvailabilityZone2                 = "AWS_AVAILABILITY_ZONE_2"
+	MultiAzFlavor                        = "multi-az"
 	LimitAzFlavor                        = "limit-az"
 	SpotInstancesFlavor                  = "spot-instances"
 	SSMFlavor                            = "ssm"
@@ -69,6 +70,7 @@ const (
 	PostCSIKubernetesVer                 = "POST_1_23_KUBERNETES_VERSION"
 	EFSSupport                           = "efs-support"
 	IntreeCloudProvider                  = "intree-cloud-provider"
+	MultiTenancy                         = "MULTI_TENANCY_"
 )
 
 var ResourceQuotaFilePath = "/tmp/capa-e2e-resource-usage.lock"
@@ -83,15 +85,15 @@ var (
 type MultitenancyRole string
 
 func (m MultitenancyRole) EnvVarARN() string {
-	return "MULTI_TENANCY_" + strings.ToUpper(string(m)) + "_ROLE_ARN"
+	return MultiTenancy + strings.ToUpper(string(m)) + "_ROLE_ARN"
 }
 
 func (m MultitenancyRole) EnvVarName() string {
-	return "MULTI_TENANCY_" + strings.ToUpper(string(m)) + "_ROLE_NAME"
+	return MultiTenancy + strings.ToUpper(string(m)) + "_ROLE_NAME"
 }
 
 func (m MultitenancyRole) EnvVarIdentity() string {
-	return "MULTI_TENANCY_" + strings.ToUpper(string(m)) + "_IDENTITY_NAME"
+	return MultiTenancy + strings.ToUpper(string(m)) + "_IDENTITY_NAME"
 }
 
 func (m MultitenancyRole) IdentityName() string {

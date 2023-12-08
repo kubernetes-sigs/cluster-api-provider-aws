@@ -45,19 +45,19 @@ spec:
       nodeRegistration:
         name: $${COREOS_EC2_HOSTNAME}
         kubeletExtraArgs:
-          cloud-provider: aws
+          cloud-provider: external
     clusterConfiguration:
       apiServer:
         extraArgs:
-          cloud-provider: aws
+          cloud-provider: external
       controllerManager:
         extraArgs:
-          cloud-provider: aws
+          cloud-provider: external
     joinConfiguration:
       nodeRegistration:
         name: $${COREOS_EC2_HOSTNAME}
         kubeletExtraArgs:
-          cloud-provider: aws
+          cloud-provider: external
     format: ignition
     ignition:
       containerLinuxConfig:
@@ -73,6 +73,8 @@ spec:
                   # kubeadm must run after coreos-metadata populated /run/metadata directory.
                   Requires=coreos-metadata.service
                   After=coreos-metadata.service
+                  # kubeadm must run after containerd - see https://github.com/kubernetes-sigs/image-builder/issues/939.
+                  After=containerd.service
                   [Service]
                   # To make metadata environment variables available for pre-kubeadm commands.
                   EnvironmentFile=/run/metadata/*
@@ -138,7 +140,7 @@ spec:
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            cloud-provider: aws
+            cloud-provider: external
           name: $${COREOS_EC2_HOSTNAME}
       format: ignition
       ignition:
@@ -155,6 +157,8 @@ spec:
                     # kubeadm must run after coreos-metadata populated /run/metadata directory.
                     Requires=coreos-metadata.service
                     After=coreos-metadata.service
+                    # kubeadm must run after containerd - see https://github.com/kubernetes-sigs/image-builder/issues/939.
+                    After=containerd.service
                     [Service]
                     # To make metadata environment variables available for pre-kubeadm commands.
                     EnvironmentFile=/run/metadata/*

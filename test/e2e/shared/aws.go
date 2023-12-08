@@ -869,7 +869,7 @@ func conformanceImageID(e2eCtx *E2EContext) string {
 
 func GetAvailabilityZones(sess client.ConfigProvider) []*ec2.AvailabilityZone {
 	ec2Client := ec2.New(sess)
-	azs, err := ec2Client.DescribeAvailabilityZones(nil)
+	azs, err := ec2Client.DescribeAvailabilityZonesWithContext(context.TODO(), nil)
 	Expect(err).NotTo(HaveOccurred())
 	return azs.AvailabilityZones
 }
@@ -1205,6 +1205,29 @@ func GetVPCByName(e2eCtx *E2EContext, vpcName string) (*ec2.Vpc, error) {
 		return nil, awserrors.NewNotFound("Vpc not found")
 	}
 	return result.Vpcs[0], nil
+}
+
+func GetVPCEndpointsByID(e2eCtx *E2EContext, vpcID string) ([]*ec2.VpcEndpoint, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DescribeVpcEndpointsInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("vpc-id"),
+				Values: aws.StringSlice([]string{vpcID}),
+			},
+		},
+	}
+
+	res := []*ec2.VpcEndpoint{}
+	if err := ec2Svc.DescribeVpcEndpointsPages(input, func(dveo *ec2.DescribeVpcEndpointsOutput, lastPage bool) bool {
+		res = append(res, dveo.VpcEndpoints...)
+		return true
+	}); err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
 
 func CreateVPC(e2eCtx *E2EContext, vpcName string, cidrBlock string) (*ec2.Vpc, error) {

@@ -17,6 +17,7 @@ limitations under the License.
 package network
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -64,7 +65,7 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 			}).WithTagUnmanagedNetworkResources(false),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String("state"),
@@ -95,7 +96,7 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{
 						RouteTables: []*ec2.RouteTable{
 							{
@@ -115,7 +116,7 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				m.DescribeNatGatewaysPages(
+				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
 							{
@@ -148,7 +149,7 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 			}).WithTagUnmanagedNetworkResources(true),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String("state"),
@@ -179,7 +180,7 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{
 						RouteTables: []*ec2.RouteTable{
 							{
@@ -199,7 +200,7 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				m.DescribeNatGatewaysPages(
+				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
 							{
@@ -214,7 +215,7 @@ func TestReconcileSubnets(t *testing.T) {
 					}),
 					gomock.Any()).Return(nil)
 
-				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
 					Resources: aws.StringSlice([]string{"subnet-1"}),
 					Tags: []*ec2.Tag{
 						{
@@ -229,7 +230,7 @@ func TestReconcileSubnets(t *testing.T) {
 				})).
 					Return(&ec2.CreateTagsOutput{}, nil)
 
-				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
 					Resources: aws.StringSlice([]string{"subnet-2"}),
 					Tags: []*ec2.Tag{
 						{
@@ -266,7 +267,7 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 			}).WithTagUnmanagedNetworkResources(true),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String("state"),
@@ -317,7 +318,7 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{
 						RouteTables: []*ec2.RouteTable{
 							{
@@ -337,7 +338,7 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				m.DescribeNatGatewaysPages(
+				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
 							{
@@ -352,7 +353,7 @@ func TestReconcileSubnets(t *testing.T) {
 					}),
 					gomock.Any()).Return(nil)
 
-				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
 					Resources: aws.StringSlice([]string{"subnet-1"}),
 					Tags: []*ec2.Tag{
 						{
@@ -367,7 +368,7 @@ func TestReconcileSubnets(t *testing.T) {
 				})).
 					Return(&ec2.CreateTagsOutput{}, nil)
 
-				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
 					Resources: aws.StringSlice([]string{"subnet-2"}),
 					Tags: []*ec2.Tag{
 						{
@@ -401,7 +402,7 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 			}).WithTagUnmanagedNetworkResources(true),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String("state"),
@@ -432,10 +433,10 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{}, nil)
 
-				m.DescribeNatGatewaysPages(
+				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
 							{
@@ -450,7 +451,7 @@ func TestReconcileSubnets(t *testing.T) {
 					}),
 					gomock.Any()).Return(nil)
 
-				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
 					Resources: aws.StringSlice([]string{"subnet-1"}),
 					Tags: []*ec2.Tag{
 						{
@@ -465,7 +466,7 @@ func TestReconcileSubnets(t *testing.T) {
 				})).
 					Return(&ec2.CreateTagsOutput{}, nil)
 
-				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
 					Resources: aws.StringSlice([]string{"subnet-2"}),
 					Tags: []*ec2.Tag{
 						{
@@ -499,7 +500,7 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 			}).WithTagUnmanagedNetworkResources(true),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String("state"),
@@ -530,7 +531,7 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{
 						RouteTables: []*ec2.RouteTable{
 							{
@@ -550,7 +551,7 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				m.DescribeNatGatewaysPages(
+				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
 							{
@@ -565,7 +566,7 @@ func TestReconcileSubnets(t *testing.T) {
 					}),
 					gomock.Any()).Return(nil)
 
-				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
 					Resources: aws.StringSlice([]string{"subnet-1"}),
 					Tags: []*ec2.Tag{
 						{
@@ -591,7 +592,7 @@ func TestReconcileSubnets(t *testing.T) {
 				Subnets: []infrav1.SubnetSpec{},
 			}).WithTagUnmanagedNetworkResources(true),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String("state"),
@@ -622,10 +623,10 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{}, nil)
 
-				m.DescribeNatGatewaysPages(
+				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
 							{
@@ -663,7 +664,7 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 			}).WithTagUnmanagedNetworkResources(true),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String("state"),
@@ -677,10 +678,10 @@ func TestReconcileSubnets(t *testing.T) {
 				})).
 					Return(&ec2.DescribeSubnetsOutput{}, nil)
 
-				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{}, nil)
 
-				m.DescribeNatGatewaysPages(
+				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
 							{
@@ -718,7 +719,7 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 			}).WithTagUnmanagedNetworkResources(true),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String("state"),
@@ -749,10 +750,10 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{}, nil)
 
-				m.DescribeNatGatewaysPages(
+				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
 							{
@@ -767,7 +768,7 @@ func TestReconcileSubnets(t *testing.T) {
 					}),
 					gomock.Any()).Return(nil)
 
-				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
 					Resources: aws.StringSlice([]string{"subnet-1"}),
 					Tags: []*ec2.Tag{
 						{
@@ -782,7 +783,7 @@ func TestReconcileSubnets(t *testing.T) {
 				})).
 					Return(&ec2.CreateTagsOutput{}, nil)
 
-				m.CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
 					Resources: aws.StringSlice([]string{"subnet-2"}),
 					Tags: []*ec2.Tag{
 						{
@@ -823,7 +824,7 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 			}),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				describeCall := m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				describeCall := m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String("state"),
@@ -837,10 +838,10 @@ func TestReconcileSubnets(t *testing.T) {
 				})).
 					Return(&ec2.DescribeSubnetsOutput{}, nil)
 
-				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{}, nil)
 
-				m.DescribeNatGatewaysPages(
+				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
 							{
@@ -855,7 +856,7 @@ func TestReconcileSubnets(t *testing.T) {
 					}),
 					gomock.Any()).Return(nil)
 
-				firstSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+				firstSubnet := m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.1.0.0/16"),
 					AvailabilityZone: aws.String("us-east-1a"),
@@ -898,10 +899,10 @@ func TestReconcileSubnets(t *testing.T) {
 					}, nil).
 					After(describeCall)
 
-				m.WaitUntilSubnetAvailable(gomock.Any()).
+				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any()).
 					After(firstSubnet)
 
-				secondSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+				secondSubnet := m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.2.0.0/16"),
 					AvailabilityZone: aws.String("us-east-1b"),
@@ -944,10 +945,10 @@ func TestReconcileSubnets(t *testing.T) {
 					}, nil).
 					After(firstSubnet)
 
-				m.WaitUntilSubnetAvailable(gomock.Any()).
+				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any()).
 					After(secondSubnet)
 
-				m.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
+				m.ModifySubnetAttributeWithContext(context.TODO(), &ec2.ModifySubnetAttributeInput{
 					MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
 						Value: aws.Bool(true),
 					},
@@ -975,7 +976,7 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 			}),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String("state"),
@@ -989,10 +990,10 @@ func TestReconcileSubnets(t *testing.T) {
 				})).
 					Return(&ec2.DescribeSubnetsOutput{}, nil)
 
-				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{}, nil)
 
-				m.DescribeNatGatewaysPages(
+				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
 							{
@@ -1022,7 +1023,7 @@ func TestReconcileSubnets(t *testing.T) {
 				Subnets: []infrav1.SubnetSpec{},
 			}),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAvailabilityZones(gomock.Any()).
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeAvailabilityZonesOutput{
 						AvailabilityZones: []*ec2.AvailabilityZone{
 							{
@@ -1031,7 +1032,7 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				describeCall := m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				describeCall := m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String("state"),
@@ -1045,10 +1046,10 @@ func TestReconcileSubnets(t *testing.T) {
 				})).
 					Return(&ec2.DescribeSubnetsOutput{}, nil)
 
-				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{}, nil)
 
-				m.DescribeNatGatewaysPages(
+				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
 							{
@@ -1063,7 +1064,7 @@ func TestReconcileSubnets(t *testing.T) {
 					}),
 					gomock.Any()).Return(nil)
 
-				firstSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+				firstSubnet := m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.0.0/17"),
 					AvailabilityZone: aws.String("us-east-1c"),
@@ -1106,10 +1107,10 @@ func TestReconcileSubnets(t *testing.T) {
 					}, nil).
 					After(describeCall)
 
-				m.WaitUntilSubnetAvailable(gomock.Any()).
+				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any()).
 					After(firstSubnet)
 
-				m.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
+				m.ModifySubnetAttributeWithContext(context.TODO(), &ec2.ModifySubnetAttributeInput{
 					MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
 						Value: aws.Bool(true),
 					},
@@ -1118,7 +1119,7 @@ func TestReconcileSubnets(t *testing.T) {
 					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(firstSubnet)
 
-				secondSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+				secondSubnet := m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.128.0/17"),
 					AvailabilityZone: aws.String("us-east-1c"),
@@ -1161,7 +1162,7 @@ func TestReconcileSubnets(t *testing.T) {
 					}, nil).
 					After(firstSubnet)
 
-				m.WaitUntilSubnetAvailable(gomock.Any()).
+				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any()).
 					After(secondSubnet)
 			},
 		},
@@ -1182,7 +1183,7 @@ func TestReconcileSubnets(t *testing.T) {
 				Subnets: []infrav1.SubnetSpec{},
 			}),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAvailabilityZones(gomock.Any()).
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeAvailabilityZonesOutput{
 						AvailabilityZones: []*ec2.AvailabilityZone{
 							{
@@ -1191,7 +1192,7 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				describeCall := m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				describeCall := m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String("state"),
@@ -1205,10 +1206,10 @@ func TestReconcileSubnets(t *testing.T) {
 				})).
 					Return(&ec2.DescribeSubnetsOutput{}, nil)
 
-				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{}, nil)
 
-				m.DescribeNatGatewaysPages(
+				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
 							{
@@ -1223,7 +1224,7 @@ func TestReconcileSubnets(t *testing.T) {
 					}),
 					gomock.Any()).Return(nil)
 
-				firstSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+				firstSubnet := m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.0.0/17"),
 					AvailabilityZone: aws.String("us-east-1c"),
@@ -1277,10 +1278,10 @@ func TestReconcileSubnets(t *testing.T) {
 					}, nil).
 					After(describeCall)
 
-				m.WaitUntilSubnetAvailable(gomock.Any()).
+				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any()).
 					After(firstSubnet)
 
-				m.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
+				m.ModifySubnetAttributeWithContext(context.TODO(), &ec2.ModifySubnetAttributeInput{
 					AssignIpv6AddressOnCreation: &ec2.AttributeBooleanValue{
 						Value: aws.Bool(true),
 					},
@@ -1289,7 +1290,7 @@ func TestReconcileSubnets(t *testing.T) {
 					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(firstSubnet)
 
-				m.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
+				m.ModifySubnetAttributeWithContext(context.TODO(), &ec2.ModifySubnetAttributeInput{
 					AssignIpv6AddressOnCreation: &ec2.AttributeBooleanValue{
 						Value: aws.Bool(true),
 					},
@@ -1298,7 +1299,7 @@ func TestReconcileSubnets(t *testing.T) {
 					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(firstSubnet)
 
-				m.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
+				m.ModifySubnetAttributeWithContext(context.TODO(), &ec2.ModifySubnetAttributeInput{
 					MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
 						Value: aws.Bool(true),
 					},
@@ -1307,7 +1308,7 @@ func TestReconcileSubnets(t *testing.T) {
 					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(firstSubnet)
 
-				secondSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+				secondSubnet := m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.128.0/17"),
 					AvailabilityZone: aws.String("us-east-1c"),
@@ -1361,7 +1362,7 @@ func TestReconcileSubnets(t *testing.T) {
 					}, nil).
 					After(firstSubnet)
 
-				m.WaitUntilSubnetAvailable(gomock.Any()).
+				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any()).
 					After(secondSubnet)
 			},
 		},
@@ -1378,7 +1379,7 @@ func TestReconcileSubnets(t *testing.T) {
 				Subnets: []infrav1.SubnetSpec{},
 			}),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAvailabilityZones(gomock.Any()).
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeAvailabilityZonesOutput{
 						AvailabilityZones: []*ec2.AvailabilityZone{
 							{
@@ -1390,7 +1391,7 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				describeCall := m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				describeCall := m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String("state"),
@@ -1404,10 +1405,10 @@ func TestReconcileSubnets(t *testing.T) {
 				})).
 					Return(&ec2.DescribeSubnetsOutput{}, nil)
 
-				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{}, nil)
 
-				m.DescribeNatGatewaysPages(
+				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
 							{
@@ -1422,7 +1423,7 @@ func TestReconcileSubnets(t *testing.T) {
 					}),
 					gomock.Any()).Return(nil)
 
-				zone1PublicSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+				zone1PublicSubnet := m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.0.0/19"),
 					AvailabilityZone: aws.String("us-east-1b"),
@@ -1465,10 +1466,10 @@ func TestReconcileSubnets(t *testing.T) {
 					}, nil).
 					After(describeCall)
 
-				m.WaitUntilSubnetAvailable(gomock.Any()).
+				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any()).
 					After(zone1PublicSubnet)
 
-				m.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
+				m.ModifySubnetAttributeWithContext(context.TODO(), &ec2.ModifySubnetAttributeInput{
 					MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
 						Value: aws.Bool(true),
 					},
@@ -1477,7 +1478,7 @@ func TestReconcileSubnets(t *testing.T) {
 					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(zone1PublicSubnet)
 
-				zone1PrivateSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+				zone1PrivateSubnet := m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.64.0/18"),
 					AvailabilityZone: aws.String("us-east-1b"),
@@ -1520,12 +1521,12 @@ func TestReconcileSubnets(t *testing.T) {
 					}, nil).
 					After(zone1PublicSubnet)
 
-				m.WaitUntilSubnetAvailable(gomock.Any()).
+				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any()).
 					After(zone1PrivateSubnet)
 
 				// zone 2
 
-				zone2PublicSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+				zone2PublicSubnet := m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.32.0/19"),
 					AvailabilityZone: aws.String("us-east-1c"),
@@ -1568,10 +1569,10 @@ func TestReconcileSubnets(t *testing.T) {
 					}, nil).
 					After(zone1PrivateSubnet)
 
-				m.WaitUntilSubnetAvailable(gomock.Any()).
+				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any()).
 					After(zone2PublicSubnet)
 
-				m.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
+				m.ModifySubnetAttributeWithContext(context.TODO(), &ec2.ModifySubnetAttributeInput{
 					MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
 						Value: aws.Bool(true),
 					},
@@ -1580,7 +1581,7 @@ func TestReconcileSubnets(t *testing.T) {
 					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(zone2PublicSubnet)
 
-				zone2PrivateSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+				zone2PrivateSubnet := m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.128.0/18"),
 					AvailabilityZone: aws.String("us-east-1c"),
@@ -1623,7 +1624,7 @@ func TestReconcileSubnets(t *testing.T) {
 					}, nil).
 					After(zone2PublicSubnet)
 
-				m.WaitUntilSubnetAvailable(gomock.Any()).
+				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any()).
 					After(zone2PrivateSubnet)
 			},
 		},
@@ -1642,7 +1643,7 @@ func TestReconcileSubnets(t *testing.T) {
 				Subnets: []infrav1.SubnetSpec{},
 			}),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAvailabilityZones(gomock.Any()).
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeAvailabilityZonesOutput{
 						AvailabilityZones: []*ec2.AvailabilityZone{
 							{
@@ -1654,7 +1655,7 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				describeCall := m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				describeCall := m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String("state"),
@@ -1668,10 +1669,10 @@ func TestReconcileSubnets(t *testing.T) {
 				})).
 					Return(&ec2.DescribeSubnetsOutput{}, nil)
 
-				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{}, nil)
 
-				m.DescribeNatGatewaysPages(
+				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
 							{
@@ -1686,7 +1687,7 @@ func TestReconcileSubnets(t *testing.T) {
 					}),
 					gomock.Any()).Return(nil)
 
-				zone1PublicSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+				zone1PublicSubnet := m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.0.0/17"),
 					AvailabilityZone: aws.String("us-east-1b"),
@@ -1729,10 +1730,10 @@ func TestReconcileSubnets(t *testing.T) {
 					}, nil).
 					After(describeCall)
 
-				m.WaitUntilSubnetAvailable(gomock.Any()).
+				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any()).
 					After(zone1PublicSubnet)
 
-				m.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
+				m.ModifySubnetAttributeWithContext(context.TODO(), &ec2.ModifySubnetAttributeInput{
 					MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
 						Value: aws.Bool(true),
 					},
@@ -1741,7 +1742,7 @@ func TestReconcileSubnets(t *testing.T) {
 					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(zone1PublicSubnet)
 
-				zone1PrivateSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+				zone1PrivateSubnet := m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.128.0/17"),
 					AvailabilityZone: aws.String("us-east-1b"),
@@ -1784,7 +1785,7 @@ func TestReconcileSubnets(t *testing.T) {
 					}, nil).
 					After(zone1PublicSubnet)
 
-				m.WaitUntilSubnetAvailable(gomock.Any()).
+				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any()).
 					After(zone1PrivateSubnet)
 			},
 		},
@@ -1812,7 +1813,7 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 			}),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String("state"),
@@ -1853,10 +1854,10 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{}, nil)
 
-				m.DescribeNatGatewaysPages(
+				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
 							{
@@ -1871,7 +1872,7 @@ func TestReconcileSubnets(t *testing.T) {
 					}),
 					gomock.Any()).Return(nil)
 
-				m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+				m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.128.0/17"),
 					AvailabilityZone: aws.String("us-east-1a"),
@@ -1912,10 +1913,10 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				m.WaitUntilSubnetAvailable(gomock.Any())
+				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any())
 
 				// Public subnet
-				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+				m.CreateTagsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 			},
 		},
@@ -1944,7 +1945,7 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 			}),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String("state"),
@@ -1985,10 +1986,10 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{}, nil)
 
-				m.DescribeNatGatewaysPages(
+				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
 							{
@@ -2003,7 +2004,7 @@ func TestReconcileSubnets(t *testing.T) {
 					}),
 					gomock.Any()).Return(nil)
 
-				m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+				m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.128.0/17"),
 					AvailabilityZone: aws.String("us-east-1a"),
@@ -2044,10 +2045,10 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				m.WaitUntilSubnetAvailable(gomock.Any())
+				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any())
 
 				// Public subnet
-				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+				m.CreateTagsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 			},
 		},
@@ -2066,7 +2067,7 @@ func TestReconcileSubnets(t *testing.T) {
 					Subnets: []infrav1.SubnetSpec{},
 				}),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAvailabilityZones(gomock.Any()).
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeAvailabilityZonesOutput{
 						AvailabilityZones: []*ec2.AvailabilityZone{
 							{
@@ -2078,7 +2079,7 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				describeCall := m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				describeCall := m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String("state"),
@@ -2092,10 +2093,10 @@ func TestReconcileSubnets(t *testing.T) {
 				})).
 					Return(&ec2.DescribeSubnetsOutput{}, nil)
 
-				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{}, nil)
 
-				m.DescribeNatGatewaysPages(
+				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
 							{
@@ -2110,7 +2111,7 @@ func TestReconcileSubnets(t *testing.T) {
 					}),
 					gomock.Any()).Return(nil)
 
-				zone1PublicSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+				zone1PublicSubnet := m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.0.0/19"),
 					AvailabilityZone: aws.String("us-east-1b"),
@@ -2153,10 +2154,10 @@ func TestReconcileSubnets(t *testing.T) {
 					}, nil).
 					After(describeCall)
 
-				m.WaitUntilSubnetAvailable(gomock.Any()).
+				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any()).
 					After(zone1PublicSubnet)
 
-				m.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
+				m.ModifySubnetAttributeWithContext(context.TODO(), &ec2.ModifySubnetAttributeInput{
 					MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
 						Value: aws.Bool(true),
 					},
@@ -2165,7 +2166,7 @@ func TestReconcileSubnets(t *testing.T) {
 					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(zone1PublicSubnet)
 
-				zone1PrivateSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+				zone1PrivateSubnet := m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.64.0/18"),
 					AvailabilityZone: aws.String("us-east-1b"),
@@ -2208,12 +2209,12 @@ func TestReconcileSubnets(t *testing.T) {
 					}, nil).
 					After(zone1PublicSubnet)
 
-				m.WaitUntilSubnetAvailable(gomock.Any()).
+				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any()).
 					After(zone1PrivateSubnet)
 
 				// zone 2
 
-				zone2PublicSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+				zone2PublicSubnet := m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.32.0/19"),
 					AvailabilityZone: aws.String("us-east-1c"),
@@ -2256,10 +2257,10 @@ func TestReconcileSubnets(t *testing.T) {
 					}, nil).
 					After(zone1PrivateSubnet)
 
-				m.WaitUntilSubnetAvailable(gomock.Any()).
+				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any()).
 					After(zone2PublicSubnet)
 
-				m.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
+				m.ModifySubnetAttributeWithContext(context.TODO(), &ec2.ModifySubnetAttributeInput{
 					MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
 						Value: aws.Bool(true),
 					},
@@ -2268,7 +2269,7 @@ func TestReconcileSubnets(t *testing.T) {
 					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(zone2PublicSubnet)
 
-				zone2PrivateSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+				zone2PrivateSubnet := m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.128.0/18"),
 					AvailabilityZone: aws.String("us-east-1c"),
@@ -2311,7 +2312,7 @@ func TestReconcileSubnets(t *testing.T) {
 					}, nil).
 					After(zone2PublicSubnet)
 
-				m.WaitUntilSubnetAvailable(gomock.Any()).
+				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any()).
 					After(zone2PrivateSubnet)
 			},
 		},
@@ -2373,7 +2374,7 @@ func TestDiscoverSubnets(t *testing.T) {
 				},
 			},
 			mocks: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String("state"),
@@ -2414,7 +2415,7 @@ func TestDiscoverSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{
 						RouteTables: []*ec2.RouteTable{
 							{
@@ -2452,7 +2453,7 @@ func TestDiscoverSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				m.DescribeNatGatewaysPages(
+				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
 						Filter: []*ec2.Filter{
 							{
@@ -2467,12 +2468,13 @@ func TestDiscoverSubnets(t *testing.T) {
 					}),
 					gomock.Any()).Return(nil)
 
-				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+				m.CreateTagsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(&ec2.CreateTagsOutput{}, nil).AnyTimes()
 			},
 			expect: []infrav1.SubnetSpec{
 				{
 					ID:               "subnet-1",
+					ResourceID:       "subnet-1",
 					AvailabilityZone: "us-east-1a",
 					CidrBlock:        "10.0.10.0/24",
 					IsPublic:         true,
@@ -2483,6 +2485,7 @@ func TestDiscoverSubnets(t *testing.T) {
 				},
 				{
 					ID:               "subnet-2",
+					ResourceID:       "subnet-2",
 					AvailabilityZone: "us-east-1a",
 					CidrBlock:        "10.0.11.0/24",
 					IsPublic:         false,
@@ -2586,7 +2589,7 @@ func TestDeleteSubnets(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String("state"),
@@ -2617,12 +2620,12 @@ func TestDeleteSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				m.DeleteSubnet(&ec2.DeleteSubnetInput{
+				m.DeleteSubnetWithContext(context.TODO(), &ec2.DeleteSubnetInput{
 					SubnetId: aws.String("subnet-1"),
 				}).
 					Return(nil, nil)
 
-				m.DeleteSubnet(&ec2.DeleteSubnetInput{
+				m.DeleteSubnetWithContext(context.TODO(), &ec2.DeleteSubnetInput{
 					SubnetId: aws.String("subnet-2"),
 				}).
 					Return(nil, nil)

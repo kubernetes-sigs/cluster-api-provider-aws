@@ -388,6 +388,35 @@ func getEvents(namespace string) *corev1.EventList {
 	return eventsList
 }
 
+func getSubnetID(filterKey, filterValue, clusterName string) *string {
+	var subnetOutput *ec2.DescribeSubnetsOutput
+	var err error
+
+	ec2Client := ec2.New(e2eCtx.AWSSession)
+	subnetInput := &ec2.DescribeSubnetsInput{
+		Filters: []*ec2.Filter{
+			{
+				Name: aws.String(filterKey),
+				Values: []*string{
+					aws.String(filterValue),
+				},
+			},
+			{
+				Name:   aws.String("tag-key"),
+				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/" + clusterName}),
+			},
+		},
+	}
+
+	Eventually(func() int {
+		subnetOutput, err = ec2Client.DescribeSubnets(subnetInput)
+		Expect(err).NotTo(HaveOccurred())
+		return len(subnetOutput.Subnets)
+	}, e2eCtx.E2EConfig.GetIntervals("", "wait-infra-subnets")...).Should(Equal(1))
+
+	return subnetOutput.Subnets[0].SubnetId
+}
+
 func getVolumeIds(info statefulSetInfo, k8sclient crclient.Client) []*string {
 	ginkgo.By("Retrieving IDs of dynamically provisioned volumes.")
 	statefulset := &appsv1.StatefulSet{}

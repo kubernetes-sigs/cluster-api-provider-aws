@@ -386,7 +386,7 @@ spec:
                         protocol:
                           description: Protocol is the protocol for the ingress rule.
                             Accepted values are "-1" (all), "4" (IP in IP),"tcp",
-                            "udp", "icmp", and "58" (ICMPv6).
+                            "udp", "icmp", and "58" (ICMPv6), "50" (ESP).
                           enum:
                           - "-1"
                           - "4"
@@ -394,6 +394,7 @@ spec:
                           - udp
                           - icmp
                           - "58"
+                          - "50"
                           type: string
                         sourceSecurityGroupIds:
                           description: The security group id to allow access from.
@@ -481,8 +482,15 @@ spec:
                             the provider creates a managed VPC.
                           type: string
                         id:
-                          description: ID defines a unique identifier to reference
-                            this resource.
+                          description: "ID defines a unique identifier to reference
+                            this resource. If you're bringing your subnet, set the
+                            AWS subnet-id here, it must start with `subnet-`. \n When
+                            the VPC is managed by CAPA, and you'd like the provider
+                            to create a subnet for you, the id can be set to any placeholder
+                            value that does not start with `subnet-`; upon creation,
+                            the subnet AWS identifier will be populated in the `ResourceID`
+                            field and the `id` field is going to be used as the subnet
+                            name. If you specify a tag called `Name`, it takes precedence."
                           type: string
                         ipv6CidrBlock:
                           description: IPv6CidrBlock is the IPv6 CIDR block to be
@@ -509,6 +517,11 @@ spec:
                             subnet where the NAT gateway resides. It is then used
                             to determine routes for private subnets in the same AZ
                             as the public subnet.
+                          type: string
+                        resourceID:
+                          description: ResourceID is the subnet identifier from AWS,
+                            READ ONLY. This field is populated when the provider manages
+                            the subnet.
                           type: string
                         routeTableId:
                           description: RouteTableID is the routing table id associated
@@ -554,6 +567,7 @@ spec:
                       cidrBlock:
                         description: CidrBlock is the CIDR block to be used when the
                           provider creates a managed VPC. Defaults to 10.0.0.0/16.
+                          Mutually exclusive with IPAMPool.
                         type: string
                       id:
                         description: ID is the vpc-id of the VPC this provider should
@@ -563,6 +577,25 @@ spec:
                         description: InternetGatewayID is the id of the internet gateway
                           associated with the VPC.
                         type: string
+                      ipamPool:
+                        description: IPAMPool defines the IPAMv4 pool to be used for
+                          VPC. Mutually exclusive with CidrBlock.
+                        properties:
+                          id:
+                            description: ID is the ID of the IPAM pool this provider
+                              should use to create VPC.
+                            type: string
+                          name:
+                            description: Name is the name of the IPAM pool this provider
+                              should use to create VPC.
+                            type: string
+                          netmaskLength:
+                            description: The netmask length of the IPv4 CIDR you want
+                              to allocate to VPC from an Amazon VPC IP Address Manager
+                              (IPAM) pool. Defaults to /16 for IPv4 if not specified.
+                            format: int64
+                            type: integer
+                        type: object
                       ipv6:
                         description: IPv6 contains ipv6 specific settings for the
                           network. Supported only in managed clusters. This field
@@ -570,16 +603,37 @@ spec:
                         properties:
                           cidrBlock:
                             description: CidrBlock is the CIDR block provided by Amazon
-                              when VPC has enabled IPv6.
+                              when VPC has enabled IPv6. Mutually exclusive with IPAMPool.
                             type: string
                           egressOnlyInternetGatewayId:
                             description: EgressOnlyInternetGatewayID is the id of
                               the egress only internet gateway associated with an
                               IPv6 enabled VPC.
                             type: string
+                          ipamPool:
+                            description: IPAMPool defines the IPAMv6 pool to be used
+                              for VPC. Mutually exclusive with CidrBlock.
+                            properties:
+                              id:
+                                description: ID is the ID of the IPAM pool this provider
+                                  should use to create VPC.
+                                type: string
+                              name:
+                                description: Name is the name of the IPAM pool this
+                                  provider should use to create VPC.
+                                type: string
+                              netmaskLength:
+                                description: The netmask length of the IPv4 CIDR you
+                                  want to allocate to VPC from an Amazon VPC IP Address
+                                  Manager (IPAM) pool. Defaults to /16 for IPv4 if
+                                  not specified.
+                                format: int64
+                                type: integer
+                            type: object
                           poolId:
                             description: PoolID is the IP pool which must be defined
-                              in case of BYO IP is defined.
+                              in case of BYO IP is defined. Must be specified if CidrBlock
+                              is set. Mutually exclusive with IPAMPool.
                             type: string
                         type: object
                       tags:
@@ -1472,7 +1526,8 @@ spec:
                               protocol:
                                 description: Protocol is the protocol for the ingress
                                   rule. Accepted values are "-1" (all), "4" (IP in
-                                  IP),"tcp", "udp", "icmp", and "58" (ICMPv6).
+                                  IP),"tcp", "udp", "icmp", and "58" (ICMPv6), "50"
+                                  (ESP).
                                 enum:
                                 - "-1"
                                 - "4"
@@ -1480,6 +1535,7 @@ spec:
                                 - udp
                                 - icmp
                                 - "58"
+                                - "50"
                                 type: string
                               sourceSecurityGroupIds:
                                 description: The security group id to allow access
@@ -1916,7 +1972,7 @@ spec:
                         protocol:
                           description: Protocol is the protocol for the ingress rule.
                             Accepted values are "-1" (all), "4" (IP in IP),"tcp",
-                            "udp", "icmp", and "58" (ICMPv6).
+                            "udp", "icmp", and "58" (ICMPv6), "50" (ESP).
                           enum:
                           - "-1"
                           - "4"
@@ -1924,6 +1980,7 @@ spec:
                           - udp
                           - icmp
                           - "58"
+                          - "50"
                           type: string
                         sourceSecurityGroupIds:
                           description: The security group id to allow access from.
@@ -2011,8 +2068,15 @@ spec:
                             the provider creates a managed VPC.
                           type: string
                         id:
-                          description: ID defines a unique identifier to reference
-                            this resource.
+                          description: "ID defines a unique identifier to reference
+                            this resource. If you're bringing your subnet, set the
+                            AWS subnet-id here, it must start with `subnet-`. \n When
+                            the VPC is managed by CAPA, and you'd like the provider
+                            to create a subnet for you, the id can be set to any placeholder
+                            value that does not start with `subnet-`; upon creation,
+                            the subnet AWS identifier will be populated in the `ResourceID`
+                            field and the `id` field is going to be used as the subnet
+                            name. If you specify a tag called `Name`, it takes precedence."
                           type: string
                         ipv6CidrBlock:
                           description: IPv6CidrBlock is the IPv6 CIDR block to be
@@ -2039,6 +2103,11 @@ spec:
                             subnet where the NAT gateway resides. It is then used
                             to determine routes for private subnets in the same AZ
                             as the public subnet.
+                          type: string
+                        resourceID:
+                          description: ResourceID is the subnet identifier from AWS,
+                            READ ONLY. This field is populated when the provider manages
+                            the subnet.
                           type: string
                         routeTableId:
                           description: RouteTableID is the routing table id associated
@@ -2084,6 +2153,7 @@ spec:
                       cidrBlock:
                         description: CidrBlock is the CIDR block to be used when the
                           provider creates a managed VPC. Defaults to 10.0.0.0/16.
+                          Mutually exclusive with IPAMPool.
                         type: string
                       id:
                         description: ID is the vpc-id of the VPC this provider should
@@ -2093,6 +2163,25 @@ spec:
                         description: InternetGatewayID is the id of the internet gateway
                           associated with the VPC.
                         type: string
+                      ipamPool:
+                        description: IPAMPool defines the IPAMv4 pool to be used for
+                          VPC. Mutually exclusive with CidrBlock.
+                        properties:
+                          id:
+                            description: ID is the ID of the IPAM pool this provider
+                              should use to create VPC.
+                            type: string
+                          name:
+                            description: Name is the name of the IPAM pool this provider
+                              should use to create VPC.
+                            type: string
+                          netmaskLength:
+                            description: The netmask length of the IPv4 CIDR you want
+                              to allocate to VPC from an Amazon VPC IP Address Manager
+                              (IPAM) pool. Defaults to /16 for IPv4 if not specified.
+                            format: int64
+                            type: integer
+                        type: object
                       ipv6:
                         description: IPv6 contains ipv6 specific settings for the
                           network. Supported only in managed clusters. This field
@@ -2100,16 +2189,37 @@ spec:
                         properties:
                           cidrBlock:
                             description: CidrBlock is the CIDR block provided by Amazon
-                              when VPC has enabled IPv6.
+                              when VPC has enabled IPv6. Mutually exclusive with IPAMPool.
                             type: string
                           egressOnlyInternetGatewayId:
                             description: EgressOnlyInternetGatewayID is the id of
                               the egress only internet gateway associated with an
                               IPv6 enabled VPC.
                             type: string
+                          ipamPool:
+                            description: IPAMPool defines the IPAMv6 pool to be used
+                              for VPC. Mutually exclusive with CidrBlock.
+                            properties:
+                              id:
+                                description: ID is the ID of the IPAM pool this provider
+                                  should use to create VPC.
+                                type: string
+                              name:
+                                description: Name is the name of the IPAM pool this
+                                  provider should use to create VPC.
+                                type: string
+                              netmaskLength:
+                                description: The netmask length of the IPv4 CIDR you
+                                  want to allocate to VPC from an Amazon VPC IP Address
+                                  Manager (IPAM) pool. Defaults to /16 for IPv4 if
+                                  not specified.
+                                format: int64
+                                type: integer
+                            type: object
                           poolId:
                             description: PoolID is the IP pool which must be defined
-                              in case of BYO IP is defined.
+                              in case of BYO IP is defined. Must be specified if CidrBlock
+                              is set. Mutually exclusive with IPAMPool.
                             type: string
                         type: object
                       tags:
@@ -3015,7 +3125,8 @@ spec:
                               protocol:
                                 description: Protocol is the protocol for the ingress
                                   rule. Accepted values are "-1" (all), "4" (IP in
-                                  IP),"tcp", "udp", "icmp", and "58" (ICMPv6).
+                                  IP),"tcp", "udp", "icmp", and "58" (ICMPv6), "50"
+                                  (ESP).
                                 enum:
                                 - "-1"
                                 - "4"
@@ -3023,6 +3134,7 @@ spec:
                                 - udp
                                 - icmp
                                 - "58"
+                                - "50"
                                 type: string
                               sourceSecurityGroupIds:
                                 description: The security group id to allow access

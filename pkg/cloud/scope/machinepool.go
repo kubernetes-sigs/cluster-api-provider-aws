@@ -167,7 +167,7 @@ func (m *MachinePoolScope) getBootstrapData() ([]byte, string, error) {
 	key := types.NamespacedName{Namespace: m.Namespace(), Name: *m.MachinePool.Spec.Template.Spec.Bootstrap.DataSecretName}
 
 	if err := m.Client.Get(context.TODO(), key, secret); err != nil {
-		return nil, "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for AWSMachine %s/%s", m.Namespace(), m.Name())
+		return nil, "", errors.Wrapf(err, "failed to retrieve bootstrap data secret %s for AWSMachine %s/%s", key.Name, m.Namespace(), m.Name())
 	}
 
 	value, ok := secret.Data["value"]
@@ -302,6 +302,7 @@ func (m *MachinePoolScope) SubnetIDs(subnetIDs []string) ([]string, error) {
 		SpecAvailabilityZones:   m.AWSMachinePool.Spec.AvailabilityZones,
 		ParentAvailabilityZones: m.MachinePool.Spec.FailureDomains,
 		ControlplaneSubnets:     m.InfraCluster.Subnets(),
+		SubnetPlacementType:     m.AWSMachinePool.Spec.AvailabilityZoneSubnetType,
 	})
 }
 
