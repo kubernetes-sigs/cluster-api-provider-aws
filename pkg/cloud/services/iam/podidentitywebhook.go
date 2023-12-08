@@ -12,14 +12,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
 	podIdentityWebhookName  = "pod-identity-webhook"
-	podIdentityWebhookImage = "amazon/amazon-eks-pod-identity-webhook:v0.4.0"
+	podIdentityWebhookImage = "amazon/amazon-eks-pod-identity-webhook:v0.5.2"
+
+	labelNodeRoleMaster       = "node-role.kubernetes.io/master"
+	labelNodeRoleControlPlane = "node-role.kubernetes.io/control-plane"
 )
 
 func reconcileServiceAccount(ctx context.Context, ns string, remoteClient client.Client) error {
@@ -155,59 +157,28 @@ func reconcileDeployment(ctx context.Context, ns string, secret *corev1.Secret, 
 		return err
 	}
 
-	if check.UID != "" {
-		return nil
-	}
-
-	replicas := int32(1)
-	deployment := &v13.Deployment{
-		ObjectMeta: objectMeta(podIdentityWebhookName, ns),
-		Spec: v13.DeploymentSpec{
-			Replicas: &replicas,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": podIdentityWebhookName,
-				},
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": podIdentityWebhookName,
-					},
-				},
-				Spec: corev1.PodSpec{
-					ServiceAccountName: podIdentityWebhookName,
-					Containers: []corev1.Container{
+	nodeAffinity := &corev1.NodeAffinity{
+		PreferredDuringSchedulingIgnoredDuringExecution: []corev1.PreferredSchedulingTerm{
+			{
+				Weight: 10,
+				Preference: corev1.NodeSelectorTerm{
+					MatchExpressions: []corev1.NodeSelectorRequirement{
 						{
-							Name:            podIdentityWebhookName,
-							Image:           podIdentityWebhookImage,
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "webhook-certs",
-									MountPath: "/etc/webhook/certs/",
-									ReadOnly:  false,
-								},
-							},
-							Command: []string{
-								"/webhook",
-								"--in-cluster=false",
-								"--namespace=" + ns,
-								"--service-name=" + podIdentityWebhookName,
-								"--annotation-prefix=eks.amazonaws.com",
-								"--token-audience=sts.amazonaws.com",
-								"--logtostderr",
-							},
+							Key:      labelNodeRoleMaster,
+							Operator: corev1.NodeSelectorOpExists,
+						}, {
+							Key:      labelNodeRoleControlPlane,
+							Operator: corev1.NodeSelectorOpExists,
 						},
 					},
-					Volumes: []corev1.Volume{
+				},
+			}, {
+				Weight: 10,
+				Preference: corev1.NodeSelectorTerm{
+					MatchExpressions: []corev1.NodeSelectorRequirement{
 						{
-							Name: "webhook-certs",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName: secret.Name,
-								},
-							},
+							Key:      labelNodeRoleControlPlane,
+							Operator: corev1.NodeSelectorOpExists,
 						},
 					},
 				},
@@ -215,7 +186,131 @@ func reconcileDeployment(ctx context.Context, ns string, secret *corev1.Secret, 
 		},
 	}
 
-	return remoteClient.Create(ctx, deployment)
+	tolerations := []corev1.Toleration{
+		{
+			Key:    labelNodeRoleControlPlane,
+			Effect: corev1.TaintEffectNoSchedule,
+		}, {
+			Key:    labelNodeRoleMaster,
+			Effect: corev1.TaintEffectNoSchedule,
+		},
+	}
+
+	if check.UID == "" {
+		replicas := int32(1)
+
+		deployment := &v13.Deployment{
+			ObjectMeta: objectMeta(podIdentityWebhookName, ns),
+			Spec: v13.DeploymentSpec{
+				Replicas: &replicas,
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"app": podIdentityWebhookName,
+					},
+				},
+				Template: corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: map[string]string{
+							"app": podIdentityWebhookName,
+						},
+					},
+					Spec: corev1.PodSpec{
+						Affinity:           &corev1.Affinity{NodeAffinity: nodeAffinity},
+						Tolerations:        tolerations,
+						ServiceAccountName: podIdentityWebhookName,
+						Containers: []corev1.Container{
+							{
+								Name:            podIdentityWebhookName,
+								Image:           podIdentityWebhookImage,
+								ImagePullPolicy: corev1.PullIfNotPresent,
+								VolumeMounts: []corev1.VolumeMount{
+									{
+										Name:      "webhook-certs",
+										MountPath: "/etc/webhook/certs/",
+										ReadOnly:  false,
+									},
+								},
+								Command: []string{
+									"/webhook",
+									"--in-cluster=false",
+									"--namespace=" + ns,
+									"--service-name=" + podIdentityWebhookName,
+									"--annotation-prefix=eks.amazonaws.com",
+									"--token-audience=sts.amazonaws.com",
+									"--logtostderr",
+								},
+							},
+						},
+						Volumes: []corev1.Volume{
+							{
+								Name: "webhook-certs",
+								VolumeSource: corev1.VolumeSource{
+									Secret: &corev1.SecretVolumeSource{
+										SecretName: secret.Name,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		return remoteClient.Create(ctx, deployment)
+	}
+
+	needsUpdate := false
+	for ci, container := range check.Spec.Template.Spec.Containers {
+		if container.Name == podIdentityWebhookName && container.Image != podIdentityWebhookImage {
+			check.Spec.Template.Spec.Containers[ci].Image = podIdentityWebhookImage
+			needsUpdate = true
+		}
+	}
+
+	if check.Spec.Template.Spec.Affinity == nil {
+		check.Spec.Template.Spec.Affinity = &corev1.Affinity{}
+	}
+	if check.Spec.Template.Spec.Affinity.NodeAffinity == nil {
+		check.Spec.Template.Spec.Affinity.NodeAffinity = &corev1.NodeAffinity{}
+	}
+
+	for _, aff := range nodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution {
+		found := false
+		for _, a := range check.Spec.Template.Spec.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution {
+			if len(a.Preference.MatchExpressions) == len(aff.Preference.MatchExpressions) {
+				for _, e := range a.Preference.MatchExpressions {
+					for _, e2 := range aff.Preference.MatchExpressions {
+						if e.Key == e2.Key && e.Operator == e2.Operator {
+							found = true
+						}
+					}
+				}
+			}
+		}
+		if !found {
+			check.Spec.Template.Spec.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution = append(check.Spec.Template.Spec.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution, aff)
+			needsUpdate = true
+		}
+	}
+
+	for _, tol := range tolerations {
+		found := false
+		for _, t := range check.Spec.Template.Spec.Tolerations {
+			if t.Key == tol.Key && t.Effect == tol.Effect {
+				found = true
+			}
+		}
+		if !found {
+			check.Spec.Template.Spec.Tolerations = append(check.Spec.Template.Spec.Tolerations, tol)
+			needsUpdate = true
+		}
+	}
+
+	if needsUpdate {
+		return remoteClient.Update(ctx, check)
+	}
+
+	return nil
 }
 
 func reconcileMutatingWebHook(ctx context.Context, ns string, secret *corev1.Secret, remoteClient client.Client) error {
@@ -319,8 +414,8 @@ func objectMeta(name, namespace string) metav1.ObjectMeta {
 	return meta
 }
 
-// reconcileCertifcateSecret takes a secret and moves it to the workload cluster.
-func reconcileCertifcateSecret(ctx context.Context, cert *corev1.Secret, remoteClient client.Client) error {
+// reconcileCertificateSecret takes a secret and moves it to the workload cluster.
+func reconcileCertificateSecret(ctx context.Context, cert *corev1.Secret, remoteClient client.Client) error {
 	// check if the secret was created by cert-manager
 	certCheck := &corev1.Secret{}
 	if err := remoteClient.Get(ctx, types.NamespacedName{

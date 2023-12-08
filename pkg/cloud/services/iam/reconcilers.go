@@ -13,7 +13,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-
 	"sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
 	clusterapiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -43,7 +42,7 @@ func (s *Service) reconcilePodIdentityWebhook(ctx context.Context) error {
 	}
 
 	// switch it to kube-system and move it to the remote cluster
-	if err := reconcileCertifcateSecret(ctx, certSecret, remoteClient); err != nil {
+	if err := reconcileCertificateSecret(ctx, certSecret, remoteClient); err != nil {
 		return err
 	}
 
