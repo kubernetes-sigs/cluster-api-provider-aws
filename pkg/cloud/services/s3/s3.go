@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"sort"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -31,6 +32,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"github.com/pkg/errors"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	iam "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
@@ -66,6 +68,10 @@ func (s *Service) ReconcileBucket() error {
 
 	if err := s.createBucketIfNotExist(bucketName); err != nil {
 		return errors.Wrap(err, "ensuring bucket exists")
+	}
+
+	if err := s.tagBucket(bucketName); err != nil {
+		return errors.Wrap(err, "tagging bucket")
 	}
 
 	if err := s.ensureBucketPolicy(bucketName); err != nil {
@@ -135,6 +141,15 @@ func (s *Service) Create(m *scope.MachineScope, data []byte) (string, error) {
 		ServerSideEncryption: aws.String("aws:kms"),
 	}); err != nil {
 		return "", errors.Wrap(err, "putting object")
+	}
+
+	if exp := s.scope.Bucket().PresignedURLDuration; exp != nil {
+		s.scope.Info("Generating presigned URL", "bucket_name", bucket, "key", key)
+		req, _ := s.S3Client.GetObjectRequest(&s3.GetObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+		})
+		return req.Presign(exp.Duration)
 	}
 
 	objectURL := &url.URL{
@@ -211,6 +226,11 @@ func (s *Service) createBucketIfNotExist(bucketName string) error {
 }
 
 func (s *Service) ensureBucketPolicy(bucketName string) error {
+	if s.scope.Bucket().PresignedURLDuration != nil {
+		// If presigned URL is enabled, we don't need to set bucket policy.
+		return nil
+	}
+
 	bucketPolicy, err := s.bucketPolicy(bucketName)
 	if err != nil {
 		return errors.Wrap(err, "generating Bucket policy")
@@ -226,6 +246,43 @@ func (s *Service) ensureBucketPolicy(bucketName string) error {
 	}
 
 	s.scope.Trace("Updated bucket policy", "bucket_name", bucketName)
+
+	return nil
+}
+
+func (s *Service) tagBucket(bucketName string) error {
+	taggingInput := &s3.PutBucketTaggingInput{
+		Bucket: aws.String(bucketName),
+		Tagging: &s3.Tagging{
+			TagSet: nil,
+		},
+	}
+
+	tags := infrav1.Build(infrav1.BuildParams{
+		ClusterName: s.scope.Name(),
+		Lifecycle:   infrav1.ResourceLifecycleOwned,
+		Name:        nil,
+		Role:        aws.String("node"),
+		Additional:  s.scope.AdditionalTags(),
+	})
+
+	for key, value := range tags {
+		taggingInput.Tagging.TagSet = append(taggingInput.Tagging.TagSet, &s3.Tag{
+			Key:   aws.String(key),
+			Value: aws.String(value),
+		})
+	}
+
+	sort.Slice(taggingInput.Tagging.TagSet, func(i, j int) bool {
+		return *taggingInput.Tagging.TagSet[i].Key < *taggingInput.Tagging.TagSet[j].Key
+	})
+
+	_, err := s.S3Client.PutBucketTagging(taggingInput)
+	if err != nil {
+		return err
+	}
+
+	s.scope.Trace("Tagged bucket", "bucket_name", bucketName)
 
 	return nil
 }

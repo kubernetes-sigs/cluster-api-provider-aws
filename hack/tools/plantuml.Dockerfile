@@ -27,7 +27,7 @@
 # 	${IMAGE_TAG} \
 # 	-v /figures/*.plantuml
 
-FROM maven:3-openjdk-17-slim
+FROM maven:3-openjdk-18-slim
 ARG PLANTUML_VERSION
 
 RUN apt-get update && apt-get install -y --no-install-recommends wget graphviz fonts-symbola fonts-wqy-zenhei && rm -rf /var/lib/apt/lists/*

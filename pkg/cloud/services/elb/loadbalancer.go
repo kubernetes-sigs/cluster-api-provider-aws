@@ -17,7 +17,9 @@ limitations under the License.
 package elb
 
 import (
+	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -173,12 +175,32 @@ func (s *Service) getAPIServerLBSpec(elbName string) (*infrav1.LoadBalancer, err
 		SecurityGroupIDs: securityGroupIDs,
 	}
 
+	if s.scope.ControlPlaneLoadBalancer() != nil {
+		for _, additionalListeners := range controlPlaneLoadBalancer.AdditionalListeners {
+			res.ELBListeners = append(res.ELBListeners, infrav1.Listener{
+				Protocol: additionalListeners.Protocol,
+				Port:     additionalListeners.Port,
+				TargetGroup: infrav1.TargetGroupSpec{
+					Name:     fmt.Sprintf("additional-listener-%d", time.Now().Unix()),
+					Port:     additionalListeners.Port,
+					Protocol: additionalListeners.Protocol,
+					VpcID:    s.scope.VPC().ID,
+					HealthCheck: &infrav1.TargetGroupHealthCheck{
+						Protocol: aws.String(string(additionalListeners.Protocol)),
+						Port:     aws.String(strconv.FormatInt(additionalListeners.Port, 10)),
+					},
+				},
+			})
+		}
+	}
+
 	if s.scope.ControlPlaneLoadBalancer() != nil && s.scope.ControlPlaneLoadBalancer().LoadBalancerType != infrav1.LoadBalancerTypeNLB {
 		res.ELBAttributes[infrav1.LoadBalancerAttributeIdleTimeTimeoutSeconds] = aws.String(infrav1.LoadBalancerAttributeIdleTimeDefaultTimeoutSecondsInSeconds)
 	}
 
 	if s.scope.ControlPlaneLoadBalancer() != nil {
-		res.ELBAttributes[infrav1.LoadBalancerAttributeEnableLoadBalancingCrossZone] = aws.String(fmt.Sprintf("%t", s.scope.ControlPlaneLoadBalancer().CrossZoneLoadBalancing))
+		isCrossZoneLB := s.scope.ControlPlaneLoadBalancer().CrossZoneLoadBalancing
+		res.ELBAttributes[infrav1.LoadBalancerAttributeEnableLoadBalancingCrossZone] = aws.String(strconv.FormatBool(isCrossZoneLB))
 	}
 
 	res.Tags = infrav1.Build(infrav1.BuildParams{
@@ -196,7 +218,7 @@ func (s *Service) getAPIServerLBSpec(elbName string) (*infrav1.LoadBalancer, err
 		input := &ec2.DescribeSubnetsInput{
 			SubnetIds: aws.StringSlice(s.scope.ControlPlaneLoadBalancer().Subnets),
 		}
-		out, err := s.EC2Client.DescribeSubnets(input)
+		out, err := s.EC2Client.DescribeSubnetsWithContext(context.TODO(), input)
 		if err != nil {
 			return nil, err
 		}
@@ -222,7 +244,7 @@ func (s *Service) getAPIServerLBSpec(elbName string) (*infrav1.LoadBalancer, err
 				}
 			}
 			res.AvailabilityZones = append(res.AvailabilityZones, sn.AvailabilityZone)
-			res.SubnetIDs = append(res.SubnetIDs, sn.ID)
+			res.SubnetIDs = append(res.SubnetIDs, sn.GetResourceID())
 		}
 	}
 
@@ -272,6 +294,7 @@ func (s *Service) createLB(spec *infrav1.LoadBalancer) (*infrav1.LoadBalancer, e
 			Port:     aws.Int64(ln.TargetGroup.Port),
 			Protocol: aws.String(ln.TargetGroup.Protocol.String()),
 			VpcId:    aws.String(ln.TargetGroup.VpcID),
+			Tags:     input.Tags,
 		}
 		if s.scope.VPC().IsIPv6Enabled() {
 			targetGroupInput.IpAddressType = aws.String("ipv6")
@@ -641,10 +664,10 @@ func (s *Service) IsInstanceRegisteredWithAPIServerELB(i *infrav1.Instance) (boo
 }
 
 // IsInstanceRegisteredWithAPIServerLB returns true if the instance is already registered with the APIServer LB.
-func (s *Service) IsInstanceRegisteredWithAPIServerLB(i *infrav1.Instance) (string, bool, error) {
+func (s *Service) IsInstanceRegisteredWithAPIServerLB(i *infrav1.Instance) ([]string, bool, error) {
 	name, err := LBName(s.scope)
 	if err != nil {
-		return "", false, errors.Wrap(err, "failed to get control plane load balancer name")
+		return nil, false, errors.Wrap(err, "failed to get control plane load balancer name")
 	}
 
 	input := &elbv2.DescribeLoadBalancersInput{
@@ -653,10 +676,10 @@ func (s *Service) IsInstanceRegisteredWithAPIServerLB(i *infrav1.Instance) (stri
 
 	output, err := s.ELBV2Client.DescribeLoadBalancers(input)
 	if err != nil {
-		return "", false, errors.Wrapf(err, "error describing ELB %q", name)
+		return nil, false, errors.Wrapf(err, "error describing ELB %q", name)
 	}
 	if len(output.LoadBalancers) != 1 {
-		return "", false, errors.Errorf("expected 1 ELB description for %q, got %d", name, len(output.LoadBalancers))
+		return nil, false, errors.Errorf("expected 1 ELB description for %q, got %d", name, len(output.LoadBalancers))
 	}
 
 	describeTargetGroupInput := &elbv2.DescribeTargetGroupsInput{
@@ -665,25 +688,29 @@ func (s *Service) IsInstanceRegisteredWithAPIServerLB(i *infrav1.Instance) (stri
 
 	targetGroups, err := s.ELBV2Client.DescribeTargetGroups(describeTargetGroupInput)
 	if err != nil {
-		return "", false, errors.Wrapf(err, "error describing ELB's target groups %q", name)
+		return nil, false, errors.Wrapf(err, "error describing ELB's target groups %q", name)
 	}
 
+	targetGroupARNs := []string{}
 	for _, tg := range targetGroups.TargetGroups {
 		healthInput := &elbv2.DescribeTargetHealthInput{
 			TargetGroupArn: tg.TargetGroupArn,
 		}
 		instanceHealth, err := s.ELBV2Client.DescribeTargetHealth(healthInput)
 		if err != nil {
-			return "", false, errors.Wrapf(err, "error describing ELB's target groups health %q", name)
+			return nil, false, errors.Wrapf(err, "error describing ELB's target groups health %q", name)
 		}
 		for _, id := range instanceHealth.TargetHealthDescriptions {
 			if aws.StringValue(id.Target.Id) == i.ID {
-				return aws.StringValue(tg.TargetGroupArn), true, nil
+				targetGroupARNs = append(targetGroupARNs, aws.StringValue(tg.TargetGroupArn))
 			}
 		}
 	}
+	if len(targetGroupARNs) > 0 {
+		return targetGroupARNs, true, nil
+	}
 
-	return "", false, nil
+	return nil, false, nil
 }
 
 // RegisterInstanceWithAPIServerELB registers an instance with a classic ELB.
@@ -765,7 +792,7 @@ func (s *Service) RegisterInstanceWithAPIServerLB(instance *infrav1.Instance) er
 			Targets: []*elbv2.TargetDescription{
 				{
 					Id:   aws.String(instance.ID),
-					Port: aws.Int64(int64(s.scope.APIServerPort())),
+					Port: tg.Port,
 				},
 			},
 		}
@@ -784,7 +811,7 @@ func (s *Service) getControlPlaneLoadBalancerSubnets() (infrav1.Subnets, error) 
 	input := &ec2.DescribeSubnetsInput{
 		SubnetIds: aws.StringSlice(s.scope.ControlPlaneLoadBalancer().Subnets),
 	}
-	res, err := s.EC2Client.DescribeSubnets(input)
+	res, err := s.EC2Client.DescribeSubnetsWithContext(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
@@ -793,6 +820,7 @@ func (s *Service) getControlPlaneLoadBalancerSubnets() (infrav1.Subnets, error) 
 		lbSn := infrav1.SubnetSpec{
 			AvailabilityZone: *sn.AvailabilityZone,
 			ID:               *sn.SubnetId,
+			ResourceID:       *sn.SubnetId,
 		}
 		subnets = append(subnets, lbSn)
 	}
@@ -971,7 +999,7 @@ func (s *Service) getAPIServerClassicELBSpec(elbName string) (*infrav1.LoadBalan
 		input := &ec2.DescribeSubnetsInput{
 			SubnetIds: aws.StringSlice(s.scope.ControlPlaneLoadBalancer().Subnets),
 		}
-		out, err := s.EC2Client.DescribeSubnets(input)
+		out, err := s.EC2Client.DescribeSubnetsWithContext(context.TODO(), input)
 		if err != nil {
 			return nil, err
 		}
@@ -997,7 +1025,7 @@ func (s *Service) getAPIServerClassicELBSpec(elbName string) (*infrav1.LoadBalan
 				}
 			}
 			res.AvailabilityZones = append(res.AvailabilityZones, sn.AvailabilityZone)
-			res.SubnetIDs = append(res.SubnetIDs, sn.ID)
+			res.SubnetIDs = append(res.SubnetIDs, sn.GetResourceID())
 		}
 	}
 

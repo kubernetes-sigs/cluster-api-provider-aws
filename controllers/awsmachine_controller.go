@@ -23,7 +23,9 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	ignTypes "github.com/flatcar/ignition/config/v2_3/types"
+	"github.com/blang/semver"
+	ignTypes "github.com/coreos/ignition/config/v2_3/types"
+	ignV3Types "github.com/coreos/ignition/v2/config/v3_4/types"
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -189,7 +191,7 @@ func (r *AWSMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	infraCluster, err := r.getInfraCluster(ctx, log, cluster, awsMachine)
 	if err != nil {
-		return ctrl.Result{}, errors.New("error getting infra provider cluster or control plane object")
+		return ctrl.Result{}, errors.Errorf("error getting infra provider cluster or control plane object: %v", err)
 	}
 	if infraCluster == nil {
 		log.Info("AWSCluster or AWSManagedControlPlane is not ready yet")
@@ -319,7 +321,7 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 		// and AWSMachine
 		// 3. Issue a delete
 		// 4. Scale controller deployment to 1
-		machineScope.Debug("Unable to locate EC2 instance by ID or tags")
+		machineScope.Warn("Unable to locate EC2 instance by ID or tags")
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "NoInstanceFound", "Unable to find matching EC2 instance")
 		controllerutil.RemoveFinalizer(machineScope.AWSMachine, infrav1.MachineFinalizer)
 		return ctrl.Result{}, nil
@@ -753,31 +755,61 @@ func (r *AWSMachineReconciler) ignitionUserData(scope *scope.MachineScope, objec
 		return nil, errors.Wrap(err, "creating userdata object")
 	}
 
-	ignData := &ignTypes.Config{
-		Ignition: ignTypes.Ignition{
-			Version: "2.3.0",
-			Config: ignTypes.IgnitionConfig{
-				Append: []ignTypes.ConfigReference{
-					{
-						Source: objectURL,
+	ignVersion := getIgnitionVersion(scope)
+	semver, err := semver.ParseTolerant(ignVersion)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse ignition version %q", ignVersion)
+	}
+
+	switch semver.Major {
+	case 2:
+		ignData := &ignTypes.Config{
+			Ignition: ignTypes.Ignition{
+				Version: semver.String(),
+				Config: ignTypes.IgnitionConfig{
+					Append: []ignTypes.ConfigReference{
+						{
+							Source: objectURL,
+						},
 					},
 				},
 			},
-		},
-	}
+		}
 
-	ignitionUserData, err := json.Marshal(ignData)
-	if err != nil {
-		r.Recorder.Eventf(scope.AWSMachine, corev1.EventTypeWarning, "FailedGenerateIgnition", err.Error())
-		return nil, errors.Wrap(err, "serializing generated data")
-	}
+		return json.Marshal(ignData)
+	case 3:
+		ignData := &ignV3Types.Config{
+			Ignition: ignV3Types.Ignition{
+				Version: semver.String(),
+				Config: ignV3Types.IgnitionConfig{
+					Merge: []ignV3Types.Resource{
+						{
+							Source: aws.String(objectURL),
+						},
+					},
+				},
+			},
+		}
 
-	return ignitionUserData, nil
+		return json.Marshal(ignData)
+	default:
+		return nil, errors.Errorf("unsupported ignition version %q", ignVersion)
+	}
+}
+
+func getIgnitionVersion(scope *scope.MachineScope) string {
+	if scope.AWSMachine.Spec.Ignition == nil {
+		scope.AWSMachine.Spec.Ignition = &infrav1.Ignition{}
+	}
+	if scope.AWSMachine.Spec.Ignition.Version == "" {
+		scope.AWSMachine.Spec.Ignition.Version = infrav1.DefaultIgnitionVersion
+	}
+	return scope.AWSMachine.Spec.Ignition.Version
 }
 
 func (r *AWSMachineReconciler) deleteBootstrapData(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, objectStoreScope scope.S3Scope) error {
 	_, userDataFormat, err := machineScope.GetRawBootstrapDataWithFormat()
-	if err != nil {
+	if client.IgnoreNotFound(err) != nil {
 		return errors.Wrap(err, "failed to get raw userdata")
 	}
 
@@ -937,7 +969,7 @@ func (r *AWSMachineReconciler) deregisterInstanceFromClassicLB(machineScope *sco
 }
 
 func (r *AWSMachineReconciler) deregisterInstanceFromV2LB(machineScope *scope.MachineScope, elbsvc services.ELBInterface, i *infrav1.Instance) error {
-	targetGroupArn, registered, err := elbsvc.IsInstanceRegisteredWithAPIServerLB(i)
+	targetGroupARNs, registered, err := elbsvc.IsInstanceRegisteredWithAPIServerLB(i)
 	if err != nil {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedDetachControlPlaneELB",
 			"Failed to deregister control plane instance %q from load balancer: failed to determine registration status: %v", i.ID, err)
@@ -948,11 +980,13 @@ func (r *AWSMachineReconciler) deregisterInstanceFromV2LB(machineScope *scope.Ma
 		return nil
 	}
 
-	if err := elbsvc.DeregisterInstanceFromAPIServerLB(targetGroupArn, i); err != nil {
-		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedDetachControlPlaneELB",
-			"Failed to deregister control plane instance %q from load balancer: %v", i.ID, err)
-		conditions.MarkFalse(machineScope.AWSMachine, infrav1.ELBAttachedCondition, infrav1.ELBDetachFailedReason, clusterv1.ConditionSeverityError, err.Error())
-		return errors.Wrapf(err, "could not deregister control plane instance %q from load balancer", i.ID)
+	for _, targetGroupArn := range targetGroupARNs {
+		if err := elbsvc.DeregisterInstanceFromAPIServerLB(targetGroupArn, i); err != nil {
+			r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedDetachControlPlaneELB",
+				"Failed to deregister control plane instance %q from load balancer: %v", i.ID, err)
+			conditions.MarkFalse(machineScope.AWSMachine, infrav1.ELBAttachedCondition, infrav1.ELBDetachFailedReason, clusterv1.ConditionSeverityError, err.Error())
+			return errors.Wrapf(err, "could not deregister control plane instance %q from load balancer", i.ID)
+		}
 	}
 
 	r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulDetachControlPlaneELB",
@@ -1119,14 +1153,14 @@ func (r *AWSMachineReconciler) ensureStorageTags(ec2svc services.EC2Interface, i
 	}
 	annotations := make(map[string]interface{}, len(instance.VolumeIDs))
 	for _, volumeID := range instance.VolumeIDs {
-		if subAnnotation, ok := annotations[volumeID].(map[string]interface{}); ok {
+		if subAnnotation, ok := prevAnnotations[volumeID].(map[string]interface{}); ok {
 			newAnnotation, err := r.ensureVolumeTags(ec2svc, aws.String(volumeID), subAnnotation, additionalTags)
 			if err != nil {
 				r.Log.Error(err, "Failed to fetch the changed volume tags in EC2 instance")
 			}
 			annotations[volumeID] = newAnnotation
 		} else {
-			newAnnotation, err := r.ensureVolumeTags(ec2svc, aws.String(volumeID), make(map[string]interface{}), machine.Spec.AdditionalTags)
+			newAnnotation, err := r.ensureVolumeTags(ec2svc, aws.String(volumeID), make(map[string]interface{}), additionalTags)
 			if err != nil {
 				r.Log.Error(err, "Failed to fetch the changed volume tags in EC2 instance")
 			}

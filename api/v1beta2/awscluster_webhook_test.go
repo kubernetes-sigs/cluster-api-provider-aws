@@ -336,6 +336,33 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "rejects ipamPool if id or name not set",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{
+							IPAMPool: &IPAMPool{},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects cidrBlock and ipamPool if set together",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+							IPAMPool:  &IPAMPool{},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "accepts CP ingress rules with source security group id and role",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
@@ -735,6 +762,48 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
 						HealthCheckProtocol: &ELBProtocolTCP,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "correct GC tasks annotation",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{},
+			},
+			newCluster: &AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						ExternalResourceGCTasksAnnotation: "load-balancer,target-group,security-group",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "empty GC tasks annotation",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{},
+			},
+			newCluster: &AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						ExternalResourceGCTasksAnnotation: "",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "incorrect GC tasks annotation",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{},
+			},
+			newCluster: &AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						ExternalResourceGCTasksAnnotation: "load-balancer,INVALID,security-group",
 					},
 				},
 			},

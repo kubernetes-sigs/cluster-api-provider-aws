@@ -17,12 +17,14 @@ limitations under the License.
 package ec2
 
 import (
+	"context"
 	"encoding/base64"
 	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
@@ -56,7 +58,7 @@ func TestInstanceIfExists(t *testing.T) {
 			name:       "does not exist",
 			instanceID: "hello",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
+				m.DescribeInstancesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
 					InstanceIds: []*string{aws.String("hello")},
 				})).
 					Return(nil, awserrors.NewNotFound("not found"))
@@ -75,7 +77,7 @@ func TestInstanceIfExists(t *testing.T) {
 			name:       "does not exist with bad request error",
 			instanceID: "hello-does-not-exist",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
+				m.DescribeInstancesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
 					InstanceIds: []*string{aws.String("hello-does-not-exist")},
 				})).
 					Return(nil, awserr.New(awserrors.InvalidInstanceID, "does not exist", nil))
@@ -95,7 +97,7 @@ func TestInstanceIfExists(t *testing.T) {
 			instanceID: "id-1",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				az := "test-zone-1a"
-				m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
+				m.DescribeInstancesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
 					InstanceIds: []*string{aws.String("id-1")},
 				})).
 					Return(&ec2.DescribeInstancesOutput{
@@ -150,7 +152,7 @@ func TestInstanceIfExists(t *testing.T) {
 			name:       "error describing instances",
 			instanceID: "one",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeInstances(&ec2.DescribeInstancesInput{
+				m.DescribeInstancesWithContext(context.TODO(), &ec2.DescribeInstancesInput{
 					InstanceIds: []*string{aws.String("one")},
 				}).
 					Return(nil, errors.New("some unknown error"))
@@ -194,7 +196,7 @@ func TestInstanceIfExists(t *testing.T) {
 			s := NewService(scope)
 			s.EC2Client = ec2Mock
 
-			instance, err := s.InstanceIfExists(&tc.instanceID)
+			instance, err := s.InstanceIfExists(aws.String(tc.instanceID))
 			tc.check(instance, err)
 		})
 	}
@@ -216,7 +218,7 @@ func TestTerminateInstance(t *testing.T) {
 			name:       "instance exists",
 			instanceID: "i-exist",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.TerminateInstances(gomock.Eq(&ec2.TerminateInstancesInput{
+				m.TerminateInstancesWithContext(context.TODO(), gomock.Eq(&ec2.TerminateInstancesInput{
 					InstanceIds: []*string{aws.String("i-exist")},
 				})).
 					Return(&ec2.TerminateInstancesOutput{}, nil)
@@ -231,7 +233,7 @@ func TestTerminateInstance(t *testing.T) {
 			name:       "instance does not exist",
 			instanceID: "i-donotexist",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.TerminateInstances(gomock.Eq(&ec2.TerminateInstancesInput{
+				m.TerminateInstancesWithContext(context.TODO(), gomock.Eq(&ec2.TerminateInstancesInput{
 					InstanceIds: []*string{aws.String("i-donotexist")},
 				})).
 					Return(&ec2.TerminateInstancesOutput{}, instanceNotFoundError)
@@ -296,7 +298,7 @@ func TestCreateInstance(t *testing.T) {
 
 	testcases := []struct {
 		name          string
-		machine       clusterv1.Machine
+		machine       *clusterv1.Machine
 		machineConfig *infrav1.AWSMachineSpec
 		awsCluster    *infrav1.AWSCluster
 		expect        func(m *mocks.MockEC2APIMockRecorder)
@@ -304,7 +306,7 @@ func TestCreateInstance(t *testing.T) {
 	}{
 		{
 			name: "simple",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -356,7 +358,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -373,7 +375,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstances(gomock.Any()).
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							{
@@ -403,7 +405,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfaces(gomock.Any()).
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []*ec2.NetworkInterface{},
 						NextToken:         nil,
@@ -417,7 +419,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "with availability zone",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -483,7 +485,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.2xlarge"),
 						},
@@ -500,7 +502,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					RunInstances(gomock.Any()).
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							{
@@ -530,7 +532,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfaces(gomock.Any()).
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []*ec2.NetworkInterface{},
 						NextToken:         nil,
@@ -548,7 +550,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "with ImageLookupOrg specified at the machine level",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -603,7 +605,7 @@ func TestCreateInstance(t *testing.T) {
 					t.Fatalf("Failed to process ami format: %v", err)
 				}
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m6g.large"),
 						},
@@ -621,7 +623,7 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				// verify that the ImageLookupOrg is used when finding AMIs
 				m.
-					DescribeImages(gomock.Eq(&ec2.DescribeImagesInput{
+					DescribeImagesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
 						Filters: []*ec2.Filter{
 							{
 								Name:   aws.String("owner-id"),
@@ -654,7 +656,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstances(gomock.Any()).
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							{
@@ -684,7 +686,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfaces(gomock.Any()).
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []*ec2.NetworkInterface{},
 						NextToken:         nil,
@@ -698,7 +700,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "with ImageLookupOrg specified at the cluster-level",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -753,7 +755,7 @@ func TestCreateInstance(t *testing.T) {
 					t.Fatalf("Failed to process ami format: %v", err)
 				}
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -771,7 +773,7 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				// verify that the ImageLookupOrg is used when finding AMIs
 				m.
-					DescribeImages(gomock.Eq(&ec2.DescribeImagesInput{
+					DescribeImagesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
 						Filters: []*ec2.Filter{
 							{
 								Name:   aws.String("owner-id"),
@@ -804,7 +806,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstances(gomock.Any()).
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							{
@@ -834,7 +836,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfaces(gomock.Any()).
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []*ec2.NetworkInterface{},
 						NextToken:         nil,
@@ -848,7 +850,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "AWSMachine ImageLookupOrg overrides AWSCluster ImageLookupOrg",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -904,7 +906,7 @@ func TestCreateInstance(t *testing.T) {
 					t.Fatalf("Failed to process ami format: %v", err)
 				}
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -922,7 +924,7 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				// verify that the ImageLookupOrg is used when finding AMIs
 				m.
-					DescribeImages(gomock.Eq(&ec2.DescribeImagesInput{
+					DescribeImagesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
 						Filters: []*ec2.Filter{
 							{
 								Name:   aws.String("owner-id"),
@@ -955,7 +957,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstances(gomock.Any()).
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							{
@@ -985,7 +987,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfaces(gomock.Any()).
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []*ec2.NetworkInterface{},
 						NextToken:         nil,
@@ -999,7 +1001,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "subnet filter and failureDomain defined",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -1052,7 +1054,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -1069,7 +1071,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeSubnets(&ec2.DescribeSubnetsInput{
+					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
 							filter.EC2.VPC("vpc-id"),
@@ -1083,7 +1085,7 @@ func TestCreateInstance(t *testing.T) {
 						}},
 					}, nil)
 				m.
-					RunInstances(gomock.Any()).
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							{
@@ -1113,7 +1115,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfaces(gomock.Any()).
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []*ec2.NetworkInterface{},
 						NextToken:         nil,
@@ -1127,7 +1129,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "with subnet ID that belongs to Cluster",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -1179,7 +1181,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeSubnets(&ec2.DescribeSubnetsInput{
+					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
 							filter.EC2.VPC("vpc-id"),
@@ -1193,7 +1195,7 @@ func TestCreateInstance(t *testing.T) {
 						}},
 					}, nil)
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -1210,7 +1212,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					RunInstances(gomock.Any()).
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							{
@@ -1240,7 +1242,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfaces(gomock.Any()).
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []*ec2.NetworkInterface{},
 						NextToken:         nil,
@@ -1254,7 +1256,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "with subnet ID that does not exist",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -1306,7 +1308,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -1323,7 +1325,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeSubnets(&ec2.DescribeSubnetsInput{
+					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
 							filter.EC2.VPC("vpc-id"),
@@ -1347,7 +1349,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "with subnet ID that does not belong to Cluster",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -1399,7 +1401,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					RunInstances(gomock.Any()).
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							{
@@ -1429,7 +1431,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -1446,7 +1448,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeSubnets(&ec2.DescribeSubnetsInput{
+					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
 							filter.EC2.VPC("vpc-id"),
@@ -1459,7 +1461,7 @@ func TestCreateInstance(t *testing.T) {
 						}},
 					}, nil)
 				m.
-					DescribeNetworkInterfaces(gomock.Any()).
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []*ec2.NetworkInterface{},
 						NextToken:         nil,
@@ -1473,7 +1475,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "subnet id and failureDomain don't match",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -1527,7 +1529,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeSubnets(&ec2.DescribeSubnetsInput{
+					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
 							filter.EC2.VPC("vpc-id"),
@@ -1541,7 +1543,7 @@ func TestCreateInstance(t *testing.T) {
 						}},
 					}, nil)
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -1571,7 +1573,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "public IP true and failureDomain doesn't have public subnet",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -1624,7 +1626,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -1654,7 +1656,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "public IP true and public subnet ID given",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -1708,7 +1710,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeSubnets(&ec2.DescribeSubnetsInput{
+					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
 							filter.EC2.VPC("vpc-id"),
@@ -1723,7 +1725,7 @@ func TestCreateInstance(t *testing.T) {
 						}},
 					}, nil)
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -1740,7 +1742,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					RunInstances(gomock.Any()).
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							{
@@ -1770,7 +1772,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfaces(gomock.Any()).
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []*ec2.NetworkInterface{},
 						NextToken:         nil,
@@ -1784,7 +1786,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "public IP true and private subnet ID given",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -1838,7 +1840,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeSubnets(&ec2.DescribeSubnetsInput{
+					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
 							filter.EC2.VPC("vpc-id"),
@@ -1853,7 +1855,7 @@ func TestCreateInstance(t *testing.T) {
 						}},
 					}, nil)
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -1883,7 +1885,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "both public IP and subnet filter defined",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -1946,7 +1948,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -1963,7 +1965,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeSubnets(&ec2.DescribeSubnetsInput{
+					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
 							filter.EC2.VPC("vpc-id"),
@@ -1977,7 +1979,7 @@ func TestCreateInstance(t *testing.T) {
 						}},
 					}, nil)
 				m.
-					RunInstances(gomock.Any()).
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							{
@@ -2007,7 +2009,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfaces(gomock.Any()).
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []*ec2.NetworkInterface{},
 						NextToken:         nil,
@@ -2021,7 +2023,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "public IP true and public subnet exists",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -2078,7 +2080,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -2095,7 +2097,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					RunInstances(gomock.Any()).
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							{
@@ -2125,7 +2127,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfaces(gomock.Any()).
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []*ec2.NetworkInterface{},
 						NextToken:         nil,
@@ -2139,7 +2141,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "public IP true and no public subnet exists",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -2192,7 +2194,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -2222,7 +2224,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "with multiple block device mappings",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -2278,7 +2280,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -2295,7 +2297,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstances(gomock.Any()).
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							{
@@ -2331,7 +2333,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfaces(gomock.Any()).
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []*ec2.NetworkInterface{},
 						NextToken:         nil,
@@ -2345,7 +2347,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "with dedicated tenancy cloud-config",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:    map[string]string{"set": "node"},
 					Namespace: "default",
@@ -2400,7 +2402,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstances(gomock.Eq(&ec2.RunInstancesInput{
+					RunInstancesWithContext(context.TODO(), gomock.Eq(&ec2.RunInstancesInput{
 						ImageId:      aws.String("abc"),
 						InstanceType: aws.String("m5.large"),
 						KeyName:      aws.String("default"),
@@ -2470,7 +2472,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -2487,7 +2489,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfaces(gomock.Any()).
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []*ec2.NetworkInterface{},
 						NextToken:         nil,
@@ -2501,7 +2503,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "with custom placement group cloud-config",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:    map[string]string{"set": "node"},
 					Namespace: "default",
@@ -2556,7 +2558,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstances(gomock.Eq(&ec2.RunInstancesInput{
+					RunInstancesWithContext(context.TODO(), gomock.Eq(&ec2.RunInstancesInput{
 						ImageId:      aws.String("abc"),
 						InstanceType: aws.String("m5.large"),
 						KeyName:      aws.String("default"),
@@ -2626,7 +2628,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -2643,7 +2645,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfaces(gomock.Any()).
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []*ec2.NetworkInterface{},
 						NextToken:         nil,
@@ -2657,7 +2659,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "with dedicated tenancy and placement group ignition",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:    map[string]string{"set": "node"},
 					Namespace: "default",
@@ -2715,7 +2717,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -2732,7 +2734,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstances(gomock.Eq(&ec2.RunInstancesInput{
+					RunInstancesWithContext(context.TODO(), gomock.Eq(&ec2.RunInstancesInput{
 						ImageId:      aws.String("abc"),
 						InstanceType: aws.String("m5.large"),
 						KeyName:      aws.String("default"),
@@ -2803,7 +2805,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfaces(gomock.Any()).
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []*ec2.NetworkInterface{},
 						NextToken:         nil,
@@ -2817,7 +2819,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "expect the default SSH key when none is provided",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -2867,7 +2869,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -2884,7 +2886,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeImages(gomock.Any()).
+					DescribeImagesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
 							{
@@ -2894,8 +2896,8 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstances(gomock.Any()).
-					DoAndReturn(func(input *ec2.RunInstancesInput) (*ec2.Reservation, error) {
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.Reservation, error) {
 						if input.KeyName == nil {
 							t.Fatal("Expected key name not to be nil")
 						}
@@ -2932,7 +2934,7 @@ func TestCreateInstance(t *testing.T) {
 						}, nil
 					})
 				m.
-					DescribeNetworkInterfaces(gomock.Any()).
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []*ec2.NetworkInterface{},
 						NextToken:         nil,
@@ -2946,7 +2948,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "expect to use the cluster level ssh key name when no machine key name is provided",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -2997,7 +2999,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -3014,7 +3016,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeImages(gomock.Any()).
+					DescribeImagesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
 							{
@@ -3024,8 +3026,8 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstances(gomock.Any()).
-					DoAndReturn(func(input *ec2.RunInstancesInput) (*ec2.Reservation, error) {
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.Reservation, error) {
 						if input.KeyName == nil {
 							t.Fatal("Expected key name not to be nil")
 						}
@@ -3062,7 +3064,7 @@ func TestCreateInstance(t *testing.T) {
 						}, nil
 					})
 				m.
-					DescribeNetworkInterfaces(gomock.Any()).
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []*ec2.NetworkInterface{},
 						NextToken:         nil,
@@ -3076,7 +3078,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "expect to use the machine level ssh key name when both cluster and machine key names are provided",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -3128,7 +3130,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -3145,7 +3147,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeImages(gomock.Any()).
+					DescribeImagesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
 							{
@@ -3155,8 +3157,8 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstances(gomock.Any()).
-					DoAndReturn(func(input *ec2.RunInstancesInput) (*ec2.Reservation, error) {
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.Reservation, error) {
 						if input.KeyName == nil {
 							t.Fatal("Expected key name not to be nil")
 						}
@@ -3193,7 +3195,7 @@ func TestCreateInstance(t *testing.T) {
 						}, nil
 					})
 				m.
-					DescribeNetworkInterfaces(gomock.Any()).
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []*ec2.NetworkInterface{},
 						NextToken:         nil,
@@ -3207,7 +3209,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "expect ssh key to be unset when cluster key name is empty string and machine key name is nil",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -3259,7 +3261,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -3276,7 +3278,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeImages(gomock.Any()).
+					DescribeImagesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
 							{
@@ -3286,8 +3288,8 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstances(gomock.Any()).
-					DoAndReturn(func(input *ec2.RunInstancesInput) (*ec2.Reservation, error) {
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.Reservation, error) {
 						if input.KeyName != nil {
 							t.Fatalf("Expected key name to be nil/unspecified, not '%s'", *input.KeyName)
 						}
@@ -3321,7 +3323,7 @@ func TestCreateInstance(t *testing.T) {
 						}, nil
 					})
 				m.
-					DescribeNetworkInterfaces(gomock.Any()).
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []*ec2.NetworkInterface{},
 						NextToken:         nil,
@@ -3335,7 +3337,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "expect ssh key to be unset when cluster key name is empty string and machine key name is empty string",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -3387,7 +3389,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -3404,7 +3406,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeImages(gomock.Any()).
+					DescribeImagesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
 							{
@@ -3414,8 +3416,8 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstances(gomock.Any()).
-					DoAndReturn(func(input *ec2.RunInstancesInput) (*ec2.Reservation, error) {
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.Reservation, error) {
 						if input.KeyName != nil {
 							t.Fatalf("Expected key name to be nil/unspecified, not '%s'", *input.KeyName)
 						}
@@ -3449,7 +3451,7 @@ func TestCreateInstance(t *testing.T) {
 						}, nil
 					})
 				m.
-					DescribeNetworkInterfaces(gomock.Any()).
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []*ec2.NetworkInterface{},
 						NextToken:         nil,
@@ -3463,7 +3465,7 @@ func TestCreateInstance(t *testing.T) {
 		},
 		{
 			name: "expect ssh key to be unset when cluster key name is nil and machine key name is empty string",
-			machine: clusterv1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
 				},
@@ -3515,7 +3517,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypes(gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
 						},
@@ -3532,7 +3534,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeImages(gomock.Any()).
+					DescribeImagesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
 							{
@@ -3542,8 +3544,8 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstances(gomock.Any()).
-					DoAndReturn(func(input *ec2.RunInstancesInput) (*ec2.Reservation, error) {
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.Reservation, error) {
 						if input.KeyName != nil {
 							t.Fatalf("Expected key name to be nil/unspecified, not '%s'", *input.KeyName)
 						}
@@ -3577,7 +3579,7 @@ func TestCreateInstance(t *testing.T) {
 						}, nil
 					})
 				m.
-					DescribeNetworkInterfaces(gomock.Any()).
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []*ec2.NetworkInterface{},
 						NextToken:         nil,
@@ -3618,7 +3620,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 			}
 
-			machine := &tc.machine
+			machine := tc.machine
 
 			awsMachine := &infrav1.AWSMachine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -3750,7 +3752,7 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{
+				m.DescribeSecurityGroupsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSecurityGroupsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String(securityGroupFilterName),
@@ -3786,7 +3788,7 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{
+				m.DescribeSecurityGroupsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSecurityGroupsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String(securityGroupFilterName),
@@ -3844,7 +3846,7 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{
+				m.DescribeSecurityGroupsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSecurityGroupsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String(securityGroupFilterName),
@@ -3869,7 +3871,7 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{
+				m.DescribeSecurityGroupsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSecurityGroupsInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String(securityGroupFilterName),

@@ -11,7 +11,7 @@ const (
 	// ErrCodeConformancePackTemplateValidationException for service response error code
 	// "ConformancePackTemplateValidationException".
 	//
-	// You have specified a template that is invalid or supported.
+	// You have specified a template that is not valid or supported.
 	ErrCodeConformancePackTemplateValidationException = "ConformancePackTemplateValidationException"
 
 	// ErrCodeIdempotentParameterMismatch for service response error code
@@ -51,13 +51,13 @@ const (
 	// ErrCodeInvalidConfigurationRecorderNameException for service response error code
 	// "InvalidConfigurationRecorderNameException".
 	//
-	// You have provided a configuration recorder name that is not valid.
+	// You have provided a name for the configuration recorder that is not valid.
 	ErrCodeInvalidConfigurationRecorderNameException = "InvalidConfigurationRecorderNameException"
 
 	// ErrCodeInvalidDeliveryChannelNameException for service response error code
 	// "InvalidDeliveryChannelNameException".
 	//
-	// The specified delivery channel name is invalid.
+	// The specified delivery channel name is not valid.
 	ErrCodeInvalidDeliveryChannelNameException = "InvalidDeliveryChannelNameException"
 
 	// ErrCodeInvalidExpressionException for service response error code
@@ -75,46 +75,62 @@ const (
 	// ErrCodeInvalidNextTokenException for service response error code
 	// "InvalidNextTokenException".
 	//
-	// The specified next token is invalid. Specify the nextToken string that was
-	// returned in the previous response to get the next page of results.
+	// The specified next token is not valid. Specify the nextToken string that
+	// was returned in the previous response to get the next page of results.
 	ErrCodeInvalidNextTokenException = "InvalidNextTokenException"
 
 	// ErrCodeInvalidParameterValueException for service response error code
 	// "InvalidParameterValueException".
 	//
-	// One or more of the specified parameters are invalid. Verify that your parameters
+	// One or more of the specified parameters are not valid. Verify that your parameters
 	// are valid and try again.
 	ErrCodeInvalidParameterValueException = "InvalidParameterValueException"
 
 	// ErrCodeInvalidRecordingGroupException for service response error code
 	// "InvalidRecordingGroupException".
 	//
-	// Config throws an exception if the recording group does not contain a valid
-	// list of resource types. Invalid values might also be incorrectly formatted.
+	// Indicates one of the following errors:
+	//
+	//    * You have provided a combination of parameter values that is not valid.
+	//    For example: Setting the allSupported field of RecordingGroup (https://docs.aws.amazon.com/config/latest/APIReference/API_RecordingGroup.html)
+	//    to true, but providing a non-empty list for the resourceTypesfield of
+	//    RecordingGroup (https://docs.aws.amazon.com/config/latest/APIReference/API_RecordingGroup.html).
+	//    Setting the allSupported field of RecordingGroup (https://docs.aws.amazon.com/config/latest/APIReference/API_RecordingGroup.html)
+	//    to true, but also setting the useOnly field of RecordingStrategy (https://docs.aws.amazon.com/config/latest/APIReference/API_RecordingStrategy.html)
+	//    to EXCLUSION_BY_RESOURCE_TYPES.
+	//
+	//    * Every parameter is either null, false, or empty.
+	//
+	//    * You have reached the limit of the number of resource types you can provide
+	//    for the recording group.
+	//
+	//    * You have provided resource types or a recording strategy that are not
+	//    valid.
 	ErrCodeInvalidRecordingGroupException = "InvalidRecordingGroupException"
 
 	// ErrCodeInvalidResultTokenException for service response error code
 	// "InvalidResultTokenException".
 	//
-	// The specified ResultToken is invalid.
+	// The specified ResultToken is not valid.
 	ErrCodeInvalidResultTokenException = "InvalidResultTokenException"
 
 	// ErrCodeInvalidRoleException for service response error code
 	// "InvalidRoleException".
 	//
-	// You have provided a null or empty role ARN.
+	// You have provided a null or empty Amazon Resource Name (ARN) for the IAM
+	// role assumed by Config and used by the configuration recorder.
 	ErrCodeInvalidRoleException = "InvalidRoleException"
 
 	// ErrCodeInvalidS3KeyPrefixException for service response error code
 	// "InvalidS3KeyPrefixException".
 	//
-	// The specified Amazon S3 key prefix is invalid.
+	// The specified Amazon S3 key prefix is not valid.
 	ErrCodeInvalidS3KeyPrefixException = "InvalidS3KeyPrefixException"
 
 	// ErrCodeInvalidS3KmsKeyArnException for service response error code
 	// "InvalidS3KmsKeyArnException".
 	//
-	// The specified Amazon KMS Key ARN is invalid.
+	// The specified Amazon KMS Key ARN is not valid.
 	ErrCodeInvalidS3KmsKeyArnException = "InvalidS3KmsKeyArnException"
 
 	// ErrCodeInvalidSNSTopicARNException for service response error code
@@ -126,7 +142,7 @@ const (
 	// ErrCodeInvalidTimeRangeException for service response error code
 	// "InvalidTimeRangeException".
 	//
-	// The specified time range is invalid. The earlier time is not chronologically
+	// The specified time range is not valid. The earlier time is not chronologically
 	// before the later time.
 	ErrCodeInvalidTimeRangeException = "InvalidTimeRangeException"
 
@@ -167,7 +183,8 @@ const (
 	// ErrCodeMaxNumberOfConfigurationRecordersExceededException for service response error code
 	// "MaxNumberOfConfigurationRecordersExceededException".
 	//
-	// You have reached the limit of the number of recorders you can create.
+	// You have reached the limit of the number of configuration recorders you can
+	// create.
 	ErrCodeMaxNumberOfConfigurationRecordersExceededException = "MaxNumberOfConfigurationRecordersExceededException"
 
 	// ErrCodeMaxNumberOfConformancePacksExceededException for service response error code
@@ -241,8 +258,8 @@ const (
 	// ErrCodeNoSuchConfigRuleException for service response error code
 	// "NoSuchConfigRuleException".
 	//
-	// The Config rule in the request is invalid. Verify that the rule is an Config
-	// Custom Policy rule, that the rule name is correct, and that valid Amazon
+	// The Config rule in the request is not valid. Verify that the rule is an Config
+	// Process Check rule, that the rule name is correct, and that valid Amazon
 	// Resouce Names (ARNs) are used before trying again.
 	ErrCodeNoSuchConfigRuleException = "NoSuchConfigRuleException"
 
@@ -279,8 +296,8 @@ const (
 	// ErrCodeNoSuchOrganizationConfigRuleException for service response error code
 	// "NoSuchOrganizationConfigRuleException".
 	//
-	// The Config rule in the request is invalid. Verify that the rule is an organization
-	// Config Custom Policy rule, that the rule name is correct, and that valid
+	// The Config rule in the request is not valid. Verify that the rule is an organization
+	// Config Process Check rule, that the rule name is correct, and that valid
 	// Amazon Resouce Names (ARNs) are used before trying again.
 	ErrCodeNoSuchOrganizationConfigRuleException = "NoSuchOrganizationConfigRuleException"
 
@@ -350,7 +367,7 @@ const (
 	// ErrCodeOrganizationConformancePackTemplateValidationException for service response error code
 	// "OrganizationConformancePackTemplateValidationException".
 	//
-	// You have specified a template that is invalid or supported.
+	// You have specified a template that is not valid or supported.
 	ErrCodeOrganizationConformancePackTemplateValidationException = "OrganizationConformancePackTemplateValidationException"
 
 	// ErrCodeOversizedConfigurationItemException for service response error code
@@ -425,7 +442,7 @@ const (
 	// ErrCodeValidationException for service response error code
 	// "ValidationException".
 	//
-	// The requested action is invalid.
+	// The requested action is not valid.
 	//
 	// For PutStoredQuery, you will see this exception if there are missing required
 	// fields or if the input value fails the validation, or if you are trying to

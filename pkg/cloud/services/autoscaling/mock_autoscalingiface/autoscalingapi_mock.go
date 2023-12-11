@@ -2231,6 +2231,39 @@ func (mr *MockAutoScalingAPIMockRecorder) DescribeTrafficSources(arg0 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrafficSources", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeTrafficSources), arg0)
 }
 
+// DescribeTrafficSourcesPages mocks base method.
+func (m *MockAutoScalingAPI) DescribeTrafficSourcesPages(arg0 *autoscaling.DescribeTrafficSourcesInput, arg1 func(*autoscaling.DescribeTrafficSourcesOutput, bool) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeTrafficSourcesPages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeTrafficSourcesPages indicates an expected call of DescribeTrafficSourcesPages.
+func (mr *MockAutoScalingAPIMockRecorder) DescribeTrafficSourcesPages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrafficSourcesPages", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeTrafficSourcesPages), arg0, arg1)
+}
+
+// DescribeTrafficSourcesPagesWithContext mocks base method.
+func (m *MockAutoScalingAPI) DescribeTrafficSourcesPagesWithContext(arg0 context.Context, arg1 *autoscaling.DescribeTrafficSourcesInput, arg2 func(*autoscaling.DescribeTrafficSourcesOutput, bool) bool, arg3 ...request.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeTrafficSourcesPagesWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeTrafficSourcesPagesWithContext indicates an expected call of DescribeTrafficSourcesPagesWithContext.
+func (mr *MockAutoScalingAPIMockRecorder) DescribeTrafficSourcesPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrafficSourcesPagesWithContext", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeTrafficSourcesPagesWithContext), varargs...)
+}
+
 // DescribeTrafficSourcesRequest mocks base method.
 func (m *MockAutoScalingAPI) DescribeTrafficSourcesRequest(arg0 *autoscaling.DescribeTrafficSourcesInput) (*request.Request, *autoscaling.DescribeTrafficSourcesOutput) {
 	m.ctrl.T.Helper()

@@ -30,7 +30,7 @@ import (
 // Session represents an AWS session.
 type Session interface {
 	Session() awsclient.ConfigProvider
-	ServiceLimiter(string) *throttle.ServiceLimiter
+	ServiceLimiter(service string) *throttle.ServiceLimiter
 }
 
 // ScopeUsage is used to indicate which controller is using a scope.

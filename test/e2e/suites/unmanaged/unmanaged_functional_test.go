@@ -22,6 +22,7 @@ package unmanaged
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -32,6 +33,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -43,7 +45,10 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
+
+const TestSvc = "test-svc-"
 
 var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	var (
@@ -332,7 +337,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-contolplane-upgrade")...)
 
 			ginkgo.By("Creating the LB service")
-			lbServiceName := "test-svc-" + util.RandomString(6)
+			lbServiceName := TestSvc + util.RandomString(6)
 			elbName := createLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
 			verifyElbExists(elbName, true)
 
@@ -402,7 +407,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-contolplane-upgrade")...)
 
 			ginkgo.By("Creating the LB service")
-			lbServiceName := "test-svc-" + util.RandomString(6)
+			lbServiceName := TestSvc + util.RandomString(6)
 			elbName := createLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
 			verifyElbExists(elbName, true)
 
@@ -472,7 +477,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-contolplane-upgrade")...)
 
 			ginkgo.By("Creating the LB service")
-			lbServiceName := "test-svc-" + util.RandomString(6)
+			lbServiceName := TestSvc + util.RandomString(6)
 			elbName := createLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
 			verifyElbExists(elbName, true)
 
@@ -580,6 +585,59 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				azError := "Failed to create instance: no subnets available in availability zone \"%s\""
 				return isErrorEventExists(namespace.Name, md2Name, "FailedCreate", fmt.Sprintf(azError, *invalidAz), eventList)
 			}, e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes")...).Should(BeTrue())
+		})
+	})
+
+	ginkgo.Describe("Workload cluster in multiple AZs", func() {
+		ginkgo.It("It should be creatable and deletable", func() {
+			specName := "functional-test-multi-az"
+			requiredResources = &shared.TestResource{EC2Normal: 3 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
+			requiredResources.WriteRequestedResources(e2eCtx, specName)
+			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
+			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
+			ginkgo.By("Creating a cluster")
+			clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
+			configCluster := defaultConfigCluster(clusterName, namespace.Name)
+			configCluster.ControlPlaneMachineCount = pointer.Int64(3)
+			configCluster.Flavor = shared.MultiAzFlavor
+			cluster, _, _ := createCluster(ctx, configCluster, result)
+
+			ginkgo.By("Validating that the subnet were created")
+			awsCluster, err := GetAWSClusterByName(ctx, namespace.Name, clusterName)
+			Expect(err).To(BeNil())
+			for _, subnet := range awsCluster.Spec.NetworkSpec.Subnets {
+				Expect(subnet.GetResourceID()).To(HavePrefix("subnet-"))
+				Expect(subnet.ResourceID).ToNot(BeEmpty())
+			}
+
+			ginkgo.By("Adding worker nodes to additional subnets")
+			mdName1 := clusterName + "-md-1"
+			mdName2 := clusterName + "-md-2"
+			az1 := os.Getenv(shared.AwsAvailabilityZone1)
+			az2 := os.Getenv(shared.AwsAvailabilityZone2)
+			md1 := makeMachineDeployment(namespace.Name, mdName1, clusterName, &az1, 1)
+			md2 := makeMachineDeployment(namespace.Name, mdName2, clusterName, &az2, 1)
+
+			// private CIDRs set in cluster-template-multi-az.yaml.
+			framework.CreateMachineDeployment(ctx, framework.CreateMachineDeploymentInput{
+				Creator:                 e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				MachineDeployment:       md1,
+				BootstrapConfigTemplate: makeJoinBootstrapConfigTemplate(namespace.Name, mdName1),
+				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, mdName1, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), getSubnetID("cidr-block", "10.0.0.0/24", clusterName)),
+			})
+			framework.CreateMachineDeployment(ctx, framework.CreateMachineDeploymentInput{
+				Creator:                 e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				MachineDeployment:       md2,
+				BootstrapConfigTemplate: makeJoinBootstrapConfigTemplate(namespace.Name, mdName2),
+				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, mdName2, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), getSubnetID("cidr-block", "10.0.2.0/24", clusterName)),
+			})
+
+			ginkgo.By("Waiting for new worker nodes to become ready")
+			k8sClient := e2eCtx.Environment.BootstrapClusterProxy.GetClient()
+			framework.WaitForMachineDeploymentNodesToExist(ctx, framework.WaitForMachineDeploymentNodesToExistInput{Lister: k8sClient, Cluster: cluster, MachineDeployment: md1}, e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes")...)
+			framework.WaitForMachineDeploymentNodesToExist(ctx, framework.WaitForMachineDeploymentNodesToExistInput{Lister: k8sClient, Cluster: cluster, MachineDeployment: md2}, e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes")...)
 		})
 	})
 
@@ -993,7 +1051,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			configCluster.ControlPlaneMachineCount = pointer.Int64(1)
 			configCluster.WorkerMachineCount = pointer.Int64(1)
 			configCluster.Flavor = shared.IgnitionFlavor
-			_, md, _ := createCluster(ctx, configCluster, result)
+			cluster, md, _ := createCluster(ctx, configCluster, result)
 
 			workerMachines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
 				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
@@ -1008,6 +1066,36 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			})
 			Expect(len(workerMachines)).To(Equal(1))
 			Expect(len(controlPlaneMachines)).To(Equal(1))
+
+			awsCluster, err := GetAWSClusterByName(ctx, namespace.Name, clusterName)
+			Expect(err).To(BeNil())
+
+			ginkgo.By("Validating the s3 endpoint was created")
+			vpc, err := shared.GetVPCByName(e2eCtx, clusterName+"-vpc")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(vpc).NotTo(BeNil())
+			endpoints, err := shared.GetVPCEndpointsByID(e2eCtx, *vpc.VpcId)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(endpoints).NotTo(BeNil())
+			Expect(len(endpoints)).To(Equal(1))
+			Expect(*endpoints[0].VpcEndpointType).To(Equal("Gateway"))
+			Expect(*endpoints[0].ServiceName).To(Equal("com.amazonaws." + awsCluster.Spec.Region + ".s3"))
+			Expect(*endpoints[0].VpcId).To(Equal(*vpc.VpcId))
+
+			ginkgo.By("Deleting the cluster")
+			deleteCluster(ctx, cluster)
+
+			ginkgo.By("Waiting for AWSCluster to show the VPC endpoint as deleted in conditions")
+			Eventually(func() bool {
+				awsCluster, err := GetAWSClusterByName(ctx, namespace.Name, clusterName)
+				// If the cluster was already deleted, we can ignore the error.
+				if apierrors.IsNotFound(err) {
+					return true
+				}
+				Expect(err).To(BeNil())
+				return conditions.IsFalse(awsCluster, infrav1.VpcEndpointsReadyCondition) &&
+					conditions.GetReason(awsCluster, infrav1.VpcEndpointsReadyCondition) == clusterv1.DeletedReason
+			}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...).Should(BeTrue())
 		})
 	})
 })

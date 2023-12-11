@@ -222,14 +222,14 @@ func TestReconcileCniVpcCniValues(t *testing.T) {
 				secondaryCidrBlock: aws.String("100.0.0.1/20"),
 				securityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
 					"node": {
-						ID:   "sg-1234",
+						ID:   "subnet-1234",
 						Name: "node",
 					},
 				},
 				subnets: infrav1.Subnets{
 					{
 						// we aren't testing reconcileSubnets where this extra conf is added so putting it in by hand
-						ID:        "sn-1234",
+						ID:        "subnet-1234",
 						CidrBlock: "100.0.0.1/20",
 						Tags: infrav1.Tags{
 							infrav1.NameAWSSubnetAssociation: infrav1.SecondarySubnetTagValue,
