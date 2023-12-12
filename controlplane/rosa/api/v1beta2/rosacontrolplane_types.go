@@ -55,6 +55,7 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	CreatorARN       *string `json:"creatorARN"`
 	InstallerRoleARN *string `json:"installerRoleARN"`
 	SupportRoleARN   *string `json:"supportRoleARN"`
+	WorkerRoleARN    *string `json:"workerRoleARN"`
 }
 
 // AWSRolesRef contains references to various AWS IAM roles required for operators to make calls against the AWS API.
@@ -454,6 +455,9 @@ type RosaControlPlaneStatus struct {
 	FailureMessage *string `json:"failureMessage,omitempty"`
 	// Conditions specifies the cpnditions for the managed control plane
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+
+	// ID is the cluster ID given by ROSA.
+	ID *string `json:"id,omitempty"`
 }
 
 // +kubebuilder:object:root=true
