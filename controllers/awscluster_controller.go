@@ -400,6 +400,7 @@ func (r *AWSClusterReconciler) requeueAWSClusterForUnpausedCluster(_ context.Con
 		c, ok := o.(*clusterv1.Cluster)
 		if !ok {
 			klog.Errorf("Expected a Cluster but got a %T", o)
+			return nil
 		}
 
 		log := log.WithValues("objectMapper", "clusterToAWSCluster", "cluster", klog.KRef(c.Namespace, c.Name))

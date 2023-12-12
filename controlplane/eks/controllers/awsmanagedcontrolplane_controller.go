@@ -370,6 +370,7 @@ func (r *AWSManagedControlPlaneReconciler) ClusterToAWSManagedControlPlane(o cli
 	c, ok := o.(*clusterv1.Cluster)
 	if !ok {
 		klog.Errorf("Expected a Cluster but got a %T", o)
+		return nil
 	}
 
 	if !c.ObjectMeta.DeletionTimestamp.IsZero() {

@@ -150,6 +150,7 @@ func (r *AWSControllerIdentityReconciler) managedControlPlaneMap(_ context.Conte
 	managedControlPlane, ok := o.(*ekscontrolplanev1.AWSManagedControlPlane)
 	if !ok {
 		klog.Errorf("Expected a managedControlPlane but got a %T", o)
+		return nil
 	}
 
 	return []ctrl.Request{

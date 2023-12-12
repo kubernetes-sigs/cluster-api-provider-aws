@@ -309,6 +309,7 @@ func managedControlPlaneToManagedMachinePoolMapFunc(c client.Client, gvk schema.
 		awsControlPlane, ok := o.(*ekscontrolplanev1.AWSManagedControlPlane)
 		if !ok {
 			klog.Errorf("Expected a AWSManagedControlPlane but got a %T", o)
+			return nil
 		}
 
 		if !awsControlPlane.ObjectMeta.DeletionTimestamp.IsZero() {

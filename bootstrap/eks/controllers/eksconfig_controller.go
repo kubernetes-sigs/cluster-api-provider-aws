@@ -369,6 +369,7 @@ func (r *EKSConfigReconciler) MachineToBootstrapMapFunc(_ context.Context, o cli
 	m, ok := o.(*clusterv1.Machine)
 	if !ok {
 		klog.Errorf("Expected a Machine but got a %T", o)
+		return nil
 	}
 	if m.Spec.Bootstrap.ConfigRef != nil && m.Spec.Bootstrap.ConfigRef.GroupVersionKind() == eksbootstrapv1.GroupVersion.WithKind("EKSConfig") {
 		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
@@ -385,6 +386,7 @@ func (r *EKSConfigReconciler) MachinePoolToBootstrapMapFunc(_ context.Context, o
 	m, ok := o.(*expclusterv1.MachinePool)
 	if !ok {
 		klog.Errorf("Expected a MachinePool but got a %T", o)
+		return nil
 	}
 	configRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
 	if configRef != nil && configRef.GroupVersionKind().GroupKind() == eksbootstrapv1.GroupVersion.WithKind("EKSConfig").GroupKind() {
@@ -403,6 +405,7 @@ func (r *EKSConfigReconciler) ClusterToEKSConfigs(_ context.Context, o client.Ob
 	c, ok := o.(*clusterv1.Cluster)
 	if !ok {
 		klog.Errorf("Expected a Cluster but got a %T", o)
+		return nil
 	}
 
 	selectors := []client.ListOption{
