@@ -757,8 +757,8 @@ func autoConvert_v1beta2_AWSManagedMachinePoolStatus_To_v1beta1_AWSManagedMachin
 	out.Replicas = in.Replicas
 	out.LaunchTemplateID = (*string)(unsafe.Pointer(in.LaunchTemplateID))
 	out.LaunchTemplateVersion = (*string)(unsafe.Pointer(in.LaunchTemplateVersion))
-	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
+	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
 	out.Conditions = *(*clusterapiapiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }

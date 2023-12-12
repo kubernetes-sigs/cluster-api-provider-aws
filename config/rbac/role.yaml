@@ -158,6 +158,15 @@ rules:
 - apiGroups:
   - controlplane.cluster.x-k8s.io
   resources:
+  - rosacontrolplanes
+  - rosadcontrolplanes/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
   - rosacontrolplanes/status
   verbs:
   - get
@@ -374,6 +383,25 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - rosaclusters/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - rosamachinepools
+  verbs:
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - rosamachinepools/status
   verbs:
   - get
   - patch
