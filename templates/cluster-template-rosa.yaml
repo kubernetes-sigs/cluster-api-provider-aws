@@ -33,10 +33,10 @@ spec:
   creatorARN: "${AWS_CREATOR_ARN}"
   machineCIDR: "10.0.0.0/16"
   rolesRef:
-    ingressARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATER_ROLES_PREFIX}-ingress-operator-cloud-credentials"
-    imageRegistryARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATER_ROLES_PREFIX}-image-registry-installer-cloud-credentials"
-    storageARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATER_ROLES_PREFIX}-cluster-csi-drivers-ebs-cloud-credentials"
-    networkARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATER_ROLES_PREFIX}-cloud-network-config-controller-cloud-credent"
+    ingressARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATER_ROLES_PREFIX}-openshift-ingress-operator-cloud-credentials"
+    imageRegistryARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATER_ROLES_PREFIX}-openshift-image-registry-installer-cloud-credentials"
+    storageARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATER_ROLES_PREFIX}-openshift-cluster-csi-drivers-ebs-cloud-credentials"
+    networkARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATER_ROLES_PREFIX}-openshift-cloud-network-config-controller-cloud-credent"
     kubeCloudControllerARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATER_ROLES_PREFIX}-kube-system-kube-controller-manager"
     nodePoolManagementARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATER_ROLES_PREFIX}-kube-system-capa-controller-manager"
     controlPlaneOperatorARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATER_ROLES_PREFIX}-kube-system-control-plane-operator"
@@ -47,5 +47,5 @@ spec:
     - "${PRIVATE_SUBNET_ID}"
   availabilityZones:
     - "${AWS_AVAILABILITY_ZONE}"
-  installerRoleARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${ACCOUNT_ROLES_PREFIX}-Installer-Role"
-  supportRoleARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${ACCOUNT_ROLES_PREFIX}-Support-Role"
+  installerRoleARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${ACCOUNT_ROLES_PREFIX}-HCP-ROSA-Installer-Role"
+  supportRoleARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${ACCOUNT_ROLES_PREFIX}-HCP-ROSA-Support-Role"
