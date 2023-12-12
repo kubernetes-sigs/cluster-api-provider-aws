@@ -249,6 +249,8 @@ spec:
               version:
                 description: Openshift version, for example "openshift-v4.12.15".
                 type: string
+              workerRoleARN:
+                type: string
             required:
             - accountID
             - availabilityZones
@@ -261,6 +263,7 @@ spec:
             - subnets
             - supportRoleARN
             - version
+            - workerRoleARN
             type: object
           status:
             properties:
@@ -319,6 +322,9 @@ spec:
               failureMessage:
                 description: ErrorMessage indicates that there is a terminal problem
                   reconciling the state, and will be set to a descriptive error message.
+                type: string
+              id:
+                description: ID is the cluster ID given by ROSA.
                 type: string
               initialized:
                 description: Initialized denotes whether or not the control plane
