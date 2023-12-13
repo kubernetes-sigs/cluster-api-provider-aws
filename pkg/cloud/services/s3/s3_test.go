@@ -201,6 +201,10 @@ func TestReconcileBucket(t *testing.T) {
 			if !strings.Contains(policy, "arn:aws:iam::foo:role/control-plane.cluster-api-provider-aws.sigs.k8s.io") {
 				t.Errorf("Expected arn to contain the right principal; got: %v", policy)
 			}
+
+			if !strings.Contains(policy, "SecureTransport") {
+				t.Errorf("Expected deny when not using SecureTransport; got: %v", policy)
+			}
 		}).Return(nil, nil).Times(1)
 
 		if err := svc.ReconcileBucket(); err != nil {

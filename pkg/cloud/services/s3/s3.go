@@ -306,6 +306,20 @@ func (s *Service) bucketPolicy(bucketName string) (string, error) {
 			Action:   []string{"s3:GetObject"},
 			Resource: []string{fmt.Sprintf("arn:%s:s3:::%s/control-plane/*", partition, bucketName)},
 		},
+		{
+			Sid:    "ForceSSLOnlyAccess",
+			Effect: iam.EffectDeny,
+			Principal: map[iam.PrincipalType]iam.PrincipalID{
+				iam.PrincipalAWS: []string{"*"},
+			},
+			Action:   []string{"s3:*"},
+			Resource: []string{fmt.Sprintf("arn:%s:s3:::%s/*", partition, bucketName)},
+			Condition: iam.Conditions{
+				"Bool": map[string]interface{}{
+					"aws:SecureTransport": false,
+				},
+			},
+		},
 	}
 
 	for _, iamInstanceProfile := range bucket.NodesIAMInstanceProfiles {
