@@ -14,7 +14,7 @@ updates:
           - "*"
     ignore:
       # Ignore Cluster-API as its upgraded manually.
-      - dependency-name: "sigs.k8s.io/cluster-api"
+      - dependency-name: "sigs.k8s.io/cluster-api*"
       # Ignore controller-runtime as its upgraded manually.
       - dependency-name: "sigs.k8s.io/controller-runtime"
       # Ignore k8s and its transitives modules as they are upgraded manually
@@ -49,6 +49,16 @@ updates:
       dependencies:
         patterns:
           - "*"
+    ignore:
+      # Ignore Cluster-API as its upgraded manually.
+      - dependency-name: "sigs.k8s.io/cluster-api*"
+      # Ignore controller-runtime as its upgraded manually.
+      - dependency-name: "sigs.k8s.io/controller-runtime"
+      # Ignore k8s and its transitives modules as they are upgraded manually
+      # together with controller-runtime.
+      - dependency-name: "k8s.io/*"
+      # Ignore controller-tools as its upgraded manually.
+      - dependency-name: "sigs.k8s.io/controller-tools"
 
   - package-ecosystem: "docker"
     directory: "/hack/tools"
