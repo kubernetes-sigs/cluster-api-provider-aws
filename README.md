@@ -190,6 +190,7 @@ Thank you to all contributors and a special thanks to our current maintainers & 
 | [@vincepri](https://github.com/vincepri) (og & from 2023-10-16)  | [@nrb](https://github.com/nrb) (from 2023-10-16)                     |
 |                                                                  | [@faiq](https://github.com/faiq) (from 2023-10-16)                   |
 |                                                                  | [@fiunchinho](https://github.com/fiunchinho) (from 2023-11-6)        |
+|                                                                  | [@AndiDog](https://github.com/AndiDog) (from 2023-12-13)             |
 
 and the previous/emeritus maintainers & reviewers:
 
