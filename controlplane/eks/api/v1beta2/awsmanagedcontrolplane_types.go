@@ -36,38 +36,9 @@ const (
 type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	AWSManagedControlPlaneClassSpec `json:",inline"`
 
-	// EKSClusterName allows you to specify the name of the EKS cluster in
-	// AWS. If you don't specify a name then a default name will be created
-	// based on the namespace and name of the managed control plane.
-	// +optional
-	EKSClusterName string `json:"eksClusterName,omitempty"`
-
-	// RoleName specifies the name of IAM role that gives EKS
-	// permission to make API calls. If the role is pre-existing
-	// we will treat it as unmanaged and not delete it on
-	// deletion. If the EKSEnableIAM feature flag is true
-	// and no name is supplied then a role is created.
-	// +kubebuilder:validation:MinLength:=2
-	// +optional
-	RoleName *string `json:"roleName,omitempty"`
-
-	// RoleAdditionalPolicies allows you to attach additional polices to
-	// the control plane role. You must enable the EKSAllowAddRoles
-	// feature flag to incorporate these into the created role.
-	// +optional
-	RoleAdditionalPolicies *[]string `json:"roleAdditionalPolicies,omitempty"`
-
-	// Endpoints specifies access to this cluster's control plane endpoints
-	// +optional
-	EndpointAccess EndpointAccess `json:"endpointAccess,omitempty"`
-
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
-
-	// Bastion contains options to configure the bastion host.
-	// +optional
-	Bastion infrav1.Bastion `json:"bastion"`
 }
 
 // KubeProxy specifies how the kube-proxy daemonset is managed.

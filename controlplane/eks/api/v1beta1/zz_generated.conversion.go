@@ -328,27 +328,25 @@ func Convert_v1beta2_AWSManagedControlPlaneList_To_v1beta1_AWSManagedControlPlan
 }
 
 func autoConvert_v1beta1_AWSManagedControlPlaneSpec_To_v1beta2_AWSManagedControlPlaneSpec(in *AWSManagedControlPlaneSpec, out *v1beta2.AWSManagedControlPlaneSpec, s conversion.Scope) error {
-	out.EKSClusterName = in.EKSClusterName
+	// WARNING: in.EKSClusterName requires manual conversion: does not exist in peer-type
 	// WARNING: in.IdentityRef requires manual conversion: does not exist in peer-type
 	// WARNING: in.NetworkSpec requires manual conversion: does not exist in peer-type
 	// WARNING: in.SecondaryCidrBlock requires manual conversion: does not exist in peer-type
 	// WARNING: in.Region requires manual conversion: does not exist in peer-type
 	// WARNING: in.SSHKeyName requires manual conversion: does not exist in peer-type
 	// WARNING: in.Version requires manual conversion: does not exist in peer-type
-	out.RoleName = (*string)(unsafe.Pointer(in.RoleName))
-	out.RoleAdditionalPolicies = (*[]string)(unsafe.Pointer(in.RoleAdditionalPolicies))
+	// WARNING: in.RoleName requires manual conversion: does not exist in peer-type
+	// WARNING: in.RoleAdditionalPolicies requires manual conversion: does not exist in peer-type
 	// WARNING: in.Logging requires manual conversion: does not exist in peer-type
 	// WARNING: in.EncryptionConfig requires manual conversion: does not exist in peer-type
 	// WARNING: in.AdditionalTags requires manual conversion: does not exist in peer-type
 	// WARNING: in.IAMAuthenticatorConfig requires manual conversion: does not exist in peer-type
-	if err := Convert_v1beta1_EndpointAccess_To_v1beta2_EndpointAccess(&in.EndpointAccess, &out.EndpointAccess, s); err != nil {
-		return err
-	}
+	// WARNING: in.EndpointAccess requires manual conversion: does not exist in peer-type
 	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
 	// WARNING: in.ImageLookupFormat requires manual conversion: does not exist in peer-type
 	// WARNING: in.ImageLookupOrg requires manual conversion: does not exist in peer-type
 	// WARNING: in.ImageLookupBaseOS requires manual conversion: does not exist in peer-type
-	out.Bastion = in.Bastion
+	// WARNING: in.Bastion requires manual conversion: does not exist in peer-type
 	// WARNING: in.TokenMethod requires manual conversion: does not exist in peer-type
 	// WARNING: in.AssociateOIDCProvider requires manual conversion: does not exist in peer-type
 	// WARNING: in.Addons requires manual conversion: does not exist in peer-type
@@ -361,14 +359,7 @@ func autoConvert_v1beta1_AWSManagedControlPlaneSpec_To_v1beta2_AWSManagedControl
 
 func autoConvert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControlPlaneSpec(in *v1beta2.AWSManagedControlPlaneSpec, out *AWSManagedControlPlaneSpec, s conversion.Scope) error {
 	// WARNING: in.AWSManagedControlPlaneClassSpec requires manual conversion: does not exist in peer-type
-	out.EKSClusterName = in.EKSClusterName
-	out.RoleName = (*string)(unsafe.Pointer(in.RoleName))
-	out.RoleAdditionalPolicies = (*[]string)(unsafe.Pointer(in.RoleAdditionalPolicies))
-	if err := Convert_v1beta2_EndpointAccess_To_v1beta1_EndpointAccess(&in.EndpointAccess, &out.EndpointAccess, s); err != nil {
-		return err
-	}
 	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
-	out.Bastion = in.Bastion
 	return nil
 }
 
