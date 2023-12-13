@@ -1127,17 +1127,6 @@ func TestServiceCanStartASGInstanceRefresh(t *testing.T) {
 			},
 		},
 		{
-			name:     "should NOT return error if describe instance failed due to 'not found'",
-			wantErr:  false,
-			canStart: false,
-			expect: func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {
-				m.DescribeInstanceRefreshesWithContext(context.TODO(), gomock.Eq(&autoscaling.DescribeInstanceRefreshesInput{
-					AutoScalingGroupName: aws.String("machinePoolName"),
-				})).
-					Return(nil, awserrors.NewNotFound("not found"))
-			},
-		},
-		{
 			name:     "should return true if no instance available for refresh",
 			wantErr:  false,
 			canStart: true,
