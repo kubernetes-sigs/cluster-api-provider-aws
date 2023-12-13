@@ -2314,6 +2314,39 @@ func (mr *MockAutoScalingAPIMockRecorder) DescribeWarmPool(arg0 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeWarmPool", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeWarmPool), arg0)
 }
 
+// DescribeWarmPoolPages mocks base method.
+func (m *MockAutoScalingAPI) DescribeWarmPoolPages(arg0 *autoscaling.DescribeWarmPoolInput, arg1 func(*autoscaling.DescribeWarmPoolOutput, bool) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeWarmPoolPages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeWarmPoolPages indicates an expected call of DescribeWarmPoolPages.
+func (mr *MockAutoScalingAPIMockRecorder) DescribeWarmPoolPages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeWarmPoolPages", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeWarmPoolPages), arg0, arg1)
+}
+
+// DescribeWarmPoolPagesWithContext mocks base method.
+func (m *MockAutoScalingAPI) DescribeWarmPoolPagesWithContext(arg0 context.Context, arg1 *autoscaling.DescribeWarmPoolInput, arg2 func(*autoscaling.DescribeWarmPoolOutput, bool) bool, arg3 ...request.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeWarmPoolPagesWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeWarmPoolPagesWithContext indicates an expected call of DescribeWarmPoolPagesWithContext.
+func (mr *MockAutoScalingAPIMockRecorder) DescribeWarmPoolPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeWarmPoolPagesWithContext", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeWarmPoolPagesWithContext), varargs...)
+}
+
 // DescribeWarmPoolRequest mocks base method.
 func (m *MockAutoScalingAPI) DescribeWarmPoolRequest(arg0 *autoscaling.DescribeWarmPoolInput) (*request.Request, *autoscaling.DescribeWarmPoolOutput) {
 	m.ctrl.T.Helper()
