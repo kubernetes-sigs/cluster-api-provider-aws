@@ -98,7 +98,9 @@ func TestParseEKSVersion(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			g.Expect(*parseEKSVersion(tc.input)).To(Equal(tc.expect))
+			v, err := parseEKSVersion(tc.input)
+			g.Expect(err).To(BeNil())
+			g.Expect(*v).To(Equal(tc.expect))
 		})
 	}
 }
