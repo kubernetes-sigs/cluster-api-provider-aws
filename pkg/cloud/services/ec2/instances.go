@@ -132,11 +132,6 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 
 	var err error
 
-	imageArchitecture, err := s.pickArchitectureForInstanceType(input.Type)
-	if err != nil {
-		return nil, err
-	}
-
 	// Pick image from the machine configuration, or use a default one.
 	if scope.AWSMachine.Spec.AMI.ID != nil { //nolint:nestif
 		input.ImageID = *scope.AWSMachine.Spec.AMI.ID
@@ -161,6 +156,11 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 		imageLookupBaseOS := scope.AWSMachine.Spec.ImageLookupBaseOS
 		if imageLookupBaseOS == "" {
 			imageLookupBaseOS = scope.InfraCluster.ImageLookupBaseOS()
+		}
+
+		imageArchitecture, err := s.pickArchitectureForInstanceType(input.Type)
+		if err != nil {
+			return nil, err
 		}
 
 		if scope.IsEKSManaged() && imageLookupFormat == "" && imageLookupOrg == "" && imageLookupBaseOS == "" {
