@@ -226,13 +226,30 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	ec2Svc := r.getEC2Service(ec2Scope)
 	asgsvc := r.getASGService(clusterScope)
 
+	// Find existing ASG
+	asg, err := r.findASG(machinePoolScope, asgsvc)
+	if err != nil {
+		conditions.MarkUnknown(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, expinfrav1.ASGNotFoundReason, err.Error())
+		return err
+	}
+
 	canUpdateLaunchTemplate := func() (bool, error) {
 		// If there is a change: before changing the template, check if there exist an ongoing instance refresh,
 		// because only 1 instance refresh can be "InProgress". If template is updated when refresh cannot be started,
 		// that change will not trigger a refresh. Do not start an instance refresh if only userdata changed.
+		if asg == nil {
+			// If the ASG hasn't been created yet, there is no need to check if we can start the instance refresh.
+			// But we want to update the LaunchTemplate because an error in the LaunchTemplate may be blocking the ASG creation.
+			return true, nil
+		}
 		return asgsvc.CanStartASGInstanceRefresh(machinePoolScope)
 	}
 	runPostLaunchTemplateUpdateOperation := func() error {
+		// skip instance refresh if ASG is not created yet
+		if asg == nil {
+			machinePoolScope.Debug("ASG does not exist yet, skipping instance refresh")
+			return nil
+		}
 		// skip instance refresh if explicitly disabled
 		if machinePoolScope.AWSMachinePool.Spec.RefreshPreferences != nil && machinePoolScope.AWSMachinePool.Spec.RefreshPreferences.Disable {
 			machinePoolScope.Debug("instance refresh disabled, skipping instance refresh")
@@ -258,13 +275,6 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 
 	// set the LaunchTemplateReady condition
 	conditions.MarkTrue(machinePoolScope.AWSMachinePool, expinfrav1.LaunchTemplateReadyCondition)
-
-	// Find existing ASG
-	asg, err := r.findASG(machinePoolScope, asgsvc)
-	if err != nil {
-		conditions.MarkUnknown(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, expinfrav1.ASGNotFoundReason, err.Error())
-		return err
-	}
 
 	if asg == nil {
 		// Create new ASG
