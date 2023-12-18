@@ -360,9 +360,14 @@ func (m *MachineScope) InstanceIsInKnownState() bool {
 	return state != nil && infrav1.InstanceKnownStates.Has(string(*state))
 }
 
-// AWSMachineIsDeleted checks if the machine was deleted.
+// AWSMachineIsDeleted checks if the AWS machine was deleted.
 func (m *MachineScope) AWSMachineIsDeleted() bool {
 	return !m.AWSMachine.ObjectMeta.DeletionTimestamp.IsZero()
+}
+
+// MachineIsDeleted checks if the machine was deleted.
+func (m *MachineScope) MachineIsDeleted() bool {
+	return !m.Machine.ObjectMeta.DeletionTimestamp.IsZero()
 }
 
 // IsEKSManaged checks if the machine is EKS managed.
