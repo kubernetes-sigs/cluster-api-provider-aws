@@ -867,8 +867,8 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.Machine
 	elbsvc := r.getELBService(elbScope)
 
 	// In order to prevent sending request to a "not-ready" control plane machines, it is required to remove the machine
-	// from the ELB as soon as the machine gets deleted or when the machine is in a not running state.
-	if !machineScope.AWSMachine.DeletionTimestamp.IsZero() || !machineScope.InstanceIsRunning() {
+	// from the ELB as soon as the machine or infra machine gets deleted or when the machine is in a not running state.
+	if machineScope.AWSMachineIsDeleted() || machineScope.MachineIsDeleted() || !machineScope.InstanceIsRunning() {
 		if elbScope.ControlPlaneLoadBalancer().LoadBalancerType == infrav1.LoadBalancerTypeClassic {
 			machineScope.Debug("deregistering from classic load balancer")
 			return r.deregisterInstanceFromClassicLB(machineScope, elbsvc, i)
