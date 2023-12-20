@@ -1401,6 +1401,17 @@ spec:
                           provider creates a managed VPC. Defaults to 10.0.0.0/16.
                           Mutually exclusive with IPAMPool.
                         type: string
+                      emptyRoutesDefaultVPCSecurityGroup:
+                        description: "EmptyRoutesDefaultVPCSecurityGroup specifies
+                          whether the default VPC security group ingress and egress
+                          rules should be removed. \n By default, when creating a
+                          VPC, AWS creates a security group called `default` with
+                          ingress and egress rules that allow traffic from anywhere.
+                          The group could be used as a potential surface attack and
+                          it's generally suggested that the group rules are removed
+                          or modified appropriately. \n NOTE: This only applies when
+                          the VPC is managed by the Cluster API AWS controller."
+                        type: boolean
                       id:
                         description: ID is the vpc-id of the VPC this provider should
                           use to create resources.
