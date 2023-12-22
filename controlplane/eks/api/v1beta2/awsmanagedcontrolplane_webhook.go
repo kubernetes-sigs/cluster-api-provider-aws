@@ -94,7 +94,7 @@ func (r *AWSManagedControlPlane) ValidateCreate() (admission.Warnings, error) {
 	allErrs = append(allErrs, r.validateKubeProxy()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 	allErrs = append(allErrs, r.validateNetwork()...)
-	allErrs = append(allErrs, r.validatePrivateDnsHostnameTypeOnLaunch()...)
+	allErrs = append(allErrs, r.validatePrivateDNSHostnameTypeOnLaunch()...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -128,7 +128,7 @@ func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) (admission.W
 	allErrs = append(allErrs, r.validateDisableVPCCNI()...)
 	allErrs = append(allErrs, r.validateKubeProxy()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
-	allErrs = append(allErrs, r.validatePrivateDnsHostnameTypeOnLaunch()...)
+	allErrs = append(allErrs, r.validatePrivateDNSHostnameTypeOnLaunch()...)
 
 	if r.Spec.Region != oldAWSManagedControlplane.Spec.Region {
 		allErrs = append(allErrs,
@@ -392,12 +392,12 @@ func (r *AWSManagedControlPlane) validateDisableVPCCNI() field.ErrorList {
 	return allErrs
 }
 
-func (r *AWSManagedControlPlane) validatePrivateDnsHostnameTypeOnLaunch() field.ErrorList {
+func (r *AWSManagedControlPlane) validatePrivateDNSHostnameTypeOnLaunch() field.ErrorList {
 	var allErrs field.ErrorList
 
-	if r.Spec.NetworkSpec.VPC.IsIPv6Enabled() && r.Spec.NetworkSpec.VPC.PrivateDnsHostnameTypeOnLaunch != nil && *r.Spec.NetworkSpec.VPC.PrivateDnsHostnameTypeOnLaunch != hostnameTypeResourceName {
-		privateDnsHostnameTypeOnLaunch := field.NewPath("spec", "networkSpec", "vpc", "privateDnsHostnameTypeOnLaunch")
-		allErrs = append(allErrs, field.Invalid(privateDnsHostnameTypeOnLaunch, r.Spec.NetworkSpec.VPC.PrivateDnsHostnameTypeOnLaunch, fmt.Sprintf("only %s HostnameType can be used in IPv6 mode", hostnameTypeResourceName)))
+	if r.Spec.NetworkSpec.VPC.IsIPv6Enabled() && r.Spec.NetworkSpec.VPC.PrivateDNSHostnameTypeOnLaunch != nil && *r.Spec.NetworkSpec.VPC.PrivateDNSHostnameTypeOnLaunch != hostnameTypeResourceName {
+		privateDNSHostnameTypeOnLaunch := field.NewPath("spec", "networkSpec", "vpc", "privateDNSHostnameTypeOnLaunch")
+		allErrs = append(allErrs, field.Invalid(privateDNSHostnameTypeOnLaunch, r.Spec.NetworkSpec.VPC.PrivateDNSHostnameTypeOnLaunch, fmt.Sprintf("only %s HostnameType can be used in IPv6 mode", hostnameTypeResourceName)))
 	}
 
 	return allErrs

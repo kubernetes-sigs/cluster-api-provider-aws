@@ -1099,7 +1099,7 @@ spec:
                                     type: string
                                 type: object
                               privateDnsHostnameTypeOnLaunch:
-                                description: PrivateDnsHostnameTypeOnLaunch is the
+                                description: PrivateDNSHostnameTypeOnLaunch is the
                                   type of hostname to assign to instances in the subnet
                                   at launch. For IPv4-only and dual-stack (IPv4 and
                                   IPv6) subnets, an instance DNS name can be based

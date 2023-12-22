@@ -490,11 +490,11 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 		record.Eventf(s.scope.InfraCluster(), "SuccessfulModifySubnetAttributes", "Modified managed Subnet %q attributes", *out.Subnet.SubnetId)
 	}
 
-	if s.scope.VPC().PrivateDnsHostnameTypeOnLaunch != nil {
+	if s.scope.VPC().PrivateDNSHostnameTypeOnLaunch != nil {
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 			if _, err := s.EC2Client.ModifySubnetAttributeWithContext(context.TODO(), &ec2.ModifySubnetAttributeInput{
 				SubnetId:                       out.Subnet.SubnetId,
-				PrivateDnsHostnameTypeOnLaunch: s.scope.VPC().PrivateDnsHostnameTypeOnLaunch,
+				PrivateDnsHostnameTypeOnLaunch: s.scope.VPC().PrivateDNSHostnameTypeOnLaunch,
 			}); err != nil {
 				return false, err
 			}

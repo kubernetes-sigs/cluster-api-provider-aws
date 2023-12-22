@@ -48,6 +48,7 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	if restored.Status.Bastion != nil {
 		dst.Status.Bastion.InstanceMetadataOptions = restored.Status.Bastion.InstanceMetadataOptions
 		dst.Status.Bastion.PlacementGroupName = restored.Status.Bastion.PlacementGroupName
+		dst.Status.Bastion.PrivateDNSNameOptions = restored.Status.Bastion.PrivateDNSNameOptions
 	}
 	dst.Spec.Partition = restored.Spec.Partition
 
@@ -91,6 +92,7 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.NetworkSpec.VPC.EmptyRoutesDefaultVPCSecurityGroup = restored.Spec.NetworkSpec.VPC.EmptyRoutesDefaultVPCSecurityGroup
+	dst.Spec.NetworkSpec.VPC.PrivateDNSHostnameTypeOnLaunch = restored.Spec.NetworkSpec.VPC.PrivateDNSHostnameTypeOnLaunch
 
 	// Restore SubnetSpec.ResourceID field, if any.
 	for _, subnet := range restored.Spec.NetworkSpec.Subnets {

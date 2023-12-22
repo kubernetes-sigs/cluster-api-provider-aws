@@ -679,16 +679,16 @@ spec:
                     description: The name of the launch template.
                     type: string
                   privateDnsNameOptions:
-                    description: PrivateDnsNameOptions is the options for the instance
+                    description: PrivateDNSNameOptions is the options for the instance
                       hostname.
                     properties:
                       enableResourceNameDnsAAAARecord:
-                        description: EnableResourceNameDnsAAAARecord indicates whether
+                        description: EnableResourceNameDNSAAAARecord indicates whether
                           to respond to DNS queries for instance hostnames with DNS
                           AAAA records.
                         type: boolean
                       enableResourceNameDnsARecord:
-                        description: EnableResourceNameDnsARecord indicates whether
+                        description: EnableResourceNameDNSARecord indicates whether
                           to respond to DNS queries for instance hostnames with DNS
                           A records.
                         type: boolean
