@@ -51,6 +51,10 @@ func (src *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.AvailabilityZoneSubnetType = restored.Spec.AvailabilityZoneSubnetType
 	}
 
+	if restored.Spec.AWSLaunchTemplate.PrivateDNSNameOptions != nil {
+		dst.Spec.AWSLaunchTemplate.PrivateDNSNameOptions = restored.Spec.AWSLaunchTemplate.PrivateDNSNameOptions
+	}
+
 	return nil
 }
 
@@ -95,6 +99,10 @@ func (src *AWSManagedMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 			dst.Spec.AWSLaunchTemplate = restored.Spec.AWSLaunchTemplate
 		}
 		dst.Spec.AWSLaunchTemplate.InstanceMetadataOptions = restored.Spec.AWSLaunchTemplate.InstanceMetadataOptions
+
+		if restored.Spec.AWSLaunchTemplate.PrivateDNSNameOptions != nil {
+			dst.Spec.AWSLaunchTemplate.PrivateDNSNameOptions = restored.Spec.AWSLaunchTemplate.PrivateDNSNameOptions
+		}
 	}
 	if restored.Spec.AvailabilityZoneSubnetType != nil {
 		dst.Spec.AvailabilityZoneSubnetType = restored.Spec.AvailabilityZoneSubnetType

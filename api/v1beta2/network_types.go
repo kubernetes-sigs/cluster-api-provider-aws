@@ -336,12 +336,12 @@ type VPCSpec struct {
 	// +optional
 	EmptyRoutesDefaultVPCSecurityGroup bool `json:"emptyRoutesDefaultVPCSecurityGroup,omitempty"`
 
-	// PrivateDnsHostnameTypeOnLaunch is the type of hostname to assign to instances in the subnet at launch.
+	// PrivateDNSHostnameTypeOnLaunch is the type of hostname to assign to instances in the subnet at launch.
 	// For IPv4-only and dual-stack (IPv4 and IPv6) subnets, an instance DNS name can be based on the instance IPv4 address (ip-name)
 	// or the instance ID (resource-name). For IPv6 only subnets, an instance DNS name must be based on the instance ID (resource-name).
 	// +optional
 	// +kubebuilder:validation:Enum:=ip-name;resource-name
-	PrivateDnsHostnameTypeOnLaunch *string `json:"privateDnsHostnameTypeOnLaunch,omitempty"`
+	PrivateDNSHostnameTypeOnLaunch *string `json:"privateDnsHostnameTypeOnLaunch,omitempty"`
 }
 
 // String returns a string representation of the VPC.

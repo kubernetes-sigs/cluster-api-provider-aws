@@ -1480,7 +1480,7 @@ spec:
                             type: string
                         type: object
                       privateDnsHostnameTypeOnLaunch:
-                        description: PrivateDnsHostnameTypeOnLaunch is the type of
+                        description: PrivateDNSHostnameTypeOnLaunch is the type of
                           hostname to assign to instances in the subnet at launch.
                           For IPv4-only and dual-stack (IPv4 and IPv6) subnets, an
                           instance DNS name can be based on the instance IPv4 address
@@ -1700,16 +1700,16 @@ spec:
                       group in which to launch the instance.
                     type: string
                   privateDnsNameOptions:
-                    description: PrivateDnsNameOptions is the options for the instance
+                    description: PrivateDNSNameOptions is the options for the instance
                       hostname.
                     properties:
                       enableResourceNameDnsAAAARecord:
-                        description: EnableResourceNameDnsAAAARecord indicates whether
+                        description: EnableResourceNameDNSAAAARecord indicates whether
                           to respond to DNS queries for instance hostnames with DNS
                           AAAA records.
                         type: boolean
                       enableResourceNameDnsARecord:
-                        description: EnableResourceNameDnsARecord indicates whether
+                        description: EnableResourceNameDNSARecord indicates whether
                           to respond to DNS queries for instance hostnames with DNS
                           A records.
                         type: boolean

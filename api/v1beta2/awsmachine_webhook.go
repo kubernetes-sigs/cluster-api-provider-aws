@@ -114,15 +114,15 @@ func (r *AWSMachine) ValidateUpdate(old runtime.Object) (admission.Warnings, err
 		delete(cloudInit, "secureSecretsBackend")
 	}
 
-	// allow changes to enableResourceNameDnsAAAARecord and enableResourceNameDnsARecord
-	if privateDnsNameOptions, ok := oldAWSMachineSpec["privateDnsNameOptions"].(map[string]interface{}); ok {
-		delete(privateDnsNameOptions, "enableResourceNameDnsAAAARecord")
-		delete(privateDnsNameOptions, "enableResourceNameDnsARecord")
+	// allow changes to enableResourceNameDNSAAAARecord and enableResourceNameDNSARecord
+	if privateDNSNameOptions, ok := oldAWSMachineSpec["privateDnsNameOptions"].(map[string]interface{}); ok {
+		delete(privateDNSNameOptions, "enableResourceNameDnsAAAARecord")
+		delete(privateDNSNameOptions, "enableResourceNameDnsARecord")
 	}
 
-	if privateDnsNameOptions, ok := newAWSMachineSpec["privateDnsNameOptions"].(map[string]interface{}); ok {
-		delete(privateDnsNameOptions, "enableResourceNameDnsAAAARecord")
-		delete(privateDnsNameOptions, "enableResourceNameDnsARecord")
+	if privateDNSNameOptions, ok := newAWSMachineSpec["privateDnsNameOptions"].(map[string]interface{}); ok {
+		delete(privateDNSNameOptions, "enableResourceNameDnsAAAARecord")
+		delete(privateDNSNameOptions, "enableResourceNameDnsARecord")
 	}
 
 	if !cmp.Equal(oldAWSMachineSpec, newAWSMachineSpec) {

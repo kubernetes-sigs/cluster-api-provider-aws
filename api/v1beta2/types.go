@@ -233,9 +233,9 @@ type Instance struct {
 	// +optional
 	InstanceMetadataOptions *InstanceMetadataOptions `json:"instanceMetadataOptions,omitempty"`
 
-	// PrivateDnsNameOptions is the options for the instance hostname.
+	// PrivateDNSNameOptions is the options for the instance hostname.
 	// +optional
-	PrivateDnsNameOptions *PrivateDnsNameOptions `json:"privateDnsNameOptions,omitempty"`
+	PrivateDNSNameOptions *PrivateDNSNameOptions `json:"privateDnsNameOptions,omitempty"`
 }
 
 // InstanceMetadataState describes the state of InstanceMetadataOptions.HttpEndpoint and InstanceMetadataOptions.InstanceMetadataTags
@@ -412,14 +412,14 @@ const (
 	AmazonLinuxGPU EKSAMILookupType = "AmazonLinuxGPU"
 )
 
-// PrivateDnsNameOptions is the options for the instance hostname.
-type PrivateDnsNameOptions struct {
-	// EnableResourceNameDnsAAAARecord indicates whether to respond to DNS queries for instance hostnames with DNS AAAA records.
+// PrivateDNSNameOptions is the options for the instance hostname.
+type PrivateDNSNameOptions struct {
+	// EnableResourceNameDNSAAAARecord indicates whether to respond to DNS queries for instance hostnames with DNS AAAA records.
 	// +optional
-	EnableResourceNameDnsAAAARecord *bool `json:"enableResourceNameDnsAAAARecord,omitempty"`
-	// EnableResourceNameDnsARecord indicates whether to respond to DNS queries for instance hostnames with DNS A records.
+	EnableResourceNameDNSAAAARecord *bool `json:"enableResourceNameDnsAAAARecord,omitempty"`
+	// EnableResourceNameDNSARecord indicates whether to respond to DNS queries for instance hostnames with DNS A records.
 	// +optional
-	EnableResourceNameDnsARecord *bool `json:"enableResourceNameDnsARecord,omitempty"`
+	EnableResourceNameDNSARecord *bool `json:"enableResourceNameDnsARecord,omitempty"`
 	// The type of hostname to assign to an instance.
 	// +optional
 	// +kubebuilder:validation:Enum:=ip-name;resource-name
