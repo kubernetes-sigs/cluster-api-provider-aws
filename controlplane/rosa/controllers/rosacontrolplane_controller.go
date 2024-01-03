@@ -46,7 +46,6 @@ import (
 )
 
 const (
-	ocmAPIUrl              = "https://api.stage.openshift.com"
 	rosaCreatorArnProperty = "rosa_creator_arn"
 
 	rosaControlPlaneKind = "ROSAControlPlane"
@@ -293,6 +292,10 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 
 	// Create the connection, and remember to close it:
 	token := os.Getenv("OCM_TOKEN")
+	ocmAPIUrl := os.Getenv("OCM_API_URL")
+	if ocmAPIUrl == "" {
+		ocmAPIUrl = "https://api.openshift.com"
+	}
 	connection, err := sdk.NewConnectionBuilder().
 		Logger(ocmLogger).
 		Tokens(token).
@@ -340,6 +343,10 @@ func (r *ROSAControlPlaneReconciler) reconcileDelete(_ context.Context, rosaScop
 	// Create the connection, and remember to close it:
 	// TODO: token should be read from a secret: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/4460
 	token := os.Getenv("OCM_TOKEN")
+	ocmAPIUrl := os.Getenv("OCM_API_URL")
+	if ocmAPIUrl == "" {
+		ocmAPIUrl = "https://api.openshift.com"
+	}
 	connection, err := sdk.NewConnectionBuilder().
 		Logger(ocmLogger).
 		Tokens(token).
