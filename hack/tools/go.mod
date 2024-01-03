@@ -1,6 +1,6 @@
 module sigs.k8s.io/cluster-api-provider-aws/hack/tools
 
-go 1.20
+go 1.21
 
 require (
 	github.com/a8m/envsubst v1.4.2
