@@ -42,7 +42,7 @@ verify_kubectl_version() {
   fi
 
   local kubectl_version
-  IFS=" " read -ra kubectl_version <<< "$(kubectl version --client --short)"
+  IFS=" " read -ra kubectl_version <<< "$(kubectl version --client --short 2>/dev/null `# "--short" was removed` || kubectl version --client)"
   if [[ "${MINIMUM_KUBECTL_VERSION}" != $(echo -e "${MINIMUM_KUBECTL_VERSION}\n${kubectl_version[2]}" | sort -s -t. -k 1,1 -k 2,2n -k 3,3n | head -n1) ]]; then
     cat <<EOF
 Detected kubectl version: ${kubectl_version[2]}.
