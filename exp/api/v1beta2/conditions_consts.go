@@ -102,3 +102,11 @@ const (
 	// reconciling EKS nodegroup iam roles.
 	IAMFargateRolesReconciliationFailedReason = "IAMFargateRolesReconciliationFailed"
 )
+
+const (
+	// RosaMachinePoolReadyCondition condition reports on the successful reconciliation of rosa control plane.
+	RosaMachinePoolReadyCondition clusterv1.ConditionType = "RosaMchinePoolReady"
+	// WaitingForRosaControlPlaneReason used when the machine pool is waiting for
+	// ROSA control plane infrastructure to be ready before proceeding.
+	WaitingForRosaControlPlaneReason = "WaitingForRosaControlPlane"
+)
