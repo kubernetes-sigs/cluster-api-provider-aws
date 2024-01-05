@@ -46,7 +46,6 @@ import (
 )
 
 const (
-	ocmAPIUrl              = "https://api.stage.openshift.com"
 	rosaCreatorArnProperty = "rosa_creator_arn"
 
 	rosaControlPlaneKind = "ROSAControlPlane"
@@ -99,6 +98,8 @@ func (r *ROSAControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr c
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinepools,verbs=get;list;watch
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=rosacontrolplanes,verbs=get;list;watch;update;patch;delete
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=rosacontrolplanes/status,verbs=get;update;patch
 
 // Reconcile will reconcile RosaControlPlane Resources.
 func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
@@ -291,6 +292,10 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 
 	// Create the connection, and remember to close it:
 	token := os.Getenv("OCM_TOKEN")
+	ocmAPIUrl := os.Getenv("OCM_API_URL")
+	if ocmAPIUrl == "" {
+		ocmAPIUrl = "https://api.openshift.com"
+	}
 	connection, err := sdk.NewConnectionBuilder().
 		Logger(ocmLogger).
 		Tokens(token).
@@ -338,6 +343,10 @@ func (r *ROSAControlPlaneReconciler) reconcileDelete(_ context.Context, rosaScop
 	// Create the connection, and remember to close it:
 	// TODO: token should be read from a secret: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/4460
 	token := os.Getenv("OCM_TOKEN")
+	ocmAPIUrl := os.Getenv("OCM_API_URL")
+	if ocmAPIUrl == "" {
+		ocmAPIUrl = "https://api.openshift.com"
+	}
 	connection, err := sdk.NewConnectionBuilder().
 		Logger(ocmLogger).
 		Tokens(token).
