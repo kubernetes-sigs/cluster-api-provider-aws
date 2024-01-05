@@ -19,11 +19,7 @@ package scope
 import (
 	"context"
 
-	amazoncni "github.com/aws/amazon-vpc-cni-k8s/pkg/apis/crd/v1alpha1"
 	"github.com/pkg/errors"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -32,13 +28,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
-
-func init() {
-	_ = amazoncni.AddToScheme(scheme)
-	_ = appsv1.AddToScheme(scheme)
-	_ = corev1.AddToScheme(scheme)
-	_ = rbacv1.AddToScheme(scheme)
-}
 
 type ROSAControlPlaneScopeParams struct {
 	Client         client.Client
@@ -93,9 +82,12 @@ func (s *ROSAControlPlaneScope) Name() string {
 }
 
 // InfraClusterName returns the AWS cluster name.
-
 func (s *ROSAControlPlaneScope) InfraClusterName() string {
 	return s.ControlPlane.Name
+}
+
+func (s *ROSAControlPlaneScope) RosaClusterName() string {
+	return s.ControlPlane.Spec.RosaClusterName
 }
 
 // Namespace returns the cluster namespace.

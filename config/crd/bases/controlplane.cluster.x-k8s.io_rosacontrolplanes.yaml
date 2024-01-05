@@ -237,6 +237,17 @@ spec:
                 - nodePoolManagementARN
                 - storageARN
                 type: object
+              rosaClusterName:
+                description: Cluster name must be valid DNS-1035 label, so it must
+                  consist of lower case alphanumeric characters or '-', start with
+                  an alphabetic character, end with an alphanumeric character and
+                  have a max length of 15 characters.
+                maxLength: 15
+                pattern: ^[a-z]([-a-z0-9]*[a-z0-9])?$
+                type: string
+                x-kubernetes-validations:
+                - message: rosaClusterName is immutable
+                  rule: self == oldSelf
               subnets:
                 description: The Subnet IDs to use when installing the cluster. SubnetIDs
                   should come in pairs; two per availability zone, one private and
@@ -260,6 +271,7 @@ spec:
             - oidcID
             - region
             - rolesRef
+            - rosaClusterName
             - subnets
             - supportRoleARN
             - version

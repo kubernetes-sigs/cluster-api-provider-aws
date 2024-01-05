@@ -27,6 +27,7 @@ kind: ROSAControlPlane
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
 spec:
+  rosaClusterName: ${CLUSTER_NAME:0:15}
   version: "${OPENSHIFT_VERSION}"
   region: "${AWS_REGION}"
   accountID: "${AWS_ACCOUNT_ID}"
@@ -36,7 +37,7 @@ spec:
     ingressARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATOR_ROLES_PREFIX}-openshift-ingress-operator-cloud-credentials"
     imageRegistryARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATOR_ROLES_PREFIX}-openshift-image-registry-installer-cloud-credentials"
     storageARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATOR_ROLES_PREFIX}-openshift-cluster-csi-drivers-ebs-cloud-credentials"
-    networkARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATOR_ROLES_PREFIX}-openshift-cloud-network-config-controller-cloud-credent"
+    networkARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATOR_ROLES_PREFIX}-openshift-cloud-network-config-controller-cloud-credentials"
     kubeCloudControllerARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATOR_ROLES_PREFIX}-kube-system-kube-controller-manager"
     nodePoolManagementARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATOR_ROLES_PREFIX}-kube-system-capa-controller-manager"
     controlPlaneOperatorARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATOR_ROLES_PREFIX}-kube-system-control-plane-operator"
@@ -49,3 +50,4 @@ spec:
     - "${AWS_AVAILABILITY_ZONE}"
   installerRoleARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${ACCOUNT_ROLES_PREFIX}-HCP-ROSA-Installer-Role"
   supportRoleARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${ACCOUNT_ROLES_PREFIX}-HCP-ROSA-Support-Role"
+  workerRoleARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${ACCOUNT_ROLES_PREFIX}-HCP-ROSA-Worker-Role"

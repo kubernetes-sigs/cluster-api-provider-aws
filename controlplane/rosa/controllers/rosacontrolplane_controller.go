@@ -24,9 +24,7 @@ import (
 	"strings"
 	"time"
 
-	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	ocmerrors "github.com/openshift-online/ocm-sdk-go/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -40,6 +38,7 @@ import (
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	capiannotations "sigs.k8s.io/cluster-api/util/annotations"
@@ -171,9 +170,47 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		}
 	}
 
+	// TODO: token should be read from a secret: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/4460
+	token := os.Getenv("OCM_TOKEN")
+	rosaClient, err := rosa.NewRosaClient(token)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to create a rosa client: %w", err)
+	}
+
+	defer func() {
+		rosaClient.Close()
+	}()
+
+	cluster, err := rosaClient.GetCluster(rosaScope.RosaClusterName(), rosaScope.ControlPlane.Spec.CreatorARN)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if clusterID := cluster.ID(); clusterID != "" {
+		rosaScope.ControlPlane.Status.ID = &clusterID
+		if cluster.Status().State() == "ready" {
+			conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1.ROSAControlPlaneReadyCondition)
+			rosaScope.ControlPlane.Status.Ready = true
+			// TODO: distinguish when controlPlane is ready vs initialized
+			rosaScope.ControlPlane.Status.Initialized = true
+
+			return ctrl.Result{}, nil
+		}
+
+		conditions.MarkFalse(rosaScope.ControlPlane,
+			rosacontrolplanev1.ROSAControlPlaneReadyCondition,
+			string(cluster.Status().State()),
+			clusterv1.ConditionSeverityInfo,
+			"")
+
+		rosaScope.Info("waiting for cluster to become ready", "state", cluster.Status().State())
+		// Requeue so that status.ready is set to true when the cluster is fully created.
+		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
+	}
+
 	// Create the cluster:
 	clusterBuilder := cmv1.NewCluster().
-		Name(rosaScope.ControlPlane.Name[:15]).
+		Name(rosaScope.RosaClusterName()).
 		MultiAZ(true).
 		Product(
 			cmv1.NewProduct().
@@ -283,55 +320,15 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		return ctrl.Result{}, fmt.Errorf("failed to create description of cluster: %v", err)
 	}
 
-	// create OCM NodePool
-	ocmClient, err := newOCMClient()
+	newCluster, err := rosaClient.CreateCluster(clusterSpec)
 	if err != nil {
-		return ctrl.Result{}, err
-	}
-	defer func() {
-		ocmClient.ocm.Close()
-	}()
-
-	cluster, err := ocmClient.GetCluster(rosaScope)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	log := logger.FromContext(ctx)
-	if cluster.ID() != "" {
-		clusterID := cluster.ID()
-		rosaScope.ControlPlane.Status.ID = &clusterID
-		conditions.MarkFalse(rosaScope.ControlPlane,
-			rosacontrolplanev1.ROSAControlPlaneReadyCondition,
-			string(cluster.Status().State()),
-			clusterv1.ConditionSeverityInfo,
-			"")
-
-		if cluster.Status().State() == "ready" {
-			conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1.ROSAControlPlaneReadyCondition)
-			rosaScope.ControlPlane.Status.Ready = true
-		}
-
-		if err := rosaScope.PatchObject(); err != nil {
-			return ctrl.Result{}, err
-		}
-
-		log.Info("cluster exists", "state", cluster.Status().State())
-		return ctrl.Result{}, nil
-	}
-
-	newCluster, err := ocmClient.CreateCluster(clusterSpec)
-	if err != nil {
-		log.Info("error", "error", err)
+		rosaScope.Info("error", "error", err)
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
-	log.Info("cluster created", "state", newCluster.Status().State())
+	rosaScope.Info("cluster created", "state", newCluster.Status().State())
 	clusterID := newCluster.ID()
 	rosaScope.ControlPlane.Status.ID = &clusterID
-	if err := rosaScope.PatchObject(); err != nil {
-		return ctrl.Result{}, err
-	}
 
 	return ctrl.Result{}, nil
 }
@@ -339,30 +336,30 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 func (r *ROSAControlPlaneReconciler) reconcileDelete(_ context.Context, rosaScope *scope.ROSAControlPlaneScope) (res ctrl.Result, reterr error) {
 	rosaScope.Info("Reconciling ROSAControlPlane delete")
 
-	// create OCM NodePool
-	ocmClient, err := newOCMClient()
+	// Create the connection, and remember to close it:
+	// TODO: token should be read from a secret: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/4460
+	token := os.Getenv("OCM_TOKEN")
+	rosaClient, err := rosa.NewRosaClient(token)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("failed to create a rosa client: %w", err)
 	}
+
 	defer func() {
-		ocmClient.ocm.Close()
+		rosaClient.Close()
 	}()
 
-	cluster, err := ocmClient.GetCluster(rosaScope)
+	cluster, err := rosaClient.GetCluster(rosaScope.RosaClusterName(), rosaScope.ControlPlane.Spec.CreatorARN)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	if cluster != nil {
-		if _, err := ocmClient.DeleteCluster(cluster.ID()); err != nil {
+		if err := rosaClient.DeleteCluster(cluster.ID()); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
 	controllerutil.RemoveFinalizer(rosaScope.ControlPlane, ROSAControlPlaneFinalizer)
-	if err := rosaScope.PatchObject(); err != nil {
-		return ctrl.Result{}, err
-	}
 
 	return ctrl.Result{}, nil
 }
@@ -405,120 +402,4 @@ func (r *ROSAControlPlaneReconciler) rosaClusterToROSAControlPlane(log *logger.L
 			},
 		}
 	}
-}
-
-// OCMClient is a temporary helper to talk to OCM API.
-// TODO(alberto): vendor this from https://github.com/openshift/rosa/tree/master/pkg/ocm or build its own package here.
-type OCMClient struct {
-	ocm *sdk.Connection
-}
-
-func newOCMClient() (*OCMClient, error) {
-	// Create the connection, and remember to close it:
-	token := os.Getenv("OCM_TOKEN")
-	ocmAPIUrl := os.Getenv("OCM_API_URL")
-	if ocmAPIUrl == "" {
-		ocmAPIUrl = "https://api.openshift.com"
-	}
-
-	// Create a logger that has the debug level enabled:
-	ocmLogger, err := sdk.NewGoLoggerBuilder().
-		Debug(false).
-		Build()
-	if err != nil {
-		return nil, fmt.Errorf("failed to build logger: %w", err)
-	}
-
-	connection, err := sdk.NewConnectionBuilder().
-		Logger(ocmLogger).
-		Tokens(token).
-		URL(ocmAPIUrl).
-		Build()
-	if err != nil {
-		return nil, fmt.Errorf("failed to ocm client: %w", err)
-	}
-	ocmClient := OCMClient{ocm: connection}
-
-	return &ocmClient, nil
-}
-
-func (client *OCMClient) Close() error {
-	return client.ocm.Close()
-}
-
-func (client *OCMClient) CreateCluster(clusterSpec *cmv1.Cluster) (*cmv1.Cluster, error) {
-	cluster, err := client.ocm.ClustersMgmt().V1().Clusters().
-		Add().
-		Body(clusterSpec).
-		Send()
-	if err != nil {
-		return nil, handleErr(cluster.Error(), err)
-	}
-
-	clusterObject := cluster.Body()
-
-	return clusterObject, nil
-}
-
-func (client *OCMClient) GetCluster(rosaScope *scope.ROSAControlPlaneScope) (*cmv1.Cluster, error) {
-	clusterKey := rosaScope.ControlPlane.Name[:15]
-	query := fmt.Sprintf("%s AND (id = '%s' OR name = '%s' OR external_id = '%s')",
-		getClusterFilter(rosaScope),
-		clusterKey, clusterKey, clusterKey,
-	)
-	response, err := client.ocm.ClustersMgmt().V1().Clusters().List().
-		Search(query).
-		Page(1).
-		Size(1).
-		Send()
-	if err != nil {
-		return nil, err
-	}
-
-	switch response.Total() {
-	case 0:
-		return nil, nil
-	case 1:
-		return response.Items().Slice()[0], nil
-	default:
-		return nil, fmt.Errorf("there are %d clusters with identifier or name '%s'", response.Total(), clusterKey)
-	}
-}
-
-func (client *OCMClient) DeleteCluster(clusterID string) (*cmv1.Cluster, error) {
-	response, err := client.ocm.ClustersMgmt().V1().Clusters().
-		Cluster(clusterID).
-		Delete().
-		Send()
-	if err != nil {
-		return nil, handleErr(response.Error(), err)
-	}
-
-	return nil, nil
-}
-
-// Generate a query that filters clusters running on the current AWS session account.
-func getClusterFilter(rosaScope *scope.ROSAControlPlaneScope) string {
-	filter := "product.id = 'rosa'"
-	if rosaScope.ControlPlane.Spec.CreatorARN != nil {
-		filter = fmt.Sprintf("%s AND (properties.%s = '%s')",
-			filter,
-			rosaCreatorArnProperty,
-			*rosaScope.ControlPlane.Spec.CreatorARN)
-	}
-	return filter
-}
-
-func handleErr(res *ocmerrors.Error, err error) error {
-	msg := res.Reason()
-	if msg == "" {
-		msg = err.Error()
-	}
-	// Hack to always display the correct terms and conditions message
-	if res.Code() == "CLUSTERS-MGMT-451" {
-		msg = "You must accept the Terms and Conditions in order to continue.\n" +
-			"Go to https://www.redhat.com/wapps/tnc/ackrequired?site=ocm&event=register\n" +
-			"Once you accept the terms, you will need to retry the action that was blocked."
-	}
-	return fmt.Errorf(msg)
 }
