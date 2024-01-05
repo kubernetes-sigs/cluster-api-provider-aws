@@ -65,12 +65,9 @@ func describeVpcAttributeFalse(ctx context.Context, input *ec2.DescribeVpcAttrib
 }
 
 func TestReconcileVPC(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
 	usageLimit := 3
 	selection := infrav1.AZSelectionSchemeOrdered
-	tags := []*ec2.Tag{
+	managedVPCTags := []*ec2.Tag{
 		{
 			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 			Value: aws.String("common"),
@@ -81,17 +78,17 @@ func TestReconcileVPC(t *testing.T) {
 		},
 		{
 			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
-			Value: aws.String("owned"),
+			Value: aws.String("owned"), // = managed by CAPA
 		},
 	}
 
 	testCases := []struct {
-		name           string
-		input          *infrav1.VPCSpec
-		want           *infrav1.VPCSpec
-		additionalTags map[string]string
-		expect         func(m *mocks.MockEC2APIMockRecorder)
-		wantErr        bool
+		name              string
+		input             *infrav1.VPCSpec
+		want              *infrav1.VPCSpec
+		additionalTags    map[string]string
+		expect            func(m *mocks.MockEC2APIMockRecorder)
+		wantErrContaining *string // nil to assert success
 	}{
 		{
 			name:  "Should update tags with aws VPC resource tags, if managed vpc exists",
@@ -107,7 +104,7 @@ func TestReconcileVPC(t *testing.T) {
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
 			},
-			wantErr: false,
+			wantErrContaining: nil,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeVpcsInput{
 					VpcIds: []*string{
@@ -125,7 +122,7 @@ func TestReconcileVPC(t *testing.T) {
 							State:     aws.String("available"),
 							VpcId:     aws.String("vpc-exists"),
 							CidrBlock: aws.String("10.0.0.0/8"),
-							Tags:      tags,
+							Tags:      managedVPCTags,
 						},
 					},
 				}, nil)
@@ -152,7 +149,7 @@ func TestReconcileVPC(t *testing.T) {
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
 			},
-			wantErr: false,
+			wantErrContaining: nil,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeVpcsInput{
 					VpcIds: []*string{
@@ -170,7 +167,7 @@ func TestReconcileVPC(t *testing.T) {
 							State:     aws.String("available"),
 							VpcId:     aws.String("vpc-exists"),
 							CidrBlock: aws.String("10.0.0.0/8"),
-							Tags:      tags,
+							Tags:      managedVPCTags,
 						},
 					},
 				}, nil)
@@ -200,9 +197,9 @@ func TestReconcileVPC(t *testing.T) {
 			},
 		},
 		{
-			name:    "Should create a new VPC if managed vpc does not exist",
-			input:   &infrav1.VPCSpec{AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
-			wantErr: false,
+			name:              "Should create a new VPC if managed vpc does not exist",
+			input:             &infrav1.VPCSpec{AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
+			wantErrContaining: nil,
 			want: &infrav1.VPCSpec{
 				ID:        "vpc-new",
 				CidrBlock: "10.1.0.0/16",
@@ -215,12 +212,20 @@ func TestReconcileVPC(t *testing.T) {
 				AvailabilityZoneSelection:  &selection,
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.CreateVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(&ec2.CreateVpcOutput{
+				describeVPCByNameCall := m.DescribeVpcsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeVpcsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("tag:Name"),
+							Values: aws.StringSlice([]string{"test-cluster-vpc"}),
+						},
+					},
+				})).Return(&ec2.DescribeVpcsOutput{Vpcs: []*ec2.Vpc{}}, nil)
+				m.CreateVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).After(describeVPCByNameCall).Return(&ec2.CreateVpcOutput{
 					Vpc: &ec2.Vpc{
 						State:     aws.String("available"),
 						VpcId:     aws.String("vpc-new"),
 						CidrBlock: aws.String("10.1.0.0/16"),
-						Tags:      tags,
+						Tags:      managedVPCTags,
 					},
 				}, nil)
 
@@ -231,13 +236,13 @@ func TestReconcileVPC(t *testing.T) {
 			},
 		},
 		{
-			name: "Should create a new IPv6 VPC if managed IPv6 vpc does not exist",
+			name: "Should amend attributes of existing VPC",
 			input: &infrav1.VPCSpec{
 				AvailabilityZoneUsageLimit: &usageLimit,
 				AvailabilityZoneSelection:  &selection,
 				IPv6:                       &infrav1.IPv6{},
 			},
-			wantErr: false,
+			wantErrContaining: nil,
 			want: &infrav1.VPCSpec{
 				ID:        "vpc-new",
 				CidrBlock: "10.1.0.0/16",
@@ -271,19 +276,9 @@ func TestReconcileVPC(t *testing.T) {
 								},
 							},
 							State: aws.String("available"),
-							Tags:  tags,
+							Tags:  managedVPCTags,
 							VpcId: aws.String("vpc-new"),
 						},
-					},
-				}, nil)
-				m.CreateVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateVpcInput{
-					AmazonProvidedIpv6CidrBlock: aws.Bool(true),
-				})).Return(&ec2.CreateVpcOutput{
-					Vpc: &ec2.Vpc{
-						State:     aws.String("available"),
-						VpcId:     aws.String("vpc-new"),
-						CidrBlock: aws.String("10.1.0.0/16"),
-						Tags:      tags,
 					},
 				}, nil)
 
@@ -303,7 +298,7 @@ func TestReconcileVPC(t *testing.T) {
 					PoolID:    "my-pool",
 				},
 			},
-			wantErr: false,
+			wantErrContaining: nil,
 			want: &infrav1.VPCSpec{
 				ID:        "vpc-new",
 				CidrBlock: "10.1.0.0/16",
@@ -320,16 +315,24 @@ func TestReconcileVPC(t *testing.T) {
 				AvailabilityZoneSelection:  &selection,
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				describeVPCByNameCall := m.DescribeVpcsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeVpcsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("tag:Name"),
+							Values: aws.StringSlice([]string{"test-cluster-vpc"}),
+						},
+					},
+				})).Return(&ec2.DescribeVpcsOutput{Vpcs: []*ec2.Vpc{}}, nil)
 				m.CreateVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateVpcInput{
 					AmazonProvidedIpv6CidrBlock: aws.Bool(false),
 					Ipv6Pool:                    aws.String("my-pool"),
 					Ipv6CidrBlock:               aws.String("2001:db8:1234:1a03::/56"),
-				})).Return(&ec2.CreateVpcOutput{
+				})).After(describeVPCByNameCall).Return(&ec2.CreateVpcOutput{
 					Vpc: &ec2.Vpc{
 						State:     aws.String("available"),
 						VpcId:     aws.String("vpc-new"),
 						CidrBlock: aws.String("10.1.0.0/16"),
-						Tags:      tags,
+						Tags:      managedVPCTags,
 					},
 				}, nil)
 
@@ -346,75 +349,12 @@ func TestReconcileVPC(t *testing.T) {
 				AvailabilityZoneSelection:  &selection,
 				IPv6:                       &infrav1.IPv6{},
 			},
-			wantErr: true,
-			want:    nil,
+			wantErrContaining: aws.String("nope"),
+			want:              nil,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{
 					VpcIds: aws.StringSlice([]string{"vpc-new"}),
 				})).Return(nil, errors.New("nope"))
-				m.CreateVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(&ec2.CreateVpcOutput{
-					Vpc: &ec2.Vpc{
-						State:     aws.String("available"),
-						VpcId:     aws.String("vpc-new"),
-						CidrBlock: aws.String("10.1.0.0/16"),
-						Tags:      tags,
-					},
-				}, nil)
-			},
-		},
-		{
-			name: "Describing an IPv6 VPC returns no results should return an error",
-			input: &infrav1.VPCSpec{
-				AvailabilityZoneUsageLimit: &usageLimit,
-				AvailabilityZoneSelection:  &selection,
-				IPv6:                       &infrav1.IPv6{},
-			},
-			wantErr: true,
-			want:    nil,
-			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{
-					VpcIds: aws.StringSlice([]string{"vpc-new"}),
-				})).Return(&ec2.DescribeVpcsOutput{}, nil)
-				m.CreateVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(&ec2.CreateVpcOutput{
-					Vpc: &ec2.Vpc{
-						State:     aws.String("available"),
-						VpcId:     aws.String("vpc-new"),
-						CidrBlock: aws.String("10.1.0.0/16"),
-						Tags:      tags,
-					},
-				}, nil)
-			},
-		},
-		{
-			name: "Describing an IPv6 VPC without ipv6 cidr associations should return an error",
-			input: &infrav1.VPCSpec{
-				AvailabilityZoneUsageLimit: &usageLimit,
-				AvailabilityZoneSelection:  &selection,
-				IPv6:                       &infrav1.IPv6{},
-			},
-			wantErr: true,
-			want:    nil,
-			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{
-					VpcIds: aws.StringSlice([]string{"vpc-new"}),
-				})).Return(&ec2.DescribeVpcsOutput{
-					Vpcs: []*ec2.Vpc{
-						{
-							CidrBlock: aws.String("10.1.0.0/16"),
-							State:     aws.String("available"),
-							Tags:      tags,
-							VpcId:     aws.String("vpc-new"),
-						},
-					},
-				}, nil)
-				m.CreateVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(&ec2.CreateVpcOutput{
-					Vpc: &ec2.Vpc{
-						State:     aws.String("available"),
-						VpcId:     aws.String("vpc-new"),
-						CidrBlock: aws.String("10.1.0.0/16"),
-						Tags:      tags,
-					},
-				}, nil)
 			},
 		},
 		{
@@ -459,9 +399,9 @@ func TestReconcileVPC(t *testing.T) {
 			},
 		},
 		{
-			name:    "managed vpc id exists, but vpc resource is missing",
-			input:   &infrav1.VPCSpec{ID: "vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
-			wantErr: true,
+			name:              "managed vpc id exists, but vpc resource is missing",
+			input:             &infrav1.VPCSpec{ID: "vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
+			wantErrContaining: aws.String("VPC resource is missing in AWS"),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeVpcsInput{
 					VpcIds: []*string{
@@ -519,7 +459,7 @@ func TestReconcileVPC(t *testing.T) {
 							State:     aws.String("available"),
 							VpcId:     aws.String("unmanaged-vpc-exists"),
 							CidrBlock: aws.String("10.0.0.0/8"),
-							Tags:      tags,
+							Tags:      managedVPCTags,
 						},
 					},
 				}, nil)
@@ -529,9 +469,9 @@ func TestReconcileVPC(t *testing.T) {
 			},
 		},
 		{
-			name:    "Should return error if failed to set vpc attributes for managed vpc",
-			input:   &infrav1.VPCSpec{ID: "managed-vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
-			wantErr: true,
+			name:              "Should return error if failed to set vpc attributes for managed vpc",
+			input:             &infrav1.VPCSpec{ID: "managed-vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
+			wantErrContaining: aws.String("failed to set vpc attributes"),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeVpcsInput{
 					VpcIds: []*string{
@@ -549,7 +489,7 @@ func TestReconcileVPC(t *testing.T) {
 							State:     aws.String("available"),
 							VpcId:     aws.String("unmanaged-vpc-exists"),
 							CidrBlock: aws.String("10.0.0.0/8"),
-							Tags:      tags,
+							Tags:      managedVPCTags,
 						},
 					},
 				}, nil)
@@ -557,17 +497,25 @@ func TestReconcileVPC(t *testing.T) {
 			},
 		},
 		{
-			name:    "Should return error if failed to create vpc",
-			input:   &infrav1.VPCSpec{AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
-			wantErr: true,
+			name:              "Should return error if failed to create vpc",
+			input:             &infrav1.VPCSpec{AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
+			wantErrContaining: aws.String("failed to create new managed VPC"),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.CreateVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(nil, awserrors.NewFailedDependency("failed dependency"))
+				describeVPCByNameCall := m.DescribeVpcsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeVpcsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("tag:Name"),
+							Values: aws.StringSlice([]string{"test-cluster-vpc"}),
+						},
+					},
+				})).Return(&ec2.DescribeVpcsOutput{Vpcs: []*ec2.Vpc{}}, nil)
+				m.CreateVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).After(describeVPCByNameCall).Return(nil, awserrors.NewFailedDependency("failed dependency"))
 			},
 		},
 		{
-			name:    "Should return error if describe vpc returns empty list",
-			input:   &infrav1.VPCSpec{ID: "managed-vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
-			wantErr: true,
+			name:              "Should return error if describe vpc returns empty list",
+			input:             &infrav1.VPCSpec{ID: "managed-vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
+			wantErrContaining: aws.String("VPC resource is missing in AWS"),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{},
@@ -575,9 +523,9 @@ func TestReconcileVPC(t *testing.T) {
 			},
 		},
 		{
-			name:    "Should return error if describe vpc returns more than 1 vpcs",
-			input:   &infrav1.VPCSpec{ID: "managed-vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
-			wantErr: true,
+			name:              "Should return error if describe vpc returns more than 1 vpcs",
+			input:             &infrav1.VPCSpec{ID: "managed-vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
+			wantErrContaining: aws.String("Only one VPC per cluster name is supported"),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
@@ -592,9 +540,9 @@ func TestReconcileVPC(t *testing.T) {
 			},
 		},
 		{
-			name:    "Should return error if vpc state is not available/pending",
-			input:   &infrav1.VPCSpec{ID: "managed-vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
-			wantErr: true,
+			name:              "Should return error if vpc state is not available/pending",
+			input:             &infrav1.VPCSpec{ID: "managed-vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
+			wantErrContaining: aws.String("could not find available or pending vpc"),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
 					Vpcs: []*ec2.Vpc{
@@ -609,6 +557,9 @@ func TestReconcileVPC(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
 			g := NewWithT(t)
 			clusterScope, err := getClusterScope(tc.input, tc.additionalTags)
 			g.Expect(err).NotTo(HaveOccurred())
@@ -618,8 +569,9 @@ func TestReconcileVPC(t *testing.T) {
 			s.EC2Client = ec2Mock
 
 			err = s.reconcileVPC()
-			if tc.wantErr {
+			if tc.wantErrContaining != nil {
 				g.Expect(err).ToNot(BeNil())
+				g.Expect(err.Error()).To(ContainSubstring(*tc.wantErrContaining))
 				return
 			} else {
 				g.Expect(err).To(BeNil())
@@ -667,6 +619,7 @@ func TestDeleteVPC(t *testing.T) {
 				ID:   "managed-vpc",
 				Tags: tags,
 			},
+			wantErr: false,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DeleteVpcWithContext(context.TODO(), gomock.Eq(&ec2.DeleteVpcInput{
 					VpcId: aws.String("managed-vpc"),
@@ -679,6 +632,7 @@ func TestDeleteVPC(t *testing.T) {
 				ID:   "managed-vpc",
 				Tags: tags,
 			},
+			wantErr: false,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DeleteVpcWithContext(context.TODO(), gomock.Eq(&ec2.DeleteVpcInput{
 					VpcId: aws.String("managed-vpc"),
