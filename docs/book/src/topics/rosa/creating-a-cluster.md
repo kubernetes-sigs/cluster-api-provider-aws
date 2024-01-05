@@ -29,7 +29,7 @@ Once Step 3 is done, you will be ready to proceed with creating a ROSA cluster u
 
 1. Prepare the environment:
     ```bash
-    export OPENSHIFT_VERSION="openshift-v4.12.15"
+    export OPENSHIFT_VERSION="openshift-v4.14.5"
     export CLUSTER_NAME="capi-rosa-quickstart"
     export AWS_REGION="us-west-2"
     export AWS_AVAILABILITY_ZONE="us-west-2a"
