@@ -162,12 +162,12 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return reconcile.Result{}, nil
 	}
 
+	log = log.WithValues("cluster", klog.KObj(cluster))
+
 	if capiannotations.IsPaused(cluster, awsCluster) {
 		log.Info("AWSCluster or linked Cluster is marked as paused. Won't reconcile")
 		return reconcile.Result{}, nil
 	}
-
-	log = log.WithValues("cluster", klog.KObj(cluster))
 
 	// Create the scope.
 	clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
