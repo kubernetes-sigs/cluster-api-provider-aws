@@ -122,7 +122,7 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	infraCluster, err := r.getInfraCluster(ctx, log, cluster, awsMachinePool)
 	if err != nil {
-		return ctrl.Result{}, errors.New("error getting infra provider cluster or control plane object")
+		return ctrl.Result{}, fmt.Errorf("getting infra provider cluster or control plane object: %w", err)
 	}
 	if infraCluster == nil {
 		log.Info("AWSCluster or AWSManagedControlPlane is not ready yet")
