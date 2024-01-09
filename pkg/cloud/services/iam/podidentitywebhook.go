@@ -3,6 +3,7 @@ package iam
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	v14 "k8s.io/api/admissionregistration/v1"
 	v13 "k8s.io/api/apps/v1"
@@ -332,6 +333,7 @@ func reconcileMutatingWebHook(ctx context.Context, ns string, secret *corev1.Sec
 	}
 
 	mwhMeta := objectMeta(podIdentityWebhookName, ns)
+	mwhMeta.Annotations["cert-manager.io/inject-ca-from-secret"] = fmt.Sprintf("%s/%s", secret.Namespace, secret.Name)
 	fail := v14.Ignore
 	none := v14.SideEffectClassNone
 	mutate := "/mutate"
