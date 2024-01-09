@@ -3,6 +3,9 @@ package iam
 import (
 	"context"
 	"errors"
+	"fmt"
+
+	v1certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 
 	v14 "k8s.io/api/admissionregistration/v1"
 	v13 "k8s.io/api/apps/v1"
@@ -323,6 +326,20 @@ func reconcileMutatingWebHook(ctx context.Context, ns string, secret *corev1.Sec
 	}
 
 	if check.UID != "" {
+		updateAnnotations := false
+		if len(check.Annotations) == 0 {
+			check.Annotations = map[string]string{
+				v1certmanager.WantInjectAnnotation: fmt.Sprintf("%s/%s", secret.Namespace, secret.Name),
+			}
+			updateAnnotations = true
+		} else if check.Annotations[v1certmanager.WantInjectAnnotation] == "" {
+			check.Annotations[v1certmanager.WantInjectAnnotation] = fmt.Sprintf("%s/%s", secret.Namespace, secret.Name)
+			updateAnnotations = true
+		}
+
+		if updateAnnotations {
+			return remoteClient.Update(ctx, check)
+		}
 		return nil
 	}
 
@@ -332,6 +349,9 @@ func reconcileMutatingWebHook(ctx context.Context, ns string, secret *corev1.Sec
 	}
 
 	mwhMeta := objectMeta(podIdentityWebhookName, ns)
+	mwhMeta.Annotations = map[string]string{
+		v1certmanager.WantInjectAnnotation: fmt.Sprintf("%s/%s", secret.Namespace, secret.Name),
+	}
 	fail := v14.Ignore
 	none := v14.SideEffectClassNone
 	mutate := "/mutate"
