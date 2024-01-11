@@ -631,6 +631,8 @@ func TestDeleteObject(t *testing.T) {
 			},
 		}
 
+		s3Mock.EXPECT().HeadObject(gomock.Any())
+
 		s3Mock.EXPECT().DeleteObject(gomock.Any()).Do(func(deleteObjectInput *s3svc.DeleteObjectInput) {
 			t.Run("use_configured_bucket_name_on_cluster_level", func(t *testing.T) {
 				t.Parallel()
@@ -672,7 +674,7 @@ func TestDeleteObject(t *testing.T) {
 			},
 		}
 
-		s3Mock.EXPECT().DeleteObject(gomock.Any()).Return(nil, awserr.New(s3svc.ErrCodeNoSuchBucket, "", nil)).Times(1)
+		s3Mock.EXPECT().HeadObject(gomock.Any()).Return(nil, awserr.New(s3svc.ErrCodeNoSuchBucket, "", nil))
 
 		if err := svc.Delete(machineScope); err != nil {
 			t.Fatalf("Unexpected error, got: %v", err)
@@ -696,6 +698,7 @@ func TestDeleteObject(t *testing.T) {
 				},
 			}
 
+			s3Mock.EXPECT().HeadObject(gomock.Any())
 			s3Mock.EXPECT().DeleteObject(gomock.Any()).Return(nil, errors.New("foo")).Times(1)
 
 			if err := svc.Delete(machineScope); err == nil {
@@ -747,6 +750,7 @@ func TestDeleteObject(t *testing.T) {
 			},
 		}
 
+		s3Mock.EXPECT().HeadObject(gomock.Any()).Times(2)
 		s3Mock.EXPECT().DeleteObject(gomock.Any()).Return(nil, nil).Times(2)
 
 		if err := svc.Delete(machineScope); err != nil {
