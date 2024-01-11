@@ -212,32 +212,18 @@ func (s *Service) reconcileSubnets() error {
 }
 
 func (s *Service) getDefaultSubnets() (infrav1.Subnets, error) {
-	zones, err := s.getAvailableZones()
-	if err != nil {
-		return nil, err
-	}
+	var (
+		// by default, we will take the set availability zones, if they are defined.
+		// if not, we fall back to the two other settings.
+		zones = s.scope.VPC().AvailabilityZones
+		err   error
+	)
 
-	maxZones := defaultMaxNumAZs
-	if s.scope.VPC().AvailabilityZoneUsageLimit != nil {
-		maxZones = *s.scope.VPC().AvailabilityZoneUsageLimit
-	}
-	selectionScheme := infrav1.AZSelectionSchemeOrdered
-	if s.scope.VPC().AvailabilityZoneSelection != nil {
-		selectionScheme = *s.scope.VPC().AvailabilityZoneSelection
-	}
-
-	if len(zones) > maxZones {
-		s.scope.Debug("region has more than AvailabilityZoneUsageLimit availability zones, picking zones to use", "region", s.scope.Region(), "AvailabilityZoneUsageLimit", maxZones)
-		if selectionScheme == infrav1.AZSelectionSchemeRandom {
-			rand.Shuffle(len(zones), func(i, j int) {
-				zones[i], zones[j] = zones[j], zones[i]
-			})
+	if len(zones) == 0 {
+		zones, err = s.selectZones()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to select availability zones")
 		}
-		if selectionScheme == infrav1.AZSelectionSchemeOrdered {
-			sort.Strings(zones)
-		}
-		zones = zones[:maxZones]
-		s.scope.Debug("zones selected", "region", s.scope.Region(), "zones", zones)
 	}
 
 	// 1 private subnet for each AZ plus 1 other subnet that will be further sub-divided for the public subnets
@@ -302,6 +288,38 @@ func (s *Service) getDefaultSubnets() (infrav1.Subnets, error) {
 	}
 
 	return subnets, nil
+}
+
+func (s *Service) selectZones() ([]string, error) {
+	zones, err := s.getAvailableZones()
+	if err != nil {
+		return nil, err
+	}
+
+	maxZones := defaultMaxNumAZs
+	if s.scope.VPC().AvailabilityZoneUsageLimit != nil {
+		maxZones = *s.scope.VPC().AvailabilityZoneUsageLimit
+	}
+	selectionScheme := infrav1.AZSelectionSchemeOrdered
+	if s.scope.VPC().AvailabilityZoneSelection != nil {
+		selectionScheme = *s.scope.VPC().AvailabilityZoneSelection
+	}
+
+	if len(zones) > maxZones {
+		s.scope.Debug("region has more than AvailabilityZoneUsageLimit availability zones, picking zones to use", "region", s.scope.Region(), "AvailabilityZoneUsageLimit", maxZones)
+		if selectionScheme == infrav1.AZSelectionSchemeRandom {
+			rand.Shuffle(len(zones), func(i, j int) {
+				zones[i], zones[j] = zones[j], zones[i]
+			})
+		}
+		if selectionScheme == infrav1.AZSelectionSchemeOrdered {
+			sort.Strings(zones)
+		}
+		zones = zones[:maxZones]
+		s.scope.Debug("zones selected", "region", s.scope.Region(), "zones", zones)
+	}
+
+	return zones, nil
 }
 
 func (s *Service) deleteSubnets() error {
