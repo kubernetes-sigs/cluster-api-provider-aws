@@ -374,6 +374,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			g.Expect(testEnv.Cleanup(ctx, &awsCluster, controllerIdentity, ns)).To(Succeed())
 		})
 
+		awsCluster.Finalizers = []string{infrav1.ClusterFinalizer}
 		cs, err := getClusterScope(awsCluster)
 		g.Expect(err).To(BeNil())
 
