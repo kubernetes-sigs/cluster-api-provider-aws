@@ -173,25 +173,50 @@ func (s *Service) Delete(m *scope.MachineScope) error {
 	bucket := s.bucketName()
 	key := s.bootstrapDataKey(m)
 
-	s.scope.Info("Deleting object", "bucket_name", bucket, "key", key)
-
-	_, err := s.S3Client.DeleteObject(&s3.DeleteObjectInput{
+	_, err := s.S3Client.HeadObject(&s3.HeadObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
-	if err == nil {
-		return nil
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case "Forbidden":
+				// In the case that the IAM policy does not have sufficient
+				// permissions to get the object, we will attempt to delete it
+				// anyway for backwards compatibility reasons.
+				s.scope.Debug("Received 403 forbidden from S3 HeadObject call. If GetObject permission has been granted to the controller but not ListBucket, object is already deleted. Attempting deletion anyway in case GetObject permission hasn't been granted to the controller but DeleteObject has.", "bucket", bucket, "key", key)
+
+				_, err = s.S3Client.DeleteObject(&s3.DeleteObjectInput{
+					Bucket: aws.String(bucket),
+					Key:    aws.String(key),
+				})
+				if err != nil {
+					return errors.Wrap(err, "deleting S3 object")
+				}
+
+				s.scope.Debug("Delete object call succeeded despite missing GetObject permission", "bucket", bucket, "key", key)
+
+				return nil
+			case s3.ErrCodeNoSuchKey:
+				s.scope.Debug("Object already deleted", "bucket", bucket, "key", key)
+				return nil
+			case s3.ErrCodeNoSuchBucket:
+				s.scope.Debug("Bucket does not exist", "bucket", bucket)
+				return nil
+			default:
+				return errors.Wrap(aerr, "deleting S3 object")
+			}
+		}
 	}
 
-	aerr, ok := err.(awserr.Error)
-	if !ok {
+	s.scope.Info("Deleting S3 object", "bucket", bucket, "key", key)
+
+	_, err = s.S3Client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
 		return errors.Wrap(err, "deleting S3 object")
-	}
-
-	switch aerr.Code() {
-	case s3.ErrCodeNoSuchBucket:
-	default:
-		return errors.Wrap(aerr, "deleting S3 object")
 	}
 
 	return nil
