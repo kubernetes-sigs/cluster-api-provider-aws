@@ -20,6 +20,8 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -385,4 +387,108 @@ func (m *MachineScope) SetInterruptible() {
 	if m.AWSMachine.Spec.SpotMarketOptions != nil {
 		m.AWSMachine.Status.Interruptible = true
 	}
+}
+
+// Copied from https://github.com/kubernetes-sigs/cluster-api/blob/bda002f52575eeaff68da1ba33c8ef27d5b1014c/controllers/noderefutil/providerid.go
+// As this is removed by https://github.com/kubernetes-sigs/cluster-api/pull/9136
+var (
+	// ErrEmptyProviderID means that the provider id is empty.
+	//
+	// Deprecated: This var is going to be removed in a future release.
+	ErrEmptyProviderID = errors.New("providerID is empty")
+
+	// ErrInvalidProviderID means that the provider id has an invalid form.
+	//
+	// Deprecated: This var is going to be removed in a future release.
+	ErrInvalidProviderID = errors.New("providerID must be of the form <cloudProvider>://<optional>/<segments>/<provider id>")
+)
+
+// ProviderID is a struct representation of a Kubernetes ProviderID.
+// Format: cloudProvider://optional/segments/etc/id
+//
+// Deprecated: This struct is going to be removed in a future release.
+type ProviderID struct {
+	original      string
+	cloudProvider string
+	id            string
+}
+
+/*
+- must start with at least one non-colon
+- followed by ://
+- followed by any number of characters
+- must end with a non-slash.
+*/
+var providerIDRegex = regexp.MustCompile("^[^:]+://.*[^/]$")
+
+// NewProviderID parses the input string and returns a new ProviderID.
+func NewProviderID(id string) (*ProviderID, error) {
+	if id == "" {
+		return nil, ErrEmptyProviderID
+	}
+
+	if !providerIDRegex.MatchString(id) {
+		return nil, ErrInvalidProviderID
+	}
+
+	colonIndex := strings.Index(id, ":")
+	cloudProvider := id[0:colonIndex]
+
+	lastSlashIndex := strings.LastIndex(id, "/")
+	instance := id[lastSlashIndex+1:]
+
+	res := &ProviderID{
+		original:      id,
+		cloudProvider: cloudProvider,
+		id:            instance,
+	}
+
+	if !res.Validate() {
+		return nil, ErrInvalidProviderID
+	}
+
+	return res, nil
+}
+
+// CloudProvider returns the cloud provider portion of the ProviderID.
+//
+// Deprecated: This method is going to be removed in a future release.
+func (p *ProviderID) CloudProvider() string {
+	return p.cloudProvider
+}
+
+// ID returns the identifier portion of the ProviderID.
+//
+// Deprecated: This method is going to be removed in a future release.
+func (p *ProviderID) ID() string {
+	return p.id
+}
+
+// Equals returns true if this ProviderID string matches another ProviderID string.
+//
+// Deprecated: This method is going to be removed in a future release.
+func (p *ProviderID) Equals(o *ProviderID) bool {
+	return p.String() == o.String()
+}
+
+// String returns the string representation of this object.
+//
+// Deprecated: This method is going to be removed in a future release.
+func (p ProviderID) String() string {
+	return p.original
+}
+
+// Validate returns true if the provider id is valid.
+//
+// Deprecated: This method is going to be removed in a future release.
+func (p *ProviderID) Validate() bool {
+	return p.CloudProvider() != "" && p.ID() != ""
+}
+
+// IndexKey returns the required level of uniqueness
+// to represent and index machines uniquely from their node providerID.
+//
+// Deprecated: This method is going to be removed in a future release.
+func (p *ProviderID) IndexKey() string {
+	return p.String()
 }
