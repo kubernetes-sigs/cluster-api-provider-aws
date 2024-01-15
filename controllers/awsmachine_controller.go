@@ -421,7 +421,6 @@ func (r *AWSMachineReconciler) findInstance(machineScope *scope.MachineScope, ec
 	var instance *infrav1.Instance
 
 	// Parse the ProviderID.
-	//nolint:staticcheck
 	pid, err := scope.NewProviderID(machineScope.GetProviderID())
 	if err != nil {
 		//nolint:staticcheck
