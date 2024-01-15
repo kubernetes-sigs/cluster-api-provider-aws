@@ -49,7 +49,7 @@ import (
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/yaml"
 
 	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/bootstrap"
@@ -124,7 +124,7 @@ func (i *AWSInfrastructure) RefreshVPCState() AWSInfrastructure {
 func (i *AWSInfrastructure) CreatePublicSubnet() AWSInfrastructure {
 	subnet, err := CreateSubnet(i.Context, i.Spec.ClusterName, i.Spec.PublicSubnetCidr, i.Spec.AvailabilityZone, *i.VPC.VpcId, "public")
 	if err != nil {
-		i.State.PublicSubnetState = pointer.String("failed")
+		i.State.PublicSubnetState = ptr.To[string]("failed")
 		return *i
 	}
 	i.State.PublicSubnetID = subnet.SubnetId
@@ -136,7 +136,7 @@ func (i *AWSInfrastructure) CreatePublicSubnet() AWSInfrastructure {
 func (i *AWSInfrastructure) CreatePrivateSubnet() AWSInfrastructure {
 	subnet, err := CreateSubnet(i.Context, i.Spec.ClusterName, i.Spec.PrivateSubnetCidr, i.Spec.AvailabilityZone, *i.VPC.VpcId, "private")
 	if err != nil {
-		i.State.PrivateSubnetState = pointer.String("failed")
+		i.State.PrivateSubnetState = ptr.To[string]("failed")
 		return *i
 	}
 	i.State.PrivateSubnetID = subnet.SubnetId

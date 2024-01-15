@@ -28,7 +28,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
@@ -301,7 +301,7 @@ func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigCluste
 		Namespace:                namespace,
 		ClusterName:              clusterName,
 		KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
-		ControlPlaneMachineCount: pointer.Int64(1),
-		WorkerMachineCount:       pointer.Int64(0),
+		ControlPlaneMachineCount: ptr.To[int64](1),
+		WorkerMachineCount:       ptr.To[int64](0),
 	}
 }

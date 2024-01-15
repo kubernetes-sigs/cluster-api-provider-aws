@@ -35,7 +35,7 @@ import (
 	v1 "k8s.io/component-base/logs/api/v1"
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
@@ -210,7 +210,7 @@ func main() {
 			Client:           mgr.GetClient(),
 			WatchFilterValue: watchFilterValue,
 			WaitInfraPeriod:  waitInfraPeriod,
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: pointer.Bool(true)}); err != nil {
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ROSAControlPlane")
 			os.Exit(1)
 		}
@@ -220,7 +220,7 @@ func main() {
 			Client:           mgr.GetClient(),
 			Recorder:         mgr.GetEventRecorderFor("rosacluster-controller"),
 			WatchFilterValue: watchFilterValue,
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: pointer.Bool(true)}); err != nil {
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ROSACluster")
 			os.Exit(1)
 		}
@@ -230,7 +230,7 @@ func main() {
 			Client:           mgr.GetClient(),
 			Recorder:         mgr.GetEventRecorderFor("rosamachinepool-controller"),
 			WatchFilterValue: watchFilterValue,
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: pointer.Bool(true)}); err != nil {
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ROSAMachinePool")
 			os.Exit(1)
 		}
@@ -265,7 +265,7 @@ func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsServi
 		Endpoints:                    awsServiceEndpoints,
 		WatchFilterValue:             watchFilterValue,
 		TagUnmanagedNetworkResources: feature.Gates.Enabled(feature.TagUnmanagedNetworkResources),
-	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsMachineConcurrency, RecoverPanic: pointer.Bool(true)}); err != nil {
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsMachineConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSMachine")
 		os.Exit(1)
 	}
@@ -278,7 +278,7 @@ func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsServi
 		ExternalResourceGC:           externalResourceGC,
 		AlternativeGCStrategy:        alternativeGCStrategy,
 		TagUnmanagedNetworkResources: feature.Gates.Enabled(feature.TagUnmanagedNetworkResources),
-	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: pointer.Bool(true)}); err != nil {
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
 		os.Exit(1)
 	}
@@ -290,7 +290,7 @@ func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsServi
 			Recorder:                     mgr.GetEventRecorderFor("awsmachinepool-controller"),
 			WatchFilterValue:             watchFilterValue,
 			TagUnmanagedNetworkResources: feature.Gates.Enabled(feature.TagUnmanagedNetworkResources),
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: instanceStateConcurrency, RecoverPanic: pointer.Bool(true)}); err != nil {
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: instanceStateConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSMachinePool")
 			os.Exit(1)
 		}
@@ -308,7 +308,7 @@ func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsServi
 			Log:              ctrl.Log.WithName("controllers").WithName("AWSInstanceStateController"),
 			Endpoints:        awsServiceEndpoints,
 			WatchFilterValue: watchFilterValue,
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: instanceStateConcurrency, RecoverPanic: pointer.Bool(true)}); err != nil {
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: instanceStateConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSInstanceStateController")
 			os.Exit(1)
 		}
@@ -321,7 +321,7 @@ func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsServi
 			Log:              ctrl.Log.WithName("controllers").WithName("AWSControllerIdentity"),
 			Endpoints:        awsServiceEndpoints,
 			WatchFilterValue: watchFilterValue,
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: pointer.Bool(true)}); err != nil {
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSControllerIdentity")
 			os.Exit(1)
 		}
@@ -387,7 +387,7 @@ func setupEKSReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsSe
 		AlternativeGCStrategy:        alternativeGCStrategy,
 		WaitInfraPeriod:              waitInfraPeriod,
 		TagUnmanagedNetworkResources: feature.Gates.Enabled(feature.TagUnmanagedNetworkResources),
-	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: pointer.Bool(true)}); err != nil {
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSManagedControlPlane")
 		os.Exit(1)
 	}
@@ -396,7 +396,7 @@ func setupEKSReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsSe
 	if err := (&eksbootstrapcontrollers.EKSConfigReconciler{
 		Client:           mgr.GetClient(),
 		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: pointer.Bool(true)}); err != nil {
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "EKSConfig")
 		os.Exit(1)
 	}
@@ -406,7 +406,7 @@ func setupEKSReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsSe
 		Client:           mgr.GetClient(),
 		Recorder:         mgr.GetEventRecorderFor("awsmanagedcluster-controller"),
 		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: pointer.Bool(true)}); err != nil {
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSManagedCluster")
 		os.Exit(1)
 	}
@@ -419,7 +419,7 @@ func setupEKSReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsSe
 			EnableIAM:        enableIAM,
 			Endpoints:        awsServiceEndpoints,
 			WatchFilterValue: watchFilterValue,
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: pointer.Bool(true)}); err != nil {
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSFargateProfile")
 		}
 
@@ -439,7 +439,7 @@ func setupEKSReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsSe
 			Recorder:                     mgr.GetEventRecorderFor("awsmanagedmachinepool-reconciler"),
 			WatchFilterValue:             watchFilterValue,
 			TagUnmanagedNetworkResources: feature.Gates.Enabled(feature.TagUnmanagedNetworkResources),
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: instanceStateConcurrency, RecoverPanic: pointer.Bool(true)}); err != nil {
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: instanceStateConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSManagedMachinePool")
 			os.Exit(1)
 		}

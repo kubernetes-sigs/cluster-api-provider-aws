@@ -20,19 +20,19 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 func TestCompareSlices(t *testing.T) {
 	g := NewWithT(t)
 
-	slice1 := []*string{pointer.String("foo"), pointer.String("bar")}
-	slice2 := []*string{pointer.String("bar"), pointer.String("foo")}
+	slice1 := []*string{ptr.To[string]("foo"), ptr.To[string]("bar")}
+	slice2 := []*string{ptr.To[string]("bar"), ptr.To[string]("foo")}
 
 	expected := Equals(slice1, slice2)
 	g.Expect(expected).To(BeTrue())
 
-	slice2 = append(slice2, pointer.String("test"))
+	slice2 = append(slice2, ptr.To[string]("test"))
 	expected = Equals(slice1, slice2)
 	g.Expect(expected).To(BeFalse())
 }

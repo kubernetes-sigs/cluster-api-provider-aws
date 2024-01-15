@@ -26,7 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
@@ -195,7 +195,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 		}
 	}
 
-	input.UserData = pointer.String(base64.StdEncoding.EncodeToString(userData))
+	input.UserData = ptr.To[string](base64.StdEncoding.EncodeToString(userData))
 
 	// Set security groups.
 	ids, err := s.GetCoreSecurityGroups(scope)

@@ -34,7 +34,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -441,7 +441,7 @@ func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc se
 		// If the ProviderID is populated, describe the instance using the ID.
 		// InstanceIfExists() returns error (ErrInstanceNotFoundByID or ErrDescribeInstance) if the instance could not be found.
 		//nolint:staticcheck
-		instance, err = ec2svc.InstanceIfExists(pointer.String(pid.ID()))
+		instance, err = ec2svc.InstanceIfExists(ptr.To[string](pid.ID()))
 		if err != nil {
 			return nil, err
 		}
