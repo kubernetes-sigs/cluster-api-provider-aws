@@ -104,6 +104,14 @@ func (b *crdBackend) MapUser(mapping ekscontrolplanev1.UserMapping) error {
 	return b.client.Create(ctx, iamMapping)
 }
 
+func (b *crdBackend) MapRoles(mapping []ekscontrolplanev1.RoleMapping) error {
+	return nil
+}
+
+func (b *crdBackend) MapUsers(mapping []ekscontrolplanev1.UserMapping) error {
+	return nil
+}
+
 func roleMappingMatchesIAMMap(mapping ekscontrolplanev1.RoleMapping, iamMapping *iamauthv1.IAMIdentityMapping) bool {
 	if mapping.RoleARN != iamMapping.Spec.ARN {
 		return false
