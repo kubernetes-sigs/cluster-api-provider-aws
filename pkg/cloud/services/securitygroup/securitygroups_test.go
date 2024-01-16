@@ -35,6 +35,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
@@ -74,6 +75,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 					Tags: infrav1.Tags{
 						infrav1.ClusterTagKey("test-cluster"): "owned",
 					},
+					EmptyRoutesDefaultVPCSecurityGroup: true,
 				},
 				Subnets: infrav1.Subnets{
 					infrav1.SubnetSpec{
@@ -90,6 +92,29 @@ func TestReconcileSecurityGroups(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeSecurityGroupsWithContext(context.TODO(), &ec2.DescribeSecurityGroupsInput{
+					Filters: []*ec2.Filter{
+						filter.EC2.VPC("vpc-securitygroups"),
+						filter.EC2.SecurityGroupName("default"),
+					},
+				}).
+					Return(&ec2.DescribeSecurityGroupsOutput{
+						SecurityGroups: []*ec2.SecurityGroup{
+							{
+								Description: aws.String("default VPC security group"),
+								GroupName:   aws.String("default"),
+								GroupId:     aws.String("sg-default"),
+							},
+						},
+					}, nil)
+				m.RevokeSecurityGroupIngressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.RevokeSecurityGroupIngressInput{
+					GroupId: aws.String("sg-default"),
+				}))
+
+				m.RevokeSecurityGroupEgressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.RevokeSecurityGroupEgressInput{
+					GroupId: aws.String("sg-default"),
+				}))
+
 				m.DescribeSecurityGroupsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).
 					Return(&ec2.DescribeSecurityGroupsOutput{}, nil)
 
@@ -734,6 +759,73 @@ func TestReconcileSecurityGroups(t *testing.T) {
 					}, nil).AnyTimes()
 			},
 			err: errors.New(`security group overrides provided for managed vpc "test-cluster"`),
+		},
+		{
+			name: "when VPC default security group has no rules then no errors are returned",
+			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
+				return acl
+			},
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID:                "vpc-securitygroups",
+					InternetGatewayID: aws.String("igw-01"),
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+					EmptyRoutesDefaultVPCSecurityGroup: true,
+				},
+				Subnets: infrav1.Subnets{
+					infrav1.SubnetSpec{
+						ID:               "subnet-securitygroups-private",
+						IsPublic:         false,
+						AvailabilityZone: "us-east-1a",
+					},
+					infrav1.SubnetSpec{
+						ID:               "subnet-securitygroups-public",
+						IsPublic:         true,
+						NatGatewayID:     aws.String("nat-01"),
+						AvailabilityZone: "us-east-1a",
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeSecurityGroupsWithContext(context.TODO(), &ec2.DescribeSecurityGroupsInput{
+					Filters: []*ec2.Filter{
+						filter.EC2.VPC("vpc-securitygroups"),
+						filter.EC2.SecurityGroupName("default"),
+					},
+				}).
+					Return(&ec2.DescribeSecurityGroupsOutput{
+						SecurityGroups: []*ec2.SecurityGroup{
+							{
+								Description: aws.String("default VPC security group"),
+								GroupName:   aws.String("default"),
+								GroupId:     aws.String("sg-default"),
+							},
+						},
+					}, nil)
+
+				m.RevokeSecurityGroupIngressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.RevokeSecurityGroupIngressInput{
+					GroupId: aws.String("sg-default"),
+				})).Return(&ec2.RevokeSecurityGroupIngressOutput{}, awserr.New("InvalidPermission.NotFound", "rules not found in security group", nil))
+
+				m.RevokeSecurityGroupEgressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.RevokeSecurityGroupEgressInput{
+					GroupId: aws.String("sg-default"),
+				})).Return(&ec2.RevokeSecurityGroupEgressOutput{}, awserr.New("InvalidPermission.NotFound", "rules not found in security group", nil))
+
+				m.DescribeSecurityGroupsWithContext(context.TODO(), &ec2.DescribeSecurityGroupsInput{
+					Filters: []*ec2.Filter{
+						filter.EC2.VPC("vpc-securitygroups"),
+						filter.EC2.Cluster("test-cluster"),
+					},
+				}).Return(&ec2.DescribeSecurityGroupsOutput{}, nil)
+
+				m.CreateSecurityGroupWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateSecurityGroupInput{})).
+					Return(&ec2.CreateSecurityGroupOutput{GroupId: aws.String("sg-node")}, nil).AnyTimes()
+
+				m.AuthorizeSecurityGroupIngressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.AuthorizeSecurityGroupIngressInput{})).
+					Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil).AnyTimes()
+			},
 		},
 	}
 

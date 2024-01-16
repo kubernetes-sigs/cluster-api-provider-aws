@@ -323,6 +323,18 @@ type VPCSpec struct {
 	// +kubebuilder:default=Ordered
 	// +kubebuilder:validation:Enum=Ordered;Random
 	AvailabilityZoneSelection *AZSelectionScheme `json:"availabilityZoneSelection,omitempty"`
+
+	// EmptyRoutesDefaultVPCSecurityGroup specifies whether the default VPC security group ingress
+	// and egress rules should be removed.
+	//
+	// By default, when creating a VPC, AWS creates a security group called `default` with ingress and egress
+	// rules that allow traffic from anywhere. The group could be used as a potential surface attack and
+	// it's generally suggested that the group rules are removed or modified appropriately.
+	//
+	// NOTE: This only applies when the VPC is managed by the Cluster API AWS controller.
+	//
+	// +optional
+	EmptyRoutesDefaultVPCSecurityGroup bool `json:"emptyRoutesDefaultVPCSecurityGroup,omitempty"`
 }
 
 // String returns a string representation of the VPC.
