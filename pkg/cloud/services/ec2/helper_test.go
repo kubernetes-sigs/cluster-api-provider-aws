@@ -35,6 +35,11 @@ import (
 	"sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
+const (
+	securityGroupNode          = "nodeSG"
+	securityGroupEksAdditional = "eksAdditionalSG"
+)
+
 func setupClusterScope(cl client.Client) (*scope.ClusterScope, error) {
 	return scope.NewClusterScope(scope.ClusterScopeParams{
 		Client:     cl,
@@ -160,6 +165,14 @@ func newAWSManagedControlPlane() *ekscontrolplanev1.AWSManagedControlPlane {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "aws-cluster-name",
 			Namespace: "aws-cluster-ns",
+		},
+		Status: ekscontrolplanev1.AWSManagedControlPlaneStatus{
+			Network: infrav1.NetworkStatus{
+				SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+					infrav1.SecurityGroupNode:              {ID: securityGroupNode},
+					infrav1.SecurityGroupEKSNodeAdditional: {ID: securityGroupEksAdditional},
+				},
+			},
 		},
 	}
 }

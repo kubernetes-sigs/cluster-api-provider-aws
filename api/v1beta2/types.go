@@ -401,6 +401,10 @@ type SpotMarketOptions struct {
 // EKSAMILookupType specifies which AWS AMI to use for a AWSMachine and AWSMachinePool.
 type EKSAMILookupType string
 
+func (e EKSAMILookupType) GetPtr() *EKSAMILookupType {
+	return &e
+}
+
 const (
 	// AmazonLinux is the default AMI type.
 	AmazonLinux EKSAMILookupType = "AmazonLinux"
