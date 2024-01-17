@@ -18,6 +18,7 @@ package helpers
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"go/build"
 	"net"
@@ -65,6 +66,8 @@ var (
 )
 
 func init() {
+	// reset flags to avoid conflicts if an imported package already called klog.InitFlags()
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	klog.InitFlags(nil)
 	// additionally force all the controllers to use the Ginkgo logger.
 	ctrl.SetLogger(klog.Background())
