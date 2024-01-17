@@ -101,6 +101,7 @@ func (i *AWSInfrastructure) New(ais AWSInfrastructureSpec, e2eCtx *E2EContext) A
 func (i *AWSInfrastructure) CreateVPC() AWSInfrastructure {
 	cv, err := CreateVPC(i.Context, i.Spec.ClusterName+"-vpc", i.Spec.VpcCidr)
 	if err != nil {
+		i.State.VpcState = ptr.To[string](fmt.Sprintf("failed"))
 		return *i
 	}
 
@@ -110,6 +111,9 @@ func (i *AWSInfrastructure) CreateVPC() AWSInfrastructure {
 }
 
 func (i *AWSInfrastructure) RefreshVPCState() AWSInfrastructure {
+	if i.VPC == nil {
+		return *i
+	}
 	vpc, err := GetVPC(i.Context, *i.VPC.VpcId)
 	if err != nil {
 		return *i
@@ -229,9 +233,9 @@ func (i *AWSInfrastructure) GetRouteTable(rtID string) AWSInfrastructure {
 // routes to their respective gateway.
 func (i *AWSInfrastructure) CreateInfrastructure() AWSInfrastructure {
 	i.CreateVPC()
-	Eventually(func(gomega Gomega) bool {
-		return *i.RefreshVPCState().State.VpcState == "available"
-	}, 2*time.Minute, 5*time.Second).Should(BeTrue())
+	Eventually(func() string {
+		return *i.RefreshVPCState().State.VpcState
+	}, 2*time.Minute, 5*time.Second).Should(Equal("available"), "Expected VPC state to eventually become 'available'")
 
 	By(fmt.Sprintf("Created VPC - %s", *i.VPC.VpcId))
 	if i.VPC != nil {
