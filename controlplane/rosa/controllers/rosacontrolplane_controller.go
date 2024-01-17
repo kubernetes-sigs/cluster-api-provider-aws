@@ -20,11 +20,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
-	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -39,9 +37,11 @@ import (
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	capiannotations "sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -169,9 +169,42 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		}
 	}
 
+	rosaClient, err := rosa.NewRosaClient(ctx, rosaScope)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to create a rosa client: %w", err)
+	}
+	defer rosaClient.Close()
+
+	cluster, err := rosaClient.GetCluster()
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if clusterID := cluster.ID(); clusterID != "" {
+		rosaScope.ControlPlane.Status.ID = &clusterID
+		if cluster.Status().State() == "ready" {
+			conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1.ROSAControlPlaneReadyCondition)
+			rosaScope.ControlPlane.Status.Ready = true
+			// TODO: distinguish when controlPlane is ready vs initialized
+			rosaScope.ControlPlane.Status.Initialized = true
+
+			return ctrl.Result{}, nil
+		}
+
+		conditions.MarkFalse(rosaScope.ControlPlane,
+			rosacontrolplanev1.ROSAControlPlaneReadyCondition,
+			string(cluster.Status().State()),
+			clusterv1.ConditionSeverityInfo,
+			"")
+
+		rosaScope.Info("waiting for cluster to become ready", "state", cluster.Status().State())
+		// Requeue so that status.ready is set to true when the cluster is fully created.
+		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
+	}
+
 	// Create the cluster:
 	clusterBuilder := cmv1.NewCluster().
-		Name(rosaScope.ControlPlane.Name).
+		Name(rosaScope.RosaClusterName()).
 		MultiAZ(true).
 		Product(
 			cmv1.NewProduct().
@@ -256,17 +289,16 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	stsBuilder = stsBuilder.OperatorIAMRoles(roles...)
 
 	instanceIAMRolesBuilder := cmv1.NewInstanceIAMRoles()
-	instanceIAMRolesBuilder.MasterRoleARN("TODO")
-	instanceIAMRolesBuilder.WorkerRoleARN("TODO")
+	instanceIAMRolesBuilder.WorkerRoleARN(*rosaScope.ControlPlane.Spec.WorkerRoleARN)
 	stsBuilder = stsBuilder.InstanceIAMRoles(instanceIAMRolesBuilder)
 	stsBuilder.OidcConfig(cmv1.NewOidcConfig().ID(*rosaScope.ControlPlane.Spec.OIDCID))
-
 	stsBuilder.AutoMode(true)
 
 	awsBuilder := cmv1.NewAWS().
-		AccountID(*rosaScope.ControlPlane.Spec.AccountID)
-	awsBuilder = awsBuilder.SubnetIDs(rosaScope.ControlPlane.Spec.Subnets...)
-	awsBuilder = awsBuilder.STS(stsBuilder)
+		AccountID(*rosaScope.ControlPlane.Spec.AccountID).
+		BillingAccountID(*rosaScope.ControlPlane.Spec.AccountID).
+		SubnetIDs(rosaScope.ControlPlane.Spec.Subnets...).
+		STS(stsBuilder)
 	clusterBuilder = clusterBuilder.AWS(awsBuilder)
 
 	clusterNodesBuilder := cmv1.NewClusterNodes()
@@ -282,106 +314,40 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		return ctrl.Result{}, fmt.Errorf("failed to create description of cluster: %v", err)
 	}
 
-	// Create a logger that has the debug level enabled:
-	ocmLogger, err := sdk.NewGoLoggerBuilder().
-		Debug(true).
-		Build()
+	newCluster, err := rosaClient.CreateCluster(clusterSpec)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to build logger: %w", err)
-	}
-
-	// Create the connection, and remember to close it:
-	token := os.Getenv("OCM_TOKEN")
-	ocmAPIUrl := os.Getenv("OCM_API_URL")
-	if ocmAPIUrl == "" {
-		ocmAPIUrl = "https://api.openshift.com"
-	}
-	connection, err := sdk.NewConnectionBuilder().
-		Logger(ocmLogger).
-		Tokens(token).
-		URL(ocmAPIUrl).
-		Build()
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to build connection: %w", err)
-	}
-	defer func() {
-		if err := connection.Close(); err != nil {
-			reterr = errors.Join(reterr, err)
-		}
-	}()
-
-	log := logger.FromContext(ctx)
-	cluster, err := connection.ClustersMgmt().V1().Clusters().
-		Add().
-		// Parameter("dryRun", *config.DryRun).
-		Body(clusterSpec).
-		Send()
-	if err != nil {
-		log.Info("error", "error", err)
+		rosaScope.Info("error", "error", err)
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
-	clusterObject := cluster.Body()
-	log.Info("result", "body", clusterObject)
+	rosaScope.Info("cluster created", "state", newCluster.Status().State())
+	clusterID := newCluster.ID()
+	rosaScope.ControlPlane.Status.ID = &clusterID
 
 	return ctrl.Result{}, nil
 }
 
-func (r *ROSAControlPlaneReconciler) reconcileDelete(_ context.Context, rosaScope *scope.ROSAControlPlaneScope) (res ctrl.Result, reterr error) {
-	// log := logger.FromContext(ctx)
-
+func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (res ctrl.Result, reterr error) {
 	rosaScope.Info("Reconciling ROSAControlPlane delete")
 
-	// Create a logger that has the debug level enabled:
-	ocmLogger, err := sdk.NewGoLoggerBuilder().
-		Debug(true).
-		Build()
+	rosaClient, err := rosa.NewRosaClient(ctx, rosaScope)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to build logger: %w", err)
+		return ctrl.Result{}, fmt.Errorf("failed to create a rosa client: %w", err)
 	}
+	defer rosaClient.Close()
 
-	// Create the connection, and remember to close it:
-	// TODO: token should be read from a secret: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/4460
-	token := os.Getenv("OCM_TOKEN")
-	ocmAPIUrl := os.Getenv("OCM_API_URL")
-	if ocmAPIUrl == "" {
-		ocmAPIUrl = "https://api.openshift.com"
-	}
-	connection, err := sdk.NewConnectionBuilder().
-		Logger(ocmLogger).
-		Tokens(token).
-		URL(ocmAPIUrl).
-		Build()
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to build connection: %w", err)
-	}
-	defer func() {
-		if err := connection.Close(); err != nil {
-			reterr = errors.Join(reterr, err)
-		}
-	}()
-
-	cluster, err := r.getOcmCluster(rosaScope, connection)
+	cluster, err := rosaClient.GetCluster()
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	response, err := connection.ClustersMgmt().V1().Clusters().
-		Cluster(cluster.ID()).
-		Delete().
-		Send()
-	if err != nil {
-		msg := response.Error().Reason()
-		if msg == "" {
-			msg = err.Error()
+	if cluster != nil {
+		if err := rosaClient.DeleteCluster(cluster.ID()); err != nil {
+			return ctrl.Result{}, err
 		}
-		return ctrl.Result{}, fmt.Errorf(msg)
 	}
 
 	controllerutil.RemoveFinalizer(rosaScope.ControlPlane, ROSAControlPlaneFinalizer)
-	if err := rosaScope.PatchObject(); err != nil {
-		return ctrl.Result{}, err
-	}
 
 	return ctrl.Result{}, nil
 }
@@ -424,41 +390,4 @@ func (r *ROSAControlPlaneReconciler) rosaClusterToROSAControlPlane(log *logger.L
 			},
 		}
 	}
-}
-
-func (r *ROSAControlPlaneReconciler) getOcmCluster(rosaScope *scope.ROSAControlPlaneScope, ocmConnection *sdk.Connection) (*cmv1.Cluster, error) {
-	clusterKey := rosaScope.ControlPlane.Name
-	query := fmt.Sprintf("%s AND (id = '%s' OR name = '%s' OR external_id = '%s')",
-		getClusterFilter(rosaScope),
-		clusterKey, clusterKey, clusterKey,
-	)
-	response, err := ocmConnection.ClustersMgmt().V1().Clusters().List().
-		Search(query).
-		Page(1).
-		Size(1).
-		Send()
-	if err != nil {
-		return nil, err
-	}
-
-	switch response.Total() {
-	case 0:
-		return nil, fmt.Errorf("there is no cluster with identifier or name '%s'", clusterKey)
-	case 1:
-		return response.Items().Slice()[0], nil
-	default:
-		return nil, fmt.Errorf("there are %d clusters with identifier or name '%s'", response.Total(), clusterKey)
-	}
-}
-
-// Generate a query that filters clusters running on the current AWS session account.
-func getClusterFilter(rosaScope *scope.ROSAControlPlaneScope) string {
-	filter := "product.id = 'rosa'"
-	if rosaScope.ControlPlane.Spec.CreatorARN != nil {
-		filter = fmt.Sprintf("%s AND (properties.%s = '%s')",
-			filter,
-			rosaCreatorArnProperty,
-			*rosaScope.ControlPlane.Spec.CreatorARN)
-	}
-	return filter
 }

@@ -19,11 +19,9 @@ package scope
 import (
 	"context"
 
-	amazoncni "github.com/aws/amazon-vpc-cni-k8s/pkg/apis/crd/v1alpha1"
 	"github.com/pkg/errors"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -32,13 +30,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
-
-func init() {
-	_ = amazoncni.AddToScheme(scheme)
-	_ = appsv1.AddToScheme(scheme)
-	_ = corev1.AddToScheme(scheme)
-	_ = rbacv1.AddToScheme(scheme)
-}
 
 type ROSAControlPlaneScopeParams struct {
 	Client         client.Client
@@ -93,9 +84,12 @@ func (s *ROSAControlPlaneScope) Name() string {
 }
 
 // InfraClusterName returns the AWS cluster name.
-
 func (s *ROSAControlPlaneScope) InfraClusterName() string {
 	return s.ControlPlane.Name
+}
+
+func (s *ROSAControlPlaneScope) RosaClusterName() string {
+	return s.ControlPlane.Spec.RosaClusterName
 }
 
 // Namespace returns the cluster namespace.
@@ -103,12 +97,29 @@ func (s *ROSAControlPlaneScope) Namespace() string {
 	return s.Cluster.Namespace
 }
 
+// CredentialsSecret returns the CredentialsSecret object.
+func (s *ROSAControlPlaneScope) CredentialsSecret() *corev1.Secret {
+	secretRef := s.ControlPlane.Spec.CredentialsSecretRef
+	if secretRef == nil {
+		return nil
+	}
+
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      s.ControlPlane.Spec.CredentialsSecretRef.Name,
+			Namespace: s.ControlPlane.Namespace,
+		},
+	}
+}
+
 // PatchObject persists the control plane configuration and status.
 func (s *ROSAControlPlaneScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.ControlPlane,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{}})
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			rosacontrolplanev1.ROSAControlPlaneReadyCondition,
+		}})
 }
 
 // Close closes the current scope persisting the control plane configuration and status.

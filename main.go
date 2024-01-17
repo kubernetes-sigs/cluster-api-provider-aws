@@ -224,6 +224,16 @@ func main() {
 			setupLog.Error(err, "unable to create controller", "controller", "ROSACluster")
 			os.Exit(1)
 		}
+
+		setupLog.Debug("enabling ROSA machinepool controller")
+		if err := (&expcontrollers.ROSAMachinePoolReconciler{
+			Client:           mgr.GetClient(),
+			Recorder:         mgr.GetEventRecorderFor("rosamachinepool-controller"),
+			WatchFilterValue: watchFilterValue,
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: pointer.Bool(true)}); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ROSAMachinePool")
+			os.Exit(1)
+		}
 	}
 
 	// +kubebuilder:scaffold:builder

@@ -23,6 +23,7 @@ resources:
 - bases/bootstrap.cluster.x-k8s.io_eksconfigtemplates.yaml
 - bases/controlplane.cluster.x-k8s.io_rosacontrolplanes.yaml
 - bases/infrastructure.cluster.x-k8s.io_rosaclusters.yaml
+- bases/infrastructure.cluster.x-k8s.io_rosamachinepools.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

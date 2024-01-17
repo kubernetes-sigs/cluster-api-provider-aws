@@ -17,12 +17,23 @@ limitations under the License.
 package v1beta2
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 type RosaControlPlaneSpec struct { //nolint: maligned
+	// Cluster name must be valid DNS-1035 label, so it must consist of lower case alphanumeric
+	// characters or '-', start with an alphabetic character, end with an alphanumeric character
+	// and have a max length of 15 characters.
+	//
+	// +immutable
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="rosaClusterName is immutable"
+	// +kubebuilder:validation:MaxLength:=15
+	// +kubebuilder:validation:Pattern:=`^[a-z]([-a-z0-9]*[a-z0-9])?$`
+	RosaClusterName string `json:"rosaClusterName"`
+
 	// The Subnet IDs to use when installing the cluster.
 	// SubnetIDs should come in pairs; two per availability zone, one private and one public.
 	Subnets []string `json:"subnets"`
@@ -55,6 +66,14 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	CreatorARN       *string `json:"creatorARN"`
 	InstallerRoleARN *string `json:"installerRoleARN"`
 	SupportRoleARN   *string `json:"supportRoleARN"`
+	WorkerRoleARN    *string `json:"workerRoleARN"`
+
+	// CredentialsSecretRef references a secret with necessary credentials to connect to the OCM API.
+	// The secret should contain the following data keys:
+	// - ocmToken: eyJhbGciOiJIUzI1NiIsI....
+	// - ocmApiUrl: Optional, defaults to 'https://api.openshift.com'
+	// +optional
+	CredentialsSecretRef *corev1.LocalObjectReference `json:"credentialsSecretRef,omitempty"`
 }
 
 // AWSRolesRef contains references to various AWS IAM roles required for operators to make calls against the AWS API.
@@ -454,6 +473,9 @@ type RosaControlPlaneStatus struct {
 	FailureMessage *string `json:"failureMessage,omitempty"`
 	// Conditions specifies the cpnditions for the managed control plane
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+
+	// ID is the cluster ID given by ROSA.
+	ID *string `json:"id,omitempty"`
 }
 
 // +kubebuilder:object:root=true
