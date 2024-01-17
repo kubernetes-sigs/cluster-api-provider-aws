@@ -109,7 +109,7 @@ func (s *RosaMachinePoolScope) NodePoolName() string {
 	return s.RosaMachinePool.Spec.NodePoolName
 }
 
-// ClusterName returns the cluster name.
+// RosaClusterName returns the cluster name.
 func (s *RosaMachinePoolScope) RosaClusterName() string {
 	return s.ControlPlane.Spec.RosaClusterName
 }

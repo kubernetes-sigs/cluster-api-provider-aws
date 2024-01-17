@@ -72,6 +72,18 @@ spec:
                 type: object
               creatorARN:
                 type: string
+              credentialsSecretRef:
+                description: 'CredentialsSecretRef references a secret with necessary
+                  credentials to connect to the OCM API. The secret should contain
+                  the following data keys: - ocmToken: eyJhbGciOiJIUzI1NiIsI.... -
+                  ocmApiUrl: Optional, defaults to ''https://api.openshift.com'''
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
               installerRoleARN:
                 type: string
               machineCIDR:

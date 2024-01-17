@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -66,6 +67,13 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	InstallerRoleARN *string `json:"installerRoleARN"`
 	SupportRoleARN   *string `json:"supportRoleARN"`
 	WorkerRoleARN    *string `json:"workerRoleARN"`
+
+	// CredentialsSecretRef references a secret with necessary credentials to connect to the OCM API.
+	// The secret should contain the following data keys:
+	// - ocmToken: eyJhbGciOiJIUzI1NiIsI....
+	// - ocmApiUrl: Optional, defaults to 'https://api.openshift.com'
+	// +optional
+	CredentialsSecretRef *corev1.LocalObjectReference `json:"credentialsSecretRef,omitempty"`
 }
 
 // AWSRolesRef contains references to various AWS IAM roles required for operators to make calls against the AWS API.

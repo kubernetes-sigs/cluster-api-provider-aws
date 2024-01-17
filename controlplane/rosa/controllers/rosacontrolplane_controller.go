@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -170,18 +169,13 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		}
 	}
 
-	// TODO: token should be read from a secret: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/4460
-	token := os.Getenv("OCM_TOKEN")
-	rosaClient, err := rosa.NewRosaClient(token)
+	rosaClient, err := rosa.NewRosaClient(ctx, rosaScope)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to create a rosa client: %w", err)
 	}
+	defer rosaClient.Close()
 
-	defer func() {
-		rosaClient.Close()
-	}()
-
-	cluster, err := rosaClient.GetCluster(rosaScope.RosaClusterName(), rosaScope.ControlPlane.Spec.CreatorARN)
+	cluster, err := rosaClient.GetCluster()
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -333,22 +327,16 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	return ctrl.Result{}, nil
 }
 
-func (r *ROSAControlPlaneReconciler) reconcileDelete(_ context.Context, rosaScope *scope.ROSAControlPlaneScope) (res ctrl.Result, reterr error) {
+func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (res ctrl.Result, reterr error) {
 	rosaScope.Info("Reconciling ROSAControlPlane delete")
 
-	// Create the connection, and remember to close it:
-	// TODO: token should be read from a secret: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/4460
-	token := os.Getenv("OCM_TOKEN")
-	rosaClient, err := rosa.NewRosaClient(token)
+	rosaClient, err := rosa.NewRosaClient(ctx, rosaScope)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to create a rosa client: %w", err)
 	}
+	defer rosaClient.Close()
 
-	defer func() {
-		rosaClient.Close()
-	}()
-
-	cluster, err := rosaClient.GetCluster(rosaScope.RosaClusterName(), rosaScope.ControlPlane.Spec.CreatorARN)
+	cluster, err := rosaClient.GetCluster()
 	if err != nil {
 		return ctrl.Result{}, err
 	}
