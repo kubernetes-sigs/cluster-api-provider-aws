@@ -101,7 +101,7 @@ func (i *AWSInfrastructure) New(ais AWSInfrastructureSpec, e2eCtx *E2EContext) A
 func (i *AWSInfrastructure) CreateVPC() AWSInfrastructure {
 	cv, err := CreateVPC(i.Context, i.Spec.ClusterName+"-vpc", i.Spec.VpcCidr)
 	if err != nil {
-		i.State.VpcState = ptr.To[string](fmt.Sprintf("failed"))
+		i.State.VpcState = ptr.To[string]("failed")
 		return *i
 	}
 
