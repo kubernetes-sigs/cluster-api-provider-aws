@@ -5,18 +5,25 @@ CAPA controller requires an API token in order to be able to provision ROSA clus
 
 1. Visit [https://console.redhat.com/openshift/token](https://console.redhat.com/openshift/token) to retrieve your API authentication token
 
-2. Edit CAPA controller deployment:
+1. Create a credentials secret with the token to be referenced later by `ROSAControlePlane`
+    ```shell
+    kubectl create secret generic rosa-creds-secret \
+      --from-literal=ocmToken='eyJhbGciOiJIUzI1NiIsI....' \
+      --from-literal=ocmApiUrl='https://api.openshift.com' 
+    ```
+  
+    Alternatively, you can edit CAPA controller deployment to provide the credentials:
     ```shell
     kubectl edit deployment -n capa-system capa-controller-manager
     ```
-    
+
     and add the following environment variables to the manager container:
     ```yaml
-        env:
-        - name: OCM_TOKEN
-          value: "<token>"
-        - name: OCM_API_URL
-          value: "https://api.openshift.com" # or https://api.stage.openshift.com
+      env:
+      - name: OCM_TOKEN
+        value: "<token>"
+      - name: OCM_API_URL
+        value: "https://api.openshift.com" # or https://api.stage.openshift.com
     ```
 
 ## Prerequisites
@@ -45,9 +52,25 @@ Once Step 3 is done, you will be ready to proceed with creating a ROSA cluster u
     export PRIVATE_SUBNET_ID="subnet-05e72222222222222"
     ```
 
-1. Create a cluster using the ROSA cluster template:
-    ```bash
+1. Render the cluster manifest using the ROSA cluster template:
+    ```shell
     cat templates/cluster-template-rosa.yaml | envsubst > rosa-capi-cluster.yaml
+    ```
 
+1. If a credentials secret was created earlier, edit `ROSAControlPlane` to refernce it:
+
+    ```yaml
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+    kind: ROSAControlPlane
+    metadata:
+      name: "capi-rosa-quickstart-control-plane"
+    spec:
+      credentialsSecretRef:
+        name: rosa-creds-secret
+    ...
+    ```
+
+1. Finally apply the manifest to create your Rosa cluster:
+    ```shell
     kubectl apply -f rosa-capi-cluster.yaml
     ```

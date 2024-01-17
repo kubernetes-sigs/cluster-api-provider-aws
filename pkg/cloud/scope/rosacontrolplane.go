@@ -20,6 +20,8 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -95,12 +97,29 @@ func (s *ROSAControlPlaneScope) Namespace() string {
 	return s.Cluster.Namespace
 }
 
+// CredentialsSecret returns the CredentialsSecret object.
+func (s *ROSAControlPlaneScope) CredentialsSecret() *corev1.Secret {
+	secretRef := s.ControlPlane.Spec.CredentialsSecretRef
+	if secretRef == nil {
+		return nil
+	}
+
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      s.ControlPlane.Spec.CredentialsSecretRef.Name,
+			Namespace: s.ControlPlane.Namespace,
+		},
+	}
+}
+
 // PatchObject persists the control plane configuration and status.
 func (s *ROSAControlPlaneScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.ControlPlane,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{}})
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			rosacontrolplanev1.ROSAControlPlaneReadyCondition,
+		}})
 }
 
 // Close closes the current scope persisting the control plane configuration and status.

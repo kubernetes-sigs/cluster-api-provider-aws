@@ -22,6 +22,7 @@ limitations under the License.
 package v1beta2
 
 import (
+	"k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -158,6 +159,11 @@ func (in *RosaControlPlaneSpec) DeepCopyInto(out *RosaControlPlaneSpec) {
 	if in.WorkerRoleARN != nil {
 		in, out := &in.WorkerRoleARN, &out.WorkerRoleARN
 		*out = new(string)
+		**out = **in
+	}
+	if in.CredentialsSecretRef != nil {
+		in, out := &in.CredentialsSecretRef, &out.CredentialsSecretRef
+		*out = new(v1.LocalObjectReference)
 		**out = **in
 	}
 }

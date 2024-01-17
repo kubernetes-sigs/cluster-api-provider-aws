@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -129,6 +128,16 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, errors.Wrap(err, "failed to create scope")
 	}
 
+	rosaControlPlaneScope, err := scope.NewROSAControlPlaneScope(scope.ROSAControlPlaneScopeParams{
+		Client:         r.Client,
+		Cluster:        cluster,
+		ControlPlane:   controlPlane,
+		ControllerName: "rosaControlPlane",
+	})
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to create control plane scope")
+	}
+
 	if !controlPlane.Status.Ready {
 		log.Info("Control plane is not ready yet")
 		err := machinePoolScope.RosaMchinePoolReadyFalse(expinfrav1.WaitingForRosaControlPlaneReason, "")
@@ -144,14 +153,16 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}()
 
 	if !rosaMachinePool.ObjectMeta.DeletionTimestamp.IsZero() {
-		return ctrl.Result{}, r.reconcileDelete(ctx, machinePoolScope)
+		return ctrl.Result{}, r.reconcileDelete(ctx, machinePoolScope, rosaControlPlaneScope)
 	}
 
-	return r.reconcileNormal(ctx, machinePoolScope)
+	return r.reconcileNormal(ctx, machinePoolScope, rosaControlPlaneScope)
 }
 
-func (r *ROSAMachinePoolReconciler) reconcileNormal(
-	ctx context.Context, machinePoolScope *scope.RosaMachinePoolScope) (ctrl.Result, error) {
+func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
+	machinePoolScope *scope.RosaMachinePoolScope,
+	rosaControlPlaneScope *scope.ROSAControlPlaneScope,
+) (ctrl.Result, error) {
 	machinePoolScope.Info("Reconciling RosaMachinePool")
 
 	if controllerutil.AddFinalizer(machinePoolScope.RosaMachinePool, expinfrav1.RosaMachinePoolFinalizer) {
@@ -160,16 +171,11 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(
 		}
 	}
 
-	// TODO: token should be read from a secret: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/4460
-	token := os.Getenv("OCM_TOKEN")
-	rosaClient, err := rosa.NewRosaClient(token)
+	rosaClient, err := rosa.NewRosaClient(ctx, rosaControlPlaneScope)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to create a rosa client: %w", err)
 	}
-
-	defer func() {
-		rosaClient.Close()
-	}()
+	defer rosaClient.Close()
 
 	rosaMachinePool := machinePoolScope.RosaMachinePool
 	machinePool := machinePoolScope.MachinePool
@@ -211,7 +217,7 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(
 				MinReplica(rosaMachinePool.Spec.Autoscaling.MinReplicas).
 				MaxReplica(rosaMachinePool.Spec.Autoscaling.MaxReplicas))
 	} else {
-		var replicas int = 1
+		replicas := 1
 		if machinePool.Spec.Replicas != nil {
 			replicas = int(*machinePool.Spec.Replicas)
 		}
@@ -240,19 +246,16 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(
 }
 
 func (r *ROSAMachinePoolReconciler) reconcileDelete(
-	_ context.Context, machinePoolScope *scope.RosaMachinePoolScope) error {
+	ctx context.Context, machinePoolScope *scope.RosaMachinePoolScope,
+	rosaControlPlaneScope *scope.ROSAControlPlaneScope,
+) error {
 	machinePoolScope.Info("Reconciling deletion of RosaMachinePool")
 
-	// TODO: token should be read from a secret: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/4460
-	token := os.Getenv("OCM_TOKEN")
-	rosaClient, err := rosa.NewRosaClient(token)
+	rosaClient, err := rosa.NewRosaClient(ctx, rosaControlPlaneScope)
 	if err != nil {
 		return fmt.Errorf("failed to create a rosa client: %w", err)
 	}
-
-	defer func() {
-		rosaClient.Close()
-	}()
+	defer rosaClient.Close()
 
 	nodePool, found, err := rosaClient.GetNodePool(*machinePoolScope.ControlPlane.Status.ID, machinePoolScope.NodePoolName())
 	if err != nil {
