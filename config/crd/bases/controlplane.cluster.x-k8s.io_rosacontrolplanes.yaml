@@ -72,6 +72,18 @@ spec:
                 type: object
               creatorARN:
                 type: string
+              credentialsSecretRef:
+                description: 'CredentialsSecretRef references a secret with necessary
+                  credentials to connect to the OCM API. The secret should contain
+                  the following data keys: - ocmToken: eyJhbGciOiJIUzI1NiIsI.... -
+                  ocmApiUrl: Optional, defaults to ''https://api.openshift.com'''
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
               installerRoleARN:
                 type: string
               machineCIDR:
@@ -237,6 +249,17 @@ spec:
                 - nodePoolManagementARN
                 - storageARN
                 type: object
+              rosaClusterName:
+                description: Cluster name must be valid DNS-1035 label, so it must
+                  consist of lower case alphanumeric characters or '-', start with
+                  an alphabetic character, end with an alphanumeric character and
+                  have a max length of 15 characters.
+                maxLength: 15
+                pattern: ^[a-z]([-a-z0-9]*[a-z0-9])?$
+                type: string
+                x-kubernetes-validations:
+                - message: rosaClusterName is immutable
+                  rule: self == oldSelf
               subnets:
                 description: The Subnet IDs to use when installing the cluster. SubnetIDs
                   should come in pairs; two per availability zone, one private and
@@ -249,6 +272,8 @@ spec:
               version:
                 description: Openshift version, for example "openshift-v4.12.15".
                 type: string
+              workerRoleARN:
+                type: string
             required:
             - accountID
             - availabilityZones
@@ -258,9 +283,11 @@ spec:
             - oidcID
             - region
             - rolesRef
+            - rosaClusterName
             - subnets
             - supportRoleARN
             - version
+            - workerRoleARN
             type: object
           status:
             properties:
@@ -319,6 +346,9 @@ spec:
               failureMessage:
                 description: ErrorMessage indicates that there is a terminal problem
                   reconciling the state, and will be set to a descriptive error message.
+                type: string
+              id:
+                description: ID is the cluster ID given by ROSA.
                 type: string
               initialized:
                 description: Initialized denotes whether or not the control plane

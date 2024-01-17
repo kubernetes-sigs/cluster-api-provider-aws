@@ -51,3 +51,31 @@ spec:
   installerRoleARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${ACCOUNT_ROLES_PREFIX}-HCP-ROSA-Installer-Role"
   supportRoleARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${ACCOUNT_ROLES_PREFIX}-HCP-ROSA-Support-Role"
   workerRoleARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${ACCOUNT_ROLES_PREFIX}-HCP-ROSA-Worker-Role"
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachinePool
+metadata:
+  name: "${CLUSTER_NAME}-pool-0"
+spec:
+  clusterName: "${CLUSTER_NAME}"
+  replicas: 1
+  template:
+    spec:
+      clusterName: "${CLUSTER_NAME}"
+      bootstrap:
+        dataSecretName: ""
+      infrastructureRef:
+        name: "${CLUSTER_NAME}-pool-0"
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        kind: RosaMachinePool
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: RosaMachinePool
+metadata:
+  name: "${CLUSTER_NAME}-pool-0"
+spec:
+  nodePoolName: "nodepool-0"
+  instanceType: "m5.xlarge"
+  subnet: "${PRIVATE_SUBNET_ID}"
+
+
