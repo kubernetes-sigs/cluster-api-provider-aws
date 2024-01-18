@@ -72,6 +72,9 @@ func TestReconcileBucket(t *testing.T) {
 
 		input := &s3svc.CreateBucketInput{
 			Bucket: aws.String(expectedBucketName),
+			CreateBucketConfiguration: &s3svc.CreateBucketConfiguration{
+				LocationConstraint: aws.String("us-west-2"),
+			},
 		}
 
 		s3Mock.EXPECT().CreateBucket(gomock.Eq(input)).Return(nil, nil).Times(1)
@@ -788,6 +791,7 @@ func testService(t *testing.T, bucket *infrav1.S3Bucket) (*s3.Service, *mock_s3i
 		AWSCluster: &infrav1.AWSCluster{
 			Spec: infrav1.AWSClusterSpec{
 				S3Bucket: bucket,
+				Region:   "us-west-2",
 				AdditionalTags: infrav1.Tags{
 					"additional": "from-aws-cluster",
 				},
