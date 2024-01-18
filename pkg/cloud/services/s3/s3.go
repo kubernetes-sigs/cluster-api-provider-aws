@@ -225,6 +225,9 @@ func (s *Service) Delete(m *scope.MachineScope) error {
 func (s *Service) createBucketIfNotExist(bucketName string) error {
 	input := &s3.CreateBucketInput{
 		Bucket: aws.String(bucketName),
+		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+			LocationConstraint: aws.String(s.scope.Region()),
+		},
 	}
 
 	_, err := s.S3Client.CreateBucket(input)
@@ -251,11 +254,6 @@ func (s *Service) createBucketIfNotExist(bucketName string) error {
 }
 
 func (s *Service) ensureBucketPolicy(bucketName string) error {
-	if s.scope.Bucket().PresignedURLDuration != nil {
-		// If presigned URL is enabled, we don't need to set bucket policy.
-		return nil
-	}
-
 	bucketPolicy, err := s.bucketPolicy(bucketName)
 	if err != nil {
 		return errors.Wrap(err, "generating Bucket policy")
@@ -323,15 +321,6 @@ func (s *Service) bucketPolicy(bucketName string) (string, error) {
 
 	statements := []iam.StatementEntry{
 		{
-			Sid:    "control-plane",
-			Effect: iam.EffectAllow,
-			Principal: map[iam.PrincipalType]iam.PrincipalID{
-				iam.PrincipalAWS: []string{fmt.Sprintf("arn:%s:iam::%s:role/%s", partition, *accountID.Account, bucket.ControlPlaneIAMInstanceProfile)},
-			},
-			Action:   []string{"s3:GetObject"},
-			Resource: []string{fmt.Sprintf("arn:%s:s3:::%s/control-plane/*", partition, bucketName)},
-		},
-		{
 			Sid:    "ForceSSLOnlyAccess",
 			Effect: iam.EffectDeny,
 			Principal: map[iam.PrincipalType]iam.PrincipalID{
@@ -347,16 +336,30 @@ func (s *Service) bucketPolicy(bucketName string) (string, error) {
 		},
 	}
 
-	for _, iamInstanceProfile := range bucket.NodesIAMInstanceProfiles {
-		statements = append(statements, iam.StatementEntry{
-			Sid:    iamInstanceProfile,
-			Effect: iam.EffectAllow,
-			Principal: map[iam.PrincipalType]iam.PrincipalID{
-				iam.PrincipalAWS: []string{fmt.Sprintf("arn:%s:iam::%s:role/%s", partition, *accountID.Account, iamInstanceProfile)},
-			},
-			Action:   []string{"s3:GetObject"},
-			Resource: []string{fmt.Sprintf("arn:%s:s3:::%s/node/*", partition, bucketName)},
-		})
+	if bucket.PresignedURLDuration == nil {
+		if bucket.ControlPlaneIAMInstanceProfile != "" {
+			statements = append(statements, iam.StatementEntry{
+				Sid:    "control-plane",
+				Effect: iam.EffectAllow,
+				Principal: map[iam.PrincipalType]iam.PrincipalID{
+					iam.PrincipalAWS: []string{fmt.Sprintf("arn:%s:iam::%s:role/%s", partition, *accountID.Account, bucket.ControlPlaneIAMInstanceProfile)},
+				},
+				Action:   []string{"s3:GetObject"},
+				Resource: []string{fmt.Sprintf("arn:%s:s3:::%s/control-plane/*", partition, bucketName)},
+			})
+		}
+
+		for _, iamInstanceProfile := range bucket.NodesIAMInstanceProfiles {
+			statements = append(statements, iam.StatementEntry{
+				Sid:    iamInstanceProfile,
+				Effect: iam.EffectAllow,
+				Principal: map[iam.PrincipalType]iam.PrincipalID{
+					iam.PrincipalAWS: []string{fmt.Sprintf("arn:%s:iam::%s:role/%s", partition, *accountID.Account, iamInstanceProfile)},
+				},
+				Action:   []string{"s3:GetObject"},
+				Resource: []string{fmt.Sprintf("arn:%s:s3:::%s/node/*", partition, bucketName)},
+			})
+		}
 	}
 
 	policy := iam.PolicyDocument{
