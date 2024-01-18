@@ -200,6 +200,11 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 }
 
 func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) error {
+	if !controllerutil.ContainsFinalizer(clusterScope.AWSCluster, infrav1.ClusterFinalizer) {
+		clusterScope.Info("No finalizer on AWSCluster, skipping deletion reconciliation")
+		return nil
+	}
+
 	clusterScope.Info("Reconciling AWSCluster delete")
 
 	ec2svc := r.getEC2Service(clusterScope)
