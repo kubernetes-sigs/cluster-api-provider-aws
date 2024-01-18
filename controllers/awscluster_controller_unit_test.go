@@ -401,6 +401,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 			t.Run("Should successfully delete AWSCluster with Cluster Finalizer removed", func(t *testing.T) {
 				g := NewWithT(t)
 				awsCluster := getAWSCluster("test", "test")
+				awsCluster.Finalizers = []string{infrav1.ClusterFinalizer}
 				csClient := setup(t, &awsCluster)
 				defer teardown()
 				deleteCluster()
