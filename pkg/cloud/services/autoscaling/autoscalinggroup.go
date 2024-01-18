@@ -26,7 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
@@ -344,7 +344,7 @@ func (s *Service) CanStartASGInstanceRefresh(scope *scope.MachinePoolScope) (boo
 
 // StartASGInstanceRefresh will start an ASG instance with refresh.
 func (s *Service) StartASGInstanceRefresh(scope *scope.MachinePoolScope) error {
-	strategy := pointer.String(autoscaling.RefreshStrategyRolling)
+	strategy := ptr.To[string](autoscaling.RefreshStrategyRolling)
 	var minHealthyPercentage, instanceWarmup *int64
 	if scope.AWSMachinePool.Spec.RefreshPreferences != nil {
 		if scope.AWSMachinePool.Spec.RefreshPreferences.Strategy != nil {

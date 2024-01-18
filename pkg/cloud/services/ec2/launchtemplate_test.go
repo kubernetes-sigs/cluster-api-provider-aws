@@ -30,7 +30,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -759,7 +759,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 							Name: aws.String("instance-profile"),
 						},
 						KeyName:          aws.String("default"),
-						UserData:         pointer.String(base64.StdEncoding.EncodeToString(userData)),
+						UserData:         ptr.To[string](base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "1"}),
 						ImageId:          aws.String("imageID"),
 						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
@@ -819,7 +819,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 							Name: aws.String("instance-profile"),
 						},
 						KeyName:          aws.String("default"),
-						UserData:         pointer.String(base64.StdEncoding.EncodeToString(userData)),
+						UserData:         ptr.To[string](base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "sg-1"}),
 						ImageId:          aws.String("imageID"),
 						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
@@ -881,7 +881,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 							Name: aws.String("instance-profile"),
 						},
 						KeyName:          aws.String("default"),
-						UserData:         pointer.String(base64.StdEncoding.EncodeToString(userData)),
+						UserData:         ptr.To[string](base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "1"}),
 						ImageId:          aws.String("imageID"),
 						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
@@ -1010,7 +1010,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 							Name: aws.String("instance-profile"),
 						},
 						KeyName:          aws.String("default"),
-						UserData:         pointer.String(base64.StdEncoding.EncodeToString(userData)),
+						UserData:         ptr.To[string](base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "1"}),
 						ImageId:          aws.String("imageID"),
 						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
@@ -1061,7 +1061,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 							Name: aws.String("instance-profile"),
 						},
 						KeyName:          aws.String("default"),
-						UserData:         pointer.String(base64.StdEncoding.EncodeToString(userData)),
+						UserData:         ptr.To[string](base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "1"}),
 						ImageId:          aws.String("imageID"),
 						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{

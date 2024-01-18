@@ -18,4 +18,4 @@ limitations under the License.
 //
 //go:generate ../../../../../hack/tools/bin/mockgen -destination s3api_mock.go -package mock_s3iface github.com/aws/aws-sdk-go/service/s3/s3iface S3API
 //go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt s3api_mock.go > _s3api_mock.go && mv _s3api_mock.go s3api_mock.go"
-package mock_s3iface //nolint
+package mock_s3iface //nolint:stylecheck

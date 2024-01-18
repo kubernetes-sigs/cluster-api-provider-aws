@@ -22,7 +22,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 func TestAWSMachineTemplateValidateCreate(t *testing.T) {
@@ -38,7 +38,7 @@ func TestAWSMachineTemplateValidateCreate(t *testing.T) {
 				Spec: AWSMachineTemplateSpec{
 					Template: AWSMachineTemplateResource{
 						Spec: AWSMachineSpec{
-							ProviderID: pointer.String("something"),
+							ProviderID: ptr.To[string]("something"),
 						},
 					},
 				},

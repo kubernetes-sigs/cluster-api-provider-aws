@@ -25,7 +25,7 @@ import (
 	"github.com/gofrs/flock"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
@@ -81,8 +81,8 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework] [ClusterClass]", fun
 				ArtifactFolder:           e2eCtx.Settings.ArtifactFolder,
 				SkipCleanup:              e2eCtx.Settings.SkipCleanup,
 				SkipConformanceTests:     true,
-				ControlPlaneMachineCount: pointer.Int64(3),
-				Flavor:                   pointer.String(shared.TopologyFlavor),
+				ControlPlaneMachineCount: ptr.To[int64](3),
+				Flavor:                   ptr.To[string](shared.TopologyFlavor),
 			}
 		})
 

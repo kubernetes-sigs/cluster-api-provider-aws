@@ -26,7 +26,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
@@ -60,7 +60,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework] [smoke] [PR-Blocking
 				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
 				ArtifactFolder:        e2eCtx.Settings.ArtifactFolder,
 				SkipCleanup:           e2eCtx.Settings.SkipCleanup,
-				Flavor:                pointer.String(shared.TopologyFlavor),
+				Flavor:                ptr.To[string](shared.TopologyFlavor),
 			}
 		})
 		ginkgo.AfterEach(func() {

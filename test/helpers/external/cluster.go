@@ -21,7 +21,7 @@ import (
 	"golang.org/x/text/language"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 const (
@@ -67,11 +67,11 @@ func generateTestClusterAPICRD(kind, pluralKind string) *apiextensionsv1.CustomR
 							Properties: map[string]apiextensionsv1.JSONSchemaProps{
 								"spec": {
 									Type:                   "object",
-									XPreserveUnknownFields: pointer.Bool(true),
+									XPreserveUnknownFields: ptr.To[bool](true),
 								},
 								"status": {
 									Type:                   "object",
-									XPreserveUnknownFields: pointer.Bool(true),
+									XPreserveUnknownFields: ptr.To[bool](true),
 								},
 							},
 						},

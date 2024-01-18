@@ -31,7 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -423,7 +423,7 @@ func getMachineScope(cs *scope.ClusterScope, awsMachine *infrav1.AWSMachine) (*s
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},

@@ -29,7 +29,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
@@ -455,7 +455,7 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 	data := &ec2.RequestLaunchTemplateData{
 		InstanceType: aws.String(lt.InstanceType),
 		KeyName:      sshKeyNamePtr,
-		UserData:     pointer.String(base64.StdEncoding.EncodeToString(userData)),
+		UserData:     ptr.To[string](base64.StdEncoding.EncodeToString(userData)),
 	}
 
 	if lt.InstanceMetadataOptions != nil {

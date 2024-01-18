@@ -25,7 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
@@ -209,7 +209,7 @@ func createMachineDeploymentForCluster(name, namespace, clusterName string, infr
 					InfrastructureRef: infrastructureRef,
 				},
 			},
-			Replicas: pointer.Int32(2),
+			Replicas: ptr.To[int32](2),
 		},
 	}
 	return md

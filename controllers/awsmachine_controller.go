@@ -34,7 +34,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -59,7 +59,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -418,22 +417,19 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 // findInstance queries the EC2 apis and retrieves the instance if it exists.
 // If providerID is empty, finds instance by tags and if it cannot be found, returns empty instance with nil error.
 // If providerID is set, either finds the instance by ID or returns error.
-func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc services.EC2Interface) (*infrav1.Instance, error) {
+func (r *AWSMachineReconciler) findInstance(machineScope *scope.MachineScope, ec2svc services.EC2Interface) (*infrav1.Instance, error) {
 	var instance *infrav1.Instance
 
 	// Parse the ProviderID.
-	//nolint:staticcheck
-	// Usage of noderefutil pkg would be removed in a future release.
-	pid, err := noderefutil.NewProviderID(scope.GetProviderID())
+	pid, err := scope.NewProviderID(machineScope.GetProviderID())
 	if err != nil {
 		//nolint:staticcheck
-		// Usage of noderefutil pkg would be removed in a future release.
-		if !errors.Is(err, noderefutil.ErrEmptyProviderID) {
+		if !errors.Is(err, scope.ErrEmptyProviderID) {
 			return nil, errors.Wrapf(err, "failed to parse Spec.ProviderID")
 		}
 		// If the ProviderID is empty, try to query the instance using tags.
 		// If an instance cannot be found, GetRunningInstanceByTags returns empty instance with nil error.
-		instance, err = ec2svc.GetRunningInstanceByTags(scope)
+		instance, err = ec2svc.GetRunningInstanceByTags(machineScope)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to query AWSMachine instance by tags")
 		}
@@ -441,7 +437,7 @@ func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc se
 		// If the ProviderID is populated, describe the instance using the ID.
 		// InstanceIfExists() returns error (ErrInstanceNotFoundByID or ErrDescribeInstance) if the instance could not be found.
 		//nolint:staticcheck
-		instance, err = ec2svc.InstanceIfExists(pointer.String(pid.ID()))
+		instance, err = ec2svc.InstanceIfExists(ptr.To[string](pid.ID()))
 		if err != nil {
 			return nil, err
 		}

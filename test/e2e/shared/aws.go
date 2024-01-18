@@ -49,7 +49,7 @@ import (
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/yaml"
 
 	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/bootstrap"
@@ -101,6 +101,7 @@ func (i *AWSInfrastructure) New(ais AWSInfrastructureSpec, e2eCtx *E2EContext) A
 func (i *AWSInfrastructure) CreateVPC() AWSInfrastructure {
 	cv, err := CreateVPC(i.Context, i.Spec.ClusterName+"-vpc", i.Spec.VpcCidr)
 	if err != nil {
+		i.State.VpcState = ptr.To[string](fmt.Sprintf("failed: %v", err))
 		return *i
 	}
 
@@ -110,6 +111,9 @@ func (i *AWSInfrastructure) CreateVPC() AWSInfrastructure {
 }
 
 func (i *AWSInfrastructure) RefreshVPCState() AWSInfrastructure {
+	if i.VPC == nil {
+		return *i
+	}
 	vpc, err := GetVPC(i.Context, *i.VPC.VpcId)
 	if err != nil {
 		return *i
@@ -124,7 +128,7 @@ func (i *AWSInfrastructure) RefreshVPCState() AWSInfrastructure {
 func (i *AWSInfrastructure) CreatePublicSubnet() AWSInfrastructure {
 	subnet, err := CreateSubnet(i.Context, i.Spec.ClusterName, i.Spec.PublicSubnetCidr, i.Spec.AvailabilityZone, *i.VPC.VpcId, "public")
 	if err != nil {
-		i.State.PublicSubnetState = pointer.String("failed")
+		i.State.PublicSubnetState = ptr.To[string]("failed")
 		return *i
 	}
 	i.State.PublicSubnetID = subnet.SubnetId
@@ -136,7 +140,7 @@ func (i *AWSInfrastructure) CreatePublicSubnet() AWSInfrastructure {
 func (i *AWSInfrastructure) CreatePrivateSubnet() AWSInfrastructure {
 	subnet, err := CreateSubnet(i.Context, i.Spec.ClusterName, i.Spec.PrivateSubnetCidr, i.Spec.AvailabilityZone, *i.VPC.VpcId, "private")
 	if err != nil {
-		i.State.PrivateSubnetState = pointer.String("failed")
+		i.State.PrivateSubnetState = ptr.To[string]("failed")
 		return *i
 	}
 	i.State.PrivateSubnetID = subnet.SubnetId
@@ -229,9 +233,9 @@ func (i *AWSInfrastructure) GetRouteTable(rtID string) AWSInfrastructure {
 // routes to their respective gateway.
 func (i *AWSInfrastructure) CreateInfrastructure() AWSInfrastructure {
 	i.CreateVPC()
-	Eventually(func(gomega Gomega) bool {
-		return *i.RefreshVPCState().State.VpcState == "available"
-	}, 2*time.Minute, 5*time.Second).Should(BeTrue())
+	Eventually(func() string {
+		return *i.RefreshVPCState().State.VpcState
+	}, 2*time.Minute, 5*time.Second).Should(Equal("available"), "Expected VPC state to eventually become 'available'")
 
 	By(fmt.Sprintf("Created VPC - %s", *i.VPC.VpcId))
 	if i.VPC != nil {

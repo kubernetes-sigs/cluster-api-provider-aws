@@ -30,7 +30,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -707,7 +707,7 @@ func TestServiceUpdateASG(t *testing.T) {
 			machinePoolName: "update-asg-success",
 			wantErr:         false,
 			setupMachinePoolScope: func(mps *scope.MachinePoolScope) {
-				mps.MachinePool.Spec.Replicas = pointer.Int32(3)
+				mps.MachinePool.Spec.Replicas = ptr.To[int32](3)
 				mps.AWSMachinePool.Spec.MinSize = 2
 				mps.AWSMachinePool.Spec.MaxSize = 5
 			},
@@ -715,9 +715,9 @@ func TestServiceUpdateASG(t *testing.T) {
 				m.UpdateAutoScalingGroupWithContext(context.TODO(), gomock.AssignableToTypeOf(&autoscaling.UpdateAutoScalingGroupInput{})).DoAndReturn(func(ctx context.Context, input *autoscaling.UpdateAutoScalingGroupInput, options ...request.Option) (*autoscaling.UpdateAutoScalingGroupOutput, error) {
 					// CAPA should set min/max, and because there's no "externally managed" annotation, also the
 					// "desired" number of instances
-					g.Expect(input.MinSize).To(BeComparableTo(pointer.Int64(2)))
-					g.Expect(input.MaxSize).To(BeComparableTo(pointer.Int64(5)))
-					g.Expect(input.DesiredCapacity).To(BeComparableTo(pointer.Int64(3)))
+					g.Expect(input.MinSize).To(BeComparableTo(ptr.To[int64](2)))
+					g.Expect(input.MaxSize).To(BeComparableTo(ptr.To[int64](5)))
+					g.Expect(input.DesiredCapacity).To(BeComparableTo(ptr.To[int64](3)))
 					return &autoscaling.UpdateAutoScalingGroupOutput{}, nil
 				})
 			},
@@ -740,15 +740,15 @@ func TestServiceUpdateASG(t *testing.T) {
 			setupMachinePoolScope: func(mps *scope.MachinePoolScope) {
 				mps.MachinePool.SetAnnotations(map[string]string{clusterv1.ReplicasManagedByAnnotation: "anything-that-is-not-false"})
 
-				mps.MachinePool.Spec.Replicas = pointer.Int32(40)
+				mps.MachinePool.Spec.Replicas = ptr.To[int32](40)
 				mps.AWSMachinePool.Spec.MinSize = 20
 				mps.AWSMachinePool.Spec.MaxSize = 50
 			},
 			expect: func(e *mocks.MockEC2APIMockRecorder, m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder, g *WithT) {
 				m.UpdateAutoScalingGroupWithContext(context.TODO(), gomock.AssignableToTypeOf(&autoscaling.UpdateAutoScalingGroupInput{})).DoAndReturn(func(ctx context.Context, input *autoscaling.UpdateAutoScalingGroupInput, options ...request.Option) (*autoscaling.UpdateAutoScalingGroupOutput, error) {
 					// CAPA should set min/max, but not the externally managed "desired" number of instances
-					g.Expect(input.MinSize).To(BeComparableTo(pointer.Int64(20)))
-					g.Expect(input.MaxSize).To(BeComparableTo(pointer.Int64(50)))
+					g.Expect(input.MinSize).To(BeComparableTo(ptr.To[int64](20)))
+					g.Expect(input.MaxSize).To(BeComparableTo(ptr.To[int64](50)))
 					g.Expect(input.DesiredCapacity).To(BeNil())
 					return &autoscaling.UpdateAutoScalingGroupOutput{}, nil
 				})

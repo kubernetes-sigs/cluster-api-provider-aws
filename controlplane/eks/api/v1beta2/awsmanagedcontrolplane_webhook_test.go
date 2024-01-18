@@ -25,7 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
@@ -582,8 +582,8 @@ func TestWebhookUpdate(t *testing.T) {
 			oldClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				EncryptionConfig: &EncryptionConfig{
-					Provider:  pointer.String("provider"),
-					Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+					Provider:  ptr.To[string]("provider"),
+					Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
 				},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
@@ -599,8 +599,8 @@ func TestWebhookUpdate(t *testing.T) {
 			newClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				EncryptionConfig: &EncryptionConfig{
-					Provider:  pointer.String("provider"),
-					Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+					Provider:  ptr.To[string]("provider"),
+					Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
 				},
 			},
 			expectError: false,
@@ -610,15 +610,15 @@ func TestWebhookUpdate(t *testing.T) {
 			oldClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				EncryptionConfig: &EncryptionConfig{
-					Provider:  pointer.String("provider"),
-					Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+					Provider:  ptr.To[string]("provider"),
+					Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
 				},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				EncryptionConfig: &EncryptionConfig{
-					Provider:  pointer.String("new-provider"),
-					Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+					Provider:  ptr.To[string]("new-provider"),
+					Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
 				},
 			},
 			expectError: true,
@@ -628,13 +628,13 @@ func TestWebhookUpdate(t *testing.T) {
 			oldClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				EncryptionConfig: &EncryptionConfig{
-					Provider: pointer.String("provider"),
+					Provider: ptr.To[string]("provider"),
 				},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				EncryptionConfig: &EncryptionConfig{
-					Provider: pointer.String("provider"),
+					Provider: ptr.To[string]("provider"),
 				},
 			},
 			expectError: false,
@@ -662,7 +662,7 @@ func TestWebhookUpdate(t *testing.T) {
 				NetworkSpec: infrav1.NetworkSpec{
 					VPC: infrav1.VPCSpec{},
 				},
-				Version: pointer.String("1.22"),
+				Version: ptr.To[string]("1.22"),
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
@@ -689,14 +689,14 @@ func TestWebhookUpdate(t *testing.T) {
 						Version: "1.11.0",
 					},
 				},
-				Version: pointer.String("v1.22.0"),
+				Version: ptr.To[string]("v1.22.0"),
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				NetworkSpec: infrav1.NetworkSpec{
 					VPC: infrav1.VPCSpec{},
 				},
-				Version: pointer.String("v1.22.0"),
+				Version: ptr.To[string]("v1.22.0"),
 			},
 			expectError: true,
 		},

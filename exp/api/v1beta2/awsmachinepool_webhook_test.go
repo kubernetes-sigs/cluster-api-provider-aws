@@ -23,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
@@ -99,7 +99,7 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					},
 					Subnets: []infrav1.AWSResourceReference{
 						{
-							ID:      pointer.String("subnet-id"),
+							ID:      ptr.To[string]("subnet-id"),
 							Filters: []infrav1.Filter{{Name: "filter_name", Values: []string{"filter_value"}}},
 						},
 					},
@@ -117,7 +117,7 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					},
 					Subnets: []infrav1.AWSResourceReference{
 						{
-							ID: pointer.String("subnet-id"),
+							ID: ptr.To[string]("subnet-id"),
 						},
 					},
 				},
@@ -234,7 +234,7 @@ func TestAWSMachinePoolValidateUpdate(t *testing.T) {
 					},
 					Subnets: []infrav1.AWSResourceReference{
 						{
-							ID:      pointer.String("subnet-id"),
+							ID:      ptr.To[string]("subnet-id"),
 							Filters: []infrav1.Filter{{Name: "filter_name", Values: []string{"filter_value"}}},
 						},
 					},
@@ -259,7 +259,7 @@ func TestAWSMachinePoolValidateUpdate(t *testing.T) {
 					},
 					Subnets: []infrav1.AWSResourceReference{
 						{
-							ID: pointer.String("subnet-id"),
+							ID: ptr.To[string]("subnet-id"),
 						},
 					},
 				},
@@ -281,7 +281,7 @@ func TestAWSMachinePoolValidateUpdate(t *testing.T) {
 						Overrides: []Overrides{{InstanceType: "t3.medium"}},
 					},
 					AWSLaunchTemplate: AWSLaunchTemplate{
-						SpotMarketOptions: &infrav1.SpotMarketOptions{MaxPrice: pointer.String("0.1")},
+						SpotMarketOptions: &infrav1.SpotMarketOptions{MaxPrice: ptr.To[string]("0.1")},
 					},
 				},
 			},
