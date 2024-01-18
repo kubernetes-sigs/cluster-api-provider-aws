@@ -142,7 +142,7 @@ E2E_SKIP_EKS_UPGRADE ?= "false"
 EKS_SOURCE_TEMPLATE ?= eks/cluster-template-eks-control-plane-only.yaml
 
 # set up `setup-envtest` to install kubebuilder dependency
-export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.24.2
+export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.28.3
 SETUP_ENVTEST_VER := v0.0.0-20230131074648-f5014c077fc3
 SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
@@ -219,6 +219,7 @@ generate-go-apis: ## Alias for .build/generate-go-apis
 
 .build/generate-go-apis: .build $(API_FILES) $(CONTROLLER_GEN) $(DEFAULTER_GEN) $(CONVERSION_GEN) ## Generate all Go api files
 	$(CONTROLLER_GEN) \
+		paths=./ \
 		paths=./api/... \
 		paths=./$(EXP_DIR)/api/... \
 		paths=./bootstrap/eks/api/... \

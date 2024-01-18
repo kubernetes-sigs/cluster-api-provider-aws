@@ -45,7 +45,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -118,8 +118,8 @@ func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigCluste
 		Namespace:                namespace,
 		ClusterName:              clusterName,
 		KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
-		ControlPlaneMachineCount: pointer.Int64(1),
-		WorkerMachineCount:       pointer.Int64(0),
+		ControlPlaneMachineCount: ptr.To[int64](1),
+		WorkerMachineCount:       ptr.To[int64](0),
 	}
 }
 
@@ -500,7 +500,7 @@ func makeAWSMachineTemplate(namespace, name, instanceType string, subnetID *stri
 				Spec: infrav1.AWSMachineSpec{
 					InstanceType:       instanceType,
 					IAMInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io",
-					SSHKeyName:         pointer.String(os.Getenv("AWS_SSH_KEY_NAME")),
+					SSHKeyName:         ptr.To[string](os.Getenv("AWS_SSH_KEY_NAME")),
 				},
 			},
 		},
@@ -579,7 +579,7 @@ func makeMachineDeployment(namespace, mdName, clusterName string, az *string, re
 						Name:       mdName,
 						Namespace:  namespace,
 					},
-					Version: pointer.String(e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion)),
+					Version: ptr.To[string](e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion)),
 				},
 			},
 		},

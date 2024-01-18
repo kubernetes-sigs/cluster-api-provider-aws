@@ -33,7 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -131,7 +131,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 							Spec: clusterv1.MachineSpec{
 								ClusterName: "test",
 								Bootstrap: clusterv1.Bootstrap{
-									DataSecretName: pointer.String("bootstrap-data"),
+									DataSecretName: ptr.To[string]("bootstrap-data"),
 								},
 							},
 						},
@@ -194,7 +194,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 
 				er := capierrors.CreateMachineError
 				ms.AWSMachinePool.Status.FailureReason = &er
-				ms.AWSMachinePool.Status.FailureMessage = pointer.String("Couldn't create machine pool")
+				ms.AWSMachinePool.Status.FailureMessage = ptr.To[string]("Couldn't create machine pool")
 
 				buf := new(bytes.Buffer)
 				klog.SetOutput(buf)
@@ -275,8 +275,8 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				t.Helper()
 				ms.AWSMachinePool.Spec.SuspendProcesses = &expinfrav1.SuspendProcessesTypes{
 					Processes: &expinfrav1.Processes{
-						Launch:    pointer.Bool(true),
-						Terminate: pointer.Bool(true),
+						Launch:    ptr.To[bool](true),
+						Terminate: ptr.To[bool](true),
 					},
 				}
 			}
@@ -339,8 +339,8 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 
 				ms.AWSMachinePool.Spec.SuspendProcesses = &expinfrav1.SuspendProcessesTypes{
 					Processes: &expinfrav1.Processes{
-						Launch:    pointer.Bool(true),
-						Terminate: pointer.Bool(true),
+						Launch:    ptr.To[bool](true),
+						Terminate: ptr.To[bool](true),
 					},
 				}
 			}
@@ -373,7 +373,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 
 			asg := expinfrav1.AutoScalingGroup{
 				Name:            "an-asg",
-				DesiredCapacity: pointer.Int32(1),
+				DesiredCapacity: ptr.To[int32](1),
 			}
 			asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(&asg, nil).AnyTimes()
 			asgSvc.EXPECT().SubnetIDs(gomock.Any()).Return([]string{}, nil).Times(1)
@@ -387,7 +387,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			ms.MachinePool.Annotations = map[string]string{
 				clusterv1.ReplicasManagedByAnnotation: "somehow-externally-managed",
 			}
-			ms.MachinePool.Spec.Replicas = pointer.Int32(0)
+			ms.MachinePool.Spec.Replicas = ptr.To[int32](0)
 
 			g.Expect(testEnv.Create(ctx, ms.MachinePool)).To(Succeed())
 
@@ -579,12 +579,12 @@ func TestDiffASG(t *testing.T) {
 				machinePoolScope: &scope.MachinePoolScope{
 					MachinePool: &expclusterv1.MachinePool{
 						Spec: expclusterv1.MachinePoolSpec{
-							Replicas: pointer.Int32(0),
+							Replicas: ptr.To[int32](0),
 						},
 					},
 				},
 				existingASG: &expinfrav1.AutoScalingGroup{
-					DesiredCapacity: pointer.Int32(1),
+					DesiredCapacity: ptr.To[int32](1),
 				},
 			},
 			want: true,
@@ -600,7 +600,7 @@ func TestDiffASG(t *testing.T) {
 					},
 				},
 				existingASG: &expinfrav1.AutoScalingGroup{
-					DesiredCapacity: pointer.Int32(1),
+					DesiredCapacity: ptr.To[int32](1),
 				},
 			},
 			want: true,
@@ -611,7 +611,7 @@ func TestDiffASG(t *testing.T) {
 				machinePoolScope: &scope.MachinePoolScope{
 					MachinePool: &expclusterv1.MachinePool{
 						Spec: expclusterv1.MachinePoolSpec{
-							Replicas: pointer.Int32(0),
+							Replicas: ptr.To[int32](0),
 						},
 					},
 				},
@@ -627,7 +627,7 @@ func TestDiffASG(t *testing.T) {
 				machinePoolScope: &scope.MachinePoolScope{
 					MachinePool: &expclusterv1.MachinePool{
 						Spec: expclusterv1.MachinePoolSpec{
-							Replicas: pointer.Int32(1),
+							Replicas: ptr.To[int32](1),
 						},
 					},
 					AWSMachinePool: &expinfrav1.AWSMachinePool{
@@ -637,7 +637,7 @@ func TestDiffASG(t *testing.T) {
 					},
 				},
 				existingASG: &expinfrav1.AutoScalingGroup{
-					DesiredCapacity: pointer.Int32(1),
+					DesiredCapacity: ptr.To[int32](1),
 					MaxSize:         2,
 				},
 			},
@@ -649,7 +649,7 @@ func TestDiffASG(t *testing.T) {
 				machinePoolScope: &scope.MachinePoolScope{
 					MachinePool: &expclusterv1.MachinePool{
 						Spec: expclusterv1.MachinePoolSpec{
-							Replicas: pointer.Int32(1),
+							Replicas: ptr.To[int32](1),
 						},
 					},
 					AWSMachinePool: &expinfrav1.AWSMachinePool{
@@ -660,7 +660,7 @@ func TestDiffASG(t *testing.T) {
 					},
 				},
 				existingASG: &expinfrav1.AutoScalingGroup{
-					DesiredCapacity: pointer.Int32(1),
+					DesiredCapacity: ptr.To[int32](1),
 					MaxSize:         2,
 					MinSize:         1,
 				},
@@ -673,7 +673,7 @@ func TestDiffASG(t *testing.T) {
 				machinePoolScope: &scope.MachinePoolScope{
 					MachinePool: &expclusterv1.MachinePool{
 						Spec: expclusterv1.MachinePoolSpec{
-							Replicas: pointer.Int32(1),
+							Replicas: ptr.To[int32](1),
 						},
 					},
 					AWSMachinePool: &expinfrav1.AWSMachinePool{
@@ -685,7 +685,7 @@ func TestDiffASG(t *testing.T) {
 					},
 				},
 				existingASG: &expinfrav1.AutoScalingGroup{
-					DesiredCapacity:   pointer.Int32(1),
+					DesiredCapacity:   ptr.To[int32](1),
 					MaxSize:           2,
 					MinSize:           0,
 					CapacityRebalance: false,
@@ -699,7 +699,7 @@ func TestDiffASG(t *testing.T) {
 				machinePoolScope: &scope.MachinePoolScope{
 					MachinePool: &expclusterv1.MachinePool{
 						Spec: expclusterv1.MachinePoolSpec{
-							Replicas: pointer.Int32(1),
+							Replicas: ptr.To[int32](1),
 						},
 					},
 					AWSMachinePool: &expinfrav1.AWSMachinePool{
@@ -718,7 +718,7 @@ func TestDiffASG(t *testing.T) {
 					Logger: *logger.NewLogger(logr.Discard()),
 				},
 				existingASG: &expinfrav1.AutoScalingGroup{
-					DesiredCapacity:      pointer.Int32(1),
+					DesiredCapacity:      ptr.To[int32](1),
 					MaxSize:              2,
 					MinSize:              0,
 					CapacityRebalance:    true,
@@ -733,7 +733,7 @@ func TestDiffASG(t *testing.T) {
 				machinePoolScope: &scope.MachinePoolScope{
 					MachinePool: &expclusterv1.MachinePool{
 						Spec: expclusterv1.MachinePoolSpec{
-							Replicas: pointer.Int32(1),
+							Replicas: ptr.To[int32](1),
 						},
 					},
 					AWSMachinePool: &expinfrav1.AWSMachinePool{
@@ -759,7 +759,7 @@ func TestDiffASG(t *testing.T) {
 					Logger: *logger.NewLogger(logr.Discard()),
 				},
 				existingASG: &expinfrav1.AutoScalingGroup{
-					DesiredCapacity:   pointer.Int32(1),
+					DesiredCapacity:   ptr.To[int32](1),
 					MaxSize:           2,
 					MinSize:           0,
 					CapacityRebalance: true,
@@ -786,7 +786,7 @@ func TestDiffASG(t *testing.T) {
 				machinePoolScope: &scope.MachinePoolScope{
 					MachinePool: &expclusterv1.MachinePool{
 						Spec: expclusterv1.MachinePoolSpec{
-							Replicas: pointer.Int32(1),
+							Replicas: ptr.To[int32](1),
 						},
 					},
 					AWSMachinePool: &expinfrav1.AWSMachinePool{
@@ -806,7 +806,7 @@ func TestDiffASG(t *testing.T) {
 					Logger: *logger.NewLogger(logr.Discard()),
 				},
 				existingASG: &expinfrav1.AutoScalingGroup{
-					DesiredCapacity:   pointer.Int32(1),
+					DesiredCapacity:   ptr.To[int32](1),
 					MaxSize:           2,
 					MinSize:           0,
 					CapacityRebalance: true,
@@ -833,7 +833,7 @@ func TestDiffASG(t *testing.T) {
 				machinePoolScope: &scope.MachinePoolScope{
 					MachinePool: &expclusterv1.MachinePool{
 						Spec: expclusterv1.MachinePoolSpec{
-							Replicas: pointer.Int32(1),
+							Replicas: ptr.To[int32](1),
 						},
 					},
 					AWSMachinePool: &expinfrav1.AWSMachinePool{
@@ -849,8 +849,8 @@ func TestDiffASG(t *testing.T) {
 							},
 							SuspendProcesses: &expinfrav1.SuspendProcessesTypes{
 								Processes: &expinfrav1.Processes{
-									Launch:    pointer.Bool(true),
-									Terminate: pointer.Bool(true),
+									Launch:    ptr.To[bool](true),
+									Terminate: ptr.To[bool](true),
 								},
 							},
 						},
@@ -858,7 +858,7 @@ func TestDiffASG(t *testing.T) {
 					Logger: *logger.NewLogger(logr.Discard()),
 				},
 				existingASG: &expinfrav1.AutoScalingGroup{
-					DesiredCapacity:           pointer.Int32(1),
+					DesiredCapacity:           ptr.To[int32](1),
 					MaxSize:                   2,
 					MinSize:                   0,
 					CapacityRebalance:         true,
@@ -874,7 +874,7 @@ func TestDiffASG(t *testing.T) {
 				machinePoolScope: &scope.MachinePoolScope{
 					MachinePool: &expclusterv1.MachinePool{
 						Spec: expclusterv1.MachinePoolSpec{
-							Replicas: pointer.Int32(1),
+							Replicas: ptr.To[int32](1),
 						},
 					},
 					AWSMachinePool: &expinfrav1.AWSMachinePool{
@@ -892,7 +892,7 @@ func TestDiffASG(t *testing.T) {
 					},
 				},
 				existingASG: &expinfrav1.AutoScalingGroup{
-					DesiredCapacity:   pointer.Int32(1),
+					DesiredCapacity:   ptr.To[int32](1),
 					MaxSize:           2,
 					MinSize:           0,
 					CapacityRebalance: true,
@@ -917,7 +917,7 @@ func TestDiffASG(t *testing.T) {
 							},
 						},
 						Spec: expclusterv1.MachinePoolSpec{
-							Replicas: pointer.Int32(0),
+							Replicas: ptr.To[int32](0),
 						},
 					},
 					AWSMachinePool: &expinfrav1.AWSMachinePool{
@@ -925,7 +925,7 @@ func TestDiffASG(t *testing.T) {
 					},
 				},
 				existingASG: &expinfrav1.AutoScalingGroup{
-					DesiredCapacity: pointer.Int32(1),
+					DesiredCapacity: ptr.To[int32](1),
 				},
 			},
 			want: false,
@@ -936,7 +936,7 @@ func TestDiffASG(t *testing.T) {
 				machinePoolScope: &scope.MachinePoolScope{
 					MachinePool: &expclusterv1.MachinePool{
 						Spec: expclusterv1.MachinePoolSpec{
-							Replicas: pointer.Int32(0),
+							Replicas: ptr.To[int32](0),
 						},
 					},
 					AWSMachinePool: &expinfrav1.AWSMachinePool{
@@ -944,7 +944,7 @@ func TestDiffASG(t *testing.T) {
 					},
 				},
 				existingASG: &expinfrav1.AutoScalingGroup{
-					DesiredCapacity: pointer.Int32(1),
+					DesiredCapacity: ptr.To[int32](1),
 				},
 			},
 			want: true,

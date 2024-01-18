@@ -32,7 +32,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -312,7 +312,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -425,7 +425,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 					FailureDomain: aws.String("us-east-1c"),
 				},
@@ -556,9 +556,9 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: pointer.String("v1.16.1"),
+					Version: ptr.To[string]("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -706,9 +706,9 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: pointer.String("v1.16.1"),
+					Version: ptr.To[string]("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -856,9 +856,9 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: pointer.String("v1.16.1"),
+					Version: ptr.To[string]("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -1007,7 +1007,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 					FailureDomain: aws.String("us-east-1b"),
 				},
@@ -1135,7 +1135,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -1262,7 +1262,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -1355,7 +1355,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -1481,7 +1481,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 					FailureDomain: aws.String("us-east-1b"),
 				},
@@ -1579,7 +1579,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 					FailureDomain: aws.String("us-east-1b"),
 				},
@@ -1662,7 +1662,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -1792,7 +1792,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -1891,7 +1891,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -2029,7 +2029,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -2147,7 +2147,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -2230,7 +2230,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -2355,7 +2355,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -2511,7 +2511,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -2667,7 +2667,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -2825,9 +2825,9 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: pointer.String("v1.16.1"),
+					Version: ptr.To[string]("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -2954,9 +2954,9 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: pointer.String("v1.16.1"),
+					Version: ptr.To[string]("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -3084,9 +3084,9 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: pointer.String("v1.16.1"),
+					Version: ptr.To[string]("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -3215,9 +3215,9 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: pointer.String("v1.16.1"),
+					Version: ptr.To[string]("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -3343,9 +3343,9 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: pointer.String("v1.16.1"),
+					Version: ptr.To[string]("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -3471,9 +3471,9 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: pointer.String("v1.16.1"),
+					Version: ptr.To[string]("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{

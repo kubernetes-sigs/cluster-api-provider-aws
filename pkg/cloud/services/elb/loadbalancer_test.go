@@ -33,7 +33,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -68,7 +68,7 @@ func TestELBName(t *testing.T) {
 				},
 				Spec: infrav1.AWSClusterSpec{
 					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
-						Name: pointer.String("myapiserver"),
+						Name: ptr.To[string]("myapiserver"),
 					},
 				},
 			},
@@ -2474,7 +2474,7 @@ func TestDescribeLoadbalancers(t *testing.T) {
 			DescribeElbAPIMocks: func(m *mocks.MockELBAPIMockRecorder) {
 				m.DescribeLoadBalancers(gomock.Eq(&elb.DescribeLoadBalancersInput{
 					LoadBalancerNames: aws.StringSlice([]string{"bar-apiserver"}),
-				})).Return(&elb.DescribeLoadBalancersOutput{LoadBalancerDescriptions: []*elb.LoadBalancerDescription{{Scheme: pointer.String(string(infrav1.ELBSchemeInternal))}}}, nil)
+				})).Return(&elb.DescribeLoadBalancersOutput{LoadBalancerDescriptions: []*elb.LoadBalancerDescription{{Scheme: ptr.To[string](string(infrav1.ELBSchemeInternal))}}}, nil)
 			},
 		},
 	}
@@ -2549,7 +2549,7 @@ func TestDescribeV2Loadbalancers(t *testing.T) {
 			DescribeElbV2APIMocks: func(m *mocks.MockELBV2APIMockRecorder) {
 				m.DescribeLoadBalancers(gomock.Eq(&elbv2.DescribeLoadBalancersInput{
 					Names: aws.StringSlice([]string{"bar-apiserver"}),
-				})).Return(&elbv2.DescribeLoadBalancersOutput{LoadBalancers: []*elbv2.LoadBalancer{{Scheme: pointer.String(string(infrav1.ELBSchemeInternal))}}}, nil)
+				})).Return(&elbv2.DescribeLoadBalancersOutput{LoadBalancers: []*elbv2.LoadBalancer{{Scheme: ptr.To[string](string(infrav1.ELBSchemeInternal))}}}, nil)
 			},
 		},
 	}
