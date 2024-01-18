@@ -917,7 +917,9 @@ func createManagedControlPlane(gcAnnotationValue, gcTasksAnnotationValue string)
 			Namespace: "default",
 		},
 		Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
-			EKSClusterName: "eks-test-cluster",
+			AWSManagedControlPlaneClassSpec: ekscontrolplanev1.AWSManagedControlPlaneClassSpec{
+				EKSClusterName: "eks-test-cluster",
+			},
 		},
 	}
 
