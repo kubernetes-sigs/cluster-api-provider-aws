@@ -26,15 +26,7 @@ import (
 	"strings"
 )
 
-const (
-	includePart = "file:///etc/secret-userdata.txt\n"
-)
-
 var (
-	includeType = textproto.MIMEHeader{
-		"content-type": {"text/x-include-url"},
-	}
-
 	boothookType = textproto.MIMEHeader{
 		"content-type": {"text/cloud-boothook"},
 	}
@@ -79,16 +71,6 @@ func GenerateInitDocument(secretPrefix string, chunks int32, region string, endp
 		return []byte{}, err
 	}
 	_, err = scriptWriter.Write(scriptBuf.Bytes())
-	if err != nil {
-		return []byte{}, err
-	}
-
-	includeWriter, err := mpWriter.CreatePart(includeType)
-	if err != nil {
-		return []byte{}, err
-	}
-
-	_, err = includeWriter.Write([]byte(includePart))
 	if err != nil {
 		return []byte{}, err
 	}
