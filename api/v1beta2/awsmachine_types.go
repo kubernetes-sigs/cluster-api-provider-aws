@@ -197,6 +197,39 @@ type Ignition struct {
 	// +kubebuilder:default="2.3"
 	// +kubebuilder:validation:Enum="2.3";"3.0";"3.1";"3.2";"3.3";"3.4"
 	Version string `json:"version,omitempty"`
+
+	// IgnitionProxy defines proxy settings for Ignition.
+	// Only valid for Ignition versions 3.4 and above.
+	// +optional
+	Proxy *IgnitionProxy `json:"proxy,omitempty"`
+
+	// TLS defines TLS settings for Ignition.
+	// Only valid for Ignition versions 3.4 and above.
+	// +optional
+	TLS *IgnitionTLS `json:"tls,omitempty"`
+}
+
+// IgnitionTLS defines TLS settings for Ignition.
+type IgnitionTLS struct {
+	// CASources defines the list of certificate authorities to use for Ignition.
+	// THe value is the certificate bundle (in PEM format). The bundle can contain multiple concatenated certificates.
+	// Supported schemes are http, https, tftp, s3, arn, gs, and `data` (RFC 2397) URL scheme.
+	//
+	// +optional
+	CASources []string `json:"certificateAuthorities,omitempty"`
+}
+
+// IgnitionProxy defines proxy settings for Ignition.
+type IgnitionProxy struct {
+	// HTTPProxy is the HTTP proxy to use for Ignition.
+	// +optional
+	HTTPProxy *string `json:"httpProxy,omitempty"`
+	// HTTPSProxy is the HTTPS proxy to use for Ignition.
+	// +optional
+	HTTPSProxy *string `json:"httpsProxy,omitempty"`
+	// NoProxy is the list of domains to not proxy for Ignition.
+	// +optional
+	NoProxy []string `json:"noProxy,omitempty"`
 }
 
 // AWSMachineStatus defines the observed state of AWSMachine.

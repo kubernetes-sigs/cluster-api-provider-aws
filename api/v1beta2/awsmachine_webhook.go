@@ -171,6 +171,15 @@ func (r *AWSMachine) validateIgnitionAndCloudInit() field.ErrorList {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "cloudInit"), "cannot be set if spec.ignition is set"))
 	}
 
+	if r.ignitionEnabled() && (r.Spec.Ignition.Version == "2.3" || r.Spec.Ignition.Version == "3.0") {
+		if r.Spec.Ignition.Proxy != nil {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "ignition", "proxy"), "cannot be set if spec.ignition.version is 2.3 or 3.0"))
+		}
+		if r.Spec.Ignition.TLS != nil {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "ignition", "tls"), "cannot be set if spec.ignition.version is 2.3 or 3.0"))
+		}
+	}
+
 	return allErrs
 }
 

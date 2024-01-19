@@ -578,6 +578,40 @@ spec:
                         description: Ignition defined options related to the bootstrapping
                           systems where Ignition is used.
                         properties:
+                          proxy:
+                            description: IgnitionProxy defines proxy settings for
+                              Ignition. Only valid for Ignition versions 3.4 and above.
+                            properties:
+                              httpProxy:
+                                description: HTTPProxy is the HTTP proxy to use for
+                                  Ignition.
+                                type: string
+                              httpsProxy:
+                                description: HTTPSProxy is the HTTPS proxy to use
+                                  for Ignition.
+                                type: string
+                              noProxy:
+                                description: NoProxy is the list of domains to not
+                                  proxy for Ignition.
+                                items:
+                                  type: string
+                                type: array
+                            type: object
+                          tls:
+                            description: TLS defines TLS settings for Ignition. Only
+                              valid for Ignition versions 3.4 and above.
+                            properties:
+                              certificateAuthorities:
+                                description: CASources defines the list of certificate
+                                  authorities to use for Ignition. THe value is the
+                                  certificate bundle (in PEM format). The bundle can
+                                  contain multiple concatenated certificates. Supported
+                                  schemes are http, https, tftp, s3, arn, gs, and
+                                  `data` (RFC 2397) URL scheme.
+                                items:
+                                  type: string
+                                type: array
+                            type: object
                           version:
                             default: "2.3"
                             description: Version defines which version of Ignition

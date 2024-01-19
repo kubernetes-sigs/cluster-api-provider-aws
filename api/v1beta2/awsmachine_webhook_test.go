@@ -24,8 +24,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 
+	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
@@ -248,9 +250,44 @@ func TestAWSMachineCreate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "ignition proxy and TLS can be from version 3.1",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &Ignition{
+						Version: "3.1",
+						Proxy: &IgnitionProxy{
+							HTTPProxy: "http://proxy.example.com:3128",
+						},
+						TLS: &IgnitionTLS{
+							CASources: []string{"test"},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "cannot use ignition proxy with version 2.3",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &Ignition{
+						Version: "2.3.0",
+						Proxy: &IgnitionProxy{
+							HTTPProxy: "http://proxy.example.com:3128",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.BootstrapFormatIgnition, true)()
+
 			machine := tt.machine.DeepCopy()
 			machine.ObjectMeta = metav1.ObjectMeta{
 				GenerateName: "machine-",
