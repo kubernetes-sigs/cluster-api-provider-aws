@@ -807,6 +807,25 @@ func (r *AWSMachineReconciler) generateIgnitionWithRemoteStorage(scope *scope.Ma
 			},
 		}
 
+		if scope.AWSMachine.Spec.Ignition.Proxy != nil {
+			ignData.Ignition.Proxy = ignV3Types.Proxy{
+				HTTPProxy:  scope.AWSMachine.Spec.Ignition.Proxy.HTTPProxy,
+				HTTPSProxy: scope.AWSMachine.Spec.Ignition.Proxy.HTTPSProxy,
+			}
+			for _, noProxy := range scope.AWSMachine.Spec.Ignition.Proxy.NoProxy {
+				ignData.Ignition.Proxy.NoProxy = append(ignData.Ignition.Proxy.NoProxy, ignV3Types.NoProxyItem(noProxy))
+			}
+		}
+
+		if scope.AWSMachine.Spec.Ignition.TLS != nil {
+			for _, cert := range scope.AWSMachine.Spec.Ignition.TLS.CASources {
+				ignData.Ignition.Security.TLS.CertificateAuthorities = append(
+					ignData.Ignition.Security.TLS.CertificateAuthorities,
+					ignV3Types.Resource{Source: aws.String(string(cert))},
+				)
+			}
+		}
+
 		return json.Marshal(ignData)
 	default:
 		return nil, errors.Errorf("unsupported ignition version %q", ignVersion)
