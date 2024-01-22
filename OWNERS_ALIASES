@@ -24,7 +24,6 @@ aliases:
     - dlipovetsky
     - vincepri
   cluster-api-aws-reviewers:
-    - AverageMarcus
     - luthermonson
     - cnmcavoy
     - nrb
