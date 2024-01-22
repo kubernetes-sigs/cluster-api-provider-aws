@@ -48,7 +48,7 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// The AWS Region the cluster lives in.
 	Region *string `json:"region"`
 
-	// Openshift version, for example "openshift-v4.12.15".
+	// Openshift version, for example "openshift-v4.14.5".
 	Version *string `json:"version"`
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
@@ -463,8 +463,7 @@ type RosaControlPlaneStatus struct {
 	// uploaded kubernetes config-map.
 	// +optional
 	Initialized bool `json:"initialized"`
-	// Ready denotes that the AWSManagedControlPlane API Server is ready to
-	// receive requests and that the VPC infra is ready.
+	// Ready denotes that the ROSAControlPlane API Server is ready to receive requests.
 	// +kubebuilder:default=false
 	Ready bool `json:"ready"`
 	// ErrorMessage indicates that there is a terminal problem reconciling the
@@ -476,6 +475,10 @@ type RosaControlPlaneStatus struct {
 
 	// ID is the cluster ID given by ROSA.
 	ID *string `json:"id,omitempty"`
+	// ConsoleURL is the url for the openshift console.
+	ConsoleURL string `json:"consoleURL,omitempty"`
+	// OIDCEndpointURL is the endpoint url for the managed OIDC porvider.
+	OIDCEndpointURL string `json:"oidcEndpointURL,omitempty"`
 }
 
 // +kubebuilder:object:root=true
