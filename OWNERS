@@ -13,6 +13,7 @@ reviewers:
   - cluster-api-aws-reviewers
 
 emeritus_approvers:
+  - AverageMarcus
   - chuckha
   - detiber
   - ncdc
