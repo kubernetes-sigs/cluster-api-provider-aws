@@ -272,6 +272,21 @@ func ocmCluster(controlPlane *rosacontrolplanev1.ROSAControlPlane, now func() ti
 				AccountID(*controlPlane.Spec.AccountID).
 				BillingAccountID(*controlPlane.Spec.AccountID).
 				SubnetIDs(controlPlane.Spec.Subnets...).
+				PrivateLink(controlPlane.Spec.AWS.PrivateLink).
+				PrivateLinkConfiguration(
+					clustersmgmtv1.NewPrivateLinkClusterConfiguration().
+						Principals(
+							func(aws rosacontrolplanev1.AWSConfiguration) []*clustersmgmtv1.PrivateLinkPrincipalBuilder {
+								var out []*clustersmgmtv1.PrivateLinkPrincipalBuilder
+								if aws.PrivateLinkConfiguration != nil {
+									for _, principal := range aws.PrivateLinkConfiguration.Principals {
+										out = append(out, clustersmgmtv1.NewPrivateLinkPrincipal().Principal(principal))
+									}
+								}
+								return out
+							}(controlPlane.Spec.AWS)...,
+						),
+				).
 				STS(
 					clustersmgmtv1.NewSTS().
 						RoleARN(*controlPlane.Spec.InstallerRoleARN).

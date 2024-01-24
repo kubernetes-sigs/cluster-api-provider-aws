@@ -55,6 +55,28 @@ spec:
                 items:
                   type: string
                 type: array
+              aws:
+                description: AWS configures aspects of the ROSA HCP workload cluster
+                  that are specific to AWS.
+                properties:
+                  privateLink:
+                    description: PrivateLink configures whether Private Link is enabled
+                      for the cluster
+                    type: boolean
+                  privateLinkConfiguration:
+                    description: PrivateLinkConfiguration configures the Private Link
+                      for the cluster
+                    properties:
+                      principals:
+                        description: Principals are the ARNs for principals that are
+                          allowed for the Private Link.
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                required:
+                - privateLink
+                type: object
               controlPlaneEndpoint:
                 description: ControlPlaneEndpoint represents the endpoint used to
                   communicate with the control plane.
@@ -277,6 +299,7 @@ spec:
             required:
             - accountID
             - availabilityZones
+            - aws
             - creatorARN
             - installerRoleARN
             - machineCIDR

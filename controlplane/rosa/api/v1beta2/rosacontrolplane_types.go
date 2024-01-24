@@ -74,6 +74,22 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// - ocmApiUrl: Optional, defaults to 'https://api.openshift.com'
 	// +optional
 	CredentialsSecretRef *corev1.LocalObjectReference `json:"credentialsSecretRef,omitempty"`
+
+	// AWS configures aspects of the ROSA HCP workload cluster that are specific to AWS.
+	AWS AWSConfiguration `json:"aws"`
+}
+
+type AWSConfiguration struct {
+	// PrivateLink configures whether Private Link is enabled for the cluster
+	PrivateLink bool `json:"privateLink"`
+
+	// PrivateLinkConfiguration configures the Private Link for the cluster
+	PrivateLinkConfiguration *PrivateLinkConfiguration `json:"privateLinkConfiguration,omitempty"`
+}
+
+type PrivateLinkConfiguration struct {
+	// Principals are the ARNs for principals that are allowed for the Private Link.
+	Principals []string `json:"principals,omitempty"`
 }
 
 // AWSRolesRef contains references to various AWS IAM roles required for operators to make calls against the AWS API.

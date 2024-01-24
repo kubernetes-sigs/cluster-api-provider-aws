@@ -58,6 +58,12 @@ func TestOCMCluster(t *testing.T) {
 					CredentialsSecretRef: &corev1.LocalObjectReference{
 						Name: "credentials-secret-name",
 					},
+					AWS: rosacontrolplanev1beta2.AWSConfiguration{
+						PrivateLink: true,
+						PrivateLinkConfiguration: &rosacontrolplanev1beta2.PrivateLinkConfiguration{
+							Principals: []string{"principal-arn-1", "principal-arn-2"},
+						},
+					},
 				},
 			},
 		},

@@ -56,6 +56,19 @@
     },
     "account_id": "account-id",
     "billing_account_id": "account-id",
+    "private_link": true,
+    "private_link_configuration": {
+      "principals": [
+        {
+          "kind": "PrivateLinkPrincipal",
+          "principal": "principal-arn-1"
+        },
+        {
+          "kind": "PrivateLinkPrincipal",
+          "principal": "principal-arn-2"
+        }
+      ]
+    },
     "subnet_ids": [
       "subnet-1",
       "subnet-2"
