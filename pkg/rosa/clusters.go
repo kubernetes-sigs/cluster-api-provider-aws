@@ -10,7 +10,8 @@ const (
 	rosaCreatorArnProperty = "rosa_creator_arn"
 )
 
-func (c *rosaClient) CreateCluster(spec *cmv1.Cluster) (*cmv1.Cluster, error) {
+// CreateCluster creates a new ROSA cluster using the specified spec.
+func (c *RosaClient) CreateCluster(spec *cmv1.Cluster) (*cmv1.Cluster, error) {
 	cluster, err := c.ocm.ClustersMgmt().V1().Clusters().
 		Add().
 		Body(spec).
@@ -23,7 +24,8 @@ func (c *rosaClient) CreateCluster(spec *cmv1.Cluster) (*cmv1.Cluster, error) {
 	return clusterObject, nil
 }
 
-func (c *rosaClient) DeleteCluster(clusterID string) error {
+// DeleteCluster deletes the ROSA cluster.
+func (c *RosaClient) DeleteCluster(clusterID string) error {
 	response, err := c.ocm.ClustersMgmt().V1().Clusters().
 		Cluster(clusterID).
 		Delete().
@@ -36,7 +38,8 @@ func (c *rosaClient) DeleteCluster(clusterID string) error {
 	return nil
 }
 
-func (c *rosaClient) GetCluster() (*cmv1.Cluster, error) {
+// GetCluster retrieves the ROSA/OCM cluster object.
+func (c *RosaClient) GetCluster() (*cmv1.Cluster, error) {
 	clusterKey := c.rosaScope.RosaClusterName()
 	query := fmt.Sprintf("%s AND (id = '%s' OR name = '%s' OR external_id = '%s')",
 		getClusterFilter(c.rosaScope.ControlPlane.Spec.CreatorARN),
