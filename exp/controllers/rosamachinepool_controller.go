@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	clustersmgmtv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -206,14 +206,14 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 	}
 
-	npBuilder := cmv1.NewNodePool()
+	npBuilder := clustersmgmtv1.NewNodePool()
 	npBuilder.ID(rosaMachinePool.Spec.NodePoolName).
 		Labels(rosaMachinePool.Spec.Labels).
 		AutoRepair(rosaMachinePool.Spec.AutoRepair)
 
 	if rosaMachinePool.Spec.Autoscaling != nil {
 		npBuilder = npBuilder.Autoscaling(
-			cmv1.NewNodePoolAutoscaling().
+			clustersmgmtv1.NewNodePoolAutoscaling().
 				MinReplica(rosaMachinePool.Spec.Autoscaling.MinReplicas).
 				MaxReplica(rosaMachinePool.Spec.Autoscaling.MaxReplicas))
 	} else {
@@ -228,7 +228,7 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 		npBuilder.Subnet(rosaMachinePool.Spec.Subnet)
 	}
 
-	npBuilder.AWSNodePool(cmv1.NewAWSNodePool().InstanceType(rosaMachinePool.Spec.InstanceType))
+	npBuilder.AWSNodePool(clustersmgmtv1.NewAWSNodePool().InstanceType(rosaMachinePool.Spec.InstanceType))
 
 	nodePoolSpec, err := npBuilder.Build()
 	if err != nil {

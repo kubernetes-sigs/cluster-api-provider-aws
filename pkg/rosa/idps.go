@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"net/http"
 
-	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	clustersmgmtv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
 // ListIdentityProviders retrieves the list of identity providers.
-func (c *RosaClient) ListIdentityProviders(clusterID string) ([]*cmv1.IdentityProvider, error) {
+func (c *RosaClient) ListIdentityProviders(clusterID string) ([]*clustersmgmtv1.IdentityProvider, error) {
 	response, err := c.ocm.ClustersMgmt().V1().
 		Clusters().Cluster(clusterID).
 		IdentityProviders().
@@ -22,7 +22,7 @@ func (c *RosaClient) ListIdentityProviders(clusterID string) ([]*cmv1.IdentityPr
 }
 
 // CreateIdentityProvider adds a new identity provider to the cluster.
-func (c *RosaClient) CreateIdentityProvider(clusterID string, idp *cmv1.IdentityProvider) (*cmv1.IdentityProvider, error) {
+func (c *RosaClient) CreateIdentityProvider(clusterID string, idp *clustersmgmtv1.IdentityProvider) (*clustersmgmtv1.IdentityProvider, error) {
 	response, err := c.ocm.ClustersMgmt().V1().
 		Clusters().Cluster(clusterID).
 		IdentityProviders().
@@ -35,7 +35,7 @@ func (c *RosaClient) CreateIdentityProvider(clusterID string, idp *cmv1.Identity
 }
 
 // GetHTPasswdUserList retrieves the list of users of the provided _HTPasswd_ identity provider.
-func (c *RosaClient) GetHTPasswdUserList(clusterID, htpasswdIDPId string) (*cmv1.HTPasswdUserList, error) {
+func (c *RosaClient) GetHTPasswdUserList(clusterID, htpasswdIDPId string) (*clustersmgmtv1.HTPasswdUserList, error) {
 	listResponse, err := c.ocm.ClustersMgmt().V1().Clusters().Cluster(clusterID).
 		IdentityProviders().IdentityProvider(htpasswdIDPId).HtpasswdUsers().List().Send()
 	if err != nil {
@@ -50,7 +50,7 @@ func (c *RosaClient) GetHTPasswdUserList(clusterID, htpasswdIDPId string) (*cmv1
 
 // AddHTPasswdUser adds a new user to the provided _HTPasswd_ identity provider.
 func (c *RosaClient) AddHTPasswdUser(username, password, clusterID, idpID string) error {
-	htpasswdUser, _ := cmv1.NewHTPasswdUser().Username(username).Password(password).Build()
+	htpasswdUser, _ := clustersmgmtv1.NewHTPasswdUser().Username(username).Password(password).Build()
 	response, err := c.ocm.ClustersMgmt().V1().Clusters().Cluster(clusterID).
 		IdentityProviders().IdentityProvider(idpID).HtpasswdUsers().Add().Body(htpasswdUser).Send()
 	if err != nil {
@@ -97,11 +97,11 @@ func (c *RosaClient) CreateAdminUserIfNotExist(clusterID, username, password str
 	}
 
 	// No ClusterAdmin IDP exists, create an Htpasswd IDP
-	htpasswdIDP := cmv1.NewHTPasswdIdentityProvider().Users(cmv1.NewHTPasswdUserList().Items(
-		cmv1.NewHTPasswdUser().Username(username).Password(password),
+	htpasswdIDP := clustersmgmtv1.NewHTPasswdIdentityProvider().Users(clustersmgmtv1.NewHTPasswdUserList().Items(
+		clustersmgmtv1.NewHTPasswdUser().Username(username).Password(password),
 	))
-	clusterAdminIDP, err := cmv1.NewIdentityProvider().
-		Type(cmv1.IdentityProviderTypeHtpasswd).
+	clusterAdminIDP, err := clustersmgmtv1.NewIdentityProvider().
+		Type(clustersmgmtv1.IdentityProviderTypeHtpasswd).
 		Name(clusterAdminIDPname).
 		Htpasswd(htpasswdIDP).
 		Build()
@@ -128,7 +128,7 @@ func (c *RosaClient) CreateAdminUserIfNotExist(clusterID, username, password str
 }
 
 func (c *RosaClient) findExistingClusterAdminIDP(clusterID string) (
-	htpasswdIDP *cmv1.IdentityProvider, userList *cmv1.HTPasswdUserList, reterr error) {
+	htpasswdIDP *clustersmgmtv1.IdentityProvider, userList *clustersmgmtv1.HTPasswdUserList, reterr error) {
 	idps, err := c.ListIdentityProviders(clusterID)
 	if err != nil {
 		reterr = fmt.Errorf("failed to get identity providers for cluster '%s': %v", clusterID, err)
@@ -152,9 +152,9 @@ func (c *RosaClient) findExistingClusterAdminIDP(clusterID string) (
 	return
 }
 
-func hasUser(username string, userList *cmv1.HTPasswdUserList) bool {
+func hasUser(username string, userList *clustersmgmtv1.HTPasswdUserList) bool {
 	hasUser := false
-	userList.Each(func(user *cmv1.HTPasswdUser) bool {
+	userList.Each(func(user *clustersmgmtv1.HTPasswdUser) bool {
 		if user.Username() == username {
 			hasUser = true
 			return false

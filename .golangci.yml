@@ -159,6 +159,8 @@ linters-settings:
         alias: apimachinerytypes
       - pkg: "sigs.k8s.io/cluster-api/exp/api/v1beta1"
         alias: expclusterv1
+      - pkg: "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+        alias: clustersmgmtv1
   staticcheck:
     go: "1.21"
   stylecheck:

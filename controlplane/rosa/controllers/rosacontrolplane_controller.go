@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	clustersmgmtv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -191,7 +191,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 
 	if clusterID := cluster.ID(); clusterID != "" {
 		rosaScope.ControlPlane.Status.ID = &clusterID
-		if cluster.Status().State() == cmv1.ClusterStateReady {
+		if cluster.Status().State() == clustersmgmtv1.ClusterStateReady {
 			conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1.ROSAControlPlaneReadyCondition)
 			rosaScope.ControlPlane.Status.Ready = true
 
@@ -220,37 +220,37 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	}
 
 	// Create the cluster:
-	clusterBuilder := cmv1.NewCluster().
+	clusterBuilder := clustersmgmtv1.NewCluster().
 		Name(rosaScope.RosaClusterName()).
 		MultiAZ(true).
 		Product(
-			cmv1.NewProduct().
+			clustersmgmtv1.NewProduct().
 				ID("rosa"),
 		).
 		Region(
-			cmv1.NewCloudRegion().
+			clustersmgmtv1.NewCloudRegion().
 				ID(*rosaScope.ControlPlane.Spec.Region),
 		).
 		FIPS(false).
 		EtcdEncryption(false).
 		DisableUserWorkloadMonitoring(true).
 		Version(
-			cmv1.NewVersion().
+			clustersmgmtv1.NewVersion().
 				ID(*rosaScope.ControlPlane.Spec.Version).
 				ChannelGroup("stable"),
 		).
 		ExpirationTimestamp(time.Now().Add(1 * time.Hour)).
-		Hypershift(cmv1.NewHypershift().Enabled(true))
+		Hypershift(clustersmgmtv1.NewHypershift().Enabled(true))
 
-	networkBuilder := cmv1.NewNetwork()
+	networkBuilder := clustersmgmtv1.NewNetwork()
 	networkBuilder = networkBuilder.Type("OVNKubernetes")
 	networkBuilder = networkBuilder.MachineCIDR(*rosaScope.ControlPlane.Spec.MachineCIDR)
 	clusterBuilder = clusterBuilder.Network(networkBuilder)
 
-	stsBuilder := cmv1.NewSTS().RoleARN(*rosaScope.ControlPlane.Spec.InstallerRoleARN)
+	stsBuilder := clustersmgmtv1.NewSTS().RoleARN(*rosaScope.ControlPlane.Spec.InstallerRoleARN)
 	// stsBuilder = stsBuilder.ExternalID(config.ExternalID)
 	stsBuilder = stsBuilder.SupportRoleARN(*rosaScope.ControlPlane.Spec.SupportRoleARN)
-	roles := []*cmv1.OperatorIAMRoleBuilder{}
+	roles := []*clustersmgmtv1.OperatorIAMRoleBuilder{}
 	for _, role := range []struct {
 		Name      string
 		Namespace string
@@ -298,27 +298,27 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 			RoleARN:   rosaScope.ControlPlane.Spec.RolesRef.NodePoolManagementARN,
 		},
 	} {
-		roles = append(roles, cmv1.NewOperatorIAMRole().
+		roles = append(roles, clustersmgmtv1.NewOperatorIAMRole().
 			Name(role.Name).
 			Namespace(role.Namespace).
 			RoleARN(role.RoleARN))
 	}
 	stsBuilder = stsBuilder.OperatorIAMRoles(roles...)
 
-	instanceIAMRolesBuilder := cmv1.NewInstanceIAMRoles()
+	instanceIAMRolesBuilder := clustersmgmtv1.NewInstanceIAMRoles()
 	instanceIAMRolesBuilder.WorkerRoleARN(*rosaScope.ControlPlane.Spec.WorkerRoleARN)
 	stsBuilder = stsBuilder.InstanceIAMRoles(instanceIAMRolesBuilder)
-	stsBuilder.OidcConfig(cmv1.NewOidcConfig().ID(*rosaScope.ControlPlane.Spec.OIDCID))
+	stsBuilder.OidcConfig(clustersmgmtv1.NewOidcConfig().ID(*rosaScope.ControlPlane.Spec.OIDCID))
 	stsBuilder.AutoMode(true)
 
-	awsBuilder := cmv1.NewAWS().
+	awsBuilder := clustersmgmtv1.NewAWS().
 		AccountID(*rosaScope.ControlPlane.Spec.AccountID).
 		BillingAccountID(*rosaScope.ControlPlane.Spec.AccountID).
 		SubnetIDs(rosaScope.ControlPlane.Spec.Subnets...).
 		STS(stsBuilder)
 	clusterBuilder = clusterBuilder.AWS(awsBuilder)
 
-	clusterNodesBuilder := cmv1.NewClusterNodes()
+	clusterNodesBuilder := clustersmgmtv1.NewClusterNodes()
 	clusterNodesBuilder = clusterNodesBuilder.AvailabilityZones(rosaScope.ControlPlane.Spec.AvailabilityZones...)
 	clusterBuilder = clusterBuilder.Nodes(clusterNodesBuilder)
 
@@ -369,7 +369,7 @@ func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaSc
 	return ctrl.Result{}, nil
 }
 
-func (r *ROSAControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope, rosaClient *rosa.RosaClient, cluster *cmv1.Cluster) error {
+func (r *ROSAControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope, rosaClient *rosa.RosaClient, cluster *clustersmgmtv1.Cluster) error {
 	rosaScope.Debug("Reconciling ROSA kubeconfig for cluster", "cluster-name", rosaScope.RosaClusterName())
 
 	clusterRef := client.ObjectKeyFromObject(rosaScope.Cluster)
@@ -525,7 +525,7 @@ func (r *ROSAControlPlaneReconciler) rosaClusterToROSAControlPlane(log *logger.L
 	}
 }
 
-func buildAPIEndpoint(cluster *cmv1.Cluster) (*clusterv1.APIEndpoint, error) {
+func buildAPIEndpoint(cluster *clustersmgmtv1.Cluster) (*clusterv1.APIEndpoint, error) {
 	parsedURL, err := url.ParseRequestURI(cluster.API().URL())
 	if err != nil {
 		return nil, err

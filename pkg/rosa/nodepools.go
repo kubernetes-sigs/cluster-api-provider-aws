@@ -1,9 +1,9 @@
 package rosa
 
-import cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+import clustersmgmtv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 // CreateNodePool adds a new node pool to the cluster.
-func (c *RosaClient) CreateNodePool(clusterID string, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
+func (c *RosaClient) CreateNodePool(clusterID string, nodePool *clustersmgmtv1.NodePool) (*clustersmgmtv1.NodePool, error) {
 	response, err := c.ocm.ClustersMgmt().V1().
 		Clusters().Cluster(clusterID).
 		NodePools().
@@ -16,7 +16,7 @@ func (c *RosaClient) CreateNodePool(clusterID string, nodePool *cmv1.NodePool) (
 }
 
 // GetNodePools retrieves the list of node pools in the cluster.
-func (c *RosaClient) GetNodePools(clusterID string) ([]*cmv1.NodePool, error) {
+func (c *RosaClient) GetNodePools(clusterID string) ([]*clustersmgmtv1.NodePool, error) {
 	response, err := c.ocm.ClustersMgmt().V1().
 		Clusters().Cluster(clusterID).
 		NodePools().
@@ -29,7 +29,7 @@ func (c *RosaClient) GetNodePools(clusterID string) ([]*cmv1.NodePool, error) {
 }
 
 // GetNodePool retrieves the details of the specified node pool.
-func (c *RosaClient) GetNodePool(clusterID string, nodePoolID string) (*cmv1.NodePool, bool, error) {
+func (c *RosaClient) GetNodePool(clusterID string, nodePoolID string) (*clustersmgmtv1.NodePool, bool, error) {
 	response, err := c.ocm.ClustersMgmt().V1().
 		Clusters().Cluster(clusterID).
 		NodePools().
@@ -46,7 +46,7 @@ func (c *RosaClient) GetNodePool(clusterID string, nodePoolID string) (*cmv1.Nod
 }
 
 // UpdateNodePool updates the specified node pool.
-func (c *RosaClient) UpdateNodePool(clusterID string, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
+func (c *RosaClient) UpdateNodePool(clusterID string, nodePool *clustersmgmtv1.NodePool) (*clustersmgmtv1.NodePool, error) {
 	response, err := c.ocm.ClustersMgmt().V1().
 		Clusters().Cluster(clusterID).
 		NodePools().NodePool(nodePool.ID()).

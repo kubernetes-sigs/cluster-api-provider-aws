@@ -3,7 +3,7 @@ package rosa
 import (
 	"fmt"
 
-	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	clustersmgmtv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
 const (
@@ -11,7 +11,7 @@ const (
 )
 
 // CreateCluster creates a new ROSA cluster using the specified spec.
-func (c *RosaClient) CreateCluster(spec *cmv1.Cluster) (*cmv1.Cluster, error) {
+func (c *RosaClient) CreateCluster(spec *clustersmgmtv1.Cluster) (*clustersmgmtv1.Cluster, error) {
 	cluster, err := c.ocm.ClustersMgmt().V1().Clusters().
 		Add().
 		Body(spec).
@@ -39,7 +39,7 @@ func (c *RosaClient) DeleteCluster(clusterID string) error {
 }
 
 // GetCluster retrieves the ROSA/OCM cluster object.
-func (c *RosaClient) GetCluster() (*cmv1.Cluster, error) {
+func (c *RosaClient) GetCluster() (*clustersmgmtv1.Cluster, error) {
 	clusterKey := c.rosaScope.RosaClusterName()
 	query := fmt.Sprintf("%s AND (id = '%s' OR name = '%s' OR external_id = '%s')",
 		getClusterFilter(c.rosaScope.ControlPlane.Spec.CreatorARN),
