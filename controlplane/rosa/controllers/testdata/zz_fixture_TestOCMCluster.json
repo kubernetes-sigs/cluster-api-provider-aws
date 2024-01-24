@@ -1,0 +1,99 @@
+{
+  "kind": "Cluster",
+  "aws": {
+    "sts": {
+      "auto_mode": true,
+      "instance_iam_roles": {
+        "worker_role_arn": "worker-role-arn"
+      },
+      "oidc_config": {
+        "id": "oidc-id"
+      },
+      "operator_iam_roles": [
+        {
+          "name": "cloud-credentials",
+          "namespace": "openshift-ingress-operator",
+          "role_arn": "ingress-arn"
+        },
+        {
+          "name": "installer-cloud-credentials",
+          "namespace": "openshift-image-registry",
+          "role_arn": "image-registry-arn"
+        },
+        {
+          "name": "ebs-cloud-credentials",
+          "namespace": "openshift-cluster-csi-drivers",
+          "role_arn": "storage-arn"
+        },
+        {
+          "name": "cloud-credentials",
+          "namespace": "openshift-cloud-network-config-controller",
+          "role_arn": "network-arn"
+        },
+        {
+          "name": "kube-controller-manager",
+          "namespace": "kube-system",
+          "role_arn": "kube-cloud-controller-arn"
+        },
+        {
+          "name": "kms-provider",
+          "namespace": "kube-system",
+          "role_arn": "kms-provider-arn"
+        },
+        {
+          "name": "control-plane-operator",
+          "namespace": "kube-system",
+          "role_arn": "control-plane-operator-arn"
+        },
+        {
+          "name": "capa-controller-manager",
+          "namespace": "kube-system",
+          "role_arn": "node-pool-management-arn"
+        }
+      ],
+      "role_arn": "installer-role-arn",
+      "support_role_arn": "support-role-arn"
+    },
+    "account_id": "account-id",
+    "billing_account_id": "account-id",
+    "subnet_ids": [
+      "subnet-1",
+      "subnet-2"
+    ]
+  },
+  "fips": false,
+  "disable_user_workload_monitoring": true,
+  "etcd_encryption": false,
+  "expiration_timestamp": "2006-01-02T16:04:05Z",
+  "hypershift": {
+    "enabled": true
+  },
+  "multi_az": true,
+  "name": "rosa-cluster-name",
+  "network": {
+    "machine_cidr": "machine-cidr",
+    "type": "OVNKubernetes"
+  },
+  "nodes": {
+    "availability_zones": [
+      "az-1",
+      "az-2"
+    ]
+  },
+  "product": {
+    "kind": "Product",
+    "id": "rosa"
+  },
+  "properties": {
+    "rosa_creator_arn": "creator-arn"
+  },
+  "region": {
+    "kind": "CloudRegion",
+    "id": "region"
+  },
+  "version": {
+    "kind": "Version",
+    "id": "version",
+    "channel_group": "stable"
+  }
+}
