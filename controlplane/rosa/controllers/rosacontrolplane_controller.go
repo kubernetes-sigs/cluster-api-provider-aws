@@ -219,6 +219,28 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 	}
 
+	clusterSpec, err := ocmCluster(rosaScope, nil)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	newCluster, err := rosaClient.CreateCluster(clusterSpec)
+	if err != nil {
+		rosaScope.Info("error", "error", err)
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+
+	rosaScope.Info("cluster created", "state", newCluster.Status().State())
+	clusterID := newCluster.ID()
+	rosaScope.ControlPlane.Status.ID = &clusterID
+
+	return ctrl.Result{}, nil
+}
+
+func ocmCluster(rosaScope *scope.ROSAControlPlaneScope, now func() time.Time) (*clustersmgmtv1.Cluster, error) {
+	if now == nil {
+		now = time.Now
+	}
 	// Create the cluster:
 	clusterBuilder := clustersmgmtv1.NewCluster().
 		Name(rosaScope.RosaClusterName()).
@@ -239,7 +261,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 				ID(*rosaScope.ControlPlane.Spec.Version).
 				ChannelGroup("stable"),
 		).
-		ExpirationTimestamp(time.Now().Add(1 * time.Hour)).
+		ExpirationTimestamp(now().Add(1 * time.Hour)).
 		Hypershift(clustersmgmtv1.NewHypershift().Enabled(true))
 
 	networkBuilder := clustersmgmtv1.NewNetwork()
@@ -326,22 +348,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	clusterProperties[rosaCreatorArnProperty] = *rosaScope.ControlPlane.Spec.CreatorARN
 
 	clusterBuilder = clusterBuilder.Properties(clusterProperties)
-	clusterSpec, err := clusterBuilder.Build()
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to create description of cluster: %v", err)
-	}
-
-	newCluster, err := rosaClient.CreateCluster(clusterSpec)
-	if err != nil {
-		rosaScope.Info("error", "error", err)
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
-	}
-
-	rosaScope.Info("cluster created", "state", newCluster.Status().State())
-	clusterID := newCluster.ID()
-	rosaScope.ControlPlane.Status.ID = &clusterID
-
-	return ctrl.Result{}, nil
+	return clusterBuilder.Build()
 }
 
 func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (res ctrl.Result, reterr error) {
