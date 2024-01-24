@@ -16,20 +16,20 @@ const (
 	ocmAPIURLKey = "ocmApiUrl"
 )
 
-type rosaClient struct {
+type RosaClient struct {
 	ocm       *sdk.Connection
 	rosaScope *scope.ROSAControlPlaneScope
 }
 
 // NewRosaClientWithConnection creates a client with a preexisting connection for testing purposes.
-func NewRosaClientWithConnection(connection *sdk.Connection, rosaScope *scope.ROSAControlPlaneScope) *rosaClient {
-	return &rosaClient{
+func NewRosaClientWithConnection(connection *sdk.Connection, rosaScope *scope.ROSAControlPlaneScope) *RosaClient {
+	return &RosaClient{
 		ocm:       connection,
 		rosaScope: rosaScope,
 	}
 }
 
-func NewRosaClient(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (*rosaClient, error) {
+func NewRosaClient(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (*RosaClient, error) {
 	var token string
 	var ocmAPIUrl string
 
@@ -70,20 +70,20 @@ func NewRosaClient(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) 
 		return nil, fmt.Errorf("failed to create ocm connection: %w", err)
 	}
 
-	return &rosaClient{
+	return &RosaClient{
 		ocm:       connection,
 		rosaScope: rosaScope,
 	}, nil
 }
 
-func (c *rosaClient) Close() error {
+func (c *RosaClient) Close() error {
 	return c.ocm.Close()
 }
 
-func (c *rosaClient) GetConnectionURL() string {
+func (c *RosaClient) GetConnectionURL() string {
 	return c.ocm.URL()
 }
 
-func (c *rosaClient) GetConnectionTokens() (string, string, error) {
+func (c *RosaClient) GetConnectionTokens() (string, string, error) {
 	return c.ocm.Tokens()
 }

@@ -2,7 +2,8 @@ package rosa
 
 import cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
-func (c *rosaClient) CreateNodePool(clusterID string, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
+// CreateNodePool adds a new node pool to the cluster.
+func (c *RosaClient) CreateNodePool(clusterID string, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
 	response, err := c.ocm.ClustersMgmt().V1().
 		Clusters().Cluster(clusterID).
 		NodePools().
@@ -14,7 +15,8 @@ func (c *rosaClient) CreateNodePool(clusterID string, nodePool *cmv1.NodePool) (
 	return response.Body(), nil
 }
 
-func (c *rosaClient) GetNodePools(clusterID string) ([]*cmv1.NodePool, error) {
+// GetNodePools retrieves the list of node pools in the cluster.
+func (c *RosaClient) GetNodePools(clusterID string) ([]*cmv1.NodePool, error) {
 	response, err := c.ocm.ClustersMgmt().V1().
 		Clusters().Cluster(clusterID).
 		NodePools().
@@ -26,7 +28,8 @@ func (c *rosaClient) GetNodePools(clusterID string) ([]*cmv1.NodePool, error) {
 	return response.Items().Slice(), nil
 }
 
-func (c *rosaClient) GetNodePool(clusterID string, nodePoolID string) (*cmv1.NodePool, bool, error) {
+// GetNodePool retrieves the details of the specified node pool.
+func (c *RosaClient) GetNodePool(clusterID string, nodePoolID string) (*cmv1.NodePool, bool, error) {
 	response, err := c.ocm.ClustersMgmt().V1().
 		Clusters().Cluster(clusterID).
 		NodePools().
@@ -42,7 +45,8 @@ func (c *rosaClient) GetNodePool(clusterID string, nodePoolID string) (*cmv1.Nod
 	return response.Body(), true, nil
 }
 
-func (c *rosaClient) UpdateNodePool(clusterID string, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
+// UpdateNodePool updates the specified node pool.
+func (c *RosaClient) UpdateNodePool(clusterID string, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
 	response, err := c.ocm.ClustersMgmt().V1().
 		Clusters().Cluster(clusterID).
 		NodePools().NodePool(nodePool.ID()).
@@ -54,7 +58,8 @@ func (c *rosaClient) UpdateNodePool(clusterID string, nodePool *cmv1.NodePool) (
 	return response.Body(), nil
 }
 
-func (c *rosaClient) DeleteNodePool(clusterID string, nodePoolID string) error {
+// DeleteNodePool deletes the specified node pool.
+func (c *RosaClient) DeleteNodePool(clusterID string, nodePoolID string) error {
 	response, err := c.ocm.ClustersMgmt().V1().
 		Clusters().Cluster(clusterID).
 		NodePools().NodePool(nodePoolID).

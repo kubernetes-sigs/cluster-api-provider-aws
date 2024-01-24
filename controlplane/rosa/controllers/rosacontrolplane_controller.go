@@ -20,12 +20,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/clientcmd/api"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -42,7 +49,9 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	capiannotations "sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/predicates"
+	"sigs.k8s.io/cluster-api/util/secret"
 )
 
 const (
@@ -182,11 +191,19 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 
 	if clusterID := cluster.ID(); clusterID != "" {
 		rosaScope.ControlPlane.Status.ID = &clusterID
-		if cluster.Status().State() == "ready" {
+		if cluster.Status().State() == cmv1.ClusterStateReady {
 			conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1.ROSAControlPlaneReadyCondition)
 			rosaScope.ControlPlane.Status.Ready = true
-			// TODO: distinguish when controlPlane is ready vs initialized
-			rosaScope.ControlPlane.Status.Initialized = true
+
+			apiEndpoint, err := buildAPIEndpoint(cluster)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			rosaScope.ControlPlane.Spec.ControlPlaneEndpoint = *apiEndpoint
+
+			if err := r.reconcileKubeconfig(ctx, rosaScope, rosaClient, cluster); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to reconcile kubeconfig: %w", err)
+			}
 
 			return ctrl.Result{}, nil
 		}
@@ -352,6 +369,122 @@ func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaSc
 	return ctrl.Result{}, nil
 }
 
+func (r *ROSAControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope, rosaClient *rosa.RosaClient, cluster *cmv1.Cluster) error {
+	rosaScope.Debug("Reconciling ROSA kubeconfig for cluster", "cluster-name", rosaScope.RosaClusterName())
+
+	clusterRef := client.ObjectKeyFromObject(rosaScope.Cluster)
+	kubeconfigSecret, err := secret.GetFromNamespacedName(ctx, r.Client, clusterRef, secret.Kubeconfig)
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return fmt.Errorf("failed to get kubeconfig secret: %w", err)
+		}
+	}
+
+	// generate a new password for the cluster admin user, or retrieve an existing one.
+	password, err := r.reconcileClusterAdminPassword(ctx, rosaScope)
+	if err != nil {
+		return fmt.Errorf("failed to reconcile cluster admin password secret: %w", err)
+	}
+
+	clusterName := rosaScope.RosaClusterName()
+	userName := fmt.Sprintf("%s-capi-admin", clusterName)
+	apiServerURL := cluster.API().URL()
+
+	// create new user with admin privileges in the ROSA cluster if 'userName' doesn't already exist.
+	err = rosaClient.CreateAdminUserIfNotExist(cluster.ID(), userName, password)
+	if err != nil {
+		return err
+	}
+
+	clientConfig := &restclient.Config{
+		Host:     apiServerURL,
+		Username: userName,
+	}
+	// request an acccess token using the credentials of the cluster admin user created earlier.
+	// this token is used in the kubeconfig to authenticate with the API server.
+	token, err := rosa.RequestToken(ctx, apiServerURL, userName, password, clientConfig)
+	if err != nil {
+		return fmt.Errorf("failed to request token: %w", err)
+	}
+
+	// create the kubeconfig spec.
+	contextName := fmt.Sprintf("%s@%s", userName, clusterName)
+	cfg := &api.Config{
+		APIVersion: api.SchemeGroupVersion.Version,
+		Clusters: map[string]*api.Cluster{
+			clusterName: {
+				Server: apiServerURL,
+			},
+		},
+		Contexts: map[string]*api.Context{
+			contextName: {
+				Cluster:  clusterName,
+				AuthInfo: userName,
+			},
+		},
+		CurrentContext: contextName,
+		AuthInfos: map[string]*api.AuthInfo{
+			userName: {
+				Token: token.AccessToken,
+			},
+		},
+	}
+	out, err := clientcmd.Write(*cfg)
+	if err != nil {
+		return fmt.Errorf("failed to serialize config to yaml: %w", err)
+	}
+
+	if kubeconfigSecret != nil {
+		// update existing kubeconfig secret.
+		kubeconfigSecret.Data[secret.KubeconfigDataName] = out
+		if err := r.Client.Update(ctx, kubeconfigSecret); err != nil {
+			return fmt.Errorf("failed to update kubeconfig secret: %w", err)
+		}
+	} else {
+		// create new kubeconfig secret.
+		controllerOwnerRef := *metav1.NewControllerRef(rosaScope.ControlPlane, rosacontrolplanev1.GroupVersion.WithKind("ROSAControlPlane"))
+		kubeconfigSecret = kubeconfig.GenerateSecretWithOwner(clusterRef, out, controllerOwnerRef)
+		if err := r.Client.Create(ctx, kubeconfigSecret); err != nil {
+			return fmt.Errorf("failed to create kubeconfig secret: %w", err)
+		}
+	}
+
+	rosaScope.ControlPlane.Status.Initialized = true
+	return nil
+}
+
+// reconcileClusterAdminPassword generates and store the password of the cluster admin user in a secret which is used to request a token for kubeconfig auth.
+// Since it is not possible to retrieve a user's password through the ocm API once created,
+// we have to store the password in a secret as it is needed later to refresh the token.
+func (r *ROSAControlPlaneReconciler) reconcileClusterAdminPassword(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (string, error) {
+	passwordSecret := rosaScope.ClusterAdminPasswordSecret()
+	err := r.Client.Get(ctx, client.ObjectKeyFromObject(passwordSecret), passwordSecret)
+	if err == nil {
+		password := string(passwordSecret.Data["value"])
+		return password, nil
+	} else if !apierrors.IsNotFound(err) {
+		return "", fmt.Errorf("failed to get cluster admin password secret: %w", err)
+	}
+	// Generate a new password and create the secret
+	password, err := rosa.GenerateRandomPassword()
+	if err != nil {
+		return "", err
+	}
+
+	controllerOwnerRef := *metav1.NewControllerRef(rosaScope.ControlPlane, rosacontrolplanev1.GroupVersion.WithKind("ROSAControlPlane"))
+	passwordSecret.Data = map[string][]byte{
+		"value": []byte(password),
+	}
+	passwordSecret.OwnerReferences = []metav1.OwnerReference{
+		controllerOwnerRef,
+	}
+	if err := r.Client.Create(ctx, passwordSecret); err != nil {
+		return "", err
+	}
+
+	return password, nil
+}
+
 func (r *ROSAControlPlaneReconciler) rosaClusterToROSAControlPlane(log *logger.Logger) handler.MapFunc {
 	return func(ctx context.Context, o client.Object) []ctrl.Request {
 		rosaCluster, ok := o.(*expinfrav1.ROSACluster)
@@ -390,4 +523,25 @@ func (r *ROSAControlPlaneReconciler) rosaClusterToROSAControlPlane(log *logger.L
 			},
 		}
 	}
+}
+
+func buildAPIEndpoint(cluster *cmv1.Cluster) (*clusterv1.APIEndpoint, error) {
+	parsedURL, err := url.ParseRequestURI(cluster.API().URL())
+	if err != nil {
+		return nil, err
+	}
+	host, portStr, err := net.SplitHostPort(parsedURL.Host)
+	if err != nil {
+		return nil, err
+	}
+
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		return nil, err
+	}
+
+	return &clusterv1.APIEndpoint{
+		Host: host,
+		Port: int32(port), // #nosec G109
+	}, nil
 }
