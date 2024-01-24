@@ -219,7 +219,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 	}
 
-	clusterSpec, err := ocmCluster(rosaScope, nil)
+	clusterSpec, err := ocmCluster(rosaScope.ControlPlane, nil)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -237,13 +237,12 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	return ctrl.Result{}, nil
 }
 
-func ocmCluster(rosaScope *scope.ROSAControlPlaneScope, now func() time.Time) (*clustersmgmtv1.Cluster, error) {
+func ocmCluster(controlPlane *rosacontrolplanev1.ROSAControlPlane, now func() time.Time) (*clustersmgmtv1.Cluster, error) {
 	if now == nil {
 		now = time.Now
 	}
-	// Create the cluster:
-	clusterBuilder := clustersmgmtv1.NewCluster().
-		Name(rosaScope.RosaClusterName()).
+	return clustersmgmtv1.NewCluster().
+		Name(controlPlane.Spec.RosaClusterName).
 		MultiAZ(true).
 		Product(
 			clustersmgmtv1.NewProduct().
@@ -251,104 +250,84 @@ func ocmCluster(rosaScope *scope.ROSAControlPlaneScope, now func() time.Time) (*
 		).
 		Region(
 			clustersmgmtv1.NewCloudRegion().
-				ID(*rosaScope.ControlPlane.Spec.Region),
+				ID(*controlPlane.Spec.Region),
 		).
 		FIPS(false).
 		EtcdEncryption(false).
 		DisableUserWorkloadMonitoring(true).
 		Version(
 			clustersmgmtv1.NewVersion().
-				ID(*rosaScope.ControlPlane.Spec.Version).
+				ID(*controlPlane.Spec.Version).
 				ChannelGroup("stable"),
 		).
 		ExpirationTimestamp(now().Add(1 * time.Hour)).
-		Hypershift(clustersmgmtv1.NewHypershift().Enabled(true))
-
-	networkBuilder := clustersmgmtv1.NewNetwork()
-	networkBuilder = networkBuilder.Type("OVNKubernetes")
-	networkBuilder = networkBuilder.MachineCIDR(*rosaScope.ControlPlane.Spec.MachineCIDR)
-	clusterBuilder = clusterBuilder.Network(networkBuilder)
-
-	stsBuilder := clustersmgmtv1.NewSTS().RoleARN(*rosaScope.ControlPlane.Spec.InstallerRoleARN)
-	// stsBuilder = stsBuilder.ExternalID(config.ExternalID)
-	stsBuilder = stsBuilder.SupportRoleARN(*rosaScope.ControlPlane.Spec.SupportRoleARN)
-	roles := []*clustersmgmtv1.OperatorIAMRoleBuilder{}
-	for _, role := range []struct {
-		Name      string
-		Namespace string
-		RoleARN   string
-		Path      string
-	}{
-		{
-			Name:      "cloud-credentials",
-			Namespace: "openshift-ingress-operator",
-			RoleARN:   rosaScope.ControlPlane.Spec.RolesRef.IngressARN,
-		},
-		{
-			Name:      "installer-cloud-credentials",
-			Namespace: "openshift-image-registry",
-			RoleARN:   rosaScope.ControlPlane.Spec.RolesRef.ImageRegistryARN,
-		},
-		{
-			Name:      "ebs-cloud-credentials",
-			Namespace: "openshift-cluster-csi-drivers",
-			RoleARN:   rosaScope.ControlPlane.Spec.RolesRef.StorageARN,
-		},
-		{
-			Name:      "cloud-credentials",
-			Namespace: "openshift-cloud-network-config-controller",
-			RoleARN:   rosaScope.ControlPlane.Spec.RolesRef.NetworkARN,
-		},
-		{
-			Name:      "kube-controller-manager",
-			Namespace: "kube-system",
-			RoleARN:   rosaScope.ControlPlane.Spec.RolesRef.KubeCloudControllerARN,
-		},
-		{
-			Name:      "kms-provider",
-			Namespace: "kube-system",
-			RoleARN:   rosaScope.ControlPlane.Spec.RolesRef.KMSProviderARN,
-		},
-		{
-			Name:      "control-plane-operator",
-			Namespace: "kube-system",
-			RoleARN:   rosaScope.ControlPlane.Spec.RolesRef.ControlPlaneOperatorARN,
-		},
-		{
-			Name:      "capa-controller-manager",
-			Namespace: "kube-system",
-			RoleARN:   rosaScope.ControlPlane.Spec.RolesRef.NodePoolManagementARN,
-		},
-	} {
-		roles = append(roles, clustersmgmtv1.NewOperatorIAMRole().
-			Name(role.Name).
-			Namespace(role.Namespace).
-			RoleARN(role.RoleARN))
-	}
-	stsBuilder = stsBuilder.OperatorIAMRoles(roles...)
-
-	instanceIAMRolesBuilder := clustersmgmtv1.NewInstanceIAMRoles()
-	instanceIAMRolesBuilder.WorkerRoleARN(*rosaScope.ControlPlane.Spec.WorkerRoleARN)
-	stsBuilder = stsBuilder.InstanceIAMRoles(instanceIAMRolesBuilder)
-	stsBuilder.OidcConfig(clustersmgmtv1.NewOidcConfig().ID(*rosaScope.ControlPlane.Spec.OIDCID))
-	stsBuilder.AutoMode(true)
-
-	awsBuilder := clustersmgmtv1.NewAWS().
-		AccountID(*rosaScope.ControlPlane.Spec.AccountID).
-		BillingAccountID(*rosaScope.ControlPlane.Spec.AccountID).
-		SubnetIDs(rosaScope.ControlPlane.Spec.Subnets...).
-		STS(stsBuilder)
-	clusterBuilder = clusterBuilder.AWS(awsBuilder)
-
-	clusterNodesBuilder := clustersmgmtv1.NewClusterNodes()
-	clusterNodesBuilder = clusterNodesBuilder.AvailabilityZones(rosaScope.ControlPlane.Spec.AvailabilityZones...)
-	clusterBuilder = clusterBuilder.Nodes(clusterNodesBuilder)
-
-	clusterProperties := map[string]string{}
-	clusterProperties[rosaCreatorArnProperty] = *rosaScope.ControlPlane.Spec.CreatorARN
-
-	clusterBuilder = clusterBuilder.Properties(clusterProperties)
-	return clusterBuilder.Build()
+		Hypershift(clustersmgmtv1.NewHypershift().Enabled(true)).
+		Network(
+			clustersmgmtv1.NewNetwork().
+				Type("OVNKubernetes").
+				MachineCIDR(*controlPlane.Spec.MachineCIDR),
+		).
+		AWS(
+			clustersmgmtv1.NewAWS().
+				AccountID(*controlPlane.Spec.AccountID).
+				BillingAccountID(*controlPlane.Spec.AccountID).
+				SubnetIDs(controlPlane.Spec.Subnets...).
+				STS(
+					clustersmgmtv1.NewSTS().
+						RoleARN(*controlPlane.Spec.InstallerRoleARN).
+						SupportRoleARN(*controlPlane.Spec.SupportRoleARN).
+						OperatorIAMRoles(
+							clustersmgmtv1.NewOperatorIAMRole().
+								Name("cloud-credentials").
+								Namespace("openshift-ingress-operator").
+								RoleARN(controlPlane.Spec.RolesRef.IngressARN),
+							clustersmgmtv1.NewOperatorIAMRole().
+								Name("installer-cloud-credentials").
+								Namespace("openshift-image-registry").
+								RoleARN(controlPlane.Spec.RolesRef.ImageRegistryARN),
+							clustersmgmtv1.NewOperatorIAMRole().
+								Name("ebs-cloud-credentials").
+								Namespace("openshift-cluster-csi-drivers").
+								RoleARN(controlPlane.Spec.RolesRef.StorageARN),
+							clustersmgmtv1.NewOperatorIAMRole().
+								Name("cloud-credentials").
+								Namespace("openshift-cloud-network-config-controller").
+								RoleARN(controlPlane.Spec.RolesRef.NetworkARN),
+							clustersmgmtv1.NewOperatorIAMRole().
+								Name("kube-controller-manager").
+								Namespace("kube-system").
+								RoleARN(controlPlane.Spec.RolesRef.KubeCloudControllerARN),
+							clustersmgmtv1.NewOperatorIAMRole().
+								Name("kms-provider").
+								Namespace("kube-system").
+								RoleARN(controlPlane.Spec.RolesRef.KMSProviderARN),
+							clustersmgmtv1.NewOperatorIAMRole().
+								Name("control-plane-operator").
+								Namespace("kube-system").
+								RoleARN(controlPlane.Spec.RolesRef.ControlPlaneOperatorARN),
+							clustersmgmtv1.NewOperatorIAMRole().
+								Name("capa-controller-manager").
+								Namespace("kube-system").
+								RoleARN(controlPlane.Spec.RolesRef.NodePoolManagementARN),
+						).
+						InstanceIAMRoles(
+							clustersmgmtv1.NewInstanceIAMRoles().
+								WorkerRoleARN(*controlPlane.Spec.WorkerRoleARN),
+						).
+						OidcConfig(
+							clustersmgmtv1.NewOidcConfig().ID(*controlPlane.Spec.OIDCID),
+						).
+						AutoMode(true),
+				),
+		).
+		Nodes(
+			clustersmgmtv1.NewClusterNodes().
+				AvailabilityZones(controlPlane.Spec.AvailabilityZones...),
+		).
+		Properties(map[string]string{
+			rosaCreatorArnProperty: *controlPlane.Spec.CreatorARN,
+		}).
+		Build()
 }
 
 func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (res ctrl.Result, reterr error) {

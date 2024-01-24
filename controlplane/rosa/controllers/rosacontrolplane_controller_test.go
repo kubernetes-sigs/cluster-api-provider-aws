@@ -11,7 +11,6 @@ import (
 	"k8s.io/utils/ptr"
 
 	rosacontrolplanev1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	testutil "sigs.k8s.io/cluster-api-provider-aws/v2/test/helpers/fixture"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -22,7 +21,6 @@ func TestOCMCluster(t *testing.T) {
 		t.Fatalf("could not parse time: %v", err)
 	}
 	clock := clocktesting.NewFakeClock(now)
-
 	for _, testCase := range []struct {
 		name string
 		in   *rosacontrolplanev1beta2.ROSAControlPlane
@@ -64,7 +62,7 @@ func TestOCMCluster(t *testing.T) {
 			},
 		},
 	} {
-		got, err := ocmCluster(&scope.ROSAControlPlaneScope{ControlPlane: testCase.in}, clock.Now)
+		got, err := ocmCluster(testCase.in, clock.Now)
 		if err != nil {
 			t.Fatalf("failed to create cluster: %v", err)
 		}
