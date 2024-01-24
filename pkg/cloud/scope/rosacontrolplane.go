@@ -18,6 +18,7 @@ package scope
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -107,6 +108,15 @@ func (s *ROSAControlPlaneScope) CredentialsSecret() *corev1.Secret {
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      s.ControlPlane.Spec.CredentialsSecretRef.Name,
+			Namespace: s.ControlPlane.Namespace,
+		},
+	}
+}
+
+func (s *ROSAControlPlaneScope) ClusterAdminPasswordSecret() *corev1.Secret {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-admin-password", s.Cluster.Name),
 			Namespace: s.ControlPlane.Namespace,
 		},
 	}
