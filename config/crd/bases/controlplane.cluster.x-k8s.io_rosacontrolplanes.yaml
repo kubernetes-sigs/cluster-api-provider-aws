@@ -270,7 +270,7 @@ spec:
               supportRoleARN:
                 type: string
               version:
-                description: Openshift version, for example "openshift-v4.12.15".
+                description: Openshift version, for example "openshift-v4.14.5".
                 type: string
               workerRoleARN:
                 type: string
@@ -337,6 +337,9 @@ spec:
                   - type
                   type: object
                 type: array
+              consoleURL:
+                description: ConsoleURL is the url for the openshift console.
+                type: string
               externalManagedControlPlane:
                 default: true
                 description: ExternalManagedControlPlane indicates to cluster-api
@@ -354,10 +357,14 @@ spec:
                 description: Initialized denotes whether or not the control plane
                   has the uploaded kubernetes config-map.
                 type: boolean
+              oidcEndpointURL:
+                description: OIDCEndpointURL is the endpoint url for the managed OIDC
+                  porvider.
+                type: string
               ready:
                 default: false
-                description: Ready denotes that the AWSManagedControlPlane API Server
-                  is ready to receive requests and that the VPC infra is ready.
+                description: Ready denotes that the ROSAControlPlane API Server is
+                  ready to receive requests.
                 type: boolean
             required:
             - ready
