@@ -123,6 +123,7 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		ControlPlane:    controlPlane,
 		MachinePool:     machinePool,
 		RosaMachinePool: rosaMachinePool,
+		Logger:          log,
 	})
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to create scope")

@@ -33,6 +33,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -134,6 +135,8 @@ func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, nil
 	}
 
+	log = log.WithValues("cluster", klog.KObj(cluster))
+
 	if capiannotations.IsPaused(cluster, rosaControlPlane) {
 		log.Info("Reconciliation is paused for this object")
 		return ctrl.Result{}, nil
@@ -144,6 +147,7 @@ func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		Cluster:        cluster,
 		ControlPlane:   rosaControlPlane,
 		ControllerName: strings.ToLower(rosaControlPlaneKind),
+		Logger:         log,
 	})
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to create scope: %w", err)
@@ -191,7 +195,12 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 
 	if clusterID := cluster.ID(); clusterID != "" {
 		rosaScope.ControlPlane.Status.ID = &clusterID
-		if cluster.Status().State() == cmv1.ClusterStateReady {
+		rosaScope.ControlPlane.Status.ConsoleURL = cluster.Console().URL()
+		rosaScope.ControlPlane.Status.OIDCEndpointURL = cluster.AWS().STS().OIDCEndpointURL()
+		rosaScope.ControlPlane.Status.Ready = false
+
+		switch cluster.Status().State() {
+		case cmv1.ClusterStateReady:
 			conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1.ROSAControlPlaneReadyCondition)
 			rosaScope.ControlPlane.Status.Ready = true
 
@@ -204,7 +213,17 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 			if err := r.reconcileKubeconfig(ctx, rosaScope, rosaClient, cluster); err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to reconcile kubeconfig: %w", err)
 			}
+			return ctrl.Result{}, nil
+		case cmv1.ClusterStateError:
+			errorMessage := cluster.Status().ProvisionErrorMessage()
+			rosaScope.ControlPlane.Status.FailureMessage = &errorMessage
 
+			conditions.MarkFalse(rosaScope.ControlPlane,
+				rosacontrolplanev1.ROSAControlPlaneReadyCondition,
+				string(cluster.Status().State()),
+				clusterv1.ConditionSeverityError,
+				cluster.Status().ProvisionErrorCode())
+			// Cluster is in an unrecoverable state, returning nil error so that the request doesn't get requeued.
 			return ctrl.Result{}, nil
 		}
 
@@ -212,7 +231,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 			rosacontrolplanev1.ROSAControlPlaneReadyCondition,
 			string(cluster.Status().State()),
 			clusterv1.ConditionSeverityInfo,
-			"")
+			cluster.Status().Description())
 
 		rosaScope.Info("waiting for cluster to become ready", "state", cluster.Status().State())
 		// Requeue so that status.ready is set to true when the cluster is fully created.
@@ -333,8 +352,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 
 	newCluster, err := rosaClient.CreateCluster(clusterSpec)
 	if err != nil {
-		rosaScope.Info("error", "error", err)
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		return ctrl.Result{}, fmt.Errorf("failed to create ROSA cluster: %w", err)
 	}
 
 	rosaScope.Info("cluster created", "state", newCluster.Status().State())
@@ -358,15 +376,22 @@ func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaSc
 		return ctrl.Result{}, err
 	}
 
-	if cluster != nil {
+	if cluster == nil {
+		// cluster is fully deleted, remove finalizer.
+		controllerutil.RemoveFinalizer(rosaScope.ControlPlane, ROSAControlPlaneFinalizer)
+		return ctrl.Result{}, nil
+	}
+
+	if cluster.Status().State() != cmv1.ClusterStateUninstalling {
 		if err := rosaClient.DeleteCluster(cluster.ID()); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
-	controllerutil.RemoveFinalizer(rosaScope.ControlPlane, ROSAControlPlaneFinalizer)
-
-	return ctrl.Result{}, nil
+	rosaScope.ControlPlane.Status.Ready = false
+	rosaScope.Info("waiting for cluster to be deleted")
+	// Requeue to remove the finalizer when the cluster is fully deleted.
+	return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 }
 
 func (r *ROSAControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope, rosaClient *rosa.RosaClient, cluster *cmv1.Cluster) error {
