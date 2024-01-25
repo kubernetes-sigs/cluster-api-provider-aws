@@ -162,13 +162,14 @@ func (s *Service) CreateASG(machinePoolScope *scope.MachinePoolScope) (*expinfra
 	}
 
 	input := &expinfrav1.AutoScalingGroup{
-		Name:                 machinePoolScope.Name(),
-		MaxSize:              machinePoolScope.AWSMachinePool.Spec.MaxSize,
-		MinSize:              machinePoolScope.AWSMachinePool.Spec.MinSize,
-		Subnets:              subnets,
-		DefaultCoolDown:      machinePoolScope.AWSMachinePool.Spec.DefaultCoolDown,
-		CapacityRebalance:    machinePoolScope.AWSMachinePool.Spec.CapacityRebalance,
-		MixedInstancesPolicy: machinePoolScope.AWSMachinePool.Spec.MixedInstancesPolicy,
+		Name:                  machinePoolScope.Name(),
+		MaxSize:               machinePoolScope.AWSMachinePool.Spec.MaxSize,
+		MinSize:               machinePoolScope.AWSMachinePool.Spec.MinSize,
+		Subnets:               subnets,
+		DefaultCoolDown:       machinePoolScope.AWSMachinePool.Spec.DefaultCoolDown,
+		DefaultInstanceWarmup: machinePoolScope.AWSMachinePool.Spec.DefaultInstanceWarmup,
+		CapacityRebalance:     machinePoolScope.AWSMachinePool.Spec.CapacityRebalance,
+		MixedInstancesPolicy:  machinePoolScope.AWSMachinePool.Spec.MixedInstancesPolicy,
 	}
 
 	// Default value of MachinePool replicas set by CAPI is 1.
@@ -216,12 +217,13 @@ func (s *Service) CreateASG(machinePoolScope *scope.MachinePoolScope) (*expinfra
 
 func (s *Service) runPool(i *expinfrav1.AutoScalingGroup, launchTemplateID string) error {
 	input := &autoscaling.CreateAutoScalingGroupInput{
-		AutoScalingGroupName: aws.String(i.Name),
-		MaxSize:              aws.Int64(int64(i.MaxSize)),
-		MinSize:              aws.Int64(int64(i.MinSize)),
-		VPCZoneIdentifier:    aws.String(strings.Join(i.Subnets, ", ")),
-		DefaultCooldown:      aws.Int64(int64(i.DefaultCoolDown.Duration.Seconds())),
-		CapacityRebalance:    aws.Bool(i.CapacityRebalance),
+		AutoScalingGroupName:  aws.String(i.Name),
+		MaxSize:               aws.Int64(int64(i.MaxSize)),
+		MinSize:               aws.Int64(int64(i.MinSize)),
+		VPCZoneIdentifier:     aws.String(strings.Join(i.Subnets, ", ")),
+		DefaultCooldown:       aws.Int64(int64(i.DefaultCoolDown.Duration.Seconds())),
+		DefaultInstanceWarmup: aws.Int64(int64(i.DefaultInstanceWarmup.Duration.Seconds())),
+		CapacityRebalance:     aws.Bool(i.CapacityRebalance),
 	}
 
 	if i.DesiredCapacity != nil {

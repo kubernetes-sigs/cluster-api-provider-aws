@@ -172,4 +172,9 @@ func (r *AWSMachinePool) Default() {
 		log.Info("DefaultCoolDown is zero, setting 300 seconds as default")
 		r.Spec.DefaultCoolDown.Duration = 300 * time.Second
 	}
+
+	if int(r.Spec.DefaultInstanceWarmup.Duration.Seconds()) == 0 {
+		log.Info("DefaultInstanceWarmup is zero, setting 300 seconds as default")
+		r.Spec.DefaultInstanceWarmup.Duration = 300 * time.Second
+	}
 }

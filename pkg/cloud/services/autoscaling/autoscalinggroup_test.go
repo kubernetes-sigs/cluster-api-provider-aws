@@ -488,9 +488,10 @@ func TestServiceCreateASG(t *testing.T) {
 			wantASG:               false,
 			expect: func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {
 				expected := &autoscaling.CreateAutoScalingGroupInput{
-					AutoScalingGroupName: aws.String("create-asg-success"),
-					CapacityRebalance:    aws.Bool(false),
-					DefaultCooldown:      aws.Int64(0),
+					AutoScalingGroupName:  aws.String("create-asg-success"),
+					CapacityRebalance:     aws.Bool(false),
+					DefaultCooldown:       aws.Int64(0),
+					DefaultInstanceWarmup: aws.Int64(0),
 					MixedInstancesPolicy: &autoscaling.MixedInstancesPolicy{
 						InstancesDistribution: &autoscaling.InstancesDistribution{
 							OnDemandAllocationStrategy:          aws.String("prioritized"),
