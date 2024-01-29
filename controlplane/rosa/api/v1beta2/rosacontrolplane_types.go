@@ -48,8 +48,10 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// The AWS Region the cluster lives in.
 	Region *string `json:"region"`
 
-	// Openshift version, for example "openshift-v4.14.5".
-	Version *string `json:"version"`
+	// Openshift version, for example "4.14.5".
+	//
+	// +kubebuilder:validation:Pattern:=`^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`
+	Version string `json:"version"`
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional

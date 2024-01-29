@@ -27,6 +27,7 @@ import (
 	"time"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -188,6 +189,15 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	}
 	defer rosaClient.Close()
 
+	isValid, err := validateControlPlaneSpec(rosaClient, rosaScope)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to validate ROSAControlPlane.spec: %w", err)
+	}
+	if !isValid {
+		// dont' requeue because input is invalid and manual intervention is needed.
+		return ctrl.Result{}, nil
+	}
+
 	cluster, err := rosaClient.GetCluster()
 	if err != nil {
 		return ctrl.Result{}, err
@@ -212,6 +222,9 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 
 			if err := r.reconcileKubeconfig(ctx, rosaScope, rosaClient, cluster); err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to reconcile kubeconfig: %w", err)
+			}
+			if err := r.reconcileClusterVersion(rosaScope, rosaClient, cluster); err != nil {
+				return ctrl.Result{}, err
 			}
 			return ctrl.Result{}, nil
 		case cmv1.ClusterStateError:
@@ -255,7 +268,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		DisableUserWorkloadMonitoring(true).
 		Version(
 			cmv1.NewVersion().
-				ID(*rosaScope.ControlPlane.Spec.Version).
+				ID(fmt.Sprintf("openshift-v%s", rosaScope.ControlPlane.Spec.Version)).
 				ChannelGroup("stable"),
 		).
 		ExpirationTimestamp(time.Now().Add(1 * time.Hour)).
@@ -394,6 +407,41 @@ func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaSc
 	return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 }
 
+func (r *ROSAControlPlaneReconciler) reconcileClusterVersion(rosaScope *scope.ROSAControlPlaneScope, rosaClient *rosa.RosaClient, cluster *cmv1.Cluster) error {
+	version := rosaScope.ControlPlane.Spec.Version
+	if version == cluster.Version().RawID() {
+		conditions.MarkFalse(rosaScope.ControlPlane, rosacontrolplanev1.ROSAControlPlaneUpgradingCondition, "upgraded", clusterv1.ConditionSeverityInfo, "")
+		return nil
+	}
+
+	scheduledUpgrade, err := rosaClient.CheckExistingScheduledUpgrade(cluster)
+	if err != nil {
+		return fmt.Errorf("failed to get existing scheduled upgrades: %w", err)
+	}
+
+	if scheduledUpgrade == nil {
+		scheduledUpgrade, err = rosaClient.ScheduleControlPlaneUpgrade(cluster, version, time.Now())
+		if err != nil {
+			return fmt.Errorf("failed to schedule control plane upgrade to version %s: %w", version, err)
+		}
+	}
+
+	condition := &clusterv1.Condition{
+		Type:    rosacontrolplanev1.ROSAControlPlaneUpgradingCondition,
+		Status:  corev1.ConditionTrue,
+		Reason:  string(scheduledUpgrade.State().Value()),
+		Message: fmt.Sprintf("Upgrading to version %s", scheduledUpgrade.Version()),
+	}
+	conditions.Set(rosaScope.ControlPlane, condition)
+
+	// if cluster is already upgrading to another version we need to wait until the current upgrade is finished, return an error to requeue and try later.
+	if scheduledUpgrade.Version() != version {
+		return fmt.Errorf("there is already a %s upgrade to version %s", scheduledUpgrade.State().Value(), scheduledUpgrade.Version())
+	}
+
+	return nil
+}
+
 func (r *ROSAControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope, rosaClient *rosa.RosaClient, cluster *cmv1.Cluster) error {
 	rosaScope.Debug("Reconciling ROSA kubeconfig for cluster", "cluster-name", rosaScope.RosaClusterName())
 
@@ -508,6 +556,26 @@ func (r *ROSAControlPlaneReconciler) reconcileClusterAdminPassword(ctx context.C
 	}
 
 	return password, nil
+}
+
+func validateControlPlaneSpec(rosaClient *rosa.RosaClient, rosaScope *scope.ROSAControlPlaneScope) (bool, error) {
+	// reset previous message.
+	rosaScope.ControlPlane.Status.FailureMessage = nil
+
+	version := rosaScope.ControlPlane.Spec.Version
+	isSupported, err := rosaClient.IsVersionSupported(version)
+	if err != nil {
+		return false, err
+	}
+
+	if !isSupported {
+		message := fmt.Sprintf("version %s is not supported", version)
+		rosaScope.ControlPlane.Status.FailureMessage = &message
+		return false, nil
+	}
+
+	// TODO: add more input validations
+	return true, nil
 }
 
 func (r *ROSAControlPlaneReconciler) rosaClusterToROSAControlPlane(log *logger.Logger) handler.MapFunc {
