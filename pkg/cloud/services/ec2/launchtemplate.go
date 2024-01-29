@@ -498,7 +498,7 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 	data.ImageId = imageID
 
 	data.InstanceMarketOptions = getLaunchTemplateInstanceMarketOptionsRequest(scope.GetLaunchTemplate().SpotMarketOptions)
-	data.PrivateDnsNameOptions = getLaunchTemplatePrivateDNSNameOptionsRequest(scope.GetLaunchTemplate().PrivateDNSNameOptions)
+	data.PrivateDnsNameOptions = getLaunchTemplatePrivateDNSNameOptionsRequest(scope.GetLaunchTemplate().PrivateDNSName)
 
 	// Set up root volume
 	if lt.RootVolume != nil {
@@ -671,7 +671,7 @@ func (s *Service) SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1
 	}
 
 	if v.PrivateDnsNameOptions != nil {
-		i.PrivateDNSNameOptions = &infrav1.PrivateDNSNameOptions{
+		i.PrivateDNSName = &infrav1.PrivateDNSName{
 			EnableResourceNameDNSAAAARecord: v.PrivateDnsNameOptions.EnableResourceNameDnsAAAARecord,
 			EnableResourceNameDNSARecord:    v.PrivateDnsNameOptions.EnableResourceNameDnsARecord,
 			HostnameType:                    v.PrivateDnsNameOptions.HostnameType,
@@ -924,14 +924,14 @@ func getLaunchTemplateInstanceMarketOptionsRequest(spotMarketOptions *infrav1.Sp
 	return launchTemplateInstanceMarketOptionsRequest
 }
 
-func getLaunchTemplatePrivateDNSNameOptionsRequest(privateDNSNameOptions *infrav1.PrivateDNSNameOptions) *ec2.LaunchTemplatePrivateDnsNameOptionsRequest {
-	if privateDNSNameOptions == nil {
+func getLaunchTemplatePrivateDNSNameOptionsRequest(privateDNSName *infrav1.PrivateDNSName) *ec2.LaunchTemplatePrivateDnsNameOptionsRequest {
+	if privateDNSName == nil {
 		return nil
 	}
 
 	return &ec2.LaunchTemplatePrivateDnsNameOptionsRequest{
-		EnableResourceNameDnsAAAARecord: privateDNSNameOptions.EnableResourceNameDNSAAAARecord,
-		EnableResourceNameDnsARecord:    privateDNSNameOptions.EnableResourceNameDNSARecord,
-		HostnameType:                    privateDNSNameOptions.HostnameType,
+		EnableResourceNameDnsAAAARecord: privateDNSName.EnableResourceNameDNSAAAARecord,
+		EnableResourceNameDnsARecord:    privateDNSName.EnableResourceNameDNSARecord,
+		HostnameType:                    privateDNSName.HostnameType,
 	}
 }

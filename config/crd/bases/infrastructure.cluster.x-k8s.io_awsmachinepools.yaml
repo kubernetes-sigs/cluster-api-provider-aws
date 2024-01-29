@@ -690,9 +690,8 @@ spec:
                   name:
                     description: The name of the launch template.
                     type: string
-                  privateDnsNameOptions:
-                    description: PrivateDNSNameOptions is the options for the instance
-                      hostname.
+                  privateDnsName:
+                    description: PrivateDNSName is the options for the instance hostname.
                     properties:
                       enableResourceNameDnsAAAARecord:
                         description: EnableResourceNameDNSAAAARecord indicates whether
