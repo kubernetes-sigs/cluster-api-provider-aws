@@ -123,11 +123,6 @@ func (in *RosaControlPlaneSpec) DeepCopyInto(out *RosaControlPlaneSpec) {
 		*out = new(string)
 		**out = **in
 	}
-	if in.Version != nil {
-		in, out := &in.Version, &out.Version
-		*out = new(string)
-		**out = **in
-	}
 	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
 	out.RolesRef = in.RolesRef
 	if in.OIDCID != nil {

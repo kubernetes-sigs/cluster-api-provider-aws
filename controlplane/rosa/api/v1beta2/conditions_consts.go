@@ -21,4 +21,7 @@ import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 const (
 	// ROSAControlPlaneReadyCondition condition reports on the successful reconciliation of ROSAControlPlane.
 	ROSAControlPlaneReadyCondition clusterv1.ConditionType = "ROSAControlPlaneReady"
+
+	// ROSAControlPlaneUpgradingCondition condition reports whether ROSAControlPlane is upgrading or not.
+	ROSAControlPlaneUpgradingCondition clusterv1.ConditionType = "ROSAControlPlaneUpgrading"
 )
