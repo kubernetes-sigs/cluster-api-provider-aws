@@ -325,7 +325,7 @@ func TestAWSMachineUpdate(t *testing.T) {
 							ID: pointer.String("ID"),
 						},
 					},
-					PrivateDNSNameOptions: &PrivateDNSNameOptions{
+					PrivateDNSName: &PrivateDNSName{
 						EnableResourceNameDNSAAAARecord: aws.Bool(true),
 						EnableResourceNameDNSARecord:    aws.Bool(true),
 					},

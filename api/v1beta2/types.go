@@ -233,9 +233,9 @@ type Instance struct {
 	// +optional
 	InstanceMetadataOptions *InstanceMetadataOptions `json:"instanceMetadataOptions,omitempty"`
 
-	// PrivateDNSNameOptions is the options for the instance hostname.
+	// PrivateDNSName is the options for the instance hostname.
 	// +optional
-	PrivateDNSNameOptions *PrivateDNSNameOptions `json:"privateDnsNameOptions,omitempty"`
+	PrivateDNSName *PrivateDNSName `json:"privateDnsName,omitempty"`
 }
 
 // InstanceMetadataState describes the state of InstanceMetadataOptions.HttpEndpoint and InstanceMetadataOptions.InstanceMetadataTags
@@ -412,8 +412,8 @@ const (
 	AmazonLinuxGPU EKSAMILookupType = "AmazonLinuxGPU"
 )
 
-// PrivateDNSNameOptions is the options for the instance hostname.
-type PrivateDNSNameOptions struct {
+// PrivateDNSName is the options for the instance hostname.
+type PrivateDNSName struct {
 	// EnableResourceNameDNSAAAARecord indicates whether to respond to DNS queries for instance hostnames with DNS AAAA records.
 	// +optional
 	EnableResourceNameDNSAAAARecord *bool `json:"enableResourceNameDnsAAAARecord,omitempty"`

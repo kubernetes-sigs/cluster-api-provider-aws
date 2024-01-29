@@ -1108,9 +1108,8 @@ spec:
                     description: PlacementGroupName specifies the name of the placement
                       group in which to launch the instance.
                     type: string
-                  privateDnsNameOptions:
-                    description: PrivateDNSNameOptions is the options for the instance
-                      hostname.
+                  privateDnsName:
+                    description: PrivateDNSName is the options for the instance hostname.
                     properties:
                       enableResourceNameDnsAAAARecord:
                         description: EnableResourceNameDNSAAAARecord indicates whether
@@ -2751,9 +2750,8 @@ spec:
                     description: PlacementGroupName specifies the name of the placement
                       group in which to launch the instance.
                     type: string
-                  privateDnsNameOptions:
-                    description: PrivateDNSNameOptions is the options for the instance
-                      hostname.
+                  privateDnsName:
+                    description: PrivateDNSName is the options for the instance hostname.
                     properties:
                       enableResourceNameDnsAAAARecord:
                         description: EnableResourceNameDNSAAAARecord indicates whether

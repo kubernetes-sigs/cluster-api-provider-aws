@@ -238,7 +238,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 
 	input.PlacementGroupName = scope.AWSMachine.Spec.PlacementGroupName
 
-	input.PrivateDNSNameOptions = scope.AWSMachine.Spec.PrivateDNSNameOptions
+	input.PrivateDNSName = scope.AWSMachine.Spec.PrivateDNSName
 
 	s.scope.Debug("Running instance", "machine-role", scope.Role())
 	s.scope.Debug("Running instance with instance metadata options", "metadata options", input.InstanceMetadataOptions)
@@ -597,7 +597,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 
 	input.InstanceMarketOptions = getInstanceMarketOptionsRequest(i.SpotMarketOptions)
 	input.MetadataOptions = getInstanceMetadataOptionsRequest(i.InstanceMetadataOptions)
-	input.PrivateDnsNameOptions = getPrivateDNSNameOptionsRequest(i.PrivateDNSNameOptions)
+	input.PrivateDnsNameOptions = getPrivateDNSNameOptionsRequest(i.PrivateDNSName)
 
 	if i.Tenancy != "" {
 		input.Placement = &ec2.Placement{
@@ -869,7 +869,7 @@ func (s *Service) SDKToInstance(v *ec2.Instance) (*infrav1.Instance, error) {
 	}
 
 	if v.PrivateDnsNameOptions != nil {
-		i.PrivateDNSNameOptions = &infrav1.PrivateDNSNameOptions{
+		i.PrivateDNSName = &infrav1.PrivateDNSName{
 			EnableResourceNameDNSAAAARecord: v.PrivateDnsNameOptions.EnableResourceNameDnsAAAARecord,
 			EnableResourceNameDNSARecord:    v.PrivateDnsNameOptions.EnableResourceNameDnsARecord,
 			HostnameType:                    v.PrivateDnsNameOptions.HostnameType,
@@ -1065,14 +1065,14 @@ func getInstanceMetadataOptionsRequest(metadataOptions *infrav1.InstanceMetadata
 	return request
 }
 
-func getPrivateDNSNameOptionsRequest(privateDNSNameOptions *infrav1.PrivateDNSNameOptions) *ec2.PrivateDnsNameOptionsRequest {
-	if privateDNSNameOptions == nil {
+func getPrivateDNSNameOptionsRequest(privateDNSName *infrav1.PrivateDNSName) *ec2.PrivateDnsNameOptionsRequest {
+	if privateDNSName == nil {
 		return nil
 	}
 
 	return &ec2.PrivateDnsNameOptionsRequest{
-		EnableResourceNameDnsAAAARecord: privateDNSNameOptions.EnableResourceNameDNSAAAARecord,
-		EnableResourceNameDnsARecord:    privateDNSNameOptions.EnableResourceNameDNSARecord,
-		HostnameType:                    privateDNSNameOptions.HostnameType,
+		EnableResourceNameDnsAAAARecord: privateDNSName.EnableResourceNameDNSAAAARecord,
+		EnableResourceNameDnsARecord:    privateDNSName.EnableResourceNameDNSARecord,
+		HostnameType:                    privateDNSName.HostnameType,
 	}
 }
