@@ -273,7 +273,7 @@ func TestAWSMachineUpdate(t *testing.T) {
 		wantErr    bool
 	}{
 		{
-			name: "change in providerid, cloudinit, tags and securitygroups",
+			name: "change in providerid, cloudinit, tags, securitygroups",
 			oldMachine: &AWSMachine{
 				Spec: AWSMachineSpec{
 					ProviderID:               nil,
@@ -324,6 +324,10 @@ func TestAWSMachineUpdate(t *testing.T) {
 						{
 							ID: ptr.To[string]("ID"),
 						},
+					},
+					PrivateDNSName: &PrivateDNSName{
+						EnableResourceNameDNSAAAARecord: aws.Bool(true),
+						EnableResourceNameDNSARecord:    aws.Bool(true),
 					},
 				},
 			},

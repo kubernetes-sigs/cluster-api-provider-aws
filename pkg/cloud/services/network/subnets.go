@@ -490,6 +490,22 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 		record.Eventf(s.scope.InfraCluster(), "SuccessfulModifySubnetAttributes", "Modified managed Subnet %q attributes", *out.Subnet.SubnetId)
 	}
 
+	if s.scope.VPC().PrivateDNSHostnameTypeOnLaunch != nil {
+		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+			if _, err := s.EC2Client.ModifySubnetAttributeWithContext(context.TODO(), &ec2.ModifySubnetAttributeInput{
+				SubnetId:                       out.Subnet.SubnetId,
+				PrivateDnsHostnameTypeOnLaunch: s.scope.VPC().PrivateDNSHostnameTypeOnLaunch,
+			}); err != nil {
+				return false, err
+			}
+			return true, nil
+		}, awserrors.SubnetNotFound); err != nil {
+			record.Warnf(s.scope.InfraCluster(), "FailedModifySubnetAttributes", "Failed modifying managed Subnet %q attributes: %v", *out.Subnet.SubnetId, err)
+			return nil, errors.Wrapf(err, "failed to set subnet %q attribute private DNS Hostname type on launch", *out.Subnet.SubnetId)
+		}
+		record.Eventf(s.scope.InfraCluster(), "SuccessfulModifySubnetAttributes", "Modified managed Subnet %q attributes", *out.Subnet.SubnetId)
+	}
+
 	subnet := &infrav1.SubnetSpec{
 		// Preserve the original identifier. The AWS identifier `subnet-<xyz>` is stored in the ResourceID field.
 		ID:               sn.ID,
