@@ -238,6 +238,8 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 
 	input.PlacementGroupName = scope.AWSMachine.Spec.PlacementGroupName
 
+	input.PrivateDNSName = scope.AWSMachine.Spec.PrivateDNSName
+
 	s.scope.Debug("Running instance", "machine-role", scope.Role())
 	s.scope.Debug("Running instance with instance metadata options", "metadata options", input.InstanceMetadataOptions)
 	out, err := s.runInstance(scope.Role(), input)
@@ -595,6 +597,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 
 	input.InstanceMarketOptions = getInstanceMarketOptionsRequest(i.SpotMarketOptions)
 	input.MetadataOptions = getInstanceMetadataOptionsRequest(i.InstanceMetadataOptions)
+	input.PrivateDnsNameOptions = getPrivateDNSNameOptionsRequest(i.PrivateDNSName)
 
 	if i.Tenancy != "" {
 		input.Placement = &ec2.Placement{
@@ -865,6 +868,14 @@ func (s *Service) SDKToInstance(v *ec2.Instance) (*infrav1.Instance, error) {
 		i.InstanceMetadataOptions = metadataOptions
 	}
 
+	if v.PrivateDnsNameOptions != nil {
+		i.PrivateDNSName = &infrav1.PrivateDNSName{
+			EnableResourceNameDNSAAAARecord: v.PrivateDnsNameOptions.EnableResourceNameDnsAAAARecord,
+			EnableResourceNameDNSARecord:    v.PrivateDnsNameOptions.EnableResourceNameDnsARecord,
+			HostnameType:                    v.PrivateDnsNameOptions.HostnameType,
+		}
+	}
+
 	return i, nil
 }
 
@@ -1052,4 +1063,16 @@ func getInstanceMetadataOptionsRequest(metadataOptions *infrav1.InstanceMetadata
 	}
 
 	return request
+}
+
+func getPrivateDNSNameOptionsRequest(privateDNSName *infrav1.PrivateDNSName) *ec2.PrivateDnsNameOptionsRequest {
+	if privateDNSName == nil {
+		return nil
+	}
+
+	return &ec2.PrivateDnsNameOptionsRequest{
+		EnableResourceNameDnsAAAARecord: privateDNSName.EnableResourceNameDNSAAAARecord,
+		EnableResourceNameDnsARecord:    privateDNSName.EnableResourceNameDNSARecord,
+		HostnameType:                    privateDNSName.HostnameType,
+	}
 }

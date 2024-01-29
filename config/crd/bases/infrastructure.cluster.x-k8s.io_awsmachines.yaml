@@ -780,6 +780,25 @@ spec:
                 description: PlacementGroupName specifies the name of the placement
                   group in which to launch the instance.
                 type: string
+              privateDnsName:
+                description: PrivateDNSName is the options for the instance hostname.
+                properties:
+                  enableResourceNameDnsAAAARecord:
+                    description: EnableResourceNameDNSAAAARecord indicates whether
+                      to respond to DNS queries for instance hostnames with DNS AAAA
+                      records.
+                    type: boolean
+                  enableResourceNameDnsARecord:
+                    description: EnableResourceNameDNSARecord indicates whether to
+                      respond to DNS queries for instance hostnames with DNS A records.
+                    type: boolean
+                  hostnameType:
+                    description: The type of hostname to assign to an instance.
+                    enum:
+                    - ip-name
+                    - resource-name
+                    type: string
+                type: object
               providerID:
                 description: ProviderID is the unique identifier as specified by the
                   cloud provider.

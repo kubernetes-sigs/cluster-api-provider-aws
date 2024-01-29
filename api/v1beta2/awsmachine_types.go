@@ -160,6 +160,10 @@ type AWSMachineSpec struct {
 	// +optional
 	// +kubebuilder:validation:Enum:=default;dedicated;host
 	Tenancy string `json:"tenancy,omitempty"`
+
+	// PrivateDNSName is the options for the instance hostname.
+	// +optional
+	PrivateDNSName *PrivateDNSName `json:"privateDnsName,omitempty"`
 }
 
 // CloudInit defines options related to the bootstrapping systems where

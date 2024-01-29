@@ -120,6 +120,10 @@ type AWSLaunchTemplate struct {
 	// InstanceMetadataOptions defines the behavior for applying metadata to instances.
 	// +optional
 	InstanceMetadataOptions *infrav1.InstanceMetadataOptions `json:"instanceMetadataOptions,omitempty"`
+
+	// PrivateDNSName is the options for the instance hostname.
+	// +optional
+	PrivateDNSName *infrav1.PrivateDNSName `json:"privateDnsName,omitempty"`
 }
 
 // Overrides are used to override the instance type specified by the launch template with multiple
