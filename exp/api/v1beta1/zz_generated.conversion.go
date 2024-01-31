@@ -520,7 +520,6 @@ func autoConvert_v1beta1_AWSMachinePoolSpec_To_v1beta2_AWSMachinePoolSpec(in *AW
 	out.MixedInstancesPolicy = (*v1beta2.MixedInstancesPolicy)(unsafe.Pointer(in.MixedInstancesPolicy))
 	out.ProviderIDList = *(*[]string)(unsafe.Pointer(&in.ProviderIDList))
 	out.DefaultCoolDown = in.DefaultCoolDown
-	out.DefaultInstanceWarmup = in.DefaultInstanceWarmup
 	if in.RefreshPreferences != nil {
 		in, out := &in.RefreshPreferences, &out.RefreshPreferences
 		*out = new(v1beta2.RefreshPreferences)
@@ -548,7 +547,7 @@ func autoConvert_v1beta2_AWSMachinePoolSpec_To_v1beta1_AWSMachinePoolSpec(in *v1
 	out.MixedInstancesPolicy = (*MixedInstancesPolicy)(unsafe.Pointer(in.MixedInstancesPolicy))
 	out.ProviderIDList = *(*[]string)(unsafe.Pointer(&in.ProviderIDList))
 	out.DefaultCoolDown = in.DefaultCoolDown
-	out.DefaultInstanceWarmup = in.DefaultInstanceWarmup
+	// WARNING: in.DefaultInstanceWarmup requires manual conversion: does not exist in peer-type
 	if in.RefreshPreferences != nil {
 		in, out := &in.RefreshPreferences, &out.RefreshPreferences
 		*out = new(RefreshPreferences)
