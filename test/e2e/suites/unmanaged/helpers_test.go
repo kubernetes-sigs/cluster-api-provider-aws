@@ -21,6 +21,7 @@ package unmanaged
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -629,6 +630,22 @@ func assertInstanceMetadataOptions(instanceID string, expected infrav1.InstanceM
 	Expect(metadataOptions.HttpPutResponseHopLimit).To(HaveValue(Equal(expected.HTTPPutResponseHopLimit)))
 }
 
+func assertUnencryptedUserDataIgnition(instanceID string, expected string) {
+	ginkgo.By(fmt.Sprintf("Finding EC2 instance with ID: %s", instanceID))
+	ec2Client := ec2.New(e2eCtx.AWSSession)
+	input := &ec2.DescribeInstanceAttributeInput{
+		Attribute:  aws.String(ec2.InstanceAttributeNameUserData),
+		InstanceId: aws.String(instanceID[strings.LastIndex(instanceID, "/")+1:]),
+	}
+
+	result, err := ec2Client.DescribeInstanceAttribute(input)
+	Expect(err).ToNot(HaveOccurred(), "expected DescribeInstanceAttribute call to succeed")
+
+	userData, err := base64.StdEncoding.DecodeString(*result.UserData.Value)
+	Expect(err).ToNot(HaveOccurred(), "expected ec2 instance user data to be base64 decodable")
+	Expect(string(userData)).To(HaveValue(MatchJSON(expected)), "expected userdata to match")
+}
+
 func terminateInstance(instanceID string) {
 	ginkgo.By(fmt.Sprintf("Terminating EC2 instance with ID: %s", instanceID))
 	ec2Client := ec2.New(e2eCtx.AWSSession)
@@ -867,4 +884,23 @@ func createPodWithEFSMount(clusterClient crclient.Client) {
 		},
 	}
 	Expect(clusterClient.Create(context.TODO(), pod)).NotTo(HaveOccurred())
+}
+
+func getRawBootstrapDataWithFormat(c crclient.Client, m clusterv1.Machine) ([]byte, string, error) {
+	if m.Spec.Bootstrap.DataSecretName == nil {
+		return nil, "", fmt.Errorf("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
+	}
+
+	secret := &corev1.Secret{}
+	key := apimachinerytypes.NamespacedName{Namespace: m.Namespace, Name: *m.Spec.Bootstrap.DataSecretName}
+	if err := c.Get(context.TODO(), key, secret); err != nil {
+		return nil, "", fmt.Errorf("failed to retrieve bootstrap data secret for AWSMachine %s/%s: %v", m.Namespace, m.Name, err)
+	}
+
+	value, ok := secret.Data["value"]
+	if !ok {
+		return nil, "", fmt.Errorf("error retrieving bootstrap data: secret value key is missing")
+	}
+
+	return value, string(secret.Data["format"]), nil
 }
