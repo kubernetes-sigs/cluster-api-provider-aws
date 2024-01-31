@@ -531,10 +531,6 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 	m.DescribeInstancesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			{
-				Name:   aws.String("vpc-id"),
-				Values: aws.StringSlice([]string{""}),
-			},
-			{
 				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 				Values: aws.StringSlice([]string{"owned"}),
 			},
@@ -641,10 +637,6 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 		{
 			Name:   aws.String("state"),
 			Values: aws.StringSlice([]string{"pending", "available"}),
-		},
-		{
-			Name:   aws.String("vpc-id"),
-			Values: aws.StringSlice([]string{""}),
 		},
 		{
 			Name:   aws.String("subnet-id"),

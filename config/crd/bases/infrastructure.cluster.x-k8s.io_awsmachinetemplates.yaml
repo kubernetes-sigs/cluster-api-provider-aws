@@ -807,6 +807,14 @@ spec:
                         required:
                         - size
                         type: object
+                      securityGroupOverrides:
+                        additionalProperties:
+                          type: string
+                        description: SecurityGroupOverrides is an optional set of
+                          security groups to use for the node. This is optional -
+                          if not provided security groups from the cluster will be
+                          used.
+                        type: object
                       spotMarketOptions:
                         description: SpotMarketOptions allows users to configure instances
                           to be run using AWS Spot instances.

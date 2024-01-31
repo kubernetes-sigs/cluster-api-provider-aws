@@ -700,6 +700,13 @@ func (in *AWSMachineSpec) DeepCopyInto(out *AWSMachineSpec) {
 		*out = new(AWSResourceReference)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.SecurityGroupOverrides != nil {
+		in, out := &in.SecurityGroupOverrides, &out.SecurityGroupOverrides
+		*out = make(map[SecurityGroupRole]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.SSHKeyName != nil {
 		in, out := &in.SSHKeyName, &out.SSHKeyName
 		*out = new(string)
