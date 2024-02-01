@@ -20,6 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -64,8 +65,6 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	OIDCID *string `json:"oidcID"`
 
 	// TODO: these are to satisfy ocm sdk. Explore how to drop them.
-	AccountID        *string `json:"accountID"`
-	CreatorARN       *string `json:"creatorARN"`
 	InstallerRoleARN *string `json:"installerRoleARN"`
 	SupportRoleARN   *string `json:"supportRoleARN"`
 	WorkerRoleARN    *string `json:"workerRoleARN"`
@@ -76,6 +75,10 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// - ocmApiUrl: Optional, defaults to 'https://api.openshift.com'
 	// +optional
 	CredentialsSecretRef *corev1.LocalObjectReference `json:"credentialsSecretRef,omitempty"`
+
+	// IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
+	// +optional
+	IdentityRef *infrav1.AWSIdentityReference `json:"identityRef,omitempty"`
 }
 
 // AWSRolesRef contains references to various AWS IAM roles required for operators to make calls against the AWS API.
@@ -489,6 +492,7 @@ type RosaControlPlaneStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this RosaControl belongs"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Control plane infrastructure is ready for worker nodes"
+// +k8s:defaulter-gen=true
 
 type ROSAControlPlane struct {
 	metav1.TypeMeta   `json:",inline"`

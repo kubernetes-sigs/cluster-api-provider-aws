@@ -20,13 +20,18 @@ import (
 	"context"
 	"fmt"
 
+	awsclient "github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -38,6 +43,7 @@ type ROSAControlPlaneScopeParams struct {
 	Cluster        *clusterv1.Cluster
 	ControlPlane   *rosacontrolplanev1.ROSAControlPlane
 	ControllerName string
+	Endpoints      []ServiceEndpoint
 }
 
 func NewROSAControlPlaneScope(params ROSAControlPlaneScopeParams) (*ROSAControlPlaneScope, error) {
@@ -53,11 +59,17 @@ func NewROSAControlPlaneScope(params ROSAControlPlaneScopeParams) (*ROSAControlP
 	}
 
 	managedScope := &ROSAControlPlaneScope{
-		Logger:       *params.Logger,
-		Client:       params.Client,
-		Cluster:      params.Cluster,
-		ControlPlane: params.ControlPlane,
-		patchHelper:  nil,
+		Logger:         *params.Logger,
+		Client:         params.Client,
+		Cluster:        params.Cluster,
+		ControlPlane:   params.ControlPlane,
+		patchHelper:    nil,
+		controllerName: params.ControllerName,
+	}
+
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, *params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+	if err != nil {
+		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
 
 	helper, err := patch.NewHelper(params.ControlPlane, params.Client)
@@ -66,6 +78,16 @@ func NewROSAControlPlaneScope(params ROSAControlPlaneScopeParams) (*ROSAControlP
 	}
 
 	managedScope.patchHelper = helper
+	managedScope.session = session
+	managedScope.serviceLimiters = serviceLimiters
+
+	stsClient := NewSTSClient(managedScope, managedScope, managedScope, managedScope.ControlPlane)
+	identity, err := stsClient.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to identify the AWS caller: %w", err)
+	}
+	managedScope.Identity = identity
+
 	return managedScope, nil
 }
 
@@ -77,7 +99,39 @@ type ROSAControlPlaneScope struct {
 
 	Cluster      *clusterv1.Cluster
 	ControlPlane *rosacontrolplanev1.ROSAControlPlane
+
+	session         awsclient.ConfigProvider
+	serviceLimiters throttle.ServiceLimiters
+	controllerName  string
+	Identity        *sts.GetCallerIdentityOutput
 }
+
+func (s *ROSAControlPlaneScope) InfraCluster() cloud.ClusterObject {
+	return s.ControlPlane
+}
+
+func (s *ROSAControlPlaneScope) IdentityRef() *infrav1.AWSIdentityReference {
+	return s.ControlPlane.Spec.IdentityRef
+}
+
+func (s *ROSAControlPlaneScope) Session() awsclient.ConfigProvider {
+	return s.session
+}
+
+func (s *ROSAControlPlaneScope) ServiceLimiter(service string) *throttle.ServiceLimiter {
+	if sl, ok := s.serviceLimiters[service]; ok {
+		return sl
+	}
+	return nil
+}
+
+func (s *ROSAControlPlaneScope) ControllerName() string {
+	return s.controllerName
+}
+
+var _ cloud.ScopeUsage = (*ROSAControlPlaneScope)(nil)
+var _ cloud.Session = (*ROSAControlPlaneScope)(nil)
+var _ cloud.SessionMetadata = (*ROSAControlPlaneScope)(nil)
 
 // Name returns the CAPI cluster name.
 func (s *ROSAControlPlaneScope) Name() string {
