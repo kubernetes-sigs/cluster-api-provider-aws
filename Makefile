@@ -76,7 +76,7 @@ DOCKER_BUILDKIT=1
 export ACK_GINKGO_DEPRECATIONS := 1.16.4
 
 # Set --output-base for conversion-gen if we are not within GOPATH
-ifneq ($(abspath $(REPO_ROOT)),$(shell go env GOPATH)/src/sigs.k8s.io/cluster-api-provider-aws)
+ifneq ($(abspath $(REPO_ROOT)),$(abspath $(shell go env GOPATH)/src/sigs.k8s.io/cluster-api-provider-aws))
 	GEN_OUTPUT_BASE := --output-base=$(REPO_ROOT)
 else
 	export GOPATH := $(shell go env GOPATH)
@@ -190,6 +190,7 @@ defaulters: $(DEFAULTER_GEN) ## Generate all Go types
 	$(DEFAULTER_GEN) \
 		--input-dirs=./api/v1beta2 \
 		--input-dirs=./$(EXP_DIR)/api/v1beta2 \
+		--input-dirs=./controlplane/rosa/api/v1beta2 \
 		--input-dirs=./cmd/clusterawsadm/api/bootstrap/v1beta1 \
 		--input-dirs=./cmd/clusterawsadm/api/bootstrap/v1alpha1 \
 		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1beta1 \

@@ -37,6 +37,7 @@ type ROSAMachinePoolReconciler struct {
 	client.Client
 	Recorder         record.EventRecorder
 	WatchFilterValue string
+	Endpoints        []scope.ServiceEndpoint
 }
 
 // SetupWithManager is used to setup the controller.

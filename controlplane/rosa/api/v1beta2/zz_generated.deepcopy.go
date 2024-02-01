@@ -23,6 +23,7 @@ package v1beta2
 import (
 	"k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	apiv1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -130,16 +131,6 @@ func (in *RosaControlPlaneSpec) DeepCopyInto(out *RosaControlPlaneSpec) {
 		*out = new(string)
 		**out = **in
 	}
-	if in.AccountID != nil {
-		in, out := &in.AccountID, &out.AccountID
-		*out = new(string)
-		**out = **in
-	}
-	if in.CreatorARN != nil {
-		in, out := &in.CreatorARN, &out.CreatorARN
-		*out = new(string)
-		**out = **in
-	}
 	if in.InstallerRoleARN != nil {
 		in, out := &in.InstallerRoleARN, &out.InstallerRoleARN
 		*out = new(string)
@@ -158,6 +149,11 @@ func (in *RosaControlPlaneSpec) DeepCopyInto(out *RosaControlPlaneSpec) {
 	if in.CredentialsSecretRef != nil {
 		in, out := &in.CredentialsSecretRef, &out.CredentialsSecretRef
 		*out = new(v1.LocalObjectReference)
+		**out = **in
+	}
+	if in.IdentityRef != nil {
+		in, out := &in.IdentityRef, &out.IdentityRef
+		*out = new(apiv1beta2.AWSIdentityReference)
 		**out = **in
 	}
 }
