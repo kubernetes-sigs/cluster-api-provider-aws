@@ -67,7 +67,7 @@ spec:
       infrastructureRef:
         name: "${CLUSTER_NAME}-pool-0"
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-        kind: RosaMachinePool
+        kind: ROSAMachinePool
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: ROSAMachinePool
