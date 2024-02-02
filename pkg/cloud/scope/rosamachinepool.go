@@ -139,6 +139,18 @@ func (s *RosaMachinePoolScope) GetSetter() conditions.Setter {
 	return s.RosaMachinePool
 }
 
+
+// SetInfrastructureMachineKind sets the infrastructure machine kind in the status if it is not set already, returning
+// `true` if the status was updated. This supports MachinePool Machines.
+func (s *RosaMachinePoolScope) SetInfrastructureMachineKind() bool {
+	if s.RosaMachinePool.Status.InfrastructureMachineKind != expinfrav1.RosaMachinePoolMachineKind {
+		s.RosaMachinePool.Status.InfrastructureMachineKind = expinfrav1.RosaMachinePoolMachineKind 
+
+		return true
+	}
+	return false
+}
+
 // RosaMchinePoolReadyFalse marks the ready condition false using warning if error isn't
 // empty.
 func (s *RosaMachinePoolScope) RosaMchinePoolReadyFalse(reason string, err string) error {

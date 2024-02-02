@@ -149,6 +149,10 @@ spec:
               id:
                 description: ID is the ID given by ROSA.
                 type: string
+              infrastructureMachineKind:
+                description: InfrastructureMachineKind is the kind of the infrastructure
+                  resources behind MachinePool Machines.
+                type: string
               ready:
                 default: false
                 description: Ready denotes that the RosaMachinePool nodepool has joined

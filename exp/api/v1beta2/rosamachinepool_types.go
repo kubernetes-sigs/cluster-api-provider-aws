@@ -22,6 +22,10 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+const (
+	RosaMachinePoolMachineKind = "RosaMachinePoolMachine"
+)
+
 // RosaMachinePoolSpec defines the desired state of RosaMachinePool.
 type RosaMachinePoolSpec struct {
 	// NodePoolName specifies the name of the nodepool in Rosa
@@ -94,6 +98,10 @@ type RosaMachinePoolStatus struct {
 
 	// ID is the ID given by ROSA.
 	ID string `json:"id,omitempty"`
+
+	// InfrastructureMachineKind is the kind of the infrastructure resources behind MachinePool Machines.
+	// +optional
+	InfrastructureMachineKind string `json:"infrastructureMachineKind,omitempty"`
 }
 
 // +kubebuilder:object:root=true
