@@ -654,7 +654,10 @@ func mockedCreateVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 }
 
 func mockedCreateMaximumVPCCalls(m *mocks.MockEC2APIMockRecorder) {
-	m.CreateVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).Return(nil, errors.New("The maximum number of VPCs has been reached"))
+	describeVPCByNameCall := m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
+		Vpcs: []*ec2.Vpc{},
+	}, nil)
+	m.CreateVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).After(describeVPCByNameCall).Return(nil, errors.New("The maximum number of VPCs has been reached"))
 }
 
 func mockedDeleteVPCCallsForNonExistentVPC(m *mocks.MockEC2APIMockRecorder) {
