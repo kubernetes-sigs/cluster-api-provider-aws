@@ -60,6 +60,14 @@ type AWSClusterSpec struct {
 	// +optional
 	ControlPlaneLoadBalancer *AWSLoadBalancerSpec `json:"controlPlaneLoadBalancer,omitempty"`
 
+	// SecondaryControlPlaneLoadBalancer is an additional load balancer that can be used for the control plane.
+	//
+	// An example use case is to have a separate internal load balancer for internal traffic,
+	// and a separate external load balancer for external traffic.
+	//
+	// +optional
+	SecondaryControlPlaneLoadBalancer *AWSLoadBalancerSpec `json:"secondaryControlPlaneLoadBalancer,omitempty"`
+
 	// ImageLookupFormat is the AMI naming format to look up machine images when
 	// a machine does not specify an AMI. When set, this will be used for all
 	// cluster machines unless a machine specifies a different ImageLookupOrg.

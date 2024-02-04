@@ -308,6 +308,11 @@ func (in *AWSClusterSpec) DeepCopyInto(out *AWSClusterSpec) {
 		*out = new(AWSLoadBalancerSpec)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.SecondaryControlPlaneLoadBalancer != nil {
+		in, out := &in.SecondaryControlPlaneLoadBalancer, &out.SecondaryControlPlaneLoadBalancer
+		*out = new(AWSLoadBalancerSpec)
+		(*in).DeepCopyInto(*out)
+	}
 	in.Bastion.DeepCopyInto(&out.Bastion)
 	if in.IdentityRef != nil {
 		in, out := &in.IdentityRef, &out.IdentityRef
@@ -1649,6 +1654,7 @@ func (in *NetworkStatus) DeepCopyInto(out *NetworkStatus) {
 		}
 	}
 	in.APIServerELB.DeepCopyInto(&out.APIServerELB)
+	in.SecondaryAPIServerELB.DeepCopyInto(&out.SecondaryAPIServerELB)
 	if in.NatGatewaysIPs != nil {
 		in, out := &in.NatGatewaysIPs, &out.NatGatewaysIPs
 		*out = make([]string, len(*in))

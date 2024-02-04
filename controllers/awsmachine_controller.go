@@ -32,6 +32,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -331,7 +332,8 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 	if err := r.reconcileLBAttachment(machineScope, elbScope, instance); err != nil {
 		// We are tolerating AccessDenied error, so this won't block for users with older version of IAM;
 		// all the other errors are blocking.
-		if !elb.IsAccessDenied(err) && !elb.IsNotFound(err) {
+		// Because we are reconciling all load balancers, attempt to treat the error as a list of errors.
+		if err = kerrors.FilterOut(err, elb.IsAccessDenied, elb.IsNotFound); err != nil {
 			conditions.MarkFalse(machineScope.AWSMachine, infrav1.ELBAttachedCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
 			return ctrl.Result{}, errors.Errorf("failed to reconcile LB attachment: %+v", err)
 		}
@@ -853,6 +855,8 @@ func (r *AWSMachineReconciler) deleteIgnitionBootstrapDataFromS3(machineScope *s
 	return nil
 }
 
+// reconcileLBAttachment reconciles attachment to _all_ defined load balancers.
+// Callers are expected to filter out known-good errors out of the aggregate error list.
 func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.MachineScope, elbScope scope.ELBScope, i *infrav1.Instance) error {
 	if !machineScope.IsControlPlane() {
 		return nil
@@ -860,18 +864,33 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.Machine
 
 	elbsvc := r.getELBService(elbScope)
 
-	// In order to prevent sending request to a "not-ready" control plane machines, it is required to remove the machine
-	// from the ELB as soon as the machine or infra machine gets deleted or when the machine is in a not running state.
-	if machineScope.AWSMachineIsDeleted() || machineScope.MachineIsDeleted() || !machineScope.InstanceIsRunning() {
-		if elbScope.ControlPlaneLoadBalancer().LoadBalancerType == infrav1.LoadBalancerTypeClassic {
-			machineScope.Debug("deregistering from classic load balancer")
-			return r.deregisterInstanceFromClassicLB(machineScope, elbsvc, i)
+	errs := []error{}
+	for _, lbSpec := range elbScope.ControlPlaneLoadBalancers() {
+		if lbSpec == nil {
+			continue
 		}
-		machineScope.Debug("deregistering from v2 load balancer")
-		return r.deregisterInstanceFromV2LB(machineScope, elbsvc, i)
+		// In order to prevent sending request to a "not-ready" control plane machines, it is required to remove the machine
+		// from the ELB as soon as the machine or infra machine gets deleted or when the machine is in a not running state.
+		if machineScope.AWSMachineIsDeleted() || machineScope.MachineIsDeleted() || !machineScope.InstanceIsRunning() {
+			if lbSpec.LoadBalancerType == infrav1.LoadBalancerTypeClassic {
+				machineScope.Debug("deregistering from classic load balancer")
+				return r.deregisterInstanceFromClassicLB(machineScope, elbsvc, i)
+			}
+			machineScope.Debug("deregistering from v2 load balancer")
+			errs = append(errs, r.deregisterInstanceFromV2LB(machineScope, elbsvc, i, lbSpec))
+			continue
+		}
+
+		if err := r.registerInstanceToLBs(machineScope, elbsvc, i, lbSpec); err != nil {
+			errs = append(errs, errors.Wrapf(err, "could not register machine to load balancer"))
+		}
 	}
 
-	switch elbScope.ControlPlaneLoadBalancer().LoadBalancerType {
+	return kerrors.NewAggregate(errs)
+}
+
+func (r *AWSMachineReconciler) registerInstanceToLBs(machineScope *scope.MachineScope, elbsvc services.ELBInterface, i *infrav1.Instance, lb *infrav1.AWSLoadBalancerSpec) error {
+	switch lb.LoadBalancerType {
 	case infrav1.LoadBalancerTypeClassic:
 		fallthrough
 	case "":
@@ -884,10 +903,10 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.Machine
 		fallthrough
 	case infrav1.LoadBalancerTypeNLB:
 		machineScope.Debug("registering to v2 load balancer")
-		return r.registerInstanceToV2LB(machineScope, elbsvc, i)
+		return r.registerInstanceToV2LB(machineScope, elbsvc, i, lb)
 	}
 
-	return errors.Errorf("unknown load balancer type %q", elbScope.ControlPlaneLoadBalancer().LoadBalancerType)
+	return errors.Errorf("unknown load balancer type %q", lb.LoadBalancerType)
 }
 
 func (r *AWSMachineReconciler) registerInstanceToClassicLB(machineScope *scope.MachineScope, elbsvc services.ELBInterface, i *infrav1.Instance) error {
@@ -914,8 +933,8 @@ func (r *AWSMachineReconciler) registerInstanceToClassicLB(machineScope *scope.M
 	return nil
 }
 
-func (r *AWSMachineReconciler) registerInstanceToV2LB(machineScope *scope.MachineScope, elbsvc services.ELBInterface, instance *infrav1.Instance) error {
-	_, registered, err := elbsvc.IsInstanceRegisteredWithAPIServerLB(instance)
+func (r *AWSMachineReconciler) registerInstanceToV2LB(machineScope *scope.MachineScope, elbsvc services.ELBInterface, instance *infrav1.Instance, lb *infrav1.AWSLoadBalancerSpec) error {
+	_, registered, err := elbsvc.IsInstanceRegisteredWithAPIServerLB(instance, lb)
 	if err != nil {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedAttachControlPlaneELB",
 			"Failed to register control plane instance %q with load balancer: failed to determine registration status: %v", instance.ID, err)
@@ -926,7 +945,7 @@ func (r *AWSMachineReconciler) registerInstanceToV2LB(machineScope *scope.Machin
 		return nil
 	}
 
-	if err := elbsvc.RegisterInstanceWithAPIServerLB(instance); err != nil {
+	if err := elbsvc.RegisterInstanceWithAPIServerLB(instance, lb); err != nil {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedAttachControlPlaneELB",
 			"Failed to register control plane instance %q with load balancer: %v", instance.ID, err)
 		conditions.MarkFalse(machineScope.AWSMachine, infrav1.ELBAttachedCondition, infrav1.ELBAttachFailedReason, clusterv1.ConditionSeverityError, err.Error())
@@ -962,8 +981,8 @@ func (r *AWSMachineReconciler) deregisterInstanceFromClassicLB(machineScope *sco
 	return nil
 }
 
-func (r *AWSMachineReconciler) deregisterInstanceFromV2LB(machineScope *scope.MachineScope, elbsvc services.ELBInterface, i *infrav1.Instance) error {
-	targetGroupARNs, registered, err := elbsvc.IsInstanceRegisteredWithAPIServerLB(i)
+func (r *AWSMachineReconciler) deregisterInstanceFromV2LB(machineScope *scope.MachineScope, elbsvc services.ELBInterface, i *infrav1.Instance, lb *infrav1.AWSLoadBalancerSpec) error {
+	targetGroupARNs, registered, err := elbsvc.IsInstanceRegisteredWithAPIServerLB(i, lb)
 	if err != nil {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedDetachControlPlaneELB",
 			"Failed to deregister control plane instance %q from load balancer: failed to determine registration status: %v", i.ID, err)

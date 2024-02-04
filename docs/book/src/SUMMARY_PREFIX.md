@@ -38,3 +38,5 @@
   - [Ignition support](./topics/ignition-support.md)
   - [External Resource Garbage Collection](./topics/external-resource-gc.md)
   - [Instance Metadata](./topics/instance-metadata.md)
+  - [Network Load Balancers](./topics/network-load-balancer-with-awscluster.md)
+  - [Secondary Control Plane Load Balancer](./topics/secondary-load-balancer.md)
