@@ -932,6 +932,7 @@ func autoConvert_v1beta2_AWSClusterSpec_To_v1beta1_AWSClusterSpec(in *v1beta2.AW
 	} else {
 		out.ControlPlaneLoadBalancer = nil
 	}
+	// WARNING: in.SecondaryControlPlaneLoadBalancer requires manual conversion: does not exist in peer-type
 	out.ImageLookupFormat = in.ImageLookupFormat
 	out.ImageLookupOrg = in.ImageLookupOrg
 	out.ImageLookupBaseOS = in.ImageLookupBaseOS
@@ -2104,6 +2105,7 @@ func autoConvert_v1beta2_NetworkStatus_To_v1beta1_NetworkStatus(in *v1beta2.Netw
 	if err := Convert_v1beta2_LoadBalancer_To_v1beta1_ClassicELB(&in.APIServerELB, &out.APIServerELB, s); err != nil {
 		return err
 	}
+	// WARNING: in.SecondaryAPIServerELB requires manual conversion: does not exist in peer-type
 	// WARNING: in.NatGatewaysIPs requires manual conversion: does not exist in peer-type
 	return nil
 }
