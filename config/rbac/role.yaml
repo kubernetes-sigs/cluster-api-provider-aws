@@ -401,7 +401,7 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
-  - rosamachinenepools
+  - rosamachinepools
   verbs:
   - delete
   - get
@@ -412,7 +412,7 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
-  - rosamachinenepools/status
+  - rosamachinepools/status
   verbs:
   - get
   - patch
