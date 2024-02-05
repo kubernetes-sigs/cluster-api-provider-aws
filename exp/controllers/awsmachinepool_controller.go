@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
@@ -51,6 +52,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -129,6 +131,17 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, nil
 	}
 
+	ampHelper, err := patch.NewHelper(awsMachinePool, r.Client)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to init AWSMachinePool patch helper")
+	}
+	awsMachinePool.Status.InfrastructureMachineKind = "AWSMachine"
+
+	// Patch now so that the status and selectors are available.
+	if err := ampHelper.Patch(ctx, awsMachinePool); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// Create the machine pool scope
 	machinePoolScope, err := scope.NewMachinePoolScope(scope.MachinePoolScopeParams{
 		Client:         r.Client,
@@ -165,13 +178,13 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	switch infraScope := infraCluster.(type) {
 	case *scope.ManagedControlPlaneScope:
 		if !awsMachinePool.ObjectMeta.DeletionTimestamp.IsZero() {
-			return ctrl.Result{}, r.reconcileDelete(machinePoolScope, infraScope, infraScope)
+			return ctrl.Result{}, r.reconcileDelete(ctx, machinePoolScope, infraScope, infraScope)
 		}
 
 		return ctrl.Result{}, r.reconcileNormal(ctx, machinePoolScope, infraScope, infraScope)
 	case *scope.ClusterScope:
 		if !awsMachinePool.ObjectMeta.DeletionTimestamp.IsZero() {
-			return ctrl.Result{}, r.reconcileDelete(machinePoolScope, infraScope, infraScope)
+			return ctrl.Result{}, r.reconcileDelete(ctx, machinePoolScope, infraScope, infraScope)
 		}
 
 		return ctrl.Result{}, r.reconcileNormal(ctx, machinePoolScope, infraScope, infraScope)
@@ -287,6 +300,23 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 		return nil
 	}
 
+	awsMachineList, err := getAWSMachines(ctx, machinePoolScope.MachinePool, r.Client)
+	if err != nil {
+		return err
+	}
+
+	if err := createAWSMachinesIfNotExists(ctx, awsMachineList, machinePoolScope.MachinePool, asg, clusterScope, r.Client, ec2Svc); err != nil {
+		machinePoolScope.AWSMachinePool.Status.Ready = false
+		conditions.MarkFalse(machinePoolScope.AWSMachinePool, clusterv1.ReadyCondition, expinfrav1.AWSMachineCreationFailed, clusterv1.ConditionSeverityWarning, err.Error())
+		return fmt.Errorf("failed to create awsmachines: %w", err)
+	}
+
+	if err := deleteOrphanedAWSMachines(ctx, awsMachineList, asg, clusterScope, r.Client); err != nil {
+		machinePoolScope.AWSMachinePool.Status.Ready = false
+		conditions.MarkFalse(machinePoolScope.AWSMachinePool, clusterv1.ReadyCondition, expinfrav1.AWSMachineDeletionFailed, clusterv1.ConditionSeverityWarning, err.Error())
+		return fmt.Errorf("failed to clean up awsmachines: %w", err)
+	}
+
 	if annotations.ReplicasManagedByExternalAutoscaler(machinePoolScope.MachinePool) {
 		// Set MachinePool replicas to the ASG DesiredCapacity
 		if *machinePoolScope.MachinePool.Spec.Replicas != *asg.DesiredCapacity {
@@ -345,8 +375,11 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	return nil
 }
 
-func (r *AWSMachinePoolReconciler) reconcileDelete(machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope) error {
+func (r *AWSMachinePoolReconciler) reconcileDelete(ctx context.Context, machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope) error {
 	clusterScope.Info("Handling deleted AWSMachinePool")
+	if err := reconcileDeleteAWSMachines(ctx, machinePoolScope.MachinePool, clusterScope, r.Client); err != nil {
+		return err
+	}
 
 	ec2Svc := r.getEC2Service(ec2Scope)
 	asgSvc := r.getASGService(clusterScope)
@@ -401,6 +434,164 @@ func (r *AWSMachinePoolReconciler) reconcileDelete(machinePoolScope *scope.Machi
 	// remove finalizer
 	controllerutil.RemoveFinalizer(machinePoolScope.AWSMachinePool, expinfrav1.MachinePoolFinalizer)
 
+	return nil
+}
+
+func reconcileDeleteAWSMachines(ctx context.Context, mp *expclusterv1.MachinePool, clusterScope cloud.ClusterScoper, client client.Client) error {
+	awsMachineList, err := getAWSMachines(ctx, mp, client)
+	if err != nil {
+		return err
+	}
+	for i := range awsMachineList.Items {
+		awsMachine := awsMachineList.Items[i]
+		if !awsMachine.DeletionTimestamp.IsZero() {
+			// delete the owner Machine resource for the AWSMachine so that CAPI can clean up gracefully
+			machine, err := util.GetOwnerMachine(ctx, client, awsMachine.ObjectMeta)
+			if err != nil {
+				clusterScope.Warn("failed to get owner machine", "awsmachine", awsMachine, "machinepool", mp.Name, "namespace", mp.Namespace)
+				continue
+			}
+
+			if err := client.Delete(ctx, machine); err != nil {
+				clusterScope.Warn("failed to delete owner machine", "awsmachine", awsMachine, "machinepool", mp.Name, "namespace", mp.Namespace)
+			}
+		}
+	}
+	return nil
+}
+
+func getAWSMachines(ctx context.Context, mp *expclusterv1.MachinePool, kubeClient client.Client) (*infrav1.AWSMachineList, error) {
+	awsMachineList := &infrav1.AWSMachineList{}
+	labels := map[string]string{
+		clusterv1.MachinePoolNameLabel: mp.Name,
+		clusterv1.ClusterNameLabel:     mp.Spec.ClusterName,
+	}
+	if err := kubeClient.List(ctx, awsMachineList, client.InNamespace(mp.Namespace), client.MatchingLabels(labels)); err != nil {
+		return nil, err
+	}
+	return awsMachineList, nil
+}
+
+func createAWSMachinesIfNotExists(ctx context.Context, awsMachineList *infrav1.AWSMachineList, mp *expclusterv1.MachinePool, existingASG *expinfrav1.AutoScalingGroup, clusterScope cloud.ClusterScoper, client client.Client, ec2Svc services.EC2Interface) error {
+	clusterScope.Trace("creating missing awsmachines")
+
+	providerIDs := make(map[string]infrav1.AWSMachine, len(awsMachineList.Items))
+	for i := range awsMachineList.Items {
+		awsMachine := awsMachineList.Items[i]
+		if awsMachine.Spec.ProviderID == nil || *awsMachine.Spec.ProviderID == "" {
+			continue
+		}
+		providerID := *awsMachine.Spec.ProviderID
+		providerIDs[providerID] = awsMachine
+	}
+	ownerRef := metav1.OwnerReference{
+		APIVersion: mp.GroupVersionKind().Version,
+		Kind:       mp.Kind,
+		Name:       mp.Name,
+		UID:        mp.UID,
+	}
+
+	for i := range existingASG.Instances {
+		instanceID := existingASG.Instances[i].ID
+		providerID := fmt.Sprintf("aws:///%s/%s", existingASG.Instances[i].AvailabilityZone, instanceID)
+
+		clusterScope.Trace("checking if machinepool awsmachine is up to date", "providerID", providerID, "instanceID", instanceID, "asg", existingASG.Name)
+		if _, exists := providerIDs[providerID]; exists {
+			continue
+		}
+
+		instance, err := ec2Svc.InstanceIfExists(&instanceID)
+		if err != nil {
+			return fmt.Errorf("failed to lookup ec2 instance %q: %w", instanceID, err)
+		}
+
+		securityGroups := make([]infrav1.AWSResourceReference, 0, len(instance.SecurityGroupIDs))
+		for j := range instance.SecurityGroupIDs {
+			securityGroups = append(securityGroups, infrav1.AWSResourceReference{
+				ID: aws.String(instance.SecurityGroupIDs[j]),
+			})
+		}
+
+		awsMachine := &infrav1.AWSMachine{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:    mp.Namespace,
+				GenerateName: fmt.Sprintf("%s-", existingASG.Name),
+				Labels: map[string]string{
+					clusterv1.MachinePoolNameLabel: mp.Name,
+					clusterv1.ClusterNameLabel:     mp.Spec.ClusterName,
+				},
+				// Note: this AWSMachine will be owned by the MachinePool until the MachinePool controller
+				// creates its parent Machine which will adopt this resource and replace the owner reference.
+				// We set the MachinePool as a temporary owner to prevent this from becoming an orphan resource.
+				OwnerReferences: []metav1.OwnerReference{ownerRef},
+			},
+			Spec: infrav1.AWSMachineSpec{
+				ProviderID: aws.String(providerID),
+				InstanceID: aws.String(instanceID),
+
+				// XXX(cmcavoy): not sure if it's useful or misleading to convert ec2 fields over to the AWSMachine
+				AMI: infrav1.AMIReference{
+					ID: aws.String(instance.ImageID),
+				},
+				InstanceType:             instance.Type,
+				PublicIP:                 aws.Bool(instance.PublicIP != nil),
+				SSHKeyName:               instance.SSHKeyName,
+				InstanceMetadataOptions:  instance.InstanceMetadataOptions,
+				IAMInstanceProfile:       instance.IAMProfile,
+				AdditionalSecurityGroups: securityGroups,
+				Subnet:                   &infrav1.AWSResourceReference{ID: aws.String(instance.SubnetID)},
+				RootVolume:               instance.RootVolume,
+				NonRootVolumes:           instance.NonRootVolumes,
+				NetworkInterfaces:        instance.NetworkInterfaces,
+				CloudInit:                infrav1.CloudInit{},
+				SpotMarketOptions:        instance.SpotMarketOptions,
+				Tenancy:                  instance.Tenancy,
+			},
+		}
+		clusterScope.Trace("creating AWSMachine instance", "providerID", providerID, "instanceID", instanceID, "asg", existingASG.Name)
+		if err := client.Create(ctx, awsMachine); err != nil {
+			return fmt.Errorf("failed to create AWSMachine: %w", err)
+		}
+	}
+	return nil
+}
+
+func deleteOrphanedAWSMachines(ctx context.Context, awsMachineList *infrav1.AWSMachineList, existingASG *expinfrav1.AutoScalingGroup, clusterScope cloud.ClusterScoper, client client.Client) error {
+	clusterScope.Trace("Deleting orphaned awsmachines")
+	providerIDs := make(map[string]infrav1.Instance, len(existingASG.Instances))
+	for i := range existingASG.Instances {
+		providerID := fmt.Sprintf("aws:///%s/%s", existingASG.Instances[i].AvailabilityZone, existingASG.Instances[i].ID)
+		providerIDs[providerID] = existingASG.Instances[i]
+	}
+
+	for i := range awsMachineList.Items {
+		awsMachine := awsMachineList.Items[i]
+		if awsMachine.Spec.ProviderID == nil || *awsMachine.Spec.ProviderID == "" {
+			continue
+		}
+
+		providerID := *awsMachine.Spec.ProviderID
+		if _, exists := providerIDs[providerID]; exists {
+			continue
+		}
+
+		machine, err := util.GetOwnerMachine(ctx, client, awsMachine.ObjectMeta)
+		if err != nil {
+			return fmt.Errorf("failed to get owner machine for %s/%s: %w", awsMachine.Namespace, awsMachine.Name, err)
+		}
+		clusterScope.Trace("Deleting orphaned machine", "machine", machine, "awsmachine", awsMachine, "ProviderID", providerID)
+		if machine == nil {
+			// XXX(cmcavoy): if we got here, something went wrong with the owner reference
+			if err := client.Delete(ctx, &awsMachine); err != nil {
+				return fmt.Errorf("failed to delete orphan awsMachine %s/%s: %w", awsMachine.Namespace, awsMachine.Name, err)
+			}
+			continue
+		}
+
+		if err := client.Delete(ctx, machine); err != nil {
+			return fmt.Errorf("failed to delete orphan machine %s/%s: %w", machine.Namespace, machine.Name, err)
+		}
+	}
 	return nil
 }
 
