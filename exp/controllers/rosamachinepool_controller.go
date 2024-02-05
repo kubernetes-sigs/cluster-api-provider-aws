@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/blang/semver"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/record"
@@ -179,6 +181,18 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 	}
 	defer rosaClient.Close()
 
+	failureMessage, err := validateMachinePoolSpec(machinePoolScope)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to validate ROSAMachinePool.spec: %w", err)
+	}
+	if failureMessage != nil {
+		machinePoolScope.RosaMachinePool.Status.FailureMessage = failureMessage
+		// dont' requeue because input is invalid and manual intervention is needed.
+		return ctrl.Result{}, nil
+	} else {
+		machinePoolScope.RosaMachinePool.Status.FailureMessage = nil
+	}
+
 	rosaMachinePool := machinePoolScope.RosaMachinePool
 	machinePool := machinePoolScope.MachinePool
 	controlPlane := machinePoolScope.ControlPlane
@@ -193,6 +207,10 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 		if createdNodePool.Replicas() == createdNodePool.Status().CurrentReplicas() && createdNodePool.Status().Message() == "" {
 			conditions.MarkTrue(rosaMachinePool, expinfrav1.RosaMachinePoolReadyCondition)
 			rosaMachinePool.Status.Ready = true
+
+			if err := r.reconcileMachinePoolVersion(machinePoolScope, rosaClient, createdNodePool); err != nil {
+				return ctrl.Result{}, err
+			}
 
 			return ctrl.Result{}, nil
 		}
@@ -231,6 +249,9 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 	}
 
 	npBuilder.AWSNodePool(cmv1.NewAWSNodePool().InstanceType(rosaMachinePool.Spec.InstanceType))
+	if rosaMachinePool.Spec.Version != "" {
+		npBuilder.Version(cmv1.NewVersion().ID(rosa.VersionID(rosaMachinePool.Spec.Version)))
+	}
 
 	nodePoolSpec, err := npBuilder.Build()
 	if err != nil {
@@ -272,6 +293,69 @@ func (r *ROSAMachinePoolReconciler) reconcileDelete(
 	controllerutil.RemoveFinalizer(machinePoolScope.RosaMachinePool, expinfrav1.RosaMachinePoolFinalizer)
 
 	return nil
+}
+
+func (r *ROSAMachinePoolReconciler) reconcileMachinePoolVersion(machinePoolScope *scope.RosaMachinePoolScope, rosaClient *rosa.RosaClient, nodePool *cmv1.NodePool) error {
+	version := machinePoolScope.RosaMachinePool.Spec.Version
+	if version == "" {
+		version = machinePoolScope.ControlPlane.Spec.Version
+	}
+
+	if version == rosa.RawVersionID(nodePool.Version()) {
+		conditions.MarkFalse(machinePoolScope.RosaMachinePool, expinfrav1.RosaMachinePoolUpgradingCondition, "upgraded", clusterv1.ConditionSeverityInfo, "")
+		return nil
+	}
+
+	clusterID := *machinePoolScope.ControlPlane.Status.ID
+	scheduledUpgrade, err := rosaClient.CheckNodePoolExistingScheduledUpgrade(clusterID, nodePool)
+	if err != nil {
+		return fmt.Errorf("failed to get existing scheduled upgrades: %w", err)
+	}
+
+	if scheduledUpgrade == nil {
+		scheduledUpgrade, err = rosaClient.ScheduleNodePoolUpgrade(clusterID, nodePool, version, time.Now())
+		if err != nil {
+			return fmt.Errorf("failed to schedule nodePool upgrade to version %s: %w", version, err)
+		}
+	}
+
+	condition := &clusterv1.Condition{
+		Type:    expinfrav1.RosaMachinePoolUpgradingCondition,
+		Status:  corev1.ConditionTrue,
+		Reason:  string(scheduledUpgrade.State().Value()),
+		Message: fmt.Sprintf("Upgrading to version %s", scheduledUpgrade.Version()),
+	}
+	conditions.Set(machinePoolScope.RosaMachinePool, condition)
+
+	// if nodePool is already upgrading to another version we need to wait until the current upgrade is finished, return an error to requeue and try later.
+	if scheduledUpgrade.Version() != version {
+		return fmt.Errorf("there is already a %s upgrade to version %s", scheduledUpgrade.State().Value(), scheduledUpgrade.Version())
+	}
+
+	return nil
+}
+
+func validateMachinePoolSpec(machinePoolScope *scope.RosaMachinePoolScope) (*string, error) {
+	if machinePoolScope.RosaMachinePool.Spec.Version == "" {
+		return nil, nil
+	}
+
+	version, err := semver.Parse(machinePoolScope.RosaMachinePool.Spec.Version)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse MachinePool version: %w", err)
+	}
+	minSupportedVersion, maxSupportedVersion, err := rosa.MachinePoolSupportedVersionsRange(machinePoolScope.ControlPlane.Spec.Version)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get supported machinePool versions range: %w", err)
+	}
+
+	if version.GT(*maxSupportedVersion) || version.LT(*minSupportedVersion) {
+		message := fmt.Sprintf("version %s is not supported, should be in the range: >= %s and <= %s", version, minSupportedVersion, maxSupportedVersion)
+		return &message, nil
+	}
+
+	// TODO: add more input validations
+	return nil, nil
 }
 
 func rosaControlPlaneToRosaMachinePoolMapFunc(c client.Client, gvk schema.GroupVersionKind, log logger.Wrapper) handler.MapFunc {
