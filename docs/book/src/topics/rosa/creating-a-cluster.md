@@ -11,7 +11,7 @@ CAPA controller requires an API token in order to be able to provision ROSA clus
       --from-literal=ocmToken='eyJhbGciOiJIUzI1NiIsI....' \
       --from-literal=ocmApiUrl='https://api.openshift.com' 
     ```
-  
+
     Alternatively, you can edit CAPA controller deployment to provide the credentials:
     ```shell
     kubectl edit deployment -n capa-system capa-controller-manager
@@ -36,7 +36,7 @@ Once Step 3 is done, you will be ready to proceed with creating a ROSA cluster u
 
 1. Prepare the environment:
     ```bash
-    export OPENSHIFT_VERSION="openshift-v4.14.5"
+    export OPENSHIFT_VERSION="4.14.5"
     export CLUSTER_NAME="capi-rosa-quickstart"
     export AWS_REGION="us-west-2"
     export AWS_AVAILABILITY_ZONE="us-west-2a"
