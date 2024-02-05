@@ -33,6 +33,13 @@ type RosaMachinePoolSpec struct {
 	// +kubebuilder:validation:Pattern:=`^[a-z]([-a-z0-9]*[a-z0-9])?$`
 	NodePoolName string `json:"nodePoolName"`
 
+	// Version specifies the penshift version of the nodes associated with this machinepool.
+	// ROSAControlPlane version is used if not set.
+	//
+	// +optional
+	// +kubebuilder:validation:Pattern:=`^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`
+	Version string `json:"version,omitempty"`
+
 	// AvailabilityZone is an optinal field specifying the availability zone where instances of this machine pool should run
 	// For Multi-AZ clusters, you can create a machine pool in a Single-AZ of your choice.
 	// +optional
@@ -83,14 +90,23 @@ type RosaMachinePoolStatus struct {
 	// the cluster
 	// +kubebuilder:default=false
 	Ready bool `json:"ready"`
-
 	// Replicas is the most recently observed number of replicas.
 	// +optional
 	Replicas int32 `json:"replicas"`
-
 	// Conditions defines current service state of the managed machine pool
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	// FailureMessage will be set in the event that there is a terminal problem
+	// reconciling the state and will be set to a descriptive error message.
+	//
+	// This field should not be set for transitive errors that a controller
+	// faces that are expected to be fixed automatically over
+	// time (like service outages), but instead indicate that something is
+	// fundamentally wrong with the spec or the configuration of
+	// the controller, and that manual intervention is required.
+	//
+	// +optional
+	FailureMessage *string `json:"failureMessage,omitempty"`
 
 	// ID is the ID given by ROSA.
 	ID string `json:"id,omitempty"`

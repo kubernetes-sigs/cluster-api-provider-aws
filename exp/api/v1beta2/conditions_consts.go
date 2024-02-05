@@ -104,8 +104,10 @@ const (
 )
 
 const (
-	// RosaMachinePoolReadyCondition condition reports on the successful reconciliation of rosa control plane.
+	// RosaMachinePoolReadyCondition condition reports on the successful reconciliation of rosa machinepool.
 	RosaMachinePoolReadyCondition clusterv1.ConditionType = "RosaMchinePoolReady"
+	// RosaMachinePoolUpgradingCondition condition reports whether ROSAMachinePool is upgrading or not.
+	RosaMachinePoolUpgradingCondition clusterv1.ConditionType = "RosaMchinePoolUpgrading"
 	// WaitingForRosaControlPlaneReason used when the machine pool is waiting for
 	// ROSA control plane infrastructure to be ready before proceeding.
 	WaitingForRosaControlPlaneReason = "WaitingForRosaControlPlane"
