@@ -17,6 +17,8 @@ limitations under the License.
 // Run go generate to regenerate this mock. //nolint:revive
 //go:generate ../../../../hack/tools/bin/mockgen -destination ec2_interface_mock.go -package mock_services sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services EC2Interface
 //go:generate /usr/bin/env bash -c "cat ../../../../hack/boilerplate/boilerplate.generatego.txt ec2_interface_mock.go > _ec2_interface_mock.go && mv _ec2_interface_mock.go ec2_interface_mock.go"
+//go:generate ../../../../hack/tools/bin/mockgen -destination reconcile_interface_mock.go -package mock_services sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services MachinePoolReconcileInterface
+//go:generate /usr/bin/env bash -c "cat ../../../../hack/boilerplate/boilerplate.generatego.txt reconcile_interface_mock.go > _reconcile_interface_mock.go && mv _reconcile_interface_mock.go reconcile_interface_mock.go"
 //go:generate ../../../../hack/tools/bin/mockgen -destination secretsmanager_machine_interface_mock.go -package mock_services sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services SecretInterface
 //go:generate /usr/bin/env bash -c "cat ../../../../hack/boilerplate/boilerplate.generatego.txt secretsmanager_machine_interface_mock.go > _secretsmanager_machine_interface_mock.go && mv _secretsmanager_machine_interface_mock.go secretsmanager_machine_interface_mock.go"
 //go:generate ../../../../hack/tools/bin/mockgen -destination objectstore_machine_interface_mock.go -package mock_services sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services ObjectStoreInterface
