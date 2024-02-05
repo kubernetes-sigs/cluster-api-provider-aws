@@ -30,6 +30,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -78,6 +79,16 @@ users:
 )
 
 var testUserDataHash = userdata.ComputeHash([]byte(testUserData))
+
+func defaultEC2AndUserDataSecretKeyTags(name string, clusterName string, userDataSecretKey types.NamespacedName) []*ec2.Tag {
+	tags := defaultEC2Tags(name, clusterName)
+	tags = append(tags, &ec2.Tag{
+		Key:   aws.String(infrav1.LaunchTemplateBootstrapDataSecret),
+		Value: aws.String(userDataSecretKey.String()),
+	})
+	sortTags(tags)
+	return tags
+}
 
 func TestGetLaunchTemplate(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
@@ -284,7 +295,7 @@ func TestGetLaunchTemplate(t *testing.T) {
 				tc.expect(mockEC2Client.EXPECT())
 			}
 
-			launchTemplate, userData, err := s.GetLaunchTemplate(tc.launchTemplateName)
+			launchTemplate, userData, _, err := s.GetLaunchTemplate(tc.launchTemplateName)
 			tc.check(g, launchTemplate, userData, err)
 		})
 	}
@@ -292,11 +303,12 @@ func TestGetLaunchTemplate(t *testing.T) {
 
 func TestServiceSDKToLaunchTemplate(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    *ec2.LaunchTemplateVersion
-		wantLT   *expinfrav1.AWSLaunchTemplate
-		wantHash string
-		wantErr  bool
+		name              string
+		input             *ec2.LaunchTemplateVersion
+		wantLT            *expinfrav1.AWSLaunchTemplate
+		wantHash          string
+		wantDataSecretKey *types.NamespacedName
+		wantErr           bool
 	}{
 		{
 			name: "lots of input",
@@ -338,13 +350,68 @@ func TestServiceSDKToLaunchTemplate(t *testing.T) {
 				SSHKeyName:         aws.String("foo-keyname"),
 				VersionNumber:      aws.Int64(1),
 			},
-			wantHash: testUserDataHash,
+			wantHash:          testUserDataHash,
+			wantDataSecretKey: nil, // respective tag is not given
+		},
+		{
+			name: "tag of bootstrap secret",
+			input: &ec2.LaunchTemplateVersion{
+				LaunchTemplateId:   aws.String("lt-12345"),
+				LaunchTemplateName: aws.String("foo"),
+				LaunchTemplateData: &ec2.ResponseLaunchTemplateData{
+					ImageId: aws.String("foo-image"),
+					IamInstanceProfile: &ec2.LaunchTemplateIamInstanceProfileSpecification{
+						Arn: aws.String("instance-profile/foo-profile"),
+					},
+					KeyName: aws.String("foo-keyname"),
+					BlockDeviceMappings: []*ec2.LaunchTemplateBlockDeviceMapping{
+						{
+							DeviceName: aws.String("foo-device"),
+							Ebs: &ec2.LaunchTemplateEbsBlockDevice{
+								Encrypted:  aws.Bool(true),
+								VolumeSize: aws.Int64(16),
+								VolumeType: aws.String("cool"),
+							},
+						},
+					},
+					NetworkInterfaces: []*ec2.LaunchTemplateInstanceNetworkInterfaceSpecification{
+						{
+							DeviceIndex: aws.Int64(1),
+							Groups:      []*string{aws.String("foo-group")},
+						},
+					},
+					TagSpecifications: []*ec2.LaunchTemplateTagSpecification{
+						{
+							ResourceType: aws.String(ec2.ResourceTypeInstance),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/bootstrap-data-secret"),
+									Value: aws.String("bootstrap-secret-ns/bootstrap-secret"),
+								},
+							},
+						},
+					},
+					UserData: aws.String(base64.StdEncoding.EncodeToString([]byte(testUserData))),
+				},
+				VersionNumber: aws.Int64(1),
+			},
+			wantLT: &expinfrav1.AWSLaunchTemplate{
+				Name: "foo",
+				AMI: infrav1.AMIReference{
+					ID: aws.String("foo-image"),
+				},
+				IamInstanceProfile: "foo-profile",
+				SSHKeyName:         aws.String("foo-keyname"),
+				VersionNumber:      aws.Int64(1),
+			},
+			wantHash:          testUserDataHash,
+			wantDataSecretKey: &types.NamespacedName{Namespace: "bootstrap-secret-ns", Name: "bootstrap-secret"},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Service{}
-			gotLT, gotHash, err := s.SDKToLaunchTemplate(tt.input)
+			gotLT, gotHash, gotDataSecretKey, err := s.SDKToLaunchTemplate(tt.input)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("error mismatch: got %v, wantErr %v", err, tt.wantErr)
 			}
@@ -353,6 +420,9 @@ func TestServiceSDKToLaunchTemplate(t *testing.T) {
 			}
 			if !cmp.Equal(gotHash, tt.wantHash) {
 				t.Fatalf("userDataHash mismatch: got %v, want %v", gotHash, tt.wantHash)
+			}
+			if !cmp.Equal(gotDataSecretKey, tt.wantDataSecretKey) {
+				t.Fatalf("userDataSecretKey mismatch: got %v, want %v", gotDataSecretKey, tt.wantDataSecretKey)
 			}
 		})
 	}
@@ -737,6 +807,10 @@ func TestCreateLaunchTemplate(t *testing.T) {
 		}
 	}
 
+	userDataSecretKey := types.NamespacedName{
+		Namespace: "bootstrap-secret-ns",
+		Name:      "bootstrap-secret",
+	}
 	userData := []byte{1, 0, 0}
 	testCases := []struct {
 		name                 string
@@ -771,7 +845,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
 							{
 								ResourceType: aws.String(ec2.ResourceTypeInstance),
-								Tags:         defaultEC2Tags("aws-mp-name", "cluster-name"),
+								Tags:         defaultEC2AndUserDataSecretKeyTags("aws-mp-name", "cluster-name", userDataSecretKey),
 							},
 							{
 								ResourceType: aws.String(ec2.ResourceTypeVolume),
@@ -795,7 +869,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 					// formatting added to match arrays during cmp.Equal
 					formatTagsInput(arg)
 					if !cmp.Equal(expectedInput, arg) {
-						t.Fatalf("mismatch in input expected: %+v, got: %+v", expectedInput, arg)
+						t.Fatalf("mismatch in input expected: %+v, got: %+v, diff: %s", expectedInput, arg, cmp.Diff(expectedInput, arg))
 					}
 				})
 			},
@@ -831,7 +905,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
 							{
 								ResourceType: aws.String(ec2.ResourceTypeInstance),
-								Tags:         defaultEC2Tags("aws-mp-name", "cluster-name"),
+								Tags:         defaultEC2AndUserDataSecretKeyTags("aws-mp-name", "cluster-name", userDataSecretKey),
 							},
 							{
 								ResourceType: aws.String(ec2.ResourceTypeVolume),
@@ -893,7 +967,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
 							{
 								ResourceType: aws.String(ec2.ResourceTypeInstance),
-								Tags:         defaultEC2Tags("aws-mp-name", "cluster-name"),
+								Tags:         defaultEC2AndUserDataSecretKeyTags("aws-mp-name", "cluster-name", userDataSecretKey),
 							},
 							{
 								ResourceType: aws.String(ec2.ResourceTypeVolume),
@@ -948,7 +1022,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 				tc.expect(g, mockEC2Client.EXPECT())
 			}
 
-			launchTemplate, err := s.CreateLaunchTemplate(ms, aws.String("imageID"), userData)
+			launchTemplate, err := s.CreateLaunchTemplate(ms, aws.String("imageID"), userDataSecretKey, userData)
 			tc.check(g, launchTemplate, err)
 		})
 	}
@@ -972,7 +1046,11 @@ func TestLaunchTemplateDataCreation(t *testing.T) {
 
 		s := NewService(cs)
 
-		launchTemplate, err := s.CreateLaunchTemplate(ms, aws.String("imageID"), nil)
+		userDataSecretKey := types.NamespacedName{
+			Namespace: "bootstrap-secret-ns",
+			Name:      "bootstrap-secret",
+		}
+		launchTemplate, err := s.CreateLaunchTemplate(ms, aws.String("imageID"), userDataSecretKey, nil)
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(launchTemplate).Should(BeEmpty())
 	})
@@ -986,6 +1064,10 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 		for index := range arg.LaunchTemplateData.TagSpecifications {
 			sortTags(arg.LaunchTemplateData.TagSpecifications[index].Tags)
 		}
+	}
+	userDataSecretKey := types.NamespacedName{
+		Namespace: "bootstrap-secret-ns",
+		Name:      "bootstrap-secret",
 	}
 	userData := []byte{1, 0, 0}
 	testCases := []struct {
@@ -1022,7 +1104,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
 							{
 								ResourceType: aws.String(ec2.ResourceTypeInstance),
-								Tags:         defaultEC2Tags("aws-mp-name", "cluster-name"),
+								Tags:         defaultEC2AndUserDataSecretKeyTags("aws-mp-name", "cluster-name", userDataSecretKey),
 							},
 							{
 								ResourceType: aws.String(ec2.ResourceTypeVolume),
@@ -1041,7 +1123,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 						// formatting added to match tags slice during cmp.Equal()
 						formatTagsInput(arg)
 						if !cmp.Equal(expectedInput, arg) {
-							t.Fatalf("mismatch in input expected: %+v, but got %+v", expectedInput, arg)
+							t.Fatalf("mismatch in input expected: %+v, but got %+v, diff: %s", expectedInput, arg, cmp.Diff(expectedInput, arg))
 						}
 					})
 			},
@@ -1073,7 +1155,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
 							{
 								ResourceType: aws.String(ec2.ResourceTypeInstance),
-								Tags:         defaultEC2Tags("aws-mp-name", "cluster-name"),
+								Tags:         defaultEC2AndUserDataSecretKeyTags("aws-mp-name", "cluster-name", userDataSecretKey),
 							},
 							{
 								ResourceType: aws.String(ec2.ResourceTypeVolume),
@@ -1120,10 +1202,10 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 				tc.expect(mockEC2Client.EXPECT())
 			}
 			if tc.wantErr {
-				g.Expect(s.CreateLaunchTemplateVersion("launch-template-id", ms, aws.String("imageID"), userData)).To(HaveOccurred())
+				g.Expect(s.CreateLaunchTemplateVersion("launch-template-id", ms, aws.String("imageID"), userDataSecretKey, userData)).To(HaveOccurred())
 				return
 			}
-			g.Expect(s.CreateLaunchTemplateVersion("launch-template-id", ms, aws.String("imageID"), userData)).NotTo(HaveOccurred())
+			g.Expect(s.CreateLaunchTemplateVersion("launch-template-id", ms, aws.String("imageID"), userDataSecretKey, userData)).NotTo(HaveOccurred())
 		})
 	}
 }
@@ -1132,6 +1214,10 @@ func TestBuildLaunchTemplateTagSpecificationRequest(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
+	userDataSecretKey := types.NamespacedName{
+		Namespace: "bootstrap-secret-ns",
+		Name:      "bootstrap-secret",
+	}
 	testCases := []struct {
 		name  string
 		check func(g *WithT, m []*ec2.LaunchTemplateTagSpecificationRequest)
@@ -1142,7 +1228,7 @@ func TestBuildLaunchTemplateTagSpecificationRequest(t *testing.T) {
 				expected := []*ec2.LaunchTemplateTagSpecificationRequest{
 					{
 						ResourceType: aws.String(ec2.ResourceTypeInstance),
-						Tags:         defaultEC2Tags("aws-mp-name", "cluster-name"),
+						Tags:         defaultEC2AndUserDataSecretKeyTags("aws-mp-name", "cluster-name", userDataSecretKey),
 					},
 					{
 						ResourceType: aws.String(ec2.ResourceTypeVolume),
@@ -1172,7 +1258,7 @@ func TestBuildLaunchTemplateTagSpecificationRequest(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 
 			s := NewService(cs)
-			tc.check(g, s.buildLaunchTemplateTagSpecificationRequest(ms))
+			tc.check(g, s.buildLaunchTemplateTagSpecificationRequest(ms, userDataSecretKey))
 		})
 	}
 }
