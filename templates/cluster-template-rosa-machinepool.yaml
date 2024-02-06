@@ -32,7 +32,8 @@ spec:
   region: "${AWS_REGION}"
   accountID: "${AWS_ACCOUNT_ID}"
   creatorARN: "${AWS_CREATOR_ARN}"
-  machineCIDR: "10.0.0.0/16"
+  network:
+    machineCIDR: "10.0.0.0/16"
   rolesRef:
     ingressARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATOR_ROLES_PREFIX}-openshift-ingress-operator-cloud-credentials"
     imageRegistryARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATOR_ROLES_PREFIX}-openshift-image-registry-installer-cloud-credentials"
