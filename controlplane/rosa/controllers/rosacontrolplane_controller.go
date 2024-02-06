@@ -262,12 +262,6 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 	}
 
-	_, machineCIDR, err := net.ParseCIDR(*rosaScope.ControlPlane.Spec.MachineCIDR)
-	if err != nil {
-		// TODO: expose in status, exit reconciliation
-		rosaScope.Error(err, "rosacontrolplane.spec.machineCIDR invalid")
-	}
-
 	billingAccount := *rosaScope.Identity.Account
 	if rosaScope.ControlPlane.Spec.BillingAccount != "" {
 		billingAccount = rosaScope.ControlPlane.Spec.BillingAccount
@@ -283,64 +277,60 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		Expiration:                time.Now().Add(1 * time.Hour),
 		DisableWorkloadMonitoring: ptr.To(true),
 		DefaultIngress:            ocm.NewDefaultIngressSpec(), // n.b. this is a no-op when it's set to the default value
+		ComputeMachineType:        rosaScope.ControlPlane.Spec.InstanceType,
 
 		SubnetIds:         rosaScope.ControlPlane.Spec.Subnets,
 		AvailabilityZones: rosaScope.ControlPlane.Spec.AvailabilityZones,
-		NetworkType:       "OVNKubernetes",
-		MachineCIDR:       *machineCIDR,
+		NetworkType:       rosaScope.ControlPlane.Spec.Network.NetworkType,
 		IsSTS:             true,
 		RoleARN:           *rosaScope.ControlPlane.Spec.InstallerRoleARN,
 		SupportRoleARN:    *rosaScope.ControlPlane.Spec.SupportRoleARN,
-		OperatorIAMRoles: []ocm.OperatorIAMRole{
-			{
-				Name:      "cloud-credentials",
-				Namespace: "openshift-ingress-operator",
-				RoleARN:   rosaScope.ControlPlane.Spec.RolesRef.IngressARN,
-			},
-			{
-				Name:      "installer-cloud-credentials",
-				Namespace: "openshift-image-registry",
-				RoleARN:   rosaScope.ControlPlane.Spec.RolesRef.ImageRegistryARN,
-			},
-			{
-				Name:      "ebs-cloud-credentials",
-				Namespace: "openshift-cluster-csi-drivers",
-				RoleARN:   rosaScope.ControlPlane.Spec.RolesRef.StorageARN,
-			},
-			{
-				Name:      "cloud-credentials",
-				Namespace: "openshift-cloud-network-config-controller",
-				RoleARN:   rosaScope.ControlPlane.Spec.RolesRef.NetworkARN,
-			},
-			{
-				Name:      "kube-controller-manager",
-				Namespace: "kube-system",
-				RoleARN:   rosaScope.ControlPlane.Spec.RolesRef.KubeCloudControllerARN,
-			},
-			{
-				Name:      "kms-provider",
-				Namespace: "kube-system",
-				RoleARN:   rosaScope.ControlPlane.Spec.RolesRef.KMSProviderARN,
-			},
-			{
-				Name:      "control-plane-operator",
-				Namespace: "kube-system",
-				RoleARN:   rosaScope.ControlPlane.Spec.RolesRef.ControlPlaneOperatorARN,
-			},
-			{
-				Name:      "capa-controller-manager",
-				Namespace: "kube-system",
-				RoleARN:   rosaScope.ControlPlane.Spec.RolesRef.NodePoolManagementARN,
-			},
-		},
-		WorkerRoleARN: *rosaScope.ControlPlane.Spec.WorkerRoleARN,
-		OidcConfigId:  *rosaScope.ControlPlane.Spec.OIDCID,
-		Mode:          "auto",
+		OperatorIAMRoles:  getOperatorIAMRole(*rosaScope.ControlPlane),
+		WorkerRoleARN:     *rosaScope.ControlPlane.Spec.WorkerRoleARN,
+		OidcConfigId:      *rosaScope.ControlPlane.Spec.OIDCID,
+		Mode:              "auto",
 		Hypershift: ocm.Hypershift{
 			Enabled: true,
 		},
 		BillingAccount: billingAccount,
 		AWSCreator:     creator,
+	}
+
+	_, machineCIDR, err := net.ParseCIDR(rosaScope.ControlPlane.Spec.Network.MachineCIDR)
+	if err == nil {
+		spec.MachineCIDR = *machineCIDR
+	} else {
+		// TODO: expose in status
+		rosaScope.Error(err, "rosacontrolplane.spec.network.machineCIDR invalid", rosaScope.ControlPlane.Spec.Network.MachineCIDR)
+		return ctrl.Result{}, nil
+	}
+
+	if rosaScope.ControlPlane.Spec.Network.PodCIDR != "" {
+		_, podCIDR, err := net.ParseCIDR(rosaScope.ControlPlane.Spec.Network.PodCIDR)
+		if err == nil {
+			spec.PodCIDR = *podCIDR
+		} else {
+			// TODO: expose in status.
+			rosaScope.Error(err, "rosacontrolplane.spec.network.podCIDR invalid", rosaScope.ControlPlane.Spec.Network.PodCIDR)
+			return ctrl.Result{}, nil
+		}
+	}
+
+	if rosaScope.ControlPlane.Spec.Network.ServiceCIDR != "" {
+		_, serviceCIDR, err := net.ParseCIDR(rosaScope.ControlPlane.Spec.Network.ServiceCIDR)
+		if err == nil {
+			spec.ServiceCIDR = *serviceCIDR
+		} else {
+			// TODO: expose in status.
+			rosaScope.Error(err, "rosacontrolplane.spec.network.serviceCIDR invalid", rosaScope.ControlPlane.Spec.Network.ServiceCIDR)
+			return ctrl.Result{}, nil
+		}
+	}
+
+	// Set autoscale replica
+	if rosaScope.ControlPlane.Spec.Autoscaling != nil {
+		spec.MaxReplicas = rosaScope.ControlPlane.Spec.Autoscaling.MaxReplicas
+		spec.MinReplicas = rosaScope.ControlPlane.Spec.Autoscaling.MinReplicas
 	}
 
 	cluster, err = ocmClient.CreateCluster(spec)
@@ -354,6 +344,51 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	rosaScope.ControlPlane.Status.ID = &clusterID
 
 	return ctrl.Result{}, nil
+}
+
+func getOperatorIAMRole(rosaControlPlane rosacontrolplanev1.ROSAControlPlane) []ocm.OperatorIAMRole {
+	return []ocm.OperatorIAMRole{
+		{
+			Name:      "cloud-credentials",
+			Namespace: "openshift-ingress-operator",
+			RoleARN:   rosaControlPlane.Spec.RolesRef.IngressARN,
+		},
+		{
+			Name:      "installer-cloud-credentials",
+			Namespace: "openshift-image-registry",
+			RoleARN:   rosaControlPlane.Spec.RolesRef.ImageRegistryARN,
+		},
+		{
+			Name:      "ebs-cloud-credentials",
+			Namespace: "openshift-cluster-csi-drivers",
+			RoleARN:   rosaControlPlane.Spec.RolesRef.StorageARN,
+		},
+		{
+			Name:      "cloud-credentials",
+			Namespace: "openshift-cloud-network-config-controller",
+			RoleARN:   rosaControlPlane.Spec.RolesRef.NetworkARN,
+		},
+		{
+			Name:      "kube-controller-manager",
+			Namespace: "kube-system",
+			RoleARN:   rosaControlPlane.Spec.RolesRef.KubeCloudControllerARN,
+		},
+		{
+			Name:      "kms-provider",
+			Namespace: "kube-system",
+			RoleARN:   rosaControlPlane.Spec.RolesRef.KMSProviderARN,
+		},
+		{
+			Name:      "control-plane-operator",
+			Namespace: "kube-system",
+			RoleARN:   rosaControlPlane.Spec.RolesRef.ControlPlaneOperatorARN,
+		},
+		{
+			Name:      "capa-controller-manager",
+			Namespace: "kube-system",
+			RoleARN:   rosaControlPlane.Spec.RolesRef.NodePoolManagementARN,
+		},
+	}
 }
 
 func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (res ctrl.Result, reterr error) {
