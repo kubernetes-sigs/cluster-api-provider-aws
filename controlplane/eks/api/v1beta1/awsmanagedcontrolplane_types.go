@@ -276,6 +276,7 @@ type AWSManagedControlPlaneStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:unservedversion
 // +kubebuilder:resource:path=awsmanagedcontrolplanes,shortName=awsmcp,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this AWSManagedControl belongs"
@@ -294,6 +295,7 @@ type AWSManagedControlPlane struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:unservedversion
 
 // AWSManagedControlPlaneList contains a list of Amazon EKS Managed Control Planes.
 type AWSManagedControlPlaneList struct {
