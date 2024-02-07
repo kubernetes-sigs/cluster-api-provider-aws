@@ -116,7 +116,7 @@ providers:
         targetName: "cluster-template-eks-control-plane-only-legacy.yaml"
 
 variables:
-  KUBERNETES_VERSION: "v1.24.4"
+  KUBERNETES_VERSION: "v1.29.1"
   KUBERNETES_VERSION_MANAGEMENT: "v1.28.0" # Kind bootstrap
   EXP_MACHINE_POOL: "true"
   EXP_CLUSTER_RESOURCE_SET: "true"
@@ -126,11 +126,11 @@ variables:
   AWS_SSH_KEY_NAME: "cluster-api-provider-aws-sigs-k8s-io"
   EXP_EKS_IAM: "false"
   EXP_EKS_ADD_ROLES: "false"
-  VPC_ADDON_VERSION: "v1.11.4-eksbuild.1"
-  COREDNS_ADDON_VERSION: "v1.8.7-eksbuild.3"
+  VPC_ADDON_VERSION: "v1.16.2-eksbuild.1"
+  COREDNS_ADDON_VERSION: "v1.11.1-eksbuild.6"
   COREDNS_ADDON_CONFIGURATION: '{"replicaCount":3}'
-  KUBE_PROXY_ADDON_VERSION: "v1.24.7-eksbuild.2"
-  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "1.24.4"
+  KUBE_PROXY_ADDON_VERSION: "v1.29.0-eksbuild.2"
+  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "1.29.1"
   IP_FAMILY: "IPv4"
   CAPA_LOGLEVEL: "4"
   EXP_EXTERNAL_RESOURCE_GC: "true"
