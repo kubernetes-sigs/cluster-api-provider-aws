@@ -258,8 +258,9 @@ spec:
                     type: array
                 type: object
               identityRef:
-                description: IdentityRef is a reference to a identity to be used when
-                  reconciling the managed control plane.
+                description: IdentityRef is a reference to an identity to be used
+                  when reconciling the managed control plane. If no identity is specified,
+                  the default identity for this controller will be used.
                 properties:
                   kind:
                     description: Kind of the identity.
@@ -1887,8 +1888,9 @@ spec:
                     type: array
                 type: object
               identityRef:
-                description: IdentityRef is a reference to a identity to be used when
-                  reconciling the managed control plane.
+                description: IdentityRef is a reference to an identity to be used
+                  when reconciling the managed control plane. If no identity is specified,
+                  the default identity for this controller will be used.
                 properties:
                   kind:
                     description: Kind of the identity.
