@@ -76,8 +76,10 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	CredentialsSecretRef *corev1.LocalObjectReference `json:"credentialsSecretRef,omitempty"`
 
-	// IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
 	// +optional
+
+	// IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
+	// If no identity is specified, the default identity for this controller will be used.
 	IdentityRef *infrav1.AWSIdentityReference `json:"identityRef,omitempty"`
 }
 
