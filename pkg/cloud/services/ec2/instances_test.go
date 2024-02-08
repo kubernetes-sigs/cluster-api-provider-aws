@@ -31,6 +31,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -4035,6 +4036,7 @@ func TestCreateInstance(t *testing.T) {
 			machineScope, err := scope.NewMachineScope(scope.MachineScopeParams{
 				Client:       client,
 				Cluster:      cluster,
+				ControlPlane: &unstructured.Unstructured{},
 				Machine:      machine,
 				AWSMachine:   awsMachine,
 				InfraCluster: clusterScope,

@@ -298,5 +298,49 @@ func (r *AWSCluster) validateControlPlaneLBs() field.ErrorList {
 		}
 	}
 
+	if r.Spec.ControlPlaneLoadBalancer.LoadBalancerType == LoadBalancerTypeDisabled {
+		if r.Spec.ControlPlaneLoadBalancer.Name != nil {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "name"), r.Spec.ControlPlaneLoadBalancer.Name, "cannot configure a name if the LoadBalancer reconciliation is disabled"))
+		}
+
+		if r.Spec.ControlPlaneLoadBalancer.CrossZoneLoadBalancing {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "crossZoneLoadBalancing"), r.Spec.ControlPlaneLoadBalancer.CrossZoneLoadBalancing, "cross-zone load balancing cannot be set if the LoadBalancer reconciliation is disabled"))
+		}
+
+		if len(r.Spec.ControlPlaneLoadBalancer.Subnets) > 0 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "subnets"), r.Spec.ControlPlaneLoadBalancer.Subnets, "subnets cannot be set if the LoadBalancer reconciliation is disabled"))
+		}
+
+		if r.Spec.ControlPlaneLoadBalancer.HealthCheckProtocol != nil {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "healthCheckProtocol"), r.Spec.ControlPlaneLoadBalancer.HealthCheckProtocol, "healthcheck protocol cannot be set if the LoadBalancer reconciliation is disabled"))
+		}
+
+		if len(r.Spec.ControlPlaneLoadBalancer.AdditionalSecurityGroups) > 0 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "additionalSecurityGroups"), r.Spec.ControlPlaneLoadBalancer.AdditionalSecurityGroups, "additional Security Groups cannot be set if the LoadBalancer reconciliation is disabled"))
+		}
+
+		if len(r.Spec.ControlPlaneLoadBalancer.AdditionalListeners) > 0 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "additionalListeners"), r.Spec.ControlPlaneLoadBalancer.AdditionalListeners, "cannot set additional listeners if the LoadBalancer reconciliation is disabled"))
+		}
+
+		if len(r.Spec.ControlPlaneLoadBalancer.IngressRules) > 0 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "ingressRules"), r.Spec.ControlPlaneLoadBalancer.IngressRules, "ingress rules cannot be set if the LoadBalancer reconciliation is disabled"))
+		}
+
+		if r.Spec.ControlPlaneLoadBalancer.PreserveClientIP {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "preserveClientIP"), r.Spec.ControlPlaneLoadBalancer.PreserveClientIP, "cannot preserve client IP if the LoadBalancer reconciliation is disabled"))
+		}
+
+		if r.Spec.ControlPlaneLoadBalancer.DisableHostsRewrite {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "disableHostsRewrite"), r.Spec.ControlPlaneLoadBalancer.DisableHostsRewrite, "cannot disable hosts rewrite if the LoadBalancer reconciliation is disabled"))
+		}
+	}
+
+	for _, rule := range r.Spec.ControlPlaneLoadBalancer.IngressRules {
+		if (rule.CidrBlocks != nil || rule.IPv6CidrBlocks != nil) && (rule.SourceSecurityGroupIDs != nil || rule.SourceSecurityGroupRoles != nil) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "ingressRules"), r.Spec.ControlPlaneLoadBalancer.IngressRules, "CIDR blocks and security group IDs or security group roles cannot be used together"))
+		}
+	}
+
 	return allErrs
 }
