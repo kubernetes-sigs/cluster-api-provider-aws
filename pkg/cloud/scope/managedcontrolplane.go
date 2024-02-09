@@ -472,7 +472,7 @@ func (s *ManagedControlPlaneScope) Partition() string {
 
 // AdditionalControlPlaneIngressRules returns the additional ingress rules for the control plane security group.
 func (s *ManagedControlPlaneScope) AdditionalControlPlaneIngressRules() []infrav1.IngressRule {
-	return nil
+	return s.ControlPlane.Spec.NetworkSpec.DeepCopy().AdditionalControlPlaneIngressRules
 }
 
 // UnstructuredControlPlane returns the unstructured object for the control plane, if any.
