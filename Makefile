@@ -190,6 +190,7 @@ defaulters: $(DEFAULTER_GEN) ## Generate all Go types
 	$(DEFAULTER_GEN) \
 		--input-dirs=./api/v1beta2 \
 		--input-dirs=./$(EXP_DIR)/api/v1beta2 \
+		--input-dirs=./controlplane/rosa/api/v1beta2 \
 		--input-dirs=./cmd/clusterawsadm/api/bootstrap/v1beta1 \
 		--input-dirs=./cmd/clusterawsadm/api/bootstrap/v1alpha1 \
 		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1beta1 \

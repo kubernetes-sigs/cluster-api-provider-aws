@@ -42,7 +42,7 @@ func (c *RosaClient) DeleteCluster(clusterID string) error {
 func (c *RosaClient) GetCluster() (*cmv1.Cluster, error) {
 	clusterKey := c.rosaScope.RosaClusterName()
 	query := fmt.Sprintf("%s AND (id = '%s' OR name = '%s' OR external_id = '%s')",
-		getClusterFilter(c.rosaScope.ControlPlane.Spec.CreatorARN),
+		getClusterFilter(c.rosaScope.Identity.Arn),
 		clusterKey, clusterKey, clusterKey,
 	)
 	response, err := c.ocm.ClustersMgmt().V1().Clusters().List().
