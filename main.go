@@ -227,6 +227,7 @@ func main() {
 			Client:           mgr.GetClient(),
 			WatchFilterValue: watchFilterValue,
 			WaitInfraPeriod:  waitInfraPeriod,
+			Endpoints:        awsServiceEndpoints,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ROSAControlPlane")
 			os.Exit(1)
@@ -237,6 +238,7 @@ func main() {
 			Client:           mgr.GetClient(),
 			Recorder:         mgr.GetEventRecorderFor("rosacluster-controller"),
 			WatchFilterValue: watchFilterValue,
+			Endpoints:        awsServiceEndpoints,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ROSACluster")
 			os.Exit(1)
@@ -247,6 +249,7 @@ func main() {
 			Client:           mgr.GetClient(),
 			Recorder:         mgr.GetEventRecorderFor("rosamachinepool-controller"),
 			WatchFilterValue: watchFilterValue,
+			Endpoints:        awsServiceEndpoints,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ROSAMachinePool")
 			os.Exit(1)

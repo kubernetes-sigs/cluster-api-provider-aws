@@ -68,6 +68,7 @@ type ROSAControlPlaneReconciler struct {
 	client.Client
 	WatchFilterValue string
 	WaitInfraPeriod  time.Duration
+	Endpoints        []scope.ServiceEndpoint
 }
 
 // SetupWithManager is used to setup the controller.
@@ -148,6 +149,7 @@ func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		Cluster:        cluster,
 		ControlPlane:   rosaControlPlane,
 		ControllerName: strings.ToLower(rosaControlPlaneKind),
+		Endpoints:      r.Endpoints,
 		Logger:         log,
 	})
 	if err != nil {
@@ -344,8 +346,8 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	stsBuilder.AutoMode(true)
 
 	awsBuilder := cmv1.NewAWS().
-		AccountID(*rosaScope.ControlPlane.Spec.AccountID).
-		BillingAccountID(*rosaScope.ControlPlane.Spec.AccountID).
+		AccountID(*rosaScope.Identity.Account).
+		BillingAccountID(*rosaScope.Identity.Account).
 		SubnetIDs(rosaScope.ControlPlane.Spec.Subnets...).
 		STS(stsBuilder)
 	clusterBuilder = clusterBuilder.AWS(awsBuilder)
@@ -355,7 +357,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	clusterBuilder = clusterBuilder.Nodes(clusterNodesBuilder)
 
 	clusterProperties := map[string]string{}
-	clusterProperties[rosaCreatorArnProperty] = *rosaScope.ControlPlane.Spec.CreatorARN
+	clusterProperties[rosaCreatorArnProperty] = *rosaScope.Identity.Arn
 
 	clusterBuilder = clusterBuilder.Properties(clusterProperties)
 	clusterSpec, err := clusterBuilder.Build()
