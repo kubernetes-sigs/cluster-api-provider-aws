@@ -1070,6 +1070,46 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			awsCluster, err := GetAWSClusterByName(ctx, namespace.Name, clusterName)
 			Expect(err).To(BeNil())
 
+			ginkgo.By("Creating a MachineDeployment bootstrapped via Ignition with StorageType UnencryptedUserData")
+			unencryptedMDName := clusterName + "-md-unencrypted-userdata"
+			unencryptedUDMachineTemplate := makeAWSMachineTemplate(namespace.Name, unencryptedMDName, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), nil)
+			unencryptedUDMachineTemplate.Spec.Template.Spec.ImageLookupBaseOS = "flatcar-stable"
+			unencryptedUDMachineTemplate.Spec.Template.Spec.Ignition = &infrav1.Ignition{
+				StorageType: infrav1.IgnitionStorageTypeOptionUnencryptedUserData,
+			}
+
+			unencryptedUDMachineDeployment := makeMachineDeployment(namespace.Name, unencryptedMDName, clusterName, nil, int32(1))
+			// Use the same bootstrap configuration from one of the existing worker machines,
+			// as that already contains an ignition bootstrap configuration.
+			unencryptedUDMachineDeployment.Spec.Template.Spec.Bootstrap.ConfigRef = md[0].Spec.Template.Spec.Bootstrap.ConfigRef
+
+			framework.CreateMachineDeployment(ctx, framework.CreateMachineDeploymentInput{
+				Creator:                 e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				MachineDeployment:       unencryptedUDMachineDeployment,
+				BootstrapConfigTemplate: makeJoinBootstrapConfigTemplate(namespace.Name, unencryptedMDName),
+				InfraMachineTemplate:    unencryptedUDMachineTemplate,
+			})
+
+			framework.WaitForMachineDeploymentNodesToExist(ctx, framework.WaitForMachineDeploymentNodesToExistInput{
+				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				Cluster:           result.Cluster,
+				MachineDeployment: unencryptedUDMachineDeployment,
+			}, e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes")...)
+
+			unencryptedUDWorkerMachines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
+				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				ClusterName:       clusterName,
+				Namespace:         namespace.Name,
+				MachineDeployment: *unencryptedUDMachineDeployment,
+			})
+			Expect(len(unencryptedUDWorkerMachines)).To(Equal(1))
+			// There is only one machine.
+			m := unencryptedUDWorkerMachines[0]
+			machineUserData, userDataFormat, err := getRawBootstrapDataWithFormat(e2eCtx.Environment.BootstrapClusterProxy.GetClient(), m)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(userDataFormat).To(Equal("ignition"))
+			assertUnencryptedUserDataIgnition(*m.Spec.ProviderID, string(machineUserData))
+
 			ginkgo.By("Validating the s3 endpoint was created")
 			vpc, err := shared.GetVPCByName(e2eCtx, clusterName+"-vpc")
 			Expect(err).NotTo(HaveOccurred())

@@ -711,7 +711,21 @@ func (r *AWSMachineReconciler) resolveUserData(machineScope *scope.MachineScope,
 	}
 
 	if machineScope.UseIgnition(userDataFormat) {
-		userData, err = r.ignitionUserData(machineScope, objectStoreSvc, userData)
+		var ignitionStorageType infrav1.IgnitionStorageTypeOption
+		if machineScope.AWSMachine.Spec.Ignition == nil {
+			ignitionStorageType = infrav1.IgnitionStorageTypeOptionClusterObjectStore
+		} else {
+			ignitionStorageType = machineScope.AWSMachine.Spec.Ignition.StorageType
+		}
+
+		switch ignitionStorageType {
+		case infrav1.IgnitionStorageTypeOptionClusterObjectStore:
+			userData, err = r.generateIgnitionWithRemoteStorage(machineScope, objectStoreSvc, userData)
+		case infrav1.IgnitionStorageTypeOptionUnencryptedUserData:
+			// No further modifications to userdata are needed for plain storage in UnencryptedUserData.
+		default:
+			return nil, "", errors.Errorf("unsupported ignition storageType %q", ignitionStorageType)
+		}
 	}
 
 	return userData, userDataFormat, err
@@ -751,9 +765,12 @@ func (r *AWSMachineReconciler) cloudInitUserData(machineScope *scope.MachineScop
 	return encryptedCloudInit, nil
 }
 
-func (r *AWSMachineReconciler) ignitionUserData(scope *scope.MachineScope, objectStoreSvc services.ObjectStoreInterface, userData []byte) ([]byte, error) {
+// generateIgnitionWithRemoteStorage uses a remote object storage (S3 bucket) and stores user data in it,
+// then returns the config to instruct ignition on how to pull the user data from the bucket.
+func (r *AWSMachineReconciler) generateIgnitionWithRemoteStorage(scope *scope.MachineScope, objectStoreSvc services.ObjectStoreInterface, userData []byte) ([]byte, error) {
 	if objectStoreSvc == nil {
-		return nil, errors.New("object store service not available")
+		return nil, errors.New("using Ignition by default requires a cluster wide object storage configured at `AWSCluster.Spec.Ignition.S3Bucket`. " +
+			"You must configure one or instruct Ignition to use EC2 user data instead, by setting `AWSMachine.Spec.Ignition.StorageType` to `UnencryptedUserData`")
 	}
 
 	objectURL, err := objectStoreSvc.Create(scope, userData)
@@ -852,7 +869,10 @@ func (r *AWSMachineReconciler) deleteIgnitionBootstrapDataFromS3(machineScope *s
 		return err
 	}
 
-	if !machineScope.UseIgnition(userDataFormat) {
+	// We only use an S3 bucket to store userdata if we use Ignition with StorageType ClusterObjectStore.
+	if !machineScope.UseIgnition(userDataFormat) ||
+		(machineScope.AWSMachine.Spec.Ignition != nil &&
+			machineScope.AWSMachine.Spec.Ignition.StorageType != infrav1.IgnitionStorageTypeOptionClusterObjectStore) {
 		return nil
 	}
 
