@@ -254,6 +254,16 @@ func main() {
 			setupLog.Error(err, "unable to create controller", "controller", "ROSAMachinePool")
 			os.Exit(1)
 		}
+
+		if err := (&rosacontrolplanev1.ROSAControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ROSAControlPlane")
+			os.Exit(1)
+		}
+
+		if err := (&expinfrav1.ROSAMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ROSAMachinePool")
+			os.Exit(1)
+		}
 	}
 
 	// +kubebuilder:scaffold:builder

@@ -97,7 +97,6 @@ spec:
               version:
                 description: Version specifies the penshift version of the nodes associated
                   with this machinepool. ROSAControlPlane version is used if not set.
-                pattern: ^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$
                 type: string
             required:
             - nodePoolName
