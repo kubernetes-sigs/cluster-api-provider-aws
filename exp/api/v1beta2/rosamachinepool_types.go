@@ -37,7 +37,6 @@ type RosaMachinePoolSpec struct {
 	// ROSAControlPlane version is used if not set.
 	//
 	// +optional
-	// +kubebuilder:validation:Pattern:=`^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`
 	Version string `json:"version,omitempty"`
 
 	// AvailabilityZone is an optinal field specifying the availability zone where instances of this machine pool should run
