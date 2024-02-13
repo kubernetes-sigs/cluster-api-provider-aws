@@ -632,6 +632,28 @@ spec:
                 description: Ignition defined options related to the bootstrapping
                   systems where Ignition is used.
                 properties:
+                  storageType:
+                    default: ClusterObjectStore
+                    description: "StorageType defines how to store the boostrap user
+                      data for Ignition. This can be used to instruct Ignition from
+                      where to fetch the user data to bootstrap an instance. \n When
+                      omitted, the storage option will default to ClusterObjectStore.
+                      \n When set to \"ClusterObjectStore\", if the capability is
+                      available and a Cluster ObjectStore configuration is correctly
+                      provided in the Cluster object (under .spec.s3Bucket), an object
+                      store will be used to store bootstrap user data. \n When set
+                      to \"UnencryptedUserData\", EC2 Instance User Data will be used
+                      to store the machine bootstrap user data, unencrypted. This
+                      option is considered less secure than others as user data may
+                      contain sensitive informations (keys, certificates, etc.) and
+                      users with ec2:DescribeInstances permission or users running
+                      pods that can access the ec2 metadata service have access to
+                      this sensitive information. So this is only to be used at ones
+                      own risk, and only when other more secure options are not viable."
+                    enum:
+                    - ClusterObjectStore
+                    - UnencryptedUserData
+                    type: string
                   version:
                     default: "2.3"
                     description: Version defines which version of Ignition will be
