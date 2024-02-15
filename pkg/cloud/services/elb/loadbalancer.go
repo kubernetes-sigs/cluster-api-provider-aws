@@ -137,7 +137,7 @@ func (s *Service) reconcileV2LB(lbSpec *infrav1.AWSLoadBalancerSpec) error {
 		}
 
 		// Reconcile the security groups from the spec and the ones currently attached to the load balancer
-		if !sets.NewString(lb.SecurityGroupIDs...).Equal(sets.NewString(spec.SecurityGroupIDs...)) {
+		if shouldReconcileSGs(s.scope, lb, spec.SecurityGroupIDs) {
 			_, err := s.ELBV2Client.SetSecurityGroups(&elbv2.SetSecurityGroupsInput{
 				LoadBalancerArn: &lb.ARN,
 				SecurityGroups:  aws.StringSlice(spec.SecurityGroupIDs),
@@ -1536,11 +1536,11 @@ func fromSDKTypeToLB(v *elbv2.LoadBalancer, attrs []*elbv2.LoadBalancerAttribute
 		availabilityZones[i] = az.ZoneName
 	}
 	res := &infrav1.LoadBalancer{
-		ARN:       aws.StringValue(v.LoadBalancerArn),
-		Name:      aws.StringValue(v.LoadBalancerName),
-		Scheme:    infrav1.ELBScheme(aws.StringValue(v.Scheme)),
-		SubnetIDs: aws.StringValueSlice(subnetIds),
-		// SecurityGroupIDs: aws.StringValueSlice(v.SecurityGroups),
+		ARN:               aws.StringValue(v.LoadBalancerArn),
+		Name:              aws.StringValue(v.LoadBalancerName),
+		Scheme:            infrav1.ELBScheme(aws.StringValue(v.Scheme)),
+		SubnetIDs:         aws.StringValueSlice(subnetIds),
+		SecurityGroupIDs:  aws.StringValueSlice(v.SecurityGroups),
 		AvailabilityZones: aws.StringValueSlice(availabilityZones),
 		DNSName:           aws.StringValue(v.DNSName),
 		Tags:              converters.V2TagsToMap(tags),
@@ -1566,4 +1566,18 @@ func chunkELBs(names []string) [][]string {
 		chunked = append(chunked, names[i:end])
 	}
 	return chunked
+}
+
+func shouldReconcileSGs(scope scope.ELBScope, lb *infrav1.LoadBalancer, specSGs []string) bool {
+	// Backwards compat: NetworkLoadBalancers were not always capable of having security groups attached.
+	// Once created without a security group, the NLB can never have any added.
+	// (https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-security-groups.html)
+	if lb.LoadBalancerType == infrav1.LoadBalancerTypeNLB && len(lb.SecurityGroupIDs) == 0 {
+		scope.Info("Pre-existing NLB %s without security groups, cannot reconcile security groups.", lb.Name)
+		return false
+	}
+	if !sets.NewString(lb.SecurityGroupIDs...).Equal(sets.NewString(specSGs...)) {
+		return true
+	}
+	return true
 }
