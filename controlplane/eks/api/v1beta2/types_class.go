@@ -18,11 +18,6 @@ import infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 // AWSManagedControlPlaneClassSpec defines the AWSManagedControlPlane properties that may be shared across
 // several AWS managed control planes.
 type AWSManagedControlPlaneClassSpec struct {
-	// EKSClusterName allows you to specify the name of the EKS cluster in
-	// AWS. If you don't specify a name then a default name will be created
-	// based on the namespace and name of the managed control plane.
-	// +optional
-	EKSClusterName string `json:"eksClusterName,omitempty"`
 
 	// IdentityRef is a reference to a identity to be used when reconciling the managed control plane.
 	// +optional

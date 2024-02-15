@@ -36,6 +36,12 @@ const (
 type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	AWSManagedControlPlaneClassSpec `json:",inline"`
 
+	// EKSClusterName allows you to specify the name of the EKS cluster in
+	// AWS. If you don't specify a name then a default name will be created
+	// based on the namespace and name of the managed control plane.
+	// +optional
+	EKSClusterName string `json:"eksClusterName,omitempty"`
+
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
@@ -142,6 +148,9 @@ type AWSManagedControlPlaneStatus struct {
 	// associated identity provider
 	// +optional
 	IdentityProviderStatus IdentityProviderStatus `json:"identityProviderStatus,omitempty"`
+	// Version defines the Kubernetes version for the control plane instance.
+	// +optional
+	Version string `json:"version"`
 }
 
 // +kubebuilder:object:root=true
