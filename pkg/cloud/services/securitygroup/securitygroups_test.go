@@ -18,6 +18,7 @@ package securitygroup
 
 import (
 	"context"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -904,9 +905,9 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 	_ = infrav1.AddToScheme(scheme)
 
 	testCases := []struct {
-		name                         string
-		networkSpec                  infrav1.NetworkSpec
-		expectedAdditionalIngresRule infrav1.IngressRule
+		name                          string
+		networkSpec                   infrav1.NetworkSpec
+		expectedAdditionalIngressRule infrav1.IngressRule
 	}{
 		{
 			name: "default control plane security group is used",
@@ -920,7 +921,7 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 					},
 				},
 			},
-			expectedAdditionalIngresRule: infrav1.IngressRule{
+			expectedAdditionalIngressRule: infrav1.IngressRule{
 				Description:            "test",
 				Protocol:               infrav1.SecurityGroupProtocolTCP,
 				FromPort:               9345,
@@ -941,7 +942,7 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 					},
 				},
 			},
-			expectedAdditionalIngresRule: infrav1.IngressRule{
+			expectedAdditionalIngressRule: infrav1.IngressRule{
 				Description:            "test",
 				Protocol:               infrav1.SecurityGroupProtocolTCP,
 				FromPort:               9345,
@@ -962,7 +963,7 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 					},
 				},
 			},
-			expectedAdditionalIngresRule: infrav1.IngressRule{
+			expectedAdditionalIngressRule: infrav1.IngressRule{
 				Description:            "test",
 				Protocol:               infrav1.SecurityGroupProtocolTCP,
 				FromPort:               9345,
@@ -984,7 +985,7 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 					},
 				},
 			},
-			expectedAdditionalIngresRule: infrav1.IngressRule{
+			expectedAdditionalIngressRule: infrav1.IngressRule{
 				Description:            "test",
 				Protocol:               infrav1.SecurityGroupProtocolTCP,
 				FromPort:               9345,
@@ -1005,7 +1006,7 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 					},
 				},
 			},
-			expectedAdditionalIngresRule: infrav1.IngressRule{
+			expectedAdditionalIngressRule: infrav1.IngressRule{
 				Description: "test",
 				Protocol:    infrav1.SecurityGroupProtocolTCP,
 				FromPort:    9345,
@@ -1056,20 +1057,20 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 				}
 				found = true
 
-				if r.Protocol != tc.expectedAdditionalIngresRule.Protocol {
-					t.Fatalf("Expected protocol %s, got %s", tc.expectedAdditionalIngresRule.Protocol, r.Protocol)
+				if r.Protocol != tc.expectedAdditionalIngressRule.Protocol {
+					t.Fatalf("Expected protocol %s, got %s", tc.expectedAdditionalIngressRule.Protocol, r.Protocol)
 				}
 
-				if r.FromPort != tc.expectedAdditionalIngresRule.FromPort {
-					t.Fatalf("Expected from port %d, got %d", tc.expectedAdditionalIngresRule.FromPort, r.FromPort)
+				if r.FromPort != tc.expectedAdditionalIngressRule.FromPort {
+					t.Fatalf("Expected from port %d, got %d", tc.expectedAdditionalIngressRule.FromPort, r.FromPort)
 				}
 
-				if r.ToPort != tc.expectedAdditionalIngresRule.ToPort {
-					t.Fatalf("Expected to port %d, got %d", tc.expectedAdditionalIngresRule.ToPort, r.ToPort)
+				if r.ToPort != tc.expectedAdditionalIngressRule.ToPort {
+					t.Fatalf("Expected to port %d, got %d", tc.expectedAdditionalIngressRule.ToPort, r.ToPort)
 				}
 
-				if !sets.New[string](tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs...).Equal(sets.New[string](tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs...)) {
-					t.Fatalf("Expected source security group IDs %v, got %v", tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs, r.SourceSecurityGroupIDs)
+				if !sets.New[string](tc.expectedAdditionalIngressRule.SourceSecurityGroupIDs...).Equal(sets.New[string](tc.expectedAdditionalIngressRule.SourceSecurityGroupIDs...)) {
+					t.Fatalf("Expected source security group IDs %v, got %v", tc.expectedAdditionalIngressRule.SourceSecurityGroupIDs, r.SourceSecurityGroupIDs)
 				}
 			}
 
@@ -1085,9 +1086,9 @@ func TestAdditionalManagedControlPlaneSecurityGroup(t *testing.T) {
 	_ = ekscontrolplanev1.AddToScheme(scheme)
 
 	testCases := []struct {
-		name                         string
-		networkSpec                  infrav1.NetworkSpec
-		expectedAdditionalIngresRule infrav1.IngressRule
+		name                          string
+		networkSpec                   infrav1.NetworkSpec
+		expectedAdditionalIngressRule infrav1.IngressRule
 	}{
 		{
 			name: "default control plane security group is used",
@@ -1101,7 +1102,7 @@ func TestAdditionalManagedControlPlaneSecurityGroup(t *testing.T) {
 					},
 				},
 			},
-			expectedAdditionalIngresRule: infrav1.IngressRule{
+			expectedAdditionalIngressRule: infrav1.IngressRule{
 				Description:            "test",
 				Protocol:               infrav1.SecurityGroupProtocolTCP,
 				FromPort:               9345,
@@ -1122,11 +1123,12 @@ func TestAdditionalManagedControlPlaneSecurityGroup(t *testing.T) {
 					},
 				},
 			},
-			expectedAdditionalIngresRule: infrav1.IngressRule{
+			expectedAdditionalIngressRule: infrav1.IngressRule{
 				Description: "test",
 				Protocol:    infrav1.SecurityGroupProtocolTCP,
 				FromPort:    9345,
 				ToPort:      9345,
+				CidrBlocks:  []string{"test-cidr-block"},
 			},
 		},
 	}
@@ -1171,20 +1173,8 @@ func TestAdditionalManagedControlPlaneSecurityGroup(t *testing.T) {
 				if r.Description == "test" {
 					found = true
 
-					if r.Protocol != tc.expectedAdditionalIngresRule.Protocol {
-						t.Fatalf("Expected protocol %s, got %s", tc.expectedAdditionalIngresRule.Protocol, r.Protocol)
-					}
-
-					if r.FromPort != tc.expectedAdditionalIngresRule.FromPort {
-						t.Fatalf("Expected from port %d, got %d", tc.expectedAdditionalIngresRule.FromPort, r.FromPort)
-					}
-
-					if r.ToPort != tc.expectedAdditionalIngresRule.ToPort {
-						t.Fatalf("Expected to port %d, got %d", tc.expectedAdditionalIngresRule.ToPort, r.ToPort)
-					}
-
-					if !sets.New[string](tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs...).Equal(sets.New[string](tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs...)) {
-						t.Fatalf("Expected source security group IDs %v, got %v", tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs, r.SourceSecurityGroupIDs)
+					if !reflect.DeepEqual(r, tc.expectedAdditionalIngressRule) {
+						t.Fatalf("Expected ingress rule %#v, got %#v", tc.expectedAdditionalIngressRule, r)
 					}
 				}
 			}
