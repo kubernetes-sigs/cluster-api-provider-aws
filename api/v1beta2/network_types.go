@@ -510,6 +510,18 @@ func (s Subnets) FilterPrivate() (res Subnets) {
 	return
 }
 
+// FilterPrimary returns a slice containing all subnets that do not have the
+// sigs.k8s.io/cluster-api-provider-aws/association: secondary tag. These
+// subnets are intended for the CNI.
+func (s Subnets) FilterPrimary() (res Subnets) {
+	for _, x := range s {
+		if x.Tags[NameAWSSubnetAssociation] != SecondarySubnetTagValue {
+			res = append(res, x)
+		}
+	}
+	return
+}
+
 // FilterPublic returns a slice containing all subnets marked as public.
 func (s Subnets) FilterPublic() (res Subnets) {
 	for _, x := range s {
