@@ -287,7 +287,6 @@ spec:
                 type: string
               version:
                 description: Openshift version, for example "4.14.5".
-                pattern: ^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$
                 type: string
               workerRoleARN:
                 type: string
@@ -362,8 +361,13 @@ spec:
                   AKS, EKS, GKE, etc.
                 type: boolean
               failureMessage:
-                description: ErrorMessage indicates that there is a terminal problem
-                  reconciling the state, and will be set to a descriptive error message.
+                description: "FailureMessage will be set in the event that there is
+                  a terminal problem reconciling the state and will be set to a descriptive
+                  error message. \n This field should not be set for transitive errors
+                  that a controller faces that are expected to be fixed automatically
+                  over time (like service outages), but instead indicate that something
+                  is fundamentally wrong with the spec or the configuration of the
+                  controller, and that manual intervention is required."
                 type: string
               id:
                 description: ID is the cluster ID given by ROSA.
