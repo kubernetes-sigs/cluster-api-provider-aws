@@ -98,6 +98,15 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	Autoscaling *expinfrav1.RosaMachinePoolAutoScaling `json:"autoscaling,omitempty"`
 
+	// AdditionalTags are user-defined tags to be added on the AWS resources associated with the control plane.
+	// +optional
+	AdditionalTags infrav1.Tags `json:"additionalTags,omitempty"`
+
+	// EtcdEncryptionKMSArn is the ARN of the KMS key used to encrypt etcd. The key itself needs to be
+	// created out-of-band by the user and tagged with `red-hat:true`.
+	// +optional
+	EtcdEncryptionKMSArn string `json:"etcdEncryptionKMSArn,omitempty"`
+
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`

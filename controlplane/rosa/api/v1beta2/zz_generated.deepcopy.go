@@ -166,6 +166,13 @@ func (in *RosaControlPlaneSpec) DeepCopyInto(out *RosaControlPlaneSpec) {
 		*out = new(expapiv1beta2.RosaMachinePoolAutoScaling)
 		**out = **in
 	}
+	if in.AdditionalTags != nil {
+		in, out := &in.AdditionalTags, &out.AdditionalTags
+		*out = make(apiv1beta2.Tags, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
 }
 
