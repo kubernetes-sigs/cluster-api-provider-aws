@@ -711,24 +711,6 @@ func mockedDeleteVPCCallsForNonExistentVPC(m *mocks.MockEC2APIMockRecorder) {
 }
 
 func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
-	m.DescribeVpcEndpointsPages(gomock.Eq(&ec2.DescribeVpcEndpointsInput{
-		Filters: []*ec2.Filter{
-			{
-				Name:   aws.String("vpc-id"),
-				Values: aws.StringSlice([]string{"vpc-exists"}),
-			},
-		}}),
-		gomock.Any()).Do(func(_, y interface{}) {
-		funct := y.(func(page *ec2.DescribeVpcEndpointsOutput, lastPage bool) bool)
-		funct(&ec2.DescribeVpcEndpointsOutput{VpcEndpoints: []*ec2.VpcEndpoint{{
-			VpcEndpointId: aws.String("vpce-12345"),
-		}}}, true)
-	}).Return(nil).AnyTimes()
-
-	m.DeleteVpcEndpoints(gomock.Eq(&ec2.DeleteVpcEndpointsInput{
-		VpcEndpointIds: aws.StringSlice([]string{"vpce-12345"}),
-	})).Return(&ec2.DeleteVpcEndpointsOutput{}, nil).AnyTimes()
-
 	m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
 			{
