@@ -2,13 +2,25 @@ package rosa
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/blang/semver"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
+var MinSupportedVersion = semver.MustParse("4.14.0")
+
 // IsVersionSupported checks whether the input version is supported for ROSA clusters.
 func (c *RosaClient) IsVersionSupported(versionID string) (bool, error) {
+	parsedVersion, err := semver.Parse(versionID)
+	if err != nil {
+		return false, err
+	}
+	if parsedVersion.LT(MinSupportedVersion) {
+		return false, nil
+	}
+
 	filter := fmt.Sprintf("raw_id='%s' AND channel_group = '%s'", versionID, "stable")
 	response, err := c.ocm.ClustersMgmt().V1().
 		Versions().
@@ -97,4 +109,48 @@ func (c *RosaClient) getControlPlaneUpgradePolicies(clusterID string) (controlPl
 		page++
 	}
 	return
+}
+
+// machinepools can be created with a minimal of two minor versions from the control plane.
+const minorVersionsAllowedDeviation = 2
+
+func MachinePoolSupportedVersionsRange(controlPlaneVersion string) (*semver.Version, *semver.Version, error) {
+	maxVersion, err := semver.Parse(controlPlaneVersion)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	minVersion := semver.Version{
+		Major: maxVersion.Major,
+		Minor: max(0, maxVersion.Minor-minorVersionsAllowedDeviation),
+		Patch: 0,
+	}
+
+	if minVersion.LT(MinSupportedVersion) {
+		minVersion = MinSupportedVersion
+	}
+
+	return &minVersion, &maxVersion, nil
+}
+
+const versionPrefix = "openshift-v"
+
+// RawVersionID returns the rawID from the provided OCM version object.
+func RawVersionID(version *cmv1.Version) string {
+	rawID := version.RawID()
+	if rawID != "" {
+		return rawID
+	}
+
+	rawID = strings.TrimPrefix(version.ID(), versionPrefix)
+	channelSeparator := strings.LastIndex(rawID, "-")
+	if channelSeparator > 0 {
+		return rawID[:channelSeparator]
+	}
+	return rawID
+}
+
+// VersionID construcuts and returns an OCM versionID from the provided rawVersionID.
+func VersionID(rawVersionID string) string {
+	return fmt.Sprintf("%s%s", versionPrefix, rawVersionID)
 }

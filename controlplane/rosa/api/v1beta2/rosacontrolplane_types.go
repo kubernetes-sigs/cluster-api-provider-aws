@@ -50,8 +50,6 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	Region *string `json:"region"`
 
 	// Openshift version, for example "4.14.5".
-	//
-	// +kubebuilder:validation:Pattern:=`^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`
 	Version string `json:"version"`
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
@@ -473,8 +471,15 @@ type RosaControlPlaneStatus struct {
 	// Ready denotes that the ROSAControlPlane API Server is ready to receive requests.
 	// +kubebuilder:default=false
 	Ready bool `json:"ready"`
-	// ErrorMessage indicates that there is a terminal problem reconciling the
-	// state, and will be set to a descriptive error message.
+	// FailureMessage will be set in the event that there is a terminal problem
+	// reconciling the state and will be set to a descriptive error message.
+	//
+	// This field should not be set for transitive errors that a controller
+	// faces that are expected to be fixed automatically over
+	// time (like service outages), but instead indicate that something is
+	// fundamentally wrong with the spec or the configuration of
+	// the controller, and that manual intervention is required.
+	//
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
 	// Conditions specifies the cpnditions for the managed control plane

@@ -94,6 +94,10 @@ spec:
                 type: array
               subnet:
                 type: string
+              version:
+                description: Version specifies the penshift version of the nodes associated
+                  with this machinepool. ROSAControlPlane version is used if not set.
+                type: string
             required:
             - nodePoolName
             type: object
@@ -146,6 +150,15 @@ spec:
                   - type
                   type: object
                 type: array
+              failureMessage:
+                description: "FailureMessage will be set in the event that there is
+                  a terminal problem reconciling the state and will be set to a descriptive
+                  error message. \n This field should not be set for transitive errors
+                  that a controller faces that are expected to be fixed automatically
+                  over time (like service outages), but instead indicate that something
+                  is fundamentally wrong with the spec or the configuration of the
+                  controller, and that manual intervention is required."
+                type: string
               id:
                 description: ID is the ID given by ROSA.
                 type: string
