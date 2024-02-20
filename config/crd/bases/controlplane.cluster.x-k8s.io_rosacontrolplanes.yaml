@@ -45,6 +45,11 @@ spec:
             type: object
           spec:
             properties:
+              additionalTags:
+                additionalProperties:
+                  type: string
+                description: User-defined tags for AWS resources
+                type: object
               availabilityZones:
                 description: AWS AvailabilityZones of the worker nodes should match
                   the AvailabilityZones of the Subnets.
@@ -78,6 +83,11 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
+              etcdEncryptionKMSArn:
+                description: The etcd encryption kms key ARN is the key used to encrypt
+                  etcd. It is only allowed for hosted cp and it needs to be pre-created
+                  in AWS KMS with tag red-hat:true.
+                type: string
               identityRef:
                 description: IdentityRef is a reference to an identity to be used
                   when reconciling the managed control plane. If no identity is specified,

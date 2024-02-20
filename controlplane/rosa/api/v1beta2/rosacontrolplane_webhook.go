@@ -2,6 +2,7 @@ package v1beta2
 
 import (
 	"github.com/blang/semver"
+	kmsArnRegexpValidator "github.com/openshift-online/ocm-common/pkg/resource/validations"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -31,6 +32,12 @@ func (r *ROSAControlPlane) ValidateCreate() (warnings admission.Warnings, err er
 		allErrs = append(allErrs, err)
 	}
 
+	if err := r.validateKMSKeyARN(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
+	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
+
 	if len(allErrs) == 0 {
 		return nil, nil
 	}
@@ -49,6 +56,12 @@ func (r *ROSAControlPlane) ValidateUpdate(old runtime.Object) (warnings admissio
 	if err := r.validateVersion(); err != nil {
 		allErrs = append(allErrs, err)
 	}
+
+	if err := r.validateKMSKeyARN(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
+	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -70,6 +83,16 @@ func (r *ROSAControlPlane) validateVersion() *field.Error {
 	_, err := semver.Parse(r.Spec.Version)
 	if err != nil {
 		return field.Invalid(field.NewPath("spec.version"), r.Spec.Version, "version must be a valid semantic version")
+	}
+
+	return nil
+}
+
+func (r *ROSAControlPlane) validateKMSKeyARN() *field.Error {
+	// validate Etcd Encryption KMS Arn
+	err := kmsArnRegexpValidator.ValidateKMSKeyARN(&r.Spec.EtcdEncryptionKMSArn)
+	if err != nil {
+		return field.Invalid(field.NewPath("spec.EtcdEncryptionKMSArn"), r.Spec.EtcdEncryptionKMSArn, err.Error())
 	}
 
 	return nil

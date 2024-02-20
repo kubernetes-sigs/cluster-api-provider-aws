@@ -269,7 +269,6 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 				ID(*rosaScope.ControlPlane.Spec.Region),
 		).
 		FIPS(false).
-		EtcdEncryption(false).
 		DisableUserWorkloadMonitoring(true).
 		Version(
 			cmv1.NewVersion().
@@ -278,6 +277,14 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		).
 		ExpirationTimestamp(time.Now().Add(1 * time.Hour)).
 		Hypershift(cmv1.NewHypershift().Enabled(true))
+
+	etcdEncryption := false
+	// If EtcdEncryptionKMSArn is set, etcdEncryption is true.
+	if rosaScope.ControlPlane.Spec.EtcdEncryptionKMSArn != "" {
+		etcdEncryption = true
+	}
+
+	clusterBuilder = clusterBuilder.EtcdEncryption(etcdEncryption)
 
 	networkBuilder := cmv1.NewNetwork()
 	networkBuilder = networkBuilder.Type("OVNKubernetes")
@@ -353,6 +360,17 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		BillingAccountID(*rosaScope.Identity.Account).
 		SubnetIDs(rosaScope.ControlPlane.Spec.Subnets...).
 		STS(stsBuilder)
+
+	// specify additional tags
+	if len(rosaScope.ControlPlane.Spec.AdditionalTags) > 0 {
+		awsBuilder = awsBuilder.Tags(rosaScope.ControlPlane.Spec.AdditionalTags)
+	}
+
+	// etcd encryption kms key arn
+	if rosaScope.ControlPlane.Spec.EtcdEncryptionKMSArn != "" {
+		awsBuilder = awsBuilder.EtcdEncryption(cmv1.NewAwsEtcdEncryption().KMSKeyARN(rosaScope.ControlPlane.Spec.EtcdEncryptionKMSArn))
+	}
+
 	clusterBuilder = clusterBuilder.AWS(awsBuilder)
 
 	clusterNodesBuilder := cmv1.NewClusterNodes()

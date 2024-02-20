@@ -79,6 +79,15 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
 	// If no identity is specified, the default identity for this controller will be used.
 	IdentityRef *infrav1.AWSIdentityReference `json:"identityRef,omitempty"`
+
+	// User-defined tags for AWS resources
+	// +optional
+	AdditionalTags infrav1.Tags `json:"additionalTags,omitempty"`
+
+	// The etcd encryption kms key ARN is the key used to encrypt etcd.
+	// It is only allowed for hosted cp and it needs to be pre-created in AWS KMS with tag red-hat:true.
+	// +optional
+	EtcdEncryptionKMSArn string `json:"etcdEncryptionKMSArn,omitempty"`
 }
 
 // AWSRolesRef contains references to various AWS IAM roles required for operators to make calls against the AWS API.
