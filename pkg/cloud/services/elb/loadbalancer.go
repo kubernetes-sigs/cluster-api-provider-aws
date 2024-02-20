@@ -758,20 +758,18 @@ func (s *Service) RegisterInstanceWithAPIServerELB(i *infrav1.Instance) error {
 	}
 
 	// Validate that the subnets associated with the load balancer has the instance AZ.
-	subnet := s.scope.Subnets().FindByID(i.SubnetID)
-	if subnet == nil {
+	subnets := s.scope.Subnets()
+	instanceSubnet := subnets.FindByID(i.SubnetID)
+	if instanceSubnet == nil {
 		return errors.Errorf("failed to attach load balancer subnets, could not find subnet %q description in AWSCluster", i.SubnetID)
 	}
-	instanceAZ := subnet.AvailabilityZone
+	instanceAZ := instanceSubnet.AvailabilityZone
 
-	var subnets infrav1.Subnets
 	if s.scope.ControlPlaneLoadBalancer() != nil && len(s.scope.ControlPlaneLoadBalancer().Subnets) > 0 {
 		subnets, err = s.getControlPlaneLoadBalancerSubnets()
 		if err != nil {
 			return err
 		}
-	} else {
-		subnets = s.scope.Subnets()
 	}
 
 	found := false
