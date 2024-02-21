@@ -1847,6 +1847,96 @@ func TestReconcileV2LB(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "ensure NLB without SGs doesn't attempt to add new SGs",
+			spec: func(spec infrav1.LoadBalancer) infrav1.LoadBalancer {
+				return spec
+			},
+			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
+				acl.Spec.ControlPlaneLoadBalancer.Name = aws.String(elbName)
+				acl.Spec.ControlPlaneLoadBalancer.LoadBalancerType = infrav1.LoadBalancerTypeNLB
+				acl.Spec.ControlPlaneLoadBalancer.AdditionalSecurityGroups = []string{"sg-001"}
+				return acl
+			},
+			elbV2APIMocks: func(m *mocks.MockELBV2APIMockRecorder) {
+				m.DescribeLoadBalancers(gomock.Eq(&elbv2.DescribeLoadBalancersInput{
+					Names: aws.StringSlice([]string{elbName}),
+				})).
+					Return(&elbv2.DescribeLoadBalancersOutput{
+						LoadBalancers: []*elbv2.LoadBalancer{
+							{
+								LoadBalancerArn:  aws.String(elbArn),
+								LoadBalancerName: aws.String(elbName),
+								Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
+								AvailabilityZones: []*elbv2.AvailabilityZone{
+									{
+										SubnetId: aws.String(clusterSubnetID),
+										ZoneName: aws.String(az),
+									},
+								},
+								VpcId: aws.String(vpcID),
+							},
+						},
+					}, nil)
+				m.ModifyLoadBalancerAttributes(&elbv2.ModifyLoadBalancerAttributesInput{
+					LoadBalancerArn: aws.String(elbArn),
+					Attributes: []*elbv2.LoadBalancerAttribute{
+						{
+							Key:   aws.String("load_balancing.cross_zone.enabled"),
+							Value: aws.String("false"),
+						},
+					}}).
+					Return(&elbv2.ModifyLoadBalancerAttributesOutput{}, nil)
+				m.DescribeLoadBalancerAttributes(&elbv2.DescribeLoadBalancerAttributesInput{LoadBalancerArn: aws.String(elbArn)}).Return(
+					&elbv2.DescribeLoadBalancerAttributesOutput{
+						Attributes: []*elbv2.LoadBalancerAttribute{
+							{
+								Key:   aws.String("load_balancing.cross_zone.enabled"),
+								Value: aws.String("false"),
+							},
+							{
+								Key:   aws.String(infrav1.ClusterTagKey(clusterName)),
+								Value: aws.String(string(infrav1.ResourceLifecycleOwned)),
+							},
+						},
+					},
+					nil,
+				)
+				m.DescribeTags(&elbv2.DescribeTagsInput{ResourceArns: []*string{aws.String(elbArn)}}).Return(
+					&elbv2.DescribeTagsOutput{
+						TagDescriptions: []*elbv2.TagDescription{
+							{
+								ResourceArn: aws.String(elbArn),
+								Tags: []*elbv2.Tag{
+									{
+										Key:   aws.String(infrav1.ClusterTagKey(clusterName)),
+										Value: aws.String(string(infrav1.ResourceLifecycleOwned)),
+									},
+								},
+							},
+						},
+					},
+					nil,
+				)
+
+				// Avoid the need to sort the AddTagsInput.Tags slice
+				m.AddTags(gomock.AssignableToTypeOf(&elbv2.AddTagsInput{})).Return(&elbv2.AddTagsOutput{}, nil)
+
+				m.SetSubnets(&elbv2.SetSubnetsInput{
+					LoadBalancerArn: aws.String(elbArn),
+					Subnets:         []*string{},
+				}).Return(&elbv2.SetSubnetsOutput{}, nil)
+			},
+			check: func(t *testing.T, lb *infrav1.LoadBalancer, err error) {
+				t.Helper()
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+				if len(lb.SecurityGroupIDs) != 0 {
+					t.Errorf("Expected LB to contain 0 security groups, got %v", len(lb.SecurityGroupIDs))
+				}
+			},
+		},
 	}
 
 	for _, tc := range tests {
@@ -1897,6 +1987,7 @@ func TestReconcileV2LB(t *testing.T) {
 			}
 			err = s.reconcileV2LB(clusterScope.ControlPlaneLoadBalancer())
 			lb := s.scope.Network().APIServerELB
+
 			tc.check(t, &lb, err)
 		})
 	}
@@ -2886,6 +2977,7 @@ func TestGetHealthCheckProtocol(t *testing.T) {
 		})
 	}
 }
+
 func setupScheme() (*runtime.Scheme, error) {
 	scheme := runtime.NewScheme()
 	if err := clusterv1.AddToScheme(scheme); err != nil {
