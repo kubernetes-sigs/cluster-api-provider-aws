@@ -255,6 +255,15 @@ func (s *Service) deleteVPCEndpoints() error {
 		return nil
 	}
 
+	// Gather all services that might have been enabled.
+	services := sets.New[string]()
+	if s.scope.Bucket() != nil {
+		services.Insert(fmt.Sprintf("com.amazonaws.%s.s3", s.scope.Region()))
+	}
+	if services.Len() == 0 {
+		return nil
+	}
+
 	// Get all existing endpoints.
 	endpoints, err := s.describeVPCEndpoints()
 	if err != nil {
