@@ -19,6 +19,8 @@ package eks
 import (
 	"context"
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -37,6 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util/annotations"
 )
 
@@ -592,6 +595,29 @@ func (s *NodegroupService) setStatus(ng *eks.Nodegroup) error {
 		managedPool.Status.Ready = false
 	case eks.NodegroupStatusUpdating:
 		managedPool.Status.Ready = true
+	case eks.NodegroupStatusDegraded:
+		issueErrMsgSet := make([]string, 0)
+		var errMsgStr string
+
+		for _, iss := range ng.Health.Issues {
+			errMsg := iss.GoString()
+			if slices.Contains(issueErrMsgSet, errMsg) {
+				continue
+			}
+			issueErrMsgSet = append(issueErrMsgSet, errMsg)
+			errMsgStr = fmt.Sprintf("%s %s", errMsgStr, errMsg)
+		}
+		reason := capierrors.InvalidConfigurationMachineError
+		// TODO: implement checks for other MachineStatusErrors and set reason accordingly
+		if strings.Contains(errMsgStr, "VcpuLimitExceeded") {
+			reason = capierrors.InsufficientResourcesMachineError
+		}
+
+		managedPool.Status.Ready = false
+		managedPool.Status.FailureReason = &reason
+		managedPool.Status.FailureMessage = &errMsgStr
+		return errors.Errorf("NodeGroup status is %s due to %v caused by error %s.  This error may persist and recreating the Node Group may be required to return to %s status",
+			eks.NodegroupStatusDegraded, *s.scope.ManagedMachinePool.Status.FailureReason, *s.scope.ManagedMachinePool.Status.FailureMessage, eks.NodegroupStatusActive)
 	default:
 		return errors.Errorf("unexpected EKS nodegroup status %s", *ng.Status)
 	}
