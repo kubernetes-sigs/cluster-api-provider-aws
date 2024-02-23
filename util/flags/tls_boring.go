@@ -9,5 +9,5 @@ func InsecureSkipVerify(insecureSkipVerify bool) bool {
 }
 
 func GetTlsMaxVersion() uint16 {
-	return tls.VersionTLS12
+	return tls.VersionTLS13
 }
