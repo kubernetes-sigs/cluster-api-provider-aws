@@ -21,7 +21,7 @@ include $(ROOT_DIR_RELATIVE)/common.mk
 
 # Go
 GO_VERSION ?=1.21.5
-GO_CONTAINER_IMAGE ?= public.ecr.aws/docker/library/golang:$(GO_VERSION)
+GO_CONTAINER_IMAGE ?= golang:$(GO_VERSION)
 
 # Directories.
 ARTIFACTS ?= $(REPO_ROOT)/_artifacts
@@ -607,18 +607,17 @@ release-binaries: ## Builds the binaries to publish with a release
 	RELEASE_BINARY=./cmd/clusterawsadm GOOS=windows GOARCH=arm64 EXT=.exe $(MAKE) release-binary
 
 .PHONY: release-binary
-release-binary: $(RELEASE_DIR) versions.mk build-toolchain ## Release binary
+release-binary: $(RELEASE_DIR) versions.mk ## Release binary
 	docker run \
 		--rm \
 		-e CGO_ENABLED=0 \
 		-e GOOS=$(GOOS) \
 		-e GOARCH=$(GOARCH) \
-		--mount=source=gocache,target=/go/pkg/mod \
-		--mount=source=gocache,target=/root/.cache/go-build \
+		-e GOCACHE=/tmp/ \
+		--user $$(id -u):$$(id -g) \
 		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
 		-w /workspace \
-		$(TOOLCHAIN_IMAGE) \
-		git config --global --add safe.directory /workspace; \
+		$(GO_CONTAINER_IMAGE) \
 		go build -ldflags '$(LDFLAGS) -extldflags "-static"' \
 		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))-$(GOOS)-$(GOARCH)$(EXT) $(RELEASE_BINARY)
 
