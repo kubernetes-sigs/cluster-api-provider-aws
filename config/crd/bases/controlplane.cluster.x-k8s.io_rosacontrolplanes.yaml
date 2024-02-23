@@ -51,6 +51,17 @@ spec:
                 items:
                   type: string
                 type: array
+              billingAccount:
+                description: BillingAccount is an optional AWS account to use for
+                  billing the subscription fees for ROSA clusters. The cost of running
+                  each ROSA cluster will be billed to the infrastructure account in
+                  which the cluster is running.
+                type: string
+                x-kubernetes-validations:
+                - message: billingAccount is immutable
+                  rule: self == oldSelf
+                - message: billingAccount must be a valid AWS account ID
+                  rule: self.matches('^[0-9]{12}$')
               controlPlaneEndpoint:
                 description: ControlPlaneEndpoint represents the endpoint used to
                   communicate with the control plane.
