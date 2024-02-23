@@ -200,7 +200,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	}
 
 	if validationMessage, validationError := validateControlPlaneSpec(ocmClient, rosaScope); validationError != nil {
-		return ctrl.Result{}, fmt.Errorf("validate ROSAControlPlane.spec: %w", err)
+		return ctrl.Result{}, fmt.Errorf("validate ROSAControlPlane.spec: %w", validationError)
 	} else if validationMessage != "" {
 		rosaScope.ControlPlane.Status.FailureMessage = ptr.To(validationMessage)
 		// dont' requeue because input is invalid and manual intervention is needed.
@@ -268,7 +268,13 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		rosaScope.Error(err, "rosacontrolplane.spec.machineCIDR invalid")
 	}
 
+	billingAccount := *rosaScope.Identity.Account
+	if rosaScope.ControlPlane.Spec.BillingAccount != "" {
+		billingAccount = rosaScope.ControlPlane.Spec.BillingAccount
+	}
+
 	spec := ocm.Spec{
+		DryRun:                    ptr.To(false),
 		Name:                      rosaScope.RosaClusterName(),
 		Region:                    *rosaScope.ControlPlane.Spec.Region,
 		MultiAZ:                   true,
@@ -276,6 +282,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		ChannelGroup:              "stable",
 		Expiration:                time.Now().Add(1 * time.Hour),
 		DisableWorkloadMonitoring: ptr.To(true),
+		DefaultIngress:            ocm.NewDefaultIngressSpec(), // n.b. this is a no-op when it's set to the default value
 
 		SubnetIds:         rosaScope.ControlPlane.Spec.Subnets,
 		AvailabilityZones: rosaScope.ControlPlane.Spec.AvailabilityZones,
@@ -332,7 +339,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		Hypershift: ocm.Hypershift{
 			Enabled: true,
 		},
-		BillingAccount: *rosaScope.Identity.Account,
+		BillingAccount: billingAccount,
 		AWSCreator:     creator,
 	}
 

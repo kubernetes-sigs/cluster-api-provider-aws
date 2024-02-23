@@ -68,6 +68,16 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	SupportRoleARN   *string `json:"supportRoleARN"`
 	WorkerRoleARN    *string `json:"workerRoleARN"`
 
+	// +immutable
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="billingAccount is immutable"
+	// +kubebuilder:validation:XValidation:rule="self.matches('^[0-9]{12}$')", message="billingAccount must be a valid AWS account ID"
+
+	// BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA clusters.
+	// The cost of running each ROSA cluster will be billed to the infrastructure account in which the cluster
+	// is running.
+	BillingAccount string `json:"billingAccount,omitempty"`
+
 	// CredentialsSecretRef references a secret with necessary credentials to connect to the OCM API.
 	// The secret should contain the following data keys:
 	// - ocmToken: eyJhbGciOiJIUzI1NiIsI....
