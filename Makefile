@@ -20,8 +20,8 @@ include $(ROOT_DIR_RELATIVE)/common.mk
 # https://suva.sh/posts/well-documented-makefiles
 
 # Go
-GO_VERSION ?=1.21.7
-GO_CONTAINER_IMAGE ?= public.ecr.aws/docker/library/golang:$(GO_VERSION)
+GO_VERSION ?=1.21.5
+GO_CONTAINER_IMAGE ?= golang:$(GO_VERSION)
 
 # Directories.
 ARTIFACTS ?= $(REPO_ROOT)/_artifacts
@@ -610,12 +610,11 @@ release-binary: $(RELEASE_DIR) versions.mk build-toolchain ## Release binary
 		-e CGO_ENABLED=0 \
 		-e GOOS=$(GOOS) \
 		-e GOARCH=$(GOARCH) \
-		--mount=source=gocache,target=/go/pkg/mod \
-		--mount=source=gocache,target=/root/.cache/go-build \
+		-e GOCACHE=/tmp/ \
+		--user $$(id -u):$$(id -g) \
 		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
 		-w /workspace \
-		$(TOOLCHAIN_IMAGE) \
-		git config --global --add safe.directory /workspace; \
+		$(GO_CONTAINER_IMAGE) \
 		go build -ldflags '$(LDFLAGS) -extldflags "-static"' \
 		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))-$(GOOS)-$(GOARCH)$(EXT) $(RELEASE_BINARY)
 
