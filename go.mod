@@ -2,6 +2,8 @@ module sigs.k8s.io/cluster-api-provider-aws/v2
 
 go 1.21
 
+toolchain go1.21.5
+
 replace (
 	// kube-openapi should match the version imported by CAPI.
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20230717233707-2695361300d9
