@@ -49,7 +49,8 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// The AWS Region the cluster lives in.
 	Region *string `json:"region"`
 
-	// Openshift version, for example "4.14.5".
+	// OpenShift semantic version, for example "4.14.5".
+	// +kubebuilder:validation:XValidation:rule=`self.matches('^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$')`, message="version must be a valid semantic version"
 	Version string `json:"version"`
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
