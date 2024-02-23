@@ -2,6 +2,8 @@ module sigs.k8s.io/cluster-api-provider-aws/hack/tools
 
 go 1.21
 
+toolchain go1.21.5
+
 require (
 	github.com/a8m/envsubst v1.4.2
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0

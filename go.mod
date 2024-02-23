@@ -2,6 +2,8 @@ module sigs.k8s.io/cluster-api-provider-aws/v2
 
 go 1.21
 
+toolchain go1.21.5
+
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.5.3
 
 require (
