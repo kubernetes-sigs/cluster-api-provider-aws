@@ -169,11 +169,10 @@ type Bastion struct {
 type LoadBalancerType string
 
 var (
-	LoadBalancerTypeClassic  = LoadBalancerType("classic")
-	LoadBalancerTypeELB      = LoadBalancerType("elb")
-	LoadBalancerTypeALB      = LoadBalancerType("alb")
-	LoadBalancerTypeNLB      = LoadBalancerType("nlb")
-	LoadBalancerTypeDisabled = LoadBalancerType("disabled")
+	LoadBalancerTypeClassic = LoadBalancerType("classic")
+	LoadBalancerTypeELB     = LoadBalancerType("elb")
+	LoadBalancerTypeALB     = LoadBalancerType("alb")
+	LoadBalancerTypeNLB     = LoadBalancerType("nlb")
 )
 
 // AWSLoadBalancerSpec defines the desired state of an AWS load balancer.
@@ -232,7 +231,7 @@ type AWSLoadBalancerSpec struct {
 
 	// LoadBalancerType sets the type for a load balancer. The default type is classic.
 	// +kubebuilder:default=classic
-	// +kubebuilder:validation:Enum:=classic;elb;alb;nlb;disabled
+	// +kubebuilder:validation:Enum:=classic;elb;alb;nlb
 	LoadBalancerType LoadBalancerType `json:"loadBalancerType,omitempty"`
 
 	// DisableHostsRewrite disabled the hair pinning issue solution that adds the NLB's address as 127.0.0.1 to the hosts

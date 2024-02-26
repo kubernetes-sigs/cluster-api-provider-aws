@@ -26,7 +26,6 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
@@ -51,126 +50,6 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 		wantErr bool
 		expect  func(g *WithT, res *AWSLoadBalancerSpec)
 	}{
-		{
-			name: "No options are allowed when LoadBalancer is disabled (name)",
-			cluster: &AWSCluster{
-				Spec: AWSClusterSpec{
-					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						LoadBalancerType: LoadBalancerTypeDisabled,
-						Name:             ptr.To("name"),
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "No options are allowed when LoadBalancer is disabled (crossZoneLoadBalancing)",
-			cluster: &AWSCluster{
-				Spec: AWSClusterSpec{
-					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						CrossZoneLoadBalancing: true,
-						LoadBalancerType:       LoadBalancerTypeDisabled,
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "No options are allowed when LoadBalancer is disabled (subnets)",
-			cluster: &AWSCluster{
-				Spec: AWSClusterSpec{
-					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						Subnets:          []string{"foo", "bar"},
-						LoadBalancerType: LoadBalancerTypeDisabled,
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "No options are allowed when LoadBalancer is disabled (healthCheckProtocol)",
-			cluster: &AWSCluster{
-				Spec: AWSClusterSpec{
-					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						HealthCheckProtocol: &ELBProtocolTCP,
-						LoadBalancerType:    LoadBalancerTypeDisabled,
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "No options are allowed when LoadBalancer is disabled (additionalSecurityGroups)",
-			cluster: &AWSCluster{
-				Spec: AWSClusterSpec{
-					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						AdditionalSecurityGroups: []string{"foo", "bar"},
-						LoadBalancerType:         LoadBalancerTypeDisabled,
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "No options are allowed when LoadBalancer is disabled (additionalListeners)",
-			cluster: &AWSCluster{
-				Spec: AWSClusterSpec{
-					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						AdditionalListeners: []AdditionalListenerSpec{
-							{
-								Port:     6443,
-								Protocol: ELBProtocolTCP,
-							},
-						},
-						LoadBalancerType: LoadBalancerTypeDisabled,
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "No options are allowed when LoadBalancer is disabled (ingressRules)",
-			cluster: &AWSCluster{
-				Spec: AWSClusterSpec{
-					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						IngressRules: []IngressRule{
-							{
-								Description: "ingress rule",
-								Protocol:    SecurityGroupProtocolTCP,
-								FromPort:    6443,
-								ToPort:      6443,
-							},
-						},
-						LoadBalancerType: LoadBalancerTypeDisabled,
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "No options are allowed when LoadBalancer is disabled (disableHostsRewrite)",
-			cluster: &AWSCluster{
-				Spec: AWSClusterSpec{
-					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						DisableHostsRewrite: true,
-						LoadBalancerType:    LoadBalancerTypeDisabled,
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "No options are allowed when LoadBalancer is disabled (preserveClientIP)",
-			cluster: &AWSCluster{
-				Spec: AWSClusterSpec{
-					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
-						PreserveClientIP: true,
-						LoadBalancerType: LoadBalancerTypeDisabled,
-					},
-				},
-			},
-			wantErr: true,
-		},
 		// The SSHKeyName tests were moved to sshkeyname_test.go
 		{
 			name: "Supported schemes are 'internet-facing, Internet-facing, internal, or nil', rest will be rejected",

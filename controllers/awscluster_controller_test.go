@@ -30,7 +30,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -67,118 +66,6 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 	teardown := func() {
 		mockCtrl.Finish()
 	}
-	t.Run("Should wait for external Control Plane endpoint when LoadBalancer is disabled, and eventually succeed when patched", func(t *testing.T) {
-		g := NewWithT(t)
-		mockCtrl = gomock.NewController(t)
-		ec2Mock := mocks.NewMockEC2API(mockCtrl)
-		expect := func(m *mocks.MockEC2APIMockRecorder) {
-			// First iteration, when the AWS Cluster is missing a valid Control Plane Endpoint
-			mockedVPCCallsForExistingVPCAndSubnets(m)
-			mockedCreateSGCalls(false, "vpc-exists", m)
-			mockedDescribeInstanceCall(m)
-			// Second iteration: the AWS Cluster object has been patched,
-			// thus a valid Control Plane Endpoint has been provided
-			mockedVPCCallsForExistingVPCAndSubnets(m)
-			mockedCreateSGCalls(false, "vpc-exists", m)
-			mockedDescribeInstanceCall(m)
-		}
-		expect(ec2Mock.EXPECT())
-
-		setup(t)
-		controllerIdentity := createControllerIdentity(g)
-		ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("integ-test-%s", util.RandomString(5)))
-		g.Expect(err).To(BeNil())
-		// Creating the AWS cluster with a disabled Load Balancer:
-		// no ALB, ELB, or NLB specified, the AWS cluster must consistently be reported
-		// waiting for the control Plane endpoint.
-		awsCluster := getAWSCluster("test", ns.Name)
-		awsCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
-			LoadBalancerType: infrav1.LoadBalancerTypeDisabled,
-		}
-
-		g.Expect(testEnv.Create(ctx, &awsCluster)).To(Succeed())
-
-		defer teardown()
-		defer t.Cleanup(func() {
-			g.Expect(testEnv.Cleanup(ctx, &awsCluster, controllerIdentity, ns)).To(Succeed())
-		})
-
-		cs, err := getClusterScope(awsCluster)
-		g.Expect(err).To(BeNil())
-		networkSvc := network.NewService(cs)
-		networkSvc.EC2Client = ec2Mock
-		reconciler.networkServiceFactory = func(clusterScope scope.ClusterScope) services.NetworkInterface {
-			return networkSvc
-		}
-
-		ec2Svc := ec2Service.NewService(cs)
-		ec2Svc.EC2Client = ec2Mock
-		reconciler.ec2ServiceFactory = func(scope scope.EC2Scope) services.EC2Interface {
-			return ec2Svc
-		}
-		testSecurityGroupRoles := []infrav1.SecurityGroupRole{
-			infrav1.SecurityGroupBastion,
-			infrav1.SecurityGroupAPIServerLB,
-			infrav1.SecurityGroupLB,
-			infrav1.SecurityGroupControlPlane,
-			infrav1.SecurityGroupNode,
-		}
-		sgSvc := securitygroup.NewService(cs, testSecurityGroupRoles)
-		sgSvc.EC2Client = ec2Mock
-
-		reconciler.securityGroupFactory = func(clusterScope scope.ClusterScope) services.SecurityGroupInterface {
-			return sgSvc
-		}
-		cs.SetSubnets([]infrav1.SubnetSpec{
-			{
-				ID:               "subnet-2",
-				AvailabilityZone: "us-east-1c",
-				IsPublic:         true,
-				CidrBlock:        "10.0.11.0/24",
-			},
-			{
-				ID:               "subnet-1",
-				AvailabilityZone: "us-east-1a",
-				CidrBlock:        "10.0.10.0/24",
-				IsPublic:         false,
-			},
-		})
-
-		_, err = reconciler.reconcileNormal(cs)
-		g.Expect(err).To(BeNil())
-
-		cluster := &infrav1.AWSCluster{}
-		g.Expect(testEnv.Get(ctx, client.ObjectKey{Name: cs.AWSCluster.Name, Namespace: cs.AWSCluster.Namespace}, cluster)).ToNot(HaveOccurred())
-		g.Expect(cluster.Spec.ControlPlaneEndpoint.Host).To(BeEmpty())
-		g.Expect(cluster.Spec.ControlPlaneEndpoint.Port).To(BeZero())
-		expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{
-			{conditionType: infrav1.LoadBalancerReadyCondition, status: corev1.ConditionFalse, severity: clusterv1.ConditionSeverityInfo, reason: infrav1.WaitForExternalControlPlaneEndpointReason},
-		})
-		// Mimicking an external operator patching the cluster with an already provisioned Load Balancer:
-		// this could be done by a human who provisioned a LB, or by a Control Plane provider.
-		g.Expect(retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			if err = testEnv.Get(ctx, client.ObjectKey{Name: cs.AWSCluster.Name, Namespace: cs.AWSCluster.Namespace}, cs.AWSCluster); err != nil {
-				return err
-			}
-
-			cs.AWSCluster.Spec.ControlPlaneEndpoint.Host = "10.0.10.1"
-			cs.AWSCluster.Spec.ControlPlaneEndpoint.Port = 6443
-
-			return testEnv.Update(ctx, cs.AWSCluster)
-		})).To(Succeed())
-		// Executing back a second reconciliation:
-		// the AWS Cluster should be ready with no LoadBalancer false condition.
-		_, err = reconciler.reconcileNormal(cs)
-		g.Expect(err).To(BeNil())
-		g.Expect(cs.VPC().ID).To(Equal("vpc-exists"))
-		expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{
-			{conditionType: infrav1.ClusterSecurityGroupsReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
-			{conditionType: infrav1.BastionHostReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
-			{conditionType: infrav1.VpcReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
-			{conditionType: infrav1.SubnetsReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
-			{conditionType: infrav1.LoadBalancerReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
-		})
-	})
 	t.Run("Should successfully reconcile AWSCluster creation with unmanaged VPC", func(t *testing.T) {
 		g := NewWithT(t)
 		mockCtrl = gomock.NewController(t)
