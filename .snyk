@@ -4,3 +4,5 @@
 exclude:
   global:
     - "vendor/**"
+    - "**/vendor/**"
+    - "test/**"
