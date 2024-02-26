@@ -22,6 +22,7 @@ import (
 
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -394,4 +395,10 @@ func (s *ClusterScope) Partition() string {
 // AdditionalControlPlaneIngressRules returns the additional ingress rules for control plane security group.
 func (s *ClusterScope) AdditionalControlPlaneIngressRules() []infrav1.IngressRule {
 	return s.AWSCluster.Spec.NetworkSpec.DeepCopy().AdditionalControlPlaneIngressRules
+}
+
+// UnstructuredControlPlane returns the unstructured object for the control plane, if any.
+// When the reference is not set, it returns an empty object.
+func (s *ClusterScope) UnstructuredControlPlane() (*unstructured.Unstructured, error) {
+	return getUnstructuredControlPlane(context.TODO(), s.client, s.Cluster)
 }

@@ -18,6 +18,7 @@ package cloud
 
 import (
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -67,6 +68,8 @@ type ClusterScoper interface {
 
 	// Cluster returns the cluster object.
 	ClusterObj() ClusterObject
+	// UnstructuredControlPlane returns the unstructured control plane object.
+	UnstructuredControlPlane() (*unstructured.Unstructured, error)
 
 	// IdentityRef returns the AWS infrastructure cluster identityRef.
 	IdentityRef() *infrav1.AWSIdentityReference
