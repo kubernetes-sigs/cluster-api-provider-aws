@@ -23,7 +23,6 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -44,7 +43,6 @@ import (
 type MachineScopeParams struct {
 	Client       client.Client
 	Logger       *logger.Logger
-	ControlPlane *unstructured.Unstructured
 	Cluster      *clusterv1.Cluster
 	Machine      *clusterv1.Machine
 	InfraCluster EC2Scope
@@ -69,9 +67,6 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 	if params.InfraCluster == nil {
 		return nil, errors.New("aws cluster is required when creating a MachineScope")
 	}
-	if params.ControlPlane == nil {
-		return nil, errors.New("cluster control plane is required when creating a MachineScope")
-	}
 
 	if params.Logger == nil {
 		log := klog.Background()
@@ -86,7 +81,6 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		Logger:       *params.Logger,
 		client:       params.Client,
 		patchHelper:  helper,
-		ControlPlane: params.ControlPlane,
 		Cluster:      params.Cluster,
 		Machine:      params.Machine,
 		InfraCluster: params.InfraCluster,
@@ -102,7 +96,6 @@ type MachineScope struct {
 
 	Cluster      *clusterv1.Cluster
 	Machine      *clusterv1.Machine
-	ControlPlane *unstructured.Unstructured
 	InfraCluster EC2Scope
 	AWSMachine   *infrav1.AWSMachine
 }
@@ -377,8 +370,22 @@ func (m *MachineScope) IsEKSManaged() bool {
 	return m.InfraCluster.InfraCluster().GetObjectKind().GroupVersionKind().Kind == ekscontrolplanev1.AWSManagedControlPlaneKind
 }
 
+// IsControlPlaneExternallyManaged checks if the control plane is externally managed.
+//
+// This is determined by the kind of the control plane object (EKS for example),
+// or if the control plane referenced object is reporting as externally managed.
 func (m *MachineScope) IsControlPlaneExternallyManaged() bool {
-	return util.IsExternalManagedControlPlane(m.ControlPlane)
+	if m.IsEKSManaged() {
+		return true
+	}
+
+	// Check if the control plane is externally managed.
+	u, err := m.InfraCluster.UnstructuredControlPlane()
+	if err != nil {
+		m.Error(err, "failed to get unstructured control plane")
+		return false
+	}
+	return util.IsExternalManagedControlPlane(u)
 }
 
 // IsExternallyManaged checks if the machine is externally managed.
