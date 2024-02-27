@@ -49,7 +49,8 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// The AWS Region the cluster lives in.
 	Region *string `json:"region"`
 
-	// Openshift version, for example "4.14.5".
+	// OpenShift semantic version, for example "4.14.5".
+	// +kubebuilder:validation:XValidation:rule=`self.matches('^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$')`, message="version must be a valid semantic version"
 	Version string `json:"version"`
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
@@ -66,6 +67,16 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	InstallerRoleARN *string `json:"installerRoleARN"`
 	SupportRoleARN   *string `json:"supportRoleARN"`
 	WorkerRoleARN    *string `json:"workerRoleARN"`
+
+	// +immutable
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="billingAccount is immutable"
+	// +kubebuilder:validation:XValidation:rule="self.matches('^[0-9]{12}$')", message="billingAccount must be a valid AWS account ID"
+
+	// BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA clusters.
+	// The cost of running each ROSA cluster will be billed to the infrastructure account in which the cluster
+	// is running.
+	BillingAccount string `json:"billingAccount,omitempty"`
 
 	// CredentialsSecretRef references a secret with necessary credentials to connect to the OCM API.
 	// The secret should contain the following data keys:
