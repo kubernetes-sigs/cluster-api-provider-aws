@@ -607,12 +607,48 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 }
 
 func TestAWSClusterValidateUpdate(t *testing.T) {
-	tests := []struct {
+	var tests = []struct {
 		name       string
 		oldCluster *AWSCluster
 		newCluster *AWSCluster
 		wantErr    bool
 	}{
+		{
+			name: "Control Plane LB type is immutable when switching from disabled to any",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType: LoadBalancerTypeDisabled,
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType: LoadBalancerTypeClassic,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Control Plane LB type is immutable when switching from any to disabled",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType: LoadBalancerTypeClassic,
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType: LoadBalancerTypeDisabled,
+					},
+				},
+			},
+			wantErr: true,
+		},
 		{
 			name: "region is immutable",
 			oldCluster: &AWSCluster{

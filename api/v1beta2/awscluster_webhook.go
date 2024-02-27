@@ -153,6 +153,16 @@ func (r *AWSCluster) validateControlPlaneLoadBalancerUpdate(oldlb, newlb *AWSLoa
 			)
 		}
 	} else {
+		// A disabled Load Balancer has many implications that must be treated as immutable/
+		// this is mostly used by externally managed Control Plane, and there's no need to support type changes.
+		// More info: https://kubernetes.slack.com/archives/CD6U2V71N/p1708983246100859?thread_ts=1708973478.410979&cid=CD6U2V71N
+		if (oldlb.LoadBalancerType == LoadBalancerTypeDisabled && newlb.LoadBalancerType != LoadBalancerTypeDisabled) ||
+			(newlb.LoadBalancerType == LoadBalancerTypeDisabled && oldlb.LoadBalancerType != LoadBalancerTypeDisabled) {
+			allErrs = append(allErrs,
+				field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "type"),
+					newlb.Scheme, "field is immutable when created of disabled type"),
+			)
+		}
 		// If old scheme was not nil, the new scheme should be the same.
 		if !cmp.Equal(oldlb.Scheme, newlb.Scheme) {
 			allErrs = append(allErrs,
