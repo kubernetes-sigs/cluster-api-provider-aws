@@ -1,0 +1,16 @@
+{
+    "repoOwner": "spectrocloud",
+    "repoName": "cluster-api-provider-aws",
+    "editor": "code",
+    "targetBranchChoices": [
+        "main",
+        "rc-4.0",
+        "release-3.4"
+    ],
+    "autoMerge": false,
+    "autoMergeMethod": "squash",
+    "commitConflicts": true,
+    "branchLabelMapping": {
+        "^backport-(.+)$": "$1"
+    }
+}
