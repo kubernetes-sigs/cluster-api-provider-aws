@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -42,9 +43,6 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// AWS AvailabilityZones of the worker nodes
 	// should match the AvailabilityZones of the Subnets.
 	AvailabilityZones []string `json:"availabilityZones"`
-
-	// Block of IP addresses used by OpenShift while installing the cluster, for example "10.0.0.0/16".
-	MachineCIDR *string `json:"machineCIDR"`
 
 	// The AWS Region the cluster lives in.
 	Region *string `json:"region"`
@@ -90,6 +88,44 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
 	// If no identity is specified, the default identity for this controller will be used.
 	IdentityRef *infrav1.AWSIdentityReference `json:"identityRef,omitempty"`
+
+	// Network config for the ROSA HCP cluster.
+	Network *NetworkSpec `json:"network,omitempty"`
+
+	// The instance type to use, for example `r5.xlarge`. Instance type ref; https://aws.amazon.com/ec2/instance-types/
+	// +optional
+	InstanceType string `json:"instanceType,omitempty"`
+
+	// Autoscaling specifies auto scaling behaviour for the MachinePools.
+	// +optional
+	Autoscaling *expinfrav1.RosaMachinePoolAutoScaling `json:"autoscaling,omitempty"`
+}
+
+// NetworkSpec for ROSA-HCP.
+type NetworkSpec struct {
+	// IP addresses block used by OpenShift while installing the cluster, for example "10.0.0.0/16".
+	// +kubebuilder:validation:Format=cidr
+	MachineCIDR string `json:"machineCIDR,omitempty"`
+
+	// IP address block from which to assign pod IP addresses, for example `10.128.0.0/14`.
+	// +kubebuilder:validation:Format=cidr
+	// +optional
+	PodCIDR string `json:"podCIDR,omitempty"`
+
+	// IP address block from which to assign service IP addresses, for example `172.30.0.0/16`.
+	// +kubebuilder:validation:Format=cidr
+	// +optional
+	ServiceCIDR string `json:"serviceCIDR,omitempty"`
+
+	// Network host prefix which is defaulted to `23` if not specified.
+	// +kubebuilder:default=23
+	// +optional
+	HostPrefix int `json:"hostPrefix,omitempty"`
+
+	// The CNI network type default is OVNKubernetes.
+	// +kubebuilder:validation:Enum=OVNKubernetes;Other
+	// +kubebuilder:default=OVNKubernetes
+	NetworkType string `json:"networkType,omitempty"`
 }
 
 // AWSRolesRef contains references to various AWS IAM roles required for operators to make calls against the AWS API.
