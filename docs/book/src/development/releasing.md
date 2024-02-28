@@ -12,7 +12,7 @@
 1. If this is a major or minor release, create a new release branch and push to GitHub, otherwise switch to it, e.g. `git checkout release-1.5`.
 1. If this is a major or minor release, update `metadata.yaml` by adding a new section with the version, and make a commit.
 1. Update the release branch on the repository, e.g. `git push origin HEAD:release-1.5`. `origin` refers to the remote git reference to your fork.
-1. Update the release branch on the repository, e.g. `git push upstream HEAD:release-1.5`. `upstrem` refers to the upstream git reference.
+1. Update the release branch on the repository, e.g. `git push upstream HEAD:release-1.5`. `upstream` refers to the upstream git reference.
 1. Make sure your repo is clean by git standards.
 1. Set environment variable `GITHUB_TOKEN` to a GitHub personal access token. The token must have write access to the `kubernetes-sigs/cluster-api-provider-aws` repository.
 1. Set environment variables `PREVIOUS_VERSION` which is the last release tag and `VERSION` which is the current release version, e.g. `export PREVIOUS_VERSION=v1.4.0 VERSION=v1.5.0`, or `export PREVIOUS_VERSION=v1.5.0 VERSION=v1.5.1`).
