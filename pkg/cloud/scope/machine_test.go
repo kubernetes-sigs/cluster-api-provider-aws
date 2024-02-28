@@ -22,7 +22,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -133,8 +132,7 @@ func setupMachineScope() (*MachineScope, error) {
 			InfraCluster: &ClusterScope{
 				AWSCluster: awsCluster,
 			},
-			ControlPlane: &unstructured.Unstructured{},
-			AWSMachine:   awsMachine,
+			AWSMachine: awsMachine,
 		},
 	)
 }
@@ -225,10 +223,9 @@ func TestGetRawBootstrapDataWithFormat(t *testing.T) {
 
 		machineScope, err := NewMachineScope(
 			MachineScopeParams{
-				Client:       client,
-				Machine:      machine,
-				Cluster:      cluster,
-				ControlPlane: &unstructured.Unstructured{},
+				Client:  client,
+				Machine: machine,
+				Cluster: cluster,
 				InfraCluster: &ClusterScope{
 					AWSCluster: awsCluster,
 				},
