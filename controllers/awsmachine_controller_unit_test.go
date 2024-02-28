@@ -33,7 +33,6 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -131,7 +130,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 					},
 				},
 				InfraCluster: cs,
-				ControlPlane: &unstructured.Unstructured{},
 				AWSMachine:   awsMachine,
 			},
 		)
@@ -160,7 +158,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 						InfrastructureReady: true,
 					},
 				},
-				ControlPlane: &unstructured.Unstructured{},
 				Machine: &clusterv1.Machine{
 					Spec: clusterv1.MachineSpec{
 						ClusterName: "capi-test",

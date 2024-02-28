@@ -26,7 +26,6 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -281,7 +280,6 @@ func getClusterScope(client client.Client) (*scope.ClusterScope, error) {
 func getMachineScope(client client.Client, clusterScope *scope.ClusterScope) (*scope.MachineScope, error) {
 	return scope.NewMachineScope(scope.MachineScopeParams{
 		Client:       client,
-		ControlPlane: &unstructured.Unstructured{},
 		Cluster:      clusterScope.Cluster,
 		Machine:      &clusterv1.Machine{},
 		InfraCluster: clusterScope,
