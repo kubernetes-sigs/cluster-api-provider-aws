@@ -105,6 +105,7 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 type NetworkSpec struct {
 	// IP addresses block used by OpenShift while installing the cluster, for example "10.0.0.0/16".
 	// +kubebuilder:validation:Format=cidr
+	// +optional
 	MachineCIDR string `json:"machineCIDR,omitempty"`
 
 	// IP address block from which to assign pod IP addresses, for example `10.128.0.0/14`.
