@@ -99,6 +99,19 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// Autoscaling specifies auto scaling behaviour for the MachinePools.
 	// +optional
 	Autoscaling *expinfrav1.RosaMachinePoolAutoScaling `json:"autoscaling,omitempty"`
+
+	// +kubebuilder:validation:Optional
+
+	// AdditionalTags are user-defined tags to be added on the AWS resources associated with the control plane.
+	AdditionalTags infrav1.Tags `json:"additionalTags,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxLength=2048
+	// +kubebuilder:validation:XValidation:rule=`self.matches('^arn:aws[\\w-]*:kms:[\\w-]+:\\d{12}:key\\/(mrk-[0-9a-f]{32}$|[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$)')`, message="etcdEncryptionKMSArn must be a valid encryption key ARN"
+
+	// EtcdEncryptionKMSArn is the ARN of the KMS key used to encrypt etcd. The key itself needs to be
+	// created out-of-band by the user and tagged with `red-hat:true`.
+	EtcdEncryptionKMSArn string `json:"etcdEncryptionKMSArn,omitempty"`
 }
 
 // NetworkSpec for ROSA-HCP.

@@ -278,6 +278,9 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		DisableWorkloadMonitoring: ptr.To(true),
 		DefaultIngress:            ocm.NewDefaultIngressSpec(), // n.b. this is a no-op when it's set to the default value
 		ComputeMachineType:        rosaScope.ControlPlane.Spec.InstanceType,
+		Tags:                      rosaScope.ControlPlane.Spec.AdditionalTags,
+		EtcdEncryption:            rosaScope.ControlPlane.Spec.EtcdEncryptionKMSArn != "",
+		EtcdEncryptionKMSArn:      rosaScope.ControlPlane.Spec.EtcdEncryptionKMSArn,
 
 		SubnetIds:         rosaScope.ControlPlane.Spec.Subnets,
 		AvailabilityZones: rosaScope.ControlPlane.Spec.AvailabilityZones,
