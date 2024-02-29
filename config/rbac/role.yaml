@@ -178,6 +178,12 @@ rules:
 - apiGroups:
   - controlplane.cluster.x-k8s.io
   resources:
+  - rosacontrolplanes/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
   - rosacontrolplanes/status
   verbs:
   - get
@@ -409,6 +415,12 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - rosamachinepools/finalizers
+  verbs:
+  - update
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
