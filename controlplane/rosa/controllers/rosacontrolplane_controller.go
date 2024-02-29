@@ -177,11 +177,6 @@ func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (res ctrl.Result, reterr error) {
 	rosaScope.Info("Reconciling ROSAControlPlane")
-
-	// if !rosaScope.Cluster.Status.InfrastructureReady {
-	//	rosaScope.Info("Cluster infrastructure is not ready yet")
-	//	return ctrl.Result{RequeueAfter: r.WaitInfraPeriod}, nil
-	//}
 	if controllerutil.AddFinalizer(rosaScope.ControlPlane, ROSAControlPlaneFinalizer) {
 		if err := rosaScope.PatchObject(); err != nil {
 			return ctrl.Result{}, err
@@ -190,8 +185,8 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 
 	ocmClient, err := rosa.NewOCMClient(ctx, rosaScope)
 	if err != nil {
-		// TODO: need to expose in status, as likely the credentials are invalid
-		return ctrl.Result{}, fmt.Errorf("failed to create OCM client: %w", err)
+		conditions.MarkFalse(rosaScope.ControlPlane, rosacontrolplanev1.OCMCredentialsValidCondition, rosacontrolplanev1.OCMCredentialsImproperReason, clusterv1.ConditionSeverityError, err.Error())
+		return ctrl.Result{}, nil
 	}
 
 	creator, err := rosaaws.CreatorForCallerIdentity(rosaScope.Identity)
@@ -202,21 +197,36 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	if validationMessage, validationError := validateControlPlaneSpec(ocmClient, rosaScope); validationError != nil {
 		return ctrl.Result{}, fmt.Errorf("validate ROSAControlPlane.spec: %w", validationError)
 	} else if validationMessage != "" {
-		rosaScope.ControlPlane.Status.FailureMessage = ptr.To(validationMessage)
-		// dont' requeue because input is invalid and manual intervention is needed.
+		conditions.MarkFalse(rosaScope.ControlPlane, rosacontrolplanev1.ROSAControlPlaneConfiguredCondition, rosacontrolplanev1.ConfigurationMalformedReason, clusterv1.ConditionSeverityError, validationMessage)
 		return ctrl.Result{}, nil
-	} else {
-		rosaScope.ControlPlane.Status.FailureMessage = nil
 	}
 
-	if errs := rosaScope.ControlPlane.Spec.AdditionalTags.Validate(); errs != nil {
-		var msg []string
-		for _, err := range errs {
-			msg = append(msg, err.Error())
-		}
-		rosaScope.ControlPlane.Status.FailureMessage = ptr.To(strings.Join(msg, ", "))
-		// dont' requeue because input is invalid and manual intervention is needed.
+	var machineCIDR, podCIDR, serviceCIDR *net.IPNet
+	if _, cidr, err := net.ParseCIDR(rosaScope.ControlPlane.Spec.Network.MachineCIDR); err == nil {
+		machineCIDR = cidr
+	} else {
+		conditions.MarkFalse(rosaScope.ControlPlane, rosacontrolplanev1.ROSAControlPlaneConfiguredCondition, rosacontrolplanev1.ConfigurationMalformedReason, clusterv1.ConditionSeverityError, fmt.Sprintf("rosacontrolplane.spec.network.machineCIDR invalid: %v", err))
 		return ctrl.Result{}, nil
+	}
+
+	if rosaScope.ControlPlane.Spec.Network.PodCIDR != "" {
+		_, cidr, err := net.ParseCIDR(rosaScope.ControlPlane.Spec.Network.PodCIDR)
+		if err == nil {
+			podCIDR = cidr
+		} else {
+			conditions.MarkFalse(rosaScope.ControlPlane, rosacontrolplanev1.ROSAControlPlaneConfiguredCondition, rosacontrolplanev1.ConfigurationMalformedReason, clusterv1.ConditionSeverityError, fmt.Sprintf("rosacontrolplane.spec.network.podCIDR invalid: %v", err))
+			return ctrl.Result{}, nil
+		}
+	}
+
+	if rosaScope.ControlPlane.Spec.Network.ServiceCIDR != "" {
+		_, cidr, err := net.ParseCIDR(rosaScope.ControlPlane.Spec.Network.ServiceCIDR)
+		if err == nil {
+			serviceCIDR = cidr
+		} else {
+			conditions.MarkFalse(rosaScope.ControlPlane, rosacontrolplanev1.ROSAControlPlaneConfiguredCondition, rosacontrolplanev1.ConfigurationMalformedReason, clusterv1.ConditionSeverityError, fmt.Sprintf("rosacontrolplane.spec.network.serviceCIDR invalid: %v", err))
+			return ctrl.Result{}, nil
+		}
 	}
 
 	cluster, err := ocmClient.GetCluster(rosaScope.ControlPlane.Spec.RosaClusterName, creator)
@@ -291,8 +301,8 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		Tags:                      rosaScope.ControlPlane.Spec.AdditionalTags,
 		EtcdEncryption:            rosaScope.ControlPlane.Spec.EtcdEncryptionKMSArn != "",
 		EtcdEncryptionKMSArn:      rosaScope.ControlPlane.Spec.EtcdEncryptionKMSArn,
-		Private:                   rosaScope.ControlPlane.Spec.Private,
-		PrivateLink:               rosaScope.ControlPlane.Spec.Private, // all private ROSA HCP clusters are privateLink
+		Private:                   &rosaScope.ControlPlane.Spec.Private,
+		PrivateLink:               &rosaScope.ControlPlane.Spec.Private, // all private ROSA HCP clusters are privateLink
 
 		SubnetIds:         rosaScope.ControlPlane.Spec.Subnets,
 		AvailabilityZones: rosaScope.ControlPlane.Spec.AvailabilityZones,
@@ -310,36 +320,14 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		BillingAccount: billingAccount,
 		AWSCreator:     creator,
 	}
-
-	_, machineCIDR, err := net.ParseCIDR(rosaScope.ControlPlane.Spec.Network.MachineCIDR)
-	if err == nil {
+	if machineCIDR != nil {
 		spec.MachineCIDR = *machineCIDR
-	} else {
-		// TODO: expose in status
-		rosaScope.Error(err, "rosacontrolplane.spec.network.machineCIDR invalid", rosaScope.ControlPlane.Spec.Network.MachineCIDR)
-		return ctrl.Result{}, nil
 	}
-
-	if rosaScope.ControlPlane.Spec.Network.PodCIDR != "" {
-		_, podCIDR, err := net.ParseCIDR(rosaScope.ControlPlane.Spec.Network.PodCIDR)
-		if err == nil {
-			spec.PodCIDR = *podCIDR
-		} else {
-			// TODO: expose in status.
-			rosaScope.Error(err, "rosacontrolplane.spec.network.podCIDR invalid", rosaScope.ControlPlane.Spec.Network.PodCIDR)
-			return ctrl.Result{}, nil
-		}
+	if podCIDR != nil {
+		spec.PodCIDR = *podCIDR
 	}
-
-	if rosaScope.ControlPlane.Spec.Network.ServiceCIDR != "" {
-		_, serviceCIDR, err := net.ParseCIDR(rosaScope.ControlPlane.Spec.Network.ServiceCIDR)
-		if err == nil {
-			spec.ServiceCIDR = *serviceCIDR
-		} else {
-			// TODO: expose in status.
-			rosaScope.Error(err, "rosacontrolplane.spec.network.serviceCIDR invalid", rosaScope.ControlPlane.Spec.Network.ServiceCIDR)
-			return ctrl.Result{}, nil
-		}
+	if serviceCIDR != nil {
+		spec.ServiceCIDR = *serviceCIDR
 	}
 
 	// Set autoscale replica
@@ -603,7 +591,13 @@ func validateControlPlaneSpec(ocmClient *ocm.Client, rosaScope *scope.ROSAContro
 		return fmt.Sprintf("version %s is not supported", version), nil
 	}
 
-	// TODO: add more input validations
+	if errs := rosaScope.ControlPlane.Spec.AdditionalTags.Validate(); errs != nil {
+		var msg []string
+		for _, err := range errs {
+			msg = append(msg, err.Error())
+		}
+		return strings.Join(msg, ", "), nil
+	}
 	return "", nil
 }
 

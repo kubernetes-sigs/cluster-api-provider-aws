@@ -383,7 +383,7 @@ spec:
           status:
             properties:
               conditions:
-                description: Conditions specifies the cpnditions for the managed control
+                description: Conditions specifies the conditions for the managed control
                   plane
                 items:
                   description: Condition defines an observation of a Cluster API resource
@@ -450,12 +450,12 @@ spec:
                 description: ID is the cluster ID given by ROSA.
                 type: string
               initialized:
-                description: Initialized denotes whether or not the control plane
-                  has the uploaded kubernetes config-map.
+                description: Initialized denotes whether the control plane has the
+                  uploaded kubernetes config-map.
                 type: boolean
               oidcEndpointURL:
                 description: OIDCEndpointURL is the endpoint url for the managed OIDC
-                  porvider.
+                  provider.
                 type: string
               ready:
                 default: false

@@ -118,7 +118,7 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// Private restricts master API endpoint and application routes to direct, private connectivity.
 	// Traffic to these endpoints will use AWS PrivateLink to have connectivity between VPCs, AWS services,
 	// and your on-premises networks without exposing your traffic to the public internet.
-	Private *bool `json:"private,omitempty"`
+	Private bool `json:"private,omitempty"`
 }
 
 // NetworkSpec for ROSA-HCP.
@@ -531,7 +531,7 @@ type RosaControlPlaneStatus struct {
 	// is managed by an external service such as AKS, EKS, GKE, etc.
 	// +kubebuilder:default=true
 	ExternalManagedControlPlane *bool `json:"externalManagedControlPlane,omitempty"`
-	// Initialized denotes whether or not the control plane has the
+	// Initialized denotes whether the control plane has the
 	// uploaded kubernetes config-map.
 	// +optional
 	Initialized bool `json:"initialized"`
@@ -549,16 +549,30 @@ type RosaControlPlaneStatus struct {
 	//
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
-	// Conditions specifies the cpnditions for the managed control plane
+	// Conditions specifies the conditions for the managed control plane
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 
 	// ID is the cluster ID given by ROSA.
 	ID *string `json:"id,omitempty"`
 	// ConsoleURL is the url for the openshift console.
 	ConsoleURL string `json:"consoleURL,omitempty"`
-	// OIDCEndpointURL is the endpoint url for the managed OIDC porvider.
+	// OIDCEndpointURL is the endpoint url for the managed OIDC provider.
 	OIDCEndpointURL string `json:"oidcEndpointURL,omitempty"`
 }
+
+const (
+	// OCMCredentialsValidCondition reports whether the OCM credentials are valid.
+	OCMCredentialsValidCondition clusterv1.ConditionType = "OCMCredentialsValid"
+	// ROSAControlPlaneConfiguredCondition reports whether the ROSA control plane is configured correctly.
+	ROSAControlPlaneConfiguredCondition clusterv1.ConditionType = "ROSAControlPlaneConfigured"
+)
+
+const (
+	// OCMCredentialsImproperReason denotes that the OCM credentials are not proper.
+	OCMCredentialsImproperReason = "OCMCredentialsImproper"
+	// ConfigurationMalformedReason denotes that the configuration provided by the user is malformed.
+	ConfigurationMalformedReason = "ConfigurationMalformed"
+)
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=rosacontrolplanes,shortName=rosacp,scope=Namespaced,categories=cluster-api
