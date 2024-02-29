@@ -423,7 +423,7 @@ func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machine
 func nodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachinePoolSpec {
 	spec := expinfrav1.RosaMachinePoolSpec{
 		NodePoolName:     nodePool.ID(),
-		Version:          nodePool.Version().RawID(),
+		Version:          rosa.RawVersionID(nodePool.Version()),
 		AvailabilityZone: nodePool.AvailabilityZone(),
 		Subnet:           nodePool.Subnet(),
 		Labels:           nodePool.Labels(),
