@@ -209,6 +209,16 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		rosaScope.ControlPlane.Status.FailureMessage = nil
 	}
 
+	if errs := rosaScope.ControlPlane.Spec.AdditionalTags.Validate(); errs != nil {
+		var msg []string
+		for _, err := range errs {
+			msg = append(msg, err.Error())
+		}
+		rosaScope.ControlPlane.Status.FailureMessage = ptr.To(strings.Join(msg, ", "))
+		// dont' requeue because input is invalid and manual intervention is needed.
+		return ctrl.Result{}, nil
+	}
+
 	cluster, err := ocmClient.GetCluster(rosaScope.ControlPlane.Spec.RosaClusterName, creator)
 	if weberr.GetType(err) != weberr.NotFound && err != nil {
 		return ctrl.Result{}, err
