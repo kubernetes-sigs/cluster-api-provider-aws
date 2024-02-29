@@ -268,7 +268,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		billingAccount = rosaScope.ControlPlane.Spec.BillingAccount
 	}
 
-	spec := ocm.Spec{
+	ocmClusterSpec := ocm.Spec{
 		DryRun:                    ptr.To(false),
 		Name:                      rosaScope.RosaClusterName(),
 		Region:                    *rosaScope.ControlPlane.Spec.Region,
@@ -282,7 +282,6 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 
 		SubnetIds:         rosaScope.ControlPlane.Spec.Subnets,
 		AvailabilityZones: rosaScope.ControlPlane.Spec.AvailabilityZones,
-		NetworkType:       rosaScope.ControlPlane.Spec.Network.NetworkType,
 		IsSTS:             true,
 		RoleARN:           *rosaScope.ControlPlane.Spec.InstallerRoleARN,
 		SupportRoleARN:    *rosaScope.ControlPlane.Spec.SupportRoleARN,
@@ -297,44 +296,48 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		AWSCreator:     creator,
 	}
 
-	_, machineCIDR, err := net.ParseCIDR(rosaScope.ControlPlane.Spec.Network.MachineCIDR)
-	if err == nil {
-		spec.MachineCIDR = *machineCIDR
-	} else {
-		// TODO: expose in status
-		rosaScope.Error(err, "rosacontrolplane.spec.network.machineCIDR invalid", rosaScope.ControlPlane.Spec.Network.MachineCIDR)
-		return ctrl.Result{}, nil
-	}
-
-	if rosaScope.ControlPlane.Spec.Network.PodCIDR != "" {
-		_, podCIDR, err := net.ParseCIDR(rosaScope.ControlPlane.Spec.Network.PodCIDR)
-		if err == nil {
-			spec.PodCIDR = *podCIDR
-		} else {
-			// TODO: expose in status.
-			rosaScope.Error(err, "rosacontrolplane.spec.network.podCIDR invalid", rosaScope.ControlPlane.Spec.Network.PodCIDR)
-			return ctrl.Result{}, nil
+	if networkSpec := rosaScope.ControlPlane.Spec.Network; networkSpec != nil {
+		if networkSpec.MachineCIDR != "" {
+			_, machineCIDR, err := net.ParseCIDR(networkSpec.MachineCIDR)
+			if err != nil {
+				// TODO: expose in status
+				rosaScope.Error(err, "rosacontrolplane.spec.network.machineCIDR invalid", networkSpec.MachineCIDR)
+				return ctrl.Result{}, nil
+			}
+			ocmClusterSpec.MachineCIDR = *machineCIDR
 		}
-	}
 
-	if rosaScope.ControlPlane.Spec.Network.ServiceCIDR != "" {
-		_, serviceCIDR, err := net.ParseCIDR(rosaScope.ControlPlane.Spec.Network.ServiceCIDR)
-		if err == nil {
-			spec.ServiceCIDR = *serviceCIDR
-		} else {
-			// TODO: expose in status.
-			rosaScope.Error(err, "rosacontrolplane.spec.network.serviceCIDR invalid", rosaScope.ControlPlane.Spec.Network.ServiceCIDR)
-			return ctrl.Result{}, nil
+		if networkSpec.PodCIDR != "" {
+			_, podCIDR, err := net.ParseCIDR(networkSpec.PodCIDR)
+			if err != nil {
+				// TODO: expose in status.
+				rosaScope.Error(err, "rosacontrolplane.spec.network.podCIDR invalid", networkSpec.PodCIDR)
+				return ctrl.Result{}, nil
+			}
+			ocmClusterSpec.PodCIDR = *podCIDR
 		}
+
+		if networkSpec.ServiceCIDR != "" {
+			_, serviceCIDR, err := net.ParseCIDR(networkSpec.ServiceCIDR)
+			if err != nil {
+				// TODO: expose in status.
+				rosaScope.Error(err, "rosacontrolplane.spec.network.serviceCIDR invalid", networkSpec.ServiceCIDR)
+				return ctrl.Result{}, nil
+			}
+			ocmClusterSpec.ServiceCIDR = *serviceCIDR
+		}
+
+		ocmClusterSpec.HostPrefix = networkSpec.HostPrefix
+		ocmClusterSpec.NetworkType = networkSpec.NetworkType
 	}
 
 	// Set autoscale replica
 	if rosaScope.ControlPlane.Spec.Autoscaling != nil {
-		spec.MaxReplicas = rosaScope.ControlPlane.Spec.Autoscaling.MaxReplicas
-		spec.MinReplicas = rosaScope.ControlPlane.Spec.Autoscaling.MinReplicas
+		ocmClusterSpec.MaxReplicas = rosaScope.ControlPlane.Spec.Autoscaling.MaxReplicas
+		ocmClusterSpec.MinReplicas = rosaScope.ControlPlane.Spec.Autoscaling.MinReplicas
 	}
 
-	cluster, err = ocmClient.CreateCluster(spec)
+	cluster, err = ocmClient.CreateCluster(ocmClusterSpec)
 	if err != nil {
 		// TODO: need to expose in status, as likely the spec is invalid
 		return ctrl.Result{}, fmt.Errorf("failed to create OCM cluster: %w", err)
