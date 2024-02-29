@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/blang/semver"
+	"github.com/google/go-cmp/cmp"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift/rosa/pkg/ocm"
 	"github.com/pkg/errors"
@@ -35,7 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
-// ROSAMachinePoolReconciler reconciles a RosaMachinePool object.
+// ROSAMachinePoolReconciler reconciles a ROSAMachinePool object.
 type ROSAMachinePoolReconciler struct {
 	client.Client
 	Recorder         record.EventRecorder
@@ -49,7 +50,7 @@ func (r *ROSAMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ct
 
 	gvk, err := apiutil.GVKForObject(new(expinfrav1.ROSAMachinePool), mgr.GetScheme())
 	if err != nil {
-		return errors.Wrapf(err, "failed to find GVK for RosaMachinePool")
+		return errors.Wrapf(err, "failed to find GVK for ROSAMachinePool")
 	}
 	rosaControlPlaneToRosaMachinePoolMap := rosaControlPlaneToRosaMachinePoolMapFunc(r.Client, gvk, log)
 	return ctrl.NewControllerManagedBy(mgr).
@@ -73,7 +74,7 @@ func (r *ROSAMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ct
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=rosamachinepools,verbs=get;list;watch;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=rosamachinepools/status,verbs=get;update;patch
 
-// Reconcile reconciles RosaMachinePool.
+// Reconcile reconciles ROSAMachinePool.
 func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := logger.FromContext(ctx)
 
@@ -138,6 +139,7 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		Cluster:        cluster,
 		ControlPlane:   controlPlane,
 		ControllerName: "rosaControlPlane",
+		Endpoints:      r.Endpoints,
 	})
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to create control plane scope")
@@ -168,7 +170,7 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 	machinePoolScope *scope.RosaMachinePoolScope,
 	rosaControlPlaneScope *scope.ROSAControlPlaneScope,
 ) (ctrl.Result, error) {
-	machinePoolScope.Info("Reconciling RosaMachinePool")
+	machinePoolScope.Info("Reconciling ROSAMachinePool")
 
 	if controllerutil.AddFinalizer(machinePoolScope.RosaMachinePool, expinfrav1.RosaMachinePoolFinalizer) {
 		if err := machinePoolScope.PatchObject(); err != nil {
@@ -195,21 +197,25 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 	}
 
 	rosaMachinePool := machinePoolScope.RosaMachinePool
-	machinePool := machinePoolScope.MachinePool
-	controlPlane := machinePoolScope.ControlPlane
 
-	createdNodePool, found, err := ocmClient.GetNodePool(*controlPlane.Status.ID, rosaMachinePool.Spec.NodePoolName)
+	nodePool, found, err := ocmClient.GetNodePool(*machinePoolScope.ControlPlane.Status.ID, rosaMachinePool.Spec.NodePoolName)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
 	if found {
+		nodePool, err := r.updateNodePool(machinePoolScope, ocmClient, nodePool)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to ensure rosaMachinePool: %w", err)
+		}
+
 		// TODO (alberto): discover and store providerIDs from aws so the CAPI controller can match then to Nodes and report readiness.
-		rosaMachinePool.Status.Replicas = int32(createdNodePool.Status().CurrentReplicas())
-		if createdNodePool.Replicas() == createdNodePool.Status().CurrentReplicas() && createdNodePool.Status().Message() == "" {
+		rosaMachinePool.Status.Replicas = int32(nodePool.Status().CurrentReplicas())
+		if nodePool.Replicas() == nodePool.Status().CurrentReplicas() && nodePool.Status().Message() == "" {
 			conditions.MarkTrue(rosaMachinePool, expinfrav1.RosaMachinePoolReadyCondition)
 			rosaMachinePool.Status.Ready = true
 
-			if err := r.reconcileMachinePoolVersion(machinePoolScope, ocmClient, createdNodePool); err != nil {
+			if err := r.reconcileMachinePoolVersion(machinePoolScope, ocmClient, nodePool); err != nil {
 				return ctrl.Result{}, err
 			}
 
@@ -218,54 +224,27 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 
 		conditions.MarkFalse(rosaMachinePool,
 			expinfrav1.RosaMachinePoolReadyCondition,
-			createdNodePool.Status().Message(),
+			nodePool.Status().Message(),
 			clusterv1.ConditionSeverityInfo,
 			"")
 
-		machinePoolScope.Info("waiting for NodePool to become ready", "state", createdNodePool.Status().Message())
+		machinePoolScope.Info("waiting for NodePool to become ready", "state", nodePool.Status().Message())
 		// Requeue so that status.ready is set to true when the nodepool is fully created.
 		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 	}
 
-	npBuilder := cmv1.NewNodePool()
-	npBuilder.ID(rosaMachinePool.Spec.NodePoolName).
-		Labels(rosaMachinePool.Spec.Labels).
-		AutoRepair(rosaMachinePool.Spec.AutoRepair)
-
-	if rosaMachinePool.Spec.Autoscaling != nil {
-		npBuilder = npBuilder.Autoscaling(
-			cmv1.NewNodePoolAutoscaling().
-				MinReplica(rosaMachinePool.Spec.Autoscaling.MinReplicas).
-				MaxReplica(rosaMachinePool.Spec.Autoscaling.MaxReplicas))
-	} else {
-		replicas := 1
-		if machinePool.Spec.Replicas != nil {
-			replicas = int(*machinePool.Spec.Replicas)
-		}
-		npBuilder = npBuilder.Replicas(replicas)
-	}
-
-	if rosaMachinePool.Spec.Subnet != "" {
-		npBuilder.Subnet(rosaMachinePool.Spec.Subnet)
-	}
-
-	npBuilder.AWSNodePool(cmv1.NewAWSNodePool().InstanceType(rosaMachinePool.Spec.InstanceType))
-	if rosaMachinePool.Spec.Version != "" {
-		npBuilder.Version(cmv1.NewVersion().ID(ocm.CreateVersionID(rosaMachinePool.Spec.Version, ocm.DefaultChannelGroup)))
-	}
-
+	npBuilder := nodePoolBuilder(rosaMachinePool.Spec, machinePoolScope.MachinePool.Spec)
 	nodePoolSpec, err := npBuilder.Build()
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to build rosa nodepool: %w", err)
 	}
 
-	createdNodePool, err = ocmClient.CreateNodePool(*controlPlane.Status.ID, nodePoolSpec)
+	nodePool, err = ocmClient.CreateNodePool(*machinePoolScope.ControlPlane.Status.ID, nodePoolSpec)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to create nodepool: %w", err)
 	}
 
-	machinePoolScope.RosaMachinePool.Status.ID = createdNodePool.ID()
-
+	machinePoolScope.RosaMachinePool.Status.ID = nodePool.ID()
 	return ctrl.Result{}, nil
 }
 
@@ -349,6 +328,34 @@ func (r *ROSAMachinePoolReconciler) reconcileMachinePoolVersion(machinePoolScope
 	return nil
 }
 
+func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaMachinePoolScope, ocmClient *ocm.Client, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
+	desiredSpec := machinePoolScope.RosaMachinePool.Spec.DeepCopy()
+
+	currentSpec := nodePoolToRosaMachinePoolSpec(nodePool)
+	currentSpec.ProviderIDList = desiredSpec.ProviderIDList // providerIDList is set by the controller and shouldn't be compared here.
+	currentSpec.Version = desiredSpec.Version               // Version changed are reconciled separately and shouldn't be compared here.
+
+	if cmp.Equal(desiredSpec, currentSpec) {
+		// no changes detected.
+		return nodePool, nil
+	}
+
+	npBuilder := nodePoolBuilder(*desiredSpec, machinePoolScope.MachinePool.Spec)
+	npBuilder.Version(nil) // eunsure version is unset.
+
+	nodePoolSpec, err := npBuilder.Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build nodePool spec: %w", err)
+	}
+
+	updatedNodePool, err := ocmClient.UpdateNodePool(*machinePoolScope.ControlPlane.Status.ID, nodePoolSpec)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update nodePool: %w", err)
+	}
+
+	return updatedNodePool, nil
+}
+
 func validateMachinePoolSpec(machinePoolScope *scope.RosaMachinePoolScope) (*string, error) {
 	if machinePoolScope.RosaMachinePool.Spec.Version == "" {
 		return nil, nil
@@ -370,6 +377,79 @@ func validateMachinePoolSpec(machinePoolScope *scope.RosaMachinePoolScope) (*str
 
 	// TODO: add more input validations
 	return nil, nil
+}
+
+func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machinePoolSpec expclusterv1.MachinePoolSpec) *cmv1.NodePoolBuilder {
+	npBuilder := cmv1.NewNodePool().ID(rosaMachinePoolSpec.NodePoolName).
+		Labels(rosaMachinePoolSpec.Labels).
+		AutoRepair(rosaMachinePoolSpec.AutoRepair).
+		TuningConfigs(rosaMachinePoolSpec.TuningConfigs...)
+
+	if len(rosaMachinePoolSpec.Taints) > 0 {
+		taintBuilders := []*cmv1.TaintBuilder{}
+		for _, taint := range rosaMachinePoolSpec.Taints {
+			newTaintBuilder := cmv1.NewTaint().Key(taint.Key).Value(taint.Value).Effect(string(taint.Effect))
+			taintBuilders = append(taintBuilders, newTaintBuilder)
+		}
+		npBuilder = npBuilder.Taints(taintBuilders...)
+	}
+
+	if rosaMachinePoolSpec.Autoscaling != nil {
+		npBuilder = npBuilder.Autoscaling(
+			cmv1.NewNodePoolAutoscaling().
+				MinReplica(rosaMachinePoolSpec.Autoscaling.MinReplicas).
+				MaxReplica(rosaMachinePoolSpec.Autoscaling.MaxReplicas))
+	} else {
+		replicas := 1
+		if machinePoolSpec.Replicas != nil {
+			replicas = int(*machinePoolSpec.Replicas)
+		}
+		npBuilder = npBuilder.Replicas(replicas)
+	}
+
+	if rosaMachinePoolSpec.Subnet != "" {
+		npBuilder.Subnet(rosaMachinePoolSpec.Subnet)
+	}
+
+	npBuilder.AWSNodePool(cmv1.NewAWSNodePool().InstanceType(rosaMachinePoolSpec.InstanceType))
+	if rosaMachinePoolSpec.Version != "" {
+		npBuilder.Version(cmv1.NewVersion().ID(ocm.CreateVersionID(rosaMachinePoolSpec.Version, ocm.DefaultChannelGroup)))
+	}
+
+	return npBuilder
+}
+
+func nodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachinePoolSpec {
+	spec := expinfrav1.RosaMachinePoolSpec{
+		NodePoolName:     nodePool.ID(),
+		Version:          nodePool.Version().RawID(),
+		AvailabilityZone: nodePool.AvailabilityZone(),
+		Subnet:           nodePool.Subnet(),
+		Labels:           nodePool.Labels(),
+		AutoRepair:       nodePool.AutoRepair(),
+		InstanceType:     nodePool.AWSNodePool().InstanceType(),
+		TuningConfigs:    nodePool.TuningConfigs(),
+	}
+
+	if nodePool.Autoscaling() != nil {
+		spec.Autoscaling = &expinfrav1.RosaMachinePoolAutoScaling{
+			MinReplicas: nodePool.Autoscaling().MinReplica(),
+			MaxReplicas: nodePool.Autoscaling().MaxReplica(),
+		}
+	}
+	if nodePool.Taints() != nil {
+		rosaTaints := make([]expinfrav1.RosaTaint, len(nodePool.Taints()))
+		for _, taint := range nodePool.Taints() {
+			rosaTaints = append(rosaTaints, expinfrav1.RosaTaint{
+				Key:    taint.Key(),
+				Value:  taint.Value(),
+				Effect: corev1.TaintEffect(taint.Effect()),
+			})
+		}
+		spec.Taints = rosaTaints
+	}
+
+	return spec
 }
 
 func rosaControlPlaneToRosaMachinePoolMapFunc(c client.Client, gvk schema.GroupVersionKind, log logger.Wrapper) handler.MapFunc {
