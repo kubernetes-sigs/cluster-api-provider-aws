@@ -177,6 +177,13 @@ spec:
               oidcID:
                 description: The ID of the OpenID Connect Provider.
                 type: string
+              private:
+                description: Private restricts master API endpoint and application
+                  routes to direct, private connectivity. Traffic to these endpoints
+                  will use AWS PrivateLink to have connectivity between VPCs, AWS
+                  services, and your on-premises networks without exposing your traffic
+                  to the public internet.
+                type: boolean
               region:
                 description: The AWS Region the cluster lives in.
                 type: string

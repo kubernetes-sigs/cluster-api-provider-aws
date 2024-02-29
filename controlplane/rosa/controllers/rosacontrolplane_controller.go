@@ -281,6 +281,8 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		Tags:                      rosaScope.ControlPlane.Spec.AdditionalTags,
 		EtcdEncryption:            rosaScope.ControlPlane.Spec.EtcdEncryptionKMSArn != "",
 		EtcdEncryptionKMSArn:      rosaScope.ControlPlane.Spec.EtcdEncryptionKMSArn,
+		Private:                   rosaScope.ControlPlane.Spec.Private,
+		PrivateLink:               rosaScope.ControlPlane.Spec.Private, // all private ROSA HCP clusters are privateLink
 
 		SubnetIds:         rosaScope.ControlPlane.Spec.Subnets,
 		AvailabilityZones: rosaScope.ControlPlane.Spec.AvailabilityZones,

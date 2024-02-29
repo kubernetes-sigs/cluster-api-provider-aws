@@ -112,6 +112,13 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// EtcdEncryptionKMSArn is the ARN of the KMS key used to encrypt etcd. The key itself needs to be
 	// created out-of-band by the user and tagged with `red-hat:true`.
 	EtcdEncryptionKMSArn string `json:"etcdEncryptionKMSArn,omitempty"`
+
+	// +kubebuilder:validation:Optional
+
+	// Private restricts master API endpoint and application routes to direct, private connectivity.
+	// Traffic to these endpoints will use AWS PrivateLink to have connectivity between VPCs, AWS services,
+	// and your on-premises networks without exposing your traffic to the public internet.
+	Private *bool `json:"private,omitempty"`
 }
 
 // NetworkSpec for ROSA-HCP.
