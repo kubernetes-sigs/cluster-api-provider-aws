@@ -481,10 +481,10 @@ github.com/opencontainers/image-spec v1.1.0-rc2.0.20221005185240-3a7f492d3f1b h1
 github.com/opencontainers/image-spec v1.1.0-rc2.0.20221005185240-3a7f492d3f1b/go.mod h1:3OVijpioIKYWTqjiG0zfF6wvoJ4fAXGbjdZuI2NgsRQ=
 github.com/openshift-online/ocm-common v0.0.0-20240129111424-ff8c6c11d909 h1:WV67GNazQuGDaLX3kBbz0859NYPOQCsDCY5XUScF85M=
 github.com/openshift-online/ocm-common v0.0.0-20240129111424-ff8c6c11d909/go.mod h1:7FaAb07S63RF4sFMLSLtQaJLvPdaRnhAT4dBLD8/5kM=
-github.com/openshift-online/ocm-sdk-go v0.1.403 h1:IGp921wwwp/bmAdvTDFJjS0Bqto7yfevPgh5JQI5XFo=
-github.com/openshift-online/ocm-sdk-go v0.1.403/go.mod h1:tke8vKcE7eHKyRbkJv6qo4ljo919zhx04uyQTcgF5cQ=
-github.com/openshift/rosa v1.2.35-rc1.0.20240221134836-0beb882e5836 h1:gdsNdTF/FuVlfaOTFHYL5+QweYz0R5Ogeu1sWJvAuMQ=
-github.com/openshift/rosa v1.2.35-rc1.0.20240221134836-0beb882e5836/go.mod h1:eCjTo7aTeuUNNwo1bPxIJb6hxyi4J1MfSqUTkNx63q0=
+github.com/openshift-online/ocm-sdk-go v0.1.404 h1:rcmqyUYowD1yr1f7NQmoTqa1d/6zW0ZAxqYcpHpV2dk=
+github.com/openshift-online/ocm-sdk-go v0.1.404/go.mod h1:tke8vKcE7eHKyRbkJv6qo4ljo919zhx04uyQTcgF5cQ=
+github.com/openshift/rosa v1.2.35-rc1.0.20240229115423-42874686e22d h1:5LHaLb2YhmAaSkODnPLT/jbTE5oYmkrbkJ4jkYi7tpE=
+github.com/openshift/rosa v1.2.35-rc1.0.20240229115423-42874686e22d/go.mod h1:CR7cWdXZLWpsyskvqTWtAZBG5PaWrzYHy9tbaubbXIA=
 github.com/pelletier/go-toml v1.9.4/go.mod h1:u1nR/EPcESfeI/szUZKdtJ0xRNbUoANCkoOuaOx1Y+c=
 github.com/pelletier/go-toml v1.9.5 h1:4yBQzkHv+7BHq2PQUZF3Mx0IYxG7LsP222s7Agd3ve8=
 github.com/pelletier/go-toml v1.9.5/go.mod h1:u1nR/EPcESfeI/szUZKdtJ0xRNbUoANCkoOuaOx1Y+c=
