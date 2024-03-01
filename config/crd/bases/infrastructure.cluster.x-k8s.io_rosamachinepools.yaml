@@ -94,14 +94,48 @@ spec:
                 type: array
               subnet:
                 type: string
-              version:
-                description: Version specifies the penshift version of the nodes associated
-                  with this machinepool. ROSAControlPlane version is used if not set.
-                type: string
                 x-kubernetes-validations:
-                - message: version must be a valid semantic version
-                  rule: self.matches('^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$')
+                - message: subnet is immutable
+                  rule: self == oldSelf
+              taints:
+                description: Taints specifies the taints to apply to the nodes of
+                  the machine pool
+                items:
+                  properties:
+                    effect:
+                      description: The effect of the taint on pods that do not tolerate
+                        the taint. Valid effects are NoSchedule, PreferNoSchedule
+                        and NoExecute.
+                      enum:
+                      - NoSchedule
+                      - PreferNoSchedule
+                      - NoExecute
+                      type: string
+                    key:
+                      description: The taint key to be applied to a node.
+                      type: string
+                    value:
+                      description: The taint value corresponding to the taint key.
+                      pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
+                      type: string
+                  required:
+                  - effect
+                  - key
+                  type: object
+                type: array
+              tuningConfigs:
+                description: TuningConfigs specifies the names of the tuning configs
+                  to be applied to this MachinePool. Tuning configs must already exist.
+                items:
+                  type: string
+                type: array
+              version:
+                description: Version specifies the OpenShift version of the nodes
+                  associated with this machinepool. ROSAControlPlane version is used
+                  if not set.
+                type: string
             required:
+            - instanceType
             - nodePoolName
             type: object
           status:
