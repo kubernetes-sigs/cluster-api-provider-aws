@@ -21,6 +21,7 @@ package unmanaged
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -45,7 +46,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -118,8 +119,8 @@ func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigCluste
 		Namespace:                namespace,
 		ClusterName:              clusterName,
 		KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
-		ControlPlaneMachineCount: pointer.Int64(1),
-		WorkerMachineCount:       pointer.Int64(0),
+		ControlPlaneMachineCount: ptr.To[int64](1),
+		WorkerMachineCount:       ptr.To[int64](0),
 	}
 }
 
@@ -500,7 +501,7 @@ func makeAWSMachineTemplate(namespace, name, instanceType string, subnetID *stri
 				Spec: infrav1.AWSMachineSpec{
 					InstanceType:       instanceType,
 					IAMInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io",
-					SSHKeyName:         pointer.String(os.Getenv("AWS_SSH_KEY_NAME")),
+					SSHKeyName:         ptr.To[string](os.Getenv("AWS_SSH_KEY_NAME")),
 				},
 			},
 		},
@@ -579,7 +580,7 @@ func makeMachineDeployment(namespace, mdName, clusterName string, az *string, re
 						Name:       mdName,
 						Namespace:  namespace,
 					},
-					Version: pointer.String(e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion)),
+					Version: ptr.To[string](e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion)),
 				},
 			},
 		},
@@ -627,6 +628,22 @@ func assertInstanceMetadataOptions(instanceID string, expected infrav1.InstanceM
 	Expect(metadataOptions.HttpEndpoint).To(HaveValue(Equal(string(expected.HTTPEndpoint))))
 	Expect(metadataOptions.InstanceMetadataTags).To(HaveValue(Equal(string(expected.InstanceMetadataTags))))
 	Expect(metadataOptions.HttpPutResponseHopLimit).To(HaveValue(Equal(expected.HTTPPutResponseHopLimit)))
+}
+
+func assertUnencryptedUserDataIgnition(instanceID string, expected string) {
+	ginkgo.By(fmt.Sprintf("Finding EC2 instance with ID: %s", instanceID))
+	ec2Client := ec2.New(e2eCtx.AWSSession)
+	input := &ec2.DescribeInstanceAttributeInput{
+		Attribute:  aws.String(ec2.InstanceAttributeNameUserData),
+		InstanceId: aws.String(instanceID[strings.LastIndex(instanceID, "/")+1:]),
+	}
+
+	result, err := ec2Client.DescribeInstanceAttribute(input)
+	Expect(err).ToNot(HaveOccurred(), "expected DescribeInstanceAttribute call to succeed")
+
+	userData, err := base64.StdEncoding.DecodeString(*result.UserData.Value)
+	Expect(err).ToNot(HaveOccurred(), "expected ec2 instance user data to be base64 decodable")
+	Expect(string(userData)).To(HaveValue(MatchJSON(expected)), "expected userdata to match")
 }
 
 func terminateInstance(instanceID string) {
@@ -867,4 +884,23 @@ func createPodWithEFSMount(clusterClient crclient.Client) {
 		},
 	}
 	Expect(clusterClient.Create(context.TODO(), pod)).NotTo(HaveOccurred())
+}
+
+func getRawBootstrapDataWithFormat(c crclient.Client, m clusterv1.Machine) ([]byte, string, error) {
+	if m.Spec.Bootstrap.DataSecretName == nil {
+		return nil, "", fmt.Errorf("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
+	}
+
+	secret := &corev1.Secret{}
+	key := apimachinerytypes.NamespacedName{Namespace: m.Namespace, Name: *m.Spec.Bootstrap.DataSecretName}
+	if err := c.Get(context.TODO(), key, secret); err != nil {
+		return nil, "", fmt.Errorf("failed to retrieve bootstrap data secret for AWSMachine %s/%s: %v", m.Namespace, m.Name, err)
+	}
+
+	value, ok := secret.Data["value"]
+	if !ok {
+		return nil, "", fmt.Errorf("error retrieving bootstrap data: secret value key is missing")
+	}
+
+	return value, string(secret.Data["format"]), nil
 }

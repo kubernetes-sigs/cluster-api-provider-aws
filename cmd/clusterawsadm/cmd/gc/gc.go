@@ -36,6 +36,7 @@ func RootCmd() *cobra.Command {
 
 	newCmd.AddCommand(newEnableCmd())
 	newCmd.AddCommand(newDisableCmd())
+	newCmd.AddCommand(newConfigureCmd())
 
 	return newCmd
 }

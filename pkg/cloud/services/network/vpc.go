@@ -103,23 +103,44 @@ func (s *Service) reconcileVPC() error {
 		return nil
 	}
 
-	// .spec.vpc.id is nil, Create a new managed vpc.
+	// .spec.vpc.id is nil. This means no managed VPC exists or we failed to save its ID before. Check if a managed VPC
+	// with the desired name exists, or if not, create a new managed VPC.
+
+	vpc, err := s.describeVPCByName()
+	if err == nil {
+		// An VPC already exists with the desired name
+
+		if !vpc.Tags.HasOwned(s.scope.Name()) {
+			return errors.Errorf(
+				"found VPC %q which cannot be managed by CAPA due to lack of tags (either tag the VPC manually with `%s=%s`, or provide the `vpc.id` field instead if you wish to bring your own VPC as shown in https://cluster-api-aws.sigs.k8s.io/topics/bring-your-own-aws-infrastructure)",
+				vpc.ID,
+				infrav1.ClusterTagKey(s.scope.Name()),
+				infrav1.ResourceLifecycleOwned)
+		}
+	} else {
+		if !awserrors.IsNotFound(err) {
+			return errors.Wrap(err, "failed to describe VPC resources by name")
+		}
+
+		// VPC with that name does not exist yet. Create it.
+		vpc, err = s.createVPC()
+		if err != nil {
+			return errors.Wrap(err, "failed to create new managed VPC")
+		}
+		s.scope.Info("Created VPC", "vpc-id", vpc.ID)
+	}
+
+	s.scope.VPC().CidrBlock = vpc.CidrBlock
+	s.scope.VPC().IPv6 = vpc.IPv6
+	s.scope.VPC().Tags = vpc.Tags
+	s.scope.VPC().ID = vpc.ID
+
 	if !conditions.Has(s.scope.InfraCluster(), infrav1.VpcReadyCondition) {
 		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.VpcReadyCondition, infrav1.VpcCreationStartedReason, clusterv1.ConditionSeverityInfo, "")
 		if err := s.scope.PatchObject(); err != nil {
 			return errors.Wrap(err, "failed to patch conditions")
 		}
 	}
-	vpc, err := s.createVPC()
-	if err != nil {
-		return errors.Wrap(err, "failed to create new vpc")
-	}
-	s.scope.Info("Created VPC", "vpc-id", vpc.ID)
-
-	s.scope.VPC().CidrBlock = vpc.CidrBlock
-	s.scope.VPC().IPv6 = vpc.IPv6
-	s.scope.VPC().Tags = vpc.Tags
-	s.scope.VPC().ID = vpc.ID
 
 	// Make sure attributes are configured
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
@@ -252,6 +273,15 @@ func (s *Service) reconcileVPCEndpoints() error {
 func (s *Service) deleteVPCEndpoints() error {
 	// If the VPC is unmanaged or not yet populated, return early.
 	if s.scope.VPC().IsUnmanaged(s.scope.Name()) || s.scope.VPC().ID == "" {
+		return nil
+	}
+
+	// Gather all services that might have been enabled.
+	services := sets.New[string]()
+	if s.scope.Bucket() != nil {
+		services.Insert(fmt.Sprintf("com.amazonaws.%s.s3", s.scope.Region()))
+	}
+	if services.Len() == 0 {
 		return nil
 	}
 
@@ -554,6 +584,54 @@ func (s *Service) describeVPCByID() (*infrav1.VPCSpec, error) {
 	case ec2.VpcStateAvailable, ec2.VpcStatePending:
 	default:
 		return nil, awserrors.NewNotFound("could not find available or pending vpc")
+	}
+
+	vpc := &infrav1.VPCSpec{
+		ID:        *out.Vpcs[0].VpcId,
+		CidrBlock: *out.Vpcs[0].CidrBlock,
+		Tags:      converters.TagsToMap(out.Vpcs[0].Tags),
+	}
+	for _, set := range out.Vpcs[0].Ipv6CidrBlockAssociationSet {
+		if *set.Ipv6CidrBlockState.State == ec2.SubnetCidrBlockStateCodeAssociated {
+			vpc.IPv6 = &infrav1.IPv6{
+				CidrBlock: aws.StringValue(set.Ipv6CidrBlock),
+				PoolID:    aws.StringValue(set.Ipv6Pool),
+			}
+			break
+		}
+	}
+	return vpc, nil
+}
+
+// describeVPCByName finds the VPC by `Name` tag. Use this if the ID is not available yet, either because no
+// VPC was created until now or if storing the ID could have failed.
+func (s *Service) describeVPCByName() (*infrav1.VPCSpec, error) {
+	vpcName := *s.getVPCTagParams(services.TemporaryResourceID).Name
+
+	input := &ec2.DescribeVpcsInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("tag:Name"),
+				Values: aws.StringSlice([]string{vpcName}),
+			},
+		},
+	}
+
+	out, err := s.EC2Client.DescribeVpcsWithContext(context.TODO(), input)
+	if (err != nil && awserrors.IsNotFound(err)) || (out != nil && len(out.Vpcs) == 0) {
+		return nil, awserrors.NewNotFound(fmt.Sprintf("could not find VPC by name %q", vpcName))
+	}
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to query ec2 for VPCs by name %q", vpcName)
+	}
+	if len(out.Vpcs) > 1 {
+		return nil, awserrors.NewConflict(fmt.Sprintf("found %v VPCs with name %q. Only one VPC per cluster name is supported. Ensure duplicate VPCs are deleted for this AWS account and there are no conflicting instances of Cluster API Provider AWS. Filtered VPCs: %v", len(out.Vpcs), vpcName, out.GoString()))
+	}
+
+	switch *out.Vpcs[0].State {
+	case ec2.VpcStateAvailable, ec2.VpcStatePending:
+	default:
+		return nil, awserrors.NewNotFound(fmt.Sprintf("could not find available or pending VPC by name %q", vpcName))
 	}
 
 	vpc := &infrav1.VPCSpec{

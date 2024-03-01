@@ -72,6 +72,9 @@ func TestReconcileBucket(t *testing.T) {
 
 		input := &s3svc.CreateBucketInput{
 			Bucket: aws.String(expectedBucketName),
+			CreateBucketConfiguration: &s3svc.CreateBucketConfiguration{
+				LocationConstraint: aws.String("us-west-2"),
+			},
 		}
 
 		s3Mock.EXPECT().CreateBucket(gomock.Eq(input)).Return(nil, nil).Times(1)
@@ -200,6 +203,10 @@ func TestReconcileBucket(t *testing.T) {
 
 			if !strings.Contains(policy, "arn:aws:iam::foo:role/control-plane.cluster-api-provider-aws.sigs.k8s.io") {
 				t.Errorf("Expected arn to contain the right principal; got: %v", policy)
+			}
+
+			if !strings.Contains(policy, "SecureTransport") {
+				t.Errorf("Expected deny when not using SecureTransport; got: %v", policy)
 			}
 		}).Return(nil, nil).Times(1)
 
@@ -627,6 +634,8 @@ func TestDeleteObject(t *testing.T) {
 			},
 		}
 
+		s3Mock.EXPECT().HeadObject(gomock.Any())
+
 		s3Mock.EXPECT().DeleteObject(gomock.Any()).Do(func(deleteObjectInput *s3svc.DeleteObjectInput) {
 			t.Run("use_configured_bucket_name_on_cluster_level", func(t *testing.T) {
 				t.Parallel()
@@ -668,7 +677,7 @@ func TestDeleteObject(t *testing.T) {
 			},
 		}
 
-		s3Mock.EXPECT().DeleteObject(gomock.Any()).Return(nil, awserr.New(s3svc.ErrCodeNoSuchBucket, "", nil)).Times(1)
+		s3Mock.EXPECT().HeadObject(gomock.Any()).Return(nil, awserr.New(s3svc.ErrCodeNoSuchBucket, "", nil))
 
 		if err := svc.Delete(machineScope); err != nil {
 			t.Fatalf("Unexpected error, got: %v", err)
@@ -692,6 +701,7 @@ func TestDeleteObject(t *testing.T) {
 				},
 			}
 
+			s3Mock.EXPECT().HeadObject(gomock.Any())
 			s3Mock.EXPECT().DeleteObject(gomock.Any()).Return(nil, errors.New("foo")).Times(1)
 
 			if err := svc.Delete(machineScope); err == nil {
@@ -743,6 +753,7 @@ func TestDeleteObject(t *testing.T) {
 			},
 		}
 
+		s3Mock.EXPECT().HeadObject(gomock.Any()).Times(2)
 		s3Mock.EXPECT().DeleteObject(gomock.Any()).Return(nil, nil).Times(2)
 
 		if err := svc.Delete(machineScope); err != nil {
@@ -780,6 +791,7 @@ func testService(t *testing.T, bucket *infrav1.S3Bucket) (*s3.Service, *mock_s3i
 		AWSCluster: &infrav1.AWSCluster{
 			Spec: infrav1.AWSClusterSpec{
 				S3Bucket: bucket,
+				Region:   "us-west-2",
 				AdditionalTags: infrav1.Tags{
 					"additional": "from-aws-cluster",
 				},

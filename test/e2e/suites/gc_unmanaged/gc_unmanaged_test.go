@@ -28,7 +28,7 @@ import (
 	"github.com/gofrs/flock"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
@@ -67,7 +67,7 @@ var _ = ginkgo.Context("[unmanaged] [gc]", func() {
 		clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 
 		configCluster := defaultConfigCluster(clusterName, namespace.Name)
-		configCluster.WorkerMachineCount = pointer.Int64(1)
+		configCluster.WorkerMachineCount = ptr.To[int64](1)
 		createCluster(ctx, configCluster, result)
 
 		ginkgo.By(fmt.Sprintf("getting cluster with name %s", clusterName))
@@ -168,7 +168,7 @@ var _ = ginkgo.Context("[unmanaged] [gc]", func() {
 		clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 
 		configCluster := defaultConfigCluster(clusterName, namespace.Name)
-		configCluster.WorkerMachineCount = pointer.Int64(1)
+		configCluster.WorkerMachineCount = ptr.To[int64](1)
 		c, md, cp := createCluster(ctx, configCluster, result)
 		Expect(c).NotTo(BeNil(), "Expecting cluster created")
 		Expect(len(md)).To(Equal(1), "Expecting one MachineDeployment")
@@ -263,8 +263,8 @@ func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigCluste
 		Namespace:                namespace,
 		ClusterName:              clusterName,
 		KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
-		ControlPlaneMachineCount: pointer.Int64(1),
-		WorkerMachineCount:       pointer.Int64(0),
+		ControlPlaneMachineCount: ptr.To[int64](1),
+		WorkerMachineCount:       ptr.To[int64](0),
 	}
 }
 

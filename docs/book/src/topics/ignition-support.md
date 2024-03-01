@@ -12,8 +12,8 @@ the underlying OS for workload clusters.
 
 <h1>Note</h1>
 
-This initial implementation uses Ignition **v2** and was tested with **Flatcar Container Linux** only.
-Future releases are expected to add Ignition **v3** support and cover more Linux distributions.
+This initial implementation used Ignition **v2** and was tested with **Flatcar Container Linux** only.
+Further releases added Ignition **v3** support.
 
 </aside>
 
@@ -23,35 +23,21 @@ For more generic information, see [Cluster API documentation on Ignition Bootstr
 
 ## Overview
 
-By default machine controller stores EC2 instance user data using SSM to store it encrypted, which underneath
-use multi part mime types, which are [unlikely to be supported](https://github.com/coreos/ignition/issues/1072)
-by Ignition.
+When using CloudInit for bootstrapping, by default the awsmachine controller stores EC2 instance user data using SSM to store it encrypted, which underneath uses multi part mime types.
+Unfortunately multi part mime types are [not supported](https://github.com/coreos/ignition/issues/1072) by Ignition. Moreover EC2 instance user data storage is also limited to 64 KB, which might not always be enough to provision Kubernetes controlplane because of the size of required certificates and configuration files.
 
-EC2 user data is also limited to 64 KB, which is often not enough to provision Kubernetes controlplane because
-of the size of required certificates and configuration files.
+To address these limitations, when using Ignition for bootstrapping, by default the awsmachine controller uses a Cluster Object Store (e.g. S3 Bucket), configured in the AWSCluster, to store user data,
+which will be then pulled by the instances during provisioning.
 
-To address those limitations CAPA can create and use S3 Bucket to store encrypted user data, which will be then
-pulled by the instances during provisioning.
+Optionally, when using Ignition for bootstrapping, users can optionally choose an alternative storageType for user data.
+For now the single available alternative is to store user data unencrypted directly in the EC2 instance user data.
+This storageType option is although discouraged unless strictly necessary, as it is not considered as safe as storing it in the S3 Bucket.
 
-## IAM Permissions
+## Prerequirements for enabling Ignition bootstrapping
 
-To manage S3 Buckets and objects inside them, CAPA controllers require additional IAM permissions.
+### Enabling EXP_BOOTSTRAP_FORMAT_IGNITION feature gate
 
-If you use `clusterawsadm` for managing the IAM roles, you can use the configuration below to create S3-related
-IAM permissions.
-
-``` yaml
-apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1
-kind: AWSIAMConfiguration
-spec:
-  s3Buckets:
-    enable: true
-```
-
-See [Using clusterawsadm to fulfill prerequisites](./using-clusterawsadm-to-fulfill-prerequisites.md) for more
-details.
-
-## Enabling EXP_BOOTSTRAP_FORMAT_IGNITION feature gate
+In order to activate Ignition bootstrap you first need to enable its feature gate.
 
 When deploying CAPA using `clusterctl`, make sure you set `BOOTSTRAP_FORMAT_IGNITION=true` and
 `EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION=true `environment variables to enable experimental Ignition bootstrap
@@ -66,10 +52,31 @@ export EXP_BOOTSTRAP_FORMAT_IGNITION=true # Used by the AWS provider.
 clusterctl init --infrastructure aws
 ```
 
-## Bucket and object management
+## Choosing a storage type for Ignition user data
+
+S3 is the default storage type when Ignition is enabled for managing machine's bootstrapping.
+But other methods can be choosen for storing Ignition user data.
+
+### Store Ignition config in a Cluster Object Store (e.g. S3 bucket)
+
+To explicitly set ClusterObjectStore as the storage type, provide the following config in the `AWSMachineTemplate`:
+```yaml
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSMachineTemplate
+metadata:
+  name: "test"
+spec:
+  template:
+    spec:
+      ignition:
+        storageType: ClusterObjectStore
+```
+
+#### Cluster Object Store and object management
 
 When you want to use Ignition user data format for you machines, you need to configure your cluster to
-specify which S3 bucket to use. Controller will then make sure that the bucket exists and that required policies
+specify which Cluster Object Store to use. Controller will then check that the bucket already exists and that required policies
 are in place.
 
 See the configuration snippet below to learn how to configure `AWSCluster` to manage S3 bucket.
@@ -87,13 +94,31 @@ spec:
 
 Buckets are safe to be reused between clusters.
 
-After successful machine provisioning, bootstrap data is removed from the bucket.
+After successful machine provisioning, the bootstrap data is removed from the object store.
 
-During cluster removal, if S3 bucket is empty, it will be removed as well.
+During cluster removal, if the Cluster Object Store is empty, it will be deleted as well.
 
-## Bucket naming
+#### S3 IAM Permissions
 
-Bucket naming must follow [S3 Bucket naming rules][bucket-naming-rules].
+If you choose to use an S3 bucket as the Cluster Object Store, CAPA controllers require additional IAM permissions.
+
+If you use `clusterawsadm` for managing the IAM roles, you can use the configuration below to create S3-related
+IAM permissions.
+
+``` yaml
+apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSIAMConfiguration
+spec:
+  s3Buckets:
+    enable: true
+```
+
+See [Using clusterawsadm to fulfill prerequisites](./using-clusterawsadm-to-fulfill-prerequisites.md) for more
+details.
+
+#### Cluster Object Store naming
+
+Cluster Object Store and bucket naming must follow [S3 Bucket naming rules][bucket-naming-rules].
 
 In addition, by default `clusterawsadm` creates IAM roles to only allow interacting with buckets with
 `cluster-api-provider-aws-` prefix to reduce the permissions of CAPA controller, so all bucket names should
@@ -108,6 +133,30 @@ spec:
   s3Buckets:
     namePrefix: my-custom-secure-bucket-prefix-
 ```
+
+### Store Ignition config as UnencryptedUserData
+
+<aside class="note warning">
+<h1>WARNING</h1>
+**This is discouraged as is not considered as secure as other storage types.**
+</aside>
+
+To instruct the controllers to store the user data directly in the EC2 instance user data unencrypted,
+ provide the following config in the `AWSMachineTemplate`:
+```yaml
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSMachineTemplate
+metadata:
+  name: "test"
+spec:
+  template:
+    spec:
+      ignition:
+        storageType: UnencryptedUserData
+```
+
+No further requirements are necessary.
 
 ## Supported bootstrap providers
 

@@ -22365,6 +22365,71 @@ func (mr *MockEC2APIMockRecorder) DisableFastSnapshotRestoresWithContext(arg0, a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableFastSnapshotRestoresWithContext", reflect.TypeOf((*MockEC2API)(nil).DisableFastSnapshotRestoresWithContext), varargs...)
 }
 
+// DisableImage mocks base method.
+func (m *MockEC2API) DisableImage(arg0 *ec2.DisableImageInput) (*ec2.DisableImageOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DisableImage", arg0)
+	ret0, _ := ret[0].(*ec2.DisableImageOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DisableImage indicates an expected call of DisableImage.
+func (mr *MockEC2APIMockRecorder) DisableImage(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableImage", reflect.TypeOf((*MockEC2API)(nil).DisableImage), arg0)
+}
+
+// DisableImageBlockPublicAccess mocks base method.
+func (m *MockEC2API) DisableImageBlockPublicAccess(arg0 *ec2.DisableImageBlockPublicAccessInput) (*ec2.DisableImageBlockPublicAccessOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DisableImageBlockPublicAccess", arg0)
+	ret0, _ := ret[0].(*ec2.DisableImageBlockPublicAccessOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DisableImageBlockPublicAccess indicates an expected call of DisableImageBlockPublicAccess.
+func (mr *MockEC2APIMockRecorder) DisableImageBlockPublicAccess(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableImageBlockPublicAccess", reflect.TypeOf((*MockEC2API)(nil).DisableImageBlockPublicAccess), arg0)
+}
+
+// DisableImageBlockPublicAccessRequest mocks base method.
+func (m *MockEC2API) DisableImageBlockPublicAccessRequest(arg0 *ec2.DisableImageBlockPublicAccessInput) (*request.Request, *ec2.DisableImageBlockPublicAccessOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DisableImageBlockPublicAccessRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DisableImageBlockPublicAccessOutput)
+	return ret0, ret1
+}
+
+// DisableImageBlockPublicAccessRequest indicates an expected call of DisableImageBlockPublicAccessRequest.
+func (mr *MockEC2APIMockRecorder) DisableImageBlockPublicAccessRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableImageBlockPublicAccessRequest", reflect.TypeOf((*MockEC2API)(nil).DisableImageBlockPublicAccessRequest), arg0)
+}
+
+// DisableImageBlockPublicAccessWithContext mocks base method.
+func (m *MockEC2API) DisableImageBlockPublicAccessWithContext(arg0 context.Context, arg1 *ec2.DisableImageBlockPublicAccessInput, arg2 ...request.Option) (*ec2.DisableImageBlockPublicAccessOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DisableImageBlockPublicAccessWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DisableImageBlockPublicAccessOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DisableImageBlockPublicAccessWithContext indicates an expected call of DisableImageBlockPublicAccessWithContext.
+func (mr *MockEC2APIMockRecorder) DisableImageBlockPublicAccessWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableImageBlockPublicAccessWithContext", reflect.TypeOf((*MockEC2API)(nil).DisableImageBlockPublicAccessWithContext), varargs...)
+}
+
 // DisableImageDeprecation mocks base method.
 func (m *MockEC2API) DisableImageDeprecation(arg0 *ec2.DisableImageDeprecationInput) (*ec2.DisableImageDeprecationOutput, error) {
 	m.ctrl.T.Helper()
@@ -22413,6 +22478,41 @@ func (mr *MockEC2APIMockRecorder) DisableImageDeprecationWithContext(arg0, arg1 
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableImageDeprecationWithContext", reflect.TypeOf((*MockEC2API)(nil).DisableImageDeprecationWithContext), varargs...)
+}
+
+// DisableImageRequest mocks base method.
+func (m *MockEC2API) DisableImageRequest(arg0 *ec2.DisableImageInput) (*request.Request, *ec2.DisableImageOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DisableImageRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DisableImageOutput)
+	return ret0, ret1
+}
+
+// DisableImageRequest indicates an expected call of DisableImageRequest.
+func (mr *MockEC2APIMockRecorder) DisableImageRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableImageRequest", reflect.TypeOf((*MockEC2API)(nil).DisableImageRequest), arg0)
+}
+
+// DisableImageWithContext mocks base method.
+func (m *MockEC2API) DisableImageWithContext(arg0 context.Context, arg1 *ec2.DisableImageInput, arg2 ...request.Option) (*ec2.DisableImageOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DisableImageWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DisableImageOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DisableImageWithContext indicates an expected call of DisableImageWithContext.
+func (mr *MockEC2APIMockRecorder) DisableImageWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableImageWithContext", reflect.TypeOf((*MockEC2API)(nil).DisableImageWithContext), varargs...)
 }
 
 // DisableIpamOrganizationAdminAccount mocks base method.
@@ -23665,6 +23765,71 @@ func (mr *MockEC2APIMockRecorder) EnableFastSnapshotRestoresWithContext(arg0, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableFastSnapshotRestoresWithContext", reflect.TypeOf((*MockEC2API)(nil).EnableFastSnapshotRestoresWithContext), varargs...)
 }
 
+// EnableImage mocks base method.
+func (m *MockEC2API) EnableImage(arg0 *ec2.EnableImageInput) (*ec2.EnableImageOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnableImage", arg0)
+	ret0, _ := ret[0].(*ec2.EnableImageOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EnableImage indicates an expected call of EnableImage.
+func (mr *MockEC2APIMockRecorder) EnableImage(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableImage", reflect.TypeOf((*MockEC2API)(nil).EnableImage), arg0)
+}
+
+// EnableImageBlockPublicAccess mocks base method.
+func (m *MockEC2API) EnableImageBlockPublicAccess(arg0 *ec2.EnableImageBlockPublicAccessInput) (*ec2.EnableImageBlockPublicAccessOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnableImageBlockPublicAccess", arg0)
+	ret0, _ := ret[0].(*ec2.EnableImageBlockPublicAccessOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EnableImageBlockPublicAccess indicates an expected call of EnableImageBlockPublicAccess.
+func (mr *MockEC2APIMockRecorder) EnableImageBlockPublicAccess(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableImageBlockPublicAccess", reflect.TypeOf((*MockEC2API)(nil).EnableImageBlockPublicAccess), arg0)
+}
+
+// EnableImageBlockPublicAccessRequest mocks base method.
+func (m *MockEC2API) EnableImageBlockPublicAccessRequest(arg0 *ec2.EnableImageBlockPublicAccessInput) (*request.Request, *ec2.EnableImageBlockPublicAccessOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnableImageBlockPublicAccessRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.EnableImageBlockPublicAccessOutput)
+	return ret0, ret1
+}
+
+// EnableImageBlockPublicAccessRequest indicates an expected call of EnableImageBlockPublicAccessRequest.
+func (mr *MockEC2APIMockRecorder) EnableImageBlockPublicAccessRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableImageBlockPublicAccessRequest", reflect.TypeOf((*MockEC2API)(nil).EnableImageBlockPublicAccessRequest), arg0)
+}
+
+// EnableImageBlockPublicAccessWithContext mocks base method.
+func (m *MockEC2API) EnableImageBlockPublicAccessWithContext(arg0 context.Context, arg1 *ec2.EnableImageBlockPublicAccessInput, arg2 ...request.Option) (*ec2.EnableImageBlockPublicAccessOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "EnableImageBlockPublicAccessWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.EnableImageBlockPublicAccessOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EnableImageBlockPublicAccessWithContext indicates an expected call of EnableImageBlockPublicAccessWithContext.
+func (mr *MockEC2APIMockRecorder) EnableImageBlockPublicAccessWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableImageBlockPublicAccessWithContext", reflect.TypeOf((*MockEC2API)(nil).EnableImageBlockPublicAccessWithContext), varargs...)
+}
+
 // EnableImageDeprecation mocks base method.
 func (m *MockEC2API) EnableImageDeprecation(arg0 *ec2.EnableImageDeprecationInput) (*ec2.EnableImageDeprecationOutput, error) {
 	m.ctrl.T.Helper()
@@ -23713,6 +23878,41 @@ func (mr *MockEC2APIMockRecorder) EnableImageDeprecationWithContext(arg0, arg1 i
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableImageDeprecationWithContext", reflect.TypeOf((*MockEC2API)(nil).EnableImageDeprecationWithContext), varargs...)
+}
+
+// EnableImageRequest mocks base method.
+func (m *MockEC2API) EnableImageRequest(arg0 *ec2.EnableImageInput) (*request.Request, *ec2.EnableImageOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnableImageRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.EnableImageOutput)
+	return ret0, ret1
+}
+
+// EnableImageRequest indicates an expected call of EnableImageRequest.
+func (mr *MockEC2APIMockRecorder) EnableImageRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableImageRequest", reflect.TypeOf((*MockEC2API)(nil).EnableImageRequest), arg0)
+}
+
+// EnableImageWithContext mocks base method.
+func (m *MockEC2API) EnableImageWithContext(arg0 context.Context, arg1 *ec2.EnableImageInput, arg2 ...request.Option) (*ec2.EnableImageOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "EnableImageWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.EnableImageOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EnableImageWithContext indicates an expected call of EnableImageWithContext.
+func (mr *MockEC2APIMockRecorder) EnableImageWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableImageWithContext", reflect.TypeOf((*MockEC2API)(nil).EnableImageWithContext), varargs...)
 }
 
 // EnableIpamOrganizationAdminAccount mocks base method.
@@ -25062,6 +25262,56 @@ func (mr *MockEC2APIMockRecorder) GetHostReservationPurchasePreviewWithContext(a
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostReservationPurchasePreviewWithContext", reflect.TypeOf((*MockEC2API)(nil).GetHostReservationPurchasePreviewWithContext), varargs...)
+}
+
+// GetImageBlockPublicAccessState mocks base method.
+func (m *MockEC2API) GetImageBlockPublicAccessState(arg0 *ec2.GetImageBlockPublicAccessStateInput) (*ec2.GetImageBlockPublicAccessStateOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetImageBlockPublicAccessState", arg0)
+	ret0, _ := ret[0].(*ec2.GetImageBlockPublicAccessStateOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetImageBlockPublicAccessState indicates an expected call of GetImageBlockPublicAccessState.
+func (mr *MockEC2APIMockRecorder) GetImageBlockPublicAccessState(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImageBlockPublicAccessState", reflect.TypeOf((*MockEC2API)(nil).GetImageBlockPublicAccessState), arg0)
+}
+
+// GetImageBlockPublicAccessStateRequest mocks base method.
+func (m *MockEC2API) GetImageBlockPublicAccessStateRequest(arg0 *ec2.GetImageBlockPublicAccessStateInput) (*request.Request, *ec2.GetImageBlockPublicAccessStateOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetImageBlockPublicAccessStateRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.GetImageBlockPublicAccessStateOutput)
+	return ret0, ret1
+}
+
+// GetImageBlockPublicAccessStateRequest indicates an expected call of GetImageBlockPublicAccessStateRequest.
+func (mr *MockEC2APIMockRecorder) GetImageBlockPublicAccessStateRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImageBlockPublicAccessStateRequest", reflect.TypeOf((*MockEC2API)(nil).GetImageBlockPublicAccessStateRequest), arg0)
+}
+
+// GetImageBlockPublicAccessStateWithContext mocks base method.
+func (m *MockEC2API) GetImageBlockPublicAccessStateWithContext(arg0 context.Context, arg1 *ec2.GetImageBlockPublicAccessStateInput, arg2 ...request.Option) (*ec2.GetImageBlockPublicAccessStateOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetImageBlockPublicAccessStateWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.GetImageBlockPublicAccessStateOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetImageBlockPublicAccessStateWithContext indicates an expected call of GetImageBlockPublicAccessStateWithContext.
+func (mr *MockEC2APIMockRecorder) GetImageBlockPublicAccessStateWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImageBlockPublicAccessStateWithContext", reflect.TypeOf((*MockEC2API)(nil).GetImageBlockPublicAccessStateWithContext), varargs...)
 }
 
 // GetInstanceTypesFromInstanceRequirements mocks base method.
@@ -34980,6 +35230,39 @@ func (mr *MockEC2APIMockRecorder) WaitUntilSpotInstanceRequestFulfilledWithConte
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilSpotInstanceRequestFulfilledWithContext", reflect.TypeOf((*MockEC2API)(nil).WaitUntilSpotInstanceRequestFulfilledWithContext), varargs...)
+}
+
+// WaitUntilStoreImageTaskComplete mocks base method.
+func (m *MockEC2API) WaitUntilStoreImageTaskComplete(arg0 *ec2.DescribeStoreImageTasksInput) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WaitUntilStoreImageTaskComplete", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WaitUntilStoreImageTaskComplete indicates an expected call of WaitUntilStoreImageTaskComplete.
+func (mr *MockEC2APIMockRecorder) WaitUntilStoreImageTaskComplete(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilStoreImageTaskComplete", reflect.TypeOf((*MockEC2API)(nil).WaitUntilStoreImageTaskComplete), arg0)
+}
+
+// WaitUntilStoreImageTaskCompleteWithContext mocks base method.
+func (m *MockEC2API) WaitUntilStoreImageTaskCompleteWithContext(arg0 context.Context, arg1 *ec2.DescribeStoreImageTasksInput, arg2 ...request.WaiterOption) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "WaitUntilStoreImageTaskCompleteWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WaitUntilStoreImageTaskCompleteWithContext indicates an expected call of WaitUntilStoreImageTaskCompleteWithContext.
+func (mr *MockEC2APIMockRecorder) WaitUntilStoreImageTaskCompleteWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilStoreImageTaskCompleteWithContext", reflect.TypeOf((*MockEC2API)(nil).WaitUntilStoreImageTaskCompleteWithContext), varargs...)
 }
 
 // WaitUntilSubnetAvailable mocks base method.

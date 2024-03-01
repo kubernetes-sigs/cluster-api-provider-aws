@@ -99,11 +99,15 @@ func (c *Logger) GetLogger() logr.Logger {
 }
 
 func (c *Logger) WithValues(keysAndValues ...any) *Logger {
-	c.logger = c.logger.WithValues(keysAndValues...)
-	return c
+	return &Logger{
+		callStackHelper: c.callStackHelper,
+		logger:          c.logger.WithValues(keysAndValues...),
+	}
 }
 
 func (c *Logger) WithName(name string) *Logger {
-	c.logger = c.logger.WithName(name)
-	return c
+	return &Logger{
+		callStackHelper: c.callStackHelper,
+		logger:          c.logger.WithName(name),
+	}
 }

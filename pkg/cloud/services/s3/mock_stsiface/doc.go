@@ -18,4 +18,4 @@ limitations under the License.
 //
 //go:generate ../../../../../hack/tools/bin/mockgen -destination stsapi_mock.go -package mock_stsiface github.com/aws/aws-sdk-go/service/sts/stsiface STSAPI
 //go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt stsapi_mock.go > _stsapi_mock.go && mv _stsapi_mock.go stsapi_mock.go"
-package mock_stsiface //nolint
+package mock_stsiface //nolint:stylecheck

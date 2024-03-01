@@ -24,7 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
@@ -273,7 +273,7 @@ func TestAWSMachineUpdate(t *testing.T) {
 		wantErr    bool
 	}{
 		{
-			name: "change in providerid, cloudinit, tags and securitygroups",
+			name: "change in providerid, cloudinit, tags, securitygroups",
 			oldMachine: &AWSMachine{
 				Spec: AWSMachineSpec{
 					ProviderID:               nil,
@@ -284,14 +284,14 @@ func TestAWSMachineUpdate(t *testing.T) {
 			},
 			newMachine: &AWSMachine{
 				Spec: AWSMachineSpec{
-					ProviderID:   pointer.String("ID"),
+					ProviderID:   ptr.To[string]("ID"),
 					InstanceType: "test",
 					AdditionalTags: Tags{
 						"key-1": "value-1",
 					},
 					AdditionalSecurityGroups: []AWSResourceReference{
 						{
-							ID: pointer.String("ID"),
+							ID: ptr.To[string]("ID"),
 						},
 					},
 					CloudInit: CloudInit{
@@ -316,14 +316,18 @@ func TestAWSMachineUpdate(t *testing.T) {
 				Spec: AWSMachineSpec{
 					ImageLookupOrg: "test",
 					InstanceType:   "test",
-					ProviderID:     pointer.String("ID"),
+					ProviderID:     ptr.To[string]("ID"),
 					AdditionalTags: Tags{
 						"key-1": "value-1",
 					},
 					AdditionalSecurityGroups: []AWSResourceReference{
 						{
-							ID: pointer.String("ID"),
+							ID: ptr.To[string]("ID"),
 						},
+					},
+					PrivateDNSName: &PrivateDNSName{
+						EnableResourceNameDNSAAAARecord: aws.Bool(true),
+						EnableResourceNameDNSARecord:    aws.Bool(true),
 					},
 				},
 			},
