@@ -250,7 +250,7 @@ func (s *Service) getAPIServerLBSpec(elbName string, lbSpec *infrav1.AWSLoadBala
 		// The load balancer APIs require us to only attach one subnet for each AZ.
 		subnets := s.scope.Subnets().FilterPrivate()
 
-		if s.scope.ControlPlaneLoadBalancerScheme() == infrav1.ELBSchemeInternetFacing {
+		if scheme == infrav1.ELBSchemeInternetFacing {
 			subnets = s.scope.Subnets().FilterPublic()
 		}
 
@@ -989,9 +989,14 @@ func (s *Service) getAPIServerClassicELBSpec(elbName string) (*infrav1.LoadBalan
 	}
 	securityGroupIDs = append(securityGroupIDs, s.scope.SecurityGroups()[infrav1.SecurityGroupAPIServerLB].ID)
 
+	scheme := infrav1.ELBSchemeInternetFacing
+	if controlPlaneLoadBalancer != nil && controlPlaneLoadBalancer.Scheme != nil {
+		scheme = *controlPlaneLoadBalancer.Scheme
+	}
+
 	res := &infrav1.LoadBalancer{
 		Name:   elbName,
-		Scheme: s.scope.ControlPlaneLoadBalancerScheme(),
+		Scheme: scheme,
 		ClassicELBListeners: []infrav1.ClassicELBListener{
 			{
 				Protocol:         infrav1.ELBProtocolTCP,
@@ -1044,7 +1049,7 @@ func (s *Service) getAPIServerClassicELBSpec(elbName string) (*infrav1.LoadBalan
 		// The load balancer APIs require us to only attach one subnet for each AZ.
 		subnets := s.scope.Subnets().FilterPrivate()
 
-		if s.scope.ControlPlaneLoadBalancerScheme() == infrav1.ELBSchemeInternetFacing {
+		if scheme == infrav1.ELBSchemeInternetFacing {
 			subnets = s.scope.Subnets().FilterPublic()
 		}
 
