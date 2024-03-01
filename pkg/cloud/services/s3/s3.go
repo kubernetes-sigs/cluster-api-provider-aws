@@ -38,6 +38,9 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 )
 
+// AWSDefaultRegion is the default AWS region.
+const AWSDefaultRegion string = "us-east-1"
+
 // Service holds a collection of interfaces.
 // The interfaces are broken down like this to group functions together.
 // One alternative is to have a large list of functions from the ec2 client.
@@ -223,11 +226,13 @@ func (s *Service) Delete(m *scope.MachineScope) error {
 }
 
 func (s *Service) createBucketIfNotExist(bucketName string) error {
-	input := &s3.CreateBucketInput{
-		Bucket: aws.String(bucketName),
-		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+	input := &s3.CreateBucketInput{Bucket: aws.String(bucketName)}
+
+	// See https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateBucket.html#AmazonS3-CreateBucket-request-LocationConstraint.
+	if s.scope.Region() != AWSDefaultRegion {
+		input.CreateBucketConfiguration = &s3.CreateBucketConfiguration{
 			LocationConstraint: aws.String(s.scope.Region()),
-		},
+		}
 	}
 
 	_, err := s.S3Client.CreateBucket(input)
