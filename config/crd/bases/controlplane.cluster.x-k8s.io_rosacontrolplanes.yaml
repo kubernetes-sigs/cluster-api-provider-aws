@@ -341,9 +341,6 @@ spec:
               version:
                 description: OpenShift semantic version, for example "4.14.5".
                 type: string
-                x-kubernetes-validations:
-                - message: version must be a valid semantic version
-                  rule: self.matches('^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$')
               workerRoleARN:
                 type: string
             required:

@@ -67,7 +67,7 @@ func NewROSAControlPlaneScope(params ROSAControlPlaneScopeParams) (*ROSAControlP
 		controllerName: params.ControllerName,
 	}
 
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, *params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
@@ -183,6 +183,8 @@ func (s *ROSAControlPlaneScope) PatchObject() error {
 		s.ControlPlane,
 		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 			rosacontrolplanev1.ROSAControlPlaneReadyCondition,
+			rosacontrolplanev1.ROSAControlPlaneValidCondition,
+			rosacontrolplanev1.ROSAControlPlaneUpgradingCondition,
 		}})
 }
 

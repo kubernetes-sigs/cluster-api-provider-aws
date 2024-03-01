@@ -30,10 +30,10 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// characters or '-', start with an alphabetic character, end with an alphanumeric character
 	// and have a max length of 15 characters.
 	//
-	// +immutable
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="rosaClusterName is immutable"
 	// +kubebuilder:validation:MaxLength:=15
 	// +kubebuilder:validation:Pattern:=`^[a-z]([-a-z0-9]*[a-z0-9])?$`
+	// +immutable
 	RosaClusterName string `json:"rosaClusterName"`
 
 	// The Subnet IDs to use when installing the cluster.
@@ -45,35 +45,31 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	AvailabilityZones []string `json:"availabilityZones"`
 
 	// The AWS Region the cluster lives in.
-	Region *string `json:"region"`
+	Region string `json:"region"`
 
 	// OpenShift semantic version, for example "4.14.5".
-	// +kubebuilder:validation:XValidation:rule=`self.matches('^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$')`, message="version must be a valid semantic version"
 	Version string `json:"version"`
-
-	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
-	// +optional
-	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
 
 	// AWS IAM roles used to perform credential requests by the openshift operators.
 	RolesRef AWSRolesRef `json:"rolesRef"`
 
 	// The ID of the OpenID Connect Provider.
-	OIDCID *string `json:"oidcID"`
+	OIDCID string `json:"oidcID"`
 
 	// TODO: these are to satisfy ocm sdk. Explore how to drop them.
 	InstallerRoleARN *string `json:"installerRoleARN"`
 	SupportRoleARN   *string `json:"supportRoleARN"`
 	WorkerRoleARN    *string `json:"workerRoleARN"`
 
-	// +immutable
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="billingAccount is immutable"
-	// +kubebuilder:validation:XValidation:rule="self.matches('^[0-9]{12}$')", message="billingAccount must be a valid AWS account ID"
-
 	// BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA clusters.
 	// The cost of running each ROSA cluster will be billed to the infrastructure account in which the cluster
 	// is running.
+	//
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="billingAccount is immutable"
+	// +kubebuilder:validation:XValidation:rule="self.matches('^[0-9]{12}$')", message="billingAccount must be a valid AWS account ID"
+	// +immutable
+	// +optional
 	BillingAccount string `json:"billingAccount,omitempty"`
 
 	// CredentialsSecretRef references a secret with necessary credentials to connect to the OCM API.
@@ -83,13 +79,14 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	CredentialsSecretRef *corev1.LocalObjectReference `json:"credentialsSecretRef,omitempty"`
 
-	// +optional
-
 	// IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
 	// If no identity is specified, the default identity for this controller will be used.
+	//
+	// +optional
 	IdentityRef *infrav1.AWSIdentityReference `json:"identityRef,omitempty"`
 
 	// Network config for the ROSA HCP cluster.
+	// +optional
 	Network *NetworkSpec `json:"network,omitempty"`
 
 	// The instance type to use, for example `r5.xlarge`. Instance type ref; https://aws.amazon.com/ec2/instance-types/
@@ -99,6 +96,10 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// Autoscaling specifies auto scaling behaviour for the MachinePools.
 	// +optional
 	Autoscaling *expinfrav1.RosaMachinePoolAutoScaling `json:"autoscaling,omitempty"`
+
+	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+	// +optional
+	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
 }
 
 // NetworkSpec for ROSA-HCP.
@@ -126,6 +127,7 @@ type NetworkSpec struct {
 	// The CNI network type default is OVNKubernetes.
 	// +kubebuilder:validation:Enum=OVNKubernetes;Other
 	// +kubebuilder:default=OVNKubernetes
+	// +optional
 	NetworkType string `json:"networkType,omitempty"`
 }
 
@@ -534,7 +536,7 @@ type RosaControlPlaneStatus struct {
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 
 	// ID is the cluster ID given by ROSA.
-	ID *string `json:"id,omitempty"`
+	ID string `json:"id,omitempty"`
 	// ConsoleURL is the url for the openshift console.
 	ConsoleURL string `json:"consoleURL,omitempty"`
 	// OIDCEndpointURL is the endpoint url for the managed OIDC porvider.
