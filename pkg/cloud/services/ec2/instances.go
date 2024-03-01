@@ -25,6 +25,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/pkg/errors"
 	"k8s.io/utils/ptr"
 
@@ -886,6 +887,8 @@ func (s *Service) SDKToInstance(v *ec2.Instance) (*infrav1.Instance, error) {
 
 func (s *Service) getInstanceAddresses(instance *ec2.Instance) []clusterv1.MachineAddress {
 	addresses := []clusterv1.MachineAddress{}
+	// Check if the DHCP Option Set has domain name set
+	domainName := s.GetDHCPOptionSetDomainName(s.EC2Client, instance.VpcId)
 	for _, eni := range instance.NetworkInterfaces {
 		privateDNSAddress := clusterv1.MachineAddress{
 			Type:    clusterv1.MachineInternalDNS,
@@ -895,7 +898,17 @@ func (s *Service) getInstanceAddresses(instance *ec2.Instance) []clusterv1.Machi
 			Type:    clusterv1.MachineInternalIP,
 			Address: aws.StringValue(eni.PrivateIpAddress),
 		}
+
 		addresses = append(addresses, privateDNSAddress, privateIPAddress)
+
+		if domainName != nil {
+			// Add secondary private DNS Name with domain name set in DHCP Option Set
+			additionalPrivateDNSAddress := clusterv1.MachineAddress{
+				Type:    clusterv1.MachineInternalDNS,
+				Address: fmt.Sprintf("%s.%s", strings.Split(privateDNSAddress.Address, ".")[0], *domainName),
+			}
+			addresses = append(addresses, additionalPrivateDNSAddress)
+		}
 
 		// An elastic IP is attached if association is non nil pointer
 		if eni.Association != nil {
@@ -910,6 +923,7 @@ func (s *Service) getInstanceAddresses(instance *ec2.Instance) []clusterv1.Machi
 			addresses = append(addresses, publicDNSAddress, publicIPAddress)
 		}
 	}
+
 	return addresses
 }
 
@@ -1003,6 +1017,54 @@ func (s *Service) ModifyInstanceMetadataOptions(instanceID string, options *infr
 	s.scope.Info("Updating instance metadata options", "instance id", instanceID, "options", input)
 	if _, err := s.EC2Client.ModifyInstanceMetadataOptionsWithContext(context.TODO(), input); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// GetDHCPOptionSetDomainName returns the domain DNS name for the VPC from the DHCP Options.
+func (s *Service) GetDHCPOptionSetDomainName(ec2client ec2iface.EC2API, vpcID *string) *string {
+	log := s.scope.GetLogger()
+
+	if vpcID == nil {
+		log.Info("vpcID is nil, skipping DHCP Option Set discovery")
+		return nil
+	}
+
+	vpcInput := &ec2.DescribeVpcsInput{
+		VpcIds: []*string{vpcID},
+	}
+
+	vpcResult, err := ec2client.DescribeVpcs(vpcInput)
+	if err != nil {
+		log.Info("failed to describe VPC, skipping DHCP Option Set discovery", "vpcID", *vpcID, "Error", err.Error())
+		return nil
+	}
+
+	dhcpInput := &ec2.DescribeDhcpOptionsInput{
+		DhcpOptionsIds: []*string{vpcResult.Vpcs[0].DhcpOptionsId},
+	}
+
+	dhcpResult, err := ec2client.DescribeDhcpOptions(dhcpInput)
+	if err != nil {
+		log.Error(err, "failed to describe DHCP Options Set", "DhcpOptionsSet", *dhcpResult)
+		return nil
+	}
+
+	for _, dhcpConfig := range dhcpResult.DhcpOptions[0].DhcpConfigurations {
+		if *dhcpConfig.Key == "domain-name" {
+			if len(dhcpConfig.Values) == 0 {
+				return nil
+			}
+			domainName := dhcpConfig.Values[0].Value
+			// default domainName is 'ec2.internal' in us-east-1 and 'region.compute.internal' in the other regions.
+			if (s.scope.Region() == "us-east-1" && *domainName == "ec2.internal") ||
+				(s.scope.Region() != "us-east-1" && *domainName == fmt.Sprintf("%s.compute.internal", s.scope.Region())) {
+				return nil
+			}
+
+			return domainName
+		}
 	}
 
 	return nil
