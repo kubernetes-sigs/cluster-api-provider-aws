@@ -130,12 +130,10 @@ spec:
                   type: string
                 type: array
               version:
-                description: Version specifies the penshift version of the nodes associated
-                  with this machinepool. ROSAControlPlane version is used if not set.
+                description: Version specifies the OpenShift version of the nodes
+                  associated with this machinepool. ROSAControlPlane version is used
+                  if not set.
                 type: string
-                x-kubernetes-validations:
-                - message: version must be a valid semantic version
-                  rule: self.matches('^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$')
             required:
             - instanceType
             - nodePoolName

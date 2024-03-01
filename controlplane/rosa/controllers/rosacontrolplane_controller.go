@@ -200,23 +200,29 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		return ctrl.Result{}, fmt.Errorf("failed to transform caller identity to creator: %w", err)
 	}
 
-	if validationMessage, validationError := validateControlPlaneSpec(ocmClient, rosaScope); validationError != nil {
-		return ctrl.Result{}, fmt.Errorf("validate ROSAControlPlane.spec: %w", validationError)
-	} else if validationMessage != "" {
-		rosaScope.ControlPlane.Status.FailureMessage = ptr.To(validationMessage)
+	validationMessage, err := validateControlPlaneSpec(ocmClient, rosaScope)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to validate ROSAControlPlane.spec: %w", err)
+	}
+
+	conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1.ROSAControlPlaneValidCondition)
+	if validationMessage != "" {
+		conditions.MarkFalse(rosaScope.ControlPlane,
+			rosacontrolplanev1.ROSAControlPlaneValidCondition,
+			rosacontrolplanev1.ROSAControlPlaneInvalidConfigurationReason,
+			clusterv1.ConditionSeverityError,
+			validationMessage)
 		// dont' requeue because input is invalid and manual intervention is needed.
 		return ctrl.Result{}, nil
-	} else {
-		rosaScope.ControlPlane.Status.FailureMessage = nil
 	}
 
 	cluster, err := ocmClient.GetCluster(rosaScope.ControlPlane.Spec.RosaClusterName, creator)
-	if weberr.GetType(err) != weberr.NotFound && err != nil {
+	if err != nil && weberr.GetType(err) != weberr.NotFound {
 		return ctrl.Result{}, err
 	}
 
 	if cluster != nil {
-		rosaScope.ControlPlane.Status.ID = ptr.To(cluster.ID())
+		rosaScope.ControlPlane.Status.ID = cluster.ID()
 		rosaScope.ControlPlane.Status.ConsoleURL = cluster.Console().URL()
 		rosaScope.ControlPlane.Status.OIDCEndpointURL = cluster.AWS().STS().OIDCEndpointURL()
 		rosaScope.ControlPlane.Status.Ready = false
@@ -271,10 +277,10 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	ocmClusterSpec := ocm.Spec{
 		DryRun:                    ptr.To(false),
 		Name:                      rosaScope.RosaClusterName(),
-		Region:                    *rosaScope.ControlPlane.Spec.Region,
+		Region:                    rosaScope.ControlPlane.Spec.Region,
 		MultiAZ:                   true,
 		Version:                   ocm.CreateVersionID(rosaScope.ControlPlane.Spec.Version, ocm.DefaultChannelGroup),
-		ChannelGroup:              "stable",
+		ChannelGroup:              ocm.DefaultChannelGroup,
 		Expiration:                time.Now().Add(1 * time.Hour),
 		DisableWorkloadMonitoring: ptr.To(true),
 		DefaultIngress:            ocm.NewDefaultIngressSpec(), // n.b. this is a no-op when it's set to the default value
@@ -285,9 +291,9 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		IsSTS:             true,
 		RoleARN:           *rosaScope.ControlPlane.Spec.InstallerRoleARN,
 		SupportRoleARN:    *rosaScope.ControlPlane.Spec.SupportRoleARN,
-		OperatorIAMRoles:  getOperatorIAMRole(*rosaScope.ControlPlane),
 		WorkerRoleARN:     *rosaScope.ControlPlane.Spec.WorkerRoleARN,
-		OidcConfigId:      *rosaScope.ControlPlane.Spec.OIDCID,
+		OperatorIAMRoles:  operatorIAMRoles(rosaScope.ControlPlane.Spec.RolesRef),
+		OidcConfigId:      rosaScope.ControlPlane.Spec.OIDCID,
 		Mode:              "auto",
 		Hypershift: ocm.Hypershift{
 			Enabled: true,
@@ -300,9 +306,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		if networkSpec.MachineCIDR != "" {
 			_, machineCIDR, err := net.ParseCIDR(networkSpec.MachineCIDR)
 			if err != nil {
-				// TODO: expose in status
-				rosaScope.Error(err, "rosacontrolplane.spec.network.machineCIDR invalid", networkSpec.MachineCIDR)
-				return ctrl.Result{}, nil
+				return ctrl.Result{}, err
 			}
 			ocmClusterSpec.MachineCIDR = *machineCIDR
 		}
@@ -310,9 +314,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		if networkSpec.PodCIDR != "" {
 			_, podCIDR, err := net.ParseCIDR(networkSpec.PodCIDR)
 			if err != nil {
-				// TODO: expose in status.
-				rosaScope.Error(err, "rosacontrolplane.spec.network.podCIDR invalid", networkSpec.PodCIDR)
-				return ctrl.Result{}, nil
+				return ctrl.Result{}, err
 			}
 			ocmClusterSpec.PodCIDR = *podCIDR
 		}
@@ -320,9 +322,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		if networkSpec.ServiceCIDR != "" {
 			_, serviceCIDR, err := net.ParseCIDR(networkSpec.ServiceCIDR)
 			if err != nil {
-				// TODO: expose in status.
-				rosaScope.Error(err, "rosacontrolplane.spec.network.serviceCIDR invalid", networkSpec.ServiceCIDR)
-				return ctrl.Result{}, nil
+				return ctrl.Result{}, err
 			}
 			ocmClusterSpec.ServiceCIDR = *serviceCIDR
 		}
@@ -339,58 +339,61 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 
 	cluster, err = ocmClient.CreateCluster(ocmClusterSpec)
 	if err != nil {
-		// TODO: need to expose in status, as likely the spec is invalid
+		conditions.MarkFalse(rosaScope.ControlPlane,
+			rosacontrolplanev1.ROSAControlPlaneReadyCondition,
+			rosacontrolplanev1.ROSAControlPlaneReconciliationFailedReason,
+			clusterv1.ConditionSeverityError,
+			err.Error())
 		return ctrl.Result{}, fmt.Errorf("failed to create OCM cluster: %w", err)
 	}
 
 	rosaScope.Info("cluster created", "state", cluster.Status().State())
-	clusterID := cluster.ID()
-	rosaScope.ControlPlane.Status.ID = &clusterID
+	rosaScope.ControlPlane.Status.ID = cluster.ID()
 
 	return ctrl.Result{}, nil
 }
 
-func getOperatorIAMRole(rosaControlPlane rosacontrolplanev1.ROSAControlPlane) []ocm.OperatorIAMRole {
+func operatorIAMRoles(rolesRef rosacontrolplanev1.AWSRolesRef) []ocm.OperatorIAMRole {
 	return []ocm.OperatorIAMRole{
 		{
 			Name:      "cloud-credentials",
 			Namespace: "openshift-ingress-operator",
-			RoleARN:   rosaControlPlane.Spec.RolesRef.IngressARN,
+			RoleARN:   rolesRef.IngressARN,
 		},
 		{
 			Name:      "installer-cloud-credentials",
 			Namespace: "openshift-image-registry",
-			RoleARN:   rosaControlPlane.Spec.RolesRef.ImageRegistryARN,
+			RoleARN:   rolesRef.ImageRegistryARN,
 		},
 		{
 			Name:      "ebs-cloud-credentials",
 			Namespace: "openshift-cluster-csi-drivers",
-			RoleARN:   rosaControlPlane.Spec.RolesRef.StorageARN,
+			RoleARN:   rolesRef.StorageARN,
 		},
 		{
 			Name:      "cloud-credentials",
 			Namespace: "openshift-cloud-network-config-controller",
-			RoleARN:   rosaControlPlane.Spec.RolesRef.NetworkARN,
+			RoleARN:   rolesRef.NetworkARN,
 		},
 		{
 			Name:      "kube-controller-manager",
 			Namespace: "kube-system",
-			RoleARN:   rosaControlPlane.Spec.RolesRef.KubeCloudControllerARN,
+			RoleARN:   rolesRef.KubeCloudControllerARN,
 		},
 		{
 			Name:      "kms-provider",
 			Namespace: "kube-system",
-			RoleARN:   rosaControlPlane.Spec.RolesRef.KMSProviderARN,
+			RoleARN:   rolesRef.KMSProviderARN,
 		},
 		{
 			Name:      "control-plane-operator",
 			Namespace: "kube-system",
-			RoleARN:   rosaControlPlane.Spec.RolesRef.ControlPlaneOperatorARN,
+			RoleARN:   rolesRef.ControlPlaneOperatorARN,
 		},
 		{
 			Name:      "capa-controller-manager",
 			Namespace: "kube-system",
-			RoleARN:   rosaControlPlane.Spec.RolesRef.NodePoolManagementARN,
+			RoleARN:   rolesRef.NodePoolManagementARN,
 		},
 	}
 }
@@ -410,7 +413,7 @@ func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaSc
 	}
 
 	cluster, err := ocmClient.GetCluster(rosaScope.ControlPlane.Spec.RosaClusterName, creator)
-	if weberr.GetType(err) != weberr.NotFound && err != nil {
+	if err != nil && weberr.GetType(err) != weberr.NotFound {
 		return ctrl.Result{}, err
 	}
 	if cluster == nil {
@@ -584,7 +587,7 @@ func (r *ROSAControlPlaneReconciler) reconcileClusterAdminPassword(ctx context.C
 
 func validateControlPlaneSpec(ocmClient *ocm.Client, rosaScope *scope.ROSAControlPlaneScope) (string, error) {
 	version := rosaScope.ControlPlane.Spec.Version
-	valid, err := ocmClient.ValidateHypershiftVersion(version, "stable")
+	valid, err := ocmClient.ValidateHypershiftVersion(version, ocm.DefaultChannelGroup)
 	if err != nil {
 		return "", fmt.Errorf("failed to check if version is valid: %w", err)
 	}

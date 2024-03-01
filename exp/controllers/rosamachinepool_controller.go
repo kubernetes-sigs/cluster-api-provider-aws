@@ -199,7 +199,7 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 
 	rosaMachinePool := machinePoolScope.RosaMachinePool
 
-	nodePool, found, err := ocmClient.GetNodePool(*machinePoolScope.ControlPlane.Status.ID, rosaMachinePool.Spec.NodePoolName)
+	nodePool, found, err := ocmClient.GetNodePool(machinePoolScope.ControlPlane.Status.ID, rosaMachinePool.Spec.NodePoolName)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -240,7 +240,7 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 		return ctrl.Result{}, fmt.Errorf("failed to build rosa nodepool: %w", err)
 	}
 
-	nodePool, err = ocmClient.CreateNodePool(*machinePoolScope.ControlPlane.Status.ID, nodePoolSpec)
+	nodePool, err = ocmClient.CreateNodePool(machinePoolScope.ControlPlane.Status.ID, nodePoolSpec)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to create nodepool: %w", err)
 	}
@@ -261,12 +261,12 @@ func (r *ROSAMachinePoolReconciler) reconcileDelete(
 		return fmt.Errorf("failed to create OCM client: %w", err)
 	}
 
-	nodePool, found, err := ocmClient.GetNodePool(*machinePoolScope.ControlPlane.Status.ID, machinePoolScope.NodePoolName())
+	nodePool, found, err := ocmClient.GetNodePool(machinePoolScope.ControlPlane.Status.ID, machinePoolScope.NodePoolName())
 	if err != nil {
 		return err
 	}
 	if found {
-		if err := ocmClient.DeleteNodePool(*machinePoolScope.ControlPlane.Status.ID, nodePool.ID()); err != nil {
+		if err := ocmClient.DeleteNodePool(machinePoolScope.ControlPlane.Status.ID, nodePool.ID()); err != nil {
 			return err
 		}
 	}
@@ -287,7 +287,7 @@ func (r *ROSAMachinePoolReconciler) reconcileMachinePoolVersion(machinePoolScope
 		return nil
 	}
 
-	clusterID := *machinePoolScope.ControlPlane.Status.ID
+	clusterID := machinePoolScope.ControlPlane.Status.ID
 	_, scheduledUpgrade, err := ocmClient.GetHypershiftNodePoolUpgrade(clusterID, machinePoolScope.ControlPlane.Spec.RosaClusterName, nodePool.ID())
 	if err != nil {
 		return fmt.Errorf("failed to get existing scheduled upgrades: %w", err)
@@ -349,7 +349,7 @@ func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaM
 		return nil, fmt.Errorf("failed to build nodePool spec: %w", err)
 	}
 
-	updatedNodePool, err := ocmClient.UpdateNodePool(*machinePoolScope.ControlPlane.Status.ID, nodePoolSpec)
+	updatedNodePool, err := ocmClient.UpdateNodePool(machinePoolScope.ControlPlane.Status.ID, nodePoolSpec)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update nodePool: %w", err)
 	}

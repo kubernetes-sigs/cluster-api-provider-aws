@@ -34,11 +34,10 @@ type RosaMachinePoolSpec struct {
 	// +kubebuilder:validation:Pattern:=`^[a-z]([-a-z0-9]*[a-z0-9])?$`
 	NodePoolName string `json:"nodePoolName"`
 
-	// Version specifies the penshift version of the nodes associated with this machinepool.
+	// Version specifies the OpenShift version of the nodes associated with this machinepool.
 	// ROSAControlPlane version is used if not set.
 	//
 	// +optional
-	// +kubebuilder:validation:XValidation:rule=`self.matches('^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$')`, message="version must be a valid semantic version"
 	Version string `json:"version,omitempty"`
 
 	// AvailabilityZone is an optinal field specifying the availability zone where instances of this machine pool should run
@@ -47,7 +46,6 @@ type RosaMachinePoolSpec struct {
 	AvailabilityZone string `json:"availabilityZone,omitempty"`
 
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="subnet is immutable"
-	//
 	// +immutable
 	// +optional
 	Subnet string `json:"subnet,omitempty"`
@@ -62,13 +60,13 @@ type RosaMachinePoolSpec struct {
 
 	// AutoRepair specifies whether health checks should be enabled for machines
 	// in the NodePool. The default is false.
-	// +optional
 	// +kubebuilder:default=false
+	// +optional
 	AutoRepair bool `json:"autoRepair,omitempty"`
 
-	// +kubebuilder:validation:Required
-	//
 	// InstanceType specifies the AWS instance type
+	//
+	// +kubebuilder:validation:Required
 	InstanceType string `json:"instanceType"`
 
 	// Autoscaling specifies auto scaling behaviour for this MachinePool.
@@ -87,20 +85,20 @@ type RosaMachinePoolSpec struct {
 }
 
 type RosaTaint struct {
-	// +kubebuilder:validation:Required
-	//
 	// The taint key to be applied to a node.
-	Key string `json:"key"`
-	// +kubebuilder:validation:Pattern:=`^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$`
 	//
+	// +kubebuilder:validation:Required
+	Key string `json:"key"`
 	// The taint value corresponding to the taint key.
+	//
+	// +kubebuilder:validation:Pattern:=`^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$`
 	// +optional
 	Value string `json:"value,omitempty"`
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum=NoSchedule;PreferNoSchedule;NoExecute
-	//
 	// The effect of the taint on pods that do not tolerate the taint.
 	// Valid effects are NoSchedule, PreferNoSchedule and NoExecute.
+	//
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Enum=NoSchedule;PreferNoSchedule;NoExecute
 	Effect corev1.TaintEffect `json:"effect"`
 }
 
