@@ -280,7 +280,6 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		MultiAZ:                   true,
 		Version:                   ocm.CreateVersionID(rosaScope.ControlPlane.Spec.Version, ocm.DefaultChannelGroup),
 		ChannelGroup:              ocm.DefaultChannelGroup,
-		Expiration:                time.Now().Add(1 * time.Hour),
 		DisableWorkloadMonitoring: ptr.To(true),
 		DefaultIngress:            ocm.NewDefaultIngressSpec(), // n.b. this is a no-op when it's set to the default value
 		ComputeMachineType:        rosaScope.ControlPlane.Spec.InstanceType,
@@ -302,6 +301,11 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		},
 		BillingAccount: billingAccount,
 		AWSCreator:     creator,
+	}
+
+	if rosaScope.ControlPlane.Spec.EndpointAccess == rosacontrolplanev1.Private {
+		ocmClusterSpec.Private = ptr.To(true)
+		ocmClusterSpec.PrivateLink = ptr.To(true)
 	}
 
 	if networkSpec := rosaScope.ControlPlane.Spec.Network; networkSpec != nil {

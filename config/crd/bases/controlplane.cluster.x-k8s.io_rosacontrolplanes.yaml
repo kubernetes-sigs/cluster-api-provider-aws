@@ -108,6 +108,14 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
+              endpointAccess:
+                default: Public
+                description: EndpointAccess specifies the publishing scope of cluster
+                  endpoints. The default is Public.
+                enum:
+                - Public
+                - Private
+                type: string
               etcdEncryptionKMSArn:
                 description: EtcdEncryptionKMSArn is the ARN of the KMS key used to
                   encrypt etcd. The key itself needs to be created out-of-band by
@@ -372,7 +380,7 @@ spec:
             description: RosaControlPlaneStatus defines the observed state of ROSAControlPlane.
             properties:
               conditions:
-                description: Conditions specifies the cpnditions for the managed control
+                description: Conditions specifies the conditions for the managed control
                   plane
                 items:
                   description: Condition defines an observation of a Cluster API resource
@@ -444,7 +452,7 @@ spec:
                 type: boolean
               oidcEndpointURL:
                 description: OIDCEndpointURL is the endpoint url for the managed OIDC
-                  porvider.
+                  provider.
                 type: string
               ready:
                 default: false
