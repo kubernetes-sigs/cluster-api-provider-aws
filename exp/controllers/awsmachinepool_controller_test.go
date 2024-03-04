@@ -773,7 +773,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 	})
 }
 
-//TODO: This was taken from awsmachine_controller_test, i think it should be moved to elsewhere in both locations like test/helpers
+//TODO: This was taken from awsmachine_controller_test, i think it should be moved to elsewhere in both locations like test/helpers.
 
 type conditionAssertion struct {
 	conditionType clusterv1.ConditionType

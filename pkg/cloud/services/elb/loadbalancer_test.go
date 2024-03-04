@@ -2180,7 +2180,7 @@ func TestReconcileLoadbalancers(t *testing.T) {
 }
 
 func TestDeleteAPIServerELB(t *testing.T) {
-	clusterName := "bar" //nolint:goconst // does not need to be a package-level const
+	clusterName := "bar"
 	elbName := "bar-apiserver"
 	tests := []struct {
 		name             string

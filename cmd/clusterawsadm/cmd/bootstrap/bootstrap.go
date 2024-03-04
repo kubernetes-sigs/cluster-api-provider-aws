@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package bootstrap provides cli commands for bootstrapping
+// AWS accounts for use with the Kubernetes Cluster API Provider AWS.
 package bootstrap
 
 import (

@@ -1050,24 +1050,25 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 
 			found := false
 			for _, r := range rules {
-				if r.Description == "test" {
-					found = true
+				if r.Description != "test" {
+					continue
+				}
+				found = true
 
-					if r.Protocol != tc.expectedAdditionalIngresRule.Protocol {
-						t.Fatalf("Expected protocol %s, got %s", tc.expectedAdditionalIngresRule.Protocol, r.Protocol)
-					}
+				if r.Protocol != tc.expectedAdditionalIngresRule.Protocol {
+					t.Fatalf("Expected protocol %s, got %s", tc.expectedAdditionalIngresRule.Protocol, r.Protocol)
+				}
 
-					if r.FromPort != tc.expectedAdditionalIngresRule.FromPort {
-						t.Fatalf("Expected from port %d, got %d", tc.expectedAdditionalIngresRule.FromPort, r.FromPort)
-					}
+				if r.FromPort != tc.expectedAdditionalIngresRule.FromPort {
+					t.Fatalf("Expected from port %d, got %d", tc.expectedAdditionalIngresRule.FromPort, r.FromPort)
+				}
 
-					if r.ToPort != tc.expectedAdditionalIngresRule.ToPort {
-						t.Fatalf("Expected to port %d, got %d", tc.expectedAdditionalIngresRule.ToPort, r.ToPort)
-					}
+				if r.ToPort != tc.expectedAdditionalIngresRule.ToPort {
+					t.Fatalf("Expected to port %d, got %d", tc.expectedAdditionalIngresRule.ToPort, r.ToPort)
+				}
 
-					if !sets.New[string](tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs...).Equal(sets.New[string](tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs...)) {
-						t.Fatalf("Expected source security group IDs %v, got %v", tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs, r.SourceSecurityGroupIDs)
-					}
+				if !sets.New[string](tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs...).Equal(sets.New[string](tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs...)) {
+					t.Fatalf("Expected source security group IDs %v, got %v", tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs, r.SourceSecurityGroupIDs)
 				}
 			}
 

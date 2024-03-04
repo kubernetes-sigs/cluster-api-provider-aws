@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package controllers provides a way to reconcile ROSA resources.
 package controllers
 
 import (
@@ -67,6 +68,7 @@ const (
 	ROSAControlPlaneFinalizer = "rosacontrolplane.controlplane.cluster.x-k8s.io"
 )
 
+// ROSAControlPlaneReconciler reconciles a ROSAControlPlane object.
 type ROSAControlPlaneReconciler struct {
 	client.Client
 	WatchFilterValue string
@@ -179,10 +181,6 @@ func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Req
 func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (res ctrl.Result, reterr error) {
 	rosaScope.Info("Reconciling ROSAControlPlane")
 
-	// if !rosaScope.Cluster.Status.InfrastructureReady {
-	//	rosaScope.Info("Cluster infrastructure is not ready yet")
-	//	return ctrl.Result{RequeueAfter: r.WaitInfraPeriod}, nil
-	//}
 	if controllerutil.AddFinalizer(rosaScope.ControlPlane, ROSAControlPlaneFinalizer) {
 		if err := rosaScope.PatchObject(); err != nil {
 			return ctrl.Result{}, err
@@ -215,6 +213,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		// dont' requeue because input is invalid and manual intervention is needed.
 		return ctrl.Result{}, nil
 	}
+	rosaScope.ControlPlane.Status.FailureMessage = nil
 
 	cluster, err := ocmClient.GetCluster(rosaScope.ControlPlane.Spec.RosaClusterName, creator)
 	if err != nil && weberr.GetType(err) != weberr.NotFound {

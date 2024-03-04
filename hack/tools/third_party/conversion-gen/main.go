@@ -63,7 +63,7 @@ limitations under the License.
 // fundamentally differently typed fields.
 //
 // `conversion-gen` will scan its `--input-dirs`, looking at the
-// package defined in each of those directories for comment tags that
+// Package defined in each of those directories for comment tags that
 // define a conversion code generation task.  A package requests
 // conversion code generation by including one or more comment in the
 // package's `doc.go` file (currently anywhere in that file is
@@ -73,7 +73,7 @@ limitations under the License.
 //	// +k8s:conversion-gen=<import-path-of-internal-package>
 //
 // This introduces a conversion task, for which the destination
-// package is the one containing the file with the tag and the tag
+// Package is the one containing the file with the tag and the tag
 // identifies a package containing internal types.  If there is also a
 // tag of the form
 //
@@ -98,9 +98,8 @@ import (
 	"flag"
 
 	"github.com/spf13/pflag"
-	"k8s.io/klog/v2"
-
 	generatorargs "k8s.io/code-generator/cmd/conversion-gen/args"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/cluster-api-provider-aws/hack/tools/third_party/conversion-gen/generators"
 )
 

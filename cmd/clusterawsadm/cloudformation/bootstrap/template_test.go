@@ -17,6 +17,7 @@ limitations under the License.
 package bootstrap
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path"
@@ -201,7 +202,7 @@ func TestRenderCloudformation(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if string(tData) != string(data) {
+			if !bytes.Equal(tData, data) {
 				dmp := diffmatchpatch.New()
 				diffs := dmp.DiffMain(string(tData), string(data), false)
 				out := dmp.DiffPrettyText(diffs)

@@ -319,8 +319,8 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, cluster1Name).GetClient()
 
 			createStatefulSet(nginxStatefulsetInfo, clusterClient)
-			awsVolIds := getVolumeIds(nginxStatefulsetInfo, clusterClient)
-			verifyVolumesExists(awsVolIds)
+			awsVolIDs := getVolumeIDs(nginxStatefulsetInfo, clusterClient)
+			verifyVolumesExists(awsVolIDs)
 
 			kubernetesUgradeVersion := e2eCtx.E2EConfig.GetVariable(shared.PostCSIKubernetesVer)
 			configCluster.KubernetesVersion = kubernetesUgradeVersion
@@ -348,8 +348,8 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 
 			ginkgo.By("Deploying StatefulSet on infra when K8s >= 1.23")
 			createStatefulSet(nginxStatefulsetInfo2, clusterClient)
-			awsVolIds = getVolumeIds(nginxStatefulsetInfo2, clusterClient)
-			verifyVolumesExists(awsVolIds)
+			awsVolIDs = getVolumeIDs(nginxStatefulsetInfo2, clusterClient)
+			verifyVolumesExists(awsVolIDs)
 
 			ginkgo.By("Deleting LB service")
 			deleteLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
@@ -358,7 +358,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			deleteCluster(ctx, cluster2)
 
 			ginkgo.By("Deleting retained dynamically provisioned volumes")
-			deleteRetainedVolumes(awsVolIds)
+			deleteRetainedVolumes(awsVolIDs)
 			ginkgo.By("PASSED!")
 		})
 	})
@@ -388,8 +388,8 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, cluster1Name).GetClient()
 
 			createStatefulSet(nginxStatefulsetInfo, clusterClient)
-			awsVolIds := getVolumeIds(nginxStatefulsetInfo, clusterClient)
-			verifyVolumesExists(awsVolIds)
+			awsVolIDs := getVolumeIDs(nginxStatefulsetInfo, clusterClient)
+			verifyVolumesExists(awsVolIDs)
 
 			kubernetesUgradeVersion := e2eCtx.E2EConfig.GetVariable(shared.PostCSIKubernetesVer)
 
@@ -418,8 +418,8 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 
 			ginkgo.By("Deploying StatefulSet on infra when K8s >= 1.23")
 			createStatefulSet(nginxStatefulsetInfo2, clusterClient)
-			awsVolIds = getVolumeIds(nginxStatefulsetInfo2, clusterClient)
-			verifyVolumesExists(awsVolIds)
+			awsVolIDs = getVolumeIDs(nginxStatefulsetInfo2, clusterClient)
+			verifyVolumesExists(awsVolIDs)
 
 			ginkgo.By("Deleting LB service")
 			deleteLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
@@ -428,7 +428,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			deleteCluster(ctx, cluster2)
 
 			ginkgo.By("Deleting retained dynamically provisioned volumes")
-			deleteRetainedVolumes(awsVolIds)
+			deleteRetainedVolumes(awsVolIDs)
 			ginkgo.By("PASSED!")
 		})
 	})
@@ -459,8 +459,8 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, cluster1Name).GetClient()
 
 			createStatefulSet(nginxStatefulsetInfo, clusterClient)
-			awsVolIds := getVolumeIds(nginxStatefulsetInfo, clusterClient)
-			verifyVolumesExists(awsVolIds)
+			awsVolIDs := getVolumeIDs(nginxStatefulsetInfo, clusterClient)
+			verifyVolumesExists(awsVolIDs)
 
 			kubernetesUgradeVersion := e2eCtx.E2EConfig.GetVariable(shared.PostCSIKubernetesVer)
 			configCluster.KubernetesVersion = kubernetesUgradeVersion
@@ -488,8 +488,8 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 
 			ginkgo.By("Deploying StatefulSet on infra when K8s >= 1.23")
 			createStatefulSet(nginxStatefulsetInfo2, clusterClient)
-			awsVolIds = getVolumeIds(nginxStatefulsetInfo2, clusterClient)
-			verifyVolumesExists(awsVolIds)
+			awsVolIDs = getVolumeIDs(nginxStatefulsetInfo2, clusterClient)
+			verifyVolumesExists(awsVolIDs)
 
 			ginkgo.By("Deleting LB service")
 			deleteLBService(metav1.NamespaceDefault, lbServiceName, clusterClient)
@@ -498,7 +498,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			deleteCluster(ctx, cluster2)
 
 			ginkgo.By("Deleting retained dynamically provisioned volumes")
-			deleteRetainedVolumes(awsVolIds)
+			deleteRetainedVolumes(awsVolIDs)
 			ginkgo.By("PASSED!")
 		})
 	})

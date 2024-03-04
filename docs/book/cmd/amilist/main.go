@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package main provides a Lambda function to list AMIs and upload them to an S3 bucket.
 package main
 
 import (

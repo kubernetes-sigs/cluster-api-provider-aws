@@ -194,6 +194,7 @@ func (m *MachineScope) UseSecretsManager(userDataFormat string) bool {
 	return !m.AWSMachine.Spec.CloudInit.InsecureSkipSecretsManager && !m.UseIgnition(userDataFormat)
 }
 
+// UseIgnition returns true if the AWSMachine should use Ignition.
 func (m *MachineScope) UseIgnition(userDataFormat string) bool {
 	return userDataFormat == "ignition" || (m.AWSMachine.Spec.Ignition != nil)
 }
@@ -264,6 +265,7 @@ func (m *MachineScope) GetRawBootstrapData() ([]byte, error) {
 	return data, err
 }
 
+// GetRawBootstrapDataWithFormat returns the bootstrap data from the secret in the Machine's bootstrap.dataSecretName.
 func (m *MachineScope) GetRawBootstrapDataWithFormat() ([]byte, string, error) {
 	if m.Machine.Spec.Bootstrap.DataSecretName == nil {
 		return nil, "", errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")

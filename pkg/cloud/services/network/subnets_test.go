@@ -2677,7 +2677,7 @@ func TestDeleteSubnets(t *testing.T) {
 	}
 }
 
-// Test helpers
+// Test helpers.
 
 type ScopeBuilder interface {
 	Build() (scope.NetworkScope, error)

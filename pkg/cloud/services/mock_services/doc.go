@@ -14,7 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package mock_services provides a way to generate mock services for the cloud provider.
 // Run go generate to regenerate this mock. //nolint:revive
+//
 //go:generate ../../../../hack/tools/bin/mockgen -destination ec2_interface_mock.go -package mock_services sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services EC2Interface
 //go:generate /usr/bin/env bash -c "cat ../../../../hack/boilerplate/boilerplate.generatego.txt ec2_interface_mock.go > _ec2_interface_mock.go && mv _ec2_interface_mock.go ec2_interface_mock.go"
 //go:generate ../../../../hack/tools/bin/mockgen -destination reconcile_interface_mock.go -package mock_services sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services MachinePoolReconcileInterface
@@ -31,5 +33,4 @@ limitations under the License.
 //go:generate /usr/bin/env bash -c "cat ../../../../hack/boilerplate/boilerplate.generatego.txt network_interface_mock.go > _network_interface_mock.go && mv _network_interface_mock.go network_interface_mock.go"
 //go:generate ../../../../hack/tools/bin/mockgen -destination security_group_interface_mock.go -package mock_services sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services SecurityGroupInterface
 //go:generate /usr/bin/env bash -c "cat ../../../../hack/boilerplate/boilerplate.generatego.txt security_group_interface_mock.go > _security_group_interface_mock.go && mv _security_group_interface_mock.go security_group_interface_mock.go"
-
 package mock_services //nolint:stylecheck

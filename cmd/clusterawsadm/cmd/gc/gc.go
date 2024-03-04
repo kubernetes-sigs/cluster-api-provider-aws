@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package gc provides commands related to garbage collecting external resources of clusters.
 package gc
 
 import (
@@ -27,10 +28,7 @@ func RootCmd() *cobra.Command {
 		Short: "Commands related to garbage collecting external resources of clusters",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := cmd.Help(); err != nil {
-				return err
-			}
-			return nil
+			return cmd.Help()
 		},
 	}
 

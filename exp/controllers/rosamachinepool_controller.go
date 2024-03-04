@@ -197,9 +197,8 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 		machinePoolScope.RosaMachinePool.Status.FailureMessage = failureMessage
 		// dont' requeue because input is invalid and manual intervention is needed.
 		return ctrl.Result{}, nil
-	} else {
-		machinePoolScope.RosaMachinePool.Status.FailureMessage = nil
 	}
+	machinePoolScope.RosaMachinePool.Status.FailureMessage = nil
 
 	rosaMachinePool := machinePoolScope.RosaMachinePool
 	machinePool := machinePoolScope.MachinePool

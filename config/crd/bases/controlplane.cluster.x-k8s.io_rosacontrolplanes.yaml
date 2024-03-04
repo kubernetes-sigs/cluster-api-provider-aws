@@ -30,6 +30,7 @@ spec:
     name: v1beta2
     schema:
       openAPIV3Schema:
+        description: ROSAControlPlane is the Schema for the ROSAControlPlanes API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -44,6 +45,7 @@ spec:
           metadata:
             type: object
           spec:
+            description: RosaControlPlaneSpec defines the desired state of ROSAControlPlane.
             properties:
               autoscaling:
                 description: Autoscaling specifies auto scaling behaviour for the
@@ -356,6 +358,7 @@ spec:
             - workerRoleARN
             type: object
           status:
+            description: RosaControlPlaneStatus defines the observed state of ROSAControlPlane.
             properties:
               conditions:
                 description: Conditions specifies the cpnditions for the managed control

@@ -82,6 +82,7 @@ func (s *Service) ReconcileBootstrapStack(stackName string, t go_cfn.Template, t
 	return nil
 }
 
+// ReconcileBootstrapNoUpdate creates or updates bootstrap CloudFormation without updating the stack.
 func (s *Service) ReconcileBootstrapNoUpdate(stackName string, t go_cfn.Template, tags map[string]string) error {
 	yaml, err := t.YAML()
 	processedYaml := string(yaml)

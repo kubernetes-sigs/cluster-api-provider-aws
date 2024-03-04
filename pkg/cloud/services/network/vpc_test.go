@@ -38,7 +38,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-func describeVpcAttributeTrue(ctx context.Context, input *ec2.DescribeVpcAttributeInput, requestOptions ...request.Option) (*ec2.DescribeVpcAttributeOutput, error) {
+func describeVpcAttributeTrue(_ context.Context, input *ec2.DescribeVpcAttributeInput, _ ...request.Option) (*ec2.DescribeVpcAttributeOutput, error) {
 	result := &ec2.DescribeVpcAttributeOutput{
 		VpcId: input.VpcId,
 	}
@@ -51,7 +51,7 @@ func describeVpcAttributeTrue(ctx context.Context, input *ec2.DescribeVpcAttribu
 	return result, nil
 }
 
-func describeVpcAttributeFalse(ctx context.Context, input *ec2.DescribeVpcAttributeInput, requestOptions ...request.Option) (*ec2.DescribeVpcAttributeOutput, error) {
+func describeVpcAttributeFalse(_ context.Context, input *ec2.DescribeVpcAttributeInput, _ ...request.Option) (*ec2.DescribeVpcAttributeOutput, error) {
 	result := &ec2.DescribeVpcAttributeOutput{
 		VpcId: input.VpcId,
 	}
@@ -573,9 +573,8 @@ func TestReconcileVPC(t *testing.T) {
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(err.Error()).To(ContainSubstring(*tc.wantErrContaining))
 				return
-			} else {
-				g.Expect(err).To(BeNil())
 			}
+			g.Expect(err).To(BeNil())
 			g.Expect(tc.want).To(Equal(&clusterScope.AWSCluster.Spec.NetworkSpec.VPC))
 		})
 	}

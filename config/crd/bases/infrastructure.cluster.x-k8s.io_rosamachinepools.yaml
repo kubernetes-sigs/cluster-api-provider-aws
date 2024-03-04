@@ -107,6 +107,7 @@ spec:
                 description: Taints specifies the taints to apply to the nodes of
                   the machine pool
                 items:
+                  description: RosaTaint represents a taint to be applied to a node.
                   properties:
                     effect:
                       description: The effect of the taint on pods that do not tolerate

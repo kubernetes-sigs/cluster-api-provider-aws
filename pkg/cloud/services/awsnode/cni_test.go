@@ -263,7 +263,7 @@ type cachingClient struct {
 	updateChain []client.Object
 }
 
-func (c *cachingClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+func (c *cachingClient) Get(_ context.Context, _ client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
 	if _, ok := obj.(*v1.DaemonSet); ok {
 		daemonset, _ := obj.(*v1.DaemonSet)
 		*daemonset = *c.getValue.(*v1.DaemonSet)
@@ -271,12 +271,12 @@ func (c *cachingClient) Get(ctx context.Context, key client.ObjectKey, obj clien
 	return nil
 }
 
-func (c *cachingClient) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
+func (c *cachingClient) Update(_ context.Context, obj client.Object, _ ...client.UpdateOption) error {
 	c.updateChain = append(c.updateChain, obj)
 	return nil
 }
 
-func (c *cachingClient) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+func (c *cachingClient) List(_ context.Context, _ client.ObjectList, _ ...client.ListOption) error {
 	return nil
 }
 
@@ -297,7 +297,7 @@ func (s *mockScope) VpcCni() ekscontrolplanev1.VpcCni {
 	return s.cni
 }
 
-func (s *mockScope) Info(msg string, keysAndValues ...interface{}) {
+func (s *mockScope) Info(_ string, _ ...interface{}) {
 
 }
 

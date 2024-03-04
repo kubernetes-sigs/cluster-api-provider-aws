@@ -100,10 +100,6 @@ func MachineDeploymentSpec(ctx context.Context, inputGetter func() MachineDeploy
 			Deleter:           input.BootstrapClusterProxy.GetClient(),
 			MachineDeployment: md[0],
 		})
-		// deleteMachine(ctx, deleteMachineInput{
-		// 	Deleter: input.BootstrapClusterProxy.GetClient(),
-		// 	Machine: &workerMachines[0],
-		// })
 
 		waitForMachineDeploymentDeleted(ctx, waitForMachineDeploymentDeletedInput{
 			Getter:            input.BootstrapClusterProxy.GetClient(),
