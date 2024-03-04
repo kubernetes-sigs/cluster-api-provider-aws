@@ -154,7 +154,7 @@ func renderCustomCloudFormation(t *cfn_bootstrap.Template) *cloudformation.Templ
 	return cloudformationTemplate
 }
 
-func appendMultiTenancyRoles(t *cfn_bootstrap.Template, cfnt *cloudformation.Template) {
+func appendMultiTenancyRoles(_ *cfn_bootstrap.Template, cfnt *cloudformation.Template) {
 	controllersPolicy := cfnt.Resources[string(cfn_bootstrap.ControllersPolicy)].(*cfn_iam.ManagedPolicy)
 	controllersPolicy.Roles = append(
 		controllersPolicy.Roles,

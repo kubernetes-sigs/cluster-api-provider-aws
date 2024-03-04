@@ -73,37 +73,51 @@ const (
 	MultiTenancy                         = "MULTI_TENANCY_"
 )
 
+// ResourceQuotaFilePath is the path to the file that contains the resource usage.
 var ResourceQuotaFilePath = "/tmp/capa-e2e-resource-usage.lock"
+
 var (
+	// MultiTenancySimpleRole is the simple role for multi-tenancy test.
 	MultiTenancySimpleRole = MultitenancyRole("Simple")
-	MultiTenancyJumpRole   = MultitenancyRole("Jump")
+	// MultiTenancyJumpRole is the jump role for multi-tenancy test.
+	MultiTenancyJumpRole = MultitenancyRole("Jump")
+	// MultiTenancyNestedRole is the nested role for multi-tenancy test.
 	MultiTenancyNestedRole = MultitenancyRole("Nested")
-	MultiTenancyRoles      = []MultitenancyRole{MultiTenancySimpleRole, MultiTenancyJumpRole, MultiTenancyNestedRole}
-	roleLookupCache        = make(map[string]string)
+
+	// MultiTenancyRoles is the list of multi-tenancy roles.
+	MultiTenancyRoles = []MultitenancyRole{MultiTenancySimpleRole, MultiTenancyJumpRole, MultiTenancyNestedRole}
+	roleLookupCache   = make(map[string]string)
 )
 
+// MultitenancyRole is the role of the test.
 type MultitenancyRole string
 
+// EnvVarARN returns the environment variable name for the role ARN.
 func (m MultitenancyRole) EnvVarARN() string {
 	return MultiTenancy + strings.ToUpper(string(m)) + "_ROLE_ARN"
 }
 
+// EnvVarName returns the environment variable name for the role name.
 func (m MultitenancyRole) EnvVarName() string {
 	return MultiTenancy + strings.ToUpper(string(m)) + "_ROLE_NAME"
 }
 
+// EnvVarIdentity returns the environment variable name for the identity name.
 func (m MultitenancyRole) EnvVarIdentity() string {
 	return MultiTenancy + strings.ToUpper(string(m)) + "_IDENTITY_NAME"
 }
 
+// IdentityName returns the identity name.
 func (m MultitenancyRole) IdentityName() string {
 	return strings.ToLower(m.RoleName())
 }
 
+// RoleName returns the role name.
 func (m MultitenancyRole) RoleName() string {
 	return "CAPAMultiTenancy" + string(m)
 }
 
+// SetEnvVars sets the environment variables for the role.
 func (m MultitenancyRole) SetEnvVars(prov client.ConfigProvider) error {
 	arn, err := m.RoleARN(prov)
 	if err != nil {
@@ -115,6 +129,7 @@ func (m MultitenancyRole) SetEnvVars(prov client.ConfigProvider) error {
 	return nil
 }
 
+// RoleARN returns the role ARN.
 func (m MultitenancyRole) RoleARN(prov client.ConfigProvider) (string, error) {
 	if roleARN, ok := roleLookupCache[m.RoleName()]; ok {
 		return roleARN, nil

@@ -322,60 +322,59 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 
 // ControllersPolicyEKS creates a policy from a template for AWS Controllers.
 func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
-	statement := []iamv1.StatementEntry{}
+	statements := []iamv1.StatementEntry{}
 
 	allowedIAMActions := iamv1.Actions{
 		"iam:GetRole",
 		"iam:ListAttachedRolePolicies",
 	}
-	statement = append(statement, iamv1.StatementEntry{
-		Effect: iamv1.EffectAllow,
-		Resource: iamv1.Resources{
-			"arn:*:ssm:*:*:parameter/aws/service/eks/optimized-ami/*",
+	statements = append(statements,
+		iamv1.StatementEntry{
+			Effect: iamv1.EffectAllow,
+			Resource: iamv1.Resources{
+				"arn:*:ssm:*:*:parameter/aws/service/eks/optimized-ami/*",
+			},
+			Action: iamv1.Actions{
+				"ssm:GetParameter",
+			},
 		},
-		Action: iamv1.Actions{
-			"ssm:GetParameter",
+		iamv1.StatementEntry{
+			Effect: iamv1.EffectAllow,
+			Action: iamv1.Actions{
+				"iam:CreateServiceLinkedRole",
+			},
+			Resource: iamv1.Resources{
+				"arn:*:iam::*:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS",
+			},
+			Condition: iamv1.Conditions{
+				iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks.amazonaws.com"},
+			},
 		},
-	})
-
-	statement = append(statement, iamv1.StatementEntry{
-		Effect: iamv1.EffectAllow,
-		Action: iamv1.Actions{
-			"iam:CreateServiceLinkedRole",
+		iamv1.StatementEntry{
+			Effect: iamv1.EffectAllow,
+			Action: iamv1.Actions{
+				"iam:CreateServiceLinkedRole",
+			},
+			Resource: iamv1.Resources{
+				"arn:*:iam::*:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup",
+			},
+			Condition: iamv1.Conditions{
+				iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks-nodegroup.amazonaws.com"},
+			},
 		},
-		Resource: iamv1.Resources{
-			"arn:*:iam::*:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS",
+		iamv1.StatementEntry{
+			Effect: iamv1.EffectAllow,
+			Action: iamv1.Actions{
+				"iam:CreateServiceLinkedRole",
+			},
+			Resource: iamv1.Resources{
+				"arn:" + t.Spec.Partition + ":iam::*:role/aws-service-role/eks-fargate-pods.amazonaws.com/AWSServiceRoleForAmazonEKSForFargate",
+			},
+			Condition: iamv1.Conditions{
+				iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks-fargate.amazonaws.com"},
+			},
 		},
-		Condition: iamv1.Conditions{
-			iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks.amazonaws.com"},
-		},
-	})
-
-	statement = append(statement, iamv1.StatementEntry{
-		Effect: iamv1.EffectAllow,
-		Action: iamv1.Actions{
-			"iam:CreateServiceLinkedRole",
-		},
-		Resource: iamv1.Resources{
-			"arn:*:iam::*:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup",
-		},
-		Condition: iamv1.Conditions{
-			iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks-nodegroup.amazonaws.com"},
-		},
-	})
-
-	statement = append(statement, iamv1.StatementEntry{
-		Effect: iamv1.EffectAllow,
-		Action: iamv1.Actions{
-			"iam:CreateServiceLinkedRole",
-		},
-		Resource: iamv1.Resources{
-			"arn:" + t.Spec.Partition + ":iam::*:role/aws-service-role/eks-fargate-pods.amazonaws.com/AWSServiceRoleForAmazonEKSForFargate",
-		},
-		Condition: iamv1.Conditions{
-			iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks-fargate.amazonaws.com"},
-		},
-	})
+	)
 
 	if t.Spec.EKS.AllowIAMRoleCreation {
 		allowedIAMActions = append(allowedIAMActions, iamv1.Actions{
@@ -386,7 +385,7 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 			"iam:AttachRolePolicy",
 		}...)
 
-		statement = append(statement, iamv1.StatementEntry{
+		statements = append(statements, iamv1.StatementEntry{
 			Action: iamv1.Actions{
 				"iam:ListOpenIDConnectProviders",
 				"iam:GetOpenIDConnectProvider",
@@ -402,7 +401,8 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 			Effect: iamv1.EffectAllow,
 		})
 	}
-	statement = append(statement, []iamv1.StatementEntry{
+
+	statements = append(statements, []iamv1.StatementEntry{
 		{
 			Action: allowedIAMActions,
 			Resource: iamv1.Resources{
@@ -495,7 +495,7 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 
 	return &iamv1.PolicyDocument{
 		Version:   iamv1.CurrentVersion,
-		Statement: statement,
+		Statement: statements,
 	}
 }
 

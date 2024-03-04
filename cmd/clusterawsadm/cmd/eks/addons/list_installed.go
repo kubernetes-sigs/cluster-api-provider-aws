@@ -113,10 +113,10 @@ func listInstalledAddons(region, clusterName, printerType *string) error {
 			newIssue := issue{
 				Code:        *addonIssue.Code,
 				Message:     *addonIssue.Message,
-				ResourceIds: []string{},
+				ResourceIDs: []string{},
 			}
 			for _, resID := range addonIssue.ResourceIds {
-				newIssue.ResourceIds = append(newIssue.ResourceIds, *resID)
+				newIssue.ResourceIDs = append(newIssue.ResourceIDs, *resID)
 			}
 			installedAddon.HealthIssues = append(installedAddon.HealthIssues, newIssue)
 		}

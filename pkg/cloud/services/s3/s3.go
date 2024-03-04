@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package s3 provides a way to interact with AWS S3.
 package s3
 
 import (
@@ -62,6 +63,7 @@ func NewService(s3Scope scope.S3Scope) *Service {
 	}
 }
 
+// ReconcileBucket reconciles the S3 bucket.
 func (s *Service) ReconcileBucket() error {
 	if !s.bucketManagementEnabled() {
 		return nil
@@ -84,6 +86,7 @@ func (s *Service) ReconcileBucket() error {
 	return nil
 }
 
+// DeleteBucket deletes the S3 bucket.
 func (s *Service) DeleteBucket() error {
 	if !s.bucketManagementEnabled() {
 		return nil
@@ -119,6 +122,7 @@ func (s *Service) DeleteBucket() error {
 	return nil
 }
 
+// Create creates an object in the S3 bucket.
 func (s *Service) Create(m *scope.MachineScope, data []byte) (string, error) {
 	if !s.bucketManagementEnabled() {
 		return "", errors.New("requested object creation but bucket management is not enabled")
@@ -164,6 +168,7 @@ func (s *Service) Create(m *scope.MachineScope, data []byte) (string, error) {
 	return objectURL.String(), nil
 }
 
+// Delete deletes the object from the S3 bucket.
 func (s *Service) Delete(m *scope.MachineScope) error {
 	if !s.bucketManagementEnabled() {
 		return errors.New("requested object creation but bucket management is not enabled")
