@@ -19,7 +19,6 @@ package scope
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -142,7 +141,7 @@ func (m *MachineScope) GetProviderID() string {
 
 // SetProviderID sets the AWSMachine providerID in spec.
 func (m *MachineScope) SetProviderID(instanceID, availabilityZone string) {
-	providerID := fmt.Sprintf("aws:///%s/%s", availabilityZone, instanceID)
+	providerID := GenerateProviderID(availabilityZone, instanceID)
 	m.AWSMachine.Spec.ProviderID = ptr.To[string](providerID)
 }
 
