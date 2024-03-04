@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/blang/semver"
 	"github.com/google/go-cmp/cmp"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -15,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -130,6 +133,7 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		MachinePool:     machinePool,
 		RosaMachinePool: rosaMachinePool,
 		Logger:          log,
+		Endpoints:       r.Endpoints,
 	})
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to create scope")
@@ -198,6 +202,17 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 	}
 
 	rosaMachinePool := machinePoolScope.RosaMachinePool
+	machinePool := machinePoolScope.MachinePool
+
+	if rosaMachinePool.Spec.Autoscaling != nil && !annotations.ReplicasManagedByExternalAutoscaler(machinePool) {
+		// make sure cluster.x-k8s.io/replicas-managed-by annotation is set on CAPI MachinePool when autoscaling is enabled.
+		annotations.AddAnnotations(machinePool, map[string]string{
+			clusterv1.ReplicasManagedByAnnotation: "rosa",
+		})
+		if err := machinePoolScope.PatchCAPIMachinePoolObject(ctx); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 
 	nodePool, found, err := ocmClient.GetNodePool(machinePoolScope.ControlPlane.Status.ID, rosaMachinePool.Spec.NodePoolName)
 	if err != nil {
@@ -210,9 +225,25 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 			return ctrl.Result{}, fmt.Errorf("failed to ensure rosaMachinePool: %w", err)
 		}
 
-		// TODO (alberto): discover and store providerIDs from aws so the CAPI controller can match then to Nodes and report readiness.
-		rosaMachinePool.Status.Replicas = int32(nodePool.Status().CurrentReplicas())
-		if nodePool.Replicas() == nodePool.Status().CurrentReplicas() && nodePool.Status().Message() == "" {
+		currentReplicas := int32(nodePool.Status().CurrentReplicas())
+		if annotations.ReplicasManagedByExternalAutoscaler(machinePool) {
+			// Set MachinePool replicas to rosa autoscaling replicas
+			if *machinePool.Spec.Replicas != currentReplicas {
+				machinePoolScope.Info("Setting MachinePool replicas to rosa autoscaling replicas",
+					"local", *machinePool.Spec.Replicas,
+					"external", currentReplicas)
+				machinePool.Spec.Replicas = &currentReplicas
+				if err := machinePoolScope.PatchCAPIMachinePoolObject(ctx); err != nil {
+					return ctrl.Result{}, err
+				}
+			}
+		}
+		if err := r.reconcileProviderIDList(ctx, machinePoolScope, nodePool); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to reconcile ProviderIDList: %w", err)
+		}
+
+		rosaMachinePool.Status.Replicas = currentReplicas
+		if rosa.IsNodePoolReady(nodePool) {
 			conditions.MarkTrue(rosaMachinePool, expinfrav1.RosaMachinePoolReadyCondition)
 			rosaMachinePool.Status.Ready = true
 
@@ -234,7 +265,7 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 	}
 
-	npBuilder := nodePoolBuilder(rosaMachinePool.Spec, machinePoolScope.MachinePool.Spec)
+	npBuilder := nodePoolBuilder(rosaMachinePool.Spec, machinePool.Spec)
 	nodePoolSpec, err := npBuilder.Build()
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to build rosa nodepool: %w", err)
@@ -294,20 +325,7 @@ func (r *ROSAMachinePoolReconciler) reconcileMachinePoolVersion(machinePoolScope
 	}
 
 	if scheduledUpgrade == nil {
-		policy, err := ocmClient.BuildNodeUpgradePolicy(version, nodePool.ID(), ocm.UpgradeScheduling{
-			AutomaticUpgrades: false,
-			// The OCM API places guardrails around the minimum and maximum delay that a user can request,
-			// for the next run of the upgrade, which is [5min,6mo]. Set our next run request to something
-			// slightly longer than 5min to make sure we account for the latency between when we send this
-			// request and when the server processes it.
-			// https://gitlab.cee.redhat.com/service/uhc-clusters-service/-/blob/master/cmd/clusters-service/servecmd/apiserver/upgrade_policy_handlers.go
-			NextRun: time.Now().Add(6 * time.Minute),
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create nodePool upgrade schedule to version %s: %w", version, err)
-		}
-
-		scheduledUpgrade, err = ocmClient.ScheduleNodePoolUpgrade(clusterID, nodePool.ID(), policy)
+		scheduledUpgrade, err = rosa.ScheduleNodePoolUpgrade(ocmClient, clusterID, nodePool, version, time.Now())
 		if err != nil {
 			return fmt.Errorf("failed to schedule nodePool upgrade to version %s: %w", version, err)
 		}
@@ -451,6 +469,47 @@ func nodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachi
 	}
 
 	return spec
+}
+
+func (r *ROSAMachinePoolReconciler) reconcileProviderIDList(ctx context.Context, machinePoolScope *scope.RosaMachinePoolScope, nodePool *cmv1.NodePool) error {
+	tags := nodePool.AWSNodePool().Tags()
+	if len(tags) == 0 {
+		// can't identify EC2 instances belonging to this NodePool without tags.
+		return nil
+	}
+
+	ec2Svc := scope.NewEC2Client(machinePoolScope, machinePoolScope, &machinePoolScope.Logger, machinePoolScope.InfraCluster())
+	response, err := ec2Svc.DescribeInstancesWithContext(ctx, &ec2.DescribeInstancesInput{
+		Filters: buildEC2FiltersFromTags(tags),
+	})
+	if err != nil {
+		return err
+	}
+
+	var providerIDList []string
+	for _, reservation := range response.Reservations {
+		for _, instance := range reservation.Instances {
+			providerID := scope.GenerateProviderID(*instance.Placement.AvailabilityZone, *instance.InstanceId)
+			providerIDList = append(providerIDList, providerID)
+		}
+	}
+
+	machinePoolScope.RosaMachinePool.Spec.ProviderIDList = providerIDList
+	return nil
+}
+
+func buildEC2FiltersFromTags(tags map[string]string) []*ec2.Filter {
+	filters := make([]*ec2.Filter, len(tags))
+	for key, value := range tags {
+		filters = append(filters, &ec2.Filter{
+			Name: ptr.To(fmt.Sprintf("tag:%s", key)),
+			Values: aws.StringSlice([]string{
+				value,
+			}),
+		})
+	}
+
+	return filters
 }
 
 func rosaControlPlaneToRosaMachinePoolMapFunc(c client.Client, gvk schema.GroupVersionKind, log logger.Wrapper) handler.MapFunc {
