@@ -47,6 +47,12 @@ spec:
           spec:
             description: RosaMachinePoolSpec defines the desired state of RosaMachinePool.
             properties:
+              additionalSecurityGroups:
+                description: AdditionalSecurityGroups is an optional set of security
+                  groups to associate with all node instances of the machine pool.
+                items:
+                  type: string
+                type: array
               autoRepair:
                 default: false
                 description: AutoRepair specifies whether health checks should be
