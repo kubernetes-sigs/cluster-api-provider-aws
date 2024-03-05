@@ -2,6 +2,8 @@ package v1beta2
 
 import (
 	"github.com/blang/semver"
+	"github.com/google/go-cmp/cmp"
+	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -44,11 +46,19 @@ func (r *ROSAMachinePool) ValidateCreate() (warnings admission.Warnings, err err
 
 // ValidateUpdate implements admission.Validator.
 func (r *ROSAMachinePool) ValidateUpdate(old runtime.Object) (warnings admission.Warnings, err error) {
-	var allErrs field.ErrorList
+	oldPool, ok := old.(*ROSAMachinePool)
+	if !ok {
+		return nil, apierrors.NewInvalid(GroupVersion.WithKind("ROSAMachinePool").GroupKind(), r.Name, field.ErrorList{
+			field.InternalError(nil, errors.New("failed to convert old ROSAMachinePool to object")),
+		})
+	}
 
+	var allErrs field.ErrorList
 	if err := r.validateVersion(); err != nil {
 		allErrs = append(allErrs, err)
 	}
+
+	allErrs = append(allErrs, validateImmutable(oldPool.Spec.AdditionalSecurityGroups, r.Spec.AdditionalSecurityGroups, "additionalSecurityGroups")...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -76,6 +86,19 @@ func (r *ROSAMachinePool) validateVersion() *field.Error {
 	}
 
 	return nil
+}
+
+func validateImmutable(old, updated interface{}, name string) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if !cmp.Equal(old, updated) {
+		allErrs = append(
+			allErrs,
+			field.Invalid(field.NewPath("spec", name), updated, "field is immutable"),
+		)
+	}
+
+	return allErrs
 }
 
 // Default implements admission.Defaulter.

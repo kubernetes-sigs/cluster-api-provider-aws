@@ -352,16 +352,18 @@ func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaM
 
 	currentSpec := nodePoolToRosaMachinePoolSpec(nodePool)
 	currentSpec.ProviderIDList = desiredSpec.ProviderIDList // providerIDList is set by the controller and shouldn't be compared here.
-	currentSpec.Version = desiredSpec.Version               // Version changed are reconciled separately and shouldn't be compared here.
+	currentSpec.Version = desiredSpec.Version               // Version changes are reconciled separately and shouldn't be compared here.
 
 	if cmp.Equal(desiredSpec, currentSpec) {
 		// no changes detected.
 		return nodePool, nil
 	}
 
-	npBuilder := nodePoolBuilder(*desiredSpec, machinePoolScope.MachinePool.Spec)
-	npBuilder.Version(nil) // eunsure version is unset.
+	// zero-out fields that shouldn't be part of the update call.
+	desiredSpec.Version = ""
+	desiredSpec.AdditionalSecurityGroups = nil
 
+	npBuilder := nodePoolBuilder(*desiredSpec, machinePoolScope.MachinePool.Spec)
 	nodePoolSpec, err := npBuilder.Build()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build nodePool spec: %w", err)
@@ -401,8 +403,11 @@ func validateMachinePoolSpec(machinePoolScope *scope.RosaMachinePoolScope) (*str
 func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machinePoolSpec expclusterv1.MachinePoolSpec) *cmv1.NodePoolBuilder {
 	npBuilder := cmv1.NewNodePool().ID(rosaMachinePoolSpec.NodePoolName).
 		Labels(rosaMachinePoolSpec.Labels).
-		AutoRepair(rosaMachinePoolSpec.AutoRepair).
-		TuningConfigs(rosaMachinePoolSpec.TuningConfigs...)
+		AutoRepair(rosaMachinePoolSpec.AutoRepair)
+
+	if rosaMachinePoolSpec.TuningConfigs != nil {
+		npBuilder = npBuilder.TuningConfigs(rosaMachinePoolSpec.TuningConfigs...)
+	}
 
 	if len(rosaMachinePoolSpec.Taints) > 0 {
 		taintBuilders := []*cmv1.TaintBuilder{}
@@ -430,7 +435,12 @@ func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machine
 		npBuilder.Subnet(rosaMachinePoolSpec.Subnet)
 	}
 
-	npBuilder.AWSNodePool(cmv1.NewAWSNodePool().InstanceType(rosaMachinePoolSpec.InstanceType))
+	awsNodePool := cmv1.NewAWSNodePool().InstanceType(rosaMachinePoolSpec.InstanceType)
+	if rosaMachinePoolSpec.AdditionalSecurityGroups != nil {
+		awsNodePool = awsNodePool.AdditionalSecurityGroupIds(rosaMachinePoolSpec.AdditionalSecurityGroups...)
+	}
+	npBuilder.AWSNodePool(awsNodePool)
+
 	if rosaMachinePoolSpec.Version != "" {
 		npBuilder.Version(cmv1.NewVersion().ID(ocm.CreateVersionID(rosaMachinePoolSpec.Version, ocm.DefaultChannelGroup)))
 	}
@@ -440,14 +450,15 @@ func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machine
 
 func nodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachinePoolSpec {
 	spec := expinfrav1.RosaMachinePoolSpec{
-		NodePoolName:     nodePool.ID(),
-		Version:          rosa.RawVersionID(nodePool.Version()),
-		AvailabilityZone: nodePool.AvailabilityZone(),
-		Subnet:           nodePool.Subnet(),
-		Labels:           nodePool.Labels(),
-		AutoRepair:       nodePool.AutoRepair(),
-		InstanceType:     nodePool.AWSNodePool().InstanceType(),
-		TuningConfigs:    nodePool.TuningConfigs(),
+		NodePoolName:             nodePool.ID(),
+		Version:                  rosa.RawVersionID(nodePool.Version()),
+		AvailabilityZone:         nodePool.AvailabilityZone(),
+		Subnet:                   nodePool.Subnet(),
+		Labels:                   nodePool.Labels(),
+		AutoRepair:               nodePool.AutoRepair(),
+		InstanceType:             nodePool.AWSNodePool().InstanceType(),
+		TuningConfigs:            nodePool.TuningConfigs(),
+		AdditionalSecurityGroups: nodePool.AWSNodePool().AdditionalSecurityGroupIds(),
 	}
 
 	if nodePool.Autoscaling() != nil {

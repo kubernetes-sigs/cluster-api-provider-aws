@@ -79,6 +79,13 @@ type RosaMachinePoolSpec struct {
 	// +optional
 	TuningConfigs []string `json:"tuningConfigs,omitempty"`
 
+	// AdditionalSecurityGroups is an optional set of security groups to associate
+	// with all node instances of the machine pool.
+	//
+	// +immutable
+	// +optional
+	AdditionalSecurityGroups []string `json:"additionalSecurityGroups,omitempty"`
+
 	// ProviderIDList contain a ProviderID for each machine instance that's currently managed by this machine pool.
 	// +optional
 	ProviderIDList []string `json:"providerIDList,omitempty"`
