@@ -25,6 +25,19 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+// RosaEndpointAccessType specifies the publishing scope of cluster endpoints.
+type RosaEndpointAccessType string
+
+const (
+	// Public endpoint access allows public API server access and
+	// private node communication with the control plane.
+	Public RosaEndpointAccessType = "Public"
+
+	// Private endpoint access allows only private API server access and private
+	// node communication with the control plane.
+	Private RosaEndpointAccessType = "Private"
+)
+
 // RosaControlPlaneSpec defines the desired state of ROSAControlPlane.
 type RosaControlPlaneSpec struct { //nolint: maligned
 	// Cluster name must be valid DNS-1035 label, so it must consist of lower case alphanumeric
@@ -90,6 +103,14 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	Network *NetworkSpec `json:"network,omitempty"`
 
+	// EndpointAccess specifies the publishing scope of cluster endpoints. The
+	// default is Public.
+	//
+	// +kubebuilder:validation:Enum=Public;Private
+	// +kubebuilder:default=Public
+	// +optional
+	EndpointAccess RosaEndpointAccessType `json:"endpointAccess,omitempty"`
+
 	// The instance type to use, for example `r5.xlarge`. Instance type ref; https://aws.amazon.com/ec2/instance-types/
 	// +optional
 	InstanceType string `json:"instanceType,omitempty"`
@@ -97,6 +118,15 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// Autoscaling specifies auto scaling behaviour for the MachinePools.
 	// +optional
 	Autoscaling *expinfrav1.RosaMachinePoolAutoScaling `json:"autoscaling,omitempty"`
+
+	// AdditionalTags are user-defined tags to be added on the AWS resources associated with the control plane.
+	// +optional
+	AdditionalTags infrav1.Tags `json:"additionalTags,omitempty"`
+
+	// EtcdEncryptionKMSArn is the ARN of the KMS key used to encrypt etcd. The key itself needs to be
+	// created out-of-band by the user and tagged with `red-hat:true`.
+	// +optional
+	EtcdEncryptionKMSArn string `json:"etcdEncryptionKMSArn,omitempty"`
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
@@ -534,14 +564,14 @@ type RosaControlPlaneStatus struct {
 	//
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
-	// Conditions specifies the cpnditions for the managed control plane
+	// Conditions specifies the conditions for the managed control plane
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 
 	// ID is the cluster ID given by ROSA.
 	ID string `json:"id,omitempty"`
 	// ConsoleURL is the url for the openshift console.
 	ConsoleURL string `json:"consoleURL,omitempty"`
-	// OIDCEndpointURL is the endpoint url for the managed OIDC porvider.
+	// OIDCEndpointURL is the endpoint url for the managed OIDC provider.
 	OIDCEndpointURL string `json:"oidcEndpointURL,omitempty"`
 }
 
