@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/rosa/pkg/ocm"
 )
 
+// MinSupportedVersion is the minimum supported version for ROSA.
 var MinSupportedVersion = semver.MustParse("4.14.0")
 
 // CheckExistingScheduledUpgrade checks and returns the current upgrade schedule if any.
@@ -79,6 +80,8 @@ func ScheduleNodePoolUpgrade(client *ocm.Client, clusterID string, nodePool *cmv
 // machinepools can be created with a minimal of two minor versions from the control plane.
 const minorVersionsAllowedDeviation = 2
 
+// MachinePoolSupportedVersionsRange returns the supported range of versions
+// for a machine pool based on the control plane version.
 func MachinePoolSupportedVersionsRange(controlPlaneVersion string) (*semver.Version, *semver.Version, error) {
 	maxVersion, err := semver.Parse(controlPlaneVersion)
 	if err != nil {

@@ -71,6 +71,7 @@ func (t Template) policyFunctionMap() map[PolicyName]func() *iamv1.PolicyDocumen
 	}
 }
 
+// PrintPolicyDocs prints the JSON representation of policy documents for all ManagedIAMPolicy.
 func (t Template) PrintPolicyDocs() error {
 	for _, name := range ManagedIAMPolicyNames {
 		policyDoc := t.GetPolicyDocFromPolicyName(name)

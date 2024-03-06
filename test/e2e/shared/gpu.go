@@ -103,7 +103,7 @@ type jobsClientAdapter struct {
 }
 
 // Get fetches the job named by the key and updates the provided object.
-func (c jobsClientAdapter) Get(ctx context.Context, key crclient.ObjectKey, obj crclient.Object, opts ...crclient.GetOption) error {
+func (c jobsClientAdapter) Get(ctx context.Context, key crclient.ObjectKey, obj crclient.Object, _ ...crclient.GetOption) error {
 	job, err := c.client.Get(ctx, key.Name, metav1.GetOptions{})
 	if jobObj, ok := obj.(*batchv1.Job); ok {
 		job.DeepCopyInto(jobObj)

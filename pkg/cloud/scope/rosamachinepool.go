@@ -156,6 +156,7 @@ func (s *RosaMachinePoolScope) ControllerName() string {
 	return s.controllerName
 }
 
+// GetSetter returns the condition setter for the RosaMachinePool.
 func (s *RosaMachinePoolScope) GetSetter() conditions.Setter {
 	return s.RosaMachinePool
 }

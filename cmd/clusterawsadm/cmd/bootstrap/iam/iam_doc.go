@@ -44,7 +44,7 @@ func printPolicyCmd() *cobra.Command {
 		clusterawsadm bootstrap iam print-policy --document AWSIAMManagedPolicyControllers
 
 		# Print out the IAM policy for the Kubernetes Cluster API Provider AWS Controller using a given configuration file.
-		clusterawsadm bootstrap iam print-policy --document AWSIAMManagedPolicyControllers --config bootstrap_config.yaml		
+		clusterawsadm bootstrap iam print-policy --document AWSIAMManagedPolicyControllers --config bootstrap_config.yaml
 
 		# Print out the IAM policy for the Kubernetes AWS Cloud Provider for the control plane.
 		clusterawsadm bootstrap iam print-policy --document AWSIAMManagedPolicyCloudProviderControlPlane
