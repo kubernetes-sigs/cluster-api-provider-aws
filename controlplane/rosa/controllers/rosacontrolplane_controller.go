@@ -276,6 +276,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	ocmClusterSpec := ocm.Spec{
 		DryRun:                    ptr.To(false),
 		Name:                      rosaScope.RosaClusterName(),
+		DomainPrefix:              rosaScope.ControlPlane.Spec.DomainPrefix,
 		Region:                    rosaScope.ControlPlane.Spec.Region,
 		MultiAZ:                   true,
 		Version:                   ocm.CreateVersionID(rosaScope.ControlPlane.Spec.Version, ocm.DefaultChannelGroup),
