@@ -24,8 +24,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 
+	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
@@ -248,9 +250,129 @@ func TestAWSMachineCreate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "ignition proxy and TLS can be from version 3.1",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &Ignition{
+						Version: "3.1",
+						Proxy: &IgnitionProxy{
+							HTTPProxy: ptr.To("http://proxy.example.com:3128"),
+						},
+						TLS: &IgnitionTLS{
+							CASources: []IgnitionCASource{"s3://example.com/ca.pem"},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "ignition tls with invalid CASources URL",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &Ignition{
+						Version: "3.1",
+						TLS: &IgnitionTLS{
+							CASources: []IgnitionCASource{"data;;"},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "ignition proxy with valid URLs, and noproxy",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &Ignition{
+						Version: "3.1",
+						Proxy: &IgnitionProxy{
+							HTTPProxy:  ptr.To("http://proxy.example.com:3128"),
+							HTTPSProxy: ptr.To("https://proxy.example.com:3128"),
+							NoProxy: []IgnitionNoProxy{
+								"10.0.0.1",         // single ip
+								"example.com",      // domain
+								".example.com",     // all subdomains
+								"example.com:3128", // domain with port
+								"10.0.0.1:3128",    // ip with port
+								"10.0.0.0/8",       // cidr block
+								"*",                // no proxy wildcard
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "ignition proxy with invalid HTTPProxy URL",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &Ignition{
+						Version: "3.1",
+						Proxy: &IgnitionProxy{
+							HTTPProxy: ptr.To("*:80"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "ignition proxy with invalid HTTPSProxy URL",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &Ignition{
+						Version: "3.1",
+						Proxy: &IgnitionProxy{
+							HTTPSProxy: ptr.To("*:80"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "ignition proxy with invalid noproxy URL",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &Ignition{
+						Version: "3.1",
+						Proxy: &IgnitionProxy{
+							NoProxy: []IgnitionNoProxy{"&"},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "cannot use ignition proxy with version 2.3",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &Ignition{
+						Version: "2.3.0",
+						Proxy: &IgnitionProxy{
+							HTTPProxy: ptr.To("http://proxy.example.com:3128"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.BootstrapFormatIgnition, true)()
+
 			machine := tt.machine.DeepCopy()
 			machine.ObjectMeta = metav1.ObjectMeta{
 				GenerateName: "machine-",
