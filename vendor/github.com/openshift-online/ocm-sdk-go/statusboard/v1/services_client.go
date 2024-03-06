@@ -225,7 +225,6 @@ type ServicesListRequest struct {
 	path      string
 	query     url.Values
 	header    http.Header
-	fullname  *string
 	mine      *bool
 	orderBy   *string
 	page      *int
@@ -249,12 +248,6 @@ func (r *ServicesListRequest) Header(name string, value interface{}) *ServicesLi
 // Note: Services that do not support this feature may silently ignore this call.
 func (r *ServicesListRequest) Impersonate(user string) *ServicesListRequest {
 	helpers.AddImpersonationHeader(&r.header, user)
-	return r
-}
-
-// Fullname sets the value of the 'fullname' parameter.
-func (r *ServicesListRequest) Fullname(value string) *ServicesListRequest {
-	r.fullname = &value
 	return r
 }
 
@@ -299,9 +292,6 @@ func (r *ServicesListRequest) Send() (result *ServicesListResponse, err error) {
 // SendContext sends this request, waits for the response, and returns it.
 func (r *ServicesListRequest) SendContext(ctx context.Context) (result *ServicesListResponse, err error) {
 	query := helpers.CopyQuery(r.query)
-	if r.fullname != nil {
-		helpers.AddValue(&query, "fullname", *r.fullname)
-	}
 	if r.mine != nil {
 		helpers.AddValue(&query, "mine", *r.mine)
 	}

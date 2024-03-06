@@ -456,8 +456,9 @@ const (
 	// ErrCodeMaxConcurrentQueriesException for service response error code
 	// "MaxConcurrentQueriesException".
 	//
-	// You are already running the maximum number of concurrent queries. Wait a
-	// minute for some queries to finish, and then run the query again.
+	// You are already running the maximum number of concurrent queries. The maximum
+	// number of concurrent queries is 10. Wait a minute for some queries to finish,
+	// and then run the query again.
 	ErrCodeMaxConcurrentQueriesException = "MaxConcurrentQueriesException"
 
 	// ErrCodeMaximumNumberOfTrailsExceededException for service response error code
@@ -575,6 +576,12 @@ const (
 	// permitted amount. Currently, the limit is 50.
 	ErrCodeTagsLimitExceededException = "TagsLimitExceededException"
 
+	// ErrCodeThrottlingException for service response error code
+	// "ThrottlingException".
+	//
+	// This exception is thrown when the request rate exceeds the limit.
+	ErrCodeThrottlingException = "ThrottlingException"
+
 	// ErrCodeTrailAlreadyExistsException for service response error code
 	// "TrailAlreadyExistsException".
 	//
@@ -676,6 +683,7 @@ var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
 	"ResourceTypeNotSupportedException":                      newErrorResourceTypeNotSupportedException,
 	"S3BucketDoesNotExistException":                          newErrorS3BucketDoesNotExistException,
 	"TagsLimitExceededException":                             newErrorTagsLimitExceededException,
+	"ThrottlingException":                                    newErrorThrottlingException,
 	"TrailAlreadyExistsException":                            newErrorTrailAlreadyExistsException,
 	"TrailNotFoundException":                                 newErrorTrailNotFoundException,
 	"TrailNotProvidedException":                              newErrorTrailNotProvidedException,

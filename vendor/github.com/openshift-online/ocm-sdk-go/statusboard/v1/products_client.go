@@ -225,7 +225,6 @@ type ProductsListRequest struct {
 	path      string
 	query     url.Values
 	header    http.Header
-	fullname  *string
 	orderBy   *string
 	page      *int
 	search    *string
@@ -248,12 +247,6 @@ func (r *ProductsListRequest) Header(name string, value interface{}) *ProductsLi
 // Note: Services that do not support this feature may silently ignore this call.
 func (r *ProductsListRequest) Impersonate(user string) *ProductsListRequest {
 	helpers.AddImpersonationHeader(&r.header, user)
-	return r
-}
-
-// Fullname sets the value of the 'fullname' parameter.
-func (r *ProductsListRequest) Fullname(value string) *ProductsListRequest {
-	r.fullname = &value
 	return r
 }
 
@@ -292,9 +285,6 @@ func (r *ProductsListRequest) Send() (result *ProductsListResponse, err error) {
 // SendContext sends this request, waits for the response, and returns it.
 func (r *ProductsListRequest) SendContext(ctx context.Context) (result *ProductsListResponse, err error) {
 	query := helpers.CopyQuery(r.query)
-	if r.fullname != nil {
-		helpers.AddValue(&query, "fullname", *r.fullname)
-	}
 	if r.orderBy != nil {
 		helpers.AddValue(&query, "order_by", *r.orderBy)
 	}

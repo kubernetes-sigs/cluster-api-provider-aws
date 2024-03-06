@@ -26,6 +26,7 @@ import (
 	client "github.com/aws/aws-sdk-go/aws/client"
 	logr "github.com/go-logr/logr"
 	gomock "github.com/golang/mock/gomock"
+	unstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	cloud "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	throttle "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
@@ -373,6 +374,21 @@ func (mr *MockClusterScoperMockRecorder) Trace(arg0 interface{}, arg1 ...interfa
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Trace", reflect.TypeOf((*MockClusterScoper)(nil).Trace), varargs...)
+}
+
+// UnstructuredControlPlane mocks base method.
+func (m *MockClusterScoper) UnstructuredControlPlane() (*unstructured.Unstructured, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnstructuredControlPlane")
+	ret0, _ := ret[0].(*unstructured.Unstructured)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UnstructuredControlPlane indicates an expected call of UnstructuredControlPlane.
+func (mr *MockClusterScoperMockRecorder) UnstructuredControlPlane() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnstructuredControlPlane", reflect.TypeOf((*MockClusterScoper)(nil).UnstructuredControlPlane))
 }
 
 // Warn mocks base method.

@@ -32,7 +32,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -312,7 +312,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -425,7 +425,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 					FailureDomain: aws.String("us-east-1c"),
 				},
@@ -549,6 +549,401 @@ func TestCreateInstance(t *testing.T) {
 			},
 		},
 		{
+			name: "when multiple subnets match filters, subnets in the cluster vpc are preferred",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: aws.String("bootstrap-data"),
+					},
+					FailureDomain: aws.String("us-east-1c"),
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.2xlarge",
+				Subnet: &infrav1.AWSResourceReference{
+					Filters: []infrav1.Filter{
+						{
+							Name:   "availability-zone",
+							Values: []string{"us-east-1c"},
+						},
+					},
+				},
+				UncompressedUserData: &isUncompressedFalse,
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-foo",
+						},
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:               "subnet-1",
+								AvailabilityZone: "us-east-1a",
+								IsPublic:         false,
+							},
+							infrav1.SubnetSpec{
+								ID:               "subnet-2",
+								AvailabilityZone: "us-east-1b",
+								IsPublic:         false,
+							},
+							infrav1.SubnetSpec{
+								ID:               "subnet-3",
+								AvailabilityZone: "us-east-1c",
+								IsPublic:         false,
+							},
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.LoadBalancer{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []*string{
+							aws.String("m5.2xlarge"),
+						},
+					})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("x86_64"),
+									},
+								},
+							},
+						},
+					}, nil)
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []*ec2.Filter{
+						filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+						{
+							Name:   aws.String("availability-zone"),
+							Values: aws.StringSlice([]string{"us-east-1c"}),
+						},
+					}})).Return(&ec2.DescribeSubnetsOutput{
+					Subnets: []*ec2.Subnet{
+						{
+							VpcId:               aws.String("vpc-bar"),
+							SubnetId:            aws.String("subnet-4"),
+							AvailabilityZone:    aws.String("us-east-1c"),
+							CidrBlock:           aws.String("10.0.10.0/24"),
+							MapPublicIpOnLaunch: aws.Bool(false),
+						},
+						{
+							VpcId:            aws.String("vpc-foo"),
+							SubnetId:         aws.String("subnet-3"),
+							AvailabilityZone: aws.String("us-east-1c"),
+							CidrBlock:        aws.String("10.0.11.0/24"),
+						},
+					},
+				}, nil)
+				m.
+					RunInstancesWithContext(context.TODO(), &ec2.RunInstancesInput{
+						ImageId:          aws.String("abc"),
+						InstanceType:     aws.String("m5.2xlarge"),
+						KeyName:          aws.String("default"),
+						SecurityGroupIds: aws.StringSlice([]string{"2", "3"}),
+						SubnetId:         aws.String("subnet-3"),
+						TagSpecifications: []*ec2.TagSpecification{
+							{
+								ResourceType: aws.String("instance"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("MachineName"),
+										Value: aws.String("/"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("aws-test1"),
+									},
+									{
+										Key:   aws.String("kubernetes.io/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("node"),
+									},
+								},
+							},
+						},
+						UserData: aws.String(base64.StdEncoding.EncodeToString(userDataCompressed)),
+						MaxCount: aws.Int64(1),
+						MinCount: aws.Int64(1),
+					}).Return(&ec2.Reservation{
+					Instances: []*ec2.Instance{
+						{
+							State: &ec2.InstanceState{
+								Name: aws.String(ec2.InstanceStateNamePending),
+							},
+							IamInstanceProfile: &ec2.IamInstanceProfile{
+								Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+							},
+							InstanceId:     aws.String("two"),
+							InstanceType:   aws.String("m5.large"),
+							SubnetId:       aws.String("subnet-3"),
+							ImageId:        aws.String("ami-1"),
+							RootDeviceName: aws.String("device-1"),
+							BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								{
+									DeviceName: aws.String("device-1"),
+									Ebs: &ec2.EbsInstanceBlockDevice{
+										VolumeId: aws.String("volume-1"),
+									},
+								},
+							},
+							Placement: &ec2.Placement{
+								AvailabilityZone: &az,
+							},
+						},
+					},
+				}, nil)
+				m.
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+
+				if instance.SubnetID != "subnet-3" {
+					t.Fatalf("expected subnet-3 from availability zone us-east-1c, got %q", instance.SubnetID)
+				}
+			},
+		},
+		{
+			name: "with a subnet outside the cluster vpc",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: aws.String("bootstrap-data"),
+					},
+					FailureDomain: aws.String("us-east-1c"),
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.2xlarge",
+				Subnet: &infrav1.AWSResourceReference{
+					Filters: []infrav1.Filter{
+						{
+							Name:   "vpc-id",
+							Values: []string{"vpc-bar"},
+						},
+						{
+							Name:   "availability-zone",
+							Values: []string{"us-east-1c"},
+						},
+					},
+				},
+				SecurityGroupOverrides: map[infrav1.SecurityGroupRole]string{
+					infrav1.SecurityGroupNode: "4",
+				},
+				UncompressedUserData: &isUncompressedFalse,
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-foo",
+						},
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:               "subnet-1",
+								AvailabilityZone: "us-east-1a",
+								IsPublic:         false,
+							},
+							infrav1.SubnetSpec{
+								ID:               "subnet-2",
+								AvailabilityZone: "us-east-1b",
+								IsPublic:         false,
+							},
+							infrav1.SubnetSpec{
+								ID:               "subnet-3",
+								AvailabilityZone: "us-east-1c",
+								IsPublic:         false,
+							},
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.LoadBalancer{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []*string{
+							aws.String("m5.2xlarge"),
+						},
+					})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("x86_64"),
+									},
+								},
+							},
+						},
+					}, nil)
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []*ec2.Filter{
+						filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+						filter.EC2.VPC("vpc-bar"),
+						{
+							Name:   aws.String("availability-zone"),
+							Values: aws.StringSlice([]string{"us-east-1c"}),
+						},
+					}})).Return(&ec2.DescribeSubnetsOutput{
+					Subnets: []*ec2.Subnet{
+						{
+							VpcId:            aws.String("vpc-bar"),
+							SubnetId:         aws.String("subnet-5"),
+							AvailabilityZone: aws.String("us-east-1c"),
+							CidrBlock:        aws.String("10.0.11.0/24"),
+						},
+					},
+				}, nil)
+				m.
+					RunInstancesWithContext(context.TODO(), &ec2.RunInstancesInput{
+						ImageId:          aws.String("abc"),
+						InstanceType:     aws.String("m5.2xlarge"),
+						KeyName:          aws.String("default"),
+						SecurityGroupIds: aws.StringSlice([]string{"4", "3"}),
+						SubnetId:         aws.String("subnet-5"),
+						TagSpecifications: []*ec2.TagSpecification{
+							{
+								ResourceType: aws.String("instance"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("MachineName"),
+										Value: aws.String("/"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("aws-test1"),
+									},
+									{
+										Key:   aws.String("kubernetes.io/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("node"),
+									},
+								},
+							},
+						},
+						UserData: aws.String(base64.StdEncoding.EncodeToString(userDataCompressed)),
+						MaxCount: aws.Int64(1),
+						MinCount: aws.Int64(1),
+					}).Return(&ec2.Reservation{
+					Instances: []*ec2.Instance{
+						{
+							State: &ec2.InstanceState{
+								Name: aws.String(ec2.InstanceStateNamePending),
+							},
+							IamInstanceProfile: &ec2.IamInstanceProfile{
+								Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+							},
+							InstanceId:     aws.String("two"),
+							InstanceType:   aws.String("m5.large"),
+							SubnetId:       aws.String("subnet-5"),
+							ImageId:        aws.String("ami-1"),
+							RootDeviceName: aws.String("device-1"),
+							BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								{
+									DeviceName: aws.String("device-1"),
+									Ebs: &ec2.EbsInstanceBlockDevice{
+										VolumeId: aws.String("volume-1"),
+									},
+								},
+							},
+							Placement: &ec2.Placement{
+								AvailabilityZone: &az,
+							},
+						},
+					},
+				}, nil)
+				m.
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+
+				if instance.SubnetID != "subnet-5" {
+					t.Fatalf("expected subnet-5 from availability zone us-east-1c, got %q", instance.SubnetID)
+				}
+			},
+		},
+		{
 			name: "with ImageLookupOrg specified at the machine level",
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -556,9 +951,9 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: pointer.String("v1.16.1"),
+					Version: ptr.To[string]("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -706,9 +1101,9 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: pointer.String("v1.16.1"),
+					Version: ptr.To[string]("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -856,9 +1251,9 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: pointer.String("v1.16.1"),
+					Version: ptr.To[string]("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -1007,7 +1402,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 					FailureDomain: aws.String("us-east-1b"),
 				},
@@ -1074,7 +1469,6 @@ func TestCreateInstance(t *testing.T) {
 					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-							filter.EC2.VPC("vpc-id"),
 							{Name: aws.String("tag:some-tag"), Values: aws.StringSlice([]string{"some-value"})},
 						},
 					}).
@@ -1135,7 +1529,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -1184,7 +1578,6 @@ func TestCreateInstance(t *testing.T) {
 					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-							filter.EC2.VPC("vpc-id"),
 							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"matching-subnet"})},
 						},
 					}).
@@ -1262,7 +1655,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -1328,7 +1721,6 @@ func TestCreateInstance(t *testing.T) {
 					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-							filter.EC2.VPC("vpc-id"),
 							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"non-matching-subnet"})},
 						},
 					}).
@@ -1355,7 +1747,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -1451,7 +1843,6 @@ func TestCreateInstance(t *testing.T) {
 					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-							filter.EC2.VPC("vpc-id"),
 							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"matching-subnet"})},
 						},
 					}).
@@ -1481,7 +1872,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 					FailureDomain: aws.String("us-east-1b"),
 				},
@@ -1532,7 +1923,6 @@ func TestCreateInstance(t *testing.T) {
 					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-							filter.EC2.VPC("vpc-id"),
 							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"subnet-1"})},
 						},
 					}).
@@ -1579,7 +1969,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 					FailureDomain: aws.String("us-east-1b"),
 				},
@@ -1662,7 +2052,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -1713,7 +2103,6 @@ func TestCreateInstance(t *testing.T) {
 					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-							filter.EC2.VPC("vpc-id"),
 							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
 						},
 					}).
@@ -1792,7 +2181,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -1843,7 +2232,6 @@ func TestCreateInstance(t *testing.T) {
 					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-							filter.EC2.VPC("vpc-id"),
 							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"private-subnet-1"})},
 						},
 					}).
@@ -1891,7 +2279,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -1968,7 +2356,6 @@ func TestCreateInstance(t *testing.T) {
 					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-							filter.EC2.VPC("vpc-id"),
 							{Name: aws.String("tag:some-tag"), Values: aws.StringSlice([]string{"some-value"})},
 						},
 					}).
@@ -2029,7 +2416,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -2147,7 +2534,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -2230,7 +2617,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -2355,7 +2742,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -2511,7 +2898,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -2667,7 +3054,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -2825,9 +3212,9 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: pointer.String("v1.16.1"),
+					Version: ptr.To[string]("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -2954,9 +3341,9 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: pointer.String("v1.16.1"),
+					Version: ptr.To[string]("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -3084,9 +3471,9 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: pointer.String("v1.16.1"),
+					Version: ptr.To[string]("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -3215,9 +3602,9 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: pointer.String("v1.16.1"),
+					Version: ptr.To[string]("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -3343,9 +3730,9 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: pointer.String("v1.16.1"),
+					Version: ptr.To[string]("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -3471,9 +3858,9 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: pointer.String("v1.16.1"),
+					Version: ptr.To[string]("v1.16.1"),
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{

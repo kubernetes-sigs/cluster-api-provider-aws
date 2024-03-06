@@ -52,7 +52,7 @@ var pathTreeData = `{
           }
         },
         "labels": null,
-        "notify": null,
+        "notify_details": null,
         "organizations": {
           "-": {
             "labels": {
@@ -95,7 +95,6 @@ var pathTreeData = `{
             "labels": {
               "-": null
             },
-            "notify": null,
             "reserved_resources": {
               "-": null
             },
@@ -169,6 +168,7 @@ var pathTreeData = `{
           "sts_account_roles": null,
           "sts_credential_requests": null,
           "sts_policies": null,
+          "validate_credentials": null,
           "vpcs": null
         },
         "cloud_providers": {
@@ -273,14 +273,6 @@ var pathTreeData = `{
                 }
               }
             },
-            "product": {
-              "minimal_versions": {
-                "-": null
-              },
-              "technology_previews": {
-                "-": null
-              }
-            },
             "provision_shard": null,
             "resources": {
               "live": null
@@ -345,9 +337,7 @@ var pathTreeData = `{
         "provision_shards": {
           "-": null
         },
-        "trusted_ip_addresses": {
-          "-": null
-        },
+        "trusted_ip_addresses": null,
         "version_gates": {
           "-": null
         },

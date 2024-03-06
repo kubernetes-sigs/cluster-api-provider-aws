@@ -25,7 +25,7 @@ import (
 	"github.com/gofrs/flock"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
@@ -155,7 +155,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 				ArtifactFolder:           e2eCtx.Settings.ArtifactFolder,
 				SkipCleanup:              e2eCtx.Settings.SkipCleanup,
 				SkipConformanceTests:     true,
-				ControlPlaneMachineCount: pointer.Int64(1),
+				ControlPlaneMachineCount: ptr.To[int64](1),
 			}
 		})
 
@@ -180,9 +180,9 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 				ArtifactFolder:           e2eCtx.Settings.ArtifactFolder,
 				SkipCleanup:              e2eCtx.Settings.SkipCleanup,
 				SkipConformanceTests:     true,
-				ControlPlaneMachineCount: pointer.Int64(3),
-				WorkerMachineCount:       pointer.Int64(0),
-				Flavor:                   pointer.String(shared.KCPScaleInFlavor),
+				ControlPlaneMachineCount: ptr.To[int64](3),
+				WorkerMachineCount:       ptr.To[int64](0),
+				Flavor:                   ptr.To[string](shared.KCPScaleInFlavor),
 			}
 		})
 	})
@@ -203,9 +203,9 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 				ArtifactFolder:           e2eCtx.Settings.ArtifactFolder,
 				SkipCleanup:              e2eCtx.Settings.SkipCleanup,
 				SkipConformanceTests:     true,
-				ControlPlaneMachineCount: pointer.Int64(3),
-				WorkerMachineCount:       pointer.Int64(0),
-				Flavor:                   pointer.String(clusterctl.DefaultFlavor),
+				ControlPlaneMachineCount: ptr.To[int64](3),
+				WorkerMachineCount:       ptr.To[int64](0),
+				Flavor:                   ptr.To[string](clusterctl.DefaultFlavor),
 			}
 		})
 

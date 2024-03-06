@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.1
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: rosacontrolplanes.controlplane.cluster.x-k8s.io
 spec:
   group: controlplane.cluster.x-k8s.io
@@ -45,16 +45,34 @@ spec:
             type: object
           spec:
             properties:
-              accountID:
-                description: 'TODO: these are to satisfy ocm sdk. Explore how to drop
-                  them.'
-                type: string
+              autoscaling:
+                description: Autoscaling specifies auto scaling behaviour for the
+                  MachinePools.
+                properties:
+                  maxReplicas:
+                    minimum: 1
+                    type: integer
+                  minReplicas:
+                    minimum: 1
+                    type: integer
+                type: object
               availabilityZones:
                 description: AWS AvailabilityZones of the worker nodes should match
                   the AvailabilityZones of the Subnets.
                 items:
                   type: string
                 type: array
+              billingAccount:
+                description: BillingAccount is an optional AWS account to use for
+                  billing the subscription fees for ROSA clusters. The cost of running
+                  each ROSA cluster will be billed to the infrastructure account in
+                  which the cluster is running.
+                type: string
+                x-kubernetes-validations:
+                - message: billingAccount is immutable
+                  rule: self == oldSelf
+                - message: billingAccount must be a valid AWS account ID
+                  rule: self.matches('^[0-9]{12}$')
               controlPlaneEndpoint:
                 description: ControlPlaneEndpoint represents the endpoint used to
                   communicate with the control plane.
@@ -70,14 +88,77 @@ spec:
                 - host
                 - port
                 type: object
-              creatorARN:
-                type: string
+              credentialsSecretRef:
+                description: 'CredentialsSecretRef references a secret with necessary
+                  credentials to connect to the OCM API. The secret should contain
+                  the following data keys: - ocmToken: eyJhbGciOiJIUzI1NiIsI.... -
+                  ocmApiUrl: Optional, defaults to ''https://api.openshift.com'''
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              identityRef:
+                description: IdentityRef is a reference to an identity to be used
+                  when reconciling the managed control plane. If no identity is specified,
+                  the default identity for this controller will be used.
+                properties:
+                  kind:
+                    description: Kind of the identity.
+                    enum:
+                    - AWSClusterControllerIdentity
+                    - AWSClusterRoleIdentity
+                    - AWSClusterStaticIdentity
+                    type: string
+                  name:
+                    description: Name of the identity.
+                    minLength: 1
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
               installerRoleARN:
+                description: 'TODO: these are to satisfy ocm sdk. Explore how to drop
+                  them.'
                 type: string
-              machineCIDR:
-                description: Block of IP addresses used by OpenShift while installing
-                  the cluster, for example "10.0.0.0/16".
+              instanceType:
+                description: The instance type to use, for example `r5.xlarge`. Instance
+                  type ref; https://aws.amazon.com/ec2/instance-types/
                 type: string
+              network:
+                description: Network config for the ROSA HCP cluster.
+                properties:
+                  hostPrefix:
+                    default: 23
+                    description: Network host prefix which is defaulted to `23` if
+                      not specified.
+                    type: integer
+                  machineCIDR:
+                    description: IP addresses block used by OpenShift while installing
+                      the cluster, for example "10.0.0.0/16".
+                    format: cidr
+                    type: string
+                  networkType:
+                    default: OVNKubernetes
+                    description: The CNI network type default is OVNKubernetes.
+                    enum:
+                    - OVNKubernetes
+                    - Other
+                    type: string
+                  podCIDR:
+                    description: IP address block from which to assign pod IP addresses,
+                      for example `10.128.0.0/14`.
+                    format: cidr
+                    type: string
+                  serviceCIDR:
+                    description: IP address block from which to assign service IP
+                      addresses, for example `172.30.0.0/16`.
+                    format: cidr
+                    type: string
+                type: object
               oidcID:
                 description: The ID of the OpenID Connect Provider.
                 type: string
@@ -237,6 +318,17 @@ spec:
                 - nodePoolManagementARN
                 - storageARN
                 type: object
+              rosaClusterName:
+                description: Cluster name must be valid DNS-1035 label, so it must
+                  consist of lower case alphanumeric characters or '-', start with
+                  an alphabetic character, end with an alphanumeric character and
+                  have a max length of 15 characters.
+                maxLength: 15
+                pattern: ^[a-z]([-a-z0-9]*[a-z0-9])?$
+                type: string
+                x-kubernetes-validations:
+                - message: rosaClusterName is immutable
+                  rule: self == oldSelf
               subnets:
                 description: The Subnet IDs to use when installing the cluster. SubnetIDs
                   should come in pairs; two per availability zone, one private and
@@ -247,20 +339,24 @@ spec:
               supportRoleARN:
                 type: string
               version:
-                description: Openshift version, for example "openshift-v4.12.15".
+                description: OpenShift semantic version, for example "4.14.5".
+                type: string
+                x-kubernetes-validations:
+                - message: version must be a valid semantic version
+                  rule: self.matches('^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$')
+              workerRoleARN:
                 type: string
             required:
-            - accountID
             - availabilityZones
-            - creatorARN
             - installerRoleARN
-            - machineCIDR
             - oidcID
             - region
             - rolesRef
+            - rosaClusterName
             - subnets
             - supportRoleARN
             - version
+            - workerRoleARN
             type: object
           status:
             properties:
@@ -310,6 +406,9 @@ spec:
                   - type
                   type: object
                 type: array
+              consoleURL:
+                description: ConsoleURL is the url for the openshift console.
+                type: string
               externalManagedControlPlane:
                 default: true
                 description: ExternalManagedControlPlane indicates to cluster-api
@@ -317,17 +416,29 @@ spec:
                   AKS, EKS, GKE, etc.
                 type: boolean
               failureMessage:
-                description: ErrorMessage indicates that there is a terminal problem
-                  reconciling the state, and will be set to a descriptive error message.
+                description: "FailureMessage will be set in the event that there is
+                  a terminal problem reconciling the state and will be set to a descriptive
+                  error message. \n This field should not be set for transitive errors
+                  that a controller faces that are expected to be fixed automatically
+                  over time (like service outages), but instead indicate that something
+                  is fundamentally wrong with the spec or the configuration of the
+                  controller, and that manual intervention is required."
+                type: string
+              id:
+                description: ID is the cluster ID given by ROSA.
                 type: string
               initialized:
                 description: Initialized denotes whether or not the control plane
                   has the uploaded kubernetes config-map.
                 type: boolean
+              oidcEndpointURL:
+                description: OIDCEndpointURL is the endpoint url for the managed OIDC
+                  porvider.
+                type: string
               ready:
                 default: false
-                description: Ready denotes that the AWSManagedControlPlane API Server
-                  is ready to receive requests and that the VPC infra is ready.
+                description: Ready denotes that the ROSAControlPlane API Server is
+                  ready to receive requests.
                 type: boolean
             required:
             - ready

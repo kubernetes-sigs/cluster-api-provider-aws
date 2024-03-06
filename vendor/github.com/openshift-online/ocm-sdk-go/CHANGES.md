@@ -3,6 +3,83 @@
 This document describes the relevant changes between releases of the OCM API
 SDK.
 
+# 0.1.404
+- Update model version v0.0.357
+  - Add `ExternalAuth` to `ExternalAuthConfig` model
+
+# 0.1.403
+- Update model version v0.0.356
+  - Reverting change to remove provision shard from cluster
+
+## 0.1.402
+- Update model version v0.0.355
+  - Removed undefined api calls from the model
+  - Add support to `securestore` that allows the caller to define a keyring target
+  - Additional `securestore` Error Standardization
+  - Add error handling to `securestore` for denied Keychain access due to permissions
+
+## 0.1.401
+- Update model version v0.0.353
+  - Added support for `PackageImage` for `clusters_mgmt`
+
+## 0.1.400
+- Update model version v0.0.352
+  - Remove `StatusBoard` `fullname` search parameter.
+  - Deprecate `Notify` resource.
+
+## 0.1.399
+- Additional error handling for `securestore`
+
+## 0.1.398
+- Add regions support from ocm shards
+- Don't error when response is 204 and no content-type
+
+## 0.1.397
+- Add `NewUnauthenticatedConnectionBuilder` function to allow creating a
+  `Connection` without client side authentication
+
+## 0.1.396
+- Remove redundant fields from /notify_details
+- Add `ExternalAuthConfig` to `Cluster` model.
+
+## 0.1.395
+- Add `SubnetOutposts` and `AvailabilityZoneTypes` to `aws_node_pool_type` and `aws_machine_pool_type` resources.
+
+## 0.1.394
+- Added Device Code flow to `authentication`
+- Update model version v0.0.347
+  - Add `HostedControlPlaneDefault` boolean to `Version` Type model.
+
+## 0.1.393
+- Add authentication using OAuth2 and PCKE
+- Add secure token storage
+
+## 0.1.392
+- Update model version v0.0.346
+  - Modify notify_details response
+
+## 0.1.391
+- Update model version v0.0.345
+  - Add `validate_credentials` resource to `AwsInquiries`
+- Update model version v0.0.344
+  - Add the /notify_details endpoint to the SDK
+
+## 0.1.390
+- Update model version v0.0.343
+  -  Add `Platform`to `subnet_network_verification_type` resource
+
+## 0.1.389
+- Update model version v0.0.342
+  -  Add `Search` and `Order` methods to List `/api/clusters_mgmt/v1/clusters/{id}/node_pools`
+
+## 0.1.388
+- Update model version v0.0.341
+  -  Add DELETE /api/addons_mgmt/v1/clusters/{id}/addons endpoint
+
+## 0.1.387
+- Update model version v0.0.340
+  - Add get `Platform` to `network_verification_type` resource
+
 ## 0.1.386
 - Update model version to v0.0.339
   - Add `MachineTypes` to `GCPInquiriesClient` endpoints

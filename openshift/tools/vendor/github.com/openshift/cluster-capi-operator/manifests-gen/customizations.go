@@ -8,6 +8,7 @@ import (
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -18,11 +19,8 @@ import (
 type resourceKey string
 
 const (
-	crdKey        resourceKey = "crds"
-	otherKey      resourceKey = "other"
-	rbacKey       resourceKey = "rbac"
-	deploymentKey resourceKey = "deployment"
-	serviceKey    resourceKey = "service"
+	crdKey   resourceKey = "crds"
+	otherKey resourceKey = "other"
 )
 
 var (
@@ -40,17 +38,16 @@ var (
 		"target.workload.openshift.io/management": `{"effect": "PreferredDuringScheduling"}`,
 	}
 
-	techPreviewAnnotation      = "release.openshift.io/feature-set"
-	techPreviewAnnotationValue = "TechPreviewNoUpgrade"
+	// featureSetAnnotationValue is a multiple-feature-sets annotation value
+	// adhering to the: %s,%s,... notation defined in the openshift/library-go/pkg/manifest parser.
+	featureSetAnnotationValue = "CustomNoUpgrade,TechPreviewNoUpgrade"
+	featureSetAnnotationKey   = "release.openshift.io/feature-set"
 )
 
 func processObjects(objs []unstructured.Unstructured, providerName string) map[resourceKey][]unstructured.Unstructured {
 	resourceMap := map[resourceKey][]unstructured.Unstructured{}
-	finalObjs := []unstructured.Unstructured{}
-	rbacObjs := []unstructured.Unstructured{}
+	providerConfigMapObjs := []unstructured.Unstructured{}
 	crdObjs := []unstructured.Unstructured{}
-	deploymentObjs := []unstructured.Unstructured{}
-	serviceObjs := []unstructured.Unstructured{}
 
 	serviceSecretNames := findWebhookServiceSecretName(objs)
 
@@ -59,10 +56,8 @@ func processObjects(objs []unstructured.Unstructured, providerName string) map[r
 		switch obj.GetKind() {
 		case "ClusterRole", "Role", "ClusterRoleBinding", "RoleBinding", "ServiceAccount":
 			setOpenShiftAnnotations(obj, false)
-			setTechPreviewAnnotation(obj)
-			rbacObjs = append(rbacObjs, obj)
-
-			finalObjs = append(finalObjs, obj)
+			setNoUpgradeAnnotations(obj)
+			providerConfigMapObjs = append(providerConfigMapObjs, obj)
 		case "MutatingWebhookConfiguration":
 			// Explicitly remove defaulting webhooks for the cluster-api provider.
 			// We don't need CAPI to set any default to the cluster object because
@@ -70,41 +65,46 @@ func processObjects(objs []unstructured.Unstructured, providerName string) map[r
 			// For more information: https://issues.redhat.com/browse/OCPCLOUD-1506
 			removeClusterDefaultingWebhooks(&obj)
 			replaceCertManagerAnnotations(&obj)
-			finalObjs = append(finalObjs, obj)
+			providerConfigMapObjs = append(providerConfigMapObjs, obj)
 		case "ValidatingWebhookConfiguration":
 			removeClusterValidatingWebhooks(&obj)
 			replaceCertManagerAnnotations(&obj)
-			finalObjs = append(finalObjs, obj)
+			providerConfigMapObjs = append(providerConfigMapObjs, obj)
 		case "CustomResourceDefinition":
 			replaceCertManagerAnnotations(&obj)
 			removeConversionWebhook(&obj)
 			setOpenShiftAnnotations(obj, true)
-			setTechPreviewAnnotation(obj)
-			crdObjs = append(crdObjs, obj)
-			finalObjs = append(finalObjs, obj)
+			// Apply NoUpgrade annotations unless IPAM CRDs,
+			// as those are in General Availability.
+			if !isCRDGroup(&obj, "ipam.cluster.x-k8s.io") {
+				setNoUpgradeAnnotations(obj)
+			}
+			// Store Core CAPI CRDs in their own manifest to get them applied by CVO directly.
+			// We want these to be installed independently from whether the cluster-capi-operator is enabled,
+			// as other Openshift components rely on them.
+			if providerName == coreCAPIProvider {
+				crdObjs = append(crdObjs, obj)
+			} else {
+				providerConfigMapObjs = append(providerConfigMapObjs, obj)
+			}
 		case "Service":
 			replaceCertMangerServiceSecret(&obj, serviceSecretNames)
 			setOpenShiftAnnotations(obj, true)
-			setTechPreviewAnnotation(obj)
-			serviceObjs = append(serviceObjs, obj)
-			finalObjs = append(finalObjs, obj)
+			setNoUpgradeAnnotations(obj)
+			providerConfigMapObjs = append(providerConfigMapObjs, obj)
 		case "Deployment":
 			customizeDeployments(&obj)
 			if providerName == "operator" {
 				setOpenShiftAnnotations(obj, false)
-				setTechPreviewAnnotation(obj)
+				setNoUpgradeAnnotations(obj)
 			}
-			deploymentObjs = append(deploymentObjs, obj)
-			finalObjs = append(finalObjs, obj)
+			providerConfigMapObjs = append(providerConfigMapObjs, obj)
 		case "Certificate", "Issuer", "Namespace", "Secret": // skip
 		}
 	}
 
-	resourceMap[rbacKey] = rbacObjs
 	resourceMap[crdKey] = crdObjs
-	resourceMap[deploymentKey] = deploymentObjs
-	resourceMap[serviceKey] = serviceObjs
-	resourceMap[otherKey] = finalObjs
+	resourceMap[otherKey] = providerConfigMapObjs
 
 	return resourceMap
 }
@@ -125,13 +125,13 @@ func setOpenShiftAnnotations(obj unstructured.Unstructured, merge bool) {
 	obj.SetAnnotations(anno)
 }
 
-func setTechPreviewAnnotation(obj unstructured.Unstructured) {
+func setNoUpgradeAnnotations(obj unstructured.Unstructured) {
 	anno := obj.GetAnnotations()
 	if anno == nil {
 		anno = map[string]string{}
 	}
 
-	anno[techPreviewAnnotation] = techPreviewAnnotationValue
+	anno[featureSetAnnotationKey] = featureSetAnnotationValue
 	obj.SetAnnotations(anno)
 }
 
@@ -234,15 +234,6 @@ func customizeDeployments(obj *unstructured.Unstructured) {
 		if container.Name == "kube-rbac-proxy" {
 			container.Image = "registry.ci.openshift.org/openshift:kube-rbac-proxy"
 		}
-		noFeatureGates := []string{}
-		for _, arg := range container.Args {
-			if !strings.HasPrefix(arg, "--feature-gates=") {
-				noFeatureGates = append(noFeatureGates, arg)
-			}
-		}
-		if len(noFeatureGates) > 0 {
-			container.Args = noFeatureGates
-		}
 	}
 
 	if err := scheme.Convert(deployment, obj, nil); err != nil {
@@ -281,6 +272,25 @@ func removeConversionWebhook(obj *unstructured.Unstructured) {
 	crd.Spec.Conversion = nil
 	if err := scheme.Convert(crd, obj, nil); err != nil {
 		panic(err)
+	}
+}
+
+// isCRDGroup checks whether the object provided is a CRD for the specified API group.
+func isCRDGroup(obj *unstructured.Unstructured, group string) bool {
+	switch obj.GetKind() {
+	case "CustomResourceDefinition":
+		crd := &apiextensions.CustomResourceDefinition{}
+		if err := scheme.Convert(obj, crd, nil); err != nil {
+			panic(err)
+		}
+
+		if crd.Spec.Group == group {
+			return true
+		}
+
+		return false
+	default:
+		return false
 	}
 }
 

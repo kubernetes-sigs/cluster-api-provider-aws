@@ -1,0 +1,83 @@
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: "${CLUSTER_NAME}"
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: ["192.168.0.0/16"]
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    kind: ROSACluster
+    name: "${CLUSTER_NAME}"
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+    kind: ROSAControlPlane
+    name: "${CLUSTER_NAME}-control-plane"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: ROSACluster
+metadata:
+  name: "${CLUSTER_NAME}"
+spec: {}
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+kind: ROSAControlPlane
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  rosaClusterName: ${CLUSTER_NAME:0:15}
+  version: "${OPENSHIFT_VERSION}"
+  region: "${AWS_REGION}"
+  accountID: "${AWS_ACCOUNT_ID}"
+  creatorARN: "${AWS_CREATOR_ARN}"
+  network:
+    machineCIDR: "10.0.0.0/16"
+  rolesRef:
+    ingressARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATOR_ROLES_PREFIX}-openshift-ingress-operator-cloud-credentials"
+    imageRegistryARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATOR_ROLES_PREFIX}-openshift-image-registry-installer-cloud-credentials"
+    storageARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATOR_ROLES_PREFIX}-openshift-cluster-csi-drivers-ebs-cloud-credentials"
+    networkARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATOR_ROLES_PREFIX}-openshift-cloud-network-config-controller-cloud-credentials"
+    kubeCloudControllerARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATOR_ROLES_PREFIX}-kube-system-kube-controller-manager"
+    nodePoolManagementARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATOR_ROLES_PREFIX}-kube-system-capa-controller-manager"
+    controlPlaneOperatorARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATOR_ROLES_PREFIX}-kube-system-control-plane-operator"
+    kmsProviderARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATOR_ROLES_PREFIX}-kube-system-kms-provider"
+  oidcID: "${OIDC_CONFIG_ID}"
+  subnets:
+    - "${PUBLIC_SUBNET_ID}"
+    - "${PRIVATE_SUBNET_ID}"
+  availabilityZones:
+    - "${AWS_AVAILABILITY_ZONE}"
+  installerRoleARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${ACCOUNT_ROLES_PREFIX}-HCP-ROSA-Installer-Role"
+  supportRoleARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${ACCOUNT_ROLES_PREFIX}-HCP-ROSA-Support-Role"
+  workerRoleARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${ACCOUNT_ROLES_PREFIX}-HCP-ROSA-Worker-Role"
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachinePool
+metadata:
+  name: "${CLUSTER_NAME}-pool-0"
+spec:
+  clusterName: "${CLUSTER_NAME}"
+  replicas: 1
+  template:
+    spec:
+      clusterName: "${CLUSTER_NAME}"
+      bootstrap:
+        dataSecretName: ""
+      infrastructureRef:
+        name: "${CLUSTER_NAME}-pool-0"
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        kind: ROSAMachinePool
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: ROSAMachinePool
+metadata:
+  name: "${CLUSTER_NAME}-pool-0"
+spec:
+  nodePoolName: "nodepool-0"
+  instanceType: "m5.xlarge"
+  subnet: "${PRIVATE_SUBNET_ID}"
+  version: "${OPENSHIFT_VERSION}"
+
+

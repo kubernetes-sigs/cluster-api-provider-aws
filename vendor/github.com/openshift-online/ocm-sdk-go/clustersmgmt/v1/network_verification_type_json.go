@@ -74,6 +74,15 @@ func writeNetworkVerification(object *NetworkVerification, stream *jsoniter.Stre
 		if count > 0 {
 			stream.WriteMore()
 		}
+		stream.WriteObjectField("platform")
+		stream.WriteString(string(object.platform))
+		count++
+	}
+	present_ = object.bitmap_&16 != 0
+	if present_ {
+		if count > 0 {
+			stream.WriteMore()
+		}
 		stream.WriteObjectField("total")
 		stream.WriteInt(object.total)
 	}
@@ -113,10 +122,15 @@ func readNetworkVerification(iterator *jsoniter.Iterator) *NetworkVerification {
 			value := readSubnetNetworkVerificationList(iterator)
 			object.items = value
 			object.bitmap_ |= 4
+		case "platform":
+			text := iterator.ReadString()
+			value := Platform(text)
+			object.platform = value
+			object.bitmap_ |= 8
 		case "total":
 			value := iterator.ReadInt()
 			object.total = value
-			object.bitmap_ |= 8
+			object.bitmap_ |= 16
 		default:
 			iterator.ReadAny()
 		}

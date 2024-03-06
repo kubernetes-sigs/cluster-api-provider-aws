@@ -152,7 +152,8 @@ func AssertMachineDeploymentFailureDomains(ctx context.Context, input AssertMach
 		return input.Lister.List(ctx, ms, client.InNamespace(input.Cluster.Namespace), client.MatchingLabels(selectorMap))
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachineSets for Cluster %s", klog.KObj(input.Cluster))
 
-	for _, machineSet := range ms.Items {
+	for i := range ms.Items {
+		machineSet := ms.Items[i]
 		machineSetFD := pointer.StringDeref(machineSet.Spec.Template.Spec.FailureDomain, "<None>")
 		Expect(machineSetFD).To(Equal(machineDeploymentFD), "MachineSet %s is in the %q failure domain, expecting %q", machineSet.Name, machineSetFD, machineDeploymentFD)
 
@@ -325,7 +326,7 @@ func UpgradeMachineDeploymentInfrastructureRefAndWait(ctx context.Context, input
 			g.Expect(*newMachineSet.Spec.Replicas).To(Equal(newMachineSet.Status.AvailableReplicas))
 
 			// MachineSet should have the same infrastructureRef as the MachineDeployment.
-			g.Expect(newMachineSet.Spec.Template.Spec.InfrastructureRef).To(Equal(deployment.Spec.Template.Spec.InfrastructureRef))
+			g.Expect(newMachineSet.Spec.Template.Spec.InfrastructureRef).To(BeComparableTo(deployment.Spec.Template.Spec.InfrastructureRef))
 		}, input.WaitForMachinesToBeUpgraded...).Should(Succeed())
 	}
 }
@@ -581,7 +582,7 @@ func ScaleAndWaitMachineDeploymentTopology(ctx context.Context, input ScaleAndWa
 			return -1, errors.New("Machine count does not match existing nodes count")
 		}
 		return nodeRefCount, nil
-	}, input.WaitForMachineDeployments...).Should(Equal(int(*md.Spec.Replicas)), "Timed out waiting for Machine Deployment %s to have %d replicas", klog.KObj(&md), *md.Spec.Replicas)
+	}, input.WaitForMachineDeployments...).Should(Equal(int(input.Replicas)), "Timed out waiting for Machine Deployment %s to have %d replicas", klog.KObj(&md), input.Replicas)
 }
 
 type AssertMachineDeploymentReplicasInput struct {

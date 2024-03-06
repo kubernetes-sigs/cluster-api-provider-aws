@@ -25,6 +25,7 @@ type NetworkVerificationBuilder struct {
 	cloudProviderData *CloudProviderDataBuilder
 	clusterId         string
 	items             []*SubnetNetworkVerificationBuilder
+	platform          Platform
 	total             int
 }
 
@@ -66,10 +67,19 @@ func (b *NetworkVerificationBuilder) Items(values ...*SubnetNetworkVerificationB
 	return b
 }
 
+// Platform sets the value of the 'platform' attribute to the given value.
+//
+// Representation of an platform type field.
+func (b *NetworkVerificationBuilder) Platform(value Platform) *NetworkVerificationBuilder {
+	b.platform = value
+	b.bitmap_ |= 8
+	return b
+}
+
 // Total sets the value of the 'total' attribute to the given value.
 func (b *NetworkVerificationBuilder) Total(value int) *NetworkVerificationBuilder {
 	b.total = value
-	b.bitmap_ |= 8
+	b.bitmap_ |= 16
 	return b
 }
 
@@ -93,6 +103,7 @@ func (b *NetworkVerificationBuilder) Copy(object *NetworkVerification) *NetworkV
 	} else {
 		b.items = nil
 	}
+	b.platform = object.platform
 	b.total = object.total
 	return b
 }
@@ -117,6 +128,7 @@ func (b *NetworkVerificationBuilder) Build() (object *NetworkVerification, err e
 			}
 		}
 	}
+	object.platform = b.platform
 	object.total = b.total
 	return
 }

@@ -27,7 +27,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -68,7 +68,7 @@ func MachineDeploymentSpec(ctx context.Context, inputGetter func() MachineDeploy
 	By(fmt.Sprintf("creating an applying the %s template", EKSMachineDeployOnlyFlavor))
 	configCluster := input.ConfigClusterFn(input.ClusterName, input.Namespace.Name)
 	configCluster.Flavor = EKSMachineDeployOnlyFlavor
-	configCluster.WorkerMachineCount = pointer.Int64(input.Replicas)
+	configCluster.WorkerMachineCount = ptr.To[int64](input.Replicas)
 	err := shared.ApplyTemplate(ctx, configCluster, input.BootstrapClusterProxy)
 	Expect(err).ShouldNot(HaveOccurred())
 

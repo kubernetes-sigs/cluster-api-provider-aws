@@ -37,7 +37,7 @@ package kind
 import (
 	"fmt"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 
 	clusterapicontainer "sigs.k8s.io/cluster-api/util/container"
 )
@@ -81,6 +81,11 @@ var preBuiltMappings = []Mapping{
 	// TODO: Add pre-built images for newer Kind versions on top
 
 	// Pre-built images for Kind v1.20.
+	{
+		KubernetesVersion: semver.MustParse("1.29.0"),
+		Mode:              Mode0_20,
+		Image:             "kindest/node:v1.29.0@sha256:eaa1450915475849a73a9227b8f201df25e55e268e5d619312131292e324d570",
+	},
 	{
 		KubernetesVersion: semver.MustParse("1.28.0"),
 		Mode:              Mode0_20,

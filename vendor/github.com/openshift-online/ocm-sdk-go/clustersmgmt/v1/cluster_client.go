@@ -333,16 +333,6 @@ func (c *ClusterClient) NodePools() *NodePoolsClient {
 	)
 }
 
-// Product returns the target 'product' resource.
-//
-// Reference to the resource that manages the product type of the cluster
-func (c *ClusterClient) Product() *ProductClient {
-	return NewProductClient(
-		c.transport,
-		path.Join(c.path, "product"),
-	)
-}
-
 // ProvisionShard returns the target 'provision_shard' resource.
 //
 // Reference to the resource that manages the cluster's provision shard.

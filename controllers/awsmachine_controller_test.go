@@ -31,7 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -423,7 +423,7 @@ func getMachineScope(cs *scope.ClusterScope, awsMachine *infrav1.AWSMachine) (*s
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -531,10 +531,6 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 	m.DescribeInstancesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			{
-				Name:   aws.String("vpc-id"),
-				Values: aws.StringSlice([]string{""}),
-			},
-			{
 				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 				Values: aws.StringSlice([]string{"owned"}),
 			},
@@ -641,10 +637,6 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 		{
 			Name:   aws.String("state"),
 			Values: aws.StringSlice([]string{"pending", "available"}),
-		},
-		{
-			Name:   aws.String("vpc-id"),
-			Values: aws.StringSlice([]string{""}),
 		},
 		{
 			Name:   aws.String("subnet-id"),
