@@ -4,6 +4,7 @@ import (
 	"net"
 
 	"github.com/blang/semver"
+	kmsArnRegexpValidator "github.com/openshift-online/ocm-common/pkg/resource/validations"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -33,7 +34,12 @@ func (r *ROSAControlPlane) ValidateCreate() (warnings admission.Warnings, err er
 		allErrs = append(allErrs, err)
 	}
 
+	if err := r.validateEtcdEncryptionKMSArn(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
 	allErrs = append(allErrs, r.validateNetwork()...)
+	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -54,7 +60,12 @@ func (r *ROSAControlPlane) ValidateUpdate(old runtime.Object) (warnings admissio
 		allErrs = append(allErrs, err)
 	}
 
+	if err := r.validateEtcdEncryptionKMSArn(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
 	allErrs = append(allErrs, r.validateNetwork()...)
+	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -111,6 +122,15 @@ func (r *ROSAControlPlane) validateNetwork() field.ErrorList {
 	}
 
 	return allErrs
+}
+
+func (r *ROSAControlPlane) validateEtcdEncryptionKMSArn() *field.Error {
+	err := kmsArnRegexpValidator.ValidateKMSKeyARN(&r.Spec.EtcdEncryptionKMSArn)
+	if err != nil {
+		return field.Invalid(field.NewPath("spec.EtcdEncryptionKMSArn"), r.Spec.EtcdEncryptionKMSArn, err.Error())
+	}
+
+	return nil
 }
 
 // Default implements admission.Defaulter.
