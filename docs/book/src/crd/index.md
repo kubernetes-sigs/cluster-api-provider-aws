@@ -4351,8 +4351,8 @@ AWSIdentityReference
 </em>
 </td>
 <td>
-<em>(Optional)</em>
-<p>IdentityRef is a reference to a identity to be used when reconciling the managed control plane.</p>
+<p>IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
+If no identity is specified, the default identity for this controller will be used.</p>
 </td>
 </tr>
 <tr>
@@ -4757,8 +4757,8 @@ AWSIdentityReference
 </em>
 </td>
 <td>
-<em>(Optional)</em>
-<p>IdentityRef is a reference to a identity to be used when reconciling the managed control plane.</p>
+<p>IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
+If no identity is specified, the default identity for this controller will be used.</p>
 </td>
 </tr>
 <tr>
@@ -6236,8 +6236,8 @@ AWSIdentityReference
 </em>
 </td>
 <td>
-<em>(Optional)</em>
-<p>IdentityRef is a reference to a identity to be used when reconciling the managed control plane.</p>
+<p>IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
+If no identity is specified, the default identity for this controller will be used.</p>
 </td>
 </tr>
 <tr>
@@ -6639,8 +6639,8 @@ AWSIdentityReference
 </em>
 </td>
 <td>
-<em>(Optional)</em>
-<p>IdentityRef is a reference to a identity to be used when reconciling the managed control plane.</p>
+<p>IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
+If no identity is specified, the default identity for this controller will be used.</p>
 </td>
 </tr>
 <tr>
@@ -8059,6 +8059,1250 @@ Amazon VPC CNI addon.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.AWSRolesRef">AWSRolesRef
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+</p>
+<p>
+<p>AWSRolesRef contains references to various AWS IAM roles required for operators to make calls against the AWS API.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>ingressARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The referenced role must have a trust relationship that allows it to be assumed via web identity.
+<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc.html</a>.
+Example:
+{
+&ldquo;Version&rdquo;: &ldquo;2012-10-17&rdquo;,
+&ldquo;Statement&rdquo;: [
+{
+&ldquo;Effect&rdquo;: &ldquo;Allow&rdquo;,
+&ldquo;Principal&rdquo;: {
+&ldquo;Federated&rdquo;: &ldquo;{{ .ProviderARN }}&rdquo;
+},
+&ldquo;Action&rdquo;: &ldquo;sts:AssumeRoleWithWebIdentity&rdquo;,
+&ldquo;Condition&rdquo;: {
+&ldquo;StringEquals&rdquo;: {
+&ldquo;{{ .ProviderName }}:sub&rdquo;: {{ .ServiceAccounts }}
+}
+}
+}
+]
+}</p>
+<p>IngressARN is an ARN value referencing a role appropriate for the Ingress Operator.</p>
+<p>The following is an example of a valid policy document:</p>
+<p>{
+&ldquo;Version&rdquo;: &ldquo;2012-10-17&rdquo;,
+&ldquo;Statement&rdquo;: [
+{
+&ldquo;Effect&rdquo;: &ldquo;Allow&rdquo;,
+&ldquo;Action&rdquo;: [
+&ldquo;elasticloadbalancing:DescribeLoadBalancers&rdquo;,
+&ldquo;tag:GetResources&rdquo;,
+&ldquo;route53:ListHostedZones&rdquo;
+],
+&ldquo;Resource&rdquo;: &ldquo;*&rdquo;
+},
+{
+&ldquo;Effect&rdquo;: &ldquo;Allow&rdquo;,
+&ldquo;Action&rdquo;: [
+&ldquo;route53:ChangeResourceRecordSets&rdquo;
+],
+&ldquo;Resource&rdquo;: [
+&ldquo;arn:aws:route53:::PUBLIC_ZONE_ID&rdquo;,
+&ldquo;arn:aws:route53:::PRIVATE_ZONE_ID&rdquo;
+]
+}
+]
+}</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imageRegistryARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ImageRegistryARN is an ARN value referencing a role appropriate for the Image Registry Operator.</p>
+<p>The following is an example of a valid policy document:</p>
+<p>{
+&ldquo;Version&rdquo;: &ldquo;2012-10-17&rdquo;,
+&ldquo;Statement&rdquo;: [
+{
+&ldquo;Effect&rdquo;: &ldquo;Allow&rdquo;,
+&ldquo;Action&rdquo;: [
+&ldquo;s3:CreateBucket&rdquo;,
+&ldquo;s3:DeleteBucket&rdquo;,
+&ldquo;s3:PutBucketTagging&rdquo;,
+&ldquo;s3:GetBucketTagging&rdquo;,
+&ldquo;s3:PutBucketPublicAccessBlock&rdquo;,
+&ldquo;s3:GetBucketPublicAccessBlock&rdquo;,
+&ldquo;s3:PutEncryptionConfiguration&rdquo;,
+&ldquo;s3:GetEncryptionConfiguration&rdquo;,
+&ldquo;s3:PutLifecycleConfiguration&rdquo;,
+&ldquo;s3:GetLifecycleConfiguration&rdquo;,
+&ldquo;s3:GetBucketLocation&rdquo;,
+&ldquo;s3:ListBucket&rdquo;,
+&ldquo;s3:GetObject&rdquo;,
+&ldquo;s3:PutObject&rdquo;,
+&ldquo;s3:DeleteObject&rdquo;,
+&ldquo;s3:ListBucketMultipartUploads&rdquo;,
+&ldquo;s3:AbortMultipartUpload&rdquo;,
+&ldquo;s3:ListMultipartUploadParts&rdquo;
+],
+&ldquo;Resource&rdquo;: &ldquo;*&rdquo;
+}
+]
+}</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>storageARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>StorageARN is an ARN value referencing a role appropriate for the Storage Operator.</p>
+<p>The following is an example of a valid policy document:</p>
+<p>{
+&ldquo;Version&rdquo;: &ldquo;2012-10-17&rdquo;,
+&ldquo;Statement&rdquo;: [
+{
+&ldquo;Effect&rdquo;: &ldquo;Allow&rdquo;,
+&ldquo;Action&rdquo;: [
+&ldquo;ec2:AttachVolume&rdquo;,
+&ldquo;ec2:CreateSnapshot&rdquo;,
+&ldquo;ec2:CreateTags&rdquo;,
+&ldquo;ec2:CreateVolume&rdquo;,
+&ldquo;ec2:DeleteSnapshot&rdquo;,
+&ldquo;ec2:DeleteTags&rdquo;,
+&ldquo;ec2:DeleteVolume&rdquo;,
+&ldquo;ec2:DescribeInstances&rdquo;,
+&ldquo;ec2:DescribeSnapshots&rdquo;,
+&ldquo;ec2:DescribeTags&rdquo;,
+&ldquo;ec2:DescribeVolumes&rdquo;,
+&ldquo;ec2:DescribeVolumesModifications&rdquo;,
+&ldquo;ec2:DetachVolume&rdquo;,
+&ldquo;ec2:ModifyVolume&rdquo;
+],
+&ldquo;Resource&rdquo;: &ldquo;*&rdquo;
+}
+]
+}</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>networkARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>NetworkARN is an ARN value referencing a role appropriate for the Network Operator.</p>
+<p>The following is an example of a valid policy document:</p>
+<p>{
+&ldquo;Version&rdquo;: &ldquo;2012-10-17&rdquo;,
+&ldquo;Statement&rdquo;: [
+{
+&ldquo;Effect&rdquo;: &ldquo;Allow&rdquo;,
+&ldquo;Action&rdquo;: [
+&ldquo;ec2:DescribeInstances&rdquo;,
+&ldquo;ec2:DescribeInstanceStatus&rdquo;,
+&ldquo;ec2:DescribeInstanceTypes&rdquo;,
+&ldquo;ec2:UnassignPrivateIpAddresses&rdquo;,
+&ldquo;ec2:AssignPrivateIpAddresses&rdquo;,
+&ldquo;ec2:UnassignIpv6Addresses&rdquo;,
+&ldquo;ec2:AssignIpv6Addresses&rdquo;,
+&ldquo;ec2:DescribeSubnets&rdquo;,
+&ldquo;ec2:DescribeNetworkInterfaces&rdquo;
+],
+&ldquo;Resource&rdquo;: &ldquo;*&rdquo;
+}
+]
+}</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubeCloudControllerARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>KubeCloudControllerARN is an ARN value referencing a role appropriate for the KCM/KCC.
+Source: <a href="https://cloud-provider-aws.sigs.k8s.io/prerequisites/#iam-policies">https://cloud-provider-aws.sigs.k8s.io/prerequisites/#iam-policies</a></p>
+<p>The following is an example of a valid policy document:</p>
+<p>{
+&ldquo;Version&rdquo;: &ldquo;2012-10-17&rdquo;,
+&ldquo;Statement&rdquo;: [
+{
+&ldquo;Action&rdquo;: [
+&ldquo;autoscaling:DescribeAutoScalingGroups&rdquo;,
+&ldquo;autoscaling:DescribeLaunchConfigurations&rdquo;,
+&ldquo;autoscaling:DescribeTags&rdquo;,
+&ldquo;ec2:DescribeAvailabilityZones&rdquo;,
+&ldquo;ec2:DescribeInstances&rdquo;,
+&ldquo;ec2:DescribeImages&rdquo;,
+&ldquo;ec2:DescribeRegions&rdquo;,
+&ldquo;ec2:DescribeRouteTables&rdquo;,
+&ldquo;ec2:DescribeSecurityGroups&rdquo;,
+&ldquo;ec2:DescribeSubnets&rdquo;,
+&ldquo;ec2:DescribeVolumes&rdquo;,
+&ldquo;ec2:CreateSecurityGroup&rdquo;,
+&ldquo;ec2:CreateTags&rdquo;,
+&ldquo;ec2:CreateVolume&rdquo;,
+&ldquo;ec2:ModifyInstanceAttribute&rdquo;,
+&ldquo;ec2:ModifyVolume&rdquo;,
+&ldquo;ec2:AttachVolume&rdquo;,
+&ldquo;ec2:AuthorizeSecurityGroupIngress&rdquo;,
+&ldquo;ec2:CreateRoute&rdquo;,
+&ldquo;ec2:DeleteRoute&rdquo;,
+&ldquo;ec2:DeleteSecurityGroup&rdquo;,
+&ldquo;ec2:DeleteVolume&rdquo;,
+&ldquo;ec2:DetachVolume&rdquo;,
+&ldquo;ec2:RevokeSecurityGroupIngress&rdquo;,
+&ldquo;ec2:DescribeVpcs&rdquo;,
+&ldquo;elasticloadbalancing:AddTags&rdquo;,
+&ldquo;elasticloadbalancing:AttachLoadBalancerToSubnets&rdquo;,
+&ldquo;elasticloadbalancing:ApplySecurityGroupsToLoadBalancer&rdquo;,
+&ldquo;elasticloadbalancing:CreateLoadBalancer&rdquo;,
+&ldquo;elasticloadbalancing:CreateLoadBalancerPolicy&rdquo;,
+&ldquo;elasticloadbalancing:CreateLoadBalancerListeners&rdquo;,
+&ldquo;elasticloadbalancing:ConfigureHealthCheck&rdquo;,
+&ldquo;elasticloadbalancing:DeleteLoadBalancer&rdquo;,
+&ldquo;elasticloadbalancing:DeleteLoadBalancerListeners&rdquo;,
+&ldquo;elasticloadbalancing:DescribeLoadBalancers&rdquo;,
+&ldquo;elasticloadbalancing:DescribeLoadBalancerAttributes&rdquo;,
+&ldquo;elasticloadbalancing:DetachLoadBalancerFromSubnets&rdquo;,
+&ldquo;elasticloadbalancing:DeregisterInstancesFromLoadBalancer&rdquo;,
+&ldquo;elasticloadbalancing:ModifyLoadBalancerAttributes&rdquo;,
+&ldquo;elasticloadbalancing:RegisterInstancesWithLoadBalancer&rdquo;,
+&ldquo;elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer&rdquo;,
+&ldquo;elasticloadbalancing:AddTags&rdquo;,
+&ldquo;elasticloadbalancing:CreateListener&rdquo;,
+&ldquo;elasticloadbalancing:CreateTargetGroup&rdquo;,
+&ldquo;elasticloadbalancing:DeleteListener&rdquo;,
+&ldquo;elasticloadbalancing:DeleteTargetGroup&rdquo;,
+&ldquo;elasticloadbalancing:DeregisterTargets&rdquo;,
+&ldquo;elasticloadbalancing:DescribeListeners&rdquo;,
+&ldquo;elasticloadbalancing:DescribeLoadBalancerPolicies&rdquo;,
+&ldquo;elasticloadbalancing:DescribeTargetGroups&rdquo;,
+&ldquo;elasticloadbalancing:DescribeTargetHealth&rdquo;,
+&ldquo;elasticloadbalancing:ModifyListener&rdquo;,
+&ldquo;elasticloadbalancing:ModifyTargetGroup&rdquo;,
+&ldquo;elasticloadbalancing:RegisterTargets&rdquo;,
+&ldquo;elasticloadbalancing:SetLoadBalancerPoliciesOfListener&rdquo;,
+&ldquo;iam:CreateServiceLinkedRole&rdquo;,
+&ldquo;kms:DescribeKey&rdquo;
+],
+&ldquo;Resource&rdquo;: [
+&ldquo;*&rdquo;
+],
+&ldquo;Effect&rdquo;: &ldquo;Allow&rdquo;
+}
+]
+}</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nodePoolManagementARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>NodePoolManagementARN is an ARN value referencing a role appropriate for the CAPI Controller.</p>
+<p>The following is an example of a valid policy document:</p>
+<p>{
+&ldquo;Version&rdquo;: &ldquo;2012-10-17&rdquo;,
+&ldquo;Statement&rdquo;: [
+{
+&ldquo;Action&rdquo;: [
+&ldquo;ec2:AssociateRouteTable&rdquo;,
+&ldquo;ec2:AttachInternetGateway&rdquo;,
+&ldquo;ec2:AuthorizeSecurityGroupIngress&rdquo;,
+&ldquo;ec2:CreateInternetGateway&rdquo;,
+&ldquo;ec2:CreateNatGateway&rdquo;,
+&ldquo;ec2:CreateRoute&rdquo;,
+&ldquo;ec2:CreateRouteTable&rdquo;,
+&ldquo;ec2:CreateSecurityGroup&rdquo;,
+&ldquo;ec2:CreateSubnet&rdquo;,
+&ldquo;ec2:CreateTags&rdquo;,
+&ldquo;ec2:DeleteInternetGateway&rdquo;,
+&ldquo;ec2:DeleteNatGateway&rdquo;,
+&ldquo;ec2:DeleteRouteTable&rdquo;,
+&ldquo;ec2:DeleteSecurityGroup&rdquo;,
+&ldquo;ec2:DeleteSubnet&rdquo;,
+&ldquo;ec2:DeleteTags&rdquo;,
+&ldquo;ec2:DescribeAccountAttributes&rdquo;,
+&ldquo;ec2:DescribeAddresses&rdquo;,
+&ldquo;ec2:DescribeAvailabilityZones&rdquo;,
+&ldquo;ec2:DescribeImages&rdquo;,
+&ldquo;ec2:DescribeInstances&rdquo;,
+&ldquo;ec2:DescribeInternetGateways&rdquo;,
+&ldquo;ec2:DescribeNatGateways&rdquo;,
+&ldquo;ec2:DescribeNetworkInterfaces&rdquo;,
+&ldquo;ec2:DescribeNetworkInterfaceAttribute&rdquo;,
+&ldquo;ec2:DescribeRouteTables&rdquo;,
+&ldquo;ec2:DescribeSecurityGroups&rdquo;,
+&ldquo;ec2:DescribeSubnets&rdquo;,
+&ldquo;ec2:DescribeVpcs&rdquo;,
+&ldquo;ec2:DescribeVpcAttribute&rdquo;,
+&ldquo;ec2:DescribeVolumes&rdquo;,
+&ldquo;ec2:DetachInternetGateway&rdquo;,
+&ldquo;ec2:DisassociateRouteTable&rdquo;,
+&ldquo;ec2:DisassociateAddress&rdquo;,
+&ldquo;ec2:ModifyInstanceAttribute&rdquo;,
+&ldquo;ec2:ModifyNetworkInterfaceAttribute&rdquo;,
+&ldquo;ec2:ModifySubnetAttribute&rdquo;,
+&ldquo;ec2:RevokeSecurityGroupIngress&rdquo;,
+&ldquo;ec2:RunInstances&rdquo;,
+&ldquo;ec2:TerminateInstances&rdquo;,
+&ldquo;tag:GetResources&rdquo;,
+&ldquo;ec2:CreateLaunchTemplate&rdquo;,
+&ldquo;ec2:CreateLaunchTemplateVersion&rdquo;,
+&ldquo;ec2:DescribeLaunchTemplates&rdquo;,
+&ldquo;ec2:DescribeLaunchTemplateVersions&rdquo;,
+&ldquo;ec2:DeleteLaunchTemplate&rdquo;,
+&ldquo;ec2:DeleteLaunchTemplateVersions&rdquo;
+],
+&ldquo;Resource&rdquo;: [
+&ldquo;<em>&rdquo;
+],
+&ldquo;Effect&rdquo;: &ldquo;Allow&rdquo;
+},
+{
+&ldquo;Condition&rdquo;: {
+&ldquo;StringLike&rdquo;: {
+&ldquo;iam:AWSServiceName&rdquo;: &ldquo;elasticloadbalancing.amazonaws.com&rdquo;
+}
+},
+&ldquo;Action&rdquo;: [
+&ldquo;iam:CreateServiceLinkedRole&rdquo;
+],
+&ldquo;Resource&rdquo;: [
+&ldquo;arn:</em>:iam::<em>:role/aws-service-role/elasticloadbalancing.amazonaws.com/AWSServiceRoleForElasticLoadBalancing&rdquo;
+],
+&ldquo;Effect&rdquo;: &ldquo;Allow&rdquo;
+},
+{
+&ldquo;Action&rdquo;: [
+&ldquo;iam:PassRole&rdquo;
+],
+&ldquo;Resource&rdquo;: [
+&ldquo;arn:</em>:iam::<em>:role/</em>-worker-role&rdquo;
+],
+&ldquo;Effect&rdquo;: &ldquo;Allow&rdquo;
+},
+{
+&ldquo;Effect&rdquo;: &ldquo;Allow&rdquo;,
+&ldquo;Action&rdquo;: [
+&ldquo;kms:Decrypt&rdquo;,
+&ldquo;kms:ReEncrypt&rdquo;,
+&ldquo;kms:GenerateDataKeyWithoutPlainText&rdquo;,
+&ldquo;kms:DescribeKey&rdquo;
+],
+&ldquo;Resource&rdquo;: &ldquo;<em>&rdquo;
+},
+{
+&ldquo;Effect&rdquo;: &ldquo;Allow&rdquo;,
+&ldquo;Action&rdquo;: [
+&ldquo;kms:CreateGrant&rdquo;
+],
+&ldquo;Resource&rdquo;: &ldquo;</em>&rdquo;,
+&ldquo;Condition&rdquo;: {
+&ldquo;Bool&rdquo;: {
+&ldquo;kms:GrantIsForAWSResource&rdquo;: true
+}
+}
+}
+]
+}</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>controlPlaneOperatorARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ControlPlaneOperatorARN  is an ARN value referencing a role appropriate for the Control Plane Operator.</p>
+<p>The following is an example of a valid policy document:</p>
+<p>{
+&ldquo;Version&rdquo;: &ldquo;2012-10-17&rdquo;,
+&ldquo;Statement&rdquo;: [
+{
+&ldquo;Effect&rdquo;: &ldquo;Allow&rdquo;,
+&ldquo;Action&rdquo;: [
+&ldquo;ec2:CreateVpcEndpoint&rdquo;,
+&ldquo;ec2:DescribeVpcEndpoints&rdquo;,
+&ldquo;ec2:ModifyVpcEndpoint&rdquo;,
+&ldquo;ec2:DeleteVpcEndpoints&rdquo;,
+&ldquo;ec2:CreateTags&rdquo;,
+&ldquo;route53:ListHostedZones&rdquo;,
+&ldquo;ec2:CreateSecurityGroup&rdquo;,
+&ldquo;ec2:AuthorizeSecurityGroupIngress&rdquo;,
+&ldquo;ec2:AuthorizeSecurityGroupEgress&rdquo;,
+&ldquo;ec2:DeleteSecurityGroup&rdquo;,
+&ldquo;ec2:RevokeSecurityGroupIngress&rdquo;,
+&ldquo;ec2:RevokeSecurityGroupEgress&rdquo;,
+&ldquo;ec2:DescribeSecurityGroups&rdquo;,
+&ldquo;ec2:DescribeVpcs&rdquo;,
+],
+&ldquo;Resource&rdquo;: &ldquo;*&rdquo;
+},
+{
+&ldquo;Effect&rdquo;: &ldquo;Allow&rdquo;,
+&ldquo;Action&rdquo;: [
+&ldquo;route53:ChangeResourceRecordSets&rdquo;,
+&ldquo;route53:ListResourceRecordSets&rdquo;
+],
+&ldquo;Resource&rdquo;: &ldquo;arn:aws:route53:::%s&rdquo;
+}
+]
+}</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kmsProviderARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.NetworkSpec">NetworkSpec
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+</p>
+<p>
+<p>NetworkSpec for ROSA-HCP.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>machineCIDR</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IP addresses block used by OpenShift while installing the cluster, for example &ldquo;10.0.0.0/16&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>podCIDR</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IP address block from which to assign pod IP addresses, for example <code>10.128.0.0/14</code>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceCIDR</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IP address block from which to assign service IP addresses, for example <code>172.30.0.0/16</code>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostPrefix</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Network host prefix which is defaulted to <code>23</code> if not specified.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>networkType</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The CNI network type default is OVNKubernetes.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.ROSAControlPlane">ROSAControlPlane
+</h3>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">
+RosaControlPlaneSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>rosaClusterName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Cluster name must be valid DNS-1035 label, so it must consist of lower case alphanumeric
+characters or &lsquo;-&rsquo;, start with an alphabetic character, end with an alphanumeric character
+and have a max length of 15 characters.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>subnets</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>The Subnet IDs to use when installing the cluster.
+SubnetIDs should come in pairs; two per availability zone, one private and one public.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availabilityZones</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>AWS AvailabilityZones of the worker nodes
+should match the AvailabilityZones of the Subnets.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The AWS Region the cluster lives in.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>OpenShift semantic version, for example &ldquo;4.14.5&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rolesRef</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSRolesRef">
+AWSRolesRef
+</a>
+</em>
+</td>
+<td>
+<p>AWS IAM roles used to perform credential requests by the openshift operators.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The ID of the OpenID Connect Provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>installerRoleARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>TODO: these are to satisfy ocm sdk. Explore how to drop them.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>supportRoleARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>workerRoleARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>billingAccount</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA clusters.
+The cost of running each ROSA cluster will be billed to the infrastructure account in which the cluster
+is running.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>credentialsSecretRef</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
+Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CredentialsSecretRef references a secret with necessary credentials to connect to the OCM API.
+The secret should contain the following data keys:
+- ocmToken: eyJhbGciOiJIUzI1NiIsI&hellip;.
+- ocmApiUrl: Optional, defaults to &lsquo;<a href="https://api.openshift.com'">https://api.openshift.com&rsquo;</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>identityRef</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSIdentityReference">
+AWSIdentityReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
+If no identity is specified, the default identity for this controller will be used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>network</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.NetworkSpec">
+NetworkSpec
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Network config for the ROSA HCP cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>endpointAccess</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaEndpointAccessType">
+RosaEndpointAccessType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EndpointAccess specifies the publishing scope of cluster endpoints. The
+default is Public.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>instanceType</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The instance type to use, for example <code>r5.xlarge</code>. Instance type ref; <a href="https://aws.amazon.com/ec2/instance-types/">https://aws.amazon.com/ec2/instance-types/</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>autoscaling</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolAutoScaling">
+RosaMachinePoolAutoScaling
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Autoscaling specifies auto scaling behaviour for the MachinePools.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>additionalTags</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Tags">
+Tags
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalTags are user-defined tags to be added on the AWS resources associated with the control plane.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>etcdEncryptionKMSArn</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EtcdEncryptionKMSArn is the ARN of the KMS key used to encrypt etcd. The key itself needs to be
+created out-of-band by the user and tagged with <code>red-hat:true</code>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>controlPlaneEndpoint</code><br/>
+<em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
+Cluster API api/v1beta1.APIEndpoint
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneStatus">
+RosaControlPlaneStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.ROSAControlPlane">ROSAControlPlane</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>rosaClusterName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Cluster name must be valid DNS-1035 label, so it must consist of lower case alphanumeric
+characters or &lsquo;-&rsquo;, start with an alphabetic character, end with an alphanumeric character
+and have a max length of 15 characters.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>subnets</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>The Subnet IDs to use when installing the cluster.
+SubnetIDs should come in pairs; two per availability zone, one private and one public.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availabilityZones</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>AWS AvailabilityZones of the worker nodes
+should match the AvailabilityZones of the Subnets.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The AWS Region the cluster lives in.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>OpenShift semantic version, for example &ldquo;4.14.5&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rolesRef</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSRolesRef">
+AWSRolesRef
+</a>
+</em>
+</td>
+<td>
+<p>AWS IAM roles used to perform credential requests by the openshift operators.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The ID of the OpenID Connect Provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>installerRoleARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>TODO: these are to satisfy ocm sdk. Explore how to drop them.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>supportRoleARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>workerRoleARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>billingAccount</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA clusters.
+The cost of running each ROSA cluster will be billed to the infrastructure account in which the cluster
+is running.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>credentialsSecretRef</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
+Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CredentialsSecretRef references a secret with necessary credentials to connect to the OCM API.
+The secret should contain the following data keys:
+- ocmToken: eyJhbGciOiJIUzI1NiIsI&hellip;.
+- ocmApiUrl: Optional, defaults to &lsquo;<a href="https://api.openshift.com'">https://api.openshift.com&rsquo;</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>identityRef</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSIdentityReference">
+AWSIdentityReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
+If no identity is specified, the default identity for this controller will be used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>network</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.NetworkSpec">
+NetworkSpec
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Network config for the ROSA HCP cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>endpointAccess</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaEndpointAccessType">
+RosaEndpointAccessType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EndpointAccess specifies the publishing scope of cluster endpoints. The
+default is Public.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>instanceType</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The instance type to use, for example <code>r5.xlarge</code>. Instance type ref; <a href="https://aws.amazon.com/ec2/instance-types/">https://aws.amazon.com/ec2/instance-types/</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>autoscaling</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolAutoScaling">
+RosaMachinePoolAutoScaling
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Autoscaling specifies auto scaling behaviour for the MachinePools.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>additionalTags</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Tags">
+Tags
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalTags are user-defined tags to be added on the AWS resources associated with the control plane.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>etcdEncryptionKMSArn</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EtcdEncryptionKMSArn is the ARN of the KMS key used to encrypt etcd. The key itself needs to be
+created out-of-band by the user and tagged with <code>red-hat:true</code>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>controlPlaneEndpoint</code><br/>
+<em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
+Cluster API api/v1beta1.APIEndpoint
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneStatus">RosaControlPlaneStatus
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.ROSAControlPlane">ROSAControlPlane</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>externalManagedControlPlane</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>ExternalManagedControlPlane indicates to cluster-api that the control plane
+is managed by an external service such as AKS, EKS, GKE, etc.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>initialized</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Initialized denotes whether or not the control plane has the
+uploaded kubernetes config-map.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ready</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>Ready denotes that the ROSAControlPlane API Server is ready to receive requests.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>failureMessage</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>FailureMessage will be set in the event that there is a terminal problem
+reconciling the state and will be set to a descriptive error message.</p>
+<p>This field should not be set for transitive errors that a controller
+faces that are expected to be fixed automatically over
+time (like service outages), but instead indicate that something is
+fundamentally wrong with the spec or the configuration of
+the controller, and that manual intervention is required.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
+Cluster API api/v1beta1.Conditions
+</a>
+</em>
+</td>
+<td>
+<p>Conditions specifies the conditions for the managed control plane</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>id</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ID is the cluster ID given by ROSA.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>consoleURL</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ConsoleURL is the url for the openshift console.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcEndpointURL</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>OIDCEndpointURL is the endpoint url for the managed OIDC provider.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.RosaEndpointAccessType">RosaEndpointAccessType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+</p>
+<p>
+<p>RosaEndpointAccessType specifies the publishing scope of cluster endpoints.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Private&#34;</p></td>
+<td><p>Private endpoint access allows only private API server access and private
+node communication with the control plane.</p>
+</td>
+</tr><tr><td><p>&#34;Public&#34;</p></td>
+<td><p>Public endpoint access allows public API server access and
+private node communication with the control plane.</p>
+</td>
+</tr></tbody>
+</table>
 <hr/>
 <h2 id="infrastructure.cluster.x-k8s.io/v1beta1">infrastructure.cluster.x-k8s.io/v1beta1</h2>
 <p>
@@ -8306,8 +9550,8 @@ AWSIdentityReference
 </em>
 </td>
 <td>
-<em>(Optional)</em>
-<p>IdentityRef is a reference to a identity to be used when reconciling this cluster</p>
+<p>IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
+If no identity is specified, the default identity for this controller will be used.</p>
 </td>
 </tr>
 <tr>
@@ -8838,8 +10082,8 @@ AWSIdentityReference
 </em>
 </td>
 <td>
-<em>(Optional)</em>
-<p>IdentityRef is a reference to a identity to be used when reconciling this cluster</p>
+<p>IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
+If no identity is specified, the default identity for this controller will be used.</p>
 </td>
 </tr>
 <tr>
@@ -9318,8 +10562,8 @@ AWSIdentityReference
 </em>
 </td>
 <td>
-<em>(Optional)</em>
-<p>IdentityRef is a reference to a identity to be used when reconciling this cluster</p>
+<p>IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
+If no identity is specified, the default identity for this controller will be used.</p>
 </td>
 </tr>
 <tr>
@@ -15742,8 +16986,8 @@ AWSIdentityReference
 </em>
 </td>
 <td>
-<em>(Optional)</em>
-<p>IdentityRef is a reference to a identity to be used when reconciling this cluster</p>
+<p>IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
+If no identity is specified, the default identity for this controller will be used.</p>
 </td>
 </tr>
 <tr>
@@ -16302,8 +17546,8 @@ AWSIdentityReference
 </em>
 </td>
 <td>
-<em>(Optional)</em>
-<p>IdentityRef is a reference to a identity to be used when reconciling this cluster</p>
+<p>IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
+If no identity is specified, the default identity for this controller will be used.</p>
 </td>
 </tr>
 <tr>
@@ -16810,8 +18054,8 @@ AWSIdentityReference
 </em>
 </td>
 <td>
-<em>(Optional)</em>
-<p>IdentityRef is a reference to a identity to be used when reconciling this cluster</p>
+<p>IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
+If no identity is specified, the default identity for this controller will be used.</p>
 </td>
 </tr>
 <tr>
@@ -16877,7 +18121,7 @@ AWSClusterTemplateResource
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSIdentityReference">AWSIdentityReference
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterRoleIdentitySpec">AWSClusterRoleIdentitySpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterSpec">AWSClusterSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterRoleIdentitySpec">AWSClusterRoleIdentitySpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterSpec">AWSClusterSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
 </p>
 <p>
 <p>AWSIdentityReference specifies a identity.</p>
@@ -17309,6 +18553,19 @@ the cluster subnet will be used.</p>
 </tr>
 <tr>
 <td>
+<code>securityGroupOverrides</code><br/>
+<em>
+map[sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2.SecurityGroupRole]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecurityGroupOverrides is an optional set of security groups to use for the node.
+This is optional - if not provided security groups from the cluster will be used.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>sshKeyName</code><br/>
 <em>
 string
@@ -17439,6 +18696,20 @@ string
 <td>
 <em>(Optional)</em>
 <p>Tenancy indicates if instance should run on shared or single-tenant hardware.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>privateDnsName</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.PrivateDNSName">
+PrivateDNSName
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PrivateDNSName is the options for the instance hostname.</p>
 </td>
 </tr>
 </table>
@@ -17662,6 +18933,19 @@ the cluster subnet will be used.</p>
 </tr>
 <tr>
 <td>
+<code>securityGroupOverrides</code><br/>
+<em>
+map[sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2.SecurityGroupRole]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecurityGroupOverrides is an optional set of security groups to use for the node.
+This is optional - if not provided security groups from the cluster will be used.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>sshKeyName</code><br/>
 <em>
 string
@@ -17792,6 +19076,20 @@ string
 <td>
 <em>(Optional)</em>
 <p>Tenancy indicates if instance should run on shared or single-tenant hardware.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>privateDnsName</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.PrivateDNSName">
+PrivateDNSName
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PrivateDNSName is the options for the instance hostname.</p>
 </td>
 </tr>
 </tbody>
@@ -18231,6 +19529,19 @@ the cluster subnet will be used.</p>
 </tr>
 <tr>
 <td>
+<code>securityGroupOverrides</code><br/>
+<em>
+map[sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2.SecurityGroupRole]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecurityGroupOverrides is an optional set of security groups to use for the node.
+This is optional - if not provided security groups from the cluster will be used.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>sshKeyName</code><br/>
 <em>
 string
@@ -18361,6 +19672,20 @@ string
 <td>
 <em>(Optional)</em>
 <p>Tenancy indicates if instance should run on shared or single-tenant hardware.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>privateDnsName</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.PrivateDNSName">
+PrivateDNSName
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PrivateDNSName is the options for the instance hostname.</p>
 </td>
 </tr>
 </table>
@@ -19558,8 +20883,40 @@ string
 <p>Version defines which version of Ignition will be used to generate bootstrap data.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>storageType</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.IgnitionStorageTypeOption">
+IgnitionStorageTypeOption
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>StorageType defines how to store the boostrap user data for Ignition.
+This can be used to instruct Ignition from where to fetch the user data to bootstrap an instance.</p>
+<p>When omitted, the storage option will default to ClusterObjectStore.</p>
+<p>When set to &ldquo;ClusterObjectStore&rdquo;, if the capability is available and a Cluster ObjectStore configuration
+is correctly provided in the Cluster object (under .spec.s3Bucket),
+an object store will be used to store bootstrap user data.</p>
+<p>When set to &ldquo;UnencryptedUserData&rdquo;, EC2 Instance User Data will be used to store the machine bootstrap user data, unencrypted.
+This option is considered less secure than others as user data may contain sensitive informations (keys, certificates, etc.)
+and users with ec2:DescribeInstances permission or users running pods
+that can access the ec2 metadata service have access to this sensitive information.
+So this is only to be used at ones own risk, and only when other more secure options are not viable.</p>
+</td>
+</tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.IgnitionStorageTypeOption">IgnitionStorageTypeOption
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.Ignition">Ignition</a>)
+</p>
+<p>
+<p>IgnitionStorageTypeOption defines the different storage types for Ignition.</p>
+</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.IngressRule">IngressRule
 </h3>
 <p>
@@ -19979,6 +21336,20 @@ InstanceMetadataOptions
 <td>
 <em>(Optional)</em>
 <p>InstanceMetadataOptions is the metadata options for the EC2 instance.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>privateDnsName</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.PrivateDNSName">
+PrivateDNSName
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PrivateDNSName is the options for the instance hostname.</p>
 </td>
 </tr>
 </tbody>
@@ -20491,6 +21862,60 @@ LoadBalancer
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.PrivateDNSName">PrivateDNSName
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.Instance">Instance</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLaunchTemplate">AWSLaunchTemplate</a>)
+</p>
+<p>
+<p>PrivateDNSName is the options for the instance hostname.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>enableResourceNameDnsAAAARecord</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EnableResourceNameDNSAAAARecord indicates whether to respond to DNS queries for instance hostnames with DNS AAAA records.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>enableResourceNameDnsARecord</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EnableResourceNameDNSARecord indicates whether to respond to DNS queries for instance hostnames with DNS A records.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostnameType</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The type of hostname to assign to an instance.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ResourceLifecycle">ResourceLifecycle
 (<code>string</code> alias)</p></h3>
 <p>
@@ -20873,7 +22298,7 @@ Tags
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.Tags">Tags
 (<code>map[string]string</code> alias)</p></h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterSpec">AWSClusterSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.BuildParams">BuildParams</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.SecurityGroup">SecurityGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.SubnetSpec">SubnetSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.VPCSpec">VPCSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1.AWSIAMRoleSpec">AWSIAMRoleSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1.BootstrapUser">BootstrapUser</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.AWSIAMRoleSpec">AWSIAMRoleSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.BootstrapUser">BootstrapUser</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.OIDCIdentityProviderConfig">OIDCIdentityProviderConfig</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.OIDCIdentityProviderConfig">OIDCIdentityProviderConfig</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachinePoolSpec">AWSMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AutoScalingGroup">AutoScalingGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.FargateProfileSpec">FargateProfileSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolSpec">AWSMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AutoScalingGroup">AutoScalingGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.FargateProfileSpec">FargateProfileSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterSpec">AWSClusterSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.BuildParams">BuildParams</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.SecurityGroup">SecurityGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.SubnetSpec">SubnetSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.VPCSpec">VPCSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1.AWSIAMRoleSpec">AWSIAMRoleSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1.BootstrapUser">BootstrapUser</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.AWSIAMRoleSpec">AWSIAMRoleSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.BootstrapUser">BootstrapUser</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.OIDCIdentityProviderConfig">OIDCIdentityProviderConfig</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.OIDCIdentityProviderConfig">OIDCIdentityProviderConfig</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachinePoolSpec">AWSMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AutoScalingGroup">AutoScalingGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.FargateProfileSpec">FargateProfileSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolSpec">AWSMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AutoScalingGroup">AutoScalingGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.FargateProfileSpec">FargateProfileSpec</a>)
 </p>
 <p>
 <p>Tags defines a map of tags.</p>
@@ -21177,6 +22602,20 @@ and egress rules should be removed.</p>
 rules that allow traffic from anywhere. The group could be used as a potential surface attack and
 it&rsquo;s generally suggested that the group rules are removed or modified appropriately.</p>
 <p>NOTE: This only applies when the VPC is managed by the Cluster API AWS controller.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>privateDnsHostnameTypeOnLaunch</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PrivateDNSHostnameTypeOnLaunch is the type of hostname to assign to instances in the subnet at launch.
+For IPv4-only and dual-stack (IPv4 and IPv6) subnets, an instance DNS name can be based on the instance IPv4 address (ip-name)
+or the instance ID (resource-name). For IPv6 only subnets, an instance DNS name must be based on the instance ID (resource-name).</p>
 </td>
 </tr>
 </tbody>
@@ -21634,6 +23073,20 @@ InstanceMetadataOptions
 <p>InstanceMetadataOptions defines the behavior for applying metadata to instances.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>privateDnsName</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.PrivateDNSName">
+PrivateDNSName
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PrivateDNSName is the options for the instance hostname.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePool">AWSMachinePool
@@ -21815,6 +23268,23 @@ Kubernetes meta/v1.Duration
 <td>
 <em>(Optional)</em>
 <p>The amount of time, in seconds, after a scaling activity completes before another scaling activity can start.
+If no value is supplied by user a default value of 300 seconds is set</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>defaultInstanceWarmup</code><br/>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The amount of time, in seconds, until a new instance is considered to
+have finished initializing and resource consumption to become stable
+after it enters the InService state.
 If no value is supplied by user a default value of 300 seconds is set</p>
 </td>
 </tr>
@@ -22072,6 +23542,23 @@ Kubernetes meta/v1.Duration
 <td>
 <em>(Optional)</em>
 <p>The amount of time, in seconds, after a scaling activity completes before another scaling activity can start.
+If no value is supplied by user a default value of 300 seconds is set</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>defaultInstanceWarmup</code><br/>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The amount of time, in seconds, until a new instance is considered to
+have finished initializing and resource consumption to become stable
+after it enters the InService state.
 If no value is supplied by user a default value of 300 seconds is set</p>
 </td>
 </tr>
@@ -23141,6 +24628,18 @@ Kubernetes meta/v1.Duration
 </tr>
 <tr>
 <td>
+<code>defaultInstanceWarmup</code><br/>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
 <code>capacityRebalance</code><br/>
 <em>
 bool
@@ -24114,6 +25613,19 @@ must be a valid DNS-1035 label, so it must consist of lower case alphanumeric an
 </tr>
 <tr>
 <td>
+<code>version</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Version specifies the OpenShift version of the nodes associated with this machinepool.
+ROSAControlPlane version is used if not set.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>availabilityZone</code><br/>
 <em>
 string
@@ -24146,6 +25658,20 @@ map[string]string
 <td>
 <em>(Optional)</em>
 <p>Labels specifies labels for the Kubernetes node objects</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>taints</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaTaint">
+[]RosaTaint
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Taints specifies the taints to apply to the nodes of the machine pool</p>
 </td>
 </tr>
 <tr>
@@ -24185,6 +25711,19 @@ RosaMachinePoolAutoScaling
 <em>(Optional)</em>
 <p>Autoscaling specifies auto scaling behaviour for this MachinePool.
 required if Replicas is not configured</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tuningConfigs</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TuningConfigs specifies the names of the tuning configs to be applied to this MachinePool.
+Tuning configs must already exist.</p>
 </td>
 </tr>
 <tr>
@@ -24291,7 +25830,7 @@ during an instance refresh. The default is 90.</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolAutoScaling">RosaMachinePoolAutoScaling
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolSpec">RosaMachinePoolSpec</a>)
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolSpec">RosaMachinePoolSpec</a>)
 </p>
 <p>
 <p>RosaMachinePoolAutoScaling specifies scaling options.</p>
@@ -24356,6 +25895,19 @@ must be a valid DNS-1035 label, so it must consist of lower case alphanumeric an
 </tr>
 <tr>
 <td>
+<code>version</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Version specifies the OpenShift version of the nodes associated with this machinepool.
+ROSAControlPlane version is used if not set.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>availabilityZone</code><br/>
 <em>
 string
@@ -24388,6 +25940,20 @@ map[string]string
 <td>
 <em>(Optional)</em>
 <p>Labels specifies labels for the Kubernetes node objects</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>taints</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaTaint">
+[]RosaTaint
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Taints specifies the taints to apply to the nodes of the machine pool</p>
 </td>
 </tr>
 <tr>
@@ -24427,6 +25993,19 @@ RosaMachinePoolAutoScaling
 <em>(Optional)</em>
 <p>Autoscaling specifies auto scaling behaviour for this MachinePool.
 required if Replicas is not configured</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tuningConfigs</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TuningConfigs specifies the names of the tuning configs to be applied to this MachinePool.
+Tuning configs must already exist.</p>
 </td>
 </tr>
 <tr>
@@ -24499,6 +26078,24 @@ Cluster API api/v1beta1.Conditions
 </tr>
 <tr>
 <td>
+<code>failureMessage</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>FailureMessage will be set in the event that there is a terminal problem
+reconciling the state and will be set to a descriptive error message.</p>
+<p>This field should not be set for transitive errors that a controller
+faces that are expected to be fixed automatically over
+time (like service outages), but instead indicate that something is
+fundamentally wrong with the spec or the configuration of
+the controller, and that manual intervention is required.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>id</code><br/>
 <em>
 string
@@ -24506,6 +26103,60 @@ string
 </td>
 <td>
 <p>ID is the ID given by ROSA.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.RosaTaint">RosaTaint
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolSpec">RosaMachinePoolSpec</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>key</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The taint key to be applied to a node.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>value</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The taint value corresponding to the taint key.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>effect</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#tainteffect-v1-core">
+Kubernetes core/v1.TaintEffect
+</a>
+</em>
+</td>
+<td>
+<p>The effect of the taint on pods that do not tolerate the taint.
+Valid effects are NoSchedule, PreferNoSchedule and NoExecute.</p>
 </td>
 </tr>
 </tbody>
