@@ -418,7 +418,7 @@ func getSubnetID(filterKey, filterValue, clusterName string) *string {
 	return subnetOutput.Subnets[0].SubnetId
 }
 
-func getVolumeIds(info statefulSetInfo, k8sclient crclient.Client) []*string {
+func getVolumeIDs(info statefulSetInfo, k8sclient crclient.Client) []*string {
 	ginkgo.By("Retrieving IDs of dynamically provisioned volumes.")
 	statefulset := &appsv1.StatefulSet{}
 	err := k8sclient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: info.namespace, Name: info.name}, statefulset)
@@ -683,11 +683,11 @@ func verifyElbExists(elbName string, exists bool) {
 	}
 }
 
-func verifyVolumesExists(awsVolumeIds []*string) {
+func verifyVolumesExists(awsVolumeIDs []*string) {
 	ginkgo.By("Ensuring dynamically provisioned volumes exists")
 	ec2Client := ec2.New(e2eCtx.AWSSession)
 	input := &ec2.DescribeVolumesInput{
-		VolumeIds: awsVolumeIds,
+		VolumeIds: awsVolumeIDs,
 	}
 	_, err := ec2Client.DescribeVolumes(input)
 	Expect(err).NotTo(HaveOccurred())

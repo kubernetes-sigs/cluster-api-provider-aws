@@ -14,8 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package mock_ssmiface provides a mock interface for the SSM API client.
 // Run go generate to regenerate this mock.
+//
 //go:generate ../../../../../hack/tools/bin/mockgen -destination ssmapi_mock.go -package mock_ssmiface github.com/aws/aws-sdk-go/service/ssm/ssmiface SSMAPI
 //go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt ssmapi_mock.go > _ssmapi_mock.go && mv _ssmapi_mock.go ssmapi_mock.go"
-
 package mock_ssmiface //nolint:stylecheck

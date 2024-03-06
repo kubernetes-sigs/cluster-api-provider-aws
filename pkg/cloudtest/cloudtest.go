@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package cloudtest provides utilities for testing.
 package cloudtest
 
 import (
@@ -42,23 +43,24 @@ func RuntimeRawExtension(t *testing.T, p interface{}) *runtime.RawExtension {
 // test log messages.
 type Log struct{}
 
-func (l *Log) Init(info logr.RuntimeInfo) {
+// Init initializes the logger.
+func (l *Log) Init(_ logr.RuntimeInfo) {
 }
 
 // Error implements Log errors.
-func (l *Log) Error(err error, msg string, keysAndValues ...interface{}) {}
+func (l *Log) Error(_ error, _ string, _ ...interface{}) {}
 
 // V returns the Logger's log level.
-func (l *Log) V(level int) logr.LogSink { return l }
+func (l *Log) V(_ int) logr.LogSink { return l }
 
 // WithValues returns logs with specific values.
-func (l *Log) WithValues(keysAndValues ...interface{}) logr.LogSink { return l }
+func (l *Log) WithValues(_ ...interface{}) logr.LogSink { return l }
 
 // WithName returns the logger with a specific name.
-func (l *Log) WithName(name string) logr.LogSink { return l }
+func (l *Log) WithName(_ string) logr.LogSink { return l }
 
 // Info implements info messages for the logger.
-func (l *Log) Info(level int, msg string, keysAndValues ...interface{}) {}
+func (l *Log) Info(_ int, _ string, _ ...interface{}) {}
 
 // Enabled returns the state of the logger.
-func (l *Log) Enabled(level int) bool { return false }
+func (l *Log) Enabled(_ int) bool { return false }

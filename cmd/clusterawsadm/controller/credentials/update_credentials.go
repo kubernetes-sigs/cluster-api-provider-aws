@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package credentials provides AWS credentials management.
 package credentials
 
 import (
@@ -49,7 +50,7 @@ func UpdateCredentials(input UpdateCredentialsInput) error {
 		creds = "Cg=="
 	}
 
-	patch := fmt.Sprintf("{\"data\":{\"credentials\": \"%s\"}}", creds)
+	patch := fmt.Sprintf("{\"data\":{\"credentials\": %q}}", creds)
 	_, err = client.CoreV1().Secrets(input.Namespace).Patch(
 		context.TODO(),
 		controller.BootstrapCredsSecret,

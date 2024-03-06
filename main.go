@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package main contains the main entrypoint for the AWS provider components.
 package main
 
 import (

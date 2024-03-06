@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package rollout provides a way to rollout the CAPA controller manager deployment.
 package rollout
 
 import (

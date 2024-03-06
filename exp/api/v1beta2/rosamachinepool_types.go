@@ -91,6 +91,7 @@ type RosaMachinePoolSpec struct {
 	ProviderIDList []string `json:"providerIDList,omitempty"`
 }
 
+// RosaTaint represents a taint to be applied to a node.
 type RosaTaint struct {
 	// The taint key to be applied to a node.
 	//

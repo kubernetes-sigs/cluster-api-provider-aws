@@ -25,15 +25,13 @@ import (
 	"sort"
 	"strings"
 
+	conversionargs "k8s.io/code-generator/cmd/conversion-gen/args"
+	genutil "k8s.io/code-generator/pkg/util"
 	"k8s.io/gengo/args"
 	"k8s.io/gengo/generator"
 	"k8s.io/gengo/namer"
 	"k8s.io/gengo/types"
-
 	"k8s.io/klog/v2"
-
-	conversionargs "k8s.io/code-generator/cmd/conversion-gen/args"
-	genutil "k8s.io/code-generator/pkg/util"
 )
 
 // These are the comment tags that carry parameters for conversion generation.

@@ -524,10 +524,10 @@ func TestCreateCluster(t *testing.T) {
 					},
 				},
 			})
-			subnetIds := make([]*string, 0)
+			subnetIDs := make([]*string, 0)
 			for i := range tc.subnets {
 				subnet := tc.subnets[i]
-				subnetIds = append(subnetIds, &subnet.ID)
+				subnetIDs = append(subnetIDs, &subnet.ID)
 			}
 
 			if !tc.expectError {
@@ -537,7 +537,7 @@ func TestCreateCluster(t *testing.T) {
 					Name:             aws.String(clusterName),
 					EncryptionConfig: []*eks.EncryptionConfig{},
 					ResourcesVpcConfig: &eks.VpcConfigRequest{
-						SubnetIds: subnetIds,
+						SubnetIds: subnetIDs,
 					},
 					RoleArn: tc.role,
 					Tags:    tc.tags,

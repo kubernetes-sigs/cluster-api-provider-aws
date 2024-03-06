@@ -290,7 +290,7 @@ func TestReconcileBucket(t *testing.T) {
 
 			mockCtrl := gomock.NewController(t)
 			stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
-			stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Return(nil, fmt.Errorf(t.Name())).AnyTimes()
+			stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Return(nil, errors.New(t.Name())).AnyTimes()
 			svc.STSClient = stsMock
 
 			if err := svc.ReconcileBucket(); err == nil {

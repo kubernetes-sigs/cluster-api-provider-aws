@@ -25,6 +25,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+// RosaControlPlaneSpec defines the desired state of ROSAControlPlane.
 type RosaControlPlaneSpec struct { //nolint: maligned
 	// Cluster name must be valid DNS-1035 label, so it must consist of lower case alphanumeric
 	// characters or '-', start with an alphabetic character, end with an alphanumeric character
@@ -509,6 +510,7 @@ type AWSRolesRef struct {
 	KMSProviderARN          string `json:"kmsProviderARN"`
 }
 
+// RosaControlPlaneStatus defines the observed state of ROSAControlPlane.
 type RosaControlPlaneStatus struct {
 	// ExternalManagedControlPlane indicates to cluster-api that the control plane
 	// is managed by an external service such as AKS, EKS, GKE, etc.
@@ -551,6 +553,7 @@ type RosaControlPlaneStatus struct {
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Control plane infrastructure is ready for worker nodes"
 // +k8s:defaulter-gen=true
 
+// ROSAControlPlane is the Schema for the ROSAControlPlanes API.
 type ROSAControlPlane struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -561,6 +564,7 @@ type ROSAControlPlane struct {
 
 // +kubebuilder:object:root=true
 
+// ROSAControlPlaneList contains a list of ROSAControlPlane.
 type ROSAControlPlaneList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

@@ -812,7 +812,7 @@ func (s *Service) RegisterInstanceWithAPIServerLB(instance *infrav1.Instance, lb
 		return errors.Wrapf(err, "error describing ELB's target groups %q", name)
 	}
 	if len(targetGroups.TargetGroups) == 0 {
-		return errors.New(fmt.Sprintf("no target groups found for load balancer with arn '%s'", out.ARN))
+		return fmt.Errorf("no target groups found for load balancer with arn '%s'", out.ARN)
 	}
 	// Since TargetGroups and Listeners don't care, or are not aware, of subnets before registration, we ignore that check.
 	// Also, registering with AZ is not supported using the an InstanceID.
@@ -1248,27 +1248,28 @@ func (s *Service) listByTag(tag string) ([]string, error) {
 
 	err := s.ResourceTaggingClient.GetResourcesPages(&input, func(r *rgapi.GetResourcesOutput, last bool) bool {
 		for _, tagmapping := range r.ResourceTagMappingList {
-			if tagmapping.ResourceARN != nil {
-				parsedARN, err := arn.Parse(*tagmapping.ResourceARN)
-				if err != nil {
-					s.scope.Info("failed to parse ARN", "arn", *tagmapping.ResourceARN, "tag", tag)
-					continue
-				}
-				if strings.Contains(parsedARN.Resource, "loadbalancer/net/") {
-					s.scope.Info("ignoring nlb created by service, consider enabling garbage collection", "arn", *tagmapping.ResourceARN, "tag", tag)
-					continue
-				}
-				if strings.Contains(parsedARN.Resource, "loadbalancer/app/") {
-					s.scope.Info("ignoring alb created by service, consider enabling garbage collection", "arn", *tagmapping.ResourceARN, "tag", tag)
-					continue
-				}
-				name := strings.ReplaceAll(parsedARN.Resource, "loadbalancer/", "")
-				if name == "" {
-					s.scope.Info("failed to parse ARN", "arn", *tagmapping.ResourceARN, "tag", tag)
-					continue
-				}
-				names = append(names, name)
+			if tagmapping.ResourceARN == nil {
+				continue
 			}
+			parsedARN, err := arn.Parse(*tagmapping.ResourceARN)
+			if err != nil {
+				s.scope.Info("failed to parse ARN", "arn", *tagmapping.ResourceARN, "tag", tag)
+				continue
+			}
+			if strings.Contains(parsedARN.Resource, "loadbalancer/net/") {
+				s.scope.Info("ignoring nlb created by service, consider enabling garbage collection", "arn", *tagmapping.ResourceARN, "tag", tag)
+				continue
+			}
+			if strings.Contains(parsedARN.Resource, "loadbalancer/app/") {
+				s.scope.Info("ignoring alb created by service, consider enabling garbage collection", "arn", *tagmapping.ResourceARN, "tag", tag)
+				continue
+			}
+			name := strings.ReplaceAll(parsedARN.Resource, "loadbalancer/", "")
+			if name == "" {
+				s.scope.Info("failed to parse ARN", "arn", *tagmapping.ResourceARN, "tag", tag)
+				continue
+			}
+			names = append(names, name)
 		}
 		return true
 	})
@@ -1527,17 +1528,17 @@ func fromSDKTypeToClassicELB(v *elb.LoadBalancerDescription, attrs *elb.LoadBala
 }
 
 func fromSDKTypeToLB(v *elbv2.LoadBalancer, attrs []*elbv2.LoadBalancerAttribute, tags []*elbv2.Tag) *infrav1.LoadBalancer {
-	subnetIds := make([]*string, len(v.AvailabilityZones))
+	subnetIDs := make([]*string, len(v.AvailabilityZones))
 	availabilityZones := make([]*string, len(v.AvailabilityZones))
 	for i, az := range v.AvailabilityZones {
-		subnetIds[i] = az.SubnetId
+		subnetIDs[i] = az.SubnetId
 		availabilityZones[i] = az.ZoneName
 	}
 	res := &infrav1.LoadBalancer{
 		ARN:               aws.StringValue(v.LoadBalancerArn),
 		Name:              aws.StringValue(v.LoadBalancerName),
 		Scheme:            infrav1.ELBScheme(aws.StringValue(v.Scheme)),
-		SubnetIDs:         aws.StringValueSlice(subnetIds),
+		SubnetIDs:         aws.StringValueSlice(subnetIDs),
 		SecurityGroupIDs:  aws.StringValueSlice(v.SecurityGroups),
 		AvailabilityZones: aws.StringValueSlice(availabilityZones),
 		DNSName:           aws.StringValue(v.DNSName),

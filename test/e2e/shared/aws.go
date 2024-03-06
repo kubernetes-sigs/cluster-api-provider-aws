@@ -953,7 +953,8 @@ func (s *ServiceQuota) updateServiceQuotaRequestStatus(serviceQuotasClient *serv
 	}
 }
 
-func DumpEKSClusters(ctx context.Context, e2eCtx *E2EContext) {
+// DumpEKSClusters dumps the EKS clusters in the environment.
+func DumpEKSClusters(_ context.Context, e2eCtx *E2EContext) {
 	name := "no-bootstrap-cluster"
 	if e2eCtx.Environment.BootstrapClusterProxy != nil {
 		name = e2eCtx.Environment.BootstrapClusterProxy.GetName()
@@ -1014,7 +1015,7 @@ func dumpEKSCluster(cluster *eks.Cluster, logPath string) {
 }
 
 // To calculate how much resources a test consumes, these helper functions below can be used.
-// ListVpcInternetGateways, ListNATGateways, ListRunningEC2, ListVPC
+// ListVpcInternetGateways, ListNATGateways, ListRunningEC2, ListVPC.
 
 func ListVpcInternetGateways(e2eCtx *E2EContext) ([]*ec2.InternetGateway, error) {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
@@ -1052,7 +1053,8 @@ func ListNATGateways(e2eCtx *E2EContext) (map[string]*ec2.NatGateway, error) {
 	return gateways, nil
 }
 
-func ListRunningEC2(e2eCtx *E2EContext) ([]instance, error) {
+// listRunningEC2 returns a list of running EC2 instances.
+func listRunningEC2(e2eCtx *E2EContext) ([]instance, error) { //nolint:unused
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
 	resp, err := ec2Svc.DescribeInstancesWithContext(context.TODO(), &ec2.DescribeInstancesInput{

@@ -92,12 +92,13 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, namespace
 	delete(e2eCtx.Environment.Namespaces, namespace)
 }
 
+// AWSStackLogCollector collects logs from the AWS stack.
 type AWSStackLogCollector struct {
 	E2EContext *E2EContext
 }
 
 // CollectInfrastructureLogs collects log from the infrastructure.
-func (k AWSStackLogCollector) CollectInfrastructureLogs(ctx context.Context, managementClusterClient crclient.Client, c *clusterv1.Cluster, outputPath string) error {
+func (k AWSStackLogCollector) CollectInfrastructureLogs(_ context.Context, _ crclient.Client, _ *clusterv1.Cluster, _ string) error {
 	return nil
 }
 

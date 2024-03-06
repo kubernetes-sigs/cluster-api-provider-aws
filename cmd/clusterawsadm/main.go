@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package main is the entrypoint for the clusterawsadm command.
 package main
 
 import "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd"

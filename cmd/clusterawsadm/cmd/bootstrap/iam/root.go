@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package iam provides a way to generate IAM policies and roles.
 package iam
 
 import (

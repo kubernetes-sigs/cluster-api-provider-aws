@@ -45,6 +45,8 @@ spec:
             description: AWSClusterTemplateSpec defines the desired state of AWSClusterTemplate.
             properties:
               template:
+                description: AWSClusterTemplateResource defines the desired state
+                  of AWSClusterTemplate.
                 properties:
                   metadata:
                     description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
@@ -474,6 +476,8 @@ spec:
             description: AWSClusterTemplateSpec defines the desired state of AWSClusterTemplate.
             properties:
               template:
+                description: AWSClusterTemplateResource defines the desired state
+                  of AWSClusterTemplateResource.
                 properties:
                   metadata:
                     description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'

@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package shared provides common utilities, setup and teardown for the e2e tests.
 package shared
 
 import (
@@ -118,8 +119,11 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 			if prov.Name != "aws" {
 				continue
 			}
-			e2eCtx.E2EConfig.Providers[i].Files = append(e2eCtx.E2EConfig.Providers[i].Files, clusterctlCITemplate)
-			e2eCtx.E2EConfig.Providers[i].Files = append(e2eCtx.E2EConfig.Providers[i].Files, clusterctlCITemplateForUpgrade)
+			e2eCtx.E2EConfig.Providers[i].Files = append(
+				e2eCtx.E2EConfig.Providers[i].Files,
+				clusterctlCITemplate,
+				clusterctlCITemplateForUpgrade,
+			)
 		}
 	}
 
