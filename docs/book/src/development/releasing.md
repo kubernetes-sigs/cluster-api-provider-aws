@@ -7,14 +7,18 @@
 
 ## Create tag, and build staging container images
 
-1. Create a new local repository of <https://github.com/kubernetes-sigs/cluster-api-provider-aws> (e.g. using `git clone`).
+1. Please fork <https://github.com/kubernetes-sigs/cluster-api-provider-aws> and clone your own repository with e.g. `git clone git@github.com:YourGitHubUsername/cluster-api-provider-aws.git`. `kpromo` uses the fork to build images from.
+1. Add a git remote to the upstream project. `git remote add upstream git@github.com:kubernetes-sigs/cluster-api-provider-aws.git`
 1. If this is a major or minor release, create a new release branch and push to GitHub, otherwise switch to it, e.g. `git checkout release-1.5`.
 1. If this is a major or minor release, update `metadata.yaml` by adding a new section with the version, and make a commit.
-1. Update the release branch on the repository, e.g. `git push origin HEAD:release-1.5`.
+1. Update the release branch on the repository, e.g. `git push origin HEAD:release-1.5`. `origin` refers to the remote git reference to your fork.
+1. Update the release branch on the repository, e.g. `git push upstream HEAD:release-1.5`. `upstream` refers to the upstream git reference.
 1. Make sure your repo is clean by git standards.
 1. Set environment variable `GITHUB_TOKEN` to a GitHub personal access token. The token must have write access to the `kubernetes-sigs/cluster-api-provider-aws` repository.
 1. Set environment variables `PREVIOUS_VERSION` which is the last release tag and `VERSION` which is the current release version, e.g. `export PREVIOUS_VERSION=v1.4.0 VERSION=v1.5.0`, or `export PREVIOUS_VERSION=v1.5.0 VERSION=v1.5.1`).
     _**Note**_: the version MUST contain a `v` in front.
+    _**Note**_: you must have a gpg signing configured with git and registered with GitHub.
+
 1. Create a tag `git tag -s -m $VERSION $VERSION`. `-s` flag is for GNU Privacy Guard (GPG) signing.
 1. Make sure you have push permissions to the upstream CAPA repo. Push tag you've just created (`git push <upstream-repo-remote> $VERSION`).
 1. A prow job will start running to push images to the staging repo, can be seen [here](https://testgrid.k8s.io/sig-cluster-lifecycle-image-pushes#post-cluster-api-provider-aws-push-images). The job is called "post-cluster-api-provider-aws-push-images," and is defined in <https://github.com/kubernetes/test-infra/blob/master/config/jobs/image-pushing/k8s-staging-cluster-api.yaml>.
