@@ -108,6 +108,19 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
+              domainPrefix:
+                description: DomainPrefix is an optional prefix added to the cluster's
+                  domain name. It will be used when generating a sub-domain for the
+                  cluster on openshiftapps domain. It must be valid DNS-1035 label
+                  consisting of lower case alphanumeric characters or '-', start with
+                  an alphabetic character end with an alphanumeric character and have
+                  a max length of 15 characters.
+                maxLength: 15
+                pattern: ^[a-z]([-a-z0-9]*[a-z0-9])?$
+                type: string
+                x-kubernetes-validations:
+                - message: domainPrefix is immutable
+                  rule: self == oldSelf
               endpointAccess:
                 default: Public
                 description: EndpointAccess specifies the publishing scope of cluster
@@ -343,8 +356,8 @@ spec:
                 description: Cluster name must be valid DNS-1035 label, so it must
                   consist of lower case alphanumeric characters or '-', start with
                   an alphabetic character, end with an alphanumeric character and
-                  have a max length of 15 characters.
-                maxLength: 15
+                  have a max length of 54 characters.
+                maxLength: 54
                 pattern: ^[a-z]([-a-z0-9]*[a-z0-9])?$
                 type: string
                 x-kubernetes-validations:
