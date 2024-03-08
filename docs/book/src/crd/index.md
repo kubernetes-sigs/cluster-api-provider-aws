@@ -8878,15 +8878,28 @@ Tags
 </tr>
 <tr>
 <td>
-<code>etcdEncryptionKMSArn</code><br/>
+<code>etcdEncryptionKMSARN</code><br/>
 <em>
 string
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>EtcdEncryptionKMSArn is the ARN of the KMS key used to encrypt etcd. The key itself needs to be
+<p>EtcdEncryptionKMSARN is the ARN of the KMS key used to encrypt etcd. The key itself needs to be
 created out-of-band by the user and tagged with <code>red-hat:true</code>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auditLogRoleARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AuditLogRoleARN defines the role that is used to forward audit logs to AWS CloudWatch.
+If not set, audit log forwarding is disabled.</p>
 </td>
 </tr>
 <tr>
@@ -9179,15 +9192,28 @@ Tags
 </tr>
 <tr>
 <td>
-<code>etcdEncryptionKMSArn</code><br/>
+<code>etcdEncryptionKMSARN</code><br/>
 <em>
 string
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>EtcdEncryptionKMSArn is the ARN of the KMS key used to encrypt etcd. The key itself needs to be
+<p>EtcdEncryptionKMSARN is the ARN of the KMS key used to encrypt etcd. The key itself needs to be
 created out-of-band by the user and tagged with <code>red-hat:true</code>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auditLogRoleARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AuditLogRoleARN defines the role that is used to forward audit logs to AWS CloudWatch.
+If not set, audit log forwarding is disabled.</p>
 </td>
 </tr>
 <tr>

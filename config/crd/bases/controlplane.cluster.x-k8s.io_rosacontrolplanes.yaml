@@ -53,6 +53,11 @@ spec:
                 description: AdditionalTags are user-defined tags to be added on the
                   AWS resources associated with the control plane.
                 type: object
+              auditLogRoleARN:
+                description: AuditLogRoleARN defines the role that is used to forward
+                  audit logs to AWS CloudWatch. If not set, audit log forwarding is
+                  disabled.
+                type: string
               availabilityZones:
                 description: AvailabilityZones describe AWS AvailabilityZones of the
                   worker nodes. should match the AvailabilityZones of the provided
@@ -146,8 +151,8 @@ spec:
                 - Public
                 - Private
                 type: string
-              etcdEncryptionKMSArn:
-                description: EtcdEncryptionKMSArn is the ARN of the KMS key used to
+              etcdEncryptionKMSARN:
+                description: EtcdEncryptionKMSARN is the ARN of the KMS key used to
                   encrypt etcd. The key itself needs to be created out-of-band by
                   the user and tagged with `red-hat:true`.
                 type: string

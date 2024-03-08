@@ -129,10 +129,15 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	AdditionalTags infrav1.Tags `json:"additionalTags,omitempty"`
 
-	// EtcdEncryptionKMSArn is the ARN of the KMS key used to encrypt etcd. The key itself needs to be
+	// EtcdEncryptionKMSARN is the ARN of the KMS key used to encrypt etcd. The key itself needs to be
 	// created out-of-band by the user and tagged with `red-hat:true`.
 	// +optional
-	EtcdEncryptionKMSArn string `json:"etcdEncryptionKMSArn,omitempty"`
+	EtcdEncryptionKMSARN string `json:"etcdEncryptionKMSARN,omitempty"`
+
+	// AuditLogRoleARN defines the role that is used to forward audit logs to AWS CloudWatch.
+	// If not set, audit log forwarding is disabled.
+	// +optional
+	AuditLogRoleARN string `json:"auditLogRoleARN,omitempty"`
 
 	// CredentialsSecretRef references a secret with necessary credentials to connect to the OCM API.
 	// The secret should contain the following data keys:
