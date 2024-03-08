@@ -241,12 +241,16 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 			}
 			rosaScope.ControlPlane.Spec.ControlPlaneEndpoint = *apiEndpoint
 
-			if err := r.reconcileKubeconfig(ctx, rosaScope, ocmClient, cluster); err != nil {
-				return ctrl.Result{}, fmt.Errorf("failed to reconcile kubeconfig: %w", err)
+			if err := r.updateOCMCluster(rosaScope, ocmClient, cluster, creator); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to update rosa control plane: %w", err)
 			}
 			if err := r.reconcileClusterVersion(rosaScope, ocmClient, cluster); err != nil {
 				return ctrl.Result{}, err
 			}
+			if err := r.reconcileKubeconfig(ctx, rosaScope, ocmClient, cluster); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to reconcile kubeconfig: %w", err)
+			}
+
 			return ctrl.Result{}, nil
 		case cmv1.ClusterStateError:
 			errorMessage := cluster.Status().ProvisionErrorMessage()
@@ -272,80 +276,9 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 	}
 
-	billingAccount := *rosaScope.Identity.Account
-	if rosaScope.ControlPlane.Spec.BillingAccount != "" {
-		billingAccount = rosaScope.ControlPlane.Spec.BillingAccount
-	}
-
-	ocmClusterSpec := ocm.Spec{
-		DryRun:                    ptr.To(false),
-		Name:                      rosaScope.RosaClusterName(),
-		DomainPrefix:              rosaScope.ControlPlane.Spec.DomainPrefix,
-		Region:                    rosaScope.ControlPlane.Spec.Region,
-		MultiAZ:                   true,
-		Version:                   ocm.CreateVersionID(rosaScope.ControlPlane.Spec.Version, ocm.DefaultChannelGroup),
-		ChannelGroup:              ocm.DefaultChannelGroup,
-		DisableWorkloadMonitoring: ptr.To(true),
-		DefaultIngress:            ocm.NewDefaultIngressSpec(), // n.b. this is a no-op when it's set to the default value
-		ComputeMachineType:        rosaScope.ControlPlane.Spec.DefaultMachinePoolSpec.InstanceType,
-		AvailabilityZones:         rosaScope.ControlPlane.Spec.AvailabilityZones,
-		Tags:                      rosaScope.ControlPlane.Spec.AdditionalTags,
-		EtcdEncryption:            rosaScope.ControlPlane.Spec.EtcdEncryptionKMSArn != "",
-		EtcdEncryptionKMSArn:      rosaScope.ControlPlane.Spec.EtcdEncryptionKMSArn,
-
-		SubnetIds:        rosaScope.ControlPlane.Spec.Subnets,
-		IsSTS:            true,
-		RoleARN:          rosaScope.ControlPlane.Spec.InstallerRoleARN,
-		SupportRoleARN:   rosaScope.ControlPlane.Spec.SupportRoleARN,
-		WorkerRoleARN:    rosaScope.ControlPlane.Spec.WorkerRoleARN,
-		OperatorIAMRoles: operatorIAMRoles(rosaScope.ControlPlane.Spec.RolesRef),
-		OidcConfigId:     rosaScope.ControlPlane.Spec.OIDCID,
-		Mode:             "auto",
-		Hypershift: ocm.Hypershift{
-			Enabled: true,
-		},
-		BillingAccount: billingAccount,
-		AWSCreator:     creator,
-	}
-
-	if rosaScope.ControlPlane.Spec.EndpointAccess == rosacontrolplanev1.Private {
-		ocmClusterSpec.Private = ptr.To(true)
-		ocmClusterSpec.PrivateLink = ptr.To(true)
-	}
-
-	if networkSpec := rosaScope.ControlPlane.Spec.Network; networkSpec != nil {
-		if networkSpec.MachineCIDR != "" {
-			_, machineCIDR, err := net.ParseCIDR(networkSpec.MachineCIDR)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			ocmClusterSpec.MachineCIDR = *machineCIDR
-		}
-
-		if networkSpec.PodCIDR != "" {
-			_, podCIDR, err := net.ParseCIDR(networkSpec.PodCIDR)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			ocmClusterSpec.PodCIDR = *podCIDR
-		}
-
-		if networkSpec.ServiceCIDR != "" {
-			_, serviceCIDR, err := net.ParseCIDR(networkSpec.ServiceCIDR)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			ocmClusterSpec.ServiceCIDR = *serviceCIDR
-		}
-
-		ocmClusterSpec.HostPrefix = networkSpec.HostPrefix
-		ocmClusterSpec.NetworkType = networkSpec.NetworkType
-	}
-
-	// Set cluster compute autoscaling replicas
-	if computeAutoscaling := rosaScope.ControlPlane.Spec.DefaultMachinePoolSpec.Autoscaling; computeAutoscaling != nil {
-		ocmClusterSpec.MaxReplicas = computeAutoscaling.MaxReplicas
-		ocmClusterSpec.MinReplicas = computeAutoscaling.MinReplicas
+	ocmClusterSpec, err := buildOCMClusterSpec(rosaScope.ControlPlane.Spec, creator)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	cluster, err = ocmClient.CreateCluster(ocmClusterSpec)
@@ -362,51 +295,6 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	rosaScope.ControlPlane.Status.ID = cluster.ID()
 
 	return ctrl.Result{}, nil
-}
-
-func operatorIAMRoles(rolesRef rosacontrolplanev1.AWSRolesRef) []ocm.OperatorIAMRole {
-	return []ocm.OperatorIAMRole{
-		{
-			Name:      "cloud-credentials",
-			Namespace: "openshift-ingress-operator",
-			RoleARN:   rolesRef.IngressARN,
-		},
-		{
-			Name:      "installer-cloud-credentials",
-			Namespace: "openshift-image-registry",
-			RoleARN:   rolesRef.ImageRegistryARN,
-		},
-		{
-			Name:      "ebs-cloud-credentials",
-			Namespace: "openshift-cluster-csi-drivers",
-			RoleARN:   rolesRef.StorageARN,
-		},
-		{
-			Name:      "cloud-credentials",
-			Namespace: "openshift-cloud-network-config-controller",
-			RoleARN:   rolesRef.NetworkARN,
-		},
-		{
-			Name:      "kube-controller-manager",
-			Namespace: "kube-system",
-			RoleARN:   rolesRef.KubeCloudControllerARN,
-		},
-		{
-			Name:      "kms-provider",
-			Namespace: "kube-system",
-			RoleARN:   rolesRef.KMSProviderARN,
-		},
-		{
-			Name:      "control-plane-operator",
-			Namespace: "kube-system",
-			RoleARN:   rolesRef.ControlPlaneOperatorARN,
-		},
-		{
-			Name:      "capa-controller-manager",
-			Namespace: "kube-system",
-			RoleARN:   rolesRef.NodePoolManagementARN,
-		},
-	}
 }
 
 func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (res ctrl.Result, reterr error) {
@@ -492,6 +380,29 @@ func (r *ROSAControlPlaneReconciler) reconcileClusterVersion(rosaScope *scope.RO
 	// if cluster is already upgrading to another version we need to wait until the current upgrade is finished, return an error to requeue and try later.
 	if scheduledUpgrade.Version() != version {
 		return fmt.Errorf("there is already a %s upgrade to version %s", scheduledUpgrade.State().Value(), scheduledUpgrade.Version())
+	}
+
+	return nil
+}
+
+func (r *ROSAControlPlaneReconciler) updateOCMCluster(rosaScope *scope.ROSAControlPlaneScope, ocmClient *ocm.Client, cluster *cmv1.Cluster, creator *rosaaws.Creator) error {
+	currentAuditLogRole := cluster.AWS().AuditLog().RoleArn()
+	if currentAuditLogRole == rosaScope.ControlPlane.Spec.AuditLogRoleARN {
+		return nil
+	}
+
+	ocmClusterSpec := ocm.Spec{
+		AuditLogRoleARN: ptr.To(rosaScope.ControlPlane.Spec.AuditLogRoleARN),
+	}
+
+	// if this fails, the provided role is likely invalid or it doesn't have the required permissions.
+	if err := ocmClient.UpdateCluster(cluster.ID(), creator, ocmClusterSpec); err != nil {
+		conditions.MarkFalse(rosaScope.ControlPlane,
+			rosacontrolplanev1.ROSAControlPlaneValidCondition,
+			rosacontrolplanev1.ROSAControlPlaneInvalidConfigurationReason,
+			clusterv1.ConditionSeverityError,
+			err.Error())
+		return err
 	}
 
 	return nil
@@ -625,6 +536,131 @@ func validateControlPlaneSpec(ocmClient *ocm.Client, rosaScope *scope.ROSAContro
 
 	// TODO: add more input validations
 	return "", nil
+}
+
+func buildOCMClusterSpec(controPlaneSpec rosacontrolplanev1.RosaControlPlaneSpec, creator *rosaaws.Creator) (ocm.Spec, error) {
+	billingAccount := controPlaneSpec.BillingAccount
+	if billingAccount == "" {
+		billingAccount = creator.AccountID
+	}
+
+	ocmClusterSpec := ocm.Spec{
+		DryRun:                    ptr.To(false),
+		Name:                      controPlaneSpec.RosaClusterName,
+		Region:                    controPlaneSpec.Region,
+		MultiAZ:                   true,
+		Version:                   ocm.CreateVersionID(controPlaneSpec.Version, ocm.DefaultChannelGroup),
+		ChannelGroup:              ocm.DefaultChannelGroup,
+		DisableWorkloadMonitoring: ptr.To(true),
+		DefaultIngress:            ocm.NewDefaultIngressSpec(), // n.b. this is a no-op when it's set to the default value
+		ComputeMachineType:        controPlaneSpec.DefaultMachinePoolSpec.InstanceType,
+		AvailabilityZones:         controPlaneSpec.AvailabilityZones,
+		Tags:                      controPlaneSpec.AdditionalTags,
+		EtcdEncryption:            controPlaneSpec.EtcdEncryptionKMSARN != "",
+		EtcdEncryptionKMSArn:      controPlaneSpec.EtcdEncryptionKMSARN,
+
+		SubnetIds:        controPlaneSpec.Subnets,
+		IsSTS:            true,
+		RoleARN:          controPlaneSpec.InstallerRoleARN,
+		SupportRoleARN:   controPlaneSpec.SupportRoleARN,
+		WorkerRoleARN:    controPlaneSpec.WorkerRoleARN,
+		OperatorIAMRoles: operatorIAMRoles(controPlaneSpec.RolesRef),
+		OidcConfigId:     controPlaneSpec.OIDCID,
+		Mode:             "auto",
+		Hypershift: ocm.Hypershift{
+			Enabled: true,
+		},
+		BillingAccount:  billingAccount,
+		AWSCreator:      creator,
+		AuditLogRoleARN: ptr.To(controPlaneSpec.AuditLogRoleARN),
+	}
+
+	if controPlaneSpec.EndpointAccess == rosacontrolplanev1.Private {
+		ocmClusterSpec.Private = ptr.To(true)
+		ocmClusterSpec.PrivateLink = ptr.To(true)
+	}
+
+	if networkSpec := controPlaneSpec.Network; networkSpec != nil {
+		if networkSpec.MachineCIDR != "" {
+			_, machineCIDR, err := net.ParseCIDR(networkSpec.MachineCIDR)
+			if err != nil {
+				return ocmClusterSpec, err
+			}
+			ocmClusterSpec.MachineCIDR = *machineCIDR
+		}
+
+		if networkSpec.PodCIDR != "" {
+			_, podCIDR, err := net.ParseCIDR(networkSpec.PodCIDR)
+			if err != nil {
+				return ocmClusterSpec, err
+			}
+			ocmClusterSpec.PodCIDR = *podCIDR
+		}
+
+		if networkSpec.ServiceCIDR != "" {
+			_, serviceCIDR, err := net.ParseCIDR(networkSpec.ServiceCIDR)
+			if err != nil {
+				return ocmClusterSpec, err
+			}
+			ocmClusterSpec.ServiceCIDR = *serviceCIDR
+		}
+
+		ocmClusterSpec.HostPrefix = networkSpec.HostPrefix
+		ocmClusterSpec.NetworkType = networkSpec.NetworkType
+	}
+
+	// Set cluster compute autoscaling replicas
+	if computeAutoscaling := controPlaneSpec.DefaultMachinePoolSpec.Autoscaling; computeAutoscaling != nil {
+		ocmClusterSpec.MaxReplicas = computeAutoscaling.MaxReplicas
+		ocmClusterSpec.MinReplicas = computeAutoscaling.MinReplicas
+	}
+
+	return ocmClusterSpec, nil
+}
+
+func operatorIAMRoles(rolesRef rosacontrolplanev1.AWSRolesRef) []ocm.OperatorIAMRole {
+	return []ocm.OperatorIAMRole{
+		{
+			Name:      "cloud-credentials",
+			Namespace: "openshift-ingress-operator",
+			RoleARN:   rolesRef.IngressARN,
+		},
+		{
+			Name:      "installer-cloud-credentials",
+			Namespace: "openshift-image-registry",
+			RoleARN:   rolesRef.ImageRegistryARN,
+		},
+		{
+			Name:      "ebs-cloud-credentials",
+			Namespace: "openshift-cluster-csi-drivers",
+			RoleARN:   rolesRef.StorageARN,
+		},
+		{
+			Name:      "cloud-credentials",
+			Namespace: "openshift-cloud-network-config-controller",
+			RoleARN:   rolesRef.NetworkARN,
+		},
+		{
+			Name:      "kube-controller-manager",
+			Namespace: "kube-system",
+			RoleARN:   rolesRef.KubeCloudControllerARN,
+		},
+		{
+			Name:      "kms-provider",
+			Namespace: "kube-system",
+			RoleARN:   rolesRef.KMSProviderARN,
+		},
+		{
+			Name:      "control-plane-operator",
+			Namespace: "kube-system",
+			RoleARN:   rolesRef.ControlPlaneOperatorARN,
+		},
+		{
+			Name:      "capa-controller-manager",
+			Namespace: "kube-system",
+			RoleARN:   rolesRef.NodePoolManagementARN,
+		},
+	}
 }
 
 func (r *ROSAControlPlaneReconciler) rosaClusterToROSAControlPlane(log *logger.Logger) handler.MapFunc {
