@@ -53,20 +53,10 @@ spec:
                 description: AdditionalTags are user-defined tags to be added on the
                   AWS resources associated with the control plane.
                 type: object
-              autoscaling:
-                description: Autoscaling specifies auto scaling behaviour for the
-                  MachinePools.
-                properties:
-                  maxReplicas:
-                    minimum: 1
-                    type: integer
-                  minReplicas:
-                    minimum: 1
-                    type: integer
-                type: object
               availabilityZones:
-                description: AWS AvailabilityZones of the worker nodes should match
-                  the AvailabilityZones of the Subnets.
+                description: AvailabilityZones describe AWS AvailabilityZones of the
+                  worker nodes. should match the AvailabilityZones of the provided
+                  Subnets. a machinepool will be created for each availabilityZone.
                 items:
                   type: string
                 type: array
@@ -108,6 +98,33 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
+              defaultMachinePoolSpec:
+                description: "DefaultMachinePoolSpec defines the configuration for
+                  the default machinepool(s) provisioned as part of the cluster creation.
+                  One MachinePool will be created with this configuration per AvailabilityZone.
+                  Those default machinepools are required for openshift cluster operators
+                  to work properly. As these machinepool not created using ROSAMachinePool
+                  CR, they will not be visible/managed by ROSA CAPI provider. `rosa
+                  list machinepools -c <rosaClusterName>` can be used to view those
+                  machinepools. \n This field will be removed in the future once the
+                  current limitation is resolved."
+                properties:
+                  autoscaling:
+                    description: Autoscaling specifies auto scaling behaviour for
+                      this MachinePool.
+                    properties:
+                      maxReplicas:
+                        minimum: 1
+                        type: integer
+                      minReplicas:
+                        minimum: 1
+                        type: integer
+                    type: object
+                  instanceType:
+                    description: The instance type to use, for example `r5.xlarge`.
+                      Instance type ref; https://aws.amazon.com/ec2/instance-types/
+                    type: string
+                type: object
               domainPrefix:
                 description: DomainPrefix is an optional prefix added to the cluster's
                   domain name. It will be used when generating a sub-domain for the
@@ -155,12 +172,8 @@ spec:
                 - name
                 type: object
               installerRoleARN:
-                description: 'TODO: these are to satisfy ocm sdk. Explore how to drop
-                  them.'
-                type: string
-              instanceType:
-                description: The instance type to use, for example `r5.xlarge`. Instance
-                  type ref; https://aws.amazon.com/ec2/instance-types/
+                description: InstallerRoleARN is an AWS IAM role that OpenShift Cluster
+                  Manager will assume to create the cluster..
                 type: string
               network:
                 description: Network config for the ROSA HCP cluster.
@@ -371,11 +384,15 @@ spec:
                   type: string
                 type: array
               supportRoleARN:
+                description: SupportRoleARN is an AWS IAM role used by Red Hat SREs
+                  to enable access to the cluster account in order to provide support.
                 type: string
               version:
                 description: OpenShift semantic version, for example "4.14.5".
                 type: string
               workerRoleARN:
+                description: WorkerRoleARN is an AWS IAM role that will be attached
+                  to worker instances.
                 type: string
             required:
             - availabilityZones
