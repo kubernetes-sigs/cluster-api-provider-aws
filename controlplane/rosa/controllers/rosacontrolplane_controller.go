@@ -50,6 +50,7 @@ import (
 
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/annotations"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
@@ -66,6 +67,9 @@ const (
 	rosaControlPlaneKind = "ROSAControlPlane"
 	// ROSAControlPlaneFinalizer allows the controller to clean up resources on delete.
 	ROSAControlPlaneFinalizer = "rosacontrolplane.controlplane.cluster.x-k8s.io"
+
+	// ROSAControlPlaneForceDeleteAnnotation annotation can be set to force the deletion of ROSAControlPlane bypassing any deletion validations/errors.
+	ROSAControlPlaneForceDeleteAnnotation = "controlplane.cluster.x-k8s.io/rosacontrolplane-force-delete"
 )
 
 // ROSAControlPlaneReconciler reconciles a ROSAControlPlane object.
@@ -283,20 +287,20 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		ChannelGroup:              ocm.DefaultChannelGroup,
 		DisableWorkloadMonitoring: ptr.To(true),
 		DefaultIngress:            ocm.NewDefaultIngressSpec(), // n.b. this is a no-op when it's set to the default value
-		ComputeMachineType:        rosaScope.ControlPlane.Spec.InstanceType,
+		ComputeMachineType:        rosaScope.ControlPlane.Spec.DefaultMachinePoolSpec.InstanceType,
+		AvailabilityZones:         rosaScope.ControlPlane.Spec.AvailabilityZones,
 		Tags:                      rosaScope.ControlPlane.Spec.AdditionalTags,
 		EtcdEncryption:            rosaScope.ControlPlane.Spec.EtcdEncryptionKMSArn != "",
 		EtcdEncryptionKMSArn:      rosaScope.ControlPlane.Spec.EtcdEncryptionKMSArn,
 
-		SubnetIds:         rosaScope.ControlPlane.Spec.Subnets,
-		AvailabilityZones: rosaScope.ControlPlane.Spec.AvailabilityZones,
-		IsSTS:             true,
-		RoleARN:           *rosaScope.ControlPlane.Spec.InstallerRoleARN,
-		SupportRoleARN:    *rosaScope.ControlPlane.Spec.SupportRoleARN,
-		WorkerRoleARN:     *rosaScope.ControlPlane.Spec.WorkerRoleARN,
-		OperatorIAMRoles:  operatorIAMRoles(rosaScope.ControlPlane.Spec.RolesRef),
-		OidcConfigId:      rosaScope.ControlPlane.Spec.OIDCID,
-		Mode:              "auto",
+		SubnetIds:        rosaScope.ControlPlane.Spec.Subnets,
+		IsSTS:            true,
+		RoleARN:          rosaScope.ControlPlane.Spec.InstallerRoleARN,
+		SupportRoleARN:   rosaScope.ControlPlane.Spec.SupportRoleARN,
+		WorkerRoleARN:    rosaScope.ControlPlane.Spec.WorkerRoleARN,
+		OperatorIAMRoles: operatorIAMRoles(rosaScope.ControlPlane.Spec.RolesRef),
+		OidcConfigId:     rosaScope.ControlPlane.Spec.OIDCID,
+		Mode:             "auto",
 		Hypershift: ocm.Hypershift{
 			Enabled: true,
 		},
@@ -338,10 +342,10 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		ocmClusterSpec.NetworkType = networkSpec.NetworkType
 	}
 
-	// Set autoscale replica
-	if rosaScope.ControlPlane.Spec.Autoscaling != nil {
-		ocmClusterSpec.MaxReplicas = rosaScope.ControlPlane.Spec.Autoscaling.MaxReplicas
-		ocmClusterSpec.MinReplicas = rosaScope.ControlPlane.Spec.Autoscaling.MinReplicas
+	// Set cluster compute autoscaling replicas
+	if computeAutoscaling := rosaScope.ControlPlane.Spec.DefaultMachinePoolSpec.Autoscaling; computeAutoscaling != nil {
+		ocmClusterSpec.MaxReplicas = computeAutoscaling.MaxReplicas
+		ocmClusterSpec.MinReplicas = computeAutoscaling.MinReplicas
 	}
 
 	cluster, err = ocmClient.CreateCluster(ocmClusterSpec)
@@ -429,12 +433,29 @@ func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaSc
 		return ctrl.Result{}, nil
 	}
 
+	bestEffort := false
+	if value, found := annotations.Get(rosaScope.ControlPlane, ROSAControlPlaneForceDeleteAnnotation); found && value != "false" {
+		bestEffort = true
+	}
+
 	if cluster.Status().State() != cmv1.ClusterStateUninstalling {
-		if _, err := ocmClient.DeleteCluster(cluster.ID(), true, creator); err != nil {
+		if _, err := ocmClient.DeleteCluster(cluster.ID(), bestEffort, creator); err != nil {
+			conditions.MarkFalse(rosaScope.ControlPlane,
+				rosacontrolplanev1.ROSAControlPlaneReadyCondition,
+				rosacontrolplanev1.ROSAControlPlaneDeletionFailedReason,
+				clusterv1.ConditionSeverityError,
+				"failed to delete ROSAControlPlane: %s; if the error can't be resolved, set '%s' annotation to force the deletion",
+				err.Error(),
+				ROSAControlPlaneForceDeleteAnnotation)
 			return ctrl.Result{}, err
 		}
 	}
 
+	conditions.MarkFalse(rosaScope.ControlPlane,
+		rosacontrolplanev1.ROSAControlPlaneReadyCondition,
+		string(cluster.Status().State()),
+		clusterv1.ConditionSeverityInfo,
+		"deleting")
 	rosaScope.ControlPlane.Status.Ready = false
 	rosaScope.Info("waiting for cluster to be deleted")
 	// Requeue to remove the finalizer when the cluster is fully deleted.
