@@ -401,6 +401,18 @@ func validateMachinePoolSpec(machinePoolScope *scope.RosaMachinePoolScope) (*str
 		return &message, nil
 	}
 
+	if machinePoolScope.RosaMachinePool.Spec.NodeDrainGracePeriod != "" {
+		nodeDrainDuration, err := time.ParseDuration(machinePoolScope.RosaMachinePool.Spec.NodeDrainGracePeriod)
+		if err != nil {
+			return nil, err
+		}
+		// Check if node grace period duration is > 10080m (168h - 1 week)
+		if nodeDrainDuration.Minutes() > 10080 {
+			message := "Max supported NodeDrainGracePeriod duration is 10080m|168h (1 week)"
+			return &message, nil
+		}
+	}
+
 	// TODO: add more input validations
 	return nil, nil
 }
@@ -448,6 +460,13 @@ func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machine
 
 	if rosaMachinePoolSpec.Version != "" {
 		npBuilder.Version(cmv1.NewVersion().ID(ocm.CreateVersionID(rosaMachinePoolSpec.Version, ocm.DefaultChannelGroup)))
+	}
+
+	if rosaMachinePoolSpec.NodeDrainGracePeriod != "" {
+		duration, _ := time.ParseDuration(rosaMachinePoolSpec.NodeDrainGracePeriod)
+		valueBuilder := cmv1.NewValue()
+		valueBuilder.Value(duration.Minutes()).Unit("minutes")
+		npBuilder.NodeDrainGracePeriod(valueBuilder)
 	}
 
 	return npBuilder
