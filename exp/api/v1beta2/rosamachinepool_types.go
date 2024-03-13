@@ -89,6 +89,14 @@ type RosaMachinePoolSpec struct {
 	// ProviderIDList contain a ProviderID for each machine instance that's currently managed by this machine pool.
 	// +optional
 	ProviderIDList []string `json:"providerIDList,omitempty"`
+
+	// NodeDrainGracePeriod is grace period for how long Pod Disruption Budget-protected workloads will be
+	// respected during upgrades. After this grace period, any workloads protected by Pod Disruption
+	// Budgets that have not been successfully drained from a node will be forcibly evicted. The nodeDrainGracePeriod
+	// can be defined in minutes, hours ex; 30m, 10h. The max value can be assigned is 10080m|168h (1 week).
+	// +kubebuilder:validation:Pattern="^(([0-9])+[m|h])$"
+	// +optional
+	NodeDrainGracePeriod string `json:"nodeDrainGracePeriod,omitempty"`
 }
 
 // RosaTaint represents a taint to be applied to a node.

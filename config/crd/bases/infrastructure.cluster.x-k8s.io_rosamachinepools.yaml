@@ -82,6 +82,16 @@ spec:
                   type: string
                 description: Labels specifies labels for the Kubernetes node objects
                 type: object
+              nodeDrainGracePeriod:
+                description: NodeDrainGracePeriod is grace period for how long Pod
+                  Disruption Budget-protected workloads will be respected during upgrades.
+                  After this grace period, any workloads protected by Pod Disruption
+                  Budgets that have not been successfully drained from a node will
+                  be forcibly evicted. The nodeDrainGracePeriod can be defined in
+                  minutes, hours ex; 30m, 10h. The max value can be assigned is 10080m|168h
+                  (1 week).
+                pattern: ^(([0-9])+[m|h])$
+                type: string
               nodePoolName:
                 description: NodePoolName specifies the name of the nodepool in Rosa
                   must be a valid DNS-1035 label, so it must consist of lower case
