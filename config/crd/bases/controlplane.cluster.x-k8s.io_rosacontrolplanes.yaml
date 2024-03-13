@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.13.0
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: rosacontrolplanes.controlplane.cluster.x-k8s.io
 spec:
   group: controlplane.cluster.x-k8s.io
@@ -33,14 +33,19 @@ spec:
         description: ROSAControlPlane is the Schema for the ROSAControlPlanes API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -54,22 +59,23 @@ spec:
                   AWS resources associated with the control plane.
                 type: object
               auditLogRoleARN:
-                description: AuditLogRoleARN defines the role that is used to forward
-                  audit logs to AWS CloudWatch. If not set, audit log forwarding is
-                  disabled.
+                description: |-
+                  AuditLogRoleARN defines the role that is used to forward audit logs to AWS CloudWatch.
+                  If not set, audit log forwarding is disabled.
                 type: string
               availabilityZones:
-                description: AvailabilityZones describe AWS AvailabilityZones of the
-                  worker nodes. should match the AvailabilityZones of the provided
-                  Subnets. a machinepool will be created for each availabilityZone.
+                description: |-
+                  AvailabilityZones describe AWS AvailabilityZones of the worker nodes.
+                  should match the AvailabilityZones of the provided Subnets.
+                  a machinepool will be created for each availabilityZone.
                 items:
                   type: string
                 type: array
               billingAccount:
-                description: BillingAccount is an optional AWS account to use for
-                  billing the subscription fees for ROSA clusters. The cost of running
-                  each ROSA cluster will be billed to the infrastructure account in
-                  which the cluster is running.
+                description: |-
+                  BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA clusters.
+                  The cost of running each ROSA cluster will be billed to the infrastructure account in which the cluster
+                  is running.
                 type: string
                 x-kubernetes-validations:
                 - message: billingAccount is immutable
@@ -92,27 +98,30 @@ spec:
                 - port
                 type: object
               credentialsSecretRef:
-                description: 'CredentialsSecretRef references a secret with necessary
-                  credentials to connect to the OCM API. The secret should contain
-                  the following data keys: - ocmToken: eyJhbGciOiJIUzI1NiIsI.... -
-                  ocmApiUrl: Optional, defaults to ''https://api.openshift.com'''
+                description: |-
+                  CredentialsSecretRef references a secret with necessary credentials to connect to the OCM API.
+                  The secret should contain the following data keys:
+                  - ocmToken: eyJhbGciOiJIUzI1NiIsI....
+                  - ocmApiUrl: Optional, defaults to 'https://api.openshift.com'
                 properties:
                   name:
-                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    description: |-
+                      Name of the referent.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
               defaultMachinePoolSpec:
-                description: "DefaultMachinePoolSpec defines the configuration for
-                  the default machinepool(s) provisioned as part of the cluster creation.
-                  One MachinePool will be created with this configuration per AvailabilityZone.
-                  Those default machinepools are required for openshift cluster operators
-                  to work properly. As these machinepool not created using ROSAMachinePool
-                  CR, they will not be visible/managed by ROSA CAPI provider. `rosa
-                  list machinepools -c <rosaClusterName>` can be used to view those
-                  machinepools. \n This field will be removed in the future once the
-                  current limitation is resolved."
+                description: |-
+                  DefaultMachinePoolSpec defines the configuration for the default machinepool(s) provisioned as part of the cluster creation.
+                  One MachinePool will be created with this configuration per AvailabilityZone. Those default machinepools are required for openshift cluster operators
+                  to work properly.
+                  As these machinepool not created using ROSAMachinePool CR, they will not be visible/managed by ROSA CAPI provider.
+                  `rosa list machinepools -c <rosaClusterName>` can be used to view those machinepools.
+
+
+                  This field will be removed in the future once the current limitation is resolved.
                 properties:
                   autoscaling:
                     description: Autoscaling specifies auto scaling behaviour for
@@ -131,12 +140,11 @@ spec:
                     type: string
                 type: object
               domainPrefix:
-                description: DomainPrefix is an optional prefix added to the cluster's
-                  domain name. It will be used when generating a sub-domain for the
-                  cluster on openshiftapps domain. It must be valid DNS-1035 label
-                  consisting of lower case alphanumeric characters or '-', start with
-                  an alphabetic character end with an alphanumeric character and have
-                  a max length of 15 characters.
+                description: |-
+                  DomainPrefix is an optional prefix added to the cluster's domain name. It will be used
+                  when generating a sub-domain for the cluster on openshiftapps domain. It must be valid DNS-1035 label
+                  consisting of lower case alphanumeric characters or '-', start with an alphabetic character
+                  end with an alphanumeric character and have a max length of 15 characters.
                 maxLength: 15
                 pattern: ^[a-z]([-a-z0-9]*[a-z0-9])?$
                 type: string
@@ -145,21 +153,22 @@ spec:
                   rule: self == oldSelf
               endpointAccess:
                 default: Public
-                description: EndpointAccess specifies the publishing scope of cluster
-                  endpoints. The default is Public.
+                description: |-
+                  EndpointAccess specifies the publishing scope of cluster endpoints. The
+                  default is Public.
                 enum:
                 - Public
                 - Private
                 type: string
               etcdEncryptionKMSARN:
-                description: EtcdEncryptionKMSARN is the ARN of the KMS key used to
-                  encrypt etcd. The key itself needs to be created out-of-band by
-                  the user and tagged with `red-hat:true`.
+                description: |-
+                  EtcdEncryptionKMSARN is the ARN of the KMS key used to encrypt etcd. The key itself needs to be
+                  created out-of-band by the user and tagged with `red-hat:true`.
                 type: string
               identityRef:
-                description: IdentityRef is a reference to an identity to be used
-                  when reconciling the managed control plane. If no identity is specified,
-                  the default identity for this controller will be used.
+                description: |-
+                  IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
+                  If no identity is specified, the default identity for this controller will be used.
                 properties:
                   kind:
                     description: Kind of the identity.
@@ -223,142 +232,182 @@ spec:
                 properties:
                   controlPlaneOperatorARN:
                     description: "ControlPlaneOperatorARN  is an ARN value referencing
-                      a role appropriate for the Control Plane Operator. \n The following
-                      is an example of a valid policy document: \n { \"Version\":
-                      \"2012-10-17\", \"Statement\": [ { \"Effect\": \"Allow\", \"Action\":
-                      [ \"ec2:CreateVpcEndpoint\", \"ec2:DescribeVpcEndpoints\", \"ec2:ModifyVpcEndpoint\",
-                      \"ec2:DeleteVpcEndpoints\", \"ec2:CreateTags\", \"route53:ListHostedZones\",
-                      \"ec2:CreateSecurityGroup\", \"ec2:AuthorizeSecurityGroupIngress\",
-                      \"ec2:AuthorizeSecurityGroupEgress\", \"ec2:DeleteSecurityGroup\",
-                      \"ec2:RevokeSecurityGroupIngress\", \"ec2:RevokeSecurityGroupEgress\",
-                      \"ec2:DescribeSecurityGroups\", \"ec2:DescribeVpcs\", ], \"Resource\":
-                      \"*\" }, { \"Effect\": \"Allow\", \"Action\": [ \"route53:ChangeResourceRecordSets\",
-                      \"route53:ListResourceRecordSets\" ], \"Resource\": \"arn:aws:route53:::%s\"
-                      } ] }"
+                      a role appropriate for the Control Plane Operator.\n\n\nThe
+                      following is an example of a valid policy document:\n\n\n{\n\t\"Version\":
+                      \"2012-10-17\",\n\t\"Statement\": [\n\t\t{\n\t\t\t\"Effect\":
+                      \"Allow\",\n\t\t\t\"Action\": [\n\t\t\t\t\"ec2:CreateVpcEndpoint\",\n\t\t\t\t\"ec2:DescribeVpcEndpoints\",\n\t\t\t\t\"ec2:ModifyVpcEndpoint\",\n\t\t\t\t\"ec2:DeleteVpcEndpoints\",\n\t\t\t\t\"ec2:CreateTags\",\n\t\t\t\t\"route53:ListHostedZones\",\n\t\t\t\t\"ec2:CreateSecurityGroup\",\n\t\t\t\t\"ec2:AuthorizeSecurityGroupIngress\",\n\t\t\t\t\"ec2:AuthorizeSecurityGroupEgress\",\n\t\t\t\t\"ec2:DeleteSecurityGroup\",\n\t\t\t\t\"ec2:RevokeSecurityGroupIngress\",\n\t\t\t\t\"ec2:RevokeSecurityGroupEgress\",\n\t\t\t\t\"ec2:DescribeSecurityGroups\",\n\t\t\t\t\"ec2:DescribeVpcs\",\n\t\t\t],\n\t\t\t\"Resource\":
+                      \"*\"\n\t\t},\n\t\t{\n\t\t\t\"Effect\": \"Allow\",\n\t\t\t\"Action\":
+                      [\n\t\t\t\t\"route53:ChangeResourceRecordSets\",\n\t\t\t\t\"route53:ListResourceRecordSets\"\n\t\t\t],\n\t\t\t\"Resource\":
+                      \"arn:aws:route53:::%s\"\n\t\t}\n\t]\n}"
                     type: string
                   imageRegistryARN:
                     description: "ImageRegistryARN is an ARN value referencing a role
-                      appropriate for the Image Registry Operator. \n The following
-                      is an example of a valid policy document: \n { \"Version\":
-                      \"2012-10-17\", \"Statement\": [ { \"Effect\": \"Allow\", \"Action\":
-                      [ \"s3:CreateBucket\", \"s3:DeleteBucket\", \"s3:PutBucketTagging\",
-                      \"s3:GetBucketTagging\", \"s3:PutBucketPublicAccessBlock\",
-                      \"s3:GetBucketPublicAccessBlock\", \"s3:PutEncryptionConfiguration\",
-                      \"s3:GetEncryptionConfiguration\", \"s3:PutLifecycleConfiguration\",
-                      \"s3:GetLifecycleConfiguration\", \"s3:GetBucketLocation\",
-                      \"s3:ListBucket\", \"s3:GetObject\", \"s3:PutObject\", \"s3:DeleteObject\",
-                      \"s3:ListBucketMultipartUploads\", \"s3:AbortMultipartUpload\",
-                      \"s3:ListMultipartUploadParts\" ], \"Resource\": \"*\" } ] }"
+                      appropriate for the Image Registry Operator.\n\n\nThe following
+                      is an example of a valid policy document:\n\n\n{\n\t\"Version\":
+                      \"2012-10-17\",\n\t\"Statement\": [\n\t\t{\n\t\t\t\"Effect\":
+                      \"Allow\",\n\t\t\t\"Action\": [\n\t\t\t\t\"s3:CreateBucket\",\n\t\t\t\t\"s3:DeleteBucket\",\n\t\t\t\t\"s3:PutBucketTagging\",\n\t\t\t\t\"s3:GetBucketTagging\",\n\t\t\t\t\"s3:PutBucketPublicAccessBlock\",\n\t\t\t\t\"s3:GetBucketPublicAccessBlock\",\n\t\t\t\t\"s3:PutEncryptionConfiguration\",\n\t\t\t\t\"s3:GetEncryptionConfiguration\",\n\t\t\t\t\"s3:PutLifecycleConfiguration\",\n\t\t\t\t\"s3:GetLifecycleConfiguration\",\n\t\t\t\t\"s3:GetBucketLocation\",\n\t\t\t\t\"s3:ListBucket\",\n\t\t\t\t\"s3:GetObject\",\n\t\t\t\t\"s3:PutObject\",\n\t\t\t\t\"s3:DeleteObject\",\n\t\t\t\t\"s3:ListBucketMultipartUploads\",\n\t\t\t\t\"s3:AbortMultipartUpload\",\n\t\t\t\t\"s3:ListMultipartUploadParts\"\n\t\t\t],\n\t\t\t\"Resource\":
+                      \"*\"\n\t\t}\n\t]\n}"
                     type: string
                   ingressARN:
                     description: "The referenced role must have a trust relationship
-                      that allows it to be assumed via web identity. https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc.html.
-                      Example: { \"Version\": \"2012-10-17\", \"Statement\": [ { \"Effect\":
-                      \"Allow\", \"Principal\": { \"Federated\": \"{{ .ProviderARN
-                      }}\" }, \"Action\": \"sts:AssumeRoleWithWebIdentity\", \"Condition\":
-                      { \"StringEquals\": { \"{{ .ProviderName }}:sub\": {{ .ServiceAccounts
-                      }} } } } ] } \n IngressARN is an ARN value referencing a role
-                      appropriate for the Ingress Operator. \n The following is an
-                      example of a valid policy document: \n { \"Version\": \"2012-10-17\",
-                      \"Statement\": [ { \"Effect\": \"Allow\", \"Action\": [ \"elasticloadbalancing:DescribeLoadBalancers\",
-                      \"tag:GetResources\", \"route53:ListHostedZones\" ], \"Resource\":
-                      \"*\" }, { \"Effect\": \"Allow\", \"Action\": [ \"route53:ChangeResourceRecordSets\"
-                      ], \"Resource\": [ \"arn:aws:route53:::PUBLIC_ZONE_ID\", \"arn:aws:route53:::PRIVATE_ZONE_ID\"
-                      ] } ] }"
+                      that allows it to be assumed via web identity.\nhttps://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc.html.\nExample:\n{\n\t\t\"Version\":
+                      \"2012-10-17\",\n\t\t\"Statement\": [\n\t\t\t{\n\t\t\t\t\"Effect\":
+                      \"Allow\",\n\t\t\t\t\"Principal\": {\n\t\t\t\t\t\"Federated\":
+                      \"{{ .ProviderARN }}\"\n\t\t\t\t},\n\t\t\t\t\t\"Action\": \"sts:AssumeRoleWithWebIdentity\",\n\t\t\t\t\"Condition\":
+                      {\n\t\t\t\t\t\"StringEquals\": {\n\t\t\t\t\t\t\"{{ .ProviderName
+                      }}:sub\": {{ .ServiceAccounts }}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t]\n\t}\n\n\nIngressARN
+                      is an ARN value referencing a role appropriate for the Ingress
+                      Operator.\n\n\nThe following is an example of a valid policy
+                      document:\n\n\n{\n\t\"Version\": \"2012-10-17\",\n\t\"Statement\":
+                      [\n\t\t{\n\t\t\t\"Effect\": \"Allow\",\n\t\t\t\"Action\": [\n\t\t\t\t\"elasticloadbalancing:DescribeLoadBalancers\",\n\t\t\t\t\"tag:GetResources\",\n\t\t\t\t\"route53:ListHostedZones\"\n\t\t\t],\n\t\t\t\"Resource\":
+                      \"*\"\n\t\t},\n\t\t{\n\t\t\t\"Effect\": \"Allow\",\n\t\t\t\"Action\":
+                      [\n\t\t\t\t\"route53:ChangeResourceRecordSets\"\n\t\t\t],\n\t\t\t\"Resource\":
+                      [\n\t\t\t\t\"arn:aws:route53:::PUBLIC_ZONE_ID\",\n\t\t\t\t\"arn:aws:route53:::PRIVATE_ZONE_ID\"\n\t\t\t]\n\t\t}\n\t]\n}"
                     type: string
                   kmsProviderARN:
                     type: string
                   kubeCloudControllerARN:
-                    description: "KubeCloudControllerARN is an ARN value referencing
-                      a role appropriate for the KCM/KCC. Source: https://cloud-provider-aws.sigs.k8s.io/prerequisites/#iam-policies
-                      \n The following is an example of a valid policy document: \n
-                      { \"Version\": \"2012-10-17\", \"Statement\": [ { \"Action\":
-                      [ \"autoscaling:DescribeAutoScalingGroups\", \"autoscaling:DescribeLaunchConfigurations\",
-                      \"autoscaling:DescribeTags\", \"ec2:DescribeAvailabilityZones\",
-                      \"ec2:DescribeInstances\", \"ec2:DescribeImages\", \"ec2:DescribeRegions\",
-                      \"ec2:DescribeRouteTables\", \"ec2:DescribeSecurityGroups\",
-                      \"ec2:DescribeSubnets\", \"ec2:DescribeVolumes\", \"ec2:CreateSecurityGroup\",
-                      \"ec2:CreateTags\", \"ec2:CreateVolume\", \"ec2:ModifyInstanceAttribute\",
-                      \"ec2:ModifyVolume\", \"ec2:AttachVolume\", \"ec2:AuthorizeSecurityGroupIngress\",
-                      \"ec2:CreateRoute\", \"ec2:DeleteRoute\", \"ec2:DeleteSecurityGroup\",
-                      \"ec2:DeleteVolume\", \"ec2:DetachVolume\", \"ec2:RevokeSecurityGroupIngress\",
-                      \"ec2:DescribeVpcs\", \"elasticloadbalancing:AddTags\", \"elasticloadbalancing:AttachLoadBalancerToSubnets\",
-                      \"elasticloadbalancing:ApplySecurityGroupsToLoadBalancer\",
-                      \"elasticloadbalancing:CreateLoadBalancer\", \"elasticloadbalancing:CreateLoadBalancerPolicy\",
-                      \"elasticloadbalancing:CreateLoadBalancerListeners\", \"elasticloadbalancing:ConfigureHealthCheck\",
-                      \"elasticloadbalancing:DeleteLoadBalancer\", \"elasticloadbalancing:DeleteLoadBalancerListeners\",
-                      \"elasticloadbalancing:DescribeLoadBalancers\", \"elasticloadbalancing:DescribeLoadBalancerAttributes\",
-                      \"elasticloadbalancing:DetachLoadBalancerFromSubnets\", \"elasticloadbalancing:DeregisterInstancesFromLoadBalancer\",
-                      \"elasticloadbalancing:ModifyLoadBalancerAttributes\", \"elasticloadbalancing:RegisterInstancesWithLoadBalancer\",
-                      \"elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer\",
-                      \"elasticloadbalancing:AddTags\", \"elasticloadbalancing:CreateListener\",
-                      \"elasticloadbalancing:CreateTargetGroup\", \"elasticloadbalancing:DeleteListener\",
-                      \"elasticloadbalancing:DeleteTargetGroup\", \"elasticloadbalancing:DeregisterTargets\",
-                      \"elasticloadbalancing:DescribeListeners\", \"elasticloadbalancing:DescribeLoadBalancerPolicies\",
-                      \"elasticloadbalancing:DescribeTargetGroups\", \"elasticloadbalancing:DescribeTargetHealth\",
-                      \"elasticloadbalancing:ModifyListener\", \"elasticloadbalancing:ModifyTargetGroup\",
-                      \"elasticloadbalancing:RegisterTargets\", \"elasticloadbalancing:SetLoadBalancerPoliciesOfListener\",
-                      \"iam:CreateServiceLinkedRole\", \"kms:DescribeKey\" ], \"Resource\":
-                      [ \"*\" ], \"Effect\": \"Allow\" } ] }"
+                    description: |-
+                      KubeCloudControllerARN is an ARN value referencing a role appropriate for the KCM/KCC.
+                      Source: https://cloud-provider-aws.sigs.k8s.io/prerequisites/#iam-policies
+
+
+                      The following is an example of a valid policy document:
+
+
+                       {
+                       "Version": "2012-10-17",
+                       "Statement": [
+                         {
+                           "Action": [
+                             "autoscaling:DescribeAutoScalingGroups",
+                             "autoscaling:DescribeLaunchConfigurations",
+                             "autoscaling:DescribeTags",
+                             "ec2:DescribeAvailabilityZones",
+                             "ec2:DescribeInstances",
+                             "ec2:DescribeImages",
+                             "ec2:DescribeRegions",
+                             "ec2:DescribeRouteTables",
+                             "ec2:DescribeSecurityGroups",
+                             "ec2:DescribeSubnets",
+                             "ec2:DescribeVolumes",
+                             "ec2:CreateSecurityGroup",
+                             "ec2:CreateTags",
+                             "ec2:CreateVolume",
+                             "ec2:ModifyInstanceAttribute",
+                             "ec2:ModifyVolume",
+                             "ec2:AttachVolume",
+                             "ec2:AuthorizeSecurityGroupIngress",
+                             "ec2:CreateRoute",
+                             "ec2:DeleteRoute",
+                             "ec2:DeleteSecurityGroup",
+                             "ec2:DeleteVolume",
+                             "ec2:DetachVolume",
+                             "ec2:RevokeSecurityGroupIngress",
+                             "ec2:DescribeVpcs",
+                             "elasticloadbalancing:AddTags",
+                             "elasticloadbalancing:AttachLoadBalancerToSubnets",
+                             "elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
+                             "elasticloadbalancing:CreateLoadBalancer",
+                             "elasticloadbalancing:CreateLoadBalancerPolicy",
+                             "elasticloadbalancing:CreateLoadBalancerListeners",
+                             "elasticloadbalancing:ConfigureHealthCheck",
+                             "elasticloadbalancing:DeleteLoadBalancer",
+                             "elasticloadbalancing:DeleteLoadBalancerListeners",
+                             "elasticloadbalancing:DescribeLoadBalancers",
+                             "elasticloadbalancing:DescribeLoadBalancerAttributes",
+                             "elasticloadbalancing:DetachLoadBalancerFromSubnets",
+                             "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+                             "elasticloadbalancing:ModifyLoadBalancerAttributes",
+                             "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                             "elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer",
+                             "elasticloadbalancing:AddTags",
+                             "elasticloadbalancing:CreateListener",
+                             "elasticloadbalancing:CreateTargetGroup",
+                             "elasticloadbalancing:DeleteListener",
+                             "elasticloadbalancing:DeleteTargetGroup",
+                             "elasticloadbalancing:DeregisterTargets",
+                             "elasticloadbalancing:DescribeListeners",
+                             "elasticloadbalancing:DescribeLoadBalancerPolicies",
+                             "elasticloadbalancing:DescribeTargetGroups",
+                             "elasticloadbalancing:DescribeTargetHealth",
+                             "elasticloadbalancing:ModifyListener",
+                             "elasticloadbalancing:ModifyTargetGroup",
+                             "elasticloadbalancing:RegisterTargets",
+                             "elasticloadbalancing:SetLoadBalancerPoliciesOfListener",
+                             "iam:CreateServiceLinkedRole",
+                             "kms:DescribeKey"
+                           ],
+                           "Resource": [
+                             "*"
+                           ],
+                           "Effect": "Allow"
+                         }
+                       ]
+                      }
                     type: string
                   networkARN:
                     description: "NetworkARN is an ARN value referencing a role appropriate
-                      for the Network Operator. \n The following is an example of
-                      a valid policy document: \n { \"Version\": \"2012-10-17\", \"Statement\":
-                      [ { \"Effect\": \"Allow\", \"Action\": [ \"ec2:DescribeInstances\",
-                      \"ec2:DescribeInstanceStatus\", \"ec2:DescribeInstanceTypes\",
-                      \"ec2:UnassignPrivateIpAddresses\", \"ec2:AssignPrivateIpAddresses\",
-                      \"ec2:UnassignIpv6Addresses\", \"ec2:AssignIpv6Addresses\",
-                      \"ec2:DescribeSubnets\", \"ec2:DescribeNetworkInterfaces\" ],
-                      \"Resource\": \"*\" } ] }"
+                      for the Network Operator.\n\n\nThe following is an example of
+                      a valid policy document:\n\n\n{\n\t\"Version\": \"2012-10-17\",\n\t\"Statement\":
+                      [\n\t\t{\n\t\t\t\"Effect\": \"Allow\",\n\t\t\t\"Action\": [\n\t\t\t\t\"ec2:DescribeInstances\",\n
+                      \      \"ec2:DescribeInstanceStatus\",\n       \"ec2:DescribeInstanceTypes\",\n
+                      \      \"ec2:UnassignPrivateIpAddresses\",\n       \"ec2:AssignPrivateIpAddresses\",\n
+                      \      \"ec2:UnassignIpv6Addresses\",\n       \"ec2:AssignIpv6Addresses\",\n
+                      \      \"ec2:DescribeSubnets\",\n       \"ec2:DescribeNetworkInterfaces\"\n\t\t\t],\n\t\t\t\"Resource\":
+                      \"*\"\n\t\t}\n\t]\n}"
                     type: string
                   nodePoolManagementARN:
                     description: "NodePoolManagementARN is an ARN value referencing
-                      a role appropriate for the CAPI Controller. \n The following
-                      is an example of a valid policy document: \n { \"Version\":
-                      \"2012-10-17\", \"Statement\": [ { \"Action\": [ \"ec2:AssociateRouteTable\",
-                      \"ec2:AttachInternetGateway\", \"ec2:AuthorizeSecurityGroupIngress\",
-                      \"ec2:CreateInternetGateway\", \"ec2:CreateNatGateway\", \"ec2:CreateRoute\",
-                      \"ec2:CreateRouteTable\", \"ec2:CreateSecurityGroup\", \"ec2:CreateSubnet\",
-                      \"ec2:CreateTags\", \"ec2:DeleteInternetGateway\", \"ec2:DeleteNatGateway\",
-                      \"ec2:DeleteRouteTable\", \"ec2:DeleteSecurityGroup\", \"ec2:DeleteSubnet\",
-                      \"ec2:DeleteTags\", \"ec2:DescribeAccountAttributes\", \"ec2:DescribeAddresses\",
-                      \"ec2:DescribeAvailabilityZones\", \"ec2:DescribeImages\", \"ec2:DescribeInstances\",
-                      \"ec2:DescribeInternetGateways\", \"ec2:DescribeNatGateways\",
-                      \"ec2:DescribeNetworkInterfaces\", \"ec2:DescribeNetworkInterfaceAttribute\",
-                      \"ec2:DescribeRouteTables\", \"ec2:DescribeSecurityGroups\",
-                      \"ec2:DescribeSubnets\", \"ec2:DescribeVpcs\", \"ec2:DescribeVpcAttribute\",
-                      \"ec2:DescribeVolumes\", \"ec2:DetachInternetGateway\", \"ec2:DisassociateRouteTable\",
-                      \"ec2:DisassociateAddress\", \"ec2:ModifyInstanceAttribute\",
-                      \"ec2:ModifyNetworkInterfaceAttribute\", \"ec2:ModifySubnetAttribute\",
-                      \"ec2:RevokeSecurityGroupIngress\", \"ec2:RunInstances\", \"ec2:TerminateInstances\",
-                      \"tag:GetResources\", \"ec2:CreateLaunchTemplate\", \"ec2:CreateLaunchTemplateVersion\",
-                      \"ec2:DescribeLaunchTemplates\", \"ec2:DescribeLaunchTemplateVersions\",
-                      \"ec2:DeleteLaunchTemplate\", \"ec2:DeleteLaunchTemplateVersions\"
-                      ], \"Resource\": [ \"*\" ], \"Effect\": \"Allow\" }, { \"Condition\":
-                      { \"StringLike\": { \"iam:AWSServiceName\": \"elasticloadbalancing.amazonaws.com\"
-                      } }, \"Action\": [ \"iam:CreateServiceLinkedRole\" ], \"Resource\":
-                      [ \"arn:*:iam::*:role/aws-service-role/elasticloadbalancing.amazonaws.com/AWSServiceRoleForElasticLoadBalancing\"
-                      ], \"Effect\": \"Allow\" }, { \"Action\": [ \"iam:PassRole\"
-                      ], \"Resource\": [ \"arn:*:iam::*:role/*-worker-role\" ], \"Effect\":
-                      \"Allow\" }, { \"Effect\": \"Allow\", \"Action\": [ \"kms:Decrypt\",
-                      \"kms:ReEncrypt\", \"kms:GenerateDataKeyWithoutPlainText\",
-                      \"kms:DescribeKey\" ], \"Resource\": \"*\" }, { \"Effect\":
-                      \"Allow\", \"Action\": [ \"kms:CreateGrant\" ], \"Resource\":
-                      \"*\", \"Condition\": { \"Bool\": { \"kms:GrantIsForAWSResource\":
-                      true } } } ] }"
+                      a role appropriate for the CAPI Controller.\n\n\nThe following
+                      is an example of a valid policy document:\n\n\n{\n  \"Version\":
+                      \"2012-10-17\",\n \"Statement\": [\n   {\n     \"Action\": [\n
+                      \      \"ec2:AssociateRouteTable\",\n       \"ec2:AttachInternetGateway\",\n
+                      \      \"ec2:AuthorizeSecurityGroupIngress\",\n       \"ec2:CreateInternetGateway\",\n
+                      \      \"ec2:CreateNatGateway\",\n       \"ec2:CreateRoute\",\n
+                      \      \"ec2:CreateRouteTable\",\n       \"ec2:CreateSecurityGroup\",\n
+                      \      \"ec2:CreateSubnet\",\n       \"ec2:CreateTags\",\n       \"ec2:DeleteInternetGateway\",\n
+                      \      \"ec2:DeleteNatGateway\",\n       \"ec2:DeleteRouteTable\",\n
+                      \      \"ec2:DeleteSecurityGroup\",\n       \"ec2:DeleteSubnet\",\n
+                      \      \"ec2:DeleteTags\",\n       \"ec2:DescribeAccountAttributes\",\n
+                      \      \"ec2:DescribeAddresses\",\n       \"ec2:DescribeAvailabilityZones\",\n
+                      \      \"ec2:DescribeImages\",\n       \"ec2:DescribeInstances\",\n
+                      \      \"ec2:DescribeInternetGateways\",\n       \"ec2:DescribeNatGateways\",\n
+                      \      \"ec2:DescribeNetworkInterfaces\",\n       \"ec2:DescribeNetworkInterfaceAttribute\",\n
+                      \      \"ec2:DescribeRouteTables\",\n       \"ec2:DescribeSecurityGroups\",\n
+                      \      \"ec2:DescribeSubnets\",\n       \"ec2:DescribeVpcs\",\n
+                      \      \"ec2:DescribeVpcAttribute\",\n       \"ec2:DescribeVolumes\",\n
+                      \      \"ec2:DetachInternetGateway\",\n       \"ec2:DisassociateRouteTable\",\n
+                      \      \"ec2:DisassociateAddress\",\n       \"ec2:ModifyInstanceAttribute\",\n
+                      \      \"ec2:ModifyNetworkInterfaceAttribute\",\n       \"ec2:ModifySubnetAttribute\",\n
+                      \      \"ec2:RevokeSecurityGroupIngress\",\n       \"ec2:RunInstances\",\n
+                      \      \"ec2:TerminateInstances\",\n       \"tag:GetResources\",\n
+                      \      \"ec2:CreateLaunchTemplate\",\n       \"ec2:CreateLaunchTemplateVersion\",\n
+                      \      \"ec2:DescribeLaunchTemplates\",\n       \"ec2:DescribeLaunchTemplateVersions\",\n
+                      \      \"ec2:DeleteLaunchTemplate\",\n       \"ec2:DeleteLaunchTemplateVersions\"\n
+                      \    ],\n     \"Resource\": [\n       \"*\"\n     ],\n     \"Effect\":
+                      \"Allow\"\n   },\n   {\n     \"Condition\": {\n       \"StringLike\":
+                      {\n         \"iam:AWSServiceName\": \"elasticloadbalancing.amazonaws.com\"\n
+                      \      }\n     },\n     \"Action\": [\n       \"iam:CreateServiceLinkedRole\"\n
+                      \    ],\n     \"Resource\": [\n       \"arn:*:iam::*:role/aws-service-role/elasticloadbalancing.amazonaws.com/AWSServiceRoleForElasticLoadBalancing\"\n
+                      \    ],\n     \"Effect\": \"Allow\"\n   },\n   {\n     \"Action\":
+                      [\n       \"iam:PassRole\"\n     ],\n     \"Resource\": [\n
+                      \      \"arn:*:iam::*:role/*-worker-role\"\n     ],\n     \"Effect\":
+                      \"Allow\"\n   },\n\t  {\n\t  \t\"Effect\": \"Allow\",\n\t  \t\"Action\":
+                      [\n\t  \t\t\"kms:Decrypt\",\n\t  \t\t\"kms:ReEncrypt\",\n\t
+                      \ \t\t\"kms:GenerateDataKeyWithoutPlainText\",\n\t  \t\t\"kms:DescribeKey\"\n\t
+                      \ \t],\n\t  \t\"Resource\": \"*\"\n\t  },\n\t  {\n\t  \t\"Effect\":
+                      \"Allow\",\n\t  \t\"Action\": [\n\t  \t\t\"kms:CreateGrant\"\n\t
+                      \ \t],\n\t  \t\"Resource\": \"*\",\n\t  \t\"Condition\": {\n\t
+                      \ \t\t\"Bool\": {\n\t  \t\t\t\"kms:GrantIsForAWSResource\":
+                      true\n\t  \t\t}\n\t  \t}\n\t  }\n ]\n}"
                     type: string
                   storageARN:
                     description: "StorageARN is an ARN value referencing a role appropriate
-                      for the Storage Operator. \n The following is an example of
-                      a valid policy document: \n { \"Version\": \"2012-10-17\", \"Statement\":
-                      [ { \"Effect\": \"Allow\", \"Action\": [ \"ec2:AttachVolume\",
-                      \"ec2:CreateSnapshot\", \"ec2:CreateTags\", \"ec2:CreateVolume\",
-                      \"ec2:DeleteSnapshot\", \"ec2:DeleteTags\", \"ec2:DeleteVolume\",
-                      \"ec2:DescribeInstances\", \"ec2:DescribeSnapshots\", \"ec2:DescribeTags\",
-                      \"ec2:DescribeVolumes\", \"ec2:DescribeVolumesModifications\",
-                      \"ec2:DetachVolume\", \"ec2:ModifyVolume\" ], \"Resource\":
-                      \"*\" } ] }"
+                      for the Storage Operator.\n\n\nThe following is an example of
+                      a valid policy document:\n\n\n{\n\t\"Version\": \"2012-10-17\",\n\t\"Statement\":
+                      [\n\t\t{\n\t\t\t\"Effect\": \"Allow\",\n\t\t\t\"Action\": [\n\t\t\t\t\"ec2:AttachVolume\",\n\t\t\t\t\"ec2:CreateSnapshot\",\n\t\t\t\t\"ec2:CreateTags\",\n\t\t\t\t\"ec2:CreateVolume\",\n\t\t\t\t\"ec2:DeleteSnapshot\",\n\t\t\t\t\"ec2:DeleteTags\",\n\t\t\t\t\"ec2:DeleteVolume\",\n\t\t\t\t\"ec2:DescribeInstances\",\n\t\t\t\t\"ec2:DescribeSnapshots\",\n\t\t\t\t\"ec2:DescribeTags\",\n\t\t\t\t\"ec2:DescribeVolumes\",\n\t\t\t\t\"ec2:DescribeVolumesModifications\",\n\t\t\t\t\"ec2:DetachVolume\",\n\t\t\t\t\"ec2:ModifyVolume\"\n\t\t\t],\n\t\t\t\"Resource\":
+                      \"*\"\n\t\t}\n\t]\n}"
                     type: string
                 required:
                 - controlPlaneOperatorARN
@@ -371,10 +420,10 @@ spec:
                 - storageARN
                 type: object
               rosaClusterName:
-                description: Cluster name must be valid DNS-1035 label, so it must
-                  consist of lower case alphanumeric characters or '-', start with
-                  an alphabetic character, end with an alphanumeric character and
-                  have a max length of 54 characters.
+                description: |-
+                  Cluster name must be valid DNS-1035 label, so it must consist of lower case alphanumeric
+                  characters or '-', start with an alphabetic character, end with an alphanumeric character
+                  and have a max length of 54 characters.
                 maxLength: 54
                 pattern: ^[a-z]([-a-z0-9]*[a-z0-9])?$
                 type: string
@@ -382,15 +431,16 @@ spec:
                 - message: rosaClusterName is immutable
                   rule: self == oldSelf
               subnets:
-                description: The Subnet IDs to use when installing the cluster. SubnetIDs
-                  should come in pairs; two per availability zone, one private and
-                  one public.
+                description: |-
+                  The Subnet IDs to use when installing the cluster.
+                  SubnetIDs should come in pairs; two per availability zone, one private and one public.
                 items:
                   type: string
                 type: array
               supportRoleARN:
-                description: SupportRoleARN is an AWS IAM role used by Red Hat SREs
-                  to enable access to the cluster account in order to provide support.
+                description: |-
+                  SupportRoleARN is an AWS IAM role used by Red Hat SREs to enable
+                  access to the cluster account in order to provide support.
                 type: string
               version:
                 description: OpenShift semantic version, for example "4.14.5".
@@ -422,37 +472,37 @@ spec:
                     operational state.
                   properties:
                     lastTransitionTime:
-                      description: Last time the condition transitioned from one status
-                        to another. This should be when the underlying condition changed.
-                        If that is not known, then using the time when the API field
-                        changed is acceptable.
+                      description: |-
+                        Last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed. If that is not known, then using the time when
+                        the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
-                      description: A human readable message indicating details about
-                        the transition. This field may be empty.
+                      description: |-
+                        A human readable message indicating details about the transition.
+                        This field may be empty.
                       type: string
                     reason:
-                      description: The reason for the condition's last transition
-                        in CamelCase. The specific API may choose whether or not this
-                        field is considered a guaranteed API. This field may not be
-                        empty.
+                      description: |-
+                        The reason for the condition's last transition in CamelCase.
+                        The specific API may choose whether or not this field is considered a guaranteed API.
+                        This field may not be empty.
                       type: string
                     severity:
-                      description: Severity provides an explicit classification of
-                        Reason code, so the users or machines can immediately understand
-                        the current situation and act accordingly. The Severity field
-                        MUST be set only when Status=False.
+                      description: |-
+                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        understand the current situation and act accordingly.
+                        The Severity field MUST be set only when Status=False.
                       type: string
                     status:
                       description: Status of the condition, one of True, False, Unknown.
                       type: string
                     type:
-                      description: Type of condition in CamelCase or in foo.example.com/CamelCase.
-                        Many .condition.type values are consistent across resources
-                        like Available, but because arbitrary conditions can be useful
-                        (see .node.status.conditions), the ability to deconflict is
-                        important.
+                      description: |-
+                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                        can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
                   required:
                   - lastTransitionTime
@@ -465,25 +515,29 @@ spec:
                 type: string
               externalManagedControlPlane:
                 default: true
-                description: ExternalManagedControlPlane indicates to cluster-api
-                  that the control plane is managed by an external service such as
-                  AKS, EKS, GKE, etc.
+                description: |-
+                  ExternalManagedControlPlane indicates to cluster-api that the control plane
+                  is managed by an external service such as AKS, EKS, GKE, etc.
                 type: boolean
               failureMessage:
-                description: "FailureMessage will be set in the event that there is
-                  a terminal problem reconciling the state and will be set to a descriptive
-                  error message. \n This field should not be set for transitive errors
-                  that a controller faces that are expected to be fixed automatically
-                  over time (like service outages), but instead indicate that something
-                  is fundamentally wrong with the spec or the configuration of the
-                  controller, and that manual intervention is required."
+                description: |-
+                  FailureMessage will be set in the event that there is a terminal problem
+                  reconciling the state and will be set to a descriptive error message.
+
+
+                  This field should not be set for transitive errors that a controller
+                  faces that are expected to be fixed automatically over
+                  time (like service outages), but instead indicate that something is
+                  fundamentally wrong with the spec or the configuration of
+                  the controller, and that manual intervention is required.
                 type: string
               id:
                 description: ID is the cluster ID given by ROSA.
                 type: string
               initialized:
-                description: Initialized denotes whether or not the control plane
-                  has the uploaded kubernetes config-map.
+                description: |-
+                  Initialized denotes whether or not the control plane has the
+                  uploaded kubernetes config-map.
                 type: boolean
               oidcEndpointURL:
                 description: OIDCEndpointURL is the endpoint url for the managed OIDC
