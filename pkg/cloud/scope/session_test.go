@@ -228,7 +228,7 @@ func TestPrincipalParsing(t *testing.T) {
 				Namespace: "default",
 			},
 		},
-		AWSCluster: &infrav1.AWSCluster{},
+		AWSCluster: &infrav1.AWSCluster{Spec: infrav1.AWSClusterSpec{Region: "us-west-2"}},
 	},
 	)
 
@@ -489,7 +489,7 @@ func TestPrincipalParsing(t *testing.T) {
 			k8sClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 			tc.setup(t, k8sClient)
 			clusterScope.AWSCluster = &tc.awsCluster
-			providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScope, logger.NewLogger(klog.Background()))
+			providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScope, clusterScope.Region(), logger.NewLogger(klog.Background()))
 			if tc.expectError {
 				if err == nil {
 					t.Fatal("Expected an error but didn't get one")
