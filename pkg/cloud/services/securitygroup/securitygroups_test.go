@@ -1317,6 +1317,64 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "defined rules are used when using internal and external LB",
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+						IngressRules: []infrav1.IngressRule{
+							{
+								Description: "My custom ingress rule",
+								Protocol:    infrav1.SecurityGroupProtocolTCP,
+								FromPort:    1234,
+								ToPort:      1234,
+								CidrBlocks:  []string{"172.126.1.1/0"},
+							},
+						},
+						Scheme: &infrav1.ELBSchemeInternal,
+					},
+					SecondaryControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+						IngressRules: []infrav1.IngressRule{
+							{
+								Description: "Another custom ingress rule",
+								Protocol:    infrav1.SecurityGroupProtocolTCP,
+								FromPort:    2345,
+								ToPort:      2345,
+								CidrBlocks:  []string{"0.0.0.0/0"},
+							},
+						},
+					},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+						},
+					},
+				},
+			},
+			expectedIngresRules: infrav1.IngressRules{
+				infrav1.IngressRule{
+					Description: "Kubernetes API",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"10.0.0.0/16"},
+				},
+				infrav1.IngressRule{
+					Description: "My custom ingress rule",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    1234,
+					ToPort:      1234,
+					CidrBlocks:  []string{"172.126.1.1/0"},
+				},
+				infrav1.IngressRule{
+					Description: "Another custom ingress rule",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    2345,
+					ToPort:      2345,
+					CidrBlocks:  []string{"0.0.0.0/0"},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
