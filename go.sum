@@ -481,8 +481,8 @@ github.com/opencontainers/image-spec v1.1.0-rc2.0.20221005185240-3a7f492d3f1b h1
 github.com/opencontainers/image-spec v1.1.0-rc2.0.20221005185240-3a7f492d3f1b/go.mod h1:3OVijpioIKYWTqjiG0zfF6wvoJ4fAXGbjdZuI2NgsRQ=
 github.com/openshift-online/ocm-common v0.0.0-20240129111424-ff8c6c11d909 h1:WV67GNazQuGDaLX3kBbz0859NYPOQCsDCY5XUScF85M=
 github.com/openshift-online/ocm-common v0.0.0-20240129111424-ff8c6c11d909/go.mod h1:7FaAb07S63RF4sFMLSLtQaJLvPdaRnhAT4dBLD8/5kM=
-github.com/openshift-online/ocm-sdk-go v0.1.406 h1:DB97+wipdP1IK6D2CTINqCjs9obJSLzgwpfsx+94lBQ=
-github.com/openshift-online/ocm-sdk-go v0.1.406/go.mod h1:8ECJertR5BiblaX5f2siXHXpi+ydYZjoROlVMppmmV4=
+github.com/openshift-online/ocm-sdk-go v0.1.409 h1:M7GB1iURdXTFJ6N5cvMxLz0L7wWwdnUvwDOCDFZ7L1s=
+github.com/openshift-online/ocm-sdk-go v0.1.409/go.mod h1:8ECJertR5BiblaX5f2siXHXpi+ydYZjoROlVMppmmV4=
 github.com/openshift/rosa v1.2.35-rc1.0.20240301152457-ad986cecd364 h1:j1aGLgZhO5xXpYgGAjmraioHTvCK7+gXZXoN9cnpnkw=
 github.com/openshift/rosa v1.2.35-rc1.0.20240301152457-ad986cecd364/go.mod h1:kSNsBW8P9KfLCsZYGIrr/aKbLDct8I5gW0e4cCRrr0o=
 github.com/pelletier/go-toml v1.9.4/go.mod h1:u1nR/EPcESfeI/szUZKdtJ0xRNbUoANCkoOuaOx1Y+c=
