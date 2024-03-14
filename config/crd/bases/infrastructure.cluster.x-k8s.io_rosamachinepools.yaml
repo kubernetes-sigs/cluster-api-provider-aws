@@ -53,6 +53,12 @@ spec:
                 items:
                   type: string
                 type: array
+              additionalTags:
+                additionalProperties:
+                  type: string
+                description: AdditionalTags are user-defined tags to be added on the
+                  underlying EC2 instances associated with this machine pool.
+                type: object
               autoRepair:
                 default: false
                 description: AutoRepair specifies whether health checks should be
@@ -83,14 +89,13 @@ spec:
                 description: Labels specifies labels for the Kubernetes node objects
                 type: object
               nodeDrainGracePeriod:
-                description: NodeDrainGracePeriod is grace period for how long Pod
+                description: "NodeDrainGracePeriod is grace period for how long Pod
                   Disruption Budget-protected workloads will be respected during upgrades.
                   After this grace period, any workloads protected by Pod Disruption
                   Budgets that have not been successfully drained from a node will
-                  be forcibly evicted. The nodeDrainGracePeriod can be defined in
-                  minutes, hours ex; 30m, 10h. The max value can be assigned is 10080m|168h
-                  (1 week).
-                pattern: ^(([0-9])+[m|h])$
+                  be forcibly evicted. \n Valid values are from 0 to 1 week(10080m|168h)
+                  . 0 or empty value means that the MachinePool can be drained without
+                  any time limitation."
                 type: string
               nodePoolName:
                 description: NodePoolName specifies the name of the nodepool in Rosa
