@@ -20,6 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -58,6 +59,11 @@ type RosaMachinePoolSpec struct {
 	// +optional
 	Taints []RosaTaint `json:"taints,omitempty"`
 
+	// AdditionalTags are user-defined tags to be added on the underlying EC2 instances associated with this machine pool.
+	// +immutable
+	// +optional
+	AdditionalTags infrav1.Tags `json:"additionalTags,omitempty"`
+
 	// AutoRepair specifies whether health checks should be enabled for machines
 	// in the NodePool. The default is false.
 	// +kubebuilder:default=false
@@ -92,11 +98,13 @@ type RosaMachinePoolSpec struct {
 
 	// NodeDrainGracePeriod is grace period for how long Pod Disruption Budget-protected workloads will be
 	// respected during upgrades. After this grace period, any workloads protected by Pod Disruption
-	// Budgets that have not been successfully drained from a node will be forcibly evicted. The nodeDrainGracePeriod
-	// can be defined in minutes, hours ex; 30m, 10h. The max value can be assigned is 10080m|168h (1 week).
-	// +kubebuilder:validation:Pattern="^(([0-9])+[m|h])$"
+	// Budgets that have not been successfully drained from a node will be forcibly evicted.
+	//
+	// Valid values are from 0 to 1 week(10080m|168h) .
+	// 0 or empty value means that the MachinePool can be drained without any time limitation.
+	//
 	// +optional
-	NodeDrainGracePeriod string `json:"nodeDrainGracePeriod,omitempty"`
+	NodeDrainGracePeriod *metav1.Duration `json:"nodeDrainGracePeriod,omitempty"`
 }
 
 // RosaTaint represents a taint to be applied to a node.
